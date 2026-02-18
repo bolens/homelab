@@ -1,0 +1,29 @@
+services:
+  caddy:
+    image: caddy:latest
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+
+networks:
+  monitor:
+    name: monitor
+    driver: bridge
+
+volumes:
+  caddy_data: {}

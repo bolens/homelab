@@ -1,0 +1,29 @@
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - monitor
+    # Optional: run as specific user (Uptime Kuma defaults to node in image)
+    # user: "1000:1000"
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+
+networks:
+  monitor:
+    name: monitor
+    driver: bridge
+
+volumes:
+  uptime_kuma_data: {}
