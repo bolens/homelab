@@ -1,0 +1,22 @@
+# Example cloudflared config file (alternative to token method)
+# If using this, uncomment the volumes and command override in docker-compose.yml
+
+tunnel: YOUR_TUNNEL_ID
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  # Route through Caddy (recommended if you want Caddy to handle routing)
+  # Replace with your hostnames and adjust services as needed
+  - hostname: portainer.yourdomain.com
+    service: http://host.docker.internal:80
+  - hostname: status.yourdomain.com
+    service: http://host.docker.internal:80
+  
+  # Or route directly to services (bypass Caddy)
+  # - hostname: portainer.yourdomain.com
+  #   service: http://host.docker.internal:9443
+  # - hostname: status.yourdomain.com
+  #   service: http://host.docker.internal:3001
+  
+  # Catch-all
+  - service: http_status:404

@@ -1,0 +1,18 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+    # Alternative: use config file instead of token (uncomment if preferred)
+    # volumes:
+    #   - ./config.yml:/etc/cloudflared/config.yml
+    # command: tunnel --config /etc/cloudflared/config.yml run
+
+volumes: {}

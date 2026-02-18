@@ -1,0 +1,76 @@
+# Environment and secrets – do not commit
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Config files that may contain secrets (keep .example templates)
+config.yml
+config.yaml
+**/config.yml
+**/config.yaml
+Caddyfile
+**/Caddyfile
+!**/*.example
+!**/*.example.*
+
+# Credentials and keys
+credentials.json
+cloudflared.json
+tokens.txt
+*.pem
+*.key
+*.crt
+*.pfx
+**/credentials/
+**/secrets/
+
+# ACME / Let's Encrypt (Traefik, Caddy, certbot – contain cert private keys & account key)
+acme.json
+**/acme.json
+letsencrypt/
+**/letsencrypt/
+
+# Docker Compose overrides (often used for local secrets and host-specific config)
+docker-compose.override.yml
+docker-compose.*.local.yml
+docker-compose.override.*.yml
+
+# Auth and OAuth
+.htpasswd
+htpasswd
+client_secret*.json
+service-account*.json
+*-credentials.json
+.netrc
+
+# Registry / container auth
+auth.json
+config.json
+
+# Database dumps and backups (can contain sensitive data)
+*.sql
+*.sql.gz
+*.dump
+backups/
+**/backups/
+
+# VPN / WireGuard (configs contain private keys)
+**/wireguard/**/*.conf
+**/vpn/**/*.conf
+wg*.conf
+
+# SSH keys (if ever dropped in project)
+id_rsa
+id_ed25519
+
+# Docker and runtime
+.docker/
+*.log
+data/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
