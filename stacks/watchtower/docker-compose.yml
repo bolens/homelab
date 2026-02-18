@@ -1,0 +1,25 @@
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+      # Check for updates every 24 hours
+      - WATCHTOWER_POLL_INTERVAL=86400
+      # Remove old images after updating (saves disk space)
+      - WATCHTOWER_CLEANUP=true
+      # Only update containers that have label com.centurylinklabs.watchtower.enable=true
+      # Set to "true" to enable; "false" = update all containers
+      - WATCHTOWER_LABEL_ENABLE=false
+    # Optional: use cron instead of interval (e.g. daily at 03:00)
+    # command: --schedule "0 0 3 * * *" --cleanup
+
+volumes: {}
