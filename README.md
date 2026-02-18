@@ -12,7 +12,7 @@ Docker Compose stacks for self-hosting: reverse proxy, monitoring, auto-updates,
 | **stacks/uptime-kuma** | Uptime Kuma – status page and monitoring |
 | **stacks/watchtower** | Watchtower – automatic container image updates |
 
-Each stack has its own `README.md` with setup and usage.
+Each stack has its own `README.md` with setup and usage; see also `portainer/README.md`.
 
 ## Getting started
 
