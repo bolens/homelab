@@ -1,21 +1,35 @@
 # Watchtower
 
-Auto-updates running Docker containers when new images are available.
+Automatically updates running containers when new images are available. Uses the Docker socket on the host.
 
-- **Schedule:** every 24 hours (override with `WATCHTOWER_POLL_INTERVAL` or use `--schedule` in `command`).
-- **Cleanup:** old images are removed after updates.
+## Quick start
 
-To update only specific containers:
+`docker compose up -d` from this directory (or deploy as a stack in Portainer). By default: polls every 24 hours and removes old images after updating.
 
-1. Add this label to each service you want Watchtower to update:
+## Configuration
+
+| Item | Details |
+|------|---------|
+| **Volume** | `/var/run/docker.sock` (required) |
+| **Env** | See [ENV-VARS.md](../ENV-VARS.md) for TZ/locale. |
+
+**Key env vars (in `docker-compose.yml`):**
+
+- `WATCHTOWER_POLL_INTERVAL=86400` — check every 24h. Override or use `--schedule "0 0 3 * * *"` in `command` for cron-style.
+- `WATCHTOWER_CLEANUP=true` — remove old images after update.
+- `WATCHTOWER_LABEL_ENABLE=false` — if `true`, only containers with label `com.centurylinklabs.watchtower.enable=true` are updated.
+
+**Update only selected containers:** Set `WATCHTOWER_LABEL_ENABLE=true` in this stack, and add to each service you want updated:
 
 ```yaml
 labels:
   - "com.centurylinklabs.watchtower.enable=true"
 ```
 
-2. In this stack's `docker-compose.yml`, set `WATCHTOWER_LABEL_ENABLE: "true"`.
+## Troubleshooting
 
-**"Client version 1.25 is too old. Minimum supported API version is 1.44":** Your Docker daemon (v29+) requires API 1.44; Watchtower's image may ship an older client. Pull the latest image and redeploy: `docker pull containrrr/watchtower:latest` then recreate the container. If it still fails, check [Watchtower releases](https://github.com/containrrr/watchtower/releases) for a build that supports Docker API 1.44+.
+**"Client version 1.25 is too old. Minimum supported API version is 1.44"** — Docker daemon is newer than the image’s client. Pull latest and recreate: `docker pull containrrr/watchtower:latest` then redeploy. See [Watchtower releases](https://github.com/containrrr/watchtower/releases) for API compatibility.
 
-**Start:** `docker compose up -d` (from this directory or via Portainer).
+## Start
+
+`docker compose up -d` from this directory.

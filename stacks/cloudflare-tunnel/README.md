@@ -1,72 +1,27 @@
 # Cloudflare Tunnel (cloudflared)
 
-Runs on your Docker host (same machine as Portainer, Caddy, Uptime Kuma). Exposes those services via Cloudflare Tunnels—no port forwarding or dynamic IP management. Traffic flows outbound from bamboo.local to Cloudflare, then Cloudflare routes it to your services.
+Exposes services on your Docker host via Cloudflare—no port forwarding or dynamic IP. Traffic goes outbound from host → Cloudflare → your services.
 
-## Setup
+## Quick start (token method)
 
-### 1. Create Tunnel in Cloudflare
+1. **Cloudflare:** Zero Trust → **Networks → Tunnels → Create tunnel** (Cloudflared). Copy the **tunnel token**.
+2. Copy `.env.example` → `.env` and set `TUNNEL_TOKEN=...`.
+3. In the tunnel’s **Public Hostnames**, add routes (e.g. `portainer.yourdomain.com` → HTTP → `localhost:9443`; `status.yourdomain.com` → `localhost:3001`). To route via Caddy, use `localhost:80` (or `443`) and Caddy routes by Host.
+4. Start: `docker compose up -d`.
 
-1. Go to **Cloudflare Dashboard → Zero Trust** (or https://one.dash.cloudflare.com/)
-2. **Networks → Tunnels → Create a tunnel**
-3. Choose **Cloudflared** as connector
-4. Name it (e.g., "homelab")
-5. Copy the **Tunnel token** (starts with something like `eyJ...`)
+## Config file (alternative)
 
-### 2. Configure Routes in Cloudflare Dashboard
+1. Copy `config.yml.example` → `config.yml`. Set `tunnel`, hostnames, and services (use `host.docker.internal` for host services).
+2. In `docker-compose.yml`, uncomment the `volumes` and `command` that use the config file; remove or leave empty `TUNNEL_TOKEN` if not using token.
 
-In the tunnel’s **Public Hostnames** tab, add routes:
+## Configuration
 
-| Subdomain | Service | Type | URL |
-|-----------|---------|------|-----|
-| `portainer.yourdomain.com` | Portainer | HTTP | `localhost:9443` |
-| `status.yourdomain.com` | Uptime Kuma | HTTP | `localhost:3001` |
+| Item | Details |
+|------|---------|
+| **Env** | `TUNNEL_TOKEN` (from Cloudflare) or config file. See [ENV-VARS.md](../ENV-VARS.md) for TZ/locale. |
 
-**Note:** If routing through Caddy instead of directly:
-- Set URL to `localhost:80` (or `localhost:443` if Caddy handles HTTPS)
-- Caddy will then route based on Host header
+**Benefits:** No open 80/443 on router, no dynamic DNS, origin IP hidden, DDoS protection, optional Cloudflare Access.
 
-### 3. Set Token and Start
+## Start
 
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit `.env` and paste your tunnel token:
-   ```
-   TUNNEL_TOKEN=eyJ...
-   ```
-
-3. Start the stack:
-   ```bash
-   docker compose up -d
-   ```
-
-The tunnel will connect outbound to Cloudflare. No router port forwarding needed.
-
-## Alternative: Config File Method
-
-If you prefer a config file instead of a token:
-
-1. Copy `config.yml.example` to `config.yml` and set your tunnel ID and hostnames:
-   ```yaml
-   tunnel: YOUR_TUNNEL_ID
-   credentials-file: /etc/cloudflared/credentials.json
-   
-   ingress:
-     - hostname: portainer.yourdomain.com
-       service: http://host.docker.internal:9443
-     - hostname: status.yourdomain.com
-       service: http://host.docker.internal:3001
-     - service: http_status:404
-   ```
-
-2. Update `docker-compose.yml` to use the config file (see commented section).
-
-## Benefits vs Port Forwarding
-
-- ✅ No router port forwarding (80/443 don’t need to be open)
-- ✅ No dynamic IP management (tunnel connects outbound)
-- ✅ Origin IP hidden (Cloudflare proxies traffic)
-- ✅ Built-in DDoS protection
-- ✅ Optional: Cloudflare Access for authentication
+`docker compose up -d` from this directory.
