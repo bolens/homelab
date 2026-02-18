@@ -2,24 +2,35 @@
 
 Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and more; supports many notification channels (Telegram, email, Discord, etc.).
 
-**First run:** Open http://localhost:3001 (or https://kuma.home once Caddy is up) and create an admin account.
+## Quick start
 
-**Monitoring:**
-- **Other containers (Caddy, self):** Use the shared `monitor` network. In Uptime Kuma set: **Caddy** → `http://caddy:80`, **Uptime Kuma (self)** → `http://uptime-kuma:3001`.
-- **Host services (Portainer):** Use **host.docker.internal**, e.g. `https://host.docker.internal:9443` (disable "Verify SSL" if needed).
+1. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
+2. Open http://localhost:3001 (or https://kuma.home once Caddy is up) and create the admin account.
 
-The `monitor` network is created automatically by the first stack you deploy (Caddy or Uptime Kuma); the other stack attaches to it. No manual `docker network create` needed.
+## Configuration
 
-**Caddy heartbeat still failing?** Run these on bamboo.local:
+| Item | Details |
+|------|---------|
+| **Port** | 3001 |
+| **Volume** | `uptime_kuma_data` (persistent data) |
+| **Network** | `monitor` — shared with Caddy for internal checks |
+| **Env** | See [ENV-VARS.md](../ENV-VARS.md) for TZ/locale. |
 
-1. **Both on same network:**  
-   `docker network inspect monitor --format '{{range .Containers}}{{.Name}} {{end}}'`  
-   You should see both `caddy` and `uptime-kuma`.
+**Monitoring targets:**
 
-2. **Reach Caddy from Uptime Kuma container:**  
-   `docker exec uptime-kuma wget -qO- --timeout=2 http://caddy:80 | head -1`  
-   Should return the "Caddy is running..." line.
+- **Containers on `monitor` network (Caddy, self):** Use service names. Examples: Caddy → `http://caddy:80`, self → `http://uptime-kuma:3001`. HTTP, no SSL verify for HTTP targets.
+- **Host services (e.g. Portainer):** Use `https://host.docker.internal:9443` (disable “Verify SSL” if using self-signed).
 
-3. **Monitor settings in Uptime Kuma:** URL = `http://caddy:80` (HTTP, not HTTPS). No keyword required; leave "Verify SSL" off for HTTP.
+The `monitor` network is created when you deploy Caddy or Uptime Kuma; the other stack attaches to it. No manual `docker network create` needed.
 
-**Start:** `docker compose up -d` or deploy as a stack in Portainer.
+## Troubleshooting
+
+**Caddy heartbeat fails:**
+
+1. Confirm both on `monitor`: `docker network inspect monitor --format '{{range .Containers}}{{.Name}} {{end}}'` → should list `caddy` and `uptime-kuma`.
+2. From container: `docker exec uptime-kuma wget -qO- --timeout=2 http://caddy:80 | head -1` → should return Caddy’s response.
+3. In Uptime Kuma: URL = `http://caddy:80`, no keyword, “Verify SSL” off.
+
+## Start
+
+`docker compose up -d` from this directory.
