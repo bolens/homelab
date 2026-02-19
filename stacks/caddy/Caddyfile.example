@@ -42,6 +42,21 @@ immich.home, immich.local {
   reverse_proxy host.docker.internal:2283
 }
 
+linkwarden.home, linkwarden.local {
+  tls internal
+  reverse_proxy host.docker.internal:3000
+}
+
+vaultwarden.home, vaultwarden.local {
+  tls internal
+  reverse_proxy host.docker.internal:11001
+}
+
+headscale.home, headscale.local {
+  tls internal
+  reverse_proxy host.docker.internal:8080
+}
+
 # Public hostnames (Cloudflare Tunnel or port forwarding)
 # When using Cloudflare Tunnel, use DNS-01 challenge instead of HTTP-01
 # Requires CLOUDFLARE_API_TOKEN environment variable (see .env.example)
@@ -92,6 +107,27 @@ immich.yourdomain.com {
     dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
   reverse_proxy host.docker.internal:2283
+}
+
+links.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  reverse_proxy host.docker.internal:3000
+}
+
+vault.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  reverse_proxy host.docker.internal:11001
+}
+
+headscale.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  reverse_proxy host.docker.internal:8080
 }
 
 :80 {

@@ -5,13 +5,13 @@ Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and 
 ## Quick start
 
 1. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
-2. Open http://localhost:3001 (or https://kuma.home once Caddy is up) and create the admin account.
+2. Open via Caddy (e.g. https://kuma.home) and create the admin account. No host port is exposed; the stack attaches to the `monitor` network for Caddy to reverse-proxy.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
-| **Port** | 3001 |
+| **Access** | Via Caddy only (no host port; reverse-proxy to `uptime-kuma:3001`) |
 | **Volume** | `uptime_kuma_data` (persistent data) |
 | **Network** | `monitor` — shared with Caddy for internal checks |
 | **Env** | See [ENV-VARS.md](../ENV-VARS.md) for TZ/locale. |

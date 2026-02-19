@@ -1,0 +1,61 @@
+# Headscale – self-hosted Tailscale control server. See https://headscale.net
+# Portainer-friendly: config from env HEADSCALE_CONFIG_B64; named volumes; external monitor network for Caddy.
+# Official docs: https://headscale.net/stable/setup/install/container/
+
+name: headscale
+
+services:
+  headscale-init:
+    image: alpine:3.19
+    container_name: headscale-init
+    restart: "no"
+    environment:
+      - HEADSCALE_CONFIG_B64=${HEADSCALE_CONFIG_B64}
+    volumes:
+      - headscale_config:/config
+    command: >
+      sh -c '
+      if [ -n "$$HEADSCALE_CONFIG_B64" ]; then
+        echo "$$HEADSCALE_CONFIG_B64" | base64 -d > /config/config.yaml;
+      else
+        echo "Error: HEADSCALE_CONFIG_B64 must be set. Base64-encode your config.yaml (e.g. base64 -w 0 config.yaml) and set it in the stack environment." >&2;
+        exit 1;
+      fi
+      '
+
+  headscale:
+    container_name: headscale
+    image: docker.io/headscale/headscale:latest
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/run/headscale
+    environment:
+      - TZ=${TZ:-America/Denver}
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    volumes:
+      - headscale_config:/etc/headscale:ro
+      - headscale_data:/var/lib/headscale
+    command: serve
+    depends_on:
+      headscale-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "headscale", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  headscale_config:
+  headscale_data:

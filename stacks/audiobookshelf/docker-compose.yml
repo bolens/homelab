@@ -1,0 +1,29 @@
+# Audiobookshelf – self-hosted podcasts (and audiobooks). See https://www.audiobookshelf.org/
+# Portainer-friendly: named volumes, external monitor network for Caddy.
+# Official example: https://github.com/advplyr/audiobookshelf/blob/master/docker-compose.yml
+services:
+  audiobookshelf:
+    container_name: audiobookshelf
+    image: ghcr.io/advplyr/audiobookshelf:latest
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - abs_config:/config
+      - abs_metadata:/metadata
+      - abs_audiobooks:/audiobooks
+      - abs_podcasts:/podcasts
+    restart: unless-stopped
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  abs_config:
+  abs_metadata:
+  abs_audiobooks:
+  abs_podcasts:

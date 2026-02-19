@@ -7,7 +7,8 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 ## Quick start
 
 1. Copy `Caddyfile.example` → `Caddyfile` (gitignored). Edit domain(s) and `email` for Let's Encrypt.
-2. Deploy (see below for Portainer vs host).
+2. For Cloudflare DNS-01 challenge (e.g. with Tunnel or wildcards): copy `.env.example` → `.env` and set `CLOUDFLARE_API_TOKEN` (see [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens); needs Zone:Read + DNS:Edit).
+3. Deploy (see below for Portainer vs host).
 
 ## Configuration
 
@@ -15,6 +16,7 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 |------|---------|
 | **Ports** | 80, 443 (HTTP/HTTPS) |
 | **Volumes** | `./Caddyfile` (ro), `caddy_data` (certs/data) |
+| **Env** | Optional: `CLOUDFLARE_API_TOKEN` for DNS-01 (see `.env.example`) |
 | **Network** | `monitor` — so Uptime Kuma can reach `http://caddy:80` |
 
 - **Local DNS:** Add A records (e.g. `portainer.home`, `kuma.home`) to your resolver so hostnames point at this host. Use `https://portainer.home` etc.
