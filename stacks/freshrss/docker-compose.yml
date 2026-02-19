@@ -1,0 +1,25 @@
+# FreshRSS – self-hosted RSS feed reader (Feedly-like). See https://freshrss.org/
+# Portainer-friendly: named volume, external monitor network for Caddy.
+# Image: https://docs.linuxserver.io/images/docker-freshrss
+services:
+  freshrss:
+    container_name: freshrss
+    image: lscr.io/linuxserver/freshrss:latest
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - freshrss_config:/config
+    restart: unless-stopped
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  freshrss_config:

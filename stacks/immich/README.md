@@ -80,6 +80,66 @@ You can put OAuth and other options in a JSON/YAML config file and mount it into
 
 Full config shape and options: https://immich.app/docs/install/config-file and **Administration → Settings** (copy from there).
 
+## Cloudflare Access (OIDC)
+
+If you already use **Cloudflare Zero Trust** with an identity provider (Google, GitHub, etc.), you can use Cloudflare as the OIDC provider for Immich so users log in via your existing Access flow.
+
+### 1. Cloudflare Zero Trust – OIDC application
+
+1. In [Cloudflare One](https://one.dash.cloudflare.com/) go to **Access** → **Applications** → **Add an application**.
+2. Choose **OIDC** → **SaaS**.
+3. **Application name:** e.g. `Immich`.
+4. **Redirect URLs** — add **all** of these (use your Immich URL):
+   - `https://immich.yourdomain.com/auth/login`
+   - `https://immich.yourdomain.com/user-settings`
+   - `app.immich:///oauth-callback` (for mobile app)
+   - If the mobile app needs an HTTP redirect: `https://immich.yourdomain.com/api/oauth/mobile-redirect`
+5. **Scopes:** ensure `openid`, `email`, and `profile` are included (default).
+6. Create the application, then under **OIDC** copy:
+   - **Client ID**
+   - **Client secret**
+   - **Issuer** (base URL): `https://<team-name>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<application-id>/`  
+     Your team name is under **Settings** → **Team name and domain**. The application ID is in the URL when you edit the app or in the issuer path.
+7. Configure **Identity providers** and **Access policies** as usual, then save.
+
+### 2. Immich Administration
+
+1. Log in as admin → **Administration** → **Settings**.
+2. Find **OAuth** and set:
+   - **Enabled:** true  
+   - **Issuer URL:** your Cloudflare OIDC issuer, e.g.  
+     `https://<team-name>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<application-id>/`  
+     (Trailing slash is fine; Immich will use discovery.)
+   - **Client ID:** (from Cloudflare)  
+   - **Client secret:** (from Cloudflare)  
+   - **Scope:** `openid email profile`  
+   - **Signing algorithm:** RS256  
+   - **Button text:** e.g. “Sign in with Cloudflare”  
+   - **Auto register:** optional (create users on first sign-in)  
+   - **Auto launch:** optional (skip Immich login page and go straight to Cloudflare)  
+   - **Mobile redirect:** if you use the mobile app and added the `/api/oauth/mobile-redirect` URL in Cloudflare, enable **Mobile Redirect URI Override** and set it to `https://immich.yourdomain.com/api/oauth/mobile-redirect`.
+3. Save and test login (web and mobile if used).
+
+### 3. Optional: config file (Cloudflare OAuth)
+
+If you use a config file and mount it into the server, you can set the OAuth block to point at Cloudflare:
+
+```json
+"oauth": {
+  "enabled": true,
+  "issuerUrl": "https://YOUR_TEAM.cloudflareaccess.com/cdn-cgi/access/sso/oidc/YOUR_APP_ID/",
+  "clientId": "YOUR_CLIENT_ID",
+  "clientSecret": "YOUR_CLIENT_SECRET",
+  "scope": "openid email profile",
+  "buttonText": "Sign in with Cloudflare",
+  "autoRegister": true,
+  "mobileOverrideEnabled": false,
+  "mobileRedirectUri": ""
+}
+```
+
+Replace `YOUR_TEAM`, `YOUR_APP_ID`, and the client credentials with the values from your Cloudflare Access OIDC application.
+
 ## Caddy reverse proxy
 
 Example Caddy vhost (e.g. in your Caddyfile):

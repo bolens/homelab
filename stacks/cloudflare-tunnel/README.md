@@ -6,7 +6,7 @@ Exposes services on your Docker host via Cloudflare—no port forwarding or dyna
 
 1. **Cloudflare:** Zero Trust → **Networks → Tunnels → Create tunnel** (Cloudflared). Copy the **tunnel token**.
 2. Copy `.env.example` → `.env` and set `TUNNEL_TOKEN=...`.
-3. In the tunnel’s **Public Hostnames**, add routes (e.g. `portainer.yourdomain.com` → HTTP → `localhost:9443`; `status.yourdomain.com` → `localhost:3001`). To route via Caddy, use `localhost:80` (or `443`) and Caddy routes by Host.
+3. In the tunnel’s **Public Hostnames**, add routes (e.g. `portainer.yourdomain.com` → HTTP → `localhost:9443`; `status.yourdomain.com` → `localhost:3001`). To route via Caddy, use `localhost:80` (or `443`) and Caddy routes by Host. (Headscale MagicDNS names like `mylaptop.ts.yourdomain.com` resolve on the tailnet only—no tunnel route needed.)
 4. Start: `docker compose up -d`.
 
 ## Config file (alternative)

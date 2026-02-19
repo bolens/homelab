@@ -1,0 +1,64 @@
+# Headscale config – copy to config.yaml, edit, then load into headscale_config volume.
+# See https://headscale.net/stable/ref/configuration/
+#
+# Load into volume (after first deploy):
+#   docker run --rm -v headscale_config:/etc/headscale -v $(pwd)/config.yaml:/src/config.yaml:ro alpine cp /src/config.yaml /etc/headscale/config.yaml
+# Then: docker restart headscale
+
+server_url: https://headscale.yourdomain.com
+listen_addr: 0.0.0.0:8080
+metrics_listen_addr: 0.0.0.0:9090
+grpc_listen_addr: 127.0.0.1:50443
+grpc_allow_insecure: false
+
+noise:
+  private_key_path: /var/lib/headscale/noise_private.key
+
+prefixes:
+  v4: 100.64.0.0/10
+  v6: fd7a:115c:a1e0::/48
+  allocation: sequential
+
+derp:
+  server:
+    enabled: false
+  urls:
+    - https://controlplane.tailscale.com/derpmap/default
+  paths: []
+  auto_update_enabled: true
+  update_frequency: 3h
+
+ephemeral_node_inactivity_timeout: 30m
+
+database:
+  type: sqlite
+  sqlite:
+    path: /var/lib/headscale/db.sqlite
+    write_ahead_log: true
+
+log:
+  level: info
+  format: text
+
+policy:
+  mode: file
+  path: ""
+
+dns:
+  magic_dns: true
+  base_domain: example.com
+  override_local_dns: true
+  nameservers:
+    global:
+      - 1.1.1.1
+      - 1.0.0.1
+
+unix_socket: /var/run/headscale/headscale.sock
+unix_socket_permission: "0770"
+
+logtail:
+  enabled: false
+
+randomize_client_port: false
+taildrop:
+  enabled: true

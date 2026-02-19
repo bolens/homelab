@@ -1,0 +1,32 @@
+# Mealie – self-hosted recipe manager and meal planner. See https://mealie.io
+# Portainer-friendly: named volumes, external monitor network for Caddy.
+# Image: https://github.com/mealie-recipes/mealie/pkgs/container/mealie
+
+name: mealie
+
+services:
+  mealie:
+    container_name: mealie
+    image: ghcr.io/mealie-recipes/mealie:latest
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+      - BASE_URL=${BASE_URL:-}
+      - ALLOW_SIGNUP=${ALLOW_SIGNUP:-false}
+      - DB_ENGINE=${DB_ENGINE:-sqlite}
+    volumes:
+      - mealie_data:/app/data
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  mealie_data:
