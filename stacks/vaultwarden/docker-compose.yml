@@ -1,0 +1,29 @@
+# Vaultwarden – lightweight, Bitwarden-compatible password manager. See https://github.com/dani-garcia/vaultwarden
+# Portainer-friendly: named volumes, external monitor network for Caddy.
+# Official wiki: https://github.com/dani-garcia/vaultwarden/wiki/Using-Docker-Compose
+
+name: vaultwarden
+
+services:
+  vaultwarden:
+    container_name: vaultwarden
+    image: docker.io/vaultwarden/server:latest
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - DOMAIN=${DOMAIN:-}
+      - SIGNUPS_ALLOWED=${SIGNUPS_ALLOWED:-false}
+      - WEBSOCKET_ENABLED=${WEBSOCKET_ENABLED:-true}
+    volumes:
+      - vw_data:/data
+    restart: unless-stopped
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  vw_data:

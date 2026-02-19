@@ -26,13 +26,19 @@ environment:
 
 ## Already set in these stacks
 
-- **portainer** – (Portainer CE; add TZ/LANG if you ever customize it.)
-- **watchtower** – TZ, LANG, LC_ALL, LC_CTYPE.
+- **audiobookshelf** – TZ (optional).
 - **caddy** – TZ, LANG, LC_ALL, LC_CTYPE.
-- **uptime-kuma** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **cloudflare-tunnel** – TZ, LANG, LC_ALL, LC_CTYPE.
-- **it-tools** – TZ, LANG, LC_ALL, LC_CTYPE.
+- **freshrss** – TZ, PUID, PGID (optional).
+- **headscale** – TZ (optional). Config via `HEADSCALE_CONFIG_B64` (base64-encoded config.yaml); see stack README.
 - **immich** – TZ, LANG, LC_ALL, LC_CTYPE (server); plus DB_PASSWORD, DB_*, optional IMMICH_CONFIG_FILE.
+- **it-tools** – TZ, LANG, LC_ALL, LC_CTYPE.
+- **linkwarden** – TZ (optional); NEXTAUTH_SECRET, POSTGRES_PASSWORD, MEILI_MASTER_KEY, NEXTAUTH_URL (when behind reverse proxy).
+- **mealie** – TZ, LANG, LC_ALL, LC_CTYPE; BASE_URL (when behind reverse proxy), ALLOW_SIGNUP; optional DB_ENGINE (sqlite/postgres).
 - **paperless-ngx** – TZ (webserver); plus app-specific (PAPERLESS_URL, PAPERLESS_SECRET_KEY, etc.).
+- **portainer** – (Portainer CE; add TZ/LANG if you ever customize it.)
 - **searx-ng** – TZ, LANG, LC_ALL, LC_CTYPE (searxng); plus SEARXNG_SECRET, SEARXNG_BASE_URL.
+- **uptime-kuma** – TZ, LANG, LC_ALL, LC_CTYPE.
+- **vaultwarden** – TZ; DOMAIN (when behind reverse proxy), SIGNUPS_ALLOWED; optional ADMIN_TOKEN, WEBSOCKET_ENABLED.
+- **watchtower** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **web-check** – TZ, LANG, LC_ALL, LC_CTYPE; optional API keys in README / .env.example.

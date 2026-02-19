@@ -8,13 +8,13 @@
 ## Quick start
 
 1. Deploy: `docker compose up -d`
-2. Access: http://localhost:3000
+2. Access via Caddy (e.g. https://webcheck.yourdomain.com). No host port is exposed; the stack is on the `monitor` network for reverse-proxy.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
-| **Port** | 3000 (mapped to container port 3000) |
+| **Access** | Via Caddy only (no host port; reverse-proxy to `web-check:3000`) |
 | **Network** | `monitor` — so monitoring tools can reach it |
 | **Image** | `lissy93/web-check:latest` |
 | **DNS** | 8.8.8.8, 1.1.1.1 (so TLS Observatory and other external APIs resolve) |
@@ -33,12 +33,14 @@ Web-Check provides comprehensive website analysis including:
 
 ## Optional API Keys
 
-For enhanced features, you can add API keys to `.env`:
+For enhanced features, you can add API keys to `.env` (copy `.env.example` → `.env`):
 - `GOOGLE_CLOUD_API_KEY` - Quality metrics via Lighthouse
-- `REACT_APP_SHODAN_API_KEY` - Associated hostnames
+- `REACT_APP_SHODAN_API_KEY` - Associated hostnames (Shodan)
 - `REACT_APP_WHO_API_KEY` - Comprehensive WhoIs records
+- `URL_SCAN_API_KEY` - urlscan.io integration
+- `BUILT_WITH_API_KEY` - BuiltWith technology detection
 
-See `.env.example` for template. Copy it to `.env` and add your keys if desired.
+See `.env.example` for the template.
 
 ## TLS checks (tls-cipher-suites, tls-security-config, tls-client-support)
 
