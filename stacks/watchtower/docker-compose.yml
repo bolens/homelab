@@ -1,6 +1,8 @@
+# Use nickfedor/watchtower (maintained fork). containrrr/watchtower is archived
+# and fails on Docker 29+ with "client version 1.25 is too old" (API 1.44+).
 services:
   watchtower:
-    image: containrrr/watchtower:latest
+    image: nickfedor/watchtower:latest
     container_name: watchtower
     restart: unless-stopped
     security_opt:

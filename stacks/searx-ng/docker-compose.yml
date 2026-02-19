@@ -1,0 +1,47 @@
+services:
+  redis:
+    image: docker.io/valkey/valkey:8-alpine
+    container_name: searxng-redis
+    restart: unless-stopped
+    command: valkey-server --save 30 1 --loglevel warning
+    volumes:
+      - searxng_valkey_data:/data
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=America/Denver
+
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    depends_on:
+      - redis
+    # No host port: access via Caddy (reverse proxy on monitor network)
+    volumes:
+      - searxng_config:/etc/searxng
+      - searxng_data:/var/cache/searxng
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+      - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-https://searx-ng.home/}
+      - SEARXNG_REDIS_URL=redis://searxng-redis:6379/0
+      - SEARXNG_SECRET=${SEARXNG_SECRET:-change-me-use-openssl-rand-hex-32}
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  searxng_config: {}
+  searxng_valkey_data: {}
+  searxng_data: {}

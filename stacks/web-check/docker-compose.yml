@@ -1,0 +1,33 @@
+services:
+  web-check:
+    image: lissy93/web-check:latest
+    container_name: web-check
+    restart: unless-stopped
+    # No host port: access via Caddy (reverse proxy on monitor network)
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+      # Chromium for tech-stack / Puppeteer (Wappalyzer)
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
+      # Optional: Add API keys for enhanced features
+      # - GOOGLE_CLOUD_API_KEY=${GOOGLE_CLOUD_API_KEY}
+      - REACT_APP_SHODAN_API_KEY=${REACT_APP_SHODAN_API_KEY}
+      # - REACT_APP_WHO_API_KEY=${REACT_APP_WHO_API_KEY}
+      - URL_SCAN_API_KEY=${URL_SCAN_API_KEY}
+      - BUILT_WITH_API_KEY=${BUILT_WITH_API_KEY}
+
+networks:
+  monitor:
+    name: monitor
+    driver: bridge
