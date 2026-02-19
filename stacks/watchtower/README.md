@@ -2,6 +2,8 @@
 
 Automatically updates running containers when new images are available. Uses the Docker socket on the host.
 
+This stack uses **nickfedor/watchtower** (maintained fork). The original containrrr/watchtower image is archived and fails on Docker 29+ with "client version 1.25 is too old. Minimum supported API version is 1.44".
+
 ## Quick start
 
 `docker compose up -d` from this directory (or deploy as a stack in Portainer). By default: polls every 24 hours and removes old images after updating.
@@ -28,7 +30,7 @@ labels:
 
 ## Troubleshooting
 
-**"Client version 1.25 is too old. Minimum supported API version is 1.44"** — Docker daemon is newer than the image’s client. Pull latest and recreate: `docker pull containrrr/watchtower:latest` then redeploy. See [Watchtower releases](https://github.com/containrrr/watchtower/releases) for API compatibility.
+**"Client version 1.25 is too old. Minimum supported API version is 1.44"** — The old containrrr image is incompatible with Docker 29+. This stack uses the maintained fork `nickfedor/watchtower` (Docker API 1.43+). If the error persists: `docker compose pull && docker compose up -d --force-recreate`.
 
 ## Start
 
