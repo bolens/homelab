@@ -31,3 +31,8 @@ environment:
 - **caddy** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **uptime-kuma** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **cloudflare-tunnel** – TZ, LANG, LC_ALL, LC_CTYPE.
+- **it-tools** – TZ, LANG, LC_ALL, LC_CTYPE.
+- **immich** – TZ, LANG, LC_ALL, LC_CTYPE (server); plus DB_PASSWORD, DB_*, optional IMMICH_CONFIG_FILE.
+- **paperless-ngx** – TZ (webserver); plus app-specific (PAPERLESS_URL, PAPERLESS_SECRET_KEY, etc.).
+- **searx-ng** – TZ, LANG, LC_ALL, LC_CTYPE (searxng); plus SEARXNG_SECRET, SEARXNG_BASE_URL.
+- **web-check** – TZ, LANG, LC_ALL, LC_CTYPE; optional API keys in README / .env.example.
