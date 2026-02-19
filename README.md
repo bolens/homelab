@@ -13,6 +13,7 @@ Docker Compose stacks for self-hosting: reverse proxy, monitoring, auto-updates,
 | **stacks/watchtower** | Watchtower – automatic container image updates (nickfedor fork, Docker 29+) |
 | **stacks/it-tools** | IT Tools – developer and IT utilities (converters, hashes, QR, etc.) |
 | **stacks/paperless-ngx** | Paperless-ngx – document management with OCR and search |
+| **stacks/immich** | Immich – self-hosted photo and video backup (OAuth-ready) |
 | **stacks/searx-ng** | SearXNG – privacy-respecting metasearch engine |
 | **stacks/web-check** | Web-Check – OSINT and website analysis tool |
 
@@ -24,6 +25,7 @@ Each stack has its own `README.md` with setup and usage; see also `portainer/REA
    - `stacks/caddy`: copy `.env.example` → `.env` (for Cloudflare DNS), `Caddyfile.example` → `Caddyfile`
    - `stacks/cloudflare-tunnel`: copy `.env.example` → `.env`, optionally `config.yml.example` → `config.yml`
    - `stacks/paperless-ngx`: copy `.env.example` → `.env` and set `PAPERLESS_URL`, `PAPERLESS_SECRET_KEY`
+   - `stacks/immich`: copy `.env.example` → `.env` and set `DB_PASSWORD` (and optionally `TZ`, OAuth via Admin UI)
    - `stacks/searx-ng`: copy `.env.example` → `.env` and set `SEARXNG_SECRET` (and optionally `SEARXNG_BASE_URL`)
    - `stacks/web-check`: optional – copy `.env.example` → `.env` for API keys if desired
 2. **Common env vars** – See [stacks/ENV-VARS.md](stacks/ENV-VARS.md) for timezone, locale, and optional per-app settings.
@@ -40,6 +42,7 @@ docker/
 │   ├── uptime-kuma/
 │   ├── watchtower/
 │   ├── it-tools/
+│   ├── immich/
 │   ├── paperless-ngx/
 │   ├── searx-ng/
 │   ├── web-check/
