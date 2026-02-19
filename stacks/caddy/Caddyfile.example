@@ -6,21 +6,80 @@
 }
 
 # Local hostnames (optional – adjust to match your internal DNS)
+# Use 'tls internal' for self-signed certificates on local domains
 portainer.home, portainer.local {
+  tls internal
   reverse_proxy host.docker.internal:9443
 }
 
 kuma.home, kuma.local {
+  tls internal
   reverse_proxy host.docker.internal:3001
 }
 
+it-tools.home, it-tools.local {
+  tls internal
+  reverse_proxy host.docker.internal:8080
+}
+
+web-check.home, web-check.local {
+  tls internal
+  reverse_proxy host.docker.internal:3000
+}
+
+searx-ng.home, searx-ng.local {
+  tls internal
+  reverse_proxy host.docker.internal:8080
+}
+
+paperless-ngx.home, paperless-ngx.local {
+  tls internal
+  reverse_proxy host.docker.internal:8000
+}
+
 # Public hostnames (Cloudflare Tunnel or port forwarding)
+# When using Cloudflare Tunnel, use DNS-01 challenge instead of HTTP-01
+# Requires CLOUDFLARE_API_TOKEN environment variable (see .env.example)
 portainer.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
   reverse_proxy host.docker.internal:9443
 }
 
 status.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
   reverse_proxy host.docker.internal:3001
+}
+
+it-tools.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  reverse_proxy host.docker.internal:8080
+}
+
+web-check.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  reverse_proxy host.docker.internal:3000
+}
+
+searx-ng.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  reverse_proxy host.docker.internal:8080
+}
+
+paperless-ngx.yourdomain.com {
+  tls {
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+  }
+  reverse_proxy host.docker.internal:8000
 }
 
 :80 {

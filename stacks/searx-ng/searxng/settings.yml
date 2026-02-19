@@ -1,0 +1,10 @@
+# Minimal SearXNG config. See https://docs.searxng.org/admin/settings/
+use_default_settings: true
+
+server:
+  # Override at runtime via SEARXNG_SECRET env (docker-compose). Do not commit a real key.
+  secret_key: "change-me-use-openssl-rand-hex-32"
+  bind_address: "0.0.0.0:8080"
+
+redis:
+  url: "redis://searxng-redis:6379/0"

@@ -1,0 +1,62 @@
+# Paperless-ngx with PostgreSQL. See https://docs.paperless-ngx.com/setup/
+# Portainer-friendly: named volumes for export/consume, env vars from stack/.env, external monitor network.
+services:
+  broker:
+    image: docker.io/library/redis:8
+    container_name: paperless-ngx-redis
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    networks:
+      - default
+
+  db:
+    image: docker.io/library/postgres:18
+    container_name: paperless-ngx-db
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: paperless
+    networks:
+      - default
+
+  webserver:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless-ngx
+    restart: unless-stopped
+    depends_on:
+      - db
+      - broker
+    # No host port: access via Caddy (reverse proxy on monitor network)
+    volumes:
+      - data:/usr/src/paperless/data
+      - media:/usr/src/paperless/media
+      - export:/usr/src/paperless/export
+      - consume:/usr/src/paperless/consume
+    environment:
+      - TZ=America/Denver
+      - PAPERLESS_REDIS=redis://paperless-ngx-redis:6379
+      - PAPERLESS_DBHOST=paperless-ngx-db
+      - PAPERLESS_URL=${PAPERLESS_URL:-https://paperless.yourdomain.com}
+      - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET_KEY:-change-me-use-openssl-rand-hex-32}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  data: {}
+  media: {}
+  pgdata: {}
+  redisdata: {}
+  export: {}
+  consume: {}
