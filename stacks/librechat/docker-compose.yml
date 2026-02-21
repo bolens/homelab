@@ -1,0 +1,102 @@
+# LibreChat - Enhanced ChatGPT Clone with multi-provider support
+# Requires MongoDB and Redis
+services:
+  mongodb:
+    image: mongo:7
+    container_name: librechat-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongodb_data:/data/db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - LANG=${LANG:-en_US.UTF-8}
+      - LC_ALL=${LC_ALL:-en_US.UTF-8}
+      - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME:-librechat}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD:-librechat}
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017 --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: librechat-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=${TZ:-America/Denver}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-librechat}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  librechat:
+    image: ghcr.io/danny-avila/librechat:latest
+    container_name: librechat
+    restart: unless-stopped
+    volumes:
+      - librechat_data:/app/api/data
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - LANG=${LANG:-en_US.UTF-8}
+      - LC_ALL=${LC_ALL:-en_US.UTF-8}
+      - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
+      # Database Configuration
+      - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME:-librechat}:${MONGO_INITDB_ROOT_PASSWORD:-librechat}@mongodb:27017/LibreChat?directConnection=true
+      - MONGO_DB=LibreChat
+      # Redis Configuration
+      - REDIS_URI=redis://:${REDIS_PASSWORD:-librechat}@redis:6379
+      # Application Configuration
+      - DOMAIN_CLIENT=${DOMAIN_CLIENT:-http://localhost:3080}
+      - DOMAIN_SERVER=${DOMAIN_SERVER:-http://localhost:3080}
+      # Ollama Configuration
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # OpenAI Configuration (optional)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # Authentication
+      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-true}
+      - ALLOW_SOCIAL_LOGIN=${ALLOW_SOCIAL_LOGIN:-false}
+      # Security
+      - JWT_SECRET=${JWT_SECRET:-}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-}
+      - JWT_EXPIRY=${JWT_EXPIRY:-1d}
+      - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY:-7d}
+      # Additional configuration
+      - APP_TITLE=${APP_TITLE:-LibreChat}
+      - VITE_SHOW_GOOGLE_LOGIN_OPTION=${VITE_SHOW_GOOGLE_LOGIN_OPTION:-false}
+      - VITE_SHOW_MICROSOFT_LOGIN_OPTION=${VITE_SHOW_MICROSOFT_LOGIN_OPTION:-false}
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  mongodb_data:
+  redis_data:
+  librechat_data:

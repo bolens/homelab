@@ -1,0 +1,15 @@
+# Dozzle simple auth – copy to users.yaml and place in dozzle_config volume (or mount at /data).
+# Dozzle reads /data/users.yaml or /data/users.yml. See https://dozzle.dev/guide/authentication
+#
+# Generate a bcrypt password and full user entry:
+#   docker run -it --rm amir20/dozzle generate admin --password YOUR_PASSWORD --email you@example.com --name "Your Name" > users.yaml
+#
+# Optional: filter (restrict to containers matching a label) and roles (all|none|download|actions|shell).
+users:
+  admin:
+    email: me@example.com
+    name: Admin
+    # Generate with: docker run -it --rm amir20/dozzle generate admin --password secret --email me@example.com --name Admin
+    password: $2a$11$REPLACE_WITH_GENERATED_BCRYPT_HASH
+    # filter: "label=com.example.app"   # optional: restrict to containers with this label
+    # roles: shell                     # optional: all|none|download|actions|shell

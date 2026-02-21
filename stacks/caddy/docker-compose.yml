@@ -24,7 +24,10 @@ services:
 networks:
   monitor:
     name: monitor
-    driver: bridge
+    external: true
 
 volumes:
   caddy_data: {}
+
+# Validate Caddyfile (uses same image; .env supplies CLOUDFLARE_API_TOKEN):
+#   docker compose run --rm caddy caddy validate --config /etc/caddy/Caddyfile

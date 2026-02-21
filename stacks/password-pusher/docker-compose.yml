@@ -1,0 +1,44 @@
+# Password Pusher – secure password/secret sharing with view limits and expiration.
+# No host ports: access via Caddy (reverse proxy to pwpush:5100).
+# Docs: https://docs.pwpush.com/docs/installation/
+services:
+  pwpush:
+    image: pglombardo/pwpush:stable
+    container_name: pwpush
+    restart: unless-stopped
+    # Do not map 80/443; Caddy handles TLS. App is reachable on 5100.
+    volumes:
+      - pwpush-storage:/opt/PasswordPusher/storage
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - PWPUSH_MASTER_KEY=${PWPUSH_MASTER_KEY}
+      # Optional: set in Portainer stack Env or in .env when using CLI
+      - PWP__HOST_DOMAIN=${PWP__HOST_DOMAIN:-}
+      - PWP__HOST_PROTOCOL=${PWP__HOST_PROTOCOL:-https}
+      - PWP__ENABLE_LOGINS=${PWP__ENABLE_LOGINS:-true}
+      - PWP__PURGE_AFTER=${PWP__PURGE_AFTER:-}
+      # Optional: SMTP for confirmation/password-reset emails (see .env.example)
+      - PWP__MAIL__SMTP_ADDRESS=${PWP__MAIL__SMTP_ADDRESS:-}
+      - PWP__MAIL__SMTP_PORT=${PWP__MAIL__SMTP_PORT:-587}
+      - PWP__MAIL__SMTP_USER_NAME=${PWP__MAIL__SMTP_USER_NAME:-}
+      - PWP__MAIL__SMTP_PASSWORD=${PWP__MAIL__SMTP_PASSWORD:-}
+      - PWP__MAIL__SMTP_AUTHENTICATION=${PWP__MAIL__SMTP_AUTHENTICATION:-plain}
+      - PWP__MAIL__SMTP_STARTTLS=${PWP__MAIL__SMTP_STARTTLS:-true}
+      - PWP__MAIL__MAILER_SENDER=${PWP__MAIL__MAILER_SENDER:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5100/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  pwpush-storage:

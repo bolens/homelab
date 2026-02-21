@@ -1,0 +1,29 @@
+# LinkStack – self-hosted link-in-bio / Linktree-style page.
+# No host ports: access via Caddy (reverse proxy to linkstack:80).
+# Docs: https://docs.linkstack.org/docker/setup
+services:
+  linkstack:
+    image: linkstackorg/linkstack:latest
+    container_name: linkstack
+    restart: unless-stopped
+    volumes:
+      - linkstack-data:/htdocs
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - SERVER_ADMIN=${SERVER_ADMIN:-admin@example.com}
+      - HTTP_SERVER_NAME=${HTTP_SERVER_NAME:-localhost}
+      - HTTPS_SERVER_NAME=${HTTPS_SERVER_NAME:-localhost}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-256M}
+      - UPLOAD_MAX_FILESIZE=${UPLOAD_MAX_FILESIZE:-8M}
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  linkstack-data:

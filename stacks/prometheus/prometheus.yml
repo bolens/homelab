@@ -1,0 +1,19 @@
+# Prometheus scrape config for homelab: self + cAdvisor (container metrics).
+# Add more scrape_configs (e.g. node_exporter) as you add stacks.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Uncomment when you add node_exporter for host metrics.
+  # - job_name: node
+  #   static_configs:
+  #     - targets: ["node_exporter:9100"]

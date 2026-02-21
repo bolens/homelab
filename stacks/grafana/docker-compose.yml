@@ -1,0 +1,30 @@
+# Grafana – dashboards and visualization. Access via Caddy (grafana.home / grafana.yourdomain.com).
+# No host port: attaches to monitor network for reverse proxy.
+# Prometheus datasource is auto-provisioned (see provisioning/datasources/).
+services:
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-https://grafana.home}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=${GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION:-false}
+
+networks:
+  monitor:
+    name: monitor
+    driver: bridge
+
+volumes:
+  grafana_data: {}

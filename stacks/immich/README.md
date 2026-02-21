@@ -10,10 +10,20 @@ Self-hosted photo and video backup: upload from phones and the web, face detecti
 
 1. **Environment**
    - Copy `.env.example` to `.env`.
-   - Set `DB_PASSWORD` to a strong alphanumeric value (e.g. `openssl rand -hex 16 | tr -d '\n' | head -c 24`).
+   - Generate and set `DB_PASSWORD` (see **Generating keys and secrets** below).
    - Set `TZ` to your timezone if different from America/Denver.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open Immich via Caddy (or http://host:2283), create the admin user, then configure OAuth and other options in **Administration → Settings**.
+
+## Generating keys and secrets
+
+**DB_PASSWORD** (required) – Postgres password. Must be alphanumeric only (no spaces). Generate:
+
+```bash
+openssl rand -hex 16 | tr -d '\n' | head -c 24
+```
+
+Set the output as `DB_PASSWORD` in `.env`.
 
 The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it works when deployed from Portainer’s web editor.
 

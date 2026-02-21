@@ -1,0 +1,31 @@
+# Prometheus – metrics storage and scraping. Access via Caddy (prometheus.home).
+# Scrapes cAdvisor (and itself). No host port: attaches to monitor network.
+# Portainer: ensure prometheus.yml is present (bind mount); deploy from repo or copy file to host.
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - prometheus_data:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+
+networks:
+  monitor:
+    name: monitor
+    driver: bridge
+
+volumes:
+  prometheus_data: {}
