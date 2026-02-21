@@ -17,9 +17,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql
     environment:
-      POSTGRES_DB: paperless
-      POSTGRES_USER: paperless
-      POSTGRES_PASSWORD: paperless
+      POSTGRES_DB: ${POSTGRES_DB:-paperless}
+      POSTGRES_USER: ${POSTGRES_USER:-paperless}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-paperless}
     networks:
       - default
 
@@ -37,9 +37,12 @@ services:
       - export:/usr/src/paperless/export
       - consume:/usr/src/paperless/consume
     environment:
-      - TZ=America/Denver
+      - TZ=${TZ:-America/Denver}
       - PAPERLESS_REDIS=redis://paperless-ngx-redis:6379
       - PAPERLESS_DBHOST=paperless-ngx-db
+      - PAPERLESS_DBNAME=${POSTGRES_DB:-paperless}
+      - PAPERLESS_DBUSER=${POSTGRES_USER:-paperless}
+      - PAPERLESS_DBPASS=${POSTGRES_PASSWORD:-paperless}
       - PAPERLESS_URL=${PAPERLESS_URL:-https://paperless.yourdomain.com}
       - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET_KEY:-change-me-use-openssl-rand-hex-32}
     extra_hosts:

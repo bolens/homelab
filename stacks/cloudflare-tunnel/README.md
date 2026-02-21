@@ -18,9 +18,13 @@ Exposes services on your Docker host via Cloudflare—no port forwarding or dyna
 
 | Item | Details |
 |------|---------|
-| **Env** | `TUNNEL_TOKEN` (from Cloudflare) or config file. See [ENV-VARS.md](../ENV-VARS.md) for TZ/locale. |
+| **Env** | `TUNNEL_TOKEN` (from Cloudflare) or config file. See [ENV-VARS.md](../../documents/ENV-VARS.md) for TZ/locale. |
 
-**Benefits:** No open 80/443 on router, no dynamic DNS, origin IP hidden, DDoS protection, optional Cloudflare Access.
+**Benefits:** No open 80/443 on router, no dynamic DNS, origin IP hidden, DDoS protection, optional [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/applications/).
+
+### Putting logins behind SSO (Cloudflare Access)
+
+To protect specific subdomains (e.g. `portainer.yourdomain.com`) with SSO or one-time PIN instead of basic auth, see **[ACCESS-SSO.md](../../documents/ACCESS-SSO.md)**. Access runs at the Cloudflare edge before traffic reaches the tunnel; no Caddy or tunnel config changes are required.
 
 ## Start
 

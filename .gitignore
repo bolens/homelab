@@ -43,6 +43,8 @@ client_secret*.json
 service-account*.json
 *-credentials.json
 .netrc
+**/users.yaml
+**/users.yml
 
 # Registry / container auth
 auth.json

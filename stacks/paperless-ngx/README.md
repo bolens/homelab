@@ -8,10 +8,20 @@ Document management: scan, OCR, and search your paperwork.
 ## Quick start
 
 1. Set environment variables (required for reverse proxy and security):
-   - **Portainer stack:** Add `PAPERLESS_URL` and `PAPERLESS_SECRET_KEY` (e.g. from `openssl rand -hex 32`) in the stack’s Environment.
+   - **Portainer stack:** Add `PAPERLESS_URL` and `PAPERLESS_SECRET_KEY` Generate the secret with the command in **Generating keys and secrets** below.
    - **CLI / .env:** Copy `.env.example` to `.env` and set `PAPERLESS_URL` and `PAPERLESS_SECRET_KEY`.
 2. Deploy: `docker compose up -d` or deploy the stack in Portainer.
 3. Open via Caddy and create the initial admin user.
+
+## Generating keys and secrets
+
+**PAPERLESS_SECRET_KEY** (required when exposed publicly) – session/cookie signing. Generate:
+
+```bash
+openssl rand -hex 32
+```
+
+Set the output as `PAPERLESS_SECRET_KEY` in `.env` or in the Portainer stack Environment. Also set `PAPERLESS_URL` to your public URL (e.g. `https://paperless.yourdomain.com`).
 
 Config uses **named volumes** for export and consume (no bind-mounted `./export` or `./consume`), so the stack works when deployed from Portainer’s web editor.
 

@@ -48,4 +48,14 @@ These use Mozilla’s TLS Observatory (`tls-observatory.services.mozilla.com`), 
 
 ## Start
 
+## Troubleshooting
+
+**Important:** `REACT_APP_*` environment variables (like `REACT_APP_SHODAN_API_KEY` and `REACT_APP_WHO_API_KEY`) are client-side React variables that must be available at **build time**. Since we're using the pre-built Docker image (`lissy93/web-check:latest`), these variables won't work even if set in `.env` - the React app was already built without them.
+
+If you need Shodan or WhoAPI features, you'll need to build web-check from source with the API keys included, or wait for web-check to add backend API endpoints that proxy these calls.
+
+For detailed troubleshooting information, see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md).
+
+## Start
+
 From this directory: `docker compose up -d`.

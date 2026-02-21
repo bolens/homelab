@@ -1,0 +1,29 @@
+# Diun – Docker image update notifier. No web UI; notifications via Telegram, Discord, etc.
+# Portainer-friendly: named volume, env from .env (copy .env.example first).
+services:
+  diun:
+    image: crazymax/diun:latest
+    container_name: diun
+    command: serve
+    restart: unless-stopped
+    volumes:
+      - diun_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+      - DIUN_WATCH_WORKERS=10
+      - DIUN_WATCH_SCHEDULE=0 */6 * * *
+      - DIUN_WATCH_JITTER=30s
+      - DIUN_WATCH_RUNONSTARTUP=true
+      - DIUN_PROVIDERS_DOCKER=true
+      # Notifiers – set in .env (see .env.example)
+      - DIUN_NOTIF_TELEGRAM_TOKEN=${DIUN_NOTIF_TELEGRAM_TOKEN:-}
+      - DIUN_NOTIF_TELEGRAM_CHATIDS=${DIUN_NOTIF_TELEGRAM_CHATIDS:-}
+      # Optional: Discord, webhook, etc. – see https://crazymax.dev/diun/config/
+      # - DIUN_NOTIF_DISCORD_WEBHOOKURL=${DIUN_NOTIF_DISCORD_WEBHOOKURL:-}
+
+volumes:
+  diun_data: {}

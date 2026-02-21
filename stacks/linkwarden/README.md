@@ -10,12 +10,27 @@ Self-hosted bookmark manager and link aggregator: save links, archive pages, org
 
 1. **Environment**
    - Copy `.env.example` to `.env`.
-   - Set `NEXTAUTH_SECRET` (e.g. `openssl rand -base64 32`).
-   - Set `POSTGRES_PASSWORD` to a strong value.
-   - Set `MEILI_MASTER_KEY` for Meilisearch (e.g. `openssl rand -hex 24`).
+   - Generate and set `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, and `MEILI_MASTER_KEY` (see **Generating keys and secrets** below).
    - If using Caddy or a public URL, set `NEXTAUTH_URL` to `https://your-domain.com/api/v1/auth`.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open Linkwarden (http://host:3000 or via Caddy), register the first user (that user becomes admin).
+
+## Generating keys and secrets
+
+Run these and set the outputs in `.env`:
+
+```bash
+# NEXTAUTH_SECRET – NextAuth JWT/session signing
+openssl rand -base64 32
+
+# POSTGRES_PASSWORD – Postgres DB password
+openssl rand -base64 24
+
+# MEILI_MASTER_KEY – Meilisearch API key (hex)
+openssl rand -hex 24
+```
+
+Set each variable to the corresponding output. See `.env.example` for variable names.
 
 **Portainer:** No `.env` file is used; set `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, `MEILI_MASTER_KEY` (and optionally `NEXTAUTH_URL`, `TZ`) in the stack’s Environment variables when deploying.
 The stack uses **named volumes** (`lw_pgdata`, `lw_data`, `lw_meili_data`) so it works when deployed from Portainer’s web editor.

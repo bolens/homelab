@@ -1,0 +1,30 @@
+# cAdvisor – container resource metrics (CPU, memory, network, filesystem).
+# Prometheus scrapes this for container dashboards in Grafana. Access via Caddy (cadvisor.home).
+# No host port: attaches to monitor network. Requires privileged for full host/container visibility.
+services:
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+
+networks:
+  monitor:
+    name: monitor
+    driver: bridge
+
+volumes: {}

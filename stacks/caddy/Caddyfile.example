@@ -1,135 +1,352 @@
 # Caddy reverse proxy – runs on your Docker host.
 # Copy to Caddyfile and replace yourdomain.com and email with your values.
 # Local DNS (e.g. AdGuard): use .home / .local. Public: use your domain.
+#
+# Structure:
+#   1. Local (.home / .local) – internal TLS for LAN
+#   2. Public HTTPS (yourdomain.com) – Cloudflare DNS TLS
+#   (If using Cloudflare Tunnel for HTTP, add auto_https disable_redirects in the global block and a :80 host-routing block.)
 {
-  email admin@example.com
+	email admin@example.com
 }
 
-# Local hostnames (optional – adjust to match your internal DNS)
-# Use 'tls internal' for self-signed certificates on local domains
+# ═══════════════════════════════════════════════════════════════════════════════
+# Local (.home / .local) – internal TLS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Infrastructure
 portainer.home, portainer.local {
-  tls internal
-  reverse_proxy host.docker.internal:9443
+	tls internal
+	reverse_proxy host.docker.internal:9443
 }
 
 kuma.home, kuma.local {
-  tls internal
-  reverse_proxy host.docker.internal:3001
+	tls internal
+	reverse_proxy host.docker.internal:3001
 }
 
+# Tools
 it-tools.home, it-tools.local {
-  tls internal
-  reverse_proxy host.docker.internal:8080
+	tls internal
+	reverse_proxy host.docker.internal:8080
+}
+
+dozzle.home, dozzle.local {
+	tls internal
+	reverse_proxy host.docker.internal:8082
+}
+
+n8n.home, n8n.local {
+	tls internal
+	reverse_proxy n8n:5678
 }
 
 web-check.home, web-check.local {
-  tls internal
-  reverse_proxy host.docker.internal:3000
+	tls internal
+	reverse_proxy host.docker.internal:3000
 }
 
 searx-ng.home, searx-ng.local {
-  tls internal
-  reverse_proxy host.docker.internal:8080
+	tls internal
+	reverse_proxy host.docker.internal:8080
 }
 
+# Documents & media
 paperless-ngx.home, paperless-ngx.local {
-  tls internal
-  reverse_proxy host.docker.internal:8000
+	tls internal
+	reverse_proxy host.docker.internal:8000
 }
 
 immich.home, immich.local {
-  tls internal
-  reverse_proxy host.docker.internal:2283
+	tls internal
+	reverse_proxy host.docker.internal:2283
 }
 
+# Productivity
 linkwarden.home, linkwarden.local {
-  tls internal
-  reverse_proxy host.docker.internal:3000
+	tls internal
+	reverse_proxy host.docker.internal:3000
 }
 
+# Security & paste
 vaultwarden.home, vaultwarden.local {
-  tls internal
-  reverse_proxy host.docker.internal:11001
+	tls internal
+	reverse_proxy host.docker.internal:11001
 }
 
+infisical.home, infisical.local {
+	tls internal
+	reverse_proxy host.docker.internal:8080
+}
+
+# VPN
 headscale.home, headscale.local {
-  tls internal
-  reverse_proxy host.docker.internal:8080
+	tls internal
+	reverse_proxy host.docker.internal:8080
 }
 
-# Public hostnames (Cloudflare Tunnel or port forwarding)
-# When using Cloudflare Tunnel, use DNS-01 challenge instead of HTTP-01
-# Requires CLOUDFLARE_API_TOKEN environment variable (see .env.example)
+privatebin.home, privatebin.local {
+	tls internal
+	reverse_proxy privatebin:8080
+}
+
+pwpush.home, pwpush.local {
+	tls internal
+	reverse_proxy pwpush:5100
+}
+
+# Shorteners & link-in-bio
+url-shortener.home, url-shortener.local, short.home, short.local, s.home, s.local {
+	tls internal
+	reverse_proxy yourls:8080
+}
+
+linkstack.home, linkstack.local {
+	tls internal
+	header Content-Security-Policy "upgrade-insecure-requests"
+	reverse_proxy linkstack:80 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# AI / LLM – host ports must match each stack's .env (e.g. OLLAMA_HOST_PORT, PERPLEXICA_HOST_PORT)
+# If open-webui and perplexica both use 3000, set PERPLEXICA_HOST_PORT=3001 in perplexica/.env
+ollama.home, ollama.local {
+	tls internal
+	reverse_proxy host.docker.internal:11434
+}
+
+open-notebook.home, open-notebook.local {
+	tls internal
+	reverse_proxy host.docker.internal:8502
+}
+
+perplexica.home, perplexica.local {
+	tls internal
+	reverse_proxy host.docker.internal:3001
+}
+
+open-webui.home, open-webui.local {
+	tls internal
+	reverse_proxy host.docker.internal:3000
+}
+
+librechat.home, librechat.local {
+	tls internal
+	reverse_proxy host.docker.internal:3080
+}
+
+# Metrics
+grafana.home, grafana.local {
+	tls internal
+	reverse_proxy grafana:3000
+}
+
+prometheus.home, prometheus.local {
+	tls internal
+	reverse_proxy prometheus:9090
+}
+
+cadvisor.home, cadvisor.local {
+	tls internal
+	reverse_proxy cadvisor:8080
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Public HTTPS (yourdomain.com) – Cloudflare DNS TLS
+# Requires Caddy built with Cloudflare DNS module (e.g. caddy-dns/cloudflare).
+# Set CLOUDFLARE_API_TOKEN in .env (see .env.example).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Infrastructure
 portainer.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:9443
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:9443
 }
 
 status.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:3001
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3001
 }
 
+# Tools
 it-tools.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:8080
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:8080
+}
+
+dozzle.yourdomain.com, logs.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:8082
+}
+
+n8n.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy n8n:5678
+}
+
+# Metrics
+grafana.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy grafana:3000
+}
+
+prometheus.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy prometheus:9090
+}
+
+cadvisor.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy cadvisor:8080
 }
 
 web-check.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:3000
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3000
 }
 
 searx-ng.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:8080
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:8080
 }
 
+# Documents & media
 paperless-ngx.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:8000
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:8000
 }
 
 immich.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:2283
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:2283
 }
 
+# Productivity
 links.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:3000
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3000
 }
 
+# Security & paste
 vault.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:11001
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:11001
+}
+
+infisical.yourdomain.com, secrets.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:8080
 }
 
 headscale.yourdomain.com {
-  tls {
-    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-  }
-  reverse_proxy host.docker.internal:8080
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:8080
+}
+
+paste.yourdomain.com, privatebin.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy privatebin:8080
+}
+
+pwpush.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy pwpush:5100
+}
+
+# Shorteners & link-in-bio
+short.yourdomain.com, url-shortener.yourdomain.com, s.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy yourls:8080 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# LinkStack – add extra hostnames (e.g. me.yourdomain.com) to the same block if desired
+linkstack.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	header Content-Security-Policy "upgrade-insecure-requests"
+	reverse_proxy linkstack:80 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# AI / LLM – adjust host ports to match your stack .env
+ollama.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:11434
+}
+
+open-notebook.yourdomain.com, notebook.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:8502
+}
+
+perplexica.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3001
+}
+
+open-webui.yourdomain.com, chat.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3000
+}
+
+librechat.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3080
 }
 
 :80 {
-  respond "Caddy is running. Add reverse_proxy blocks for your services." 200
+	respond "Caddy is running. Add reverse_proxy blocks for your services." 200
 }
