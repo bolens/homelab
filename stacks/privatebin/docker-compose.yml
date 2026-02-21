@@ -1,0 +1,24 @@
+services:
+  privatebin:
+    image: privatebin/nginx-fpm-alpine:latest
+    container_name: privatebin
+    restart: unless-stopped
+    # No host port: access via Caddy (reverse proxy on monitor network)
+    volumes:
+      - privatebin_data:/srv/data
+    networks:
+      - default
+      - monitor
+    environment:
+      - TZ=America/Denver
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+      - LC_CTYPE=en_US.UTF-8
+
+networks:
+  monitor:
+    name: monitor
+    driver: bridge
+
+volumes:
+  privatebin_data: {}

@@ -17,10 +17,11 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 | **Ports** | 80, 443 (HTTP/HTTPS) |
 | **Volumes** | `./Caddyfile` (ro), `caddy_data` (certs/data) |
 | **Env** | Optional: `CLOUDFLARE_API_TOKEN` for DNS-01 (see `.env.example`) |
-| **Network** | `monitor` — so Uptime Kuma can reach `http://caddy:80` |
+| **Network** | `monitor` — so Uptime Kuma and the metrics stack (Grafana, Prometheus, cAdvisor) can reach Caddy and each other |
 
 - **Local DNS:** Add A records (e.g. `portainer.home`, `kuma.home`) to your resolver so hostnames point at this host. Use `https://portainer.home` etc.
 - **Public (your domain):** Use Cloudflare Tunnel (see `stacks/cloudflare-tunnel`) or port forwarding + Let's Encrypt. Set hostnames and email in `Caddyfile`.
+- **URL shortener (YOURLS):** The shortener is reverse-proxied at the same hostnames (e.g. short.bolens.dev, s.bolens.dev). Login is handled by YOURLS itself (see `stacks/yourls`).
 
 ## Deploy (keeping Caddyfile out of the repo)
 

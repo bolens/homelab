@@ -1,0 +1,55 @@
+# YOURLS – Your Own URL Shortener. One app (UI + API + redirects). No host ports: access via Caddy.
+# Docs: https://docs.yourls.org/
+services:
+  yourls:
+    image: yourls:1.10.3-apache
+    build: .
+    container_name: yourls
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - YOURLS_DB_HOST=yourls-db
+      - YOURLS_DB_USER=${YOURLS_DB_USER:-yourls}
+      - YOURLS_DB_PASS=${YOURLS_DB_PASSWORD}
+      - YOURLS_DB_NAME=${YOURLS_DB_NAME:-yourls}
+      - YOURLS_SITE=${YOURLS_SITE}
+      - YOURLS_USER=${YOURLS_USER}
+      - YOURLS_PASS=${YOURLS_PASS}
+      - YOURLS_COOKIEKEY=${YOURLS_COOKIEKEY}
+    volumes:
+      - yourls_data:/var/www/html/user
+    depends_on:
+      yourls-db:
+        condition: service_healthy
+    networks:
+      - default
+      - monitor
+
+  yourls-db:
+    image: mariadb:11
+    container_name: yourls-db
+    restart: unless-stopped
+    environment:
+      - MARIADB_ROOT_PASSWORD=${YOURLS_DB_ROOT_PASSWORD}
+      - MARIADB_DATABASE=${YOURLS_DB_NAME:-yourls}
+      - MARIADB_USER=${YOURLS_DB_USER:-yourls}
+      - MARIADB_PASSWORD=${YOURLS_DB_PASSWORD}
+    volumes:
+      - yourls_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  yourls_data:
+  yourls_db_data:
