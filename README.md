@@ -16,6 +16,7 @@ python3 scripts/build-topology.py --in-place
 
 <!-- TOPOLOGY_GENERATED_START -->
 ```mermaid
+%%{init: {'flowchart': {'curveStyle': 'linear'}}}%%
 flowchart TB
     subgraph internet["Internet / LAN"]
         users["Clients"]
@@ -67,15 +68,8 @@ flowchart TB
     users --> tunnel
     users --> caddy
     tunnel --> caddy
-
     users --> wireguard
     users --> headscale
-    wireguard -.->|VPN clients reach| caddy
-    headscale -.->|mesh clients reach| caddy
-
-    apps_acquisition -.->|egress via VPN<br>e.g. qbittorrent| gluetun
-    gluetun -.->|via VPN provider| outbound
-
     caddy --> apps_acquisition
     caddy --> apps_ai
     caddy --> apps_dev
@@ -90,18 +84,20 @@ flowchart TB
     caddy --> apps_workflow
     caddy --> infra
 
-    caddy -.->|logs| crowdsec
-
-    apps_privacy -.->|SMTP| postfix
-    apps_workflow -.->|SMTP| postfix
-
-    kuma -.->|health checks| caddy
-    prometheus -.->|scrapes| cadvisor
-    grafana -.->|queries| prometheus
-    watchtower -.->|updates| apps
-    dockergc -.->|cleans up| apps
-    diun -.->|notifies| users
-    portainer -.->|manages| apps
+    wireguard -..->|VPN| caddy
+    headscale -..->|mesh| caddy
+    apps_acquisition -..->|VPN egress| gluetun
+    gluetun -..->|egress| outbound
+    caddy -..->|logs| crowdsec
+    apps_privacy -..->|mail| postfix
+    apps_workflow -..->|mail| postfix
+    kuma -..->|health| caddy
+    prometheus -..->|scrapes| cadvisor
+    grafana -..->|queries| prometheus
+    watchtower -..->|updates| apps
+    dockergc -..->|cleanup| apps
+    diun -..->|notify| users
+    portainer -..->|manage| apps
 ```
 
 - **Traffic:** All HTTP(S) to apps and to web UIs (e.g. Uptime Kuma, Grafana) goes through Caddy. Clients reach Caddy directly (local DNS) or via Cloudflare Tunnel; Caddy routes by hostname.
