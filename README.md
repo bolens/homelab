@@ -10,11 +10,19 @@ A collection of **Docker Compose stacks** for self-hosting at home: reverse prox
 flowchart TB
     subgraph internet["Internet / LAN"]
         users["Clients"]
+        outbound["Internet<br>(outbound)"]
     end
 
     subgraph ingress["Ingress"]
         tunnel["cloudflare-tunnel<br>(optional)"]
         caddy["caddy<br>Reverse proxy<br>:80 / :443"]
+    end
+
+    subgraph vpn["VPN & remote access"]
+        direction TB
+        headscale["headscale<br>Mesh VPN (Tailscale)"]
+        wireguard["wireguard<br>Remote access VPN"]
+        gluetun["gluetun<br>Container egress VPN"]
     end
 
     subgraph apps["Application stacks"]
@@ -25,23 +33,29 @@ flowchart TB
     end
 
     subgraph infra["Infrastructure & monitoring"]
+        direction TB
         portainer["portainer<br>Docker UI"]
         watchtower["watchtower<br>Auto-updates"]
         diun["diun<br>Image update notifier"]
         dockergc["docker-gc<br>Docker GC job"]
-        gluetun["gluetun<br>VPN client"]
         kuma["uptime-kuma<br>Monitoring"]
-        headscale["headscale<br>Mesh VPN"]
         grafana["grafana<br>Dashboards"]
         prometheus["prometheus<br>Metrics"]
         cadvisor["cAdvisor<br>Container metrics"]
         crowdsec["crowdsec<br>Security engine"]
-        wireguard["wireguard<br>Remote access VPN"]
     end
 
     users --> tunnel
     users --> caddy
     tunnel --> caddy
+
+    users --> wireguard
+    users --> headscale
+    wireguard -.->|VPN clients reach| caddy
+    headscale -.->|mesh clients reach| caddy
+
+    apps -.->|egress via VPN<br>e.g. qbittorrent| gluetun
+    gluetun -.->|via VPN provider| outbound
 
     caddy --> apps_media
     caddy --> apps_security
@@ -60,8 +74,9 @@ flowchart TB
     portainer -.->|manages| apps
 ```
 
-- **Traffic:** Clients hit Caddy (directly via local DNS or through Cloudflare Tunnel). Caddy routes by hostname to each app.
-- **Infrastructure:** Portainer manages stacks; Watchtower updates images; Docker GC (`docker-gc` stack) periodically cleans up old containers and unused images; Diun notifies when image tags change (e.g. Telegram/Discord); Uptime Kuma monitors Caddy and app health endpoints; Headscale provides Tailscale-compatible mesh VPN; Gluetun is an outbound VPN client for containers (e.g. qbittorrent uses its own Gluetun); WireGuard (LinuxServer) is a remote-access VPN server (UDP 51820). Dozzle (behind Caddy) is a log viewer for all containers.
+- **Traffic:** All HTTP(S) to apps and to web UIs (e.g. Uptime Kuma, Grafana) goes through Caddy. Clients reach Caddy directly (local DNS) or via Cloudflare Tunnel; Caddy routes by hostname.
+- **VPN & remote access:** **Headscale** – mesh VPN (Tailscale); mesh clients reach Caddy and apps. **WireGuard** – remote-access VPN (UDP 51820); VPN clients connect from outside. **Gluetun** – outbound VPN for containers; selected stacks (e.g. qbittorrent) send traffic through Gluetun to a VPN provider.
+- **Infrastructure:** Portainer manages stacks; Watchtower updates images; Docker GC cleans up; Diun notifies on image changes; Uptime Kuma monitors Caddy and app health; Grafana/Prometheus/cAdvisor provide metrics; CrowdSec consumes Caddy logs. Dozzle (behind Caddy) is a log viewer.
 
 ---
 
