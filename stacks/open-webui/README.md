@@ -2,6 +2,10 @@
 
 Extensible, feature-rich, and user-friendly self-hosted AI platform designed to operate entirely offline. Supports Ollama and OpenAI-compatible APIs.
 
+**Website:** https://openwebui.com  
+**GitHub:** https://github.com/open-webui/open-webui  
+**Docs:** https://docs.openwebui.com
+
 ## Features
 
 - **Multi-Provider Support**: Ollama, OpenAI, Anthropic, Google, and more
@@ -15,9 +19,9 @@ Extensible, feature-rich, and user-friendly self-hosted AI platform designed to 
 
 ## Setup
 
-1. Copy `.env.example` to `.env`:
+1. Copy `stack.env.example` to `stack.env`:
    ```bash
-   cp .env.example .env
+   cp stack.env.example stack.env
    ```
 
 2. Configure Ollama connection:
@@ -37,7 +41,7 @@ Extensible, feature-rich, and user-friendly self-hosted AI platform designed to 
 
 5. Start the stack:
    ```bash
-   docker compose up -d
+   docker compose --env-file stack.env up -d
    ```
 
 ## Usage
@@ -101,7 +105,7 @@ Use this as your web UI for installing and maintaining Ollama models.
 
 If you're running Ollama in another Docker stack:
 1. Add Ollama to the same Docker network (`monitor` network)
-2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `.env`
+2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
 ### Database Options
 
@@ -127,7 +131,7 @@ See Open WebUI documentation for advanced database configuration.
 - Try `http://host.docker.internal:11434` if on same host
 
 ### Port Conflicts
-- Change `OPEN_WEBUI_HOST_PORT` in `.env` if port 3000 is already in use
+- Change `OPEN_WEBUI_HOST_PORT` in `stack.env` if port 3000 is already in use
 
 ### Permission Issues
 - Ensure data directory has proper permissions

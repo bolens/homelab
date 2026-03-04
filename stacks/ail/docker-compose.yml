@@ -1,0 +1,38 @@
+# AIL framework – Analysis Information Leak framework (paste/leak analysis, trackers, MISP/TheHive).
+# No host ports: access via Caddy (reverse proxy to ail:7000). UI uses HTTPS with self-signed cert; Caddy uses tls_insecure_skip_verify.
+# Docs: https://github.com/ail-project/ail-framework | https://www.ail-project.org/
+#
+# Resource-heavy: image ~2GB+, recommend >6GB RAM. Alternative: build from https://github.com/MatthisClavijo/ail-framework-docker (see README).
+
+name: ail
+
+services:
+  ail:
+    image: cciucd/ail-framework:latest
+    container_name: ail
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - ail-pastes:/opt/ail-framework/PASTES
+      - ail-screenshots:/opt/ail-framework/CRAWLED_SCREENSHOT
+      - ail-kvrocks:/opt/ail-framework/DATA_KVROCKS
+      - ail-indexdir:/opt/ail-framework/indexdir
+      - ail-hashs:/opt/ail-framework/HASHS
+      - ail-logs:/opt/ail-framework/logs
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  ail-pastes:
+  ail-screenshots:
+  ail-kvrocks:
+  ail-indexdir:
+  ail-hashs:
+  ail-logs:

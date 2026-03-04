@@ -1,0 +1,122 @@
+# SimpleLogin – email alias service (create aliases, forward mail, reply anonymously).
+# No host ports: access via Caddy (reverse proxy to simplelogin:7777).
+# Docs: https://github.com/simple-login/app | https://simplelogin.io/docs/
+#
+# First-time: run migration and init, then start:
+#   docker compose run --rm simplelogin flask db upgrade
+#   docker compose run --rm simplelogin python init_app.py
+#   docker compose up -d
+
+name: simplelogin
+
+services:
+  simplelogin:
+    image: simplelogin/app:latest
+    container_name: simplelogin
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - URL=${URL}
+      - EMAIL_DOMAIN=${EMAIL_DOMAIN}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL}
+      - SUPPORT_NAME=${SUPPORT_NAME:-SimpleLogin}
+      - EMAIL_SERVERS_WITH_PRIORITY=${EMAIL_SERVERS_WITH_PRIORITY}
+      - DB_URI=postgresql://${POSTGRES_USER:-simplelogin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-simplelogin}
+      - FLASK_SECRET=${FLASK_SECRET}
+      - DKIM_PRIVATE_KEY_PATH=/dkim.key
+      - LOCAL_FILE_UPLOAD=true
+      - DISABLE_ONBOARDING=true
+      - NOT_SEND_EMAIL=${NOT_SEND_EMAIL:-false}
+      - DISABLE_ALIAS_SUFFIX=${DISABLE_ALIAS_SUFFIX:-1}
+      - GNUPGHOME=/sl/pgp
+      - POSTFIX_SERVER=${POSTFIX_SERVER:-}
+      - POSTFIX_PORT=${POSTFIX_PORT:-25}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-0}
+      - ALLOWED_REDIRECT_DOMAINS=${ALLOWED_REDIRECT_DOMAINS:-[]}
+    volumes:
+      - simplelogin-data:/sl
+      - simplelogin-upload:/code/static/upload
+      - ./data/dkim.key:/dkim.key:ro
+    networks:
+      - simplelogin
+      - monitor
+
+  simplelogin-email:
+    image: simplelogin/app:latest
+    container_name: simplelogin-email
+    restart: unless-stopped
+    command: python email_handler.py
+    depends_on:
+      simplelogin:
+        condition: service_started
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - URL=${URL}
+      - EMAIL_DOMAIN=${EMAIL_DOMAIN}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL}
+      - EMAIL_SERVERS_WITH_PRIORITY=${EMAIL_SERVERS_WITH_PRIORITY}
+      - DB_URI=postgresql://${POSTGRES_USER:-simplelogin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-simplelogin}
+      - FLASK_SECRET=${FLASK_SECRET}
+      - DKIM_PRIVATE_KEY_PATH=/dkim.key
+      - LOCAL_FILE_UPLOAD=true
+      - GNUPGHOME=/sl/pgp
+    volumes:
+      - simplelogin-data:/sl
+      - simplelogin-upload:/code/static/upload
+      - ./data/dkim.key:/dkim.key:ro
+    networks:
+      - simplelogin
+
+  simplelogin-job-runner:
+    image: simplelogin/app:latest
+    container_name: simplelogin-job-runner
+    restart: unless-stopped
+    command: python job_runner.py
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - DB_URI=postgresql://${POSTGRES_USER:-simplelogin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-simplelogin}
+      - FLASK_SECRET=${FLASK_SECRET}
+      - LOCAL_FILE_UPLOAD=true
+      - GNUPGHOME=/sl/pgp
+    volumes:
+      - simplelogin-data:/sl
+      - simplelogin-upload:/code/static/upload
+    networks:
+      - simplelogin
+
+  db:
+    image: postgres:14-alpine
+    container_name: simplelogin-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-simplelogin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-simplelogin}
+    volumes:
+      - simplelogin-pg-data:/var/lib/postgresql/data
+    networks:
+      - simplelogin
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+networks:
+  simplelogin:
+    driver: bridge
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  simplelogin-data:
+  simplelogin-upload:
+  simplelogin-pg-data:

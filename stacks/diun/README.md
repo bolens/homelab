@@ -2,10 +2,14 @@
 
 Docker image update notifier. Watches your running containers’ images and sends a notification when new tags are available (e.g. Telegram, Discord, webhook). Complements Watchtower: you see what changed before or after Watchtower pulls. No web UI; no Caddy reverse proxy needed.
 
+**Website:** https://crazymax.dev/diun  
+**GitHub:** https://github.com/crazy-max/diun  
+**Docs:** https://crazymax.dev/diun/
+
 ## Quick start
 
-1. Copy `.env.example` → `.env` and set at least one notifier (e.g. `DIUN_NOTIF_TELEGRAM_TOKEN` and `DIUN_NOTIF_TELEGRAM_CHATIDS`).
-2. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer and add the env vars in the stack).
+1. Copy `stack.env.example` → `stack.env` and set at least one notifier (e.g. `DIUN_NOTIF_TELEGRAM_TOKEN` and `DIUN_NOTIF_TELEGRAM_CHATIDS`).
+2. Start: `docker compose --env-file stack.env up -d` from this directory (or deploy as stack in Portainer and add the env vars in the stack).
 3. Check logs: `docker compose logs -f diun`.
 
 ## Configuration

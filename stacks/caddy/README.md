@@ -2,12 +2,16 @@
 
 Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.docker.internal`. Supports local DNS (e.g. AdGuard Home) and public access (Cloudflare Tunnel or port forwarding).
 
+**Website:** https://caddyserver.com  
+**GitHub:** https://github.com/caddyserver/caddy  
+**Docs:** https://caddyserver.com/docs/
+
 **Sensitive config:** The real `Caddyfile` is gitignored and never committed (domains, email, etc.). Only `Caddyfile.example` lives in the repo.
 
 ## Quick start
 
 1. Copy `Caddyfile.example` → `Caddyfile` (gitignored). Edit domain(s) and `email` for Let's Encrypt.
-2. For Cloudflare DNS-01 challenge (e.g. with Tunnel or wildcards): copy `.env.example` → `.env` and set `CLOUDFLARE_API_TOKEN` (see [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens); needs Zone:Read + DNS:Edit).
+2. For Cloudflare DNS-01 challenge (e.g. with Tunnel or wildcards): copy `stack.env.example` → `stack.env` and set `CLOUDFLARE_API_TOKEN` (see [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens); needs Zone:Read + DNS:Edit).
 3. Deploy (see below for Portainer vs host).
 
 ## Configuration
@@ -16,7 +20,7 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 |------|---------|
 | **Ports** | 80, 443 (HTTP/HTTPS) |
 | **Volumes** | `./Caddyfile` (ro), `caddy_data` (certs/data) |
-| **Env** | Optional: `CLOUDFLARE_API_TOKEN` for DNS-01 (see `.env.example`) |
+| **Env** | Optional: `CLOUDFLARE_API_TOKEN` for DNS-01 (see `stack.env.example`) |
 | **Network** | `monitor` — so Uptime Kuma and the metrics stack (Grafana, Prometheus, cAdvisor) can reach Caddy and each other |
 
 - **Local DNS:** Add A records (e.g. `portainer.home`, `kuma.home`) to your resolver so hostnames point at this host. Use `https://portainer.home` etc.

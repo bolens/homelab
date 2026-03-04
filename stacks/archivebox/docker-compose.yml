@@ -1,0 +1,71 @@
+services:
+  archivebox:
+    image: archivebox/archivebox:latest
+    container_name: archivebox
+    restart: unless-stopped
+    volumes:
+      - archivebox-data:/data
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - LANG=${LANG:-en_US.UTF-8}
+      - LC_ALL=${LC_ALL:-en_US.UTF-8}
+      - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
+      # Initial admin user (created on first run)
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      # HTTP listener and host validation (behind Caddy)
+      - LISTEN_HOST=0.0.0.0:8000
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-}
+      # Public/anonymous access controls
+      - PUBLIC_INDEX=${PUBLIC_INDEX:-False}
+      - PUBLIC_SNAPSHOTS=${PUBLIC_SNAPSHOTS:-False}
+      - PUBLIC_ADD_VIEW=${PUBLIC_ADD_VIEW:-False}
+      # Full-text search backend (Sonic)
+      - SEARCH_BACKEND_ENGINE=${SEARCH_BACKEND_ENGINE:-sonic}
+      - SEARCH_BACKEND_HOST_NAME=${SEARCH_BACKEND_HOST_NAME:-sonic}
+      - SEARCH_BACKEND_PASSWORD=${SEARCH_BACKEND_PASSWORD}
+    networks:
+      - monitor
+
+  archivebox_scheduler:
+    image: archivebox/archivebox:latest
+    container_name: archivebox_scheduler
+    restart: unless-stopped
+    command: schedule --foreground --update --every=day
+    volumes:
+      - archivebox-data:/data
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - LANG=${LANG:-en_US.UTF-8}
+      - LC_ALL=${LC_ALL:-en_US.UTF-8}
+      - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
+      - SEARCH_BACKEND_ENGINE=${SEARCH_BACKEND_ENGINE:-sonic}
+      - SEARCH_BACKEND_HOST_NAME=${SEARCH_BACKEND_HOST_NAME:-sonic}
+      - SEARCH_BACKEND_PASSWORD=${SEARCH_BACKEND_PASSWORD}
+    networks:
+      - monitor
+
+  sonic:
+    image: archivebox/sonic:latest
+    container_name: archivebox-sonic
+    restart: unless-stopped
+    expose:
+      - "1491"
+    environment:
+      - SEARCH_BACKEND_PASSWORD=${SEARCH_BACKEND_PASSWORD}
+    volumes:
+      - archivebox-sonic-data:/var/lib/sonic/store
+    networks:
+      - monitor
+
+networks:
+  # Use external monitor only – do not create a stack default network (avoids subnet exhaustion)
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  archivebox-data:
+  archivebox-sonic-data:
+

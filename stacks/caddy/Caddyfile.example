@@ -31,6 +31,11 @@ it-tools.home, it-tools.local {
 	reverse_proxy host.docker.internal:8080
 }
 
+convertx.home, convertx.local {
+	tls internal
+	reverse_proxy convertx:3000
+}
+
 dozzle.home, dozzle.local {
 	tls internal
 	reverse_proxy host.docker.internal:8082
@@ -51,6 +56,21 @@ searx-ng.home, searx-ng.local {
 	reverse_proxy host.docker.internal:8080
 }
 
+social-hunt.home, social-hunt.local {
+	tls internal
+	reverse_proxy social-hunt:8000
+}
+
+maigret.home, maigret.local {
+	tls internal
+	reverse_proxy maigret:5000
+}
+
+slink.home, slink.local {
+	tls internal
+	reverse_proxy slink:3000
+}
+
 # Documents & media
 paperless-ngx.home, paperless-ngx.local {
 	tls internal
@@ -60,6 +80,11 @@ paperless-ngx.home, paperless-ngx.local {
 immich.home, immich.local {
 	tls internal
 	reverse_proxy host.docker.internal:2283
+}
+
+archivebox.home, archivebox.local {
+	tls internal
+	reverse_proxy archivebox:8000
 }
 
 # Productivity
@@ -93,6 +118,31 @@ privatebin.home, privatebin.local {
 pwpush.home, pwpush.local {
 	tls internal
 	reverse_proxy pwpush:5100
+}
+
+simplelogin.home, simplelogin.local {
+	tls internal
+	reverse_proxy simplelogin:7777
+}
+
+ail.home, ail.local {
+	tls internal
+	reverse_proxy https://ail:7000 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+naisho.home, naisho.local {
+	tls internal
+	reverse_proxy naisho:3000
+}
+
+stoat.home, stoat.local {
+	tls internal
+	reverse_proxy stoat-caddy:80
 }
 
 # Shorteners & link-in-bio
@@ -152,10 +202,15 @@ cadvisor.home, cadvisor.local {
 	reverse_proxy cadvisor:8080
 }
 
+onionprobe.home, onionprobe.local {
+	tls internal
+	reverse_proxy op-grafana:3000
+}
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Public HTTPS (yourdomain.com) – Cloudflare DNS TLS
 # Requires Caddy built with Cloudflare DNS module (e.g. caddy-dns/cloudflare).
-# Set CLOUDFLARE_API_TOKEN in .env (see .env.example).
+# Set CLOUDFLARE_API_TOKEN in stack.env (see stack.env.example).
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Infrastructure
@@ -179,6 +234,13 @@ it-tools.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy host.docker.internal:8080
+}
+
+convertx.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy convertx:3000
 }
 
 dozzle.yourdomain.com, logs.yourdomain.com {
@@ -217,6 +279,13 @@ cadvisor.yourdomain.com {
 	reverse_proxy cadvisor:8080
 }
 
+onionprobe.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy op-grafana:3000
+}
+
 web-check.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -229,6 +298,27 @@ searx-ng.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy host.docker.internal:8080
+}
+
+social-hunt.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy social-hunt:8000
+}
+
+maigret.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy maigret:5000
+}
+
+slink.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy slink:3000
 }
 
 # Documents & media
@@ -244,6 +334,13 @@ immich.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy host.docker.internal:2283
+}
+
+archivebox.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy archivebox:8000
 }
 
 # Productivity
@@ -288,6 +385,39 @@ pwpush.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy pwpush:5100
+}
+
+simplelogin.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy simplelogin:7777
+}
+
+ail.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy https://ail:7000 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+naisho.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy naisho:3000
+}
+
+stoat.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy stoat-caddy:80
 }
 
 # Shorteners & link-in-bio
