@@ -42,7 +42,16 @@ def mermaid_quote(s: str) -> str:
 
 
 def build_mermaid(data: dict) -> str:
-    lines = ["flowchart TB", "    subgraph internet[\"Internet / LAN\"]", "        users[\"Clients\"]", "        outbound[\"Internet<br>(outbound)\"]", "    end", ""]
+    # Linear edges so GitHub (and other renderers) don't use curves that obscure labels
+    lines = [
+        "%%{init: {'flowchart': {'curveStyle': 'linear'}}}%%",
+        "flowchart TB",
+        "    subgraph internet[\"Internet / LAN\"]",
+        "        users[\"Clients\"]",
+        "        outbound[\"Internet<br>(outbound)\"]",
+        "    end",
+        "",
+    ]
     # Ingress
     lines.append('    subgraph ingress["Ingress"]')
     for item in data["ingress"]:
@@ -76,39 +85,35 @@ def build_mermaid(data: dict) -> str:
         lines.append(f'        {nid}["{mermaid_quote(item["label"])}"]')
     lines.append("    end")
     lines.append("")
-    # Edges
+    # Edges: unlabeled first (cleaner layout), then labeled in groups by target/source
     lines.append("    users --> tunnel")
     lines.append("    users --> caddy")
     lines.append("    tunnel --> caddy")
-    lines.append("")
     lines.append("    users --> wireguard")
     lines.append("    users --> headscale")
-    lines.append('    wireguard -.->|VPN clients reach| caddy')
-    lines.append('    headscale -.->|mesh clients reach| caddy')
-    lines.append("")
-    for cat_id in data.get("gluetun_egress", []):
-        nid = mermaid_node_id(cat_id)
-        lines.append(f'    {nid} -.->|egress via VPN<br>e.g. qbittorrent| gluetun')
-    lines.append("    gluetun -.->|via VPN provider| outbound")
-    lines.append("")
     for cat in data["app_categories"]:
         nid = mermaid_node_id(cat["id"])
         lines.append(f"    caddy --> {nid}")
     lines.append("    caddy --> infra")
     lines.append("")
-    lines.append("    caddy -.->|logs| crowdsec")
-    lines.append("")
+    # Labeled edges: short labels + longer link (-..->) to space labels and reduce overlap
+    lines.append("    wireguard -..->|VPN| caddy")
+    lines.append("    headscale -..->|mesh| caddy")
+    for cat_id in data.get("gluetun_egress", []):
+        nid = mermaid_node_id(cat_id)
+        lines.append(f"    {nid} -..->|VPN egress| gluetun")
+    lines.append("    gluetun -..->|egress| outbound")
+    lines.append("    caddy -..->|logs| crowdsec")
     for cat_id in data.get("smtp_clients", []):
         nid = mermaid_node_id(cat_id)
-        lines.append("    " + nid + " -.->|SMTP| postfix")
-    lines.append("")
-    lines.append("    kuma -.->|health checks| caddy")
-    lines.append("    prometheus -.->|scrapes| cadvisor")
-    lines.append("    grafana -.->|queries| prometheus")
-    lines.append("    watchtower -.->|updates| apps")
-    lines.append("    dockergc -.->|cleans up| apps")
-    lines.append("    diun -.->|notifies| users")
-    lines.append("    portainer -.->|manages| apps")
+        lines.append(f"    {nid} -..->|mail| postfix")
+    lines.append("    kuma -..->|health| caddy")
+    lines.append("    prometheus -..->|scrapes| cadvisor")
+    lines.append("    grafana -..->|queries| prometheus")
+    lines.append("    watchtower -..->|updates| apps")
+    lines.append("    dockergc -..->|cleanup| apps")
+    lines.append("    diun -..->|notify| users")
+    lines.append("    portainer -..->|manage| apps")
     return "\n".join(lines)
 
 
