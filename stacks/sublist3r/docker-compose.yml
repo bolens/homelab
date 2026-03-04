@@ -1,0 +1,20 @@
+name: sublist3r
+
+services:
+  sublist3r:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sublist3r:local
+    container_name: sublist3r
+    restart: "no"
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      # Optional: store results or output files here
+      - ./results:/results
+    stdin_open: true
+    tty: true
+

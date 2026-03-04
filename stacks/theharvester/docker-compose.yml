@@ -1,0 +1,19 @@
+name: theharvester
+
+services:
+  theharvester:
+    image: secsi/restfulharvest:latest
+    container_name: theharvester
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+

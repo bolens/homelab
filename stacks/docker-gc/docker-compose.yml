@@ -1,0 +1,17 @@
+services:
+  docker-gc:
+    image: eeacms/docker-gc:latest
+    container_name: docker-gc
+    restart: "no"
+    env_file:
+      - stack.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Read /etc for exclude files like /etc/docker-gc-exclude and /etc/docker-gc-exclude-containers
+      - /etc:/etc:ro
+      # Persist docker-gc state between runs (default STATE_DIR=/var/lib/docker-gc)
+      - docker_gc_state:/var/lib/docker-gc
+
+volumes:
+  docker_gc_state: {}
+

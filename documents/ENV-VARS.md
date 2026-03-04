@@ -33,11 +33,14 @@ environment:
 - **cadvisor** – TZ, LANG, LC_ALL, LC_CTYPE; no config files.
 - **cloudflare-tunnel** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **convertx** – TZ (optional); JWT_SECRET (recommended; e.g. `openssl rand -base64 32`); ACCOUNT_REGISTRATION (false after first account); HTTP_ALLOWED, LANGUAGE, AUTO_DELETE_EVERY_N_HOURS, etc. See stack `stack.env.example`.
+- **crowdsec** – TZ (optional); GID (group ID CrowdSec runs as inside the container so it can read your logs); COLLECTIONS (default hub collections to install, e.g. `crowdsecurity/linux`). See the CrowdSec stack README and Docker installation docs for acquisitions and bouncers.
 - **dependency-track** – TZ (optional); API_BASE_URL (required; URL the browser uses for the API, e.g. https://dtrack.home/api); POSTGRES_PASSWORD, POSTGRES_USER, POSTGRES_DB. No host ports; Caddy reverse-proxies to dtrack-frontend:8080 and dtrack-apiserver:8080. See stack README for path vs subdomain.
 - **diun** – TZ, LANG, LC_ALL, LC_CTYPE; DIUN_WATCH_*, DIUN_PROVIDERS_DOCKER; DIUN_NOTIF_* for notifiers (see stack `stack.env.example`).
 - **dozzle** – TZ, LANG, LC_ALL, LC_CTYPE; optional DOZZLE_AUTH_PROVIDER, DOZZLE_AUTH_USERNAME, DOZZLE_AUTH_PASSWORD.
+ - **docker-gc** – Optional TZ, LANG, LC_ALL, LC_CTYPE; maintenance job that talks to the host Docker daemon via `/var/run/docker.sock`. Uses `DRY_RUN` (global), `DRY_RUN_CONTAINERS`, and `DRY_RUN_IMAGES` to control whether containers/images are actually removed or just logged, plus `EXCLUDE_IMAGES` and `EXCLUDE_CONTAINERS` to protect specific resources. Also reads `/etc/docker-gc-exclude` and `/etc/docker-gc-exclude-containers` on the host for file-based patterns.
 - **freshrss** – TZ, PUID, PGID (optional).
 - **grafana** – TZ, LANG, LC_ALL, LC_CTYPE; optional GF_SERVER_ROOT_URL (when behind Caddy), GF_USERS_ALLOW_SIGN_UP, GF_SECURITY_*.
+- **guacamole** – TZ (optional); POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD (required; strong password shared by Postgres and the Guacamole web app). No host ports; access via Caddy only.
 - **headscale** – TZ (optional). Config via `HEADSCALE_CONFIG_B64` (base64-encoded config.yaml); see stack README.
 - **immich** – TZ, LANG, LC_ALL, LC_CTYPE (server); plus DB_PASSWORD, DB_*, optional IMMICH_CONFIG_FILE.
 - **infisical** – TZ, LANG, LC_ALL, LC_CTYPE (backend); ENCRYPTION_KEY, AUTH_SECRET, POSTGRES_*, DB_CONNECTION_URI, REDIS_URL, SITE_URL; optional SMTP_*, OAuth CLIENT_* (see stack `stack.env.example`).
@@ -48,6 +51,7 @@ environment:
 - **maigret** – TZ (optional). No host ports; web UI on port 5000, access via Caddy only. Reports in named volume `maigret-reports`. See stack README.
 - **mealie** – TZ, LANG, LC_ALL, LC_CTYPE; BASE_URL (when behind reverse proxy), ALLOW_SIGNUP; optional DB_ENGINE (sqlite/postgres).
 - **naisho** – TZ (optional); SECRET_KEY_BASE (required; e.g. `openssl rand -hex 64`); optional RAILS_LOG_LEVEL. Builds from GitHub; no host ports; access via Caddy only. SMTP configured in-app when sending deletion emails. See stack `stack.env.example` and README.
+- **navidrome** – TZ (optional); ND_BASEURL (optional but recommended when behind Caddy; set to your full Navidrome URL, e.g. `https://music.yourdomain.com`); ND_LOGLEVEL, ND_SCANSCHEDULE, ND_SESSIONTIMEOUT and other `ND_` options for tuning behaviour. See stack `stack.env.example` and [Navidrome configuration options](https://navidrome.org/docs/usage/configuration/options/).
 - **n8n** – TZ, LANG, LC_ALL, LC_CTYPE; N8N_HOST, WEBHOOK_URL (required when behind Caddy; set to your base URL e.g. https://n8n.home or https://n8n.yourdomain.com); N8N_PORT=5678, N8N_PROTOCOL=https; optional N8N_ENCRYPTION_KEY (e.g. `openssl rand -hex 32`). No host ports; access via Caddy only. See stack `stack.env.example`.
 - **ollama** – TZ, LANG, LC_ALL, LC_CTYPE; OLLAMA_HOST_PORT; OLLAMA_MODELS_PATH (path for models; use absolute path for large storage). Other data uses Docker volume `ollama_data`. GPU: requires NVIDIA Container Toolkit; no API keys.
 - **onionprobe** – Optional: GRAFANA_DATABASE_PASSWORD, GF_SERVER_ROOT_URL (e.g. https://onionprobe.home), PROMETHEUS_WEB_EXTERNAL_URL; requires upstream repo cloned into `./repo` (run `./clone-repo.sh`). No host ports; access via Caddy to op-grafana:3000. See stack README.
