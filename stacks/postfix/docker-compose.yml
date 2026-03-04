@@ -1,0 +1,22 @@
+# SMTP relay – central outbound SMTP for Docker stacks.
+# No host ports: apps use smtp-relay:587 on the monitor network; public access can use
+# Cloudflare Tunnel with hostname smtp.yourdomain.com → tcp://smtp-relay:587 (or host:587).
+# Image docs: https://github.com/bokysan/docker-postfix
+
+services:
+  smtp-relay:
+    image: boky/postfix:latest
+    container_name: smtp-relay
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    networks:
+      - monitor
+
+networks:
+  # Use external monitor only – no stack default network needed. Other stacks on monitor
+  # can reach the relay at smtp-relay:587.
+  monitor:
+    name: monitor
+    external: true
+

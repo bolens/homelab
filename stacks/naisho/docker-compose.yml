@@ -1,0 +1,41 @@
+# Naisho – send personal data deletion request emails to data brokers via SMTP.
+# No host ports: access via Caddy (reverse proxy to naisho:3000).
+# Builds from GitHub; image exposes 3000. Docs: https://github.com/nshki/naisho
+#
+# First run: entrypoint runs db:prepare and Company.sync_all automatically.
+
+name: naisho
+
+services:
+  naisho:
+    build:
+      context: https://github.com/nshki/naisho.git#main
+      dockerfile: Dockerfile
+    image: naisho:latest
+    container_name: naisho
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - RAILS_ENV=production
+      - DATABASE_URL=sqlite3:///data/production.sqlite3
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - RAILS_LOG_LEVEL=${RAILS_LOG_LEVEL:-info}
+    volumes:
+      - naisho-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  naisho-data:

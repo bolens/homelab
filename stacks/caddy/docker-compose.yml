@@ -14,12 +14,8 @@ services:
     networks:
       - default
       - monitor
-    environment:
-      - TZ=America/Denver
-      - LANG=en_US.UTF-8
-      - LC_ALL=en_US.UTF-8
-      - LC_CTYPE=en_US.UTF-8
-      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    env_file:
+      - stack.env
 
 networks:
   monitor:
@@ -29,5 +25,5 @@ networks:
 volumes:
   caddy_data: {}
 
-# Validate Caddyfile (uses same image; .env supplies CLOUDFLARE_API_TOKEN):
-#   docker compose run --rm caddy caddy validate --config /etc/caddy/Caddyfile
+# Validate Caddyfile (uses same image; stack.env supplies CLOUDFLARE_API_TOKEN):
+#   docker compose run --rm --env-file stack.env caddy caddy validate --config /etc/caddy/Caddyfile

@@ -1,0 +1,80 @@
+# OWASP Dependency-Track – SBOM / dependency vulnerability tracking (API + frontend + Postgres).
+# No host ports: access via Caddy (reverse proxy to dtrack-frontend:8080 and dtrack-apiserver:8080).
+# Set POSTGRES_PASSWORD and API_BASE_URL in stack.env (or Portainer Environment)
+# to the values the browser and API should use (e.g. API_BASE_URL=https://dtrack.home/api).
+# Docs: https://docs.dependencytrack.org/  |  https://dependencytrack.org/
+#
+# Start:  docker compose --env-file stack.env up -d
+# First run: create admin user in the UI; upload SBOMs (CycloneDX, SPDX) or use the API.
+
+name: dependency-track
+
+services:
+  dtrack-postgres:
+    image: postgres:17-alpine
+    container_name: dtrack-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-dtrack}
+      - POSTGRES_USER=${POSTGRES_USER:-dtrack}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - dtrack-pg-data:/var/lib/postgresql/data
+    networks:
+      - dtrack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dtrack} -d ${POSTGRES_DB:-dtrack}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  dtrack-apiserver:
+    image: dependencytrack/apiserver:latest
+    container_name: dtrack-apiserver
+    restart: unless-stopped
+    depends_on:
+      dtrack-postgres:
+        condition: service_healthy
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - ALPINE_DATABASE_MODE=external
+      - ALPINE_DATABASE_URL=jdbc:postgresql://dtrack-postgres:5432/${POSTGRES_DB:-dtrack}
+      - ALPINE_DATABASE_DRIVER=org.postgresql.Driver
+      - ALPINE_DATABASE_USERNAME=${POSTGRES_USER:-dtrack}
+      - ALPINE_DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+        reservations:
+          memory: 2g
+    volumes:
+      - dtrack-data:/data
+    networks:
+      - dtrack
+      - monitor
+
+  dtrack-frontend:
+    image: dependencytrack/frontend:latest
+    container_name: dtrack-frontend
+    restart: unless-stopped
+    depends_on:
+      - dtrack-apiserver
+    environment:
+      - TZ=${TZ:-America/Denver}
+      # Must be the URL the browser uses to reach the API (see README for Caddy path/subdomain setup)
+      - API_BASE_URL=${API_BASE_URL}
+    networks:
+      - dtrack
+      - monitor
+
+networks:
+  dtrack:
+    driver: bridge
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  dtrack-data:
+  dtrack-pg-data:

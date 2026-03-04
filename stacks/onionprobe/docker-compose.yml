@@ -1,0 +1,149 @@
+# Onionprobe – Tor Onion Services monitoring (probe endpoints, Prometheus + Grafana + Alertmanager).
+# No host ports: access via Caddy (reverse proxy to op-grafana:3000).
+# Requires the upstream repo cloned into ./repo first. Run: ./clone-repo.sh
+#
+# Docs: https://onionservices.torproject.org/apps/web/onionprobe/
+# Upstream: https://gitlab.torproject.org/tpo/onion-services/onionprobe
+
+name: onionprobe
+
+services:
+  op-prometheus:
+    image: quay.io/prometheus/prometheus:v3.9.1
+    container_name: onionprobe-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./repo/configs/prometheus/prometheus-rules.yml:/etc/prometheus/prometheus-rules.yml:ro
+      - ./repo/configs/prometheus/prometheus-tests.yml:/etc/prometheus/prometheus-tests.yml:ro
+      - op-prometheus-data:/prometheus
+    networks:
+      - onionprobe
+      - monitor
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+      - --web.external-url=${PROMETHEUS_WEB_EXTERNAL_URL:-http://op-prometheus:9090}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy | grep -q 'Prometheus Server is Healthy' || exit 1"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+
+  op-alertmanager:
+    image: quay.io/prometheus/alertmanager:v0.30.1
+    container_name: onionprobe-alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./repo/configs/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - op-alertmanager-data:/alertmanager
+    networks:
+      - onionprobe
+      - monitor
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+
+  op-postgres:
+    image: postgres:18-alpine
+    container_name: onionprobe-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: grafana
+      POSTGRES_DB: grafana
+      POSTGRES_PASSWORD: ${GRAFANA_DATABASE_PASSWORD:-change-me-in-production}
+    volumes:
+      - op-postgres-data:/var/lib/postgresql/data
+    networks:
+      - onionprobe
+
+  op-grafana:
+    image: grafana/grafana:12.3.2
+    container_name: onionprobe-grafana
+    restart: unless-stopped
+    volumes:
+      - ./repo/configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./repo/configs/grafana/home.json:/etc/grafana/home.json:ro
+      - op-grafana-data:/var/lib/grafana
+    environment:
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: op-postgres
+      GF_DATABASE_NAME: grafana
+      GF_DATABASE_USER: grafana
+      GF_DATABASE_PASSWORD: ${GRAFANA_DATABASE_PASSWORD:-change-me-in-production}
+      GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL:-https://onionprobe.home}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/home.json
+    networks:
+      - onionprobe
+      - monitor
+    depends_on:
+      - op-prometheus
+      - op-postgres
+
+  op-tor:
+    build:
+      context: ./repo
+      dockerfile: containers/tor/Dockerfile
+    image: onionprobe-tor:local
+    container_name: onionprobe-tor
+    restart: unless-stopped
+    volumes:
+      - ./repo/scripts/generate-auth-keys-for-all-onion-services:/usr/local/bin/generate-auth-keys-for-all-onion-services:ro
+      - op-tor-data:/var/lib/tor
+    networks:
+      - onionprobe
+
+  op-configurator:
+    build:
+      context: ./repo
+      dockerfile: containers/onionprobe/Dockerfile
+    image: onionprobe-app:local
+    container_name: onionprobe-configurator
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./repo:/srv/onionprobe
+    networks:
+      - onionprobe
+    entrypoint: "/srv/onionprobe/packages/tpo.py"
+    command: ["--loop", "--wait", "240", "--config_overrides", "rounds=20,launch_tor=false,tor_address=op-tor", "--config_template", "/srv/onionprobe/configs/tor.yaml", "--output_folder", "/srv/onionprobe/contrib"]
+    user: "${CONTAINER_UID:-1000}:${CONTAINER_GID:-1000}"
+    restart: unless-stopped
+
+  op-onionprobe:
+    build:
+      context: ./repo
+      dockerfile: containers/onionprobe/Dockerfile
+    image: onionprobe-app:local
+    container_name: onionprobe-app
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./repo:/srv/onionprobe
+    networks:
+      - onionprobe
+      - monitor
+    environment:
+      ONIONPROBE_CONFIG: /srv/onionprobe/${ONIONPROBE_CONFIG:-contrib/tpo.yaml}
+    restart: unless-stopped
+    depends_on:
+      - op-configurator
+      - op-tor
+
+networks:
+  onionprobe:
+    driver: bridge
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  op-prometheus-data:
+  op-alertmanager-data:
+  op-postgres-data:
+  op-grafana-data:
+  op-tor-data:

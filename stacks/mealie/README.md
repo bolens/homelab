@@ -3,16 +3,17 @@
 Self-hosted recipe manager and meal planner: import recipes from URLs, plan meals, generate shopping lists, and organize cookbooks.
 
 **Website:** https://mealie.io  
-**GitHub:** https://github.com/mealie-recipes/mealie
+**GitHub:** https://github.com/mealie-recipes/mealie  
+**Docs:** https://docs.mealie.io/
 
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - If using Caddy (or another reverse proxy), set `BASE_URL` to your full Mealie URL (e.g. `https://mealie.yourdomain.com`).
    - Set `ALLOW_SIGNUP=true` only until you create your account, then set to `false`.
    - Set `TZ` if different from America/Denver.
-2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
+2. **Deploy:** `docker compose --env-file stack.env up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open the web UI via Caddy, create your account, then set `ALLOW_SIGNUP=false` and redeploy.
 
 The stack uses a **named volume** `mealie_data` so it works when deployed from Portainer's web editor.
@@ -33,4 +34,10 @@ Point your Caddy vhost at `http://mealie:9000`. Set `BASE_URL` to your public UR
 
 ## Optional: PostgreSQL
 
-For PostgreSQL, set `DB_ENGINE=postgres` and add `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_SERVER`, `POSTGRES_PORT`, `POSTGRES_DB`, plus a postgres service and volume. See [Mealie backend config](https://docs.mealie.io/documentation/getting-started/installation/backend-config/) for details.
+For PostgreSQL, set `DB_ENGINE=postgres` and add `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_SERVER`, `POSTGRES_PORT`, `POSTGRES_DB`, plus a postgres service and volume. Use a strong random value for `POSTGRES_PASSWORD`, for example:
+
+```bash
+openssl rand -hex 32
+```
+
+See [Mealie backend config](https://docs.mealie.io/documentation/getting-started/installation/backend-config/) for details.

@@ -22,7 +22,7 @@ If you prefer direct port forwarding instead of tunnels:
 
 ### 1. DNS in Cloudflare
 
-In **Cloudflare Dashboard → bolens.dev → DNS → Records**, add:
+In **Cloudflare Dashboard → yourdomain.com → DNS → Records**, add:
 
 | Type | Name           | Content        | Proxy |
 |------|----------------|----------------|-------|

@@ -9,11 +9,11 @@ Self-hosted RSS feed aggregator: subscribe to feeds, categories, star articles, 
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - Set `PUID` / `PGID` if you want volume files owned by a specific user (e.g. `id your_user`); default `1000:1000` is fine for most setups.
    - Set `TZ` to your timezone if different from America/Denver.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
-3. **First run:** Open FreshRSS via Caddy (e.g. freshrss.home, freshrss.bolens.dev), complete the web setup wizard (language, default user, SQLite is pre-configured).
+3. **First run:** Open FreshRSS via Caddy (e.g. freshrss.home, freshrss.yourdomain.com), complete the web setup wizard (language, default user, SQLite is pre-configured).
 
 The stack uses a **named volume** (`freshrss_config`) so it works when deployed from Portainer’s web editor.
 
@@ -21,7 +21,7 @@ The stack uses a **named volume** (`freshrss_config`) so it works when deployed 
 
 | Item | Details |
 |------|---------|
-| **Access** | Via Caddy only (no host port; use freshrss.home, freshrss.bolens.dev, etc.) |
+| **Access** | Via Caddy only (no host port; use freshrss.home, freshrss.yourdomain.com, etc.) |
 | **Network** | `monitor` (external) — Caddy can reverse-proxy to `freshrss:80` |
 | **Image** | LinuxServer FreshRSS (Alpine + nginx + PHP) |
 | **Env** | `PUID`, `PGID`, `TZ` (all optional with defaults) |

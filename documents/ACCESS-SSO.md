@@ -24,9 +24,9 @@ Access is part of **Cloudflare Zero Trust**. The free tier includes a limited nu
 4. **Application name:** e.g. `Portainer` (for your reference).
 5. **Session Duration:** how long before users must sign in again (e.g. 24 hours).
 6. **Application domain:** use the **exact subdomain** that your tunnel already exposes:
-   - **Subdomain:** e.g. `portainer` (or whatever hostname you use).
-   - **Domain:** select your zone (e.g. `bolens.dev`).
-   - So the application domain is `portainer.bolens.dev`—the same hostname as in your tunnel’s Public Hostnames.
+  - **Subdomain:** e.g. `portainer` (or whatever hostname you use).
+  - **Domain:** select your zone (e.g. `yourdomain.com`).
+  - So the application domain is `portainer.yourdomain.com`—the same hostname as in your tunnel’s Public Hostnames.
 7. Click **Save**.
 
 Traffic to that hostname will now be checked by Access before it is sent through the tunnel to Caddy and your app.
@@ -42,23 +42,23 @@ Right after saving the application you’ll be prompted to add a policy. You can
 1. In Zero Trust go to **Settings** → **Authentication** → **Login methods**.
 2. Add and configure an **identity provider** (e.g. Google, GitHub, Azure AD, Okta, or generic OIDC/SAML). Follow Cloudflare’s prompts (redirect URLs, client ID/secret, etc.).
 3. Back in **Access** → **Applications** → your app → **Policies** → **Add a policy**:
-   - **Policy name:** e.g. `Allow team SSO`.
-   - **Action:** **Allow**.
-   - **Configure rules:**
-     - **Include** → e.g. **Emails ending in** → `@yourdomain.com`,  
-       or **Identity provider group** if you use an IdP that sends groups (e.g. Google Workspace, Okta).
-   - Add **Require** or **Exclude** rules if needed (e.g. require a specific country or exclude certain emails).
+  - **Policy name:** e.g. `Allow team SSO`.
+  - **Action:** **Allow**.
+  - **Configure rules:**
+    - **Include** → e.g. **Emails ending in** → `@yourdomain.com`,  
+    or **Identity provider group** if you use an IdP that sends groups (e.g. Google Workspace, Okta).
+  - Add **Require** or **Exclude** rules if needed (e.g. require a specific country or exclude certain emails).
 4. Save.
 
-Users hitting `https://portainer.bolens.dev` will be sent to your IdP to sign in; after that they reach your app.
+Users hitting `https://portainer.yourdomain.com` will be sent to your IdP to sign in; after that they reach your app.
 
 ### Option B: One-time PIN (no IdP)
 
 Good for a small number of users without setting up an IdP:
 
 1. In **Policies** → **Add a policy**:
-   - **Action:** **Allow**.
-   - **Include** → **Login Methods** → **One-time PIN**.
+  - **Action:** **Allow**.
+  - **Include** → **Login Methods** → **One-time PIN**.
 2. Save.
 
 Users will get a code by email; they enter it and then can access the app. No SSO provider required.
@@ -73,14 +73,28 @@ Users will get a code by email; they enter it and then can access the app. No SS
 
 To protect only part of a hostname (e.g. `/admin`):
 
-- When adding the application, you can set **Application domain** to a path, e.g. `portainer.bolens.dev/admin`.
+- When adding the application, you can set **Application domain** to a path, e.g. `portainer.yourdomain.com/admin`.
 - Or create a second application with the same subdomain but a path, and attach different policies. Path-based apps work alongside the root application.
+
+---
+
+## 3b. Special case: Headscale (keep domain accessible for Tailscale clients)
+
+**Headscale’s hostname must stay reachable** by Tailscale clients (phones, laptops, servers) for login and registration. Those clients talk to the server over HTTPS but are not browsers—if you put Cloudflare Access on the **entire** hostname, they would get an HTML login page instead of the API response and **client login would break**.
+
+**Ways to protect Headscale while keeping the domain usable for clients:**
+
+1. **Don’t put Access on the Headscale hostname.** Rely on Headscale’s own auth (pre-auth keys, OIDC if you use it) and exposure only via your tunnel. The hostname is “protected” by not being widely advertised and by requiring a valid key to join the tailnet.
+2. **Protect only a path (if you run an admin UI on the same host).** Headscale has no built-in web UI. If you run a separate admin UI (e.g. Headplane, headscale-admin) on the **same** hostname under a path (e.g. `headscale.yourdomain.com/admin`), create an Access application **only for that path** (`headscale.yourdomain.com/admin`). Then only `/admin` requires SSO; Tailscale client traffic to `/register`, `/key`, `/ts`, etc. is unchanged and clients can log in.
+3. **Separate hostname for admin.** Run the admin UI on a different hostname (e.g. `headscale-admin.yourdomain.com`) and put Access on that hostname only. Leave `headscale.yourdomain.com` without an Access application so clients can reach it.
+
+**Summary:** Do **not** add an Access application for the full `headscale.yourdomain.com` if Tailscale clients need to reach it. Use path-based Access only for an admin path, or a separate admin hostname, or no Access and rely on Headscale auth + exposure control.
 
 ---
 
 ## 4. No Caddy or tunnel config changes
 
-- **Tunnel:** Keep your existing Public Hostnames (e.g. `portainer.bolens.dev` → `localhost:80`). No change.
+- **Tunnel:** Keep your existing Public Hostnames (e.g. `portainer.yourdomain.com` → `localhost:80`). No change.
 - **Caddy:** No change. Access runs in front of the tunnel; by the time traffic reaches Caddy it’s already been allowed by Access. You do **not** need to add Access headers in Caddy unless an app explicitly uses them (e.g. for username).
 
 If you previously used **basic auth** in Caddy for that hostname, you can remove it and rely on Access instead, or keep both (Access first, then optional app-level auth).
@@ -93,17 +107,95 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 
 ---
 
+## Services and SSO
+
+### Cloudflare Access (edge SSO)
+
+**Any service** exposed via your Cloudflare Tunnel can be protected with Cloudflare Access (SSO or one-time PIN). You add an Access application per hostname (e.g. `portainer.yourdomain.com`); no change is required in the app or Caddy. Stacks in this repo that are typically exposed behind the tunnel therefore all “support” SSO in the sense that you can put Access in front of them.
+
+**Currently behind Access (this setup):** **cadvisor**, **dozzle**. Other hostnames can be added the same way in Zero Trust → Access → Applications.
+
+| Service / stack                           | Behind Access? | Notes                                                              |
+| ----------------------------------------- | -------------- | ------------------------------------------------------------------ |
+| **audiobookshelf**                        | Yes            | Protect hostname.                                                  |
+| **archivebox**                            | Yes            | Protect hostname; control anonymous access via `PUBLIC_INDEX`, `PUBLIC_SNAPSHOTS`, and `PUBLIC_ADD_VIEW`. |
+| **caddy**                                 | Yes            | Reverse proxy; protect the hostnames that Caddy serves.            |
+| **cloudflare-tunnel**                     | N/A            | Tunnel itself; Access runs at the edge before traffic reaches it.  |
+| **convertx**                              | Yes            | Protect hostname; app has accounts (JWT); set `ACCOUNT_REGISTRATION=false` after first user. |
+| **diun** / **watchtower**                 | Yes            | Protect if exposed via tunnel.                                     |
+| **dozzle**                                | Yes            | Protect Dozzle hostname; optional `users.yaml` auth in app.        |
+| **freshrss**                              | Yes            | Protect hostname.                                                  |
+| **grafana**                               | Yes            | Protect Grafana hostname; set `GF_SERVER_ROOT_URL` to that URL.    |
+| **headscale**                             | Path or none   | See [§3b Headscale](#3b-special-case-headscale-keep-domain-accessible-for-tailscale-clients): do not protect full hostname or client login breaks. Protect only an admin path or separate admin hostname. |
+| **immich**                                | Yes            | Protect Immich hostname; OAuth redirect URIs must use that URL.    |
+| **infisical**                             | Yes            | Protect hostname; `SITE_URL` must match or OAuth breaks.           |
+| **it-tools**                              | Yes            | Protect hostname (no app login).                                   |
+| **linkstack**                             | Yes            | Protect hostname.                                                  |
+| **linkwarden**                            | Yes            | Protect hostname; set `NEXTAUTH_URL` to that URL.                  |
+| **librechat**                             | Yes            | Protect LibreChat hostname for social/OAuth redirects.             |
+| **mealie**                                | Yes            | Protect hostname; set `BASE_URL` to that URL.                      |
+| **n8n**                                   | Yes            | Protect n8n hostname; ensure `N8N_HOST` / `WEBHOOK_URL` match.     |
+| **open-notebook**                         | Yes            | Protect hostname; optional UI password in app.                     |
+| **open-webui**                            | Yes            | Protect Open WebUI hostname for OAuth redirects.                   |
+| **paperless-ngx**                         | Yes            | Protect Paperless hostname.                                        |
+| **password-pusher**                       | Yes            | Protect hostname; optional logins use SMTP (see smtp-relay stack). |
+| **perplexica**                            | Yes            | Protect hostname.                                                  |
+| **portainer** (if used)                   | Yes            | Common use case; protect e.g. `portainer.yourdomain.com`.          |
+| **privatebin**                            | Yes            | Protect hostname.                                                  |
+| **prometheus** / **cadvisor**             | Yes            | Usually internal; protect if you expose them.                      |
+| **searx-ng**                              | Yes            | Protect hostname.                                                  |
+| **slink**                                 | Yes            | Protect hostname; set `ORIGIN` to that URL; optional user approval. |
+| **vaultwarden**                           | Yes            | Protect Vaultwarden hostname; optional `ADMIN_TOKEN` for `/admin`. |
+| **web-check**                             | Yes            | Protect hostname.                                                  |
+| **yourls**                                | Yes            | Protect shortener hostname(s).                                     |
+
+
+### Native app SSO (OAuth / OIDC / SAML / LDAP)
+
+These services support **in-app** SSO configuration (Google, GitHub, OIDC, LDAP, etc.). You can use them together with Cloudflare Access (Access in front, then app login) or rely on app SSO only.
+
+
+| Service           | Native SSO options                                           | Where to configure                                                                                                    |
+| ----------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| **Grafana**       | OAuth (generic, Google, GitHub, etc.), LDAP                  | Grafana UI: Configuration → Auth; or `GF_AUTH_`* env vars (see Grafana docs)                                          |
+| **Immich**        | Google OAuth, **Cloudflare Access OIDC** (Zero Trust as IdP) | Administration → Settings → OAuth; or `IMMICH_CONFIG_FILE` with OAuth block                                           |
+| **Infisical**     | Google, GitHub, GitLab OAuth                                 | `CLIENT_ID_*_LOGIN` / `CLIENT_SECRET_*_LOGIN` in `.env`; see Infisical docs                                           |
+| **Linkwarden**    | Many SSO providers (NextAuth)                                | Env vars; see [Linkwarden env docs](https://docs.linkwarden.app/self-hosting/environment-variables) and `.env.sample` |
+| **LibreChat**     | OAuth2, LDAP, social login (Google, Microsoft)               | Settings → Authentication; `config/auth.json`, `config/librechat.yaml`                                                |
+| **n8n**           | OIDC, LDAP (self-hosted)                                     | n8n docs / app settings                                                                                               |
+| **Open WebUI**    | OAuth, LDAP/AD                                               | Settings → Authentication                                                                                             |
+| **Paperless-ngx** | OIDC (optional)                                              | App config / env; see [Paperless-ngx configuration](https://docs.paperless-ngx.com/configuration/)                    |
+
+
+### No native SSO (Access or app password only)
+
+
+| Service                                                   | Auth model                                                         |
+| --------------------------------------------------------- | ------------------------------------------------------------------ |
+| **convertx**, **it-tools**, **privatebin**, **searx-ng**, **slink**, **web-check** | No login or minimal / app accounts only; use Access to protect hostname |
+| **Dozzle**                                                | Optional built-in auth via `users.yaml` (no OAuth/LDAP)            |
+| **Open Notebook**                                         | Optional `OPEN_NOTEBOOK_PASSWORD`                                  |
+| **Password Pusher**                                       | Optional user logins (SMTP for confirmation); no IdP SSO           |
+| **Vaultwarden**                                           | Bitwarden-compatible login; optional `ADMIN_TOKEN` for admin panel |
+| **YOURLS**                                                | `YOURLS_USER` / `YOURLS_PASS` (admin login)                        |
+
+
+---
+
 ## Summary
 
-| Step | Where | What |
-|------|--------|------|
-| 1 | Zero Trust → Access → Applications | Add application → Self-hosted → same subdomain as tunnel hostname |
-| 2 | Same app → Policies | Add Allow policy: SSO (IdP) or One-time PIN or email list |
-| 3 | (Optional) | Restrict by path; remove Caddy basic auth for that hostname |
-| 4 | — | Tunnel and Caddy unchanged |
+
+| Step | Where                              | What                                                              |
+| ---- | ---------------------------------- | ----------------------------------------------------------------- |
+| 1    | Zero Trust → Access → Applications | Add application → Self-hosted → same subdomain as tunnel hostname |
+| 2    | Same app → Policies                | Add Allow policy: SSO (IdP) or One-time PIN or email list         |
+| 3    | (Optional)                         | Restrict by path; remove Caddy basic auth for that hostname       |
+| 4    | —                                  | Tunnel and Caddy unchanged                                        |
+
 
 **References**
 
 - [Cloudflare Access – Applications](https://developers.cloudflare.com/cloudflare-one/applications/)
 - [Cloudflare Access – Policies](https://developers.cloudflare.com/cloudflare-one/policies/access/)
 - [Identity providers (Zero Trust)](https://developers.cloudflare.com/cloudflare-one/identity/idp-integration/)
+

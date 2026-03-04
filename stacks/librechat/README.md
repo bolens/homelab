@@ -2,6 +2,10 @@
 
 Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code interpreter, and more.
 
+**Website:** https://www.librechat.ai  
+**GitHub:** https://github.com/LibreChat-AI/LibreChat  
+**Docs:** https://docs.librechat.ai
+
 ## Features
 
 - **Multi-Provider Support**: OpenAI, Anthropic, Google, Azure, Ollama, and more
@@ -16,9 +20,9 @@ Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code
 
 ## Setup
 
-1. Copy `.env.example` to `.env`:
+1. Copy `stack.env.example` to `stack.env`:
    ```bash
-   cp .env.example .env
+   cp stack.env.example stack.env
    ```
 
 2. **IMPORTANT**: Generate secure JWT secrets:
@@ -26,14 +30,11 @@ Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code
    openssl rand -base64 32  # For JWT_SECRET
    openssl rand -base64 32  # For JWT_REFRESH_SECRET
    ```
-   Update `JWT_SECRET` and `JWT_REFRESH_SECRET` in `.env`.
+   Update `JWT_SECRET` and `JWT_REFRESH_SECRET` in `stack.env`.
 
-3. Set your data paths (absolute paths recommended):
-   ```bash
-   MONGODB_DATA_PATH=/path/to/mongodb/data
-   REDIS_DATA_PATH=/path/to/redis/data
-   LIBRECHAT_DATA_PATH=/path/to/librechat/data
-   ```
+3. Ensure the config files exist (included in this stack):
+   - `config/librechat.yaml` – app config (edit for custom endpoints, UI, etc.)
+   - `config/auth.json` – service keys for social login (empty `{}` by default; app can write to it)
 
 4. Generate and set MongoDB and Redis passwords (and JWT secrets if not done in step 2):
    ```bash
@@ -42,9 +43,9 @@ Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code
    # Redis password
    openssl rand -base64 24
    ```
-   Update `MONGO_INITDB_ROOT_PASSWORD` and `REDIS_PASSWORD` in `.env` with the outputs. For JWT secrets (step 2), use `openssl rand -base64 32` for both `JWT_SECRET` and `JWT_REFRESH_SECRET`.
+   Update `MONGO_INITDB_ROOT_PASSWORD` and `REDIS_PASSWORD` in `stack.env` with the outputs. For JWT secrets (step 2), use `openssl rand -base64 32` for both `JWT_SECRET` and `JWT_REFRESH_SECRET`.
 
-5. Configure Ollama connection:
+5. (Optional) Configure Ollama connection:
    - If Ollama is on the same Docker network: `OLLAMA_BASE_URL=http://ollama:11434`
    - If Ollama is on host: `OLLAMA_BASE_URL=http://host.docker.internal:11434`
 
@@ -53,18 +54,18 @@ Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code
    OPENAI_API_KEY=sk-your-api-key-here
    ```
 
-7. Start the stack:
+7. Start the stack (access via Caddy reverse proxy; no host port by default):
    ```bash
-   docker compose up -d
+   docker compose --env-file stack.env up -d
    ```
 
 ## Usage
 
-Once running, LibreChat will be available at `http://localhost:3080`.
+Once running, access LibreChat via your Caddy reverse proxy (e.g. `https://librechat.yourdomain.com`).
 
 ### Initial Setup
 
-1. Open the web UI at `http://localhost:3080`
+1. Open the web UI at your LibreChat URL (e.g. behind Caddy)
 2. Create your first admin account
 3. Configure AI providers in Settings
 4. Start chatting!
@@ -124,7 +125,7 @@ Configure providers in Settings → Endpoints after login.
 
 If you're running Ollama in another Docker stack:
 1. Add Ollama to the same Docker network (`monitor` network)
-2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `.env`
+2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
 ### Authentication
 
@@ -143,12 +144,12 @@ If you're running Ollama in another Docker stack:
 
 ### MongoDB Connection Issues
 - Check MongoDB is healthy: `docker ps | grep mongodb`
-- Verify credentials match in `.env`
+- Verify credentials match in `stack.env`
 - Check MongoDB logs: `docker logs librechat-mongodb`
 
 ### Redis Connection Issues
 - Check Redis is healthy: `docker ps | grep redis`
-- Verify password matches in `.env`
+- Verify password matches in `stack.env`
 - Check Redis logs: `docker logs librechat-redis`
 
 ### Ollama Connection Issues
@@ -156,11 +157,8 @@ If you're running Ollama in another Docker stack:
 - Check network connectivity between containers
 - Ensure Ollama is running and models are available
 
-### Port Conflicts
-- Change ports in `.env` if conflicts occur:
-  - `LIBRECHAT_HOST_PORT` (default: 3080)
-  - `MONGODB_HOST_PORT` (default: 27017)
-  - `REDIS_HOST_PORT` (default: 6379)
+### Config / auth.json errors
+- Ensure `config/librechat.yaml` and `config/auth.json` exist. The stack ships with minimal defaults; edit `config/librechat.yaml` for custom endpoints and see [LibreChat config docs](https://www.librechat.ai/docs/configuration/librechat_yaml).
 
 ### Permission Issues
 - Ensure data directories have proper permissions
@@ -176,9 +174,13 @@ LibreChat supports many environment variables for customization. See the officia
 
 While MongoDB is used by default, LibreChat can be configured to use other databases. See documentation for details.
 
+### Config file (`config/librechat.yaml`)
+
+The stack mounts a minimal `librechat.yaml` (v1.3.4). To add custom AI endpoints (Groq, Mistral, OpenRouter, etc.), edit `config/librechat.yaml` and restart. See the [config docs](https://www.librechat.ai/docs/configuration/librechat_yaml) and [example](https://www.librechat.ai/docs/configuration/librechat_yaml/example).
+
 ### Reverse Proxy
 
-For production deployments, use a reverse proxy (Caddy, Nginx, Traefik) in front of LibreChat.
+This stack does not expose host ports; use a reverse proxy (Caddy, Nginx, Traefik) in front of LibreChat.
 
 ## Documentation
 

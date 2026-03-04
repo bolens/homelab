@@ -1,0 +1,21 @@
+# OnionScan – CLI for investigating Tor hidden services (Dark Web).
+# No web server, no host ports. Container keeps Tor running; run scans via exec.
+# Docs: https://onionscan.org  |  GitHub: https://github.com/s-rah/onionscan
+#
+# Start: docker compose up -d
+# Wait for Tor: docker compose logs -f onionscan  (then Ctrl+C)
+# Scan:  docker compose exec onionscan onionscan [options] <onion-address>
+
+name: onionscan
+
+services:
+  onionscan:
+    image: mpatton/onionscan:latest
+    container_name: onionscan
+    restart: unless-stopped
+    # Drop all capabilities; Tor + onionscan don't need extra caps
+    cap_drop:
+      - ALL
+    environment:
+      - TZ=${TZ:-America/Denver}
+    # No ports: CLI-only, access via docker exec

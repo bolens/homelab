@@ -1,5 +1,5 @@
 # Perplexica - Privacy-focused AI-powered answering engine
-# Includes bundled SearxNG search engine. No host ports: access via Caddy (perplexica.home / perplexica.bolens.dev on monitor network).
+# Includes bundled SearxNG search engine. No host ports: access via Caddy (perplexica.home / perplexica.yourdomain.com on monitor network).
 services:
   perplexica:
     image: itzcrazykns1337/perplexica:latest

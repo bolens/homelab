@@ -2,6 +2,10 @@
 
 Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and more; supports many notification channels (Telegram, email, Discord, etc.).
 
+**Website:** https://uptime.kuma.pet  
+**GitHub:** https://github.com/louislam/uptime-kuma  
+**Docs:** https://github.com/louislam/uptime-kuma/wiki
+
 ## Quick start
 
 1. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).

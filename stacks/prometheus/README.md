@@ -2,6 +2,10 @@
 
 Metrics collection and storage. Scrapes cAdvisor (container metrics) and itself. Grafana uses Prometheus as a datasource for dashboards.
 
+**Website:** https://prometheus.io  
+**GitHub:** https://github.com/prometheus/prometheus  
+**Docs:** https://prometheus.io/docs/introduction/overview/
+
 ## Quick start
 
 1. Deploy **cAdvisor** first (so Prometheus has a target to scrape).

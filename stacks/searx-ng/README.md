@@ -9,7 +9,7 @@ Privacy-respecting metasearch engine. Aggregates results from multiple search en
 
 1. Set a secret via environment (required). Generate and set `SEARXNG_SECRET` (see **Generating keys and secrets** below).
    - **Portainer stack:** Add env var `SEARXNG_SECRET` in the stack.
-   - **CLI / .env:** Copy `.env.example` to `.env` and set `SEARXNG_SECRET` (and optionally `SEARXNG_BASE_URL`).
+   - **CLI / stack.env:** Copy `stack.env.example` to `stack.env` and set `SEARXNG_SECRET` (and optionally `SEARXNG_BASE_URL`).
 2. Deploy: `docker compose up -d` or deploy the stack in Portainer.
 3. Access via Caddy: https://searx-ng.home (or your configured hostname)
 
@@ -21,7 +21,7 @@ Privacy-respecting metasearch engine. Aggregates results from multiple search en
 openssl rand -hex 32
 ```
 
-Set the output as `SEARXNG_SECRET` in `.env` or in the Portainer stack Environment.
+Set the output as `SEARXNG_SECRET` in `stack.env` or in the Portainer stack Environment.
 
 Config is stored in a **named volume** (`searxng_config`), so the stack works when deployed from Portainer’s web editor (no bind-mounted `searxng/` folder needed). Secret, base URL, and Redis URL are set by environment variables.
 

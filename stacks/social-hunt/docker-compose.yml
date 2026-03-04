@@ -1,0 +1,48 @@
+# Social-Hunt – OSINT framework: username search, breach lookups (HIBP/Snusbase/etc.), face matching, reverse image.
+# No host ports: access via Caddy (reverse proxy to social-hunt:8000).
+# Docs: https://github.com/AfterPacket/Social-Hunt | https://socialhunt.org
+services:
+  social-hunt:
+    image: afterpacket/social-hunt:latest
+    container_name: social-hunt
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-America/Denver}
+      # Dashboard login and protected actions (required; set in .env)
+      - admin_token=${ADMIN_TOKEN}
+      # Base URL for reverse-image links (must match Caddy hostname)
+      - SOCIAL_HUNT_PUBLIC_URL=${SOCIAL_HUNT_PUBLIC_URL:-}
+      - SOCIAL_HUNT_HOST=0.0.0.0
+      - SOCIAL_HUNT_PORT=8000
+      # Optional: allow setting admin token in UI when none configured
+      - SOCIAL_HUNT_ENABLE_TOKEN_BOOTSTRAP=${SOCIAL_HUNT_ENABLE_TOKEN_BOOTSTRAP:-0}
+      # Optional: allow uploading YAML/Python plugins via dashboard
+      - SOCIAL_HUNT_ENABLE_WEB_PLUGIN_UPLOAD=${SOCIAL_HUNT_ENABLE_WEB_PLUGIN_UPLOAD:-0}
+      - SOCIAL_HUNT_PLUGIN_TOKEN=${SOCIAL_HUNT_PLUGIN_TOKEN:-}
+      # Optional: HIBP, Snusbase, etc. can be set in dashboard Settings → Add API
+      - SOCIAL_HUNT_SETTINGS_PATH=/app/data/settings.json
+      # Optional: Tor for .onion; clearnet proxy for blocked IPs
+      - SOCIAL_HUNT_PROXY=${SOCIAL_HUNT_PROXY:-}
+      - SOCIAL_HUNT_CLEARNET_PROXY=${SOCIAL_HUNT_CLEARNET_PROXY:-}
+      # Optional: hCaptcha for login
+      - HCAPTCHA_SITE_KEY=${HCAPTCHA_SITE_KEY:-}
+      - HCAPTCHA_SECRET=${HCAPTCHA_SECRET:-}
+      # Optional: demo mode (censor sensitive data)
+      - SOCIAL_HUNT_DEMO_MODE=${SOCIAL_HUNT_DEMO_MODE:-0}
+    volumes:
+      - social-hunt-data:/app/data
+      - social-hunt-plugins:/app/plugins
+      - social-hunt-temp-uploads:/app/web/temp_uploads
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  social-hunt-data:
+  social-hunt-plugins:
+  social-hunt-temp-uploads:

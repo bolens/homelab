@@ -1,0 +1,30 @@
+# OWASP ZAP (Zed Attack Proxy) – web/API security scanner (daemon mode, web UI).
+# No host ports: access via Caddy (reverse_proxy zap:8090 on monitor network).
+# Docs: https://www.zaproxy.org/docs/  |  Docker: https://github.com/zaproxy/zaproxy/blob/main/docker/README.md
+#
+# Start:  docker compose up -d
+# Use:    Open https://zap.home (or your Caddy host) for the ZAP UI; run baseline/active scans against your apps.
+
+name: zap
+
+services:
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: zap
+    restart: unless-stopped
+    command: zap.sh -daemon -port 8090 -host 0.0.0.0
+    environment:
+      - TZ=${TZ:-America/Denver}
+    # Optional: persist ZAP config/sessions (uncomment if you want data to survive restarts)
+    # volumes:
+    #   - zap-data:/zap/wrk
+    networks:
+      - monitor
+
+# volumes:
+#   zap-data:
+
+networks:
+  monitor:
+    name: monitor
+    external: true

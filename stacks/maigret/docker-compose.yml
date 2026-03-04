@@ -1,0 +1,24 @@
+# Maigret – OSINT: collect a dossier on a person by username from thousands of sites.
+# Web UI on port 5000; no host ports: access via Caddy (reverse proxy to maigret:5000).
+# Docs: https://github.com/soxoj/maigret  |  Web: maigret --web 5000
+services:
+  maigret:
+    image: soxoj/maigret:latest
+    container_name: maigret
+    restart: unless-stopped
+    command: ["--web", "5000"]
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - FLASK_HOST=0.0.0.0
+    volumes:
+      - maigret-reports:/app/reports
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  maigret-reports:

@@ -1,0 +1,38 @@
+# Slink – self-hosted image sharing (upload, collections, ShareX, S3/SMB).
+# No host ports: access only via Caddy (reverse_proxy slink:3000 on monitor network).
+# Docs: https://docs.slinkapp.io  GitHub: https://github.com/andrii-kryvoviaz/slink
+services:
+  slink:
+    image: anirdev/slink:latest
+    container_name: slink
+    restart: unless-stopped
+    volumes:
+      - slink-var-data:/app/var/data
+      - slink-images:/app/slink/images
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - ORIGIN=${ORIGIN}
+      - API_ENABLED=${API_ENABLED:-true}
+      - USER_APPROVAL_REQUIRED=${USER_APPROVAL_REQUIRED:-true}
+      - USER_PASSWORD_MIN_LENGTH=${USER_PASSWORD_MIN_LENGTH:-8}
+      - USER_PASSWORD_REQUIREMENTS=${USER_PASSWORD_REQUIREMENTS:-15}
+      - IMAGE_MAX_SIZE=${IMAGE_MAX_SIZE:-15M}
+      - IMAGE_STRIP_EXIF_METADATA=${IMAGE_STRIP_EXIF_METADATA:-true}
+      - IMAGE_COMPRESSION_QUALITY=${IMAGE_COMPRESSION_QUALITY:-80}
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}
+      # Optional: first admin (remove after initial setup)
+      # - ADMIN_USERNAME=admin
+      # - ADMIN_EMAIL=admin@example.com
+      # - ADMIN_PASSWORD=YourSecurePassword123
+    networks:
+      - monitor
+
+networks:
+  # Use external monitor only – do not create a stack default network (avoids subnet exhaustion)
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  slink-var-data:
+  slink-images:

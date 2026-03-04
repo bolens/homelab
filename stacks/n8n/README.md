@@ -2,16 +2,20 @@
 
 Workflow automation: connect apps, APIs, and services with a visual editor. Self-hosted alternative to Zapier/Make. Uses SQLite by default (data in Docker volume); optional Postgres for scaling.
 
+**Website:** https://n8n.io  
+**GitHub:** https://github.com/n8n-io/n8n  
+**Docs:** https://docs.n8n.io/
+
 ## Quick start
 
 1. Ensure the `monitor` network exists (e.g. `docker network create monitor` or deploy Caddy first).
-2. Copy `.env.example` to `.env` and set **N8N_HOST** and **WEBHOOK_URL** to the URL where you’ll reach n8n behind Caddy (e.g. `https://n8n.home` or `https://n8n.bolens.dev`). Both must match your Caddy hostname.
+2. Copy `stack.env.example` to `stack.env` and set **N8N_HOST** and **WEBHOOK_URL** to the URL where you’ll reach n8n behind Caddy (e.g. `https://n8n.home` or `https://n8n.yourdomain.com`). Both must match your Caddy hostname.
 3. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
 4. Open the URL above; create the owner account on first visit.
 
 ## Portainer
 
-The stack is Portainer-friendly: env defaults for TZ/locale, optional host port, and external `monitor` network. Set **N8N_HOST** and **WEBHOOK_URL** in the stack Environment (e.g. `https://n8n.bolens.dev`).
+The stack is Portainer-friendly: env defaults for TZ/locale, optional host port, and external `monitor` network. Set **N8N_HOST** and **WEBHOOK_URL** in the stack Environment (e.g. `https://n8n.yourdomain.com`).
 
 ## Configuration
 
@@ -24,7 +28,7 @@ The stack is Portainer-friendly: env defaults for TZ/locale, optional host port,
 
 ## Caddy
 
-Use `reverse_proxy n8n:5678`. Add blocks for `n8n.home` / `n8n.local` (local TLS) and your public host (e.g. `n8n.bolens.dev`). See [stacks/caddy/Caddyfile](../caddy/Caddyfile) and Caddyfile.example.
+Use `reverse_proxy n8n:5678`. Add blocks for `n8n.home` / `n8n.local` (local TLS) and your public host (e.g. `n8n.yourdomain.com`). See [stacks/caddy/Caddyfile](../caddy/Caddyfile) and Caddyfile.example.
 
 ## Optional: local files for workflows
 

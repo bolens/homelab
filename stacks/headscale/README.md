@@ -3,7 +3,8 @@
 Self-hosted implementation of the Tailscale control server. Lets you run your own Tailscale-style mesh VPN and use Tailscale clients (or headscale-specific options) to connect.
 
 **Website:** https://headscale.net  
-**GitHub:** https://github.com/juanfont/headscale
+**GitHub:** https://github.com/juanfont/headscale  
+**Docs:** https://headscale.net/docs/
 
 ## Quick start
 

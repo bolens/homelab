@@ -9,10 +9,10 @@ Self-hosted podcast (and audiobook) server: subscribe to podcasts, stream or dow
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - Set `TZ` to your timezone if different from America/Denver.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
-3. **First run:** Open Audiobookshelf via Caddy (e.g. audiobookshelf.home, audiobookshelf.bolens.dev), create the admin account, then add libraries (e.g. Podcasts pointing at `/podcasts`) and subscribe to feeds.
+3. **First run:** Open Audiobookshelf via Caddy (e.g. audiobookshelf.home, audiobookshelf.yourdomain.com), create the admin account, then add libraries (e.g. Podcasts pointing at `/podcasts`) and subscribe to feeds.
 
 The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it works when deployed from Portainer’s web editor.
 
@@ -20,7 +20,7 @@ The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it 
 
 | Item | Details |
 |------|---------|
-| **Access** | Via Caddy only (no host port; use audiobookshelf.home, audiobookshelf.bolens.dev, etc.) |
+| **Access** | Via Caddy only (no host port; use audiobookshelf.home, audiobookshelf.yourdomain.com, etc.) |
 | **Network** | `monitor` (external) — Caddy can reverse-proxy to `audiobookshelf:80` |
 | **Image** | ghcr.io/advplyr/audiobookshelf:latest |
 | **Env** | `TZ` (optional, default America/Denver) |

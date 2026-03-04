@@ -4,6 +4,12 @@
 !.env.example
 !.env.*.example
 
+# Per-stack env files (Portainer / docker compose --env-file)
+stack.env
+stack.env.*
+!stack.env.example
+!stack.env.*.example
+
 # Config files that may contain secrets (keep .example templates)
 config.yml
 config.yaml

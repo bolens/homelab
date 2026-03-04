@@ -2,11 +2,15 @@
 
 Real-time Docker container log viewer. One container, no database; uses the Docker socket to list containers and stream logs. Handy when debugging which service is failing without jumping between Portainer log tabs or `docker logs`.
 
+**Website:** https://dozzle.dev  
+**GitHub:** https://github.com/amir20/dozzle  
+**Docs:** https://dozzle.dev/guide/
+
 ## Quick start
 
 1. Ensure the `monitor` network exists (e.g. `docker network create monitor` or deploy Caddy first).
 2. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
-3. Access via Caddy (e.g. https://dozzle.home or https://dozzle.bolens.dev). Caddy uses `reverse_proxy dozzle:8080` on the shared monitor network (same pattern as yourls, cadvisor, grafana).
+3. Access via Caddy (e.g. https://dozzle.home or https://dozzle.yourdomain.com). Caddy uses `reverse_proxy dozzle:8080` on the shared monitor network (same pattern as yourls, cadvisor, grafana).
 
 ## Portainer
 
@@ -47,7 +51,7 @@ Then restart the Dozzle container so it picks up the file.
 
 ## Caddy
 
-Use `reverse_proxy dozzle:8080` (same as yourls:8080, cadvisor:8080). See [stacks/caddy/Caddyfile](../caddy/Caddyfile) for dozzle.bolens.dev.
+Use `reverse_proxy dozzle:8080` (same as yourls:8080, cadvisor:8080). See [stacks/caddy/Caddyfile](../caddy/Caddyfile) for dozzle.yourdomain.com.
 
 ## Start
 

@@ -3,11 +3,12 @@
 Self-hosted secrets manager for API keys, environment variables, and config. Sync secrets to apps, CI/CD, and CLI. Open-source alternative to Doppler, Vault (simpler), and env vaults.
 
 **Website:** https://infisical.com  
-**GitHub:** https://github.com/Infisical/infisical
+**GitHub:** https://github.com/Infisical/infisical  
+**Docs:** https://infisical.com/docs
 
 ## Quick start
 
-1. Copy env: `cp .env.example .env`
+1. Copy env: `cp stack.env.example stack.env`
 2. Generate and set all required keys/secrets (see **Generating keys and secrets** below).
 3. Set `SITE_URL` to the URL you use behind Caddy (e.g. `https://infisical.home` or `https://secrets.yourdomain.com`).
 4. Deploy: `docker compose up -d`
@@ -17,7 +18,7 @@ Self-hosted secrets manager for API keys, environment variables, and config. Syn
 
 ## Generating keys and secrets
 
-Run these and paste the output into `.env` (never use the sample values in production):
+Run these and paste the output into your env file (e.g. `stack.env` or Portainer Environment; never use the sample values in production):
 
 ```bash
 # ENCRYPTION_KEY – 32-character hex (16 bytes)
@@ -30,7 +31,7 @@ openssl rand -base64 32
 openssl rand -base64 24
 ```
 
-Set in `.env` (or Portainer stack Environment):
+Set in `stack.env` (or Portainer stack Environment):
 
 - **ENCRYPTION_KEY** = output of `openssl rand -hex 16`
 - **AUTH_SECRET** = output of `openssl rand -base64 32`
@@ -41,15 +42,15 @@ Set in `.env` (or Portainer stack Environment):
 
 Note: `DB_CONNECTION_URI` is automatically constructed from `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` in the docker-compose.yml.
 
-Optional one-liner to append to `.env` (review before saving):
+Optional one-liner to append to `stack.env` (review before saving):
 
 ```bash
-echo "ENCRYPTION_KEY=$(openssl rand -hex 16)" >> .env
-echo "AUTH_SECRET=$(openssl rand -base64 32)" >> .env
-echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)" >> .env
+echo "ENCRYPTION_KEY=$(openssl rand -hex 16)" >> stack.env
+echo "AUTH_SECRET=$(openssl rand -base64 32)" >> stack.env
+echo "POSTGRES_PASSWORD=$(openssl rand -base64 24)" >> stack.env
 ```
 
-Then edit `.env` to remove any old placeholder lines and set `SITE_URL`.
+Then edit `stack.env` to remove any old placeholder lines and set `SITE_URL`.
 
 ## Configuration
 
@@ -72,7 +73,11 @@ See **Generating keys and secrets** above for copy-paste commands.
 
 ## Optional
 
-- **SMTP_*** – For email invites and alerts.
+- **SMTP_*** – For email invites and alerts. For example, when using the `smtp-relay` stack:  
+  - `SMTP_HOST=smtp-relay` (inside Docker) or `smtp.yourdomain.com` (outside).  
+  - `SMTP_PORT=587`  
+  - `SMTP_FROM_ADDRESS=noreply@yourdomain.com`  
+  - `SMTP_FROM_NAME=Infisical`
 - **CLIENT_ID_*_LOGIN / CLIENT_SECRET_*_LOGIN** – Google/GitHub/GitLab OAuth (see Infisical docs).
 - Full `.env` reference: [Infisical .env.example](https://github.com/Infisical/infisical/blob/main/.env.example).
 

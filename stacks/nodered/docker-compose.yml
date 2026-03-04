@@ -1,0 +1,22 @@
+services:
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered
+    restart: unless-stopped
+    # No host port: access via Caddy only (reverse_proxy nodered:1880)
+    volumes:
+      - nodered_data:/data
+    networks:
+      - default
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  nodered_data: {}
+

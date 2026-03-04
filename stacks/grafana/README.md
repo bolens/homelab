@@ -2,6 +2,10 @@
 
 Dashboard and visualization for Prometheus (and other datasources). Use with the Prometheus and cAdvisor stacks for host and container metrics.
 
+**Website:** https://grafana.com  
+**GitHub:** https://github.com/grafana/grafana  
+**Docs:** https://grafana.com/docs/grafana/latest/
+
 ## Quick start
 
 1. Deploy **Prometheus** and **cAdvisor** first so Prometheus is scraping; then deploy this stack.

@@ -3,7 +3,7 @@ services:
     image: louislam/uptime-kuma:1
     container_name: uptime-kuma
     restart: unless-stopped
-    # No host port: access via Caddy (kuma.home / status.bolens.dev on monitor network)
+    # No host port: access via Caddy (kuma.home / status.yourdomain.com on monitor network)
     volumes:
       - uptime_kuma_data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -14,11 +14,8 @@ services:
       - monitor
     # Optional: run as specific user (Uptime Kuma defaults to node in image)
     # user: "1000:1000"
-    environment:
-      - TZ=America/Denver
-      - LANG=en_US.UTF-8
-      - LC_ALL=en_US.UTF-8
-      - LC_CTYPE=en_US.UTF-8
+    env_file:
+      - stack.env
 
 networks:
   monitor:
