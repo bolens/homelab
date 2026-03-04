@@ -1,0 +1,19 @@
+name: reconftw
+
+services:
+  reconftw:
+    image: six2dez/reconftw:main
+    container_name: reconftw
+    restart: "no"
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      # Main ReconFTW config (download from upstream; see README)
+      - ./reconftw.cfg:/root/Tools/reconftw/reconftw.cfg:ro
+      # Output directory with all recon data, reports, screenshots, etc.
+      - ./Recon:/root/Tools/reconftw/Recon
+    stdin_open: true
+    tty: true
+

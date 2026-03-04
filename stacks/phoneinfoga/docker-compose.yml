@@ -1,0 +1,20 @@
+name: phoneinfoga
+
+services:
+  phoneinfoga:
+    image: sundowndev/phoneinfoga:latest
+    container_name: phoneinfoga
+    restart: unless-stopped
+    command: ["serve", "-p", "5000"]
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+

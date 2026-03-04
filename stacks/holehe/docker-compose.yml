@@ -1,0 +1,22 @@
+name: holehe
+
+services:
+  holehe-web:
+    build:
+      context: ./repo
+      dockerfile: Dockerfile
+    image: holehe-web:local
+    container_name: holehe-web
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+

@@ -126,6 +126,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **dozzle**                                | Yes            | Protect Dozzle hostname; optional `users.yaml` auth in app.        |
 | **freshrss**                              | Yes            | Protect hostname.                                                  |
 | **grafana**                               | Yes            | Protect Grafana hostname; set `GF_SERVER_ROOT_URL` to that URL.    |
+| **guacamole**                             | Yes            | Protect Guacamole hostname; app has its own login, Access adds an extra SSO/OTP gate. |
 | **headscale**                             | Path or none   | See [§3b Headscale](#3b-special-case-headscale-keep-domain-accessible-for-tailscale-clients): do not protect full hostname or client login breaks. Protect only an admin path or separate admin hostname. |
 | **immich**                                | Yes            | Protect Immich hostname; OAuth redirect URIs must use that URL.    |
 | **infisical**                             | Yes            | Protect hostname; `SITE_URL` must match or OAuth breaks.           |
@@ -134,6 +135,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **linkwarden**                            | Yes            | Protect hostname; set `NEXTAUTH_URL` to that URL.                  |
 | **librechat**                             | Yes            | Protect LibreChat hostname for social/OAuth redirects.             |
 | **mealie**                                | Yes            | Protect hostname; set `BASE_URL` to that URL.                      |
+| **navidrome**                             | Yes            | Protect Navidrome hostname; optional `ND_BASEURL` should match it. |
 | **n8n**                                   | Yes            | Protect n8n hostname; ensure `N8N_HOST` / `WEBHOOK_URL` match.     |
 | **open-notebook**                         | Yes            | Protect hostname; optional UI password in app.                     |
 | **open-webui**                            | Yes            | Protect Open WebUI hostname for OAuth redirects.                   |

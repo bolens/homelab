@@ -1,0 +1,64 @@
+name: guacamole
+
+services:
+  guacd:
+    image: guacamole/guacd:1.6.0
+    container_name: guacd
+    restart: unless-stopped
+    networks:
+      - guacamole
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: guacamole-postgres
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-guacamole_db}
+      - POSTGRES_USER=${POSTGRES_USER:-guacamole}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - guacamole_pg_data:/var/lib/postgresql/data
+    networks:
+      - guacamole
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-guacamole} -d ${POSTGRES_DB:-guacamole_db}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  guacamole:
+    image: guacamole/guacamole:1.6.0
+    container_name: guacamole
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      guacd:
+        condition: service_started
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - GUACD_HOSTNAME=guacd
+      - GUACD_PORT=4822
+      - POSTGRES_HOSTNAME=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=${POSTGRES_DB:-guacamole_db}
+      - POSTGRES_USER=${POSTGRES_USER:-guacamole}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - guacamole
+      - monitor
+
+networks:
+  guacamole:
+    driver: bridge
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  guacamole_pg_data:
+
