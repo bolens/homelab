@@ -1,0 +1,26 @@
+name: ghunt
+
+services:
+  ghunt:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghunt:local
+    container_name: ghunt
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      # GHunt config (cookies, settings) – persisted between runs
+      - ghunt-config:/root/.config/ghunt
+      # Optional: place JSON exports and other outputs here
+      - ghunt-data:/data
+    stdin_open: true
+    tty: true
+
+volumes:
+  ghunt-config:
+  ghunt-data:
+

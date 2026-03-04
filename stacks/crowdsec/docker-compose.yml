@@ -1,0 +1,38 @@
+name: crowdsec
+
+services:
+  crowdsec:
+    image: crowdsecurity/crowdsec
+    container_name: crowdsec
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+      # Group ID used by CrowdSec inside the container. Override if you need it
+      # to match a host group that can read your log files.
+      - GID=${GID:-1000}
+      # Default hub collections to install; override in stack.env if you want
+      # Caddy/NGINX/SSH collections or other bundles.
+      - COLLECTIONS=${COLLECTIONS:-crowdsecurity/linux}
+    volumes:
+      # CrowdSec configuration (hub, parsers, scenarios, profiles, etc.)
+      - crowdsec-config:/etc/crowdsec
+      # Since CrowdSec 1.7.0, the data directory must be persisted in a volume
+      # or the engine will refuse to start. See:
+      # https://docs.crowdsec.net/u/getting_started/installation/docker/
+      - crowdsec-data:/var/lib/crowdsec/data
+      # Optional: allow CrowdSec to inspect Docker container logs via the
+      # Docker API. You still need to configure acquisitions for Docker sources;
+      # see the official docs for examples.
+      # https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # Local API (LAPI) for bouncers. This is bound to localhost on the host
+    # by default so it is not exposed on your LAN/Internet.
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  crowdsec-config:
+  crowdsec-data:
+

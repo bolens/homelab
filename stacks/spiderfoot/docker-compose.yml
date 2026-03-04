@@ -1,0 +1,25 @@
+name: spiderfoot
+
+services:
+  spiderfoot:
+    image: spiderfoot/spiderfoot:latest
+    container_name: spiderfoot
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      # Persistent scan data, config, API keys, etc.
+      - spiderfoot-data:/var/lib/spiderfoot
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  spiderfoot-data:
+

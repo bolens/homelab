@@ -22,6 +22,7 @@ flowchart TB
             immich["immich"]
             paperless["paperless-ngx"]
             audiobookshelf["audiobookshelf"]
+            navidrome["navidrome"]
             mealie["mealie"]
             archivebox["archivebox"]
             linkwarden["linkwarden"]
@@ -30,8 +31,10 @@ flowchart TB
         end
 
         subgraph apps_security["Security & identity"]
+            crowdsec["crowdsec"]
             vaultwarden["vaultwarden"]
             infisical["infisical"]
+            guacamole["guacamole"]
             privatebin["privatebin"]
             pwpush["pwpush"]
             simplelogin["simplelogin"]
@@ -50,6 +53,10 @@ flowchart TB
             subgraph apps_osint_osint["OSINT & investigations"]
                 socialhunt["social-hunt"]
                 maigret["maigret"]
+                spiderfoot["spiderfoot"]
+                phoneinfoga["phoneinfoga"]
+                theharvester["theharvester"]
+                holehe["holehe"]
                 onionprobe["onionprobe"]
                 ail["ail"]
                 naisho["naisho"]
@@ -75,6 +82,7 @@ flowchart TB
         portainer["portainer<br>Docker UI"]
         watchtower["watchtower<br>Auto-updates"]
         diun["diun<br>Image update notifier"]
+        dockergc["docker-gc<br>Docker GC job"]
         kuma["uptime-kuma<br>Monitoring"]
         headscale["headscale<br>Mesh VPN"]
         grafana["grafana<br>Dashboards"]
@@ -86,15 +94,16 @@ flowchart TB
     users --> caddy
     tunnel --> caddy
 
-    caddy --> apps_media & apps_security & apps_ai & apps_osint
+    caddy --> immich & vaultwarden & ollama & socialhunt & guacamole
     caddy --> grafana & prometheus & cadvisor
+    caddy -.->|logs| crowdsec
 
     kuma -.->|health checks| caddy
     prometheus -.->|scrapes| cadvisor
     grafana -.->|queries| prometheus
-    watchtower -.->|updates| apps
+    watchtower -.->|updates| immich & vaultwarden & ollama & socialhunt
     diun -.->|notifies| users
-    portainer -.->|manages| apps
+    portainer -.->|manages| immich & vaultwarden & ollama & socialhunt
 ```
 
 - **Traffic:** Clients hit Caddy (directly via local DNS or through Cloudflare Tunnel). Caddy routes by hostname to each app.
@@ -110,16 +119,22 @@ flowchart TB
 | [**stacks/ail**](stacks/ail/README.md) | AIL framework – analyse information leaks (pastes, trackers, MISP/TheHive, credentials/cards/keys detection) |
 | [**stacks/archivebox**](stacks/archivebox/README.md) | Self-hosted web archive (ArchiveBox) – saves full snapshots (HTML, screenshots, PDFs, WARCs) from URLs and feeds |
 | [**stacks/audiobookshelf**](stacks/audiobookshelf/README.md) | Audiobook and podcast server |
+| [**stacks/blackbird**](stacks/blackbird/README.md) | OSINT: username/email search across many sites with optional PDF/CSV reports |
 | [**stacks/caddy**](stacks/caddy/README.md) | Reverse proxy with automatic HTTPS (Let’s Encrypt, optional Cloudflare DNS-01) |
 | [**stacks/cadvisor**](stacks/cadvisor/README.md) | Container resource metrics (CPU, memory, etc.) |
 | [**stacks/cloudflare-tunnel**](stacks/cloudflare-tunnel/README.md) | Expose services via Cloudflare without port forwarding (cloudflared) |
 | [**stacks/convertx**](stacks/convertx/README.md) | Self-hosted online file converter (1000+ formats: documents, images, video, e-books) |
+| [**stacks/crowdsec**](stacks/crowdsec/README.md) | CrowdSec Security Engine – collaborative intrusion prevention and curated blocklists for malicious IPs |
 | [**stacks/dependency-track**](stacks/dependency-track/README.md) | OWASP Dependency-Track – SBOM/dependency vulnerability tracking (upload CycloneDX/SPDX, CVE alerts) |
 | [**stacks/diun**](stacks/diun/README.md) | Docker image update notifier (Telegram, Discord, etc.) |
+| [**stacks/docker-gc**](stacks/docker-gc/README.md) | Garbage collector for Docker containers and images (removes old stopped containers and unused images) |
 | [**stacks/dozzle**](stacks/dozzle/README.md) | Real-time container log viewer |
 | [**stacks/freshrss**](stacks/freshrss/README.md) | RSS feed aggregator (Feedly-like) |
+| [**stacks/ghunt**](stacks/ghunt/README.md) | OSINT: investigate Google accounts (email, Gaia, Drive, BSSID) via CLI with JSON export |
 | [**stacks/grafana**](stacks/grafana/README.md) | Metrics dashboards (use with Prometheus + cAdvisor) |
+| [**stacks/guacamole**](stacks/guacamole/README.md) | Clientless remote desktop gateway (RDP, VNC, SSH) with HTML5 web UI (Apache Guacamole) |
 | [**stacks/headscale**](stacks/headscale/README.md) | Self-hosted Tailscale control server (mesh VPN) |
+| [**stacks/holehe**](stacks/holehe/README.md) | OSINT: check where an email address has accounts via a FastAPI web UI (holehe-web) |
 | [**stacks/immich**](stacks/immich/README.md) | Photo and video backup (OAuth-ready) |
 | [**stacks/infisical**](stacks/infisical/README.md) | Self-hosted secrets manager (API keys, env vars, config) |
 | [**stacks/it-tools**](stacks/it-tools/README.md) | Developer and IT utilities (converters, hashes, QR, etc.) |
@@ -128,8 +143,10 @@ flowchart TB
 | [**stacks/linkwarden**](stacks/linkwarden/README.md) | Bookmark manager and link aggregator |
 | [**stacks/maigret**](stacks/maigret/README.md) | OSINT: collect a dossier by username from thousands of sites (web UI, HTML/PDF/XMind reports) |
 | [**stacks/mealie**](stacks/mealie/README.md) | Recipe manager and meal planner |
+| [**stacks/metagoofil**](stacks/metagoofil/README.md) | OSINT: download documents and extract metadata (users, paths, versions) via search engines |
 | [**stacks/n8n**](stacks/n8n/README.md) | Workflow automation (Zapier/Make-style, self-hosted) |
 | [**stacks/naisho**](stacks/naisho/README.md) | Send data deletion request emails to data brokers at once (Rails app; SMTP in UI) |
+| [**stacks/navidrome**](stacks/navidrome/README.md) | Personal music streaming server (Navidrome) – web UI and Subsonic-compatible apps |
 | [**stacks/ollama**](stacks/ollama/README.md) | Local LLM runtime (Ollama) with GPU support and configurable model storage |
 | [**stacks/onionprobe**](stacks/onionprobe/README.md) | Tor Onion Services monitoring (probe endpoints, Prometheus + Grafana + Alertmanager) |
 | [**stacks/onionscan**](stacks/onionscan/README.md) | CLI to investigate Tor hidden services (OnionScan; scans for opsec/misconfig, runs over Tor in container) |
@@ -138,14 +155,19 @@ flowchart TB
 | [**stacks/paperless-ngx**](stacks/paperless-ngx/README.md) | Document management with OCR and search |
 | [**stacks/password-pusher**](stacks/password-pusher/README.md) | Password/secret sharing with view limits and expiration (Password Pusher) |
 | [**stacks/perplexica**](stacks/perplexica/README.md) | Privacy-focused AI answering engine (bundled SearxNG, optional Ollama) |
+| [**stacks/phoneinfoga**](stacks/phoneinfoga/README.md) | OSINT: phone number reconnaissance (country, carrier, line type, web footprints) with web UI/API |
 | [**stacks/privatebin**](stacks/privatebin/README.md) | Encrypted pastebin (share text with expiration, no account) |
 | [**stacks/prometheus**](stacks/prometheus/README.md) | Metrics collection and storage |
 | [**stacks/privotron**](stacks/privotron/README.md) | CLI to automate data broker opt-outs (Playwright; profiles, skip list, parallel runs) |
+| [**stacks/reconftw**](stacks/reconftw/README.md) | Automated recon framework orchestrating many tools (subdomains, ports, screenshots, Nuclei, etc.) |
 | [**stacks/searx-ng**](stacks/searx-ng/README.md) | Privacy-respecting metasearch engine |
 | [**stacks/simplelogin**](stacks/simplelogin/README.md) | Email alias service (unlimited aliases, forward & reply anonymously, Bitwarden/1Password) |
 | [**stacks/slink**](stacks/slink/README.md) | Self-hosted image sharing (upload, collections, ShareX, S3/SMB) |
 | [**stacks/social-hunt**](stacks/social-hunt/README.md) | OSINT framework: username search, breach lookups (HIBP/Snusbase), face match, reverse image |
+| [**stacks/spiderfoot**](stacks/spiderfoot/README.md) | Automated multi-source OSINT scanner with 180+ modules and a web UI |
 | [**stacks/stoat**](stacks/stoat/README.md) | Self-hosted Stoat chat platform (API, web, media, notifications, optional voice) |
+| [**stacks/sublist3r**](stacks/sublist3r/README.md) | Subdomain enumeration tool using multiple search engines and output to files |
+| [**stacks/theharvester**](stacks/theharvester/README.md) | OSINT: emails, hosts, and subdomains via multi-source recon (REST API variant) |
 | [**stacks/threat-dragon**](stacks/threat-dragon/README.md) | OWASP Threat Dragon – threat modeling (diagrams, STRIDE; save to GitHub/Bitbucket/GitLab) |
 | [**stacks/torbot**](stacks/torbot/README.md) | OWASP TorBot – Dark Web OSINT crawler (.onion crawl, email extraction, link tree, JSON export; Tor in separate container) |
 | [**stacks/uptime-kuma**](stacks/uptime-kuma/README.md) | Status page and monitoring |
@@ -186,11 +208,14 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/cadvisor** — no config files
 - **stacks/cloudflare-tunnel** — `stack.env.example` → `stack.env`, optionally `config.yml.example` → `config.yml`. To put tunnel subdomains behind SSO (e.g. Google/GitHub) instead of basic auth, see [documents/ACCESS-SSO.md](documents/ACCESS-SSO.md).
 - **stacks/convertx** — `stack.env.example` → `stack.env`; set `JWT_SECRET` (recommended; `openssl rand -base64 32`); set `ACCOUNT_REGISTRATION=false` after first account
+- **stacks/crowdsec** — `stack.env.example` → `stack.env` (optional); use it to set `TZ`, `GID`, and default hub `COLLECTIONS`. See the stack README and CrowdSec Docker docs for configuring acquisitions and bouncers.
 - **stacks/dependency-track** — `stack.env.example` → `stack.env`; set `POSTGRES_PASSWORD` and `API_BASE_URL` (URL the browser uses for the API, e.g. https://dtrack.home/api). See stack README for Caddy path/subdomain setup.
 - **stacks/diun** — `stack.env.example` → `stack.env`; set `DIUN_NOTIF_TELEGRAM_TOKEN` and `DIUN_NOTIF_TELEGRAM_CHATIDS` (or another notifier)
+- **stacks/docker-gc** — `stack.env.example` → `stack.env`; by default runs in DRY RUN mode (`DRY_RUN=true`) so you can see which stopped containers and unused images would be removed. Adjust `DRY_RUN`, `DRY_RUN_CONTAINERS`, `DRY_RUN_IMAGES`, and `EXCLUDE_*` as needed before scheduling it.
 - **stacks/dozzle** — no secrets; optional `DOZZLE_AUTH_*` for simple auth (see stack README)
 - **stacks/freshrss** — `stack.env.example` → `stack.env`; optional `PUID`, `PGID`, `TZ`
 - **stacks/grafana** — optional `stack.env` for `GF_SERVER_ROOT_URL` (e.g. https://grafana.yourdomain.com)
+- **stacks/guacamole** — `stack.env.example` → `stack.env`; set `POSTGRES_PASSWORD` (strong random; shared by Postgres and the Guacamole web app); optional `POSTGRES_DB`, `POSTGRES_USER`, and `TZ`. Access via Caddy only.
 - **stacks/headscale** — `stack.env.example` → `stack.env`; create `config.yaml` from `config.example.yaml`, then set `HEADSCALE_CONFIG_B64` to its base64 (e.g. `base64 -w 0 config.yaml`) in `stack.env` or in Portainer stack env
 - **stacks/immich** — `stack.env.example` → `stack.env`; set `DB_PASSWORD` (and optionally `TZ`, OAuth via Admin UI)
 - **stacks/infisical** — `stack.env.example` → `stack.env`; set `ENCRYPTION_KEY`, `AUTH_SECRET`, `POSTGRES_PASSWORD`, `SITE_URL` (e.g. `https://infisical.home` or `https://secrets.yourdomain.com`)
@@ -201,6 +226,7 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/mealie** — `stack.env.example` → `stack.env`; set `BASE_URL` if behind Caddy, `ALLOW_SIGNUP` (false after first account)
 - **stacks/n8n** — `stack.env.example` → `stack.env`; set `N8N_HOST` and `WEBHOOK_URL` to your Caddy URL (e.g. https://n8n.home or https://n8n.yourdomain.com); optional `N8N_ENCRYPTION_KEY`
 - **stacks/naisho** — `stack.env.example` → `stack.env`; set `SECRET_KEY_BASE` (`openssl rand -hex 64`); stack builds from GitHub on first deploy; configure SMTP in the app when sending deletion emails
+- **stacks/navidrome** — `stack.env.example` → `stack.env`; optional `TZ`; optional `ND_BASEURL` (when behind Caddy, set to your full Navidrome URL, e.g. https://music.yourdomain.com); optional `ND_LOGLEVEL`, `ND_SCANSCHEDULE`, and other `ND_` options (see Navidrome docs)
 - **stacks/ollama** — `stack.env.example` → `stack.env`; optional `OLLAMA_MODELS_PATH` (absolute path recommended for models); other data uses Docker volume; GPU requires NVIDIA Container Toolkit
 - **stacks/onionprobe** — run `./clone-repo.sh` once to clone the upstream repo into `./repo`; optional `stack.env` for `GRAFANA_DATABASE_PASSWORD`, `GF_SERVER_ROOT_URL`; access via Caddy (onionprobe.home → Grafana)
 - **stacks/onionscan** — CLI only; no web UI or ports. Optional: `stack.env` with TZ. Start with `docker compose up -d`, wait for Tor (logs), then `docker compose exec onionscan onionscan [options] <onion-address>`. See stack README.
@@ -246,6 +272,7 @@ These stacks expose a dedicated health/status URL so you can monitor them withou
 | **mealie** | `/api/app/about` |
 | **password-pusher** | `/up` |
 | **yourls** | (no dedicated health endpoint; use HTTP check to app URL) |
+| **navidrome** | (no dedicated health endpoint; use HTTP check to app URL, e.g. `https://music.yourdomain.com/`) |
 | **ollama** | (API only; use HTTP check to `http://ollama:11434` or `/api/tags`) |
 | **open-notebook** | (use HTTP check to app URL) |
 | **perplexica** | (use HTTP check to app URL) |

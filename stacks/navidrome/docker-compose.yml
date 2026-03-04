@@ -1,0 +1,27 @@
+name: navidrome
+
+services:
+  navidrome:
+    container_name: navidrome
+    image: deluan/navidrome:latest
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - navidrome_data:/data
+      - navidrome_music:/music
+    restart: unless-stopped
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  navidrome_data:
+  navidrome_music:
+

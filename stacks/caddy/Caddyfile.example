@@ -87,6 +87,11 @@ archivebox.home, archivebox.local {
 	reverse_proxy archivebox:8000
 }
 
+music.home, music.local {
+	tls internal
+	reverse_proxy navidrome:4533
+}
+
 # Productivity
 linkwarden.home, linkwarden.local {
 	tls internal
@@ -341,6 +346,13 @@ archivebox.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy archivebox:8000
+}
+
+music.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy navidrome:4533
 }
 
 # Productivity
