@@ -1,0 +1,49 @@
+# qBittorrent + Gluetun VPN – torrent client for *arr automation (Sonarr/Radarr/Lidarr/Readarr).
+# All qBittorrent traffic goes through the VPN. Gluetun container is reachable as "qbittorrent" on the
+# torrents network so *arr stacks can use http://qbittorrent:8080. No host port for Web UI; use Caddy.
+# See README for shared network/volume setup and Gluetun VPN configuration.
+# Start: docker compose up -d
+
+name: qbittorrent
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: qbittorrent
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    env_file:
+      - stack.env
+    networks:
+      - torrents
+      - monitor
+    restart: unless-stopped
+    # No host ports: Web UI (8080) is reached only via Caddy. Torrent port 6881 is internal;
+    # for incoming peers use your VPN provider's port forwarding (Gluetun) and set that port in qBittorrent.
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    network_mode: service:gluetun
+    env_file:
+      - stack.env
+    volumes:
+      - qbittorrent_config:/config
+      - torrents_downloads:/downloads
+    restart: unless-stopped
+    depends_on:
+      - gluetun
+
+networks:
+  torrents:
+    name: torrents
+    external: true
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  qbittorrent_config:
+  torrents_downloads:
+    external: true
