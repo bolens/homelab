@@ -18,38 +18,49 @@ flowchart TB
     end
 
     subgraph apps["Application stacks"]
-        vaultwarden["vaultwarden"]
-        immich["immich"]
-        paperless["paperless-ngx"]
-        mealie["mealie"]
-        linkwarden["linkwarden"]
-        archivebox["archivebox"]
-        audiobookshelf["audiobookshelf"]
-        freshrss["freshrss"]
-        searx["searx-ng"]
-        slink["slink"]
-        socialhunt["social-hunt"]
-        maigret["maigret"]
-        webcheck["web-check"]
-        ittools["it-tools"]
-        convertx["convertx"]
-        dozzle["dozzle"]
-        infisical["infisical"]
-        privatebin["privatebin"]
-        pwpush["pwpush"]
-        simplelogin["simplelogin"]
-        onionprobe["onionprobe"]
-        ail["ail"]
-        naisho["naisho"]
-        stoat["stoat"]
-        shortener["yourls"]
-        linkstack["linkstack"]
-        ollama["ollama"]
-        opennotebook["open-notebook"]
-        perplexica["perplexica"]
-        openwebui["open-webui"]
-        librechat["librechat"]
-        n8n["n8n"]
+        subgraph apps_media["Media & personal data"]
+            immich["immich"]
+            paperless["paperless-ngx"]
+            audiobookshelf["audiobookshelf"]
+            mealie["mealie"]
+            archivebox["archivebox"]
+            linkwarden["linkwarden"]
+            freshrss["freshrss"]
+            slink["slink"]
+        end
+
+        subgraph apps_security["Security & identity"]
+            vaultwarden["vaultwarden"]
+            infisical["infisical"]
+            privatebin["privatebin"]
+            pwpush["pwpush"]
+            simplelogin["simplelogin"]
+        end
+
+        subgraph apps_ai["AI & automation"]
+            ollama["ollama"]
+            openwebui["open-webui"]
+            librechat["librechat"]
+            opennotebook["open-notebook"]
+            perplexica["perplexica"]
+            n8n["n8n"]
+        end
+
+        subgraph apps_osint["OSINT & web tools"]
+            searx["searx-ng"]
+            socialhunt["social-hunt"]
+            maigret["maigret"]
+            webcheck["web-check"]
+            onionprobe["onionprobe"]
+            ail["ail"]
+            naisho["naisho"]
+            stoat["stoat"]
+            shortener["yourls"]
+            linkstack["linkstack"]
+            ittools["it-tools"]
+            convertx["convertx"]
+            dozzle["dozzle"]
+        end
     end
 
     subgraph infra["Infrastructure"]
@@ -66,8 +77,10 @@ flowchart TB
     users --> tunnel
     users --> caddy
     tunnel --> caddy
-    caddy --> vaultwarden & immich & paperless & mealie & linkwarden & archivebox & audiobookshelf & freshrss & searx & slink & socialhunt & maigret & webcheck & ittools & convertx & dozzle & n8n & infisical & privatebin & pwpush & simplelogin & onionprobe & ail & naisho & stoat & shortener & linkstack & ollama & opennotebook & perplexica & openwebui & librechat
+
+    caddy --> apps_media & apps_security & apps_ai & apps_osint
     caddy --> grafana & prometheus & cadvisor
+
     kuma -.->|health checks| caddy
     prometheus -.->|scrapes| cadvisor
     grafana -.->|queries| prometheus
@@ -85,54 +98,54 @@ flowchart TB
 
 | Stack | What it does |
 |-------|----------------|
-| **portainer** | Docker management UI (Portainer CE) |
-| **stacks/ail** | AIL framework – analyse information leaks (pastes, trackers, MISP/TheHive, credentials/cards/keys detection) |
-| **stacks/archivebox** | Self-hosted web archive (ArchiveBox) – saves full snapshots (HTML, screenshots, PDFs, WARCs) from URLs and feeds |
-| **stacks/audiobookshelf** | Audiobook and podcast server |
-| **stacks/caddy** | Reverse proxy with automatic HTTPS (Let’s Encrypt, optional Cloudflare DNS-01) |
-| **stacks/cadvisor** | Container resource metrics (CPU, memory, etc.) |
-| **stacks/cloudflare-tunnel** | Expose services via Cloudflare without port forwarding (cloudflared) |
-| **stacks/convertx** | Self-hosted online file converter (1000+ formats: documents, images, video, e-books) |
-| **stacks/dependency-track** | OWASP Dependency-Track – SBOM/dependency vulnerability tracking (upload CycloneDX/SPDX, CVE alerts) |
-| **stacks/diun** | Docker image update notifier (Telegram, Discord, etc.) |
-| **stacks/dozzle** | Real-time container log viewer |
-| **stacks/freshrss** | RSS feed aggregator (Feedly-like) |
-| **stacks/grafana** | Metrics dashboards (use with Prometheus + cAdvisor) |
-| **stacks/headscale** | Self-hosted Tailscale control server (mesh VPN) |
-| **stacks/immich** | Photo and video backup (OAuth-ready) |
-| **stacks/infisical** | Self-hosted secrets manager (API keys, env vars, config) |
-| **stacks/it-tools** | Developer and IT utilities (converters, hashes, QR, etc.) |
-| **stacks/librechat** | ChatGPT-style UI with agents, MCP, code interpreter (MongoDB + Redis) |
-| **stacks/linkstack** | Self-hosted link-in-bio page (Linktree-style: one URL with your links) |
-| **stacks/linkwarden** | Bookmark manager and link aggregator |
-| **stacks/maigret** | OSINT: collect a dossier by username from thousands of sites (web UI, HTML/PDF/XMind reports) |
-| **stacks/mealie** | Recipe manager and meal planner |
-| **stacks/n8n** | Workflow automation (Zapier/Make-style, self-hosted) |
-| **stacks/naisho** | Send data deletion request emails to data brokers at once (Rails app; SMTP in UI) |
-| **stacks/ollama** | Local LLM runtime (Ollama) with GPU support and configurable model storage |
-| **stacks/onionprobe** | Tor Onion Services monitoring (probe endpoints, Prometheus + Grafana + Alertmanager) |
-| **stacks/onionscan** | CLI to investigate Tor hidden services (OnionScan; scans for opsec/misconfig, runs over Tor in container) |
-| **stacks/open-notebook** | Open-source Notebook LM alternative (SurrealDB + multi-provider AI) |
-| **stacks/open-webui** | Self-hosted AI chat UI; Ollama model management and multi-provider support |
-| **stacks/paperless-ngx** | Document management with OCR and search |
-| **stacks/password-pusher** | Password/secret sharing with view limits and expiration (Password Pusher) |
-| **stacks/perplexica** | Privacy-focused AI answering engine (bundled SearxNG, optional Ollama) |
-| **stacks/privatebin** | Encrypted pastebin (share text with expiration, no account) |
-| **stacks/prometheus** | Metrics collection and storage |
-| **stacks/privotron** | CLI to automate data broker opt-outs (Playwright; profiles, skip list, parallel runs) |
-| **stacks/searx-ng** | Privacy-respecting metasearch engine |
-| **stacks/simplelogin** | Email alias service (unlimited aliases, forward & reply anonymously, Bitwarden/1Password) |
-| **stacks/slink** | Self-hosted image sharing (upload, collections, ShareX, S3/SMB) |
-| **stacks/social-hunt** | OSINT framework: username search, breach lookups (HIBP/Snusbase), face match, reverse image |
-| **stacks/stoat** | Self-hosted Stoat chat platform (API, web, media, notifications, optional voice) |
-| **stacks/threat-dragon** | OWASP Threat Dragon – threat modeling (diagrams, STRIDE; save to GitHub/Bitbucket/GitLab) |
-| **stacks/torbot** | OWASP TorBot – Dark Web OSINT crawler (.onion crawl, email extraction, link tree, JSON export; Tor in separate container) |
-| **stacks/uptime-kuma** | Status page and monitoring |
-| **stacks/vaultwarden** | Lightweight Bitwarden-compatible password manager |
-| **stacks/watchtower** | Automatic container image updates (nickfedor fork, Docker 29+) |
-| **stacks/web-check** | OSINT and website analysis tool |
-| **stacks/yourls** | Self-hosted URL shortener (YOURLS): short links, web UI, optional API |
-| **stacks/zap** | OWASP ZAP – web/API security scanner (daemon + web UI; baseline/active scans; access via Caddy) |
+| [**portainer**](portainer/README.md) | Docker management UI (Portainer CE) |
+| [**stacks/ail**](stacks/ail/README.md) | AIL framework – analyse information leaks (pastes, trackers, MISP/TheHive, credentials/cards/keys detection) |
+| [**stacks/archivebox**](stacks/archivebox/README.md) | Self-hosted web archive (ArchiveBox) – saves full snapshots (HTML, screenshots, PDFs, WARCs) from URLs and feeds |
+| [**stacks/audiobookshelf**](stacks/audiobookshelf/README.md) | Audiobook and podcast server |
+| [**stacks/caddy**](stacks/caddy/README.md) | Reverse proxy with automatic HTTPS (Let’s Encrypt, optional Cloudflare DNS-01) |
+| [**stacks/cadvisor**](stacks/cadvisor/README.md) | Container resource metrics (CPU, memory, etc.) |
+| [**stacks/cloudflare-tunnel**](stacks/cloudflare-tunnel/README.md) | Expose services via Cloudflare without port forwarding (cloudflared) |
+| [**stacks/convertx**](stacks/convertx/README.md) | Self-hosted online file converter (1000+ formats: documents, images, video, e-books) |
+| [**stacks/dependency-track**](stacks/dependency-track/README.md) | OWASP Dependency-Track – SBOM/dependency vulnerability tracking (upload CycloneDX/SPDX, CVE alerts) |
+| [**stacks/diun**](stacks/diun/README.md) | Docker image update notifier (Telegram, Discord, etc.) |
+| [**stacks/dozzle**](stacks/dozzle/README.md) | Real-time container log viewer |
+| [**stacks/freshrss**](stacks/freshrss/README.md) | RSS feed aggregator (Feedly-like) |
+| [**stacks/grafana**](stacks/grafana/README.md) | Metrics dashboards (use with Prometheus + cAdvisor) |
+| [**stacks/headscale**](stacks/headscale/README.md) | Self-hosted Tailscale control server (mesh VPN) |
+| [**stacks/immich**](stacks/immich/README.md) | Photo and video backup (OAuth-ready) |
+| [**stacks/infisical**](stacks/infisical/README.md) | Self-hosted secrets manager (API keys, env vars, config) |
+| [**stacks/it-tools**](stacks/it-tools/README.md) | Developer and IT utilities (converters, hashes, QR, etc.) |
+| [**stacks/librechat**](stacks/librechat/README.md) | ChatGPT-style UI with agents, MCP, code interpreter (MongoDB + Redis) |
+| [**stacks/linkstack**](stacks/linkstack/README.md) | Self-hosted link-in-bio page (Linktree-style: one URL with your links) |
+| [**stacks/linkwarden**](stacks/linkwarden/README.md) | Bookmark manager and link aggregator |
+| [**stacks/maigret**](stacks/maigret/README.md) | OSINT: collect a dossier by username from thousands of sites (web UI, HTML/PDF/XMind reports) |
+| [**stacks/mealie**](stacks/mealie/README.md) | Recipe manager and meal planner |
+| [**stacks/n8n**](stacks/n8n/README.md) | Workflow automation (Zapier/Make-style, self-hosted) |
+| [**stacks/naisho**](stacks/naisho/README.md) | Send data deletion request emails to data brokers at once (Rails app; SMTP in UI) |
+| [**stacks/ollama**](stacks/ollama/README.md) | Local LLM runtime (Ollama) with GPU support and configurable model storage |
+| [**stacks/onionprobe**](stacks/onionprobe/README.md) | Tor Onion Services monitoring (probe endpoints, Prometheus + Grafana + Alertmanager) |
+| [**stacks/onionscan**](stacks/onionscan/README.md) | CLI to investigate Tor hidden services (OnionScan; scans for opsec/misconfig, runs over Tor in container) |
+| [**stacks/open-notebook**](stacks/open-notebook/README.md) | Open-source Notebook LM alternative (SurrealDB + multi-provider AI) |
+| [**stacks/open-webui**](stacks/open-webui/README.md) | Self-hosted AI chat UI; Ollama model management and multi-provider support |
+| [**stacks/paperless-ngx**](stacks/paperless-ngx/README.md) | Document management with OCR and search |
+| [**stacks/password-pusher**](stacks/password-pusher/README.md) | Password/secret sharing with view limits and expiration (Password Pusher) |
+| [**stacks/perplexica**](stacks/perplexica/README.md) | Privacy-focused AI answering engine (bundled SearxNG, optional Ollama) |
+| [**stacks/privatebin**](stacks/privatebin/README.md) | Encrypted pastebin (share text with expiration, no account) |
+| [**stacks/prometheus**](stacks/prometheus/README.md) | Metrics collection and storage |
+| [**stacks/privotron**](stacks/privotron/README.md) | CLI to automate data broker opt-outs (Playwright; profiles, skip list, parallel runs) |
+| [**stacks/searx-ng**](stacks/searx-ng/README.md) | Privacy-respecting metasearch engine |
+| [**stacks/simplelogin**](stacks/simplelogin/README.md) | Email alias service (unlimited aliases, forward & reply anonymously, Bitwarden/1Password) |
+| [**stacks/slink**](stacks/slink/README.md) | Self-hosted image sharing (upload, collections, ShareX, S3/SMB) |
+| [**stacks/social-hunt**](stacks/social-hunt/README.md) | OSINT framework: username search, breach lookups (HIBP/Snusbase), face match, reverse image |
+| [**stacks/stoat**](stacks/stoat/README.md) | Self-hosted Stoat chat platform (API, web, media, notifications, optional voice) |
+| [**stacks/threat-dragon**](stacks/threat-dragon/README.md) | OWASP Threat Dragon – threat modeling (diagrams, STRIDE; save to GitHub/Bitbucket/GitLab) |
+| [**stacks/torbot**](stacks/torbot/README.md) | OWASP TorBot – Dark Web OSINT crawler (.onion crawl, email extraction, link tree, JSON export; Tor in separate container) |
+| [**stacks/uptime-kuma**](stacks/uptime-kuma/README.md) | Status page and monitoring |
+| [**stacks/vaultwarden**](stacks/vaultwarden/README.md) | Lightweight Bitwarden-compatible password manager |
+| [**stacks/watchtower**](stacks/watchtower/README.md) | Automatic container image updates (nickfedor fork, Docker 29+) |
+| [**stacks/web-check**](stacks/web-check/README.md) | OSINT and website analysis tool |
+| [**stacks/yourls**](stacks/yourls/README.md) | Self-hosted URL shortener (YOURLS): short links, web UI, optional API |
+| [**stacks/zap**](stacks/zap/README.md) | OWASP ZAP – web/API security scanner (daemon + web UI; baseline/active scans; access via Caddy) |
 
 Each stack has its own **README** with setup and usage; see also `portainer/README.md`.
 
