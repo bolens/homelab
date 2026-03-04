@@ -6,6 +6,15 @@ A collection of **Docker Compose stacks** for self-hosting at home: reverse prox
 
 ## 🗺️ Topology
 
+The diagram and prose below are generated from **documents/topology.yaml**. To regenerate after editing that file, from the docker repo root run:
+
+```bash
+python3 scripts/build-topology.py --in-place
+```
+
+(Requires PyYAML: `pip install pyyaml`)
+
+<!-- TOPOLOGY_GENERATED_START -->
 ```mermaid
 flowchart TB
     subgraph internet["Internet / LAN"]
@@ -26,23 +35,33 @@ flowchart TB
     end
 
     subgraph apps["Application stacks"]
-        apps_media["Media & personal data<br>(immich, paperless-ngx, audiobookshelf, navidrome, mealie, archivebox, linkwarden, freshrss, slink, …)"]
-        apps_security["Security & identity<br>(crowdsec, vaultwarden, infisical, guacamole, privatebin, pwpush, simplelogin, …)"]
-        apps_ai["AI & automation<br>(ollama, open-webui, librechat, open-notebook, perplexica, n8n, …)"]
-        apps_osint["OSINT, search & web tools<br>(social-hunt, maigret, spiderfoot, phoneinfoga, theharvester, holehe, onionprobe, ail, naisho, searx-ng, web-check, stoat, yourls, linkstack, it-tools, convertx, dozzle, …)"]
+        direction TB
+        apps_acquisition["Media acquisition & *arr<br>(qbittorrent, rtorrent-flood, nzbget, nzbhydra2, prowlarr, sonarr, radarr, lidarr, readarr, bazarr, metube)"]
+        apps_ai["AI & LLM<br>(ollama, open-webui, librechat, open-notebook, perplexica)"]
+        apps_dev["Developer & IT utilities<br>(it-tools, convertx, dozzle)"]
+        apps_links["Links, shorteners & presence<br>(yourls, linkstack, stoat)"]
+        apps_media["Media & personal data<br>(immich, paperless-ngx, audiobookshelf, navidrome, mealie, emby, jellyfin, plex, archivebox, linkwarden, freshrss, slink)"]
+        apps_osint["OSINT & recon<br>(social-hunt, maigret, spiderfoot, phoneinfoga, theharvester, holehe, blackbird, ghunt, metagoofil, reconftw, sublist3r, ail, web-check)"]
+        apps_privacy["Privacy & opt-out<br>(naisho, privotron)"]
+        apps_search["Search<br>(searx-ng)"]
+        apps_sec_tooling["Security & compliance tooling<br>(dependency-track, threat-dragon, zap)"]
+        apps_security["Security & identity<br>(vaultwarden, infisical, guacamole, privatebin, password-pusher, simplelogin)"]
+        apps_tor["Tor / dark web<br>(onionprobe, onionscan, torbot)"]
+        apps_workflow["Workflow automation<br>(n8n, nodered)"]
     end
 
     subgraph infra["Infrastructure & monitoring"]
         direction TB
-        portainer["portainer<br>Docker UI"]
-        watchtower["watchtower<br>Auto-updates"]
-        diun["diun<br>Image update notifier"]
-        dockergc["docker-gc<br>Docker GC job"]
-        kuma["uptime-kuma<br>Monitoring"]
-        grafana["grafana<br>Dashboards"]
-        prometheus["prometheus<br>Metrics"]
         cadvisor["cAdvisor<br>Container metrics"]
         crowdsec["crowdsec<br>Security engine"]
+        diun["diun<br>Image update notifier"]
+        dockergc["docker-gc<br>Docker GC job"]
+        grafana["grafana<br>Dashboards"]
+        kuma["uptime-kuma<br>Monitoring"]
+        portainer["portainer<br>Docker UI"]
+        postfix["postfix<br>SMTP relay"]
+        prometheus["prometheus<br>Metrics"]
+        watchtower["watchtower<br>Auto-updates"]
     end
 
     users --> tunnel
@@ -54,16 +73,27 @@ flowchart TB
     wireguard -.->|VPN clients reach| caddy
     headscale -.->|mesh clients reach| caddy
 
-    apps -.->|egress via VPN<br>e.g. qbittorrent| gluetun
+    apps_acquisition -.->|egress via VPN<br>e.g. qbittorrent| gluetun
     gluetun -.->|via VPN provider| outbound
 
-    caddy --> apps_media
-    caddy --> apps_security
+    caddy --> apps_acquisition
     caddy --> apps_ai
+    caddy --> apps_dev
+    caddy --> apps_links
+    caddy --> apps_media
     caddy --> apps_osint
+    caddy --> apps_privacy
+    caddy --> apps_search
+    caddy --> apps_sec_tooling
+    caddy --> apps_security
+    caddy --> apps_tor
+    caddy --> apps_workflow
     caddy --> infra
 
     caddy -.->|logs| crowdsec
+
+    apps_privacy -.->|SMTP| postfix
+    apps_workflow -.->|SMTP| postfix
 
     kuma -.->|health checks| caddy
     prometheus -.->|scrapes| cadvisor
@@ -75,8 +105,10 @@ flowchart TB
 ```
 
 - **Traffic:** All HTTP(S) to apps and to web UIs (e.g. Uptime Kuma, Grafana) goes through Caddy. Clients reach Caddy directly (local DNS) or via Cloudflare Tunnel; Caddy routes by hostname.
-- **VPN & remote access:** **Headscale** – mesh VPN (Tailscale); mesh clients reach Caddy and apps. **WireGuard** – remote-access VPN (UDP 51820); VPN clients connect from outside. **Gluetun** – outbound VPN for containers; selected stacks (e.g. qbittorrent) send traffic through Gluetun to a VPN provider.
-- **Infrastructure:** Portainer manages stacks; Watchtower updates images; Docker GC cleans up; Diun notifies on image changes; Uptime Kuma monitors Caddy and app health; Grafana/Prometheus/cAdvisor provide metrics; CrowdSec consumes Caddy logs. Dozzle (behind Caddy) is a log viewer.
+- **VPN & remote access:** **Headscale** – mesh VPN (Tailscale); mesh clients reach Caddy and apps. **WireGuard** – remote-access VPN (UDP 51820); VPN clients connect from outside. **Gluetun** – outbound VPN for containers; media acquisition stacks (e.g. qbittorrent) send traffic through Gluetun to a VPN provider.
+- **Application categories:** **Media acquisition & *arr** – download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, MeTube). **AI & LLM** – local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica). **Developer & IT utilities** – it-tools, ConvertX, Dozzle. **Links, shorteners & presence** – YOURLS, Linkstack, Stoat. **Media & personal data** – consumption and personal content (photos, docs, music, recipes, bookmarks, RSS). **OSINT & recon** – username/email/phone recon, breach lookups, subdomain enumeration, AIL. **Privacy & opt-out** – data broker deletion (Naisho, Pivotron). **Search** – SearXNG. **Security & compliance tooling** – SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP). **Security & identity** – passwords, secrets, aliases, remote desktop, secure sharing. **Tor / dark web** – OnionScan, OnionProbe, TorBot. **Workflow automation** – n8n, Node-RED
+- **Infrastructure:** Portainer manages stacks; Watchtower updates images; Docker GC cleans up; Diun notifies on image changes; Uptime Kuma monitors Caddy and app health; Grafana/Prometheus/cAdvisor provide metrics; CrowdSec consumes Caddy logs. **Postfix** – SMTP relay for outbound mail from apps (e.g. Naisho, n8n). Dozzle (behind Caddy) is a log viewer.
+<!-- TOPOLOGY_GENERATED_END -->
 
 ---
 

@@ -1,0 +1,175 @@
+# Topology data for the homelab diagram in docker/README.md.
+# Run: python3 scripts/build-topology.py  (from docker/ repo root)
+# to regenerate the Mermaid diagram and prose.
+
+ingress:
+  - id: tunnel
+    label: "cloudflare-tunnel<br>(optional)"
+  - id: caddy
+    label: "caddy<br>Reverse proxy<br>:80 / :443"
+
+vpn:
+  - id: headscale
+    label: "headscale<br>Mesh VPN (Tailscale)"
+  - id: wireguard
+    label: "wireguard<br>Remote access VPN"
+  - id: gluetun
+    label: "gluetun<br>Container egress VPN"
+
+# Application categories. Order here defines order in the diagram (alphabetical by id).
+app_categories:
+  - id: apps_acquisition
+    name: "Media acquisition & *arr"
+    stacks:
+      - qbittorrent
+      - rtorrent-flood
+      - nzbget
+      - nzbhydra2
+      - prowlarr
+      - sonarr
+      - radarr
+      - lidarr
+      - readarr
+      - bazarr
+      - metube
+    description: "download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, MeTube)"
+
+  - id: apps_ai
+    name: "AI & LLM"
+    stacks:
+      - ollama
+      - open-webui
+      - librechat
+      - open-notebook
+      - perplexica
+    description: "local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica)"
+
+  - id: apps_dev
+    name: "Developer & IT utilities"
+    stacks:
+      - it-tools
+      - convertx
+      - dozzle
+    description: "it-tools, ConvertX, Dozzle"
+
+  - id: apps_links
+    name: "Links, shorteners & presence"
+    stacks:
+      - yourls
+      - linkstack
+      - stoat
+    description: "YOURLS, Linkstack, Stoat"
+
+  - id: apps_media
+    name: "Media & personal data"
+    stacks:
+      - immich
+      - paperless-ngx
+      - audiobookshelf
+      - navidrome
+      - mealie
+      - emby
+      - jellyfin
+      - plex
+      - archivebox
+      - linkwarden
+      - freshrss
+      - slink
+    description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS)"
+
+  - id: apps_osint
+    name: "OSINT & recon"
+    stacks:
+      - social-hunt
+      - maigret
+      - spiderfoot
+      - phoneinfoga
+      - theharvester
+      - holehe
+      - blackbird
+      - ghunt
+      - metagoofil
+      - reconftw
+      - sublist3r
+      - ail
+      - web-check
+    description: "username/email/phone recon, breach lookups, subdomain enumeration, AIL"
+
+  - id: apps_privacy
+    name: "Privacy & opt-out"
+    stacks:
+      - naisho
+      - privotron
+    description: "data broker deletion (Naisho, Pivotron)"
+
+  - id: apps_search
+    name: "Search"
+    stacks:
+      - searx-ng
+    description: "SearXNG"
+
+  - id: apps_sec_tooling
+    name: "Security & compliance tooling"
+    stacks:
+      - dependency-track
+      - threat-dragon
+      - zap
+    description: "SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP)"
+
+  - id: apps_security
+    name: "Security & identity"
+    stacks:
+      - vaultwarden
+      - infisical
+      - guacamole
+      - privatebin
+      - password-pusher
+      - simplelogin
+    description: "passwords, secrets, aliases, remote desktop, secure sharing"
+
+  - id: apps_tor
+    name: "Tor / dark web"
+    stacks:
+      - onionprobe
+      - onionscan
+      - torbot
+    description: "OnionScan, OnionProbe, TorBot"
+
+  - id: apps_workflow
+    name: "Workflow automation"
+    stacks:
+      - n8n
+      - nodered
+    description: "n8n, Node-RED"
+
+# Infrastructure & monitoring. Order is alphabetical by id.
+infra:
+  - id: cadvisor
+    label: "cAdvisor<br>Container metrics"
+  - id: crowdsec
+    label: "crowdsec<br>Security engine"
+  - id: diun
+    label: "diun<br>Image update notifier"
+  - id: dockergc
+    label: "docker-gc<br>Docker GC job"
+  - id: grafana
+    label: "grafana<br>Dashboards"
+  - id: kuma
+    label: "uptime-kuma<br>Monitoring"
+  - id: portainer
+    label: "portainer<br>Docker UI"
+  - id: postfix
+    label: "postfix<br>SMTP relay"
+  - id: prometheus
+    label: "prometheus<br>Metrics"
+  - id: watchtower
+    label: "watchtower<br>Auto-updates"
+
+# App category IDs that use Gluetun for egress (dashed edge to gluetun).
+gluetun_egress:
+  - apps_acquisition
+
+# App category IDs that use Postfix for SMTP (dashed edge to postfix).
+smtp_clients:
+  - apps_privacy
+  - apps_workflow
