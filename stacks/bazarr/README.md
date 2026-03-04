@@ -3,7 +3,10 @@
 Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatically searches for subtitles in your preferred languages and keeps them up to date for your TV and movie library.
 
 **Website:** https://www.bazarr.media/  
-**Docs:** https://www.bazarr.media/docs
+**Docs:** https://www.bazarr.media/docs  
+**GitHub:** https://github.com/morpheus65535/bazarr  
+**Docker image:** https://hub.docker.com/r/linuxserver/bazarr  
+**Releases:** https://github.com/morpheus65535/bazarr/releases  
 
 ## Quick start
 

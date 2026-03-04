@@ -3,8 +3,11 @@
 Central **SMTP relay ("null client")** for your Docker stacks, based on [`boky/postfix`](https://github.com/bokysan/docker-postfix).  
 Apps send mail to this container; it then relays via your real mail provider (SES, Mailgun, SMTP relay from your ISP, etc.).
 
+**Website:** https://github.com/bokysan/docker-postfix  
+**Docs:** https://github.com/bokysan/docker-postfix#readme  
 **GitHub:** https://github.com/bokysan/docker-postfix  
-**Docs:** https://github.com/bokysan/docker-postfix#readme
+**Docker image:** https://hub.docker.com/r/boky/postfix  
+**Releases:** https://github.com/bokysan/docker-postfix/releases  
 
 > This relay is for **outgoing mail from apps only**. It is not a full mailserver for end‑user inboxes.
 

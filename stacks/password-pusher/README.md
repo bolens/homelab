@@ -4,7 +4,9 @@ Secure password and secret sharing: create shareable links with **view limits** 
 
 **Website:** https://pwpush.com  
 **Docs:** https://docs.pwpush.com  
-**GitHub:** https://github.com/pglombardo/PasswordPusher
+**GitHub:** https://github.com/pglombardo/PasswordPusher  
+**Docker image:** https://hub.docker.com/r/pglombardo/pwpush  
+**Releases:** https://github.com/pglombardo/PasswordPusher/releases  
 
 ## Quick start
 

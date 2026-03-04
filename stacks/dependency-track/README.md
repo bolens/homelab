@@ -2,9 +2,11 @@
 
 Software Composition Analysis (SCA) platform: upload SBOMs (CycloneDX, SPDX), track components, and get vulnerability alerts from NVD, OSS Index, GitHub Advisories, and more. [Dependency-Track](https://dependencytrack.org/) provides a web UI and REST API—no host ports; access via Caddy.
 
-**Project:** https://owasp.org/www-project-dependency-track/  
+**Website:** https://dependencytrack.org/  
 **Docs:** https://docs.dependencytrack.org/  
-**Docker:** https://docs.dependencytrack.org/getting-started/deploy-docker/
+**GitHub:** https://github.com/DependencyTrack/dependency-track  
+**Docker image:** https://hub.docker.com/r/dependencytrack/apiserver  
+**Releases:** https://github.com/DependencyTrack/dependency-track/releases  
 
 ## Quick start
 

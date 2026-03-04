@@ -3,8 +3,10 @@
 Self-hosted RSS feed aggregator: subscribe to feeds, categories, star articles, and use extensions. Feedly-like experience with no account limits.
 
 **Website:** https://freshrss.org  
-**Docs:** https://docs.linuxserver.io/images/docker-freshrss  
-**GitHub:** https://github.com/FreshRSS/FreshRSS
+**Docs:** https://freshrss.github.io/FreshRSS/  
+**GitHub:** https://github.com/FreshRSS/FreshRSS  
+**Docker image:** https://hub.docker.com/r/linuxserver/freshrss  
+**Releases:** https://github.com/FreshRSS/FreshRSS/releases  
 
 ## Quick start
 

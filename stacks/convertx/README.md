@@ -2,7 +2,11 @@
 
 Self-hosted online file converter supporting **1000+ formats**: documents (LibreOffice, Pandoc), images (ImageMagick, Vips, HEIF, JPEG XL), video (FFmpeg), e-books (Calibre), 3D (Assimp), and more. Written with TypeScript, Bun and Elysia.
 
-**GitHub:** https://github.com/C4illin/ConvertX
+**Website:** https://github.com/C4illin/ConvertX  
+**Docs:** https://github.com/C4illin/ConvertX#readme  
+**GitHub:** https://github.com/C4illin/ConvertX  
+**Docker image:** https://github.com/C4illin/ConvertX/pkgs/container/convertx  
+**Releases:** https://github.com/C4illin/ConvertX/releases  
 
 ## Quick start
 

@@ -4,7 +4,9 @@ TV series management for Usenet and torrents. Sonarr monitors your library, grab
 
 **Website:** https://sonarr.tv/  
 **Docs:** https://wiki.servarr.com/sonarr  
-**Docker guide:** https://wiki.servarr.com/docker-guide
+**GitHub:** https://github.com/Sonarr/Sonarr  
+**Docker image:** https://hub.docker.com/r/linuxserver/sonarr  
+**Releases:** https://github.com/Sonarr/Sonarr/releases  
 
 ## Quick start
 

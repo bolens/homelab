@@ -2,7 +2,10 @@
 
 Subdomain enumeration tool that discovers subdomains for a given domain using multiple search engines and techniques. Often used as a first step in recon workflows.
 
-**GitHub:** https://github.com/aboul3la/Sublist3r
+**Website:** https://github.com/aboul3la/Sublist3r  
+**Docs:** https://github.com/aboul3la/Sublist3r#readme  
+**GitHub:** https://github.com/aboul3la/Sublist3r  
+**Releases:** https://github.com/aboul3la/Sublist3r/releases  
 
 ## Quick start
 

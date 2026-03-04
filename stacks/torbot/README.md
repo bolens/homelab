@@ -2,8 +2,10 @@
 
 Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. [OWASP TorBot](https://owasp.org/www-project-torbot/) project; upstream [DedSecInside/TorBot](https://github.com/DedSecInside/TorBot).
 
-**Project:** https://owasp.org/www-project-torbot/  
-**GitHub:** https://github.com/DedSecInside/TorBot
+**Website:** https://owasp.org/www-project-torbot/  
+**Docs:** https://github.com/DedSecInside/TorBot#readme  
+**GitHub:** https://github.com/DedSecInside/TorBot  
+**Releases:** https://github.com/DedSecInside/TorBot/releases  
 
 ## Quick start
 

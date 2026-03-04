@@ -2,8 +2,10 @@
 
 Meta search for Usenet indexers. NZBHydra 2 aggregates results from multiple NZB indexers, normalizes them, and exposes a Newznab-compatible API for apps like Sonarr, Radarr, Lidarr, and Prowlarr.
 
+**Docs:** https://github.com/theotherp/nzbhydra2/wiki  
 **GitHub:** https://github.com/theotherp/nzbhydra2  
-**Docs:** https://github.com/theotherp/nzbhydra2/wiki
+**Docker image:** https://hub.docker.com/r/linuxserver/nzbhydra2  
+**Releases:** https://github.com/theotherp/nzbhydra2/releases  
 
 ## Quick start
 

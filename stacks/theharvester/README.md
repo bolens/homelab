@@ -2,8 +2,11 @@
 
 Classic OSINT tool to collect emails, subdomains, hosts, open ports, and banners from multiple public sources (search engines, PGP servers, Shodan, etc.). This stack runs the **REST API** variant (`restfulharvest`) so you can query theHarvester over HTTP from other tools and scripts.
 
-**GitHub (theHarvester):** https://github.com/laramies/theHarvester  
-**Docker image (REST API):** https://hub.docker.com/r/secsi/restfulharvest
+**Website:** https://github.com/laramies/theHarvester  
+**Docs:** https://github.com/laramies/theHarvester/wiki  
+**GitHub:** https://github.com/laramies/theHarvester  
+**Docker image:** https://hub.docker.com/r/secsi/restfulharvest  
+**Releases:** https://github.com/laramies/theHarvester/releases  
 
 ## Quick start
 

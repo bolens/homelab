@@ -5,8 +5,10 @@ CrowdSec is a collaborative, open-source intrusion prevention system. It analyze
 This stack runs the **CrowdSec Security Engine** in a container with persistent data volumes. It is designed to be a central decision engine that you can later pair with one or more **bouncers** (firewall, reverse proxy, CDN, etc.).
 
 **Website:** https://www.crowdsec.net/  
-**Docker install docs:** https://docs.crowdsec.net/u/getting_started/installation/docker/  
-**Hub (collections, parsers, scenarios):** https://docs.crowdsec.net/docs/next/hub/overview  
+**Docs:** https://docs.crowdsec.net/  
+**GitHub:** https://github.com/crowdsecurity/crowdsec  
+**Docker image:** https://hub.docker.com/r/crowdsecurity/crowdsec  
+**Releases:** https://github.com/crowdsecurity/crowdsec/releases  
 
 ## Quick start
 
@@ -118,6 +120,8 @@ This stack only runs the **engine** and Local API. To actually block malicious I
 - **CDN / WAF integration** using CrowdSec blocklists and curated threat intelligence (for example, feeding CrowdSec blocklists into an edge firewall or CDN).
 
 The `http://127.0.0.1:8080/` binding is intended for such bouncers running on the Docker host or on the same Docker network. Refer to CrowdSec’s official bouncer documentation for setup details for each environment.
+
+For **Cloudflare edge protection**, use the **Cloudflare Workers bouncer** so CrowdSec decisions are enforced as Cloudflare firewall actions. See `documents/CROWDSEC-CLOUDFLARE-WORKER.md` in this repo for a step‑by‑step setup guide (daemon mode on the host, tokens and keys stored only under `/etc/crowdsec/bouncers/`).
 
 ## Exposure, SSO, and Caddy
 

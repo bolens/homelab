@@ -4,7 +4,9 @@ Book and audiobook collection manager for Usenet and torrents. Readarr monitors 
 
 **Website:** https://readarr.com/  
 **Docs:** https://wiki.servarr.com/readarr  
-**Docker guide:** https://wiki.servarr.com/docker-guide
+**GitHub:** https://github.com/Readarr/Readarr  
+**Docker image:** https://hub.docker.com/r/linuxserver/readarr  
+**Releases:** https://github.com/Readarr/Readarr/releases  
 
 ## Quick start
 

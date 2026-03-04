@@ -2,8 +2,10 @@
 
 OSINT framework for investigating Google accounts and assets: emails, Gaia IDs, Drive files, BSSIDs, and Digital Asset Links. Provides CLI modules with JSON export and requires a one-time login using the GHunt Companion browser extension.
 
+**Website:** https://github.com/mxrch/GHunt  
+**Docs:** https://github.com/mxrch/GHunt/wiki  
 **GitHub:** https://github.com/mxrch/GHunt  
-**Docs:** https://github.com/mxrch/GHunt/wiki
+**Releases:** https://github.com/mxrch/GHunt/releases  
 
 ## Quick start
 

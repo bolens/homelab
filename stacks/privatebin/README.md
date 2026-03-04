@@ -3,7 +3,10 @@
 Encrypted pastebin: share text snippets with optional expiration and password. No account required; pastes are encrypted in the browser before upload.
 
 **Website:** https://privatebin.info  
-**GitHub:** https://github.com/PrivateBin/PrivateBin
+**Docs:** https://github.com/PrivateBin/PrivateBin/wiki  
+**GitHub:** https://github.com/PrivateBin/PrivateBin  
+**Docker image:** https://hub.docker.com/r/privatebin/nginx-fpm-alpine  
+**Releases:** https://github.com/PrivateBin/PrivateBin/releases  
 
 ## Quick start
 

@@ -4,7 +4,9 @@ Self-hosted, user-first chat platform (channels, DMs, threads, media, voice) com
 
 **Website:** https://stoat.chat  
 **Docs:** https://docs.stoat.dev/docs/installation  
-**GitHub (self-hosted):** https://github.com/stoatchat/self-hosted
+**GitHub:** https://github.com/stoatchat/self-hosted  
+**Docker image:** https://github.com/stoatchat/api/pkgs/container/api  
+**Releases:** https://github.com/stoatchat/self-hosted/releases  
 
 ## Quick start
 

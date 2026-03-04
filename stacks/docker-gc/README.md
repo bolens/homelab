@@ -7,8 +7,10 @@ Garbage collector for Docker containers and images. Runs a one-shot cleanup agai
 
 This stack runs `eeacms/docker-gc` as a maintenance job; it has **no web UI** and does **not** sit behind Caddy or Cloudflare Tunnel.
 
-**Docker Hub:** https://hub.docker.com/r/eeacms/docker-gc  
-**Upstream script:** https://github.com/spotify/docker-gc  
+**Docs:** https://github.com/spotify/docker-gc  
+**GitHub:** https://github.com/spotify/docker-gc  
+**Docker image:** https://hub.docker.com/r/eeacms/docker-gc  
+**Releases:** https://github.com/spotify/docker-gc/releases  
 
 ## Quick start
 

@@ -3,8 +3,10 @@
 Workflow automation: connect apps, APIs, and services with a visual editor. Self-hosted alternative to Zapier/Make. Uses SQLite by default (data in Docker volume); optional Postgres for scaling.
 
 **Website:** https://n8n.io  
+**Docs:** https://docs.n8n.io/  
 **GitHub:** https://github.com/n8n-io/n8n  
-**Docs:** https://docs.n8n.io/
+**Docker image:** https://hub.docker.com/r/n8nio/n8n  
+**Releases:** https://github.com/n8n-io/n8n/releases  
 
 ## Quick start
 

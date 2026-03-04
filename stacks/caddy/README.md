@@ -3,8 +3,10 @@
 Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.docker.internal`. Supports local DNS (e.g. AdGuard Home) and public access (Cloudflare Tunnel or port forwarding).
 
 **Website:** https://caddyserver.com  
+**Docs:** https://caddyserver.com/docs/  
 **GitHub:** https://github.com/caddyserver/caddy  
-**Docs:** https://caddyserver.com/docs/
+**Docker image:** https://hub.docker.com/r/serfriz/caddy-cloudflare  
+**Releases:** https://github.com/caddyserver/caddy/releases  
 
 **Sensitive config:** The real `Caddyfile` is gitignored and never committed (domains, email, etc.). Only `Caddyfile.example` lives in the repo.
 

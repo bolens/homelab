@@ -3,7 +3,7 @@
 Media server for movies, TV shows, and music. Emby serves your library to web, mobile, and TV apps and supports hardware-accelerated transcoding.
 
 **Website:** https://emby.media/  
-**Docker image (LinuxServer.io):** https://hub.docker.com/r/linuxserver/emby
+**Docker image:** https://hub.docker.com/r/linuxserver/emby  
 
 ## Quick start
 

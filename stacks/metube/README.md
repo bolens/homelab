@@ -2,7 +2,11 @@
 
 Self-hosted web GUI for `yt-dlp`/`youtube-dl` with playlist support and a download queue. Lets you send video URLs from your browser and download them as video or audio to your homelab storage.
 
-**GitHub:** https://github.com/alexta69/metube
+**Website:** https://github.com/alexta69/metube  
+**Docs:** https://github.com/alexta69/metube#readme  
+**GitHub:** https://github.com/alexta69/metube  
+**Docker image:** https://github.com/alexta69/metube/pkgs/container/metube  
+**Releases:** https://github.com/alexta69/metube/releases  
 
 ## Quick start
 

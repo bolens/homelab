@@ -3,8 +3,10 @@
 Self-hosted web archive: save full copies of web pages (HTML, screenshots, PDFs, and WARCs) from URLs, bookmarks, and feeds.
 
 **Website:** https://archivebox.io  
+**Docs:** https://github.com/ArchiveBox/ArchiveBox/wiki  
 **GitHub:** https://github.com/ArchiveBox/ArchiveBox  
-**Docs:** https://github.com/ArchiveBox/ArchiveBox/wiki/Docker#docker-compose
+**Docker image:** https://hub.docker.com/r/archivebox/archivebox  
+**Releases:** https://github.com/ArchiveBox/ArchiveBox/releases  
 
 ## Quick start
 

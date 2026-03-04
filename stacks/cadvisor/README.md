@@ -2,8 +2,11 @@
 
 Container resource metrics (CPU, memory, network, filesystem) for all containers on the host. Prometheus scrapes cAdvisor; Grafana displays the data (e.g. dashboard 893).
 
+**Website:** https://github.com/google/cadvisor  
+**Docs:** https://github.com/google/cadvisor/tree/master/docs  
 **GitHub:** https://github.com/google/cadvisor  
-**Docs:** https://github.com/google/cadvisor/tree/master/docs
+**Docker image:** https://gcr.io/cadvisor/cadvisor  
+**Releases:** https://github.com/google/cadvisor/releases  
 
 ## Quick start
 

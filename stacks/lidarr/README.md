@@ -4,7 +4,9 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
 
 **Website:** https://lidarr.audio/  
 **Docs:** https://wiki.servarr.com/lidarr  
-**Docker guide:** https://wiki.servarr.com/docker-guide
+**GitHub:** https://github.com/Lidarr/Lidarr  
+**Docker image:** https://hub.docker.com/r/linuxserver/lidarr  
+**Releases:** https://github.com/Lidarr/Lidarr/releases  
 
 ## Quick start
 

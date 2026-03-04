@@ -3,8 +3,10 @@
 Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code interpreter, and more.
 
 **Website:** https://www.librechat.ai  
+**Docs:** https://docs.librechat.ai  
 **GitHub:** https://github.com/LibreChat-AI/LibreChat  
-**Docs:** https://docs.librechat.ai
+**Docker image:** https://github.com/LibreChat-AI/LibreChat/pkgs/container/librechat  
+**Releases:** https://github.com/LibreChat-AI/LibreChat/releases  
 
 ## Features
 

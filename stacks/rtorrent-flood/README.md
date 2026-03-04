@@ -2,8 +2,11 @@
 
 Manual torrent stack for **hand‑curated torrents from private trackers**. Uses the LinuxServer.io `rtorrent-flood` image, which bundles the rTorrent daemon with the Flood web UI.
 
-**Image:** `lscr.io/linuxserver/rtorrent-flood:latest`  
-**Flood project:** https://github.com/jesec/flood
+**Website:** https://github.com/jesec/flood  
+**Docs:** https://github.com/jesec/flood/wiki  
+**GitHub:** https://github.com/jesec/flood  
+**Docker image:** https://hub.docker.com/r/linuxserver/rtorrent-flood  
+**Releases:** https://github.com/jesec/flood/releases  
 
 ## Quick start
 

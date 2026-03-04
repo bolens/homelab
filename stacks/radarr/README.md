@@ -4,7 +4,9 @@ Movie collection manager for Usenet and torrents. Radarr monitors your wanted mo
 
 **Website:** https://radarr.video/  
 **Docs:** https://wiki.servarr.com/radarr  
-**Docker guide:** https://wiki.servarr.com/docker-guide
+**GitHub:** https://github.com/Radarr/Radarr  
+**Docker image:** https://hub.docker.com/r/linuxserver/radarr  
+**Releases:** https://github.com/Radarr/Radarr/releases  
 
 ## Quick start
 
