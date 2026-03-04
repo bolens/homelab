@@ -46,20 +46,28 @@ flowchart TB
             n8n["n8n"]
         end
 
-        subgraph apps_osint["OSINT & web tools"]
-            searx["searx-ng"]
-            socialhunt["social-hunt"]
-            maigret["maigret"]
-            webcheck["web-check"]
-            onionprobe["onionprobe"]
-            ail["ail"]
-            naisho["naisho"]
-            stoat["stoat"]
-            shortener["yourls"]
-            linkstack["linkstack"]
-            ittools["it-tools"]
-            convertx["convertx"]
-            dozzle["dozzle"]
+        subgraph apps_osint["OSINT, search & web tools"]
+            subgraph apps_osint_osint["OSINT & investigations"]
+                socialhunt["social-hunt"]
+                maigret["maigret"]
+                onionprobe["onionprobe"]
+                ail["ail"]
+                naisho["naisho"]
+            end
+
+            subgraph apps_osint_search["Search & analysis"]
+                searx["searx-ng"]
+                webcheck["web-check"]
+            end
+
+            subgraph apps_osint_web["Web utilities & misc apps"]
+                stoat["stoat"]
+                shortener["yourls"]
+                linkstack["linkstack"]
+                ittools["it-tools"]
+                convertx["convertx"]
+                dozzle["dozzle"]
+            end
         end
     end
 
