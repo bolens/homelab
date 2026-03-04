@@ -1,0 +1,23 @@
+# Gluetun – outbound VPN client for other containers.
+# Other stacks can use:  network_mode: service:gluetun
+# No HTTP ports; Caddy does not front this stack.
+# Start: docker compose up -d
+
+name: gluetun
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    env_file:
+      - stack.env
+    volumes:
+      - gluetun_config:/gluetun
+    restart: unless-stopped
+
+volumes:
+  gluetun_config: {}

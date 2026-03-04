@@ -1,0 +1,27 @@
+# WireGuard – remote access VPN server (LinuxServer.io).
+# Exposes UDP 51820 only; no HTTP. Forward that port on your router for remote clients.
+# Start: docker compose up -d
+
+name: wireguard
+
+services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    env_file:
+      - stack.env
+    volumes:
+      - wireguard_config:/config
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+
+volumes:
+  wireguard_config: {}
