@@ -1,0 +1,28 @@
+# OWASP Threat Dragon – threat modeling (diagrams, STRIDE, save to GitHub/Bitbucket/GitLab).
+# No host ports: access via Caddy (reverse_proxy threatdragon:3000 on monitor network).
+# Requires .env with SESSION_SIGNING_KEY; add GITHUB_* (or Bitbucket/GitLab) for repo storage.
+# Docs: https://www.threatdragon.com/  |  https://owasp.org/www-project-threat-dragon/
+#
+# Start:  docker compose up -d
+# First run: configure OAuth (e.g. GitHub) in .env so you can save models to repos.
+
+name: threat-dragon
+
+services:
+  threatdragon:
+    image: owasp/threat-dragon:stable
+    container_name: threatdragon
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - ./.env:/app/.env:ro
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true

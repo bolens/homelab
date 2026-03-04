@@ -9,7 +9,7 @@ Self-hosted photo and video backup: upload from phones and the web, face detecti
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - Generate and set `DB_PASSWORD` (see **Generating keys and secrets** below).
    - Set `TZ` to your timezone if different from America/Denver.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
@@ -23,7 +23,7 @@ Self-hosted photo and video backup: upload from phones and the web, face detecti
 openssl rand -hex 16 | tr -d '\n' | head -c 24
 ```
 
-Set the output as `DB_PASSWORD` in `.env`.
+Set the output as `DB_PASSWORD` in `stack.env`.
 
 The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it works when deployed from Portainer’s web editor.
 
@@ -34,7 +34,7 @@ The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it
 | **Port** | 2283 (proxied via Caddy; host port exposed for direct access if needed) |
 | **Network** | `monitor` (external) — Caddy can reverse-proxy to `immich-server:2283` |
 | **Images** | immich-server, immich-machine-learning, Valkey (Redis), Postgres with vector extension |
-| **Env** | `DB_PASSWORD` required; `TZ`, `IMMICH_VERSION`, optional `IMMICH_CONFIG_FILE` (see .env.example) |
+| **Env** | `DB_PASSWORD` required; `TZ`, `IMMICH_VERSION`, optional `IMMICH_CONFIG_FILE` (see `stack.env.example`) |
 | **Storage** | Named volumes: `library` (uploads), `pgdata`, `model-cache`, `redisdata` |
 
 ## Google OAuth (login with Google)
@@ -72,7 +72,7 @@ To use Google as the login method:
 
 ### 3. Optional: config file (e.g. for automation)
 
-You can put OAuth and other options in a JSON/YAML config file and mount it into the server container, then set `IMMICH_CONFIG_FILE=/path/in/container/immich.json` in `.env`. Example OAuth section:
+You can put OAuth and other options in a JSON/YAML config file and mount it into the server container, then set `IMMICH_CONFIG_FILE=/path/in/container/immich.json` in your env file (e.g. `stack.env` or Portainer Environment). Example OAuth section:
 
 ```json
 "oauth": {

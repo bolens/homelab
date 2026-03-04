@@ -1,0 +1,274 @@
+# Stoat – self-hosted chat platform (API, web app, media, voice).
+# This stack follows the upstream `stoatchat/self-hosted` compose.yml but:
+# - Does NOT publish any host ports (Caddy handles ingress).
+# - Attaches Stoat's Caddy to the shared `monitor` network so the main Caddy can reverse-proxy to it.
+#
+# Upstream repo: https://github.com/stoatchat/self-hosted
+# Docs: https://docs.stoat.dev/docs/installation
+#
+# Before first run, generate config in this directory (see README).
+
+name: stoat
+
+services:
+  # MongoDB: database
+  database:
+    image: docker.io/mongo
+    container_name: stoat-database
+    restart: unless-stopped
+    volumes:
+      - ./data/db:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - stoat
+
+  # KeyDB: Redis-compatible KV and message broker
+  redis:
+    image: docker.io/eqalpha/keydb
+    container_name: stoat-redis
+    restart: unless-stopped
+    networks:
+      - stoat
+
+  # RabbitMQ: internal message broker
+  rabbit:
+    image: docker.io/rabbitmq:4
+    container_name: stoat-rabbit
+    restart: unless-stopped
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER:-rabbituser}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS:-rabbitpass}
+    volumes:
+      - ./data/rabbit:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - stoat
+
+  # MinIO: S3-compatible storage (attachments, avatars, etc.)
+  minio:
+    image: docker.io/minio/minio
+    container_name: stoat-minio
+    restart: unless-stopped
+    command: server /data
+    volumes:
+      - ./data/minio:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioautumn}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioautumn}
+      - MINIO_DOMAIN=minio
+    networks:
+      stoat:
+        aliases:
+          - revolt-uploads.minio
+          # legacy support:
+          - attachments.minio
+          - avatars.minio
+          - backgrounds.minio
+          - icons.minio
+          - banners.minio
+          - emojis.minio
+
+  # Stoat Caddy: internal web router (API, websockets, media, livekit).
+  # No host ports; main Caddy reverse-proxies to this on `monitor`.
+  stoat-caddy:
+    image: docker.io/caddy
+    container_name: stoat-caddy
+    restart: unless-stopped
+    env_file:
+      - .env.web
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./data/caddy-data:/data
+      - ./data/caddy-config:/config
+    networks:
+      - stoat
+      - monitor
+
+  # API server
+  api:
+    image: ghcr.io/stoatchat/api:v0.11.1
+    container_name: stoat-api
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbit:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./Revolt.toml
+        target: /Revolt.toml
+    networks:
+      - stoat
+
+  # Events service (websocket)
+  events:
+    image: ghcr.io/stoatchat/events:v0.11.1
+    container_name: stoat-events
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - type: bind
+        source: ./Revolt.toml
+        target: /Revolt.toml
+    networks:
+      - stoat
+
+  # File server (Autumn)
+  autumn:
+    image: ghcr.io/stoatchat/file-server:v0.11.1
+    container_name: stoat-autumn
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      createbuckets:
+        condition: service_started
+    volumes:
+      - type: bind
+        source: ./Revolt.toml
+        target: /Revolt.toml
+    networks:
+      - stoat
+
+  # Metadata and image proxy (January)
+  january:
+    image: ghcr.io/stoatchat/proxy:v0.11.1
+    container_name: stoat-january
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./Revolt.toml
+        target: /Revolt.toml
+    networks:
+      - stoat
+
+  # Tenor proxy
+  gifbox:
+    image: ghcr.io/stoatchat/gifbox:v0.11.1
+    container_name: stoat-gifbox
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: ./Revolt.toml
+        target: /Revolt.toml
+    networks:
+      - stoat
+
+  # Regular task daemon
+  crond:
+    image: ghcr.io/stoatchat/crond:v0.11.1
+    container_name: stoat-crond
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    volumes:
+      - type: bind
+        source: ./Revolt.toml
+        target: /Revolt.toml
+    networks:
+      - stoat
+
+  # Push notification daemon
+  pushd:
+    image: ghcr.io/stoatchat/pushd:v0.11.1
+    container_name: stoat-pushd
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbit:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./Revolt.toml
+        target: /Revolt.toml
+    networks:
+      - stoat
+
+  # Voice ingress daemon
+  voice-ingress:
+    image: ghcr.io/stoatchat/voice-ingress:v0.11.1
+    container_name: stoat-voice-ingress
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      rabbit:
+        condition: service_healthy
+    volumes:
+      - type: bind
+        source: ./Revolt.toml
+        target: /Revolt.toml
+    networks:
+      - stoat
+
+  # LiveKit – voice/video SFU.
+  # NOTE: This stack does NOT publish 7881 or UDP 50000-50100 on the host.
+  # Voice may require exposing those ports or additional tunnelling; see README.
+  livekit:
+    image: ghcr.io/stoatchat/livekit-server:v1.9.6
+    container_name: stoat-livekit
+    restart: unless-stopped
+    command: --config /etc/livekit.yml
+    volumes:
+      - ./livekit.yml:/etc/livekit.yml
+    networks:
+      - stoat
+
+  # MinIO client: create buckets
+  createbuckets:
+    image: docker.io/minio/mc
+    container_name: stoat-createbuckets
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      while ! /usr/bin/mc ready minio; do
+        /usr/bin/mc alias set minio http://minio:9000 minioautumn minioautumn;
+        echo 'Waiting minio...' && sleep 1;
+      done;
+      /usr/bin/mc mb minio/revolt-uploads;
+      exit 0;
+      "
+    networks:
+      - stoat
+
+  # Web App (frontend)
+  web:
+    image: ghcr.io/stoatchat/for-web:addb6b7
+    container_name: stoat-web
+    restart: unless-stopped
+    env_file:
+      - .env.web
+    networks:
+      - stoat
+
+networks:
+  stoat:
+    driver: bridge
+  monitor:
+    name: monitor
+    external: true
+

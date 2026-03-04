@@ -5,8 +5,8 @@ services:
   audiobookshelf:
     container_name: audiobookshelf
     image: ghcr.io/advplyr/audiobookshelf:latest
-    environment:
-      - TZ=${TZ:-America/Denver}
+    env_file:
+      - stack.env
     volumes:
       - abs_config:/config
       - abs_metadata:/metadata

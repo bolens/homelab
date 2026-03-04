@@ -3,17 +3,18 @@
 Lightweight, self-hosted password manager compatible with Bitwarden clients (browser extensions, mobile apps, CLI).
 
 **Website:** https://vaultwarden.github.io  
-**GitHub:** https://github.com/dani-garcia/vaultwarden
+**GitHub:** https://github.com/dani-garcia/vaultwarden  
+**Docs:** https://github.com/dani-garcia/vaultwarden/wiki
 
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - If using Caddy (or another reverse proxy), set `DOMAIN=https://vault.yourdomain.com`.
    - Set `SIGNUPS_ALLOWED=true` only until you create your account, then set to `false`.
    - (Optional) To enable the admin panel at `/admin`, set `ADMIN_TOKEN`. Generate with: `openssl rand -base64 48`.
    - Set `TZ` if different from America/Denver.
-2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
+2. **Deploy:** `docker compose --env-file stack.env up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open the web UI via Caddy, create your account, then set `SIGNUPS_ALLOWED=false` and redeploy.
 
 The stack uses a **named volume** `vw_data` so it works when deployed from Portainer’s web editor.

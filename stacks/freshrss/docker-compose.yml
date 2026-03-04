@@ -5,10 +5,8 @@ services:
   freshrss:
     container_name: freshrss
     image: lscr.io/linuxserver/freshrss:latest
-    environment:
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
-      - TZ=${TZ:-America/Denver}
+    env_file:
+      - stack.env
     volumes:
       - freshrss_config:/config
     restart: unless-stopped

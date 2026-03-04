@@ -2,6 +2,9 @@
 
 Privacy-focused AI-powered answering engine that combines web search with AI models for accurate, cited answers.
 
+**GitHub:** https://github.com/ItzCrazyKns/Perplexica  
+**Docs:** https://github.com/ItzCrazyKns/Perplexica#readme
+
 ## Features
 
 - **Privacy-First**: Runs entirely on your hardware
@@ -14,9 +17,9 @@ Privacy-focused AI-powered answering engine that combines web search with AI mod
 
 ## Setup
 
-1. Copy `.env.example` to `.env`:
+1. Copy `stack.env.example` to `stack.env`:
    ```bash
-   cp .env.example .env
+   cp stack.env.example stack.env
    ```
 
 2. Set your data path (absolute path recommended):
@@ -36,7 +39,7 @@ Privacy-focused AI-powered answering engine that combines web search with AI mod
 
 5. Start the stack:
    ```bash
-   docker compose up -d
+   docker compose --env-file stack.env up -d
    ```
 
 ## Usage
@@ -69,7 +72,7 @@ If you have a SearxNG instance running elsewhere:
 
 1. Ensure SearxNG has JSON format enabled
 2. Ensure Wolfram Alpha search engine is enabled in SearxNG
-3. Set `SEARXNG_API_URL` in `.env` to your SearxNG instance URL
+3. Set `SEARXNG_API_URL` in `stack.env` to your SearxNG instance URL
 
 ## Configuration
 
@@ -77,7 +80,7 @@ If you have a SearxNG instance running elsewhere:
 
 If you're running Ollama in another Docker stack:
 1. Add Ollama to the same Docker network (`monitor` network)
-2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `.env`
+2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
 ### Data Storage
 
@@ -96,7 +99,7 @@ Perplexica data (including search history) is stored in `PERPLEXICA_DATA_PATH`.
 - Ensure Ollama is running and models are available
 
 ### Port Conflicts
-- Change `PERPLEXICA_HOST_PORT` in `.env` if port 3000 is already in use
+- Change `PERPLEXICA_HOST_PORT` in `stack.env` if port 3000 is already in use
 
 ## Documentation
 

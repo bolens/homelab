@@ -9,7 +9,7 @@ Secure password and secret sharing: create shareable links with **view limits** 
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - Set `PWPUSH_MASTER_KEY` (required). Generate with the command below, or at https://us.pwpush.com/generate_key.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **Access:** Open via Caddy (e.g. https://pwpush.home or https://pwpush.yourdomain.com). Create a push, set “Expire after X views” and/or “Expire after X days”, share the link.
@@ -58,6 +58,16 @@ To send signup confirmation emails and password-reset emails, set these in your 
 - `PWP__HOST_DOMAIN` and `PWP__HOST_PROTOCOL=https` so links in emails point to your instance
 
 Without SMTP, you can still confirm users manually via the app console (see note above).
+
+**Example (using the `smtp-relay` stack):**
+
+- Inside Docker on the same host / `monitor` network:
+  - `PWP__MAIL__SMTP_ADDRESS=smtp-relay`
+  - `PWP__MAIL__SMTP_PORT=587`
+  - `PWP__MAIL__SMTP_STARTTLS=true` (or `false` if you only want TLS between the relay and your provider)
+- From outside Docker (or if you prefer a single hostname everywhere):
+  - `PWP__MAIL__SMTP_ADDRESS=smtp.yourdomain.com`
+  - `PWP__MAIL__SMTP_PORT=587`
 
 ## Caddy reverse proxy
 

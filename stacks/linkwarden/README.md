@@ -9,7 +9,7 @@ Self-hosted bookmark manager and link aggregator: save links, archive pages, org
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - Generate and set `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, and `MEILI_MASTER_KEY` (see **Generating keys and secrets** below).
    - If using Caddy or a public URL, set `NEXTAUTH_URL` to `https://your-domain.com/api/v1/auth`.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
@@ -17,7 +17,7 @@ Self-hosted bookmark manager and link aggregator: save links, archive pages, org
 
 ## Generating keys and secrets
 
-Run these and set the outputs in `.env`:
+Run these and set the outputs in `stack.env`:
 
 ```bash
 # NEXTAUTH_SECRET – NextAuth JWT/session signing
@@ -30,7 +30,7 @@ openssl rand -base64 24
 openssl rand -hex 24
 ```
 
-Set each variable to the corresponding output. See `.env.example` for variable names.
+Set each variable to the corresponding output. See `stack.env.example` for variable names.
 
 **Portainer:** No `.env` file is used; set `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, `MEILI_MASTER_KEY` (and optionally `NEXTAUTH_URL`, `TZ`) in the stack’s Environment variables when deploying.
 The stack uses **named volumes** (`lw_pgdata`, `lw_data`, `lw_meili_data`) so it works when deployed from Portainer’s web editor.
@@ -47,6 +47,6 @@ The stack uses **named volumes** (`lw_pgdata`, `lw_data`, `lw_meili_data`) so it
 
 ## Notes
 
-- After changing `.env`, run `docker compose down && docker compose up -d` (restart is not enough for env changes).
-- **`NO_SECRET` / MissingSecretError:** NextAuth requires a non-empty `NEXTAUTH_SECRET`. Set it in `.env` (e.g. `openssl rand -base64 32`), then recreate the stack with `docker compose down && docker compose up -d`. If using Portainer, add `NEXTAUTH_SECRET` to the stack’s Environment.
+- After changing `stack.env`, run `docker compose --env-file stack.env down && docker compose --env-file stack.env up -d` (restart is not enough for env changes).
+- **`NO_SECRET` / MissingSecretError:** NextAuth requires a non-empty `NEXTAUTH_SECRET`. Set it in `stack.env` (e.g. `openssl rand -base64 32`), then recreate the stack with `docker compose --env-file stack.env down && docker compose --env-file stack.env up -d`. If using Portainer, add `NEXTAUTH_SECRET` to the stack’s Environment.
 - Optional: SMTP for email verification, S3/Spaces for storage, and many SSO providers — see [environment variables](https://docs.linkwarden.app/self-hosting/environment-variables) and the full [.env.sample](https://github.com/linkwarden/linkwarden/blob/main/.env.sample).

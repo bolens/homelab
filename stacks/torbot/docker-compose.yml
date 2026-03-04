@@ -1,0 +1,37 @@
+# OWASP TorBot – Dark Web OSINT crawler (.onion crawler, email extraction, link tree, JSON export).
+# No host ports: Tor SOCKS (9050) is internal; run crawls via docker compose exec torbot ...
+# Docs: https://owasp.org/www-project-torbot/  |  GitHub: https://github.com/DedSecInside/TorBot
+#
+# Start:  docker compose up -d
+# Wait for Tor: docker compose logs -f tor  (bootstrapped 100%)
+# Crawl:  docker compose exec torbot torbot -u http://example.onion --host tor --port 9050 --save json
+
+name: torbot
+
+services:
+  tor:
+    image: dperson/torproxy:latest
+    container_name: torbot-tor
+    restart: unless-stopped
+    # No ports published; only torbot container uses Tor on internal network
+    networks:
+      - torbot
+
+  torbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: torbot:local
+    container_name: torbot
+    restart: unless-stopped
+    depends_on:
+      - tor
+    env_file:
+      - stack.env
+    # Use Tor in this stack: --host tor --port 9050 when running torbot CLI
+    networks:
+      - torbot
+
+networks:
+  torbot:
+    driver: bridge

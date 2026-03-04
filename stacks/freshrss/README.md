@@ -9,7 +9,7 @@ Self-hosted RSS feed aggregator: subscribe to feeds, categories, star articles, 
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - Set `PUID` / `PGID` if you want volume files owned by a specific user (e.g. `id your_user`); default `1000:1000` is fine for most setups.
    - Set `TZ` to your timezone if different from America/Denver.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).

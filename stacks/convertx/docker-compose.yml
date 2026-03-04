@@ -1,0 +1,33 @@
+# ConvertX – self-hosted online file converter (1000+ formats).
+# No host ports: access only via Caddy (reverse_proxy convertx:3000 on monitor network).
+# Docs: https://github.com/C4illin/ConvertX
+services:
+  convertx:
+    image: ghcr.io/c4illin/convertx:latest
+    container_name: convertx
+    restart: unless-stopped
+    volumes:
+      - convertx-data:/app/data
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - JWT_SECRET=${JWT_SECRET}
+      # Optional: set in .env or Portainer stack Env (see .env.example)
+      - ACCOUNT_REGISTRATION=${ACCOUNT_REGISTRATION:-false}
+      - HTTP_ALLOWED=${HTTP_ALLOWED:-false}
+      - ALLOW_UNAUTHENTICATED=${ALLOW_UNAUTHENTICATED:-false}
+      - AUTO_DELETE_EVERY_N_HOURS=${AUTO_DELETE_EVERY_N_HOURS:-24}
+      - WEBROOT=${WEBROOT:-}
+      - HIDE_HISTORY=${HIDE_HISTORY:-false}
+      - LANGUAGE=${LANGUAGE:-en}
+      - MAX_CONVERT_PROCESS=${MAX_CONVERT_PROCESS:-0}
+    networks:
+      - monitor
+
+networks:
+  # Use external monitor only – do not create a stack default network (avoids subnet exhaustion)
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  convertx-data:

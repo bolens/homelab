@@ -2,6 +2,10 @@
 
 Self-hosted Ollama instance with GPU support for running local LLMs.
 
+**Website:** https://ollama.com  
+**GitHub:** https://github.com/ollama/ollama  
+**Docs:** https://ollama.com/docs
+
 ## Features
 
 - **CPU by default**: Runs without a GPU; no NVIDIA driver required to deploy.
@@ -16,12 +20,12 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
 
 ## Setup
 
-1. Copy `.env.example` to `.env`:
+1. Copy `stack.env.example` to `stack.env`:
    ```bash
-   cp .env.example .env
+   cp stack.env.example stack.env
    ```
 
-2. (Optional) Edit `.env` and set your model storage path; otherwise models use `./models`:
+2. (Optional) Edit `stack.env` and set your model storage path; otherwise models use `./models`:
    ```bash
    OLLAMA_MODELS_PATH=/path/to/your/models
    ```
@@ -29,7 +33,7 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
 
 3. Start the stack:
    ```bash
-   docker compose up -d
+   docker compose --env-file stack.env up -d
    ```
 
 ## Usage
@@ -97,14 +101,14 @@ sudo systemctl restart docker
 In `stacks/ollama/docker-compose.yml`, uncomment the `deploy` block under the `ollama` service (the `resources.reservations.devices` section with `driver: nvidia`). Then:
 
 ```bash
-docker compose up -d --force-recreate
+docker compose --env-file stack.env up -d --force-recreate
 ```
 
 To confirm the container sees the GPU: `docker exec ollama nvidia-smi` (or check Ollama’s API/UI).
 
 ## Model Storage
 
-Models are stored in the directory specified by `OLLAMA_MODELS_PATH` in your `.env` file. This directory is mounted to `/root/.ollama/models` inside the container, which is where Ollama stores all models.
+Models are stored in the directory specified by `OLLAMA_MODELS_PATH` in your `stack.env` file. This directory is mounted to `/root/.ollama/models` inside the container, which is where Ollama stores all models.
 
 This allows you to:
 - Use a large external drive for models (set `OLLAMA_MODELS_PATH` to an absolute path)

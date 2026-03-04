@@ -9,7 +9,7 @@ Self-hosted podcast (and audiobook) server: subscribe to podcasts, stream or dow
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - Set `TZ` to your timezone if different from America/Denver.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open Audiobookshelf via Caddy (e.g. audiobookshelf.home, audiobookshelf.yourdomain.com), create the admin account, then add libraries (e.g. Podcasts pointing at `/podcasts`) and subscribe to feeds.

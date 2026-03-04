@@ -1,0 +1,21 @@
+# Prometheus config for Onionprobe stack (service names prefixed with op-).
+# Scrapes op-onionprobe exporter and op-alertmanager.
+
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'onionprobe'
+    static_configs:
+      - targets: ['op-onionprobe:9935']
+  - job_name: 'tor'
+    static_configs:
+      - targets: ['op-onionprobe:9936']
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['op-alertmanager:9093']
+
+rule_files:
+  - /etc/prometheus/prometheus-rules.yml
