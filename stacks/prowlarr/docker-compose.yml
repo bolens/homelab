@@ -1,0 +1,29 @@
+services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - prowlarr_config:/config
+    networks:
+      - default
+      - monitor
+      - usenet
+      - torrents
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  usenet:
+    name: usenet
+    external: true
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  prowlarr_config:
+

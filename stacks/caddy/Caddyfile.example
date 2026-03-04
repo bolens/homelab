@@ -92,6 +92,67 @@ music.home, music.local {
 	reverse_proxy navidrome:4533
 }
 
+# Media & downloads
+plex.home, plex.local {
+	tls internal
+	reverse_proxy plex:32400
+}
+
+jellyfin.home, jellyfin.local {
+	tls internal
+	reverse_proxy jellyfin:8096
+}
+
+sonarr.home, sonarr.local {
+	tls internal
+	reverse_proxy sonarr:8989
+}
+
+radarr.home, radarr.local {
+	tls internal
+	reverse_proxy radarr:7878
+}
+
+lidarr.home, lidarr.local {
+	tls internal
+	reverse_proxy lidarr:8686
+}
+
+readarr.home, readarr.local {
+	tls internal
+	reverse_proxy readarr:8787
+}
+
+bazarr.home, bazarr.local {
+	tls internal
+	reverse_proxy bazarr:6767
+}
+
+prowlarr.home, prowlarr.local {
+	tls internal
+	reverse_proxy prowlarr:9696
+}
+
+nzbget.home, nzbget.local {
+	tls internal
+	reverse_proxy nzbget:6789
+}
+
+nzbhydra.home, nzbhydra.local {
+	tls internal
+	reverse_proxy nzbhydra2:5076
+}
+
+rtorrent.home, rtorrent.local {
+	tls internal
+	reverse_proxy rtorrent-flood:3000
+}
+
+emby.home, emby.local {
+	tls internal
+	reverse_proxy emby:8096
+}
+
 # Productivity
 linkwarden.home, linkwarden.local {
 	tls internal
@@ -353,6 +414,91 @@ music.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy navidrome:4533
+}
+
+# Media & downloads
+plex.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy plex:32400
+}
+
+jellyfin.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy jellyfin:8096
+}
+
+sonarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy sonarr:8989
+}
+
+radarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy radarr:7878
+}
+
+lidarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy lidarr:8686
+}
+
+readarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy readarr:8787
+}
+
+bazarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy bazarr:6767
+}
+
+prowlarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy prowlarr:9696
+}
+
+nzbget.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy nzbget:6789
+}
+
+nzbhydra.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy nzbhydra2:5076
+}
+
+rtorrent.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy rtorrent-flood:3000
+}
+
+emby.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy emby:8096
 }
 
 # Productivity

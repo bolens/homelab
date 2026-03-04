@@ -1,0 +1,38 @@
+services:
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - lidarr_config:/config
+      - media_music:/music
+      - usenet_downloads:/downloads
+      - torrents_downloads:/torrents
+    networks:
+      - default
+      - monitor
+      - usenet
+      - torrents
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  usenet:
+    name: usenet
+    external: true
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  lidarr_config:
+  media_music:
+    external: true
+  usenet_downloads:
+    external: true
+  torrents_downloads:
+    external: true
+

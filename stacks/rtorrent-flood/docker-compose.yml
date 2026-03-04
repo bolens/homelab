@@ -1,0 +1,31 @@
+services:
+  rtorrent-flood:
+    image: lscr.io/linuxserver/rtorrent-flood:latest
+    container_name: rtorrent-flood
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - rtorrent_flood_config:/config
+      - torrents_manual:/downloads
+    networks:
+      - default
+      - monitor
+      - torrents
+    ports:
+      - "49160:49160"
+      - "49160:49160/udp"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  rtorrent_flood_config:
+  torrents_manual:
+    external: true
+
