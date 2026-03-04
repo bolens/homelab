@@ -1,0 +1,37 @@
+services:
+  emby:
+    image: lscr.io/linuxserver/emby:latest
+    container_name: emby
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - emby_config:/config
+      - media_tv:/data/tv
+      - media_movies:/data/movies
+      - media_music:/data/music
+    networks:
+      - default
+      - monitor
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  emby_config:
+  media_tv:
+    external: true
+  media_movies:
+    external: true
+  media_music:
+    external: true
+

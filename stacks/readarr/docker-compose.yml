@@ -1,0 +1,38 @@
+services:
+  readarr:
+    image: lscr.io/linuxserver/readarr:nightly
+    container_name: readarr
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - readarr_config:/config
+      - media_books:/books
+      - usenet_downloads:/downloads
+      - torrents_downloads:/torrents
+    networks:
+      - default
+      - monitor
+      - usenet
+      - torrents
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  usenet:
+    name: usenet
+    external: true
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  readarr_config:
+  media_books:
+    external: true
+  usenet_downloads:
+    external: true
+  torrents_downloads:
+    external: true
+

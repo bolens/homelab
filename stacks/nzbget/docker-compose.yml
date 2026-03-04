@@ -1,0 +1,28 @@
+services:
+  nzbget:
+    image: lscr.io/linuxserver/nzbget:latest
+    container_name: nzbget
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - nzbget_config:/config
+      - usenet_downloads:/downloads
+    networks:
+      - default
+      - monitor
+      - usenet
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  usenet:
+    name: usenet
+    external: true
+
+volumes:
+  nzbget_config:
+  usenet_downloads:
+    external: true
+

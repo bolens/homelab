@@ -1,0 +1,38 @@
+services:
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - radarr_config:/config
+      - media_movies:/movies
+      - usenet_downloads:/downloads
+      - torrents_downloads:/torrents
+    networks:
+      - default
+      - monitor
+      - usenet
+      - torrents
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  usenet:
+    name: usenet
+    external: true
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  radarr_config:
+  media_movies:
+    external: true
+  usenet_downloads:
+    external: true
+  torrents_downloads:
+    external: true
+

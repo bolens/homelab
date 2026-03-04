@@ -1,0 +1,25 @@
+services:
+  nzbhydra2:
+    image: lscr.io/linuxserver/nzbhydra2:latest
+    container_name: nzbhydra2
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - nzbhydra2_config:/config
+    networks:
+      - default
+      - monitor
+      - usenet
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  usenet:
+    name: usenet
+    external: true
+
+volumes:
+  nzbhydra2_config:
+
