@@ -29,6 +29,7 @@ environment:
 - **ail** – TZ (optional). AIL framework (Analysis Information Leak); uses community image cciucd/ail-framework. No host ports; access via Caddy only (backend HTTPS on 7000; Caddy uses tls_insecure_skip_verify). Resource-heavy: >6GB RAM recommended. See stack README.
 - **archivebox** – TZ, LANG, LC_ALL, LC_CTYPE; ADMIN_USERNAME, ADMIN_PASSWORD, ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, SEARCH_BACKEND_PASSWORD; optional PUBLIC_INDEX, PUBLIC_SNAPSHOTS, PUBLIC_ADD_VIEW.
 - **audiobookshelf** – TZ (optional).
+ - **bazarr** – TZ, PUID, PGID (optional). Uses media paths `/tv` and `/movies` to manage subtitles; configure providers in the Bazarr UI.
 - **caddy** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **cadvisor** – TZ, LANG, LC_ALL, LC_CTYPE; no config files.
 - **cloudflare-tunnel** – TZ, LANG, LC_ALL, LC_CTYPE.
@@ -52,6 +53,8 @@ environment:
 - **mealie** – TZ, LANG, LC_ALL, LC_CTYPE; BASE_URL (when behind reverse proxy), ALLOW_SIGNUP; optional DB_ENGINE (sqlite/postgres).
 - **naisho** – TZ (optional); SECRET_KEY_BASE (required; e.g. `openssl rand -hex 64`); optional RAILS_LOG_LEVEL. Builds from GitHub; no host ports; access via Caddy only. SMTP configured in-app when sending deletion emails. See stack `stack.env.example` and README.
 - **navidrome** – TZ (optional); ND_BASEURL (optional but recommended when behind Caddy; set to your full Navidrome URL, e.g. `https://music.yourdomain.com`); ND_LOGLEVEL, ND_SCANSCHEDULE, ND_SESSIONTIMEOUT and other `ND_` options for tuning behaviour. See stack `stack.env.example` and [Navidrome configuration options](https://navidrome.org/docs/usage/configuration/options/).
+ - **nzbget** – TZ (optional); PUID, PGID, optional UMASK. Optional NZBGET_USER and NZBGET_PASS for the web UI. Usenet servers and categories are configured in the NZBGet UI.
+ - **nzbhydra2** – TZ (optional); PUID, PGID, optional UMASK. API key and indexer configuration are set in the NZBHydra 2 UI.
 - **n8n** – TZ, LANG, LC_ALL, LC_CTYPE; N8N_HOST, WEBHOOK_URL (required when behind Caddy; set to your base URL e.g. https://n8n.home or https://n8n.yourdomain.com); N8N_PORT=5678, N8N_PROTOCOL=https; optional N8N_ENCRYPTION_KEY (e.g. `openssl rand -hex 32`). No host ports; access via Caddy only. See stack `stack.env.example`.
 - **ollama** – TZ, LANG, LC_ALL, LC_CTYPE; OLLAMA_HOST_PORT; OLLAMA_MODELS_PATH (path for models; use absolute path for large storage). Other data uses Docker volume `ollama_data`. GPU: requires NVIDIA Container Toolkit; no API keys.
 - **onionprobe** – Optional: GRAFANA_DATABASE_PASSWORD, GF_SERVER_ROOT_URL (e.g. https://onionprobe.home), PROMETHEUS_WEB_EXTERNAL_URL; requires upstream repo cloned into `./repo` (run `./clone-repo.sh`). No host ports; access via Caddy to op-grafana:3000. See stack README.
@@ -64,6 +67,7 @@ environment:
 - **portainer** – (Portainer CE; add TZ/LANG if you ever customize it.)
 - **privotron** – CLI only; no web server or ports. Optional TZ; PRIVOTRON_VERSION (build arg, default main). Profiles in volume `privotron-profiles`. Run: `docker compose run --rm privotron --profile NAME` or with inline args. See stack README.
 - **prometheus** – TZ, LANG, LC_ALL, LC_CTYPE; config via prometheus.yml (no env secrets).
+ - **plex** – TZ; PUID, PGID; VERSION (usually `docker`); optional PLEX_CLAIM (one-time claim token to link the server to your Plex account). Libraries use `/data/tv`, `/data/movies`, `/data/music`.
 - **searx-ng** – TZ, LANG, LC_ALL, LC_CTYPE (searxng); plus SEARXNG_SECRET, SEARXNG_BASE_URL.
 - **simplelogin** – TZ (optional); URL (required; e.g. https://simplelogin.home); EMAIL_DOMAIN, EMAIL_SERVERS_WITH_PRIORITY, SUPPORT_EMAIL; FLASK_SECRET (required; e.g. `openssl rand -hex 32`); POSTGRES_PASSWORD, POSTGRES_USER, POSTGRES_DB; DKIM key at `./data/dkim.key`; optional POSTFIX_SERVER, POSTFIX_PORT for outbound SMTP; DISABLE_REGISTRATION. No host ports; access via Caddy only. See stack `stack.env.example` and README.
 - **slink** – TZ (optional); ORIGIN (required; must match Caddy hostname, e.g. https://slink.home); USER_APPROVAL_REQUIRED, IMAGE_MAX_SIZE, STORAGE_PROVIDER (local/smb/s3). See stack `stack.env.example` and [Slink docs](https://docs.slinkapp.io).
@@ -78,3 +82,10 @@ environment:
 - **web-check** – TZ, LANG, LC_ALL, LC_CTYPE; optional API keys in README / `stack.env.example`.
 - **yourls** – TZ (optional); YOURLS_SITE (required, must match Caddy hostname); YOURLS_USER, YOURLS_PASS, YOURLS_COOKIEKEY; YOURLS_DB_PASSWORD, YOURLS_DB_ROOT_PASSWORD; optional YOURLS_DB_NAME, YOURLS_DB_USER (see stack `stack.env.example`).
 - **zap** – TZ (optional). No host ports; access via Caddy to zap:8090. OWASP ZAP daemon + web UI for web/API security scanning.
+ - **jellyfin** – TZ; PUID, PGID. Media libraries use `/data/tv`, `/data/movies`, `/data/music`; configure libraries in the Jellyfin UI.
+ - **lidarr** – TZ; PUID, PGID. Uses `/music`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
+ - **prowlarr** – TZ; PUID, PGID. Manages Usenet and torrent indexers and syncs them to Sonarr/Radarr/Lidarr/Readarr.
+ - **radarr** – TZ; PUID, PGID. Uses `/movies`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
+ - **readarr** – TZ; PUID, PGID. Uses `/books`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
+ - **rtorrent-flood** – TZ; PUID, PGID, optional UMASK. Uses `/downloads` inside the container; configure Flood and rTorrent via the web UI.
+ - **emby** – TZ; PUID, PGID. Media libraries use `/data/tv`, `/data/movies`, `/data/music`; enable hardware-accelerated transcoding in the Emby UI when NVIDIA support is configured on the host.

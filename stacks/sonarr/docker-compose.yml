@@ -1,0 +1,38 @@
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - sonarr_config:/config
+      - media_tv:/tv
+      - usenet_downloads:/downloads
+      - torrents_downloads:/torrents
+    networks:
+      - default
+      - monitor
+      - usenet
+      - torrents
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  usenet:
+    name: usenet
+    external: true
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  sonarr_config:
+  media_tv:
+    external: true
+  usenet_downloads:
+    external: true
+  torrents_downloads:
+    external: true
+

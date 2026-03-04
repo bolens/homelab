@@ -1,0 +1,39 @@
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - jellyfin_config:/config
+      - jellyfin_cache:/cache
+      - media_tv:/data/tv
+      - media_movies:/data/movies
+      - media_music:/data/music
+    networks:
+      - default
+      - monitor
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  jellyfin_config:
+  jellyfin_cache:
+  media_tv:
+    external: true
+  media_movies:
+    external: true
+  media_music:
+    external: true
+

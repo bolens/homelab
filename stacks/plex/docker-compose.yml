@@ -1,0 +1,39 @@
+services:
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - plex_config:/config
+      - plex_transcode:/transcode
+      - media_tv:/data/tv
+      - media_movies:/data/movies
+      - media_music:/data/music
+    networks:
+      - default
+      - monitor
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  plex_config:
+  plex_transcode:
+  media_tv:
+    external: true
+  media_movies:
+    external: true
+  media_music:
+    external: true
+

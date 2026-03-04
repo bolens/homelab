@@ -137,6 +137,8 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **mealie**                                | Yes            | Protect hostname; set `BASE_URL` to that URL.                      |
 | **navidrome**                             | Yes            | Protect Navidrome hostname; optional `ND_BASEURL` should match it. |
 | **n8n**                                   | Yes            | Protect n8n hostname; ensure `N8N_HOST` / `WEBHOOK_URL` match.     |
+| **nzbget**                                | Yes            | Protect NZBGet hostname; web UI is authenticated but Access adds an outer SSO/OTP layer. |
+| **nzbhydra2**                             | Yes            | Protect NZBHydra 2 hostname; indexer admin UI benefits from SSO/OTP. |
 | **open-notebook**                         | Yes            | Protect hostname; optional UI password in app.                     |
 | **open-webui**                            | Yes            | Protect Open WebUI hostname for OAuth redirects.                   |
 | **paperless-ngx**                         | Yes            | Protect Paperless hostname.                                        |
@@ -147,6 +149,16 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **prometheus** / **cadvisor**             | Yes            | Usually internal; protect if you expose them.                      |
 | **searx-ng**                              | Yes            | Protect hostname.                                                  |
 | **slink**                                 | Yes            | Protect hostname; set `ORIGIN` to that URL; optional user approval. |
+| **sonarr**                                | Yes            | Protect Sonarr hostname; use Access as an outer auth layer in front of app auth. |
+| **radarr**                                | Yes            | Protect Radarr hostname; use Access as an outer auth layer in front of app auth. |
+| **lidarr**                                | Yes            | Protect Lidarr hostname; use Access as an outer auth layer in front of app auth. |
+| **readarr**                               | Yes            | Protect Readarr hostname; use Access as an outer auth layer in front of app auth. |
+| **bazarr**                                | Yes            | Protect Bazarr hostname; subtitles and media library details stay behind SSO/OTP. |
+| **prowlarr**                              | Yes            | Protect Prowlarr hostname; indexer API keys and credentials stay behind SSO/OTP. |
+| **plex**                                  | Yes            | Protect Plex web hostname if exposed via tunnel; Plex also has its own account auth. |
+| **jellyfin**                              | Yes            | Protect Jellyfin hostname; app has its own accounts, Access adds an outer SSO/OTP layer. |
+| **rtorrent-flood**                        | Yes            | Protect Flood UI hostname; torrent and tracker details are sensitive and should sit behind SSO/OTP. |
+| **emby**                                  | Yes            | Protect Emby hostname; app has its own accounts, Access adds an outer SSO/OTP layer. |
 | **vaultwarden**                           | Yes            | Protect Vaultwarden hostname; optional `ADMIN_TOKEN` for `/admin`. |
 | **web-check**                             | Yes            | Protect hostname.                                                  |
 | **yourls**                                | Yes            | Protect shortener hostname(s).                                     |
