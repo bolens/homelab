@@ -4,7 +4,7 @@
 # to the values the browser and API should use (e.g. API_BASE_URL=https://dtrack.home/api).
 # Docs: https://docs.dependencytrack.org/  |  https://dependencytrack.org/
 #
-# Start:  docker compose --env-file stack.env up -d
+# Start:  docker compose up -d
 # First run: create admin user in the UI; upload SBOMs (CycloneDX, SPDX) or use the API.
 
 name: dependency-track
@@ -13,6 +13,8 @@ services:
   dtrack-postgres:
     image: postgres:17-alpine
     container_name: dtrack-postgres
+    env_file:
+      - stack.env
     restart: unless-stopped
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-dtrack}
@@ -31,6 +33,8 @@ services:
   dtrack-apiserver:
     image: dependencytrack/apiserver:latest
     container_name: dtrack-apiserver
+    env_file:
+      - stack.env
     restart: unless-stopped
     depends_on:
       dtrack-postgres:
@@ -57,6 +61,8 @@ services:
   dtrack-frontend:
     image: dependencytrack/frontend:latest
     container_name: dtrack-frontend
+    env_file:
+      - stack.env
     restart: unless-stopped
     depends_on:
       - dtrack-apiserver

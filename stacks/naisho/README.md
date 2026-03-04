@@ -3,7 +3,9 @@
 Send personal data deletion request emails to hundreds of data brokers at once. Free, open-source Rails app: you compose your request, pick which companies to contact, and Naisho sends the emails via SMTP.
 
 **Website:** https://naisho.app  
-**GitHub:** https://github.com/nshki/naisho
+**Docs:** https://github.com/nshki/naisho#readme  
+**GitHub:** https://github.com/nshki/naisho  
+**Releases:** https://github.com/nshki/naisho/releases  
 
 ## Quick start
 

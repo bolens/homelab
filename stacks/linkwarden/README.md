@@ -4,7 +4,9 @@ Self-hosted bookmark manager and link aggregator: save links, archive pages, org
 
 **Website:** https://linkwarden.app  
 **Docs:** https://docs.linkwarden.app  
-**GitHub:** https://github.com/linkwarden/linkwarden
+**GitHub:** https://github.com/linkwarden/linkwarden  
+**Docker image:** https://github.com/linkwarden/linkwarden/pkgs/container/linkwarden  
+**Releases:** https://github.com/linkwarden/linkwarden/releases  
 
 ## Quick start
 

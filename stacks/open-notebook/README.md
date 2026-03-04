@@ -3,8 +3,10 @@
 An open source, privacy-focused alternative to Google's Notebook LM with support for multiple AI providers.
 
 **Website:** https://www.open-notebook.ai  
+**Docs:** https://github.com/lfnovo/open-notebook#readme  
 **GitHub:** https://github.com/lfnovo/open-notebook  
-**Docs:** https://github.com/lfnovo/open-notebook#readme
+**Docker image:** https://hub.docker.com/r/lfnovo/open_notebook  
+**Releases:** https://github.com/lfnovo/open-notebook/releases  
 
 ## Features
 

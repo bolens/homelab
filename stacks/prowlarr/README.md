@@ -2,9 +2,11 @@
 
 Indexer manager and proxy for Usenet and torrents. Prowlarr manages indexers centrally and syncs them to Sonarr, Radarr, Lidarr, Readarr, and other *arr apps.
 
-**GitHub:** https://github.com/Prowlarr/Prowlarr/  
+**Website:** https://prowlarr.com/  
 **Docs:** https://wiki.servarr.com/prowlarr  
-**Docker guide:** https://wiki.servarr.com/docker-guide
+**GitHub:** https://github.com/Prowlarr/Prowlarr  
+**Docker image:** https://hub.docker.com/r/linuxserver/prowlarr  
+**Releases:** https://github.com/Prowlarr/Prowlarr/releases  
 
 ## Quick start
 

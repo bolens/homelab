@@ -3,7 +3,10 @@
 🕵️‍♂️ All-in-one OSINT tool for analysing any website. Comprehensive, on-demand open source intelligence for any website.
 
 **Website:** https://web-check.xyz  
-**GitHub:** https://github.com/Lissy93/web-check
+**Docs:** https://github.com/Lissy93/web-check#readme  
+**GitHub:** https://github.com/Lissy93/web-check  
+**Docker image:** https://hub.docker.com/r/lissy93/web-check  
+**Releases:** https://github.com/Lissy93/web-check/releases  
 
 ## Quick start
 

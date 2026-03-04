@@ -2,8 +2,11 @@
 
 Self-hosted **image sharing** platform: upload images (PNG, JPG, WEBP, SVG, AVIF, HEIC, etc.), create collections, share links, ShareX integration, optional guest uploads. Built with Symfony and SvelteKit.
 
+**Website:** https://slinkapp.io  
 **Docs:** https://docs.slinkapp.io  
-**GitHub:** https://github.com/andrii-kryvoviaz/slink
+**GitHub:** https://github.com/andrii-kryvoviaz/slink  
+**Docker image:** https://hub.docker.com/r/anirdev/slink  
+**Releases:** https://github.com/andrii-kryvoviaz/slink/releases  
 
 ## Quick start
 

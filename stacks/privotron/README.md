@@ -2,7 +2,10 @@
 
 CLI tool to automate opting out of data brokers. Uses Playwright to fill opt-out forms so you don’t have to do it by hand. Tracks which brokers you’ve already opted out from via profiles.
 
-**GitHub:** https://github.com/kevinl95/Privotron
+**Website:** https://github.com/kevinl95/Privotron  
+**Docs:** https://github.com/kevinl95/Privotron#readme  
+**GitHub:** https://github.com/kevinl95/Privotron  
+**Releases:** https://github.com/kevinl95/Privotron/releases  
 
 ## Quick start
 

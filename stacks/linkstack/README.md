@@ -4,7 +4,9 @@ Self-hosted **link-in-bio** page (Linktree-style): one URL that shows your profi
 
 **Website:** https://linkstack.org  
 **Docs:** https://docs.linkstack.org  
-**GitHub:** https://github.com/linkstackorg/linkstack
+**GitHub:** https://github.com/linkstackorg/linkstack  
+**Docker image:** https://hub.docker.com/r/linkstackorg/linkstack  
+**Releases:** https://github.com/linkstackorg/linkstack/releases  
 
 ## Quick start
 

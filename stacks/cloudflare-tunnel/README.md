@@ -3,8 +3,10 @@
 Exposes services on your Docker host via Cloudflare—no port forwarding or dynamic IP. Traffic goes outbound from host → Cloudflare → your services.
 
 **Website:** https://www.cloudflare.com/products/tunnel/  
+**Docs:** https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/  
 **GitHub:** https://github.com/cloudflare/cloudflared  
-**Docs:** https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/
+**Docker image:** https://hub.docker.com/r/cloudflare/cloudflared  
+**Releases:** https://github.com/cloudflare/cloudflared/releases  
 
 ## Quick start (token method)
 

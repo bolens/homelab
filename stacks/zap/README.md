@@ -2,9 +2,11 @@
 
 Web application and API security scanner: run baseline scans, active scans, and manual exploration against your homelab apps. [OWASP ZAP](https://www.zaproxy.org/) runs in daemon mode with a web UI—no host ports; access via Caddy.
 
-**Project:** https://www.zaproxy.org/  
+**Website:** https://www.zaproxy.org/  
+**Docs:** https://www.zaproxy.org/docs/  
 **GitHub:** https://github.com/zaproxy/zaproxy  
-**Docker:** https://github.com/zaproxy/zaproxy/blob/main/docker/README.md
+**Docker image:** https://github.com/zaproxy/zaproxy/pkgs/container/zaproxy  
+**Releases:** https://github.com/zaproxy/zaproxy/releases  
 
 ## Quick start
 

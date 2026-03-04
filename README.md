@@ -53,12 +53,13 @@ flowchart TB
     prometheus -.->|scrapes| cadvisor
     grafana -.->|queries| prometheus
     watchtower -.->|updates| apps
+    dockergc -.->|cleans up| apps
     diun -.->|notifies| users
     portainer -.->|manages| apps
 ```
 
 - **Traffic:** Clients hit Caddy (directly via local DNS or through Cloudflare Tunnel). Caddy routes by hostname to each app.
-- **Infrastructure:** Portainer manages stacks; Watchtower updates images; Diun notifies when image tags change (e.g. Telegram/Discord); Uptime Kuma monitors Caddy and app health endpoints; Headscale provides Tailscale-compatible mesh VPN. Dozzle (behind Caddy) is a log viewer for all containers.
+- **Infrastructure:** Portainer manages stacks; Watchtower updates images; Docker GC (`docker-gc` stack) periodically cleans up old containers and unused images; Diun notifies when image tags change (e.g. Telegram/Discord); Uptime Kuma monitors Caddy and app health endpoints; Headscale provides Tailscale-compatible mesh VPN. Dozzle (behind Caddy) is a log viewer for all containers.
 
 ---
 
@@ -66,7 +67,6 @@ flowchart TB
 
 | Stack | What it does |
 |-------|----------------|
-| [**portainer**](portainer/README.md) | Docker management UI (Portainer CE) |
 | [**stacks/ail**](stacks/ail/README.md) | AIL framework – analyse information leaks (pastes, trackers, MISP/TheHive, credentials/cards/keys detection) |
 | [**stacks/archivebox**](stacks/archivebox/README.md) | Self-hosted web archive (ArchiveBox) – saves full snapshots (HTML, screenshots, PDFs, WARCs) from URLs and feeds |
 | [**stacks/audiobookshelf**](stacks/audiobookshelf/README.md) | Audiobook and podcast server |
@@ -81,26 +81,29 @@ flowchart TB
 | [**stacks/diun**](stacks/diun/README.md) | Docker image update notifier (Telegram, Discord, etc.) |
 | [**stacks/docker-gc**](stacks/docker-gc/README.md) | Garbage collector for Docker containers and images (removes old stopped containers and unused images) |
 | [**stacks/dozzle**](stacks/dozzle/README.md) | Real-time container log viewer |
+| [**stacks/emby**](stacks/emby/README.md) | Media server for movies, TV, and music (Emby) |
 | [**stacks/freshrss**](stacks/freshrss/README.md) | RSS feed aggregator (Feedly-like) |
 | [**stacks/ghunt**](stacks/ghunt/README.md) | OSINT: investigate Google accounts (email, Gaia, Drive, BSSID) via CLI with JSON export |
 | [**stacks/grafana**](stacks/grafana/README.md) | Metrics dashboards (use with Prometheus + cAdvisor) |
 | [**stacks/guacamole**](stacks/guacamole/README.md) | Clientless remote desktop gateway (RDP, VNC, SSH) with HTML5 web UI (Apache Guacamole) |
 | [**stacks/headscale**](stacks/headscale/README.md) | Self-hosted Tailscale control server (mesh VPN) |
 | [**stacks/holehe**](stacks/holehe/README.md) | OSINT: check where an email address has accounts via a FastAPI web UI (holehe-web) |
-| [**stacks/emby**](stacks/emby/README.md) | Media server for movies, TV, and music (Emby) |
-| [**stacks/jellyfin**](stacks/jellyfin/README.md) | Open-source media server for movies, TV, and music |
 | [**stacks/immich**](stacks/immich/README.md) | Photo and video backup (OAuth-ready) |
 | [**stacks/infisical**](stacks/infisical/README.md) | Self-hosted secrets manager (API keys, env vars, config) |
 | [**stacks/it-tools**](stacks/it-tools/README.md) | Developer and IT utilities (converters, hashes, QR, etc.) |
+| [**stacks/jellyfin**](stacks/jellyfin/README.md) | Open-source media server for movies, TV, and music |
 | [**stacks/librechat**](stacks/librechat/README.md) | ChatGPT-style UI with agents, MCP, code interpreter (MongoDB + Redis) |
+| [**stacks/lidarr**](stacks/lidarr/README.md) | Music collection manager for Usenet and torrents (Lidarr) |
 | [**stacks/linkstack**](stacks/linkstack/README.md) | Self-hosted link-in-bio page (Linktree-style: one URL with your links) |
 | [**stacks/linkwarden**](stacks/linkwarden/README.md) | Bookmark manager and link aggregator |
 | [**stacks/maigret**](stacks/maigret/README.md) | OSINT: collect a dossier by username from thousands of sites (web UI, HTML/PDF/XMind reports) |
 | [**stacks/mealie**](stacks/mealie/README.md) | Recipe manager and meal planner |
 | [**stacks/metagoofil**](stacks/metagoofil/README.md) | OSINT: download documents and extract metadata (users, paths, versions) via search engines |
+| [**stacks/metube**](stacks/metube/README.md) | Self-hosted yt-dlp web GUI with playlist support and download queue (MeTube) |
 | [**stacks/n8n**](stacks/n8n/README.md) | Workflow automation (Zapier/Make-style, self-hosted) |
 | [**stacks/naisho**](stacks/naisho/README.md) | Send data deletion request emails to data brokers at once (Rails app; SMTP in UI) |
 | [**stacks/navidrome**](stacks/navidrome/README.md) | Personal music streaming server (Navidrome) – web UI and Subsonic-compatible apps |
+| [**stacks/nodered**](stacks/nodered/README.md) | Low-code flow editor for automations (Node-RED) |
 | [**stacks/nzbget**](stacks/nzbget/README.md) | High-performance Usenet downloader (NZBGet) |
 | [**stacks/nzbhydra2**](stacks/nzbhydra2/README.md) | Meta search for Usenet indexers (Newznab-compatible API) |
 | [**stacks/ollama**](stacks/ollama/README.md) | Local LLM runtime (Ollama) with GPU support and configurable model storage |
@@ -109,20 +112,25 @@ flowchart TB
 | [**stacks/open-notebook**](stacks/open-notebook/README.md) | Open-source Notebook LM alternative (SurrealDB + multi-provider AI) |
 | [**stacks/open-webui**](stacks/open-webui/README.md) | Self-hosted AI chat UI; Ollama model management and multi-provider support |
 | [**stacks/paperless-ngx**](stacks/paperless-ngx/README.md) | Document management with OCR and search |
-| [**stacks/plex**](stacks/plex/README.md) | Media server for movies, TV, and music (Plex) |
 | [**stacks/password-pusher**](stacks/password-pusher/README.md) | Password/secret sharing with view limits and expiration (Password Pusher) |
 | [**stacks/perplexica**](stacks/perplexica/README.md) | Privacy-focused AI answering engine (bundled SearxNG, optional Ollama) |
 | [**stacks/phoneinfoga**](stacks/phoneinfoga/README.md) | OSINT: phone number reconnaissance (country, carrier, line type, web footprints) with web UI/API |
+| [**stacks/plex**](stacks/plex/README.md) | Media server for movies, TV, and music (Plex) |
+| [**portainer**](portainer/README.md) | Docker management UI (Portainer CE) |
+| [**stacks/postfix**](stacks/postfix/README.md) | SMTP relay for outbound mail from apps (Postfix) |
 | [**stacks/privatebin**](stacks/privatebin/README.md) | Encrypted pastebin (share text with expiration, no account) |
 | [**stacks/prometheus**](stacks/prometheus/README.md) | Metrics collection and storage |
 | [**stacks/privotron**](stacks/privotron/README.md) | CLI to automate data broker opt-outs (Playwright; profiles, skip list, parallel runs) |
 | [**stacks/prowlarr**](stacks/prowlarr/README.md) | Indexer manager/proxy for *arr apps (Usenet and torrent indexers) |
+| [**stacks/radarr**](stacks/radarr/README.md) | Movie collection manager for Usenet and torrents (Radarr) |
+| [**stacks/readarr**](stacks/readarr/README.md) | Book and audiobook collection manager for Usenet and torrents (Readarr) |
 | [**stacks/reconftw**](stacks/reconftw/README.md) | Automated recon framework orchestrating many tools (subdomains, ports, screenshots, Nuclei, etc.) |
+| [**stacks/rtorrent-flood**](stacks/rtorrent-flood/README.md) | Manual torrent client (rTorrent) with Flood web UI |
 | [**stacks/searx-ng**](stacks/searx-ng/README.md) | Privacy-respecting metasearch engine |
 | [**stacks/simplelogin**](stacks/simplelogin/README.md) | Email alias service (unlimited aliases, forward & reply anonymously, Bitwarden/1Password) |
-| [**stacks/sonarr**](stacks/sonarr/README.md) | TV series management for Usenet and torrents |
 | [**stacks/slink**](stacks/slink/README.md) | Self-hosted image sharing (upload, collections, ShareX, S3/SMB) |
 | [**stacks/social-hunt**](stacks/social-hunt/README.md) | OSINT framework: username search, breach lookups (HIBP/Snusbase), face match, reverse image |
+| [**stacks/sonarr**](stacks/sonarr/README.md) | TV series management for Usenet and torrents |
 | [**stacks/spiderfoot**](stacks/spiderfoot/README.md) | Automated multi-source OSINT scanner with 180+ modules and a web UI |
 | [**stacks/stoat**](stacks/stoat/README.md) | Self-hosted Stoat chat platform (API, web, media, notifications, optional voice) |
 | [**stacks/sublist3r**](stacks/sublist3r/README.md) | Subdomain enumeration tool using multiple search engines and output to files |
@@ -135,8 +143,6 @@ flowchart TB
 | [**stacks/web-check**](stacks/web-check/README.md) | OSINT and website analysis tool |
 | [**stacks/yourls**](stacks/yourls/README.md) | Self-hosted URL shortener (YOURLS): short links, web UI, optional API |
 | [**stacks/zap**](stacks/zap/README.md) | OWASP ZAP – web/API security scanner (daemon + web UI; baseline/active scans; access via Caddy) |
-| [**stacks/jellyfin**](stacks/jellyfin/README.md) | Open-source media server for movies, TV, and music |
-| [**stacks/rtorrent-flood**](stacks/rtorrent-flood/README.md) | Manual torrent client (rTorrent) with Flood web UI |
 
 Each stack has its own **README** with setup and usage; see also `portainer/README.md`.
 
@@ -169,7 +175,7 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/cadvisor** — no config files
 - **stacks/cloudflare-tunnel** — `stack.env.example` → `stack.env`, optionally `config.yml.example` → `config.yml`. To put tunnel subdomains behind SSO (e.g. Google/GitHub) instead of basic auth, see [documents/ACCESS-SSO.md](documents/ACCESS-SSO.md).
 - **stacks/convertx** — `stack.env.example` → `stack.env`; set `JWT_SECRET` (recommended; `openssl rand -base64 32`); set `ACCOUNT_REGISTRATION=false` after first account
-- **stacks/crowdsec** — `stack.env.example` → `stack.env` (optional); use it to set `TZ`, `GID`, and default hub `COLLECTIONS`. See the stack README and CrowdSec Docker docs for configuring acquisitions and bouncers.
+- **stacks/crowdsec** — `stack.env.example` → `stack.env` (optional); use it to set `TZ`, `GID`, and default hub `COLLECTIONS`. See the stack README and CrowdSec Docker docs for configuring acquisitions and bouncers; for Cloudflare edge blocking with the Workers bouncer, see [documents/CROWDSEC-CLOUDFLARE-WORKER.md](documents/CROWDSEC-CLOUDFLARE-WORKER.md).
 - **stacks/dependency-track** — `stack.env.example` → `stack.env`; set `POSTGRES_PASSWORD` and `API_BASE_URL` (URL the browser uses for the API, e.g. https://dtrack.home/api). See stack README for Caddy path/subdomain setup.
 - **stacks/diun** — `stack.env.example` → `stack.env`; set `DIUN_NOTIF_TELEGRAM_TOKEN` and `DIUN_NOTIF_TELEGRAM_CHATIDS` (or another notifier)
 - **stacks/docker-gc** — `stack.env.example` → `stack.env`; by default runs in DRY RUN mode (`DRY_RUN=true`) so you can see which stopped containers and unused images would be removed. Adjust `DRY_RUN`, `DRY_RUN_CONTAINERS`, `DRY_RUN_IMAGES`, and `EXCLUDE_*` as needed before scheduling it.
@@ -227,7 +233,7 @@ For timezone, locale, and optional per-app settings, see **[documents/ENV-VARS.m
 
 ### 3. ▶️ Deploy
 
-From a stack directory: `docker compose --env-file stack.env up -d`, or add the stack in Portainer (Git deploy so bind-mounted config files are present).
+From a stack directory: `docker compose up -d` (each stack’s compose loads `stack.env` via `env_file` where applicable). If a stack has no `env_file`, use `docker compose --env-file stack.env up -d` or set variables in Portainer. You can also add the stack in Portainer (Git deploy so bind-mounted config files are present).
 
 ---
 
@@ -260,44 +266,15 @@ Other stacks (paperless-ngx, linkwarden, searx-ng, linkstack, caddy, infisical, 
 
 ## 📁 Layout
 
-```
-docker/
-├── portainer/          # Portainer stack
-├── stacks/
-│   ├── caddy/          # Reverse proxy
-│   ├── cloudflare-tunnel/
-│   ├── diun/
-│   ├── dozzle/
-│   ├── n8n/
-│   ├── uptime-kuma/
-│   ├── grafana/
-│   ├── prometheus/
-│   ├── cadvisor/
-│   ├── watchtower/
-│   ├── audiobookshelf/
-│   ├── freshrss/
-│   ├── it-tools/
-│   ├── convertx/
-│   ├── archivebox/
-│   ├── immich/
-│   ├── infisical/
-│   ├── mealie/
-│   ├── paperless-ngx/
-│   ├── searx-ng/
-│   ├── slink/
-│   ├── web-check/
-│   ├── vaultwarden/
-│   ├── headscale/
-│   ├── linkwarden/
-│   ├── password-pusher/
-│   ├── privatebin/
-│   ├── yourls/
-│   ├── linkstack/
-│   ├── ollama/
-│   ├── open-notebook/
-│   ├── perplexica/
-│   ├── open-webui/
-│   └── librechat/
-├── documents/          # ENV-VARS.md, ACCESS-SSO.md, other guides
-└── .gitignore          # Excludes .env, config.yml, Caddyfile, etc.
+The repo has a fixed top-level structure; the full list of stacks comes from the filesystem:
+
+- **portainer/** — Portainer CE stack (Docker management UI).
+- **stacks/** — One directory per stack (e.g. `stacks/caddy/`, `stacks/immich/`). Each contains `docker-compose.yml`, a README, and optionally `stack.env.example`, `clone-repo.sh`, etc. See the [**What’s inside**](#-whats-inside) table for the full list.
+- **documents/** — ENV-VARS.md, ACCESS-SSO.md, and other guides.
+- **.gitignore** — Excludes `.env`, `stack.env`, `config.yml`, `Caddyfile`, and other sensitive or generated files.
+
+To print an up-to-date tree of all stack directories, run from the `docker/` repo root:
+
+```bash
+./scripts/list-layout.sh
 ```

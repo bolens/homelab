@@ -3,7 +3,10 @@
 Automated OSINT tool with 180+ modules for domains, IPs, emails, BTC addresses, usernames and more. Aggregates data from many sources (DNS, breaches, Shodan, GreyNoise, cloud buckets, social media, etc.) into a single web UI.
 
 **Website:** https://www.spiderfoot.net  
-**GitHub:** https://github.com/smicallef/spiderfoot
+**Docs:** https://github.com/smicallef/spiderfoot/wiki  
+**GitHub:** https://github.com/smicallef/spiderfoot  
+**Docker image:** https://hub.docker.com/r/spiderfoot/spiderfoot  
+**Releases:** https://github.com/smicallef/spiderfoot/releases  
 
 ## Quick start
 

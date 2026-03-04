@@ -1,9 +1,11 @@
 # Diun – Docker image update notifier. No web UI; notifications via Telegram, Discord, etc.
-# Portainer-friendly: named volume; env from stack.env (use --env-file stack.env or Portainer Environment; see stack.env.example).
+# Portainer-friendly: named volume; env from stack.env (see stack.env.example).
 services:
   diun:
     image: crazymax/diun:latest
     container_name: diun
+    env_file:
+      - stack.env
     command: serve
     restart: unless-stopped
     volumes:

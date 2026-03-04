@@ -3,8 +3,10 @@
 Self-hosted recipe manager and meal planner: import recipes from URLs, plan meals, generate shopping lists, and organize cookbooks.
 
 **Website:** https://mealie.io  
+**Docs:** https://docs.mealie.io/  
 **GitHub:** https://github.com/mealie-recipes/mealie  
-**Docs:** https://docs.mealie.io/
+**Docker image:** https://github.com/mealie-recipes/mealie/pkgs/container/mealie  
+**Releases:** https://github.com/mealie-recipes/mealie/releases  
 
 ## Quick start
 

@@ -5,8 +5,10 @@ Automatically updates running containers when new images are available. Uses the
 This stack uses **nickfedor/watchtower** (maintained fork). The original containrrr/watchtower image is archived and fails on Docker 29+ with "client version 1.25 is too old. Minimum supported API version is 1.44".
 
 **Website:** https://containrrr.dev/watchtower  
+**Docs:** https://containrrr.dev/watchtower/  
 **GitHub:** https://github.com/nickfedor/watchtower  
-**Docs:** https://containrrr.dev/watchtower/
+**Docker image:** https://hub.docker.com/r/nickfedor/watchtower  
+**Releases:** https://github.com/nickfedor/watchtower/releases  
 
 ## Quick start
 

@@ -29,7 +29,8 @@ environment:
 - **ail** – TZ (optional). AIL framework (Analysis Information Leak); uses community image cciucd/ail-framework. No host ports; access via Caddy only (backend HTTPS on 7000; Caddy uses tls_insecure_skip_verify). Resource-heavy: >6GB RAM recommended. See stack README.
 - **archivebox** – TZ, LANG, LC_ALL, LC_CTYPE; ADMIN_USERNAME, ADMIN_PASSWORD, ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, SEARCH_BACKEND_PASSWORD; optional PUBLIC_INDEX, PUBLIC_SNAPSHOTS, PUBLIC_ADD_VIEW.
 - **audiobookshelf** – TZ (optional).
- - **bazarr** – TZ, PUID, PGID (optional). Uses media paths `/tv` and `/movies` to manage subtitles; configure providers in the Bazarr UI.
+- **bazarr** – TZ, PUID, PGID (optional). Uses media paths `/tv` and `/movies` to manage subtitles; configure providers in the Bazarr UI.
+- **blackbird** – TZ (optional). OSINT CLI; optional env for output paths and report options. See stack README.
 - **caddy** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **cadvisor** – TZ, LANG, LC_ALL, LC_CTYPE; no config files.
 - **cloudflare-tunnel** – TZ, LANG, LC_ALL, LC_CTYPE.
@@ -37,24 +38,32 @@ environment:
 - **crowdsec** – TZ (optional); GID (group ID CrowdSec runs as inside the container so it can read your logs); COLLECTIONS (default hub collections to install, e.g. `crowdsecurity/linux`). See the CrowdSec stack README and Docker installation docs for acquisitions and bouncers.
 - **dependency-track** – TZ (optional); API_BASE_URL (required; URL the browser uses for the API, e.g. https://dtrack.home/api); POSTGRES_PASSWORD, POSTGRES_USER, POSTGRES_DB. No host ports; Caddy reverse-proxies to dtrack-frontend:8080 and dtrack-apiserver:8080. See stack README for path vs subdomain.
 - **diun** – TZ, LANG, LC_ALL, LC_CTYPE; DIUN_WATCH_*, DIUN_PROVIDERS_DOCKER; DIUN_NOTIF_* for notifiers (see stack `stack.env.example`).
+- **docker-gc** – Optional TZ, LANG, LC_ALL, LC_CTYPE; maintenance job that talks to the host Docker daemon via `/var/run/docker.sock`. Uses `DRY_RUN` (global), `DRY_RUN_CONTAINERS`, and `DRY_RUN_IMAGES` to control whether containers/images are actually removed or just logged, plus `EXCLUDE_IMAGES` and `EXCLUDE_CONTAINERS` to protect specific resources. Also reads `/etc/docker-gc-exclude` and `/etc/docker-gc-exclude-containers` on the host for file-based patterns.
 - **dozzle** – TZ, LANG, LC_ALL, LC_CTYPE; optional DOZZLE_AUTH_PROVIDER, DOZZLE_AUTH_USERNAME, DOZZLE_AUTH_PASSWORD.
- - **docker-gc** – Optional TZ, LANG, LC_ALL, LC_CTYPE; maintenance job that talks to the host Docker daemon via `/var/run/docker.sock`. Uses `DRY_RUN` (global), `DRY_RUN_CONTAINERS`, and `DRY_RUN_IMAGES` to control whether containers/images are actually removed or just logged, plus `EXCLUDE_IMAGES` and `EXCLUDE_CONTAINERS` to protect specific resources. Also reads `/etc/docker-gc-exclude` and `/etc/docker-gc-exclude-containers` on the host for file-based patterns.
+- **emby** – TZ; PUID, PGID. Media libraries use `/data/tv`, `/data/movies`, `/data/music`; enable hardware-accelerated transcoding in the Emby UI when NVIDIA support is configured on the host.
 - **freshrss** – TZ, PUID, PGID (optional).
+- **ghunt** – TZ (optional). OSINT CLI for Google account investigation; optional env for output. See stack README.
 - **grafana** – TZ, LANG, LC_ALL, LC_CTYPE; optional GF_SERVER_ROOT_URL (when behind Caddy), GF_USERS_ALLOW_SIGN_UP, GF_SECURITY_*.
 - **guacamole** – TZ (optional); POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD (required; strong password shared by Postgres and the Guacamole web app). No host ports; access via Caddy only.
 - **headscale** – TZ (optional). Config via `HEADSCALE_CONFIG_B64` (base64-encoded config.yaml); see stack README.
+- **holehe** – TZ (optional). OSINT web UI; optional env. No host ports; access via Caddy only. See stack README.
 - **immich** – TZ, LANG, LC_ALL, LC_CTYPE (server); plus DB_PASSWORD, DB_*, optional IMMICH_CONFIG_FILE.
 - **infisical** – TZ, LANG, LC_ALL, LC_CTYPE (backend); ENCRYPTION_KEY, AUTH_SECRET, POSTGRES_*, DB_CONNECTION_URI, REDIS_URL, SITE_URL; optional SMTP_*, OAuth CLIENT_* (see stack `stack.env.example`).
 - **it-tools** – TZ, LANG, LC_ALL, LC_CTYPE.
+- **jellyfin** – TZ; PUID, PGID. Media libraries use `/data/tv`, `/data/movies`, `/data/music`; configure libraries in the Jellyfin UI.
 - **librechat** – TZ, LANG, LC_ALL, LC_CTYPE; LIBRECHAT_HOST_PORT, MONGODB_*, REDIS_*; MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD, REDIS_PASSWORD; DOMAIN_CLIENT, DOMAIN_SERVER; OLLAMA_BASE_URL; optional OPENAI_API_KEY; JWT_SECRET, JWT_REFRESH_SECRET (required for production; generate with `openssl rand -base64 32`); ALLOW_REGISTRATION, ALLOW_SOCIAL_LOGIN. See stack `stack.env.example`.
+- **lidarr** – TZ; PUID, PGID. Uses `/music`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
 - **linkstack** – TZ (optional); optional SERVER_ADMIN, HTTP_SERVER_NAME, HTTPS_SERVER_NAME, LOG_LEVEL, PHP_MEMORY_LIMIT, UPLOAD_MAX_FILESIZE (see stack `stack.env.example`).
 - **linkwarden** – TZ (optional); NEXTAUTH_SECRET, POSTGRES_PASSWORD, MEILI_MASTER_KEY, NEXTAUTH_URL (when behind reverse proxy).
 - **maigret** – TZ (optional). No host ports; web UI on port 5000, access via Caddy only. Reports in named volume `maigret-reports`. See stack README.
 - **mealie** – TZ, LANG, LC_ALL, LC_CTYPE; BASE_URL (when behind reverse proxy), ALLOW_SIGNUP; optional DB_ENGINE (sqlite/postgres).
+- **metagoofil** – TZ (optional). OSINT CLI; optional env for output. See stack README.
+- **metube** – TZ (optional); PUID, PGID, UMASK (optional). yt-dlp web GUI; downloads to named volume. See stack `stack.env.example`.
 - **naisho** – TZ (optional); SECRET_KEY_BASE (required; e.g. `openssl rand -hex 64`); optional RAILS_LOG_LEVEL. Builds from GitHub; no host ports; access via Caddy only. SMTP configured in-app when sending deletion emails. See stack `stack.env.example` and README.
 - **navidrome** – TZ (optional); ND_BASEURL (optional but recommended when behind Caddy; set to your full Navidrome URL, e.g. `https://music.yourdomain.com`); ND_LOGLEVEL, ND_SCANSCHEDULE, ND_SESSIONTIMEOUT and other `ND_` options for tuning behaviour. See stack `stack.env.example` and [Navidrome configuration options](https://navidrome.org/docs/usage/configuration/options/).
- - **nzbget** – TZ (optional); PUID, PGID, optional UMASK. Optional NZBGET_USER and NZBGET_PASS for the web UI. Usenet servers and categories are configured in the NZBGet UI.
- - **nzbhydra2** – TZ (optional); PUID, PGID, optional UMASK. API key and indexer configuration are set in the NZBHydra 2 UI.
+- **nodered** – TZ, LANG, LC_ALL, LC_CTYPE (optional). Flow editor; no host ports; access via Caddy only. See stack README.
+- **nzbget** – TZ (optional); PUID, PGID, optional UMASK. Optional NZBGET_USER and NZBGET_PASS for the web UI. Usenet servers and categories are configured in the NZBGet UI.
+- **nzbhydra2** – TZ (optional); PUID, PGID, optional UMASK. API key and indexer configuration are set in the NZBHydra 2 UI.
 - **n8n** – TZ, LANG, LC_ALL, LC_CTYPE; N8N_HOST, WEBHOOK_URL (required when behind Caddy; set to your base URL e.g. https://n8n.home or https://n8n.yourdomain.com); N8N_PORT=5678, N8N_PROTOCOL=https; optional N8N_ENCRYPTION_KEY (e.g. `openssl rand -hex 32`). No host ports; access via Caddy only. See stack `stack.env.example`.
 - **ollama** – TZ, LANG, LC_ALL, LC_CTYPE; OLLAMA_HOST_PORT; OLLAMA_MODELS_PATH (path for models; use absolute path for large storage). Other data uses Docker volume `ollama_data`. GPU: requires NVIDIA Container Toolkit; no API keys.
 - **onionprobe** – Optional: GRAFANA_DATABASE_PASSWORD, GF_SERVER_ROOT_URL (e.g. https://onionprobe.home), PROMETHEUS_WEB_EXTERNAL_URL; requires upstream repo cloned into `./repo` (run `./clone-repo.sh`). No host ports; access via Caddy to op-grafana:3000. See stack README.
@@ -64,16 +73,26 @@ environment:
 - **paperless-ngx** – TZ (webserver); plus app-specific (PAPERLESS_URL, PAPERLESS_SECRET_KEY, etc.).
 - **password-pusher** – TZ (optional); PWPUSH_MASTER_KEY (required); optional PWP__HOST_DOMAIN, PWP__HOST_PROTOCOL when behind Caddy; PWP__ENABLE_LOGINS, PWP__PURGE_AFTER (see stack `stack.env.example`).
 - **perplexica** – TZ, LANG, LC_ALL, LC_CTYPE; PERPLEXICA_HOST_PORT, PERPLEXICA_DATA_PATH; optional SEARXNG_API_URL (leave empty for bundled SearxNG), OLLAMA_BASE_URL. See stack `stack.env.example`.
+- **phoneinfoga** – TZ (optional). OSINT web UI/API for phone recon; optional env. No host ports; access via Caddy only. See stack README.
+- **plex** – TZ; PUID, PGID; VERSION (usually `docker`); optional PLEX_CLAIM (one-time claim token to link the server to your Plex account). Libraries use `/data/tv`, `/data/movies`, `/data/music`.
 - **portainer** – (Portainer CE; add TZ/LANG if you ever customize it.)
+- **postfix** – Same as **smtp-relay** (stack folder `postfix`). TZ (optional); ALLOWED_SENDER_DOMAINS (recommended); RELAYHOST (required), RELAYHOST_USERNAME, RELAYHOST_PASSWORD. See stack `stack.env.example` and [boky/postfix docs](https://github.com/bokysan/docker-postfix).
 - **privotron** – CLI only; no web server or ports. Optional TZ; PRIVOTRON_VERSION (build arg, default main). Profiles in volume `privotron-profiles`. Run: `docker compose run --rm privotron --profile NAME` or with inline args. See stack README.
 - **prometheus** – TZ, LANG, LC_ALL, LC_CTYPE; config via prometheus.yml (no env secrets).
- - **plex** – TZ; PUID, PGID; VERSION (usually `docker`); optional PLEX_CLAIM (one-time claim token to link the server to your Plex account). Libraries use `/data/tv`, `/data/movies`, `/data/music`.
+- **prowlarr** – TZ; PUID, PGID. Manages Usenet and torrent indexers and syncs them to Sonarr/Radarr/Lidarr/Readarr.
+- **radarr** – TZ; PUID, PGID. Uses `/movies`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
+- **readarr** – TZ; PUID, PGID. Uses `/books`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
+- **reconftw** – TZ (optional). Recon framework CLI; optional env. See stack README.
+- **rtorrent-flood** – TZ; PUID, PGID, optional UMASK. Uses `/downloads` inside the container; configure Flood and rTorrent via the web UI.
 - **searx-ng** – TZ, LANG, LC_ALL, LC_CTYPE (searxng); plus SEARXNG_SECRET, SEARXNG_BASE_URL.
 - **simplelogin** – TZ (optional); URL (required; e.g. https://simplelogin.home); EMAIL_DOMAIN, EMAIL_SERVERS_WITH_PRIORITY, SUPPORT_EMAIL; FLASK_SECRET (required; e.g. `openssl rand -hex 32`); POSTGRES_PASSWORD, POSTGRES_USER, POSTGRES_DB; DKIM key at `./data/dkim.key`; optional POSTFIX_SERVER, POSTFIX_PORT for outbound SMTP; DISABLE_REGISTRATION. No host ports; access via Caddy only. See stack `stack.env.example` and README.
 - **slink** – TZ (optional); ORIGIN (required; must match Caddy hostname, e.g. https://slink.home); USER_APPROVAL_REQUIRED, IMAGE_MAX_SIZE, STORAGE_PROVIDER (local/smb/s3). See stack `stack.env.example` and [Slink docs](https://docs.slinkapp.io).
 - **smtp-relay** – TZ (optional); ALLOWED_SENDER_DOMAINS (recommended); RELAYHOST (required), RELAYHOST_USERNAME, RELAYHOST_PASSWORD; optional POSTFIX_myhostname, POSTFIX_message_size_limit. See stack `stack.env.example` and [boky/postfix docs](https://github.com/bokysan/docker-postfix).
 - **social-hunt** – TZ (optional); ADMIN_TOKEN (required; dashboard login; e.g. `openssl rand -hex 32`); SOCIAL_HUNT_PUBLIC_URL (required when behind Caddy; e.g. https://social-hunt.home); optional SOCIAL_HUNT_ENABLE_TOKEN_BOOTSTRAP, SOCIAL_HUNT_ENABLE_WEB_PLUGIN_UPLOAD, SOCIAL_HUNT_PROXY, SOCIAL_HUNT_CLEARNET_PROXY, HCAPTCHA_*. API keys (HIBP, Snusbase, etc.) via dashboard Settings. No host ports; access via Caddy only. See stack `stack.env.example` and README.
+- **spiderfoot** – TZ (optional). OSINT scanner web UI; optional env. No host ports; access via Caddy only. See stack README.
 - **stoat** – Uses upstream generator; `.env.web` holds `HOSTNAME`, `REVOLT_PUBLIC_URL`, `VITE_*` URLs; `Revolt.toml` controls hosts, LiveKit, push keys, files encryption. Internal services use no host ports; main Caddy reverse-proxies to `stoat-caddy:80`. See upstream Stoat docs and stack README for options (invite-only, captcha, email, S3, mobile push).
+- **sublist3r** – TZ (optional). Subdomain enumeration CLI; optional env for output. See stack README.
+- **theharvester** – TZ (optional). OSINT recon API; optional env. No host ports; access via Caddy only. See stack README.
 - **threat-dragon** – TZ (optional); SESSION_SIGNING_KEY (required; 32-char hex); optional GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET (or Bitbucket/GitLab) for repo storage. .env mounted read-only. No host ports; access via Caddy to threatdragon:3000.
 - **torbot** – TZ (optional). CLI only (OWASP TorBot). Tor in separate container (tor:9050); run crawls via `docker compose exec torbot torbot -u <url> --host tor --port 9050 [options]`. See stack README.
 - **uptime-kuma** – TZ, LANG, LC_ALL, LC_CTYPE.
@@ -82,10 +101,3 @@ environment:
 - **web-check** – TZ, LANG, LC_ALL, LC_CTYPE; optional API keys in README / `stack.env.example`.
 - **yourls** – TZ (optional); YOURLS_SITE (required, must match Caddy hostname); YOURLS_USER, YOURLS_PASS, YOURLS_COOKIEKEY; YOURLS_DB_PASSWORD, YOURLS_DB_ROOT_PASSWORD; optional YOURLS_DB_NAME, YOURLS_DB_USER (see stack `stack.env.example`).
 - **zap** – TZ (optional). No host ports; access via Caddy to zap:8090. OWASP ZAP daemon + web UI for web/API security scanning.
- - **jellyfin** – TZ; PUID, PGID. Media libraries use `/data/tv`, `/data/movies`, `/data/music`; configure libraries in the Jellyfin UI.
- - **lidarr** – TZ; PUID, PGID. Uses `/music`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
- - **prowlarr** – TZ; PUID, PGID. Manages Usenet and torrent indexers and syncs them to Sonarr/Radarr/Lidarr/Readarr.
- - **radarr** – TZ; PUID, PGID. Uses `/movies`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
- - **readarr** – TZ; PUID, PGID. Uses `/books`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
- - **rtorrent-flood** – TZ; PUID, PGID, optional UMASK. Uses `/downloads` inside the container; configure Flood and rTorrent via the web UI.
- - **emby** – TZ; PUID, PGID. Media libraries use `/data/tv`, `/data/movies`, `/data/music`; enable hardware-accelerated transcoding in the Emby UI when NVIDIA support is configured on the host.

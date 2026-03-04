@@ -2,8 +2,11 @@
 
 Privacy-focused AI-powered answering engine that combines web search with AI models for accurate, cited answers.
 
+**Website:** https://perplexica.ai  
+**Docs:** https://github.com/ItzCrazyKns/Perplexica#readme  
 **GitHub:** https://github.com/ItzCrazyKns/Perplexica  
-**Docs:** https://github.com/ItzCrazyKns/Perplexica#readme
+**Docker image:** https://hub.docker.com/r/itzcrazykns1337/perplexica  
+**Releases:** https://github.com/ItzCrazyKns/Perplexica/releases  
 
 ## Features
 

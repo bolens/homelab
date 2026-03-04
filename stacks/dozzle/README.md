@@ -3,8 +3,10 @@
 Real-time Docker container log viewer. One container, no database; uses the Docker socket to list containers and stream logs. Handy when debugging which service is failing without jumping between Portainer log tabs or `docker logs`.
 
 **Website:** https://dozzle.dev  
+**Docs:** https://dozzle.dev/guide/  
 **GitHub:** https://github.com/amir20/dozzle  
-**Docs:** https://dozzle.dev/guide/
+**Docker image:** https://hub.docker.com/r/amir20/dozzle  
+**Releases:** https://github.com/amir20/dozzle/releases  
 
 ## Quick start
 

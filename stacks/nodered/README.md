@@ -2,9 +2,11 @@
 
 Node-RED is a **flow-based, low-code programming tool** for wiring together hardware devices, APIs, and online services. It lets you build automations as drag‑and‑drop flows that react to events, timers, webhooks, MQTT messages, and more.
 
-- **Upstream homepage:** https://nodered.org/
-- **Docs:** https://nodered.org/docs/
-- **GitHub:** https://github.com/node-red/node-red
+**Website:** https://nodered.org/  
+**Docs:** https://nodered.org/docs/  
+**GitHub:** https://github.com/node-red/node-red  
+**Docker image:** https://hub.docker.com/r/nodered/node-red  
+**Releases:** https://github.com/node-red/node-red/releases  
 
 This stack runs a single Node-RED instance with persistent storage on a Docker volume, attached to the shared `monitor` network so Caddy can reverse proxy it.
 

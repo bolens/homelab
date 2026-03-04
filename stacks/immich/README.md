@@ -4,7 +4,9 @@ Self-hosted photo and video backup: upload from phones and the web, face detecti
 
 **Website:** https://immich.app  
 **Docs:** https://immich.app/docs  
-**GitHub:** https://github.com/immich-app/immich
+**GitHub:** https://github.com/immich-app/immich  
+**Docker image:** https://github.com/immich-app/immich/pkgs/container/immich-server  
+**Releases:** https://github.com/immich-app/immich/releases  
 
 ## Quick start
 

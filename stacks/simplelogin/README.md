@@ -4,7 +4,9 @@ Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that 
 
 **Website:** https://simplelogin.io  
 **Docs:** https://simplelogin.io/docs  
-**GitHub:** https://github.com/simple-login/app
+**GitHub:** https://github.com/simple-login/app  
+**Docker image:** https://hub.docker.com/r/simplelogin/app  
+**Releases:** https://github.com/simple-login/app/releases  
 
 ## Quick start
 

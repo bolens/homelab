@@ -3,7 +3,10 @@
 Document management: scan, OCR, and search your paperwork.
 
 **Website:** https://docs.paperless-ngx.com  
-**GitHub:** https://github.com/paperless-ngx/paperless-ngx
+**Docs:** https://docs.paperless-ngx.com  
+**GitHub:** https://github.com/paperless-ngx/paperless-ngx  
+**Docker image:** https://github.com/paperless-ngx/paperless-ngx/pkgs/container/paperless-ngx  
+**Releases:** https://github.com/paperless-ngx/paperless-ngx/releases  
 
 ## Quick start
 

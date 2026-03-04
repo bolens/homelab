@@ -2,8 +2,9 @@
 
 Holehe checks if an email address is registered on many websites using their “forgot password” flows, without sending emails to the target. This stack wraps the **holehe-web** FastAPI app to provide a simple web UI and CSV export.
 
-**Holehe (core tool):** https://github.com/megadose/holehe  
-**holehe-web:** https://github.com/sds-osint/holehe-web
+**Website:** https://github.com/sds-osint/holehe-web  
+**Docs:** https://github.com/sds-osint/holehe-web#readme  
+**GitHub:** https://github.com/sds-osint/holehe-web (web UI); core tool: https://github.com/megadose/holehe  
 
 ## Quick start
 
