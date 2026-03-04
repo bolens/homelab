@@ -43,6 +43,7 @@ environment:
 - **emby** – TZ; PUID, PGID. Media libraries use `/data/tv`, `/data/movies`, `/data/music`; enable hardware-accelerated transcoding in the Emby UI when NVIDIA support is configured on the host.
 - **freshrss** – TZ, PUID, PGID (optional).
 - **ghunt** – TZ (optional). OSINT CLI for Google account investigation; optional env for output. See stack README.
+- **gluetun** – TZ (optional); VPN_SERVICE_PROVIDER, VPN_TYPE; provider-specific (e.g. WIREGUARD_* or OPENVPN_*). No HTTP; used by other containers via `network_mode: service:gluetun`. See [Gluetun configuration](https://gluetun.com/configuration/) and stack `stack.env.example`.
 - **grafana** – TZ, LANG, LC_ALL, LC_CTYPE; optional GF_SERVER_ROOT_URL (when behind Caddy), GF_USERS_ALLOW_SIGN_UP, GF_SECURITY_*.
 - **guacamole** – TZ (optional); POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD (required; strong password shared by Postgres and the Guacamole web app). No host ports; access via Caddy only.
 - **headscale** – TZ (optional). Config via `HEADSCALE_CONFIG_B64` (base64-encoded config.yaml); see stack README.
@@ -80,6 +81,7 @@ environment:
 - **privotron** – CLI only; no web server or ports. Optional TZ; PRIVOTRON_VERSION (build arg, default main). Profiles in volume `privotron-profiles`. Run: `docker compose run --rm privotron --profile NAME` or with inline args. See stack README.
 - **prometheus** – TZ, LANG, LC_ALL, LC_CTYPE; config via prometheus.yml (no env secrets).
 - **prowlarr** – TZ; PUID, PGID. Manages Usenet and torrent indexers and syncs them to Sonarr/Radarr/Lidarr/Readarr.
+- **qbittorrent** – TZ; PUID, PGID (LinuxServer qBittorrent). Gluetun VPN: VPN_SERVICE_PROVIDER, VPN_TYPE, and provider-specific vars (e.g. WIREGUARD_PRIVATE_KEY, WIREGUARD_ADDRESSES for custom WireGuard). Uses `torrents` network and `torrents_downloads` volume; reachable as `qbittorrent:8080` for *arr. See stack `stack.env.example` and [Gluetun configuration](https://gluetun.com/configuration/).
 - **radarr** – TZ; PUID, PGID. Uses `/movies`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
 - **readarr** – TZ; PUID, PGID. Uses `/books`, `/downloads`, `/torrents` inside the container; wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2.
 - **reconftw** – TZ (optional). Recon framework CLI; optional env. See stack README.
@@ -97,6 +99,7 @@ environment:
 - **torbot** – TZ (optional). CLI only (OWASP TorBot). Tor in separate container (tor:9050); run crawls via `docker compose exec torbot torbot -u <url> --host tor --port 9050 [options]`. See stack README.
 - **uptime-kuma** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **vaultwarden** – TZ; DOMAIN (when behind reverse proxy), SIGNUPS_ALLOWED; optional ADMIN_TOKEN, WEBSOCKET_ENABLED.
+- **wireguard** – TZ; PUID, PGID (LinuxServer); SERVERURL (public IP or DNS, or `auto`), SERVERPORT (51820), PEERS; optional PEERDNS, INTERNAL_SUBNET, ALLOWEDIPS, PERSISTENTKEEPALIVE_PEERS. UDP 51820 on host; no Caddy. See [LinuxServer WireGuard docs](https://docs.linuxserver.io/images/docker-wireguard) and stack `stack.env.example`.
 - **watchtower** – TZ, LANG, LC_ALL, LC_CTYPE.
 - **web-check** – TZ, LANG, LC_ALL, LC_CTYPE; optional API keys in README / `stack.env.example`.
 - **yourls** – TZ (optional); YOURLS_SITE (required, must match Caddy hostname); YOURLS_USER, YOURLS_PASS, YOURLS_COOKIEKEY; YOURLS_DB_PASSWORD, YOURLS_DB_ROOT_PASSWORD; optional YOURLS_DB_NAME, YOURLS_DB_USER (see stack `stack.env.example`).
