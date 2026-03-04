@@ -3,8 +3,10 @@
 Extensible, feature-rich, and user-friendly self-hosted AI platform designed to operate entirely offline. Supports Ollama and OpenAI-compatible APIs.
 
 **Website:** https://openwebui.com  
+**Docs:** https://docs.openwebui.com  
 **GitHub:** https://github.com/open-webui/open-webui  
-**Docs:** https://docs.openwebui.com
+**Docker image:** https://github.com/open-webui/open-webui/pkgs/container/open-webui  
+**Releases:** https://github.com/open-webui/open-webui/releases  
 
 ## Features
 

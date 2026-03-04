@@ -3,7 +3,10 @@
 CLI tool for investigating Tor hidden services (onion sites). Scans for operational security issues and misconfigurations (e.g. mod_status, directory listings, EXIF, server fingerprinting). Useful for hidden-service operators and researchers.
 
 **Website:** https://onionscan.org  
-**GitHub:** https://github.com/s-rah/onionscan
+**Docs:** https://github.com/s-rah/onionscan#readme  
+**GitHub:** https://github.com/s-rah/onionscan  
+**Docker image:** https://hub.docker.com/r/mpatton/onionscan  
+**Releases:** https://github.com/s-rah/onionscan/releases  
 
 ## Quick start
 

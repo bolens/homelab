@@ -2,8 +2,10 @@
 
 OSINT tool for extracting metadata from publicly available documents (PDF, DOC, XLS, PPT, etc.) discovered via Google. Downloads files for a given domain and can reveal usernames, software versions, paths, and other metadata.
 
+**Website:** https://github.com/opsdisk/metagoofil  
+**Docs:** https://www.kali.org/tools/metagoofil/  
 **GitHub:** https://github.com/opsdisk/metagoofil  
-**Docs:** https://www.kali.org/tools/metagoofil/
+**Releases:** https://github.com/opsdisk/metagoofil/releases  
 
 ## Quick start
 

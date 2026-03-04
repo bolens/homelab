@@ -3,8 +3,10 @@
 **AIL** (Analysis Information Leak framework) analyses potential information leaks from unstructured data: pastes (Pastebin-style), streams, and crawled content. It detects credentials, credit cards, API keys, PGP data, and more; supports trackers (YARA, regex, terms), correlation, MISP/TheHive export, and optional Tor hidden-service crawling.
 
 **Website:** https://www.ail-project.org  
+**Docs:** https://github.com/ail-project/ail-framework/tree/master/doc  
 **GitHub:** https://github.com/ail-project/ail-framework  
-**Docs:** https://github.com/ail-project/ail-framework/blob/master/doc/README.md
+**Docker image:** https://hub.docker.com/r/cciucd/ail-framework  
+**Releases:** https://github.com/ail-project/ail-framework/releases  
 
 ## Quick start
 

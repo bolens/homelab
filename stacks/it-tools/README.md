@@ -3,7 +3,10 @@
 Collection of handy online tools for developers, with great UX. A comprehensive set of utilities for developers and IT professionals.
 
 **Website:** https://it-tools.tech  
-**GitHub:** https://github.com/CorentinTh/it-tools
+**Docs:** https://github.com/CorentinTh/it-tools#readme  
+**GitHub:** https://github.com/CorentinTh/it-tools  
+**Docker image:** https://hub.docker.com/r/corentinth/it-tools  
+**Releases:** https://github.com/CorentinTh/it-tools/releases  
 
 ## Quick start
 

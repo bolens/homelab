@@ -3,7 +3,10 @@
 OSINT framework for username discovery across 500+ platforms, breach lookups (Have I Been Pwned, BreachVIP, Snusbase, LeakCheck), face matching, reverse image search, and optional AI demasking. Includes a web dashboard and CLI.
 
 **Website:** https://socialhunt.org  
-**GitHub:** https://github.com/AfterPacket/Social-Hunt
+**Docs:** https://github.com/AfterPacket/Social-Hunt#readme  
+**GitHub:** https://github.com/AfterPacket/Social-Hunt  
+**Docker image:** https://hub.docker.com/r/afterpacket/social-hunt  
+**Releases:** https://github.com/AfterPacket/Social-Hunt/releases  
 
 ## Quick start
 

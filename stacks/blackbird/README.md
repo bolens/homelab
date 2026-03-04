@@ -2,7 +2,10 @@
 
 OSINT tool to search for accounts by username or email across many sites (Sherlock-like, with extended coverage and report export). Supports PDF/CSV reports and optional AI-based profiling.
 
-**GitHub:** https://github.com/p1ngul1n0/blackbird
+**Website:** https://github.com/p1ngul1n0/blackbird  
+**Docs:** https://github.com/p1ngul1n0/blackbird#readme  
+**GitHub:** https://github.com/p1ngul1n0/blackbird  
+**Releases:** https://github.com/p1ngul1n0/blackbird/releases  
 
 ## Quick start
 

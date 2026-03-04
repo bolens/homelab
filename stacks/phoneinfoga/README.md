@@ -3,8 +3,10 @@
 Phone number OSINT tool: looks up basic information about a phone number (country, carrier, line type, VOIP or mobile) and searches for web footprints using multiple search engines and sources. Exposes a web UI and REST API.
 
 **Website:** https://sundowndev.github.io/phoneinfoga/  
+**Docs:** https://github.com/sundowndev/phoneinfoga/wiki  
 **GitHub:** https://github.com/sundowndev/phoneinfoga  
-**Docker Hub:** https://hub.docker.com/r/sundowndev/phoneinfoga
+**Docker image:** https://hub.docker.com/r/sundowndev/phoneinfoga  
+**Releases:** https://github.com/sundowndev/phoneinfoga/releases  
 
 ## Quick start
 

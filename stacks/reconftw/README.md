@@ -2,8 +2,11 @@
 
 Automated recon framework that orchestrates many tools (subdomain enumeration, port scanning, screenshots, Nuclei, directory fuzzing, OSINT, etc.) into a single workflow. Designed for offensive recon and bug bounty style asset discovery.
 
+**Website:** https://github.com/six2dez/reconftw  
+**Docs:** https://github.com/six2dez/reconftw#readme  
 **GitHub:** https://github.com/six2dez/reconftw  
-**Docker image:** https://hub.docker.com/r/six2dez/reconftw
+**Docker image:** https://hub.docker.com/r/six2dez/reconftw  
+**Releases:** https://github.com/six2dez/reconftw/releases  
 
 ## Quick start
 

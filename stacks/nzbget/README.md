@@ -4,7 +4,9 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
 
 **Website:** https://nzbget.com/  
 **Docs:** https://nzbget.com/documentation  
-**GitHub:** https://github.com/nzbgetcom/nzbget
+**GitHub:** https://github.com/nzbgetcom/nzbget  
+**Docker image:** https://hub.docker.com/r/linuxserver/nzbget  
+**Releases:** https://github.com/nzbgetcom/nzbget/releases  
 
 ## Quick start
 

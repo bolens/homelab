@@ -3,7 +3,10 @@
 Open-source media server for movies, TV shows, and music. Jellyfin serves your media library to web, mobile, and TV apps with no proprietary cloud dependency.
 
 **Website:** https://jellyfin.org/  
-**Docker image (LinuxServer.io):** https://hub.docker.com/r/linuxserver/jellyfin
+**Docs:** https://jellyfin.org/docs/  
+**GitHub:** https://github.com/jellyfin/jellyfin  
+**Docker image:** https://hub.docker.com/r/linuxserver/jellyfin  
+**Releases:** https://github.com/jellyfin/jellyfin/releases  
 
 ## Quick start
 

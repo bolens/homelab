@@ -3,8 +3,10 @@
 Self-hosted Ollama instance with GPU support for running local LLMs.
 
 **Website:** https://ollama.com  
+**Docs:** https://ollama.com/docs  
 **GitHub:** https://github.com/ollama/ollama  
-**Docs:** https://ollama.com/docs
+**Docker image:** https://hub.docker.com/r/ollama/ollama  
+**Releases:** https://github.com/ollama/ollama/releases  
 
 ## Features
 

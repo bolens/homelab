@@ -4,7 +4,9 @@ Self-hosted podcast (and audiobook) server: subscribe to podcasts, stream or dow
 
 **Website:** https://www.audiobookshelf.org  
 **Docs:** https://www.audiobookshelf.org/faq/server  
-**GitHub:** https://github.com/advplyr/audiobookshelf
+**GitHub:** https://github.com/advplyr/audiobookshelf  
+**Docker image:** https://github.com/advplyr/audiobookshelf/pkgs/container/audiobookshelf  
+**Releases:** https://github.com/advplyr/audiobookshelf/releases  
 
 ## Quick start
 

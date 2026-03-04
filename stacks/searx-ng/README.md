@@ -3,7 +3,10 @@
 Privacy-respecting metasearch engine. Aggregates results from multiple search engines.
 
 **Website:** https://docs.searxng.org  
-**GitHub:** https://github.com/searxng/searxng
+**Docs:** https://docs.searxng.org  
+**GitHub:** https://github.com/searxng/searxng  
+**Docker image:** https://hub.docker.com/r/searxng/searxng  
+**Releases:** https://github.com/searxng/searxng/releases  
 
 ## Quick start
 

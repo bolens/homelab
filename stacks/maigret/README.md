@@ -2,9 +2,11 @@
 
 OSINT tool: collect a dossier on a person **by username only**, checking thousands of sites and gathering available info from profile pages. No API keys. Fork of Sherlock with profile parsing, recursive search, and report export (HTML, PDF, XMind).
 
-**GitHub:** https://github.com/soxoj/maigret  
+**Website:** https://maigret.readthedocs.io  
 **Docs:** https://maigret.readthedocs.io  
-**Telegram bot (no install):** https://t.me/osint_maigret_bot
+**GitHub:** https://github.com/soxoj/maigret  
+**Docker image:** https://hub.docker.com/r/soxoj/maigret  
+**Releases:** https://github.com/soxoj/maigret/releases  
 
 ## Quick start
 

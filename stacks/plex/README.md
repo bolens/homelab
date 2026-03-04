@@ -3,7 +3,9 @@
 Self-hosted media server for movies, TV shows, and music. Plex serves your media library to web, mobile, TV apps, and other clients.
 
 **Website:** https://www.plex.tv/  
-**Docker image (LinuxServer.io):** https://hub.docker.com/r/linuxserver/plex
+**Docs:** https://support.plex.tv/  
+**Docker image:** https://hub.docker.com/r/linuxserver/plex  
+**Releases:** https://support.plex.tv/articles/205165398-plex-media-server-release-notes/  
 
 ## Quick start
 

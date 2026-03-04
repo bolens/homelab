@@ -4,7 +4,9 @@ Self-hosted URL shortener: one app with web UI, API, and redirects. No path rout
 
 **Website:** https://yourls.org  
 **Docs:** https://docs.yourls.org  
-**GitHub:** https://github.com/YOURLS/YOURLS
+**GitHub:** https://github.com/YOURLS/YOURLS  
+**Docker image:** https://hub.docker.com/_/yourls  
+**Releases:** https://github.com/YOURLS/YOURLS/releases  
 
 ## Quick start
 

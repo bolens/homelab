@@ -3,8 +3,10 @@
 Docker image update notifier. Watches your running containers’ images and sends a notification when new tags are available (e.g. Telegram, Discord, webhook). Complements Watchtower: you see what changed before or after Watchtower pulls. No web UI; no Caddy reverse proxy needed.
 
 **Website:** https://crazymax.dev/diun  
+**Docs:** https://crazymax.dev/diun/  
 **GitHub:** https://github.com/crazy-max/diun  
-**Docs:** https://crazymax.dev/diun/
+**Docker image:** https://hub.docker.com/r/crazymax/diun  
+**Releases:** https://github.com/crazy-max/diun/releases  
 
 ## Quick start
 

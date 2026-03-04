@@ -2,8 +2,10 @@
 
 Tor Onion Services monitoring: continuously probes a set of onion endpoints, exports metrics to Prometheus, and provides Grafana dashboards and Alertmanager alerts. Uses the [official Tor Project Onionprobe](https://onionservices.torproject.org/apps/web/onionprobe/) stack with service names prefixed so it does not clash with your existing Prometheus/Grafana.
 
+**Website:** https://onionservices.torproject.org/apps/web/onionprobe/  
 **Docs:** https://onionservices.torproject.org/apps/web/onionprobe/  
-**Upstream:** https://gitlab.torproject.org/tpo/onion-services/onionprobe
+**GitHub:** https://gitlab.torproject.org/tpo/onion-services/onionprobe  
+**Releases:** https://gitlab.torproject.org/tpo/onion-services/onionprobe/-/releases  
 
 ## Quick start
 
