@@ -48,7 +48,7 @@ services:
       - /srv/media/music:/music:ro
 ```
 
-Then configure the music library in the Navidrome UI to use `/music` as the library path.
+Then configure the music library in the Navidrome UI to use `/music` as the library path. If you bind-mount a host path for `/music`, ensure it is readable by the container (Navidrome runs as UID 1000); e.g. `chown -R 1000:1000 /srv/media/music` if you need to access files as your host user.
 
 ## Uptime Kuma health checks
 

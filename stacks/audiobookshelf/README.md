@@ -47,7 +47,7 @@ volumes:
   - /path/on/host/podcasts:/podcasts
 ```
 
-Then add the corresponding library in the Audiobookshelf UI.
+Then add the corresponding library in the Audiobookshelf UI. Ensure the host directories are readable by the container user (Audiobookshelf typically runs as UID 1000); e.g. `chown -R 1000:1000 /path/on/host/audiobooks` if you need to access files as your host user.
 
 ## Caddy reverse proxy
 

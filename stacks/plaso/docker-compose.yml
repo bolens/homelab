@@ -1,0 +1,20 @@
+name: plaso
+
+# Plaso (log2timeline) – digital forensics timeline extraction.
+# CLI only; no web UI. Run via: docker compose run --rm plaso log2timeline ...
+# Mount evidence and output under ./data (or a dedicated evidence volume).
+
+services:
+  plaso:
+    image: log2timeline/plaso:latest
+    container_name: plaso
+    restart: "no"
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Evidence (disk images, directories) and output (storage files, timelines)
+      - ./data:/data
+    stdin_open: true
+    tty: true

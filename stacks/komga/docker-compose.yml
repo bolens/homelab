@@ -1,0 +1,27 @@
+# Komga – comics and manga server. Web UI and OPDS (e.g. Tachiyomi).
+# Access via Caddy only (no host port).
+
+services:
+  komga:
+    image: gotson/komga:latest
+    container_name: komga
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - SERVER_PORT=25600
+    volumes:
+      - komga_config:/config
+      - komga_data:/data
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  komga_config:
+  komga_data:

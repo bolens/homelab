@@ -119,6 +119,8 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | ----------------------------------------- | -------------- | ------------------------------------------------------------------ |
 | **audiobookshelf**                        | Yes            | Protect hostname.                                                  |
 | **archivebox**                            | Yes            | Protect hostname; control anonymous access via `PUBLIC_INDEX`, `PUBLIC_SNAPSHOTS`, and `PUBLIC_ADD_VIEW`. |
+| **asf**                                   | Yes            | Protect ASF IPC hostname; set `IPCPassword` in ASF.json.           |
+| **calibre-web**                           | Yes            | Protect hostname; app has its own login (change default admin password). |
 | **caddy**                                 | Yes            | Reverse proxy; protect the hostnames that Caddy serves.            |
 | **cloudflare-tunnel**                     | N/A            | Tunnel itself; Access runs at the edge before traffic reaches it.  |
 | **convertx**                              | Yes            | Protect hostname; app has accounts (JWT); set `ACCOUNT_REGISTRATION=false` after first user. |
@@ -131,10 +133,14 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **immich**                                | Yes            | Protect Immich hostname; OAuth redirect URIs must use that URL.    |
 | **infisical**                             | Yes            | Protect hostname; `SITE_URL` must match or OAuth breaks.           |
 | **it-tools**                              | Yes            | Protect hostname (no app login).                                   |
+| **komga**                                 | Yes            | Protect hostname; create first user in the web UI.                |
+| **kavita**                                | Yes            | Protect hostname; run setup wizard and create users in the web UI. |
+| **lanraragi**                             | Yes            | Protect hostname; no built-in auth; use Access or set a password in Settings. |
 | **linkstack**                             | Yes            | Protect hostname.                                                  |
 | **linkwarden**                            | Yes            | Protect hostname; set `NEXTAUTH_URL` to that URL.                  |
 | **librechat**                             | Yes            | Protect LibreChat hostname for social/OAuth redirects.             |
 | **mealie**                                | Yes            | Protect hostname; set `BASE_URL` to that URL.                      |
+| **mylar3**                                | Yes            | Protect Mylar3 hostname; configure download clients and indexers in the UI. |
 | **navidrome**                             | Yes            | Protect Navidrome hostname; optional `ND_BASEURL` should match it. |
 | **n8n**                                   | Yes            | Protect n8n hostname; ensure `N8N_HOST` / `WEBHOOK_URL` match.     |
 | **nzbget**                                | Yes            | Protect NZBGet hostname; web UI is authenticated but Access adds an outer SSO/OTP layer. |
@@ -153,6 +159,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **radarr**                                | Yes            | Protect Radarr hostname; use Access as an outer auth layer in front of app auth. |
 | **lidarr**                                | Yes            | Protect Lidarr hostname; use Access as an outer auth layer in front of app auth. |
 | **readarr**                               | Yes            | Protect Readarr hostname; use Access as an outer auth layer in front of app auth. |
+| **romm**                                  | Yes            | Protect RomM hostname; set `ROMM_BASE_URL` to that URL.                            |
 | **bazarr**                                | Yes            | Protect Bazarr hostname; subtitles and media library details stay behind SSO/OTP. |
 | **prowlarr**                              | Yes            | Protect Prowlarr hostname; indexer API keys and credentials stay behind SSO/OTP. |
 | **plex**                                  | Yes            | Protect Plex web hostname if exposed via tunnel; Plex also has its own account auth. |

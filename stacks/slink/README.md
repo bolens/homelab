@@ -26,7 +26,7 @@ The stack uses **named volumes** for database and images (`slink-var-data`, `sli
 | **Network** | `monitor` (external) — Caddy can reverse-proxy to `slink:3000` |
 | **Image** | `anirdev/slink:latest` |
 | **Env** | `ORIGIN` (required); optional `TZ`, `USER_APPROVAL_REQUIRED`, `IMAGE_MAX_SIZE`, `STORAGE_PROVIDER`, etc. |
-| **Storage** | Named volumes `slink-var-data` (DB), `slink-images` (uploads). For SMB or S3, set `STORAGE_PROVIDER` and see [Slink docs](https://docs.slinkapp.io). |
+| **Storage** | Named volumes `slink-var-data` (DB), `slink-images` (uploads). For SMB or S3, set `STORAGE_PROVIDER` and see [Slink docs](https://docs.slinkapp.io). If you bind-mount a host path for images or data, ensure it is owned by the container user (e.g. `chown -R 1000:1000 /path`) so the app can write and you can read files as your host user. |
 
 ## Features
 

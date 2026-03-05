@@ -1,0 +1,11 @@
+{
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "http://0.0.0.0:1242"
+      }
+    }
+  },
+  "IPC": true,
+  "IPCPassword": "REPLACE_WITH_GENERATED_PASSWORD"
+}
