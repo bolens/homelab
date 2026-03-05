@@ -1,0 +1,20 @@
+# ArchiSteamFarm (ASF) – Steam card idling, optional web IPC.
+# No host ports: access via Caddy (reverse proxy to asf:1242 on monitor network).
+# Config: copy stack.env.example → stack.env; create / populate config dir (ASF.json, bot configs).
+services:
+  asf:
+    image: justarchi/archisteamfarm:released
+    container_name: asf
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - ./config:/app/config
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true

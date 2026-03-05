@@ -26,6 +26,11 @@ kuma.home, kuma.local {
 }
 
 # Tools
+asf.home, asf.local {
+	tls internal
+	reverse_proxy asf:1242
+}
+
 it-tools.home, it-tools.local {
 	tls internal
 	reverse_proxy host.docker.internal:8080
@@ -92,6 +97,21 @@ music.home, music.local {
 	reverse_proxy navidrome:4533
 }
 
+calibre-web.home, calibre-web.local {
+	tls internal
+	reverse_proxy calibre-web:8083
+}
+
+komga.home, komga.local {
+	tls internal
+	reverse_proxy komga:25600
+}
+
+kavita.home, kavita.local {
+	tls internal
+	reverse_proxy kavita:5000
+}
+
 # Media & downloads
 plex.home, plex.local {
 	tls internal
@@ -121,6 +141,16 @@ lidarr.home, lidarr.local {
 readarr.home, readarr.local {
 	tls internal
 	reverse_proxy readarr:8787
+}
+
+mylar3.home, mylar3.local {
+	tls internal
+	reverse_proxy mylar3:8090
+}
+
+romm.home, romm.local {
+	tls internal
+	reverse_proxy romm:8080
 }
 
 bazarr.home, bazarr.local {
@@ -225,6 +255,11 @@ linkstack.home, linkstack.local {
 	}
 }
 
+lanraragi.home, lanraragi.local {
+	tls internal
+	reverse_proxy lanraragi:3000
+}
+
 # AI / LLM – host ports must match each stack's .env (e.g. OLLAMA_HOST_PORT, PERPLEXICA_HOST_PORT)
 # If open-webui and perplexica both use 3000, set PERPLEXICA_HOST_PORT=3001 in perplexica/.env
 ollama.home, ollama.local {
@@ -295,6 +330,13 @@ status.yourdomain.com {
 }
 
 # Tools
+asf.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy asf:1242
+}
+
 it-tools.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -416,6 +458,27 @@ music.yourdomain.com {
 	reverse_proxy navidrome:4533
 }
 
+calibre-web.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy calibre-web:8083
+}
+
+komga.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy komga:25600
+}
+
+kavita.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy kavita:5000
+}
+
 # Media & downloads
 plex.yourdomain.com {
 	tls {
@@ -457,6 +520,20 @@ readarr.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy readarr:8787
+}
+
+mylar3.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy mylar3:8090
+}
+
+romm.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy romm:8080
 }
 
 bazarr.yourdomain.com {
@@ -597,6 +674,13 @@ linkstack.yourdomain.com {
 	reverse_proxy linkstack:80 {
 		header_up X-Forwarded-Proto https
 	}
+}
+
+lanraragi.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy lanraragi:3000
 }
 
 # AI / LLM – adjust host ports to match your stack .env

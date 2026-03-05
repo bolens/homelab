@@ -1,0 +1,28 @@
+# Kavita – comics, manga, and eBook server. Web reader, OPDS, reading progress.
+# Access via Caddy only (no host port).
+
+services:
+  kavita:
+    image: lscr.io/linuxserver/kavita:latest
+    container_name: kavita
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - kavita_config:/config
+      - kavita_data:/data
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  kavita_config:
+  kavita_data:

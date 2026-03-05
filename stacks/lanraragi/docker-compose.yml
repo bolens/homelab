@@ -1,0 +1,30 @@
+# Lanraragi – tag-based comic/manga archive manager. CBR, CBZ, PDF; plugins for metadata.
+# Access via Caddy only (no host port).
+
+services:
+  lanraragi:
+    image: difegue/lanraragi:latest
+    container_name: lanraragi
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - LRR_UID=${LRR_UID:-9001}
+      - LRR_GID=${LRR_GID:-9001}
+    volumes:
+      - lanraragi_content:/home/koyomi/lanraragi/content
+      - lanraragi_database:/home/koyomi/lanraragi/database
+      - lanraragi_thumb:/home/koyomi/lanraragi/thumb
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  lanraragi_content:
+  lanraragi_database:
+  lanraragi_thumb:

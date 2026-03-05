@@ -1,0 +1,71 @@
+# RomM – ROM manager with metadata enrichment and in-browser emulation (EmulatorJS).
+# Requires: config directory with config.yml (see README); optional bind mounts for library/assets.
+# Access via Caddy only (no host port).
+
+services:
+  romm-db:
+    image: mariadb:11
+    container_name: romm-db
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
+      - MARIADB_DATABASE=${MARIADB_DATABASE:-romm}
+      - MARIADB_USER=${MARIADB_USER:-romm}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+    volumes:
+      - romm_mysql_data:/var/lib/mysql
+    networks:
+      - romm
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      start_interval: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  romm:
+    image: rommapp/romm:latest
+    container_name: romm
+    restart: unless-stopped
+    depends_on:
+      romm-db:
+        condition: service_healthy
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - ROMM_PORT=8080
+      - DB_HOST=romm-db
+      - DB_PORT=3306
+      - DB_NAME=${MARIADB_DATABASE:-romm}
+      - DB_USER=${MARIADB_USER:-romm}
+      - DB_PASSWD=${MARIADB_PASSWORD}
+      - ROMM_AUTH_SECRET_KEY=${ROMM_AUTH_SECRET_KEY}
+      - ROMM_BASE_URL=${ROMM_BASE_URL:-https://romm.yourdomain.com}
+    volumes:
+      - romm_resources:/romm/resources
+      - romm_data:/romm/data
+      - romm_config:/romm/config
+      - romm_library:/romm/library
+      - romm_assets:/romm/assets
+    networks:
+      - romm
+      - monitor
+
+networks:
+  romm:
+    driver: bridge
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  romm_mysql_data:
+  romm_resources:
+  romm_data:
+  romm_config:
+  romm_library:
+  romm_assets:
