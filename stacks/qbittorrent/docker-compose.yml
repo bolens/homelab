@@ -28,6 +28,10 @@ services:
     network_mode: service:gluetun
     env_file:
       - stack.env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Denver}
     volumes:
       - qbittorrent_config:/config
       - torrents_downloads:/downloads

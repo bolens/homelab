@@ -1,0 +1,24 @@
+name: docker-forensics-toolkit
+
+# Docker Forensics Toolkit – post-mortem analysis of Docker host disk images.
+# CLI only; run via: docker compose run --rm docker-forensics-toolkit mount-image /data/host.raw
+# For mount-image, --privileged may be required (FUSE/loop). See README.
+
+services:
+  docker-forensics-toolkit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docker-forensics-toolkit:local
+    container_name: docker-forensics-toolkit
+    restart: "no"
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./data:/data
+    stdin_open: true
+    tty: true
+    # Uncomment for mount-image (mounts forensic image via FUSE/loop):
+    # privileged: true

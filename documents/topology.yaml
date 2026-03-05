@@ -20,6 +20,7 @@ vpn:
 app_categories:
   - id: apps_acquisition
     name: "Media acquisition & *arr"
+    descriptor: "torrents, *arr, Usenet"
     stacks:
       - qbittorrent
       - rtorrent-flood
@@ -32,10 +33,12 @@ app_categories:
       - readarr
       - bazarr
       - metube
-    description: "download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, MeTube)"
+      - mylar3
+    description: "download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, MeTube, Mylar3)"
 
   - id: apps_ai
     name: "AI & LLM"
+    descriptor: "local models, chat UIs"
     stacks:
       - ollama
       - open-webui
@@ -46,14 +49,24 @@ app_categories:
 
   - id: apps_dev
     name: "Developer & IT utilities"
+    descriptor: "it-tools, ConvertX, Dozzle"
     stacks:
-      - it-tools
       - convertx
       - dozzle
+      - it-tools
     description: "it-tools, ConvertX, Dozzle"
+
+  - id: apps_gaming
+    name: "Gaming"
+    descriptor: "ROMs, Steam, in-browser emulation"
+    stacks:
+      - asf
+      - romm
+    description: "Steam automation (ASF), ROM manager and in-browser emulation (RomM)"
 
   - id: apps_links
     name: "Links, shorteners & presence"
+    descriptor: "YOURLS, Linkstack, Stoat"
     stacks:
       - yourls
       - linkstack
@@ -62,23 +75,29 @@ app_categories:
 
   - id: apps_media
     name: "Media & personal data"
+    descriptor: "photos, docs, music, RSS"
     stacks:
-      - immich
-      - paperless-ngx
-      - audiobookshelf
-      - navidrome
-      - mealie
-      - emby
-      - jellyfin
-      - plex
       - archivebox
-      - linkwarden
+      - audiobookshelf
+      - calibre-web
+      - emby
       - freshrss
+      - immich
+      - jellyfin
+      - kavita
+      - komga
+      - lanraragi
+      - linkwarden
+      - mealie
+      - navidrome
+      - paperless-ngx
+      - plex
       - slink
-    description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS)"
+    description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks)"
 
   - id: apps_osint
     name: "OSINT & recon"
+    descriptor: "username/email/phone recon"
     stacks:
       - social-hunt
       - maigret
@@ -97,6 +116,7 @@ app_categories:
 
   - id: apps_privacy
     name: "Privacy & opt-out"
+    descriptor: "data broker deletion"
     stacks:
       - naisho
       - privotron
@@ -104,20 +124,26 @@ app_categories:
 
   - id: apps_search
     name: "Search"
+    descriptor: "SearXNG metasearch"
     stacks:
       - searx-ng
     description: "SearXNG"
 
   - id: apps_sec_tooling
     name: "Security & compliance tooling"
+    descriptor: "SBOM, threat model, scanner, forensics"
     stacks:
+      - acquire
       - dependency-track
+      - docker-forensics-toolkit
+      - plaso
       - threat-dragon
       - zap
-    description: "SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP)"
+    description: "SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP), digital forensics (Acquire, Plaso, Docker Forensics Toolkit)"
 
   - id: apps_security
     name: "Security & identity"
+    descriptor: "passwords, secrets, aliases"
     stacks:
       - vaultwarden
       - infisical
@@ -129,6 +155,7 @@ app_categories:
 
   - id: apps_tor
     name: "Tor / dark web"
+    descriptor: "OnionScan, OnionProbe, TorBot"
     stacks:
       - onionprobe
       - onionscan
@@ -137,6 +164,7 @@ app_categories:
 
   - id: apps_workflow
     name: "Workflow automation"
+    descriptor: "n8n, Node-RED"
     stacks:
       - n8n
       - nodered
@@ -173,3 +201,83 @@ gluetun_egress:
 smtp_clients:
   - apps_privacy
   - apps_workflow
+
+# Relations: from → to (label) for diagram and short description for prose.
+relations:
+  - from: users
+    to: tunnel
+    description: "Clients use optional Cloudflare Tunnel to reach Caddy."
+  - from: users
+    to: caddy
+    description: "Clients reach Caddy directly (local DNS or tunnel)."
+  - from: tunnel
+    to: caddy
+    description: "Tunnel forwards to Caddy by hostname."
+  - from: users
+    to: wireguard
+    description: "Clients connect via WireGuard for remote access."
+  - from: users
+    to: headscale
+    description: "Clients join mesh via Headscale (Tailscale)."
+  - from: caddy
+    to: apps
+    description: "Caddy routes HTTP(S) to all application stacks by hostname."
+  - from: caddy
+    to: infra
+    description: "Caddy is managed and monitored by infra services."
+  - from: wireguard
+    to: caddy
+    label: VPN
+    description: "VPN clients reach Caddy and apps."
+  - from: headscale
+    to: caddy
+    label: mesh
+    description: "Mesh clients reach Caddy and apps."
+  - from: apps_acquisition
+    to: gluetun
+    label: VPN egress
+    description: "Media acquisition stacks send traffic through Gluetun (VPN)."
+  - from: gluetun
+    to: outbound
+    label: egress
+    description: "Gluetun egresses via VPN provider to internet."
+  - from: apps_privacy
+    to: postfix
+    label: mail
+    description: "Privacy/opt-out apps send mail via Postfix."
+  - from: apps_workflow
+    to: postfix
+    label: mail
+    description: "Workflow apps (e.g. n8n) send mail via Postfix."
+  - from: caddy
+    to: crowdsec
+    label: logs
+    description: "Caddy logs feed CrowdSec security engine."
+  - from: kuma
+    to: caddy
+    label: health
+    description: "Uptime Kuma monitors Caddy and app health."
+  - from: prometheus
+    to: cadvisor
+    label: scrapes
+    description: "Prometheus scrapes cAdvisor for container metrics."
+  - from: grafana
+    to: prometheus
+    label: queries
+    description: "Grafana queries Prometheus for dashboards."
+  - from: watchtower
+    to: apps
+    label: updates
+    description: "Watchtower updates container images for app stacks."
+  - from: dockergc
+    to: apps
+    label: cleanup
+    description: "Docker GC cleans stopped containers and unused images."
+  - from: diun
+    to: users
+    label: notify
+    description: "Diun notifies users of new image tags."
+  - from: portainer
+    to: apps
+    label: manage
+    description: "Portainer manages Docker stacks and containers."

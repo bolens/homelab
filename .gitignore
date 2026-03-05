@@ -63,6 +63,9 @@ config.json
 backups/
 **/backups/
 
+# ASF config (ASF.json and bot configs may contain IPC password and Steam credentials)
+stacks/asf/config/
+
 # VPN / WireGuard (configs contain private keys)
 **/wireguard/**/*.conf
 **/vpn/**/*.conf

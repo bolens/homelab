@@ -31,7 +31,7 @@ Self-hosted web GUI for `yt-dlp`/`youtube-dl` with playlist support and a downlo
 
 3. **Access via Caddy**
 
-   MeTube does **not** publish a host port. Access it only through Caddy at your chosen hostname (for example, `https://metube.bolens.dev` in this homelab).
+   MeTube does **not** publish a host port. Access it only through Caddy at your chosen hostname (for example, `https://metube.yourdomain.com` in this homelab).
 
 ## Configuration
 

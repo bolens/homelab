@@ -1,0 +1,29 @@
+# Calibre-Web – web UI for an existing Calibre library (browse, read, download eBooks).
+# Requires a Calibre library at /books (metadata.db + books). Use named volume or bind-mount.
+# Access via Caddy only (no host port).
+
+services:
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - calibre_web_config:/config
+      - calibre_web_books:/books
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  calibre_web_config:
+  calibre_web_books:

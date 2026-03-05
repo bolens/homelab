@@ -48,7 +48,7 @@ Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible e
    docker compose --env-file stack.env up -d
    ```
 
-5. **Access via Caddy** at your chosen hostname (for example, `https://guacamole.bolens.dev`). See the Caddy example below.
+5. **Access via Caddy** at your chosen hostname (for example, `https://guacamole.yourdomain.com`). See the Caddy example below.
 
 ## Configuration
 
@@ -71,7 +71,7 @@ guacamole.home, guacamole.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare Tunnel and DNS (for example `guacamole.bolens.dev`) and keep the `guacamole` service on the `monitor` network so Caddy can resolve it.
+In your real setup, use the hostname you expose via Cloudflare Tunnel and DNS (for example `guacamole.yourdomain.com`) and keep the `guacamole` service on the `monitor` network so Caddy can resolve it.
 
 ## Start
 

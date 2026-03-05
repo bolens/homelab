@@ -42,7 +42,7 @@ Holehe checks if an email address is registered on many websites using their “
    docker compose --env-file stack.env up -d
    ```
 
-5. **Access via Caddy** at your chosen hostname (for example, `https://holehe.bolens.dev`). See the Caddy example below.
+5. **Access via Caddy** at your chosen hostname (for example, `https://holehe.yourdomain.com`). See the Caddy example below.
 
 ## Configuration
 
@@ -64,7 +64,7 @@ holehe.home, holehe.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `holehe.bolens.dev`) and keep the container on the `monitor` network so Caddy can resolve `holehe-web`.
+In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `holehe.yourdomain.com`) and keep the container on the `monitor` network so Caddy can resolve `holehe-web`.
 
 ## CLI vs web
 

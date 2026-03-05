@@ -36,7 +36,7 @@ Phone number OSINT tool: looks up basic information about a phone number (countr
    docker compose --env-file stack.env up -d
    ```
 
-4. **Access via Caddy** at your chosen hostname (for example, `https://phoneinfoga.bolens.dev`). See the Caddy example below.
+4. **Access via Caddy** at your chosen hostname (for example, `https://phoneinfoga.yourdomain.com`). See the Caddy example below.
 
 ## Configuration
 
@@ -58,7 +58,7 @@ phoneinfoga.home, phoneinfoga.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `phoneinfoga.bolens.dev`) and keep the container on the `monitor` network so Caddy can resolve `phoneinfoga`.
+In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `phoneinfoga.yourdomain.com`) and keep the container on the `monitor` network so Caddy can resolve `phoneinfoga`.
 
 ## Start
 

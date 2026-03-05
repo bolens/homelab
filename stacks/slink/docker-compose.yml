@@ -23,7 +23,7 @@ services:
       # Optional: first admin (remove after initial setup)
       # - ADMIN_USERNAME=admin
       # - ADMIN_EMAIL=admin@example.com
-      # - ADMIN_PASSWORD=YourSecurePassword123
+      # - ADMIN_PASSWORD=REPLACE_WITH_GENERATED_PASSWORD
     networks:
       - monitor
 

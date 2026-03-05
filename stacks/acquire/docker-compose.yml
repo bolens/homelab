@@ -1,0 +1,22 @@
+name: acquire
+
+# Acquire (Dissect) – gather forensic artifacts from disk images or live systems.
+# CLI only; run via: docker compose run --rm acquire [target] -o /data/output.tar
+# For disk images, place evidence under ./data and pass path as target.
+
+services:
+  acquire:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: acquire:local
+    container_name: acquire
+    restart: "no"
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-UTC}
+    volumes:
+      - ./data:/data
+    stdin_open: true
+    tty: true

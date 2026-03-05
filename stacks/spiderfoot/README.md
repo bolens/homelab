@@ -36,7 +36,7 @@ Automated OSINT tool with 180+ modules for domains, IPs, emails, BTC addresses, 
    docker compose --env-file stack.env up -d
    ```
 
-4. **Access via Caddy** at your chosen hostname (for example, `https://spiderfoot.bolens.dev`). See the Caddy example below.
+4. **Access via Caddy** at your chosen hostname (for example, `https://spiderfoot.yourdomain.com`). See the Caddy example below.
 
 ## Configuration
 
@@ -60,7 +60,7 @@ spiderfoot.home, spiderfoot.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `spiderfoot.bolens.dev`) and keep the container on the `monitor` network so Caddy can resolve `spiderfoot`.
+In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `spiderfoot.yourdomain.com`) and keep the container on the `monitor` network so Caddy can resolve `spiderfoot`.
 
 ## Start
 

@@ -32,7 +32,7 @@ Classic OSINT tool to collect emails, subdomains, hosts, open ports, and banners
    docker compose --env-file stack.env up -d
    ```
 
-4. **Access REST API via Caddy** at your chosen hostname (for example, `https://theharvester.bolens.dev`). The REST service listens on port 80 inside the container.
+4. **Access REST API via Caddy** at your chosen hostname (for example, `https://theharvester.yourdomain.com`). The REST service listens on port 80 inside the container.
 
 ## Configuration
 
@@ -78,7 +78,7 @@ theharvester.home, theharvester.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `theharvester.bolens.dev`) and keep the container on the `monitor` network so Caddy can resolve `theharvester`.
+In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `theharvester.yourdomain.com`) and keep the container on the `monitor` network so Caddy can resolve `theharvester`.
 
 ## CLI usage
 

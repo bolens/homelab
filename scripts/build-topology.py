@@ -10,7 +10,6 @@ Requires: PyYAML (pip install pyyaml)
 """
 
 from pathlib import Path
-import re
 import sys
 
 try:
@@ -41,51 +40,64 @@ def mermaid_quote(s: str) -> str:
     return s.replace('"', "#quot;")
 
 
-def build_mermaid(data: dict) -> str:
-    # Linear edges so GitHub (and other renderers) don't use curves that obscure labels
-    lines = [
-        "%%{init: {'flowchart': {'curveStyle': 'linear'}}}%%",
-        "flowchart TB",
-        "    subgraph internet[\"Internet / LAN\"]",
-        "        users[\"Clients\"]",
-        "        outbound[\"Internet<br>(outbound)\"]",
+def mermaid_label(s: str) -> str:
+    """Markdown-style label: use actual newlines in the diagram source so Mermaid renders line breaks."""
+    s = s.replace("\r", " ").replace("\n", " ")  # normalize YAML newlines to space
+    content = s.replace("<br/>", "\n").replace("<br>", "\n").replace("`", "'").replace('"', "#quot;")
+    return "`" + content + "`"
+
+
+def _init_line() -> str:
+    return "%%{init: {'flowchart': {'curveStyle': 'linear'}}}%%"
+
+
+def build_mermaid_main(data: dict) -> str:
+    """Traffic, ingress, VPN, apps; infra as a single node. Short labels = narrow diagram."""
+    lines = [_init_line(), "flowchart TB", ""]
+    lines.extend([
+        '    subgraph internet["Internet / LAN"]',
+        '        users["Clients"]',
+        '        outbound["Internet"]',
         "    end",
         "",
-    ]
-    # Ingress
+    ])
     lines.append('    subgraph ingress["Ingress"]')
     for item in data["ingress"]:
         nid = mermaid_node_id(item["id"])
-        lines.append(f'        {nid}["{mermaid_quote(item["label"])}"]')
+        line = f'        {nid}["{mermaid_label(item["label"])}"]'
+        lines.append(line)
     lines.append("    end")
     lines.append("")
-    # VPN
     lines.append('    subgraph vpn["VPN & remote access"]')
     lines.append("        direction TB")
     for item in data["vpn"]:
         nid = mermaid_node_id(item["id"])
-        lines.append(f'        {nid}["{mermaid_quote(item["label"])}"]')
+        line = f'        {nid}["{mermaid_label(item["label"])}"]'
+        lines.append(line)
     lines.append("    end")
     lines.append("")
-    # App categories
+    lines.append("    internet ~~~ ingress ~~~ vpn")
+    lines.append("")
+    # App categories: name + short descriptor
     lines.append('    subgraph apps["Application stacks"]')
     lines.append("        direction TB")
+    app_ids = [mermaid_node_id(cat["id"]) for cat in data["app_categories"]]
     for cat in data["app_categories"]:
         nid = mermaid_node_id(cat["id"])
-        stack_list = ", ".join(cat["stacks"])
-        label = f"{cat['name']}<br>({stack_list})"
-        lines.append(f'        {nid}["{mermaid_quote(label)}"]')
+        label = cat["name"]
+        if cat.get("descriptor"):
+            label = f'{label}<br>{cat["descriptor"]}'
+        line = f'        {nid}["{mermaid_label(label)}"]'
+        lines.append(line)
     lines.append("    end")
+    # Invisible chain forces single column = less horizontal spread
+    if len(app_ids) > 1:
+        chain = " ~~~ ".join(app_ids)
+        lines.append(f"    {chain}")
     lines.append("")
-    # Infra
-    lines.append('    subgraph infra["Infrastructure & monitoring"]')
-    lines.append("        direction TB")
-    for item in data["infra"]:
-        nid = mermaid_node_id(item["id"])
-        lines.append(f'        {nid}["{mermaid_quote(item["label"])}"]')
-    lines.append("    end")
+    line = '    infra["' + mermaid_label("Infra<br>& monitoring") + '"]'
+    lines.append(line)
     lines.append("")
-    # Edges: unlabeled first (cleaner layout), then labeled in groups by target/source
     lines.append("    users --> tunnel")
     lines.append("    users --> caddy")
     lines.append("    tunnel --> caddy")
@@ -96,24 +108,47 @@ def build_mermaid(data: dict) -> str:
         lines.append(f"    caddy --> {nid}")
     lines.append("    caddy --> infra")
     lines.append("")
-    # Labeled edges: short labels + longer link (-..->) to space labels and reduce overlap
-    lines.append("    wireguard -..->|VPN| caddy")
-    lines.append("    headscale -..->|mesh| caddy")
+    lines.append("    wireguard -.->|VPN| caddy")
+    lines.append("    headscale -.->|mesh| caddy")
     for cat_id in data.get("gluetun_egress", []):
         nid = mermaid_node_id(cat_id)
-        lines.append(f"    {nid} -..->|VPN egress| gluetun")
-    lines.append("    gluetun -..->|egress| outbound")
-    lines.append("    caddy -..->|logs| crowdsec")
+        lines.append(f"    {nid} -.->|VPN egress| gluetun")
+    lines.append("    gluetun -.->|egress| outbound")
+    # Mail goes to infra (Postfix lives there); postfix node only exists in the infra diagram
     for cat_id in data.get("smtp_clients", []):
         nid = mermaid_node_id(cat_id)
-        lines.append(f"    {nid} -..->|mail| postfix")
-    lines.append("    kuma -..->|health| caddy")
-    lines.append("    prometheus -..->|scrapes| cadvisor")
-    lines.append("    grafana -..->|queries| prometheus")
-    lines.append("    watchtower -..->|updates| apps")
-    lines.append("    dockergc -..->|cleanup| apps")
-    lines.append("    diun -..->|notify| users")
-    lines.append("    portainer -..->|manage| apps")
+        lines.append(f"    {nid} -.->|mail| infra")
+    return "\n".join(lines)
+
+
+def build_mermaid_infra(data: dict) -> str:
+    """Infrastructure & monitoring nodes and their labeled edges only. TB = vertical layout."""
+    lines = [_init_line(), "flowchart TB", ""]
+    lines.append('    subgraph infra["Infrastructure & monitoring"]')
+    lines.append("        direction TB")
+    infra_ids = [mermaid_node_id(item["id"]) for item in data["infra"]]
+    for item in data["infra"]:
+        nid = mermaid_node_id(item["id"])
+        line = f'        {nid}["{mermaid_label(item["label"])}"]'
+        lines.append(line)
+    lines.append("    end")
+    # Invisible chain keeps infra nodes in one column
+    if len(infra_ids) > 1:
+        chain = " ~~~ ".join(infra_ids)
+        lines.append(f"    {chain}")
+    lines.append("")
+    lines.append('    caddy["caddy"]')
+    lines.append('    apps["apps"]')
+    lines.append('    users["users"]')
+    lines.append("")
+    lines.append("    caddy -.->|logs| crowdsec")
+    lines.append("    kuma -.->|health| caddy")
+    lines.append("    prometheus -.->|scrapes| cadvisor")
+    lines.append("    grafana -.->|queries| prometheus")
+    lines.append("    watchtower -.->|updates| apps")
+    lines.append("    dockergc -.->|cleanup| apps")
+    lines.append("    diun -.->|notify| users")
+    lines.append("    portainer -.->|manage| apps")
     return "\n".join(lines)
 
 
@@ -121,16 +156,47 @@ def build_prose(data: dict) -> str:
     cat_bits = [f"**{cat['name']}** – {cat['description']}" for cat in data["app_categories"]]
     categories_para = ". ".join(cat_bits)
 
-    return f"""- **Traffic:** All HTTP(S) to apps and to web UIs (e.g. Uptime Kuma, Grafana) goes through Caddy. Clients reach Caddy directly (local DNS) or via Cloudflare Tunnel; Caddy routes by hostname.
+    # Application stacks detail: each category with full description and stack list
+    stack_detail_lines = []
+    for cat in data["app_categories"]:
+        stacks_str = ", ".join(cat["stacks"])
+        stack_detail_lines.append(f"- **{cat['name']}:** {cat['description']} Stacks: {stacks_str}.")
+    stacks_detail = "\n".join(stack_detail_lines)
+
+    main = f"""- **Traffic:** All HTTP(S) to apps and to web UIs (e.g. Uptime Kuma, Grafana) goes through Caddy. Clients reach Caddy directly (local DNS) or via Cloudflare Tunnel; Caddy routes by hostname.
 - **VPN & remote access:** **Headscale** – mesh VPN (Tailscale); mesh clients reach Caddy and apps. **WireGuard** – remote-access VPN (UDP 51820); VPN clients connect from outside. **Gluetun** – outbound VPN for containers; media acquisition stacks (e.g. qbittorrent) send traffic through Gluetun to a VPN provider.
 - **Application categories:** {categories_para}
+- **Application stacks (detail):** Each category and what it does:
+{stacks_detail}
 - **Infrastructure:** Portainer manages stacks; Watchtower updates images; Docker GC cleans up; Diun notifies on image changes; Uptime Kuma monitors Caddy and app health; Grafana/Prometheus/cAdvisor provide metrics; CrowdSec consumes Caddy logs. **Postfix** – SMTP relay for outbound mail from apps (e.g. Naisho, n8n). Dozzle (behind Caddy) is a log viewer."""
 
+    relations = data.get("relations", [])
+    if not relations:
+        return main
+    rel_bullets = []
+    for r in relations:
+        from_id = r.get("from", "")
+        to_id = r.get("to", "")
+        label = r.get("label")
+        desc = r.get("description", "")
+        arrow = f"**{from_id} → {to_id}**"
+        if label:
+            arrow += f" ({label})"
+        rel_bullets.append(f"{arrow}: {desc}")
+    rel_section = "- **Relations:**\n  - " + "\n  - ".join(rel_bullets)
+    return main + "\n" + rel_section
 
-def generated_section(mermaid: str, prose: str) -> str:
+
+def generated_section(mermaid_main: str, mermaid_infra: str, prose: str) -> str:
     return f"""{MARKER_START}
 ```mermaid
-{mermaid}
+{mermaid_main}
+```
+
+#### Infrastructure & monitoring
+
+```mermaid
+{mermaid_infra}
 ```
 
 {prose}
@@ -140,20 +206,22 @@ def generated_section(mermaid: str, prose: str) -> str:
 def main():
     in_place = "--in-place" in sys.argv
     data = load_topology()
-    mermaid = build_mermaid(data)
+    mermaid_main = build_mermaid_main(data)
+    mermaid_infra = build_mermaid_infra(data)
     prose = build_prose(data)
-    section = generated_section(mermaid, prose)
+    section = generated_section(mermaid_main, mermaid_infra, prose)
 
     if in_place:
         readme = README_PATH.read_text(encoding="utf-8")
-        if MARKER_START not in readme or MARKER_END not in readme:
+        i = readme.find(MARKER_START)
+        j = readme.find(MARKER_END)
+        if i == -1 or j == -1 or j < i:
             sys.stderr.write("README.md must contain TOPOLOGY_GENERATED_START and TOPOLOGY_GENERATED_END markers.\n")
             sys.exit(1)
-        pattern = re.compile(
-            re.escape(MARKER_START) + r".*?" + re.escape(MARKER_END),
-            re.DOTALL,
-        )
-        new_readme = pattern.sub(section, readme)
+        j = j + len(MARKER_END)
+        if j < len(readme) and readme[j] == "\n":
+            j += 1
+        new_readme = readme[:i] + section.rstrip() + "\n" + readme[j:]
         if new_readme == readme:
             sys.stderr.write("No change.\n")
         else:
