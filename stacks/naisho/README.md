@@ -19,7 +19,7 @@ Send personal data deletion request emails to hundreds of data brokers at once. 
 3. **Access:** Open via Caddy (e.g. https://naisho.home or https://naisho.yourdomain.com).  
    On first request the entrypoint runs `db:prepare` and `Company.sync_all` (data broker list).
 
-4. **SMTP:** Configure SMTP in the Naisho UI when sending deletion requests (per-request or default). You can use the `postfix` (smtp-relay) stack: in Naisho use host `smtp-relay` and port `587` if both stacks are on the `monitor` network.
+4. **SMTP:** Configure SMTP in the Naisho UI when sending deletion requests (per-request or default). You can use the `postfix` (smtp-relay) stack: in Naisho use host `smtp-relay` and port `587` if both stacks are on the `monitor` network. For shared SMTP relay setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Configuration
 

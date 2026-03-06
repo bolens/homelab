@@ -64,7 +64,7 @@ docker exec -it ollama ollama run llama2
 ```
 
 ### From other containers:
-Other containers can connect to Ollama at `http://ollama:11434` (on the same Docker network) or `http://host.docker.internal:11434` (from host gateway).
+Other containers can connect to Ollama at `http://ollama:11434` (on the same Docker network) or `http://host.docker.internal:11434` (from host gateway). For one-time setup and how other stacks (Open WebUI, LibreChat, etc.) use this backend, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## GPU Support
 

@@ -24,7 +24,7 @@ Secure password and secret sharing: create shareable links with **view limits** 
 openssl rand -base64 32
 ```
 
-Set the output as `PWPUSH_MASTER_KEY` in `.env`. Alternatively, generate a key at https://us.pwpush.com/generate_key.
+Set the output as `PWPUSH_MASTER_KEY` in `stack.env`. Alternatively, generate a key at https://us.pwpush.com/generate_key.
 
 The stack uses a **named volume** for the SQLite database and file uploads, so it works when deployed from Portainer.
 
@@ -52,7 +52,7 @@ Defaults for new pushes (e.g. default days, max views) are configurable via [env
 
 ## SMTP (optional)
 
-To send signup confirmation emails and password-reset emails, set these in your `.env` or Portainer stack Environment (see [docs](https://docs.pwpush.com/docs/enabling-logins/)):
+To send signup confirmation emails and password-reset emails, set these in your `stack.env` or Portainer stack Environment (see [docs](https://docs.pwpush.com/docs/enabling-logins/)):
 
 - `PWP__MAIL__SMTP_ADDRESS`, `PWP__MAIL__SMTP_PORT`, `PWP__MAIL__SMTP_USER_NAME`, `PWP__MAIL__SMTP_PASSWORD`
 - `PWP__MAIL__SMTP_AUTHENTICATION=plain`, `PWP__MAIL__SMTP_STARTTLS=true`
@@ -60,6 +60,8 @@ To send signup confirmation emails and password-reset emails, set these in your 
 - `PWP__HOST_DOMAIN` and `PWP__HOST_PROTOCOL=https` so links in emails point to your instance
 
 Without SMTP, you can still confirm users manually via the app console (see note above).
+
+For the shared Postfix relay and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 **Example (using the `smtp-relay` stack):**
 

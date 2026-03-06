@@ -22,11 +22,11 @@ Dashboard and visualization for Prometheus (and other datasources). Use with the
 | **Access** | Via Caddy only (no host port; reverse-proxy to `grafana:3000`) |
 | **Volume** | `grafana_data` (dashboards, users, settings) |
 | **Network** | `monitor` — shared with Caddy, Prometheus, cAdvisor |
-| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md). Optional: `GF_SERVER_ROOT_URL`, `GF_SECURITY_*` |
+| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. Optional: `GF_SERVER_ROOT_URL`, `GF_SECURITY_*` |
 
 **Portainer:** Use “Git repository” or paste the compose; ensure the `provisioning` folder is present (bind-mounted). If you deploy from Git, the repo path must include `stacks/grafana` so `./provisioning` resolves.
 
-**Root URL:** If you access Grafana at a different URL (e.g. https://grafana.yourdomain.com), set `GF_SERVER_ROOT_URL` in the stack env or `.env` to that URL so login redirects work.
+**Root URL:** If you access Grafana at a different URL (e.g. https://grafana.yourdomain.com), set `GF_SERVER_ROOT_URL` in `stack.env` to that URL so login redirects work. For TZ/locale and shared resources, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Suggested dashboards
 

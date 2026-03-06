@@ -11,7 +11,7 @@ Self-hosted **link-in-bio** page (Linktree-style): one URL that shows your profi
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env` (all vars optional; defaults are fine for local use).
+   - Copy `stack.env.example` to `stack.env` (all vars optional; defaults are fine for local use).
    - Optionally set `HTTP_SERVER_NAME` and `HTTPS_SERVER_NAME` to your Caddy hostname (e.g. `linkstack.home`) if the app needs to know its URL.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set env in the stack Environment).
 3. **Access:** Open via Caddy (e.g. https://linkstack.home or https://linkstack.yourdomain.com). First visit: create your profile and add links.

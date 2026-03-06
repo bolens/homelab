@@ -36,14 +36,14 @@ Web-Check provides comprehensive website analysis including:
 
 ## Optional API Keys
 
-For enhanced features, you can add API keys to `.env` (copy `.env.example` → `.env`):
+For enhanced features, you can add API keys to `stack.env` (copy `stack.env.example` → `stack.env`):
 - `GOOGLE_CLOUD_API_KEY` - Quality metrics via Lighthouse
 - `REACT_APP_SHODAN_API_KEY` - Associated hostnames (Shodan)
 - `REACT_APP_WHO_API_KEY` - Comprehensive WhoIs records
 - `URL_SCAN_API_KEY` - urlscan.io integration
 - `BUILT_WITH_API_KEY` - BuiltWith technology detection
 
-See `.env.example` for the template.
+See `stack.env.example` for the template.
 
 ## TLS checks (tls-cipher-suites, tls-security-config, tls-client-support)
 
@@ -53,7 +53,7 @@ These use Mozilla’s TLS Observatory (`tls-observatory.services.mozilla.com`), 
 
 ## Troubleshooting
 
-**Important:** `REACT_APP_*` environment variables (like `REACT_APP_SHODAN_API_KEY` and `REACT_APP_WHO_API_KEY`) are client-side React variables that must be available at **build time**. Since we're using the pre-built Docker image (`lissy93/web-check:latest`), these variables won't work even if set in `.env` - the React app was already built without them.
+**Important:** `REACT_APP_*` environment variables (like `REACT_APP_SHODAN_API_KEY` and `REACT_APP_WHO_API_KEY`) are client-side React variables that must be available at **build time**. Since we're using the pre-built Docker image (`lissy93/web-check:latest`), these variables won't work even if set in `stack.env` - the React app was already built without them.
 
 If you need Shodan or WhoAPI features, you'll need to build web-check from source with the API keys included, or wait for web-check to add backend API endpoints that proxy these calls.
 

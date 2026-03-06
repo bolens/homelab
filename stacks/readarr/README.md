@@ -18,6 +18,7 @@ Book and audiobook collection manager for Usenet and torrents. Readarr monitors 
    docker volume create torrents_downloads
    docker volume create media_books
    ```
+   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.

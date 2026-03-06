@@ -1,0 +1,24 @@
+# Actual Budget – envelope-style budgeting (sync server).
+# No host ports; access via Caddy (e.g. https://actual-budget.yourdomain.com → actual-budget:5006).
+services:
+  actual-budget:
+    image: actualbudget/actual-server:latest
+    container_name: actual-budget
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - actual_budget_data:/data
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  actual_budget_data:

@@ -24,7 +24,7 @@ Apps send mail to this container; it then relays via your real mail provider (SE
    - Inside Docker (same `monitor` network): `smtp-relay:587`.
    - From outside / other hosts: `smtp.yourdomain.com:587` (see **Public access** below).
 
-The stack uses the shared `monitor` network so other stacks (Infisical, Password Pusher, Linkwarden, etc.) can reach the relay by container name.
+The stack uses the shared `monitor` network so other stacks (Infisical, Password Pusher, Linkwarden, etc.) can reach the relay by container name. For one-time setup and how other stacks use this relay, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Configuration
 
@@ -37,7 +37,7 @@ The stack uses the shared `monitor` network so other stacks (Infisical, Password
 
 ### Example: Password Pusher
 
-In `stacks/password-pusher/.env` (or Portainer stack Environment), point Password Pusher at the relay:
+In `stacks/password-pusher/stack.env` (or Portainer stack Environment), point Password Pusher at the relay:
 
 - For apps on the same Docker host (recommended):
   - `PWP__MAIL__SMTP_ADDRESS=smtp-relay`
@@ -50,7 +50,7 @@ In `stacks/password-pusher/.env` (or Portainer stack Environment), point Passwor
 
 ### Example: Infisical
 
-In `stacks/infisical/.env` (or Portainer Environment):
+In `stacks/infisical/stack.env` (or Portainer Environment):
 
 - `SMTP_HOST=smtp-relay` (or `smtp.yourdomain.com` if you prefer the public hostname)
 - `SMTP_PORT=587`

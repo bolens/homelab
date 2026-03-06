@@ -1,0 +1,27 @@
+# Homarr – homelab dashboard (links, widgets, optional integrations).
+# No host ports; access via Caddy (e.g. https://homarr.yourdomain.com → homarr:7575).
+services:
+  homarr:
+    image: ghcr.io/ajnart/homarr:latest
+    container_name: homarr
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - homarr_config:/app/data/configs
+      - homarr_data:/data
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  homarr_config:
+  homarr_data:

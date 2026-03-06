@@ -14,6 +14,7 @@ Meta search for Usenet indexers. NZBHydra 2 aggregates results from multiple NZB
      ```bash
      docker network create usenet
      ```
+   For external networks/volumes and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID` as appropriate for your host.

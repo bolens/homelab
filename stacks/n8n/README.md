@@ -26,7 +26,7 @@ The stack is Portainer-friendly: env defaults for TZ/locale, optional host port,
 | **Ports** | None; access only via Caddy (`reverse_proxy n8n:5678` on the monitor network). |
 | **Volumes** | `n8n_data` → `/home/node/.n8n` (SQLite DB, encryption key, workflows). Back this up. |
 | **Network** | `monitor` (external) — same as Caddy, Grafana, Dozzle. |
-| **Env** | **N8N_HOST** and **WEBHOOK_URL** required when behind Caddy. Optional: `N8N_ENCRYPTION_KEY` (e.g. `openssl rand -hex 32`) so credentials survive volume recreation. See [ENV-VARS.md](../../documents/ENV-VARS.md) for TZ/locale. |
+| **Env** | **N8N_HOST** and **WEBHOOK_URL** required when behind Caddy. Optional: `N8N_ENCRYPTION_KEY` (e.g. `openssl rand -hex 32`) so credentials survive volume recreation. For TZ/locale and shared resources (e.g. SMTP relay), see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) and [ENV-VARS.md](../../documents/ENV-VARS.md). |
 
 ## Caddy
 

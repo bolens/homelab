@@ -19,7 +19,7 @@ This stack uses **nickfedor/watchtower** (maintained fork). The original contain
 | Item | Details |
 |------|---------|
 | **Volume** | `/var/run/docker.sock` (required) |
-| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) for TZ/locale. |
+| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. |
 
 **Key env vars (in `docker-compose.yml`):**
 

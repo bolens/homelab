@@ -1,0 +1,50 @@
+# BookStack – wiki and documentation (books, chapters, pages).
+# No host ports; access via Caddy (e.g. https://bookstack.yourdomain.com → bookstack:80).
+# Requires MariaDB; set APP_URL to your Caddy hostname.
+services:
+  mariadb:
+    image: lscr.io/linuxserver/mariadb:latest
+    container_name: bookstack-mariadb
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - MYSQL_DATABASE=bookstack
+      - MYSQL_USER=bookstack
+    volumes:
+      - bookstack_mariadb:/config
+    networks:
+      - default
+
+  bookstack:
+    image: lscr.io/linuxserver/bookstack:latest
+    container_name: bookstack
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    env_file:
+      - stack.env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Denver}
+      - APP_URL=${APP_URL}
+      - DB_HOST=mariadb
+      - DB_DATABASE=bookstack
+      - DB_USERNAME=bookstack
+    volumes:
+      - bookstack_data:/config
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  bookstack_mariadb:
+  bookstack_data:

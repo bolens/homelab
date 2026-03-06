@@ -43,5 +43,5 @@
 | **Storage** | `firefly_pg_data` (DB), `firefly_upload` (uploaded attachments/exports)      |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `firefly-iii.yourdomain.com` → `firefly-iii:8080` |
 
-For advanced configuration (mail, multi-currency, cron jobs, importers), see the official Firefly III documentation.
+For advanced configuration (mail, multi-currency, cron jobs, importers), see the official Firefly III documentation. For optional S3 storage (e.g. shared MinIO), see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 

@@ -18,6 +18,7 @@ Movie collection manager for Usenet and torrents. Radarr monitors your wanted mo
    docker volume create torrents_downloads
    docker volume create media_movies
    ```
+   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.

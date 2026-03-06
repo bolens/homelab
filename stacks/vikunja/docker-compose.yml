@@ -1,0 +1,28 @@
+# Vikunja – tasks, lists, and projects (optional CalDAV).
+# No host ports; access via Caddy (e.g. https://vikunja.yourdomain.com → vikunja:3456).
+# Uses SQLite by default; for Postgres set VIKUNJA_DATABASE_TYPE=postgres and DB connection vars.
+services:
+  vikunja:
+    image: vikunja/vikunja:latest
+    container_name: vikunja
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - VIKUNJA_SERVICE_PUBLICURL=${VIKUNJA_SERVICE_PUBLICURL}
+      - VIKUNJA_DATABASE_TYPE=${VIKUNJA_DATABASE_TYPE:-sqlite}
+      - VIKUNJA_DATABASE_PATH=${VIKUNJA_DATABASE_PATH:-/app/vikunja/vikunja.db}
+    volumes:
+      - vikunja_data:/app/vikunja
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  vikunja_data:

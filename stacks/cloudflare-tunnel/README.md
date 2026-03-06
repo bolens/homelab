@@ -24,7 +24,7 @@ Exposes services on your Docker host via Cloudflare—no port forwarding or dyna
 
 | Item | Details |
 |------|---------|
-| **Env** | `TUNNEL_TOKEN` (from Cloudflare) or config file. See [ENV-VARS.md](../../documents/ENV-VARS.md) for TZ/locale. |
+| **Env** | `TUNNEL_TOKEN` (from Cloudflare) or config file. See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. |
 
 **Benefits:** No open 80/443 on router, no dynamic DNS, origin IP hidden, DDoS protection, optional [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/applications/).
 

@@ -1,0 +1,25 @@
+# Linkding – lightweight bookmark manager (tags, import, API).
+# No host ports; access via Caddy (e.g. https://linkding.yourdomain.com → linkding:9090).
+services:
+  linkding:
+    image: sissbruecker/linkding:latest
+    container_name: linkding
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - LD_DISABLE_BACKGROUND_TASKS=${LD_DISABLE_BACKGROUND_TASKS:-false}
+    volumes:
+      - linkding_data:/etc/linkding/data
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  linkding_data:
