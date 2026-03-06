@@ -20,7 +20,7 @@ Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and 
 | **Access** | Via Caddy only (no host port; reverse-proxy to `uptime-kuma:3001`) |
 | **Volume** | `uptime_kuma_data` (persistent data) |
 | **Network** | `monitor` — shared with Caddy for internal checks |
-| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) for TZ/locale. |
+| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. |
 
 **Monitoring targets:**
 

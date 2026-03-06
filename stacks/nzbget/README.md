@@ -19,6 +19,7 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
      ```bash
      docker volume create usenet_downloads
      ```
+   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set:

@@ -11,7 +11,7 @@ Self-hosted URL shortener: one app with web UI, API, and redirects. No path rout
 ## Quick start
 
 1. **Environment**
-   - Copy `.env.example` to `.env`.
+   - Copy `stack.env.example` to `stack.env`.
    - Set `YOURLS_SITE` to the URL you will use in Caddy (e.g. `https://short.home` or `https://short.yourdomain.com`).
    - Set `YOURLS_USER` and `YOURLS_PASS` (admin login for the web UI).
    - Generate and set the required secrets (see **Generating keys and secrets** below).
@@ -20,7 +20,7 @@ Self-hosted URL shortener: one app with web UI, API, and redirects. No path rout
 
 ## Generating keys and secrets
 
-Run these and set the outputs in `.env`:
+Run these and set the outputs in `stack.env`:
 
 ```bash
 # YOURLS_COOKIEKEY – cookie auth
@@ -39,7 +39,7 @@ Set `YOURLS_COOKIEKEY` to the first output; set `YOURLS_DB_PASSWORD` and `YOURLS
 | **Access** | Via Caddy only (no host port; reverse-proxy to `yourls:8080`) |
 | **Network** | `monitor` (external) — Caddy can reach `yourls:8080` |
 | **Images** | `yourls:1.9.2-apache`, `mariadb:11` |
-| **Env** | `YOURLS_SITE`, `YOURLS_USER`, `YOURLS_PASS`, `YOURLS_COOKIEKEY`, `YOURLS_DB_*` (see `.env.example`) |
+| **Env** | `YOURLS_SITE`, `YOURLS_USER`, `YOURLS_PASS`, `YOURLS_COOKIEKEY`, `YOURLS_DB_*` (see `stack.env.example`) |
 | **Storage** | `yourls_data` (user config/plugins), `yourls_db_data` (MariaDB) |
 | **Override** | `Dockerfile` copies `vhost.conf` into the image (adds `DirectoryIndex` so `/` works; no bind mount — works with Portainer/Git deploy) |
 

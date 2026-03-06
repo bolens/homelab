@@ -109,6 +109,8 @@ If you're running Ollama in another Docker stack:
 1. Add Ollama to the same Docker network (`monitor` network)
 2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
+For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ### Database Options
 
 Open WebUI uses SQLite by default. For production, you can configure:

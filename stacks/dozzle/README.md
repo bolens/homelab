@@ -29,7 +29,7 @@ The stack is Portainer-friendly: no host bind mounts (except the Docker socket),
 | **Ports** | Optional `8082:8080` for direct host access. Caddy reaches Dozzle by `dozzle:8080` on the monitor network. |
 | **Volumes** | Docker socket (read-only) for container list and logs. |
 | **Network** | `monitor` (external) — same as Caddy and yourls; join the same pre-existing network. |
-| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) for TZ/locale. Dozzle v10+ auth: put `users.yaml` in the `dozzle_config` volume (path `/data/users.yaml`). Copy from [users.yaml.example](users.yaml.example) and generate password with `docker run -it --rm amir20/dozzle generate admin --password SECRET --email you@example.com --name Admin`. |
+| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. Dozzle v10+ auth: put `users.yaml` in the `dozzle_config` volume (path `/data/users.yaml`). Copy from [users.yaml.example](users.yaml.example) and generate password with `docker run -it --rm amir20/dozzle generate admin --password SECRET --email you@example.com --name Admin`. |
 
 ## Copying users.yaml into the volume
 

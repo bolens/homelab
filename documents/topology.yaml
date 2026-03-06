@@ -49,14 +49,18 @@ app_categories:
 
   - id: apps_dev
     name: "Developer & IT utilities"
-    descriptor: "it-tools, ConvertX, Dozzle, Gitea, CI"
+    descriptor: "it-tools, ConvertX, Dozzle, Gitea, CI, dashboard, PDF"
     stacks:
+      - baserow
       - convertx
       - dozzle
       - gitea
+      - homarr
       - it-tools
+      - ntfy
+      - stirling-pdf
       - woodpecker-ci
-    description: "it-tools, ConvertX, Dozzle, Gitea, Woodpecker CI"
+    description: "it-tools, ConvertX, Dozzle, Gitea, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy"
 
   - id: apps_gaming
     name: "Gaming"
@@ -79,8 +83,10 @@ app_categories:
     name: "Media & personal data"
     descriptor: "photos, docs, music, RSS"
     stacks:
+      - actual-budget
       - archivebox
       - audiobookshelf
+      - bookstack
       - calibre-web
       - emby
       - firefly-iii
@@ -92,6 +98,7 @@ app_categories:
       - kavita
       - komga
       - lanraragi
+      - linkding
       - linkwarden
       - mealie
       - navidrome
@@ -102,7 +109,8 @@ app_categories:
       - seafile
       - slink
       - syncthing
-    description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks)"
+      - vikunja
+    description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, budgeting)"
 
   - id: apps_osint
     name: "OSINT & recon"
@@ -133,10 +141,11 @@ app_categories:
 
   - id: apps_search
     name: "Search"
-    descriptor: "SearXNG metasearch"
+    descriptor: "SearXNG metasearch, Meilisearch"
     stacks:
+      - meilisearch
       - searx-ng
-    description: "SearXNG"
+    description: "SearXNG, Meilisearch"
 
   - id: apps_sec_tooling
     name: "Security & compliance tooling"

@@ -85,6 +85,8 @@ If you're running Ollama in another Docker stack:
 1. Add Ollama to the same Docker network (`monitor` network)
 2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
+For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ### Data Storage
 
 Perplexica data (including search history) is stored in `PERPLEXICA_DATA_PATH`.

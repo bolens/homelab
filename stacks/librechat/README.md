@@ -129,6 +129,8 @@ If you're running Ollama in another Docker stack:
 1. Add Ollama to the same Docker network (`monitor` network)
 2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
+For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ### Authentication
 
 - **Registration**: Control with `ALLOW_REGISTRATION` (default: true)

@@ -69,7 +69,7 @@ Set `PRIVOTRON_VERSION` when building (e.g. a tag or branch name):
 PRIVOTRON_VERSION=v1.0 docker compose build
 ```
 
-Or in `.env`: `PRIVOTRON_VERSION=main`
+Or in `stack.env`: `PRIVOTRON_VERSION=main`
 
 ## Security note
 

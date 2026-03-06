@@ -36,6 +36,8 @@
 | **Storage** | `minio_data` volume for object data and metadata                       |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `minio.yourdomain.com` → `minio:9001` (console) |
 
+For one-time setup and how other stacks use this backend, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ## Using with other stacks
 
 - **Restic** – point `RESTIC_REPOSITORY` at MinIO, for example:
