@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hedgedoc-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-hedgedoc}
+      - POSTGRES_USER=${POSTGRES_USER:-hedgedoc}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - hedgedoc_pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hedgedoc} -d ${POSTGRES_DB:-hedgedoc}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  hedgedoc:
+    image: quay.io/hedgedoc/hedgedoc:1.9.9
+    container_name: hedgedoc
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - stack.env
+    environment:
+      - CMD_DB_URL=postgres://${POSTGRES_USER:-hedgedoc}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hedgedoc}
+      - CMD_DOMAIN=${CMD_DOMAIN}
+      - CMD_URL_ADDPORT=false
+      - CMD_PROTOCOL_USESSL=true
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - hedgedoc_uploads:/hedgedoc/public/uploads
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  hedgedoc_pg_data:
+  hedgedoc_uploads:
+
