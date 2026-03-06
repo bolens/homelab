@@ -1,0 +1,55 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: seafile-mariadb
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_LOG_CONSOLE=true
+      - MYSQL_DATABASE=${SEAFILE_DB_NAME:-seafile}
+      - MYSQL_USER=${SEAFILE_DB_USER:-seafile}
+      - MYSQL_PASSWORD=${SEAFILE_DB_PASSWORD}
+    volumes:
+      - seafile_db:/var/lib/mysql
+    networks:
+      - default
+
+  memcached:
+    image: memcached:alpine
+    container_name: seafile-memcached
+    restart: unless-stopped
+    networks:
+      - default
+
+  seafile:
+    image: seafileltd/seafile-mc:latest
+    container_name: seafile
+    restart: unless-stopped
+    depends_on:
+      - db
+      - memcached
+    env_file:
+      - stack.env
+    environment:
+      - DB_HOST=db
+      - DB_ROOT_PASSWD=${MYSQL_ROOT_PASSWORD}
+      - SEAFILE_DB_NAME=${SEAFILE_DB_NAME:-seafile}
+      - SEAFILE_DB_USER=${SEAFILE_DB_USER:-seafile}
+      - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      - SEAFILE_SERVER_HOSTNAME=${SEAFILE_SERVER_HOSTNAME}
+      - TIME_ZONE=${TIME_ZONE:-America/Denver}
+    volumes:
+      - seafile_data:/shared
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  seafile_db:
+  seafile_data:
+

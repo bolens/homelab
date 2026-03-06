@@ -119,6 +119,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | ----------------------------------------- | -------------- | ------------------------------------------------------------------ |
 | **audiobookshelf**                        | Yes            | Protect hostname.                                                  |
 | **archivebox**                            | Yes            | Protect hostname; control anonymous access via `PUBLIC_INDEX`, `PUBLIC_SNAPSHOTS`, and `PUBLIC_ADD_VIEW`. |
+| **authentik**                             | Yes            | Protect hostname; `AUTHENTIK_HOST` must match or OAuth/redirects break. |
 | **asf**                                   | Yes            | Protect ASF IPC hostname; set `IPCPassword` in ASF.json.           |
 | **calibre-web**                           | Yes            | Protect hostname; app has its own login (change default admin password). |
 | **caddy**                                 | Yes            | Reverse proxy; protect the hostnames that Caddy serves.            |
@@ -166,7 +167,19 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **jellyfin**                              | Yes            | Protect Jellyfin hostname; app has its own accounts, Access adds an outer SSO/OTP layer. |
 | **rtorrent-flood**                        | Yes            | Protect Flood UI hostname; torrent and tracker details are sensitive and should sit behind SSO/OTP. |
 | **emby**                                  | Yes            | Protect Emby hostname; app has its own accounts, Access adds an outer SSO/OTP layer. |
+| **firefly-iii**                           | Yes            | Protect hostname; set `APP_URL` to that URL. |
+| **gitea**                                 | Yes            | Protect hostname; set `GITEA_ROOT_URL` to that URL; OAuth apps use it for redirects. |
+| **hedgedoc**                              | Yes            | Protect hostname; set `CMD_DOMAIN` to match. |
+| **joplin-server**                         | Yes            | Protect hostname; set `APP_BASE_URL` to that URL. |
+| **keycloak**                              | Yes            | Protect hostname; `KC_HOSTNAME` must match or OAuth/redirects break. |
+| **minio**                                 | Yes            | Protect console hostname (e.g. minio.yourdomain.com); optional `MINIO_SERVER_URL`. |
+| **nextcloud**                             | Yes            | Protect hostname; add hostname to `NEXTCLOUD_TRUSTED_DOMAINS`. |
+| **outline**                               | Yes            | Protect hostname; set `URL` to that URL; IdP redirect URIs use it. |
+| **scrutiny**                              | Yes            | Protect hostname. |
+| **seafile**                               | Yes            | Protect hostname; set `SEAFILE_SERVER_HOSTNAME` to match. |
+| **syncthing**                             | Yes            | Protect hostname. |
 | **vaultwarden**                           | Yes            | Protect Vaultwarden hostname; optional `ADMIN_TOKEN` for `/admin`. |
+| **woodpecker-ci**                         | Yes            | Protect hostname (e.g. ci.yourdomain.com); Gitea OAuth redirect must match. |
 | **web-check**                             | Yes            | Protect hostname.                                                  |
 | **yourls**                                | Yes            | Protect shortener hostname(s).                                     |
 

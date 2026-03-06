@@ -1,0 +1,24 @@
+services:
+  logseq-sync:
+    build:
+      context: ./repo
+      dockerfile: Dockerfile
+    container_name: logseq-sync
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - logseq_sync_data:/data
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  logseq_sync_data:
+

@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: woodpecker-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${WOODPECKER_DB_NAME:-woodpecker}
+      - POSTGRES_USER=${WOODPECKER_DB_USER:-woodpecker}
+      - POSTGRES_PASSWORD=${WOODPECKER_DB_PASSWORD}
+    volumes:
+      - woodpecker_pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WOODPECKER_DB_USER:-woodpecker} -d ${WOODPECKER_DB_NAME:-woodpecker}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  server:
+    image: woodpeckerci/woodpecker-server:latest
+    container_name: woodpecker-server
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - WOODPECKER_DATABASE_DRIVER=postgres
+      - WOODPECKER_DATABASE_DATASOURCE=postgres://${WOODPECKER_DB_USER:-woodpecker}:${WOODPECKER_DB_PASSWORD}@postgres:5432/${WOODPECKER_DB_NAME:-woodpecker}?sslmode=disable
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - WOODPECKER_GITEA=${WOODPECKER_GITEA:-true}
+      - WOODPECKER_GITEA_URL=${WOODPECKER_GITEA_URL}
+      - WOODPECKER_GITEA_CLIENT=${WOODPECKER_GITEA_CLIENT}
+      - WOODPECKER_GITEA_SECRET=${WOODPECKER_GITEA_SECRET}
+      - WOODPECKER_OPEN=${WOODPECKER_OPEN:-false}
+      - TZ=${TZ:-America/Denver}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - default
+      - monitor
+
+  agent:
+    image: woodpeckerci/woodpecker-agent:latest
+    container_name: woodpecker-agent
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - WOODPECKER_SERVER=${WOODPECKER_SERVER:-woodpecker-server:9000}
+      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
+      - TZ=${TZ:-America/Denver}
+    depends_on:
+      server:
+        condition: service_started
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - default
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  woodpecker_pg_data:
+

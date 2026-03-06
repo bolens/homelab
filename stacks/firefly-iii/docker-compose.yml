@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: firefly-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_DATABASE:-firefly}
+      - POSTGRES_USER=${DB_USERNAME:-firefly}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - firefly_pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-firefly} -d ${DB_DATABASE:-firefly}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  firefly:
+    image: fireflyiii/core:latest
+    container_name: firefly-iii
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - stack.env
+    environment:
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-firefly}
+      - DB_USERNAME=${DB_USERNAME:-firefly}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - APP_URL=${APP_URL}
+      - APP_KEY=${APP_KEY}
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - firefly_upload:/var/www/html/storage/upload
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  firefly_pg_data:
+  firefly_upload:
+
