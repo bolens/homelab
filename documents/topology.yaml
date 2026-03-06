@@ -1,6 +1,11 @@
 # Topology data for the homelab diagram in docker/README.md.
-# Run: python3 scripts/build-topology.py  (from docker/ repo root)
-# to regenerate the Mermaid diagram and prose.
+# Run from docker/ repo root: python3 scripts/build-topology.py --in-place
+# to regenerate the Mermaid diagram and prose in README.md (requires PyYAML).
+#
+# When adding a new stack: add it to the appropriate app_categories[].stacks list
+# (or to infra if it is infrastructure/monitoring). Keep stack names in
+# alphabetical order within each category. Update the category description
+# if the new stack changes what the category represents.
 
 ingress:
   - id: tunnel
@@ -55,12 +60,13 @@ app_categories:
       - convertx
       - dozzle
       - gitea
+      - harbor
       - homarr
       - it-tools
       - ntfy
       - stirling-pdf
       - woodpecker-ci
-    description: "it-tools, ConvertX, Dozzle, Gitea, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy"
+    description: "it-tools, ConvertX, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy"
 
   - id: apps_gaming
     name: "Gaming"
@@ -81,7 +87,7 @@ app_categories:
 
   - id: apps_media
     name: "Media & personal data"
-    descriptor: "photos, docs, music, RSS"
+    descriptor: "photos, docs, music, RSS, notes"
     stacks:
       - actual-budget
       - archivebox
@@ -95,6 +101,7 @@ app_categories:
       - immich
       - jellyfin
       - joplin-server
+      - logseq-sync
       - kavita
       - komga
       - lanraragi
@@ -110,7 +117,7 @@ app_categories:
       - slink
       - syncthing
       - vikunja
-    description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, budgeting)"
+    description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting)"
 
   - id: apps_osint
     name: "OSINT & recon"
@@ -137,7 +144,7 @@ app_categories:
     stacks:
       - naisho
       - privotron
-    description: "data broker deletion (Naisho, Pivotron)"
+    description: "data broker deletion (Naisho, Privotron)"
 
   - id: apps_search
     name: "Search"
