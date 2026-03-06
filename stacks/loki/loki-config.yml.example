@@ -1,0 +1,66 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+ingester:
+  lifecycler:
+    address: 127.0.0.1
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    final_sleep: 0s
+  chunk_idle_period: 3m
+  max_chunk_age: 1h
+  chunk_target_size: 1536000
+  chunk_retain_period: 30s
+  wal:
+    enabled: true
+    dir: /loki/wal
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /loki/index
+    cache_location: /loki/index_cache
+    shared_store: filesystem
+  filesystem:
+    directory: /loki/chunks
+
+limits_config:
+  ingestion_rate_mb: 8
+  ingestion_burst_size_mb: 16
+  max_query_series: 5000
+
+query_range:
+  parallelise_shardable_queries: true
+
+frontend:
+  log_queries_longer_than: 5s
+  compress_responses: true
+
+frontend_worker:
+  frontend_address: loki:9095
+
+ruler:
+  storage:
+    type: local
+    local:
+      directory: /loki/rules
+  rule_path: /loki/rules-temp
+  alertmanager_url: http://alertmanager:9093
+  ring:
+    kvstore:
+      store: inmemory
+  enable_api: true
+

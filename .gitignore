@@ -15,6 +15,8 @@ config.yml
 config.yaml
 **/config.yml
 **/config.yaml
+**/loki-config.yml
+**/promtail-config.yml
 Caddyfile
 **/Caddyfile
 !**/*.example

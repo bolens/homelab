@@ -1,0 +1,9 @@
+version: "3.9"
+
+# NOTE: Harbor is typically deployed using its own installer and docker-compose
+# bundle from the official project, which generates a much larger compose file
+# and configuration. This placeholder file exists so the `harbor` stack has a
+# directory and docs in this repo. See README.md in this directory for details.
+
+services: {}
+

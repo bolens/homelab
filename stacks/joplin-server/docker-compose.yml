@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: joplin-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-joplin}
+      - POSTGRES_USER=${POSTGRES_USER:-joplin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - joplin_pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-joplin} -d ${POSTGRES_DB:-joplin}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  joplin-server:
+    image: joplin/server:latest
+    container_name: joplin-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - stack.env
+    environment:
+      - APP_PORT=22300
+      - APP_BASE_URL=${APP_BASE_URL}
+      - DB_CLIENT=pg
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DATABASE=${POSTGRES_DB:-joplin}
+      - POSTGRES_USER=${POSTGRES_USER:-joplin}
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=postgres
+      - TZ=${TZ:-America/Denver}
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  joplin_pg_data:
+

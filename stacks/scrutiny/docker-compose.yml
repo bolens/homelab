@@ -1,0 +1,31 @@
+services:
+  scrutiny:
+    image: ghcr.io/analogj/scrutiny:master-omnibus
+    container_name: scrutiny
+    restart: unless-stopped
+    # Web UI on 8080; attach to monitor for Caddy.
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      # Configuration and collected metrics
+      - scrutiny_config:/opt/scrutiny/config
+      - scrutiny_influx:/opt/scrutiny/influxdb
+      # Required for SMART metrics; adjust devices for your host
+      - /run/udev:/run/udev:ro
+    devices:
+      # Example: expose all disks; you may want to restrict this list
+      - /dev:/dev
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  scrutiny_config:
+  scrutiny_influx:
+

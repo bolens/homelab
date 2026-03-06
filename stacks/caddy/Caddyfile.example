@@ -309,27 +309,33 @@ onionprobe.home, onionprobe.local {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+
 # Public HTTPS (yourdomain.com) – Cloudflare DNS TLS
 # Requires Caddy built with Cloudflare DNS module (e.g. caddy-dns/cloudflare).
 # Set CLOUDFLARE_API_TOKEN in stack.env (see stack.env.example).
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Infrastructure
-portainer.yourdomain.com {
+
+ail.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:9443
+	reverse_proxy https://ail:7000 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+		header_up X-Forwarded-Proto https
+	}
 }
 
-status.yourdomain.com {
+archivebox.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3001
+	reverse_proxy archivebox:8000
 }
 
-# Tools
 asf.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -337,11 +343,25 @@ asf.yourdomain.com {
 	reverse_proxy asf:1242
 }
 
-it-tools.yourdomain.com {
+bazarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy bazarr:6767
+}
+
+cadvisor.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy cadvisor:8080
+}
+
+calibre-web.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy calibre-web:8083
 }
 
 convertx.yourdomain.com {
@@ -358,14 +378,13 @@ dozzle.yourdomain.com, logs.yourdomain.com {
 	reverse_proxy host.docker.internal:8082
 }
 
-n8n.yourdomain.com {
+emby.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy n8n:5678
+	reverse_proxy emby:8096
 }
 
-# Metrics
 grafana.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -373,68 +392,11 @@ grafana.yourdomain.com {
 	reverse_proxy grafana:3000
 }
 
-prometheus.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy prometheus:9090
-}
-
-cadvisor.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy cadvisor:8080
-}
-
-onionprobe.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy op-grafana:3000
-}
-
-web-check.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy host.docker.internal:3000
-}
-
-searx-ng.yourdomain.com {
+headscale.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy host.docker.internal:8080
-}
-
-social-hunt.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy social-hunt:8000
-}
-
-maigret.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy maigret:5000
-}
-
-slink.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy slink:3000
-}
-
-# Documents & media
-paperless-ngx.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy host.docker.internal:8000
 }
 
 immich.yourdomain.com {
@@ -444,47 +406,18 @@ immich.yourdomain.com {
 	reverse_proxy host.docker.internal:2283
 }
 
-archivebox.yourdomain.com {
+infisical.yourdomain.com, secrets.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy archivebox:8000
+	reverse_proxy host.docker.internal:8080
 }
 
-music.yourdomain.com {
+it-tools.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy navidrome:4533
-}
-
-calibre-web.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy calibre-web:8083
-}
-
-komga.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy komga:25600
-}
-
-kavita.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy kavita:5000
-}
-
-# Media & downloads
-plex.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy plex:32400
+	reverse_proxy host.docker.internal:8080
 }
 
 jellyfin.yourdomain.com {
@@ -494,18 +427,32 @@ jellyfin.yourdomain.com {
 	reverse_proxy jellyfin:8096
 }
 
-sonarr.yourdomain.com {
+kavita.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy sonarr:8989
+	reverse_proxy kavita:5000
 }
 
-radarr.yourdomain.com {
+komga.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy radarr:7878
+	reverse_proxy komga:25600
+}
+
+lanraragi.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy lanraragi:3000
+}
+
+librechat.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3080
 }
 
 lidarr.yourdomain.com {
@@ -515,11 +462,35 @@ lidarr.yourdomain.com {
 	reverse_proxy lidarr:8686
 }
 
-readarr.yourdomain.com {
+links.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy readarr:8787
+	reverse_proxy host.docker.internal:3000
+}
+
+linkstack.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	header Content-Security-Policy "upgrade-insecure-requests"
+	reverse_proxy linkstack:80 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+maigret.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy maigret:5000
+}
+
+music.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy navidrome:4533
 }
 
 mylar3.yourdomain.com {
@@ -529,25 +500,18 @@ mylar3.yourdomain.com {
 	reverse_proxy mylar3:8090
 }
 
-romm.yourdomain.com {
+n8n.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy romm:8080
+	reverse_proxy n8n:5678
 }
 
-bazarr.yourdomain.com {
+naisho.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy bazarr:6767
-}
-
-prowlarr.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy prowlarr:9696
+	reverse_proxy naisho:3000
 }
 
 nzbget.yourdomain.com {
@@ -564,131 +528,18 @@ nzbhydra.yourdomain.com {
 	reverse_proxy nzbhydra2:5076
 }
 
-rtorrent.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy rtorrent-flood:3000
-}
-
-emby.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy emby:8096
-}
-
-# Productivity
-links.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy host.docker.internal:3000
-}
-
-# Security & paste
-vault.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy host.docker.internal:11001
-}
-
-infisical.yourdomain.com, secrets.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy host.docker.internal:8080
-}
-
-headscale.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy host.docker.internal:8080
-}
-
-paste.yourdomain.com, privatebin.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy privatebin:8080
-}
-
-pwpush.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy pwpush:5100
-}
-
-simplelogin.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy simplelogin:7777
-}
-
-ail.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy https://ail:7000 {
-		transport http {
-			tls_insecure_skip_verify
-		}
-		header_up X-Forwarded-Proto https
-	}
-}
-
-naisho.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy naisho:3000
-}
-
-stoat.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy stoat-caddy:80
-}
-
-# Shorteners & link-in-bio
-short.yourdomain.com, url-shortener.yourdomain.com, s.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy yourls:8080 {
-		header_up X-Forwarded-Proto https
-	}
-}
-
-# LinkStack – add extra hostnames (e.g. me.yourdomain.com) to the same block if desired
-linkstack.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	header Content-Security-Policy "upgrade-insecure-requests"
-	reverse_proxy linkstack:80 {
-		header_up X-Forwarded-Proto https
-	}
-}
-
-lanraragi.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy lanraragi:3000
-}
-
-# AI / LLM – adjust host ports to match your stack .env
 ollama.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy host.docker.internal:11434
+}
+
+onionprobe.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy op-grafana:3000
 }
 
 open-notebook.yourdomain.com, notebook.yourdomain.com {
@@ -698,13 +549,6 @@ open-notebook.yourdomain.com, notebook.yourdomain.com {
 	reverse_proxy host.docker.internal:8502
 }
 
-perplexica.yourdomain.com {
-	tls {
-		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
-	}
-	reverse_proxy host.docker.internal:3001
-}
-
 open-webui.yourdomain.com, chat.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -712,13 +556,158 @@ open-webui.yourdomain.com, chat.yourdomain.com {
 	reverse_proxy host.docker.internal:3000
 }
 
-librechat.yourdomain.com {
+paperless-ngx.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3080
+	reverse_proxy host.docker.internal:8000
 }
 
-:80 {
-	respond "Caddy is running. Add reverse_proxy blocks for your services." 200
+paste.yourdomain.com, privatebin.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy privatebin:8080
+}
+
+perplexica.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3001
+}
+
+plex.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy plex:32400
+}
+
+portainer.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:9443
+}
+
+prometheus.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy prometheus:9090
+}
+
+prowlarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy prowlarr:9696
+}
+
+pwpush.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy pwpush:5100
+}
+
+radarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy radarr:7878
+}
+
+readarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy readarr:8787
+}
+
+romm.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy romm:8080
+}
+
+rtorrent.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy rtorrent-flood:3000
+}
+
+searx-ng.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:8080
+}
+
+short.yourdomain.com, url-shortener.yourdomain.com, s.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy yourls:8080 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+simplelogin.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy simplelogin:7777
+}
+
+slink.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy slink:3000
+}
+
+social-hunt.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy social-hunt:8000
+}
+
+sonarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy sonarr:8989
+}
+
+status.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3001
+}
+
+stoat.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy stoat-caddy:80
+}
+
+vault.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:11001
+}
+
+web-check.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy host.docker.internal:3000
 }

@@ -1,0 +1,26 @@
+services:
+  syncthing:
+    image: syncthing/syncthing:latest
+    container_name: syncthing
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - syncthing_config:/var/syncthing/config
+      # Bind-mount or named volumes for folders you want to sync; adjust as needed.
+      - syncthing_data:/var/syncthing/data
+    # No host ports; access the web UI via Caddy on the monitor network.
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  syncthing_config:
+  syncthing_data:
+

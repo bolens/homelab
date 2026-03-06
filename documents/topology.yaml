@@ -49,12 +49,14 @@ app_categories:
 
   - id: apps_dev
     name: "Developer & IT utilities"
-    descriptor: "it-tools, ConvertX, Dozzle"
+    descriptor: "it-tools, ConvertX, Dozzle, Gitea, CI"
     stacks:
       - convertx
       - dozzle
+      - gitea
       - it-tools
-    description: "it-tools, ConvertX, Dozzle"
+      - woodpecker-ci
+    description: "it-tools, ConvertX, Dozzle, Gitea, Woodpecker CI"
 
   - id: apps_gaming
     name: "Gaming"
@@ -81,18 +83,25 @@ app_categories:
       - audiobookshelf
       - calibre-web
       - emby
+      - firefly-iii
       - freshrss
+      - hedgedoc
       - immich
       - jellyfin
+      - joplin-server
       - kavita
       - komga
       - lanraragi
       - linkwarden
       - mealie
       - navidrome
+      - nextcloud
+      - outline
       - paperless-ngx
       - plex
+      - seafile
       - slink
+      - syncthing
     description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks)"
 
   - id: apps_osint
@@ -143,15 +152,17 @@ app_categories:
 
   - id: apps_security
     name: "Security & identity"
-    descriptor: "passwords, secrets, aliases"
+    descriptor: "passwords, secrets, aliases, IdP"
     stacks:
-      - vaultwarden
-      - infisical
+      - authentik
       - guacamole
-      - privatebin
+      - infisical
+      - keycloak
       - password-pusher
+      - privatebin
       - simplelogin
-    description: "passwords, secrets, aliases, remote desktop, secure sharing"
+      - vaultwarden
+    description: "passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik)"
 
   - id: apps_tor
     name: "Tor / dark web"
@@ -184,12 +195,20 @@ infra:
     label: "grafana<br>Dashboards"
   - id: kuma
     label: "uptime-kuma<br>Monitoring"
+  - id: loki
+    label: "loki<br>Log aggregation"
+  - id: minio
+    label: "minio<br>S3 object storage"
   - id: portainer
     label: "portainer<br>Docker UI"
   - id: postfix
     label: "postfix<br>SMTP relay"
   - id: prometheus
     label: "prometheus<br>Metrics"
+  - id: restic
+    label: "restic<br>Backups (cron)"
+  - id: scrutiny
+    label: "scrutiny<br>SMART disk health"
   - id: watchtower
     label: "watchtower<br>Auto-updates"
 

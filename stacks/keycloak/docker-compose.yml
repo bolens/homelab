@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: keycloak-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-keycloak}
+      - POSTGRES_USER=${POSTGRES_USER:-keycloak}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - keycloak_pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-keycloak} -d ${POSTGRES_DB:-keycloak}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - stack.env
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-keycloak}
+      - KC_DB_USERNAME=${POSTGRES_USER:-keycloak}
+      - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KC_PROXY=edge
+      - KC_HOSTNAME=${KC_HOSTNAME}
+      - TZ=${TZ:-America/Denver}
+    command:
+      - start
+      - --http-port=8080
+      - --hostname-strict=false
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  keycloak_pg_data:
+

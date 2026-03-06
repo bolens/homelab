@@ -1,0 +1,34 @@
+services:
+  restic:
+    image: mazzolino/restic:latest
+    container_name: restic
+    restart: unless-stopped
+    # CLI / cron-only stack: no host ports, no Caddy.
+    # The container runs backups on a schedule via BACKUP_CRON.
+    env_file:
+      - stack.env
+    environment:
+      # Example: S3 over MinIO on the monitor network
+      - RESTIC_REPOSITORY=${RESTIC_REPOSITORY}
+      - RESTIC_PASSWORD=${RESTIC_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - BACKUP_CRON=${BACKUP_CRON:-0 3 * * *}
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      # Paths you want to back up from the host; adjust to your setup.
+      - /srv/docker:/data/docker:ro
+      - /srv/media:/data/media:ro
+      # Cache to speed up subsequent backups
+      - restic_cache:/cache
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  restic_cache:
+
