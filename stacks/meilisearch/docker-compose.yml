@@ -1,0 +1,27 @@
+# Meilisearch – fast search engine (API, typo tolerance, faceting).
+# No host ports; access via Caddy (e.g. https://meilisearch.yourdomain.com → meilisearch:7700).
+# Set MEILI_MASTER_KEY when exposing; optional MEILI_ENV=production.
+services:
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: meilisearch
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-}
+      - MEILI_ENV=${MEILI_ENV:-development}
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  meilisearch_data:

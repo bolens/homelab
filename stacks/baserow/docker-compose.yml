@@ -1,0 +1,26 @@
+# Baserow – self-hosted Airtable/Notion-like database (tables, views, API).
+# No host ports; access via Caddy (e.g. https://baserow.yourdomain.com → baserow:80).
+# Uses embedded database (SQLite) for simplicity; for production consider Postgres (see upstream docs).
+services:
+  baserow:
+    image: baserow/baserow:latest
+    container_name: baserow
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - BASEROW_PUBLIC_URL=${BASEROW_PUBLIC_URL}
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - baserow_data:/baserow/data
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  baserow_data:

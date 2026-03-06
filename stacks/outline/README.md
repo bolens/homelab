@@ -27,6 +27,7 @@
      ```
 
    - Create the `outline` bucket in MinIO.
+   - For shared MinIO setup and one-time checklist, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 3. **Deploy**
 
    ```bash

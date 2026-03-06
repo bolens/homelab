@@ -21,6 +21,8 @@ Torrent client with **all traffic routed through a VPN** (Gluetun). Intended for
    docker volume create torrents_downloads
    ```
 
+   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 2. **Environment**
 
    - Copy `stack.env.example` to `stack.env`.

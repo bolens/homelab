@@ -10,6 +10,9 @@ stack.env.*
 !stack.env.example
 !stack.env.*.example
 
+# Shared env (TZ, locale) – copy from shared.env.example
+shared.env
+
 # Config files that may contain secrets (keep .example templates)
 config.yml
 config.yaml

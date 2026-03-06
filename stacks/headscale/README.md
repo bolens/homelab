@@ -19,7 +19,7 @@ Self-hosted implementation of the Tailscale control server. Lets you run your ow
      - Generate base64: `base64 -w 0 config.yaml` (Linux) or `base64 -i config.yaml | tr -d '\n'` (macOS).
      - In the stack, add environment variable `HEADSCALE_CONFIG_B64` and paste the base64 string.
      - Deploy the stack. An init container writes the config into the volume; Headscale starts after it.
-   - **CLI:** In the stack directory, set `HEADSCALE_CONFIG_B64` in `.env` (paste the base64 output), then:
+   - **CLI:** In the stack directory, set `HEADSCALE_CONFIG_B64` in `stack.env` (paste the base64 output), then:
      ```bash
      docker compose up -d
      ```

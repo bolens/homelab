@@ -75,7 +75,7 @@ See **Generating keys and secrets** above for copy-paste commands.
 
 ## Optional
 
-- **SMTP_*** – For email invites and alerts. For example, when using the `smtp-relay` stack:  
+- **SMTP_*** – For email invites and alerts. For the shared Postfix relay, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md). For example, when using the `smtp-relay` stack:  
   - `SMTP_HOST=smtp-relay` (inside Docker) or `smtp.yourdomain.com` (outside).  
   - `SMTP_PORT=587`  
   - `SMTP_FROM_ADDRESS=noreply@yourdomain.com`  

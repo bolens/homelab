@@ -48,7 +48,7 @@ Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that 
 
 ## Sending mail (outbound)
 
-To send transactional and forwarding emails via your existing relay (e.g. the `postfix` stack):
+To send transactional and forwarding emails via your existing relay (e.g. the `postfix` stack), set the following. For shared SMTP relay setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 - Set `POSTFIX_SERVER=smtp-relay` (or the hostname of your SMTP relay on the same Docker network).
 - Set `POSTFIX_PORT=587` if your relay listens on 587 (e.g. boky/postfix submission).

@@ -76,6 +76,51 @@ slink.home, slink.local {
 	reverse_proxy slink:3000
 }
 
+actual-budget.home, actual-budget.local {
+	tls internal
+	reverse_proxy actual-budget:5006
+}
+
+baserow.home, baserow.local {
+	tls internal
+	reverse_proxy baserow:80
+}
+
+bookstack.home, bookstack.local {
+	tls internal
+	reverse_proxy bookstack:80
+}
+
+homarr.home, homarr.local {
+	tls internal
+	reverse_proxy homarr:7575
+}
+
+linkding.home, linkding.local {
+	tls internal
+	reverse_proxy linkding:9090
+}
+
+meilisearch.home, meilisearch.local {
+	tls internal
+	reverse_proxy meilisearch:7700
+}
+
+ntfy.home, ntfy.local {
+	tls internal
+	reverse_proxy ntfy:80
+}
+
+stirling-pdf.home, stirling-pdf.local {
+	tls internal
+	reverse_proxy stirling-pdf:8080
+}
+
+vikunja.home, vikunja.local {
+	tls internal
+	reverse_proxy vikunja:3456
+}
+
 # Documents & media
 paperless-ngx.home, paperless-ngx.local {
 	tls internal
@@ -329,6 +374,13 @@ ail.yourdomain.com {
 	}
 }
 
+actual-budget.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy actual-budget:5006
+}
+
 archivebox.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -343,11 +395,25 @@ asf.yourdomain.com {
 	reverse_proxy asf:1242
 }
 
+baserow.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy baserow:80
+}
+
 bazarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy bazarr:6767
+}
+
+bookstack.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy bookstack:80
 }
 
 cadvisor.yourdomain.com {
@@ -397,6 +463,13 @@ headscale.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy host.docker.internal:8080
+}
+
+homarr.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy homarr:7575
 }
 
 immich.yourdomain.com {
@@ -469,6 +542,13 @@ links.yourdomain.com {
 	reverse_proxy host.docker.internal:3000
 }
 
+linkding.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy linkding:9090
+}
+
 linkstack.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -484,6 +564,13 @@ maigret.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy maigret:5000
+}
+
+meilisearch.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy meilisearch:7700
 }
 
 music.yourdomain.com {
@@ -526,6 +613,13 @@ nzbhydra.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy nzbhydra2:5076
+}
+
+ntfy.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy ntfy:80
 }
 
 ollama.yourdomain.com {
@@ -691,6 +785,13 @@ status.yourdomain.com {
 	reverse_proxy host.docker.internal:3001
 }
 
+stirling-pdf.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy stirling-pdf:8080
+}
+
 stoat.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -703,6 +804,13 @@ vault.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy host.docker.internal:11001
+}
+
+vikunja.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy vikunja:3456
 }
 
 web-check.yourdomain.com {

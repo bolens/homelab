@@ -18,6 +18,7 @@ TV series management for Usenet and torrents. Sonarr monitors your library, grab
    docker volume create torrents_downloads
    docker volume create media_tv
    ```
+   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set:

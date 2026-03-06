@@ -60,7 +60,7 @@ Set these in `stack.env` (see `stack.env.example` for comments and examples):
 
 ## Notes
 
-- This stack assumes you have an S3-compatible backend (e.g. the `minio` stack) reachable on the `monitor` network.
+- This stack assumes you have an S3-compatible backend (e.g. the `minio` stack) reachable on the `monitor` network. For shared MinIO setup and one-time checklist, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 - Restores are performed via the CLI inside the container, e.g.:
 
   ```bash

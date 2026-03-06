@@ -11,7 +11,7 @@ Access via Caddy at **https://mylar3.yourdomain.com** (or your configured hostna
 ## Quick start
 
 1. Copy `stack.env.example` → `stack.env` (optional: set `PUID`, `PGID`, `TZ`).
-2. Ensure the **usenet** and **torrents** networks exist (same as Sonarr/Radarr). Create them if needed: `docker network create usenet` and `docker network create torrents`.
+2. Ensure the **usenet** and **torrents** networks exist (same as Sonarr/Radarr). Create them if needed: `docker network create usenet` and `docker network create torrents`. For external networks/volumes and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 3. From the stack directory: `docker compose up -d`.
 4. In the web UI: add download clients (NZBGet at `nzbget:6789`, qBittorrent at `qbittorrent:8080`), add indexers (Prowlarr or NZBHydra2), then add series and set the comics path to `/comics`.
 

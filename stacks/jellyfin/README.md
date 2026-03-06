@@ -16,6 +16,7 @@ Open-source media server for movies, TV shows, and music. Jellyfin serves your m
    docker volume create media_movies
    docker volume create media_music
    ```
+   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID` to match your host user/group.

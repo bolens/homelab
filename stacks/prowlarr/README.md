@@ -15,6 +15,7 @@ Indexer manager and proxy for Usenet and torrents. Prowlarr manages indexers cen
    docker network create usenet
    docker network create torrents
    ```
+   For external networks/volumes and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.

@@ -1,0 +1,24 @@
+# Stirling-PDF – PDF tools (merge, split, OCR, convert, watermark, etc.).
+# No host ports; access via Caddy (e.g. https://stirling-pdf.yourdomain.com → stirling-pdf:8080).
+services:
+  stirling-pdf:
+    image: stirlingtools/stirling-pdf:latest
+    container_name: stirling-pdf
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    environment:
+      - TZ=${TZ:-America/Denver}
+    volumes:
+      - stirling_pdf_data:/usr/share/tesseract-ocr/4.05/tessdata
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  stirling_pdf_data:

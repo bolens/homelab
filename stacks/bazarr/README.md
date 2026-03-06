@@ -15,6 +15,7 @@ Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatica
    docker volume create media_tv
    docker volume create media_movies
    ```
+   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.
