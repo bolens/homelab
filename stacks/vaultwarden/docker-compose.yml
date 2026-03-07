@@ -17,7 +17,6 @@ services:
       - vw_data:/data
     restart: unless-stopped
     networks:
-      - default
       - monitor
 
 networks:

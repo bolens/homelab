@@ -34,8 +34,15 @@
 
 Scrutiny's configuration (alerts, notifications, thresholds) is stored in its config files under `/opt/scrutiny/config` inside the container. Those are persisted in the `scrutiny_config` volume.
 
+## Deploying via Portainer
+
+1. **Stacks** → **Add stack** → paste the contents of `docker-compose.yml`.
+2. **Environment variables**: Add `TZ` (e.g. `America/Denver`) if not using shared.env.
+3. Ensure the **monitor** network exists (create it if needed: Networks → Add network → name `monitor`, external).
+4. Deploy. Scrutiny uses `privileged: true` for `/dev` access; ensure your Portainer host allows privileged containers.
+
 ## Notes
 
 - This stack mounts `/run/udev` and `/dev` so Scrutiny can read SMART data from your disks. Review and restrict these mounts if needed for your environment.
-- For email alerts and advanced options, see the upstream Scrutiny documentation.
+- For email alerts and advanced options, see the upstream Scrutiny documentation. To use the shared **Postfix** relay, configure your SMTP host as `smtp-relay` and port `587` in Scrutiny's config. With **Mailpit** (internal-only), all alert emails appear in the Mailpit web UI.
 

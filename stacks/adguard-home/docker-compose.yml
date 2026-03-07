@@ -1,0 +1,28 @@
+services:
+  adguard-home:
+    image: adguard/adguardhome:latest
+    container_name: adguard-home
+    restart: unless-stopped
+    # DNS ports must be exposed on the host so LAN clients/routers can use this
+    # host as their DNS server. HTTPS UI is reached via Caddy on the monitor network.
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "853:853/tcp"
+    volumes:
+      - adguard_conf:/opt/adguardhome/conf
+      - adguard_work:/opt/adguardhome/work
+    networks:
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  adguard_conf: {}
+  adguard_work: {}
+

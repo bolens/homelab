@@ -3,6 +3,7 @@ services:
     image: ghcr.io/analogj/scrutiny:master-omnibus
     container_name: scrutiny
     restart: unless-stopped
+    privileged: true  # Required for /dev access to read SMART data
     # Web UI on 8080; attach to monitor for Caddy.
     env_file:
       - stack.env

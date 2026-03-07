@@ -26,6 +26,8 @@ Stacks use **external** Docker networks so Caddy and apps can talk without bindi
 
 Create these once (e.g. from the docker repo root or any host where you run stacks). Stacks that need them declare `external: true` and attach the relevant service(s).
 
+**Address pool exhaustion:** Single-service stacks (Caddy, Grafana, ntfy, Uptime Kuma, etc.) use only the external `monitor` network (no per-stack default network), so Docker does not create a new subnet per stack and you avoid “all predefined address pools have been fully subnetted”. Multi-service stacks (app + database) still create one internal network for service-to-service communication. If you hit pool limits with many multi-service stacks, create external networks in advance or adjust Docker’s default address pools in `daemon.json`.
+
 ### MinIO (S3-compatible storage)
 
 The **minio** stack is the single object store for:
@@ -38,7 +40,11 @@ All run on the `monitor` network and use `http://minio:9000` (S3 API) or `minio:
 
 ### Postfix (SMTP relay)
 
-The **postfix** stack (folder `stacks/postfix`) is the shared outbound mail relay. Stacks that send email (e.g. n8n, Naisho, Password Pusher, SimpleLogin, Infisical) point to `smtp-relay:587` on the `monitor` network. Configure `RELAYHOST`, `ALLOWED_SENDER_DOMAINS`, etc. in the postfix stack; see [stacks/postfix/README.md](../stacks/postfix/README.md).
+The **postfix** stack (folder `stacks/postfix`) is the shared outbound mail relay. Stacks that send email point to `smtp-relay:587` on the `monitor` network. Configure `RELAYHOST`, `ALLOWED_SENDER_DOMAINS`, etc. in the postfix stack; see [stacks/postfix/README.md](../stacks/postfix/README.md).
+
+**Stacks with SMTP relay support:** Alertmanager, Authentik, Diun, Firefly III, Gitea, Hedgedoc, Infisical, Joplin Server, Keycloak, Linkwarden, n8n, Naisho, Nextcloud, Outline, Password Pusher, Romm, Scrutiny, SimpleLogin, Snipe-IT, Uptime Kuma. See each stack’s README for configuration (env vars or admin UI).
+
+For **internal-only mailing** (no external delivery), deploy the **mailpit** stack and set Postfix `RELAYHOST=mailpit:1025`. Mailpit catches all mail and displays it in a web UI at `https://mailpit.yourdomain.com`; see [stacks/mailpit/README.md](../stacks/mailpit/README.md).
 
 ### Ollama (LLM runtime)
 

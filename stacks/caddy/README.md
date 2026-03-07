@@ -28,6 +28,53 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 - **Local DNS:** Add A records (e.g. `portainer.home`, `kuma.home`) to your resolver so hostnames point at this host. Use `https://portainer.home` etc.
 - **Public (your domain):** Use Cloudflare Tunnel (see `stacks/cloudflare-tunnel`) or port forwarding + Let's Encrypt. Set hostnames and email in `Caddyfile`.
 - **URL shortener (YOURLS):** The shortener is reverse-proxied at the same hostnames (e.g. short.yourdomain.com, s.yourdomain.com). Login is handled by YOURLS itself (see `stacks/yourls`).
+- **Optional HTTP forward proxy:** For CLI tools (e.g. Blackbird) that need to route traffic through Caddy, see the commented block in `Caddyfile.example`. Requires Caddy built with `github.com/caddyserver/forwardproxy`; the default `serfriz/caddy-cloudflare` image does not include it. When enabled, add `3128:3128` to the Caddy stack’s `ports`.
+
+## Building Caddy with plugins
+
+The default `serfriz/caddy-cloudflare` image includes the Cloudflare DNS plugin but not the HTTP forward proxy. To add the forward proxy (for Blackbird and other CLI tools), build a custom Caddy image with [xcaddy](https://github.com/caddyserver/xcaddy). Skip this section if you don’t need the forward proxy.
+
+**1. Install xcaddy** (if needed):
+
+```bash
+go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+```
+
+**2. Build Caddy** — forward proxy only, or both Cloudflare DNS and forward proxy:
+
+```bash
+# Forward proxy only (if you don't need Cloudflare DNS)
+xcaddy build --with github.com/caddyserver/forwardproxy
+
+# Forward proxy + Cloudflare DNS (to keep both plugins)
+xcaddy build \
+  --with github.com/caddy-dns/cloudflare \
+  --with github.com/caddyserver/forwardproxy
+```
+
+**3. Create a Docker image** — from `stacks/caddy`, create a `Dockerfile`:
+
+```dockerfile
+FROM golang:1-alpine AS builder
+WORKDIR /build
+RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+RUN xcaddy build \
+  --with github.com/caddy-dns/cloudflare \
+  --with github.com/caddyserver/forwardproxy
+
+FROM caddy:latest
+COPY --from=builder /build/caddy /usr/bin/caddy
+```
+
+Then build and push:
+
+```bash
+cd stacks/caddy
+docker build -t harbor.yourdomain.com/homelab/caddy:latest .
+docker push harbor.yourdomain.com/homelab/caddy:latest
+```
+
+**4. Use the custom image** — update the Caddy stack’s `docker-compose.yml` to use your image instead of `serfriz/caddy-cloudflare`, then uncomment the `:3128 { forward_proxy }` block in your Caddyfile and add `3128:3128` to the Caddy `ports`.
 
 ## Deploy (keeping Caddyfile out of the repo)
 

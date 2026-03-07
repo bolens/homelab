@@ -13,7 +13,6 @@ services:
     env_file:
       - stack.env
     networks:
-      - default
       - monitor
 
 networks:

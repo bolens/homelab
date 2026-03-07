@@ -43,5 +43,18 @@
 | **Storage** | `firefly_pg_data` (DB), `firefly_upload` (uploaded attachments/exports)      |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `firefly-iii.yourdomain.com` → `firefly-iii:8080` |
 
-For advanced configuration (mail, multi-currency, cron jobs, importers), see the official Firefly III documentation. For optional S3 storage (e.g. shared MinIO), see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+## Email / SMTP (optional)
+
+For transaction notifications and reports, configure mail in the Firefly III UI (**Options** → **Administration** → **Mail configuration**) or via env vars. For the shared Postfix relay:
+
+- **Mail driver:** SMTP
+- **Host:** `smtp-relay`
+- **Port:** `587`
+- **Encryption:** STARTTLS (or none for internal-only Mailpit)
+- **From:** `firefly-iii@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
+- **Username / Password:** leave empty for the relay without auth
+
+For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
+For advanced configuration (multi-currency, cron jobs, importers), see the official Firefly III documentation. For optional S3 storage (e.g. shared MinIO), see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 

@@ -75,11 +75,18 @@ See **Generating keys and secrets** above for copy-paste commands.
 
 ## Optional
 
-- **SMTP_*** – For email invites and alerts. For the shared Postfix relay, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md). For example, when using the `smtp-relay` stack:  
-  - `SMTP_HOST=smtp-relay` (inside Docker) or `smtp.yourdomain.com` (outside).  
-  - `SMTP_PORT=587`  
-  - `SMTP_FROM_ADDRESS=noreply@yourdomain.com`  
-  - `SMTP_FROM_NAME=Infisical`
+- **SMTP_*** – For email invites and alerts. Use the shared **Postfix** relay (see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) and [stacks/postfix/README.md](../postfix/README.md)):
+
+  | Variable | Value (inside Docker) |
+  |----------|----------------------|
+  | `SMTP_HOST` | `smtp-relay` |
+  | `SMTP_PORT` | `587` |
+  | `SMTP_FROM_ADDRESS` | `noreply@yourdomain.com` |
+  | `SMTP_FROM_NAME` | `Infisical` |
+  | `SMTP_USERNAME` | (leave empty for relay without auth) |
+  | `SMTP_PASSWORD` | (leave empty) |
+
+  **Internal-only (Mailpit):** If Postfix is configured with `RELAYHOST=mailpit:1025`, all emails are caught locally. View them at `https://mailpit.yourdomain.com`.
 - **CLIENT_ID_*_LOGIN / CLIENT_SECRET_*_LOGIN** – Google/GitHub/GitLab OAuth (see Infisical docs).
 - Full `.env` reference: [Infisical .env.example](https://github.com/Infisical/infisical/blob/main/.env.example).
 

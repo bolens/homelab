@@ -1,0 +1,21 @@
+services:
+  home-assistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: home-assistant
+    restart: unless-stopped
+    volumes:
+      - home_assistant_config:/config
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  home_assistant_config: {}
+

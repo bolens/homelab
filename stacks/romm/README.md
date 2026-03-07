@@ -66,6 +66,16 @@ Use the same hostname in `ROMM_BASE_URL`.
 
 RomM does not expose a dedicated health endpoint. Use a generic HTTP check to the app URL (e.g. `https://romm.yourdomain.com`) in Uptime Kuma.
 
+## Email / SMTP (optional)
+
+RomM can send email notifications (e.g. when scans complete). Configure SMTP in `config.yml` (see [RomM config docs](https://docs.romm.app/latest/Getting-Started/Configuration/)). For the shared Postfix relay:
+
+- **Host:** `smtp-relay` (ensure RomM is on the `monitor` network)
+- **Port:** `587`
+- **From:** `romm@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
+
+For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. All emails appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ## Optional: metadata providers
 
 For richer metadata and artwork, sign up for API keys and add them to `stack.env` (see [RomM metadata providers](https://docs.romm.app/latest/Getting-Started/Metadata-Providers/)): IGDB, Screenscraper, MobyGames, SteamGridDB, RetroAchievements.

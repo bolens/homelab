@@ -1,0 +1,30 @@
+# Alertmanager config – copy to ~/.config/alertmanager/alertmanager.yml (or path set by ALERTMANAGER_CONFIG_PATH).
+# Routes by severity; inhibit_rules suppress redundant alerts when an instance is down.
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default-receiver
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+
+receivers:
+  - name: default-receiver
+    webhook_configs:
+      - url: http://ntfy:80/alerts
+        send_resolved: true
+    # Example: email via SMTP relay (e.g. postfix stack). Uncomment and set to/from/smarthost.
+    # email_configs:
+    #   - to: you@yourdomain.com
+    #     from: alertmanager@yourdomain.com
+    #     smarthost: smtp-relay:587
+
+# When an instance is down, suppress other alerts for that same instance (e.g. NodeMemoryHigh, NodeDiskSpaceLow).
+inhibit_rules:
+  - source_match:
+      alertname: InstanceDown
+    target_match_re:
+      alertname: NodeMemoryHigh|NodeDiskSpaceLow|ProbeDown
+    equal: ['instance']

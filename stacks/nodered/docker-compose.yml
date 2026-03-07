@@ -7,7 +7,6 @@ services:
     volumes:
       - nodered_data:/data
     networks:
-      - default
       - monitor
     env_file:
       - stack.env

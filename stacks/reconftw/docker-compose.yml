@@ -1,5 +1,9 @@
 name: reconftw
 
+# ReconFTW needs monitor network when using Caddy as HTTP proxy (HTTP_PROXY=http://caddy:3128).
+# Config: copy reconftw.cfg to ~/.config/reconftw/reconftw.cfg (create dir if needed).
+# Override with RECONFTW_CONFIG_PATH and RECONFTW_RECON_PATH if desired (e.g. in Portainer).
+
 services:
   reconftw:
     image: six2dez/reconftw:main
@@ -10,10 +14,17 @@ services:
     environment:
       - TZ=${TZ:-America/Denver}
     volumes:
-      # Main ReconFTW config (download from upstream; see README)
-      - ./reconftw.cfg:/root/Tools/reconftw/reconftw.cfg:ro
-      # Output directory with all recon data, reports, screenshots, etc.
-      - ./Recon:/root/Tools/reconftw/Recon
+      # Main ReconFTW config (default: ~/.config/reconftw/reconftw.cfg)
+      - ${RECONFTW_CONFIG_PATH:-${HOME}/.config/reconftw/reconftw.cfg}:/root/Tools/reconftw/reconftw.cfg:ro
+      # Output directory (default: ~/.config/reconftw/Recon)
+      - ${RECONFTW_RECON_PATH:-${HOME}/.config/reconftw/Recon}:/root/Tools/reconftw/Recon
+    networks:
+      - monitor
     stdin_open: true
     tty: true
+
+networks:
+  monitor:
+    name: monitor
+    external: true
 

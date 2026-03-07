@@ -6,10 +6,7 @@ name: acquire
 
 services:
   acquire:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: acquire:local
+    image: ${ACQUIRE_IMAGE:-harbor.yourdomain.com/homelab/acquire:latest}
     container_name: acquire
     restart: "no"
     env_file:

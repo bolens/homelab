@@ -46,6 +46,18 @@
   - Create **clients** for each app (set redirect URIs to the app’s Caddy URL).
   - Configure each app with the corresponding client ID/secret and discovery URL.
 
+## Email / SMTP (optional)
+
+For password reset and verification emails, configure mail in **Realm** → **Realm settings** → **Email**:
+
+- **Host:** `smtp-relay` (ensure Keycloak is on the `monitor` network)
+- **Port:** `587`
+- **From:** `keycloak@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
+- **Enable StartTLS:** yes (or no for internal-only Mailpit)
+- **Authentication:** off for the shared relay (no username/password)
+
+For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. All emails appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ## Notes
 
 - This stack uses Postgres for persistence. For production, consider pinning a specific Keycloak image tag instead of `latest`.

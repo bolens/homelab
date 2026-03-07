@@ -1,0 +1,19 @@
+# Mailpit – local SMTP catcher for dev/testing.
+# Receives mail on port 1025; web UI on 8025. No external delivery.
+# Use with Postfix: set RELAYHOST=mailpit:1025 for internal-only mailing.
+# Image docs: https://mailpit.axllent.org/docs/install/docker/
+
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true

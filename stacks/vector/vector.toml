@@ -1,0 +1,30 @@
+## Vector configuration: ship host and container logs to Loki.
+##
+## This is a minimal example; adjust paths and labels for your environment.
+
+[sources.host_journal]
+type = "journald"
+current_boot_only = true
+include_units = []
+
+[sources.docker_containers]
+type = "docker_logs"
+include_containers = []
+
+[transforms.enrich]
+type = "remap"
+inputs = ["host_journal", "docker_containers"]
+source = """
+.labels.host = "${HOSTNAME:-docker-host}"
+"""
+
+[sinks.loki]
+type = "loki"
+inputs = ["enrich"]
+endpoint = "http://loki:3100"
+encoding.codec = "json"
+
+[sinks.loki.labels]
+host = "{{ labels.host }}"
+source = "{{ source_type }}"
+

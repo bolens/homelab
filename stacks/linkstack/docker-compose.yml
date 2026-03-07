@@ -18,10 +18,9 @@ services:
       - UPLOAD_MAX_FILESIZE=${UPLOAD_MAX_FILESIZE:-8M}
     networks:
       - default
-      - monitor
 
 networks:
-  monitor:
+  default:
     name: monitor
     external: true
 

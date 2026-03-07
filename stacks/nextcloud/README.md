@@ -36,6 +36,19 @@
 | **Storage** | `nextcloud_html` (app files/config), `nextcloud_data` (user data), `nextcloud_pg_data` (DB) |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `nextcloud.yourdomain.com` → `nextcloud:80` |
 
+## Email / SMTP (optional)
+
+For notifications and password reset, configure mail in **Administration** → **Basic settings** → **Mail**:
+
+- **Send mode:** SMTP
+- **Encryption:** STARTTLS
+- **Server address:** `smtp-relay`
+- **Port:** `587`
+- **Authentication:** none (leave user/password empty for the shared relay)
+- **Sender address:** `nextcloud@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
+
+Ensure the Nextcloud stack is on the `monitor` network. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ## Notes
 
 - Configure additional apps, external storage, and clients using the Nextcloud admin UI.

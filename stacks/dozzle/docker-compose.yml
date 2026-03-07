@@ -15,7 +15,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - default
       - monitor
     environment:
       - TZ=${TZ:-America/Denver}

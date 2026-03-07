@@ -1,0 +1,70 @@
+# Prometheus scrape config for homelab: self + cAdvisor (container metrics).
+# Add more scrape_configs (e.g. node_exporter) as you add stacks.
+# Copy this file to ~/.config/prometheus/prometheus.yml (or set PROMETHEUS_CONFIG_PATH)
+# and edit as needed; the stack mounts that file read-only.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Route alerts to Alertmanager (deploy stacks/alertmanager and configure receivers there).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Alert rules (copy alerts.yml.example to ~/.config/prometheus/rules/alerts.yml).
+rule_files:
+  - /etc/prometheus/rules/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  - job_name: crowdsec
+    static_configs:
+      - targets: ["crowdsec:8080"]
+    metrics_path: /metrics
+
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Blackbox Exporter – HTTP(s) probes. Deploy stacks/blackbox-exporter first.
+  # Add or remove targets to match your Caddy vhosts; these use placeholder yourdomain.com.
+  - job_name: blackbox
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://yourdomain.com
+          - https://www.yourdomain.com
+          - https://homepage.yourdomain.com
+          - https://status.yourdomain.com
+          - https://grafana.yourdomain.com
+          - https://prometheus.yourdomain.com
+          - https://alertmanager.yourdomain.com
+          - https://ntfy.yourdomain.com
+          - https://dozzle.yourdomain.com
+          - https://portainer.yourdomain.com
+          - https://caddy.yourdomain.com
+          - https://loki.yourdomain.com
+          - https://it-tools.yourdomain.com
+          - https://searx-ng.yourdomain.com
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - source_labels: [__param_target]
+        target_label: target
+      - target_label: __param_target
+        replacement: $1

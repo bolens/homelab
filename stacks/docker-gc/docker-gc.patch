@@ -1,0 +1,47 @@
+--- docker-gc
++++ docker-gc
+@@ -232,7 +232,7 @@
+ do
+   EXITED=$(${DOCKER} inspect -f "{{json .State.FinishedAt}}" ${line})
+   ELAPSED=$(elapsed_time $EXITED)
+-  if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
++  if [[ $ELAPSED -gt $GRACE_PERIOD_CONTAINERS ]]; then
+     echo $line >> containers.reap.tmp
+   fi
+ done < containers.exited
+@@ -275,7 +275,7 @@
+   set -o errexit
+   if [ $retval -eq 0 ]; then
+     ELAPSED=$(elapsed_time $CREATED)
+-    if [[ $ELAPSED -gt $GRACE_PERIOD_SECONDS ]]; then
++    if [[ $ELAPSED -gt $GRACE_PERIOD_IMAGES ]]; then
+       echo $line >> images.reap.tmp
+     fi
+   fi
+@@ -300,7 +300,7 @@
+   fi
+ fi
+ # Reap containers.
+-if [[ $DRY_RUN -gt 0 ]]; then
++if [[ ${DRY_RUN_CONTAINERS:-$DRY_RUN} -gt 0 ]]; then
+   container_log "The following container would have been removed" containers.reap
+ else
+   container_log "Removing containers" containers.reap
+@@ -312,7 +312,7 @@
+ fi
+ 
+ # Reap images.
+-if [[ $DRY_RUN -gt 0 ]]; then
++if [[ ${DRY_RUN_IMAGES:-$DRY_RUN} -gt 0 ]]; then
+   image_log "The following image would have been removed" images.reap
+ else
+   image_log "Removing image" images.reap
+@@ -347,7 +347,7 @@
+       $DOCKER volume ls --filter "dangling=true" --filter "driver=$VOLUME_DELETE_ONLY_DRIVER" -q | grep -v -f $EXCLUDE_VOLUMES_IDS_FILE > volumes.reap || true
+     fi
+ 
+-    if [[ $DRY_RUN -gt 0 ]]; then
++    if [[ ${DRY_RUN_VOLUMES:-$DRY_RUN} -gt 0 ]]; then
+       volumes_log "The following volume would have been removed" volumes.reap
+     else
+       volumes_log "Removing volume" volumes.reap

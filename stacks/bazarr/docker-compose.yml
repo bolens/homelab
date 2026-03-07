@@ -14,7 +14,6 @@ services:
       - media_tv:/tv
       - media_movies:/movies
     networks:
-      - default
       - monitor
 
 networks:
