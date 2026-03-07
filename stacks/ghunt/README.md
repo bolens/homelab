@@ -9,11 +9,14 @@ OSINT framework for investigating Google accounts and assets: emails, Gaia IDs, 
 
 ## Quick start
 
-1. **Copy env template** (optional):
+1. **Prepare env** (copy template, optionally set Harbor image):
 
    ```bash
-   cp stack.env.example stack.env
+   ./prepare-stack.sh
+   # or: cp stack.env.example stack.env
    ```
+
+   To use a pre-built image from Harbor, set `GHUNT_IMAGE` in `stack.env` and run `./prepare-stack.sh`. See **Building the image** below.
 
 2. **(Optional) Set timezone / proxy** in `stack.env`:
 
@@ -44,12 +47,24 @@ OSINT framework for investigating Google accounts and assets: emails, Gaia IDs, 
    docker compose run --rm ghunt drive https://drive.google.com/file/d/EXAMPLE_ID/view
    ```
 
+## Building the image
+
+To build and push the image to your registry (e.g. Harbor):
+
+```bash
+cd stacks/ghunt
+docker build -t harbor.yourdomain.com/homelab/ghunt:latest .
+docker push harbor.yourdomain.com/homelab/ghunt:latest
+```
+
+Set `GHUNT_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-stack.sh` after changing the image so `.env` is updated for compose.
+
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm ghunt ...`. |
-| **Image** | Built locally from the GHunt PyPI package (`ghunt` CLI). |
+| **Image** | Built from GHunt PyPI package; build and push to Harbor, or use default placeholder. |
 | **Storage** | Named volume `ghunt-config` for GHunt config/cookies; `ghunt-data` for JSON exports and other outputs. |
 
 ## Notes

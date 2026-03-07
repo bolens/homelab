@@ -6,13 +6,15 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # Uncomment when using forward proxy for CLI tools (Blackbird, GHunt, Metagoofil, etc.):
+      # Requires Caddy built with forwardproxy plugin and :3128 { forward_proxy } in Caddyfile.
+      # - "3128:3128"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - default
       - monitor
     env_file:
       - stack.env

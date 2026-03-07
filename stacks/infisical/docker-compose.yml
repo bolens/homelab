@@ -7,7 +7,7 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     # No host port: access via Caddy (infisical.home / secrets.yourdomain.com on monitor network)
     env_file:
       - stack.env
@@ -24,6 +24,11 @@ services:
     restart: unless-stopped
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - infisical
     volumes:
@@ -33,6 +38,8 @@ services:
     image: postgres:14-alpine
     container_name: infisical-db
     restart: unless-stopped
+    env_file:
+      - stack.env
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-infisical}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}

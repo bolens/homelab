@@ -1,0 +1,19 @@
+# Auto-provision Prometheus and Loki as datasources (requires Prometheus on monitor network;
+# Loki is optional – deploy stacks/loki for logs, then use Explore → Loki).
+# Copy this file to ~/.config/grafana/datasources.yml (or another path) and point
+# GRAFANA_DATASOURCES_PATH at it (full file path) when deploying the Grafana stack.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false

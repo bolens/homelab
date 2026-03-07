@@ -1,0 +1,21 @@
+services:
+  vector:
+    image: timberio/vector:latest-debian
+    container_name: vector
+    restart: unless-stopped
+    command: ["vector", "-c", "/etc/vector/vector.toml"]
+    env_file:
+      - stack.env
+    volumes:
+      - ./vector.toml:/etc/vector/vector.toml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /run/log/journal:/run/log/journal:ro
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+

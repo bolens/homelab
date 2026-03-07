@@ -1,0 +1,41 @@
+# Kasm Workspaces – container streaming platform (browser-based desktops and apps).
+# Access via Caddy only (reverse_proxy to kasm:443 and kasm:3000 for setup wizard).
+# Requires privileged mode and DinD; no host ports – Caddy proxies on monitor network.
+#
+# First run: complete the setup wizard at https://kasm-setup.yourdomain.com (or your hostname).
+# Then use the main UI at https://kasm.yourdomain.com. After setup, you can remove the
+# kasm-setup Caddy block if desired.
+services:
+  kasm:
+    image: lscr.io/linuxserver/kasm:latest
+    container_name: kasm
+    privileged: true
+    env_file:
+      - stack.env
+    environment:
+      - KASM_PORT=443
+    volumes:
+      - kasm_data:/opt
+      - kasm_profiles:/profiles
+    networks:
+      - kasm
+      - monitor
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+networks:
+  kasm:
+    driver: bridge
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  kasm_data:
+  kasm_profiles:

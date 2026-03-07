@@ -16,9 +16,9 @@ services:
       - BACKUP_CRON=${BACKUP_CRON:-0 3 * * *}
       - TZ=${TZ:-America/Denver}
     volumes:
-      # Paths you want to back up from the host; adjust to your setup.
-      - /srv/docker:/data/docker:ro
-      - /srv/media:/data/media:ro
+      # Host paths to back up (override via env for Portainer)
+      - ${RESTIC_PATH_DOCKER:-/srv/docker}:/data/docker:ro
+      - ${RESTIC_PATH_MEDIA:-/srv/media}:/data/media:ro
       # Cache to speed up subsequent backups
       - restic_cache:/cache
     networks:

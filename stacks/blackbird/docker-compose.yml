@@ -1,11 +1,10 @@
 name: blackbird
 
+# Blackbird needs monitor network when using Caddy as HTTP proxy (HTTP_PROXY=http://caddy:3128).
+
 services:
   blackbird:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: blackbird:local
+    image: ${BLACKBIRD_IMAGE:-harbor.yourdomain.com/homelab/blackbird:latest}
     container_name: blackbird
     restart: "no"
     env_file:
@@ -15,6 +14,13 @@ services:
     volumes:
       # Optional: store exported reports (PDF, CSV, JSON)
       - ./results:/results
+    networks:
+      - monitor
     stdin_open: true
     tty: true
+
+networks:
+  monitor:
+    name: monitor
+    external: true
 

@@ -21,7 +21,7 @@
 3. **Access**
    - Stirling-PDF listens on port `8080` inside the container.
    - Put it behind Caddy on the `monitor` network, e.g.:
-     - `https://stirling-pdf.yourdomain.com` → `stirling-pdf:8080`
+     - `https://pdf.yourdomain.com` → `stirling-pdf:8080`
 
 ## Configuration
 
@@ -31,7 +31,7 @@
 | **Network** | `monitor` (for Caddy) + default                                             |
 | **Images**  | `stirlingtools/stirling-pdf:latest`                                         |
 | **Storage** | Optional OCR tessdata volume                                                |
-| **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `stirling-pdf.yourdomain.com` → `stirling-pdf:8080` |
+| **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `pdf.yourdomain.com` → `stirling-pdf:8080` |
 
 Image variants: `latest-fat` (extra tools), `latest-ultra-lite` (minimal). See [Stirling-PDF Docker](https://docs.stirlingpdf.com/Installation/Docker%20Install/).
 

@@ -51,8 +51,19 @@ The `server` and `worker` containers share configuration via environment variabl
   - Use the app’s Caddy URL as the redirect URI.
   - Configure the app with authentik’s discovery URL and client credentials.
 
+## Email / SMTP (optional)
+
+For password reset and verification emails, configure SMTP in authentik: **System** → **Email** (or **Directory** → **Settings**). Use the shared **Postfix** relay:
+
+- **Host:** `smtp-relay`
+- **Port:** `587`
+- **Username / Password:** leave empty for the relay (no auth)
+- **From:** `authentik@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
+
+Ensure both authentik and Postfix are on the `monitor` network. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all emails appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ## Notes
 
-- This stack mirrors the official docker-compose layout in a simplified form. For advanced configuration (outposts, providers, email, etc.), refer to the authentik docs.
+- This stack mirrors the official docker-compose layout in a simplified form. For advanced configuration (outposts, providers, etc.), refer to the authentik docs.
 - Consider pinning a specific image tag instead of `latest` for production deployments.
 

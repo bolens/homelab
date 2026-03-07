@@ -35,3 +35,15 @@ To protect specific subdomains (e.g. `portainer.yourdomain.com`) with SSO or one
 ## Start
 
 `docker compose up -d` from this directory.
+
+## Troubleshooting
+
+### "err name not resolved" but nslookup/dig shows the hostname
+
+If the hostname resolves (e.g. you see AAAA addresses) but the browser or `curl` reports "name not resolved", either Cloudflare is only returning AAAA or your **client’s DNS resolver** is (e.g. only returning AAAA, or stale cache).
+
+**Check:** Run `dig +short <hostname> A` and `dig @1.1.1.1 +short <hostname> A`. If the first is empty but the second returns IPv4 addresses, the issue is your **default resolver**, not Cloudflare.
+
+**Fix (client resolver):** Use a resolver that returns A records: set system or router DNS to **1.1.1.1** (or 8.8.8.8), or flush local DNS cache (e.g. `resolvectl flush-caches` on systemd-resolved, or reboot the device that fails).
+
+**Fix (Cloudflare):** If `dig @1.1.1.1 +short <hostname> A` is also empty, in **Cloudflare Dashboard** → your domain → **DNS** ensure the hostname’s record is **Proxied** (orange cloud). Proxied CNAMEs for tunnels normally get both A and AAAA from Cloudflare.

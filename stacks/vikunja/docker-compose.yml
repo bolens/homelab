@@ -16,7 +16,6 @@ services:
     volumes:
       - vikunja_data:/app/vikunja
     networks:
-      - default
       - monitor
 
 networks:

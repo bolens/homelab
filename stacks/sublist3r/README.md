@@ -5,37 +5,32 @@ Subdomain enumeration tool that discovers subdomains for a given domain using mu
 **Website:** https://github.com/aboul3la/Sublist3r  
 **Docs:** https://github.com/aboul3la/Sublist3r#readme  
 **GitHub:** https://github.com/aboul3la/Sublist3r  
-**Releases:** https://github.com/aboul3la/Sublist3r/releases  
+**Docker image:** https://hub.docker.com/r/opendevsecops/sublist3r  
 
 ## Quick start
 
-1. **Create a results directory** (optional, for saved outputs):
+1. **Prepare** (copy template):
 
    ```bash
-   mkdir -p results
+   ./prepare-stack.sh
+   # or: cp stack.env.example stack.env
    ```
 
-2. **Copy env template** (optional):
-
-   ```bash
-   cp stack.env.example stack.env
-   ```
-
-3. **(Optional) Set timezone / proxy** in `stack.env`:
+2. **(Optional) Set timezone / proxy** in `stack.env`:
 
    ```bash
    TZ=America/Denver
-   # HTTP_PROXY=http://proxy.internal:3128
-   # HTTPS_PROXY=http://proxy.internal:3128
+   # HTTP_PROXY=http://caddy:3128
+   # HTTPS_PROXY=http://caddy:3128
    ```
 
-4. **Run subdomain enumeration** (SANITIZED examples):
+3. **Run subdomain enumeration** (SANITIZED examples):
 
    ```bash
    # Basic enumeration for example.com (prints to console)
    docker compose run --rm sublist3r -d example.com
 
-   # Save results to a file inside ./results
+   # Save results to file (writes to ~/.config/sublist3r/results by default)
    docker compose run --rm sublist3r -d example.com -o /results/example.com.txt
    ```
 
@@ -44,8 +39,12 @@ Subdomain enumeration tool that discovers subdomains for a given domain using mu
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm sublist3r ...`. |
-| **Image** | Built locally from `aboul3la/Sublist3r`. |
-| **Storage** | Local `results/` directory bind‑mounted into `/results` for saved output files. |
+| **Image** | `opendevsecops/sublist3r:latest` (Docker Hub). |
+| **Storage** | `~/.config/sublist3r/results` (or `SUBLIST3R_RESULTS_PATH`) bind‑mounted to `/results`. |
+
+## Portainer
+
+Stacks → Add stack → **Repository** → set your repo URL and Compose path (e.g. `stacks/sublist3r/docker-compose.yml`). In **Environment**, set `SUBLIST3R_RESULTS_PATH` to an absolute path (e.g. `/home/youruser/.config/sublist3r/results`) since Portainer may not have `HOME` set. Run `./prepare-stack.sh` on the host first to create the results directory.
 
 ## Notes
 

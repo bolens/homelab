@@ -1,3 +1,5 @@
+# CrowdSec Security Engine. LAPI via Caddy only (no host port).
+# Acquis: copy acquis.yaml.example to ~/.config/crowdsec/acquis.yaml (or set CROWDSEC_ACQUIS_PATH in stack.env).
 name: crowdsec
 
 services:
@@ -22,15 +24,24 @@ services:
       # or the engine will refuse to start. See:
       # https://docs.crowdsec.net/u/getting_started/installation/docker/
       - crowdsec-data:/var/lib/crowdsec/data
+      # Acquis: path to acquis.yaml on the host (default: ~/.config/crowdsec/acquis.yaml).
+      # Copy acquis.yaml.example to that path; override with CROWDSEC_ACQUIS_PATH in stack.env.
+      # Required when deploying from Portainer: set CROWDSEC_ACQUIS_PATH to the absolute path to the file.
+      - ${CROWDSEC_ACQUIS_PATH:-${HOME}/.config/crowdsec/acquis.yaml}:/etc/crowdsec/acquis.yaml:ro
       # Optional: allow CrowdSec to inspect Docker container logs via the
       # Docker API. You still need to configure acquisitions for Docker sources;
       # see the official docs for examples.
       # https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    # Local API (LAPI) for bouncers. This is bound to localhost on the host
-    # by default so it is not exposed on your LAN/Internet.
-    ports:
-      - "127.0.0.1:8080:8080"
+    # LAPI on 8080; no host port – Caddy is the single entrypoint (crowdsec.home / crowdsec.yourdomain.com).
+    # Other containers (e.g. Prometheus, bouncers) on monitor use http://crowdsec:8080.
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
 
 volumes:
   crowdsec-config:

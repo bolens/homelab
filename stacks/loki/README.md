@@ -1,28 +1,24 @@
-# Loki + Promtail – log aggregation
+# Loki – log aggregation
 
-[Loki](https://grafana.com/oss/loki/) is a log aggregation system from Grafana, optimized for storing and querying logs with Prometheus-style labels. [Promtail](https://grafana.com/docs/loki/latest/clients/promtail/) is the agent that ships logs to Loki.
-
-This stack runs a single-node Loki instance and a Promtail agent that tails system and Docker logs on the host.
+[Loki](https://grafana.com/oss/loki/) is a log aggregation system from Grafana, optimized for storing and querying logs with Prometheus-style labels. This stack runs a single-node Loki instance. Deploy **Promtail** (`stacks/promtail`) separately to ship host and container logs to Loki.
 
 **Loki:** https://grafana.com/oss/loki/  
-**Promtail:** https://grafana.com/docs/loki/latest/clients/promtail/  
-**Docker images:** `grafana/loki`, `grafana/promtail`  
+**Docker image:** https://hub.docker.com/r/grafana/loki  
 
 ## Quick start
 
-1. **Config files**
+1. **Config** (path must exist before deploy)
 
-   From this directory:
+   From the `docker/` repo root:
 
    ```bash
-   cp loki-config.yml.example loki-config.yml
-   cp promtail-config.yml.example promtail-config.yml
+   mkdir -p ~/.config/loki
+   cp stacks/loki/loki-config.yml.example ~/.config/loki/loki-config.yml
    ```
 
-   Adjust them as needed (storage paths, scrape configs, limits).
+   Edit if needed (storage paths, limits). When deploying from Portainer, set `LOKI_CONFIG_PATH` to the absolute path of this file.
 
-2. **Environment**
-   - Optionally copy `stack.env.example` → `stack.env` to set `TZ`.
+2. Optionally copy `stack.env.example` → `stack.env` to set `TZ` or override the config path.
 
 3. **Deploy**
 
@@ -30,27 +26,19 @@ This stack runs a single-node Loki instance and a Promtail agent that tails syst
    docker compose up -d
    ```
 
-4. **Hook up Grafana**
-   - In Grafana (existing stack), add a Loki data source pointing to `http://loki:3100`.
+4. **Grafana** – Add Loki as a data source (e.g. `http://loki:3100`) or use provisioned datasources. Use **Explore** → **Loki** to query logs. Deploy `stacks/promtail` to ship logs into Loki.
 
 ## Configuration
 
-| Item        | Details                                                                    |
-| ----------- | -------------------------------------------------------------------------- |
+| Item        | Details                                                                     |
+| ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Loki HTTP API is internal on `monitor`; typically not exposed via Caddy   |
-| **Network** | `monitor` (so Grafana and other infra stacks can reach Loki)              |
-| **Images**  | `grafana/loki:2.9.8`, `grafana/promtail:2.9.8`                            |
+| **Config**  | Copy `loki-config.yml.example` → `~/.config/loki/loki-config.yml`; override with `LOKI_CONFIG_PATH` (e.g. in Portainer) |
+| **Network** | `monitor` (so Grafana and Promtail can reach Loki)                         |
 | **Storage** | `loki_data` volume (indexes, chunks, WAL)                                  |
-
-Promtail tails:
-
-- `/var/log/*log` for system logs.
-- `/var/lib/docker/containers/*/*-json.log` for Docker container logs.
-
-You can customize `promtail-config.yml` to add or remove log sources and labels.
 
 ## Notes
 
 - This is a simple, single-node Loki suitable for homelab use. For HA or larger deployments, see the official Loki docs.
-- By default, Loki stores data on local disk in the `loki_data` volume. Ensure the host has enough disk space for your log retention needs.
+- By default, Loki stores data on local disk in the `loki_data` volume. The example config sets **retention** to **30 days** (`retention_period: 720h`) with the compactor enforcing deletion; adjust in `loki-config.yml` if needed. Ensure the host has enough disk space for your log retention needs.
 

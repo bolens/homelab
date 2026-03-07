@@ -85,6 +85,10 @@ id_ed25519
 *.log
 data/
 
+# Harbor installer (large archive + extracted dir with generated configs)
+stacks/harbor/harbor/
+stacks/harbor/*.tgz
+
 # OS and editor
 .DS_Store
 Thumbs.db

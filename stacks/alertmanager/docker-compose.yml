@@ -1,0 +1,26 @@
+# Config: copy alertmanager.yml.example to ~/.config/alertmanager/alertmanager.yml
+# (create the directory if needed). Override path with ALERTMANAGER_CONFIG_PATH if desired.
+services:
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    volumes:
+      - alertmanager_data:/alertmanager
+      - ${ALERTMANAGER_CONFIG_PATH:-${HOME}/.config/alertmanager/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  alertmanager_data: {}
+

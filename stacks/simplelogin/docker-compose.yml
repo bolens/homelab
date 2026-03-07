@@ -14,6 +14,8 @@ services:
     image: simplelogin/app:latest
     container_name: simplelogin
     restart: unless-stopped
+    env_file:
+      - stack.env
     depends_on:
       db:
         condition: service_healthy
@@ -24,9 +26,11 @@ services:
       - SUPPORT_EMAIL=${SUPPORT_EMAIL}
       - SUPPORT_NAME=${SUPPORT_NAME:-SimpleLogin}
       - EMAIL_SERVERS_WITH_PRIORITY=${EMAIL_SERVERS_WITH_PRIORITY}
+      - OTHER_ALIAS_DOMAINS=${OTHER_ALIAS_DOMAINS:-[]}
       - DB_URI=postgresql://${POSTGRES_USER:-simplelogin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-simplelogin}
       - FLASK_SECRET=${FLASK_SECRET}
       - DKIM_PRIVATE_KEY_PATH=/dkim.key
+      - DKIM_PUBLIC_KEY_PATH=/dkim.pub
       - LOCAL_FILE_UPLOAD=true
       - DISABLE_ONBOARDING=true
       - NOT_SEND_EMAIL=${NOT_SEND_EMAIL:-false}
@@ -35,12 +39,12 @@ services:
       - POSTFIX_SERVER=${POSTFIX_SERVER:-}
       - POSTFIX_PORT=${POSTFIX_PORT:-25}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
-      - DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-0}
       - ALLOWED_REDIRECT_DOMAINS=${ALLOWED_REDIRECT_DOMAINS:-[]}
     volumes:
       - simplelogin-data:/sl
       - simplelogin-upload:/code/static/upload
-      - ./data/dkim.key:/dkim.key:ro
+      - ${DKIM_DATA_DIR:-./data}/dkim.key:/dkim.key:ro
+      - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
       - monitor
@@ -49,6 +53,8 @@ services:
     image: simplelogin/app:latest
     container_name: simplelogin-email
     restart: unless-stopped
+    env_file:
+      - stack.env
     command: python email_handler.py
     depends_on:
       simplelogin:
@@ -59,15 +65,18 @@ services:
       - EMAIL_DOMAIN=${EMAIL_DOMAIN}
       - SUPPORT_EMAIL=${SUPPORT_EMAIL}
       - EMAIL_SERVERS_WITH_PRIORITY=${EMAIL_SERVERS_WITH_PRIORITY}
+      - OTHER_ALIAS_DOMAINS=${OTHER_ALIAS_DOMAINS:-[]}
       - DB_URI=postgresql://${POSTGRES_USER:-simplelogin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-simplelogin}
       - FLASK_SECRET=${FLASK_SECRET}
       - DKIM_PRIVATE_KEY_PATH=/dkim.key
+      - DKIM_PUBLIC_KEY_PATH=/dkim.pub
       - LOCAL_FILE_UPLOAD=true
       - GNUPGHOME=/sl/pgp
     volumes:
       - simplelogin-data:/sl
       - simplelogin-upload:/code/static/upload
-      - ./data/dkim.key:/dkim.key:ro
+      - ${DKIM_DATA_DIR:-./data}/dkim.key:/dkim.key:ro
+      - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
 
@@ -75,6 +84,8 @@ services:
     image: simplelogin/app:latest
     container_name: simplelogin-job-runner
     restart: unless-stopped
+    env_file:
+      - stack.env
     command: python job_runner.py
     depends_on:
       db:
@@ -95,6 +106,8 @@ services:
     image: postgres:14-alpine
     container_name: simplelogin-db
     restart: unless-stopped
+    env_file:
+      - stack.env
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-simplelogin}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
