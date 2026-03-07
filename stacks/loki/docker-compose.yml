@@ -1,3 +1,6 @@
+# Config: copy loki-config.yml.example to ~/.config/loki/loki-config.yml
+# (create the directory if needed). Override with LOKI_CONFIG_PATH if desired (e.g. in Portainer).
+# For log shipping, deploy the promtail stack (stacks/promtail) separately.
 services:
   loki:
     image: grafana/loki:2.9.8
@@ -10,20 +13,7 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - loki_data:/loki
-      - ./loki-config.yml:/etc/loki/config.yml:ro
-    networks:
-      - monitor
-
-  promtail:
-    image: grafana/promtail:2.9.8
-    container_name: promtail
-    restart: unless-stopped
-    command: -config.file=/etc/promtail/config.yml
-    volumes:
-      - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /run/log/journal:/run/log/journal:ro
-      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - ${LOKI_CONFIG_PATH:-${HOME}/.config/loki/loki-config.yml}:/etc/loki/config.yml:ro
     networks:
       - monitor
 

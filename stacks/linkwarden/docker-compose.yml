@@ -8,6 +8,8 @@ services:
   postgres:
     container_name: linkwarden-postgres
     image: postgres:16-alpine
+    env_file:
+      - stack.env
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -15,23 +17,33 @@ services:
     volumes:
       - lw_pgdata:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
-      - default
+      - internal
 
   meilisearch:
     container_name: linkwarden-meilisearch
     image: getmeili/meilisearch:v1.12.8
+    env_file:
+      - stack.env
     environment:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
     volumes:
       - lw_meili_data:/meili_data
     restart: unless-stopped
     networks:
-      - default
+      - internal
 
   linkwarden:
     container_name: linkwarden
     image: ghcr.io/linkwarden/linkwarden:latest
+    env_file:
+      - stack.env
     environment:
       - TZ=${TZ:-America/Denver}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
@@ -41,17 +53,21 @@ services:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
     volumes:
       - lw_data:/data/data
-    ports:
-      - "3000:3000"
+    # No host port: access via Caddy only (e.g. links.yourdomain.com).
     depends_on:
-      - postgres
-      - meilisearch
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
     restart: unless-stopped
     networks:
-      - default
+      - internal
       - monitor
 
 networks:
+  internal:
+    name: linkwarden_internal
+    driver: bridge
   monitor:
     name: monitor
     external: true

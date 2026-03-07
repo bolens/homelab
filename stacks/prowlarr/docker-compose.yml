@@ -12,7 +12,6 @@ services:
     volumes:
       - prowlarr_config:/config
     networks:
-      - default
       - monitor
       - usenet
       - torrents

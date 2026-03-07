@@ -54,7 +54,7 @@ app_categories:
 
   - id: apps_dev
     name: "Developer & IT utilities"
-    descriptor: "it-tools, ConvertX, Dozzle, Gitea, CI, dashboard, PDF"
+    descriptor: "it-tools, ConvertX, Dozzle, Gitea, Kasm, CI, dashboard, PDF, NetBox, Snipe-IT"
     stacks:
       - baserow
       - convertx
@@ -63,10 +63,13 @@ app_categories:
       - harbor
       - homarr
       - it-tools
+      - kasm
+      - netbox
       - ntfy
+      - snipe-it
       - stirling-pdf
       - woodpecker-ci
-    description: "it-tools, ConvertX, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy"
+    description: "it-tools, ConvertX, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, Snipe-IT"
 
   - id: apps_gaming
     name: "Gaming"
@@ -76,14 +79,24 @@ app_categories:
       - romm
     description: "Steam automation (ASF), ROM manager and in-browser emulation (RomM)"
 
+  - id: apps_home
+    name: "Home automation & IoT"
+    descriptor: "Home Assistant, MQTT, Zigbee"
+    stacks:
+      - home-assistant
+      - mosquitto
+      - zigbee2mqtt
+    description: "Home Assistant, Mosquitto (MQTT), Zigbee2MQTT"
+
   - id: apps_links
     name: "Links, shorteners & presence"
-    descriptor: "YOURLS, Linkstack, Stoat"
+    descriptor: "YOURLS, Linkstack, Stoat, homepage"
     stacks:
-      - yourls
+      - homepage
       - linkstack
       - stoat
-    description: "YOURLS, Linkstack, Stoat"
+      - yourls
+    description: "YOURLS, Linkstack, Stoat, static homepage/landing"
 
   - id: apps_media
     name: "Media & personal data"
@@ -199,6 +212,12 @@ app_categories:
 
 # Infrastructure & monitoring. Order is alphabetical by id.
 infra:
+  - id: adguard-home
+    label: "adguard-home<br>DNS / ad blocking"
+  - id: alertmanager
+    label: "alertmanager<br>Alert routing"
+  - id: blackbox-exporter
+    label: "blackbox-exporter<br>Probes"
   - id: cadvisor
     label: "cAdvisor<br>Container metrics"
   - id: crowdsec
@@ -213,8 +232,12 @@ infra:
     label: "uptime-kuma<br>Monitoring"
   - id: loki
     label: "loki<br>Log aggregation"
+  - id: mailpit
+    label: "mailpit<br>SMTP catcher"
   - id: minio
     label: "minio<br>S3 object storage"
+  - id: ntopng
+    label: "ntopng<br>Traffic analytics"
   - id: portainer
     label: "portainer<br>Docker UI"
   - id: postfix
@@ -225,6 +248,8 @@ infra:
     label: "restic<br>Backups (cron)"
   - id: scrutiny
     label: "scrutiny<br>SMART disk health"
+  - id: vector
+    label: "vector<br>Log shipper"
   - id: watchtower
     label: "watchtower<br>Auto-updates"
 
@@ -284,6 +309,10 @@ relations:
     to: postfix
     label: mail
     description: "Workflow apps (e.g. n8n) send mail via Postfix."
+  - from: postfix
+    to: mailpit
+    label: relay (internal-only)
+    description: "When RELAYHOST=mailpit:1025, Postfix relays to Mailpit; no external delivery."
   - from: caddy
     to: crowdsec
     label: logs

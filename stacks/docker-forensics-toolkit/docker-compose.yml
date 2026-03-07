@@ -6,10 +6,7 @@ name: docker-forensics-toolkit
 
 services:
   docker-forensics-toolkit:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: docker-forensics-toolkit:local
+    image: ${DOCKER_FORENSICS_TOOLKIT_IMAGE:-harbor.yourdomain.com/homelab/docker-forensics-toolkit:latest}
     container_name: docker-forensics-toolkit
     restart: "no"
     env_file:

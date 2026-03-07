@@ -1,0 +1,23 @@
+services:
+  zigbee2mqtt:
+    image: koenkk/zigbee2mqtt:latest
+    container_name: zigbee2mqtt
+    restart: unless-stopped
+    volumes:
+      - zigbee2mqtt_data:/app/data
+    devices:
+      # Adjust device path for your Zigbee adapter (e.g. /dev/ttyUSB0, /dev/ttyACM0)
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    networks:
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  zigbee2mqtt_data: {}
+

@@ -61,17 +61,20 @@ To send signup confirmation emails and password-reset emails, set these in your 
 
 Without SMTP, you can still confirm users manually via the app console (see note above).
 
-For the shared Postfix relay and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+For the shared **Postfix** relay and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) and [stacks/postfix/README.md](../postfix/README.md).
 
 **Example (using the `smtp-relay` stack):**
 
 - Inside Docker on the same host / `monitor` network:
   - `PWP__MAIL__SMTP_ADDRESS=smtp-relay`
   - `PWP__MAIL__SMTP_PORT=587`
-  - `PWP__MAIL__SMTP_STARTTLS=true` (or `false` if you only want TLS between the relay and your provider)
+  - `PWP__MAIL__SMTP_STARTTLS=true` (or `false` if relay uses plain TCP, e.g. internal-only Mailpit)
+  - Leave `PWP__MAIL__SMTP_USER_NAME` and `PWP__MAIL__SMTP_PASSWORD` empty when using the relay without auth
 - From outside Docker (or if you prefer a single hostname everywhere):
   - `PWP__MAIL__SMTP_ADDRESS=smtp.yourdomain.com`
   - `PWP__MAIL__SMTP_PORT=587`
+
+**Internal-only (Mailpit):** If Postfix relays to Mailpit (`RELAYHOST=mailpit:1025`), all emails are caught locally. View them at `https://mailpit.yourdomain.com`.
 
 ## Caddy reverse proxy
 

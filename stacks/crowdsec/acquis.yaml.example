@@ -1,0 +1,23 @@
+# CrowdSec acquisitions – where to get logs from.
+# Copy this file to your config path (see README) and edit to add more containers or file paths.
+# Restart CrowdSec after changes.
+#
+# Docker source: streams stdout/stderr of the listed containers. Containers must be
+# on the same Docker host (CrowdSec has the Docker socket mounted).
+# Docs: https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker
+#
+# Use --- between each acquisition block (each block is one YAML document).
+
+# Caddy reverse proxy – access and error logs from container stdout
+source: docker
+container_name:
+  - caddy
+labels:
+  type: caddy
+---
+# Postfix SMTP relay (smtp-relay) – mail logs from container stdout
+source: docker
+container_name:
+  - smtp-relay
+labels:
+  type: postfix

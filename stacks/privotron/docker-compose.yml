@@ -1,6 +1,6 @@
 # Privotron – CLI to automate data broker opt-outs (browser automation).
 # No web server, no host ports. Run one-off: docker compose run --rm privotron --profile NAME
-# Or: docker compose run --rm privotron --first "Jane" --last "Doe" --email "j@example.com" --zip "12345"
+# No upstream image; build from Dockerfile: docker compose build
 # https://github.com/kevinl95/Privotron
 
 name: privotron
@@ -9,10 +9,9 @@ services:
   privotron:
     build:
       context: .
-      dockerfile: Dockerfile
       args:
-        - PRIVOTRON_VERSION=${PRIVOTRON_VERSION:-main}
-    image: privotron:local
+        PRIVOTRON_VERSION: ${PRIVOTRON_VERSION:-main}
+    image: ${PRIVOTRON_IMAGE:-privotron:latest}
     container_name: privotron
     # Not a long-running service; use: docker compose run --rm privotron [args]
     volumes:

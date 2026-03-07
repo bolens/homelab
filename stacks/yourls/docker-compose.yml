@@ -2,8 +2,7 @@
 # Docs: https://docs.yourls.org/
 services:
   yourls:
-    image: yourls:1.10.3-apache
-    build: .
+    image: ${YOURLS_IMAGE:-harbor.yourdomain.com/homelab/yourls:latest}
     container_name: yourls
     restart: unless-stopped
     environment:

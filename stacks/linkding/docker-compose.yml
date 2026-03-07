@@ -13,7 +13,6 @@ services:
     volumes:
       - linkding_data:/etc/linkding/data
     networks:
-      - default
       - monitor
 
 networks:

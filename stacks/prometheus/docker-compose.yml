@@ -1,6 +1,8 @@
 # Prometheus – metrics storage and scraping. Access via Caddy (prometheus.home).
 # Scrapes cAdvisor (and itself). No host port: attaches to monitor network.
-# Portainer: ensure prometheus.yml is present (bind mount); deploy from repo or copy file to host.
+# Config: copy prometheus.yml.example to ~/.config/prometheus/prometheus.yml
+# (create the directory if needed). Override path with PROMETHEUS_CONFIG_PATH if desired.
+# Rules: copy alerts.yml.example to ~/.config/prometheus/rules/alerts.yml; set PROMETHEUS_RULES_PATH to that dir if different.
 services:
   prometheus:
     image: prom/prometheus:latest
@@ -9,12 +11,13 @@ services:
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-30d}
       - --web.enable-lifecycle
     volumes:
       - prometheus_data:/prometheus
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${PROMETHEUS_CONFIG_PATH:-${HOME}/.config/prometheus/prometheus.yml}:/etc/prometheus/prometheus.yml:ro
+      - ${PROMETHEUS_RULES_PATH:-${HOME}/.config/prometheus/rules}:/etc/prometheus/rules:ro
     networks:
-      - default
       - monitor
     env_file:
       - stack.env
@@ -22,7 +25,7 @@ services:
 networks:
   monitor:
     name: monitor
-    driver: bridge
+    external: true
 
 volumes:
   prometheus_data: {}

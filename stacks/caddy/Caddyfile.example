@@ -11,18 +11,40 @@
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Optional: HTTP forward proxy for CLI tools (Blackbird, etc.)
+# Requires Caddy built with: xcaddy build --with github.com/caddyserver/forwardproxy
+# The default serfriz/caddy-cloudflare image does NOT include this plugin.
+# Expose port 3128 in docker-compose (add "3128:3128" to ports) when using this.
+# ═══════════════════════════════════════════════════════════════════════════════
+# :3128 {
+# 	forward_proxy
+# }
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Local (.home / .local) – internal TLS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Infrastructure
+# Infrastructure (Portainer attaches to monitor network)
 portainer.home, portainer.local {
 	tls internal
-	reverse_proxy host.docker.internal:9443
+	reverse_proxy https://portainer:9443 {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Ssl on
+		transport http {
+			tls
+			tls_insecure_skip_verify
+		}
+	}
 }
 
 kuma.home, kuma.local {
 	tls internal
-	reverse_proxy host.docker.internal:3001
+	reverse_proxy uptime-kuma:3001
+}
+
+adguard-home.home, adguard-home.local {
+	tls internal
+	reverse_proxy adguard-home:3000
 }
 
 # Tools
@@ -33,7 +55,7 @@ asf.home, asf.local {
 
 it-tools.home, it-tools.local {
 	tls internal
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy it-tools:80
 }
 
 convertx.home, convertx.local {
@@ -41,9 +63,20 @@ convertx.home, convertx.local {
 	reverse_proxy convertx:3000
 }
 
+crowdsec.home, crowdsec.local {
+	tls internal
+	handle / {
+		header Content-Type text/plain
+		respond "CrowdSec LAPI – use /metrics, /health, /v1/..." 200
+	}
+	handle {
+		reverse_proxy crowdsec:8080
+	}
+}
+
 dozzle.home, dozzle.local {
 	tls internal
-	reverse_proxy host.docker.internal:8082
+	reverse_proxy dozzle:8080
 }
 
 n8n.home, n8n.local {
@@ -53,12 +86,12 @@ n8n.home, n8n.local {
 
 web-check.home, web-check.local {
 	tls internal
-	reverse_proxy host.docker.internal:3000
+	reverse_proxy web-check:3000
 }
 
 searx-ng.home, searx-ng.local {
 	tls internal
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy searxng:8080
 }
 
 social-hunt.home, social-hunt.local {
@@ -91,9 +124,47 @@ bookstack.home, bookstack.local {
 	reverse_proxy bookstack:80
 }
 
+gitea.home, gitea.local {
+	tls internal
+	reverse_proxy gitea:3000
+}
+
 homarr.home, homarr.local {
 	tls internal
 	reverse_proxy homarr:7575
+}
+
+homepage.home, homepage.local {
+	tls internal
+	reverse_proxy homepage:80
+}
+
+kasm.home, kasm.local {
+	tls internal
+	reverse_proxy https://kasm:443 {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
+}
+
+kasm-setup.home, kasm-setup.local {
+	tls internal
+	reverse_proxy https://kasm:3000 {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
+}
+
+snipe-it.home, snipe-it.local {
+	tls internal
+	reverse_proxy snipeit:80
 }
 
 linkding.home, linkding.local {
@@ -106,12 +177,30 @@ meilisearch.home, meilisearch.local {
 	reverse_proxy meilisearch:7700
 }
 
+metube.home, metube.local {
+	tls internal
+	reverse_proxy metube:8081 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
+minio.home, minio.local {
+	tls internal
+	redir /console /console/
+	handle_path /console* {
+		reverse_proxy minio:9001
+	}
+	handle {
+		reverse_proxy minio:9000
+	}
+}
+
 ntfy.home, ntfy.local {
 	tls internal
 	reverse_proxy ntfy:80
 }
 
-stirling-pdf.home, stirling-pdf.local {
+pdf.home, pdf.local {
 	tls internal
 	reverse_proxy stirling-pdf:8080
 }
@@ -121,15 +210,32 @@ vikunja.home, vikunja.local {
 	reverse_proxy vikunja:3456
 }
 
+# Home automation
+home-assistant.home, home-assistant.local {
+	tls internal
+	reverse_proxy home-assistant:8123
+}
+
+zigbee2mqtt.home, zigbee2mqtt.local {
+	tls internal
+	reverse_proxy zigbee2mqtt:8080
+}
+
+# ntopng uses network_mode: host; use host.docker.internal
+ntopng.home, ntopng.local {
+	tls internal
+	reverse_proxy host.docker.internal:3000
+}
+
 # Documents & media
 paperless-ngx.home, paperless-ngx.local {
 	tls internal
-	reverse_proxy host.docker.internal:8000
+	reverse_proxy paperless-ngx:8000
 }
 
 immich.home, immich.local {
 	tls internal
-	reverse_proxy host.docker.internal:2283
+	reverse_proxy immich-server:2283
 }
 
 archivebox.home, archivebox.local {
@@ -231,24 +337,42 @@ emby.home, emby.local {
 # Productivity
 linkwarden.home, linkwarden.local {
 	tls internal
-	reverse_proxy host.docker.internal:3000
+	reverse_proxy linkwarden:3000
 }
 
 # Security & paste
 vaultwarden.home, vaultwarden.local {
 	tls internal
-	reverse_proxy host.docker.internal:11001
+	reverse_proxy vaultwarden:80
 }
 
 infisical.home, infisical.local {
 	tls internal
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy infisical:8080
 }
 
 # VPN
 headscale.home, headscale.local {
 	tls internal
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy headscale:8080
+}
+
+# Harbor proxy attaches to monitor network via docker-compose.override.yml
+# Required for docker push/pull: X-Forwarded headers + disable buffering
+# Allow large image pushes (no request body limit)
+harbor.home, harbor.local {
+	tls internal
+	request_body {
+		max_size 0
+	}
+	reverse_proxy proxy:8080 {
+		header_up X-Forwarded-Proto https
+		flush_interval -1
+		transport http {
+			write_buffer 0
+			read_buffer 0
+		}
+	}
 }
 
 privatebin.home, privatebin.local {
@@ -281,9 +405,21 @@ naisho.home, naisho.local {
 	reverse_proxy naisho:3000
 }
 
+nodered.home, nodered.local {
+	tls internal
+	reverse_proxy nodered:1880 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
 stoat.home, stoat.local {
 	tls internal
 	reverse_proxy stoat-caddy:80
+}
+
+theharvester.home, theharvester.local {
+	tls internal
+	reverse_proxy theharvester:80
 }
 
 # Shorteners & link-in-bio
@@ -305,34 +441,38 @@ lanraragi.home, lanraragi.local {
 	reverse_proxy lanraragi:3000
 }
 
-# AI / LLM – host ports must match each stack's .env (e.g. OLLAMA_HOST_PORT, PERPLEXICA_HOST_PORT)
-# If open-webui and perplexica both use 3000, set PERPLEXICA_HOST_PORT=3001 in perplexica/.env
+# AI / LLM – reverse_proxy to container names on monitor network
 ollama.home, ollama.local {
 	tls internal
-	reverse_proxy host.docker.internal:11434
+	reverse_proxy ollama:11434
 }
 
 open-notebook.home, open-notebook.local {
 	tls internal
-	reverse_proxy host.docker.internal:8502
+	reverse_proxy open-notebook:8502
 }
 
 perplexica.home, perplexica.local {
 	tls internal
-	reverse_proxy host.docker.internal:3001
+	reverse_proxy perplexica:3000
 }
 
 open-webui.home, open-webui.local {
 	tls internal
-	reverse_proxy host.docker.internal:3000
+	reverse_proxy open-webui:8080
 }
 
 librechat.home, librechat.local {
 	tls internal
-	reverse_proxy host.docker.internal:3080
+	reverse_proxy librechat:3080
 }
 
 # Metrics
+alertmanager.home, alertmanager.local {
+	tls internal
+	reverse_proxy alertmanager:9093
+}
+
 grafana.home, grafana.local {
 	tls internal
 	reverse_proxy grafana:3000
@@ -346,6 +486,11 @@ prometheus.home, prometheus.local {
 cadvisor.home, cadvisor.local {
 	tls internal
 	reverse_proxy cadvisor:8080
+}
+
+scrutiny.home, scrutiny.local {
+	tls internal
+	reverse_proxy scrutiny:8080
 }
 
 onionprobe.home, onionprobe.local {
@@ -379,6 +524,20 @@ actual-budget.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy actual-budget:5006
+}
+
+adguard-home.yourdomain.com, dns.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy adguard-home:3000
+}
+
+alertmanager.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy alertmanager:9093
 }
 
 archivebox.yourdomain.com {
@@ -437,11 +596,26 @@ convertx.yourdomain.com {
 	reverse_proxy convertx:3000
 }
 
+crowdsec.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	handle / {
+		header Content-Type text/plain
+		respond "CrowdSec LAPI – use /metrics, /health, /v1/..." 200
+	}
+	handle {
+		reverse_proxy crowdsec:8080 {
+			header_up X-Forwarded-Proto https
+		}
+	}
+}
+
 dozzle.yourdomain.com, logs.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:8082
+	reverse_proxy dozzle:8080
 }
 
 emby.yourdomain.com {
@@ -449,6 +623,13 @@ emby.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy emby:8096
+}
+
+gitea.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy gitea:3000
 }
 
 grafana.yourdomain.com {
@@ -462,7 +643,27 @@ headscale.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy headscale:8080
+}
+
+# Harbor proxy attaches to monitor network via docker-compose.override.yml
+# Required for docker push/pull: X-Forwarded headers + disable buffering
+# Allow large image pushes (no request body limit)
+harbor.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	request_body {
+		max_size 0
+	}
+	reverse_proxy proxy:8080 {
+		header_up X-Forwarded-Proto https
+		flush_interval -1
+		transport http {
+			write_buffer 0
+			read_buffer 0
+		}
+	}
 }
 
 homarr.yourdomain.com {
@@ -472,25 +673,47 @@ homarr.yourdomain.com {
 	reverse_proxy homarr:7575
 }
 
+# Root domain and www – static homepage (under construction) stack
+yourdomain.com, www.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy homepage:80
+}
+
+homepage.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy homepage:80
+}
+
+home-assistant.yourdomain.com, home.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy home-assistant:8123
+}
+
 immich.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:2283
+	reverse_proxy immich-server:2283
 }
 
 infisical.yourdomain.com, secrets.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy infisical:8080
 }
 
 it-tools.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy it-tools:80
 }
 
 jellyfin.yourdomain.com {
@@ -498,6 +721,33 @@ jellyfin.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy jellyfin:8096
+}
+
+kasm.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy https://kasm:443 {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
+}
+
+kasm-setup.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy https://kasm:3000 {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
 }
 
 kavita.yourdomain.com {
@@ -525,7 +775,7 @@ librechat.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3080
+	reverse_proxy librechat:3080
 }
 
 lidarr.yourdomain.com {
@@ -539,7 +789,7 @@ links.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3000
+	reverse_proxy linkwarden:3000
 }
 
 linkding.yourdomain.com {
@@ -566,6 +816,13 @@ maigret.yourdomain.com {
 	reverse_proxy maigret:5000
 }
 
+mailpit.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy mailpit:8025
+}
+
 meilisearch.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -573,11 +830,43 @@ meilisearch.yourdomain.com {
 	reverse_proxy meilisearch:7700
 }
 
+metube.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy metube:8081 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
 music.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy navidrome:4533
+}
+
+# MinIO: path routing so console (9001) and S3 API (9000) share same host; /console/ for auth
+minio.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	redir /console /console/
+	handle_path /console* {
+		reverse_proxy minio:9001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+	handle {
+		reverse_proxy minio:9000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+		}
+	}
+	request_body {
+		max_size 0
+	}
 }
 
 mylar3.yourdomain.com {
@@ -601,6 +890,15 @@ naisho.yourdomain.com {
 	reverse_proxy naisho:3000
 }
 
+nodered.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy nodered:1880 {
+		header_up X-Forwarded-Proto https
+	}
+}
+
 nzbget.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -622,12 +920,15 @@ ntfy.yourdomain.com {
 	reverse_proxy ntfy:80
 }
 
-ollama.yourdomain.com {
+# ntopng uses network_mode: host; use host.docker.internal
+ntopng.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:11434
+	reverse_proxy host.docker.internal:3000
 }
+
+# ollama – internal only (.home/.local); no public block
 
 onionprobe.yourdomain.com {
 	tls {
@@ -640,21 +941,21 @@ open-notebook.yourdomain.com, notebook.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:8502
+	reverse_proxy open-notebook:8502
 }
 
 open-webui.yourdomain.com, chat.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3000
+	reverse_proxy open-webui:8080
 }
 
 paperless-ngx.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:8000
+	reverse_proxy paperless-ngx:8000
 }
 
 paste.yourdomain.com, privatebin.yourdomain.com {
@@ -668,7 +969,7 @@ perplexica.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3001
+	reverse_proxy perplexica:3000
 }
 
 plex.yourdomain.com {
@@ -678,11 +979,19 @@ plex.yourdomain.com {
 	reverse_proxy plex:32400
 }
 
+# Portainer attaches to monitor network
 portainer.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:9443
+	reverse_proxy https://portainer:9443 {
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Ssl on
+		transport http {
+			tls
+			tls_insecure_skip_verify
+		}
+	}
 }
 
 prometheus.yourdomain.com {
@@ -738,7 +1047,7 @@ searx-ng.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:8080
+	reverse_proxy searxng:8080
 }
 
 short.yourdomain.com, url-shortener.yourdomain.com, s.yourdomain.com {
@@ -755,6 +1064,20 @@ simplelogin.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy simplelogin:7777
+}
+
+scrutiny.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy scrutiny:8080
+}
+
+snipe-it.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy snipeit:80
 }
 
 slink.yourdomain.com {
@@ -782,10 +1105,10 @@ status.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3001
+	reverse_proxy uptime-kuma:3001
 }
 
-stirling-pdf.yourdomain.com {
+pdf.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
@@ -799,11 +1122,18 @@ stoat.yourdomain.com {
 	reverse_proxy stoat-caddy:80
 }
 
+theharvester.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy theharvester:80
+}
+
 vault.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:11001
+	reverse_proxy vaultwarden:80
 }
 
 vikunja.yourdomain.com {
@@ -817,5 +1147,12 @@ web-check.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3000
+	reverse_proxy web-check:3000
+}
+
+zigbee2mqtt.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy zigbee2mqtt:8080
 }

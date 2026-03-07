@@ -26,7 +26,15 @@ Docker image update notifier. Watches your running containers’ images and send
 
 - **Telegram:** `DIUN_NOTIF_TELEGRAM_TOKEN` (from @BotFather), `DIUN_NOTIF_TELEGRAM_CHATIDS` (comma-separated).
 - **Discord:** `DIUN_NOTIF_DISCORD_WEBHOOKURL`.
-- **Webhook / Mail / Slack / Gotify / ntfy / etc.:** See [Diun config](https://crazymax.dev/diun/config/) and [notifiers](https://crazymax.dev/diun/config/notif/).
+- **Mail (SMTP):** Use the shared **Postfix** relay. Set in `stack.env`:
+  - `DIUN_NOTIF_MAIL_HOST=smtp-relay`
+  - `DIUN_NOTIF_MAIL_PORT=587`
+  - `DIUN_NOTIF_MAIL_SSL=false` (STARTTLS on 587)
+  - `DIUN_NOTIF_MAIL_FROM=diun@yourdomain.com`
+  - `DIUN_NOTIF_MAIL_TO=you@yourdomain.com`
+  - Leave `DIUN_NOTIF_MAIL_USERNAME` and `DIUN_NOTIF_MAIL_PASSWORD` empty for the relay (no auth).
+  - For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all alerts appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+- **Webhook / Slack / Gotify / ntfy / etc.:** See [Diun config](https://crazymax.dev/diun/config/) and [notifiers](https://crazymax.dev/diun/config/notif/).
 
 ### Watch only selected containers
 

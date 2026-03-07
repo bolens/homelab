@@ -14,7 +14,6 @@ services:
       - abs_podcasts:/podcasts
     restart: unless-stopped
     networks:
-      - default
       - monitor
 
 networks:

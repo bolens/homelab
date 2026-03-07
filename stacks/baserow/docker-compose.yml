@@ -14,7 +14,6 @@ services:
     volumes:
       - baserow_data:/baserow/data
     networks:
-      - default
       - monitor
 
 networks:

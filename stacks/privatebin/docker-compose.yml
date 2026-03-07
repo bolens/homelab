@@ -7,7 +7,6 @@ services:
     volumes:
       - privatebin_data:/srv/data
     networks:
-      - default
       - monitor
     env_file:
       - stack.env
@@ -15,7 +14,7 @@ services:
 networks:
   monitor:
     name: monitor
-    driver: bridge
+    external: true
 
 volumes:
   privatebin_data: {}

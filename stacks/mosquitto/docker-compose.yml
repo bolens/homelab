@@ -1,0 +1,26 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - mosquitto_config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  mosquitto_config: {}
+  mosquitto_data: {}
+  mosquitto_log: {}
+

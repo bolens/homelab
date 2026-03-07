@@ -1,0 +1,19 @@
+# Homepage – static under-construction (or landing) page.
+# No host ports: access via Caddy (reverse proxy to homepage:80).
+# Edit www/index.html to change content; optional stack.env for TZ.
+services:
+  homepage:
+    image: nginx:alpine
+    container_name: homepage
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - ./www:/usr/share/nginx/html:ro
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true

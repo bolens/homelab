@@ -10,7 +10,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - default
       - monitor
     # Optional: run as specific user (Uptime Kuma defaults to node in image)
     # user: "1000:1000"
@@ -20,7 +19,7 @@ services:
 networks:
   monitor:
     name: monitor
-    driver: bridge
+    external: true
 
 volumes:
   uptime_kuma_data: {}

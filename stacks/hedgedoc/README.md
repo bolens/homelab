@@ -34,5 +34,17 @@
 | **Storage** | `hedgedoc_pg_data` (DB), `hedgedoc_uploads` (uploaded attachments)          |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `hedgedoc.yourdomain.com` → `hedgedoc:3000` |
 
-For advanced SSO (GitHub, GitLab, OIDC), email, and configuration options, refer to the HedgeDoc documentation.
+## Email / SMTP (optional)
+
+For password reset and invites, configure SMTP via env vars (see [HedgeDoc config](https://docs.hedgedoc.org/setup/config-variables/)). For the shared Postfix relay, add to `stack.env`:
+
+- `CMD_EMAIL=true`
+- `CMD_SMTP_HOST=smtp-relay`
+- `CMD_SMTP_PORT=587`
+- `CMD_SMTP_FROM=hedgedoc@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
+- Leave `CMD_SMTP_USER` and `CMD_SMTP_PASS` empty for the relay without auth
+
+For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
+For advanced SSO (GitHub, GitLab, OIDC) and other options, refer to the HedgeDoc documentation.
 

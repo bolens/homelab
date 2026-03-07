@@ -13,7 +13,6 @@ services:
       - nzbget_config:/config
       - usenet_downloads:/downloads
     networks:
-      - default
       - monitor
       - usenet
 

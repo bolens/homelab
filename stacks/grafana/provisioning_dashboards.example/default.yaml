@@ -1,0 +1,15 @@
+# Dashboard provisioning: load JSON files from the json/ subdirectory.
+# Copy this folder to ~/.config/grafana/provisioning_dashboards (or set GRAFANA_DASHBOARDS_PATH).
+# Download dashboard JSON from grafana.com (e.g. https://grafana.com/grafana/dashboards/1860 → Download JSON),
+# save into the json/ subdirectory, then restart Grafana. Use when "Import by ID" fails (no egress to grafana.com).
+apiVersion: 1
+providers:
+  - name: default
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

@@ -12,7 +12,7 @@ WORKDIR /app
 ENV POETRY_VERSION=1.8.4
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}" \
     && apt-get update && apt-get install -y --no-install-recommends git \
-    && git clone --depth 1 "https://github.com/kevinl95/Privotron.git" . -b "${PRIVOTRON_VERSION}" \
+    && BRANCH="${PRIVOTRON_VERSION:-main}" && git clone --depth 1 "https://github.com/kevinl95/Privotron.git" . -b "${BRANCH}" \
     && poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-dev \
     && apt-get purge -y git && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*

@@ -1,5 +1,6 @@
 # ntfy – push notifications (HTTP pub/sub, Android/iOS app, optional auth).
 # No host ports; access via Caddy (e.g. https://ntfy.yourdomain.com → ntfy:80).
+# Uses only external monitor network to avoid Docker address pool exhaustion.
 services:
   ntfy:
     image: binwiederhier/ntfy:latest
@@ -16,7 +17,6 @@ services:
       - ntfy_cache:/var/cache/ntfy
       - ntfy_config:/etc/ntfy
     networks:
-      - default
       - monitor
 
 networks:

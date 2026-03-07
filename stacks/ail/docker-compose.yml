@@ -21,7 +21,6 @@ services:
       - ail-hashs:/opt/ail-framework/HASHS
       - ail-logs:/opt/ail-framework/logs
     networks:
-      - default
       - monitor
 
 networks:

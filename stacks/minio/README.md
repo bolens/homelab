@@ -13,7 +13,7 @@
    - Set:
      - `MINIO_ROOT_USER` – access key (e.g. `openssl rand -hex 16`),
      - `MINIO_ROOT_PASSWORD` – secret key (e.g. `openssl rand -base64 32`),
-     - optionally `MINIO_SERVER_URL` to your Caddy URL (e.g. `https://minio.yourdomain.com`).
+     - `MINIO_BROWSER_REDIRECT_URL` – required when behind Caddy; use the `/console/` path (e.g. `https://minio.yourdomain.com/console/`).
 2. **Deploy**
 
    ```bash
@@ -24,17 +24,27 @@
    - MinIO serves:
      - S3 API on port `9000`,
      - Web console on port `9001`.
-   - Put it behind Caddy on the `monitor` network (e.g. `https://minio.yourdomain.com` → `minio:9001` for the console; S3 API may share the same hostname or a separate one, depending on your Caddy/CNAME setup).
+   - Put it behind Caddy on the `monitor` network. Use path routing: `/console/` → `minio:9001`, `/` → `minio:9000` (see Caddyfile.example).
+
+## Deploying via Portainer
+
+1. **Stacks** → **Add stack** → paste the contents of `docker-compose.yml`.
+2. **Environment variables** (required):
+   - `MINIO_ROOT_USER` – access key (e.g. `openssl rand -hex 16`)
+   - `MINIO_ROOT_PASSWORD` – secret key (e.g. `openssl rand -base64 32`)
+   - `MINIO_BROWSER_REDIRECT_URL` – required when behind Caddy (e.g. `https://minio.yourdomain.com/console/`)
+3. Ensure the **monitor** network exists.
+4. Deploy.
 
 ## Configuration
 
 | Item        | Details                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
-| **Access**  | Via Caddy (reverse-proxy to `minio:9001` for console; `minio:9000` for S3 API) |
+| **Access**  | Via Caddy: `/console/` → `minio:9001`, `/` → `minio:9000` (path routing) |
 | **Network** | `monitor` (so apps and backup tools can reach it)                      |
 | **Image**   | `minio/minio:latest`                                                   |
 | **Storage** | `minio_data` volume for object data and metadata                       |
-| **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `minio.yourdomain.com` → `minio:9001` (console) |
+| **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example): path routing with `handle_path /console*` and `request_body max_size 0` |
 
 For one-time setup and how other stacks use this backend, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 

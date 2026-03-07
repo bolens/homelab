@@ -14,17 +14,23 @@ Post-mortem analysis of Docker runtime environments from forensic copies of a Do
    # Copy or link your Docker host disk image to data/ (e.g. data/host.raw)
    ```
 
-2. **Copy env template** (optional):
+2. **Copy env template** and prepare stack:
 
    ```bash
-   cp stack.env.example stack.env
+   ./prepare-stack.sh
+   # or: cp stack.env.example stack.env
    ```
 
-3. **Build the image** (toolkit is cloned and installed in the image):
+   `prepare-stack.sh` creates `stack.env` from the example and syncs `DOCKER_FORENSICS_TOOLKIT_IMAGE` to `.env` for compose. If using a pre-built Harbor image, set that variable in `stack.env`.
+
+3. **Build and push the image** (for Harbor; skip if using a pre-built image):
 
    ```bash
-   docker compose build
+   docker build -t harbor.yourdomain.com/homelab/docker-forensics-toolkit:latest .
+   docker push harbor.yourdomain.com/homelab/docker-forensics-toolkit:latest
    ```
+
+   Set `DOCKER_FORENSICS_TOOLKIT_IMAGE` in `stack.env` to match, then run `./prepare-stack.sh`.
 
 4. **Mount the forensic image** (may require privileged mode; see notes below):
 
@@ -42,13 +48,43 @@ Post-mortem analysis of Docker runtime environments from forensic copies of a Do
    docker compose run --rm docker-forensics-toolkit list-images <MOUNTPOINT>
    ```
 
+## Using the CLI
+
+The toolkit is a **CLI-only** tool. Each invocation runs a single operation and exits. Use:
+
+```bash
+docker compose run --rm [--privileged] docker-forensics-toolkit <operation> [args]
+```
+
+- **`--rm`** – Remove the container after it exits (recommended).
+- **`--privileged`** – Required for `mount-image` (FUSE/loop). Omit for other operations.
+- **`<operation>`** – One of the subcommands in the table below.
+
+**Get help:**
+
+```bash
+# General help and list of operations
+docker compose run --rm docker-forensics-toolkit -h
+
+# Help for a specific operation (e.g. mount-image)
+docker compose run --rm docker-forensics-toolkit mount-image help
+```
+
+**Typical workflow:**
+
+1. Place your forensic disk image in `./data/` (e.g. `./data/host.raw`).
+2. Mount it: `docker compose run --rm --privileged docker-forensics-toolkit mount-image /data/host.raw` → note the root mountpoint (e.g. `/tmp/...-root-2`).
+3. Run other commands with that mountpoint: `status`, `list-containers`, `list-images`, `show-container-config`, etc.
+
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm docker-forensics-toolkit ...`. |
-| **Image** | Built locally (clones upstream repo and installs deps with Pipenv). |
+| **Image** | Build locally and push to Harbor, or use a pre-built image. Set `DOCKER_FORENSICS_TOOLKIT_IMAGE` in `stack.env`. |
 | **Storage** | Local `data/` bind-mounted to `/data` for disk images. Files created in `data/` may be root-owned; to access as your user run `chown -R $(id -u):$(id -g) ./data` after use. |
+| **docker-gc** | If you use the docker-gc stack, add `docker-forensics-toolkit` to `EXCLUDE_CONTAINERS` in docker-gc’s `stack.env` so the container is not pruned when it has not run recently. Images may still be cleaned. |
+| **docker-gc** | If you use the docker-gc stack, add `docker-forensics-toolkit` to `EXCLUDE_CONTAINERS` in docker-gc’s `stack.env` so the container is not pruned when it has not run recently. Images may still be cleaned. |
 
 ## Common commands
 

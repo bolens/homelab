@@ -34,7 +34,6 @@ services:
       - social-hunt-plugins:/app/plugins
       - social-hunt-temp-uploads:/app/web/temp_uploads
     networks:
-      - default
       - monitor
 
 networks:

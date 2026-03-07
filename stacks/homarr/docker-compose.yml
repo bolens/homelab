@@ -14,7 +14,6 @@ services:
       - homarr_config:/app/data/configs
       - homarr_data:/data
     networks:
-      - default
       - monitor
 
 networks:

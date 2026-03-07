@@ -15,7 +15,6 @@ services:
       - freshrss_config:/config
     restart: unless-stopped
     networks:
-      - default
       - monitor
 
 networks:

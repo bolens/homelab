@@ -57,6 +57,28 @@ In `stacks/infisical/stack.env` (or Portainer Environment):
 - `SMTP_FROM_ADDRESS=noreply@yourdomain.com`
 - `SMTP_FROM_NAME=Infisical`
 
+## Internal-only mailing (Mailpit)
+
+For development or homelab use where you **do not want mail to leave your network**, use [Mailpit](https://mailpit.axllent.org) as the relay target:
+
+1. Deploy the **mailpit** stack (`stacks/mailpit`).
+2. In `stack.env`, set `RELAYHOST=mailpit:1025` (leave `RELAYHOST_USERNAME` and `RELAYHOST_PASSWORD` empty).
+3. Restart the postfix stack.
+
+Apps still send to `smtp-relay:587`; Postfix relays to Mailpit, which catches all mail and displays it in a web UI at `https://mailpit.yourdomain.com`. No mail is delivered externally.
+
+## Choosing a relay provider (2026)
+
+| Provider | Free tier | After free tier | RELAYHOST |
+|----------|-----------|-----------------|-----------|
+| **Brevo** | 300 emails/day (~9,000/mo) | From ~$9–15/mo | `smtp-relay.brevo.com:587` |
+| **Resend** | 3,000 emails/mo (100/day) | ~$20/mo for 50k | `smtp.resend.com:587` |
+| **AWS SES** | 3,000/mo for first 12 months | **$0.10 per 1,000** | `email-smtp.REGION.amazonaws.com:587` |
+| **Mailgun** | 100 emails/day | From $15/mo (10k) | `smtp.mailgun.org:587` (US) or `smtp.eu.mailgun.org:587` (EU) |
+| **SendGrid** | 100/day for 60-day trial | From ~$20/mo | `smtp.sendgrid.net:587` |
+
+**Homelab recommendation:** **Brevo** has the most generous free tier (300/day, no credit card). **AWS SES** is cheapest at scale ($0.10 per 1,000). Verify current pricing on each provider’s site before signing up.
+
 ## Public access (`smtp.yourdomain.com`)
 
 The relay itself is **not HTTP**; Caddy cannot proxy SMTP the same way it proxies web apps. Recommended approach:

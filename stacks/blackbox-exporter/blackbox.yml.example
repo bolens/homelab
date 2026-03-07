@@ -1,0 +1,14 @@
+modules:
+  http_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      valid_status_codes: []  # Defaults to 2xx
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+
+  tcp_connect:
+    prober: tcp
+    timeout: 10s
+    tcp:
+      preferred_ip_protocol: "ip4"

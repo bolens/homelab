@@ -1,13 +1,12 @@
 name: ghunt
 
+# GHunt needs monitor network when using Caddy as HTTP proxy (HTTP_PROXY=http://caddy:3128).
+
 services:
   ghunt:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ghunt:local
+    image: ${GHUNT_IMAGE:-harbor.yourdomain.com/homelab/ghunt:latest}
     container_name: ghunt
-    restart: unless-stopped
+    restart: "no"
     env_file:
       - stack.env
     environment:
@@ -17,8 +16,15 @@ services:
       - ghunt-config:/root/.config/ghunt
       # Optional: place JSON exports and other outputs here
       - ghunt-data:/data
+    networks:
+      - monitor
     stdin_open: true
     tty: true
+
+networks:
+  monitor:
+    name: monitor
+    external: true
 
 volumes:
   ghunt-config:

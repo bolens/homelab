@@ -1,30 +1,39 @@
 # Grafana – dashboards and visualization. Access via Caddy (grafana.home / grafana.yourdomain.com).
-# No host port: attaches to monitor network for reverse proxy.
-# Prometheus datasource is auto-provisioned (see provisioning/datasources/).
+# No host port: attaches to monitor network for reverse proxy. Uses external monitor network
+# only (no default network) to avoid creating new subnets when Docker address pools are full.
+# Prometheus datasource is auto-provisioned via provisioning/datasources/datasources.yml.
+# To keep config local, copy datasources.yml.example to a host path and point
+# GRAFANA_DATASOURCES_PATH at that file (see README). When unset, the default is
+# ${HOME}/.config/grafana/datasources.yml, which only works for CLI deploys where HOME is set.
+# Dashboards: copy provisioning_dashboards.example to ~/.config/grafana/provisioning_dashboards (see README);
+# set GRAFANA_DASHBOARDS_PATH to that dir so "Import by ID" can be replaced by dropping JSON into json/.
+# TZ/locale: use shared.env or set in stack.env (see documents/SHARED-RESOURCES.md).
 services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./provisioning:/etc/grafana/provisioning:ro
+      - ${GRAFANA_DATASOURCES_PATH:-${HOME}/.config/grafana/datasources.yml}:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      # Dashboard provisioning: dir must contain default.yaml and json/ with dashboard JSONs (see README).
+      - ${GRAFANA_DASHBOARDS_PATH:-${HOME}/.config/grafana/provisioning_dashboards}:/etc/grafana/provisioning/dashboards:ro
     networks:
-      - default
       - monitor
+    env_file:
+      - stack.env
     environment:
-      - TZ=America/Denver
-      - LANG=en_US.UTF-8
-      - LC_ALL=en_US.UTF-8
-      - LC_CTYPE=en_US.UTF-8
-      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-https://grafana.home}
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-https://grafana.yourdomain.com}
+      - GF_USERS_ALLOW_SIGN_UP=${GF_USERS_ALLOW_SIGN_UP:-false}
       - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=${GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION:-false}
 
 networks:
   monitor:
     name: monitor
-    driver: bridge
+    external: true
 
 volumes:
   grafana_data: {}

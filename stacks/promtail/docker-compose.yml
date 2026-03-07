@@ -1,0 +1,23 @@
+# Config: copy promtail-config.yml.example to ~/.config/promtail/promtail-config.yml
+# (create the directory if needed). Override with PROMTAIL_CONFIG_PATH if desired (e.g. in Portainer).
+# Requires Loki on the monitor network (e.g. stacks/loki) at http://loki:3100.
+services:
+  promtail:
+    image: grafana/promtail:2.9.8
+    container_name: promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /run/log/journal:/run/log/journal:ro
+      - ${PROMTAIL_CONFIG_PATH:-${HOME}/.config/promtail/promtail-config.yml}:/etc/promtail/config.yml:ro
+    networks:
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true

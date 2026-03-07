@@ -1,0 +1,15 @@
+services:
+  ntopng:
+    image: ntop/ntopng:stable
+    container_name: ntopng
+    restart: unless-stopped
+    # ntopng inspects host network traffic; host networking is recommended.
+    network_mode: host
+    volumes:
+      - ntopng_data:/var/lib/ntopng
+    env_file:
+      - stack.env
+
+volumes:
+  ntopng_data: {}
+

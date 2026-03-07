@@ -10,29 +10,26 @@ Classic OSINT tool to collect emails, subdomains, hosts, open ports, and banners
 
 ## Quick start
 
-1. **Copy env template** (optional):
+1. **Prepare** (creates `stack.env` from template if missing):
 
    ```bash
-   cp stack.env.example stack.env
+   ./prepare-stack.sh
+   # or: cp stack.env.example stack.env
    ```
 
-2. **(Optional) Set timezone / proxies** in `stack.env` (for example to control logs or outbound proxies for theHarvester).
+2. **(Optional) Set timezone / proxies** in `stack.env`.
 
 3. **Deploy:**
-
-   From this directory:
 
    ```bash
    docker compose up -d
    ```
 
-   The compose file already uses `env_file: [stack.env]`, so `docker compose up -d` is sufficient after you create `stack.env`. You can also run:
+4. **Access REST API via Caddy** at your hostname (e.g. `https://theharvester.yourdomain.com`). The service listens on port 80 inside the container.
 
-   ```bash
-   docker compose --env-file stack.env up -d
-   ```
+## Portainer
 
-4. **Access REST API via Caddy** at your chosen hostname (for example, `https://theharvester.yourdomain.com`). The REST service listens on port 80 inside the container.
+Stacks → Add stack → **Repository** → Compose path `stacks/theharvester/docker-compose.yml`. Ensure the stack has access to the `monitor` network. Add env vars from `stack.env.example` if needed.
 
 ## Configuration
 
@@ -69,16 +66,15 @@ SANITIZED examples (replace hostnames and targets for real use).
 
 ## Caddy reverse proxy
 
-Example Caddy vhost (SANITIZED example hostnames):
+Add a site block in your Caddyfile (placeholder hostname; use your real hostname in your local Caddyfile):
 
 ```
-theharvester.home, theharvester.local {
-  tls internal
+theharvester.yourdomain.com {
   reverse_proxy theharvester:80
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `theharvester.yourdomain.com`) and keep the container on the `monitor` network so Caddy can resolve `theharvester`.
+Keep the container on the `monitor` network so Caddy can resolve `theharvester`. For internal-only access use `tls internal` and your internal hostname (e.g. `theharvester.home`).
 
 ## CLI usage
 

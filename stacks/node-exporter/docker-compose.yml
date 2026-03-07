@@ -1,0 +1,21 @@
+# Node Exporter – host metrics (CPU, memory, disk, etc.) for Prometheus.
+# No host port; Prometheus scrapes node-exporter:9100 on the monitor network.
+# Reads host filesystem via mounted root; add a scrape job in prometheus.yml.
+services:
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true

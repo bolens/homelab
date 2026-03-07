@@ -13,7 +13,6 @@ services:
       - rtorrent_flood_config:/config
       - torrents_manual:/downloads
     networks:
-      - default
       - monitor
       - torrents
     ports:

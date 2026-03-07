@@ -35,5 +35,14 @@
 | **Storage** | `joplin_pg_data` (Postgres)                                                |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `joplin.yourdomain.com` or `joplin-server.yourdomain.com` → `joplin-server:22300` |
 
-For more advanced options (email, logging, user management), refer to the official Joplin Server documentation.
+## Email / SMTP (optional)
+
+For user invites and notifications, configure SMTP via env vars or the Joplin Server admin UI. For the shared Postfix relay, set in `stack.env`:
+
+- `MAILER_HOST=smtp-relay`
+- `MAILER_PORT=587`
+- `MAILER_FROM=joplin@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
+- Leave `MAILER_USERNAME` and `MAILER_PASSWORD` empty for the relay without auth
+
+For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) and the [Joplin Server docs](https://joplinapp.org/help/server/).
 

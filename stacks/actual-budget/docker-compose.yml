@@ -12,7 +12,6 @@ services:
     volumes:
       - actual_budget_data:/data
     networks:
-      - default
       - monitor
 
 networks:

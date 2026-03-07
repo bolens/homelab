@@ -1,0 +1,22 @@
+# Config: copy blackbox.yml.example to ~/.config/blackbox-exporter/blackbox.yml
+# (create the directory if needed). Override path with BLACKBOX_CONFIG_PATH if desired.
+services:
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/blackbox_exporter/config.yml
+      - --log.level=info
+    volumes:
+      - ${BLACKBOX_CONFIG_PATH:-${HOME}/.config/blackbox-exporter/blackbox.yml}:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - monitor
+    env_file:
+      - stack.env
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+

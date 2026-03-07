@@ -35,6 +35,8 @@
 | **Storage** | `ntfy_cache`, `ntfy_config` (optional server.yml)                           |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `ntfy.yourdomain.com` → `ntfy:80` |
 
+**Alertmanager:** To receive Prometheus alerts on your phone, deploy **stacks/alertmanager** on the `monitor` network; the example config sends alerts to `http://ntfy:80/alerts`. Subscribe to the topic `alerts` in the ntfy app (or set the topic in `alertmanager.yml` and subscribe to that). See the main [docker README](../../README.md) step-by-step for the full monitoring stack.
+
 For auth, upstream limits, and Firebase (mobile), see [ntfy config](https://docs.ntfy.sh/config/). Optional: put a `server.yml` in the config volume and reference it.
 
 ## Portainer

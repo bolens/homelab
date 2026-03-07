@@ -16,7 +16,6 @@ services:
       - media_movies:/data/movies
       - media_music:/data/music
     networks:
-      - default
       - monitor
     deploy:
       resources:

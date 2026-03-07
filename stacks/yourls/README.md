@@ -8,10 +8,22 @@ Self-hosted URL shortener: one app with web UI, API, and redirects. No path rout
 **Docker image:** https://hub.docker.com/_/yourls  
 **Releases:** https://github.com/YOURLS/YOURLS/releases  
 
+## Building the image
+
+The stack uses a custom Dockerfile that extends `yourls:1.10.3-apache` with `vhost.conf` (DirectoryIndex fix). To build and push to your registry (e.g. Harbor):
+
+```bash
+cd stacks/yourls
+docker build -t harbor.yourdomain.com/homelab/yourls:latest .
+docker push harbor.yourdomain.com/homelab/yourls:latest
+```
+
+Set `YOURLS_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-stack.sh` after changing the image so `.env` is updated for compose.
+
 ## Quick start
 
 1. **Environment**
-   - Copy `stack.env.example` to `stack.env`.
+   - Run `./prepare-stack.sh` (or copy `stack.env.example` to `stack.env`).
    - Set `YOURLS_SITE` to the URL you will use in Caddy (e.g. `https://short.home` or `https://short.yourdomain.com`).
    - Set `YOURLS_USER` and `YOURLS_PASS` (admin login for the web UI).
    - Generate and set the required secrets (see **Generating keys and secrets** below).
@@ -57,5 +69,5 @@ Ensure the stack is on the `monitor` network so Caddy can reach `yourls:8080`.
 
 ## Start
 
-From this directory: `docker compose up -d` (builds the image with the vhost fix).  
-In Portainer: deploy the stack from Git; ensure **Build the image** (or equivalent) is enabled so the Dockerfile and `vhost.conf` are used. Set the required env vars in the stack.
+From this directory: `docker compose up -d`.  
+In Portainer: deploy the stack from Git; set `YOURLS_IMAGE` to your Harbor image and the required env vars in the stack.

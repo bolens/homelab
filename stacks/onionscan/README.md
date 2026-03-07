@@ -10,13 +10,20 @@ CLI tool for investigating Tor hidden services (onion sites). Scans for operatio
 
 ## Quick start
 
-1. **Start the stack** (brings up Tor inside the container):
+1. **Prepare** (copy template):
+
+   ```bash
+   ./prepare-stack.sh
+   # or: cp stack.env.example stack.env
+   ```
+
+2. **Start the stack** (brings up Tor inside the container):
 
    ```bash
    docker compose up -d
    ```
 
-2. **Wait for Tor to be ready** (first run can take a minute):
+3. **Wait for Tor to be ready** (first run can take a minute):
 
    ```bash
    docker compose logs -f onionscan
@@ -24,7 +31,7 @@ CLI tool for investigating Tor hidden services (onion sites). Scans for operatio
 
    When you see Tor running (e.g. "Bootstrapped 100%"), press Ctrl+C.
 
-3. **Run a scan**:
+4. **Run a scan**:
 
    ```bash
    docker compose exec onionscan onionscan <onion-address>
@@ -69,12 +76,16 @@ onionscan() {
 
 Then: `onionscan --verbose example.onion`
 
+## Portainer
+
+Stacks → Add stack → **Repository** → set your repo URL and Compose path (e.g. `stacks/onionscan/docker-compose.yml`). No build required; uses `mpatton/onionscan:latest` from Docker Hub.
+
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no ports. Run via `docker compose exec onionscan onionscan [options] <addr>`. |
-| **Image** | `mpatton/onionscan:latest` ([Docker Hub](https://hub.docker.com/r/mpatton/onionscan)) |
+| **Image** | `mpatton/onionscan:latest` (Docker Hub). |
 | **Security** | `cap_drop: ALL`; container only runs Tor + onionscan binary. |
 
 ## Start

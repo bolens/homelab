@@ -15,13 +15,12 @@ services:
       - /dev/disk/:/dev/disk:ro
     networks:
       - default
-      - monitor
     env_file:
       - stack.env
 
 networks:
-  monitor:
+  default:
     name: monitor
-    driver: bridge
+    external: true
 
 volumes: {}

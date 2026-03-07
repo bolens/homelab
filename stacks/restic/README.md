@@ -8,36 +8,44 @@ Automated backups using [restic](https://restic.readthedocs.io/) running on a sc
 
 ## Quick start
 
-1. **Environment**
-   - From this directory: copy `stack.env.example` → `stack.env`.
-   - Set at least:
-     - `RESTIC_REPOSITORY` (e.g. `s3:http://minio:9000/restic` when using the `minio` stack),
-     - `RESTIC_PASSWORD` (encryption password),
-     - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (S3 credentials),
-     - and adjust `BACKUP_CRON` if needed.
-2. **Adjust source paths**
-   - Edit `docker-compose.yml` and update the bind mounts under `volumes` to point at the host paths you want to back up (e.g. `/srv/docker`, `/srv/media`).
-3. **Initialize the repo (first run)**
-   - From this directory:
+1. **Prepare** (copy template, set paths):
 
-     ```bash
-     docker compose up -d
-     # Then inside the container (once per repository):
-     docker compose exec restic restic init
-     ```
+   ```bash
+   ./prepare-stack.sh
+   # or: cp stack.env.example stack.env
+   ```
 
-4. **Run a manual backup (optional)**
+   Edit `stack.env` and set at least:
+   - `RESTIC_REPOSITORY` (e.g. `s3:http://minio:9000/restic` when using the `minio` stack),
+   - `RESTIC_PASSWORD` (encryption password; generate with `openssl rand -base64 32`),
+   - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (S3 credentials),
+   - `RESTIC_PATH_DOCKER` / `RESTIC_PATH_MEDIA` (host paths to back up; defaults `/srv/docker`, `/srv/media`),
+   - and adjust `BACKUP_CRON` if needed.
+
+2. **Initialize the repo (first run)**:
+
+   ```bash
+   docker compose --env-file stack.env up -d
+   # Then inside the container (once per repository):
+   docker compose exec restic restic init
+   ```
+
+3. **Run a manual backup (optional)**:
 
    ```bash
    docker compose exec restic restic backup /data/docker /data/media
    ```
 
-5. **Let the scheduler run**
+4. **Let the scheduler run**
    - The container runs backups automatically according to `BACKUP_CRON`. Check logs with:
 
      ```bash
      docker compose logs -f restic
      ```
+
+## Portainer
+
+Stacks → Add stack → **Repository** → set your repo URL and Compose path (e.g. `stacks/restic/docker-compose.yml`). In **Environment**, set all required vars including `RESTIC_PATH_DOCKER` and `RESTIC_PATH_MEDIA` to absolute host paths (e.g. `/srv/docker`, `/srv/media`). Ensure MinIO is deployed and the `restic` bucket exists.
 
 ## Configuration
 
@@ -55,6 +63,7 @@ Set these in `stack.env` (see `stack.env.example` for comments and examples):
 - `RESTIC_REPOSITORY` – Repository URL, e.g. `s3:http://minio:9000/restic`.
 - `RESTIC_PASSWORD` – Required encryption password. Generate with `openssl rand -base64 32`.
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` – S3 credentials for the backup target (e.g. MinIO).
+- `RESTIC_PATH_DOCKER`, `RESTIC_PATH_MEDIA` – Host paths to back up (defaults `/srv/docker`, `/srv/media`). Set in Portainer to absolute paths.
 - `BACKUP_CRON` – Cron schedule, default `0 3 * * *` (daily at 03:00).
 - `TZ` – Optional timezone for logs and cron.
 

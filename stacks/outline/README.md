@@ -56,8 +56,24 @@ Outline is typically used with an external IdP (Google, OIDC, SAML, etc.). With 
 - Use **Keycloak** or **authentik** as the IdP.
 - Configure an OIDC application in your IdP for Outline, pointing redirect URIs at `URL` (e.g. `https://outline.yourdomain.com/auth/oidc.callback`), and set the corresponding client ID/secret in additional env vars (see the Outline docs for the full list).
 
+## Email / SMTP (optional)
+
+For invites, document notifications, and magic-link sign-in, add SMTP env vars to `stack.env`. Use the shared **Postfix** relay:
+
+| Variable | Value |
+|----------|-------|
+| `SMTP_HOST` | `smtp-relay` |
+| `SMTP_PORT` | `587` |
+| `SMTP_SECURE` | `false` (STARTTLS on 587) |
+| `SMTP_USERNAME` | (leave empty) |
+| `SMTP_PASSWORD` | (leave empty) |
+| `SMTP_FROM_EMAIL` | `outline@yourdomain.com` |
+| `SMTP_REPLY_EMAIL` | (optional) |
+
+Ensure both Outline and Postfix are on the `monitor` network. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all emails appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
 ## Notes
 
 - This stack assumes an S3-compatible backend for file uploads; for MinIO, keep traffic internal and terminate TLS at Caddy.
-- For advanced configuration (OIDC, SMTP, more granular S3 settings), see the official Outline self-hosting docs.
+- For advanced configuration (OIDC, more granular S3 settings), see the official Outline self-hosting docs.
 

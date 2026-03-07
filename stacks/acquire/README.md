@@ -6,6 +6,18 @@ Gather forensic artifacts from disk images or a live system into a single archiv
 **GitHub:** https://github.com/fox-it/acquire  
 **PyPI:** https://pypi.org/project/acquire/  
 
+## Building the image
+
+To build and push the image to your registry (e.g. Harbor):
+
+```bash
+cd stacks/acquire
+docker build -t harbor.yourdomain.com/homelab/acquire:latest .
+docker push harbor.yourdomain.com/homelab/acquire:latest
+```
+
+Set `ACQUIRE_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-stack.sh` after changing the image so `.env` is updated for compose.
+
 ## Quick start
 
 1. **Create a data directory** for evidence and output:
@@ -14,38 +26,57 @@ Gather forensic artifacts from disk images or a live system into a single archiv
    mkdir -p data
    ```
 
-2. **Copy env template** (optional):
+2. **Copy env template** and prepare stack:
 
    ```bash
-   cp stack.env.example stack.env
+   ./prepare-stack.sh
+   # or: cp stack.env.example stack.env
    ```
 
 3. **Place a disk image** (e.g. `evidence.vmdk`, `disk.e01`) under `data/`, or use a directory for OS-level fallback.
 
-4. **Run acquire** against a disk image (recommended: specify output path):
+4. **Run acquire** — see [Usage examples](#usage-examples) below.
 
-   ```bash
-   docker compose run --rm acquire /data/evidence.vmdk -o /data/output.tar
-   ```
+## Usage examples
 
-   With a profile (e.g. `default`, `minimal`, `full`):
+All examples assume evidence and output live under `./data/` (bind-mounted to `/data` in the container).
 
-   ```bash
-   docker compose run --rm acquire /data/evidence.vmdk --profile default -o /data/output.tar
-   ```
+**Get help:**
 
-   To collect from a directory using OS filesystem access (no raw disk):
+```bash
+docker compose run --rm acquire -h
+```
 
-   ```bash
-   docker compose run --rm acquire --force-fallback /data/capture -o /data/output.tar
-   ```
+**Disk image → single tar file** (use `-of` for output filename):
+
+```bash
+docker compose run --rm acquire /data/evidence.vmdk -of /data/output.tar
+```
+
+**With profile** (`default`, `minimal`, `full`, `none`):
+
+```bash
+docker compose run --rm acquire /data/evidence.vmdk --profile default -of /data/output.tar
+```
+
+**Directory** (OS-level fallback, no raw disk):
+
+```bash
+docker compose run --rm acquire --force-fallback /data/capture -of /data/output.tar
+```
+
+**Output to directory** (use `-o` for output directory):
+
+```bash
+docker compose run --rm acquire /data/evidence.vmdk -o /data/output-dir
+```
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm acquire ...`. |
-| **Image** | Built locally from Dockerfile (`pip install acquire`). |
+| **Image** | Built from Dockerfile and pushed to Harbor. See [Building the image](#building-the-image). |
 | **Storage** | Local `data/` bind-mounted to `/data` for evidence and output. Output files may be root-owned; to access as your user run `chown -R $(id -u):$(id -g) ./data` after a run. |
 
 ## Common options
@@ -53,7 +84,8 @@ Gather forensic artifacts from disk images or a live system into a single archiv
 | Option | Description |
 |--------|-------------|
 | `TARGETS` | Path(s) to disk image(s) or, with `--force-fallback`, directory (default: `local` = host). |
-| `-o PATH`, `--output PATH` | Output path for the forensic container archive. |
+| `-o PATH`, `--output PATH` | Output directory. |
+| `-of PATH`, `--output-file PATH` | Output filename (e.g. for a single tar archive). |
 | `--profile {full,default,minimal,none}` | Collection profile (OS-specific modules). |
 | `--force-fallback` | Use OS filesystem access (e.g. for a directory instead of raw disk). |
 | `--volatile-profile {default,extensive,none}` | Collect volatile (memory) artifacts where supported. |

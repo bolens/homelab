@@ -1,0 +1,38 @@
+services:
+  snipeit:
+    image: snipe/snipe-it:latest
+    container_name: snipe-it
+    restart: unless-stopped
+    depends_on:
+      - snipeit-db
+    env_file:
+      - stack.env
+    volumes:
+      - snipeit_storage:/var/lib/snipeit
+    networks:
+      - default
+      - monitor
+
+  snipeit-db:
+    image: mariadb:11.5
+    container_name: snipe-it-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-snipeit}
+      - MYSQL_USER=${MYSQL_USER:-snipeit}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-REPLACE_WITH_GENERATED_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-REPLACE_WITH_GENERATED_PASSWORD}
+    volumes:
+      - snipeit_db:/var/lib/mysql
+    networks:
+      - default
+
+networks:
+  monitor:
+    name: monitor
+    driver: bridge
+
+volumes:
+  snipeit_storage: {}
+  snipeit_db: {}
+

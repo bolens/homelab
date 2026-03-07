@@ -13,6 +13,8 @@ services:
     image: mpatton/onionscan:latest
     container_name: onionscan
     restart: unless-stopped
+    env_file:
+      - stack.env
     # Drop all capabilities; Tor + onionscan don't need extra caps
     cap_drop:
       - ALL

@@ -13,7 +13,6 @@ services:
       - navidrome_music:/music
     restart: unless-stopped
     networks:
-      - default
       - monitor
 
 networks:

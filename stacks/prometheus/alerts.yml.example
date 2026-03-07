@@ -1,0 +1,57 @@
+# Prometheus alert rules for homelab.
+# Copy this file to ~/.config/prometheus/rules/alerts.yml (create the directory if needed).
+# Set PROMETHEUS_RULES_PATH to that directory (e.g. in stack.env) so the stack mounts it.
+# Alerts are sent to Alertmanager (e.g. ntfy) when conditions fire.
+groups:
+  - name: instance
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} has been unreachable for more than 2 minutes."
+
+  - name: node
+    rules:
+      - alert: NodeMemoryHigh
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is above 90% (current: {{ $value | humanizePercentage }}) for 5 minutes."
+
+      - alert: NodeDiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1 and node_filesystem_readonly == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Mount {{ $labels.mountpoint }} on {{ $labels.instance }} has less than 10% free ({{ $value | humanizePercentage }} available)."
+
+  - name: blackbox
+    rules:
+      - alert: ProbeDown
+        expr: probe_success == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Probe failing for {{ $labels.instance }}"
+          description: "Blackbox probe to {{ $labels.instance }} has been failing for more than 5 minutes (module: {{ $labels.module }})."
+
+  - name: prometheus
+    rules:
+      - alert: PrometheusConfigReloadFailure
+        expr: prometheus_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus config reload failed"
+          description: "Prometheus has not successfully reloaded its config for more than 5 minutes."
