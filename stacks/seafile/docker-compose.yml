@@ -13,6 +13,12 @@ services:
       - seafile_db:/var/lib/mysql
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   memcached:
     image: memcached:alpine
@@ -26,8 +32,10 @@ services:
     container_name: seafile
     restart: unless-stopped
     depends_on:
-      - db
-      - memcached
+      db:
+        condition: service_healthy
+      memcached:
+        condition: service_started
     env_file:
       - stack.env
     environment:
@@ -43,6 +51,12 @@ services:
     networks:
       - default
       - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
 
 networks:
   monitor:

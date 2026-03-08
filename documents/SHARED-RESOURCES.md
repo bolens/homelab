@@ -34,6 +34,7 @@ The **minio** stack is the single object store for:
 
 - **Outline** – uploads (bucket e.g. `outline`)
 - **Restic** – backup repository (e.g. `s3:http://minio:9000/restic`)
+- **Kasm** – S3-based persistent profiles (bucket e.g. `kasm`; see [stacks/kasm/README.md](../stacks/kasm/README.md#optional-minio-s3-persistent-profiles))
 - Other apps that support S3 (e.g. optional Firefly III file storage)
 
 All run on the `monitor` network and use `http://minio:9000` (S3 API) or `minio:9001` (console). Create buckets per app in the MinIO console. See each stack’s README for `AWS_*` / `RESTIC_*` placeholders.
@@ -65,6 +66,46 @@ Some stacks expect **external** named volumes so multiple stacks can share the s
 | `media_movies`, `media_tv`, `media_music` | Jellyfin, Plex, Emby, *arr (paths may differ per stack) |
 
 Create volumes once if your compose does not create them: e.g. `docker volume create torrents_downloads`. Stacks that use them declare `external: true`. This avoids duplicate download/layout and keeps modularity (each stack still has its own compose and config).
+
+### mDNS aliases (`.local` hostnames for any stack)
+
+The Caddyfile serves many stacks as `<name>.home` and `<name>.local` so you can reach them on the LAN without going through Cloudflare (useful for large uploads, e.g. Harbor). To make `<name>.local` resolve via mDNS **without changing the system hostname**, you can either use **one list + script** (easiest) or the template unit below.
+
+**Easiest: one list for Avahi and /etc/hosts**
+
+1. From the `docker/` repo root: `cp scripts/local-hosts.conf.example scripts/local-hosts.conf`
+2. Edit `scripts/local-hosts.conf`: one hostname per line (e.g. `harbor`, `gitea`, `nextcloud`). No `.local` suffix.
+3. Run `./scripts/sync-local-hosts.sh --print` to see what would be written, then `sudo ./scripts/sync-local-hosts.sh --apply`. The script writes `/etc/avahi/hosts` always; if **hblock** is installed it writes only `/etc/hblock/footer` (no direct `/etc/hosts` edit), otherwise it writes the .local block to `/etc/hosts`. So entries live in one place: footer when you use hblock, `/etc/hosts` when you don’t.
+4. Restart Avahi: `sudo systemctl restart avahi-daemon`
+5. **If you use hblock:** after `--apply`, the script writes **`~/.config/hblock/footer.list`** (same place as your other hblock lists). Run your usual hblock command with **`-F ~/.config/hblock/footer.list`** (e.g. `sudo hblock -S ~/.config/hblock/sources.list -A ~/.config/hblock/allow.list -O /etc/hosts -F ~/.config/hblock/footer.list`). If the footer is not applied, run `sudo sh -c 'cat ~/.config/hblock/footer.list >> /etc/hosts'` as a fallback.
+
+Other machines on the LAN will resolve `<name>.local` via Avahi; on the Caddy host itself, `/etc/hosts` is used (ensure `files` is before `mdns_minimal` in `/etc/nsswitch.conf` — see below). If your host IP changes (e.g. DHCP), run the script again with `--apply` and, if you use hblock, run `sudo hblock` again.
+
+**Alternative: template unit per alias**
+
+- **File:** `scripts/avahi-alias@.service` (from the `docker/` repo root).
+- **Install once:** `sudo cp scripts/avahi-alias@.service /etc/systemd/system/` then `sudo systemctl daemon-reload`.
+- **Enable per stack:** `sudo systemctl enable --now avahi-alias@<name>.service` where `<name>` matches the Caddy host (e.g. `harbor`, `gitea`, `nextcloud`). Each advertises `<name>.local` pointing at the Caddy host.
+
+Requires `avahi-daemon` and `avahi-utils` on the host where Caddy runs. Example: `avahi-alias@harbor.service` → `harbor.local`, `avahi-alias@gitea.service` → `gitea.local`.
+
+**If the unit fails** with `Failed to resolve host name '<name>.local': Timeout reached`, use the **static hosts file** instead (no resolve step, works everywhere):
+
+1. On the Caddy host, get the LAN IP (e.g. `hostname -I | awk '{print $1}'` or `ip -4 route get 1 | awk '{print $7}'`).
+2. Add one line to `/etc/avahi/hosts` (create the file if needed):  
+   `LAN_IP  name.local`  
+   Example: `192.168.1.10  harbor.local`
+3. Restart Avahi: `sudo systemctl restart avahi-daemon.service`
+4. Disable the alias unit so it doesn’t conflict: `sudo systemctl disable --now avahi-alias@name.service`
+
+Avahi will serve `name.local` to **other machines on the LAN**. Many setups do **not** resolve `/etc/avahi/hosts` on the **same machine** that runs Avahi (known limitation). So:
+
+- **From another device** (phone, laptop, etc.): `ping name.local` or open `https://name.local` — should work.
+- **From the Caddy host itself**: add the same line to **`/etc/hosts`** (system hosts), e.g. `192.168.1.10  harbor.local`. If `ping harbor.local` still fails, your `hosts` line in **`/etc/nsswitch.conf`** may have `mdns_minimal [NOTFOUND=return]` (or similar) **before** `files`, so `.local` is answered by mDNS only and `/etc/hosts` is never used. Put `files` first, e.g.  
+  `hosts: files mymachines mdns_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] myhostname dns`  
+  then `/etc/hosts` is consulted for `harbor.local`.
+
+If the host’s IP changes (e.g. DHCP), update both files and restart avahi-daemon (or re-run `sync-local-hosts.sh --apply` if you use the one-list method).
 
 ---
 

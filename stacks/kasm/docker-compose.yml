@@ -21,9 +21,23 @@ services:
       - kasm
       - monitor
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsk", "https://127.0.0.1:443/"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    # Resource limits: the container (and the Kasm agent inside) sees only this capacity.
+    # Tuned for 7900X3D (24 threads) / 128GB host; leaves headroom for host and other stacks.
     deploy:
       resources:
+        limits:
+          cpus: "16"
+          memory: 64G
         reservations:
+          cpus: "2"
+          memory: 4G
+          # NVIDIA GPU: requires nvidia-container-toolkit on the host. Comment out for CPU-only.
           devices:
             - driver: nvidia
               count: all

@@ -8,27 +8,18 @@ Self-hosted URL shortener: one app with web UI, API, and redirects. No path rout
 **Docker image:** https://hub.docker.com/_/yourls  
 **Releases:** https://github.com/YOURLS/YOURLS/releases  
 
-## Building the image
-
-The stack uses a custom Dockerfile that extends `yourls:1.10.3-apache` with `vhost.conf` (DirectoryIndex fix). To build and push to your registry (e.g. Harbor):
-
-```bash
-cd stacks/yourls
-docker build -t harbor.yourdomain.com/homelab/yourls:latest .
-docker push harbor.yourdomain.com/homelab/yourls:latest
-```
-
-Set `YOURLS_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-stack.sh` after changing the image so `.env` is updated for compose.
+The stack uses the official image `yourls:1.10.3-apache` by default. Override `YOURLS_IMAGE` in `stack.env` only if you use your own build (e.g. private registry).
 
 ## Quick start
 
 1. **Environment**
    - Run `./prepare-stack.sh` (or copy `stack.env.example` to `stack.env`).
-   - Set `YOURLS_SITE` to the URL you will use in Caddy (e.g. `https://short.home` or `https://short.yourdomain.com`).
+   - Set `YOURLS_SITE` to the **bare URL** of the shortener (e.g. `https://urls.yourdomain.com`). Must match the Caddy hostname. The vhost serves the dashboard at `/` and short links stay at root (e.g. `https://urls.yourdomain.com/abc`).
    - Set `YOURLS_USER` and `YOURLS_PASS` (admin login for the web UI).
    - Generate and set the required secrets (see **Generating keys and secrets** below).
-2. **Deploy:** `docker compose up -d` (or add the stack in Portainer with the same env).
-3. **Access:** Open via Caddy (e.g. https://short.home). Log in with `YOURLS_USER` / `YOURLS_PASS`, create short links.
+2. **Config dir (vhost + proxy-https-fix):** Run `./prepare-stack.sh` to create `~/.config/yourls/` and copy `vhost.conf.example` and `proxy-https-fix.php.example` there as `vhost.conf` and `proxy-https-fix.php`. The stack mounts this dir so the image gets the DirectoryIndex fix and PHP sees HTTPS behind Caddy. Override with `YOURLS_CONFIG_DIR` in `stack.env` (absolute path for Portainer). If you see **ERR_TOO_MANY_REDIRECTS**, re-run prepare-stack or re-copy the examples and restart the container; see [TROUBLESHOOTING.md](../../documents/TROUBLESHOOTING.md).
+3. **Deploy:** `docker compose --env-file stack.env up -d` so Compose reads your env (avoids "variable is not set" warnings and substitutes `YOURLS_CONFIG_DIR` correctly). Or add the stack in Portainer with the same env.
+4. **Access:** Open via Caddy (e.g. https://urls.yourdomain.com). Log in with `YOURLS_USER` / `YOURLS_PASS`, create short links.
 
 ## Generating keys and secrets
 
@@ -50,18 +41,20 @@ Set `YOURLS_COOKIEKEY` to the first output; set `YOURLS_DB_PASSWORD` and `YOURLS
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `yourls:8080`) |
 | **Network** | `monitor` (external) — Caddy can reach `yourls:8080` |
-| **Images** | `yourls:1.9.2-apache`, `mariadb:11` |
+| **Images** | `yourls:1.10.3-apache`, `mariadb:11` (override `YOURLS_IMAGE` if you use your own) |
 | **Env** | `YOURLS_SITE`, `YOURLS_USER`, `YOURLS_PASS`, `YOURLS_COOKIEKEY`, `YOURLS_DB_*` (see `stack.env.example`) |
 | **Storage** | `yourls_data` (user config/plugins), `yourls_db_data` (MariaDB) |
-| **Override** | `Dockerfile` copies `vhost.conf` into the image (adds `DirectoryIndex` so `/` works; no bind mount — works with Portainer/Git deploy) |
+| **Config dir** | `vhost.conf` and `proxy-https-fix.php` in `~/.config/yourls` (run `./prepare-stack.sh` or copy from `*.example`); override with `YOURLS_CONFIG_DIR` in `stack.env` (absolute path for Portainer) |
 
 ## Caddy reverse proxy
 
-Example (same hostnames as `YOURLS_SITE`):
+Example (hostnames must match `YOURLS_SITE`; include `urls.` so YOURLS is at e.g. https://urls.yourdomain.com):
 
 ```
-short.home, short.yourdomain.com, s.yourdomain.com {
-  reverse_proxy yourls:8080
+urls.yourdomain.com, short.yourdomain.com, s.yourdomain.com {
+  reverse_proxy yourls:8080 {
+    header_up X-Forwarded-Proto https
+  }
 }
 ```
 
@@ -69,5 +62,5 @@ Ensure the stack is on the `monitor` network so Caddy can reach `yourls:8080`.
 
 ## Start
 
-From this directory: `docker compose up -d`.  
-In Portainer: deploy the stack from Git; set `YOURLS_IMAGE` to your Harbor image and the required env vars in the stack.
+From this directory: `docker compose --env-file stack.env up -d` (compose only auto-loads `.env`; `stack.env` has your secrets).  
+In Portainer: deploy the stack from Git and set the required env vars (and `YOURLS_CONFIG_DIR` to the absolute path to your config dir containing `vhost.conf` and `proxy-https-fix.php`).

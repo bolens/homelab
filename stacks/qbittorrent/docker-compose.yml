@@ -20,6 +20,12 @@ services:
       - torrents
       - monitor
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     # No host ports: Web UI (8080) is reached only via Caddy. Torrent port 6881 is internal;
     # for incoming peers use your VPN provider's port forwarding (Gluetun) and set that port in qBittorrent.
 

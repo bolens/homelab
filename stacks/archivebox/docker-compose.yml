@@ -27,6 +27,12 @@ services:
       - SEARCH_BACKEND_PASSWORD=${SEARCH_BACKEND_PASSWORD}
     networks:
       - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
   archivebox_scheduler:
     image: archivebox/archivebox:latest

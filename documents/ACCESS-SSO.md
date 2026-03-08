@@ -167,6 +167,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **privatebin**                            | Yes            | Protect hostname.                                                  |
 | **prometheus** / **cadvisor**             | Yes            | Usually internal; protect if you expose them.                      |
 | **searx-ng**                              | Yes            | Protect hostname.                                                  |
+| **shlink**                                | Yes            | Protect shortener hostname (e.g. short.yourdomain.com); API key for web client at app.shlink.io. |
 | **slink**                                 | Yes            | Protect hostname; set `ORIGIN` to that URL; optional user approval. |
 | **snipe-it**                              | Yes            | Protect hostname; set `APP_URL` to that URL.                       |
 | **stirling-pdf**                          | Yes            | Protect hostname (PDF tools).                                       |
@@ -223,11 +224,12 @@ These services support **in-app** SSO configuration (Google, GitHub, OIDC, LDAP,
 
 | Service                                                   | Auth model                                                         |
 | --------------------------------------------------------- | ------------------------------------------------------------------ |
-| **convertx**, **it-tools**, **privatebin**, **searx-ng**, **slink**, **web-check** | No login or minimal / app accounts only; use Access to protect hostname |
+| **convertx**, **it-tools**, **privatebin**, **searx-ng**, **shlink**, **slink**, **web-check** | No login or minimal / app accounts only; use Access to protect hostname |
 | **Dozzle**                                                | Optional built-in auth via `users.yaml` (no OAuth/LDAP)            |
 | **Open Notebook**                                         | Optional `OPEN_NOTEBOOK_PASSWORD`                                  |
 | **Password Pusher**                                       | Optional user logins (SMTP for confirmation); no IdP SSO           |
 | **Vaultwarden**                                           | Bitwarden-compatible login; optional `ADMIN_TOKEN` for admin panel |
+| **Shlink**                                                | API key for app.shlink.io; no in-app login (manage via API/web client). |
 | **YOURLS**                                                | `YOURLS_USER` / `YOURLS_PASS` (admin login)                        |
 
 

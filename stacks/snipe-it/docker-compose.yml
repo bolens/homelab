@@ -4,7 +4,8 @@ services:
     container_name: snipe-it
     restart: unless-stopped
     depends_on:
-      - snipeit-db
+      snipeit-db:
+        condition: service_healthy
     env_file:
       - stack.env
     volumes:
@@ -12,6 +13,12 @@ services:
     networks:
       - default
       - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/login"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
 
   snipeit-db:
     image: mariadb:11.5
@@ -26,6 +33,12 @@ services:
       - snipeit_db:/var/lib/mysql
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 networks:
   monitor:

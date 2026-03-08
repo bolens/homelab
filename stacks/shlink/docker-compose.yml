@@ -1,0 +1,51 @@
+# Shlink – self-hosted URL shortener (API, redirects, web client at app.shlink.io or self-hosted).
+# No host ports: access only via Caddy (reverse_proxy shlink:8080 on monitor network).
+# Docs: https://shlink.io/documentation  GitHub: https://github.com/shlinkio/shlink
+# Hostname: short.yourdomain.com (set DEFAULT_DOMAIN to match; Caddy block in Caddyfile.example).
+services:
+  shlink:
+    image: ${SHLINK_IMAGE:-shlinkio/shlink:stable}
+    container_name: shlink
+    restart: unless-stopped
+    env_file:
+      - stack.env
+    volumes:
+      - shlink_data:/data
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/rest/v3/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+
+  # Optional: uncomment to use MariaDB instead of SQLite (recommended for production).
+  # shlink-db:
+  #   image: mariadb:11
+  #   container_name: shlink-db
+  #   restart: unless-stopped
+  #   environment:
+  #     - MARIADB_ROOT_PASSWORD=${SHLINK_DB_ROOT_PASSWORD}
+  #     - MARIADB_DATABASE=${SHLINK_DB_NAME:-shlink}
+  #     - MARIADB_USER=${SHLINK_DB_USER:-shlink}
+  #     - MARIADB_PASSWORD=${SHLINK_DB_PASSWORD}
+  #   volumes:
+  #     - shlink_db_data:/var/lib/mysql
+  #   healthcheck:
+  #     test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   networks:
+  #     - default
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  shlink_data:
+  # shlink_db_data:

@@ -56,7 +56,20 @@ Set `DOCKER_GC_IMAGE` in `stack.env` to match the tag you use (e.g. `harbor.your
 
 4. Once you are comfortable with the output, set `DRY_RUN=false` in `stack.env` (or adjust the fine-grained `DRY_RUN_CONTAINERS` / `DRY_RUN_IMAGES` flags), then re-run the job.
 
-For scheduled runs, create a cron job or systemd timer on the host that periodically calls one of the commands above from this stack directory.
+For scheduled runs, create a cron job or systemd timer on the host that periodically calls one of the commands above from this stack directory. The container is designed to run once and exit (like Watchtower’s one-off mode); **Docker will show it as Exited after each run—that is expected.** Schedule it (e.g. weekly) so it runs periodically.
+
+### Scheduling options
+
+**Cron (host):** Run weekly (e.g. Sunday 03:00) from the stack directory. Replace the path with your actual stack path.
+
+```bash
+# Edit crontab: crontab -e
+0 3 * * 0 cd /path/to/docker/stacks/docker-gc && docker compose run --rm docker-gc >> /var/log/docker-gc.log 2>&1
+```
+
+**Systemd timer:** Create a oneshot service and timer (e.g. `~/.config/systemd/user/docker-gc.service` and `docker-gc.timer`) that run `docker compose run --rm docker-gc` from the stack directory on a schedule (e.g. weekly). Use `WorkingDirectory=` and ensure the user can run Docker.
+
+**Portainer:** The stack has no built-in schedule. Use host cron or a systemd timer as above to invoke the one-off job; or in Portainer **Stack** → your docker-gc stack → **Editor**, then trigger **Redeploy** / run the service manually when you want a cleanup.
 
 ## Configuration
 

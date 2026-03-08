@@ -17,6 +17,12 @@ services:
       - media_music:/data/music
     networks:
       - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8096/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     deploy:
       resources:
         reservations:

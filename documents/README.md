@@ -10,5 +10,6 @@ Shared and cross-stack docs for the homelab Docker setup.
 | [CROWDSEC-CLOUDFLARE-WORKER.md](CROWDSEC-CLOUDFLARE-WORKER.md) | Use CrowdSec decisions to block or challenge traffic at Cloudflare’s edge via the Cloudflare Workers bouncer |
 | [ENV-VARS.md](ENV-VARS.md) | Common environment variables (TZ, locale, per-app) and which stacks use them |
 | [SHARED-RESOURCES.md](SHARED-RESOURCES.md) | Shared resources (networks, MinIO, Postfix, Ollama), one-time setup, and optional optimizations (Redis, TZ/locale) |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Exited containers, restarts, and common stack issues (Promtail, Linkwarden, Infisical, etc.) |
 
 Other guides (backup, monitoring, security) can live here as they’re added.

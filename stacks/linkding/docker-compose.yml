@@ -14,6 +14,12 @@ services:
       - linkding_data:/etc/linkding/data
     networks:
       - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9090/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 networks:
   monitor:

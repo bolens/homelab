@@ -1,0 +1,8 @@
+<?php
+/**
+ * Copy to your YOURLS config dir as proxy-https-fix.php (default: ~/.config/yourls).
+ * Force HTTPS for PHP when behind Caddy/Cloudflare (avoids YOURLS redirect loop).
+ * Loaded via auto_prepend_file so yourls_is_ssl() sees HTTPS before any redirect.
+ */
+$_SERVER['HTTPS']                   = 'on';
+$_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';

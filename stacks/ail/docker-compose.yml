@@ -22,6 +22,12 @@ services:
       - ail-logs:/opt/ail-framework/logs
     networks:
       - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-fsk", "https://127.0.0.1:7000/"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
 
 networks:
   monitor:

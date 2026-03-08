@@ -21,6 +21,12 @@ services:
       - LC_ALL=${LC_ALL:-en_US.UTF-8}
       - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
       - OLLAMA_HOST=0.0.0.0:11434
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:11434/api/tags"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
     # NVIDIA GPU: uncomment the block below when NVIDIA Container Toolkit is installed
     deploy:
       resources:

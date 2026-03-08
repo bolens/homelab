@@ -13,6 +13,9 @@ stack.env.*
 # Shared env (TZ, locale) – copy from shared.env.example
 shared.env
 
+# Local .local hostnames list – copy from scripts/local-hosts.conf.example
+scripts/local-hosts.conf
+
 # Config files that may contain secrets (keep .example templates)
 config.yml
 config.yaml
