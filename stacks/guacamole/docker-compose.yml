@@ -1,3 +1,7 @@
+# Apache Guacamole – clientless RDP/VNC/SSH gateway. Access via Caddy (guacamole.yourdomain.com).
+# Config: copy guacamole.properties.example to ~/.config/guacamole/guacamole.properties (run ./prepare-stack.sh).
+# Override with GUACAMOLE_CONFIG_PATH in stack.env (e.g. /home/youruser/.config/guacamole for Portainer).
+# TZ/locale: use shared.env (see documents/SHARED-RESOURCES.md).
 name: guacamole
 
 services:
@@ -5,6 +9,12 @@ services:
     image: guacamole/guacd:1.6.0
     container_name: guacd
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 4822 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - guacamole
 
@@ -13,6 +23,7 @@ services:
     container_name: guacamole-postgres
     restart: unless-stopped
     env_file:
+      - ../../shared.env
       - stack.env
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-guacamole_db}
@@ -32,14 +43,18 @@ services:
     image: guacamole/guacamole:1.6.0
     container_name: guacamole
     restart: unless-stopped
+    volumes:
+      - ${GUACAMOLE_CONFIG_PATH:-${HOME}/.config/guacamole}:/guacamole-home:ro
     depends_on:
       postgres:
         condition: service_healthy
       guacd:
-        condition: service_started
+        condition: service_healthy
     env_file:
+      - ../../shared.env
       - stack.env
     environment:
+      - GUACAMOLE_HOME=/guacamole-home
       - TZ=${TZ:-America/Denver}
       - GUACD_HOSTNAME=guacd
       - GUACD_PORT=4822
@@ -48,6 +63,18 @@ services:
       - POSTGRES_DATABASE=${POSTGRES_DB:-guacamole_db}
       - POSTGRES_USER=${POSTGRES_USER:-guacamole}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_HOSTNAME=postgres
+      - POSTGRESQL_PORT=5432
+      - POSTGRESQL_DATABASE=${POSTGRES_DB:-guacamole_db}
+      - POSTGRESQL_USER=${POSTGRES_USER:-guacamole}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - WEBAPP_CONTEXT=/
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - guacamole
       - monitor
