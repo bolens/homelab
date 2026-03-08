@@ -15,8 +15,10 @@ If a container is **unhealthy** or keeps restarting, check its healthcheck: ensu
 
 If a stack’s container is **Exited** (especially exit code **137** = OOM or `docker stop`, or **2** = config/startup failure), bring the stack back with:
 
+From the docker repo root:
+
 ```bash
-cd <path-to-docker-repo>/stacks/<stack-name>
+cd stacks/<stack-name>
 docker compose up -d
 ```
 
