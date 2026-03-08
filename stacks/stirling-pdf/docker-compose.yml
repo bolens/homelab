@@ -16,6 +16,12 @@ services:
       - stirling_pdf_data:/usr/share/tesseract-ocr/4.05/tessdata
     networks:
       - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   monitor:

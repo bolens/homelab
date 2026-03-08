@@ -183,7 +183,7 @@ Auto-updates`"]
 - **Developer & IT utilities:** it-tools, ConvertX, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, Snipe-IT Stacks: baserow, convertx, dozzle, gitea, harbor, homarr, it-tools, kasm, netbox, ntfy, snipe-it, stirling-pdf, woodpecker-ci.
 - **Gaming:** Steam automation (ASF), ROM manager and in-browser emulation (RomM) Stacks: asf, romm.
 - **Home automation & IoT:** Home Assistant, Mosquitto (MQTT), Zigbee2MQTT Stacks: home-assistant, mosquitto, zigbee2mqtt.
-- **Links, shorteners & presence:** YOURLS, Linkstack, Stoat, static homepage/landing Stacks: homepage, linkstack, stoat, yourls.
+- **Links, shorteners & presence:** YOURLS, Shlink, Linkstack, Stoat, static homepage/landing Stacks: homepage, linkstack, shlink, stoat, yourls.
 - **Media & personal data:** consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting) Stacks: actual-budget, archivebox, audiobookshelf, bookstack, calibre-web, emby, firefly-iii, freshrss, hedgedoc, immich, jellyfin, joplin-server, logseq-sync, kavita, komga, lanraragi, linkding, linkwarden, mealie, navidrome, nextcloud, outline, paperless-ngx, plex, seafile, slink, syncthing, vikunja.
 - **OSINT & recon:** username/email/phone recon, breach lookups, subdomain enumeration, AIL Stacks: social-hunt, maigret, spiderfoot, phoneinfoga, theharvester, holehe, blackbird, ghunt, metagoofil, reconftw, sublist3r, ail, web-check.
 - **Privacy & opt-out:** data broker deletion (Naisho, Privotron) Stacks: naisho, privotron.
@@ -332,6 +332,7 @@ Auto-updates`"]
 | [**stacks/scrutiny**](stacks/scrutiny/README.md) | SMART disk health dashboard – monitor drive health and alerts |
 | [**stacks/seafile**](stacks/seafile/README.md) | File sync and sharing (desktop/mobile clients); MariaDB + Memcached |
 | [**stacks/simplelogin**](stacks/simplelogin/README.md) | Email alias service (unlimited aliases, forward & reply anonymously, Bitwarden/1Password) |
+| [**stacks/shlink**](stacks/shlink/README.md) | Self-hosted URL shortener (API, redirects, analytics); manage via app.shlink.io or API |
 | [**stacks/slink**](stacks/slink/README.md) | Self-hosted image sharing (upload, collections, ShareX, S3/SMB) |
 | [**stacks/snipe-it**](stacks/snipe-it/README.md) | IT asset management – hardware, licenses, accessories (MariaDB; SMTP via Postfix) |
 | [**stacks/syncthing**](stacks/syncthing/README.md) | Continuous file sync across devices (no central server) |
@@ -465,6 +466,7 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/scrutiny** — `stack.env.example` → `stack.env` (optional TZ). Runs privileged for SMART/device access; adjust `devices` in compose if needed. Access via Caddy to scrutiny:8080.
 - **stacks/seafile** — `stack.env.example` → `stack.env`; set `MYSQL_ROOT_PASSWORD`, `SEAFILE_DB_PASSWORD`, `SEAFILE_SERVER_HOSTNAME` (e.g. seafile.yourdomain.com). Access via Caddy to seafile:80.
 - **stacks/simplelogin** — `stack.env.example` → `stack.env`; create `data/dkim.key` (see README); set `URL`, `EMAIL_DOMAIN`, `EMAIL_SERVERS_WITH_PRIORITY`, `SUPPORT_EMAIL`, `FLASK_SECRET` (`openssl rand -hex 32`), `POSTGRES_PASSWORD`; run migration and init once (see stack README)
+- **stacks/shlink** — `stack.env.example` → `stack.env`; set `DEFAULT_DOMAIN` (e.g. short.yourdomain.com) to match Caddy hostname, `GEOLITE_LICENSE_KEY` (free at MaxMind); optional `INITIAL_API_KEY` (e.g. `openssl rand -hex 32`). Access via Caddy to shlink:8080; manage short URLs at app.shlink.io with server URL and API key.
 - **stacks/slink** — `stack.env.example` → `stack.env`; set `ORIGIN` to your Caddy URL (e.g. https://slink.home or https://slink.yourdomain.com)
 - **stacks/snipe-it** — `stack.env.example` → `stack.env`; set `APP_KEY` (`openssl rand -base64 32`), `DB_PASSWORD`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `APP_URL` (e.g. https://snipe-it.yourdomain.com). Optional MAIL_* for Postfix. Access via Caddy to snipeit:80.
 - **stacks/syncthing** — `stack.env.example` → `stack.env` (optional TZ). Access via Caddy to syncthing:8384.
@@ -557,6 +559,7 @@ These stacks expose a dedicated health/status URL so you can monitor them withou
 | **perplexica** | (use HTTP check to app URL) |
 | **prometheus** | `/-/healthy` |
 | **promtail** | `http://promtail:9080/ready` (internal; no Caddy) |
+| **shlink** | `/rest/v3/health` (or use HTTP check to app URL) |
 | **slink** | (use HTTP check to app URL) |
 | **vaultwarden** | `/alive` |
 | **yourls** | (no dedicated health endpoint; use HTTP check to app URL) |

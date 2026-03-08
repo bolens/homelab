@@ -27,7 +27,7 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 
 - **Local DNS:** Add A records (e.g. `portainer.home`, `kuma.home`) to your resolver so hostnames point at this host. Use `https://portainer.home` etc.
 - **Public (your domain):** Use Cloudflare Tunnel (see `stacks/cloudflare-tunnel`) or port forwarding + Let's Encrypt. Set hostnames and email in `Caddyfile`.
-- **URL shortener (YOURLS):** The shortener is reverse-proxied at the same hostnames (e.g. short.yourdomain.com, s.yourdomain.com). Login is handled by YOURLS itself (see `stacks/yourls`).
+- **URL shortener (YOURLS):** The shortener is reverse-proxied at the same hostnames (e.g. urls.yourdomain.com, short.yourdomain.com). Set `YOURLS_SITE` in the stack to match. Login is handled by YOURLS itself (see `stacks/yourls`).
 - **Optional HTTP forward proxy:** For CLI tools (e.g. Blackbird) that need to route traffic through Caddy, see the commented block in `Caddyfile.example`. Requires Caddy built with `github.com/caddyserver/forwardproxy`; the default `serfriz/caddy-cloudflare` image does not include it. When enabled, add `3128:3128` to the Caddy stack’s `ports`.
 
 ## Building Caddy with plugins

@@ -35,6 +35,12 @@ services:
       - social-hunt-temp-uploads:/app/web/temp_uploads
     networks:
       - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
 networks:
   monitor:

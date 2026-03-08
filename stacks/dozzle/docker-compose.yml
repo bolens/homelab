@@ -22,6 +22,12 @@ services:
       - LC_ALL=${LC_ALL:-en_US.UTF-8}
       - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
       - DOZZLE_AUTH_PROVIDER=${DOZZLE_AUTH_PROVIDER:-simple}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   monitor:

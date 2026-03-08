@@ -22,14 +22,22 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-paperless}
     networks:
       - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-paperless} -d ${POSTGRES_DB:-paperless}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   webserver:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     container_name: paperless-ngx
     restart: unless-stopped
     depends_on:
-      - db
-      - broker
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_started
     # No host port: access via Caddy (reverse proxy on monitor network)
     volumes:
       - data:/usr/src/paperless/data
@@ -50,6 +58,12 @@ services:
     networks:
       - default
       - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 networks:
   monitor:

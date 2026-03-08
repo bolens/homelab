@@ -1,0 +1,25 @@
+# Avahi alias: advertise this host as harbor.local (for Harbor registry) without
+# changing the system hostname. Install on the host that runs Caddy (so that
+# https://harbor.local hits Caddy and proxies to Harbor).
+#
+# Install: sudo cp avahi-harbor-alias.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable --now avahi-harbor-alias.service
+#
+# Requires: avahi-daemon, avahi-utils. Uses -R to avoid reverse-DNS conflict
+# with the main hostname.
+
+[Unit]
+Description=Publish harbor.local (mDNS) for Harbor registry access
+After=avahi-daemon.service
+Requires=avahi-daemon.service
+
+[Service]
+Type=simple
+# Resolve this host's primary .local IP and advertise "harbor" with that IP
+ExecStart=/bin/bash -c 'IP=$$(hostname -I | awk "{print \$$1}"); exec /usr/bin/avahi-publish -a -R harbor $$IP'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

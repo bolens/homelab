@@ -142,8 +142,10 @@ homepage.home, homepage.local {
 kasm.home, kasm.local {
 	tls internal
 	reverse_proxy https://kasm:443 {
+		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-For {remote}
 		flush_interval -1
 		transport http {
 			tls_insecure_skip_verify
@@ -154,8 +156,10 @@ kasm.home, kasm.local {
 kasm-setup.home, kasm-setup.local {
 	tls internal
 	reverse_proxy https://kasm:3000 {
+		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-For {remote}
 		transport http {
 			tls_insecure_skip_verify
 		}
@@ -422,10 +426,18 @@ theharvester.home, theharvester.local {
 	reverse_proxy theharvester:80
 }
 
-# Shorteners & link-in-bio
-url-shortener.home, url-shortener.local, short.home, short.local, s.home, s.local {
+# Shorteners: YOURLS at urls.* (set YOURLS_SITE to match), Shlink at short.*
+urls.home, urls.local {
 	tls internal
-	reverse_proxy yourls:8080
+	reverse_proxy yourls:8080 {
+		header_up X-Forwarded-Proto https
+	}
+}
+short.home, short.local {
+	tls internal
+	reverse_proxy shlink:8080 {
+		header_up X-Forwarded-Proto https
+	}
 }
 
 linkstack.home, linkstack.local {
@@ -434,6 +446,18 @@ linkstack.home, linkstack.local {
 	reverse_proxy linkstack:80 {
 		header_up X-Forwarded-Proto https
 	}
+}
+
+# Caddy admin API (host)
+caddy.home, caddy.local {
+	tls internal
+	reverse_proxy host.docker.internal:2019
+}
+
+# MQTT broker (HTTP UI if present, e.g. mosquitto-auth or dashboard)
+mosquitto.home, mosquitto.local {
+	tls internal
+	reverse_proxy mosquitto:8080
 }
 
 lanraragi.home, lanraragi.local {
@@ -728,8 +752,10 @@ kasm.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy https://kasm:443 {
+		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-For {remote}
 		flush_interval -1
 		transport http {
 			tls_insecure_skip_verify
@@ -742,8 +768,10 @@ kasm-setup.yourdomain.com {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy https://kasm:3000 {
+		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-For {remote}
 		transport http {
 			tls_insecure_skip_verify
 		}
@@ -1050,11 +1078,19 @@ searx-ng.yourdomain.com {
 	reverse_proxy searxng:8080
 }
 
-short.yourdomain.com, url-shortener.yourdomain.com, s.yourdomain.com {
+urls.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
 	reverse_proxy yourls:8080 {
+		header_up X-Forwarded-Proto https
+	}
+}
+short.yourdomain.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy shlink:8080 {
 		header_up X-Forwarded-Proto https
 	}
 }

@@ -29,6 +29,12 @@ services:
       - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-https://grafana.yourdomain.com}
       - GF_USERS_ALLOW_SIGN_UP=${GF_USERS_ALLOW_SIGN_UP:-false}
       - GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=${GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION:-false}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   monitor:

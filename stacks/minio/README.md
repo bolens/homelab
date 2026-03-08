@@ -63,6 +63,8 @@ For one-time setup and how other stacks use this backend, see [SHARED-RESOURCES.
   - appropriate access/secret keys,
   - bucket name and region as required by the app.
 
+- **Kasm** – create a bucket (e.g. `kasm`) for S3-based persistent profiles. In Kasm **Settings** → **Storage** set Object Storage Key/Secret to your MinIO credentials; if available set the S3 endpoint to `http://minio:9000`. In each workspace set **Persistent Profile Path** to e.g. `s3://kasm/profiles/{username}/`. See [stacks/kasm/README.md](../kasm/README.md#optional-minio-s3-persistent-profiles).
+
 ## Notes
 
 - For TLS termination, use Caddy in front of MinIO; MinIO itself runs with HTTP inside the Docker network.

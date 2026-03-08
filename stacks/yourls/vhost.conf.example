@@ -1,0 +1,47 @@
+# Copy to your YOURLS config dir as vhost.conf (default: ~/.config/yourls). Set YOURLS_CONFIG_DIR in stack.env.
+# Override default vhost so "/" is served via yourls-loader.php (avoids 403 on root).
+# SetEnvIf makes PHP see HTTPS when Caddy sends X-Forwarded-Proto (avoids redirect loops).
+# Based on https://github.com/YOURLS/containers/blob/dist/apache/files/vhost.conf
+<VirtualHost 127.0.0.1:8080 *:8080>
+    ServerName www.example.com
+    ServerAlias *
+
+    # Force HTTPS for PHP (vhost is only used behind Caddy with HTTPS; avoids redirect loop)
+    SetEnv HTTPS on
+    <IfModule mod_headers.c>
+        RequestHeader set X-Forwarded-Proto "https"
+    </IfModule>
+
+    DocumentRoot /var/www/html
+
+    <Directory "/var/www/html">
+        Options -Indexes +FollowSymLinks -MultiViews
+        AllowOverride None
+        Require all granted
+        DirectoryIndex yourls-loader.php
+        php_value auto_prepend_file "/var/www/html/proxy-https-fix.php"
+
+        <IfModule mod_rewrite.c>
+            RewriteEngine On
+            RewriteBase /
+            # Tell PHP we're on HTTPS when Caddy/Cloudflare send X-Forwarded-Proto (avoids redirect loop)
+            RewriteCond %{HTTP:X-Forwarded-Proto} =https
+            RewriteRule ^ - [E=HTTPS:on]
+            # Serve dashboard at root (set YOURLS_SITE to bare domain e.g. https://urls.yourdomain.com)
+            RewriteRule ^$ /admin/index.php [L]
+            # Admin page references /admin/css, /admin/js, /admin/images; assets live at /css, /js, /images
+            RewriteRule ^admin/(css|js|images)/(.*)$ /$1/$2 [L]
+            # Never send static assets to yourls-loader (avoids 302)
+            RewriteCond %{REQUEST_FILENAME} !-f
+            RewriteCond %{REQUEST_FILENAME} !-d
+            RewriteCond %{REQUEST_URI} !\.(css|js|jpe?g|png|gif|ico|woff2?|ttf|svg|webp)(\?.*)?$ [NC]
+            RewriteRule ^.*$ /yourls-loader.php [L]
+        </IfModule>
+    </Directory>
+
+    # /admin/ is a real directory; serve admin/index.php (root uses yourls-loader.php)
+    <Directory "/var/www/html/admin">
+        DirectoryIndex index.php
+        Require all granted
+    </Directory>
+</VirtualHost>

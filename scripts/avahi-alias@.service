@@ -1,0 +1,33 @@
+# Template: advertise this host as <name>.local via mDNS without changing the
+# system hostname. Use for any stack (Harbor, Gitea, etc.) so you can reach
+# services at https://<name>.local on the LAN (e.g. bypass Cloudflare for large
+# uploads). Install on the host that runs Caddy (the reverse proxy).
+#
+# Install once:
+#   sudo cp scripts/avahi-alias@.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#
+# Enable per alias (each advertises <name>.local):
+#   sudo systemctl enable --now avahi-alias@harbor.service
+#   sudo systemctl enable --now avahi-alias@gitea.service
+#   sudo systemctl enable --now avahi-alias@nextcloud.service
+#   ... etc.
+#
+# Requires: avahi-daemon, avahi-utils. Uses -R to avoid reverse-DNS conflict.
+# If the service fails with "Failed to resolve host name '...local': Timeout reached",
+# use the static /etc/avahi/hosts method instead (see SHARED-RESOURCES.md).
+
+[Unit]
+Description=Publish %i.local (mDNS) for local access
+After=avahi-daemon.service
+Requires=avahi-daemon.service
+
+[Service]
+Type=simple
+# Portable IP: hostname -I (GNU) or ip route (Busybox/Alpine). -R can trigger resolve timeouts on some setups.
+ExecStart=/bin/bash -c 'IP=$$(hostname -I 2>/dev/null | awk "{print \$$1}" || ip -4 route get 1 2>/dev/null | awk "{print \$$7}"); [ -n "$$IP" ] && exec /usr/bin/avahi-publish -a -R %i $$IP || exit 1'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

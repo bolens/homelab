@@ -27,3 +27,8 @@ Container resource metrics (CPU, memory, network, filesystem) for all containers
 ## Start
 
 `docker compose up -d` from this directory.
+
+## Troubleshooting
+
+- **Container exited with code 137** — Exit 137 usually means the process was killed (SIGKILL), often by the OOM killer or a manual stop. The stack sets a 512M memory limit to reduce OOM risk. Restart with `docker compose up -d`. If it keeps exiting, increase the limit in `docker-compose.yml` (`deploy.resources.limits.memory`) or ensure the host has enough free RAM. You may see warnings in logs about some cgroup paths (e.g. net_cls, waydroid); cAdvisor continues and still reports Docker container stats.
+- **cgroup v2 hosts** — On systems with cgroup v2 (e.g. Ubuntu 22.04+, kernel 5.15+), cAdvisor can log "invalid cross-device link" or similar for some paths; it often still reports container stats. If the container exits repeatedly, check logs and consider running a newer cAdvisor image when available with full cgroup v2 support.

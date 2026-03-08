@@ -35,6 +35,12 @@ services:
       - SEARXNG_BASE_URL=${SEARXNG_BASE_URL:-https://searx-ng.home/}
       - SEARXNG_REDIS_URL=redis://searxng-redis:6379/0
       - SEARXNG_SECRET=${SEARXNG_SECRET:-change-me-use-openssl-rand-hex-32}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   monitor:

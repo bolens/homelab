@@ -1,0 +1,14 @@
+# CPU-only: use this override when the host has no NVIDIA GPU or nvidia-container-toolkit.
+# Copy to docker-compose.override.yml so Kasm starts without GPU reservation.
+# With GPU: do not use this override; the main compose reserves all NVIDIA GPUs.
+services:
+  kasm:
+    deploy:
+      resources:
+        limits:
+          cpus: "16"
+          memory: 64G
+        reservations:
+          cpus: "2"
+          memory: 4G
+          # No devices: block — GPU reservation removed for CPU-only hosts

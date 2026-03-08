@@ -1,8 +1,9 @@
 # YOURLS – Your Own URL Shortener. One app (UI + API + redirects). No host ports: access via Caddy.
 # Docs: https://docs.yourls.org/
+# Config dir: vhost.conf and proxy-https-fix.php (default: ~/.config/yourls). Set YOURLS_CONFIG_DIR in stack.env.
 services:
   yourls:
-    image: ${YOURLS_IMAGE:-harbor.yourdomain.com/homelab/yourls:latest}
+    image: ${YOURLS_IMAGE:-yourls:1.10.3-apache}
     container_name: yourls
     restart: unless-stopped
     environment:
@@ -17,12 +18,22 @@ services:
       - YOURLS_COOKIEKEY=${YOURLS_COOKIEKEY}
     volumes:
       - yourls_data:/var/www/html/user
+      # Fix 403 on /: official image lacks DirectoryIndex yourls-loader.php
+      - ${YOURLS_CONFIG_DIR:-${HOME}/.config/yourls}/vhost.conf:/etc/apache2/sites-available/000-default.conf:ro
+      - ${YOURLS_CONFIG_DIR:-${HOME}/.config/yourls}/proxy-https-fix.php:/var/www/html/proxy-https-fix.php:ro
     depends_on:
       yourls-db:
         condition: service_healthy
     networks:
       - default
       - monitor
+    healthcheck:
+      # Official image listens on 8080 (see vhost.conf.example / Apache ports.conf)
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   yourls-db:
     image: mariadb:11

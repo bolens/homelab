@@ -90,13 +90,14 @@ app_categories:
 
   - id: apps_links
     name: "Links, shorteners & presence"
-    descriptor: "YOURLS, Linkstack, Stoat, homepage"
+    descriptor: "YOURLS, Shlink, Linkstack, Stoat, homepage"
     stacks:
       - homepage
       - linkstack
+      - shlink
       - stoat
       - yourls
-    description: "YOURLS, Linkstack, Stoat, static homepage/landing"
+    description: "YOURLS, Shlink, Linkstack, Stoat, static homepage/landing"
 
   - id: apps_media
     name: "Media & personal data"

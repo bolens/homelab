@@ -1,0 +1,39 @@
+# Reference only. When Harbor is installed in this repo at stacks/harbor/harbor/,
+# the real override is harbor/docker-compose.override.yml. Copy this file to your
+# Harbor install directory as docker-compose.override.yml if you install elsewhere.
+#
+# Customizations:
+# - Proxy on 8880 (so Caddy can use 80) and on monitor network for Caddy reverse-proxy.
+# - restart: unless-stopped for all services (come back after host reboot).
+
+version: "3.9"
+
+services:
+  proxy:
+    image: goharbor/nginx-photon:v2.15.0
+    restart: unless-stopped
+    ports:
+      - 8880:8080
+    networks:
+      - harbor
+      - monitor
+  core:
+    restart: unless-stopped
+  jobservice:
+    restart: unless-stopped
+  portal:
+    restart: unless-stopped
+  registry:
+    restart: unless-stopped
+  registryctl:
+    restart: unless-stopped
+  postgresql:   # Harbor 2.x service name (not "db")
+    restart: unless-stopped
+  redis:
+    restart: unless-stopped
+  log:
+    restart: unless-stopped
+
+networks:
+  monitor:
+    external: true

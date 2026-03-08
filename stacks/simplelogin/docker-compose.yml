@@ -92,13 +92,18 @@ services:
         condition: service_healthy
     environment:
       - TZ=${TZ:-America/Denver}
+      - URL=${URL}
       - DB_URI=postgresql://${POSTGRES_USER:-simplelogin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-simplelogin}
       - FLASK_SECRET=${FLASK_SECRET}
+      - DKIM_PRIVATE_KEY_PATH=/dkim.key
+      - DKIM_PUBLIC_KEY_PATH=/dkim.pub
       - LOCAL_FILE_UPLOAD=true
       - GNUPGHOME=/sl/pgp
     volumes:
       - simplelogin-data:/sl
       - simplelogin-upload:/code/static/upload
+      - ${DKIM_DATA_DIR:-./data}/dkim.key:/dkim.key:ro
+      - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
 

@@ -14,6 +14,12 @@ services:
       - monitor
     env_file:
       - stack.env
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9100/metrics"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 networks:
   monitor:

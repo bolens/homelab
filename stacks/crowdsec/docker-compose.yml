@@ -37,6 +37,12 @@ services:
     # Other containers (e.g. Prometheus, bouncers) on monitor use http://crowdsec:8080.
     networks:
       - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   monitor:
