@@ -1,0 +1,3 @@
+# Copy to ~/.config/guacamole/guacamole.properties (run ./prepare-stack.sh).
+# Workaround for GUACAMOLE-2127: 1.6.0 PostgreSQL extension requires postgresql-port as integer.
+postgresql-port: 5432

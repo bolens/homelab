@@ -10,11 +10,7 @@ Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible e
 
 ## Quick start
 
-1. **Copy env template**:
-
-   ```bash
-   cp stack.env.example stack.env
-   ```
+1. **Config and env:** Run `./prepare-stack.sh` (creates `stack.env` from example and `~/.config/guacamole/guacamole.properties` from `guacamole.properties.example`). Or copy `stack.env.example` → `stack.env` and copy `guacamole.properties.example` to `~/.config/guacamole/guacamole.properties` (create the directory if needed).
 
 2. **Set database password** in `stack.env` (required):
 
@@ -48,7 +44,15 @@ Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible e
    docker compose --env-file stack.env up -d
    ```
 
-5. **Access via Caddy** at your chosen hostname (for example, `https://guacamole.yourdomain.com`). See the Caddy example below.
+5. **Initialize the database** (once, before first login). This creates the schema and the default user `guacadmin` / `guacadmin`:
+
+   ```bash
+   docker run --rm guacamole/guacamole:1.6.0 /opt/guacamole/bin/initdb.sh --postgresql | docker exec -i guacamole-postgres psql -U guacamole -d guacamole_db -f -
+   ```
+
+   **Change the default password** after first login (Settings → Preferences → Password).
+
+6. **Access via Caddy** at your chosen hostname (e.g. `https://guacamole.yourdomain.com`). See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `guacamole.yourdomain.com` → `guacamole:8080`.
 
 ## Configuration
 
@@ -60,23 +64,37 @@ Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible e
 | **Storage** | Named volume `guacamole_pg_data` for the Postgres database (users, connections, permissions) |
 | **Auth** | By default, users and connections are stored in the Guacamole database; you can add LDAP/OIDC/etc. later via Guacamole extensions if desired (see upstream docs) |
 
-## Caddy reverse proxy
+## Caddy
 
-Example Caddy vhost (SANITIZED example hostnames):
-
-```
-guacamole.home, guacamole.local {
-  tls internal
-  reverse_proxy guacamole:8080
-}
-```
-
-In your real setup, use the hostname you expose via Cloudflare Tunnel and DNS (for example `guacamole.yourdomain.com`) and keep the `guacamole` service on the `monitor` network so Caddy can resolve it.
+| **Caddy** | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `guacamole.yourdomain.com` → `guacamole:8080`, plus local blocks `guacamole.home` / `guacamole.local`. |
 
 ## Start
 
 From this directory:
 
-- **With env file:** `docker compose --env-file stack.env up -d`  
-- **Without env file:** `docker compose up -d` (uses default timezone and built‑in database defaults)
+- **Default:** `docker compose up -d` (compose already loads `../../shared.env` and `stack.env` via `env_file`)
+- **Explicit env files:** `docker compose --env-file ../../shared.env --env-file stack.env up -d` (e.g. from repo root)
+- **Without stack.env:** `docker compose up -d` will fail until `stack.env` exists with `POSTGRES_PASSWORD` set
+
+## Troubleshooting
+
+### Invalid login for guacadmin / guacadmin
+
+If the default login fails after init, reset the stored password to the canonical hash:
+
+```bash
+docker exec -i guacamole-postgres psql -U guacamole -d guacamole_db <<'SQL'
+-- Reset guacadmin password to "guacadmin" (canonical hash from 002-create-admin-user.sql)
+UPDATE guacamole_user
+SET
+  password_hash = decode('CA458A7D494E3BE824F5E1E175A1556C0F8EEF2C2D7DF3633BEC4A29C4411960', 'hex'),
+  password_salt = decode('FE24ADC5E11E2B25288D1704ABE67A79E342ECC26064CE69C5B3177795A82264', 'hex'),
+  password_date = CURRENT_TIMESTAMP
+FROM guacamole_entity
+WHERE guacamole_entity.entity_id = guacamole_user.entity_id
+  AND guacamole_entity.name = 'guacadmin';
+SQL
+```
+
+Then try logging in again with **guacadmin** / **guacadmin** and change the password in the UI.
 
