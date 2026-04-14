@@ -1,0 +1,21 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start Vite Dev Server",
+			"type": "shell",
+			"command": "pnpm start",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Start Frontend and Backend",
+			"type": "shell",
+			"command": "(cd ../api && pnpm start) & pnpm start",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}
