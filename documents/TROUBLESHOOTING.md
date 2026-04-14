@@ -1,5 +1,15 @@
 # Stack troubleshooting
 
+## asking-ng: empty `stacks/asking-ng` after clone
+
+That directory is a **git submodule** ([homelab-user/asking-ng](https://github.com/homelab-user/asking-ng)). After a plain `git clone` of this homelab repo, check it out with:
+
+```bash
+git submodule update --init stacks/asking-ng
+```
+
+Prefer cloning with submodules up front: `git clone --recurse-submodules <url>`.
+
 ## Healthchecks
 
 Healthchecks must use the **port and path** the app actually listens on. Known fixes applied in this repo:
@@ -77,3 +87,23 @@ docker ps -a --format 'table {{.Names}}\t{{.Status}}' | grep -E "Exited|Restarti
 ```
 
 Then restart the relevant stack from `stacks/<name>` with `docker compose up -d`.
+
+## Docker Compose: external `monitor` network
+
+Stacks that attach to Caddy declare an **external** network named `monitor` in `docker-compose.yml`. Compose will fail on `up` with an error like **network monitor declared as external, but could not be found** if that network does not exist.
+
+**Fix (once per host):**
+
+```bash
+docker network create monitor
+```
+
+Many stacks’ `./prepare-stack.sh` call a shared helper that creates this network when Docker is available (see `prepare_stack_ensure_docker_network` in `scripts/prepare-stack-lib.sh`). Homelab context: [SHARED-RESOURCES.md](SHARED-RESOURCES.md).
+
+**Compose `${VAR}` in YAML:** interpolation uses a project **`.env`** file next to the compose file, not per-service `env_file` entries. Stacks that use `stack.env` for secrets call **`prepare_stack_env_symlink_for_compose`** from `scripts/prepare-stack-lib.sh` (for example **asking-ng**, **nodepad**, **umami**) to create **`.env` → `stack.env`** when `.env` is missing, so `docker compose build` does not warn that `POSTGRES_*` (and similar) are unset. A real `.env` file or a symlink to something other than `stack.env` is left unchanged.
+
+## Docker Compose: Buildx plugin warning
+
+If `docker compose build` logs **Docker Compose requires buildx plugin to be installed**, Compose is using the **classic** image builder. Installs usually still succeed.
+
+**Optional:** Install the **Buildx** CLI plugin so Compose uses BuildKit by default (warning goes away). Package names vary (e.g. `docker-buildx-plugin` on Debian/Ubuntu from Docker’s apt repo, `docker-buildx` on Arch). Official guide: [Install Docker Buildx](https://docs.docker.com/build/buildx/install/).
