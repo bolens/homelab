@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-04-15T17:31:58.225Z",
+  "base_url": "http://127.0.0.1:18081",
+  "poll_id": "tfaq94ogoii",
+  "samples": [
+    {
+      "name": "GET /poll/:id",
+      "iterations": 25,
+      "warmup": 5,
+      "min_ms": 4,
+      "p50_ms": 7,
+      "p95_ms": 10,
+      "max_ms": 10,
+      "status_counts": {
+        "200": 25
+      }
+    },
+    {
+      "name": "PUT /poll/:id/vote",
+      "iterations": 25,
+      "warmup": 5,
+      "min_ms": 13,
+      "p50_ms": 18,
+      "p95_ms": 25,
+      "max_ms": 27,
+      "status_counts": {
+        "200": 25
+      }
+    }
+  ]
+}

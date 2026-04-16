@@ -1,0 +1,42 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NODE_ENV",
+    "CI",
+    "VITE_API_BASE",
+    "VITE_DEV_API_TARGET",
+    "VITE_UMAMI_SCRIPT_URL",
+    "VITE_UMAMI_WEBSITE_ID",
+    "VITE_UMAMI_DOMAINS",
+    "VITE_PLAUSIBLE_SCRIPT_URL",
+    "VITE_PLAUSIBLE_DOMAIN",
+    "VITE_MATOMO_BASE_URL",
+    "VITE_MATOMO_SITE_ID"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "knip": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "verify": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    }
+  }
+}

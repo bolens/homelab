@@ -1,0 +1,5 @@
+services:
+  asking-api:
+    environment:
+      READ_MODEL_RECONCILE_ALERT_MISMATCH_COUNT: "3"
+      READ_MODEL_RECONCILE_ALERT_DIFF_THRESHOLD: "10"

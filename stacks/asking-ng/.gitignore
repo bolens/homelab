@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+build
+.DS_Store
+.env
+stack.env
+stack.env.dev
+caddy_snippet.conf
+client/test-results
+client/playwright-report
+client/blob-report
+client/playwright/.cache
+client/coverage
+api/dist
+api/coverage
+packages/contracts/dist

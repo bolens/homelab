@@ -1,15 +1,5 @@
 # Stack troubleshooting
 
-## asking-ng: empty `stacks/asking-ng` after clone
-
-That directory is a **git submodule** ([homelab-user/asking-ng](https://github.com/homelab-user/asking-ng)). After a plain `git clone` of this homelab repo, check it out with:
-
-```bash
-git submodule update --init stacks/asking-ng
-```
-
-Prefer cloning with submodules up front: `git clone --recurse-submodules <url>`.
-
 ## Healthchecks
 
 Healthchecks must use the **port and path** the app actually listens on. Known fixes applied in this repo:
@@ -100,7 +90,7 @@ docker network create monitor
 
 Many stacks’ `./prepare-stack.sh` call a shared helper that creates this network when Docker is available (see `prepare_stack_ensure_docker_network` in `scripts/prepare-stack-lib.sh`). Homelab context: [SHARED-RESOURCES.md](SHARED-RESOURCES.md).
 
-**Compose `${VAR}` in YAML:** interpolation uses a project **`.env`** file next to the compose file, not per-service `env_file` entries. Stacks that use `stack.env` for secrets call **`prepare_stack_env_symlink_for_compose`** from `scripts/prepare-stack-lib.sh` (for example **asking-ng**, **nodepad**, **umami**) to create **`.env` → `stack.env`** when `.env` is missing, so `docker compose build` does not warn that `POSTGRES_*` (and similar) are unset. A real `.env` file or a symlink to something other than `stack.env` is left unchanged.
+**Compose `${VAR}` in YAML:** interpolation uses the shell and a project **`.env`** file next to the compose file — **not** per-service `env_file`. Prefer **`env_file: stack.env`** plus YAML that does **not** need compose-time substitution (e.g. Postgres healthchecks using `$$VAR` inside `CMD-SHELL`, or app code building a DB URL from `POSTGRES_*`). For values that must stay in `stack.env` but are only used at **image build** time, use **`docker compose --env-file stack.env build`** or **`docker compose build --build-arg …`**.
 
 ## Docker Compose: Buildx plugin warning
 

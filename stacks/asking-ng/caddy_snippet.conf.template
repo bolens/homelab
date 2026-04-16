@@ -1,0 +1,61 @@
+# asking-ng — single Caddy layer.
+# `/api/*` is routed at the edge directly to asking-ng-api.
+# Replace asking-ng.example.com with your hostname.
+
+(asking_ng_edge_policy) {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+	}
+}
+
+(asking_ng_api_proxy) {
+	reverse_proxy asking-ng-api:3001 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-For {remote_host}
+	}
+}
+
+(asking_ng_frontend_proxy) {
+	reverse_proxy asking-ng-frontend:80 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-For {remote_host}
+	}
+}
+
+(asking_ng_site_routes) {
+	handle /api/* {
+		request_body {
+			max_size 1MB
+		}
+		uri strip_prefix /api
+		import asking_ng_api_proxy
+	}
+	handle {
+		import asking_ng_frontend_proxy
+	}
+}
+
+asking-ng.home, asking-ng.local {
+	tls internal
+	import asking_ng_edge_policy
+	import asking_ng_site_routes
+}
+
+http://{{PUBLIC_HOSTNAME}} {
+	import asking_ng_edge_policy
+	import asking_ng_site_routes
+}
+
+{{PUBLIC_HOSTNAME}} {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	import asking_ng_edge_policy
+	import asking_ng_site_routes
+}

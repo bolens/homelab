@@ -1,0 +1,85 @@
+{
+  "generated_at": "2026-04-15T17:24:24.866Z",
+  "base_url": "http://127.0.0.1:18081",
+  "poll_id": "z8qdpffk4la",
+  "checks": [
+    {
+      "name": "healthcheck",
+      "request": {
+        "method": "GET",
+        "path": "/healthcheck",
+        "headers": []
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "duration_ms": 33,
+        "json": {
+          "status": "ok",
+          "message": "API is healthy"
+        },
+        "text": null
+      }
+    },
+    {
+      "name": "ready",
+      "request": {
+        "method": "GET",
+        "path": "/ready",
+        "headers": []
+      },
+      "response": {
+        "status": 200,
+        "ok": true,
+        "duration_ms": 4,
+        "json": {
+          "status": "ok",
+          "ready": true
+        },
+        "text": null
+      }
+    },
+    {
+      "name": "llm-status",
+      "request": {
+        "method": "GET",
+        "path": "/llm/status",
+        "headers": []
+      },
+      "response": {
+        "status": 401,
+        "ok": false,
+        "duration_ms": 2,
+        "json": {
+          "error": {
+            "code": "UNAUTHORIZED",
+            "message": "Missing Authorization: Bearer token"
+          },
+          "requestId": "d7df885b-757c-4261-8d5c-4722724079fb"
+        },
+        "text": null
+      }
+    },
+    {
+      "name": "poll-meta",
+      "request": {
+        "method": "GET",
+        "path": "/poll/z8qdpffk4la/meta",
+        "headers": []
+      },
+      "response": {
+        "status": 500,
+        "ok": false,
+        "duration_ms": 6,
+        "json": {
+          "error": {
+            "code": "DATABASE_ERROR",
+            "message": "Database operation failed"
+          },
+          "requestId": "3c5cc2c3-3a3c-40d0-9760-616d0448bc02"
+        },
+        "text": null
+      }
+    }
+  ]
+}

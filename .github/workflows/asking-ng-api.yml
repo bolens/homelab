@@ -1,0 +1,37 @@
+name: asking-ng api
+
+on:
+  push:
+    paths:
+      - "stacks/asking-ng/api/**"
+      - ".github/workflows/asking-ng-api.yml"
+  pull_request:
+    paths:
+      - "stacks/asking-ng/api/**"
+
+concurrency:
+  group: asking-ng-api-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: stacks/asking-ng/api
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: stacks/asking-ng/api/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile

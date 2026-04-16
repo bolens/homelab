@@ -1,0 +1,35 @@
+{
+  "name": "asking-ng",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check --write .",
+    "check:ci": "biome ci .",
+    "lint": "turbo run lint",
+    "knip": "turbo run knip",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "build": "turbo run build",
+    "verify": "pnpm run check:ci && turbo run verify",
+    "devenv:contracts-snapshot": "bash ./scripts/with-dev-env.sh pnpm --filter api run contracts:snapshot",
+    "devenv:perf-baseline": "bash ./scripts/with-dev-env.sh pnpm --filter api run perf:baseline",
+    "devenv:slo-smoke": "bash ./scripts/with-dev-env.sh pnpm --filter api run slo:smoke",
+    "devenv:reconcile-smoke": "bash ./scripts/with-dev-env.sh pnpm --filter api run read-model:reconcile-smoke",
+    "reconcile:profile:dev": "bash ./scripts/apply-reconcile-profile.sh dev",
+    "reconcile:profile:staging": "bash ./scripts/apply-reconcile-profile.sh staging",
+    "reconcile:profile:prod": "bash ./scripts/apply-reconcile-profile.sh prod",
+    "reconcile:trend:24h": "bash ./scripts/reconcile-trend-report.sh 24h",
+    "reconcile:trend:7d": "bash ./scripts/reconcile-trend-report.sh 168h"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.12",
+    "turbo": "^2.5.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "msw"
+    ]
+  }
+}

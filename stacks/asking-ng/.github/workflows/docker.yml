@@ -1,0 +1,194 @@
+name: asking-ng docker
+
+on:
+  push:
+    paths:
+      - "api/**"
+      - "client/**"
+      - "packages/contracts/**"
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "pnpm-lock.yaml"
+      - "turbo.json"
+      - "biome.json"
+      - ".dockerignore"
+      - "docker-compose.yml"
+      - "docker-compose.debug.yml"
+      - "caddy_snippet.conf.template"
+      - "caddy_snippet.conf.example"
+      - "stack.env.example"
+      - "stack.env.dev.example"
+      - "prepare-stack.sh"
+      - "scripts/sync-caddy-snippets.sh"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - "client/**"
+      - "packages/contracts/**"
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "pnpm-lock.yaml"
+      - "turbo.json"
+      - "biome.json"
+      - ".dockerignore"
+      - "docker-compose.yml"
+      - "docker-compose.debug.yml"
+      - "caddy_snippet.conf.template"
+      - "caddy_snippet.conf.example"
+      - "stack.env.example"
+      - "stack.env.dev.example"
+      - "prepare-stack.sh"
+      - "scripts/sync-caddy-snippets.sh"
+      - ".github/workflows/docker.yml"
+
+concurrency:
+  group: asking-ng-docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Ensure external networks
+        run: docker network create monitor 2>/dev/null || true
+
+      - name: Prepare stack.env for CI
+        run: |
+          cp stack.env.example stack.env
+          sed -i 's/REPLACE_WITH_GENERATED_PASSWORD/ci-postgres-password-for-asking-ng/' stack.env
+          sed -i 's/REPLACE_WITH_LONG_RANDOM_SECRET/ci-admin-token-for-asking-ng/' stack.env
+          sed -i 's/REPLACE_WITH_OPENSSL_RAND_HEX_64/00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00/' stack.env
+          printf '\nREAD_MODEL_ENABLED=true\n' >> stack.env
+          printf 'READ_MODEL_RECONCILE_ALERT_MISMATCH_COUNT=1\n' >> stack.env
+          printf 'READ_MODEL_RECONCILE_ALERT_DIFF_THRESHOLD=5\n' >> stack.env
+
+      - name: Docker Compose build
+        run: docker compose build
+
+      - name: Start stack
+        run: docker compose --env-file stack.env up -d
+
+      - name: Wait for API
+        run: sleep 15s
+        shell: bash
+
+      - name: Healthcheck
+        run: >
+          docker compose exec -T asking-api
+          wget -qO-
+          "http://127.0.0.1:3001/ready"
+
+      - name: Info
+        run: >
+          docker compose exec -T asking-api
+          wget -qO-
+          "http://127.0.0.1:3001/info"
+          | jq -e '.service == "asking-ng-api"'
+
+      - name: Poll CRUD and vote checks
+        run: |
+          docker compose exec -T asking-api node <<'NODE'
+          const base = "http://127.0.0.1:3001";
+          const pollBody = {
+            title: "test",
+            options: ["a", "b", "c", "d"],
+            expiration: 9999999999999,
+            limit_ip: true,
+          };
+          const dupBody = {
+            title: "dup",
+            options: ["a", "b"],
+            expiration: 9999999999999,
+            limit_ip: true,
+          };
+          async function jsonReq(path, init = {}) {
+            const res = await fetch(`${base}${path}`, init);
+            const text = await res.text();
+            let json = {};
+            try {
+              json = text ? JSON.parse(text) : {};
+            } catch {
+              throw new Error(`Non-JSON response for ${path}: ${text.slice(0, 300)}`);
+            }
+            return { res, json };
+          }
+          async function createPoll(body = pollBody) {
+            const { res, json } = await jsonReq("/poll", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            if (!res.ok) throw new Error(`create poll failed ${res.status}: ${JSON.stringify(json)}`);
+            if (json?.status !== "success" || !json?.data?.id) {
+              throw new Error(`unexpected create poll payload: ${JSON.stringify(json)}`);
+            }
+            return json.data;
+          }
+          const created = await createPoll();
+          const id = created.id;
+          const apiKey = created.api_key;
+          const getPoll = await jsonReq(`/poll/${id}`);
+          if (!getPoll.res.ok || getPoll.json?.status !== "success" || getPoll.json?.data?.archived !== false) {
+            throw new Error(`get poll failed: ${JSON.stringify(getPoll.json)}`);
+          }
+          const updated = await jsonReq(`/poll/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", api_key: apiKey },
+            body: JSON.stringify({ expiration: 0 }),
+          });
+          if (!updated.res.ok) throw new Error(`update failed ${updated.res.status}: ${JSON.stringify(updated.json)}`);
+          const voted = await jsonReq(`/poll/${id}/vote`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ option: "a" }),
+          });
+          if (!voted.res.ok) throw new Error(`vote failed ${voted.res.status}: ${JSON.stringify(voted.json)}`);
+          const dup = await createPoll(dupBody);
+          await jsonReq(`/poll/${dup.id}/vote`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ option: "a" }),
+          });
+          const dupVote = await jsonReq(`/poll/${dup.id}/vote`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ option: "b" }),
+          });
+          if (dupVote.res.status !== 409) {
+            throw new Error(`expected duplicate vote 409, got ${dupVote.res.status}: ${JSON.stringify(dupVote.json)}`);
+          }
+          if (!String(dupVote.json?.error?.message ?? "").includes("already voted")) {
+            throw new Error(`duplicate vote message mismatch: ${JSON.stringify(dupVote.json)}`);
+          }
+          const deleted = await jsonReq(`/poll/${id}`, {
+            method: "DELETE",
+            headers: { api_key: apiKey },
+          });
+          if (!deleted.res.ok) throw new Error(`delete failed ${deleted.res.status}: ${JSON.stringify(deleted.json)}`);
+          NODE
+
+      - name: SLO smoke gate
+        env:
+          SLO_SMOKE_BASE_URL: http://127.0.0.1:3001
+          SLO_SMOKE_ITERATIONS: "10"
+          SLO_SMOKE_WARMUP: "2"
+          SLO_SMOKE_P95_BUDGET_MS: "500"
+          SLO_SMOKE_SUCCESS_RATE_PCT: "99"
+          SLO_SMOKE_OUT_DIR: ./artifacts/slo-ci
+        run: docker compose exec -T asking-api node ./scripts/slo-smoke.mjs
+
+      - name: Read-model reconcile smoke gate
+        env:
+          RECONCILE_SMOKE_BASE_URL: http://127.0.0.1:3001
+          RECONCILE_SMOKE_ADMIN_TOKEN: ci-admin-token-for-asking-ng
+          RECONCILE_SMOKE_LIMIT: "100"
+          RECONCILE_SMOKE_DIFF_THRESHOLD: "0"
+          RECONCILE_SMOKE_FAIL_ON_ALERT: "true"
+          RECONCILE_SMOKE_OUT_DIR: ./artifacts/reconcile-ci
+        run: docker compose exec -T asking-api node ./scripts/read-model-reconcile-smoke.mjs

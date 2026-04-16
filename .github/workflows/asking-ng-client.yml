@@ -1,0 +1,79 @@
+name: asking-ng client
+
+on:
+  push:
+    paths:
+      - "stacks/asking-ng/client/**"
+      - ".github/workflows/asking-ng-client.yml"
+  pull_request:
+    paths:
+      - "stacks/asking-ng/client/**"
+
+concurrency:
+  group: asking-ng-client-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: stacks/asking-ng/client
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: stacks/asking-ng/client/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Oxlint
+        run: pnpm run lint
+
+      - name: Knip
+        run: pnpm run knip
+
+      - name: Biome (CI)
+        run: pnpm run check:ci
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Unit tests + coverage
+        run: pnpm run test:coverage
+
+      - name: Production build
+        run: pnpm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: stacks/asking-ng/client/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: pnpm run e2e

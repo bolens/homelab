@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="theme-color" id="asking-theme-color" content="#ffffff" />
+    <script>
+      (function () {
+        var k = 'asking-ng-color-theme';
+        var id = null;
+        try {
+          id = localStorage.getItem(k);
+        } catch (e) {}
+        var ids = [
+          'system',
+          'light',
+          'dark',
+          'dracula',
+          'solarized-dark',
+          'solarized-light',
+          'nord',
+          'gruvbox-dark',
+          'gruvbox-light',
+          'catppuccin-mocha',
+          'tokyo-night',
+        ];
+        if (!id || ids.indexOf(id) < 0) id = 'system';
+        var bs =
+          id === 'system'
+            ? matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+            : id === 'light' || id === 'solarized-light' || id === 'gruvbox-light'
+              ? 'light'
+              : id === 'dark'
+                ? 'dark'
+                : 'dark';
+        document.documentElement.setAttribute('data-bs-theme', bs);
+        if (id === 'system' || id === 'light' || id === 'dark') {
+          document.documentElement.removeAttribute('data-color-theme');
+        } else {
+          document.documentElement.setAttribute('data-color-theme', id);
+        }
+
+        var tcMap = {
+          light: '#ffffff',
+          dark: '#18181b',
+          dracula: '#282a36',
+          'solarized-dark': '#002b36',
+          'solarized-light': '#fdf6e3',
+          nord: '#2e3440',
+          'gruvbox-dark': '#282828',
+          'gruvbox-light': '#fbf1c7',
+          'catppuccin-mocha': '#1e1e2e',
+          'tokyo-night': '#1a1b26',
+        };
+        var tc =
+          id === 'system' ? (bs === 'dark' ? '#18181b' : '#ffffff') : tcMap[id] || '#18181b';
+        var tcMeta = document.getElementById('asking-theme-color');
+        if (tcMeta) tcMeta.setAttribute('content', tc);
+
+        var cvKey = 'asking-ng-color-vision';
+        var cvIds = ['none', 'protanopia', 'deuteranopia', 'tritanopia', 'monochrome'];
+        var cv = 'none';
+        try {
+          var cvRaw = localStorage.getItem(cvKey);
+          if (cvRaw && cvIds.indexOf(cvRaw) >= 0) cv = cvRaw;
+        } catch (e2) {}
+        if (cv === 'none') {
+          document.documentElement.removeAttribute('data-color-vision');
+          document.documentElement.style.removeProperty('--asking-cv-filter');
+        } else {
+          document.documentElement.setAttribute('data-color-vision', cv);
+          if (cv !== 'monochrome') {
+            document.documentElement.style.setProperty(
+              '--asking-cv-filter',
+              "url('/color-vision-filters.svg#cv-" + cv + "')"
+            );
+          } else {
+            document.documentElement.style.removeProperty('--asking-cv-filter');
+          }
+        }
+
+        var dysKey = 'asking-ng-dyslexia-mode';
+        var dysIds = [
+          'off',
+          'readable',
+          'lexend',
+          'hyperlegible',
+          'inter',
+          'geist',
+          'ibm-plex',
+          'dm-sans',
+          'plus-jakarta',
+          'source-sans-3',
+          'nf-jetbrains',
+          'nf-fira',
+          'nf-hack',
+          'nf-meslo',
+          'nf-cascadia',
+          'nf-ubuntu',
+          'nf-iosevka',
+        ];
+        var dysRemoteFonts = [
+          'lexend',
+          'hyperlegible',
+          'inter',
+          'geist',
+          'ibm-plex',
+          'dm-sans',
+          'plus-jakarta',
+          'source-sans-3',
+        ];
+        var dys = 'off';
+        try {
+          var dysRaw = localStorage.getItem(dysKey);
+          if (dysRaw && dysIds.indexOf(dysRaw) >= 0) dys = dysRaw;
+        } catch (e3) {}
+        if (dys === 'off') {
+          document.documentElement.removeAttribute('data-dyslexia');
+          document.documentElement.removeAttribute('data-dyslexia-font-load');
+        } else {
+          document.documentElement.setAttribute('data-dyslexia', dys);
+          if (
+            dysRemoteFonts.indexOf(dys) >= 0 &&
+            matchMedia('(prefers-reduced-data: reduce)').matches
+          ) {
+            document.documentElement.setAttribute('data-dyslexia-font-load', 'skip');
+          } else {
+            document.documentElement.removeAttribute('data-dyslexia-font-load');
+          }
+        }
+
+        var hcKey = 'asking-ng-high-contrast';
+        try {
+          if (localStorage.getItem(hcKey) === 'on') {
+            document.documentElement.setAttribute('data-high-contrast', 'on');
+          }
+        } catch (e4) {}
+
+        var ulKey = 'asking-ng-ui-locale';
+        var ulIds = ['en-us', 'en-gb', 'fr', 'es', 'ga', 'de', 'it'];
+        var ul = 'en-us';
+        try {
+          var ulRaw = localStorage.getItem(ulKey);
+          if (ulRaw) {
+            var ulNorm = String(ulRaw).toLowerCase().trim();
+            if (ulNorm === 'en') ulNorm = 'en-us';
+            if (ulNorm === 'en_uk' || ulNorm === 'en-uk') ulNorm = 'en-gb';
+            if (ulNorm === 'en_us') ulNorm = 'en-us';
+            if (ulIds.indexOf(ulNorm) >= 0) ul = ulNorm;
+          }
+        } catch (e6) {}
+        document.documentElement.setAttribute('lang', ul);
+      })();
+    </script>
+    <link rel="icon" href="favicon.ico" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Open-source strawpoll alternative for the quickest polls ever."
+    />
+    <meta property="og:title" content="asking-ng — quick strawpolls" />
+    <meta property="og:description" content="Open-source strawpoll alternative for the quickest polls ever." />
+    <meta property="og:site_name" content="asking-ng" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="apple-touch-icon" href="logo192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="asking" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta property="og:image" content="/linkPreview.png" />
+    <meta name="twitter:image" content="/linkPreview.png" />
+    <script>
+      (function () {
+        var origin = (window && window.location && window.location.origin) || '';
+        if (!origin) return;
+        var tags = [
+          ['meta[property="og:url"]', '/'],
+          ['meta[property="og:image"]', '/linkPreview.png'],
+          ['meta[name="twitter:image"]', '/linkPreview.png'],
+        ];
+        for (var i = 0; i < tags.length; i++) {
+          var el = document.querySelector(tags[i][0]);
+          if (!el) continue;
+          var current = el.getAttribute('content') || '';
+          if (current.indexOf('http://') === 0 || current.indexOf('https://') === 0) continue;
+          var path = current || tags[i][1];
+          el.setAttribute('content', origin.replace(/\/$/, '') + path);
+        }
+      })();
+    </script>
+    <link rel="manifest" href="manifest.json" />
+    <title>asking</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

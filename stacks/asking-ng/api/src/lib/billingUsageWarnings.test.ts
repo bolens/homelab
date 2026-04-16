@@ -1,0 +1,43 @@
+import { describe, expect, it } from 'vitest';
+import { buildBillingUsageWarnings } from './billingUsageWarnings';
+
+describe('buildBillingUsageWarnings', () => {
+  it('returns undefined when all meters are low', () => {
+    expect(
+      buildBillingUsageWarnings({
+        activePolls: 10,
+        maxActivePolls: 20,
+        votesThisMonth: 1000,
+        maxVotesPerMonth: 50_000,
+        exportsToday: 1,
+        maxExportsPerDay: 3,
+      }),
+    ).toBeUndefined();
+  });
+
+  it('flags 80% tier for active polls', () => {
+    expect(
+      buildBillingUsageWarnings({
+        activePolls: 17,
+        maxActivePolls: 20,
+        votesThisMonth: 0,
+        maxVotesPerMonth: 50_000,
+        exportsToday: 0,
+        maxExportsPerDay: 3,
+      }),
+    ).toEqual({ activePolls: '80' });
+  });
+
+  it('flags 95% tier over 80% for votes', () => {
+    expect(
+      buildBillingUsageWarnings({
+        activePolls: 0,
+        maxActivePolls: 20,
+        votesThisMonth: 48_000,
+        maxVotesPerMonth: 50_000,
+        exportsToday: 0,
+        maxExportsPerDay: 3,
+      }),
+    ).toEqual({ votesThisMonth: '95' });
+  });
+});

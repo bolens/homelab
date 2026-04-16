@@ -1,0 +1,53 @@
+{
+  "name": "@asking-ng/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "commonjs",
+  "exports": {
+    "./audit-logs": {
+      "types": "./dist/audit-logs.d.ts",
+      "import": "./dist/audit-logs.mjs",
+      "require": "./dist/audit-logs.js",
+      "default": "./dist/audit-logs.js"
+    },
+    "./poll": {
+      "types": "./dist/poll.d.ts",
+      "import": "./dist/poll.mjs",
+      "require": "./dist/poll.js",
+      "default": "./dist/poll.js"
+    },
+    "./admin": {
+      "types": "./dist/admin.d.ts",
+      "import": "./dist/admin.mjs",
+      "require": "./dist/admin.js",
+      "default": "./dist/admin.js"
+    },
+    "./auth": {
+      "types": "./dist/auth.d.ts",
+      "import": "./dist/auth.mjs",
+      "require": "./dist/auth.js",
+      "default": "./dist/auth.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && esbuild src/audit-logs.ts --format=esm --platform=neutral --outfile=dist/audit-logs.mjs --packages=external && esbuild src/poll.ts --format=esm --platform=neutral --outfile=dist/poll.mjs --packages=external && esbuild src/admin.ts --format=esm --platform=neutral --outfile=dist/admin.mjs --packages=external && esbuild src/auth.ts --format=esm --platform=neutral --outfile=dist/auth.mjs --packages=external",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "pnpm run lint && pnpm run typecheck && pnpm run test"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.8",
+    "@types/node": "catalog:",
+    "oxlint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
