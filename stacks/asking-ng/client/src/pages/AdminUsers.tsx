@@ -12,7 +12,7 @@ import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
 import { clearStoredUserJwt, getStoredUserJwt, setStoredUserJwt } from '../lib/userSession';
-import { Button, cx } from '../ui';
+import { Button, cx, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 import { zodErrorSummary } from '../utils/zodForm';
 import { useAdminWebSocket } from '../wsClient';
@@ -448,9 +448,9 @@ export default function AdminUsers() {
             </div>
           ) : (
             <form onSubmit={handleAppLogin} className='admin-users-form admin-users-form--session'>
-              <label htmlFor='admin-users-app-homelab-user' className='visually-hidden'>
+              <VisuallyHidden as='label' htmlFor='admin-users-app-homelab-user'>
                 {t('admin.users.appSessionUsername')}
-              </label>
+              </VisuallyHidden>
               <input
                 id='admin-users-app-homelab-user'
                 className='admin-users-input'
@@ -459,9 +459,9 @@ export default function AdminUsers() {
                 value={appLoginUser}
                 onChange={(e) => setAppLoginUser(e.target.value)}
               />
-              <label htmlFor='admin-users-app-password' className='visually-hidden'>
+              <VisuallyHidden as='label' htmlFor='admin-users-app-password'>
                 {t('admin.users.appSessionPassword')}
-              </label>
+              </VisuallyHidden>
               <input
                 id='admin-users-app-password'
                 type='password'
@@ -493,9 +493,9 @@ export default function AdminUsers() {
         aria-label={t('admin.users.createFormAria')}
       >
         <b>{t('admin.users.createLabel')}</b>
-        <label htmlFor='admin-users-new-homelab-user' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-users-new-homelab-user'>
           {t('admin.users.newUsername')}
-        </label>
+        </VisuallyHidden>
         <input
           id='admin-users-new-homelab-user'
           placeholder={t('admin.users.placeholderUsername')}
@@ -503,9 +503,9 @@ export default function AdminUsers() {
           onChange={(e) => setNewUser({ ...newUser, homelab-user: e.target.value })}
           className='poll-input-question'
         />
-        <label htmlFor='admin-users-new-password' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-users-new-password'>
           {t('admin.users.newPassword')}
-        </label>
+        </VisuallyHidden>
         <input
           id='admin-users-new-password'
           type='password'
@@ -514,9 +514,9 @@ export default function AdminUsers() {
           onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
           className='poll-input-wide'
         />
-        <label htmlFor='admin-users-new-role' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-users-new-role'>
           {t('admin.users.newUserRole')}
-        </label>
+        </VisuallyHidden>
         <select
           id='admin-users-new-role'
           value={newUser.role}
@@ -536,18 +536,18 @@ export default function AdminUsers() {
       </form>
 
       <div className='polls-search-bar polls-search-bar--tight'>
-        <label htmlFor='admin-users-search' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-users-search'>
           {t('admin.users.searchLabel')}
-        </label>
+        </VisuallyHidden>
         <input
           id='admin-users-search'
           placeholder={t('admin.users.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <label htmlFor='admin-users-role-filter' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-users-role-filter'>
           {t('admin.users.filterRoleLabel')}
-        </label>
+        </VisuallyHidden>
         <select
           id='admin-users-role-filter'
           value={roleFilter}
@@ -559,9 +559,9 @@ export default function AdminUsers() {
           <option value='admin'>{t('admin.users.roleAdmin')}</option>
           <option value='superadmin'>{t('admin.users.roleSuperadmin')}</option>
         </select>
-        <label htmlFor='admin-users-active-filter' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-users-active-filter'>
           {t('admin.users.filterStatusLabel')}
-        </label>
+        </VisuallyHidden>
         <select
           id='admin-users-active-filter'
           value={activeFilter}
@@ -602,9 +602,9 @@ export default function AdminUsers() {
             <h3 className='admin-users-tool-card-title'>{t('admin.users.changeRoleCardTitle')}</h3>
             <form onSubmit={handleChangeRole} className='admin-users-tool-form'>
               <div className='admin-users-tool-form-row'>
-                <label htmlFor='admin-users-role-user-id' className='visually-hidden'>
+                <VisuallyHidden as='label' htmlFor='admin-users-role-user-id'>
                   {t('admin.users.userIdRole')}
-                </label>
+                </VisuallyHidden>
                 <input
                   id='admin-users-role-user-id'
                   placeholder={t('admin.users.placeholderUserId')}
@@ -612,9 +612,9 @@ export default function AdminUsers() {
                   onChange={(e) => setRoleEdit({ ...roleEdit, id: e.target.value })}
                   className='poll-input-question'
                 />
-                <label htmlFor='admin-users-role-select' className='visually-hidden'>
+                <VisuallyHidden as='label' htmlFor='admin-users-role-select'>
                   {t('admin.users.newRole')}
-                </label>
+                </VisuallyHidden>
                 <select
                   id='admin-users-role-select'
                   value={roleEdit.role}
@@ -640,9 +640,9 @@ export default function AdminUsers() {
           <h3 className='admin-users-tool-card-title'>{t('admin.users.resetPasswordCardTitle')}</h3>
           <form onSubmit={handleResetPassword} className='admin-users-tool-form'>
             <div className='admin-users-tool-form-row'>
-              <label htmlFor='admin-users-reset-user-id' className='visually-hidden'>
+              <VisuallyHidden as='label' htmlFor='admin-users-reset-user-id'>
                 {t('admin.users.resetUserId')}
-              </label>
+              </VisuallyHidden>
               <input
                 id='admin-users-reset-user-id'
                 placeholder={t('admin.users.placeholderUserId')}
@@ -650,9 +650,9 @@ export default function AdminUsers() {
                 onChange={(e) => setResetPw({ ...resetPw, id: e.target.value })}
                 className='poll-input-question'
               />
-              <label htmlFor='admin-users-reset-password' className='visually-hidden'>
+              <VisuallyHidden as='label' htmlFor='admin-users-reset-password'>
                 {t('admin.users.resetPassword')}
-              </label>
+              </VisuallyHidden>
               <input
                 id='admin-users-reset-password'
                 type='password'
@@ -828,9 +828,9 @@ export default function AdminUsers() {
           aria-labelledby='admin-users-mobile-bulk-heading'
           className='admin-mobile-bulk-actions'
         >
-          <h2 id='admin-users-mobile-bulk-heading' className='visually-hidden'>
+          <VisuallyHidden as='h2' id='admin-users-mobile-bulk-heading'>
             {t('admin.users.bulkLabel')}
-          </h2>
+          </VisuallyHidden>
           <span
             className='admin-mobile-bulk-selected'
             role='status'

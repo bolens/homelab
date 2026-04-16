@@ -15,7 +15,7 @@ import {
   adminStatusDashboardQueryKey,
   invalidateAdminOverviewQueries,
 } from '../lib/queryKeys';
-import { Button } from '../ui';
+import { Button, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 type AdminTrustMetrics = {
@@ -213,9 +213,9 @@ export default function AdminDashboard() {
       </div>
 
       <section className='admin-kpi-section' aria-labelledby='admin-kpi-heading'>
-        <h2 id='admin-kpi-heading' className='visually-hidden'>
+        <VisuallyHidden as='h2' id='admin-kpi-heading'>
           {t('admin.dashboard.kpi.heading')}
-        </h2>
+        </VisuallyHidden>
         <div className='admin-kpi-grid'>
           <div className='admin-kpi-card'>
             <span className='admin-kpi-label'>{t('admin.dashboard.kpi.usersTotal')}</span>

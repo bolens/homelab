@@ -35,12 +35,13 @@ export async function authenticateBearer(req: AppRequest, res: AppResponse | nul
       id: cached.id,
       homelab-user: cached.homelab-user,
       role: cached.role,
+      billingPlan: cached.billingPlan,
     };
     return true;
   }
 
   const user = await User.findByPk(payload.id, {
-    attributes: ['id', 'homelab-user', 'role', 'active'],
+    attributes: ['id', 'homelab-user', 'role', 'active', 'billingPlan'],
   });
   if (!user) {
     if (res) jsonError(res, req, 401, 'INVALID_TOKEN', 'User no longer exists');
@@ -52,11 +53,13 @@ export async function authenticateBearer(req: AppRequest, res: AppResponse | nul
     return false;
   }
 
+  const billingPlan = String(user.get('billingPlan') ?? 'free').trim() || 'free';
   const snapshot: SessionUserSnapshot = {
     id: user.get('id') as number,
     homelab-user: user.get('homelab-user') as string,
     role: user.get('role') as string,
     active,
+    billingPlan,
   };
   setSessionUserCache(snapshot);
 
@@ -64,6 +67,7 @@ export async function authenticateBearer(req: AppRequest, res: AppResponse | nul
     id: snapshot.id,
     homelab-user: snapshot.homelab-user,
     role: snapshot.role,
+    billingPlan: snapshot.billingPlan,
   };
   return true;
 }

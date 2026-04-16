@@ -33,7 +33,7 @@ import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
 import { streamingObsDocHref } from '../lib/streamingObsDocHref';
 import { withUtm } from '../lib/withUtm';
 import { isWebShareLikelyAvailable, shareUrlNative } from '../lib/webShare';
-import { Button, cx, FormSection, Select } from '../ui';
+import { Button, cx, FormSection, Select, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 const COOKIE_OPTS: Cookies.CookieAttributes = { path: '/' };
@@ -76,6 +76,15 @@ type PollApiData = {
     peak_dow_votes?: number;
     hourly_votes_by_hour_utc?: number[];
     weekday_votes_by_dow_utc?: number[];
+    option_hourly_votes_utc?: Array<{
+      option: string;
+      hourly_votes_by_hour_utc?: number[];
+    }>;
+    vote_velocity_by_minute_utc?: Array<{
+      minute_utc: string;
+      vote_count: number;
+    }>;
+    vote_velocity_by_minute_utc_truncated?: boolean;
   };
   results_delay_seconds?: number;
   live_results_are_delayed?: boolean;
@@ -126,6 +135,9 @@ type PollViewModel = {
     peakDowVotes: number;
     hourlyVotesByHourUtc: number[];
     weekdayVotesByDowUtc: number[];
+    optionHourlyVotesUtc?: Array<{ option: string; hourlyVotesByHourUtc: number[] }>;
+    voteVelocityByMinuteUtc?: Array<{ minuteUtcIso: string; voteCount: number }>;
+    voteVelocityByMinuteTruncated?: boolean;
   };
   resultsDelaySeconds: number;
   liveResultsAreDelayed: boolean;
@@ -244,6 +256,43 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
         { length: 7 },
         (_, i) => Number(data.metrics?.weekday_votes_by_dow_utc?.[i] ?? 0) || 0,
       ),
+      ...(Array.isArray(data.metrics?.option_hourly_votes_utc) &&
+      data.metrics.option_hourly_votes_utc.length > 0
+        ? {
+            optionHourlyVotesUtc: data.metrics.option_hourly_votes_utc.map((row) => {
+              const r = row as { option?: unknown; hourly_votes_by_hour_utc?: unknown };
+              const bins = Array.isArray(r.hourly_votes_by_hour_utc) ? r.hourly_votes_by_hour_utc : [];
+              return {
+                option: typeof r.option === 'string' ? r.option : '',
+                hourlyVotesByHourUtc: Array.from(
+                  { length: 24 },
+                  (_, i) => Number(bins[i] ?? 0) || 0,
+                ),
+              };
+            }),
+          }
+        : {}),
+      ...(Array.isArray(data.metrics?.vote_velocity_by_minute_utc) &&
+      data.metrics.vote_velocity_by_minute_utc.length > 0
+        ? {
+            voteVelocityByMinuteUtc: data.metrics.vote_velocity_by_minute_utc.map((row) => {
+              const r = row as { minute_utc?: unknown; vote_count?: unknown };
+              const iso =
+                typeof r.minute_utc === 'string'
+                  ? r.minute_utc
+                  : typeof r.minute_utc === 'number' && Number.isFinite(r.minute_utc)
+                    ? new Date(r.minute_utc).toISOString()
+                    : '';
+              return {
+                minuteUtcIso: iso,
+                voteCount: Number(r.vote_count ?? 0) || 0,
+              };
+            }),
+            ...(data.metrics.vote_velocity_by_minute_utc_truncated === true
+              ? { voteVelocityByMinuteTruncated: true }
+              : {}),
+          }
+        : {}),
     },
     resultsDelaySeconds: Math.max(0, Number(data.results_delay_seconds ?? 0) || 0),
     liveResultsAreDelayed: !!data.live_results_are_delayed,
@@ -1679,6 +1728,93 @@ export default function Poll() {
                 }}
               />
             </p>
+            {poll?.youOwnThisPoll &&
+            pollMetrics?.voteVelocityByMinuteUtc &&
+            pollMetrics.voteVelocityByMinuteUtc.length > 0 ? (
+              <>
+                <h4 className='poll-metrics-subhead'>{t('poll.metrics.velocityByMinuteTitle')}</h4>
+                <p className='poll-refresh-meta ui-copy-muted'>{t('poll.metrics.velocityByMinuteHint')}</p>
+                {pollMetrics.voteVelocityByMinuteTruncated ? (
+                  <p className='poll-refresh-meta poll-metrics-velocity-truncated' role='status'>
+                    {t('poll.metrics.velocityByMinuteTruncated')}
+                  </p>
+                ) : null}
+                <div
+                  className='poll-metrics-velocity-scroll'
+                  role='group'
+                  aria-label={t('poll.metrics.velocityByMinuteAria')}
+                >
+                  <SparklineBars
+                    values={pollMetrics.voteVelocityByMinuteUtc.map((v) => v.voteCount)}
+                    bucketLabel={(i) => {
+                      const iso = pollMetrics.voteVelocityByMinuteUtc![i]?.minuteUtcIso ?? '';
+                      const ms = Date.parse(iso);
+                      if (!Number.isFinite(ms)) return iso || String(i);
+                      return new Intl.DateTimeFormat(localeTag, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: 'UTC',
+                      }).format(new Date(ms));
+                    }}
+                    maxHeightPx={28}
+                    barWidthPx={pollMetrics.voteVelocityByMinuteUtc.length > 200 ? 1 : 2}
+                  />
+                </div>
+                <p className='poll-refresh-meta'>
+                  <SparklineLegend
+                    values={pollMetrics.voteVelocityByMinuteUtc.map((v) => v.voteCount)}
+                    bucketLabel={(i) => {
+                      const iso = pollMetrics.voteVelocityByMinuteUtc![i]?.minuteUtcIso ?? '';
+                      const ms = Date.parse(iso);
+                      if (!Number.isFinite(ms)) return iso || String(i);
+                      return new Intl.DateTimeFormat(localeTag, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: 'UTC',
+                      }).format(new Date(ms));
+                    }}
+                    labels={{
+                      min: t('sparkline.min'),
+                      max: t('sparkline.max'),
+                      peak: t('sparkline.peak'),
+                    }}
+                  />
+                </p>
+              </>
+            ) : null}
+            {poll?.youOwnThisPoll &&
+            pollMetrics?.optionHourlyVotesUtc &&
+            pollMetrics.optionHourlyVotesUtc.length > 0 ? (
+              <>
+                <h4 className='poll-metrics-subhead'>{t('poll.metrics.optionHourlyTitle')}</h4>
+                <p className='poll-refresh-meta ui-copy-muted'>{t('poll.metrics.optionHourlyHint')}</p>
+                {pollMetrics.optionHourlyVotesUtc.map((row) => (
+                  <p key={row.option} className='poll-refresh-meta poll-metrics-option-hourly-row'>
+                    <span className='poll-metrics-option-hourly-label'>{row.option}</span>{' '}
+                    <span aria-hidden='true'>
+                      <SparklineBars
+                        values={row.hourlyVotesByHourUtc}
+                        bucketLabel={(i) => formatHourBucketUtc(i)}
+                        maxHeightPx={20}
+                        barWidthPx={3}
+                      />
+                    </span>
+                  </p>
+                ))}
+                <p className='poll-refresh-meta'>
+                  {t('poll.metrics.hourlyAxis', {
+                    start: formatHourBucketUtc(0),
+                    end: formatHourBucketUtc(23),
+                  })}
+                </p>
+              </>
+            ) : null}
           </section>
           {showResults && completed ? (
             <section className='poll-replay-wrap' aria-live='polite'>
@@ -1857,9 +1993,9 @@ export default function Poll() {
           </div>
         ) : null}
         {useVoteRadios && options.length > 1 ? (
-          <p id='poll-vote-keyboard-hint' className='visually-hidden'>
+          <VisuallyHidden as='p' id='poll-vote-keyboard-hint'>
             {t('poll.voteKeyboardHint')}
-          </p>
+          </VisuallyHidden>
         ) : null}
         <div
           className='poll-options-stack'
@@ -1902,9 +2038,9 @@ export default function Poll() {
         ) : null}
       </div>
       {expiryAnnouncement ? (
-        <p className='visually-hidden' role='status' aria-live='polite' aria-atomic='true'>
+        <VisuallyHidden as='p' role='status' aria-live='polite' aria-atomic='true'>
           {expiryAnnouncement}
-        </p>
+        </VisuallyHidden>
       ) : null}
     </div>
   );

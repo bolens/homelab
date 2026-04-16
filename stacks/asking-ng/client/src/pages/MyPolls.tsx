@@ -10,11 +10,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { apiUrl } from '../apiBase';
 import CopyFeedbackButton from '../components/CopyFeedbackButton';
 import { IconActivity, IconDownload, IconShare, IconTrash2 } from '../components/icons/UiIcons';
+import SparklineBars from '../components/SparklineBars';
 import { shareUrlForPoll, shareUrlForPollResults } from '../helpers/pollUrl';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import {
+  billingPastDueBannerPayload,
   billingUsageAtCap,
   billingUsageWarningSeverity,
   type ProfileBillingApiPayload,
@@ -98,6 +100,8 @@ type MinePoll = {
     campaign: string;
     impressions: number;
   }>;
+  hourly_votes_by_hour_utc?: number[];
+  weekday_votes_by_dow_utc?: number[];
 };
 
 type MineResponse = { polls: MinePoll[]; total: number; limit: number; offset: number };
@@ -1779,6 +1783,10 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
 export default function MyPolls() {
   const t = useT();
   const localeTag = useLocaleTag();
+  const weekdayAxis = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => formatUtcWeekdayShort(localeTag, i, String(i))).join(' '),
+    [localeTag],
+  );
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   useDocumentTitle(t('myPolls.docTitle'));
@@ -1826,6 +1834,7 @@ export default function MyPolls() {
   };
 
   const billingUsageWarning = billingUsageWarningSeverity(billingUsageQuery.data);
+  const billingPastDue = billingPastDueBannerPayload(billingUsageQuery.data);
 
   return (
     <Container size='lg' className='ui-page-shell'>
@@ -1837,6 +1846,14 @@ export default function MyPolls() {
         {' · '}
         <Link to='/'>{t('myPolls.backHome')}</Link>
       </p>
+      {billingPastDue ? (
+        <p className='error-message ui-usage-banner' role='alert'>
+          {t('billing.pastDueBanner')}{' '}
+          <a href={billingPastDue.portalUrl} target='_blank' rel='noreferrer' className='ui-link'>
+            {t('billing.openCustomerPortal')}
+          </a>
+        </p>
+      ) : null}
       {billingUsageWarning ? (
         <p
           className={billingUsageWarning === '95' ? 'error-message' : 'ui-copy-muted'}
@@ -1959,6 +1976,44 @@ export default function MyPolls() {
                     })}`
                   : ''}
               </div>
+              {p.total_votes > 0 ? (
+                <div
+                  className='my-polls-vote-histograms'
+                  aria-label={t('myPolls.listVoteTimingAria')}
+                >
+                  <p className='ui-copy-muted my-polls-item-meta my-polls-sparkline-row'>
+                    <span className='my-polls-sparkline-label'>{t('poll.metrics.hourly')}</span>{' '}
+                    <span aria-hidden='true'>
+                      <SparklineBars
+                        values={p.hourly_votes_by_hour_utc ?? Array.from({ length: 24 }, () => 0)}
+                        bucketLabel={(i) => formatUtcHourAtTopOfHour(localeTag, i, String(i))}
+                        maxHeightPx={18}
+                        barWidthPx={3}
+                      />
+                    </span>
+                    <span className='my-polls-sparkline-axis'>
+                      {t('poll.metrics.hourlyAxis', {
+                        start: formatUtcHourAtTopOfHour(localeTag, 0, '0'),
+                        end: formatUtcHourAtTopOfHour(localeTag, 23, '23'),
+                      })}
+                    </span>
+                  </p>
+                  <p className='ui-copy-muted my-polls-item-meta my-polls-sparkline-row'>
+                    <span className='my-polls-sparkline-label'>{t('poll.metrics.weekday')}</span>{' '}
+                    <span aria-hidden='true'>
+                      <SparklineBars
+                        values={p.weekday_votes_by_dow_utc ?? Array.from({ length: 7 }, () => 0)}
+                        bucketLabel={(i) => formatUtcWeekdayShort(localeTag, i, String(i))}
+                        maxHeightPx={18}
+                        barWidthPx={5}
+                      />
+                    </span>
+                    <span className='my-polls-sparkline-axis'>
+                      {t('poll.metrics.weekdayAxis', { days: weekdayAxis })}
+                    </span>
+                  </p>
+                </div>
+              ) : null}
               {p.per_option_funnel && p.per_option_funnel.length > 0 ? (
                 <div className='ui-copy-muted my-polls-item-meta'>
                   {t('myPolls.optionFunnelLabel')}:&nbsp;

@@ -70,10 +70,8 @@ export async function buildPollsMineView(
   });
 
   const pollIds = rows.map((p) => String(p.get('id')));
-  const { voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows } = await listPollVoteMetrics(
-    pollIds,
-    voteColumns,
-  );
+  const { voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows, voteHourBinRows, voteDowBinRows } =
+    await listPollVoteMetrics(pollIds, voteColumns);
 
   const byPollId = new Map(voteMetricsRows.map((row) => [row.poll_id, row]));
   const peakHourByPollId = new Map(peakHourRows.map((row) => [row.poll_id, row]));
@@ -91,6 +89,33 @@ export async function buildPollsMineView(
       votes_last_24h: Number(row.votes_last_24h ?? 0) || 0,
     });
     optionFunnelByPollId.set(pollId, list);
+  }
+
+  const hourlyVotesByPollId = new Map<string, number[]>();
+  for (const row of voteHourBinRows) {
+    const pollId = String(row.poll_id);
+    let bins = hourlyVotesByPollId.get(pollId);
+    if (!bins) {
+      bins = Array.from({ length: 24 }, () => 0);
+      hourlyVotesByPollId.set(pollId, bins);
+    }
+    const h = Number(row.hour_utc);
+    if (Number.isInteger(h) && h >= 0 && h <= 23) {
+      bins[h] = Number(row.vote_count) || 0;
+    }
+  }
+  const weekdayVotesByPollId = new Map<string, number[]>();
+  for (const row of voteDowBinRows) {
+    const pollId = String(row.poll_id);
+    let bins = weekdayVotesByPollId.get(pollId);
+    if (!bins) {
+      bins = Array.from({ length: 7 }, () => 0);
+      weekdayVotesByPollId.set(pollId, bins);
+    }
+    const d = Number(row.dow_utc);
+    if (Number.isInteger(d) && d >= 0 && d <= 6) {
+      bins[d] = Number(row.vote_count) || 0;
+    }
   }
 
   const nowMs = Date.now();
@@ -154,6 +179,9 @@ export async function buildPollsMineView(
         ? Number(peakDowRow.peak_dow_utc)
         : null;
     const peakDowVotes = peakDowRow != null ? Number(peakDowRow.peak_dow_votes ?? 0) || 0 : 0;
+    const pid = String(p.get('id'));
+    const hourlyVotesByHourUtc = hourlyVotesByPollId.get(pid) ?? Array.from({ length: 24 }, () => 0);
+    const weekdayVotesByDowUtc = weekdayVotesByPollId.get(pid) ?? Array.from({ length: 7 }, () => 0);
     const configuredOptions = ((p.get('options') as string[] | null | undefined) ?? [])
       .filter((opt) => typeof opt === 'string' && opt.trim() !== '')
       .map((opt) => opt.trim());
@@ -249,6 +277,8 @@ export async function buildPollsMineView(
       peak_hour_votes: peakHourVotes,
       peak_dow_utc: Number.isInteger(peakDowUtc) ? peakDowUtc : null,
       peak_dow_votes: peakDowVotes,
+      hourly_votes_by_hour_utc: hourlyVotesByHourUtc,
+      weekday_votes_by_dow_utc: weekdayVotesByDowUtc,
     };
   });
 

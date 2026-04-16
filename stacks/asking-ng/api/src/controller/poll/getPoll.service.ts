@@ -178,6 +178,8 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
     peakDowRow,
     hourBins,
     dowBins,
+    optionHourBins,
+    voteMinuteBins,
     rateCountersRow,
     delayedVotesPending,
   } = await getPollVoteAnalytics({
@@ -236,6 +238,43 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
     if (!Number.isInteger(d) || d < 0 || d > 6) continue;
     weekdayVotesByDowUtc[d] = Number(row.vote_count) || 0;
   }
+
+  const voteVelocityByMinuteUtcTruncated = youOwnThisPoll && voteMinuteBins.length === 4000;
+
+  const voteVelocityByMinuteUtc = youOwnThisPoll
+    ? (() => {
+        const chronological = [...voteMinuteBins].reverse();
+        return chronological.map((r) => ({
+          minute_utc:
+            r.minute_utc instanceof Date
+              ? r.minute_utc.toISOString()
+              : new Date(String(r.minute_utc)).toISOString(),
+          vote_count: Number(r.vote_count) || 0,
+        }));
+      })()
+    : [];
+
+  const optionHourlyVotesUtc = youOwnThisPoll
+    ? (() => {
+        const optionHourlyByLabel = new Map<string, number[]>();
+        for (const row of optionHourBins) {
+          const label = String(row.option_label ?? '');
+          if (!optionHourlyByLabel.has(label)) {
+            optionHourlyByLabel.set(label, Array.from({ length: 24 }, () => 0));
+          }
+          const bins = optionHourlyByLabel.get(label)!;
+          const h = Number(row.hour_utc);
+          if (Number.isInteger(h) && h >= 0 && h <= 23) {
+            bins[h] = Number(row.vote_count) || 0;
+          }
+        }
+        return options.map((label) => ({
+          option: label,
+          hourly_votes_by_hour_utc:
+            optionHourlyByLabel.get(label) ?? Array.from({ length: 24 }, () => 0),
+        }));
+      })()
+    : [];
 
   return {
     kind: 'ok',
@@ -346,6 +385,11 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
         peak_dow_votes: peakDowVotes,
         hourly_votes_by_hour_utc: hourlyVotesByHourUtc,
         weekday_votes_by_dow_utc: weekdayVotesByDowUtc,
+        ...(youOwnThisPoll ? { option_hourly_votes_utc: optionHourlyVotesUtc } : {}),
+        ...(youOwnThisPoll ? { vote_velocity_by_minute_utc: voteVelocityByMinuteUtc } : {}),
+        ...(youOwnThisPoll && voteVelocityByMinuteUtcTruncated
+          ? { vote_velocity_by_minute_utc_truncated: true }
+          : {}),
       },
     },
   };

@@ -13,7 +13,7 @@ export interface AppRequest {
   /** True when the inbound request is HTTPS (Fastify `protocol` or equivalent). */
   secure?: boolean;
   requestId?: string;
-  user?: { id: number; homelab-user: string; role: string };
+  user?: { id: number; homelab-user: string; role: string; billingPlan?: string };
   /** Set by validateQuery middleware; cast to the route Zod output type. */
   validatedQuery?: unknown;
 }

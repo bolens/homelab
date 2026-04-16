@@ -14,6 +14,31 @@ export async function findProfileById(id: number) {
   });
 }
 
+export async function findWorkspacePolarSubscriptionFields(userId: number): Promise<{
+  polarSubscriptionId: string | null;
+  polarSubscriptionStatus: string | null;
+}> {
+  const row = await User.findByPk(userId, { attributes: ['defaultWorkspaceId'] });
+  if (!row) {
+    return { polarSubscriptionId: null, polarSubscriptionStatus: null };
+  }
+  const wsId = row.get('defaultWorkspaceId') as number | null | undefined;
+  if (wsId == null || wsId <= 0) {
+    return { polarSubscriptionId: null, polarSubscriptionStatus: null };
+  }
+  const ws = await Workspace.findByPk(wsId, {
+    attributes: ['polarSubscriptionId', 'polarSubscriptionStatus'],
+  });
+  if (!ws) {
+    return { polarSubscriptionId: null, polarSubscriptionStatus: null };
+  }
+  const sidRaw = ws.get('polarSubscriptionId') as string | null | undefined;
+  const sid = typeof sidRaw === 'string' && sidRaw.trim() !== '' ? sidRaw.trim() : null;
+  const stRaw = ws.get('polarSubscriptionStatus') as string | null | undefined;
+  const st = typeof stRaw === 'string' && stRaw.trim() !== '' ? stRaw.trim() : null;
+  return { polarSubscriptionId: sid, polarSubscriptionStatus: st };
+}
+
 export async function findBillingPlanByUserId(userId: number): Promise<string> {
   const row = await User.findByPk(userId, { attributes: ['defaultWorkspaceId', 'billingPlan'] });
   if (!row) return 'free';

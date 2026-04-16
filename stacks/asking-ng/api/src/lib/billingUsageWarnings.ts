@@ -5,6 +5,8 @@ export type BillingUsageWarnings = {
   activePolls?: BillingMeterWarningCode;
   votesThisMonth?: BillingMeterWarningCode;
   dataExports?: BillingMeterWarningCode;
+  /** Outbound signed poll webhook POST attempts this UTC minute vs tier cap. */
+  pollWebhooksThisUtcMinute?: BillingMeterWarningCode;
 };
 
 function meterWarning(cur: number, max: number): BillingMeterWarningCode | undefined {
@@ -22,6 +24,8 @@ export function buildBillingUsageWarnings(args: {
   maxVotesPerMonth: number;
   exportsToday: number;
   maxExportsPerDay: number;
+  pollWebhookDeliveriesThisUtcMinute?: number;
+  maxPollWebhookDeliveriesPerUtcMinute?: number;
 }): BillingUsageWarnings | undefined {
   const out: BillingUsageWarnings = {};
   const ap = meterWarning(args.activePolls, args.maxActivePolls);
@@ -30,5 +34,12 @@ export function buildBillingUsageWarnings(args: {
   if (vm) out.votesThisMonth = vm;
   const ex = meterWarning(args.exportsToday, args.maxExportsPerDay);
   if (ex) out.dataExports = ex;
+  if (
+    args.pollWebhookDeliveriesThisUtcMinute != null &&
+    args.maxPollWebhookDeliveriesPerUtcMinute != null
+  ) {
+    const wh = meterWarning(args.pollWebhookDeliveriesThisUtcMinute, args.maxPollWebhookDeliveriesPerUtcMinute);
+    if (wh) out.pollWebhooksThisUtcMinute = wh;
+  }
   return Object.keys(out).length > 0 ? out : undefined;
 }

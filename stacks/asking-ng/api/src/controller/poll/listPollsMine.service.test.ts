@@ -118,6 +118,11 @@ describe('buildPollsMineView', () => {
       peakHourRows: [{ poll_id: 'poll-1', peak_hour_utc: 0, peak_hour_votes: 5 }],
       peakDowRows: [{ poll_id: 'poll-1', peak_dow_utc: 4, peak_dow_votes: 5 }],
       optionFunnelRows: [],
+      voteHourBinRows: [
+        { poll_id: 'poll-1', hour_utc: 0, vote_count: 3 },
+        { poll_id: 'poll-1', hour_utc: 1, vote_count: 4 },
+      ],
+      voteDowBinRows: [{ poll_id: 'poll-1', dow_utc: 4, vote_count: 7 }],
     });
   });
 
@@ -157,6 +162,10 @@ describe('buildPollsMineView', () => {
       votes_last_5m: 2,
       peak_hour_utc: 0,
       peak_dow_utc: 4,
+      hourly_votes_by_hour_utc: [
+        3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      ],
+      weekday_votes_by_dow_utc: [0, 0, 0, 0, 7, 0, 0],
     });
   });
 });

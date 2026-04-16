@@ -5,7 +5,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch } from '../http';
 import { useT } from '../i18n/I18nContext';
 import { setStoredUserJwt } from '../lib/userSession';
-import { Button, Checkbox, Container, Input, Stack } from '../ui';
+import { Button, Checkbox, Container, Input, Stack, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 export default function Register() {
@@ -72,9 +72,9 @@ export default function Register() {
       </p>
       <form onSubmit={handleSubmit} aria-label={t('register.formAria')} className='auth-form'>
         <Stack gap='md'>
-          <label htmlFor='reg-homelab-user' className='visually-hidden'>
+          <VisuallyHidden as='label' htmlFor='reg-homelab-user'>
             {t('register.homelab-user')}
-          </label>
+          </VisuallyHidden>
           <Input
             id='reg-homelab-user'
             className='ui-input--stack'
@@ -83,9 +83,9 @@ export default function Register() {
             onChange={(e) => setUsername(e.target.value)}
             placeholder={t('register.homelab-user')}
           />
-          <label htmlFor='reg-password' className='visually-hidden'>
+          <VisuallyHidden as='label' htmlFor='reg-password'>
             {t('register.passwordHint')}
-          </label>
+          </VisuallyHidden>
           <Input
             id='reg-password'
             type='password'

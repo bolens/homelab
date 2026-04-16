@@ -12,6 +12,10 @@ import {
   recordDataExportJob,
 } from '../lib/billingExportQuota';
 import { buildBillingUsageWarnings, type BillingUsageWarnings } from '../lib/billingUsageWarnings';
+import {
+  readPollWebhookDeliveryMeterForScope,
+  resolveWebhookDeliveryScopeKeyForSignedInUser,
+} from '../lib/billingPollWebhookDelivery';
 import { effectiveWsFanoutMessagesPerSecondForWorkspace } from '../lib/billingWsFanout';
 import {
   maxActivePollsForBillingPlan,
@@ -54,7 +58,10 @@ import {
   presentSelfDeleted,
 } from '../controller/self/self.presenter';
 import { countBillableVotesForCreatorUtcMonth } from '../controller/poll/voteOnPoll.repository';
-import { countNonArchivedPollsOwnedByUser } from '../controller/self/self.repository';
+import {
+  countNonArchivedPollsOwnedByUser,
+  findWorkspacePolarSubscriptionFields,
+} from '../controller/self/self.repository';
 import { invalidateSessionUserCache } from '../lib/sessionUserCache';
 import { authenticateBearer } from '../middleware/requireSession';
 import Poll from '../model/Poll';
@@ -838,6 +845,15 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
     const profile = await getProfileService({ userId: request.user?.id ?? null });
     const billingPlan = profile.kind === 'ok' ? profile.user.billingPlan : 'free';
     const uid = request.user?.id ?? null;
+    const polarWorkspace =
+      uid != null ? await findWorkspacePolarSubscriptionFields(uid) : { polarSubscriptionId: null, polarSubscriptionStatus: null };
+    const subscription =
+      polarWorkspace.polarSubscriptionId != null
+        ? {
+            polarStatus: polarWorkspace.polarSubscriptionStatus,
+            pastDue: polarWorkspace.polarSubscriptionStatus === 'past_due',
+          }
+        : undefined;
     let usage:
       | { limitsEnforced: false }
       | {
@@ -850,6 +866,9 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
           exportsToday: number;
           maxExportsPerDay: number;
           maxPollLiveFanoutPerSec: number;
+          /** In-process counter for this UTC minute; omits when plan has no finite webhook cap. */
+          webhookDeliveriesThisUtcMinute?: number;
+          maxWebhookDeliveriesPerUtcMinute?: number;
           warnings?: BillingUsageWarnings;
         };
     if (appEnv.billingEnforceLimits && uid != null) {
@@ -857,16 +876,22 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
       const maxActivePolls = maxActivePollsForBillingPlan(billingPlan);
       const maxVotesPerMonth = maxVotesPerMonthForBillingPlan(billingPlan);
       const maxExportsPerDay = maxDataExportsPerDayForBillingPlan(billingPlan);
-      const [activePolls, votesThisMonth, maxWsSubscribersPerPoll, exportsToday] = await Promise.all([
-        countNonArchivedPollsOwnedByUser(uid),
-        countBillableVotesForCreatorUtcMonth({
-          creatorUserId: uid,
-          monthStart: month.start,
-          monthEndExclusive: month.endExclusive,
-        }),
-        resolveEffectivePollLiveRoomCap(uid),
-        countCompletedDataExportsForWorkspaceUtcDay(uid),
-      ]);
+      const [activePolls, votesThisMonth, maxWsSubscribersPerPoll, exportsToday, webhookScopeKey] =
+        await Promise.all([
+          countNonArchivedPollsOwnedByUser(uid),
+          countBillableVotesForCreatorUtcMonth({
+            creatorUserId: uid,
+            monthStart: month.start,
+            monthEndExclusive: month.endExclusive,
+          }),
+          resolveEffectivePollLiveRoomCap(uid),
+          countCompletedDataExportsForWorkspaceUtcDay(uid),
+          resolveWebhookDeliveryScopeKeyForSignedInUser(uid),
+        ]);
+      const hookMeter =
+        webhookScopeKey != null
+          ? readPollWebhookDeliveryMeterForScope(webhookScopeKey, billingPlan)
+          : { current: 0, max: 0, metered: false };
       const warnings = buildBillingUsageWarnings({
         activePolls,
         maxActivePolls,
@@ -874,6 +899,12 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
         maxVotesPerMonth,
         exportsToday,
         maxExportsPerDay,
+        ...(hookMeter.metered
+          ? {
+              pollWebhookDeliveriesThisUtcMinute: hookMeter.current,
+              maxPollWebhookDeliveriesPerUtcMinute: hookMeter.max,
+            }
+          : {}),
       });
       usage = {
         limitsEnforced: true,
@@ -885,6 +916,12 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
         exportsToday,
         maxExportsPerDay,
         maxPollLiveFanoutPerSec: effectiveWsFanoutMessagesPerSecondForWorkspace(uid),
+        ...(hookMeter.metered
+          ? {
+              webhookDeliveriesThisUtcMinute: hookMeter.current,
+              maxWebhookDeliveriesPerUtcMinute: hookMeter.max,
+            }
+          : {}),
         ...(warnings ? { warnings } : {}),
       };
     } else {
@@ -897,6 +934,7 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
         checkoutCloudProUrl: pro,
         billingPlan,
         usage,
+        subscription,
       }),
     );
   });

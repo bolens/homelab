@@ -7,7 +7,7 @@ import { useMaxWidth600 } from '../hooks/useMaxWidth600';
 import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
-import { Button, cx, Select } from '../ui';
+import { Button, cx, Select, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 import { zodErrorSummary } from '../utils/zodForm';
 import { useAdminWebSocket } from '../wsClient';
@@ -468,9 +468,9 @@ export default function AdminPolls() {
         aria-label={t('admin.polls.createFormAria')}
       >
         <b>{t('admin.polls.createLabel')}</b>
-        <label htmlFor='admin-polls-new-question' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-polls-new-question'>
           {t('admin.polls.labelQuestion')}
-        </label>
+        </VisuallyHidden>
         <input
           id='admin-polls-new-question'
           placeholder={t('admin.polls.placeholderQuestion')}
@@ -479,9 +479,9 @@ export default function AdminPolls() {
           className='poll-input-question'
           required
         />
-        <label htmlFor='admin-polls-new-options' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-polls-new-options'>
           {t('admin.polls.labelOptions')}
-        </label>
+        </VisuallyHidden>
         <input
           id='admin-polls-new-options'
           placeholder={t('admin.polls.placeholderOptions')}
@@ -496,9 +496,9 @@ export default function AdminPolls() {
       </form>
 
       <div className='polls-search-bar polls-search-bar--tight'>
-        <label htmlFor='admin-polls-search' className='visually-hidden'>
+        <VisuallyHidden as='label' htmlFor='admin-polls-search'>
           {t('admin.polls.searchLabel')}
-        </label>
+        </VisuallyHidden>
         <input
           id='admin-polls-search'
           placeholder={t('admin.polls.placeholderSearch')}
@@ -925,9 +925,9 @@ export default function AdminPolls() {
           aria-labelledby='admin-polls-mobile-bulk-heading'
           className='admin-mobile-bulk-actions'
         >
-          <h2 id='admin-polls-mobile-bulk-heading' className='visually-hidden'>
+          <VisuallyHidden as='h2' id='admin-polls-mobile-bulk-heading'>
             {t('admin.polls.bulkLabel')}
-          </h2>
+          </VisuallyHidden>
           <span
             className='admin-mobile-bulk-selected'
             role='status'

@@ -40,4 +40,19 @@ describe('buildBillingUsageWarnings', () => {
       }),
     ).toEqual({ votesThisMonth: '95' });
   });
+
+  it('flags 80% for outbound poll webhook deliveries this UTC minute', () => {
+    expect(
+      buildBillingUsageWarnings({
+        activePolls: 0,
+        maxActivePolls: 20,
+        votesThisMonth: 0,
+        maxVotesPerMonth: 50_000,
+        exportsToday: 0,
+        maxExportsPerDay: 3,
+        pollWebhookDeliveriesThisUtcMinute: 25,
+        maxPollWebhookDeliveriesPerUtcMinute: 30,
+      }),
+    ).toEqual({ pollWebhooksThisUtcMinute: '80' });
+  });
 });

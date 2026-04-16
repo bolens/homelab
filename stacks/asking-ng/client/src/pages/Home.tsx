@@ -7,11 +7,13 @@ import { apiUrl } from '../apiBase';
 import CopyFeedbackButton from '../components/CopyFeedbackButton';
 import { IconShare } from '../components/icons/UiIcons';
 import { shareUrlForPoll } from '../helpers/pollUrl';
+import { withUtm } from '../lib/withUtm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch, isApiFetchError } from '../http';
 import { useT } from '../i18n/I18nContext';
 import type { MessageKey } from '../i18n/locales';
 import {
+  billingPastDueBannerPayload,
   billingUsageAtCap,
   billingUsageWarningSeverity,
   type ProfileBillingApiPayload,
@@ -30,6 +32,7 @@ import {
   Input,
   Select,
   Textarea,
+  VisuallyHidden,
 } from '../ui';
 import { isWebShareLikelyAvailable, shareUrlNative } from '../lib/webShare';
 import { errMsg } from '../utils/errMsg';
@@ -121,6 +124,18 @@ function createPollErrorMessage(
   return issue.message || t('home.err.invalid');
 }
 
+/** UTM tags align with My Polls / Poll share presets for consistent campaign analytics. */
+function homePostCreateTrackedPollShareUrl(pollId: string, presetId: string): string {
+  const base = shareUrlForPoll(pollId);
+  if (presetId === 'discord') {
+    return withUtm(base, { source: 'discord', medium: 'community', campaign: 'live_poll' });
+  }
+  if (presetId === 'x-post') {
+    return withUtm(base, { source: 'x', medium: 'social', campaign: 'live_poll' });
+  }
+  return withUtm(base, { source: 'stream', medium: 'chat', campaign: 'live_poll' });
+}
+
 export default function Home() {
   const t = useT();
   useDocumentTitle(t('home.docTitle'));
@@ -177,6 +192,7 @@ export default function Home() {
     enabled: Boolean(billingJwt.trim()),
   });
   const billingUsageWarning = billingUsageWarningSeverity(billingUsageQuery.data);
+  const billingPastDue = billingPastDueBannerPayload(billingUsageQuery.data);
 
   const focusTitle = () => {
     requestAnimationFrame(() => {
@@ -406,7 +422,7 @@ export default function Home() {
 
   const copyShareLink = async (): Promise<boolean> => {
     if (!created?.id) return false;
-    const url = shareUrlForPoll(created.id);
+    const url = homePostCreateTrackedPollShareUrl(created.id, sharePresetId);
     try {
       await navigator.clipboard.writeText(url);
       setLinkHint(t('home.banner.copyOk'));
@@ -420,7 +436,7 @@ export default function Home() {
   const shareCreatedPoll = async () => {
     if (!created?.id) return;
     setLinkHint('');
-    const url = shareUrlForPoll(created.id);
+    const url = homePostCreateTrackedPollShareUrl(created.id, sharePresetId);
     const r = await shareUrlNative({
       url,
       title: title.trim() || t('home.pageH1'),
@@ -435,14 +451,17 @@ export default function Home() {
   };
 
   const showNativeShare = useMemo(
-    () => Boolean(created?.id && isWebShareLikelyAvailable(shareUrlForPoll(created.id))),
-    [created?.id],
+    () =>
+      Boolean(
+        created?.id && isWebShareLikelyAvailable(homePostCreateTrackedPollShareUrl(created.id, sharePresetId)),
+      ),
+    [created?.id, sharePresetId],
   );
-  const shareUrl = created?.id ? shareUrlForPoll(created.id) : '';
+  const shareUrl = created?.id ? homePostCreateTrackedPollShareUrl(created.id, sharePresetId) : '';
   const shareSnippet = useMemo(() => {
     if (!created?.id) return '';
     const cleanTitle = title.trim() || t('home.shareSnippetDefaultTitle');
-    const url = shareUrlForPoll(created.id);
+    const url = homePostCreateTrackedPollShareUrl(created.id, sharePresetId);
     if (sharePresetId === 'discord') {
       return t('home.sharePreset.discord.snippet', { title: cleanTitle, url });
     }
@@ -966,9 +985,9 @@ export default function Home() {
                   ) : null}
                   {webhookTargets.map((target, idx) => (
                     <div key={`home-webhook-target-${idx}`} className='my-polls-manage-row'>
-                      <label htmlFor={`home-webhook-url-${idx}`} className='visually-hidden'>
+                      <VisuallyHidden as='label' htmlFor={`home-webhook-url-${idx}`}>
                         {t('home.webhookUrl')}
-                      </label>
+                      </VisuallyHidden>
                       <Input
                         id={`home-webhook-url-${idx}`}
                         className='ui-input--stack'
@@ -984,9 +1003,9 @@ export default function Home() {
                         placeholder={t('home.webhookUrl')}
                         autoComplete='off'
                       />
-                      <label htmlFor={`home-webhook-secret-${idx}`} className='visually-hidden'>
+                      <VisuallyHidden as='label' htmlFor={`home-webhook-secret-${idx}`}>
                         {t('home.webhookSecret')}
-                      </label>
+                      </VisuallyHidden>
                       <Input
                         id={`home-webhook-secret-${idx}`}
                         className='ui-input--stack'
@@ -1097,6 +1116,19 @@ export default function Home() {
             </details>
 
             <div className='ui-form-footer ui-form-footer--sticky-narrow'>
+              {billingPastDue ? (
+                <p className='error-message ui-usage-banner' role='alert'>
+                  {t('billing.pastDueBanner')}{' '}
+                  <a
+                    href={billingPastDue.portalUrl}
+                    target='_blank'
+                    rel='noreferrer'
+                    className='ui-link'
+                  >
+                    {t('billing.openCustomerPortal')}
+                  </a>
+                </p>
+              ) : null}
               {billingUsageWarning ? (
                 <p
                   className={

@@ -357,7 +357,7 @@ export const openApiDocument = {
         responses: {
           '200': {
             description:
-              '{ polar, billing: { plan }, usage: { limitsEnforced, activePolls?, maxActivePolls?, votesThisMonth?, maxVotesPerMonth?, maxWsSubscribersPerPoll?, exportsToday?, maxExportsPerDay?, maxPollLiveFanoutPerSec?, warnings? } } — Polar URLs from POLAR_*; plan from DB; when BILLING_ENFORCE_LIMITS=true, usage includes meters above plus outbound WS fanout cap (`min(WS_FANOUT_MAX_PER_POLL_PER_SEC, plan tier)`), and optional `warnings` (`80` / `95` per meter) when nearing caps.',
+              '{ polar, billing: { plan, pastDue?, subscriptionStatus? }, usage: { ... } } — Polar URLs from POLAR_*; plan from DB; `billing.pastDue` + `billing.subscriptionStatus` when the default workspace is linked to Polar (e.g. `past_due` for grace UX). When BILLING_ENFORCE_LIMITS=true, usage includes meters plus outbound WS fanout cap (`min(WS_FANOUT_MAX_PER_POLL_PER_SEC, plan tier)`), optional `webhookDeliveriesThisUtcMinute` / `maxWebhookDeliveriesPerUtcMinute` (in-process UTC-minute outbound **poll** webhook attempts for the billing workspace), and optional `warnings` (`80` / `95` per meter) when nearing caps.',
           },
           '401': jsonErrorResponse,
           '500': jsonErrorResponse,
@@ -848,7 +848,10 @@ export const openApiDocument = {
           },
         ],
         responses: {
-          '200': { description: '{ polls, total, limit, offset }' },
+          '200': {
+            description:
+              '{ polls, total, limit, offset } — each poll includes list analytics (**hourly_votes_by_hour_utc** length 24, **weekday_votes_by_dow_utc** length 7, UTC, non-quarantined votes) plus existing impression/vote/peak/UTM funnel fields.',
+          },
           '401': jsonErrorResponse,
           '500': jsonErrorResponse,
         },
@@ -986,7 +989,7 @@ export const openApiDocument = {
         responses: {
           '200': {
             description:
-              'Poll with vote counts, **phase** (effective at `server_now_ms`), **phase_schedule** (`open_at`, `lock_at`, `reveal_at`), boosted voting fields (**boosted_voting_enabled**, **max_boost_weight**, **show_unweighted_values**), run-of-show fields (**run_of_show_key**, **run_of_show_order**, **vanity_slug**, **next_poll_id**, **auto_advance_on_close**), vote-friction fields (**vote_friction_tier**, **soft_throttle_max_votes_per_min**, **pow_difficulty**), write-in hygiene fields (**allow_write_in**, **write_in_max_length**, **write_in_blocklist**, **write_in_profanity_filter**), **integrity_panel** safeguard summary, optional owner-only **moderation_counters** (`votes_last_1m`, `unique_ip_hashes_last_1m`, `unique_accounts_last_1m`, `top_ip_votes_last_1m`), **voting_paused**, **pause_message**, **impression_count**, **option_entries**; **show_notes** only when caller JWT matches poll owner. **`embed_gate`**: an embed-read hash is configured (WS/live clients may need **`ws_bearer`** when **`you_own_this_poll`**). **`you_own_this_poll`**: caller JWT is the poll creator.',
+              'Poll with vote counts, **phase** (effective at `server_now_ms`), **phase_schedule** (`open_at`, `lock_at`, `reveal_at`), boosted voting fields (**boosted_voting_enabled**, **max_boost_weight**, **show_unweighted_values**), run-of-show fields (**run_of_show_key**, **run_of_show_order**, **vanity_slug**, **next_poll_id**, **auto_advance_on_close**), vote-friction fields (**vote_friction_tier**, **soft_throttle_max_votes_per_min**, **pow_difficulty**), write-in hygiene fields (**allow_write_in**, **write_in_max_length**, **write_in_blocklist**, **write_in_profanity_filter**), **integrity_panel** safeguard summary, optional owner-only **moderation_counters** (`votes_last_1m`, `unique_ip_hashes_last_1m`, `unique_accounts_last_1m`, `top_ip_votes_last_1m`), **metrics** (aggregate UTC hour/weekday histograms; when **`you_own_this_poll`**, also **`option_hourly_votes_utc`**: per configured option, **`hourly_votes_by_hour_utc`** length 24, and **`vote_velocity_by_minute_utc`**: same shape as export summary — up to **4000** most recent UTC minutes with ≥1 vote, chronological; **`vote_velocity_by_minute_utc_truncated`**: `true` when that cap is hit), **voting_paused**, **pause_message**, **impression_count**, **option_entries**; **show_notes** only when caller JWT matches poll owner. **`embed_gate`**: an embed-read hash is configured (WS/live clients may need **`ws_bearer`** when **`you_own_this_poll`**). **`you_own_this_poll`**: caller JWT is the poll creator.',
           },
           '400': jsonErrorResponse,
           '403': jsonErrorResponse,

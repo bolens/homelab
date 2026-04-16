@@ -100,6 +100,18 @@ type OptionFunnelRow = {
   votes_last_24h: string | number;
 };
 
+type VoteHourBinRow = {
+  poll_id: string;
+  hour_utc: string | number;
+  vote_count: string | number;
+};
+
+type VoteDowBinRow = {
+  poll_id: string;
+  dow_utc: string | number;
+  vote_count: string | number;
+};
+
 export async function listPollVoteMetrics(
   pollIds: string[],
   voteColumns: Set<string>,
@@ -108,16 +120,26 @@ export async function listPollVoteMetrics(
   peakHourRows: PeakHourRow[];
   peakDowRows: PeakDowRow[];
   optionFunnelRows: OptionFunnelRow[];
+  voteHourBinRows: VoteHourBinRow[];
+  voteDowBinRows: VoteDowBinRow[];
 }> {
   if (pollIds.length === 0) {
-    return { voteMetricsRows: [], peakHourRows: [], peakDowRows: [], optionFunnelRows: [] };
+    return {
+      voteMetricsRows: [],
+      peakHourRows: [],
+      peakDowRows: [],
+      optionFunnelRows: [],
+      voteHourBinRows: [],
+      voteDowBinRows: [],
+    };
   }
 
   const quarantinePredicate = voteColumns.has('isQuarantined')
     ? 'AND COALESCE("isQuarantined", false) = false'
     : '';
 
-  const [voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows] = await Promise.all([
+  const [voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows, voteHourBinRows, voteDowBinRows] =
+    await Promise.all([
     db.query(
       `SELECT
         "pollId" AS poll_id,
@@ -179,7 +201,31 @@ export async function listPollVoteMetrics(
        GROUP BY "pollId", COALESCE("option", '')`,
       { replacements: { pollIds }, type: QueryTypes.SELECT },
     ) as Promise<OptionFunnelRow[]>,
+    db.query(
+      `SELECT
+        "pollId" AS poll_id,
+        EXTRACT(HOUR FROM "createdAt" AT TIME ZONE 'UTC')::int AS hour_utc,
+        COUNT(*)::int AS vote_count
+       FROM votes
+       WHERE "pollId" IN (:pollIds)
+         ${quarantinePredicate}
+       GROUP BY "pollId", hour_utc
+       ORDER BY "pollId", hour_utc ASC`,
+      { replacements: { pollIds }, type: QueryTypes.SELECT },
+    ) as Promise<VoteHourBinRow[]>,
+    db.query(
+      `SELECT
+        "pollId" AS poll_id,
+        EXTRACT(DOW FROM "createdAt" AT TIME ZONE 'UTC')::int AS dow_utc,
+        COUNT(*)::int AS vote_count
+       FROM votes
+       WHERE "pollId" IN (:pollIds)
+         ${quarantinePredicate}
+       GROUP BY "pollId", dow_utc
+       ORDER BY "pollId", dow_utc ASC`,
+      { replacements: { pollIds }, type: QueryTypes.SELECT },
+    ) as Promise<VoteDowBinRow[]>,
   ]);
 
-  return { voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows };
+  return { voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows, voteHourBinRows, voteDowBinRows };
 }

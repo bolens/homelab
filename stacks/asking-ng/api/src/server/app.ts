@@ -7,7 +7,8 @@ import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyUnderPressure from '@fastify/under-pressure';
 import pkg from '../../package.json';
 import { appEnv } from '../lib/env';
-import { observeHttpRequest, renderPrometheusMetrics } from '../lib/metrics';
+import { billingApiRateLimitErrorBody, billingHttpRateLimitKey, billingHttpRateLimitMax, billingHttpRateLimitWindowMs } from '../lib/billingHttpRateLimit';
+import { observeHttpRequest, observeIntegrationEvent, renderPrometheusMetrics } from '../lib/metrics';
 import { sharedLoggerOptions } from '../lib/logConfig';
 import sequelize from '../models';
 import { fastifyAdminRoutes } from './admin';
@@ -65,17 +66,24 @@ export async function buildFastifyApp(
     retryAfter: 30,
     message: 'Server is under pressure',
   });
+  await app.register(requestContextPlugin);
   await app.register(fastifyRateLimit, {
     global: true,
-    max: appEnv.httpRateLimitMax,
-    timeWindow: appEnv.httpRateLimitWindowMs,
+    max: (req) => billingHttpRateLimitMax(req),
+    timeWindow: (req) => billingHttpRateLimitWindowMs(req),
+    keyGenerator: (req) => billingHttpRateLimitKey(req),
     skipOnError: true,
+    errorResponseBuilder: (req, ctx) => billingApiRateLimitErrorBody(req, ctx.max),
+    onExceeded: (req) => {
+      if (appEnv.billingEnforceLimits && req.user?.id != null) {
+        observeIntegrationEvent('billing_api_rate_limited');
+      }
+    },
   });
   await app.register(
     fastifyCors,
     appEnv.corsOrigins.length > 0 ? { origin: appEnv.corsOrigins } : {},
   );
-  await app.register(requestContextPlugin);
   await registerFastifySwagger(app);
   await app.register(fastifyBillingRoutes);
   await app.register(fastifyBaseRoutes);

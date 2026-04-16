@@ -131,3 +131,52 @@ export function maxDataExportsPerDayForBillingPlan(plan: string): number {
       return 3;
   }
 }
+
+/**
+ * Authenticated REST **sustained** requests per minute (v1 draft in repo monetization docs).
+ * Burst allowance uses ~2× sustained in the same rolling window (see {@link maxAuthenticatedRestBurstPerMinuteForBillingPlan}).
+ */
+export function maxAuthenticatedRestSustainedPerMinuteForBillingPlan(plan: string): number {
+  const p = normalizeBillingPlan(plan);
+  switch (p) {
+    case 'free':
+      return 120;
+    case 'cloud-team':
+      return 600;
+    case 'cloud-pro':
+      return 3000;
+    case 'selfhost-pro':
+    case 'enterprise-custom':
+      /** High default for self-host / enterprise; operators also tune `HTTP_RATE_LIMIT_*` for anonymous traffic. */
+      return 10_000;
+    default:
+      return 120;
+  }
+}
+
+const REST_BURST_HARD_CAP = 500_000;
+
+/** ~2× sustained, bounded so in-memory rate-limit stores stay sane. */
+export function maxAuthenticatedRestBurstPerMinuteForBillingPlan(plan: string): number {
+  const sustained = maxAuthenticatedRestSustainedPerMinuteForBillingPlan(plan);
+  const doubled = sustained * 2;
+  return Math.min(REST_BURST_HARD_CAP, doubled);
+}
+
+/** Outbound signed poll webhook POST **attempts** per workspace per UTC minute (repo monetization draft). */
+export function maxOutboundPollWebhookDeliveriesPerMinuteForBillingPlan(plan: string): number {
+  const p = normalizeBillingPlan(plan);
+  switch (p) {
+    case 'free':
+      return 30;
+    case 'cloud-team':
+      return 300;
+    case 'cloud-pro':
+      return 2000;
+    case 'selfhost-pro':
+    case 'enterprise-custom':
+      return Number.MAX_SAFE_INTEGER;
+    default:
+      return 30;
+  }
+}

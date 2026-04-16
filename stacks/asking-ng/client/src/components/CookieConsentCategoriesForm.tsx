@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { useT } from '../i18n/I18nContext';
-import { Switch } from '../ui';
+import { Switch, VisuallyHidden } from '../ui';
 
 export type CookieConsentCategoriesFormProps = {
   functional: boolean;
@@ -31,9 +31,9 @@ export default function CookieConsentCategoriesForm({
         </div>
         <div className='cookie-consent-categories__switch'>
           <Switch id={`${p}-necessary`} checked disabled readOnly aria-readonly='true' />
-          <label className='visually-hidden' htmlFor={`${p}-necessary`}>
+          <VisuallyHidden as='label' htmlFor={`${p}-necessary`}>
             {t('cookie.categories.necessary')}
-          </label>
+          </VisuallyHidden>
         </div>
       </div>
 
@@ -48,9 +48,9 @@ export default function CookieConsentCategoriesForm({
             checked={functional}
             onChange={(e) => onChange({ functional: e.target.checked })}
           />
-          <label className='visually-hidden' htmlFor={`${p}-functional`}>
+          <VisuallyHidden as='label' htmlFor={`${p}-functional`}>
             {t('cookie.categories.functional')}
-          </label>
+          </VisuallyHidden>
         </div>
       </div>
 
@@ -65,9 +65,9 @@ export default function CookieConsentCategoriesForm({
             checked={analytics}
             onChange={(e) => onChange({ analytics: e.target.checked })}
           />
-          <label className='visually-hidden' htmlFor={`${p}-analytics`}>
+          <VisuallyHidden as='label' htmlFor={`${p}-analytics`}>
             {t('cookie.categories.analytics')}
-          </label>
+          </VisuallyHidden>
         </div>
       </div>
 
@@ -78,9 +78,9 @@ export default function CookieConsentCategoriesForm({
         </div>
         <div className='cookie-consent-categories__switch'>
           <Switch id={`${p}-marketing`} checked={false} disabled readOnly />
-          <label className='visually-hidden' htmlFor={`${p}-marketing`}>
+          <VisuallyHidden as='label' htmlFor={`${p}-marketing`}>
             {t('cookie.categories.marketing')}
-          </label>
+          </VisuallyHidden>
         </div>
       </div>
     </div>

@@ -135,6 +135,14 @@ beforeEach(() => {
     peakDowRow: { peak_dow_utc: 4, peak_dow_votes: 4 },
     hourBins: [{ hour_utc: 0, vote_count: 6 }],
     dowBins: [{ dow_utc: 4, vote_count: 6 }],
+    optionHourBins: [
+      { option_label: 'A', hour_utc: 0, vote_count: 4 },
+      { option_label: 'B', hour_utc: 0, vote_count: 2 },
+    ],
+    voteMinuteBins: [
+      { minute_utc: new Date('2026-01-01T00:03:00.000Z'), vote_count: 5 },
+      { minute_utc: new Date('2026-01-01T00:02:00.000Z'), vote_count: 1 },
+    ],
     rateCountersRow: {
       votes_last_1m: 2,
       unique_ip_hashes_last_1m: 2,
@@ -175,6 +183,10 @@ describe('getPollView', () => {
     expect(result.data.live_results_are_delayed).toBe(true);
     expect(result.data.delayed_votes_pending).toBe(7);
     expect(result.data.moderation_counters).toBeUndefined();
+    const m = result.data.metrics as Record<string, unknown>;
+    expect(m.vote_velocity_by_minute_utc).toBeUndefined();
+    expect(m.vote_velocity_by_minute_utc_truncated).toBeUndefined();
+    expect(m.option_hourly_votes_utc).toBeUndefined();
     expect(mockGetPollVoteAnalytics).toHaveBeenCalledWith(
       expect.objectContaining({
         pollId: 'poll-1',
@@ -202,6 +214,16 @@ describe('getPollView', () => {
       trust_ip_burst: { enabled: false },
       trust_chat_burst: { enabled: false },
     });
+    const metrics = result.data.metrics as Record<string, unknown>;
+    expect(metrics.option_hourly_votes_utc).toEqual([
+      { option: 'A', hourly_votes_by_hour_utc: [4, ...Array(23).fill(0)] },
+      { option: 'B', hourly_votes_by_hour_utc: [2, ...Array(23).fill(0)] },
+    ]);
+    expect(metrics.vote_velocity_by_minute_utc).toEqual([
+      { minute_utc: '2026-01-01T00:02:00.000Z', vote_count: 1 },
+      { minute_utc: '2026-01-01T00:03:00.000Z', vote_count: 5 },
+    ]);
+    expect(metrics.vote_velocity_by_minute_utc_truncated).toBeUndefined();
     expect(mockGetPollVoteAnalytics).toHaveBeenCalledWith(
       expect.objectContaining({
         pollId: 'poll-1',
@@ -209,6 +231,53 @@ describe('getPollView', () => {
         youOwnThisPoll: true,
       }),
     );
+  });
+
+  it('sets vote_velocity_by_minute_utc_truncated when minute series hits cap', async () => {
+    const baseMs = Date.UTC(2026, 5, 10, 0, 0, 0);
+    const voteMinuteBins = Array.from({ length: 4000 }, (_, i) => ({
+      minute_utc: new Date(baseMs + (3999 - i) * 60_000),
+      vote_count: 1,
+    }));
+    mockGetPollVoteAnalytics.mockResolvedValue({
+      voteData: [
+        { option: 'A', vote_count: 4, weighted_vote_count: 6 },
+        { option: 'B', vote_count: 2, weighted_vote_count: 2 },
+      ],
+      metricsRow: {
+        total_votes: 6,
+        total_weighted_votes: 8,
+        votes_last_5m: 3,
+        first_vote_at: new Date('2026-01-01T00:01:00.000Z'),
+      },
+      peakHourRow: { peak_hour_utc: 0, peak_hour_votes: 4 },
+      peakDowRow: { peak_dow_utc: 4, peak_dow_votes: 4 },
+      hourBins: [{ hour_utc: 0, vote_count: 6 }],
+      dowBins: [{ dow_utc: 4, vote_count: 6 }],
+      optionHourBins: [
+        { option_label: 'A', hour_utc: 0, vote_count: 4 },
+        { option_label: 'B', hour_utc: 0, vote_count: 2 },
+      ],
+      voteMinuteBins,
+      rateCountersRow: {
+        votes_last_1m: 2,
+        unique_ip_hashes_last_1m: 2,
+        unique_accounts_last_1m: 1,
+        top_ip_votes_last_1m: 2,
+        quarantined_votes_pending: 0,
+      },
+      delayedVotesPending: 0,
+    });
+    mockFindByPk.mockResolvedValue(buildPoll(basePollFields()));
+
+    const result = await getPollView(buildReq(42), 'poll-1');
+
+    expect(result.kind).toBe('ok');
+    if (result.kind !== 'ok') return;
+    const metrics = result.data.metrics as Record<string, unknown>;
+    expect(metrics.vote_velocity_by_minute_utc_truncated).toBe(true);
+    expect(Array.isArray(metrics.vote_velocity_by_minute_utc)).toBe(true);
+    expect((metrics.vote_velocity_by_minute_utc as unknown[]).length).toBe(4000);
   });
 
   it('includes private show_notes for mod viewers', async () => {

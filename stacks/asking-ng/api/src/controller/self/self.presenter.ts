@@ -34,6 +34,9 @@ export type PolarBillingUsage = {
   maxExportsPerDay?: number;
   /** Server→client poll-live messages per poll per second cap (`min(WS_FANOUT_*, plan)` when limits enforced). */
   maxPollLiveFanoutPerSec?: number;
+  /** Outbound signed poll webhook POST attempts in the current UTC minute (in-process meter). */
+  webhookDeliveriesThisUtcMinute?: number;
+  maxWebhookDeliveriesPerUtcMinute?: number;
   /** Approaching numeric caps (80% / 95% of max) for dashboard UX. */
   warnings?: BillingUsageWarnings;
 };
@@ -44,16 +47,27 @@ export type PolarBillingLinks = {
   checkoutCloudProUrl: string | null;
   billingPlan: string;
   usage: PolarBillingUsage;
+  /** When the default workspace is linked to Polar, surface last known subscription status (e.g. `past_due`). */
+  subscription?: { polarStatus: string | null; pastDue: boolean };
 };
 
 export function presentPolarBillingLinks(links: PolarBillingLinks): Record<string, unknown> {
+  const billing: Record<string, unknown> = { plan: links.billingPlan };
+  if (links.subscription) {
+    if (links.subscription.polarStatus) {
+      billing.subscriptionStatus = links.subscription.polarStatus;
+    }
+    if (links.subscription.pastDue) {
+      billing.pastDue = true;
+    }
+  }
   return {
     polar: {
       customerPortalUrl: links.customerPortalUrl,
       checkoutCloudTeamUrl: links.checkoutCloudTeamUrl,
       checkoutCloudProUrl: links.checkoutCloudProUrl,
     },
-    billing: { plan: links.billingPlan },
+    billing,
     usage: links.usage,
   };
 }

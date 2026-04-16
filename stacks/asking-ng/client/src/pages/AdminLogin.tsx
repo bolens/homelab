@@ -97,7 +97,7 @@ export default function AdminLogin() {
   if (!adminSessionReady) {
     return (
       <Container size='sm' className='polls-page-container'>
-        <Card role='status' aria-live='polite' className='admin-login-hint text-center' tone='muted'>
+        <Card role='status' aria-live='polite' className='admin-login-hint' tone='muted'>
           {t('admin.login.sessionCheck')}
         </Card>
       </Container>
@@ -107,7 +107,7 @@ export default function AdminLogin() {
   if (admin) {
     return (
       <Container size='sm' className='polls-page-container'>
-        <Card role='status' aria-live='polite' className='admin-login-hint text-center' tone='muted'>
+        <Card role='status' aria-live='polite' className='admin-login-hint' tone='muted'>
           {t('admin.login.redirecting')}
         </Card>
       </Container>

@@ -7,6 +7,7 @@ import { useLocaleTag, useT } from '../i18n/I18nContext';
 import type { MessageKey } from '../i18n/locales';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
 import {
+  billingPastDueBannerPayload,
   billingUsageWarningSeverity,
   type BillingUsageWarningsPayload,
   type ProfileBillingApiPayload,
@@ -78,6 +79,14 @@ function formatBillingUsageWarnings(
   if (w.dataExports) {
     parts.push(
       t('developer.billingWarnMeter', { meter: t('developer.billingMeterExports'), level: w.dataExports }),
+    );
+  }
+  if (w.pollWebhooksThisUtcMinute) {
+    parts.push(
+      t('developer.billingWarnMeter', {
+        meter: t('developer.billingMeterWebhooks'),
+        level: w.pollWebhooksThisUtcMinute,
+      }),
     );
   }
   return parts.join(t('developer.billingWarnListSep'));
@@ -201,6 +210,7 @@ export default function Developer() {
   const selectModelValue =
     modelIds.length > 0 && modelIds.includes(model) ? model : (modelIds[0] ?? '');
   const billingUsageWarning = billingUsageWarningSeverity(billingQuery.data);
+  const billingPastDue = billingPastDueBannerPayload(billingQuery.data);
 
   const saveGatewayTokenMutation = useMutation({
     mutationFn: async (rawInput: string) => {
@@ -308,6 +318,14 @@ export default function Developer() {
       {userJwt && billingQuery.isSuccess && (
         <section className='developer-section'>
           <h5 className='ui-page-heading'>{t('developer.sectionBilling')}</h5>
+          {billingPastDue ? (
+            <p className='error-message ui-usage-banner' role='alert'>
+              {t('billing.pastDueBanner')}{' '}
+              <a href={billingPastDue.portalUrl} target='_blank' rel='noreferrer' className='ui-link'>
+                {t('billing.openCustomerPortal')}
+              </a>
+            </p>
+          ) : null}
           {billingUsageWarning ? (
             <p
               className={billingUsageWarning === '95' ? 'error-message' : 'developer-intro'}
@@ -368,6 +386,16 @@ export default function Developer() {
             <p className='developer-intro'>
               {t('developer.billingFanoutCap', {
                 max: billingQuery.data.usage.maxPollLiveFanoutPerSec,
+              })}
+            </p>
+          ) : null}
+          {billingQuery.data?.usage?.limitsEnforced &&
+          typeof billingQuery.data.usage.webhookDeliveriesThisUtcMinute === 'number' &&
+          typeof billingQuery.data.usage.maxWebhookDeliveriesPerUtcMinute === 'number' ? (
+            <p className='developer-intro'>
+              {t('developer.billingWebhookUsage', {
+                current: billingQuery.data.usage.webhookDeliveriesThisUtcMinute,
+                max: billingQuery.data.usage.maxWebhookDeliveriesPerUtcMinute,
               })}
             </p>
           ) : null}

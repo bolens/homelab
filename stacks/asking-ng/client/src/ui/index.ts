@@ -12,4 +12,5 @@ export { default as Select } from './Select';
 export { default as Switch } from './Switch';
 export { default as Stack } from './Stack';
 export { default as Textarea } from './Textarea';
+export { default as VisuallyHidden } from './VisuallyHidden';
 export { cx } from './cx';

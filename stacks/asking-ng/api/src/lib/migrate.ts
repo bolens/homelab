@@ -12,6 +12,7 @@ import '../model/Poll';
 import '../model/Vote';
 
 import * as baselinePrelaunch from '../migrations/00-baseline-prelaunch';
+import * as workspacePolarSubscriptionStatus from '../migrations/01-workspace-polar-subscription-status';
 import sequelize from '../models';
 import { logger } from './logger';
 
@@ -25,6 +26,15 @@ export async function runMigrations(): Promise<void> {
         },
         down: async ({ context }) => {
           await baselinePrelaunch.down(context as QueryInterface);
+        },
+      },
+      {
+        name: '01-workspace-polar-subscription-status',
+        up: async ({ context }) => {
+          await workspacePolarSubscriptionStatus.up(context as QueryInterface);
+        },
+        down: async ({ context }) => {
+          await workspacePolarSubscriptionStatus.down(context as QueryInterface);
         },
       },
     ],

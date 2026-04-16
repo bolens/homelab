@@ -107,7 +107,7 @@ export default function PrivacySettingsSection() {
                 if (patch.analytics !== undefined) setAnalytics(patch.analytics);
               }}
             />
-            <Inline gap='sm' wrap className='settings-privacy__actions mt-3'>
+            <Inline gap='sm' wrap className='settings-privacy__actions settings-privacy__actions--after-granular'>
               {region !== 'eu' ? (
                 <Button
                   type='button'
@@ -208,13 +208,17 @@ export default function PrivacySettingsSection() {
         >
           {exportBusy ? t('privacy.export.busy') : t('privacy.export.cta')}
         </Button>
-        {exportErr ? <p className='settings-privacy__msg text-danger mt-2 mb-0'>{exportErr}</p> : null}
+        {exportErr ? (
+          <p className='settings-privacy__msg settings-privacy__msg--error'>{exportErr}</p>
+        ) : null}
       </div>
 
       <div className='settings-privacy__card settings-privacy__danger'>
         <h3 className='settings-privacy__card-title'>{t('privacy.delete.title')}</h3>
         <p className='settings-privacy__text'>{t('privacy.delete.copy')}</p>
-        {!isSignedIn ? <p className='settings-privacy__msg text-warning'>{t('privacy.delete.needSignIn')}</p> : null}
+        {!isSignedIn ? (
+          <p className='settings-privacy__msg settings-privacy__msg--warning'>{t('privacy.delete.needSignIn')}</p>
+        ) : null}
         <Stack gap='md'>
           <FormRow label={t('privacy.delete.password')} htmlFor='settings-delete-password'>
             <Input
@@ -275,8 +279,12 @@ export default function PrivacySettingsSection() {
             {deleteBusy ? t('privacy.delete.deleting') : t('privacy.delete.cta')}
           </Button>
         </Stack>
-        {deleteMsg ? <p className='settings-privacy__msg text-success mt-2 mb-0'>{deleteMsg}</p> : null}
-        {deleteErr ? <p className='settings-privacy__msg text-danger mt-2 mb-0'>{deleteErr}</p> : null}
+        {deleteMsg ? (
+          <p className='settings-privacy__msg settings-privacy__msg--success'>{deleteMsg}</p>
+        ) : null}
+        {deleteErr ? (
+          <p className='settings-privacy__msg settings-privacy__msg--error'>{deleteErr}</p>
+        ) : null}
       </div>
     </section>
   );

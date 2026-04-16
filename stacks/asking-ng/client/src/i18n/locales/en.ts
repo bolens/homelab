@@ -156,6 +156,7 @@ export const en = {
   'myPolls.peakHour': 'Peak: {hour} ({votes} votes)',
   'myPolls.peakDay': 'Peak day: {day} ({votes} votes)',
   'myPolls.topCampaign': 'Top campaign: {source}/{medium} ({impressions})',
+  'myPolls.listVoteTimingAria': 'Vote activity by clock hour and weekday (UTC)',
   'myPolls.paused': 'Voting paused',
   'myPolls.webhookOn': 'Webhook',
   'myPolls.backHome': 'Home',
@@ -829,6 +830,15 @@ export const en = {
   'poll.metrics.hourlyAxis': 'Range: {start} to {end}',
   'poll.metrics.weekday': 'Weekday vote pattern (UTC)',
   'poll.metrics.weekdayAxis': 'Order: {days} (UTC)',
+  'poll.metrics.optionHourlyTitle': 'Per-option hourly pattern (UTC)',
+  'poll.metrics.optionHourlyHint':
+    'Vote counts by clock hour for each configured answer (owner-only; same UTC buckets as above).',
+  'poll.metrics.velocityByMinuteTitle': 'Vote rate by UTC minute',
+  'poll.metrics.velocityByMinuteHint':
+    'Each bar is one UTC minute that received at least one vote (oldest to newest, left to right).',
+  'poll.metrics.velocityByMinuteTruncated':
+    'This chart is capped at 4000 most recent voting minutes — older minutes may be missing. Use export JSON for the full minute series.',
+  'poll.metrics.velocityByMinuteAria': 'Votes per UTC minute timeline',
   'poll.state.label': 'Status',
   'poll.simulationBadge': 'Simulation',
   'poll.simulationNotice':
@@ -1434,6 +1444,9 @@ export const en = {
   'developer.billingExportUsage': 'Data export jobs completed today (UTC): {current} / {max}.',
   'developer.billingVoteUsage': 'Votes this UTC month on polls you own (non-quarantined rows): {current} / {max}.',
   'developer.billingFanoutCap': 'Poll live WebSocket outbound fanout cap (messages/sec per poll): {max}.',
+  'developer.billingWebhookUsage':
+    'Outbound poll webhook POST attempts this UTC minute (in-process meter): {current} / {max}.',
+  'developer.billingMeterWebhooks': 'poll webhooks (UTC minute)',
   'developer.billingUsageWarningsLine': 'Threshold hints: {detail}.',
   'developer.billingMeterPolls': 'active polls',
   'developer.billingMeterVotes': 'votes (UTC month)',
@@ -1444,6 +1457,9 @@ export const en = {
     'You are above 80% of a plan limit (active polls, monthly votes, or daily exports). Monitor usage or upgrade before enforcement blocks new activity.',
   'billing.usageNearLimit95':
     'You are at or above 95% of a plan limit. New polls, votes, or exports may be blocked soon—upgrade or free capacity now.',
+  'billing.pastDueBanner':
+    'Your subscription payment is past due. Update your payment method to avoid losing access when the grace period ends.',
+  'billing.openCustomerPortal': 'Open billing portal',
   'developer.billingCheckoutTeam': 'Checkout — Team plan',
   'developer.billingCheckoutPro': 'Checkout — Pro plan',
 } as const;

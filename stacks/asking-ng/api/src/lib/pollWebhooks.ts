@@ -1,5 +1,6 @@
 import { createHmac, randomBytes } from 'node:crypto';
 import Poll from '../model/Poll';
+import { takePollWebhookDeliveryForPoll } from './billingPollWebhookDelivery';
 import { enqueueAsyncJob } from './asyncJobs';
 import { appEnv } from './env';
 import { logger } from './logger';
@@ -70,9 +71,10 @@ export function queuePollWebhook(
   }
   void (async () => {
     const poll = await Poll.findByPk(pollId, {
-      attributes: ['webhookTargets'],
+      attributes: ['webhookTargets', 'creatorUserId'],
     });
     if (!poll) return;
+    const creatorUserId = poll.get('creatorUserId') as number | null | undefined;
     const targetsRaw =
       (poll.get('webhookTargets') as Array<{ url?: string; secret?: string }> | null | undefined) ??
       [];
@@ -93,6 +95,9 @@ export function queuePollWebhook(
           { event: 'poll.webhook.non_public_url_blocked', pollId, host: url.hostname },
           'poll webhook: blocked non-public URL',
         );
+        continue;
+      }
+      if (!(await takePollWebhookDeliveryForPoll({ pollId, creatorUserId }))) {
         continue;
       }
       enqueueAsyncJob(`poll_webhook:${event}:${pollId}`, async () => {

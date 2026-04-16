@@ -10,7 +10,7 @@ export function toAppRequest(
     ip: string;
     id: string;
     protocol?: string;
-    user?: { id: number; homelab-user: string; role: string } | null;
+    user?: { id: number; homelab-user: string; role: string; billingPlan?: string } | null;
   },
   validatedQuery?: unknown,
 ): AppRequest {

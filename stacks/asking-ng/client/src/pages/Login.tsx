@@ -5,7 +5,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch } from '../http';
 import { useT } from '../i18n/I18nContext';
 import { setStoredUserJwt } from '../lib/userSession';
-import { Button, Container, Input, Stack } from '../ui';
+import { Button, Container, Input, Stack, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 export default function Login() {
@@ -56,9 +56,9 @@ export default function Login() {
       </p>
       <form onSubmit={handleSubmit} aria-label={t('login.formAria')} className='auth-form'>
         <Stack gap='md'>
-          <label htmlFor='login-homelab-user' className='visually-hidden'>
+          <VisuallyHidden as='label' htmlFor='login-homelab-user'>
             {t('login.homelab-user')}
-          </label>
+          </VisuallyHidden>
           <Input
             id='login-homelab-user'
             className='ui-input--stack'
@@ -67,9 +67,9 @@ export default function Login() {
             onChange={(e) => setUsername(e.target.value)}
             placeholder={t('login.homelab-user')}
           />
-          <label htmlFor='login-password' className='visually-hidden'>
+          <VisuallyHidden as='label' htmlFor='login-password'>
             {t('login.password')}
-          </label>
+          </VisuallyHidden>
           <Input
             id='login-password'
             type='password'

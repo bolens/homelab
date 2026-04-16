@@ -5,18 +5,18 @@ import { useBootstrapNavDark } from '../hooks/useBootstrapNavDark';
 import { useNavbarAuth } from '../hooks/useNavbarAuth';
 import { useT } from '../i18n/I18nContext';
 import { clearStoredUserJwt } from '../lib/userSession';
-import { cx } from '../ui/cx';
+import { VisuallyHidden, cx } from '../ui';
 import { IconListPolls, IconSignOut } from './icons/UiIcons';
 import UserSettingsModal from './UserSettingsModal';
 
-function navLinkClass(active: boolean): string {
-  return active ? 'navbar-link navbar-link-active' : 'navbar-link';
+function navRouteActive(active: boolean): string {
+  return active ? 'asking-navbar__route--active' : '';
 }
 
 function GitHubMarkIcon() {
   return (
     <svg
-      className='navbar-icon'
+      className='asking-navbar__icon'
       width={20}
       height={20}
       viewBox='0 0 24 24'
@@ -32,7 +32,7 @@ function GitHubMarkIcon() {
 function SettingsGearIcon() {
   return (
     <svg
-      className='navbar-icon'
+      className='asking-navbar__icon'
       width={20}
       height={20}
       viewBox='0 0 24 24'
@@ -136,10 +136,10 @@ export default function NavbarWrapper() {
   };
 
   const navBarClass = cx(
-    'navbar',
-    'navbar-expand-lg',
-    'navbar-main',
-    navDark ? 'navbar-dark bg-body-tertiary' : 'navbar-light bg-body-tertiary',
+    'asking-navbar',
+    'asking-navbar__main',
+    'asking-navbar--surface',
+    navDark ? 'asking-navbar--dark' : 'asking-navbar--light',
   );
 
   return (
@@ -150,8 +150,8 @@ export default function NavbarWrapper() {
           to='/'
           className={
             isHome
-              ? 'navbar-brand navbar-brand-text navbar-link-active'
-              : 'navbar-brand navbar-brand-text'
+              ? 'asking-navbar__brand asking-navbar__brand-text asking-navbar__brand--active'
+              : 'asking-navbar__brand asking-navbar__brand-text'
           }
           aria-current={isHome ? 'page' : undefined}
           onClick={closeNav}
@@ -160,24 +160,32 @@ export default function NavbarWrapper() {
         </Link>
         <button
           type='button'
-          className='navbar-toggler'
+          className='asking-navbar__toggler'
           aria-controls={navCollapseId}
           aria-expanded={navExpanded}
           aria-label={t('nav.menuToggle')}
           onClick={() => setNavExpanded((v) => !v)}
         >
-          <span className='navbar-toggler-icon' />
+          <span className='asking-navbar__toggler-icon' />
         </button>
         <div
           id={navCollapseId}
-          className={cx('collapse', 'navbar-collapse', 'justify-content-end', 'navbar-links', navExpanded && 'show')}
+          className={cx(
+            'asking-navbar__collapse',
+            'asking-navbar__links',
+            navExpanded && 'asking-navbar__collapse--open',
+          )}
         >
-          <div className='navbar-nav align-items-lg-center flex-lg-row navbar-nav-cluster'>
-            <div ref={moreRef} className='nav-item dropdown navbar-dropdown-toggle'>
+          <div className='asking-navbar__cluster'>
+            <div ref={moreRef} className='asking-navbar__dropdown'>
               <button
                 type='button'
                 id='nav-dropdown-more'
-                className={cx('nav-link', 'dropdown-toggle', navLinkClass(moreActive))}
+                className={cx(
+                  'asking-navbar__link',
+                  'asking-navbar__link--caret',
+                  navRouteActive(moreActive),
+                )}
                 aria-expanded={moreOpen}
                 aria-haspopup='menu'
                 onClick={() => {
@@ -189,7 +197,12 @@ export default function NavbarWrapper() {
               </button>
               {moreOpen ? (
                 <ul
-                  className={cx('dropdown-menu', 'dropdown-menu-end', navDark && 'dropdown-menu-dark', 'show')}
+                  className={cx(
+                    'asking-navbar__menu',
+                    'asking-navbar__menu--end',
+                    navDark && 'asking-navbar__menu--dark',
+                    'asking-navbar__menu--open',
+                  )}
                   role='menu'
                   aria-labelledby='nav-dropdown-more'
                 >
@@ -197,7 +210,7 @@ export default function NavbarWrapper() {
                     <Link
                       role='menuitem'
                       to='/about'
-                      className={cx('dropdown-item', isAbout && 'active')}
+                      className={cx('asking-navbar__menu-item', isAbout && 'asking-navbar__menu-item--active')}
                       aria-current={isAbout ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -208,7 +221,10 @@ export default function NavbarWrapper() {
                     <Link
                       role='menuitem'
                       to='/developer'
-                      className={cx('dropdown-item', isDeveloper && 'active')}
+                      className={cx(
+                        'asking-navbar__menu-item',
+                        isDeveloper && 'asking-navbar__menu-item--active',
+                      )}
                       aria-current={isDeveloper ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -219,7 +235,7 @@ export default function NavbarWrapper() {
                     <Link
                       role='menuitem'
                       to='/privacy'
-                      className={cx('dropdown-item', isPrivacy && 'active')}
+                      className={cx('asking-navbar__menu-item', isPrivacy && 'asking-navbar__menu-item--active')}
                       aria-current={isPrivacy ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -230,7 +246,7 @@ export default function NavbarWrapper() {
                     <Link
                       role='menuitem'
                       to='/terms'
-                      className={cx('dropdown-item', isTerms && 'active')}
+                      className={cx('asking-navbar__menu-item', isTerms && 'asking-navbar__menu-item--active')}
                       aria-current={isTerms ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -240,14 +256,14 @@ export default function NavbarWrapper() {
                   <li role='none'>
                     <a
                       role='menuitem'
-                      className='dropdown-item'
+                      className='asking-navbar__menu-item'
                       href='https://github.com/homelab-user/asking-ng'
                       target='_blank'
                       rel='noopener noreferrer'
                       onClick={closeNav}
                       aria-label={t('nav.githubRepo')}
                     >
-                      <span className='d-inline-flex align-items-center gap-2'>
+                      <span className='ui-nav-menu-row'>
                         <GitHubMarkIcon />
                         {t('nav.github')}
                       </span>
@@ -257,11 +273,15 @@ export default function NavbarWrapper() {
               ) : null}
             </div>
             {userJwtPresent ? (
-              <div ref={accountRef} className='nav-item dropdown navbar-dropdown-toggle'>
+              <div ref={accountRef} className='asking-navbar__dropdown'>
                 <button
                   type='button'
                   id='nav-dropdown-account'
-                  className={cx('nav-link', 'dropdown-toggle', navLinkClass(isMyPolls))}
+                  className={cx(
+                    'asking-navbar__link',
+                    'asking-navbar__link--caret',
+                    navRouteActive(isMyPolls),
+                  )}
                   aria-expanded={accountOpen}
                   aria-haspopup='menu'
                   aria-label={t('nav.accountMenu')}
@@ -274,7 +294,12 @@ export default function NavbarWrapper() {
                 </button>
                 {accountOpen ? (
                   <ul
-                    className={cx('dropdown-menu', 'dropdown-menu-end', navDark && 'dropdown-menu-dark', 'show')}
+                    className={cx(
+                      'asking-navbar__menu',
+                      'asking-navbar__menu--end',
+                      navDark && 'asking-navbar__menu--dark',
+                      'asking-navbar__menu--open',
+                    )}
                     role='menu'
                     aria-labelledby='nav-dropdown-account'
                   >
@@ -282,12 +307,15 @@ export default function NavbarWrapper() {
                       <Link
                         role='menuitem'
                         to='/my-polls'
-                        className={cx('dropdown-item', isMyPolls && 'active')}
+                        className={cx(
+                          'asking-navbar__menu-item',
+                          isMyPolls && 'asking-navbar__menu-item--active',
+                        )}
                         aria-current={isMyPolls ? 'page' : undefined}
                         onClick={closeNav}
                       >
-                        <span className='d-inline-flex align-items-center gap-2'>
-                          <IconListPolls className='navbar-icon' aria-hidden />
+                        <span className='ui-nav-menu-row'>
+                          <IconListPolls className='asking-navbar__icon' aria-hidden />
                           {t('nav.myPolls')}
                         </span>
                       </Link>
@@ -296,13 +324,13 @@ export default function NavbarWrapper() {
                       <button
                         type='button'
                         role='menuitem'
-                        className='dropdown-item'
+                        className='asking-navbar__menu-item'
                         onClick={() => {
                           handleUserSignOut();
                         }}
                       >
-                        <span className='d-inline-flex align-items-center gap-2'>
-                          <IconSignOut className='navbar-icon' aria-hidden />
+                        <span className='ui-nav-menu-row'>
+                          <IconSignOut className='asking-navbar__icon' aria-hidden />
                           {t('nav.signOut')}
                         </span>
                       </button>
@@ -313,7 +341,7 @@ export default function NavbarWrapper() {
             ) : (
               <Link
                 to='/login'
-                className={cx('nav-link', navLinkClass(isLogin || isRegister))}
+                className={cx('asking-navbar__link', navRouteActive(isLogin || isRegister))}
                 aria-current={isLogin || isRegister ? 'page' : undefined}
                 onClick={closeNav}
               >
@@ -323,7 +351,7 @@ export default function NavbarWrapper() {
             {showAdminLink ? (
               <Link
                 to={adminNavTo}
-                className={cx('nav-link', navLinkClass(isAdmin))}
+                className={cx('asking-navbar__link', navRouteActive(isAdmin))}
                 aria-current={isAdmin ? 'page' : undefined}
                 title={admin != null ? adminSignedInFull : undefined}
                 aria-label={admin != null ? adminSignedInFull : undefined}
@@ -335,21 +363,18 @@ export default function NavbarWrapper() {
             <button
               type='button'
               className={cx(
-                'nav-link',
-                'navbar-link',
-                'navbar-settings-trigger',
-                'navbar-settings-slot',
-                'd-inline-flex',
-                'align-items-center',
-                navLinkClass(isSettings || settingsOpen),
+                'asking-navbar__link',
+                'asking-navbar__settings-slot',
+                'asking-navbar__settings-trigger',
+                navRouteActive(isSettings || settingsOpen),
               )}
               onClick={openSettings}
               aria-haspopup='dialog'
               aria-expanded={settingsOpen}
             >
-              <span className='visually-hidden'>{t('nav.settings')}</span>
+              <VisuallyHidden>{t('nav.settings')}</VisuallyHidden>
               <SettingsGearIcon />
-              <span className='d-lg-none ms-1' aria-hidden>
+              <span className='asking-navbar__settings-caption' aria-hidden>
                 {t('nav.settings')}
               </span>
             </button>

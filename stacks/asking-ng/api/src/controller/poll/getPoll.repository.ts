@@ -34,6 +34,17 @@ type PollDowBinRow = {
   vote_count: string | number;
 };
 
+type PollOptionHourBinRow = {
+  option_label: string;
+  hour_utc: string | number;
+  vote_count: string | number;
+};
+
+type PollVoteMinuteBinRow = {
+  minute_utc: Date | string;
+  vote_count: string | number;
+};
+
 type PollRateCountersRow = {
   votes_last_1m: string | number;
   unique_ip_hashes_last_1m: string | number;
@@ -53,6 +64,10 @@ export type PollVoteAnalytics = {
   peakDowRow: PollPeakDowRow | undefined;
   hourBins: PollHourBinRow[];
   dowBins: PollDowBinRow[];
+  /** Owner-only: vote counts per configured option label by UTC clock hour (0–23). */
+  optionHourBins: PollOptionHourBinRow[];
+  /** Owner-only: up to 4000 most recent UTC minutes with ≥1 vote (chronological after service normalizes). */
+  voteMinuteBins: PollVoteMinuteBinRow[];
   rateCountersRow: PollRateCountersRow | undefined;
   delayedVotesPending: number;
 };
@@ -167,6 +182,47 @@ export async function getPollVoteAnalytics({
     },
   )) as PollDowBinRow[];
 
+  const optionHourBins = youOwnThisPoll
+    ? ((await db.query(
+        `SELECT
+          COALESCE("option", '') AS option_label,
+          EXTRACT(HOUR FROM "createdAt" AT TIME ZONE 'UTC')::int AS hour_utc,
+          COUNT(*)::int AS vote_count
+         FROM votes
+         WHERE "pollId" = :pollId
+           AND COALESCE("isQuarantined", false) = false
+           ${liveVoteWindowSql}
+         GROUP BY COALESCE("option", ''), EXTRACT(HOUR FROM "createdAt" AT TIME ZONE 'UTC')::int
+         ORDER BY option_label ASC, hour_utc ASC`,
+        {
+          replacements: { pollId, resultsVisibleThrough: resultsVisibleThroughIso },
+          type: QueryTypes.SELECT,
+        },
+      )) as PollOptionHourBinRow[])
+    : [];
+
+  const voteMinuteBins = youOwnThisPoll
+    ? ((await db.query(
+        `WITH mins AS (
+          SELECT
+            date_trunc('minute', "createdAt" AT TIME ZONE 'UTC') AS minute_utc,
+            COUNT(*)::int AS vote_count
+           FROM votes
+           WHERE "pollId" = :pollId
+             AND COALESCE("isQuarantined", false) = false
+             ${liveVoteWindowSql}
+           GROUP BY 1
+         )
+         SELECT minute_utc, vote_count FROM mins
+         ORDER BY minute_utc DESC
+         LIMIT 4000`,
+        {
+          replacements: { pollId, resultsVisibleThrough: resultsVisibleThroughIso },
+          type: QueryTypes.SELECT,
+        },
+      )) as PollVoteMinuteBinRow[])
+    : [];
+
   const [rateCountersRow] = youOwnThisPoll
     ? ((await db.query(
         `SELECT
@@ -224,6 +280,8 @@ export async function getPollVoteAnalytics({
     peakDowRow,
     hourBins,
     dowBins,
+    optionHourBins,
+    voteMinuteBins,
     rateCountersRow,
     delayedVotesPending: Number(delayedPendingRow?.delayed_votes_pending ?? 0) || 0,
   };

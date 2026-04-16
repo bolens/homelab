@@ -10,6 +10,8 @@ export type SessionUserSnapshot = {
   homelab-user: string;
   role: string;
   active: boolean;
+  /** Mirrored workspace plan; used for per-tier HTTP caps when `BILLING_ENFORCE_LIMITS` is on. */
+  billingPlan: string;
 };
 
 const ttlMs = Math.max(500, appEnv.sessionCacheTtlMs);

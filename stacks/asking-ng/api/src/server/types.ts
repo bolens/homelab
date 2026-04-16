@@ -2,7 +2,7 @@ import 'fastify';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    user?: { id: number; homelab-user: string; role: string } | null;
+    user?: { id: number; homelab-user: string; role: string; billingPlan?: string } | null;
     context?: {
       requestId: string;
       userId: number | null;

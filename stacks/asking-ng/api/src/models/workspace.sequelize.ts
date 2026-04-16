@@ -31,6 +31,11 @@ const Workspace = sequelize.define(
       allowNull: true,
       field: 'polar_subscription_id',
     },
+    polarSubscriptionStatus: {
+      type: DataTypes.STRING(32),
+      allowNull: true,
+      field: 'polar_subscription_status',
+    },
   },
   {
     tableName: 'workspaces',

@@ -159,6 +159,7 @@ export async function persistPolarSubscriptionSnapshotOnWorkspace(
 
   workspace.set('polarCustomerId', sub.customerId);
   workspace.set('polarSubscriptionId', sub.id);
+  workspace.set('polarSubscriptionStatus', sub.status ? String(sub.status) : null);
   if (analysis.touchBillingPlan && analysis.nextPlan != null) {
     workspace.set('billingPlan', analysis.nextPlan);
   }
