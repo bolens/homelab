@@ -1324,8 +1324,8 @@ export default function Poll() {
         <p className='poll-archived-note'>{t('poll.phaseRevealedHint')}</p>
       ) : null}
       {showNotes ? (
-        <section className='poll-notes-card' aria-labelledby='poll-show-notes-h'>
-          <h3 id='poll-show-notes-h' className='poll-notes-card-title'>
+        <section className='ui-poll-notes-card' aria-labelledby='poll-show-notes-h'>
+          <h3 id='poll-show-notes-h' className='ui-poll-notes-card-title'>
             {t('poll.showNotesTitle')}
           </h3>
           <pre className='poll-show-notes'>{showNotes}</pre>

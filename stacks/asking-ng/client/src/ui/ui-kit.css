@@ -223,6 +223,25 @@
     text-align: start;
   }
 
+  /* Poll view: host-visible notes block (replaces `.poll-notes-card`). */
+  .ui-poll-notes-card {
+    width: 100%;
+    margin-block: 0 1rem;
+    padding: 12px 14px;
+    border: 1px solid var(--accent-border);
+    border-inline-start: 3px solid var(--accent-control);
+    border-radius: 10px;
+    background: var(--accent-surface);
+    text-align: start;
+    box-sizing: border-box;
+  }
+
+  .ui-poll-notes-card-title {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
   .ui-flow-list--loose {
     margin: 8px 0 0;
     padding-inline-start: 1.25rem;

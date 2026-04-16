@@ -350,11 +350,14 @@ export default function AdminDashboard() {
                   status?.creatorMetrics?.hourly_votes_by_hour_utc ??
                   Array.from({ length: 24 }, () => 0)
                 }
-                bucketLabel={(i) => `${formatHourBucketUtc(i)} UTC`}
+                bucketLabel={(i) => formatHourBucketUtc(i)}
               />
             </span>
             <span className='admin-kpi-meta'>
-              {t('admin.dashboard.kpi.hourlySparklineAxis', { start: '00:00', end: '23:00' })}
+              {t('admin.dashboard.kpi.hourlySparklineAxis', {
+                start: formatHourBucketUtc(0),
+                end: formatHourBucketUtc(23),
+              })}
             </span>
             <span className='admin-kpi-meta'>
               <SparklineLegend
@@ -362,7 +365,7 @@ export default function AdminDashboard() {
                   status?.creatorMetrics?.hourly_votes_by_hour_utc ??
                   Array.from({ length: 24 }, () => 0)
                 }
-                bucketLabel={(i) => `${formatHourBucketUtc(i)} UTC`}
+                bucketLabel={(i) => formatHourBucketUtc(i)}
                 labels={{
                   min: t('sparkline.min'),
                   max: t('sparkline.max'),

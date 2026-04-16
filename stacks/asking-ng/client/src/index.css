@@ -3067,24 +3067,6 @@
     margin-block-start: 0.75rem;
   }
 
-  .poll-notes-card {
-    width: 100%;
-    margin-block: 0 1rem;
-    padding: 12px 14px;
-    border: 1px solid var(--accent-border);
-    border-inline-start: 3px solid var(--accent-control);
-    border-radius: 10px;
-    background: var(--accent-surface);
-    text-align: start;
-    box-sizing: border-box;
-  }
-
-  .poll-notes-card-title {
-    margin: 0 0 8px;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-
   /* Admin app shell: sidebar + main (matches common product admin layout) */
   .admin-app {
     display: flex;
@@ -3675,27 +3657,6 @@
     background: color-mix(in oklch, var(--color-bg-muted) 78%, var(--accent-surface) 22%);
   }
 
-  .poll-flow-card {
-    width: min(640px, 96%);
-    margin: 0 auto 12px;
-    padding: 10px 12px;
-    border: 1px solid var(--accent-border);
-    border-inline-start: 3px solid var(--accent-control);
-    border-radius: 10px;
-    background: var(--accent-surface);
-    text-align: start;
-  }
-
-  .poll-flow-row {
-    margin: 0;
-  }
-
-  .poll-flow-row + .poll-flow-row {
-    margin-top: 6px;
-    color: var(--color-text-muted);
-    font-size: 0.875rem;
-  }
-
   .poll-geo-optin {
     width: min(640px, 96%);
     margin: 0 auto;
@@ -3934,8 +3895,7 @@
     }
 
     .ui-callout-card,
-    .poll-flow-card,
-    .poll-notes-card,
+    .ui-poll-notes-card,
     .ui-card.ui-card--form-panel {
       width: min(var(--layout-form-max), 100%);
       padding: 14px 16px;
@@ -4437,8 +4397,7 @@
     }
 
     .ui-callout-card,
-    .poll-flow-card,
-    .poll-notes-card,
+    .ui-poll-notes-card,
     .poll-geo-optin,
     .poll-heatmap-wrap {
       width: 100%;
@@ -4602,8 +4561,7 @@
     }
 
     .ui-callout-card,
-    .poll-flow-card,
-    .poll-notes-card {
+    .ui-poll-notes-card {
       padding: 10px;
       border-radius: 8px;
     }
