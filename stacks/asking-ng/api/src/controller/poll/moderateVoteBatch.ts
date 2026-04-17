@@ -1,8 +1,11 @@
 import type { ModerateVoteBatchBody } from '@asking-ng/contracts/poll';
-import type { AppRequestHandler } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
 import { buildPlanLimitDetails } from '../../lib/planLimit';
-import { BILLING_LICENSE_EXPIRED_CODE, BILLING_LICENSE_EXPIRED_MESSAGE } from '../../lib/selfhostProLicense';
+import {
+  BILLING_LICENSE_EXPIRED_CODE,
+  BILLING_LICENSE_EXPIRED_MESSAGE,
+} from '../../lib/selfhostProLicense';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 import { presentModerateVoteBatch } from './moderateVoteBatch.presenter';
 import { moderateVoteBatchService } from './moderateVoteBatch.service';

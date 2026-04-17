@@ -1,9 +1,9 @@
-import type { AppRequest, AppResponse } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
 import { getRequestContext } from '../../lib/requestContext';
 import { invalidateSessionUserCache } from '../../lib/sessionUserCache';
 import type { ProfileUpdateBody } from '../../schemas/profile';
 import type { SelfPasswordChangeBody } from '../../schemas/userSelf';
+import type { AppRequest, AppResponse } from '../../types/http';
 import { presentPasswordUpdated, presentProfile } from './self.presenter';
 import { getProfileService, updateProfileService, updateSelfPasswordService } from './self.service';
 

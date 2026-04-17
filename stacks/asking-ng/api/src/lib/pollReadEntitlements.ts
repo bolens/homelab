@@ -30,21 +30,35 @@ export async function checkPollReadEntitlements(args: {
 }): Promise<PollReadEntitlementBlock | null> {
   if (!appEnv.billingEnforceLimits) return null;
   const ownerUserId =
-    args.ownerUserId != null && Number.isFinite(Number(args.ownerUserId)) && Number(args.ownerUserId) > 0
+    args.ownerUserId != null &&
+    Number.isFinite(Number(args.ownerUserId)) &&
+    Number(args.ownerUserId) > 0
       ? Number(args.ownerUserId)
       : null;
   const { billingPlan, role } =
     ownerUserId != null
-      ? await findBillingPlanAndRoleForVoteQuota({ pollId: args.pollId, creatorUserId: ownerUserId })
+      ? await findBillingPlanAndRoleForVoteQuota({
+          pollId: args.pollId,
+          creatorUserId: ownerUserId,
+        })
       : { billingPlan: 'free', role: null };
-  const licenseExpired = role !== 'superadmin' ? selfhostProLicenseExpiredDetailsForPlan(billingPlan) : null;
+  const licenseExpired =
+    role !== 'superadmin' ? selfhostProLicenseExpiredDetailsForPlan(billingPlan) : null;
   if (licenseExpired) {
     return { kind: 'billing_license_expired', details: licenseExpired };
   }
-  if (args.feature === 'forensic_replay' && role !== 'superadmin' && !hasForensicReplayForBillingPlan(billingPlan)) {
+  if (
+    args.feature === 'forensic_replay' &&
+    role !== 'superadmin' &&
+    !hasForensicReplayForBillingPlan(billingPlan)
+  ) {
     return { kind: 'plan_limit_forensic', plan: billingPlan, requiredPlan: 'cloud-team' };
   }
-  if (args.feature === 'vote_heatmap' && role !== 'superadmin' && !hasVoteHeatmapForBillingPlan(billingPlan)) {
+  if (
+    args.feature === 'vote_heatmap' &&
+    role !== 'superadmin' &&
+    !hasVoteHeatmapForBillingPlan(billingPlan)
+  ) {
     return { kind: 'plan_limit_heatmap', plan: billingPlan, requiredPlan: 'cloud-team' };
   }
   return null;

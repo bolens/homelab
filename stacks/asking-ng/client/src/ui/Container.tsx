@@ -13,12 +13,7 @@ const SIZE_CLASS: Record<NonNullable<ContainerProps['size']>, string> = {
   full: 'ui-container--full',
 };
 
-export default function Container({
-  size = 'lg',
-  className,
-  children,
-  ...props
-}: ContainerProps) {
+export default function Container({ size = 'lg', className, children, ...props }: ContainerProps) {
   return (
     <div className={cx('ui-container', SIZE_CLASS[size], className)} {...props}>
       {children}

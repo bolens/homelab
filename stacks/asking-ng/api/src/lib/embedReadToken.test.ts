@@ -1,5 +1,5 @@
-import type { AppRequest } from '../types/http';
 import { describe, expect, it } from 'vitest';
+import type { AppRequest } from '../types/http';
 import {
   generateEmbedReadToken,
   hashEmbedReadToken,

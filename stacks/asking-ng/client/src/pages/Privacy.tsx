@@ -2,7 +2,11 @@ import { Link } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useT } from '../i18n/I18nContext';
-import { configuredAnalyticsProviders, legalLastUpdated, securityContactEmail } from '../lib/legalSite';
+import {
+  configuredAnalyticsProviders,
+  legalLastUpdated,
+  securityContactEmail,
+} from '../lib/legalSite';
 import { Card, cx } from '../ui';
 
 function trimEnv(key: keyof ImportMetaEnv): string {
@@ -77,9 +81,15 @@ export default function Privacy() {
             <p>{t('policy.section.subprocessors.none')}</p>
           ) : (
             <ul className='asking-terms-page__list'>
-              {providers.includes('umami') ? <li>{t('policy.section.subprocessors.umami')}</li> : null}
-              {providers.includes('plausible') ? <li>{t('policy.section.subprocessors.plausible')}</li> : null}
-              {providers.includes('matomo') ? <li>{t('policy.section.subprocessors.matomo')}</li> : null}
+              {providers.includes('umami') ? (
+                <li>{t('policy.section.subprocessors.umami')}</li>
+              ) : null}
+              {providers.includes('plausible') ? (
+                <li>{t('policy.section.subprocessors.plausible')}</li>
+              ) : null}
+              {providers.includes('matomo') ? (
+                <li>{t('policy.section.subprocessors.matomo')}</li>
+              ) : null}
             </ul>
           )}
         </Card>
@@ -146,7 +156,12 @@ export default function Privacy() {
               ) : null}
               {legalEmail && legalUrl ? ' · ' : null}
               {legalUrl ? (
-                <a className='asking-app__footer-link' href={legalUrl} rel='noopener noreferrer' target='_blank'>
+                <a
+                  className='asking-app__footer-link'
+                  href={legalUrl}
+                  rel='noopener noreferrer'
+                  target='_blank'
+                >
                   {t('terms.contact.urlCta')}
                 </a>
               ) : null}
@@ -165,7 +180,11 @@ export default function Privacy() {
         </Card>
       </div>
 
-      <nav className='asking-about-page__actions' id='asking-privacy-page__actions' aria-label={t('policy.nav.actions')}>
+      <nav
+        className='asking-about-page__actions'
+        id='asking-privacy-page__actions'
+        aria-label={t('policy.nav.actions')}
+      >
         <Link to='/' className={cx('ui-button', 'ui-button--md', 'ui-button--primary')}>
           {t('policy.cta.home')}
         </Link>

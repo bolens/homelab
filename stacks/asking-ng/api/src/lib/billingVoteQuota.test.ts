@@ -6,11 +6,13 @@ const { mockCountVotes, mockFields } = vi.hoisted(() => ({
 }));
 
 vi.mock('../controller/self/self.repository', () => ({
-  findBillingPlanAndRoleForVoteQuota: (args: { creatorUserId: number }) => mockFields(args.creatorUserId),
+  findBillingPlanAndRoleForVoteQuota: (args: { creatorUserId: number }) =>
+    mockFields(args.creatorUserId),
 }));
 
 vi.mock('../controller/poll/voteOnPoll.repository', () => ({
-  countBillableVotesForCreatorUtcMonth: (args: { creatorUserId: number }) => mockCountVotes(args.creatorUserId),
+  countBillableVotesForCreatorUtcMonth: (args: { creatorUserId: number }) =>
+    mockCountVotes(args.creatorUserId),
 }));
 
 vi.mock('./env', () => ({

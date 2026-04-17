@@ -1,6 +1,11 @@
-import { ollamaResponseToOpenAI, toOllamaChatPayload } from '../../lib/llmOpenAiFormat';
 import { appEnv } from '../../lib/env';
-import { lmStudioBaseUrl, ollamaApiKey, ollamaBaseUrl, resolveLlmProvider } from '../../lib/llmProviders';
+import { ollamaResponseToOpenAI, toOllamaChatPayload } from '../../lib/llmOpenAiFormat';
+import {
+  lmStudioBaseUrl,
+  ollamaApiKey,
+  ollamaBaseUrl,
+  resolveLlmProvider,
+} from '../../lib/llmProviders';
 import type { ChatCompletionBody } from '../../schemas/llm';
 import {
   fetchLmStudioModels,
@@ -26,13 +31,13 @@ export function buildLlmStatus() {
   const base = {
     provider: provider ?? 'none',
     gatewayAuth: Boolean(appEnv.llmGatewayToken),
-    ollamaAuth: provider === 'ollama' ? Boolean(ollamaApiKey()) : undefined,
+    ...(provider === 'ollama' ? { ollamaAuth: Boolean(ollamaApiKey()) } : {}),
   };
   if (!exposeLlmPublicDetails()) return base;
   return {
     ...base,
-    ollamaBaseUrl: provider === 'ollama' ? ollamaBaseUrl() : undefined,
-    lmStudioBaseUrl: provider === 'lmstudio' ? lmStudioBaseUrl() : undefined,
+    ...(provider === 'ollama' ? { ollamaBaseUrl: ollamaBaseUrl() } : {}),
+    ...(provider === 'lmstudio' ? { lmStudioBaseUrl: lmStudioBaseUrl() } : {}),
   };
 }
 
@@ -86,7 +91,13 @@ export async function createChatCompletionsService(
   const provider = resolveLlmProvider();
   if (!provider) return { kind: 'not_configured' };
 
-  const payload = { ...body, stream: false as const };
+  const payload = {
+    model: body.model,
+    messages: body.messages,
+    stream: false as const,
+    ...(typeof body.temperature === 'number' ? { temperature: body.temperature } : {}),
+    ...(typeof body.max_tokens === 'number' ? { max_tokens: body.max_tokens } : {}),
+  };
 
   try {
     if (provider === 'ollama') {

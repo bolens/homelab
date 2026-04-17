@@ -31,7 +31,9 @@ describe('billingExportQuota checkDailyDataExportQuotaForWorkspace', () => {
     mockFind.mockResolvedValue({ billingPlan: 'free', role: 'user' });
     mockQuery.mockResolvedValue([{ c: 2 }]);
     const { checkDailyDataExportQuotaForWorkspace } = await import('./billingExportQuota');
-    await expect(checkDailyDataExportQuotaForWorkspace({ workspaceUserId: 1 })).resolves.toEqual({ ok: true });
+    await expect(checkDailyDataExportQuotaForWorkspace({ workspaceUserId: 1 })).resolves.toEqual({
+      ok: true,
+    });
   });
 
   it('denies when at daily cap', async () => {
@@ -49,7 +51,9 @@ describe('billingExportQuota checkDailyDataExportQuotaForWorkspace', () => {
   it('skips for superadmin', async () => {
     mockFind.mockResolvedValue({ billingPlan: 'free', role: 'superadmin' });
     const { checkDailyDataExportQuotaForWorkspace } = await import('./billingExportQuota');
-    await expect(checkDailyDataExportQuotaForWorkspace({ workspaceUserId: 1 })).resolves.toEqual({ ok: true });
+    await expect(checkDailyDataExportQuotaForWorkspace({ workspaceUserId: 1 })).resolves.toEqual({
+      ok: true,
+    });
     expect(mockQuery).not.toHaveBeenCalled();
   });
 });

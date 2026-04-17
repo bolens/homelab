@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useSearch } from '@tanstack/react-router';
 import Cookies from 'js-cookie';
-import ReconnectingWebSocket from 'reconnecting-websocket';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import ReconnectingWebSocket from 'reconnecting-websocket';
 import { apiUrl, pollWsUrl } from '../apiBase';
 import CopyFeedbackButton from '../components/CopyFeedbackButton';
 import { IconShare } from '../components/icons/UiIcons';
@@ -15,19 +15,23 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch, isApiFetchError } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import type { MessageKey } from '../i18n/locales';
-import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
-import { billingUpgradeHintFromError, type ProfileBillingApiPayload } from '../lib/profileBillingApi';
 import {
   aggregateVelocityUtcBuckets,
   type VoteVelocityMinuteRow,
 } from '../lib/aggregateVelocityUtcBuckets';
-import { formatUtcHourAtTopOfHour } from '../lib/formatUtcHourAtTopOfHour';
-import { formatUtcWeekdayShort } from '../lib/formatUtcWeekdayShort';
+import { type ConsentRegionHint, fetchConsentRegion } from '../lib/cookieConsent';
+import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
 import {
   formatPollExpiryAbsolute,
   formatPollExpiryRelative,
 } from '../lib/formatPollExpirationIntl';
+import { formatUtcHourAtTopOfHour } from '../lib/formatUtcHourAtTopOfHour';
+import { formatUtcWeekdayShort } from '../lib/formatUtcWeekdayShort';
 import { openPollSyncChannel, postPollSync } from '../lib/pollBroadcast';
+import {
+  billingUpgradeHintFromError,
+  type ProfileBillingApiPayload,
+} from '../lib/profileBillingApi';
 import {
   invalidatePollQueries,
   pollHeatmapQueryKey,
@@ -35,11 +39,10 @@ import {
   pollReplayQueryKey,
   profileBillingQueryKey,
 } from '../lib/queryKeys';
-import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
 import { streamingObsDocHref } from '../lib/streamingObsDocHref';
-import { withUtm } from '../lib/withUtm';
+import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
 import { isWebShareLikelyAvailable, shareUrlNative } from '../lib/webShare';
-import { fetchConsentRegion, type ConsentRegionHint } from '../lib/cookieConsent';
+import { withUtm } from '../lib/withUtm';
 import { ActionRow, Alert, Button, cx, FormSection, Select, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
@@ -185,7 +188,9 @@ type PollViewModel = {
     votesAccountLinkedLast24h: number;
     votesAnonymousLast24h: number;
     trustIpBurst: { enabled: false } | { enabled: true; windowSec: number; voteThreshold: number };
-    trustChatBurst: { enabled: false } | { enabled: true; windowSec: number; voteThreshold: number };
+    trustChatBurst:
+      | { enabled: false }
+      | { enabled: true; windowSec: number; voteThreshold: number };
   };
 };
 
@@ -218,7 +223,7 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
             windowSec: Math.max(1, Number(ip.window_sec) || 10),
             voteThreshold: Math.max(1, Number(ip.vote_threshold) || 1),
           }
-        : ({ enabled: false as const });
+        : { enabled: false as const };
     const trustChatBurst =
       chat && typeof chat === 'object' && chat.enabled === true
         ? {
@@ -226,7 +231,7 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
             windowSec: Math.max(1, Number(chat.window_sec) || 10),
             voteThreshold: Math.max(1, Number(chat.vote_threshold) || 1),
           }
-        : ({ enabled: false as const });
+        : { enabled: false as const };
     moderationCounters = {
       quarantinedVotesPending: pending,
       quarantinedVotesPendingAccountLinked:
@@ -301,7 +306,9 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
         ? {
             optionHourlyVotesUtc: data.metrics.option_hourly_votes_utc.map((row) => {
               const r = row as { option?: unknown; hourly_votes_by_hour_utc?: unknown };
-              const bins = Array.isArray(r.hourly_votes_by_hour_utc) ? r.hourly_votes_by_hour_utc : [];
+              const bins = Array.isArray(r.hourly_votes_by_hour_utc)
+                ? r.hourly_votes_by_hour_utc
+                : [];
               return {
                 option: typeof r.option === 'string' ? r.option : '',
                 hourlyVotesByHourUtc: Array.from(
@@ -339,8 +346,8 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
           Array.isArray(
             (row as { vote_velocity_by_minute_utc?: unknown }).vote_velocity_by_minute_utc,
           ) &&
-          ((row as { vote_velocity_by_minute_utc: unknown[] }).vote_velocity_by_minute_utc?.length ??
-            0) > 0,
+          ((row as { vote_velocity_by_minute_utc: unknown[] }).vote_velocity_by_minute_utc
+            ?.length ?? 0) > 0,
       )
         ? {
             optionVoteVelocityByMinuteUtc: data.metrics.option_vote_velocity_by_minute_utc.map(
@@ -393,7 +400,8 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
         ? data.vote_eligibility
         : 'anonymous',
     platformIdentityProvider:
-      typeof data.platform_identity_provider === 'string' && data.platform_identity_provider.trim() !== ''
+      typeof data.platform_identity_provider === 'string' &&
+      data.platform_identity_provider.trim() !== ''
         ? data.platform_identity_provider
         : null,
     platformIdentityConsentVersion:
@@ -427,7 +435,7 @@ type PollQueryResult =
 type VoteLocation = {
   latitude: number;
   longitude: number;
-  accuracyM?: number;
+  accuracyM?: number | undefined;
 };
 
 type HeatmapPoint = {
@@ -458,7 +466,11 @@ async function fetchPollQuery(
   id: string,
   loadErrFallback: string,
   embedToken: string,
-  campaignParams: { utmSource?: string; utmMedium?: string; utmCampaign?: string },
+  campaignParams: {
+    utmSource?: string | undefined;
+    utmMedium?: string | undefined;
+    utmCampaign?: string | undefined;
+  },
 ): Promise<PollQueryResult> {
   try {
     const jwt = getStoredUserJwt()?.trim();
@@ -468,7 +480,7 @@ async function fetchPollQuery(
     if (campaignParams.utmCampaign) qs.set('utm_campaign', campaignParams.utmCampaign);
     const path = qs.size > 0 ? `poll/${id}?${qs.toString()}` : `poll/${id}`;
     const json = (await apiFetch(path, {
-      embedToken: embedToken || undefined,
+      ...(embedToken ? { embedToken } : {}),
       ...(jwt ? { bearerToken: jwt } : {}),
     })) as { data: PollApiData };
     return { kind: 'ok', poll: mapPollPayload(json) };
@@ -629,7 +641,11 @@ export default function Poll() {
         {
           id: 'overlay',
           label: t('myPolls.sharePresetOverlayLabel'),
-          url: withUtm(pollShareUrl, { source: 'stream', medium: 'overlay', campaign: 'live_poll' }),
+          url: withUtm(pollShareUrl, {
+            source: 'stream',
+            medium: 'overlay',
+            campaign: 'live_poll',
+          }),
           cta: t('myPolls.sharePresetOverlayCta'),
         },
         {
@@ -854,7 +870,8 @@ export default function Poll() {
     if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
     return `${Math.round(ms / 60_000)}m`;
   };
-  const formatDowUtc = (dow: number | null | undefined) => formatUtcWeekdayShort(localeTag, dow, '—');
+  const formatDowUtc = (dow: number | null | undefined) =>
+    formatUtcWeekdayShort(localeTag, dow, '—');
   const formatHourUtc = (hour: number | null | undefined) =>
     formatUtcHourAtTopOfHour(localeTag, hour, '—');
   const formatHourBucketUtc = (h: number) => formatUtcHourAtTopOfHour(localeTag, h, String(h));
@@ -871,7 +888,8 @@ export default function Poll() {
   const hasOptionVelocity =
     pollMetrics?.optionVoteVelocityByMinuteUtc?.some((r) => r.voteVelocityByMinuteUtc.length > 0) ??
     false;
-  const showOwnerVelocitySection = poll?.youOwnThisPoll && (hasAggregateVelocity || hasOptionVelocity);
+  const showOwnerVelocitySection =
+    poll?.youOwnThisPoll && (hasAggregateVelocity || hasOptionVelocity);
 
   const optionVelocityDisplayRows = useMemo(() => {
     const rows = pollMetrics?.optionVoteVelocityByMinuteUtc;
@@ -912,7 +930,14 @@ export default function Poll() {
       date: when.toLocaleString(localeTag),
       relative,
     });
-  }, [poll?.youOwnThisPoll, pollRetentionTtlDays, pollRetentionLegalHold, pollAutoDeleteAtMs, t, localeTag]);
+  }, [
+    poll?.youOwnThisPoll,
+    pollRetentionTtlDays,
+    pollRetentionLegalHold,
+    pollAutoDeleteAtMs,
+    t,
+    localeTag,
+  ]);
 
   useEffect(() => {
     if (poll) {
@@ -968,7 +993,7 @@ export default function Poll() {
     queryKey: pollHeatmapQueryKey(id, embedToken, trackingKey),
     queryFn: () =>
       apiFetch(`poll/${id}/heatmap?minCount=2`, {
-        embedToken: embedToken || undefined,
+        ...(embedToken ? { embedToken } : {}),
       }) as Promise<{ data: HeatmapApiData }>,
     enabled: showResults,
     staleTime: 20_000,
@@ -979,15 +1004,21 @@ export default function Poll() {
     queryKey: pollReplayQueryKey(id, embedToken, trackingKey),
     queryFn: () =>
       apiFetch(`poll/${id}/replay?limit=10000`, {
-        embedToken: embedToken || undefined,
+        ...(embedToken ? { embedToken } : {}),
       }) as Promise<{ data: ReplayApiData }>,
     enabled: completed && showResults,
     staleTime: 60_000,
   });
 
   const replayEvents = replayQuery.data?.data.events ?? [];
-  const replayErrorUpgradeHint = billingUpgradeHintFromError(replayQuery.error, billingUsageQuery.data);
-  const heatmapErrorUpgradeHint = billingUpgradeHintFromError(heatmapQuery.error, billingUsageQuery.data);
+  const replayErrorUpgradeHint = billingUpgradeHintFromError(
+    replayQuery.error,
+    billingUsageQuery.data,
+  );
+  const heatmapErrorUpgradeHint = billingUpgradeHintFromError(
+    heatmapQuery.error,
+    billingUsageQuery.data,
+  );
   const replayDurationMs = replayEvents.length
     ? replayEvents[replayEvents.length - 1]?.offset_ms || 0
     : 0;
@@ -1036,7 +1067,9 @@ export default function Poll() {
     for (const ev of replayEvents) {
       if (ev.offset_ms > replayPositionMs) break;
       if (ev.option_index < 0 || ev.option_index >= counts.length) continue;
-      counts[ev.option_index] += 1;
+      const currentCount = counts[ev.option_index];
+      if (typeof currentCount !== 'number') continue;
+      counts[ev.option_index] = currentCount + 1;
     }
     return counts;
   }, [pollOptions, replayEnabled, replayEvents, replayPositionMs]);
@@ -1114,7 +1147,7 @@ export default function Poll() {
     optionBtnRefs.current[rovingIndex]?.focus();
   }, [rovingIndex, useVoteRadios]);
 
-  useDocumentTitle(pollNotFound ? t('poll.docTitleNotFound') : title.trim() || undefined);
+  useDocumentTitle(pollNotFound ? t('poll.docTitleNotFound') : title.trim() || null);
 
   const voteMutation = useMutation({
     mutationFn: (
@@ -1127,9 +1160,12 @@ export default function Poll() {
         method: 'PUT',
         body:
           'option_indices' in args
-            ? { option_indices: args.option_indices, ...(args.location ? { location: args.location } : {}) }
+            ? {
+                option_indices: args.option_indices,
+                ...(args.location ? { location: args.location } : {}),
+              }
             : { option: args.optionTitle, ...(args.location ? { location: args.location } : {}) },
-        embedToken: embedToken || undefined,
+        ...(embedToken ? { embedToken } : {}),
         ...(sessionJwt ? { bearerToken: sessionJwt } : {}),
       });
     },
@@ -1210,7 +1246,7 @@ export default function Poll() {
           resolve({
             latitude,
             longitude,
-            accuracyM: Number.isFinite(accuracy) ? Math.round(accuracy) : undefined,
+            ...(Number.isFinite(accuracy) ? { accuracyM: Math.round(accuracy) } : {}),
           });
         },
         () => {
@@ -1245,7 +1281,9 @@ export default function Poll() {
     Cookies.set(id, `${index}`, COOKIE_OPTS);
 
     const newOptions = [...options];
-    newOptions[index] = { ...newOptions[index], votes: newOptions[index].votes + 1 };
+    const targetOption = newOptions[index];
+    if (!targetOption) return;
+    newOptions[index] = { ...targetOption, votes: targetOption.votes + 1 };
     let total = 0;
     let max = 0;
     newOptions.forEach((option) => {
@@ -1322,7 +1360,7 @@ export default function Poll() {
     const url = shareUrlForPoll(id);
     const r = await shareUrlNative({
       url,
-      title: title.trim() || undefined,
+      ...(title.trim() ? { title: title.trim() } : {}),
       text: title.trim() ? `${title.trim()} — ${url}` : url,
     });
     if (r.kind === 'shared') {
@@ -1447,7 +1485,9 @@ export default function Poll() {
           onKeyDown={(e) => handleOptionKeyDown(index, e)}
           onClick={() => handleOptionClick(index)}
         >
-          <span className={`asking-poll-page__option-title${isLeading ? ' asking-poll-page__option-title--leading' : ''}`}>
+          <span
+            className={`asking-poll-page__option-title${isLeading ? ' asking-poll-page__option-title--leading' : ''}`}
+          >
             {option.title}
             {isLeading ? (
               <span className='asking-poll-page__leading-badge' aria-hidden='true'>
@@ -1478,7 +1518,11 @@ export default function Poll() {
   if (isLoading && !pollNotFound && !fetchError) {
     return (
       <div className='ui-page-shell asking-public-layout asking-poll-page' id='asking-poll-page'>
-        <p className='asking-poll-page__status asking-poll-page__status--loading' role='status' aria-live='polite'>
+        <p
+          className='asking-poll-page__status asking-poll-page__status--loading'
+          role='status'
+          aria-live='polite'
+        >
           {t('poll.loading')}
         </p>
       </div>
@@ -1554,7 +1598,9 @@ export default function Poll() {
         </ActionRow>
       </header>
       {archived ? <p className='asking-poll-page__archived-note'>{t('poll.archived')}</p> : null}
-      {simulatedPoll ? <p className='asking-poll-page__sim-warning'>{t('poll.simulationNotice')}</p> : null}
+      {simulatedPoll ? (
+        <p className='asking-poll-page__sim-warning'>{t('poll.simulationNotice')}</p>
+      ) : null}
       {votingPaused && !archived ? (
         <p className='asking-poll-page__archived-note' role='status'>
           {pauseMessage?.trim() ? pauseMessage : t('poll.votingPausedDefault')}
@@ -1570,7 +1616,10 @@ export default function Poll() {
         <p className='asking-poll-page__archived-note'>{t('poll.phaseRevealedHint')}</p>
       ) : null}
       {showNotes ? (
-        <section className='ui-poll-notes-card' aria-labelledby='asking-poll-page__show-notes-heading'>
+        <section
+          className='ui-poll-notes-card'
+          aria-labelledby='asking-poll-page__show-notes-heading'
+        >
           <h3 id='asking-poll-page__show-notes-heading' className='ui-poll-notes-card-title'>
             {t('poll.showNotesTitle')}
           </h3>
@@ -1740,7 +1789,11 @@ export default function Poll() {
               />
             </FormSection>
             {ownerShareHint ? (
-              <p className='asking-poll-page__status asking-poll-page__status--success' role='status' aria-live='polite'>
+              <p
+                className='asking-poll-page__status asking-poll-page__status--success'
+                role='status'
+                aria-live='polite'
+              >
                 {ownerShareHint}
               </p>
             ) : null}
@@ -1751,7 +1804,10 @@ export default function Poll() {
             </p>
             {poll && poll.moderationCounters ? (
               <>
-                <p className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint' role='note'>
+                <p
+                  className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint'
+                  role='note'
+                >
                   {poll.moderationCounters.trustIpBurst.enabled
                     ? t('poll.trustIpBurstOn', {
                         window: formatLocaleInteger(
@@ -1774,7 +1830,10 @@ export default function Poll() {
                         ),
                       })}
                 </p>
-                <p className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint' role='note'>
+                <p
+                  className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint'
+                  role='note'
+                >
                   {poll.moderationCounters.trustChatBurst.enabled
                     ? t('poll.trustChatBurstOn', {
                         window: formatLocaleInteger(
@@ -1797,7 +1856,10 @@ export default function Poll() {
                         ),
                       })}
                 </p>
-                <p className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint' role='note'>
+                <p
+                  className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint'
+                  role='note'
+                >
                   {t('poll.trustAccountLinkedMix', {
                     signedIn24h: formatLocaleInteger(
                       poll.moderationCounters.votesAccountLinkedLast24h,
@@ -1823,7 +1885,9 @@ export default function Poll() {
           {pollStateLabel}
         </span>
         {simulatedPoll ? (
-          <span className='asking-poll-page__chip asking-poll-page__chip--sim'>{t('poll.simulationBadge')}</span>
+          <span className='asking-poll-page__chip asking-poll-page__chip--sim'>
+            {t('poll.simulationBadge')}
+          </span>
         ) : null}
         <div className='asking-poll-page__expiry-slot'>{renderExpiration()}</div>
       </div>
@@ -1851,7 +1915,9 @@ export default function Poll() {
         </p>
       ) : null}
       {!completed ? (
-        <p className='asking-poll-page__refresh-meta asking-poll-page__replay-hint'>{t('poll.replayActiveHint')}</p>
+        <p className='asking-poll-page__refresh-meta asking-poll-page__replay-hint'>
+          {t('poll.replayActiveHint')}
+        </p>
       ) : null}
       <div className='asking-poll-page__footer-meta'>
         <p className='asking-poll-page__status asking-poll-page__refresh-meta'>
@@ -2002,12 +2068,20 @@ export default function Poll() {
                 </div>
                 {hasAggregateVelocity ? (
                   <>
-                    <h4 className='asking-poll-page__metrics-subhead' id='asking-poll-page__metrics-velocity-by-minute-heading'>
+                    <h4
+                      className='asking-poll-page__metrics-subhead'
+                      id='asking-poll-page__metrics-velocity-by-minute-heading'
+                    >
                       {t('poll.metrics.velocityByMinuteTitle')}
                     </h4>
-                    <p className='asking-poll-page__refresh-meta ui-copy-muted'>{t('poll.metrics.velocityByMinuteHint')}</p>
+                    <p className='asking-poll-page__refresh-meta ui-copy-muted'>
+                      {t('poll.metrics.velocityByMinuteHint')}
+                    </p>
                     {pollMetrics?.voteVelocityByMinuteTruncated ? (
-                      <p className='asking-poll-page__refresh-meta asking-poll-page__metrics-velocity-truncated' role='status'>
+                      <p
+                        className='asking-poll-page__refresh-meta asking-poll-page__metrics-velocity-truncated'
+                        role='status'
+                      >
                         {t('poll.metrics.velocityByMinuteTruncated')}
                       </p>
                     ) : null}
@@ -2042,7 +2116,10 @@ export default function Poll() {
                 ) : null}
                 {hasOptionVelocity ? (
                   <>
-                    <h4 className='asking-poll-page__metrics-subhead' id='asking-poll-page__metrics-option-velocity-by-minute-heading'>
+                    <h4
+                      className='asking-poll-page__metrics-subhead'
+                      id='asking-poll-page__metrics-option-velocity-by-minute-heading'
+                    >
                       {t('poll.metrics.optionVelocityByMinuteTitle')}
                     </h4>
                     <p className='asking-poll-page__refresh-meta ui-copy-muted'>
@@ -2054,7 +2131,9 @@ export default function Poll() {
                           key={row.option}
                           className='asking-poll-page__refresh-meta asking-poll-page__metrics-option-hourly-row'
                         >
-                          <span className='asking-poll-page__metrics-option-hourly-label'>{row.option}</span>{' '}
+                          <span className='asking-poll-page__metrics-option-hourly-label'>
+                            {row.option}
+                          </span>{' '}
                           <span aria-hidden='true'>
                             <SparklineBars
                               values={row.displayRows.map((v) => v.voteCount)}
@@ -2070,7 +2149,9 @@ export default function Poll() {
                     )}
                     <p className='asking-poll-page__refresh-meta'>
                       <SparklineLegend
-                        values={optionVelocityDisplayRows[0]?.displayRows.map((v) => v.voteCount) ?? []}
+                        values={
+                          optionVelocityDisplayRows[0]?.displayRows.map((v) => v.voteCount) ?? []
+                        }
                         bucketLabel={(i) =>
                           formatVelocityMinuteUtc(
                             optionVelocityDisplayRows[0]?.displayRows[i]?.minuteUtcIso ?? '',
@@ -2091,13 +2172,23 @@ export default function Poll() {
             pollMetrics?.optionHourlyVotesUtc &&
             pollMetrics.optionHourlyVotesUtc.length > 0 ? (
               <>
-                <h4 className='asking-poll-page__metrics-subhead' id='asking-poll-page__metrics-option-hourly-heading'>
+                <h4
+                  className='asking-poll-page__metrics-subhead'
+                  id='asking-poll-page__metrics-option-hourly-heading'
+                >
                   {t('poll.metrics.optionHourlyTitle')}
                 </h4>
-                <p className='asking-poll-page__refresh-meta ui-copy-muted'>{t('poll.metrics.optionHourlyHint')}</p>
+                <p className='asking-poll-page__refresh-meta ui-copy-muted'>
+                  {t('poll.metrics.optionHourlyHint')}
+                </p>
                 {pollMetrics.optionHourlyVotesUtc.map((row) => (
-                  <p key={row.option} className='asking-poll-page__refresh-meta asking-poll-page__metrics-option-hourly-row'>
-                    <span className='asking-poll-page__metrics-option-hourly-label'>{row.option}</span>{' '}
+                  <p
+                    key={row.option}
+                    className='asking-poll-page__refresh-meta asking-poll-page__metrics-option-hourly-row'
+                  >
+                    <span className='asking-poll-page__metrics-option-hourly-label'>
+                      {row.option}
+                    </span>{' '}
                     <span aria-hidden='true'>
                       <SparklineBars
                         values={row.hourlyVotesByHourUtc}
@@ -2133,7 +2224,12 @@ export default function Poll() {
                   {replayErrorUpgradeHint.url ? (
                     <>
                       {' '}
-                      <a href={replayErrorUpgradeHint.url} target='_blank' rel='noreferrer' className='ui-link'>
+                      <a
+                        href={replayErrorUpgradeHint.url}
+                        target='_blank'
+                        rel='noreferrer'
+                        className='ui-link'
+                      >
                         {t(
                           replayErrorUpgradeHint.isLicenseRenewal
                             ? 'poll.renewLicenseCta'
@@ -2160,7 +2256,11 @@ export default function Poll() {
                     </Button>
                     {replayEnabled ? (
                       <>
-                        <Button type='button' variant='secondary' onClick={() => setReplayPlaying((v) => !v)}>
+                        <Button
+                          type='button'
+                          variant='secondary'
+                          onClick={() => setReplayPlaying((v) => !v)}
+                        >
                           {replayPlaying ? t('poll.replayPause') : t('poll.replayPlay')}
                         </Button>
                         <Button
@@ -2257,7 +2357,12 @@ export default function Poll() {
                   {heatmapErrorUpgradeHint.url ? (
                     <>
                       {' '}
-                      <a href={heatmapErrorUpgradeHint.url} target='_blank' rel='noreferrer' className='ui-link'>
+                      <a
+                        href={heatmapErrorUpgradeHint.url}
+                        target='_blank'
+                        rel='noreferrer'
+                        className='ui-link'
+                      >
                         {t(
                           heatmapErrorUpgradeHint.isLicenseRenewal
                             ? 'poll.renewLicenseCta'
@@ -2299,15 +2404,18 @@ export default function Poll() {
       {needsAccountToVote && pollReady ? (
         <>
           <p className='asking-poll-page__status' role='status'>
-            {t('poll.signInToVote')}{' '}
-            <Link to='/login'>{t('poll.signInToVoteCta')}</Link>
+            {t('poll.signInToVote')} <Link to='/login'>{t('poll.signInToVoteCta')}</Link>
           </p>
           <p className='asking-poll-page__refresh-meta' role='note'>
             {t('poll.accountGatedPrivacy')}
           </p>
         </>
       ) : null}
-      <section className='asking-poll-page__vote-card' id='asking-poll-page__vote-card' aria-label={t('poll.voteCardAria')}>
+      <section
+        className='asking-poll-page__vote-card'
+        id='asking-poll-page__vote-card'
+        aria-label={t('poll.voteCardAria')}
+      >
         {!votingDisabled ? (
           <div className='asking-poll-page__geo-optin'>
             <label>
@@ -2327,7 +2435,11 @@ export default function Poll() {
               {geoOptInChecked && geoOptIn ? ` ${t('poll.geoEnabled')}` : ''}
             </p>
             {geoHint ? (
-              <p className='asking-poll-page__status asking-poll-page__status--error' role='status' aria-live='polite'>
+              <p
+                className='asking-poll-page__status asking-poll-page__status--error'
+                role='status'
+                aria-live='polite'
+              >
                 {geoHint}
               </p>
             ) : null}
@@ -2364,7 +2476,11 @@ export default function Poll() {
           </div>
         ) : null}
       </section>
-      <div className='asking-poll-page__mobile-actions' id='asking-poll-page__mobile-actions' aria-label={t('poll.mobileQuickActionsAria')}>
+      <div
+        className='asking-poll-page__mobile-actions'
+        id='asking-poll-page__mobile-actions'
+        aria-label={t('poll.mobileQuickActionsAria')}
+      >
         <CopyFeedbackButton onCopy={copyShareLink}>{t('poll.copyLink')}</CopyFeedbackButton>
         {showShareButton ? (
           <Button

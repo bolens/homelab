@@ -4,24 +4,24 @@ import {
   normalizePollPhase,
   type UpdatePollBody,
 } from '@asking-ng/contracts/poll';
-import type { AppRequestHandler } from '../../types/http';
 import { generateEmbedReadToken, hashEmbedReadToken } from '../../lib/embedReadToken';
+import { appEnv } from '../../lib/env';
 import { jsonError } from '../../lib/jsonError';
+import { buildPlanLimitDetails } from '../../lib/planLimit';
 import { notifyPollLive } from '../../lib/pollLive';
+import { checkPollMutationEntitlements } from '../../lib/pollMutationEntitlements';
 import { recordPollPhaseTransition } from '../../lib/pollPhaseHistory';
 import {
   pollPhaseScheduleFromRow,
   validatePollPhaseScheduleWindow,
 } from '../../lib/pollPhaseSchedule';
-import { appEnv } from '../../lib/env';
-import { buildPlanLimitDetails } from '../../lib/planLimit';
-import { checkPollMutationEntitlements } from '../../lib/pollMutationEntitlements';
+import { queuePollWebhook } from '../../lib/pollWebhooks';
 import {
   BILLING_LICENSE_EXPIRED_CODE,
   BILLING_LICENSE_EXPIRED_MESSAGE,
 } from '../../lib/selfhostProLicense';
-import { queuePollWebhook } from '../../lib/pollWebhooks';
 import Poll from '../../model/Poll';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {
@@ -112,10 +112,18 @@ const updatePoll: AppRequestHandler = async (req, res) => {
     requiresAutomation:
       webhook_targets !== undefined && Array.isArray(webhook_targets) && webhook_targets.length > 0,
     requiresRetention:
-      (retention_ttl_days !== undefined && retention_ttl_days !== null) || retention_legal_hold === true,
+      (retention_ttl_days !== undefined && retention_ttl_days !== null) ||
+      retention_legal_hold === true,
   });
   if (premiumBlock?.kind === 'billing_license_expired') {
-    jsonError(res, req, 403, BILLING_LICENSE_EXPIRED_CODE, BILLING_LICENSE_EXPIRED_MESSAGE, premiumBlock.details);
+    jsonError(
+      res,
+      req,
+      403,
+      BILLING_LICENSE_EXPIRED_CODE,
+      BILLING_LICENSE_EXPIRED_MESSAGE,
+      premiumBlock.details,
+    );
     return;
   }
   if (premiumBlock?.kind === 'plan_limit_automation') {

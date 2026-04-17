@@ -1,4 +1,3 @@
-import type { AppRequest } from '../../types/http';
 import { takeCampaignAttributionIncrementForPoll } from '../../lib/billingCampaignAttributionQuota';
 import { pollEmbedViewAllowed, readEmbedReadTokenFromRequest } from '../../lib/embedReadToken';
 import { normalizeMediaAttachment, normalizeMediaModeration } from '../../lib/mediaPolicy';
@@ -10,6 +9,7 @@ import {
   trustStackSafeguardTags,
 } from '../../lib/trustStackSignals';
 import Poll from '../../model/Poll';
+import type { AppRequest } from '../../types/http';
 import { getPollVoteAnalytics } from './getPoll.repository';
 
 export type GetPollServiceResult =
@@ -27,7 +27,9 @@ function toFiniteMs(value: unknown): number | null {
   return null;
 }
 
-function readCampaignParams(req: AppRequest): { source: string; medium: string; campaign: string } | null {
+function readCampaignParams(
+  req: AppRequest,
+): { source: string; medium: string; campaign: string } | null {
   const query = (req.query ?? {}) as Record<string, unknown>;
   const source = typeof query.utm_source === 'string' ? query.utm_source.trim().slice(0, 64) : '';
   const medium = typeof query.utm_medium === 'string' ? query.utm_medium.trim().slice(0, 64) : '';
@@ -63,7 +65,10 @@ function buildOptionVoteVelocityByMinuteUtc(
     minute_utc: Date | string;
     vote_count: string | number;
   }>,
-): Array<{ option: string; vote_velocity_by_minute_utc: Array<{ minute_utc: string; vote_count: number }> }> {
+): Array<{
+  option: string;
+  vote_velocity_by_minute_utc: Array<{ minute_utc: string; vote_count: number }>;
+}> {
   const minuteIsoSet = new Set<string>();
   for (const row of optionVoteMinuteBins) {
     minuteIsoSet.add(minuteUtcIsoFromRow(row.minute_utc));
@@ -132,7 +137,7 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
     );
   } else {
     const current =
-      ((poll.get('impressionAttribution') as Record<string, number> | null | undefined) ?? {});
+      (poll.get('impressionAttribution') as Record<string, number> | null | undefined) ?? {};
     const key = `${campaign.source}|${campaign.medium}|${campaign.campaign}`;
     const allowAttribution = await takeCampaignAttributionIncrementForPoll({
       pollId,
@@ -172,8 +177,7 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
   const showNotesRaw = (poll.get('showNotes') as string | null) ?? null;
   const uid = ctx.userId;
   const role = ctx.role;
-  const roleCanViewPrivateNotes =
-    role === 'mod' || role === 'admin' || role === 'superadmin';
+  const roleCanViewPrivateNotes = role === 'mod' || role === 'admin' || role === 'superadmin';
   const showNotes =
     showNotesRaw != null &&
     showNotesRaw !== '' &&
@@ -210,7 +214,8 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
   const mediaModeration = normalizeMediaModeration(poll.get('mediaModeration'));
   const mediaBlurByDefault = poll.get('mediaBlurByDefault') !== false;
   const themePreset = String(poll.get('themePreset') ?? 'default');
-  const selectionMode = String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
+  const selectionMode =
+    String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
   const voteEligibilityRaw = String(poll.get('voteEligibility') ?? 'anonymous');
   const voteEligibility =
     voteEligibilityRaw === 'account' || voteEligibilityRaw === 'platform_linked'
@@ -227,7 +232,10 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
   const platformIdentityConsentCapturedAt =
     (poll.get('platformIdentityConsentCapturedAt') as number | null | undefined) ?? null;
   const autoDeleteAtMs =
-    !retentionLegalHold && retentionTtlDays != null && Number.isFinite(Number(expiration)) && Number(expiration) > 0
+    !retentionLegalHold &&
+    retentionTtlDays != null &&
+    Number.isFinite(Number(expiration)) &&
+    Number(expiration) > 0
       ? Number(expiration) + retentionTtlDays * 24 * 60 * 60 * 1000
       : null;
   const expired =
@@ -280,7 +288,9 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
   const secondVotes = sortedVoteCounts[1] ?? 0;
   const leaderMarginPct = totalVotes > 0 ? ((topVotes - secondVotes) / totalVotes) * 100 : null;
   const optionCoveragePct =
-    options.length > 0 ? (sortedVoteCounts.filter((n) => n > 0).length / options.length) * 100 : null;
+    options.length > 0
+      ? (sortedVoteCounts.filter((n) => n > 0).length / options.length) * 100
+      : null;
   const timeToFirstVoteMs =
     firstVoteAtMs != null && createdAtMs != null && firstVoteAtMs >= createdAtMs
       ? firstVoteAtMs - createdAtMs
@@ -329,7 +339,10 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
         for (const row of optionHourBins) {
           const label = String(row.option_label ?? '');
           if (!optionHourlyByLabel.has(label)) {
-            optionHourlyByLabel.set(label, Array.from({ length: 24 }, () => 0));
+            optionHourlyByLabel.set(
+              label,
+              Array.from({ length: 24 }, () => 0),
+            );
           }
           const bins = optionHourlyByLabel.get(label)!;
           const h = Number(row.hour_utc);
@@ -433,7 +446,8 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
               unique_ip_hashes_last_1m: Number(rateCountersRow?.unique_ip_hashes_last_1m ?? 0) || 0,
               unique_accounts_last_1m: Number(rateCountersRow?.unique_accounts_last_1m ?? 0) || 0,
               top_ip_votes_last_1m: Number(rateCountersRow?.top_ip_votes_last_1m ?? 0) || 0,
-              quarantined_votes_pending: Number(rateCountersRow?.quarantined_votes_pending ?? 0) || 0,
+              quarantined_votes_pending:
+                Number(rateCountersRow?.quarantined_votes_pending ?? 0) || 0,
               quarantined_votes_pending_account_linked:
                 Number(rateCountersRow?.quarantined_votes_pending_account_linked ?? 0) || 0,
               votes_account_linked_last_24h:

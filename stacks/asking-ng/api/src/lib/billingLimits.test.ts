@@ -45,7 +45,9 @@ describe('billingLimits', () => {
     expect(maxWsSubscribersPerPollForBillingPlan('cloud-team')).toBe(2000);
     expect(maxWsSubscribersPerPollForBillingPlan('cloud-pro')).toBe(15_000);
     expect(maxWsSubscribersPerPollForBillingPlan('selfhost-pro')).toBe(Number.MAX_SAFE_INTEGER);
-    expect(maxWsSubscribersPerPollForBillingPlan('enterprise-custom')).toBe(Number.MAX_SAFE_INTEGER);
+    expect(maxWsSubscribersPerPollForBillingPlan('enterprise-custom')).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
   });
 
   it('maxDataExportsPerDayForBillingPlan matches packaging table v1', () => {
@@ -65,6 +67,8 @@ describe('billingLimits', () => {
     expect(maxWsFanoutMessagesPerSecondForBillingPlan('free')).toBe(30);
     expect(maxWsFanoutMessagesPerSecondForBillingPlan('cloud-team')).toBe(200);
     expect(maxWsFanoutMessagesPerSecondForBillingPlan('cloud-pro')).toBe(1500);
-    expect(maxWsFanoutMessagesPerSecondForBillingPlan('selfhost-pro')).toBe(Number.MAX_SAFE_INTEGER);
+    expect(maxWsFanoutMessagesPerSecondForBillingPlan('selfhost-pro')).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
   });
 });

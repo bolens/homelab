@@ -1,4 +1,6 @@
 import type { Server } from 'node:http';
+import { stopAsyncJobs } from './lib/asyncJobs';
+import { appEnv } from './lib/env';
 import {
   allowedLlmUpstreamHosts,
   assertLlmUpstreamUrlAllowed,
@@ -6,15 +8,13 @@ import {
   ollamaBaseUrl,
   resolveLlmProvider,
 } from './lib/llmProviders';
-import { appEnv } from './lib/env';
 import { logger } from './lib/logger';
 import { runMigrations } from './lib/migrate';
-import { attachPollLiveWss } from './lib/pollLive';
-import { stopAsyncJobs } from './lib/asyncJobs';
-import { startPollRetentionWorker, stopPollRetentionWorker } from './lib/pollRetention';
 import { startPolarReconcileWorker, stopPolarReconcileWorker } from './lib/polarReconcileWorker';
-import { buildFastifyApp } from './server/app';
+import { attachPollLiveWss } from './lib/pollLive';
+import { startPollRetentionWorker, stopPollRetentionWorker } from './lib/pollRetention';
 import sequelize from './models';
+import { buildFastifyApp } from './server/app';
 import './models/auditlog.sequelize';
 import './models/appsettings.sequelize';
 import './models/user.sequelize';
@@ -63,10 +63,7 @@ function assertProductionJwtSecret(): void {
 }
 
 function assertProductionAdminToken(): void {
-  if (
-    appEnv.nodeEnv === 'production' &&
-    (!appEnv.adminToken || appEnv.adminToken === 'changeme')
-  ) {
+  if (appEnv.nodeEnv === 'production' && (!appEnv.adminToken || appEnv.adminToken === 'changeme')) {
     logger.error(
       { event: 'api.bootstrap.admin_token_invalid' },
       'ADMIN_TOKEN must be set to a strong non-default value when NODE_ENV is production',
@@ -104,7 +101,10 @@ function assertProductionLlmUpstreamAllowlist(): void {
   try {
     assertLlmUpstreamUrlAllowed(baseUrl);
   } catch (err: unknown) {
-    logger.error({ event: 'api.bootstrap.llm_allowlist_validation_failed', err }, 'LLM upstream host allowlist validation failed');
+    logger.error(
+      { event: 'api.bootstrap.llm_allowlist_validation_failed', err },
+      'LLM upstream host allowlist validation failed',
+    );
     process.exit(1);
   }
 }
@@ -133,7 +133,10 @@ async function bootstrap() {
   startPollRetentionWorker();
   startPolarReconcileWorker();
   await app.listen({ host: '0.0.0.0', port: listenPort });
-  logger.info({ event: 'api.bootstrap.listen_ready', port: listenPort }, 'fastify api server listening');
+  logger.info(
+    { event: 'api.bootstrap.listen_ready', port: listenPort },
+    'fastify api server listening',
+  );
 }
 
 void bootstrap();

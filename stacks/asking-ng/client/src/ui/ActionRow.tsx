@@ -5,7 +5,12 @@ type ActionRowProps = React.HTMLAttributes<HTMLDivElement> & {
   align?: 'start' | 'center' | 'end';
 };
 
-export default function ActionRow({ align = 'center', className, children, ...props }: ActionRowProps) {
+export default function ActionRow({
+  align = 'center',
+  className,
+  children,
+  ...props
+}: ActionRowProps) {
   return (
     <div
       className={cx(

@@ -1,34 +1,34 @@
 import type { VotePollBody } from '@asking-ng/contracts/poll';
 import { createHash } from 'crypto';
 import { UniqueConstraintError } from 'sequelize';
+import db from '../../connections';
+import randomId from '../../helpers/randomId';
 import { getVoteGeoEnabled } from '../../lib/appSettings';
 import { checkMonthlyVoteQuotaForCreator } from '../../lib/billingVoteQuota';
-import { appEnv } from '../../lib/env';
 import { pollEmbedReadAllowed, readEmbedReadTokenFromRequest } from '../../lib/embedReadToken';
+import { appEnv } from '../../lib/env';
 import { notifyPollLive } from '../../lib/pollLive';
 import { pollPhaseScheduleFromRow, resolveEffectivePollPhase } from '../../lib/pollPhaseSchedule';
+import { upsertPlatformIdentityMapping } from '../../lib/pollPlatformIdentity';
 import { pollWebhookHintPackForLocale } from '../../lib/pollWebhookHintPacks';
 import { queuePollWebhook } from '../../lib/pollWebhooks';
 import { publicPollPageUrl, publicPollResultsUrl } from '../../lib/sitePublicUrl';
 import { validateWriteInText } from '../../lib/writeInHygiene';
 import type { AppRequest } from '../../types/http';
-import randomId from '../../helpers/randomId';
-import db from '../../connections';
 import {
-  countVotesByPollAndPlatformIdentity,
   countLimitIpBallotsForPoll,
   countRecentVotesForChatChannel,
   countRecentVotesForChatChannelWindowSeconds,
   countRecentVotesForSourceIp,
   countRecentVotesForSourceIpWindowSeconds,
+  countVotesByPollAndPlatformIdentity,
+  countVotesByPollAndUser,
   createVoteRow,
   createVoteRowInTransaction,
   findPollByIdOrSlug,
   findVoteByIdempotencyKey,
   findVotesByIdempotencyKey,
-  countVotesByPollAndUser,
 } from './voteOnPoll.repository';
-import { upsertPlatformIdentityMapping } from '../../lib/pollPlatformIdentity';
 
 function quantizeCoordinate(raw: unknown, min: number, max: number): number | null {
   if (typeof raw !== 'number' || !Number.isFinite(raw) || raw < min || raw > max) return null;
@@ -107,7 +107,11 @@ export type VoteOnPollResult =
   | { kind: 'vote_requires_sign_in' }
   | { kind: 'platform_identity_not_configured' }
   | { kind: 'platform_identity_required' }
-  | { kind: 'platform_identity_provider_mismatch'; expectedProvider: string; receivedProvider: string }
+  | {
+      kind: 'platform_identity_provider_mismatch';
+      expectedProvider: string;
+      receivedProvider: string;
+    }
   | {
       kind: 'ok';
       vote: unknown;
@@ -233,7 +237,9 @@ export async function voteOnPollService(
     let platformIdentityProvider: string | null = null;
     let platformIdentitySubjectHash: string | null = null;
     if (voteEligibility === 'platform_linked') {
-      const expectedProvider = String(poll.get('platformIdentityProvider') ?? '').trim().toLowerCase();
+      const expectedProvider = String(poll.get('platformIdentityProvider') ?? '')
+        .trim()
+        .toLowerCase();
       if (expectedProvider === '') return { kind: 'platform_identity_not_configured' };
       const providerHeader = readSingleHeader(req.headers, 'x-platform-provider');
       const subjectHeader = readSingleHeader(req.headers, 'x-platform-subject');
@@ -257,7 +263,8 @@ export async function voteOnPollService(
     }
 
     const validOptions = (poll.get('options') as string[] | null) || [];
-    const selectionMode = String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
+    const selectionMode =
+      String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
     const boostedVotingEnabled = !!poll.get('boostedVotingEnabled');
     const maxBoostWeight = Number(poll.get('maxBoostWeight') ?? 3);
     const voteFrictionTier = String(poll.get('voteFrictionTier') ?? 'open');
@@ -277,7 +284,8 @@ export async function voteOnPollService(
       if (!isMultiBody) {
         return {
           kind: 'vote_shape_mismatch',
-          detail: 'This poll uses selection_mode=multi; send option_indices (array of 0-based indices).',
+          detail:
+            'This poll uses selection_mode=multi; send option_indices (array of 0-based indices).',
         };
       }
       if (boostWeightRaw !== undefined && boostWeight !== 1) {
@@ -388,7 +396,11 @@ export async function voteOnPollService(
           writeInProfanityFilter,
         });
         if (!writeInCheck.ok) {
-          return { kind: 'invalid_write_in', code: writeInCheck.code, message: writeInCheck.message };
+          return {
+            kind: 'invalid_write_in',
+            code: writeInCheck.code,
+            message: writeInCheck.message,
+          };
         }
       }
       singleOptionLabel = optionStr;
@@ -446,7 +458,10 @@ export async function voteOnPollService(
       });
       if (priorUser > 0) return { kind: 'duplicate_vote' };
     } else if (limitIp) {
-      const prior = await countLimitIpBallotsForPoll({ pollId: resolvedPollId, baseId: ipBallotBaseId });
+      const prior = await countLimitIpBallotsForPoll({
+        pollId: resolvedPollId,
+        baseId: ipBallotBaseId,
+      });
       if (prior > 0) return { kind: 'duplicate_vote' };
     }
 
@@ -511,7 +526,8 @@ export async function voteOnPollService(
       if (platformIdentityProvider && platformIdentitySubjectHash) {
         for (const v of votes as Array<{ get?: (k: string) => unknown }>) {
           const voteIdRaw = typeof v?.get === 'function' ? v.get('id') : null;
-          const voteId = typeof voteIdRaw === 'string' && voteIdRaw.trim() !== '' ? voteIdRaw : randomId(16);
+          const voteId =
+            typeof voteIdRaw === 'string' && voteIdRaw.trim() !== '' ? voteIdRaw : randomId(16);
           await upsertPlatformIdentityMapping({
             pollId: resolvedPollId,
             provider: platformIdentityProvider,
@@ -588,7 +604,8 @@ export async function voteOnPollService(
     notifyPollLive(resolvedPollId, { type: 'update' });
     if (platformIdentityProvider && platformIdentitySubjectHash) {
       const voteIdRaw = (vote as { get?: (k: string) => unknown })?.get?.('id');
-      const voteId = typeof voteIdRaw === 'string' && voteIdRaw.trim() !== '' ? voteIdRaw : randomId(16);
+      const voteId =
+        typeof voteIdRaw === 'string' && voteIdRaw.trim() !== '' ? voteIdRaw : randomId(16);
       await upsertPlatformIdentityMapping({
         pollId: resolvedPollId,
         provider: platformIdentityProvider,

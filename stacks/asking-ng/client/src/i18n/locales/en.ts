@@ -347,12 +347,15 @@ export const en = {
     'Soft throttle: this source already hit the per-minute vote cap (vote held for review).',
   'myPolls.quarantineReasonIpBurst':
     'Velocity burst: many votes from this source inside a short rolling window.',
-  'myPolls.quarantineReasonSoftPlusBurst': 'Soft throttle plus a short-window burst from this source.',
+  'myPolls.quarantineReasonSoftPlusBurst':
+    'Soft throttle plus a short-window burst from this source.',
   'myPolls.quarantineReasonChatBurst':
     'Chat burst: many votes tagged with the same chat channel id inside a short rolling window.',
-  'myPolls.quarantineReasonSoftChatBurst': 'Soft throttle plus a chat-channel burst from this source.',
+  'myPolls.quarantineReasonSoftChatBurst':
+    'Soft throttle plus a chat-channel burst from this source.',
   'myPolls.quarantineReasonIpChatBurst': 'IP burst plus a chat-channel burst from this source.',
-  'myPolls.quarantineReasonTripleSignal': 'Soft throttle, IP burst, and chat burst all fired for this vote.',
+  'myPolls.quarantineReasonTripleSignal':
+    'Soft throttle, IP burst, and chat burst all fired for this vote.',
   'myPolls.quarantineReasonOther': 'Reason code: {code}',
   'myPolls.moderationApprove': 'Approve',
   'myPolls.moderationReject': 'Reject',
@@ -418,11 +421,13 @@ export const en = {
   'cookie.banner.simpleChoice': 'Use simple on/off instead',
 
   'cookie.categories.groupAria': 'Cookie categories',
-  'cookie.categories.intro': 'Choose which optional categories you allow. Necessary cookies keep the site working.',
+  'cookie.categories.intro':
+    'Choose which optional categories you allow. Necessary cookies keep the site working.',
   'cookie.categories.necessary': 'Necessary',
   'cookie.categories.necessaryHint': 'Required for basic security and session features.',
   'cookie.categories.functional': 'Functional',
-  'cookie.categories.functionalHint': 'Remembers preferences such as language; no third-party trackers.',
+  'cookie.categories.functionalHint':
+    'Remembers preferences such as language; no third-party trackers.',
   'cookie.categories.analytics': 'Analytics',
   'cookie.categories.analyticsHint': 'Helps us understand usage (e.g. Umami) when enabled.',
   'cookie.categories.marketing': 'Marketing',
@@ -474,8 +479,7 @@ export const en = {
     'Identification of the copyrighted work and, if multiple works, a representative list.',
   'terms.section.dmca.step2':
     'Identification of the material to be removed or disabled, with information reasonably sufficient to locate it (for example the poll URL or id).',
-  'terms.section.dmca.step3':
-    'Your contact information (name, address, phone, email).',
+  'terms.section.dmca.step3': 'Your contact information (name, address, phone, email).',
   'terms.section.dmca.step4':
     'A statement of good faith belief that use is not authorized; a statement under penalty of perjury that the notice is accurate; and your physical or electronic signature.',
   'terms.section.dmca.footer':
@@ -521,19 +525,24 @@ export const en = {
     'You can vote on many polls without an account. If you sign in, we store account details you provide. Poll creators are responsible for the content they collect and any webhooks or integrations they configure.',
   'policy.section.collect.title': 'Information we process',
   'policy.section.collect.body': 'Depending on how you use the service, we may process:',
-  'policy.section.collect.bulletAccount': 'Account details you choose (such as homelab-user and password hash).',
-  'policy.section.collect.bulletPoll': 'Poll configuration and metadata you create as a signed-in user.',
-  'policy.section.collect.bulletVote': 'Votes you cast (which may include technical metadata the deployment is configured to retain, such as IP-derived signals for abuse prevention).',
+  'policy.section.collect.bulletAccount':
+    'Account details you choose (such as homelab-user and password hash).',
+  'policy.section.collect.bulletPoll':
+    'Poll configuration and metadata you create as a signed-in user.',
+  'policy.section.collect.bulletVote':
+    'Votes you cast (which may include technical metadata the deployment is configured to retain, such as IP-derived signals for abuse prevention).',
   'policy.section.collect.bulletTechnical':
     'Technical logs needed to operate and secure the service (for example request logs, rate limits, and error diagnostics).',
   'policy.section.cookies.title': 'Cookies and analytics',
   'policy.section.cookies.body':
     'Optional analytics scripts load only after you explicitly allow analytics, unless your browser sends an opt-out privacy signal that we honor automatically.',
-  'policy.section.cookies.settingsLink': 'Change this anytime in Settings → Privacy & data controls.',
+  'policy.section.cookies.settingsLink':
+    'Change this anytime in Settings → Privacy & data controls.',
   'policy.section.subprocessors.title': 'Analytics subprocessors (when enabled)',
   'policy.section.subprocessors.intro':
     'If your operator configures optional analytics at build time, page views may be sent to the provider below. No analytics provider is used unless configured.',
-  'policy.section.subprocessors.none': 'This deployment has no optional analytics providers configured at build time.',
+  'policy.section.subprocessors.none':
+    'This deployment has no optional analytics providers configured at build time.',
   'policy.section.subprocessors.umami':
     'Umami (self-hosted analytics): script URL and site id are set via VITE_UMAMI_* build variables.',
   'policy.section.subprocessors.plausible':
@@ -562,7 +571,8 @@ export const en = {
     'For privacy questions, security reports, or data requests, use the contacts your operator publishes.',
   'policy.contact.securityEmail': 'Security contact: {email}',
   'policy.section.legal.title': 'Legal documents',
-  'policy.section.legal.body': 'The user agreement describes permitted use, liability limits, and other legal terms for this deployment.',
+  'policy.section.legal.body':
+    'The user agreement describes permitted use, liability limits, and other legal terms for this deployment.',
   'policy.section.legal.termsLink': 'Read the Terms of use',
   'policy.nav.actions': 'Privacy page actions',
   'policy.cta.home': 'Back to home',
@@ -729,7 +739,8 @@ export const en = {
   'home.featureBadge.webhookForm': 'Webhook delivery enabled',
   'home.featureBadge.webhookGenerated': 'Webhook secret generated',
   'home.templateGallery.label': 'Starter template gallery',
-  'home.templateGallery.hint': 'Prefill your poll with a proven format for live chat and creator workflows.',
+  'home.templateGallery.hint':
+    'Prefill your poll with a proven format for live chat and creator workflows.',
   'home.templateGallery.placeholder': 'Choose a template (optional)',
   'home.templateGallery.apply': 'Apply template',
   'home.templateGallery.clear': 'Clear',
@@ -749,7 +760,8 @@ export const en = {
   'home.pollTemplate.ama-priority.title': 'What should we answer next?',
   'home.pollTemplate.ama-priority.options':
     'Roadmap and release timeline\nTechnical architecture deep dive\nMonetization and sponsorships\nCommunity moderation policy',
-  'home.pollTemplate.ama-priority.notes': 'Use between segments to let chat decide what comes next.',
+  'home.pollTemplate.ama-priority.notes':
+    'Use between segments to let chat decide what comes next.',
   'home.pollTemplate.this-or-that.label': 'This or that',
   'home.pollTemplate.this-or-that.title': 'Which should we do next?',
   'home.pollTemplate.this-or-that.options': 'Option A\nOption B',
@@ -817,7 +829,8 @@ export const en = {
     'Identity-linked voting is enabled. Depending on your local jurisdiction, additional consent, notice, or retention rights may apply.',
   'poll.identityLinkedRegionalNotice.unknown':
     'Identity-linked voting is enabled. Region detection is unavailable, so apply your strictest consent and retention policy.',
-  'poll.ownerShareAdvancedHint': 'Clone, exports, embed tools, and moderation queue live in My Polls.',
+  'poll.ownerShareAdvancedHint':
+    'Clone, exports, embed tools, and moderation queue live in My Polls.',
   'poll.trustIpBurstOff':
     'Trust: IP burst auto-quarantine is off for this deployment. Moderation queue (pending): {pending}.',
   'poll.trustIpBurstOn':
@@ -1323,11 +1336,9 @@ export const en = {
   'admin.status.retentionSweepInterval': 'Poll retention sweep interval (sec)',
   'admin.status.retentionSweepBatch': 'Poll retention sweep batch size',
   'admin.status.retentionAuditLogs': 'Audit log retention (days, 0=off)',
-  'admin.status.retentionRejectedVotes':
-    'Rejected moderation vote retention (days, 0=off)',
+  'admin.status.retentionRejectedVotes': 'Rejected moderation vote retention (days, 0=off)',
   'admin.status.retentionAuditLogsLegalHold': 'Audit-log legal hold (pause deletes)',
-  'admin.status.retentionRejectedVotesLegalHold':
-    'Rejected-vote legal hold (pause deletes)',
+  'admin.status.retentionRejectedVotesLegalHold': 'Rejected-vote legal hold (pause deletes)',
   'admin.status.retentionPolicySave': 'Save retention policy',
   'admin.status.retentionPolicySaving': 'Saving retention policy…',
   'admin.status.retentionPolicyErr': 'Failed to update retention policy.',
@@ -1549,8 +1560,10 @@ export const en = {
   'developer.billingWsRoomCap':
     'Concurrent WebSocket subscribers per poll (effective cap for your workspace): {max}.',
   'developer.billingExportUsage': 'Data export jobs completed today (UTC): {current} / {max}.',
-  'developer.billingVoteUsage': 'Votes this UTC month on polls you own (non-quarantined rows): {current} / {max}.',
-  'developer.billingFanoutCap': 'Poll live WebSocket outbound fanout cap (messages/sec per poll): {max}.',
+  'developer.billingVoteUsage':
+    'Votes this UTC month on polls you own (non-quarantined rows): {current} / {max}.',
+  'developer.billingFanoutCap':
+    'Poll live WebSocket outbound fanout cap (messages/sec per poll): {max}.',
   'developer.billingWebhookUsage':
     'Outbound poll webhook POST attempts this UTC minute (in-process meter): {current} / {max}.',
   'developer.billingMeterWebhooks': 'poll webhooks (UTC minute)',

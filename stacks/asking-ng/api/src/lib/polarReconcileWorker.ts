@@ -50,5 +50,8 @@ export function stopPolarReconcileWorker(): void {
   if (!timer) return;
   clearInterval(timer);
   timer = null;
-  logger.info({ event: 'polar.reconcile.cron_stopped' }, 'scheduled polar reconcile worker stopped');
+  logger.info(
+    { event: 'polar.reconcile.cron_stopped' },
+    'scheduled polar reconcile worker stopped',
+  );
 }

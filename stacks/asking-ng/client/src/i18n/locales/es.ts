@@ -100,7 +100,8 @@ const esOverrides = {
   'myPolls.docTitle': 'Mis encuestas',
   'myPolls.title': 'Mis encuestas',
   'myPolls.loading': 'Cargando tus encuestas…',
-  'myPolls.empty': 'Todavia no hay encuestas vinculadas a tu cuenta. Crea una en la pagina principal con sesion iniciada o solo tienes encuestas anonimas (api_key).',
+  'myPolls.empty':
+    'Todavia no hay encuestas vinculadas a tu cuenta. Crea una en la pagina principal con sesion iniciada o solo tienes encuestas anonimas (api_key).',
   'myPolls.archived': 'Archivada',
   'myPolls.phase': 'Fase {phase}',
   'myPolls.views': '{count} vistas',
@@ -129,9 +130,11 @@ const esOverrides = {
   'myPolls.phaseOptionRevealed': 'Revelada',
   'myPolls.pauseCheck': 'Pausar votacion',
   'myPolls.pauseMessageLabel': 'Mensaje de pausa',
-  'myPolls.pauseMessageHint': 'Texto corto opcional mostrado a votantes cuando la votacion esta en pausa (max 280 caracteres).',
+  'myPolls.pauseMessageHint':
+    'Texto corto opcional mostrado a votantes cuando la votacion esta en pausa (max 280 caracteres).',
   'myPolls.showNotesLabel': 'Notas privadas',
-  'myPolls.showNotesHint': 'Notas de produccion que solo tu ves en la pagina de la encuesta con sesion iniciada.',
+  'myPolls.showNotesHint':
+    'Notas de produccion que solo tu ves en la pagina de la encuesta con sesion iniciada.',
   'myPolls.sharedEditorsLabel': 'Editores compartidos de borrador (IDs de usuario)',
   'myPolls.sharedEditorsHint':
     'IDs de usuario separados por comas. Los editores compartidos pueden editar esta encuesta mientras siga en borrador.',
@@ -168,25 +171,33 @@ const esOverrides = {
   'myPolls.voteEligibility.account': 'Solo usuarios con sesión iniciada',
   'myPolls.voteEligibility.platformLinked': 'Solo cuentas vinculadas a plataforma',
   'myPolls.openAtLabel': 'Abrir en (opcional)',
-  'myPolls.openAtHint': 'Inicio programado en UTC. Antes de este momento la fase efectiva se comporta como borrador.',
+  'myPolls.openAtHint':
+    'Inicio programado en UTC. Antes de este momento la fase efectiva se comporta como borrador.',
   'myPolls.lockAtLabel': 'Bloquear en (opcional)',
-  'myPolls.lockAtHint': 'Bloqueo programado en UTC. En ese momento la votacion se bloquea automaticamente.',
+  'myPolls.lockAtHint':
+    'Bloqueo programado en UTC. En ese momento la votacion se bloquea automaticamente.',
   'myPolls.revealAtLabel': 'Revelar en (opcional)',
-  'myPolls.revealAtHint': 'Revelado programado en UTC. En ese momento la fase efectiva pasa a revelada.',
+  'myPolls.revealAtHint':
+    'Revelado programado en UTC. En ese momento la fase efectiva pasa a revelada.',
   'myPolls.boostedVotingEnabled': 'Activar votos ponderados',
   'myPolls.maxBoostWeightLabel': 'Peso maximo de refuerzo',
-  'myPolls.maxBoostWeightHint': 'Peso maximo por voto aceptado por la API cuando los votos ponderados estan activados (1-10).',
+  'myPolls.maxBoostWeightHint':
+    'Peso maximo por voto aceptado por la API cuando los votos ponderados estan activados (1-10).',
   'myPolls.showUnweightedValues': 'Mostrar tambien valores sin ponderar',
   'myPolls.runOfShowKeyLabel': 'Clave de run-of-show (opcional)',
-  'myPolls.runOfShowKeyHint': 'Usa la misma clave en encuestas relacionadas para agruparlas en una cola (solo letras, numeros, "_" y "-").',
+  'myPolls.runOfShowKeyHint':
+    'Usa la misma clave en encuestas relacionadas para agruparlas en una cola (solo letras, numeros, "_" y "-").',
   'myPolls.runOfShowOrderLabel': 'Orden de run-of-show (opcional)',
   'myPolls.runOfShowOrderHint': 'Los numeros menores aparecen antes al ordenar como cola.',
   'myPolls.nextPollIdLabel': 'ID de la siguiente encuesta (opcional)',
-  'myPolls.nextPollIdHint': 'Cuando esta encuesta se cierre (bloqueada/revelada), el autoavance puede abrir esta encuesta vinculada.',
+  'myPolls.nextPollIdHint':
+    'Cuando esta encuesta se cierre (bloqueada/revelada), el autoavance puede abrir esta encuesta vinculada.',
   'myPolls.vanitySlugLabel': 'Slug vanity (opcional)',
-  'myPolls.vanitySlugHint': 'Alias corto para compartir, resuelto por /s/{slug}. Solo letras minusculas, numeros y "-".',
+  'myPolls.vanitySlugHint':
+    'Alias corto para compartir, resuelto por /s/{slug}. Solo letras minusculas, numeros y "-".',
   'myPolls.webhookTargetsLabel': 'Destinos de webhook (opcional)',
-  'myPolls.webhookTargetsHint': 'Envía actualizaciones firmadas a uno o más endpoints HTTPS. Deja el secreto vacío para mantener el secreto actual en destinos existentes o generar uno para destinos nuevos.',
+  'myPolls.webhookTargetsHint':
+    'Envía actualizaciones firmadas a uno o más endpoints HTTPS. Deja el secreto vacío para mantener el secreto actual en destinos existentes o generar uno para destinos nuevos.',
   'myPolls.webhookUrlPlaceholder': 'https://ejemplo.com/webhook',
   'myPolls.webhookSecretPlaceholder': 'Secreto opcional (mínimo 16 caracteres)',
   'myPolls.webhookSnapshotResultsBadge': 'Instantanea de resultados del webhook',
@@ -194,46 +205,57 @@ const esOverrides = {
   'myPolls.badgeLegendLabel': 'Leyenda de insignias:',
   'myPolls.badgeLegendAria': 'Leyenda de insignias del webhook',
   'myPolls.webhookIncludeResultsSnapshot': 'Incluir instantanea publica retrasada de resultados',
-  'myPolls.webhookIncludeOwnerSnapshot': 'Incluir instantanea de moderacion del propietario (sensible)',
-  'myPolls.webhookIncludeOwnerEvents': 'Incluir eventos de automatizacion del propietario (sensible)',
+  'myPolls.webhookIncludeOwnerSnapshot':
+    'Incluir instantanea de moderacion del propietario (sensible)',
+  'myPolls.webhookIncludeOwnerEvents':
+    'Incluir eventos de automatizacion del propietario (sensible)',
   'myPolls.webhookSnapshotsHint':
     'Las opciones de instantanea son por destino. Usa la instantanea del propietario solo con endpoints bajo tu control total.',
   'myPolls.webhookTargetAdd': 'Agregar destino webhook',
   'myPolls.webhookTargetRemove': 'Eliminar',
   'myPolls.autoAdvanceOnClose': 'Abrir automaticamente la siguiente encuesta al cerrar esta',
   'myPolls.voteFrictionTierLabel': 'Nivel de proteccion de audiencia',
-  'myPolls.voteFrictionTierHint': 'Aumenta las protecciones durante raids o picos de bots (abierto -> soft throttle -> proof-of-work).',
+  'myPolls.voteFrictionTierHint':
+    'Aumenta las protecciones durante raids o picos de bots (abierto -> soft throttle -> proof-of-work).',
   'myPolls.voteFrictionOpen': 'Abierto (sin protecciones adicionales)',
   'myPolls.voteFrictionSoftThrottle': 'Aceleracion suave (limite de votos/min por origen)',
   'myPolls.voteFrictionPow': 'Prueba de trabajo (requiere pow_nonce)',
   'myPolls.softThrottleMaxVotesLabel': 'Maximo de votos por minuto en modo suave',
-  'myPolls.softThrottleMaxVotesHint': 'Maximo de votos aceptados por minuto desde un hash de origen cuando soft throttle esta activo.',
+  'myPolls.softThrottleMaxVotesHint':
+    'Maximo de votos aceptados por minuto desde un hash de origen cuando soft throttle esta activo.',
   'myPolls.powDifficultyLabel': 'Dificultad de prueba de trabajo',
-  'myPolls.powDifficultyHint': 'Cantidad de ceros hexadecimales iniciales requeridos para SHA-256(pollId:nonce) en modo proof-of-work.',
+  'myPolls.powDifficultyHint':
+    'Cantidad de ceros hexadecimales iniciales requeridos para SHA-256(pollId:nonce) en modo proof-of-work.',
   'myPolls.resultsDelaySecondsLabel': 'Retraso de revelado de resultados (segundos)',
-  'myPolls.resultsDelaySecondsHint': 'Retrasa la visibilidad de resultados para reducir efecto bandwagon (0 = inmediato).',
+  'myPolls.resultsDelaySecondsHint':
+    'Retrasa la visibilidad de resultados para reducir efecto bandwagon (0 = inmediato).',
   'myPolls.resultsDelayPreset.off': 'Desactivado (0s)',
   'myPolls.resultsDelayPreset.low': 'Bajo (10s)',
   'myPolls.resultsDelayPreset.medium': 'Medio (20s)',
   'myPolls.resultsDelayPreset.high': 'Alto (30s)',
   'myPolls.resultsDelayPreset.custom': 'Personalizado',
-  'myPolls.resultsDelayRevealPreview': 'Los totales visibles muestran datos hasta {ts} (aprox. {seconds}s de retraso).',
+  'myPolls.resultsDelayRevealPreview':
+    'Los totales visibles muestran datos hasta {ts} (aprox. {seconds}s de retraso).',
   'myPolls.saveSettings': 'Guardar cambios',
   'myPolls.saving': 'Guardando…',
   'myPolls.saved': 'Guardado.',
   'myPolls.saveErr': 'No se pudieron guardar los cambios.',
-  'myPolls.panicHint': 'Bloquea de inmediato la encuesta, pausa la votacion y muestra un mensaje publico de pausa.',
+  'myPolls.panicHint':
+    'Bloquea de inmediato la encuesta, pausa la votacion y muestra un mensaje publico de pausa.',
   'myPolls.panicBtn': 'Detener votacion ahora (panico)',
-  'myPolls.panicConfirm': '¿Detener toda la votacion de “{title}” ahora? La encuesta se bloqueara y la audiencia vera tu mensaje de pausa.',
+  'myPolls.panicConfirm':
+    '¿Detener toda la votacion de “{title}” ahora? La encuesta se bloqueara y la audiencia vera tu mensaje de pausa.',
   'myPolls.panicWorking': 'Deteniendo…',
   'myPolls.panicDone': 'Votacion detenida. Encuesta bloqueada.',
   'myPolls.panicErr': 'No se pudo detener la votacion.',
   'myPolls.embedHeading': 'Acceso de incrustacion',
   'myPolls.embedBadge': 'Proteccion embed',
-  'myPolls.embedOn': 'El token de solo lectura para embed esta activado (usa ?embed_token=… o X-Poll-Embed-Token).',
+  'myPolls.embedOn':
+    'El token de solo lectura para embed esta activado (usa ?embed_token=… o X-Poll-Embed-Token).',
   'myPolls.embedOff': 'Sin proteccion embed: la encuesta es legible sin token embed.',
   'myPolls.embedRotate': 'Generar nuevo token de incrustacion',
-  'myPolls.embedRotateHint': 'Rotar invalida inmediatamente el token anterior. El nuevo se muestra una sola vez.',
+  'myPolls.embedRotateHint':
+    'Rotar invalida inmediatamente el token anterior. El nuevo se muestra una sola vez.',
   'myPolls.rotatingEmbed': 'Generando…',
   'myPolls.embedRotateErr': 'No se pudo generar el token de embed.',
   'myPolls.embedTokenTitle': 'Nuevo token de lectura para embed (guardalo, no se puede recuperar):',
@@ -243,12 +265,15 @@ const esOverrides = {
     'URL de la pagina embed compacta con tu token (fuente de navegador, iframe u OBS).',
   'myPolls.simulationBadge': 'Datos de simulacion',
   'myPolls.deletePoll': 'Eliminar encuesta definitivamente',
-  'myPolls.deleteConfirm': '¿Eliminar la encuesta “{title}” y todos los votos? No se puede deshacer.',
+  'myPolls.deleteConfirm':
+    '¿Eliminar la encuesta “{title}” y todos los votos? No se puede deshacer.',
   'myPolls.deleting': 'Eliminando…',
   'myPolls.deleteErr': 'No se pudo eliminar la encuesta.',
-  'myPolls.archivedReadOnly': 'Esta encuesta esta archivada. No se pueden cambiar fase, pausa, notas ni embed hasta que un administrador la desarchive.',
+  'myPolls.archivedReadOnly':
+    'Esta encuesta esta archivada. No se pueden cambiar fase, pausa, notas ni embed hasta que un administrador la desarchive.',
   'myPolls.exportHeading': 'Descargar resultados',
-  'myPolls.exportHint': 'Usa tu sesion iniciada (y cumple la proteccion embed para el propietario).',
+  'myPolls.exportHint':
+    'Usa tu sesion iniciada (y cumple la proteccion embed para el propietario).',
   'myPolls.exportCsvSummary': 'CSV (totales)',
   'myPolls.exportJsonSummary': 'JSON (totales)',
   'myPolls.exportCsvVotes': 'CSV (por voto)',
@@ -256,7 +281,8 @@ const esOverrides = {
   'myPolls.exportDone': 'Descarga iniciada.',
   'myPolls.exportErr': 'No se pudo descargar la exportacion.',
   'myPolls.moderationQueueHeading': 'Cola de moderacion',
-  'myPolls.moderationQueueHint': 'Revisa votos en cuarentena con aprobar, rechazar o revertir. Las acciones quedan en auditoria.',
+  'myPolls.moderationQueueHint':
+    'Revisa votos en cuarentena con aprobar, rechazar o revertir. Las acciones quedan en auditoria.',
   'myPolls.moderationQueueStatus': 'Filtro de cola',
   'myPolls.queuePending': 'Pendiente',
   'myPolls.queueApproved': 'Aprobado',
@@ -273,7 +299,8 @@ const esOverrides = {
   'myPolls.quarantineSourceLine': 'Hash IP: {ip} · ID de usuario: {user}',
   'myPolls.quarantineVoteMeta': 'ID de voto {voteId} · {status} · Peso {weight}',
   'myPolls.batchHeading': 'Herramientas de reversion por lote',
-  'myPolls.batchHint': 'Eliminar o restaurar votos en bloque por hash de IP de origen o ID de usuario, con codigo de motivo para auditoria.',
+  'myPolls.batchHint':
+    'Eliminar o restaurar votos en bloque por hash de IP de origen o ID de usuario, con codigo de motivo para auditoria.',
   'myPolls.batchSelector': 'Campo de coincidencia',
   'myPolls.batchSelectorIp': 'Hash de IP de origen',
   'myPolls.batchSelectorUser': 'ID de usuario',
@@ -284,7 +311,8 @@ const esOverrides = {
   'myPolls.batchDone': 'Accion en lote aplicada.',
   'myPolls.batchErr': 'No se pudo aplicar la accion en lote.',
   'myPolls.distributionHeading': 'Recursos para compartir',
-  'myPolls.distributionHint': 'Enlaces y fragmentos rapidos para chat, overlays, compartir movil y codigos QR.',
+  'myPolls.distributionHint':
+    'Enlaces y fragmentos rapidos para chat, overlays, compartir movil y codigos QR.',
   'myPolls.cloneBtn': 'Clonar encuesta como borrador',
   'myPolls.cloning': 'Clonando…',
   'myPolls.cloneDone': 'Encuesta clonada.',
@@ -302,7 +330,8 @@ const esOverrides = {
   'myPolls.copyDone': 'Copiado.',
   'myPolls.publicPollUrl': 'Enlace publico de la encuesta',
   'myPolls.sharePresets': 'Preajustes de comparticion',
-  'myPolls.sharePresetsHint': 'Enlaces predefinidos para overlays de stream, compartir movil y escena de resultados.',
+  'myPolls.sharePresetsHint':
+    'Enlaces predefinidos para overlays de stream, compartir movil y escena de resultados.',
   'myPolls.sharePresetOverlayLabel': 'URL de overlay',
   'myPolls.sharePresetOverlayCta': 'Vota en directo:',
   'myPolls.sharePresetChatLabel': 'URL para comando de chat',
@@ -327,7 +356,8 @@ const esOverrides = {
   'home.banner.share': 'Compartir enlace',
   'home.banner.copyOk': 'Enlace copiado al portapapeles.',
   'home.banner.copyManual': 'Copiar manualmente:',
-  'home.banner.secretHint': 'Guarda el secreto de creador: lo necesitas para cambiar expiracion o borrar la encuesta via API.',
+  'home.banner.secretHint':
+    'Guarda el secreto de creador: lo necesitas para cambiar expiracion o borrar la encuesta via API.',
   'home.banner.showSecret': 'Mostrar secreto de creador',
   'home.banner.showWebhookSecret': 'Mostrar secreto de firma del webhook',
   'home.form.aria': 'Crear encuesta',
@@ -371,23 +401,29 @@ const esOverrides = {
   'home.err.createRetry': 'No se pudo crear la encuesta. Vuelve a intentarlo.',
   'home.err.expiration': 'El valor de expiracion no es valido.',
   'home.err.invalid': 'Corrige los campos marcados e intentalo de nuevo.',
-  'home.err.webhookSecret': 'El secreto del webhook debe tener al menos 16 caracteres, o dejalo vacio para autogenerar.',
+  'home.err.webhookSecret':
+    'El secreto del webhook debe tener al menos 16 caracteres, o dejalo vacio para autogenerar.',
   'home.startOver': 'Crear otra encuesta',
   'home.webhookHeading': 'Automatizacion (opcional)',
-  'home.webhookIntro': 'URL HTTPS para recibir POST JSON firmados cuando cambian votos o metadatos de encuesta.',
+  'home.webhookIntro':
+    'URL HTTPS para recibir POST JSON firmados cuando cambian votos o metadatos de encuesta.',
   'home.webhookUrl': 'URL del webhook (https)',
-  'home.webhookSecret': 'Secreto de firma del webhook (min 16 caracteres, o vacio para autogenerar)',
+  'home.webhookSecret':
+    'Secreto de firma del webhook (min 16 caracteres, o vacio para autogenerar)',
   'home.webhookIncludeResultsSnapshot': 'Incluir instantanea publica retrasada de resultados',
-  'home.webhookIncludeOwnerSnapshot': 'Incluir instantanea de moderacion del propietario (sensible)',
+  'home.webhookIncludeOwnerSnapshot':
+    'Incluir instantanea de moderacion del propietario (sensible)',
   'home.webhookIncludeOwnerEvents': 'Incluir eventos de automatizacion del propietario (sensible)',
   'home.webhookSnapshotsHint':
     'Las opciones de instantanea son por destino. Usa la instantanea del propietario solo con endpoints bajo tu control total.',
   'home.webhookTargetAdd': 'Agregar destino webhook',
   'home.webhookTargetRemove': 'Eliminar',
   'home.webhookSignInHint': 'Inicia sesion para que nuevas encuestas aparezcan en Mis encuestas.',
-  'home.banner.webhookSecret': 'Secreto de firma del webhook (guardalo; se usa para verificar payloads):',
+  'home.banner.webhookSecret':
+    'Secreto de firma del webhook (guardalo; se usa para verificar payloads):',
   'home.err.webhookUrl': 'La URL del webhook debe ser https valida (o http://localhost en dev).',
-  'home.hero.tagline': 'Encuestas anonimas con resultados en vivo. No necesitas cuenta para votar; inicia sesion para guardar encuestas en Mis encuestas.',
+  'home.hero.tagline':
+    'Encuestas anonimas con resultados en vivo. No necesitas cuenta para votar; inicia sesion para guardar encuestas en Mis encuestas.',
   'home.flow.title': 'Como funciona',
   'home.flow.step1': 'Haz tu pregunta',
   'home.flow.step2': 'Agrega dos o mas opciones',
@@ -407,9 +443,11 @@ const esOverrides = {
   'home.showNotesHint': 'Solo tu las ves al iniciar sesion en la pagina de encuesta.',
   'home.showNotesPlaceholder': 'Guion, recordatorios, overlays…',
   'home.embedTokenCheck': 'Generar token de lectura para embed',
-  'home.embedTokenHint': 'Para overlays: agrega ?embed_token=... a la URL o envia X-Poll-Embed-Token.',
+  'home.embedTokenHint':
+    'Para overlays: agrega ?embed_token=... a la URL o envia X-Poll-Embed-Token.',
   'home.resultsDelayLabel': 'Retraso de resultados en vivo',
-  'home.resultsDelayHint': 'Opcional: retrasa totales publicos en vivo para reducir manipulacion tactica.',
+  'home.resultsDelayHint':
+    'Opcional: retrasa totales publicos en vivo para reducir manipulacion tactica.',
   'home.resultsDelayPreset.off': 'Desactivado (0s)',
   'home.resultsDelayPreset.low': 'Bajo (10s)',
   'home.resultsDelayPreset.medium': 'Medio (20s)',
@@ -476,7 +514,8 @@ const esOverrides = {
   'home.pollTemplate.ama-priority.title': '¿Que deberiamos responder a continuacion?',
   'home.pollTemplate.ama-priority.options':
     'Hoja de ruta y calendario de lanzamientos\nArquitectura tecnica en profundidad\nMonetizacion y patrocinios\nPolitica de moderacion de la comunidad',
-  'home.pollTemplate.ama-priority.notes': 'Usalo entre segmentos para que el chat decida que sigue.',
+  'home.pollTemplate.ama-priority.notes':
+    'Usalo entre segmentos para que el chat decida que sigue.',
   'home.pollTemplate.this-or-that.label': 'Esto o aquello',
   'home.pollTemplate.this-or-that.title': '¿Que hacemos a continuacion?',
   'home.pollTemplate.this-or-that.options': 'Opcion A\nOpcion B',
@@ -493,7 +532,8 @@ const esOverrides = {
   'home.pollTemplate.weekly-retro.label': 'Retro semanal',
   'home.pollTemplate.weekly-retro.title': '¿Como se sintio esta semana en general?',
   'home.pollTemplate.weekly-retro.options': 'Genial\nBien\nMixto\nNecesita mejora',
-  'home.pollTemplate.weekly-retro.notes': 'Usalo despues de cada semana de stream para ver el animo.',
+  'home.pollTemplate.weekly-retro.notes':
+    'Usalo despues de cada semana de stream para ver el animo.',
 
   'poll.docTitleNotFound': 'Encuesta no encontrada',
   'poll.loading': 'Cargando encuesta…',
@@ -507,7 +547,8 @@ const esOverrides = {
   'poll.shareDone': 'Enlace compartido.',
   'poll.copyOk': 'Enlace copiado al portapapeles.',
   'poll.copyManual': 'Copiar manualmente:',
-  'poll.archived': 'Esta encuesta esta archivada; la votacion esta cerrada y los resultados se muestran abajo.',
+  'poll.archived':
+    'Esta encuesta esta archivada; la votacion esta cerrada y los resultados se muestran abajo.',
   'poll.stateArchived': 'Archivada',
   'poll.stateExpired': 'Expirada',
   'poll.stateVoted': 'Votada',
@@ -517,23 +558,29 @@ const esOverrides = {
   'poll.stateDraft': 'Borrador',
   'poll.stateRevealed': 'Revelada',
   'poll.votingPausedDefault': 'La votacion esta temporalmente en pausa.',
-  'poll.phaseLockedHint': 'La votacion esta bloqueada en esta ronda; los resultados se muestran abajo.',
+  'poll.phaseLockedHint':
+    'La votacion esta bloqueada en esta ronda; los resultados se muestran abajo.',
   'poll.phaseDraftHint': 'Esta encuesta aun es un borrador; la votacion no esta abierta.',
   'poll.phaseRevealedHint': 'Los resultados estan revelados; la votacion esta cerrada.',
-  'poll.votingClosedHint': 'La votacion esta cerrada para esta sesion; los resultados se muestran abajo.',
+  'poll.votingClosedHint':
+    'La votacion esta cerrada para esta sesion; los resultados se muestran abajo.',
   'poll.impressions': 'Vistas aproximadas de pagina: {count}',
   'poll.showNotesTitle': 'Tus notas de show',
-  'poll.refreshHint': 'Totales en vivo: cada {visible}s cuando esta pestaña es visible, cada {hidden}s en segundo plano.',
-  'poll.refreshHintLive': 'Totales en vivo: enviados por el servidor via WebSocket (refresco HTTP cada {fallback}s como respaldo).',
+  'poll.refreshHint':
+    'Totales en vivo: cada {visible}s cuando esta pestaña es visible, cada {hidden}s en segundo plano.',
+  'poll.refreshHintLive':
+    'Totales en vivo: enviados por el servidor via WebSocket (refresco HTTP cada {fallback}s como respaldo).',
   'poll.billingWsSubscriberLimitHint':
     'Se cerro la conexion en vivo: esta encuesta alcanzo el limite de espectadores simultaneos de su plan. Los totales siguen actualizandose por temporizador; el dueño puede necesitar un plan mayor para audiencias muy grandes.',
-  'poll.resultsDelayInfo': 'Retraso anti-snipe en vivo: los resultados se muestran con {seconds}s de retraso ({pending} votos nuevos pendientes de revelar).',
+  'poll.resultsDelayInfo':
+    'Retraso anti-snipe en vivo: los resultados se muestran con {seconds}s de retraso ({pending} votos nuevos pendientes de revelar).',
   'poll.voteFail': 'Error al votar.',
   'poll.signInToVote': 'Esta encuesta solo acepta votos de usuarios con sesión iniciada.',
   'poll.signInToVoteCta': 'Inicia sesión para votar',
   'poll.accountGatedPrivacy':
     'Tras iniciar sesion, tu voto queda vinculado a tu cuenta en este sitio para poder evitar duplicados.',
-  'poll.ownerShareAdvancedHint': 'Clonar, exportaciones, herramientas de embed y cola de moderación en «Mis encuestas».',
+  'poll.ownerShareAdvancedHint':
+    'Clonar, exportaciones, herramientas de embed y cola de moderación en «Mis encuestas».',
   'poll.expires': 'Expira:',
   'poll.expired': 'Expirada',
   'poll.timeNever': 'Nunca',
@@ -541,14 +588,17 @@ const esOverrides = {
   'poll.votesCount': '{title}, {count} votos',
   'poll.leadingSr': 'opcion lider',
   'poll.leadingBadge': 'Lider',
-  'poll.voteKeyboardHint': 'Usa Arriba/Abajo o Izquierda/Derecha para moverte por opciones. Pulsa Espacio o Enter para votar.',
+  'poll.voteKeyboardHint':
+    'Usa Arriba/Abajo o Izquierda/Derecha para moverte por opciones. Pulsa Espacio o Enter para votar.',
   'poll.geoOptIn': 'Compartir mi ubicacion aproximada con este voto (opcional)',
-  'poll.geoPrivacy': 'Si se activa, la app solicita ubicacion una vez al votar. Solo se guardan celdas aproximadas del mapa.',
+  'poll.geoPrivacy':
+    'Si se activa, la app solicita ubicacion una vez al votar. Solo se guardan celdas aproximadas del mapa.',
   'poll.geoEnabled': 'Compartir ubicacion esta activado para tu proximo voto.',
   'poll.geoDenied': 'Se denego el acceso a ubicacion. Tu voto se conto sin ubicacion.',
   'poll.geoUnavailable': 'La ubicacion no esta disponible en este navegador/sesion.',
   'poll.heatmapTitle': 'Mapa de calor de votos',
-  'poll.heatmapPrivacy': 'Este mapa muestra solo areas agregadas y difuminadas; nunca se muestran coordenadas exactas.',
+  'poll.heatmapPrivacy':
+    'Este mapa muestra solo areas agregadas y difuminadas; nunca se muestran coordenadas exactas.',
   'poll.heatmapLoading': 'Cargando mapa de calor…',
   'poll.heatmapError': 'No se pudieron cargar los datos del mapa de calor.',
   'poll.heatmapEmpty': 'Aun no hay datos de mapa de calor.',
@@ -569,7 +619,8 @@ const esOverrides = {
   'poll.replaySpeed': 'Velocidad',
   'poll.replayTimelineAria': 'Linea de tiempo de reproduccion',
   'poll.replayVotesShown': '{shown} de {total} votos mostrados',
-  'poll.replayActiveHint': 'La reproduccion estara disponible cuando la encuesta se complete (expirada, bloqueada, revelada o archivada).',
+  'poll.replayActiveHint':
+    'La reproduccion estara disponible cuando la encuesta se complete (expirada, bloqueada, revelada o archivada).',
   'poll.metricsTitle': 'Metricas de la encuesta',
   'poll.metrics.votesLast5mVelocity': 'Votos ultimos 5 min: {count}',
   'poll.metrics.lifetimeVelocity': 'Velocidad de por vida: {value}',
@@ -585,14 +636,16 @@ const esOverrides = {
   'poll.metrics.weekdayAxis': 'Orden: {days} (UTC)',
   'poll.state.label': 'Estado',
   'poll.simulationBadge': 'Simulacion',
-  'poll.simulationNotice': 'Estos son datos de simulacion generados para pruebas y demostraciones; no los uses como evidencia de votos reales.',
+  'poll.simulationNotice':
+    'Estos son datos de simulacion generados para pruebas y demostraciones; no los uses como evidencia de votos reales.',
   'poll.instructions.vote': 'Elige una opcion para emitir tu voto.',
   'poll.instructions.multi': 'Elige una o más opciones y pulsa Enviar voto.',
   'poll.submitMultiVote': 'Enviar voto',
   'poll.multiSubmitHint': 'Selecciona al menos una opción.',
   'poll.voteCardAria': 'Opciones de respuesta',
   'poll.resultsOnlyTitle': 'Overlay solo resultados',
-  'poll.resultsOnlySubtitle': 'Vista de marcador en solo lectura para overlays y pantallas en stream.',
+  'poll.resultsOnlySubtitle':
+    'Vista de marcador en solo lectura para overlays y pantallas en stream.',
   'poll.resultsOnlyClosedBadge': 'La votacion esta cerrada en esta encuesta.',
   'poll.resultsOnlyLiveBadge': 'Los totales en vivo se actualizan automaticamente.',
   'poll.resultsOnlyAria': 'Vista solo resultados de la encuesta',
@@ -616,13 +669,15 @@ const esOverrides = {
   'poll.totalVotes': 'Votos totales: {count}',
   'about.docTitle': 'Acerca de',
   'about.title': 'Acerca de asking-ng',
-  'about.p1': 'Encuestas tipo strawpoll con una superficie admin ligera, auditoria y almacenamiento en Postgres. Inspirado en',
+  'about.p1':
+    'Encuestas tipo strawpoll con una superficie admin ligera, auditoria y almacenamiento en Postgres. Inspirado en',
   'about.p1.link': 'proyecto jdleo/asking',
   'about.bullet.api': 'API publica: /poll, /healthcheck, /ready, /info, /api-docs',
   'about.bullet.llm': 'Proxy LLM opcional: /llm/status, /llm/v1/models, /llm/v1/chat/completions.',
   'about.bullet.admin': 'Rutas admin: /admin/* (token en x-admin-token)',
   'about.bullet.caddy': 'Detras de Caddy: monta API en /api y usa VITE_API_BASE=/api.',
-  'about.accessibility': 'Accesibilidad: temas, alto contraste, tipografia legible y simulaciones de vision de color.',
+  'about.accessibility':
+    'Accesibilidad: temas, alto contraste, tipografia legible y simulaciones de vision de color.',
   'about.cta.create': 'Crear una encuesta',
   'about.cta.dev': 'Herramientas API / LLM',
   'about.section.stack': 'Capacidades y endpoints',
@@ -693,16 +748,20 @@ const esOverrides = {
   'admin.exportErr': 'La descarga fallo.',
   'admin.export.accessDenied': 'Acceso denegado: solo admin o superadmin puede exportar datos.',
   'admin.export.title': 'Exportar datos',
-  'admin.export.subtitle': 'Descarga snapshots completos para copias de seguridad, cumplimiento y migraciones.',
-  'admin.export.intro': 'Las exportaciones pueden contener datos personales o sensibles. Guardalas como secretos de produccion: cifra en reposo, comparte con alcance limitado y elimina copias cuando ya no las necesites.',
-  'admin.export.flowHint': 'Cada descarga empieza de inmediato en tu navegador. Los nombres incluyen la fecha de exportacion (hora local).',
+  'admin.export.subtitle':
+    'Descarga snapshots completos para copias de seguridad, cumplimiento y migraciones.',
+  'admin.export.intro':
+    'Las exportaciones pueden contener datos personales o sensibles. Guardalas como secretos de produccion: cifra en reposo, comparte con alcance limitado y elimina copias cuando ya no las necesites.',
+  'admin.export.flowHint':
+    'Cada descarga empieza de inmediato en tu navegador. Los nombres incluyen la fecha de exportacion (hora local).',
   'admin.export.sectionTitle': 'Conjuntos de datos',
   'admin.export.usersTitle': 'Usuarios',
   'admin.export.usersDesc': 'Cuentas del directorio, roles y estado de activacion.',
   'admin.export.pollsTitle': 'Encuestas',
   'admin.export.pollsDesc': 'Definiciones, opciones, fases y metadatos relacionados.',
   'admin.export.auditTitle': 'Registros de auditoria',
-  'admin.export.auditDesc': 'Acciones de administracion y eventos relevantes de seguridad (puede ser grande en sitios activos).',
+  'admin.export.auditDesc':
+    'Acciones de administracion y eventos relevantes de seguridad (puede ser grande en sitios activos).',
   'admin.export.formatCsv': 'CSV (valores separados por comas)',
   'admin.export.formatJson': 'JSON (estructura completa)',
   'admin.export.ariaDownload': 'Descargar {dataset} como {format}',
@@ -889,7 +948,8 @@ const esOverrides = {
   'admin.users.errActivate': 'No se pudo activar el usuario',
   'admin.users.confirmDelete': 'Eliminar usuario {id}?',
   'admin.users.appSessionTitle': 'Inicio de sesion de la app (gestion superadmin)',
-  'admin.users.appSessionIntro': 'El token admin no puede crear un segundo superadministrador. Inicia sesion con usuario y contrasena de un superadministrador existente para que esta pagina llame a la API de la app en tu nombre.',
+  'admin.users.appSessionIntro':
+    'El token admin no puede crear un segundo superadministrador. Inicia sesion con usuario y contrasena de un superadministrador existente para que esta pagina llame a la API de la app en tu nombre.',
   'admin.users.appSessionUsername': 'Nombre de usuario',
   'admin.users.appSessionPassword': 'Contrasena',
   'admin.users.appSessionSignIn': 'Iniciar sesion',
@@ -897,12 +957,17 @@ const esOverrides = {
   'admin.users.appSessionSignOut': 'Cerrar sesion de app',
   'admin.users.appSessionSignedIn': 'Sesion API de app: {user} ({role})',
   'admin.users.appSessionErrLogin': 'Error al iniciar sesion en la app.',
-  'admin.users.appSessionErrLoginNotSuperadmin': 'Esa cuenta no es superadministrador. Inicia sesion con un usuario superadministrador.',
-  'admin.users.appSessionErrNotSuperadmin': 'La sesion de app guardada no es de superadministrador; inicia sesion otra vez.',
-  'admin.users.errNeedAppSession': 'Primero inicia sesion en "Inicio de sesion de la app" con una cuenta superadministradora, o usa bootstrap (sin superadmin aun) mediante el token admin.',
-  'admin.audit.accessDenied': 'Acceso denegado: solo admin o superadmin puede ver los registros de auditoria.',
+  'admin.users.appSessionErrLoginNotSuperadmin':
+    'Esa cuenta no es superadministrador. Inicia sesion con un usuario superadministrador.',
+  'admin.users.appSessionErrNotSuperadmin':
+    'La sesion de app guardada no es de superadministrador; inicia sesion otra vez.',
+  'admin.users.errNeedAppSession':
+    'Primero inicia sesion en "Inicio de sesion de la app" con una cuenta superadministradora, o usa bootstrap (sin superadmin aun) mediante el token admin.',
+  'admin.audit.accessDenied':
+    'Acceso denegado: solo admin o superadmin puede ver los registros de auditoria.',
   'admin.audit.heading': 'Registros de auditoria',
-  'admin.audit.intro': 'Los filtros coinciden con la API (limite 1-500, 100 por defecto si se omite). Usa Filtrar para actualizar la URL y compartirla.',
+  'admin.audit.intro':
+    'Los filtros coinciden con la API (limite 1-500, 100 por defecto si se omite). Usa Filtrar para actualizar la URL y compartirla.',
   'admin.audit.placeholderAction': 'Accion',
   'admin.audit.filterAction': 'Filtrar por accion',
   'admin.audit.placeholderActor': 'Actor (usuario o sistema)',
@@ -924,12 +989,15 @@ const esOverrides = {
   'admin.audit.colActor': 'Actor responsable',
   'admin.audit.colTarget': 'Objetivo',
   'admin.audit.colTime': 'Hora',
-  'admin.status.accessDenied': 'Acceso denegado: solo admin o superadmin puede ver el estado del sistema.',
+  'admin.status.accessDenied':
+    'Acceso denegado: solo admin o superadmin puede ver el estado del sistema.',
   'admin.status.heading': 'Estado del sistema',
-  'admin.status.subtitle': 'Comprobaciones de salud, metadatos anonimos de compilacion, conteos autenticados de datos y geolocalizacion del mapa de calor de votos.',
+  'admin.status.subtitle':
+    'Comprobaciones de salud, metadatos anonimos de compilacion, conteos autenticados de datos y geolocalizacion del mapa de calor de votos.',
   'admin.status.errLoad': 'No se pudo cargar el estado del sistema',
   'admin.status.sectionHealth': 'Salud del servicio',
-  'admin.status.sectionHealthHint': 'Endpoints publicos usados por balanceadores y sondas de disponibilidad. Liveness puede pasar mientras readiness falla si hay dependencias no disponibles.',
+  'admin.status.sectionHealthHint':
+    'Endpoints publicos usados por balanceadores y sondas de disponibilidad. Liveness puede pasar mientras readiness falla si hay dependencias no disponibles.',
   'admin.status.sectionBuild': 'Compilacion y entorno de API',
   'admin.status.sectionBuildHint': 'Metadatos no sensibles desde GET /info (sin auth).',
   'admin.status.sectionData': 'Snapshot de datos',
@@ -948,7 +1016,8 @@ const esOverrides = {
   'admin.status.readiness': 'Sonda readiness',
   'admin.status.requestFailed': 'Solicitud fallida',
   'admin.status.ok': 'Disponible ({status})',
-  'admin.status.readinessFailTitle': 'Fallo de readiness (mismo envoltorio JSON de error que otras rutas)',
+  'admin.status.readinessFailTitle':
+    'Fallo de readiness (mismo envoltorio JSON de error que otras rutas)',
   'admin.status.unavailable': 'No disponible ({status})',
   'admin.status.usersTitle': 'Usuarios totales',
   'admin.status.pollsTitle': 'Encuestas totales',
@@ -962,7 +1031,8 @@ const esOverrides = {
   'admin.status.httpError': 'Error HTTP {status}',
   'admin.status.healthUnexpectedTitle': 'No-2xx o cuerpo inesperado',
   'admin.status.voteGeoHeading': 'Mapa de calor de geolocalizacion de votos',
-  'admin.status.voteGeoDesc': 'Cuando esta activado, la API puede registrar coordenadas aproximadas de votos para mapas de calor. Confirma que coincide con tu politica de privacidad antes de activarlo.',
+  'admin.status.voteGeoDesc':
+    'Cuando esta activado, la API puede registrar coordenadas aproximadas de votos para mapas de calor. Confirma que coincide con tu politica de privacidad antes de activarlo.',
   'admin.status.voteGeoEnabled': 'Activado',
   'admin.status.voteGeoDisabled': 'Desactivado',
   'admin.status.voteGeoEnable': 'Activar geolocalizacion de votos',
@@ -990,7 +1060,8 @@ const esOverrides = {
   'admin.dashboard.export': 'Exportar datos',
   'admin.dashboard.status': 'Estado del sistema',
   'admin.dashboard.impersonate': 'Suplantar usuario',
-  'admin.dashboard.subtitle': 'Supervisa uso, completa verificaciones iniciales y salta a las herramientas mas usadas.',
+  'admin.dashboard.subtitle':
+    'Supervisa uso, completa verificaciones iniciales y salta a las herramientas mas usadas.',
   'admin.dashboard.kpi.heading': 'Metricas clave',
   'admin.dashboard.kpi.usersTotal': 'Cuentas de usuario',
   'admin.dashboard.kpi.usersActive': 'Usuarios activos',
@@ -1037,7 +1108,8 @@ const esOverrides = {
   'admin.dashboard.quick.impersonate.desc': 'Iniciar sesion como otro usuario para soporte',
   'admin.dashboard.quick.developer.desc': 'Esquema OpenAPI, sondas y herramientas LLM',
   'admin.dashboard.simulation.title': 'Simulacion',
-  'admin.dashboard.simulation.subtitle': 'Genera usuarios, encuestas y votos de prueba para validar panel y moderacion sin trafico real.',
+  'admin.dashboard.simulation.subtitle':
+    'Genera usuarios, encuestas y votos de prueba para validar panel y moderacion sin trafico real.',
   'admin.dashboard.simulation.users': 'Usuarios a crear',
   'admin.dashboard.simulation.polls': 'Encuestas a crear',
   'admin.dashboard.simulation.votes': 'Votos por encuesta',
@@ -1060,16 +1132,21 @@ const esOverrides = {
   'admin.login.firstRunGuide.step1': 'Inicia sesion con tu `ADMIN_TOKEN`.',
   'admin.login.firstRunGuide.step2': 'Si se solicita, crea la primera cuenta superadministradora.',
   'admin.login.firstRunGuide.step3': 'Abre Usuarios y confirma tu cuenta admin de arranque.',
-  'admin.login.firstRunGuide.step4': 'Crea una encuesta de prueba y emite un voto desde la pagina publica.',
-  'admin.login.firstRunGuide.step5': 'Abre Estado del sistema para confirmar que health/readiness estan en verde.',
+  'admin.login.firstRunGuide.step4':
+    'Crea una encuesta de prueba y emite un voto desde la pagina publica.',
+  'admin.login.firstRunGuide.step5':
+    'Abre Estado del sistema para confirmar que health/readiness estan en verde.',
   'admin.login.firstRunGuide.diagnosticsPrefix': 'Tambien necesitas diagnostico API? Visita',
   'admin.login.firstRunGuide.diagnosticsLink': 'Herramientas API / LLM',
-  'admin.login.bootstrap.noAdmin': 'Aun no existe cuenta admin. Crea el primer superadmin abajo y luego continua al panel.',
-  'admin.login.bootstrap.errInvalidInput': 'Introduce usuario y contrasena validos (minimo 8 caracteres).',
+  'admin.login.bootstrap.noAdmin':
+    'Aun no existe cuenta admin. Crea el primer superadmin abajo y luego continua al panel.',
+  'admin.login.bootstrap.errInvalidInput':
+    'Introduce usuario y contrasena validos (minimo 8 caracteres).',
   'admin.login.bootstrap.errCreateFail': 'No se pudo crear la primera cuenta admin.',
   'admin.login.bootstrap.ariaSection': 'Crear primera cuenta admin',
   'admin.login.bootstrap.title': 'Crear primera cuenta admin',
-  'admin.login.bootstrap.intro': 'Aun no hay usuarios admin. Este paso unico crea el primer superadmin usando el token admin ingresado.',
+  'admin.login.bootstrap.intro':
+    'Aun no hay usuarios admin. Este paso unico crea el primer superadmin usando el token admin ingresado.',
   'admin.login.bootstrap.ariaForm': 'Formulario crear primer admin',
   'admin.login.bootstrap.homelab-userPlaceholder': 'Usuario',
   'admin.login.bootstrap.passwordPlaceholder': 'Contrasena (minimo 8 caracteres)',
@@ -1077,10 +1154,13 @@ const esOverrides = {
   'admin.login.bootstrap.create': 'Crear superadmin',
   'admin.impersonate.accessDenied': 'Acceso denegado: solo superadmin puede suplantar usuarios.',
   'admin.impersonate.title': 'Suplantar usuario',
-  'admin.impersonate.subtitle': 'Emite un JWT de corta duracion que actua como el usuario objetivo para depuracion y soporte (tratelo como contrasena).',
-  'admin.impersonate.intro': 'Cualquiera con el token puede realizar acciones API como ese usuario hasta que expire. No lo pegues en chats, tickets o logs; revoca esperando caducidad o rotando secretos del servidor segun tu runbook.',
+  'admin.impersonate.subtitle':
+    'Emite un JWT de corta duracion que actua como el usuario objetivo para depuracion y soporte (tratelo como contrasena).',
+  'admin.impersonate.intro':
+    'Cualquiera con el token puede realizar acciones API como ese usuario hasta que expire. No lo pegues en chats, tickets o logs; revoca esperando caducidad o rotando secretos del servidor segun tu runbook.',
   'admin.impersonate.sectionRequest': 'Solicitar token',
-  'admin.impersonate.sectionRequestHint': 'Usa el ID numerico de usuario del directorio (primera columna). El usuario debe existir.',
+  'admin.impersonate.sectionRequestHint':
+    'Usa el ID numerico de usuario del directorio (primera columna). El usuario debe existir.',
   'admin.impersonate.labelUserId': 'ID de usuario',
   'admin.impersonate.ariaForm': 'Formulario de suplantacion de usuario',
   'admin.impersonate.placeholderUserId': 'p. ej. 42',
@@ -1089,7 +1169,8 @@ const esOverrides = {
   'admin.impersonate.submitAria': 'Solicitar token de suplantacion',
   'admin.impersonate.generating': 'Emitiendo…',
   'admin.impersonate.tokenTitle': 'Token de suplantacion',
-  'admin.impersonate.tokenHint': 'Envialo como Authorization: Bearer para rutas API de app que acepten JWT de usuario. Copialo una sola vez y guardalo de forma segura.',
+  'admin.impersonate.tokenHint':
+    'Envialo como Authorization: Bearer para rutas API de app que acepten JWT de usuario. Copialo una sola vez y guardalo de forma segura.',
   'admin.impersonate.jwtAria': 'Token JWT de suplantacion',
   'admin.impersonate.copyToken': 'Copiar token',
   'admin.impersonate.dismissToken': 'Limpiar de pantalla',
@@ -1100,7 +1181,8 @@ const esOverrides = {
   'developer.docTitle': 'Desarrollo API / LLM',
   'developer.title': 'Herramientas API y LLM',
   'developer.introBefore': 'Usa la misma base API que la app (',
-  'developer.introBetween': '). Abre docs en nueva pestaña; LLM local opcional si el servidor tiene ',
+  'developer.introBetween':
+    '). Abre docs en nueva pestaña; LLM local opcional si el servidor tiene ',
   'developer.introAfter': ' configurado.',
   'developer.sectionOpenApi': 'Documentacion OpenAPI',
   'developer.openApiLink': 'Abrir Swagger UI (/api-docs)',
@@ -1159,7 +1241,8 @@ const esOverrides = {
   'developer.billingPollUsage': 'Encuestas propias no archivadas: {current} / {max}.',
   'developer.billingWsRoomCap':
     'Suscriptores WebSocket concurrentes por encuesta (tope efectivo de tu espacio de trabajo): {max}.',
-  'developer.billingExportUsage': 'Exportaciones de datos completadas hoy (UTC): {current} / {max}.',
+  'developer.billingExportUsage':
+    'Exportaciones de datos completadas hoy (UTC): {current} / {max}.',
   'developer.billingVoteUsage':
     'Votos este mes UTC en tus encuestas (filas no en cuarentena): {current} / {max}.',
   'developer.billingFanoutCap':
@@ -1246,7 +1329,8 @@ const esOverrides = {
   'terms.contact.urlCta': 'Abrir formulario web',
   'terms.contact.configureHint': 'Configura los canales de contacto en el entorno.',
   'terms.section.eligibility.title': 'Elegibilidad',
-  'terms.section.eligibility.body': 'Debes cumplir la ley local y tener capacidad para aceptar estos terminos.',
+  'terms.section.eligibility.body':
+    'Debes cumplir la ley local y tener capacidad para aceptar estos terminos.',
   'terms.section.use.title': 'Uso aceptable',
   'terms.section.use.body': 'No uses el servicio para abuso, fraude, spam ni contenido ilegal.',
   'terms.section.api.title': 'Uso de API',
@@ -1256,7 +1340,8 @@ const esOverrides = {
   'terms.section.ip.title': 'Propiedad intelectual',
   'terms.section.ip.body': 'El software y la marca pertenecen a sus respectivos titulares.',
   'terms.section.dmca.title': 'DMCA / Copyright',
-  'terms.section.dmca.body': 'Envia avisos completos y de buena fe para reclamaciones de copyright.',
+  'terms.section.dmca.body':
+    'Envia avisos completos y de buena fe para reclamaciones de copyright.',
   'terms.section.dmca.step1': 'Identifica la obra protegida.',
   'terms.section.dmca.step2': 'Incluye el material presuntamente infractor.',
   'terms.section.dmca.step3': 'Aporta informacion de contacto.',
@@ -1267,9 +1352,11 @@ const esOverrides = {
   'terms.section.privacy.title': 'Privacidad',
   'terms.section.privacy.body': 'El tratamiento de datos se describe en la politica de privacidad.',
   'terms.section.availability.title': 'Disponibilidad',
-  'terms.section.availability.body': 'El servicio puede cambiar, degradarse o interrumpirse sin previo aviso.',
+  'terms.section.availability.body':
+    'El servicio puede cambiar, degradarse o interrumpirse sin previo aviso.',
   'terms.section.indemnity.title': 'Indemnizacion',
-  'terms.section.indemnity.body': 'Aceptas indemnizar por reclamaciones derivadas de tu uso indebido.',
+  'terms.section.indemnity.body':
+    'Aceptas indemnizar por reclamaciones derivadas de tu uso indebido.',
   'terms.section.liability.title': 'Limitacion de responsabilidad',
   'terms.section.liability.body': 'En la maxima medida legal, la responsabilidad esta limitada.',
   'terms.section.law.title': 'Ley aplicable',
@@ -1277,7 +1364,8 @@ const esOverrides = {
     'Salvo que la ley local obligatoria diga lo contrario, estas condiciones se rigen por las leyes de {jurisdiction}, sin tener en cuenta normas de conflicto de leyes que aplicarian la ley de otra jurisdiccion. Los tribunales de esa misma region tienen competencia exclusiva para litigios, salvo que tengas un derecho irrenunciable de demandar en otro lugar.',
   'terms.law.jurisdictionFallback': 'Jurisdiccion segun normativa local aplicable.',
   'terms.section.changes.title': 'Cambios',
-  'terms.section.changes.body': 'Podemos actualizar estos terminos; el uso continuado implica aceptacion.',
+  'terms.section.changes.body':
+    'Podemos actualizar estos terminos; el uso continuado implica aceptacion.',
   'terms.section.misc.title': 'Varios',
   'terms.section.misc.body': 'Si una clausula es invalida, el resto permanece vigente.',
   'terms.nav.actions': 'Acciones de la pagina de terminos',
@@ -1308,11 +1396,14 @@ const esOverrides = {
   'policy.section.webhooks.title': 'Webhooks',
   'policy.section.webhooks.body': 'Los webhooks se envian a endpoints que configures.',
   'policy.section.llm.title': 'Integraciones LLM',
-  'policy.section.llm.body': 'Las solicitudes LLM pueden pasar por proveedores configurados por el operador.',
+  'policy.section.llm.body':
+    'Las solicitudes LLM pueden pasar por proveedores configurados por el operador.',
   'policy.section.retention.title': 'Retencion',
-  'policy.section.retention.body': 'Conservamos datos segun necesidad operativa y requisitos legales.',
+  'policy.section.retention.body':
+    'Conservamos datos segun necesidad operativa y requisitos legales.',
   'policy.section.rights.title': 'Tus derechos',
-  'policy.section.rights.body': 'Puedes solicitar acceso, rectificacion o eliminacion cuando aplique.',
+  'policy.section.rights.body':
+    'Puedes solicitar acceso, rectificacion o eliminacion cuando aplique.',
   'policy.section.rights.settingsLink': 'Gestionar privacidad',
   'policy.section.status.title': 'Estado y transparencia',
   'policy.section.status.body': 'Publicamos estado del servicio e incidencias relevantes.',
@@ -1321,7 +1412,8 @@ const esOverrides = {
   'policy.section.contact.intro': 'Para solicitudes de privacidad, usa los canales oficiales.',
   'policy.contact.securityEmail': 'Contacto de seguridad: {email}',
   'policy.section.legal.title': 'Base legal',
-  'policy.section.legal.body': 'El tratamiento se basa en contrato, interes legitimo o consentimiento.',
+  'policy.section.legal.body':
+    'El tratamiento se basa en contrato, interes legitimo o consentimiento.',
   'policy.section.legal.termsLink': 'Ver terminos',
   'policy.nav.actions': 'Acciones de la pagina de privacidad',
   'policy.cta.home': 'Ir al inicio',
@@ -1335,7 +1427,8 @@ const esOverrides = {
   'myPolls.listVoteTimingAria': 'Metricas temporales de votos',
   'myPolls.pollUsageBanner': 'Encuestas activas: {current} de {max} (plan: {plan}).',
   'myPolls.retentionTtlDaysLabel': 'Retencion automatica (dias)',
-  'myPolls.retentionTtlDaysHint': 'Elimina automaticamente encuestas antiguas tras este numero de dias.',
+  'myPolls.retentionTtlDaysHint':
+    'Elimina automaticamente encuestas antiguas tras este numero de dias.',
   'myPolls.retentionTtlDaysPlaceholder': 'p. ej. 30',
   'myPolls.retentionLegalHoldLabel': 'Retencion legal',
   'myPolls.retentionLegalHoldHint': 'Evita eliminacion automatica mientras este activo.',
@@ -1376,7 +1469,8 @@ const esOverrides = {
   'poll.metrics.optionHourlyTitle': 'Rendimiento por opcion por hora',
   'poll.metrics.optionHourlyHint': 'Comparativa horaria de votos por opcion.',
   'poll.metrics.optionVelocityByMinuteTitle': 'Velocidad por opcion por minuto',
-  'poll.metrics.optionVelocityByMinuteHint': 'Evolucion de votos por opcion en ventanas de 1 minuto.',
+  'poll.metrics.optionVelocityByMinuteHint':
+    'Evolucion de votos por opcion en ventanas de 1 minuto.',
   'poll.metrics.velocityByMinuteTitle': 'Velocidad total por minuto',
   'poll.metrics.velocityByMinuteHint': 'Cambios de ritmo de voto minuto a minuto.',
   'poll.metrics.velocityByMinuteTruncated': 'Serie truncada por limite de puntos.',
@@ -1390,7 +1484,8 @@ const esOverrides = {
   'poll.retentionAutoDeleteOverdueDays': 'Eliminacion atrasada por {days} dias',
   'poll.retentionLegalHoldActive': 'Retencion legal activa',
   'admin.status.sectionRetention': 'Retencion de datos',
-  'admin.status.sectionRetentionHint': 'Configuracion y estado de politicas de retencion automatica.',
+  'admin.status.sectionRetentionHint':
+    'Configuracion y estado de politicas de retencion automatica.',
   'admin.status.retentionPollDefault': 'Retencion por defecto de encuestas',
   'admin.status.retentionSweepInterval': 'Intervalo de barrido de retencion',
   'admin.status.retentionSweepBatch': 'Tamano de lote de barrido',
@@ -1402,7 +1497,8 @@ const esOverrides = {
 
   'admin.status.retentionAuditLogsLegalHold': 'Retencion de auditoria en bloqueo legal',
   'admin.status.retentionRejectedVotesLegalHold': 'Retencion de votos rechazados en bloqueo legal',
-  'admin.dashboard.kpi.retentionLegalHoldOn': 'Bloqueo legal activo',  'admin.dashboard.kpi.retentionPollDefault': 'Retencion por defecto',
+  'admin.dashboard.kpi.retentionLegalHoldOn': 'Bloqueo legal activo',
+  'admin.dashboard.kpi.retentionPollDefault': 'Retencion por defecto',
   'admin.dashboard.kpi.retentionAuditLogs': 'Retencion de auditoria',
   'admin.dashboard.kpi.retentionRejectedVotesMeta': 'Limpieza de votos rechazados: {days} dias',
   'developer.upgradeCta': 'Mejorar plan',

@@ -1,9 +1,9 @@
+import { appEnv } from '../../lib/env';
 import {
   assertLlmUpstreamUrlAllowed,
   lmStudioBaseUrl,
   ollamaBaseUrl,
 } from '../../lib/llmProviders';
-import { appEnv } from '../../lib/env';
 
 function llmUpstreamTimeoutMs(): number {
   return appEnv.llmUpstreamTimeoutMs;

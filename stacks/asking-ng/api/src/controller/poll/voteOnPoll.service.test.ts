@@ -1,7 +1,7 @@
 import type { VotePollBody } from '@asking-ng/contracts/poll';
 import { UniqueConstraintError } from 'sequelize';
-import type { AppRequest } from '../../types/http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AppRequest } from '../../types/http';
 import { voteOnPollService } from './voteOnPoll.service';
 
 const {
@@ -167,7 +167,13 @@ function pollRow(fields: Partial<PollFields> = {}) {
 }
 
 function req(overrides: Partial<AppRequest> = {}): AppRequest {
-  return { ip: '203.0.113.7', user: undefined, headers: {}, secure: false, ...overrides } as AppRequest;
+  return {
+    ip: '203.0.113.7',
+    user: undefined,
+    headers: {},
+    secure: false,
+    ...overrides,
+  } as AppRequest;
 }
 
 describe('voteOnPollService (multi-select)', () => {
@@ -460,11 +466,9 @@ describe('voteOnPollService (vote_eligibility=platform_linked)', () => {
 
   it('requires provider configuration on platform-linked poll', async () => {
     mockFindPollByIdOrSlug.mockResolvedValue(pollRow({ voteEligibility: 'platform_linked' }));
-    const r = await voteOnPollService(
-      req({ user: { id: 42 } as never }),
-      'poll-1',
-      { option_index: 0 } as VotePollBody,
-    );
+    const r = await voteOnPollService(req({ user: { id: 42 } as never }), 'poll-1', {
+      option_index: 0,
+    } as VotePollBody);
     expect(r.kind).toBe('platform_identity_not_configured');
   });
 
@@ -577,7 +581,9 @@ describe('voteOnPollService (trust ip burst)', () => {
   });
 
   it('quarantines with ip_burst and trust score when burst threshold is exceeded', async () => {
-    mockFindPollByIdOrSlug.mockResolvedValue(pollRow({ selectionMode: 'single', voteFrictionTier: 'open' }));
+    mockFindPollByIdOrSlug.mockResolvedValue(
+      pollRow({ selectionMode: 'single', voteFrictionTier: 'open' }),
+    );
 
     const r = await voteOnPollService(req(), 'poll-1', { option_index: 0 } as VotePollBody);
 
@@ -597,7 +603,11 @@ describe('voteOnPollService (trust ip burst)', () => {
 
   it('uses soft_plus_burst when soft throttle and burst both trigger', async () => {
     mockFindPollByIdOrSlug.mockResolvedValue(
-      pollRow({ selectionMode: 'single', voteFrictionTier: 'soft_throttle', softThrottleMaxVotesPerMin: 2 }),
+      pollRow({
+        selectionMode: 'single',
+        voteFrictionTier: 'soft_throttle',
+        softThrottleMaxVotesPerMin: 2,
+      }),
     );
     mockCountRecentVotesForSourceIp.mockResolvedValue(2);
     mockCountRecentVotesForSourceIpWindowSeconds.mockResolvedValue(4);
@@ -639,7 +649,9 @@ describe('voteOnPollService (trust chat burst)', () => {
   });
 
   it('quarantines with chat_burst when chat channel burst threshold is exceeded', async () => {
-    mockFindPollByIdOrSlug.mockResolvedValue(pollRow({ selectionMode: 'single', voteFrictionTier: 'open' }));
+    mockFindPollByIdOrSlug.mockResolvedValue(
+      pollRow({ selectionMode: 'single', voteFrictionTier: 'open' }),
+    );
 
     const r = await voteOnPollService(req(), 'poll-1', {
       option_index: 0,

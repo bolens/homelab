@@ -50,7 +50,9 @@ export function recordPollWebhookDeliveryTelemetry(kind: PollWebhookDeliveryTele
   buckets.set(nowMinute, bucket);
 }
 
-export function readPollWebhookDeliveryTelemetry(windowMinutes = 15): PollWebhookDeliveryTelemetrySnapshot {
+export function readPollWebhookDeliveryTelemetry(
+  windowMinutes = 15,
+): PollWebhookDeliveryTelemetrySnapshot {
   const safeWindow = Math.max(1, Math.min(RETENTION_MINUTES, Math.floor(windowMinutes) || 15));
   const asOfMs = Date.now();
   const nowMinute = utcMinuteEpoch(asOfMs);

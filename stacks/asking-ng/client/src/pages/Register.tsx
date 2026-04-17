@@ -1,6 +1,6 @@
 import { authRegisterBodySchema } from '@asking-ng/contracts/auth';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch } from '../http';
 import { useT } from '../i18n/I18nContext';
@@ -54,10 +54,8 @@ export default function Register() {
 
   const termsLabel = (
     <>
-      {t('register.acceptTermsBefore')}{' '}
-      <Link to='/terms'>{t('nav.terms')}</Link>
-      {t('register.acceptTermsMiddle')}{' '}
-      <Link to='/privacy'>{t('nav.privacy')}</Link>
+      {t('register.acceptTermsBefore')} <Link to='/terms'>{t('nav.terms')}</Link>
+      {t('register.acceptTermsMiddle')} <Link to='/privacy'>{t('nav.privacy')}</Link>
       {t('register.acceptTermsAfter')}
     </>
   );

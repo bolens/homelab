@@ -1,4 +1,3 @@
-import type { AppRequestHandler } from '../../types/http';
 import { QueryTypes } from 'sequelize';
 import db from '../../connections';
 import { pollEmbedViewAllowed, readEmbedReadTokenFromRequest } from '../../lib/embedReadToken';
@@ -13,6 +12,7 @@ import {
   trustStackSafeguardTags,
 } from '../../lib/trustStackSignals';
 import Poll from '../../model/Poll';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 /**
@@ -77,7 +77,8 @@ const getPollMeta: AppRequestHandler = async (req, res) => {
   const mediaModeration = normalizeMediaModeration(poll.get('mediaModeration'));
   const mediaBlurByDefault = poll.get('mediaBlurByDefault') !== false;
   const themePreset = String(poll.get('themePreset') ?? 'default');
-  const selectionMode = String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
+  const selectionMode =
+    String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
   const voteEligibilityRaw = String(poll.get('voteEligibility') ?? 'anonymous');
   const voteEligibility =
     voteEligibilityRaw === 'account' || voteEligibilityRaw === 'platform_linked'
@@ -261,8 +262,7 @@ const getPollMeta: AppRequestHandler = async (req, res) => {
                 Number(rateCountersRow?.quarantined_votes_pending_account_linked ?? 0) || 0,
               votes_account_linked_last_24h:
                 Number(rateCountersRow?.votes_account_linked_last_24h ?? 0) || 0,
-              votes_anonymous_last_24h:
-                Number(rateCountersRow?.votes_anonymous_last_24h ?? 0) || 0,
+              votes_anonymous_last_24h: Number(rateCountersRow?.votes_anonymous_last_24h ?? 0) || 0,
               trust_ip_burst: trustIpBurstOwnerSummary(),
               trust_chat_burst: trustChatBurstOwnerSummary(),
             },

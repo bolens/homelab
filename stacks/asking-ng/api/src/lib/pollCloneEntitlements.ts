@@ -1,5 +1,8 @@
 import { findBillingPlanAndRoleForVoteQuota } from '../controller/self/self.repository';
-import { hasExtendedRetentionForBillingPlan, hasWebhookAutomationForBillingPlan } from './billingLimits';
+import {
+  hasExtendedRetentionForBillingPlan,
+  hasWebhookAutomationForBillingPlan,
+} from './billingLimits';
 import { appEnv } from './env';
 import { selfhostProLicenseExpiredDetailsForPlan } from './selfhostProLicense';
 
@@ -76,7 +79,8 @@ export function normalizeClonePremiumFields(source: PollLike): NormalizedClonePr
         include_owner_events?: boolean;
       } = { url: t.url.trim(), secret: t.secret.trim() };
       const hl = typeof t.hint_locale === 'string' ? t.hint_locale.trim().toLowerCase() : '';
-      if (hl === 'en' || hl === 'en-gb' || hl === 'es') base.hint_locale = hl as 'en' | 'en-gb' | 'es';
+      if (hl === 'en' || hl === 'en-gb' || hl === 'es')
+        base.hint_locale = hl as 'en' | 'en-gb' | 'es';
       if (t.include_results_snapshot === true) base.include_results_snapshot = true;
       if (t.include_owner_snapshot === true) base.include_owner_snapshot = true;
       if (t.include_owner_events === true) base.include_owner_events = true;
@@ -99,7 +103,10 @@ export async function checkClonePremiumEntitlements(args: {
   const cloneNeedsAutomationEntitlement = premiumFields.webhookTargets.length > 0;
   const cloneNeedsRetentionEntitlement =
     premiumFields.retentionTtlDays != null || premiumFields.retentionLegalHold;
-  if (!appEnv.billingEnforceLimits || (!cloneNeedsAutomationEntitlement && !cloneNeedsRetentionEntitlement)) {
+  if (
+    !appEnv.billingEnforceLimits ||
+    (!cloneNeedsAutomationEntitlement && !cloneNeedsRetentionEntitlement)
+  ) {
     return null;
   }
 
@@ -107,17 +114,29 @@ export async function checkClonePremiumEntitlements(args: {
     args.ownerId != null && Number.isFinite(Number(args.ownerId)) ? Number(args.ownerId) : null;
   const { billingPlan, role } =
     ownerUserId != null
-      ? await findBillingPlanAndRoleForVoteQuota({ pollId: args.pollId, creatorUserId: ownerUserId })
+      ? await findBillingPlanAndRoleForVoteQuota({
+          pollId: args.pollId,
+          creatorUserId: ownerUserId,
+        })
       : { billingPlan: 'free', role: null };
-  const licenseExpired = role !== 'superadmin' ? selfhostProLicenseExpiredDetailsForPlan(billingPlan) : null;
+  const licenseExpired =
+    role !== 'superadmin' ? selfhostProLicenseExpiredDetailsForPlan(billingPlan) : null;
   if (licenseExpired) {
     return { kind: 'billing_license_expired', details: licenseExpired };
   }
 
-  if (cloneNeedsAutomationEntitlement && role !== 'superadmin' && !hasWebhookAutomationForBillingPlan(billingPlan)) {
+  if (
+    cloneNeedsAutomationEntitlement &&
+    role !== 'superadmin' &&
+    !hasWebhookAutomationForBillingPlan(billingPlan)
+  ) {
     return { kind: 'plan_limit_automation', plan: billingPlan, requiredPlan: 'cloud-team' };
   }
-  if (cloneNeedsRetentionEntitlement && role !== 'superadmin' && !hasExtendedRetentionForBillingPlan(billingPlan)) {
+  if (
+    cloneNeedsRetentionEntitlement &&
+    role !== 'superadmin' &&
+    !hasExtendedRetentionForBillingPlan(billingPlan)
+  ) {
     return { kind: 'plan_limit_retention', plan: billingPlan, requiredPlan: 'cloud-team' };
   }
   return null;

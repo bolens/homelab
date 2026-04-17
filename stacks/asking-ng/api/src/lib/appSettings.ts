@@ -73,7 +73,9 @@ async function upsertNumericAppSetting(key: string, value: number): Promise<void
 async function getBoolAppSetting(key: string): Promise<boolean | null> {
   const row = await AppSetting.findByPk(key);
   if (!row) return null;
-  const raw = String(row.get('value') ?? '').trim().toLowerCase();
+  const raw = String(row.get('value') ?? '')
+    .trim()
+    .toLowerCase();
   if (raw === 'true' || raw === '1' || raw === 'yes') return true;
   if (raw === 'false' || raw === '0' || raw === 'no') return false;
   return null;
@@ -105,9 +107,7 @@ export async function getRetentionPolicySettings(): Promise<RetentionPolicySetti
   const auditRaw = await getNumericAppSetting(AUDIT_LOG_RETENTION_DAYS_KEY);
   const rejectedRaw = await getNumericAppSetting(MODERATION_REJECTED_VOTE_RETENTION_DAYS_KEY);
   const auditHold = await getBoolAppSetting(AUDIT_LOG_RETENTION_LEGAL_HOLD_KEY);
-  const rejectedHold = await getBoolAppSetting(
-    MODERATION_REJECTED_VOTE_RETENTION_LEGAL_HOLD_KEY,
-  );
+  const rejectedHold = await getBoolAppSetting(MODERATION_REJECTED_VOTE_RETENTION_LEGAL_HOLD_KEY);
   return {
     poll_retention_ttl_days_default:
       ttlRaw == null ? appEnv.pollRetentionTtlDaysDefault : Math.max(0, Math.min(3650, ttlRaw)),
@@ -116,7 +116,9 @@ export async function getRetentionPolicySettings(): Promise<RetentionPolicySetti
         ? appEnv.pollRetentionSweepIntervalSec
         : Math.max(30, Math.min(86_400, intervalRaw)),
     poll_retention_sweep_batch_size:
-      batchRaw == null ? appEnv.pollRetentionSweepBatchSize : Math.max(10, Math.min(5_000, batchRaw)),
+      batchRaw == null
+        ? appEnv.pollRetentionSweepBatchSize
+        : Math.max(10, Math.min(5_000, batchRaw)),
     audit_log_retention_days:
       auditRaw == null ? appEnv.auditLogRetentionDays : Math.max(0, Math.min(3650, auditRaw)),
     moderation_rejected_vote_retention_days:

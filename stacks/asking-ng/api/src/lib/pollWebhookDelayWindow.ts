@@ -9,7 +9,9 @@ export type PollWebhookPublicDelayWindow = {
   resultsVisibleThroughIso: string;
 };
 
-export function computePollWebhookPublicDelayWindow(poll: { get(key: string): unknown }): PollWebhookPublicDelayWindow {
+export function computePollWebhookPublicDelayWindow(poll: {
+  get(key: string): unknown;
+}): PollWebhookPublicDelayWindow {
   const now = Date.now();
   const archived = Boolean(poll.get('archived'));
   const expiration = poll.get('expiration');
@@ -20,7 +22,15 @@ export function computePollWebhookPublicDelayWindow(poll: { get(key: string): un
   const resultsDelaySeconds = Math.max(0, Number(poll.get('resultsDelaySeconds') ?? 0) || 0);
   const liveResultsAreDelayed =
     !archived && !expired && effectivePhase === 'open' && resultsDelaySeconds > 0;
-  const resultsVisibleThroughMs = liveResultsAreDelayed ? Math.max(0, now - resultsDelaySeconds * 1000) : now;
+  const resultsVisibleThroughMs = liveResultsAreDelayed
+    ? Math.max(0, now - resultsDelaySeconds * 1000)
+    : now;
   const resultsVisibleThroughIso = new Date(resultsVisibleThroughMs).toISOString();
-  return { now, effectivePhase, liveResultsAreDelayed, resultsVisibleThroughMs, resultsVisibleThroughIso };
+  return {
+    now,
+    effectivePhase,
+    liveResultsAreDelayed,
+    resultsVisibleThroughMs,
+    resultsVisibleThroughIso,
+  };
 }

@@ -16,7 +16,8 @@ export function registerFastifyErrorHandling(app: FastifyInstance): void {
     const appError = errorToAppError(err);
     const logMeta = { requestId: request.id, code: appError.code, event: 'http.error' };
     const redact = appEnv.incidentMode;
-    const messageForClient = redact && appError.statusCode >= 500 ? 'Service temporarily degraded.' : appError.message;
+    const messageForClient =
+      redact && appError.statusCode >= 500 ? 'Service temporarily degraded.' : appError.message;
 
     if (appError.statusCode >= 500) {
       if (redact) request.log.error(logMeta, 'incident mode server error');

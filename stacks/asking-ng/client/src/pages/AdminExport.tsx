@@ -6,7 +6,7 @@ import { useAdmin } from '../context/AdminContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetchErrorFromText, buildAdminBrowserAuthHeaders } from '../http';
 import { useT } from '../i18n/I18nContext';
-import { Button, Notice, PageHeader, SectionPanel, cx } from '../ui';
+import { Button, cx, Notice, PageHeader, SectionPanel } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 async function downloadExport(path: string, filename: string): Promise<void> {
@@ -123,7 +123,10 @@ export default function AdminExport() {
   }
 
   return (
-    <div className='asking-admin-shell asking-admin-export-page asking-admin-page__cq-root' id='asking-admin-export-page'>
+    <div
+      className='asking-admin-shell asking-admin-export-page asking-admin-page__cq-root'
+      id='asking-admin-export-page'
+    >
       <PageHeader
         className='asking-admin-page__header'
         titleId='asking-admin-export-page__title'
@@ -134,7 +137,9 @@ export default function AdminExport() {
       />
 
       <p className='asking-admin-export-page__intro'>{t('admin.export.intro')}</p>
-      <p className='asking-admin-export-page__flow-hint asking-admin-page__help-text'>{t('admin.export.flowHint')}</p>
+      <p className='asking-admin-export-page__flow-hint asking-admin-page__help-text'>
+        {t('admin.export.flowHint')}
+      </p>
 
       {error ? (
         <Notice tone='error' className='asking-admin-page__banner-error'>
@@ -161,7 +166,9 @@ export default function AdminExport() {
       <SectionPanel
         className='asking-admin-page__section'
         titleId='asking-admin-export-page__datasets-heading'
-        title={<span className='asking-admin-page__section-title'>{t('admin.export.sectionTitle')}</span>}
+        title={
+          <span className='asking-admin-page__section-title'>{t('admin.export.sectionTitle')}</span>
+        }
       >
         <div className='asking-admin-page__card-stack'>
           {EXPORT_ROWS.map((row) => {
@@ -173,7 +180,10 @@ export default function AdminExport() {
             return (
               <article key={row.pathBase} className='asking-admin-page__card'>
                 <div className='asking-admin-page__card-text'>
-                  <h3 className='asking-admin-page__card-title' id={`asking-admin-export-page__dataset-${row.fileBase}-title`}>
+                  <h3
+                    className='asking-admin-page__card-title'
+                    id={`asking-admin-export-page__dataset-${row.fileBase}-title`}
+                  >
                     {title}
                   </h3>
                   <p className='asking-admin-page__card-desc'>{t(row.descKey)}</p>

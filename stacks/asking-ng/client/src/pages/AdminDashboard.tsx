@@ -70,7 +70,10 @@ export default function AdminDashboard() {
   useDocumentTitle(t('admin.docTitle'));
   const { admin } = useAdmin();
   const queryClient = useQueryClient();
-  const canView = !!(admin && (admin.role === 'mod' || admin.role === 'admin' || admin.role === 'superadmin'));
+  const canView = !!(
+    admin &&
+    (admin.role === 'mod' || admin.role === 'admin' || admin.role === 'superadmin')
+  );
   const canRunSimulation = !!(admin && (admin.role === 'admin' || admin.role === 'superadmin'));
   const [simUsers, setSimUsers] = React.useState(8);
   const [simPolls, setSimPolls] = React.useState(2);
@@ -190,7 +193,10 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className='asking-admin-dashboard asking-admin-shell asking-admin-page__cq-root' id='asking-admin-dashboard-page'>
+    <div
+      className='asking-admin-dashboard asking-admin-shell asking-admin-page__cq-root'
+      id='asking-admin-dashboard-page'
+    >
       <PageHeader
         className='asking-admin-page__header'
         titleId='asking-admin-dashboard-page__title'
@@ -211,7 +217,9 @@ export default function AdminDashboard() {
         role='status'
         aria-live='polite'
       >
-        <span className='asking-admin-dashboard__health-row-label'>{t('admin.dashboard.health.title')}</span>
+        <span className='asking-admin-dashboard__health-row-label'>
+          {t('admin.dashboard.health.title')}
+        </span>
         <span className='asking-admin-dashboard__health-row-value'>
           {readyPending
             ? t('admin.status.pending')
@@ -226,21 +234,30 @@ export default function AdminDashboard() {
         ) : null}
       </div>
 
-      <section className='asking-admin-page__kpi-section' aria-labelledby='asking-admin-dashboard-page__kpi-heading'>
+      <section
+        className='asking-admin-page__kpi-section'
+        aria-labelledby='asking-admin-dashboard-page__kpi-heading'
+      >
         <VisuallyHidden as='h2' id='asking-admin-dashboard-page__kpi-heading'>
           {t('admin.dashboard.kpi.heading')}
         </VisuallyHidden>
         <div className='asking-admin-page__kpi-grid'>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.usersTotal')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.usersTotal')}
+            </span>
             <span className='asking-admin-page__kpi-value'>{fmt(status?.users.total)}</span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.usersActive')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.usersActive')}
+            </span>
             <span className='asking-admin-page__kpi-value'>{fmt(status?.users.active)}</span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.pollsTotal')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.pollsTotal')}
+            </span>
             <span className='asking-admin-page__kpi-value'>{fmt(status?.polls.total)}</span>
             {!kpiLoading && status ? (
               <span className='asking-admin-page__kpi-meta'>
@@ -249,17 +266,23 @@ export default function AdminDashboard() {
             ) : null}
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.audit24h')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.audit24h')}
+            </span>
             <span className='asking-admin-page__kpi-value'>{fmt(status?.auditLogs.last24h)}</span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.retentionPollDefault')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.retentionPollDefault')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {fmt(status?.retentionPolicy?.poll_retention_ttl_days_default)}
             </span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.retentionAuditLogs')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.retentionAuditLogs')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {fmt(status?.retentionPolicy?.audit_log_retention_days)}
             </span>
@@ -271,11 +294,15 @@ export default function AdminDashboard() {
               </span>
             ) : null}
             {!kpiLoading && status?.retentionPolicy?.audit_log_retention_legal_hold ? (
-              <span className='asking-admin-page__kpi-meta'>{t('admin.dashboard.kpi.retentionLegalHoldOn')}</span>
+              <span className='asking-admin-page__kpi-meta'>
+                {t('admin.dashboard.kpi.retentionLegalHoldOn')}
+              </span>
             ) : null}
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.trustPending')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.trustPending')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {fmt(status?.trustMetrics?.quarantine_pending_total)}
             </span>
@@ -288,7 +315,9 @@ export default function AdminDashboard() {
             ) : null}
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.trustDecisions24h')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.trustDecisions24h')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {kpiLoading
                 ? t('admin.dashboard.kpi.placeholder')
@@ -307,7 +336,9 @@ export default function AdminDashboard() {
             ) : null}
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.trustRiskAvg')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.trustRiskAvg')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {kpiLoading
                 ? t('admin.dashboard.kpi.placeholder')
@@ -317,33 +348,49 @@ export default function AdminDashboard() {
             </span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.quarantinePendingSignedIn')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.quarantinePendingSignedIn')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {fmt(status?.trustMetrics?.quarantine_pending_account_linked)}
             </span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.votes24hAccountBallots')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.votes24hAccountBallots')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {fmt(status?.trustMetrics?.votes_account_linked_last_24h)}
             </span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.votes24hAnonymousBallots')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.votes24hAnonymousBallots')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {fmt(status?.trustMetrics?.votes_anonymous_last_24h)}
             </span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.votes24h')}</span>
-            <span className='asking-admin-page__kpi-value'>{fmt(status?.creatorMetrics?.votes_last_24h)}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.votes24h')}
+            </span>
+            <span className='asking-admin-page__kpi-value'>
+              {fmt(status?.creatorMetrics?.votes_last_24h)}
+            </span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.totalVotes')}</span>
-            <span className='asking-admin-page__kpi-value'>{fmt(status?.creatorMetrics?.total_votes)}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.totalVotes')}
+            </span>
+            <span className='asking-admin-page__kpi-value'>
+              {fmt(status?.creatorMetrics?.total_votes)}
+            </span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.peakHour')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.peakHour')}
+            </span>
             <span className='asking-admin-page__kpi-value'>
               {kpiLoading
                 ? t('admin.dashboard.kpi.placeholder')
@@ -379,7 +426,9 @@ export default function AdminDashboard() {
             ) : null}
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.hourlySparkline')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.hourlySparkline')}
+            </span>
             <span className='asking-admin-page__kpi-value' aria-hidden='true'>
               <SparklineBars
                 values={
@@ -411,7 +460,9 @@ export default function AdminDashboard() {
             </span>
           </KpiCard>
           <KpiCard>
-            <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.weekdaySparkline')}</span>
+            <span className='asking-admin-page__kpi-label'>
+              {t('admin.dashboard.kpi.weekdaySparkline')}
+            </span>
             <span className='asking-admin-page__kpi-value' aria-hidden='true'>
               <SparklineBars
                 values={
@@ -446,73 +497,84 @@ export default function AdminDashboard() {
         <SectionPanel
           className='asking-admin-page__setup-card asking-admin-page__simulation-card'
           titleId='asking-admin-dashboard-page__simulation-heading'
-          title={<span className='asking-admin-page__setup-title'>{t('admin.dashboard.simulation.title')}</span>}
-          hint={<span className='asking-admin-page__help-text asking-admin-page__simulation-help'>{t('admin.dashboard.simulation.subtitle')}</span>}
+          title={
+            <span className='asking-admin-page__setup-title'>
+              {t('admin.dashboard.simulation.title')}
+            </span>
+          }
+          hint={
+            <span className='asking-admin-page__help-text asking-admin-page__simulation-help'>
+              {t('admin.dashboard.simulation.subtitle')}
+            </span>
+          }
           headerClassName='asking-admin-page__setup-header'
         >
-        <form
-          id='asking-admin-dashboard-page__simulation-form'
-          className='asking-admin-page__simulation-form'
-          onSubmit={(e) => {
-            e.preventDefault();
-            simulationMutation.mutate();
-          }}
-        >
-          <label className='asking-admin-page__simulation-field'>
-            <span>{t('admin.dashboard.simulation.users')}</span>
-            <input
-              type='number'
-              min={0}
-              max={50}
-              value={simUsers}
-              onChange={(e) => setSimUsers(Number(e.target.value) || 0)}
-            />
-          </label>
-          <label className='asking-admin-page__simulation-field'>
-            <span>{t('admin.dashboard.simulation.polls')}</span>
-            <input
-              type='number'
-              min={1}
-              max={25}
-              value={simPolls}
-              onChange={(e) => setSimPolls(Math.max(1, Number(e.target.value) || 1))}
-            />
-          </label>
-          <label className='asking-admin-page__simulation-field'>
-            <span>{t('admin.dashboard.simulation.votes')}</span>
-            <input
-              type='number'
-              min={0}
-              max={1000}
-              value={simVotesPerPoll}
-              onChange={(e) => setSimVotesPerPoll(Math.max(0, Number(e.target.value) || 0))}
-            />
-          </label>
-          <Button
-            type='submit'
-            variant='primary'
-            className='asking-admin-page__toolbar-btn'
-            disabled={simulationMutation.isPending}
+          <form
+            id='asking-admin-dashboard-page__simulation-form'
+            className='asking-admin-page__simulation-form'
+            onSubmit={(e) => {
+              e.preventDefault();
+              simulationMutation.mutate();
+            }}
           >
-            {simulationMutation.isPending
-              ? t('admin.dashboard.simulation.running')
-              : t('admin.dashboard.simulation.run')}
-          </Button>
-        </form>
-        {simulationSuccess ? (
-          <Notice
-            tone='success'
-            className='asking-admin-page__status asking-admin-page__status--success'
-            aria-live='polite'
-          >
-            {simulationSuccess}
-          </Notice>
-        ) : null}
-        {simulationError ? (
-          <Notice tone='error' className='asking-admin-page__status asking-admin-page__status--error'>
-            {simulationError}
-          </Notice>
-        ) : null}
+            <label className='asking-admin-page__simulation-field'>
+              <span>{t('admin.dashboard.simulation.users')}</span>
+              <input
+                type='number'
+                min={0}
+                max={50}
+                value={simUsers}
+                onChange={(e) => setSimUsers(Number(e.target.value) || 0)}
+              />
+            </label>
+            <label className='asking-admin-page__simulation-field'>
+              <span>{t('admin.dashboard.simulation.polls')}</span>
+              <input
+                type='number'
+                min={1}
+                max={25}
+                value={simPolls}
+                onChange={(e) => setSimPolls(Math.max(1, Number(e.target.value) || 1))}
+              />
+            </label>
+            <label className='asking-admin-page__simulation-field'>
+              <span>{t('admin.dashboard.simulation.votes')}</span>
+              <input
+                type='number'
+                min={0}
+                max={1000}
+                value={simVotesPerPoll}
+                onChange={(e) => setSimVotesPerPoll(Math.max(0, Number(e.target.value) || 0))}
+              />
+            </label>
+            <Button
+              type='submit'
+              variant='primary'
+              className='asking-admin-page__toolbar-btn'
+              disabled={simulationMutation.isPending}
+            >
+              {simulationMutation.isPending
+                ? t('admin.dashboard.simulation.running')
+                : t('admin.dashboard.simulation.run')}
+            </Button>
+          </form>
+          {simulationSuccess ? (
+            <Notice
+              tone='success'
+              className='asking-admin-page__status asking-admin-page__status--success'
+              aria-live='polite'
+            >
+              {simulationSuccess}
+            </Notice>
+          ) : null}
+          {simulationError ? (
+            <Notice
+              tone='error'
+              className='asking-admin-page__status asking-admin-page__status--error'
+            >
+              {simulationError}
+            </Notice>
+          ) : null}
         </SectionPanel>
       ) : null}
 
@@ -520,8 +582,16 @@ export default function AdminDashboard() {
         <SectionPanel
           className='asking-admin-page__setup-card'
           titleId='asking-admin-dashboard-page__setup-heading'
-          title={<span className='asking-admin-page__setup-title'>{t('admin.dashboard.setup.title')}</span>}
-          hint={<span className='asking-admin-page__setup-progress'>{t('admin.dashboard.setup.progress', { done: doneCount, total: setupSteps.length })}</span>}
+          title={
+            <span className='asking-admin-page__setup-title'>
+              {t('admin.dashboard.setup.title')}
+            </span>
+          }
+          hint={
+            <span className='asking-admin-page__setup-progress'>
+              {t('admin.dashboard.setup.progress', { done: doneCount, total: setupSteps.length })}
+            </span>
+          }
           headerClassName='asking-admin-page__setup-header'
         >
           <ul className='asking-admin-page__setup-list'>
@@ -529,7 +599,9 @@ export default function AdminDashboard() {
               <li key={step.key} className='asking-admin-page__setup-item'>
                 <span
                   className={
-                    step.done ? 'asking-admin-page__status--success' : 'asking-admin-page__status--error'
+                    step.done
+                      ? 'asking-admin-page__status--success'
+                      : 'asking-admin-page__status--error'
                   }
                   aria-hidden
                 >
@@ -553,7 +625,11 @@ export default function AdminDashboard() {
         <SectionPanel
           className='asking-admin-page__quick-section'
           titleId='asking-admin-dashboard-page__quick-heading'
-          title={<span className='asking-admin-page__quick-section-title'>{t('admin.dashboard.quick.title')}</span>}
+          title={
+            <span className='asking-admin-page__quick-section-title'>
+              {t('admin.dashboard.quick.title')}
+            </span>
+          }
         >
           <div className='asking-admin-page__quick-grid'>
             {quickActions.map((action) => (

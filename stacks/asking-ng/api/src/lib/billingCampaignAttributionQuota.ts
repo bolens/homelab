@@ -1,6 +1,6 @@
-import { resolvePollWebhookDeliveryScope } from './billingPollWebhookDelivery';
 import AuditLog from '../models/auditlog.sequelize';
 import { maxCampaignAttributionIncrementsPerUtcDayForBillingPlan } from './billingLimits';
+import { resolvePollWebhookDeliveryScope } from './billingPollWebhookDelivery';
 import { appEnv } from './env';
 import { logger } from './logger';
 import { observeIntegrationEvent } from './metrics';
@@ -122,7 +122,12 @@ async function recordCampaignAttributionShed(args: {
     });
   } catch (err: unknown) {
     logger.warn(
-      { event: 'billing.campaign_attribution_meter.write_failed', err, pollId: args.pollId, workspaceUserId },
+      {
+        event: 'billing.campaign_attribution_meter.write_failed',
+        err,
+        pollId: args.pollId,
+        workspaceUserId,
+      },
       'failed to record campaign attribution shed metering row',
     );
   }

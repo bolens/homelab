@@ -10,7 +10,7 @@ type UserRow = NonNullable<Awaited<ReturnType<typeof User.findByPk>>>;
  */
 export async function ensureDefaultWorkspaceForUser(
   user: UserRow,
-  options?: { transaction?: Transaction },
+  options?: { transaction?: Transaction | null | undefined },
 ): Promise<number> {
   const existing = user.get('defaultWorkspaceId') as number | null | undefined;
   if (existing != null && Number(existing) > 0) {
@@ -24,22 +24,22 @@ export async function ensureDefaultWorkspaceForUser(
       polarCustomerId: (user.get('polarCustomerId') as string | null) ?? null,
       polarSubscriptionId: (user.get('polarSubscriptionId') as string | null) ?? null,
     },
-    { transaction: options?.transaction },
+    { transaction: options?.transaction ?? null },
   );
 
   const wid = ws.get('id') as number;
   user.set('defaultWorkspaceId', wid);
-  await user.save({ transaction: options?.transaction });
+  await user.save({ transaction: options?.transaction ?? null });
   return wid;
 }
 
 /** Resolves the workspace id to attach to a new poll for this creator (null for anonymous polls). */
 export async function resolveWorkspaceIdForCreatorUserId(
   creatorUserId: number | null,
-  options?: { transaction?: Transaction },
+  options?: { transaction?: Transaction | null | undefined },
 ): Promise<number | null> {
   if (creatorUserId == null) return null;
-  const user = await User.findByPk(creatorUserId, { transaction: options?.transaction });
+  const user = await User.findByPk(creatorUserId, { transaction: options?.transaction ?? null });
   if (!user) return null;
   return ensureDefaultWorkspaceForUser(user, options);
 }

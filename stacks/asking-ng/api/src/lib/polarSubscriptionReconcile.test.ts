@@ -41,8 +41,8 @@ vi.mock('./metrics', () => ({
   observeIntegrationEvent: vi.fn(),
 }));
 
-import { reconcilePolarSubscriptionsFromApi } from './polarSubscriptionReconcile';
 import { observeIntegrationEvent } from './metrics';
+import { reconcilePolarSubscriptionsFromApi } from './polarSubscriptionReconcile';
 
 const log = {
   warn: vi.fn(),

@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
 import { presentLlmStatus, presentOpenAiModelList } from '../controller/llm/llm.presenter';
-import { appEnv } from '../lib/env';
 import {
   buildLlmStatus,
   createChatCompletionsService,
   listLlmModelsService,
 } from '../controller/llm/llm.service';
+import { appEnv } from '../lib/env';
 import { chatCompletionBodySchema } from '../schemas/llm';
 import { replyJsonError } from './requestAdapter';
 
@@ -34,7 +34,12 @@ export const fastifyLlmRoutes: FastifyPluginAsync = async (app) => {
 
   app.addHook('preHandler', async (request, reply) => {
     if (appEnv.incidentMode) {
-      const err = replyJsonError(request.id, 503, 'LLM_DISABLED', 'LLM gateway disabled (INCIDENT_MODE).');
+      const err = replyJsonError(
+        request.id,
+        503,
+        'LLM_DISABLED',
+        'LLM gateway disabled (INCIDENT_MODE).',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
@@ -74,7 +79,7 @@ export const fastifyLlmRoutes: FastifyPluginAsync = async (app) => {
     bucket.count += 1;
   });
 
-  app.get('/status', async (request, reply) => {
+  app.get('/status', async (_request, reply) => {
     reply.send(presentLlmStatus(buildLlmStatus()));
   });
 
@@ -91,12 +96,22 @@ export const fastifyLlmRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     if (result.kind === 'ollama_upstream_error') {
-      const err = replyJsonError(request.id, result.status, 'OLLAMA_UPSTREAM', 'Ollama tags request failed');
+      const err = replyJsonError(
+        request.id,
+        result.status,
+        'OLLAMA_UPSTREAM',
+        'Ollama tags request failed',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
     if (result.kind === 'lmstudio_upstream_invalid_json') {
-      const err = replyJsonError(request.id, 502, 'LMSTUDIO_UPSTREAM', 'Invalid JSON from LM Studio');
+      const err = replyJsonError(
+        request.id,
+        502,
+        'LMSTUDIO_UPSTREAM',
+        'Invalid JSON from LM Studio',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
@@ -112,7 +127,10 @@ export const fastifyLlmRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     if (result.kind === 'upstream_error') {
-      request.log.error({ event: 'llm.models.upstream_error', err: result.message }, 'llm list models');
+      request.log.error(
+        { event: 'llm.models.upstream_error', err: result.message },
+        'llm list models',
+      );
       const err = replyJsonError(request.id, 502, 'LLM_UPSTREAM', result.message);
       reply.code(err.statusCode).send(err.body);
       return;
@@ -144,7 +162,12 @@ export const fastifyLlmRoutes: FastifyPluginAsync = async (app) => {
     }
     const result = await createChatCompletionsService(parsed.data);
     if (result.kind === 'not_configured') {
-      const err = replyJsonError(request.id, 503, 'LLM_NOT_CONFIGURED', 'Set LLM_PROVIDER to ollama or lmstudio.');
+      const err = replyJsonError(
+        request.id,
+        503,
+        'LLM_NOT_CONFIGURED',
+        'Set LLM_PROVIDER to ollama or lmstudio.',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
@@ -154,12 +177,23 @@ export const fastifyLlmRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     if (result.kind === 'ollama_upstream_error') {
-      const err = replyJsonError(request.id, result.status, 'OLLAMA_UPSTREAM', 'Ollama chat failed', result.details);
+      const err = replyJsonError(
+        request.id,
+        result.status,
+        'OLLAMA_UPSTREAM',
+        'Ollama chat failed',
+        result.details,
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
     if (result.kind === 'lmstudio_upstream_invalid_json') {
-      const err = replyJsonError(request.id, 502, 'LMSTUDIO_UPSTREAM', 'Invalid JSON from LM Studio');
+      const err = replyJsonError(
+        request.id,
+        502,
+        'LMSTUDIO_UPSTREAM',
+        'Invalid JSON from LM Studio',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }

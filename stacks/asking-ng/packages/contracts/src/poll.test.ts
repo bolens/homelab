@@ -257,7 +257,9 @@ describe('createPollBodySchema', () => {
       options: ['a', 'b'],
       expiration: 999999999999999,
       limit_ip: true,
-      webhook_targets: [{ url: 'https://hooks.example.test/poll', secret: 'abcdefghijklmnop', hint_locale: 'es' }],
+      webhook_targets: [
+        { url: 'https://hooks.example.test/poll', secret: 'abcdefghijklmnop', hint_locale: 'es' },
+      ],
     });
     expect(r.success).toBe(true);
   });
@@ -403,9 +405,9 @@ describe('updatePollBodySchema', () => {
   });
 
   it('rejects panic combined with vote_eligibility', () => {
-    expect(updatePollBodySchema.safeParse({ panic: true, vote_eligibility: 'account' }).success).toBe(
-      false,
-    );
+    expect(
+      updatePollBodySchema.safeParse({ panic: true, vote_eligibility: 'account' }).success,
+    ).toBe(false);
   });
 
   it('accepts retention_ttl_days-only patch', () => {
@@ -425,9 +427,9 @@ describe('updatePollBodySchema', () => {
   });
 
   it('rejects panic combined with retention_legal_hold', () => {
-    expect(updatePollBodySchema.safeParse({ panic: true, retention_legal_hold: true }).success).toBe(
-      false,
-    );
+    expect(
+      updatePollBodySchema.safeParse({ panic: true, retention_legal_hold: true }).success,
+    ).toBe(false);
   });
 
   it('accepts schedule updates and clears', () => {
@@ -572,7 +574,9 @@ describe('votePollBodySchema', () => {
   it('rejects mixing single-choice fields with option_indices', () => {
     expect(votePollBodySchema.safeParse({ option: 'a', option_index: 0 }).success).toBe(false);
     expect(votePollBodySchema.safeParse({ option: 'a', option_indices: [0] }).success).toBe(false);
-    expect(votePollBodySchema.safeParse({ option_index: 0, option_indices: [0] }).success).toBe(false);
+    expect(votePollBodySchema.safeParse({ option_index: 0, option_indices: [0] }).success).toBe(
+      false,
+    );
   });
 
   it('accepts option_indices for multi ballots', () => {
@@ -645,14 +649,16 @@ describe('quarantine moderation schemas', () => {
 });
 
 describe('pollFormatExtensionSchema (roadmap placeholder)', () => {
-  it.each(['ranked_choice', 'rating_scale', 'quiz', 'free_text_moderated'] as const)(
-    'accepts %s',
-    (value) => {
-      const r = pollFormatExtensionSchema.safeParse(value);
-      expect(r.success).toBe(true);
-      if (r.success) expect(r.data).toBe(value);
-    },
-  );
+  it.each([
+    'ranked_choice',
+    'rating_scale',
+    'quiz',
+    'free_text_moderated',
+  ] as const)('accepts %s', (value) => {
+    const r = pollFormatExtensionSchema.safeParse(value);
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data).toBe(value);
+  });
 
   it('rejects unknown labels', () => {
     expect(pollFormatExtensionSchema.safeParse('single').success).toBe(false);

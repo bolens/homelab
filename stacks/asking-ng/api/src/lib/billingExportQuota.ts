@@ -14,7 +14,9 @@ export type DataExportKind = 'poll' | 'self';
 export type DailyExportQuotaDenied = { ok: false; max: number; current: number; plan: string };
 export type DailyExportQuotaOk = { ok: true };
 
-export async function countCompletedDataExportsForWorkspaceUtcDay(workspaceUserId: number): Promise<number> {
+export async function countCompletedDataExportsForWorkspaceUtcDay(
+  workspaceUserId: number,
+): Promise<number> {
   const { start, endExclusive } = utcCalendarDayBounds();
   const [r] = (await db.query(
     `SELECT COUNT(*)::int AS c
@@ -74,7 +76,12 @@ export async function recordDataExportJob(args: {
     });
   } catch (err: unknown) {
     logger.warn(
-      { event: 'billing.export_meter.write_failed', err, workspaceUserId: args.workspaceUserId, kind: args.kind },
+      {
+        event: 'billing.export_meter.write_failed',
+        err,
+        workspaceUserId: args.workspaceUserId,
+        kind: args.kind,
+      },
       'failed to record data export metering row',
     );
   }

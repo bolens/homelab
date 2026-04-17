@@ -93,56 +93,68 @@ async function postJson(
 export function notifyWebhook(event: string, payload: WebhookPayload): void {
   if (!appEnv.notifyWebhookUrl) return;
   const targetUrl = appEnv.notifyWebhookUrl;
-  enqueueAsyncJob(`integration_notify:${event}`, async () => {
-    await postJson(
-      targetUrl,
-      {
-        source: 'asking-ng-api',
-        event,
-        at: new Date().toISOString(),
-        payload,
-      },
-      'notify',
-      appEnv.notifyWebhookToken,
-      appEnv.integrationWebhookTimeoutMs,
-    );
-  }, { dropCategory: 'integration_notify' });
+  enqueueAsyncJob(
+    `integration_notify:${event}`,
+    async () => {
+      await postJson(
+        targetUrl,
+        {
+          source: 'asking-ng-api',
+          event,
+          at: new Date().toISOString(),
+          payload,
+        },
+        'notify',
+        appEnv.notifyWebhookToken,
+        appEnv.integrationWebhookTimeoutMs,
+      );
+    },
+    { dropCategory: 'integration_notify' },
+  );
 }
 
 export function sinkAuditLog(event: WebhookPayload): void {
   if (!appEnv.auditLogSinkUrl) return;
   const targetUrl = appEnv.auditLogSinkUrl;
-  enqueueAsyncJob('integration_audit_sink', async () => {
-    await postJson(
-      targetUrl,
-      {
-        source: 'asking-ng-api',
-        type: 'audit_log',
-        at: new Date().toISOString(),
-        event,
-      },
-      'audit',
-      appEnv.auditLogSinkToken,
-      appEnv.integrationWebhookTimeoutMs,
-    );
-  }, { dropCategory: 'integration_audit' });
+  enqueueAsyncJob(
+    'integration_audit_sink',
+    async () => {
+      await postJson(
+        targetUrl,
+        {
+          source: 'asking-ng-api',
+          type: 'audit_log',
+          at: new Date().toISOString(),
+          event,
+        },
+        'audit',
+        appEnv.auditLogSinkToken,
+        appEnv.integrationWebhookTimeoutMs,
+      );
+    },
+    { dropCategory: 'integration_audit' },
+  );
 }
 
 export function reportErrorToSentryCompat(event: WebhookPayload): void {
   if (!appEnv.sentryCompatWebhookUrl) return;
   const targetUrl = appEnv.sentryCompatWebhookUrl;
-  enqueueAsyncJob('integration_error_sink', async () => {
-    await postJson(
-      targetUrl,
-      {
-        source: 'asking-ng-api',
-        type: 'error',
-        at: new Date().toISOString(),
-        event,
-      },
-      'error',
-      appEnv.sentryCompatWebhookToken,
-      appEnv.integrationWebhookTimeoutMs,
-    );
-  }, { dropCategory: 'integration_error' });
+  enqueueAsyncJob(
+    'integration_error_sink',
+    async () => {
+      await postJson(
+        targetUrl,
+        {
+          source: 'asking-ng-api',
+          type: 'error',
+          at: new Date().toISOString(),
+          event,
+        },
+        'error',
+        appEnv.sentryCompatWebhookToken,
+        appEnv.integrationWebhookTimeoutMs,
+      );
+    },
+    { dropCategory: 'integration_error' },
+  );
 }

@@ -1,5 +1,4 @@
 import type { EditWriteInVoteBody } from '@asking-ng/contracts/poll';
-import type { AppRequestHandler } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
 import { notifyPollLive } from '../../lib/pollLive';
 import { queuePollWebhook } from '../../lib/pollWebhooks';
@@ -7,6 +6,7 @@ import { validateWriteInText } from '../../lib/writeInHygiene';
 import Poll from '../../model/Poll';
 import Vote from '../../model/Vote';
 import AuditLog from '../../models/auditlog.sequelize';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {

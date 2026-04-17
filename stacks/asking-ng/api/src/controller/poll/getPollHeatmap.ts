@@ -1,10 +1,10 @@
-import type { AppRequestHandler } from '../../types/http';
 import { QueryTypes } from 'sequelize';
 import db from '../../connections';
 import { getVoteGeoEnabled } from '../../lib/appSettings';
 import { pollEmbedViewAllowed, readEmbedReadTokenFromRequest } from '../../lib/embedReadToken';
 import { jsonError } from '../../lib/jsonError';
 import Poll from '../../model/Poll';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 type HeatPointRow = {

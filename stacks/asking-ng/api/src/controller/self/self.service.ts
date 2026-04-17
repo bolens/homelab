@@ -1,7 +1,7 @@
+import sequelize from '../../connections';
 import type { ProfileUpdateBody } from '../../schemas/profile';
 import type { SelfDeleteBody, SelfPasswordChangeBody } from '../../schemas/userSelf';
 import { comparePassword, hashPassword } from '../../utils/auth';
-import sequelize from '../../connections';
 import {
   anonymizeUserReferences,
   findBillingPlanByUserId,
@@ -29,13 +29,15 @@ function toProfileSummary(
     homelab-user: user.get('homelab-user') as string,
     role: user.get('role') as string,
     llmGatewayToken: (user.get('llmGatewayToken') as string | null) ?? null,
-    billingPlan: billingPlanOverride ?? ((user.get('billingPlan') as string | null) ?? 'free'),
+    billingPlan: billingPlanOverride ?? (user.get('billingPlan') as string | null) ?? 'free',
   } satisfies ProfileSummary;
 }
 
 export type GetProfileResult = { kind: 'not_found' } | { kind: 'ok'; user: ProfileSummary };
 
-export async function getProfileService(args: { userId: number | null }): Promise<GetProfileResult> {
+export async function getProfileService(args: {
+  userId: number | null;
+}): Promise<GetProfileResult> {
   if (args.userId == null) return { kind: 'not_found' };
   const user = await findProfileById(args.userId);
   if (!user) return { kind: 'not_found' };
@@ -83,12 +85,19 @@ export async function updateSelfPasswordService(args: {
   return { kind: 'ok' };
 }
 
-export type DeleteSelfResult = { kind: 'not_found' } | { kind: 'invalid_credentials' } | { kind: 'ok' };
+export type DeleteSelfResult =
+  | { kind: 'not_found' }
+  | { kind: 'invalid_credentials' }
+  | { kind: 'ok' };
 
-export type ExportSelfDataResult = { kind: 'not_found' } | { kind: 'ok'; payload: Record<string, unknown> };
+export type ExportSelfDataResult =
+  | { kind: 'not_found' }
+  | { kind: 'ok'; payload: Record<string, unknown> };
 
 /** Portable account + poll + vote export for the signed-in user (password never included). */
-export async function exportSelfDataService(args: { userId: number | null }): Promise<ExportSelfDataResult> {
+export async function exportSelfDataService(args: {
+  userId: number | null;
+}): Promise<ExportSelfDataResult> {
   if (args.userId == null) return { kind: 'not_found' };
   const user = await findUserById(args.userId);
   if (!user) return { kind: 'not_found' };

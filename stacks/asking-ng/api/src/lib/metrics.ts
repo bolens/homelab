@@ -17,7 +17,11 @@ function labels(input: Record<string, string | number>): string {
   return parts.length ? `{${parts.join(',')}}` : '';
 }
 
-export function observeHttpRequest(args: { route: string; method: string; statusCode: number }): void {
+export function observeHttpRequest(args: {
+  route: string;
+  method: string;
+  statusCode: number;
+}): void {
   inc('asking_ng_http_requests_total');
   inc(
     `asking_ng_http_requests_by_route_total${labels({

@@ -18,11 +18,15 @@ import AppSuspenseFallback from './components/AppSuspenseFallback';
 import { AdminProvider } from './context/AdminContext';
 import { OnlineProvider } from './context/OnlineContext';
 import { I18nProvider } from './i18n/I18nContext';
+import {
+  COOKIE_CONSENT_CHANGED_EVENT,
+  type CookieConsentChangedDetail,
+  shouldLoadAnalytics,
+} from './lib/cookieConsent';
+import { initAnalyticsIntegrations } from './lib/umami';
 import { queryClient } from './queryClient';
 import { reportWebVitals } from './reportWebVitals';
 import { AppRouter } from './router';
-import { COOKIE_CONSENT_CHANGED_EVENT, type CookieConsentChangedDetail, shouldLoadAnalytics } from './lib/cookieConsent';
-import { initAnalyticsIntegrations } from './lib/umami';
 
 if (shouldLoadAnalytics()) {
   initAnalyticsIntegrations();

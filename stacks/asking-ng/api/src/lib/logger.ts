@@ -24,7 +24,8 @@ export function loggerForRequest(req: RequestLikeForLogging) {
       : typeof req.id === 'string' && req.id.trim() !== ''
         ? req.id.trim()
         : undefined;
-  const method = typeof req.method === 'string' && req.method.trim() !== '' ? req.method : undefined;
+  const method =
+    typeof req.method === 'string' && req.method.trim() !== '' ? req.method : undefined;
   const path =
     typeof req.originalUrl === 'string' && req.originalUrl.trim() !== ''
       ? req.originalUrl

@@ -1,42 +1,14 @@
-import {
-  authLoginBodySchema,
-  authRegisterBodySchema,
-} from '@asking-ng/contracts/auth';
 import { createHash, randomBytes } from 'node:crypto';
 import type { IncomingHttpHeaders } from 'node:http';
+import { authLoginBodySchema, authRegisterBodySchema } from '@asking-ng/contracts/auth';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import {
-  countCompletedDataExportsForWorkspaceUtcDay,
-  checkDailyDataExportQuotaForWorkspace,
-  recordDataExportJob,
-} from '../lib/billingExportQuota';
-import { buildBillingUsageWarnings, type BillingUsageWarnings } from '../lib/billingUsageWarnings';
-import {
-  countBillingUsageActionsForWorkspaceUtcDay,
-  listDailyBillingUsageRollupsForWorkspace,
-  listRecentBillingUsageLedgerForWorkspace,
-  type BillingUsageLedgerDailyRollupEntry,
-  type BillingUsageLedgerEntry,
-} from '../lib/billingUsageLedger';
-import { evaluateSelfhostProLicenseState } from '../lib/selfhostProLicense';
-import { readCampaignAttributionDayMeter } from '../lib/billingCampaignAttributionQuota';
-import {
-  readPollWebhookDeliveryMeterForScope,
-  resolveWebhookDeliveryScopeKeyForSignedInUser,
-} from '../lib/billingPollWebhookDelivery';
-import { effectiveWsFanoutMessagesPerSecondForWorkspace } from '../lib/billingWsFanout';
-import {
-  maxActivePollsForBillingPlan,
-  maxDataExportsPerDayForBillingPlan,
-  maxVotesPerMonthForBillingPlan,
-  utcCalendarMonthBounds,
-} from '../lib/billingLimits';
-import { resolveEffectivePollLiveRoomCap } from '../lib/billingWsQuota';
-import { appEnv } from '../lib/env';
-import { resolvePublicConsentRegion } from '../lib/consentRegion';
-import { notifyWebhook, sinkAuditLog } from '../lib/integrationWebhooks';
-import { observeIntegrationEvent } from '../lib/metrics';
+  presentDeletedUserMessage,
+  presentPasswordResetMessage,
+  presentUser,
+  presentUsersList,
+} from '../controller/admin/users.presenter';
 import {
   createUserService,
   deleteUserService,
@@ -45,48 +17,56 @@ import {
   patchUserRoleService,
   resetUserPasswordService,
 } from '../controller/admin/users.service';
-import {
-  presentDeletedUserMessage,
-  presentPasswordResetMessage,
-  presentUser,
-  presentUsersList,
-} from '../controller/admin/users.presenter';
 import { presentAuthSuccess } from '../controller/auth/auth.presenter';
 import { loginUser, registerUser } from '../controller/auth/auth.service';
-import {
-  getProfileService,
-  deleteSelfService,
-  exportSelfDataService,
-  updateProfileService,
-  updateSelfPasswordService,
-} from '../controller/self/self.service';
+import { countBillableVotesForCreatorUtcMonth } from '../controller/poll/voteOnPoll.repository';
 import {
   presentPasswordUpdated,
   presentPolarBillingLinks,
   presentProfile,
   presentSelfDeleted,
 } from '../controller/self/self.presenter';
-import { countBillableVotesForCreatorUtcMonth } from '../controller/poll/voteOnPoll.repository';
 import {
   countNonArchivedPollsOwnedByUser,
   findWorkspacePolarSubscriptionFields,
 } from '../controller/self/self.repository';
-import { invalidateSessionUserCache } from '../lib/sessionUserCache';
-import { authenticateBearer } from '../middleware/requireSession';
-import Poll from '../model/Poll';
-import sequelize from '../models';
-import AuditLog from '../models/auditlog.sequelize';
-import User from '../models/user.sequelize';
-import { ensureDefaultWorkspaceForUser } from '../lib/workspaceBootstrap';
-import { generateToken, hashPassword } from '../utils/auth';
 import {
-  createUserBodySchema,
-  rolePatchBodySchema,
-  setPasswordBodySchema,
-} from '../schemas/admin';
-import { profileUpdateBodySchema } from '../schemas/profile';
-import { selfDeleteBodySchema, selfPasswordChangeBodySchema } from '../schemas/userSelf';
-import { singleString } from '../utils/http';
+  deleteSelfService,
+  exportSelfDataService,
+  getProfileService,
+  updateProfileService,
+  updateSelfPasswordService,
+} from '../controller/self/self.service';
+import { readCampaignAttributionDayMeter } from '../lib/billingCampaignAttributionQuota';
+import {
+  checkDailyDataExportQuotaForWorkspace,
+  countCompletedDataExportsForWorkspaceUtcDay,
+  recordDataExportJob,
+} from '../lib/billingExportQuota';
+import {
+  maxActivePollsForBillingPlan,
+  maxDataExportsPerDayForBillingPlan,
+  maxVotesPerMonthForBillingPlan,
+  utcCalendarMonthBounds,
+} from '../lib/billingLimits';
+import {
+  readPollWebhookDeliveryMeterForScope,
+  resolveWebhookDeliveryScopeKeyForSignedInUser,
+} from '../lib/billingPollWebhookDelivery';
+import {
+  type BillingUsageLedgerDailyRollupEntry,
+  type BillingUsageLedgerEntry,
+  countBillingUsageActionsForWorkspaceUtcDay,
+  listDailyBillingUsageRollupsForWorkspace,
+  listRecentBillingUsageLedgerForWorkspace,
+} from '../lib/billingUsageLedger';
+import { type BillingUsageWarnings, buildBillingUsageWarnings } from '../lib/billingUsageWarnings';
+import { effectiveWsFanoutMessagesPerSecondForWorkspace } from '../lib/billingWsFanout';
+import { resolveEffectivePollLiveRoomCap } from '../lib/billingWsQuota';
+import { resolvePublicConsentRegion } from '../lib/consentRegion';
+import { appEnv } from '../lib/env';
+import { notifyWebhook, sinkAuditLog } from '../lib/integrationWebhooks';
+import { observeIntegrationEvent } from '../lib/metrics';
 import {
   isPlatformProvider,
   platformProviders,
@@ -94,7 +74,20 @@ import {
   platformWebhooksEnabled,
 } from '../lib/platformWebhooks';
 import { firstQueryParam, parseBoundedInt } from '../lib/queryParams';
+import { evaluateSelfhostProLicenseState } from '../lib/selfhostProLicense';
+import { invalidateSessionUserCache } from '../lib/sessionUserCache';
 import { publicPollPageUrl } from '../lib/sitePublicUrl';
+import { ensureDefaultWorkspaceForUser } from '../lib/workspaceBootstrap';
+import { authenticateBearer } from '../middleware/requireSession';
+import Poll from '../model/Poll';
+import sequelize from '../models';
+import AuditLog from '../models/auditlog.sequelize';
+import User from '../models/user.sequelize';
+import { createUserBodySchema, rolePatchBodySchema, setPasswordBodySchema } from '../schemas/admin';
+import { profileUpdateBodySchema } from '../schemas/profile';
+import { selfDeleteBodySchema, selfPasswordChangeBodySchema } from '../schemas/userSelf';
+import { generateToken, hashPassword } from '../utils/auth';
+import { singleString } from '../utils/http';
 import { replyJsonError, toAppRequest } from './requestAdapter';
 
 const webVitalsPayloadSchema = z.object({
@@ -277,7 +270,7 @@ function matchesCidr(ip: string, cidr: string): boolean {
   if (ipInt === null || baseInt === null || !Number.isInteger(bits) || bits < 0 || bits > 32) {
     return false;
   }
-  const mask = bits === 0 ? 0 : ((0xffffffff << (32 - bits)) >>> 0);
+  const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
   return (ipInt & mask) === (baseInt & mask);
 }
 
@@ -298,9 +291,10 @@ function isTrustedProxyIp(ipRaw: string): boolean {
   return false;
 }
 
-function proxyPrincipal(request: {
-  headers: Record<string, string | string[] | undefined>;
-}): { homelab-user: string; role: 'user' | 'admin' | 'superadmin' } {
+function proxyPrincipal(request: { headers: Record<string, string | string[] | undefined> }): {
+  homelab-user: string;
+  role: 'user' | 'admin' | 'superadmin';
+} {
   const provider = appEnv.authProxyProvider;
   if (provider === 'authentik') {
     const homelab-user =
@@ -423,44 +417,44 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
       },
     },
     async (request, reply) => {
-    const parsed = telemetryConsentBodySchema.safeParse(request.body);
-    if (!parsed.success) {
-      const err = replyJsonError(
-        request.id,
-        400,
-        'VALIDATION_ERROR',
-        'Invalid request',
-        parsed.error.flatten(),
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const baseLog = {
-      event: 'telemetry.cookie_consent' as const,
-      telemetry_type: 'cookie_consent' as const,
-      request_id: request.id,
-      source: parsed.data.source ?? 'unknown',
-      client_ts: parsed.data.clientTs ?? null,
-    };
-    if (parsed.data.mode === 'simple') {
-      request.log.info({
-        ...baseLog,
-        consent_mode: 'simple',
-        choice: parsed.data.choice,
-      });
-    } else {
-      request.log.info({
-        ...baseLog,
-        consent_mode: 'granular',
-        necessary: parsed.data.necessary,
-        functional: parsed.data.functional,
-        analytics: parsed.data.analytics,
-        marketing: parsed.data.marketing,
-        consent_region: parsed.data.consentRegion ?? null,
-      });
-    }
-    reply.code(202).send({ status: 'accepted' });
-  },
+      const parsed = telemetryConsentBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'VALIDATION_ERROR',
+          'Invalid request',
+          parsed.error.flatten(),
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const baseLog = {
+        event: 'telemetry.cookie_consent' as const,
+        telemetry_type: 'cookie_consent' as const,
+        request_id: request.id,
+        source: parsed.data.source ?? 'unknown',
+        client_ts: parsed.data.clientTs ?? null,
+      };
+      if (parsed.data.mode === 'simple') {
+        request.log.info({
+          ...baseLog,
+          consent_mode: 'simple',
+          choice: parsed.data.choice,
+        });
+      } else {
+        request.log.info({
+          ...baseLog,
+          consent_mode: 'granular',
+          necessary: parsed.data.necessary,
+          functional: parsed.data.functional,
+          analytics: parsed.data.analytics,
+          marketing: parsed.data.marketing,
+          consent_region: parsed.data.consentRegion ?? null,
+        });
+      }
+      reply.code(202).send({ status: 'accepted' });
+    },
   );
 
   app.get('/platform/webhooks/info', async (request, reply) => {
@@ -482,112 +476,120 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.post<{ Params: { provider: string } }>('/platform/webhooks/:provider', async (request, reply) => {
-    if (!platformWebhooksEnabled()) {
-      const err = replyJsonError(
-        request.id,
-        404,
-        'NOT_FOUND',
-        'Platform webhooks are disabled. Set ENABLE_PLATFORM_WEBHOOKS=true to enable.',
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const provider = singleString(request.params.provider)?.trim().toLowerCase() ?? '';
-    if (!isPlatformProvider(provider)) {
-      const err = replyJsonError(request.id, 400, 'BAD_REQUEST', 'Unknown platform webhook provider.');
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const expectedToken = platformWebhookSharedSecret();
-    if (!expectedToken) {
-      const err = replyJsonError(
-        request.id,
-        503,
-        'SERVICE_UNAVAILABLE',
-        'Platform webhooks are enabled but PLATFORM_WEBHOOK_SHARED_SECRET is unset.',
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const supplied =
-      typeof request.headers['x-platform-webhook-token'] === 'string'
-        ? request.headers['x-platform-webhook-token'].trim()
-        : '';
-    if (!supplied || supplied !== expectedToken) {
-      const err = replyJsonError(
-        request.id,
-        401,
-        'UNAUTHORIZED',
-        'Missing or invalid x-platform-webhook-token.',
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
+  app.post<{ Params: { provider: string } }>(
+    '/platform/webhooks/:provider',
+    async (request, reply) => {
+      if (!platformWebhooksEnabled()) {
+        const err = replyJsonError(
+          request.id,
+          404,
+          'NOT_FOUND',
+          'Platform webhooks are disabled. Set ENABLE_PLATFORM_WEBHOOKS=true to enable.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const provider = singleString(request.params.provider)?.trim().toLowerCase() ?? '';
+      if (!isPlatformProvider(provider)) {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'BAD_REQUEST',
+          'Unknown platform webhook provider.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const expectedToken = platformWebhookSharedSecret();
+      if (!expectedToken) {
+        const err = replyJsonError(
+          request.id,
+          503,
+          'SERVICE_UNAVAILABLE',
+          'Platform webhooks are enabled but PLATFORM_WEBHOOK_SHARED_SECRET is unset.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const supplied =
+        typeof request.headers['x-platform-webhook-token'] === 'string'
+          ? request.headers['x-platform-webhook-token'].trim()
+          : '';
+      if (!supplied || supplied !== expectedToken) {
+        const err = replyJsonError(
+          request.id,
+          401,
+          'UNAUTHORIZED',
+          'Missing or invalid x-platform-webhook-token.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
 
-    const body = (request.body ?? {}) as Record<string, unknown>;
-    const challenge =
-      typeof body.challenge === 'string' && body.challenge.trim() !== '' ? body.challenge : null;
-    const eventType =
-      typeof body.type === 'string'
-        ? body.type
-        : typeof body.event_type === 'string'
-          ? body.event_type
-          : typeof body.subscription === 'object' &&
-              body.subscription != null &&
-              typeof (body.subscription as { type?: unknown }).type === 'string'
-            ? ((body.subscription as { type: string }).type ?? '')
-            : 'unknown';
-    const deliveryId =
-      (typeof request.headers['x-delivery-id'] === 'string' ? request.headers['x-delivery-id'] : '') ||
-      (typeof body.id === 'string' ? body.id : '');
-    const eventObj =
-      typeof body.event === 'object' && body.event != null
-        ? (body.event as Record<string, unknown>)
-        : null;
-    const subjectRaw =
-      eventObj != null && typeof eventObj.user_id === 'string'
-        ? eventObj.user_id
-        : eventObj != null && typeof eventObj.channel_id === 'string'
-          ? eventObj.channel_id
+      const body = (request.body ?? {}) as Record<string, unknown>;
+      const challenge =
+        typeof body.challenge === 'string' && body.challenge.trim() !== '' ? body.challenge : null;
+      const eventType =
+        typeof body.type === 'string'
+          ? body.type
+          : typeof body.event_type === 'string'
+            ? body.event_type
+            : typeof body.subscription === 'object' &&
+                body.subscription != null &&
+                typeof (body.subscription as { type?: unknown }).type === 'string'
+              ? ((body.subscription as { type: string }).type ?? '')
+              : 'unknown';
+      const deliveryId =
+        (typeof request.headers['x-delivery-id'] === 'string'
+          ? request.headers['x-delivery-id']
+          : '') || (typeof body.id === 'string' ? body.id : '');
+      const eventObj =
+        typeof body.event === 'object' && body.event != null
+          ? (body.event as Record<string, unknown>)
           : null;
-    const salt = appEnv.platformWebhookIdHashSalt;
-    const subjectHash =
-      typeof subjectRaw === 'string' && subjectRaw.trim() !== ''
-        ? createHash('sha256').update(`${salt}:${subjectRaw.trim()}`).digest('hex')
-        : null;
+      const subjectRaw =
+        eventObj != null && typeof eventObj.user_id === 'string'
+          ? eventObj.user_id
+          : eventObj != null && typeof eventObj.channel_id === 'string'
+            ? eventObj.channel_id
+            : null;
+      const salt = appEnv.platformWebhookIdHashSalt;
+      const subjectHash =
+        typeof subjectRaw === 'string' && subjectRaw.trim() !== ''
+          ? createHash('sha256').update(`${salt}:${subjectRaw.trim()}`).digest('hex')
+          : null;
 
-    const auditEntry = {
-      action: `platform.webhook.${provider}`,
-      actor: 'platform_webhook',
-      target: provider,
-      details: {
-        provider,
-        event_type: eventType || 'unknown',
-        delivery_id: deliveryId || null,
-        subject_id_hash: subjectHash,
-        received_at: new Date().toISOString(),
-      },
-    };
-    await AuditLog.create(auditEntry);
-    observeIntegrationEvent(`platform_webhook_${provider}`);
-    sinkAuditLog(auditEntry as Record<string, unknown>);
-    notifyWebhook('platform.webhook.accepted', auditEntry as Record<string, unknown>);
-    if (challenge) {
-      reply.code(200).type('text/plain').send(challenge);
-      return;
-    }
-    reply.code(202).send({ status: 'accepted' });
-  });
+      const auditEntry = {
+        action: `platform.webhook.${provider}`,
+        actor: 'platform_webhook',
+        target: provider,
+        details: {
+          provider,
+          event_type: eventType || 'unknown',
+          delivery_id: deliveryId || null,
+          subject_id_hash: subjectHash,
+          received_at: new Date().toISOString(),
+        },
+      };
+      await AuditLog.create(auditEntry);
+      observeIntegrationEvent(`platform_webhook_${provider}`);
+      sinkAuditLog(auditEntry as Record<string, unknown>);
+      notifyWebhook('platform.webhook.accepted', auditEntry as Record<string, unknown>);
+      if (challenge) {
+        reply.code(200).type('text/plain').send(challenge);
+        return;
+      }
+      reply.code(202).send({ status: 'accepted' });
+    },
+  );
 
   app.get('/s/:slug', async (request, reply) => {
     const slugParam = (request.params as { slug?: unknown }).slug;
-    const slugRaw =
-      singleString(
-        typeof slugParam === 'string' || Array.isArray(slugParam) ? slugParam : undefined,
-      )
-        ?.trim()
-        .toLowerCase();
+    const slugRaw = singleString(
+      typeof slugParam === 'string' || Array.isArray(slugParam) ? slugParam : undefined,
+    )
+      ?.trim()
+      .toLowerCase();
     if (!slugRaw) {
       const err = replyJsonError(request.id, 400, 'BAD_REQUEST', 'Slug is required.');
       reply.code(err.statusCode).send(err.body);
@@ -613,9 +615,9 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
           : undefined,
       ),
       {
-      min: 1,
-      max: 24 * 30,
-      defaultValue: 24,
+        min: 1,
+        max: 24 * 30,
+        defaultValue: 24,
       },
     );
     let rows: Array<{ readiness_ok: boolean; createdAt: string }> = [];
@@ -717,7 +719,12 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
     const { homelab-user, password } = parsed.data;
     const result = await registerUser({ homelab-user, password });
     if (result.kind === 'signups_disabled') {
-      const err = replyJsonError(request.id, 403, 'SIGNUPS_DISABLED', 'New registrations are disabled.');
+      const err = replyJsonError(
+        request.id,
+        403,
+        'SIGNUPS_DISABLED',
+        'New registrations are disabled.',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
@@ -777,7 +784,10 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
       });
       await ensureDefaultWorkspaceForUser(user);
       observeIntegrationEvent('auth_proxy_auto_provision');
-    } else if ((user.get('role') as string) !== role && appEnv.authProxyAllowedRoles.includes(role)) {
+    } else if (
+      (user.get('role') as string) !== role &&
+      appEnv.authProxyAllowedRoles.includes(role)
+    ) {
       user.set('role', role);
       await user.save();
       observeIntegrationEvent('auth_proxy_role_sync');
@@ -855,7 +865,9 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
     const billingPlan = profile.kind === 'ok' ? profile.user.billingPlan : 'free';
     const uid = request.user?.id ?? null;
     const polarWorkspace =
-      uid != null ? await findWorkspacePolarSubscriptionFields(uid) : { polarSubscriptionId: null, polarSubscriptionStatus: null };
+      uid != null
+        ? await findWorkspacePolarSubscriptionFields(uid)
+        : { polarSubscriptionId: null, polarSubscriptionStatus: null };
     const subscription =
       polarWorkspace.polarSubscriptionId != null
         ? {
@@ -863,7 +875,8 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
             pastDue: polarWorkspace.polarSubscriptionStatus === 'past_due',
           }
         : undefined;
-    const selfhostProLicense = billingPlan === 'selfhost-pro' ? evaluateSelfhostProLicenseState() : undefined;
+    const selfhostProLicense =
+      billingPlan === 'selfhost-pro' ? evaluateSelfhostProLicenseState() : undefined;
     let usage:
       | {
           limitsEnforced: false;
@@ -920,9 +933,13 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
           warnings?: BillingUsageWarnings;
         };
     const usageLedger =
-      uid != null ? await listRecentBillingUsageLedgerForWorkspace({ workspaceUserId: uid, limit: 25 }) : [];
+      uid != null
+        ? await listRecentBillingUsageLedgerForWorkspace({ workspaceUserId: uid, limit: 25 })
+        : [];
     const usageLedgerDaily =
-      uid != null ? await listDailyBillingUsageRollupsForWorkspace({ workspaceUserId: uid, days: 14 }) : [];
+      uid != null
+        ? await listDailyBillingUsageRollupsForWorkspace({ workspaceUserId: uid, days: 14 })
+        : [];
     if (appEnv.billingEnforceLimits && uid != null) {
       const month = utcCalendarMonthBounds();
       const maxActivePolls = maxActivePollsForBillingPlan(billingPlan);
@@ -970,18 +987,25 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
       });
       const todayUtc = new Date().toISOString().slice(0, 10);
       const exportDerivedToday =
-        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.data_export')?.amount ?? 0;
+        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.data_export')
+          ?.amount ?? 0;
       const campaignShedDerivedToday =
-        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.campaign_attribution_shed')
-          ?.amount ?? 0;
+        usageLedgerDaily.find(
+          (r) => r.dayUtc === todayUtc && r.action === 'usage.campaign_attribution_shed',
+        )?.amount ?? 0;
       const pollWebhookShedDerivedToday =
-        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.poll_webhook_delivery_shed')
-          ?.amount ?? 0;
+        usageLedgerDaily.find(
+          (r) => r.dayUtc === todayUtc && r.action === 'usage.poll_webhook_delivery_shed',
+        )?.amount ?? 0;
       const apiRateDerivedToday =
-        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.api_rate_limited')?.amount ?? 0;
+        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.api_rate_limited')
+          ?.amount ?? 0;
       const wsFanoutDerivedToday =
-        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.ws_fanout_shed')?.amount ?? 0;
-      const rawUsageToday = await countBillingUsageActionsForWorkspaceUtcDay({ workspaceUserId: uid });
+        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.ws_fanout_shed')
+          ?.amount ?? 0;
+      const rawUsageToday = await countBillingUsageActionsForWorkspaceUtcDay({
+        workspaceUserId: uid,
+      });
       const usageReconcile = {
         generatedAt: new Date().toISOString(),
         checks: [
@@ -990,7 +1014,10 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
             window: 'utc_day' as const,
             derived: exportDerivedToday,
             raw: rawUsageToday.dataExport,
-            status: exportDerivedToday === rawUsageToday.dataExport ? ('ok' as const) : ('mismatch' as const),
+            status:
+              exportDerivedToday === rawUsageToday.dataExport
+                ? ('ok' as const)
+                : ('mismatch' as const),
           },
           {
             meter: 'campaign_attribution' as const,
@@ -1018,7 +1045,9 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
             derived: apiRateDerivedToday,
             raw: rawUsageToday.apiRateLimited,
             status:
-              apiRateDerivedToday === rawUsageToday.apiRateLimited ? ('ok' as const) : ('mismatch' as const),
+              apiRateDerivedToday === rawUsageToday.apiRateLimited
+                ? ('ok' as const)
+                : ('mismatch' as const),
           },
           {
             meter: 'ws_fanout' as const,
@@ -1026,7 +1055,9 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
             derived: wsFanoutDerivedToday,
             raw: rawUsageToday.wsFanoutShed,
             status:
-              wsFanoutDerivedToday === rawUsageToday.wsFanoutShed ? ('ok' as const) : ('mismatch' as const),
+              wsFanoutDerivedToday === rawUsageToday.wsFanoutShed
+                ? ('ok' as const)
+                : ('mismatch' as const),
           },
         ],
       };
@@ -1065,11 +1096,41 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
         usageReconcile: {
           generatedAt: new Date().toISOString(),
           checks: [
-            { meter: 'data_exports', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
-            { meter: 'campaign_attribution', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
-            { meter: 'poll_webhook_delivery', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
-            { meter: 'api_rate_limit', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
-            { meter: 'ws_fanout', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
+            {
+              meter: 'data_exports',
+              window: 'utc_day',
+              derived: null,
+              raw: null,
+              status: 'unavailable',
+            },
+            {
+              meter: 'campaign_attribution',
+              window: 'utc_day',
+              derived: null,
+              raw: null,
+              status: 'unavailable',
+            },
+            {
+              meter: 'poll_webhook_delivery',
+              window: 'utc_day',
+              derived: null,
+              raw: null,
+              status: 'unavailable',
+            },
+            {
+              meter: 'api_rate_limit',
+              window: 'utc_day',
+              derived: null,
+              raw: null,
+              status: 'unavailable',
+            },
+            {
+              meter: 'ws_fanout',
+              window: 'utc_day',
+              derived: null,
+              raw: null,
+              status: 'unavailable',
+            },
           ],
         },
       };
@@ -1081,7 +1142,7 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
         checkoutCloudProUrl: pro,
         billingPlan,
         usage,
-        subscription,
+        ...(subscription ? { subscription } : {}),
         ...(selfhostProLicense ? { selfhostProLicense } : {}),
       }),
     );
@@ -1245,7 +1306,12 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     if (result.kind === 'forbidden') {
-      const err = replyJsonError(request.id, 403, 'FORBIDDEN', 'You can only view your own user record');
+      const err = replyJsonError(
+        request.id,
+        403,
+        'FORBIDDEN',
+        'You can only view your own user record',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
@@ -1353,12 +1419,22 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     if (result.kind === 'forbidden_modify_superadmin') {
-      const err = replyJsonError(request.id, 403, 'FORBIDDEN', 'Only superadmin can modify a superadmin account');
+      const err = replyJsonError(
+        request.id,
+        403,
+        'FORBIDDEN',
+        'Only superadmin can modify a superadmin account',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
     if (result.kind === 'forbidden_assign_superadmin') {
-      const err = replyJsonError(request.id, 403, 'FORBIDDEN', 'Only superadmin can assign the superadmin role');
+      const err = replyJsonError(
+        request.id,
+        403,
+        'FORBIDDEN',
+        'Only superadmin can assign the superadmin role',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }

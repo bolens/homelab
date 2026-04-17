@@ -1,29 +1,30 @@
 import { createPollBodySchema } from '@asking-ng/contracts/poll';
-import { Link } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ZodError } from 'zod';
 import { apiUrl } from '../apiBase';
 import CopyFeedbackButton from '../components/CopyFeedbackButton';
 import { IconShare } from '../components/icons/UiIcons';
 import { shareUrlForPoll } from '../helpers/pollUrl';
-import { withUtm } from '../lib/withUtm';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch, isApiFetchError } from '../http';
 import { useT } from '../i18n/I18nContext';
 import type { MessageKey } from '../i18n/locales';
+import { type ConsentRegionHint, fetchConsentRegion } from '../lib/cookieConsent';
 import {
   billingExportReminder,
-  billingUpgradeHintFromError,
   billingPastDueBannerPayload,
+  billingUpgradeHintFromError,
   billingUsageAtCap,
   billingUsageWarningSeverity,
   type ProfileBillingApiPayload,
 } from '../lib/profileBillingApi';
-import { fetchConsentRegion, type ConsentRegionHint } from '../lib/cookieConsent';
 import { profileBillingQueryKey } from '../lib/queryKeys';
 import { streamingObsDocHref } from '../lib/streamingObsDocHref';
 import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
+import { isWebShareLikelyAvailable, shareUrlNative } from '../lib/webShare';
+import { withUtm } from '../lib/withUtm';
 import {
   ActionRow,
   Button,
@@ -40,7 +41,6 @@ import {
   Textarea,
   VisuallyHidden,
 } from '../ui';
-import { isWebShareLikelyAvailable, shareUrlNative } from '../lib/webShare';
 import { errMsg } from '../utils/errMsg';
 
 type CreatePollResponse = {
@@ -161,9 +161,9 @@ export default function Home() {
   const [errorUpgradeIsLicenseRenewal, setErrorUpgradeIsLicenseRenewal] = useState(false);
   const [limitIp, setLimitIp] = useState('yes');
   const [selectionMode, setSelectionMode] = useState<'single' | 'multi'>('single');
-  const [voteEligibility, setVoteEligibility] = useState<'anonymous' | 'account' | 'platform_linked'>(
-    'anonymous',
-  );
+  const [voteEligibility, setVoteEligibility] = useState<
+    'anonymous' | 'account' | 'platform_linked'
+  >('anonymous');
   const [retentionTtlDaysInput, setRetentionTtlDaysInput] = useState('');
   const [expirationDate, setExpirationDate] = useState('never');
   const [created, setCreated] = useState<{
@@ -509,7 +509,8 @@ export default function Home() {
   const showNativeShare = useMemo(
     () =>
       Boolean(
-        created?.id && isWebShareLikelyAvailable(homePostCreateTrackedPollShareUrl(created.id, sharePresetId)),
+        created?.id &&
+          isWebShareLikelyAvailable(homePostCreateTrackedPollShareUrl(created.id, sharePresetId)),
       ),
     [created?.id, sharePresetId],
   );
@@ -620,7 +621,9 @@ export default function Home() {
   ].filter(Boolean) as string[];
   const createdFeatureBadges = created
     ? [
-        phase === 'draft' ? t('home.featureBadge.createdDraft') : t('home.featureBadge.createdLive'),
+        phase === 'draft'
+          ? t('home.featureBadge.createdDraft')
+          : t('home.featureBadge.createdLive'),
         selectionMode === 'multi' ? t('home.featureBadge.multiChoice') : null,
         voteEligibility !== 'anonymous' ? t('home.featureBadge.accountVotes') : null,
         limitIp === 'yes' ? t('home.featureBadge.oneIp') : t('home.featureBadge.multiIp'),
@@ -633,7 +636,11 @@ export default function Home() {
     : [];
 
   return (
-    <Container size='lg' className='ui-page-shell asking-public-layout asking-home-page' id='asking-home-page'>
+    <Container
+      size='lg'
+      className='ui-page-shell asking-public-layout asking-home-page'
+      id='asking-home-page'
+    >
       {created ? (
         <PageHeader
           className='ui-page-hero'
@@ -660,7 +667,11 @@ export default function Home() {
             {t('home.banner.nextEnd')}
           </p>
           <p className='ui-inline-actions'>
-            <Link to='/$id' params={{ id: created.id }} className={cx('ui-button', 'ui-button--md', 'ui-button--primary')}>
+            <Link
+              to='/$id'
+              params={{ id: created.id }}
+              className={cx('ui-button', 'ui-button--md', 'ui-button--primary')}
+            >
               {t('home.banner.open')}
             </Link>
             <CopyFeedbackButton onCopy={copyShareLink}>{t('home.banner.copy')}</CopyFeedbackButton>
@@ -689,7 +700,10 @@ export default function Home() {
             <summary className='ui-postcreate-summary' id='asking-home-page__distribution-summary'>
               {t('myPolls.distributionHeading')}
             </summary>
-            <section className='ui-share-kit' aria-labelledby='asking-home-page__distribution-summary'>
+            <section
+              className='ui-share-kit'
+              aria-labelledby='asking-home-page__distribution-summary'
+            >
               <p className='ui-copy-muted'>{t('myPolls.distributionHint')}</p>
               <p className='ui-copy-muted'>
                 <a href={streamingObsDocHref()} target='_blank' rel='noopener noreferrer'>
@@ -697,7 +711,9 @@ export default function Home() {
                 </a>
               </p>
               <div className='ui-share-kit-controls'>
-                <label htmlFor='asking-home-page__share-preset'>{t('home.postCreate.sharePresetLabel')}</label>
+                <label htmlFor='asking-home-page__share-preset'>
+                  {t('home.postCreate.sharePresetLabel')}
+                </label>
                 <Select
                   id='asking-home-page__share-preset'
                   className='ui-input--stack'
@@ -755,78 +771,78 @@ export default function Home() {
             </Notice>
           ) : null}
           <details className='ui-postcreate-card'>
-            <summary className='ui-postcreate-summary'>{t('home.postCreate.accessSecretsSummary')}</summary>
+            <summary className='ui-postcreate-summary'>
+              {t('home.postCreate.accessSecretsSummary')}
+            </summary>
             <p className='ui-copy-subtle'>{t('home.banner.secretHint')}</p>
             <details>
-              <summary className='ui-disclosure-summary--simple'>{t('home.banner.showSecret')}</summary>
+              <summary className='ui-disclosure-summary--simple'>
+                {t('home.banner.showSecret')}
+              </summary>
               <code className='ui-code-block'>{created.api_key}</code>
             </details>
-          {created.webhook_secrets && created.webhook_secrets.length > 0 ? (
-            <>
-              <p className='ui-copy-subtle ui-webhook-label-spacer'>
-                {t('home.banner.webhookSecret')}
-              </p>
-              <details open>
-                <summary className='ui-disclosure-summary--simple'>
-                  {t('home.banner.showWebhookSecret')}
-                </summary>
-                {created.webhook_secrets.map((target) => (
-                  <code key={target.url} className='ui-code-block'>
-                    {target.url} {'->'} {target.secret}
-                  </code>
-                ))}
-              </details>
-            </>
-          ) : null}
-          {created.embed_read_token ? (
-            <>
-              <p className='ui-copy-subtle ui-webhook-label-spacer'>
-                {t('home.banner.embedToken')}
-              </p>
-              <details open>
-                <summary className='ui-disclosure-summary--simple'>
-                  {t('home.banner.showEmbedToken')}
-                </summary>
-                <code className='ui-code-block'>{created.embed_read_token}</code>
-              </details>
-              <p className='ui-inline-actions'>
-                <CopyFeedbackButton onCopy={copyEmbedToken}>
-                  {t('home.banner.copyEmbed')}
-                </CopyFeedbackButton>
-              </p>
-              {embedViewerUrl ? (
-                <>
-                  <p className='ui-copy-subtle ui-webhook-label-spacer'>
-                    {t('myPolls.embedFrameUrl')}
-                  </p>
-                  <p className='ui-copy-muted'>{t('myPolls.embedFrameUrlHint')}</p>
-                  <code className='ui-code-block'>{embedViewerUrl}</code>
-                  <p className='ui-inline-actions'>
-                    <CopyFeedbackButton
-                      onCopy={async () => {
-                        try {
-                          await navigator.clipboard.writeText(embedViewerUrl);
-                          setLinkHint(t('myPolls.copyDone'));
-                          return true;
-                        } catch {
-                          return false;
-                        }
-                      }}
-                    >
-                      {t('myPolls.sharePresetCopyLink')}
-                    </CopyFeedbackButton>
-                  </p>
-                </>
-              ) : null}
-            </>
-          ) : null}
+            {created.webhook_secrets && created.webhook_secrets.length > 0 ? (
+              <>
+                <p className='ui-copy-subtle ui-webhook-label-spacer'>
+                  {t('home.banner.webhookSecret')}
+                </p>
+                <details open>
+                  <summary className='ui-disclosure-summary--simple'>
+                    {t('home.banner.showWebhookSecret')}
+                  </summary>
+                  {created.webhook_secrets.map((target) => (
+                    <code key={target.url} className='ui-code-block'>
+                      {target.url} {'->'} {target.secret}
+                    </code>
+                  ))}
+                </details>
+              </>
+            ) : null}
+            {created.embed_read_token ? (
+              <>
+                <p className='ui-copy-subtle ui-webhook-label-spacer'>
+                  {t('home.banner.embedToken')}
+                </p>
+                <details open>
+                  <summary className='ui-disclosure-summary--simple'>
+                    {t('home.banner.showEmbedToken')}
+                  </summary>
+                  <code className='ui-code-block'>{created.embed_read_token}</code>
+                </details>
+                <p className='ui-inline-actions'>
+                  <CopyFeedbackButton onCopy={copyEmbedToken}>
+                    {t('home.banner.copyEmbed')}
+                  </CopyFeedbackButton>
+                </p>
+                {embedViewerUrl ? (
+                  <>
+                    <p className='ui-copy-subtle ui-webhook-label-spacer'>
+                      {t('myPolls.embedFrameUrl')}
+                    </p>
+                    <p className='ui-copy-muted'>{t('myPolls.embedFrameUrlHint')}</p>
+                    <code className='ui-code-block'>{embedViewerUrl}</code>
+                    <p className='ui-inline-actions'>
+                      <CopyFeedbackButton
+                        onCopy={async () => {
+                          try {
+                            await navigator.clipboard.writeText(embedViewerUrl);
+                            setLinkHint(t('myPolls.copyDone'));
+                            return true;
+                          } catch {
+                            return false;
+                          }
+                        }}
+                      >
+                        {t('myPolls.sharePresetCopyLink')}
+                      </CopyFeedbackButton>
+                    </p>
+                  </>
+                ) : null}
+              </>
+            ) : null}
           </details>
           <p className='ui-form-action-gap'>
-            <Button
-              type='button'
-              variant='secondary'
-              onClick={handleStartOver}
-            >
+            <Button type='button' variant='secondary' onClick={handleStartOver}>
               {t('home.startOver')}
             </Button>
           </p>
@@ -894,7 +910,11 @@ export default function Home() {
               </ActionRow>
             </FormRow>
 
-            <FormRow className='ui-form-block' label={t('home.titleLabel')} htmlFor='asking-home-page__poll-title'>
+            <FormRow
+              className='ui-form-block'
+              label={t('home.titleLabel')}
+              htmlFor='asking-home-page__poll-title'
+            >
               <Input
                 ref={titleInputRef}
                 id='asking-home-page__poll-title'
@@ -906,8 +926,16 @@ export default function Home() {
               />
             </FormRow>
 
-            <FormSection className='ui-form-block' title={t('home.answersHeading')} titleId='asking-home-page__answers-heading'>
-              <div ref={answersGroupRef} role='group' aria-labelledby='asking-home-page__answers-heading'>
+            <FormSection
+              className='ui-form-block'
+              title={t('home.answersHeading')}
+              titleId='asking-home-page__answers-heading'
+            >
+              <div
+                ref={answersGroupRef}
+                role='group'
+                aria-labelledby='asking-home-page__answers-heading'
+              >
                 {renderAnswers()}
               </div>
               <Button
@@ -978,7 +1006,10 @@ export default function Home() {
                 <span className='ui-disclosure-summary-hint'>{t('home.moreOptionsHint')}</span>
               </summary>
               <div className='ui-settings-grid ui-disclosure-body'>
-                <section className='ui-settings-panel' aria-labelledby='asking-home-page__settings-heading'>
+                <section
+                  className='ui-settings-panel'
+                  aria-labelledby='asking-home-page__settings-heading'
+                >
                   <h2 className='ui-field-heading' id='asking-home-page__settings-heading'>
                     {t('home.settings')}
                   </h2>
@@ -995,19 +1026,25 @@ export default function Home() {
                     </Select>
                   </div>
                   <div className='ui-setting-row'>
-                    <label htmlFor='asking-home-page__selection-mode'>{t('home.selectionMode')}</label>
+                    <label htmlFor='asking-home-page__selection-mode'>
+                      {t('home.selectionMode')}
+                    </label>
                     <Select
                       name='selection_mode'
                       id='asking-home-page__selection-mode'
                       value={selectionMode}
-                      onChange={(e) => setSelectionMode(e.target.value === 'multi' ? 'multi' : 'single')}
+                      onChange={(e) =>
+                        setSelectionMode(e.target.value === 'multi' ? 'multi' : 'single')
+                      }
                     >
                       <option value='single'>{t('home.selectionMode.single')}</option>
                       <option value='multi'>{t('home.selectionMode.multi')}</option>
                     </Select>
                   </div>
                   <div className='ui-setting-row'>
-                    <label htmlFor='asking-home-page__vote-eligibility'>{t('home.voteEligibility')}</label>
+                    <label htmlFor='asking-home-page__vote-eligibility'>
+                      {t('home.voteEligibility')}
+                    </label>
                     <Select
                       name='vote_eligibility'
                       id='asking-home-page__vote-eligibility'
@@ -1022,7 +1059,9 @@ export default function Home() {
                     >
                       <option value='anonymous'>{t('home.voteEligibility.anonymous')}</option>
                       <option value='account'>{t('home.voteEligibility.account')}</option>
-                      <option value='platform_linked'>{t('home.voteEligibility.platformLinked')}</option>
+                      <option value='platform_linked'>
+                        {t('home.voteEligibility.platformLinked')}
+                      </option>
                     </Select>
                   </div>
                   <p className='ui-form-hint'>{t('home.voteEligibility.hint')}</p>
@@ -1057,7 +1096,9 @@ export default function Home() {
                     </Select>
                   </div>
                   <div className='ui-setting-row'>
-                    <label htmlFor='asking-home-page__retention-ttl-days'>{t('home.retentionTtlDays')}</label>
+                    <label htmlFor='asking-home-page__retention-ttl-days'>
+                      {t('home.retentionTtlDays')}
+                    </label>
                     <Input
                       id='asking-home-page__retention-ttl-days'
                       className='ui-input--stack'
@@ -1072,7 +1113,10 @@ export default function Home() {
                   </div>
                   <p className='ui-form-hint'>{t('home.retentionTtlDays.hint')}</p>
                 </section>
-                <section className='ui-settings-panel' aria-labelledby='asking-home-page__webhook-heading'>
+                <section
+                  className='ui-settings-panel'
+                  aria-labelledby='asking-home-page__webhook-heading'
+                >
                   <h2 className='ui-field-heading' id='asking-home-page__webhook-heading'>
                     {t('home.webhookHeading')}
                   </h2>
@@ -1085,7 +1129,10 @@ export default function Home() {
                     </p>
                   ) : null}
                   {webhookTargets.map((target, idx) => (
-                    <ActionRow key={`asking-home-page__webhook-row-${idx}`} className='asking-home-page__manage-row'>
+                    <ActionRow
+                      key={`asking-home-page__webhook-row-${idx}`}
+                      className='asking-home-page__manage-row'
+                    >
                       <VisuallyHidden as='label' htmlFor={`asking-home-page__webhook-url-${idx}`}>
                         {t('home.webhookUrl')}
                       </VisuallyHidden>
@@ -1104,7 +1151,10 @@ export default function Home() {
                         placeholder={t('home.webhookUrl')}
                         autoComplete='off'
                       />
-                      <VisuallyHidden as='label' htmlFor={`asking-home-page__webhook-secret-${idx}`}>
+                      <VisuallyHidden
+                        as='label'
+                        htmlFor={`asking-home-page__webhook-secret-${idx}`}
+                      >
                         {t('home.webhookSecret')}
                       </VisuallyHidden>
                       <Input
@@ -1128,7 +1178,9 @@ export default function Home() {
                         variant='secondary'
                         onClick={() =>
                           setWebhookTargets((prev) =>
-                            prev.length <= 1 ? [{ url: '', secret: '' }] : prev.filter((_, i) => i !== idx),
+                            prev.length <= 1
+                              ? [{ url: '', secret: '' }]
+                              : prev.filter((_, i) => i !== idx),
                           )
                         }
                       >
@@ -1154,7 +1206,9 @@ export default function Home() {
                         onChange={(e) =>
                           setWebhookTargets((prev) =>
                             prev.map((row, rowIdx) =>
-                              rowIdx === idx ? { ...row, include_owner_snapshot: e.target.checked } : row,
+                              rowIdx === idx
+                                ? { ...row, include_owner_snapshot: e.target.checked }
+                                : row,
                             ),
                           )
                         }
@@ -1166,7 +1220,9 @@ export default function Home() {
                         onChange={(e) =>
                           setWebhookTargets((prev) =>
                             prev.map((row, rowIdx) =>
-                              rowIdx === idx ? { ...row, include_owner_events: e.target.checked } : row,
+                              rowIdx === idx
+                                ? { ...row, include_owner_events: e.target.checked }
+                                : row,
                             ),
                           )
                         }
@@ -1184,7 +1240,10 @@ export default function Home() {
                   </Button>
                   <p className='ui-form-hint'>{t('home.webhookSnapshotsHint')}</p>
                 </section>
-                <section className='ui-settings-panel' aria-labelledby='asking-home-page__creator-heading'>
+                <section
+                  className='ui-settings-panel'
+                  aria-labelledby='asking-home-page__creator-heading'
+                >
                   <h2 className='ui-field-heading' id='asking-home-page__creator-heading'>
                     {t('home.creatorHeading')}
                   </h2>
@@ -1323,8 +1382,7 @@ export default function Home() {
                 className='ui-button--lane-primary'
                 disabled={
                   submitting ||
-                  (Boolean(billingJwt.trim()) &&
-                    billingUsageAtCap(billingUsageQuery.data) === true)
+                  (Boolean(billingJwt.trim()) && billingUsageAtCap(billingUsageQuery.data) === true)
                 }
                 aria-busy={submitting}
               >
@@ -1344,7 +1402,9 @@ export default function Home() {
                           className='ui-link'
                         >
                           {t(
-                            errorUpgradeIsLicenseRenewal ? 'home.renewLicenseCta' : 'home.upgradeCta',
+                            errorUpgradeIsLicenseRenewal
+                              ? 'home.renewLicenseCta'
+                              : 'home.upgradeCta',
                           )}
                         </a>
                       </>

@@ -7,7 +7,7 @@ import { useMaxWidth600 } from '../hooks/useMaxWidth600';
 import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
-import { Button, PageHeader, SectionPanel, cx, Notice, Select, VisuallyHidden } from '../ui';
+import { Button, cx, Notice, PageHeader, SectionPanel, Select, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 import { zodErrorSummary } from '../utils/zodForm';
 import { useAdminWebSocket } from '../wsClient';
@@ -119,6 +119,7 @@ export default function AdminPolls() {
       if (nodes.length === 0) return;
       const first = nodes[0];
       const last = nodes[nodes.length - 1];
+      if (!first || !last) return;
       if (e.shiftKey) {
         if (document.activeElement === first) {
           e.preventDefault();
@@ -312,16 +313,25 @@ export default function AdminPolls() {
   };
 
   const handlePauseVoting = async (id: string, pause: boolean) => {
-    const confirmMsg = pause ? t('admin.polls.confirmPauseVoting') : t('admin.polls.confirmUnpauseVoting');
+    const confirmMsg = pause
+      ? t('admin.polls.confirmPauseVoting')
+      : t('admin.polls.confirmUnpauseVoting');
     if (!window.confirm(confirmMsg)) return;
     setLoading(true);
     clearMessages();
     try {
-      await apiFetch(`admin/polls/${id}/${pause ? 'pause' : 'unpause'}`, { method: 'PATCH', body: {} });
-      setSuccess(pause ? t('admin.polls.successPausedVoting') : t('admin.polls.successUnpausedVoting'));
+      await apiFetch(`admin/polls/${id}/${pause ? 'pause' : 'unpause'}`, {
+        method: 'PATCH',
+        body: {},
+      });
+      setSuccess(
+        pause ? t('admin.polls.successPausedVoting') : t('admin.polls.successUnpausedVoting'),
+      );
       setRefresh((r) => r + 1);
     } catch (err) {
-      setError(errMsg(err, pause ? t('admin.polls.errPauseVoting') : t('admin.polls.errUnpauseVoting')));
+      setError(
+        errMsg(err, pause ? t('admin.polls.errPauseVoting') : t('admin.polls.errUnpauseVoting')),
+      );
     } finally {
       setLoading(false);
     }
@@ -481,7 +491,9 @@ export default function AdminPolls() {
 
       <SectionPanel
         titleId='asking-admin-polls-page__create-heading'
-        title={<span className='asking-admin-page__section-title'>{t('admin.polls.createLabel')}</span>}
+        title={
+          <span className='asking-admin-page__section-title'>{t('admin.polls.createLabel')}</span>
+        }
       >
         <form
           id='asking-admin-polls-page__create-poll-form'
@@ -519,7 +531,9 @@ export default function AdminPolls() {
 
       <SectionPanel
         titleId='asking-admin-polls-page__search-heading'
-        title={<span className='asking-admin-page__section-title'>{t('admin.polls.searchLabel')}</span>}
+        title={
+          <span className='asking-admin-page__section-title'>{t('admin.polls.searchLabel')}</span>
+        }
       >
         <div className='asking-admin-polls-page__search-bar asking-admin-polls-page__search-bar--tight'>
           <VisuallyHidden as='label' htmlFor='asking-admin-polls-page__directory-search'>
@@ -607,7 +621,12 @@ export default function AdminPolls() {
         >
           {t('admin.polls.delete')}
         </Button>
-        <span className='asking-admin-polls-page__bulk-selected' role='status' aria-live='polite' aria-atomic='true'>
+        <span
+          className='asking-admin-polls-page__bulk-selected'
+          role='status'
+          aria-live='polite'
+          aria-atomic='true'
+        >
           {t('admin.polls.selected', { count: formatLocaleInteger(selected.length, localeTag) })}
         </span>
       </SectionPanel>
@@ -685,7 +704,9 @@ export default function AdminPolls() {
                       <>
                         {p.question}
                         {isSimulatedPollId(p.id) ? (
-                          <span className='asking-admin-polls-page__sim-badge'>{t('admin.polls.simulationBadge')}</span>
+                          <span className='asking-admin-polls-page__sim-badge'>
+                            {t('admin.polls.simulationBadge')}
+                          </span>
                         ) : null}
                       </>
                     )}
@@ -802,14 +823,19 @@ export default function AdminPolls() {
                             onClick={() => void handlePauseVoting(p.id, !p.voting_paused)}
                             disabled={loading || !!p.archived}
                           >
-                            {p.voting_paused ? t('admin.polls.unpauseVoting') : t('admin.polls.pauseVoting')}
+                            {p.voting_paused
+                              ? t('admin.polls.unpauseVoting')
+                              : t('admin.polls.pauseVoting')}
                           </Button>
                           <Button
                             type='button'
                             variant='secondary'
                             onClick={() => void handleDelete(p.id)}
                             disabled={loading}
-                            className={cx('asking-admin-page__toolbar-btn', 'asking-admin-page__toolbar-btn--danger')}
+                            className={cx(
+                              'asking-admin-page__toolbar-btn',
+                              'asking-admin-page__toolbar-btn--danger',
+                            )}
                             aria-label={t('admin.polls.voiceDeleteRow', { id: p.id })}
                           >
                             {t('admin.polls.delete')}
@@ -1025,7 +1051,10 @@ export default function AdminPolls() {
               variant='secondary'
               disabled={loading}
               onClick={() => void handleBulk('delete')}
-              className={cx('asking-admin-page__toolbar-btn', 'asking-admin-page__toolbar-btn--danger')}
+              className={cx(
+                'asking-admin-page__toolbar-btn',
+                'asking-admin-page__toolbar-btn--danger',
+              )}
               aria-label={t('admin.polls.voiceDeleteBulk')}
             >
               {t('admin.polls.delete')}

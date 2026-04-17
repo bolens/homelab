@@ -197,8 +197,10 @@ const frOverrides = {
   'myPolls.badgeLegendLabel': 'Legende des badges :',
   'myPolls.badgeLegendAria': 'Legende des badges webhook',
   'myPolls.webhookIncludeResultsSnapshot': 'Inclure un instantane differe des resultats publics',
-  'myPolls.webhookIncludeOwnerSnapshot': 'Inclure un instantane de moderation proprietaire (sensible)',
-  'myPolls.webhookIncludeOwnerEvents': 'Inclure les evenements d automatisation proprietaire (sensible)',
+  'myPolls.webhookIncludeOwnerSnapshot':
+    'Inclure un instantane de moderation proprietaire (sensible)',
+  'myPolls.webhookIncludeOwnerEvents':
+    'Inclure les evenements d automatisation proprietaire (sensible)',
   'myPolls.webhookSnapshotsHint':
     'Les options d instantane sont definies par cible. Utilisez l instantane proprietaire ou les evenements proprietaire uniquement pour les endpoints que vous controlez entierement.',
   'myPolls.webhookTargetAdd': 'Ajouter une cible webhook',
@@ -314,7 +316,8 @@ const frOverrides = {
   'myPolls.copyDone': 'Copié.',
   'myPolls.publicPollUrl': 'Lien public du sondage',
   'myPolls.sharePresets': 'Préréglages de partage',
-  'myPolls.sharePresetsHint': 'Liens préréglés pour overlays de stream, partage mobile et scène de résultats.',
+  'myPolls.sharePresetsHint':
+    'Liens préréglés pour overlays de stream, partage mobile et scène de résultats.',
   'myPolls.sharePresetOverlayLabel': 'URL overlay',
   'myPolls.sharePresetOverlayCta': 'Votez en direct :',
   'myPolls.sharePresetChatLabel': 'URL commande chat',
@@ -393,7 +396,8 @@ const frOverrides = {
     'Secret de signature (min. 16 caractères, ou vide pour génération automatique)',
   'home.webhookIncludeResultsSnapshot': 'Inclure un instantane differe des resultats publics',
   'home.webhookIncludeOwnerSnapshot': 'Inclure un instantane de moderation proprietaire (sensible)',
-  'home.webhookIncludeOwnerEvents': 'Inclure les evenements d automatisation proprietaire (sensible)',
+  'home.webhookIncludeOwnerEvents':
+    'Inclure les evenements d automatisation proprietaire (sensible)',
   'home.webhookSnapshotsHint':
     'Les options d instantane sont definies par cible. Utilisez l instantane proprietaire ou les evenements proprietaire uniquement pour les endpoints que vous controlez entierement.',
   'home.webhookTargetAdd': 'Ajouter une cible webhook',
@@ -493,7 +497,8 @@ const frOverrides = {
   'home.pollTemplate.ama-priority.title': 'Que devrions-nous répondre ensuite ?',
   'home.pollTemplate.ama-priority.options':
     'Feuille de route et calendrier des sorties\nPlongée architecture technique\nMonétisation et sponsors\nPolitique de modération communautaire',
-  'home.pollTemplate.ama-priority.notes': 'À utiliser entre les segments pour laisser le chat décider.',
+  'home.pollTemplate.ama-priority.notes':
+    'À utiliser entre les segments pour laisser le chat décider.',
   'home.pollTemplate.this-or-that.label': 'Ça ou ça',
   'home.pollTemplate.this-or-that.title': 'Que fait-on ensuite ?',
   'home.pollTemplate.this-or-that.notes': 'Changement de segment rapide pour les directs.',
@@ -505,11 +510,13 @@ const frOverrides = {
   'home.pollTemplate.qa-upvote.title': 'Quelle question répondre en direct ?',
   'home.pollTemplate.qa-upvote.options':
     'Comment ce projet a-t-il commencé ?\nQuels outils utilisez-vous au quotidien ?\nQuel est votre plus gros défi en ce moment ?\nQue devrions-nous construire ensuite sur le stream ?',
-  'home.pollTemplate.qa-upvote.notes': 'Collecter et classer les questions du public pendant le Q&A.',
+  'home.pollTemplate.qa-upvote.notes':
+    'Collecter et classer les questions du public pendant le Q&A.',
   'home.pollTemplate.weekly-retro.label': 'Rétro hebdomadaire',
   'home.pollTemplate.weekly-retro.title': 'Comment s’est passée cette semaine ?',
   'home.pollTemplate.weekly-retro.options': 'Super\nBien\nMitigé\nÀ améliorer',
-  'home.pollTemplate.weekly-retro.notes': 'À utiliser après chaque semaine de stream pour le ressenti.',
+  'home.pollTemplate.weekly-retro.notes':
+    'À utiliser après chaque semaine de stream pour le ressenti.',
 
   'poll.docTitleNotFound': 'Sondage introuvable',
   'poll.loading': 'Chargement du sondage…',
@@ -593,7 +600,8 @@ const frOverrides = {
   'poll.mobileQuickActionsAria': 'Actions rapides du sondage',
   'poll.state.label': 'État',
   'poll.instructions.vote': 'Choisissez une option ci-dessous pour voter.',
-  'poll.instructions.multi': 'Sélectionnez une ou plusieurs options, puis appuyez sur Envoyer le vote.',
+  'poll.instructions.multi':
+    'Sélectionnez une ou plusieurs options, puis appuyez sur Envoyer le vote.',
   'poll.submitMultiVote': 'Envoyer le vote',
   'poll.multiSubmitHint': 'Sélectionnez au moins une option.',
   'poll.voteCardAria': 'Choix de réponses',
@@ -1120,10 +1128,12 @@ const frOverrides = {
     'Liens de mise à niveau et de gestion d’abonnement fournis par le serveur (définir les URL POLAR_* dans l’env du stack).',
   'developer.billingPortal': 'Portail client',
   'developer.billingCurrentPlan': 'Forfait actuel (côté serveur)',
-  'developer.billingPollUsage': 'Sondages non archivés dont vous êtes propriétaire : {current} / {max}.',
+  'developer.billingPollUsage':
+    'Sondages non archivés dont vous êtes propriétaire : {current} / {max}.',
   'developer.billingWsRoomCap':
     'Abonnés WebSocket simultanés par sondage (plafond effectif pour votre espace) : {max}.',
-  'developer.billingExportUsage': 'Exports de données terminés aujourd’hui (UTC) : {current} / {max}.',
+  'developer.billingExportUsage':
+    'Exports de données terminés aujourd’hui (UTC) : {current} / {max}.',
   'developer.billingVoteUsage':
     'Votes ce mois UTC sur vos sondages (lignes non en quarantaine) : {current} / {max}.',
   'developer.billingFanoutCap':
@@ -1275,7 +1285,8 @@ const frOverrides = {
   'poll.metrics.optionHourlyTitle': 'Performance des options par heure',
   'poll.metrics.optionHourlyHint': 'Comparaison horaire des votes par option.',
   'poll.metrics.optionVelocityByMinuteTitle': 'Vitesse par option et par minute',
-  'poll.metrics.optionVelocityByMinuteHint': 'Evolution des votes par option en fenetres de 1 minute.',
+  'poll.metrics.optionVelocityByMinuteHint':
+    'Evolution des votes par option en fenetres de 1 minute.',
   'poll.metrics.velocityByMinuteTitle': 'Vitesse globale par minute',
   'poll.metrics.velocityByMinuteHint': 'Variation du rythme de vote minute par minute.',
   'poll.metrics.velocityByMinuteTruncated': 'Serie tronquee a cause de la limite de points.',
@@ -1414,7 +1425,8 @@ const frOverrides = {
   'admin.dashboard.kpi.weekdaySparkline': 'Tendance par jour',
   'admin.dashboard.kpi.weekdaySparklineAxis': 'Ordre : {days} (UTC)',
   'admin.dashboard.simulation.title': 'Simulation de charge',
-  'admin.dashboard.simulation.subtitle': 'Genere des donnees de test pour verifier le tableau de bord.',
+  'admin.dashboard.simulation.subtitle':
+    'Genere des donnees de test pour verifier le tableau de bord.',
   'admin.dashboard.simulation.users': 'Utilisateurs',
   'admin.dashboard.simulation.polls': 'Sondages',
   'admin.dashboard.simulation.votes': 'Votes',
@@ -1424,86 +1436,112 @@ const frOverrides = {
     'Cree {users} utilisateurs, {polls} sondages et {votes} votes de test.',
   'admin.dashboard.simulation.err': 'Echec de la simulation.',
   'terms.section.contact.title': 'Contact',
-  'terms.section.contact.intro': 'Pour les questions juridiques, abus, droits d auteur ou confidentialite, contactez-nous:',
+  'terms.section.contact.intro':
+    'Pour les questions juridiques, abus, droits d auteur ou confidentialite, contactez-nous:',
   'terms.section.contact.bulletAbuse': 'Signalement d abus',
   'terms.section.contact.bulletCopyright': 'Signalement de violation de droits d auteur',
   'terms.section.contact.bulletPrivacy': 'Question relative a la confidentialite',
   'terms.contact.emailCta': 'Ecrire a {email}',
   'terms.contact.urlCta': 'Ouvrir le formulaire de contact',
-  'terms.contact.configureHint': 'Definissez les coordonnees de contact dans la configuration du deploiement.',
+  'terms.contact.configureHint':
+    'Definissez les coordonnees de contact dans la configuration du deploiement.',
   'terms.section.eligibility.title': 'Eligibilite',
-  'terms.section.eligibility.body': 'Vous devez pouvoir conclure un contrat juridiquement valable et respecter l age minimum applicable.',
+  'terms.section.eligibility.body':
+    'Vous devez pouvoir conclure un contrat juridiquement valable et respecter l age minimum applicable.',
   'terms.section.use.title': 'Usage autorise',
-  'terms.section.use.body': 'Utilisez le service de maniere legale et respectueuse. Aucun abus, intrusion ou usurpation.',
+  'terms.section.use.body':
+    'Utilisez le service de maniere legale et respectueuse. Aucun abus, intrusion ou usurpation.',
   'terms.section.api.title': 'API et automatisation',
-  'terms.section.api.body': 'Les acces API doivent respecter les limites, les conditions de securite et la disponibilite du service.',
+  'terms.section.api.body':
+    'Les acces API doivent respecter les limites, les conditions de securite et la disponibilite du service.',
   'terms.section.content.title': 'Contenus utilisateur',
-  'terms.section.content.body': 'Vous restez responsable des contenus publies via vos sondages et integrations.',
+  'terms.section.content.body':
+    'Vous restez responsable des contenus publies via vos sondages et integrations.',
   'terms.section.ip.title': 'Propriete intellectuelle',
-  'terms.section.ip.body': 'Le service et ses elements restent proteges par les lois de propriete intellectuelle applicables.',
+  'terms.section.ip.body':
+    'Le service et ses elements restent proteges par les lois de propriete intellectuelle applicables.',
   'terms.section.dmca.title': 'Demandes DMCA',
-  'terms.section.dmca.body': 'Les notifications de retrait doivent inclure les informations legales requises.',
+  'terms.section.dmca.body':
+    'Les notifications de retrait doivent inclure les informations legales requises.',
   'terms.section.dmca.step1': 'Identifiez l oeuvre protegee concernee.',
   'terms.section.dmca.step2': 'Indiquez l URL ou l emplacement du contenu litigieux.',
   'terms.section.dmca.step3': 'Ajoutez vos coordonnees et une declaration de bonne foi.',
   'terms.section.dmca.step4': 'Signez la demande (signature physique ou electronique).',
   'terms.section.dmca.footer': 'Les demandes incompletes peuvent etre refusees.',
   'terms.section.accounts.title': 'Comptes',
-  'terms.section.accounts.body': 'Vous etes responsable de la securite de votre compte et de vos identifiants.',
+  'terms.section.accounts.body':
+    'Vous etes responsable de la securite de votre compte et de vos identifiants.',
   'terms.section.privacy.title': 'Confidentialite',
-  'terms.section.privacy.body': 'Le traitement des donnees est decrit dans la politique de confidentialite.',
+  'terms.section.privacy.body':
+    'Le traitement des donnees est decrit dans la politique de confidentialite.',
   'terms.section.availability.title': 'Disponibilite du service',
-  'terms.section.availability.body': 'Le service peut evoluer, etre interrompu ou limite sans garantie de disponibilite continue.',
+  'terms.section.availability.body':
+    'Le service peut evoluer, etre interrompu ou limite sans garantie de disponibilite continue.',
   'terms.section.indemnity.title': 'Indemnisation',
-  'terms.section.indemnity.body': 'Vous acceptez d indemniser l exploitant en cas de reclamations liees a un usage illicite.',
+  'terms.section.indemnity.body':
+    'Vous acceptez d indemniser l exploitant en cas de reclamations liees a un usage illicite.',
   'terms.section.liability.title': 'Limitation de responsabilite',
-  'terms.section.liability.body': 'Dans les limites legales, la responsabilite est limitee aux dommages directs previsibles.',
+  'terms.section.liability.body':
+    'Dans les limites legales, la responsabilite est limitee aux dommages directs previsibles.',
   'terms.section.law.title': 'Droit applicable',
   'terms.section.law.body':
     'Sauf disposition imperative du droit local contraire, les presentes conditions sont regies par le droit de {jurisdiction}, sans egard aux regles de conflit de lois qui appliqueraient le droit d une autre juridiction. Les tribunaux de cette meme region ont competence exclusive pour les litiges, sauf si vous disposez d un droit non renconciable d agir ailleurs.',
   'terms.law.jurisdictionFallback': 'Juridiction definie dans la configuration legale du service.',
   'terms.section.changes.title': 'Modifications des conditions',
-  'terms.section.changes.body': 'Les conditions peuvent etre mises a jour; la date de mise a jour fait foi.',
+  'terms.section.changes.body':
+    'Les conditions peuvent etre mises a jour; la date de mise a jour fait foi.',
   'terms.section.misc.title': 'Dispositions diverses',
-  'terms.section.misc.body': 'Si une clause est invalide, les autres restent pleinement applicables.',
+  'terms.section.misc.body':
+    'Si une clause est invalide, les autres restent pleinement applicables.',
   'terms.nav.actions': 'Actions de la page',
   'terms.cta.home': 'Retour a l accueil',
   'terms.cta.policy': 'Politique de confidentialite',
   'terms.cta.privacy': 'Parametres de confidentialite',
   'policy.section.summary.title': 'Resume',
-  'policy.section.summary.body': 'Nous collectons uniquement les donnees necessaires au fonctionnement, a la securite et a l amelioration du service.',
+  'policy.section.summary.body':
+    'Nous collectons uniquement les donnees necessaires au fonctionnement, a la securite et a l amelioration du service.',
   'policy.section.collect.title': 'Donnees collectees',
-  'policy.section.collect.body': 'Les donnees peuvent inclure compte, sondages, votes et metadonnees techniques minimales.',
+  'policy.section.collect.body':
+    'Les donnees peuvent inclure compte, sondages, votes et metadonnees techniques minimales.',
   'policy.section.collect.bulletAccount': 'Donnees de compte (identifiant, role, etat).',
   'policy.section.collect.bulletPoll': 'Donnees des sondages (questions, options, phases).',
   'policy.section.collect.bulletVote': 'Evenements de vote et signaux anti-abus associes.',
   'policy.section.collect.bulletTechnical': 'Journaux techniques et metriques de fonctionnement.',
   'policy.section.cookies.title': 'Cookies',
-  'policy.section.cookies.body': 'Les cookies optionnels d analyse ne sont actives qu avec consentement.',
+  'policy.section.cookies.body':
+    'Les cookies optionnels d analyse ne sont actives qu avec consentement.',
   'policy.section.cookies.settingsLink': 'Gerer les preferences de cookies',
   'policy.section.subprocessors.title': 'Sous-traitants',
-  'policy.section.subprocessors.intro': 'Selon la configuration, des sous-traitants peuvent etre utilises:',
+  'policy.section.subprocessors.intro':
+    'Selon la configuration, des sous-traitants peuvent etre utilises:',
   'policy.section.subprocessors.none': 'Aucun sous-traitant configure.',
   'policy.section.subprocessors.umami': 'Umami (analyse web)',
   'policy.section.subprocessors.plausible': 'Plausible (analyse web)',
   'policy.section.subprocessors.matomo': 'Matomo (analyse web)',
   'policy.section.webhooks.title': 'Webhooks',
-  'policy.section.webhooks.body': 'Les webhooks envoient des donnees d evenement vers vos endpoints configures.',
+  'policy.section.webhooks.body':
+    'Les webhooks envoient des donnees d evenement vers vos endpoints configures.',
   'policy.section.llm.title': 'Passerelle LLM',
-  'policy.section.llm.body': 'Si activee, la passerelle LLM traite les messages selon votre fournisseur configure.',
+  'policy.section.llm.body':
+    'Si activee, la passerelle LLM traite les messages selon votre fournisseur configure.',
   'policy.section.retention.title': 'Conservation des donnees',
-  'policy.section.retention.body': 'Les donnees sont conservees selon les delais configures et les obligations legales.',
+  'policy.section.retention.body':
+    'Les donnees sont conservees selon les delais configures et les obligations legales.',
   'policy.section.rights.title': 'Vos droits',
-  'policy.section.rights.body': 'Vous pouvez exporter ou supprimer vos donnees de compte selon les options disponibles.',
+  'policy.section.rights.body':
+    'Vous pouvez exporter ou supprimer vos donnees de compte selon les options disponibles.',
   'policy.section.rights.settingsLink': 'Ouvrir les parametres de confidentialite',
   'policy.section.status.title': 'Etat du service',
-  'policy.section.status.body': 'La disponibilite et les incidents sont publies sur la page de statut.',
+  'policy.section.status.body':
+    'La disponibilite et les incidents sont publies sur la page de statut.',
   'policy.section.status.link': 'Ouvrir la page de statut',
   'policy.section.contact.title': 'Contact securite et confidentialite',
-  'policy.section.contact.intro': 'Pour toute demande relative a la securite ou la confidentialite:',
+  'policy.section.contact.intro':
+    'Pour toute demande relative a la securite ou la confidentialite:',
   'policy.contact.securityEmail': 'Contact securite : {email}',
   'policy.section.legal.title': 'Base legale',
-  'policy.section.legal.body': 'Le traitement repose sur l execution du service, la securite et les obligations legales.',
+  'policy.section.legal.body':
+    'Le traitement repose sur l execution du service, la securite et les obligations legales.',
   'policy.section.legal.termsLink': 'Voir les conditions d utilisation',
   'policy.nav.actions': 'Actions de la page',
   'policy.cta.home': 'Retour a l accueil',

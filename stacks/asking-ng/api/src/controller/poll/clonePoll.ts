@@ -1,18 +1,21 @@
-import type { AppRequestHandler } from '../../types/http';
 import db from '../../connections';
 import randomId from '../../helpers/randomId';
-import { checkClonePremiumEntitlements, normalizeClonePremiumFields } from '../../lib/pollCloneEntitlements';
-import { buildPlanLimitDetails } from '../../lib/planLimit';
 import { checkActivePollQuotaForUser } from '../../lib/billingPollQuota';
-import { resolveWorkspaceIdForCreatorUserId } from '../../lib/workspaceBootstrap';
 import { jsonError } from '../../lib/jsonError';
+import { buildPlanLimitDetails } from '../../lib/planLimit';
+import {
+  checkClonePremiumEntitlements,
+  normalizeClonePremiumFields,
+} from '../../lib/pollCloneEntitlements';
 import { notifyPollLive } from '../../lib/pollLive';
 import { recordPollPhaseTransition } from '../../lib/pollPhaseHistory';
 import {
   BILLING_LICENSE_EXPIRED_CODE,
   BILLING_LICENSE_EXPIRED_MESSAGE,
 } from '../../lib/selfhostProLicense';
+import { resolveWorkspaceIdForCreatorUserId } from '../../lib/workspaceBootstrap';
 import Poll from '../../model/Poll';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {
@@ -60,17 +63,26 @@ const clonePoll: AppRequestHandler = async (req, res) => {
   const copiedTitle = sourceTitle.includes('(copy)') ? sourceTitle : `${sourceTitle} (copy)`;
 
   const newCreatorId =
-    ownerId != null && Number.isInteger(Number(ownerId)) && Number(ownerId) > 0 ? Number(ownerId) : null;
+    ownerId != null && Number.isInteger(Number(ownerId)) && Number(ownerId) > 0
+      ? Number(ownerId)
+      : null;
   const quota = await checkActivePollQuotaForUser({
     creatorUserId: newCreatorId,
-    sessionUserRole: jwtOk ? req.user?.role ?? null : null,
+    sessionUserRole: jwtOk ? (req.user?.role ?? null) : null,
   });
   if (!quota.ok) {
-    jsonError(res, req, 403, 'USAGE_LIMIT_ACTIVE_POLLS', 'Active poll limit reached for this billing plan.', {
-      max: quota.max,
-      current: quota.current,
-      plan: quota.plan,
-    });
+    jsonError(
+      res,
+      req,
+      403,
+      'USAGE_LIMIT_ACTIVE_POLLS',
+      'Active poll limit reached for this billing plan.',
+      {
+        max: quota.max,
+        current: quota.current,
+        plan: quota.plan,
+      },
+    );
     return;
   }
 

@@ -213,7 +213,8 @@ const enGbOverrides = {
   'myPolls.nextPollIdLabel': 'Next poll ID',
   'myPolls.nextPollIdHint': 'Optional poll to open next in sequence.',
   'myPolls.vanitySlugLabel': 'Vanity slug',
-  'myPolls.vanitySlugHint': 'Short sharing alias, resolved via /s/{slug}. Lower-case letters, numbers, and "-" only.',
+  'myPolls.vanitySlugHint':
+    'Short sharing alias, resolved via /s/{slug}. Lower-case letters, numbers, and "-" only.',
   'myPolls.webhookTargetsLabel': 'Webhook destinations',
   'myPolls.webhookTargetsHint': 'Configure destination URLs and secrets.',
   'myPolls.webhookUrlPlaceholder': 'https://your-endpoint.example/webhook',
@@ -256,7 +257,8 @@ const enGbOverrides = {
   'myPolls.upgradeCta': 'Upgrade for higher limits',
   'myPolls.panicHint': 'Immediately pause voting and lock risky actions.',
   'myPolls.panicBtn': 'Enable panic mode',
-  'myPolls.panicConfirm': 'Stop all voting on “{title}” now? The poll will be locked and viewers will see your paused message.',
+  'myPolls.panicConfirm':
+    'Stop all voting on “{title}” now? The poll will be locked and viewers will see your paused message.',
   'myPolls.panicWorking': 'Applying panic mode…',
   'myPolls.panicDone': 'Panic mode enabled.',
   'myPolls.panicErr': 'Could not enable panic mode.',
@@ -840,7 +842,8 @@ const enGbOverrides = {
   'developer.billingVoteUsage':
     'Ballots this UTC month on polls you own (non-quarantined rows): {current} / {max}.',
   'developer.billingFanoutCap': 'Outbound websocket fanout cap (msgs/s per poll): {max}.',
-  'developer.billingWebhookUsage': 'Outbound webhook POST attempts this UTC minute: {current} / {max}.',
+  'developer.billingWebhookUsage':
+    'Outbound webhook POST attempts this UTC minute: {current} / {max}.',
   'developer.billingMeterWebhooks': 'webhook deliveries',
   'developer.billingCampaignAttributionUsage':
     'Campaign (UTM) attribution increments this UTC day: {current} / {max}.',
@@ -937,7 +940,8 @@ const enGbOverrides = {
   'developer.gatewayAuthOff': 'disabled',
   'developer.gatewayTokenLabel': 'Gateway token',
   'developer.gatewayTokenStoredAccount': 'Signed in: token stored on your account profile.',
-  'developer.gatewayTokenStoredSession': 'Not signed in: token stored only in this browser session.',
+  'developer.gatewayTokenStoredSession':
+    'Not signed in: token stored only in this browser session.',
   'developer.gatewayTokenSaveOk': 'Gateway token saved successfully.',
   'developer.gatewayTokenSaveFail': 'Failed to save gateway token.',
   'developer.save': 'Save settings',
@@ -995,20 +999,28 @@ const enGbOverrides = {
   'poll.votingClosedHint': 'Voting has closed for this poll.',
   'poll.impressions': '{count} total impressions',
   'poll.showNotesTitle': 'Host notes',
-  'poll.refreshHint': 'Live totals: roughly every {visible}s while this tab is in view, every {hidden}s in the background.',
-  'poll.refreshHintLive': 'Live totals: pushed from the server over WebSocket (HTTP refresh roughly every {fallback}s as backup).',
+  'poll.refreshHint':
+    'Live totals: roughly every {visible}s while this tab is in view, every {hidden}s in the background.',
+  'poll.refreshHintLive':
+    'Live totals: pushed from the server over WebSocket (HTTP refresh roughly every {fallback}s as backup).',
   'poll.billingWsSubscriberLimitHint': 'Your plan websocket subscriber cap applies to this poll.',
   'poll.voteFail': 'Your vote could not be recorded.',
   'poll.upgradeCta': 'Upgrade your plan',
   'poll.signInToVote': 'Sign in before voting',
   'poll.signInToVoteCta': 'Sign in now',
-  'poll.accountGatedPrivacy': 'Account-only voting links each ballot to a signed-in account for moderation.',
+  'poll.accountGatedPrivacy':
+    'Account-only voting links each ballot to a signed-in account for moderation.',
   'poll.ownerShareAdvancedHint': 'Advanced sharing controls are visible only to the poll owner.',
-  'poll.trustIpBurstOff': 'Trust: IP burst auto-quarantine is disabled for this deployment. Moderation queue (pending): {pending}.',
-  'poll.trustIpBurstOn': 'Trust: IP burst auto-quarantine is enabled — when a source reaches {threshold}+ votes within {window}s, new votes are quarantined. Queue (pending): {pending}.',
-  'poll.trustChatBurstOff': 'Trust: chat-channel burst auto-quarantine is disabled for this deployment. Same queue (pending): {pending}.',
-  'poll.trustChatBurstOn': 'Trust: chat-channel burst protection is enabled — when a channel id reaches {threshold}+ votes within {window}s, new votes are quarantined. Queue (pending): {pending}.',
-  'poll.trustAccountLinkedMix': 'Trust: last 24h vote rows — signed in {signedIn24h}, anonymous {anonymous24h}. Queue pending (signed in): {pendingSignedIn}.',
+  'poll.trustIpBurstOff':
+    'Trust: IP burst auto-quarantine is disabled for this deployment. Moderation queue (pending): {pending}.',
+  'poll.trustIpBurstOn':
+    'Trust: IP burst auto-quarantine is enabled — when a source reaches {threshold}+ votes within {window}s, new votes are quarantined. Queue (pending): {pending}.',
+  'poll.trustChatBurstOff':
+    'Trust: chat-channel burst auto-quarantine is disabled for this deployment. Same queue (pending): {pending}.',
+  'poll.trustChatBurstOn':
+    'Trust: chat-channel burst protection is enabled — when a channel id reaches {threshold}+ votes within {window}s, new votes are quarantined. Queue (pending): {pending}.',
+  'poll.trustAccountLinkedMix':
+    'Trust: last 24h vote rows — signed in {signedIn24h}, anonymous {anonymous24h}. Queue pending (signed in): {pendingSignedIn}.',
   'poll.expires': 'Expiry',
   'poll.expired': 'This poll has expired',
   'poll.timeNever': 'No expiry',
@@ -1079,7 +1091,8 @@ const enGbOverrides = {
   'home.voteEligibility.account': 'Signed-in accounts only',
   'home.voteEligibility.hint':
     'Signed-in-only ties each ballot to your app account (JWT). People without an account can see results but cannot cast a ballot.',
-  'home.voteEligibility.accountConsentNote': 'Account-only voting records signed-in voter identity for moderation and audit.',
+  'home.voteEligibility.accountConsentNote':
+    'Account-only voting records signed-in voter identity for moderation and audit.',
   'home.retentionTtlDays': 'Auto-retention period (days)',
   'home.retentionTtlDays.hint': 'Automatically delete old polls after the configured period.',
   'home.retentionTtlDays.placeholder': 'e.g. 30',
@@ -1099,7 +1112,8 @@ const enGbOverrides = {
   'home.err.dup': 'Duplicate options are not allowed.',
   'home.err.createFail': 'Could not create poll.',
   'home.err.createRetry': 'Creation failed; please try again.',
-  'home.err.usageLimitPolls': 'Poll limit reached: you already have {current} live polls (maximum {max} on plan {plan}). Archive older polls or upgrade to create more.',
+  'home.err.usageLimitPolls':
+    'Poll limit reached: you already have {current} live polls (maximum {max} on plan {plan}). Archive older polls or upgrade to create more.',
   'home.pollUsageBanner': 'Live polls: {current} out of {max} (plan: {plan}).',
   'home.err.expiration': 'Invalid expiry value.',
   'home.err.invalid': 'Please fix the highlighted fields.',
@@ -1409,7 +1423,8 @@ const enGbOverrides = {
   'policy.section.summary.body':
     'You can vote on many polls without registering. If you sign in, we store the account details you supply. Poll creators remain responsible for content they gather and for any webhooks or integrations they enable.',
   'policy.section.collect.title': 'Personal data and information we process',
-  'policy.section.collect.body': 'Depending on how you use the service, we may process the following:',
+  'policy.section.collect.body':
+    'Depending on how you use the service, we may process the following:',
   'policy.section.collect.bulletAccount':
     'Account details you supply (for example your homelab-user and a hash of your password).',
   'policy.section.collect.bulletPoll': 'Poll configuration and metadata you add while signed in.',
@@ -1420,7 +1435,8 @@ const enGbOverrides = {
   'policy.section.cookies.title': 'Cookies, analytics, and similar tech',
   'policy.section.cookies.body':
     'Optional analytics scripts load only after you explicitly allow analytics, unless your browser sends an opt-out privacy signal that we honour automatically.',
-  'policy.section.cookies.settingsLink': 'Change this anytime in Settings → Privacy and data controls.',
+  'policy.section.cookies.settingsLink':
+    'Change this anytime in Settings → Privacy and data controls.',
   'policy.section.subprocessors.title': 'Subprocessors used for analytics (if any)',
   'policy.section.subprocessors.intro':
     'When optional analytics are wired in at build time, page views may be sent to the provider listed below. Nothing is enabled unless your operator configures it.',

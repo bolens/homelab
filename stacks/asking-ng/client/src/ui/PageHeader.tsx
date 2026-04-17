@@ -27,7 +27,9 @@ export default function PageHeader({
       <h1 id={titleId} className={cx('ui-page-header__title', titleClassName)}>
         {title}
       </h1>
-      {subtitle ? <p className={cx('ui-page-header__subtitle', subtitleClassName)}>{subtitle}</p> : null}
+      {subtitle ? (
+        <p className={cx('ui-page-header__subtitle', subtitleClassName)}>{subtitle}</p>
+      ) : null}
       {actions ? <div className='ui-page-header__actions'>{actions}</div> : null}
       {children}
     </header>

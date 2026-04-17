@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readdir, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -40,6 +40,13 @@ async function listTsFilesRecursively(rootDir) {
 }
 
 async function main() {
+  try {
+    await access(routesRoot);
+  } catch {
+    console.log('Route boundary check skipped (src/routes directory not present).');
+    return;
+  }
+
   const files = await listTsFilesRecursively(routesRoot);
   const violations = [];
 

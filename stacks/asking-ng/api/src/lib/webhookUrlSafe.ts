@@ -18,7 +18,9 @@ export function isPublicWebhookUrl(url: URL): boolean {
   if (/^169\.254\./.test(h)) return false;
   const m = /^172\.(\d+)\./.exec(h);
   if (m) {
-    const n = Number.parseInt(m[1], 10);
+    const secondOctet = m[1];
+    if (!secondOctet) return false;
+    const n = Number.parseInt(secondOctet, 10);
     if (n >= 16 && n <= 31) return false;
   }
   if (proto === 'https:' && h === 'metadata.google.internal') return false;

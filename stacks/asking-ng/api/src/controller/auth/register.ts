@@ -1,6 +1,6 @@
 import type { AuthRegisterBody } from '@asking-ng/contracts/auth';
-import type { AppRequest, AppResponse } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
+import type { AppRequest, AppResponse } from '../../types/http';
 import { presentAuthSuccess } from './auth.presenter';
 import { registerUser } from './auth.service';
 

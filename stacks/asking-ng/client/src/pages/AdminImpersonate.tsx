@@ -52,7 +52,10 @@ export default function AdminImpersonate() {
   }
 
   return (
-    <div className='asking-admin-shell asking-admin-impersonate-page asking-admin-page__cq-root' id='asking-admin-impersonate-page'>
+    <div
+      className='asking-admin-shell asking-admin-impersonate-page asking-admin-page__cq-root'
+      id='asking-admin-impersonate-page'
+    >
       <PageHeader
         className='asking-admin-page__header'
         titleId='asking-admin-impersonate-page__title'
@@ -67,8 +70,16 @@ export default function AdminImpersonate() {
       <SectionPanel
         className='asking-admin-impersonate-page__section'
         titleId='asking-admin-impersonate-page__request-heading'
-        title={<span className='asking-admin-page__section-title'>{t('admin.impersonate.sectionRequest')}</span>}
-        hint={<span className='asking-admin-page__help-text asking-admin-status-page__section-hint'>{t('admin.impersonate.sectionRequestHint')}</span>}
+        title={
+          <span className='asking-admin-page__section-title'>
+            {t('admin.impersonate.sectionRequest')}
+          </span>
+        }
+        hint={
+          <span className='asking-admin-page__help-text asking-admin-status-page__section-hint'>
+            {t('admin.impersonate.sectionRequestHint')}
+          </span>
+        }
       >
         <div className='asking-admin-page__card'>
           <form
@@ -77,7 +88,10 @@ export default function AdminImpersonate() {
             aria-label={t('admin.impersonate.ariaForm')}
           >
             <div className='asking-admin-impersonate-page__form-row'>
-              <label htmlFor='asking-admin-impersonate-page__user-id' className='asking-admin-impersonate-page__label'>
+              <label
+                htmlFor='asking-admin-impersonate-page__user-id'
+                className='asking-admin-impersonate-page__label'
+              >
                 {t('admin.impersonate.labelUserId')}
               </label>
               <input
@@ -108,7 +122,10 @@ export default function AdminImpersonate() {
           </form>
 
           {error ? (
-            <Notice tone='error' className='asking-admin-page__banner-error asking-admin-impersonate-page__form-error'>
+            <Notice
+              tone='error'
+              className='asking-admin-page__banner-error asking-admin-impersonate-page__form-error'
+            >
               {error}
             </Notice>
           ) : null}
@@ -125,10 +142,21 @@ export default function AdminImpersonate() {
         <SectionPanel
           className='asking-admin-impersonate-page__section'
           titleId='asking-admin-impersonate-page__token-heading'
-          title={<span className='asking-admin-page__section-title'>{t('admin.impersonate.tokenTitle')}</span>}
-          hint={<span className='asking-admin-page__help-text asking-admin-status-page__section-hint'>{t('admin.impersonate.tokenHint')}</span>}
+          title={
+            <span className='asking-admin-page__section-title'>
+              {t('admin.impersonate.tokenTitle')}
+            </span>
+          }
+          hint={
+            <span className='asking-admin-page__help-text asking-admin-status-page__section-hint'>
+              {t('admin.impersonate.tokenHint')}
+            </span>
+          }
         >
-          <Notice tone='success' className='asking-admin-export-page__success asking-admin-impersonate-page__token-panel'>
+          <Notice
+            tone='success'
+            className='asking-admin-export-page__success asking-admin-impersonate-page__token-panel'
+          >
             <textarea
               id='asking-admin-impersonate-page__jwt'
               value={token}

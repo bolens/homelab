@@ -26,19 +26,23 @@ export function errorToAppError(err: unknown): AppError {
   }
 
   if (err instanceof UniqueConstraintError) {
-    const message = err.errors?.map((e) => e.message).join('; ') || err.message || 'Duplicate resource';
+    const message =
+      err.errors?.map((e) => e.message).join('; ') || err.message || 'Duplicate resource';
     return new AppError(409, 'DUPLICATE_KEY', message);
   }
 
   if (err instanceof ForeignKeyConstraintError) {
     const message =
       err.message ||
-      (err.table ? `Foreign key constraint violated (${err.table})` : 'Foreign key constraint violated');
+      (err.table
+        ? `Foreign key constraint violated (${err.table})`
+        : 'Foreign key constraint violated');
     return new AppError(409, 'FOREIGN_KEY_VIOLATION', message);
   }
 
   if (err instanceof ValidationError) {
-    const message = err.errors?.map((e) => e.message).join('; ') || err.message || 'Validation failed';
+    const message =
+      err.errors?.map((e) => e.message).join('; ') || err.message || 'Validation failed';
     return new AppError(400, 'VALIDATION_ERROR', message);
   }
 

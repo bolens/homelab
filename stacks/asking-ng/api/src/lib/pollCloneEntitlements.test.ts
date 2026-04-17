@@ -6,7 +6,8 @@ const { mockFields, mockLicenseExpired } = vi.hoisted(() => ({
 }));
 
 vi.mock('../controller/self/self.repository', () => ({
-  findBillingPlanAndRoleForVoteQuota: (args: { creatorUserId: number }) => mockFields(args.creatorUserId),
+  findBillingPlanAndRoleForVoteQuota: (args: { creatorUserId: number }) =>
+    mockFields(args.creatorUserId),
 }));
 
 vi.mock('./billingLimits', () => ({

@@ -23,7 +23,12 @@ export async function recordBillingWsFanoutShed(args: {
     });
   } catch (err: unknown) {
     logger.warn(
-      { event: 'billing.ws_fanout_shed_meter.write_failed', err, userId: args.userId, pollId: args.pollId },
+      {
+        event: 'billing.ws_fanout_shed_meter.write_failed',
+        err,
+        userId: args.userId,
+        pollId: args.pollId,
+      },
       'failed to record ws fanout shed metering row',
     );
   }

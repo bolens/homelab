@@ -1,9 +1,15 @@
-import type { AppRequest, AppResponse } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
 import { getRequestContext } from '../../lib/requestContext';
 import { invalidateSessionUserCache } from '../../lib/sessionUserCache';
 import type { CreateUserBody, RolePatchBody, SetPasswordBody } from '../../schemas/admin';
+import type { AppRequest, AppResponse } from '../../types/http';
 import { singleString } from '../../utils/http';
+import {
+  presentDeletedUserMessage,
+  presentPasswordResetMessage,
+  presentUser,
+  presentUsersList,
+} from './users.presenter';
 import {
   createUserService,
   deleteUserService,
@@ -12,12 +18,6 @@ import {
   patchUserRoleService,
   resetUserPasswordService,
 } from './users.service';
-import {
-  presentDeletedUserMessage,
-  presentPasswordResetMessage,
-  presentUser,
-  presentUsersList,
-} from './users.presenter';
 
 export async function listUsersHandler(req: AppRequest, res: AppResponse): Promise<void> {
   const ctx = getRequestContext(req);

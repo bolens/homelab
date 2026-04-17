@@ -1,9 +1,9 @@
 import type { ListQuarantinedVotesQuery } from '@asking-ng/contracts/poll';
-import type { AppRequestHandler } from '../../types/http';
 import { Op } from 'sequelize';
 import { jsonError } from '../../lib/jsonError';
 import Poll from '../../model/Poll';
 import Vote from '../../model/Vote';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {

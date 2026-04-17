@@ -1,10 +1,10 @@
 import type { Subscription } from '@polar-sh/sdk/models/components/subscription';
 import type { FastifyBaseLogger } from 'fastify';
+import User from '../models/user.sequelize';
+import Workspace from '../models/workspace.sequelize';
 import { appEnv } from './env';
 import { invalidateSessionUserCache } from './sessionUserCache';
 import { ensureDefaultWorkspaceForUser } from './workspaceBootstrap';
-import User from '../models/user.sequelize';
-import Workspace from '../models/workspace.sequelize';
 
 const SUBSCRIPTION_WEBHOOK_TYPES = new Set([
   'subscription.active',
@@ -17,7 +17,9 @@ const SUBSCRIPTION_WEBHOOK_TYPES = new Set([
 export type PaidBillingPlan = 'free' | 'cloud-team' | 'cloud-pro';
 
 /** Map Polar `product_id` to internal plan; requires env `POLAR_PRODUCT_ID_*`. */
-export function resolveBillingPlanFromPolarProductId(productId: string): 'cloud-team' | 'cloud-pro' | null {
+export function resolveBillingPlanFromPolarProductId(
+  productId: string,
+): 'cloud-team' | 'cloud-pro' | null {
   const team = appEnv.polarProductIdCloudTeam;
   const pro = appEnv.polarProductIdCloudPro;
   if (pro && productId === pro) return 'cloud-pro';
@@ -65,7 +67,9 @@ function parsePositiveInteger(input: unknown): number | null {
  * Order: **`asking_ng_workspace_id`** metadata → **`asking_ng_user_id`** (default workspace) →
  * **`workspaces.polar_subscription_id`** → **`workspaces.polar_customer_id`**.
  */
-export async function findWorkspaceForPolarSubscription(sub: Subscription): Promise<WorkspaceInstance | null> {
+export async function findWorkspaceForPolarSubscription(
+  sub: Subscription,
+): Promise<WorkspaceInstance | null> {
   const meta = sub.metadata && typeof sub.metadata === 'object' ? sub.metadata : {};
   const metaRec = meta as Record<string, unknown>;
   const workspaceMetaId = parsePositiveInteger(metaRec['asking_ng_workspace_id']);
@@ -123,7 +127,10 @@ export type PolarPlanAnalysis = {
 };
 
 /** Derive how `billing_plan` should change from a subscription snapshot (webhook or Polar API). */
-export function analyzePolarSubscriptionPlan(sub: Subscription, eventType: string): PolarPlanAnalysis {
+export function analyzePolarSubscriptionPlan(
+  sub: Subscription,
+  eventType: string,
+): PolarPlanAnalysis {
   const grants = subscriptionGrantsPaidPlan(sub.status, eventType);
   const mappedPlan = resolveBillingPlanFromPolarProductId(sub.productId);
   if (grants && mappedPlan != null) {
@@ -136,7 +143,9 @@ export function analyzePolarSubscriptionPlan(sub: Subscription, eventType: strin
 }
 
 /** Mirror workspace billing + Polar linkage onto the owner `users` row (compat + profile reads). */
-export async function syncOwnerUserBillingFromWorkspace(workspace: WorkspaceInstance): Promise<void> {
+export async function syncOwnerUserBillingFromWorkspace(
+  workspace: WorkspaceInstance,
+): Promise<void> {
   const ownerId = workspace.get('ownerUserId') as number;
   const user = await User.findByPk(ownerId);
   if (!user) return;
@@ -214,7 +223,10 @@ export async function applyPolarSubscriptionWebhookEvent(
   const eventType = event.type;
   if (!SUBSCRIPTION_WEBHOOK_TYPES.has(eventType)) return;
   if (!isSubscriptionData(event.data)) {
-    log.warn({ event: 'polar.subscription.invalid_data_shape', eventType }, 'polar subscription webhook: bad data');
+    log.warn(
+      { event: 'polar.subscription.invalid_data_shape', eventType },
+      'polar subscription webhook: bad data',
+    );
     return;
   }
   const sub = event.data;

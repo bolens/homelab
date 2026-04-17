@@ -12,7 +12,12 @@ export type KnownBillingPlan =
 
 export function normalizeBillingPlan(raw: string | null | undefined): KnownBillingPlan {
   const s = (raw ?? 'free').trim().toLowerCase();
-  if (s === 'cloud-team' || s === 'cloud-pro' || s === 'selfhost-pro' || s === 'enterprise-custom') {
+  if (
+    s === 'cloud-team' ||
+    s === 'cloud-pro' ||
+    s === 'selfhost-pro' ||
+    s === 'enterprise-custom'
+  ) {
     return s;
   }
   return 'free';
@@ -37,7 +42,10 @@ export function maxActivePollsForBillingPlan(plan: string): number {
 }
 
 /** UTC calendar month window for vote metering (aligned with `docs/MONETIZATION-AND-PACKAGING.md`). */
-export function utcCalendarMonthBounds(nowMs: number = Date.now()): { start: Date; endExclusive: Date } {
+export function utcCalendarMonthBounds(nowMs: number = Date.now()): {
+  start: Date;
+  endExclusive: Date;
+} {
   const d = new Date(nowMs);
   const y = d.getUTCFullYear();
   const m = d.getUTCMonth();
@@ -47,7 +55,10 @@ export function utcCalendarMonthBounds(nowMs: number = Date.now()): { start: Dat
 }
 
 /** UTC calendar day window for export metering. */
-export function utcCalendarDayBounds(nowMs: number = Date.now()): { start: Date; endExclusive: Date } {
+export function utcCalendarDayBounds(nowMs: number = Date.now()): {
+  start: Date;
+  endExclusive: Date;
+} {
   const d = new Date(nowMs);
   const y = d.getUTCFullYear();
   const m = d.getUTCMonth();

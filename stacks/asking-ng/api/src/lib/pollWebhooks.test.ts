@@ -62,11 +62,11 @@ vi.mock('./pollWebhookOwnerEvents', () => ({
   fetchPollWebhookOwnerEvents: mockFetchOwnerEvents,
 }));
 
-import { buildAllPollWebhookHintPacks } from './pollWebhookHintPacks';
 import {
   readPollWebhookDeliveryTelemetry,
   resetPollWebhookDeliveryTelemetryForTests,
 } from './pollWebhookDeliveryTelemetry';
+import { buildAllPollWebhookHintPacks } from './pollWebhookHintPacks';
 import { queuePollWebhook } from './pollWebhooks';
 
 function pollRow(
@@ -386,7 +386,11 @@ describe('queuePollWebhook envelope defaults', () => {
     mockFindByPk.mockResolvedValue(
       pollRow([
         { url: 'https://hooks.example.test/a', secret: 'top-secret' },
-        { url: 'https://hooks.example.test/b', secret: 'top-secret', include_results_snapshot: true },
+        {
+          url: 'https://hooks.example.test/b',
+          secret: 'top-secret',
+          include_results_snapshot: true,
+        },
       ]),
     );
     queuePollWebhook('poll-1', 'poll_updated', { reason: 'x' });
@@ -429,7 +433,8 @@ describe('queuePollWebhook envelope defaults', () => {
   it('records live webhook delivery outcomes for admin status telemetry', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn()
+      vi
+        .fn()
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
@@ -462,7 +467,9 @@ describe('queuePollWebhook envelope defaults', () => {
   it('fetches owner events once when any target opts in, and attaches only to those deliveries', async () => {
     const ownerEvents = {
       safeguard_tags: ['trust_stack:ip_burst'],
-      quarantine_recent: [{ vote_id: 'v1', reason: 'ip_burst', risk_score: 90, created_at_ms: 1, state: 'pending' }],
+      quarantine_recent: [
+        { vote_id: 'v1', reason: 'ip_burst', risk_score: 90, created_at_ms: 1, state: 'pending' },
+      ],
       moderation_actions_recent: [],
       truncated: { quarantine_recent: false, moderation_actions_recent: false },
       window_ms: 3_600_000,
@@ -486,7 +493,9 @@ describe('queuePollWebhook envelope defaults', () => {
 
   it('uses per-target hint_locale override from webhook target config', async () => {
     mockFindByPk.mockResolvedValue(
-      pollRow([{ url: 'https://hooks.example.test/poll', secret: 'top-secret', hint_locale: 'es' }]),
+      pollRow([
+        { url: 'https://hooks.example.test/poll', secret: 'top-secret', hint_locale: 'es' },
+      ]),
     );
     queuePollWebhook('poll-1', 'poll_updated', { title: 'renamed' });
     await flushAsync();

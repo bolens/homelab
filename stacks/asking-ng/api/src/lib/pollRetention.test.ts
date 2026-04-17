@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryTypes } from 'sequelize';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockQuery, mockTransaction, mockInfo } = vi.hoisted(() => ({
   mockQuery: vi.fn(),

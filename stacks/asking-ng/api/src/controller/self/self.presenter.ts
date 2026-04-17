@@ -1,8 +1,8 @@
-import type { BillingUsageWarnings } from '../../lib/billingUsageWarnings';
 import type {
   BillingUsageLedgerDailyRollupEntry,
   BillingUsageLedgerEntry,
 } from '../../lib/billingUsageLedger';
+import type { BillingUsageWarnings } from '../../lib/billingUsageWarnings';
 import type { SelfhostProLicenseState } from '../../lib/selfhostProLicense';
 
 type ProfileSummary = {

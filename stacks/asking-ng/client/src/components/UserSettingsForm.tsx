@@ -202,7 +202,10 @@ export default function UserSettingsForm({ className }: UserSettingsFormProps) {
             ))}
           </Select>
         </FormRow>
-        <FormRow label={t('nav.readingComfortLabel')} htmlFor='asking-settings-page__reading-comfort'>
+        <FormRow
+          label={t('nav.readingComfortLabel')}
+          htmlFor='asking-settings-page__reading-comfort'
+        >
           <Select
             id='asking-settings-page__reading-comfort'
             className='ui-input--stack'

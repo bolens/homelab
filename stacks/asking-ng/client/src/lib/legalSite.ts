@@ -19,7 +19,10 @@ export function configuredAnalyticsProviders(): AnalyticsProviderId[] {
   const umamiUrl = import.meta.env.VITE_UMAMI_SCRIPT_URL?.trim();
   const umamiId = import.meta.env.VITE_UMAMI_WEBSITE_ID?.trim();
   if (umamiUrl && umamiId) out.push('umami');
-  if (import.meta.env.VITE_PLAUSIBLE_SCRIPT_URL?.trim() && import.meta.env.VITE_PLAUSIBLE_DOMAIN?.trim()) {
+  if (
+    import.meta.env.VITE_PLAUSIBLE_SCRIPT_URL?.trim() &&
+    import.meta.env.VITE_PLAUSIBLE_DOMAIN?.trim()
+  ) {
     out.push('plausible');
   }
   if (import.meta.env.VITE_MATOMO_BASE_URL?.trim() && import.meta.env.VITE_MATOMO_SITE_ID?.trim()) {

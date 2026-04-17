@@ -1,5 +1,5 @@
-import { QueryTypes } from 'sequelize';
 import type { Transaction } from 'sequelize';
+import { QueryTypes } from 'sequelize';
 import db from '../../connections';
 import Poll from '../../model/Poll';
 import Vote from '../../model/Vote';
@@ -110,7 +110,10 @@ export async function findVotesByIdempotencyKey(args: {
 }
 
 /** limit_ip ballots use id `baseId` (single) or `baseId-<optionIndex>` (multi). */
-export async function countVotesByPollAndUser(args: { pollId: string; userId: number }): Promise<number> {
+export async function countVotesByPollAndUser(args: {
+  pollId: string;
+  userId: number;
+}): Promise<number> {
   const [r] = (await db.query(
     `SELECT COUNT(*)::int AS c
      FROM votes
@@ -147,7 +150,10 @@ export async function countVotesByPollAndPlatformIdentity(args: {
   return Number(r?.c ?? 0) || 0;
 }
 
-export async function countLimitIpBallotsForPoll(args: { pollId: string; baseId: string }): Promise<number> {
+export async function countLimitIpBallotsForPoll(args: {
+  pollId: string;
+  baseId: string;
+}): Promise<number> {
   const [r] = (await db.query(
     `SELECT COUNT(*)::int AS c
      FROM votes

@@ -1,8 +1,11 @@
 import type { CreatePollBody } from '@asking-ng/contracts/poll';
-import type { AppRequestHandler } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
 import { buildPlanLimitDetails } from '../../lib/planLimit';
-import { BILLING_LICENSE_EXPIRED_CODE, BILLING_LICENSE_EXPIRED_MESSAGE } from '../../lib/selfhostProLicense';
+import {
+  BILLING_LICENSE_EXPIRED_CODE,
+  BILLING_LICENSE_EXPIRED_MESSAGE,
+} from '../../lib/selfhostProLicense';
+import type { AppRequestHandler } from '../../types/http';
 import { presentCreatePollResponse } from './createPoll.presenter';
 import { createPollService } from './createPoll.service';
 
@@ -91,11 +94,18 @@ const createPoll: AppRequestHandler = async (req, res) => {
     return;
   }
   if (result.kind === 'usage_limit_active_polls') {
-    jsonError(res, req, 403, 'USAGE_LIMIT_ACTIVE_POLLS', 'Active poll limit reached for this billing plan.', {
-      max: result.max,
-      current: result.current,
-      plan: result.plan,
-    });
+    jsonError(
+      res,
+      req,
+      403,
+      'USAGE_LIMIT_ACTIVE_POLLS',
+      'Active poll limit reached for this billing plan.',
+      {
+        max: result.max,
+        current: result.current,
+        plan: result.plan,
+      },
+    );
     return;
   }
 

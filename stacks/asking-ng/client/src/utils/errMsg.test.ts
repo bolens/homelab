@@ -77,7 +77,12 @@ describe('errMsg', () => {
     const e = makeApiError(403, 'Monthly vote limit reached.', {
       errorCode: 'USAGE_LIMIT_VOTES',
     });
-    (e as { details?: unknown }).details = { max: 50_000, current: 50_000, plan: 'free', incoming: 3 };
+    (e as { details?: unknown }).details = {
+      max: 50_000,
+      current: 50_000,
+      plan: 'free',
+      incoming: 3,
+    };
     const m = errMsg(e, 'fallback');
     expect(m).toContain('50000/50000');
     expect(m).toContain('+3 this request');
@@ -105,7 +110,8 @@ describe('errMsg', () => {
     (e as { details?: unknown }).details = {
       plan: 'selfhost-pro',
       license_status: 'expired',
-      upgrade_hint: 'Self-host Pro license has expired. Renew license to continue premium features.',
+      upgrade_hint:
+        'Self-host Pro license has expired. Renew license to continue premium features.',
     };
     const m = errMsg(e, 'fallback');
     expect(m).toContain('Renew license to continue premium features.');

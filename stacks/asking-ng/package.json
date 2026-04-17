@@ -3,6 +3,8 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "scripts": {
+    "prepare": "husky",
+    "commitlint": "commitlint --from HEAD~1 --to HEAD",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "check": "biome check --write .",
@@ -11,6 +13,7 @@
     "knip": "turbo run knip",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:workspace": "vitest --workspace vitest.workspace.ts",
     "build": "turbo run build",
     "verify": "pnpm run check:ci && turbo run verify",
     "devenv:contracts-snapshot": "bash ./scripts/with-dev-env.sh pnpm --filter api run contracts:snapshot",
@@ -24,8 +27,13 @@
     "reconcile:trend:7d": "bash ./scripts/reconcile-trend-report.sh 168h"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
+    "@commitlint/config-conventional": "^20.0.0",
     "@biomejs/biome": "2.4.12",
-    "turbo": "^2.5.8"
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "turbo": "^2.5.8",
+    "vitest": "catalog:"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

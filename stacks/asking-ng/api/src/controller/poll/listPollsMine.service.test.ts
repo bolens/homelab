@@ -1,5 +1,5 @@
-import type { AppRequest } from '../../types/http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AppRequest } from '../../types/http';
 import { buildPollsMineView } from './listPollsMine.service';
 
 const { mockGetPollAndVoteColumns, mockListPollRows, mockListPollVoteMetrics } = vi.hoisted(() => ({

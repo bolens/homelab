@@ -147,7 +147,10 @@ export default function PublicStatus() {
   }
 
   return (
-    <article className='ui-page-shell asking-public-layout asking-status-page' id='asking-status-page'>
+    <article
+      className='ui-page-shell asking-public-layout asking-status-page'
+      id='asking-status-page'
+    >
       <header className='ui-page-hero'>
         <h1 className='ui-page-hero-title' id='asking-status-page__title'>
           {t('status.title')}
@@ -159,7 +162,11 @@ export default function PublicStatus() {
         <Card
           as='section'
           padding='none'
-          className={cx('ui-card--form-panel', 'asking-status-page__card', 'asking-status-page__overall')}
+          className={cx(
+            'ui-card--form-panel',
+            'asking-status-page__card',
+            'asking-status-page__overall',
+          )}
           aria-labelledby='asking-status-page__current-heading'
         >
           <h2 id='asking-status-page__current-heading' className='ui-flow-heading'>
@@ -202,7 +209,9 @@ export default function PublicStatus() {
                 <span className='asking-status-page__component-name'>{t('status.liveness')}</span>
                 <code className='asking-status-page__component-route'>GET /healthcheck</code>
               </div>
-              <span className={`asking-status-page__badge asking-status-page__badge--${healthTone}`}>
+              <span
+                className={`asking-status-page__badge asking-status-page__badge--${healthTone}`}
+              >
                 <span className='asking-status-page__badge-dot' aria-hidden='true' />
                 {healthQuery.isError
                   ? errMsg(healthQuery.error, t('status.requestFailed'))
@@ -264,7 +273,10 @@ export default function PublicStatus() {
             <p className='asking-status-page__incident-empty'>{t('status.checking')}</p>
           ) : null}
           {historyQuery.isError ? (
-            <p className='asking-status-page__status asking-status-page__status--error' role='alert'>
+            <p
+              className='asking-status-page__status asking-status-page__status--error'
+              role='alert'
+            >
               {errMsg(historyQuery.error, t('status.historyError'))}
             </p>
           ) : null}
@@ -322,7 +334,10 @@ export default function PublicStatus() {
           {infoQuery.isPending ? (
             <p>{t('status.checking')}</p>
           ) : infoQuery.isError ? (
-            <p className='asking-status-page__status asking-status-page__status--error' role='alert'>
+            <p
+              className='asking-status-page__status asking-status-page__status--error'
+              role='alert'
+            >
               {errMsg(infoQuery.error, t('status.infoError'))}
             </p>
           ) : (

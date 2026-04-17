@@ -1,47 +1,47 @@
+import { adminPollWriteBodySchema } from '@asking-ng/contracts/admin';
 import type { FastifyPluginAsync } from 'fastify';
 import { Op, QueryTypes } from 'sequelize';
-import { adminPollWriteBodySchema } from '@asking-ng/contracts/admin';
 import sequelize from '../connections';
+import randomId from '../helpers/randomId';
 import { timingSafeAdminTokenEqual } from '../lib/adminToken';
-import { appEnv } from '../lib/env';
-import { reconcilePolarSubscriptionsFromApi } from '../lib/polarSubscriptionReconcile';
-import { resolveWorkspaceIdForCreatorUserId } from '../lib/workspaceBootstrap';
+import {
+  getRetentionPolicySettings,
+  getSignupsEnabled,
+  getVoteGeoEnabled,
+  setRetentionPolicySettings,
+  setSignupsEnabled,
+  setVoteGeoEnabled,
+} from '../lib/appSettings';
+import { countCompletedDataExportsForWorkspaceUtcDay } from '../lib/billingExportQuota';
 import {
   hasExtendedRetentionForBillingPlan,
   hasWebhookAutomationForBillingPlan,
+  type KnownBillingPlan,
   maxActivePollsForBillingPlan,
   maxDataExportsPerDayForBillingPlan,
   maxVotesPerMonthForBillingPlan,
   normalizeBillingPlan,
-  type KnownBillingPlan,
   utcCalendarMonthBounds,
 } from '../lib/billingLimits';
-import { countCompletedDataExportsForWorkspaceUtcDay } from '../lib/billingExportQuota';
+import { appEnv } from '../lib/env';
 import { notifyWebhook, sinkAuditLog } from '../lib/integrationWebhooks';
+import { reconcilePolarSubscriptionsFromApi } from '../lib/polarSubscriptionReconcile';
 import { notifyPollLive } from '../lib/pollLive';
 import { readPollWebhookDeliveryTelemetry } from '../lib/pollWebhookDeliveryTelemetry';
 import { queuePollWebhook } from '../lib/pollWebhooks';
 import {
-  getGlobalVoteRollups,
   getGlobalTimeBinsFromRollups,
+  getGlobalVoteRollups,
   reconcilePollVoteRollups,
   refreshPollVoteRollupsIfStale,
   refreshPollVoteRollupsNow,
 } from '../lib/readModelRollups';
-import {
-  getRetentionPolicySettings,
-  getSignupsEnabled,
-  setRetentionPolicySettings,
-  getVoteGeoEnabled,
-  setSignupsEnabled,
-  setVoteGeoEnabled,
-} from '../lib/appSettings';
-import AuditLog from '../models/auditlog.sequelize';
+import { resolveWorkspaceIdForCreatorUserId } from '../lib/workspaceBootstrap';
+import { authenticateBearer, isJwtAdminRole } from '../middleware/requireSession';
 import Poll from '../model/Poll';
 import Vote from '../model/Vote';
+import AuditLog from '../models/auditlog.sequelize';
 import User from '../models/user.sequelize';
-import { authenticateBearer, isJwtAdminRole } from '../middleware/requireSession';
-import randomId from '../helpers/randomId';
 import { replyJsonError, toAppRequest } from './requestAdapter';
 
 const adminOperatorRoles = ['mod', 'admin', 'superadmin'] as const;
@@ -74,9 +74,10 @@ async function requireAdminAuth(
   reply: { code: (statusCode: number) => { send: (payload?: unknown) => void } },
   allowedRoles: ReadonlyArray<(typeof adminOperatorRoles)[number]> = adminElevatedRoles,
 ): Promise<boolean> {
-  const token = typeof request.headers?.['x-admin-token' as never] === 'string'
-    ? (request.headers?.['x-admin-token' as never] as string)
-    : undefined;
+  const token =
+    typeof request.headers?.['x-admin-token' as never] === 'string'
+      ? (request.headers?.['x-admin-token' as never] as string)
+      : undefined;
   if (timingSafeAdminTokenEqual(token, appEnv.adminToken || 'changeme')) return true;
 
   const reqLike = toAppRequest(request);
@@ -211,8 +212,12 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       )) as Array<{ total_votes: string | number; votes_last_24h: string | number }>;
       pollMetrics = fallbackMetrics;
     }
-    let peakHourMetrics: { peak_hour_utc: string | number; peak_hour_votes: string | number } | null = null;
-    let peakDowMetrics: { peak_dow_utc: string | number; peak_dow_votes: string | number } | null = null;
+    let peakHourMetrics: {
+      peak_hour_utc: string | number;
+      peak_hour_votes: string | number;
+    } | null = null;
+    let peakDowMetrics: { peak_dow_utc: string | number; peak_dow_votes: string | number } | null =
+      null;
     let hourBins: Array<{ hour_utc: string | number; vote_count: string | number }> = [];
     let dowBins: Array<{ dow_utc: string | number; vote_count: string | number }> = [];
     if (appEnv.readModelEnabled) {
@@ -382,7 +387,9 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     }
     const trustAvgRaw = trustTotalsRow?.trust_risk_avg_pending;
     const trust_risk_avg_pending =
-      trustAvgRaw != null && Number.isFinite(trustAvgRaw) ? Math.round(Number(trustAvgRaw) * 10) / 10 : null;
+      trustAvgRaw != null && Number.isFinite(trustAvgRaw)
+        ? Math.round(Number(trustAvgRaw) * 10) / 10
+        : null;
     const retentionPolicy = await getRetentionPolicySettings();
     const webhookDeliveryTelemetry = readPollWebhookDeliveryTelemetry(15);
     reply.send({
@@ -405,8 +412,10 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
         quarantine_pending_total: Number(trustTotalsRow?.quarantine_pending_total ?? 0) || 0,
         quarantine_pending_polls: Number(trustTotalsRow?.quarantine_pending_polls ?? 0) || 0,
         quarantine_pending_by_reason,
-        quarantine_approved_last_24h: Number(trustTotalsRow?.quarantine_approved_last_24h ?? 0) || 0,
-        quarantine_rejected_last_24h: Number(trustTotalsRow?.quarantine_rejected_last_24h ?? 0) || 0,
+        quarantine_approved_last_24h:
+          Number(trustTotalsRow?.quarantine_approved_last_24h ?? 0) || 0,
+        quarantine_rejected_last_24h:
+          Number(trustTotalsRow?.quarantine_rejected_last_24h ?? 0) || 0,
         trust_risk_avg_pending,
         quarantine_pending_account_linked:
           Number(trustTotalsRow?.quarantine_pending_account_linked ?? 0) || 0,
@@ -430,11 +439,14 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       polls: polls.map((poll) => ({
         id: String(poll.get('id')),
         question: String(poll.get('title') ?? ''),
-        options: ((poll.get('options') as string[] | null | undefined) ?? []).map((opt) => String(opt)),
+        options: ((poll.get('options') as string[] | null | undefined) ?? []).map((opt) =>
+          String(opt),
+        ),
         archived: !!poll.get('archived'),
         voting_paused: !!poll.get('votingPaused'),
         media_moderation_status:
-          ((poll.get('mediaModeration') as { status?: string } | null | undefined)?.status ?? 'active'),
+          (poll.get('mediaModeration') as { status?: string } | null | undefined)?.status ??
+          'active',
       })),
     });
   });
@@ -470,17 +482,16 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     const pollId = String(poll.get('id'));
     notifyPollLive(pollId, { type: 'update' });
     queuePollWebhook(pollId, 'poll_updated', { source: 'admin', created_via_admin: true });
-    await logAdminAction(
-      'poll_create',
-      request.user?.homelab-user ?? 'admin_token',
-      pollId,
-      { role: request.user?.role ?? 'token' },
-    );
+    await logAdminAction('poll_create', request.user?.homelab-user ?? 'admin_token', pollId, {
+      role: request.user?.role ?? 'token',
+    });
     reply.code(201).send({
       poll: {
         id: pollId,
         question: String(poll.get('title') ?? ''),
-        options: ((poll.get('options') as string[] | null | undefined) ?? []).map((opt) => String(opt)),
+        options: ((poll.get('options') as string[] | null | undefined) ?? []).map((opt) =>
+          String(opt),
+        ),
         archived: !!poll.get('archived'),
         voting_paused: !!poll.get('votingPaused'),
       },
@@ -503,7 +514,9 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       reply.code(err.statusCode).send(err.body);
       return;
     }
-    const options = ((poll.get('options') as string[] | null | undefined) ?? []).map((opt) => String(opt));
+    const options = ((poll.get('options') as string[] | null | undefined) ?? []).map((opt) =>
+      String(opt),
+    );
     const rows = (await sequelize.query(
       `SELECT option, COUNT(*)::int AS vote_count
        FROM votes
@@ -660,23 +673,26 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     if (poll.get('archived')) {
-      const err = replyJsonError(request.id, 400, 'POLL_ARCHIVED', 'Cannot pause an archived poll.');
+      const err = replyJsonError(
+        request.id,
+        400,
+        'POLL_ARCHIVED',
+        'Cannot pause an archived poll.',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
-    const pauseMessageRaw = (request.body as { pause_message?: unknown } | null | undefined)?.pause_message;
+    const pauseMessageRaw = (request.body as { pause_message?: unknown } | null | undefined)
+      ?.pause_message;
     const pauseMessage =
       typeof pauseMessageRaw === 'string' && pauseMessageRaw.trim() !== ''
         ? pauseMessageRaw.trim().slice(0, 280)
         : appEnv.panicPauseMessage || 'Voting is temporarily paused.';
     await Poll.update({ votingPaused: true, pauseMessage }, { where: { id: pollId } });
     notifyPollLive(pollId, { type: 'update' });
-    await logAdminAction(
-      'poll_pause_voting',
-      request.user?.homelab-user ?? 'admin_token',
-      pollId,
-      { pause_message: pauseMessage },
-    );
+    await logAdminAction('poll_pause_voting', request.user?.homelab-user ?? 'admin_token', pollId, {
+      pause_message: pauseMessage,
+    });
     reply.send({ ok: true, voting_paused: true, pause_message: pauseMessage });
   });
 
@@ -698,7 +714,12 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     notifyPollLive(pollId, { type: 'update' });
-    await logAdminAction('poll_unpause_voting', request.user?.homelab-user ?? 'admin_token', pollId, null);
+    await logAdminAction(
+      'poll_unpause_voting',
+      request.user?.homelab-user ?? 'admin_token',
+      pollId,
+      null,
+    );
     reply.send({ ok: true, voting_paused: false });
   });
 
@@ -710,19 +731,29 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       reply.code(err.statusCode).send(err.body);
       return;
     }
-    const poll = await Poll.findByPk(pollId, { attributes: ['id', 'mediaAttachment', 'mediaModeration'] });
+    const poll = await Poll.findByPk(pollId, {
+      attributes: ['id', 'mediaAttachment', 'mediaModeration'],
+    });
     if (!poll) {
       const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Poll not found.');
       reply.code(err.statusCode).send(err.body);
       return;
     }
     if (!poll.get('mediaAttachment')) {
-      const err = replyJsonError(request.id, 409, 'MEDIA_NOT_CONFIGURED', 'This poll has no media attachment.');
+      const err = replyJsonError(
+        request.id,
+        409,
+        'MEDIA_NOT_CONFIGURED',
+        'This poll has no media attachment.',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
     const body = (request.body ?? {}) as Record<string, unknown>;
-    const reason = typeof body.reason === 'string' && body.reason.trim() ? body.reason.trim().slice(0, 500) : null;
+    const reason =
+      typeof body.reason === 'string' && body.reason.trim()
+        ? body.reason.trim().slice(0, 500)
+        : null;
     const moderation = {
       status: 'takedown',
       reported_reason: reason,
@@ -730,12 +761,9 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       last_actor: request.user?.homelab-user ?? 'admin_token',
     };
     await Poll.update({ mediaModeration: moderation }, { where: { id: pollId } });
-    await logAdminAction(
-      'poll_media_takedown',
-      request.user?.homelab-user ?? 'admin_token',
-      pollId,
-      { reason },
-    );
+    await logAdminAction('poll_media_takedown', request.user?.homelab-user ?? 'admin_token', pollId, {
+      reason,
+    });
     reply.send({ ok: true, moderation_status: 'takedown' });
   });
 
@@ -760,7 +788,12 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       last_actor: request.user?.homelab-user ?? 'admin_token',
     };
     await Poll.update({ mediaModeration: moderation }, { where: { id: pollId } });
-    await logAdminAction('poll_media_restore', request.user?.homelab-user ?? 'admin_token', pollId, null);
+    await logAdminAction(
+      'poll_media_restore',
+      request.user?.homelab-user ?? 'admin_token',
+      pollId,
+      null,
+    );
     reply.send({ ok: true, moderation_status: 'active' });
   });
 
@@ -795,7 +828,9 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     const query = (request.query ?? {}) as Record<string, unknown>;
     const limitRaw = typeof query.limit === 'string' ? Number.parseInt(query.limit, 10) : undefined;
     const thresholdRaw =
-      typeof query.diff_threshold === 'string' ? Number.parseInt(query.diff_threshold, 10) : undefined;
+      typeof query.diff_threshold === 'string'
+        ? Number.parseInt(query.diff_threshold, 10)
+        : undefined;
     const limit = typeof limitRaw === 'number' && Number.isFinite(limitRaw) ? limitRaw : 50;
     const diffThreshold =
       typeof thresholdRaw === 'number' && Number.isFinite(thresholdRaw) ? thresholdRaw : 0;
@@ -951,7 +986,9 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       poll_retention_sweep_interval_sec: parseIntField('poll_retention_sweep_interval_sec'),
       poll_retention_sweep_batch_size: parseIntField('poll_retention_sweep_batch_size'),
       audit_log_retention_days: parseIntField('audit_log_retention_days'),
-      moderation_rejected_vote_retention_days: parseIntField('moderation_rejected_vote_retention_days'),
+      moderation_rejected_vote_retention_days: parseIntField(
+        'moderation_rejected_vote_retention_days',
+      ),
       audit_log_retention_legal_hold:
         body.audit_log_retention_legal_hold === true ||
         String(body.audit_log_retention_legal_hold ?? '')
@@ -1013,7 +1050,8 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     const dryRun =
       body.dryRun === true ||
       body.dry_run === true ||
-      (typeof body.dryRun === 'string' && ['1', 'true', 'yes'].includes(body.dryRun.trim().toLowerCase()));
+      (typeof body.dryRun === 'string' &&
+        ['1', 'true', 'yes'].includes(body.dryRun.trim().toLowerCase()));
     const limitRaw = body.limit;
     const limitParsed =
       typeof limitRaw === 'number' && Number.isFinite(limitRaw)
@@ -1028,22 +1066,20 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
         limit,
         dryRun,
       });
-      await logAdminAction(
-        'polar_reconcile',
-        request.user?.homelab-user ?? 'admin_token',
-        null,
-        {
-          dry_run: dryRun,
-          scanned: summary.scanned,
-          polar_fetch_errors: summary.polarFetchErrors,
-          drift_detected: summary.driftDetected,
-          rows_updated: summary.rowsUpdated,
-        },
-      );
+      await logAdminAction('polar_reconcile', request.user?.homelab-user ?? 'admin_token', null, {
+        dry_run: dryRun,
+        scanned: summary.scanned,
+        polar_fetch_errors: summary.polarFetchErrors,
+        drift_detected: summary.driftDetected,
+        rows_updated: summary.rowsUpdated,
+      });
       reply.send({ ok: true, ...summary });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      request.log.error({ event: 'polar.reconcile.route_error', err: msg }, 'polar reconcile failed');
+      request.log.error(
+        { event: 'polar.reconcile.route_error', err: msg },
+        'polar reconcile failed',
+      );
       const err = replyJsonError(request.id, 500, 'INTERNAL_ERROR', 'Polar reconcile failed.');
       reply.code(err.statusCode).send(err.body);
     }
@@ -1060,7 +1096,12 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
           ? Number.parseInt(userIdRaw, 10)
           : Number.NaN;
     if (!Number.isFinite(userId) || userId <= 0) {
-      const err = replyJsonError(request.id, 400, 'BAD_REQUEST', 'userId must be a positive integer.');
+      const err = replyJsonError(
+        request.id,
+        400,
+        'BAD_REQUEST',
+        'userId must be a positive integer.',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
@@ -1093,7 +1134,9 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
 
-    const currentPlan = normalizeBillingPlan((owner.get('billingPlan') as string | null | undefined) ?? 'free');
+    const currentPlan = normalizeBillingPlan(
+      (owner.get('billingPlan') as string | null | undefined) ?? 'free',
+    );
     const workspaceId = await resolveWorkspaceIdForCreatorUserId(userId);
     const month = utcCalendarMonthBounds();
     const [activePolls, votesThisMonth, exportsToday, ownedPolls] = await Promise.all([
@@ -1124,8 +1167,12 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     let pollsWithExtendedRetention = 0;
     for (const p of ownedPolls) {
       const webhooks =
-        (p.get('webhookTargets') as Array<{ url?: string; secret?: string }> | null | undefined) ?? [];
-      if (Array.isArray(webhooks) && webhooks.some((w) => typeof w?.url === 'string' && w.url.trim() !== '')) {
+        (p.get('webhookTargets') as Array<{ url?: string; secret?: string }> | null | undefined) ??
+        [];
+      if (
+        Array.isArray(webhooks) &&
+        webhooks.some((w) => typeof w?.url === 'string' && w.url.trim() !== '')
+      ) {
         pollsWithWebhookAutomation += 1;
       }
       const ttl = p.get('retentionTtlDays') as number | null | undefined;
@@ -1153,7 +1200,13 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     };
     const violations = [
       ...(usage.activePolls > limits.activePolls
-        ? [{ code: 'USAGE_LIMIT_ACTIVE_POLLS', current: usage.activePolls, max: limits.activePolls }]
+        ? [
+            {
+              code: 'USAGE_LIMIT_ACTIVE_POLLS',
+              current: usage.activePolls,
+              max: limits.activePolls,
+            },
+          ]
         : []),
       ...(usage.votesThisMonth > limits.votesPerMonth
         ? [{ code: 'USAGE_LIMIT_VOTES', current: usage.votesThisMonth, max: limits.votesPerMonth }]
@@ -1169,12 +1222,17 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
         : []),
     ];
 
-    await logAdminAction('billing_downgrade_simulate', request.user?.homelab-user ?? 'admin_token', userId, {
-      workspace_id: workspaceId,
-      current_plan: currentPlan,
-      target_plan: targetPlan,
-      violations: violations.map((v) => v.code),
-    });
+    await logAdminAction(
+      'billing_downgrade_simulate',
+      request.user?.homelab-user ?? 'admin_token',
+      userId,
+      {
+        workspace_id: workspaceId,
+        current_plan: currentPlan,
+        target_plan: targetPlan,
+        violations: violations.map((v) => v.code),
+      },
+    );
     reply.send({
       ok: true,
       user: {

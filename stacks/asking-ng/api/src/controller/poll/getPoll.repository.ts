@@ -99,7 +99,9 @@ export async function getPollVoteAnalytics({
   liveResultsAreDelayed,
   youOwnThisPoll,
 }: GetPollVoteAnalyticsArgs): Promise<PollVoteAnalytics> {
-  const liveVoteWindowSql = liveResultsAreDelayed ? `AND "createdAt" <= :resultsVisibleThrough` : ``;
+  const liveVoteWindowSql = liveResultsAreDelayed
+    ? `AND "createdAt" <= :resultsVisibleThrough`
+    : ``;
 
   const voteData = (await db.query(
     `SELECT option, count(option) as vote_count, COALESCE(sum(weight), count(option)) as weighted_vote_count

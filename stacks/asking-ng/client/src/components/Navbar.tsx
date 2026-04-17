@@ -5,7 +5,7 @@ import { useBootstrapNavDark } from '../hooks/useBootstrapNavDark';
 import { useNavbarAuth } from '../hooks/useNavbarAuth';
 import { useT } from '../i18n/I18nContext';
 import { clearStoredUserJwt } from '../lib/userSession';
-import { VisuallyHidden, cx } from '../ui';
+import { cx, VisuallyHidden } from '../ui';
 import { IconListPolls, IconSignOut } from './icons/UiIcons';
 import UserSettingsModal from './UserSettingsModal';
 
@@ -83,7 +83,8 @@ export default function NavbarWrapper() {
       const node = e.target as Node | null;
       if (!node) return;
       if (moreOpen && moreRef.current && !moreRef.current.contains(node)) setMoreOpen(false);
-      if (accountOpen && accountRef.current && !accountRef.current.contains(node)) setAccountOpen(false);
+      if (accountOpen && accountRef.current && !accountRef.current.contains(node))
+        setAccountOpen(false);
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -211,7 +212,10 @@ export default function NavbarWrapper() {
                       role='menuitem'
                       to='/about'
                       id='asking-app-navbar__about-link'
-                      className={cx('asking-app-navbar__menu-item', isAbout && 'asking-app-navbar__menu-item--active')}
+                      className={cx(
+                        'asking-app-navbar__menu-item',
+                        isAbout && 'asking-app-navbar__menu-item--active',
+                      )}
                       aria-current={isAbout ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -236,7 +240,10 @@ export default function NavbarWrapper() {
                     <Link
                       role='menuitem'
                       to='/privacy'
-                      className={cx('asking-app-navbar__menu-item', isPrivacy && 'asking-app-navbar__menu-item--active')}
+                      className={cx(
+                        'asking-app-navbar__menu-item',
+                        isPrivacy && 'asking-app-navbar__menu-item--active',
+                      )}
                       aria-current={isPrivacy ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -247,7 +254,10 @@ export default function NavbarWrapper() {
                     <Link
                       role='menuitem'
                       to='/terms'
-                      className={cx('asking-app-navbar__menu-item', isTerms && 'asking-app-navbar__menu-item--active')}
+                      className={cx(
+                        'asking-app-navbar__menu-item',
+                        isTerms && 'asking-app-navbar__menu-item--active',
+                      )}
                       aria-current={isTerms ? 'page' : undefined}
                       onClick={closeNav}
                     >

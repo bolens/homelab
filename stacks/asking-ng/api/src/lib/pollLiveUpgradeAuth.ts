@@ -1,9 +1,9 @@
-import type { IncomingMessage } from 'node:http';
 import { createHash, timingSafeEqual } from 'node:crypto';
+import type { IncomingMessage } from 'node:http';
 import User from '../models/user.sequelize';
-import { appEnv } from './env';
 import { verifyToken } from '../utils/auth';
 import { verifyEmbedReadToken } from './embedReadToken';
+import { appEnv } from './env';
 
 /** Same sources as HTTP public reads: query or `X-Poll-Embed-Token` on the upgrade request. */
 export function readEmbedTokenFromUpgrade(req: IncomingMessage, url: URL): string | undefined {
@@ -35,12 +35,11 @@ function verifySignedReadGrantFromUpgrade(url: URL, pollId: string): boolean {
   const sig = url.searchParams.get('embed_sig')?.trim() ?? '';
   const expSec = Number(expRaw);
   const nowSec = Math.floor(Date.now() / 1000);
-  if (!Number.isInteger(expSec) || expSec < nowSec || expSec - nowSec > 7 * 24 * 60 * 60) return false;
+  if (!Number.isInteger(expSec) || expSec < nowSec || expSec - nowSec > 7 * 24 * 60 * 60)
+    return false;
   const secret = appEnv.jwtSecret.trim();
   if (!secret || !sig) return false;
-  const expected = createHash('sha256')
-    .update(`${secret}:v1:${pollId}:${expSec}`)
-    .digest('hex');
+  const expected = createHash('sha256').update(`${secret}:v1:${pollId}:${expSec}`).digest('hex');
   const a = Buffer.from(expected, 'hex');
   const b = Buffer.from(sig, 'hex');
   if (a.length === 0 || a.length !== b.length) return false;

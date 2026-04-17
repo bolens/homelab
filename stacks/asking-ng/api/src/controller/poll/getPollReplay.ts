@@ -1,9 +1,9 @@
-import type { AppRequestHandler } from '../../types/http';
 import { QueryTypes } from 'sequelize';
 import db from '../../connections';
 import { pollEmbedViewAllowed, readEmbedReadTokenFromRequest } from '../../lib/embedReadToken';
 import { jsonError } from '../../lib/jsonError';
 import Poll from '../../model/Poll';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 type ReplayVoteRow = {
@@ -77,7 +77,8 @@ const getPollReplay: AppRequestHandler = async (req, res) => {
     },
   );
 
-  const firstTsMs = rows.length ? new Date(rows[0].created_at).getTime() : null;
+  const firstRow = rows[0];
+  const firstTsMs = firstRow ? new Date(firstRow.created_at).getTime() : null;
   const events = rows
     .map((row) => {
       const optionIndex = optionIndexByLabel.get(String(row.option));

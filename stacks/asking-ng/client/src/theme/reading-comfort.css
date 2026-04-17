@@ -55,26 +55,23 @@
   /* Nerd Font stacks: common install names from https://www.nerdfonts.com/ (fallback if missing). */
   html[data-dyslexia="nf-jetbrains"] body {
     font-family:
-      "JetBrainsMono Nerd Font", "JetBrainsMono NF", "JetBrains Mono",
-      system-ui, ui-monospace, monospace;
+      "JetBrainsMono Nerd Font", "JetBrainsMono NF", "JetBrains Mono", system-ui, ui-monospace,
+      monospace;
   }
 
   html[data-dyslexia="nf-fira"] body {
     font-family:
-      "FiraCode Nerd Font", "FiraCode NF", "Fira Code", system-ui,
-      ui-monospace, monospace;
+      "FiraCode Nerd Font", "FiraCode NF", "Fira Code", system-ui, ui-monospace, monospace;
   }
 
   html[data-dyslexia="nf-hack"] body {
-    font-family:
-      "Hack Nerd Font", "Hack NF", Hack, system-ui, ui-monospace, monospace;
+    font-family: "Hack Nerd Font", "Hack NF", Hack, system-ui, ui-monospace, monospace;
   }
 
   html[data-dyslexia="nf-meslo"] body {
     font-family:
       "MesloLGS Nerd Font", "MesloLGS NF", "MesloLGM Nerd Font", "MesloLGM NF",
-      "MesloLGL Nerd Font", "MesloLGL NF", system-ui, ui-monospace,
-      monospace;
+      "MesloLGL Nerd Font", "MesloLGL NF", system-ui, ui-monospace, monospace;
   }
 
   html[data-dyslexia="nf-cascadia"] body {
@@ -85,13 +82,11 @@
 
   html[data-dyslexia="nf-ubuntu"] body {
     font-family:
-      "UbuntuMono Nerd Font", "UbuntuMono NF", "Ubuntu Mono", system-ui,
-      ui-monospace, monospace;
+      "UbuntuMono Nerd Font", "UbuntuMono NF", "Ubuntu Mono", system-ui, ui-monospace, monospace;
   }
 
   html[data-dyslexia="nf-iosevka"] body {
-    font-family:
-      "Iosevka Nerd Font", "Iosevka NF", Iosevka, system-ui, ui-monospace, monospace;
+    font-family: "Iosevka Nerd Font", "Iosevka NF", Iosevka, system-ui, ui-monospace, monospace;
   }
 
   /* Skip remote font CSS when the user prefers reduced data (spacing rules still apply). */

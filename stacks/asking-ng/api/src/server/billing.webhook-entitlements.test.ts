@@ -11,7 +11,8 @@ vi.mock('@polar-sh/sdk/webhooks', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@polar-sh/sdk/webhooks')>();
   return {
     ...actual,
-    validateEvent: (...args: unknown[]) => mockValidateEvent(...args) as ReturnType<typeof actual.validateEvent>,
+    validateEvent: (...args: unknown[]) =>
+      mockValidateEvent(...args) as ReturnType<typeof actual.validateEvent>,
   };
 });
 

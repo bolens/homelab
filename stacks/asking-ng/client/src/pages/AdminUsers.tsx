@@ -12,7 +12,7 @@ import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
 import { clearStoredUserJwt, getStoredUserJwt, setStoredUserJwt } from '../lib/userSession';
-import { Button, PageHeader, SectionPanel, cx, Notice, VisuallyHidden } from '../ui';
+import { Button, cx, Notice, PageHeader, SectionPanel, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 import { zodErrorSummary } from '../utils/zodForm';
 import { useAdminWebSocket } from '../wsClient';
@@ -27,7 +27,8 @@ type AdminDirectoryUser = {
 type SortKey = keyof AdminDirectoryUser;
 
 function roleBadgeClass(role: string): string {
-  if (role === 'superadmin') return 'asking-admin-users-page__role asking-admin-users-page__role--superadmin';
+  if (role === 'superadmin')
+    return 'asking-admin-users-page__role asking-admin-users-page__role--superadmin';
   if (role === 'admin') return 'asking-admin-users-page__role asking-admin-users-page__role--admin';
   return 'asking-admin-users-page__role';
 }
@@ -435,10 +436,15 @@ export default function AdminUsers() {
           className='asking-admin-users-page__app-session'
           aria-labelledby='asking-admin-users-page__app-session-title'
         >
-          <h2 id='asking-admin-users-page__app-session-title' className='asking-admin-users-page__app-session-title'>
+          <h2
+            id='asking-admin-users-page__app-session-title'
+            className='asking-admin-users-page__app-session-title'
+          >
             {t('admin.users.appSessionTitle')}
           </h2>
-          <p className='asking-admin-users-page__app-session-intro'>{t('admin.users.appSessionIntro')}</p>
+          <p className='asking-admin-users-page__app-session-intro'>
+            {t('admin.users.appSessionIntro')}
+          </p>
           {appProfile ? (
             <div className='asking-admin-users-page__inline-actions'>
               <span>
@@ -506,7 +512,9 @@ export default function AdminUsers() {
 
       <SectionPanel
         titleId='asking-admin-users-page__create-heading'
-        title={<span className='asking-admin-page__section-title'>{t('admin.users.createLabel')}</span>}
+        title={
+          <span className='asking-admin-page__section-title'>{t('admin.users.createLabel')}</span>
+        }
       >
         <form
           id='asking-admin-users-page__create-user-form'
@@ -559,7 +567,9 @@ export default function AdminUsers() {
 
       <SectionPanel
         titleId='asking-admin-users-page__search-heading'
-        title={<span className='asking-admin-page__section-title'>{t('admin.users.searchLabel')}</span>}
+        title={
+          <span className='asking-admin-page__section-title'>{t('admin.users.searchLabel')}</span>
+        }
       >
         <div className='asking-admin-users-page__search-bar asking-admin-users-page__search-bar--tight'>
           <VisuallyHidden as='label' htmlFor='asking-admin-users-page__directory-search'>
@@ -629,10 +639,17 @@ export default function AdminUsers() {
       >
         {admin.role === 'superadmin' ? (
           <div className='asking-admin-users-page__tool-card'>
-            <h3 className='asking-admin-users-page__tool-card-title' id='asking-admin-users-page__change-role-heading'>
+            <h3
+              className='asking-admin-users-page__tool-card-title'
+              id='asking-admin-users-page__change-role-heading'
+            >
               {t('admin.users.changeRoleCardTitle')}
             </h3>
-            <form id='asking-admin-users-page__change-role-form' onSubmit={handleChangeRole} className='asking-admin-users-page__tool-form'>
+            <form
+              id='asking-admin-users-page__change-role-form'
+              onSubmit={handleChangeRole}
+              className='asking-admin-users-page__tool-form'
+            >
               <div className='asking-admin-users-page__tool-form-row'>
                 <VisuallyHidden as='label' htmlFor='asking-admin-users-page__role-user-id'>
                   {t('admin.users.userIdRole')}
@@ -660,7 +677,11 @@ export default function AdminUsers() {
                     <option value='superadmin'>{t('admin.users.roleValueSuperadmin')}</option>
                   )}
                 </select>
-                <Button type='submit' variant='secondary' className='asking-admin-page__toolbar-btn'>
+                <Button
+                  type='submit'
+                  variant='secondary'
+                  className='asking-admin-page__toolbar-btn'
+                >
                   {t('admin.users.change')}
                 </Button>
               </div>
@@ -669,10 +690,17 @@ export default function AdminUsers() {
         ) : null}
 
         <div className='asking-admin-users-page__tool-card'>
-          <h3 className='asking-admin-users-page__tool-card-title' id='asking-admin-users-page__reset-password-heading'>
+          <h3
+            className='asking-admin-users-page__tool-card-title'
+            id='asking-admin-users-page__reset-password-heading'
+          >
             {t('admin.users.resetPasswordCardTitle')}
           </h3>
-          <form id='asking-admin-users-page__reset-password-form' onSubmit={handleResetPassword} className='asking-admin-users-page__tool-form'>
+          <form
+            id='asking-admin-users-page__reset-password-form'
+            onSubmit={handleResetPassword}
+            className='asking-admin-users-page__tool-form'
+          >
             <div className='asking-admin-users-page__tool-form-row'>
               <VisuallyHidden as='label' htmlFor='asking-admin-users-page__reset-user-id'>
                 {t('admin.users.resetUserId')}
@@ -741,7 +769,12 @@ export default function AdminUsers() {
         >
           {t('admin.users.delete')}
         </Button>
-        <span className='asking-admin-users-page__bulk-selected' role='status' aria-live='polite' aria-atomic='true'>
+        <span
+          className='asking-admin-users-page__bulk-selected'
+          role='status'
+          aria-live='polite'
+          aria-atomic='true'
+        >
           {t('admin.users.selected', { count: formatLocaleInteger(selected.length, localeTag) })}
         </span>
       </SectionPanel>
@@ -848,7 +881,10 @@ export default function AdminUsers() {
                         type='button'
                         variant='secondary'
                         onClick={() => void handleDeleteUser(u.id)}
-                        className={cx('asking-admin-page__toolbar-btn', 'asking-admin-page__toolbar-btn--danger')}
+                        className={cx(
+                          'asking-admin-page__toolbar-btn',
+                          'asking-admin-page__toolbar-btn--danger',
+                        )}
                         aria-label={t('admin.users.voiceDeleteRow', { homelab-user: u.homelab-user })}
                       >
                         {t('admin.users.delete')}

@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react';
 import type { Plugin } from 'vite';
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vite';
 
 const apiTarget = process.env.VITE_DEV_API_TARGET || 'http://127.0.0.1:3001';
 
@@ -21,24 +21,6 @@ function publicOriginOgImage(): Plugin {
 
 export default defineConfig({
   plugins: [react(), publicOriginOgImage()],
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: './src/setupTests.ts',
-    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
-    exclude: ['e2e/**', 'node_modules/**'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json-summary'],
-      include: ['src/**/*.{js,jsx,ts,tsx}'],
-      exclude: [
-        'src/**/*.{test,spec}.{js,jsx,ts,tsx}',
-        'src/setupTests.ts',
-        'src/test/**',
-        'src/**/*.d.ts',
-      ],
-    },
-  },
   server: {
     port: 3000,
     host: '0.0.0.0',

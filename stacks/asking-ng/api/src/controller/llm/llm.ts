@@ -1,13 +1,9 @@
-import type { AppRequest, AppResponse } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
 import { loggerForRequest } from '../../lib/logger';
 import type { ChatCompletionBody } from '../../schemas/llm';
+import type { AppRequest, AppResponse } from '../../types/http';
 import { presentLlmStatus, presentOpenAiModelList } from './llm.presenter';
-import {
-  buildLlmStatus,
-  createChatCompletionsService,
-  listLlmModelsService,
-} from './llm.service';
+import { buildLlmStatus, createChatCompletionsService, listLlmModelsService } from './llm.service';
 
 export async function llmStatusHandler(_req: AppRequest, res: AppResponse): Promise<void> {
   res.json(presentLlmStatus(buildLlmStatus()));
@@ -85,11 +81,21 @@ export async function llmChatCompletionsHandler(req: AppRequest, res: AppRespons
     return;
   }
   if (result.kind === 'lmstudio_upstream_error') {
-    jsonError(res, req, result.status, 'LMSTUDIO_UPSTREAM', 'LM Studio chat failed', result.details);
+    jsonError(
+      res,
+      req,
+      result.status,
+      'LMSTUDIO_UPSTREAM',
+      'LM Studio chat failed',
+      result.details,
+    );
     return;
   }
   if (result.kind === 'upstream_error') {
-    loggerForRequest(req).error({ event: 'llm.chat.upstream_error', err: result.message }, 'llm chat');
+    loggerForRequest(req).error(
+      { event: 'llm.chat.upstream_error', err: result.message },
+      'llm chat',
+    );
     jsonError(res, req, 502, 'LLM_UPSTREAM', result.message);
     return;
   }

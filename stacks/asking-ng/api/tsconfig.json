@@ -13,8 +13,13 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "declaration": false,
+    "noEmitOnError": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": false
+    "noUnusedParameters": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.test.ts"]

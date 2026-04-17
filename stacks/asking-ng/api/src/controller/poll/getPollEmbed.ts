@@ -1,9 +1,13 @@
-import type { AppRequestHandler } from '../../types/http';
+import {
+  pollSignedReadGrantAllowed,
+  readEmbedReadTokenFromRequest,
+  verifyEmbedReadToken,
+} from '../../lib/embedReadToken';
 import { appEnv } from '../../lib/env';
-import { pollSignedReadGrantAllowed, readEmbedReadTokenFromRequest, verifyEmbedReadToken } from '../../lib/embedReadToken';
 import { jsonError } from '../../lib/jsonError';
 import { publicPollPageUrl, publicSiteRoot } from '../../lib/sitePublicUrl';
 import Poll from '../../model/Poll';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 /** oEmbed 1.0 `link` resource for rich previews (Slack, Discourse, etc.). */

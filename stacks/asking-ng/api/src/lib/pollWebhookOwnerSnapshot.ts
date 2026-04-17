@@ -102,7 +102,8 @@ export async function fetchPollWebhookOwnerSnapshot(args: {
       quarantined_votes_pending: Number(rateCountersRow?.quarantined_votes_pending ?? 0) || 0,
       quarantined_votes_pending_account_linked:
         Number(rateCountersRow?.quarantined_votes_pending_account_linked ?? 0) || 0,
-      votes_account_linked_last_24h: Number(rateCountersRow?.votes_account_linked_last_24h ?? 0) || 0,
+      votes_account_linked_last_24h:
+        Number(rateCountersRow?.votes_account_linked_last_24h ?? 0) || 0,
       votes_anonymous_last_24h: Number(rateCountersRow?.votes_anonymous_last_24h ?? 0) || 0,
       trust_ip_burst: trustIpBurstOwnerSummary(),
       trust_chat_burst: trustChatBurstOwnerSummary(),

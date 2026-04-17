@@ -1,14 +1,19 @@
 import { QueryTypes } from 'sequelize';
 import db from '../connections';
 import { API_RATE_LIMIT_AUDIT_ACTION } from './billingApiRateLimitLedger';
-import { DATA_EXPORT_AUDIT_ACTION } from './billingExportQuota';
 import { CAMPAIGN_ATTRIBUTION_SHED_AUDIT_ACTION } from './billingCampaignAttributionQuota';
+import { DATA_EXPORT_AUDIT_ACTION } from './billingExportQuota';
 import { POLL_WEBHOOK_DELIVERY_SHED_AUDIT_ACTION } from './billingPollWebhookDelivery';
 import { WS_FANOUT_SHED_AUDIT_ACTION } from './billingWsFanoutLedger';
 
 export type BillingUsageLedgerEntry = {
   ts: string;
-  meter: 'data_exports' | 'campaign_attribution' | 'poll_webhook_delivery' | 'api_rate_limit' | 'ws_fanout';
+  meter:
+    | 'data_exports'
+    | 'campaign_attribution'
+    | 'poll_webhook_delivery'
+    | 'api_rate_limit'
+    | 'ws_fanout';
   amount: number;
   unit: 'job' | 'increment' | 'delivery' | 'hit';
   scope: 'workspace';
@@ -23,7 +28,12 @@ export type BillingUsageLedgerEntry = {
 
 export type BillingUsageLedgerDailyRollupEntry = {
   dayUtc: string;
-  meter: 'data_exports' | 'campaign_attribution' | 'poll_webhook_delivery' | 'api_rate_limit' | 'ws_fanout';
+  meter:
+    | 'data_exports'
+    | 'campaign_attribution'
+    | 'poll_webhook_delivery'
+    | 'api_rate_limit'
+    | 'ws_fanout';
   amount: number;
   unit: 'job' | 'increment' | 'delivery' | 'hit';
   scope: 'workspace';
@@ -276,10 +286,18 @@ export async function countBillingUsageActionsForWorkspaceUtcDay(args: {
   for (const row of rows) {
     const amount = Number(row.amount) || 0;
     if (row.action === DATA_EXPORT_AUDIT_ACTION) dataExport = amount;
-    else if (row.action === CAMPAIGN_ATTRIBUTION_SHED_AUDIT_ACTION) campaignAttributionShed = amount;
-    else if (row.action === POLL_WEBHOOK_DELIVERY_SHED_AUDIT_ACTION) pollWebhookDeliveryShed = amount;
+    else if (row.action === CAMPAIGN_ATTRIBUTION_SHED_AUDIT_ACTION)
+      campaignAttributionShed = amount;
+    else if (row.action === POLL_WEBHOOK_DELIVERY_SHED_AUDIT_ACTION)
+      pollWebhookDeliveryShed = amount;
     else if (row.action === API_RATE_LIMIT_AUDIT_ACTION) apiRateLimited = amount;
     else if (row.action === WS_FANOUT_SHED_AUDIT_ACTION) wsFanoutShed = amount;
   }
-  return { dataExport, campaignAttributionShed, pollWebhookDeliveryShed, apiRateLimited, wsFanoutShed };
+  return {
+    dataExport,
+    campaignAttributionShed,
+    pollWebhookDeliveryShed,
+    apiRateLimited,
+    wsFanoutShed,
+  };
 }

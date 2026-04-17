@@ -1,7 +1,7 @@
 import { QueryTypes } from 'sequelize';
 import db from '../connections';
-import { appEnv } from './env';
 import { getRetentionPolicySettings } from './appSettings';
+import { appEnv } from './env';
 import { logger } from './logger';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -52,7 +52,10 @@ export async function sweepExpiredPollRetention(opts?: { nowMs?: number }): Prom
       transaction: tx,
     });
   });
-  logger.info({ event: 'poll.retention.auto_delete', deletedCount: ids.length }, 'deleted expired polls by retention policy');
+  logger.info(
+    { event: 'poll.retention.auto_delete', deletedCount: ids.length },
+    'deleted expired polls by retention policy',
+  );
   return ids.length;
 }
 
@@ -85,7 +88,9 @@ export async function sweepExpiredAuditLogs(opts?: { nowMs?: number }): Promise<
   return ids.length;
 }
 
-export async function sweepExpiredRejectedModerationVotes(opts?: { nowMs?: number }): Promise<number> {
+export async function sweepExpiredRejectedModerationVotes(opts?: {
+  nowMs?: number;
+}): Promise<number> {
   const policy = await getRetentionPolicySettings();
   if (policy.moderation_rejected_vote_retention_legal_hold) return 0;
   const days = policy.moderation_rejected_vote_retention_days;
@@ -135,7 +140,12 @@ export function startPollRetentionWorker(): void {
       const policy = await getRetentionPolicySettings().catch(() => null);
       const intervalSec = Math.max(
         30,
-        Math.min(86_400, Math.floor(policy?.poll_retention_sweep_interval_sec ?? appEnv.pollRetentionSweepIntervalSec)),
+        Math.min(
+          86_400,
+          Math.floor(
+            policy?.poll_retention_sweep_interval_sec ?? appEnv.pollRetentionSweepIntervalSec,
+          ),
+        ),
       );
       retentionTimer = setTimeout(() => {
         void runOnce();

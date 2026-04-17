@@ -1,6 +1,6 @@
+import { adminLoginTokenSchema, createUserBodySchema } from '@asking-ng/contracts/admin';
 import { Link, useNavigate } from '@tanstack/react-router';
 import React, { useEffect, useState } from 'react';
-import { adminLoginTokenSchema, createUserBodySchema } from '@asking-ng/contracts/admin';
 import { useAdmin } from '../context/AdminContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch, isApiFetchError } from '../http';
@@ -178,7 +178,11 @@ export default function AdminSetup() {
   const showBootstrapForm = Boolean(bootstrapToken);
 
   return (
-    <Container size='md' className='asking-admin-page asking-admin-setup-page' id='asking-admin-setup-page'>
+    <Container
+      size='md'
+      className='asking-admin-page asking-admin-setup-page'
+      id='asking-admin-setup-page'
+    >
       <section className='asking-admin-login-page__layout'>
         <header className='asking-admin-page__header'>
           <h1 className='asking-admin-page__title' id='asking-admin-setup-page__title'>
@@ -195,18 +199,23 @@ export default function AdminSetup() {
           className='asking-admin-page__setup-card asking-admin-page__setup-card--compact'
           aria-labelledby='asking-admin-setup-page__checklist-heading'
         >
-          <h2 className='asking-admin-page__setup-title' id='asking-admin-setup-page__checklist-heading'>
+          <h2
+            className='asking-admin-page__setup-title'
+            id='asking-admin-setup-page__checklist-heading'
+          >
             Setup checklist
           </h2>
           <ol className='asking-admin-page__setup-list'>
             <li>Set a strong admin token in your stack configuration.</li>
-            <li>If you do not have one yet, generate one in your browser and copy it into config.</li>
+            <li>
+              If you do not have one yet, generate one in your browser and copy it into config.
+            </li>
             <li>Verify the admin token below.</li>
             <li>Create the first admin account.</li>
           </ol>
           <p className='ui-copy-muted'>
-            You can return to the normal{' '}
-            <Link to='/admin/login'>admin login</Link> once setup is complete.
+            You can return to the normal <Link to='/admin/login'>admin login</Link> once setup is
+            complete.
           </p>
         </Card>
 
@@ -216,7 +225,10 @@ export default function AdminSetup() {
           aria-labelledby='asking-admin-setup-page__step-token-heading'
           tone='muted'
         >
-          <h2 className='asking-admin-page__setup-title' id='asking-admin-setup-page__step-token-heading'>
+          <h2
+            className='asking-admin-page__setup-title'
+            id='asking-admin-setup-page__step-token-heading'
+          >
             Step 1 · Admin token
           </h2>
           {loadingStatus ? (
@@ -250,7 +262,9 @@ export default function AdminSetup() {
                   create the first superadmin.
                 </p>
               ) : (
-                <p>An admin account may already exist. If so, you can sign in from the admin login.</p>
+                <p>
+                  An admin account may already exist. If so, you can sign in from the admin login.
+                </p>
               )}
             </Stack>
           )}
@@ -263,14 +277,20 @@ export default function AdminSetup() {
           aria-labelledby='asking-admin-setup-page__step-verify-heading'
         >
           <div className='asking-admin-login-page__form'>
-            <h2 className='asking-admin-page__setup-title' id='asking-admin-setup-page__step-verify-heading'>
+            <h2
+              className='asking-admin-page__setup-title'
+              id='asking-admin-setup-page__step-verify-heading'
+            >
               Step 2 · Verify admin token
             </h2>
             <p className='asking-admin-login-page__hint'>
               Paste the admin token you configured for this instance. We will verify it with the API
               and then let you create the first admin account.
             </p>
-            <form id='asking-admin-setup-page__verify-token-form' onSubmit={(e) => void handleVerifyToken(e)}>
+            <form
+              id='asking-admin-setup-page__verify-token-form'
+              onSubmit={(e) => void handleVerifyToken(e)}
+            >
               <Field
                 className='asking-admin-login-page__field'
                 label='Generate a token'
@@ -297,9 +317,13 @@ export default function AdminSetup() {
                 >
                   Copy token
                 </Button>
-                {copyState === 'copied' ? <span className='ui-copy-muted'>Copied to clipboard.</span> : null}
+                {copyState === 'copied' ? (
+                  <span className='ui-copy-muted'>Copied to clipboard.</span>
+                ) : null}
                 {copyState === 'failed' ? (
-                  <span className='ui-copy-muted'>Copy failed. You can still select and copy it manually.</span>
+                  <span className='ui-copy-muted'>
+                    Copy failed. You can still select and copy it manually.
+                  </span>
                 ) : null}
               </div>
               <p className='ui-copy-muted'>
@@ -405,11 +429,7 @@ export default function AdminSetup() {
                 />
               </Field>
               <div className='asking-admin-login-page__actions'>
-                <Button
-                  type='submit'
-                  disabled={verifyingToken}
-                  aria-busy={verifyingToken}
-                >
+                <Button type='submit' disabled={verifyingToken} aria-busy={verifyingToken}>
                   {verifyingToken ? t('admin.login.submitting') : 'Verify token'}
                 </Button>
               </div>
@@ -425,7 +445,10 @@ export default function AdminSetup() {
             aria-labelledby='asking-admin-setup-page__step-create-admin-heading'
             tone='accent'
           >
-            <h2 className='asking-admin-page__setup-title' id='asking-admin-setup-page__step-create-admin-heading'>
+            <h2
+              className='asking-admin-page__setup-title'
+              id='asking-admin-setup-page__step-create-admin-heading'
+            >
               Step 3 · Create first admin account
             </h2>
             <p className='asking-admin-login-page__hint'>{t('admin.login.bootstrap.intro')}</p>
@@ -470,11 +493,7 @@ export default function AdminSetup() {
                 </Field>
               </Stack>
               <div className='asking-admin-login-page__actions'>
-                <Button
-                  type='submit'
-                  disabled={bootstrapping}
-                  aria-busy={bootstrapping}
-                >
+                <Button type='submit' disabled={bootstrapping} aria-busy={bootstrapping}>
                   {bootstrapping
                     ? t('admin.login.bootstrap.creating')
                     : t('admin.login.bootstrap.create')}
@@ -487,4 +506,3 @@ export default function AdminSetup() {
     </Container>
   );
 }
-

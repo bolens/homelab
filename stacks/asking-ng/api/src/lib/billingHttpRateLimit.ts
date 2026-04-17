@@ -1,9 +1,9 @@
 import type { FastifyRequest } from 'fastify';
-import { appEnv } from './env';
 import {
   maxAuthenticatedRestBurstPerMinuteForBillingPlan,
   maxAuthenticatedRestSustainedPerMinuteForBillingPlan,
 } from './billingLimits';
+import { appEnv } from './env';
 
 function clientIp(req: FastifyRequest): string {
   const raw = typeof req.ip === 'string' && req.ip.trim() !== '' ? req.ip.trim() : 'unknown';
@@ -42,7 +42,10 @@ export function billingHttpRateLimitWindowMs(req: FastifyRequest): number {
   return appEnv.httpRateLimitWindowMs;
 }
 
-export function billingApiRateLimitErrorBody(req: FastifyRequest, max: number): Record<string, unknown> {
+export function billingApiRateLimitErrorBody(
+  req: FastifyRequest,
+  max: number,
+): Record<string, unknown> {
   const plan = req.user?.billingPlan?.trim() || 'free';
   const sustained = maxAuthenticatedRestSustainedPerMinuteForBillingPlan(plan);
   return {

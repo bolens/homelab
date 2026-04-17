@@ -1,7 +1,7 @@
 import type { VotePollBody } from '@asking-ng/contracts/poll';
-import type { AppRequestHandler } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
 import { loggerForRequest } from '../../lib/logger';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 import { presentVoteIdempotentReplay, presentVoteSuccess } from './voteOnPoll.presenter';
 import { voteOnPollService } from './voteOnPoll.service';
@@ -131,7 +131,13 @@ const voteOnPoll: AppRequestHandler = async (req, res) => {
       return;
     }
     if (result.kind === 'invalid_option_index') {
-      jsonError(res, req, 400, 'INVALID_OPTION_INDEX', 'option_index is out of range for this poll.');
+      jsonError(
+        res,
+        req,
+        400,
+        'INVALID_OPTION_INDEX',
+        'option_index is out of range for this poll.',
+      );
       return;
     }
     if (result.kind === 'invalid_option_indices') {
@@ -175,21 +181,28 @@ const voteOnPoll: AppRequestHandler = async (req, res) => {
       return;
     }
     if (result.kind === 'usage_limit_votes_month') {
-      jsonError(res, req, 403, 'USAGE_LIMIT_VOTES', 'Monthly vote limit reached for this poll owner billing plan.', {
-        max: result.max,
-        current: result.current,
-        plan: result.plan,
-        incoming: result.incoming,
-      });
+      jsonError(
+        res,
+        req,
+        403,
+        'USAGE_LIMIT_VOTES',
+        'Monthly vote limit reached for this poll owner billing plan.',
+        {
+          max: result.max,
+          current: result.current,
+          plan: result.plan,
+          incoming: result.incoming,
+        },
+      );
       return;
     }
 
     res.status(200).json(
       presentVoteSuccess({
         vote: result.vote,
-        ballot_votes: result.ballotVotes,
-        option_indices: result.optionIndices,
-        moderation: result.moderation,
+        ...(result.ballotVotes ? { ballot_votes: result.ballotVotes } : {}),
+        ...(result.optionIndices ? { option_indices: result.optionIndices } : {}),
+        ...(result.moderation ? { moderation: result.moderation } : {}),
       }),
     );
   } catch (err: unknown) {

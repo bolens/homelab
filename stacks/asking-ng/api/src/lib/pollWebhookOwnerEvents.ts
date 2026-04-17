@@ -18,7 +18,9 @@ type AuditRow = {
  * Sensitive owner-side automation context for opted-in webhook targets only.
  * Bounded, aggregate-friendly, and intentionally excludes raw identity surfaces.
  */
-export async function fetchPollWebhookOwnerEvents(args: { pollId: string }): Promise<Record<string, unknown>> {
+export async function fetchPollWebhookOwnerEvents(args: {
+  pollId: string;
+}): Promise<Record<string, unknown>> {
   const { pollId } = args;
   const windowStart = new Date(Date.now() - OWNER_EVENTS_WINDOW_MS);
 
@@ -43,8 +45,7 @@ export async function fetchPollWebhookOwnerEvents(args: { pollId: string }): Pro
   const quarantineRecent = quarantinedRows.slice(0, OWNER_EVENTS_MAX_ITEMS).map((row) => ({
     vote_id: String(row.get('id') ?? ''),
     reason: row.get('quarantineReason') == null ? null : String(row.get('quarantineReason')),
-    risk_score:
-      row.get('trustRiskScore') == null ? null : Number(row.get('trustRiskScore')) || 0,
+    risk_score: row.get('trustRiskScore') == null ? null : Number(row.get('trustRiskScore')) || 0,
     created_at_ms: new Date(String(row.get('createdAt'))).getTime(),
     state: String(row.get('quarantineStatus') ?? 'pending'),
   }));

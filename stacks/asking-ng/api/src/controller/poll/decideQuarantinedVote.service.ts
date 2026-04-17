@@ -36,7 +36,8 @@ export async function decideQuarantinedVoteService(args: {
   const apiKeyTrim = typeof args.apiKey === 'string' ? args.apiKey.trim() : '';
   const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
   const ownerId = poll.get('creatorUserId') as number | null | undefined;
-  const jwtOk = args.actorUserId != null && ownerId != null && Number(ownerId) === Number(args.actorUserId);
+  const jwtOk =
+    args.actorUserId != null && ownerId != null && Number(ownerId) === Number(args.actorUserId);
   if (!apiKeyOk && !jwtOk) return { kind: 'unauthorized' };
 
   const vote = await findVoteById(args.voteId);

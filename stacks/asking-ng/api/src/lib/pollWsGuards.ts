@@ -19,7 +19,10 @@ export function normalizeOriginEntry(entry: string): string | null {
     if (!u.hostname) return null;
     return u.origin;
   } catch {
-    logger.warn({ event: 'poll.ws.origin_entry_invalid', entry: t }, 'poll ws: invalid origin entry skipped');
+    logger.warn(
+      { event: 'poll.ws.origin_entry_invalid', entry: t },
+      'poll ws: invalid origin entry skipped',
+    );
     return null;
   }
 }

@@ -9,7 +9,7 @@
     "pretypecheck": "pnpm --filter @asking-ng/contracts run build",
     "build": "pnpm --filter @asking-ng/contracts run build && vp exec tsc",
     "start": "node dist/index.js",
-    "dev": "vp exec nodemon --watch src --ext ts --exec tsx src/index.ts",
+    "dev": "vp exec nodemon",
     "pretest": "pnpm --filter @asking-ng/contracts run build",
     "test": "vitest run",
     "test:watch": "vitest",

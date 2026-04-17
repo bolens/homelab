@@ -23,7 +23,7 @@ export function toAppRequest(
     ip: request.ip,
     secure: protocol === 'https',
     requestId: request.id,
-    user: request.user ?? undefined,
+    ...(request.user ? { user: request.user } : {}),
     validatedQuery,
   };
 }

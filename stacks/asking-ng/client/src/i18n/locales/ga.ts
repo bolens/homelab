@@ -100,7 +100,8 @@ const gaOverrides = {
   'myPolls.docTitle': 'Mo vótaíochtaí',
   'myPolls.title': 'Mo vótaíochtaí',
   'myPolls.loading': 'Ag luchtú do vótaíochtaí…',
-  'myPolls.empty': 'Níl vótaíochtaí ceangailte le do chuntas fós. Cruthaigh ceann ar an leathanach baile agus tú sínithe isteach, nó níl agat ach vótaíochtaí anaithnide (api_key).',
+  'myPolls.empty':
+    'Níl vótaíochtaí ceangailte le do chuntas fós. Cruthaigh ceann ar an leathanach baile agus tú sínithe isteach, nó níl agat ach vótaíochtaí anaithnide (api_key).',
   'myPolls.archived': 'Cartlannaithe',
   'myPolls.phase': 'Céim {phase}',
   'myPolls.views': '{count} amharc',
@@ -129,9 +130,11 @@ const gaOverrides = {
   'myPolls.phaseOptionRevealed': 'Nochtaithe',
   'myPolls.pauseCheck': 'Cuir vótáil ar sos',
   'myPolls.pauseMessageLabel': 'Teachtaireacht sos',
-  'myPolls.pauseMessageHint': 'Téacs gearr roghnach a thaispeántar do vótálaithe nuair atá vótáil ar sos.',
+  'myPolls.pauseMessageHint':
+    'Téacs gearr roghnach a thaispeántar do vótálaithe nuair atá vótáil ar sos.',
   'myPolls.showNotesLabel': 'Nótaí príobháideacha',
-  'myPolls.showNotesHint': 'Nótaí run-of-show príobháideacha nach bhfeiceann ach tusa ar leathanach na vótaíochta.',
+  'myPolls.showNotesHint':
+    'Nótaí run-of-show príobháideacha nach bhfeiceann ach tusa ar leathanach na vótaíochta.',
   'myPolls.sharedEditorsLabel': 'Eagarthóirí dréachta comhroinnte (IDanna úsáideora)',
   'myPolls.sharedEditorsHint':
     'IDanna úsáideora scartha le camóga. Is féidir le heagarthóirí comhroinnte an vótaíocht seo a chur in eagar fad is atá sí i ndréacht.',
@@ -175,18 +178,24 @@ const gaOverrides = {
   'myPolls.revealAtHint': 'Nochtadh sceidealta UTC. Ag an am seo beidh an chéim nochtaithe.',
   'myPolls.boostedVotingEnabled': 'Cumasaigh vótaí meáite',
   'myPolls.maxBoostWeightLabel': 'Uasmheáchan boost',
-  'myPolls.maxBoostWeightHint': 'An meáchan uasta in aghaidh vóta a nglacann an API leis agus vótáil mheáite cumasaithe (1-10).',
+  'myPolls.maxBoostWeightHint':
+    'An meáchan uasta in aghaidh vóta a nglacann an API leis agus vótáil mheáite cumasaithe (1-10).',
   'myPolls.showUnweightedValues': 'Taispeáin luachanna neamhmheáite freisin',
   'myPolls.runOfShowKeyLabel': 'Eochair run-of-show (roghnach)',
-  'myPolls.runOfShowKeyHint': 'Úsáid an eochair chéanna ar vótaíochtaí gaolmhara chun iad a ghrúpáil i scuaine amháin.',
+  'myPolls.runOfShowKeyHint':
+    'Úsáid an eochair chéanna ar vótaíochtaí gaolmhara chun iad a ghrúpáil i scuaine amháin.',
   'myPolls.runOfShowOrderLabel': 'Ord run-of-show (roghnach)',
-  'myPolls.runOfShowOrderHint': 'Tagann uimhreacha níos ísle chun tosaigh nuair a shórtáiltear mar scuaine iad.',
+  'myPolls.runOfShowOrderHint':
+    'Tagann uimhreacha níos ísle chun tosaigh nuair a shórtáiltear mar scuaine iad.',
   'myPolls.nextPollIdLabel': 'ID na chéad vótaíochta eile (roghnach)',
-  'myPolls.nextPollIdHint': 'Nuair a dhúnann an vótaíocht seo (faoi ghlas/nochtaithe), is féidir leis an auto-advance an vótaíocht nasctha a oscailt.',
+  'myPolls.nextPollIdHint':
+    'Nuair a dhúnann an vótaíocht seo (faoi ghlas/nochtaithe), is féidir leis an auto-advance an vótaíocht nasctha a oscailt.',
   'myPolls.vanitySlugLabel': 'Slug vanity (roghnach)',
-  'myPolls.vanitySlugHint': 'Ailias gearr le comhroinnt, réitithe le /s/{slug}. Litreacha beaga, uimhreacha agus "-" amháin.',
+  'myPolls.vanitySlugHint':
+    'Ailias gearr le comhroinnt, réitithe le /s/{slug}. Litreacha beaga, uimhreacha agus "-" amháin.',
   'myPolls.webhookTargetsLabel': 'Spriocanna webhook (roghnach)',
-  'myPolls.webhookTargetsHint': 'Seol nuashonruithe sínithe chuig endpoint HTTPS amháin nó níos mó. Fág an rún folamh chun an rún reatha ar spriocanna atá ann cheana a choinneáil nó ceann nua a ghiniúint.',
+  'myPolls.webhookTargetsHint':
+    'Seol nuashonruithe sínithe chuig endpoint HTTPS amháin nó níos mó. Fág an rún folamh chun an rún reatha ar spriocanna atá ann cheana a choinneáil nó ceann nua a ghiniúint.',
   'myPolls.webhookUrlPlaceholder': 'https://sampla.ie/webhook',
   'myPolls.webhookSecretPlaceholder': 'Rún roghnach (16 charachtar ar a laghad)',
   'myPolls.webhookSnapshotResultsBadge': 'Léargas torthaí webhook',
@@ -194,61 +203,77 @@ const gaOverrides = {
   'myPolls.badgeLegendLabel': 'Eochair na suaitheantas:',
   'myPolls.badgeLegendAria': 'Eochair suaitheantas webhook',
   'myPolls.webhookIncludeResultsSnapshot': 'Cuir léargas moillithe ar thorthaí poiblí san áireamh',
-  'myPolls.webhookIncludeOwnerSnapshot': 'Cuir léargas measarthóireachta an úinéara san áireamh (íogair)',
-  'myPolls.webhookIncludeOwnerEvents': 'Cuir imeachtai uathoibrithe taobh an uineara san aireamh (iogair)',
+  'myPolls.webhookIncludeOwnerSnapshot':
+    'Cuir léargas measarthóireachta an úinéara san áireamh (íogair)',
+  'myPolls.webhookIncludeOwnerEvents':
+    'Cuir imeachtai uathoibrithe taobh an uineara san aireamh (iogair)',
   'myPolls.webhookSnapshotsHint':
     'Baineann roghanna léargais le gach sprioc ar leith. Ná húsáid léargas an úinéara ná imeachtaí an úinéara ach le endpoints atá faoi do smacht iomlán.',
   'myPolls.webhookTargetAdd': 'Cuir sprioc webhook leis',
   'myPolls.webhookTargetRemove': 'Bain',
-  'myPolls.autoAdvanceOnClose': 'Oscail an chéad vótaíocht eile go huathoibríoch nuair a dhúnann seo',
+  'myPolls.autoAdvanceOnClose':
+    'Oscail an chéad vótaíocht eile go huathoibríoch nuair a dhúnann seo',
   'myPolls.voteFrictionTierLabel': 'Leibhéal cosanta lucht féachana',
-  'myPolls.voteFrictionTierHint': 'Neartaigh cosaintí le linn raids nó borradh botanna (oscailte -> soft throttle -> proof-of-work).',
+  'myPolls.voteFrictionTierHint':
+    'Neartaigh cosaintí le linn raids nó borradh botanna (oscailte -> soft throttle -> proof-of-work).',
   'myPolls.voteFrictionOpen': 'Oscailte (gan chosaintí breise)',
   'myPolls.voteFrictionSoftThrottle': 'Soft throttle (teorainn vótaí/nóim in aghaidh foinse)',
   'myPolls.voteFrictionPow': 'Proof-of-work (pow_nonce riachtanach)',
   'myPolls.softThrottleMaxVotesLabel': 'Uasmhéid vótaí in aghaidh nóiméid i soft throttle',
-  'myPolls.softThrottleMaxVotesHint': 'Uasmhéid vótaí glactha in aghaidh nóiméid ó hash foinse amháin agus soft throttle cumasaithe.',
+  'myPolls.softThrottleMaxVotesHint':
+    'Uasmhéid vótaí glactha in aghaidh nóiméid ó hash foinse amháin agus soft throttle cumasaithe.',
   'myPolls.powDifficultyLabel': 'Deacracht proof-of-work',
-  'myPolls.powDifficultyHint': 'Líon na nialas heicse tosaigh atá riachtanach do SHA-256(pollId:nonce) sa mhodh proof-of-work.',
+  'myPolls.powDifficultyHint':
+    'Líon na nialas heicse tosaigh atá riachtanach do SHA-256(pollId:nonce) sa mhodh proof-of-work.',
   'myPolls.resultsDelaySecondsLabel': 'Moill nochtaithe torthaí (soicindí)',
-  'myPolls.resultsDelaySecondsHint': 'Cuireann sé moill ar infheictheacht torthaí chun éifeacht bandwagon a laghdú (0 = láithreach).',
+  'myPolls.resultsDelaySecondsHint':
+    'Cuireann sé moill ar infheictheacht torthaí chun éifeacht bandwagon a laghdú (0 = láithreach).',
   'myPolls.resultsDelayPreset.off': 'As (0s)',
   'myPolls.resultsDelayPreset.low': 'Íseal (10s)',
   'myPolls.resultsDelayPreset.medium': 'Meánach (20s)',
   'myPolls.resultsDelayPreset.high': 'Ard (30s)',
   'myPolls.resultsDelayPreset.custom': 'Saincheaptha',
-  'myPolls.resultsDelayRevealPreview': 'Taispeánann iomláin infheicthe sonraí suas go {ts} faoi láthair (~{seconds}s moille).',
+  'myPolls.resultsDelayRevealPreview':
+    'Taispeánann iomláin infheicthe sonraí suas go {ts} faoi láthair (~{seconds}s moille).',
   'myPolls.saveSettings': 'Sábháil athruithe',
   'myPolls.saving': 'Ag sábháil…',
   'myPolls.saved': 'Sábháilte.',
   'myPolls.saveErr': 'Níorbh fhéidir athruithe a shábháil.',
-  'myPolls.panicHint': 'Glasálann sé an vótaíocht láithreach, cuireann sé vótáil ar sos, agus taispeánann sé teachtaireacht phoiblí sos.',
+  'myPolls.panicHint':
+    'Glasálann sé an vótaíocht láithreach, cuireann sé vótáil ar sos, agus taispeánann sé teachtaireacht phoiblí sos.',
   'myPolls.panicBtn': 'Stop vótáil anois (panic)',
-  'myPolls.panicConfirm': 'An stopfar gach vótáil ar “{title}” anois? Glasálfar an vótaíocht agus feicfidh an lucht féachana do theachtaireacht sos.',
+  'myPolls.panicConfirm':
+    'An stopfar gach vótáil ar “{title}” anois? Glasálfar an vótaíocht agus feicfidh an lucht féachana do theachtaireacht sos.',
   'myPolls.panicWorking': 'Á stopadh…',
   'myPolls.panicDone': 'Vótáil stoptha. Tá an vótaíocht faoi ghlas.',
   'myPolls.panicErr': 'Níorbh fhéidir vótáil a stopadh.',
   'myPolls.embedHeading': 'Rochtain embed',
   'myPolls.embedBadge': 'Cosaint embed',
-  'myPolls.embedOn': 'Tá token embed léamh-amháin cumasaithe (úsáid ?embed_token=… nó X-Poll-Embed-Token).',
+  'myPolls.embedOn':
+    'Tá token embed léamh-amháin cumasaithe (úsáid ?embed_token=… nó X-Poll-Embed-Token).',
   'myPolls.embedOff': 'Gan chosaint embed - is féidir an vótaíocht a léamh gan token embed.',
   'myPolls.embedRotate': 'Giniúint token embed nua',
-  'myPolls.embedRotateHint': 'Le rothlú déantar an token roimhe seo neamhbhailí láithreach. Taispeántar an ceann nua uair amháin.',
+  'myPolls.embedRotateHint':
+    'Le rothlú déantar an token roimhe seo neamhbhailí láithreach. Taispeántar an ceann nua uair amháin.',
   'myPolls.rotatingEmbed': 'Á ghiniúint…',
   'myPolls.embedRotateErr': 'Níorbh fhéidir token embed a ghiniúint.',
-  'myPolls.embedTokenTitle': 'Token léitheoireachta embed nua (sábháil é - ní féidir é a aisghabháil):',
+  'myPolls.embedTokenTitle':
+    'Token léitheoireachta embed nua (sábháil é - ní féidir é a aisghabháil):',
   'myPolls.embedCopy': 'Cóipeáil token embed',
   'myPolls.embedFrameUrl': 'URL breathnóra embed',
   'myPolls.embedFrameUrlHint':
     'URL don leathanach embed dlúth len do thóicín (foinse brabhsálaí, iframe nó OBS).',
   'myPolls.simulationBadge': 'Sonraí ionsamhlaithe',
   'myPolls.deletePoll': 'Scrios an vótaíocht go buan',
-  'myPolls.deleteConfirm': 'An scriosfar an vótaíocht “{title}” agus gach vóta? Ní féidir seo a chealú.',
+  'myPolls.deleteConfirm':
+    'An scriosfar an vótaíocht “{title}” agus gach vóta? Ní féidir seo a chealú.',
   'myPolls.deleting': 'Á scriosadh…',
   'myPolls.deleteErr': 'Níorbh fhéidir an vótaíocht a scriosadh.',
-  'myPolls.archivedReadOnly': 'Tá an vótaíocht seo cartlannaithe. Ní féidir céim, sos, nótaí ná socruithe embed a athrú go dtí go ndéantar díchartlannú.',
+  'myPolls.archivedReadOnly':
+    'Tá an vótaíocht seo cartlannaithe. Ní féidir céim, sos, nótaí ná socruithe embed a athrú go dtí go ndéantar díchartlannú.',
   'myPolls.exportHeading': 'Íoslódáil torthaí',
-  'myPolls.exportHint': 'Úsáideann sé do sheisiún sínithe isteach (agus comhlíonann sé cosaint embed don úinéir).',
+  'myPolls.exportHint':
+    'Úsáideann sé do sheisiún sínithe isteach (agus comhlíonann sé cosaint embed don úinéir).',
   'myPolls.exportCsvSummary': 'CSV (iomláin)',
   'myPolls.exportJsonSummary': 'JSON (iomláin)',
   'myPolls.exportCsvVotes': 'CSV (in aghaidh an vóta)',
@@ -256,7 +281,8 @@ const gaOverrides = {
   'myPolls.exportDone': 'Tosaíodh an íoslódáil.',
   'myPolls.exportErr': 'Níorbh fhéidir an t-easpórtáil a íoslódáil.',
   'myPolls.moderationQueueHeading': 'Scuaine modhnóireachta',
-  'myPolls.moderationQueueHint': 'Athbhreithnigh vótaí coraintín le ceadú, diúltú, nó aisiompú. Déantar logáil iniúchta ar ghníomhartha.',
+  'myPolls.moderationQueueHint':
+    'Athbhreithnigh vótaí coraintín le ceadú, diúltú, nó aisiompú. Déantar logáil iniúchta ar ghníomhartha.',
   'myPolls.moderationQueueStatus': 'Scagaire scuaine',
   'myPolls.queuePending': 'Ar feitheamh',
   'myPolls.queueApproved': 'Ceadaithe',
@@ -273,7 +299,8 @@ const gaOverrides = {
   'myPolls.quarantineSourceLine': 'Hash IP: {ip} · ID úsáideora: {user}',
   'myPolls.quarantineVoteMeta': 'Aitheantas vóta {voteId} · {status} · Meáchan {weight}',
   'myPolls.batchHeading': 'Uirlisí rollback baisce',
-  'myPolls.batchHint': 'Bain nó athchóirigh vótaí i mbaisc de réir hash IP foinse nó ID úsáideora, le cód cúise do rian iniúchta.',
+  'myPolls.batchHint':
+    'Bain nó athchóirigh vótaí i mbaisc de réir hash IP foinse nó ID úsáideora, le cód cúise do rian iniúchta.',
   'myPolls.batchSelector': 'Réimse meaitseála',
   'myPolls.batchSelectorIp': 'Hash IP foinse',
   'myPolls.batchSelectorUser': 'ID úsáideora',
@@ -284,7 +311,8 @@ const gaOverrides = {
   'myPolls.batchDone': 'Cuireadh gníomh baisce i bhfeidhm.',
   'myPolls.batchErr': 'Níorbh fhéidir gníomh baisce a chur i bhfeidhm.',
   'myPolls.distributionHeading': 'Sócmhainní comhroinnte',
-  'myPolls.distributionHint': 'Naisc thapa agus sleachta do chat, overlays, comhroinnt soghluaiste agus aistriú QR.',
+  'myPolls.distributionHint':
+    'Naisc thapa agus sleachta do chat, overlays, comhroinnt soghluaiste agus aistriú QR.',
   'myPolls.cloneBtn': 'Clónáil vótaíocht mar dhréacht',
   'myPolls.cloning': 'Á clónáil…',
   'myPolls.cloneDone': 'Clónáladh an vótaíocht.',
@@ -302,7 +330,8 @@ const gaOverrides = {
   'myPolls.copyDone': 'Cóipeáilte.',
   'myPolls.publicPollUrl': 'Nasc poiblí na vótaíochta',
   'myPolls.sharePresets': 'Réamhshocruithe comhroinnte',
-  'myPolls.sharePresetsHint': 'Naisc réamhshocraithe do overlays srutha, comhroinnt soghluaiste, agus radharc torthaí.',
+  'myPolls.sharePresetsHint':
+    'Naisc réamhshocraithe do overlays srutha, comhroinnt soghluaiste, agus radharc torthaí.',
   'myPolls.sharePresetOverlayLabel': 'URL overlay',
   'myPolls.sharePresetOverlayCta': 'Vótáil beo:',
   'myPolls.sharePresetChatLabel': 'URL ordú chat',
@@ -327,7 +356,8 @@ const gaOverrides = {
   'home.banner.share': 'Comhroinn nasc',
   'home.banner.copyOk': 'Cóipeáladh an nasc chuig an ghearrthaisce.',
   'home.banner.copyManual': 'Cóipeáil de láimh:',
-  'home.banner.secretHint': 'Sábháil rún an chruthaitheora - teastaíonn sé chun éaga a athrú nó vótaíocht a scriosadh trí API.',
+  'home.banner.secretHint':
+    'Sábháil rún an chruthaitheora - teastaíonn sé chun éaga a athrú nó vótaíocht a scriosadh trí API.',
   'home.banner.showSecret': 'Taispeáin rún an chruthaitheora',
   'home.banner.showWebhookSecret': 'Taispeáin rún sínithe webhook',
   'home.form.aria': 'Cruthaigh vótaíocht',
@@ -371,30 +401,38 @@ const gaOverrides = {
   'home.err.createRetry': 'Níorbh fhéidir an vótaíocht a chruthú. Déan iarracht arís.',
   'home.err.expiration': 'Tá luach éaga neamhbhailí.',
   'home.err.invalid': 'Ceartaigh na réimsí aibhsithe agus bain triail eile as.',
-  'home.err.webhookSecret': 'Caithfidh rún webhook a bheith 16 charachtar ar a laghad, nó fág folamh é le haghaidh uathghiniúna.',
+  'home.err.webhookSecret':
+    'Caithfidh rún webhook a bheith 16 charachtar ar a laghad, nó fág folamh é le haghaidh uathghiniúna.',
   'home.startOver': 'Cruthaigh vótaíocht eile',
   'home.webhookHeading': 'Uathoibriú (roghnach)',
-  'home.webhookIntro': 'URL HTTPS chun POSTanna JSON sínithe a fháil nuair a athraíonn vótaí nó meiteashonraí vótaíochta.',
+  'home.webhookIntro':
+    'URL HTTPS chun POSTanna JSON sínithe a fháil nuair a athraíonn vótaí nó meiteashonraí vótaíochta.',
   'home.webhookUrl': 'URL webhook (https)',
-  'home.webhookSecret': 'Rún sínithe webhook (16 charachtar ar a laghad, nó folamh le haghaidh uathghiniúna)',
+  'home.webhookSecret':
+    'Rún sínithe webhook (16 charachtar ar a laghad, nó folamh le haghaidh uathghiniúna)',
   'home.webhookIncludeResultsSnapshot': 'Cuir léargas moillithe ar thorthaí poiblí san áireamh',
-  'home.webhookIncludeOwnerSnapshot': 'Cuir léargas measarthóireachta an úinéara san áireamh (íogair)',
-  'home.webhookIncludeOwnerEvents': 'Cuir imeachtai uathoibrithe taobh an uineara san aireamh (iogair)',
+  'home.webhookIncludeOwnerSnapshot':
+    'Cuir léargas measarthóireachta an úinéara san áireamh (íogair)',
+  'home.webhookIncludeOwnerEvents':
+    'Cuir imeachtai uathoibrithe taobh an uineara san aireamh (iogair)',
   'home.webhookSnapshotsHint':
     'Baineann roghanna léargais le gach sprioc ar leith. Ná húsáid léargas an úinéara ná imeachtaí an úinéara ach le endpoints atá faoi do smacht iomlán.',
   'home.webhookTargetAdd': 'Cuir sprioc webhook leis',
   'home.webhookTargetRemove': 'Bain',
   'home.webhookSignInHint': 'Sínigh isteach chun vótaíochtaí nua a liostú faoi Mo vótaíochtaí.',
-  'home.banner.webhookSecret': 'Rún sínithe webhook (sábháil é - úsáidtear é chun payloadanna a fhíorú):',
+  'home.banner.webhookSecret':
+    'Rún sínithe webhook (sábháil é - úsáidtear é chun payloadanna a fhíorú):',
   'home.err.webhookUrl': 'Caithfidh URL webhook a bheith bailí https (nó http://localhost i dev).',
-  'home.hero.tagline': 'Vótaíochtaí anaithnide le torthaí beo. Níl cuntas ag teastáil chun vótáil; is féidir síniú isteach chun vótaíochtaí a choinneáil faoi Mo vótaíochtaí.',
+  'home.hero.tagline':
+    'Vótaíochtaí anaithnide le torthaí beo. Níl cuntas ag teastáil chun vótáil; is féidir síniú isteach chun vótaíochtaí a choinneáil faoi Mo vótaíochtaí.',
   'home.flow.title': 'Conas a oibríonn sé',
   'home.flow.step1': 'Cuir do cheist',
   'home.flow.step2': 'Cuir dhá rogha freagartha nó níos mó leis',
   'home.flow.step3': 'Roghnach: éag, teorainn IP, webhooks, uirlisí cruthaitheora',
   'home.flow.step4': 'Cruthaigh agus comhroinn an nasc',
   'home.optionsTip': 'Leid: cuireann roghanna gearra soiléire luas ar vótáil.',
-  'home.banner.nextIntro': 'An chéad chéim eile: oscail do vótaíocht, comhroinn í, agus athbhreithnigh í go roghnach i',
+  'home.banner.nextIntro':
+    'An chéad chéim eile: oscail do vótaíocht, comhroinn í, agus athbhreithnigh í go roghnach i',
   'home.banner.nextBetweenLinks': ' nó ',
   'home.banner.nextEnd': ' (deireadh).',
   'home.moreOptions': 'Tuilleadh roghanna',
@@ -404,12 +442,15 @@ const gaOverrides = {
   'home.phaseOpen': 'Oscailte - glacann vótaí (mura bhfuil ar sos)',
   'home.phaseDraft': 'Dréacht - gan vótaí go dtí go n-osclaíonn tú í',
   'home.showNotesLabel': 'Nótaí príobháideacha (roghnach)',
-  'home.showNotesHint': 'Ní fheiceann ach tusa iad agus tú sínithe isteach ar leathanach na vótaíochta.',
+  'home.showNotesHint':
+    'Ní fheiceann ach tusa iad agus tú sínithe isteach ar leathanach na vótaíochta.',
   'home.showNotesPlaceholder': 'Nótaí seó, meabhrúcháin urraitheora, nótaí overlay…',
   'home.embedTokenCheck': 'Giniúint token embed léamh-amháin',
-  'home.embedTokenHint': 'Do overlays: cuir ?embed_token=... leis an URL nó seol ceanntásc X-Poll-Embed-Token.',
+  'home.embedTokenHint':
+    'Do overlays: cuir ?embed_token=... leis an URL nó seol ceanntásc X-Poll-Embed-Token.',
   'home.resultsDelayLabel': 'Moill torthaí beo',
-  'home.resultsDelayHint': 'Roghnach: cuir moill ar iomláin phoiblí bheo chun ionramháil oirbheartaíochta a laghdú.',
+  'home.resultsDelayHint':
+    'Roghnach: cuir moill ar iomláin phoiblí bheo chun ionramháil oirbheartaíochta a laghdú.',
   'home.resultsDelayPreset.off': 'As (0s)',
   'home.resultsDelayPreset.low': 'Íseal (10s)',
   'home.resultsDelayPreset.medium': 'Meánach (20s)',
@@ -476,7 +517,8 @@ const gaOverrides = {
   'home.pollTemplate.ama-priority.title': 'Cad ba cheart dúinn a fhreagairt ina dhiaidh sin?',
   'home.pollTemplate.ama-priority.options':
     'Treoirphlean agus amlainn scaoilte\nPlé domhain ar ailtireacht theicniúil\nMonatú agus urraíocht\nPolasaí modhnóireachta pobail',
-  'home.pollTemplate.ama-priority.notes': 'Úsáid idir mhír le ligean don comhrá cinneadh cad a thagann ina dhiaidh.',
+  'home.pollTemplate.ama-priority.notes':
+    'Úsáid idir mhír le ligean don comhrá cinneadh cad a thagann ina dhiaidh.',
   'home.pollTemplate.this-or-that.label': 'Seo nó siúd',
   'home.pollTemplate.this-or-that.title': 'Cad ba cheart dúinn a dhéanamh ina dhiaidh sin?',
   'home.pollTemplate.this-or-that.options': 'Roghnaigh A\nRoghnaigh B',
@@ -523,17 +565,21 @@ const gaOverrides = {
   'poll.votingClosedHint': 'Tá vótáil dúnta don seisiún seo; torthaí thíos.',
   'poll.impressions': 'Amhairc leathanaigh mheasta: {count}',
   'poll.showNotesTitle': 'Do nótaí seó',
-  'poll.refreshHint': 'Iomláin bheo: thart ar gach {visible}s nuair atá an cluaisín seo le feiceáil, gach {hidden}s sa chúlra.',
-  'poll.refreshHintLive': 'Iomláin bheo: brúite ón bhfreastalaí thar WebSocket (athnuachan HTTP gach {fallback}s mar chúlphlean).',
+  'poll.refreshHint':
+    'Iomláin bheo: thart ar gach {visible}s nuair atá an cluaisín seo le feiceáil, gach {hidden}s sa chúlra.',
+  'poll.refreshHintLive':
+    'Iomláin bheo: brúite ón bhfreastalaí thar WebSocket (athnuachan HTTP gach {fallback}s mar chúlphlean).',
   'poll.billingWsSubscriberLimitHint':
     'Dúnadh an nasc beo: shroich an pobalbhreith seo teorainn an lucht féachana comhthráithigh don phlean. Nuashonraítear iomláin fós de réir amaer; féadfaidh plean níos airde a bheith ag teastáil ó úinéir an phobailbhreith d’lucht féachana móra.',
-  'poll.resultsDelayInfo': 'Moill anti-snipe bheo: taispeántar torthaí {seconds}s taobh thiar de fíor-am ({pending} vótaí níos nuaí ar feitheamh).',
+  'poll.resultsDelayInfo':
+    'Moill anti-snipe bheo: taispeántar torthaí {seconds}s taobh thiar de fíor-am ({pending} vótaí níos nuaí ar feitheamh).',
   'poll.voteFail': 'Theip ar an vóta.',
   'poll.signInToVote': 'Ní ghlacann an pobalbhreith seo le vótaí ach ó úsáideoirí sínithe isteach.',
   'poll.signInToVoteCta': 'Sínigh isteach le vótáil',
   'poll.accountGatedPrivacy':
     'Nuair a bheidh tú sínithe isteach, ceanglaítear do vóta le do chuntas ar an suíomh seo chun vótaí dúblacha a chosc.',
-  'poll.ownerShareAdvancedHint': 'Clónú, easpórtálacha, uirlisí leabaithe, agus scuaine modhnóireachta i Mo phobalbhreitheanna.',
+  'poll.ownerShareAdvancedHint':
+    'Clónú, easpórtálacha, uirlisí leabaithe, agus scuaine modhnóireachta i Mo phobalbhreitheanna.',
   'poll.expires': 'Rachaidh in éag:',
   'poll.expired': 'Imithe in éag',
   'poll.timeNever': 'Riamh',
@@ -541,14 +587,17 @@ const gaOverrides = {
   'poll.votesCount': '{title}, {count} vóta',
   'poll.leadingSr': 'rogha chun tosaigh',
   'poll.leadingBadge': 'Chun tosaigh',
-  'poll.voteKeyboardHint': 'Úsáid Suas/Síos nó Clé/Deas chun bogadh idir roghanna. Brúigh Spás nó Enter chun vótáil.',
+  'poll.voteKeyboardHint':
+    'Úsáid Suas/Síos nó Clé/Deas chun bogadh idir roghanna. Brúigh Spás nó Enter chun vótáil.',
   'poll.geoOptIn': 'Comhroinn mo shuíomh garbh leis an vóta seo (roghnach)',
-  'poll.geoPrivacy': 'Má chumasófar é, iarrann an aip suíomh uair amháin nuair a vótálann tú. Ní stóráiltear ach cealla garbha mapa.',
+  'poll.geoPrivacy':
+    'Má chumasófar é, iarrann an aip suíomh uair amháin nuair a vótálann tú. Ní stóráiltear ach cealla garbha mapa.',
   'poll.geoEnabled': 'Tá comhroinnt suímh cumasaithe don chéad vóta eile.',
   'poll.geoDenied': 'Diúltaíodh rochtain suímh. Comhaireadh do vóta gan suíomh.',
   'poll.geoUnavailable': 'Níl suíomh ar fáil sa bhrabhsálaí/seisiún seo.',
   'poll.heatmapTitle': 'Heatmap vótaí',
-  'poll.heatmapPrivacy': 'Taispeánann an mapa seo limistéir chomhiomlána doiléire amháin; ní thaispeántar comhordanáidí beachta riamh.',
+  'poll.heatmapPrivacy':
+    'Taispeánann an mapa seo limistéir chomhiomlána doiléire amháin; ní thaispeántar comhordanáidí beachta riamh.',
   'poll.heatmapLoading': 'Heatmap á luchtú…',
   'poll.heatmapError': 'Níorbh fhéidir sonraí heatmap a luchtú.',
   'poll.heatmapEmpty': 'Níl aon sonraí heatmap fós.',
@@ -569,7 +618,8 @@ const gaOverrides = {
   'poll.replaySpeed': 'Luas',
   'poll.replayTimelineAria': 'Amlíne athsheinm',
   'poll.replayVotesShown': '{shown} as {total} vóta taispeánta',
-  'poll.replayActiveHint': 'Beidh athsheinm ar fáil nuair a bheidh an vótaíocht críochnaithe (imithe in éag, faoi ghlas, nochtaithe, nó cartlannaithe).',
+  'poll.replayActiveHint':
+    'Beidh athsheinm ar fáil nuair a bheidh an vótaíocht críochnaithe (imithe in éag, faoi ghlas, nochtaithe, nó cartlannaithe).',
   'poll.metricsTitle': 'Méadrachtaí vótaíochta',
   'poll.metrics.votesLast5mVelocity': 'Luas vótaí 5 nóim: {count}',
   'poll.metrics.lifetimeVelocity': 'Luas saoil: {value}',
@@ -585,14 +635,16 @@ const gaOverrides = {
   'poll.metrics.weekdayAxis': 'Ord: {days} (UTC)',
   'poll.state.label': 'Stádas',
   'poll.simulationBadge': 'Ionsamhlú',
-  'poll.simulationNotice': 'Is sonraí ionsamhlaithe iad seo do thástáil agus taispeántas; ná húsáid mar fhianaise ar fhíorvótaí.',
+  'poll.simulationNotice':
+    'Is sonraí ionsamhlaithe iad seo do thástáil agus taispeántas; ná húsáid mar fhianaise ar fhíorvótaí.',
   'poll.instructions.vote': 'Roghnaigh rogha thíos chun do vóta a chaitheamh.',
   'poll.instructions.multi': 'Roghnaigh rogha nó roghanna agus brigh Cur vóta isteach.',
   'poll.submitMultiVote': 'Cur vóta isteach',
   'poll.multiSubmitHint': 'Roghnaigh rogha amháin ar a laghad.',
   'poll.voteCardAria': 'Roghanna freagartha',
   'poll.resultsOnlyTitle': 'Overlay torthaí amháin',
-  'poll.resultsOnlySubtitle': 'Amharc scórchláir léamh-amháin do overlays agus taispeántais srutha.',
+  'poll.resultsOnlySubtitle':
+    'Amharc scórchláir léamh-amháin do overlays agus taispeántais srutha.',
   'poll.resultsOnlyClosedBadge': 'Tá vótáil dúnta ar an vótaíocht seo.',
   'poll.resultsOnlyLiveBadge': 'Athnuachanann iomláin bheo go huathoibríoch.',
   'poll.resultsOnlyAria': 'Amharc torthaí amháin den vótaíocht',
@@ -616,13 +668,16 @@ const gaOverrides = {
   'poll.totalVotes': 'Vótaí iomlána: {count}',
   'about.docTitle': 'Maidir leis',
   'about.title': 'Maidir le asking-ng',
-  'about.p1': 'Pobalbhreitheanna ar stíl strawpoll le dromchla riarachain eadrom, loga iniuchta, agus storail Postgres. Spreagtha ag',
+  'about.p1':
+    'Pobalbhreitheanna ar stíl strawpoll le dromchla riarachain eadrom, loga iniuchta, agus storail Postgres. Spreagtha ag',
   'about.p1.link': 'tionscadal jdleo/asking',
   'about.bullet.api': 'API poibli: /poll, /healthcheck, /ready, /info, /api-docs',
-  'about.bullet.llm': 'Seachfhreastalaí LLM roghnach: /llm/status, /llm/v1/models, /llm/v1/chat/completions.',
+  'about.bullet.llm':
+    'Seachfhreastalaí LLM roghnach: /llm/status, /llm/v1/models, /llm/v1/chat/completions.',
   'about.bullet.admin': 'Bealaigh riarachain: /admin/* (comhartha in x-admin-token)',
   'about.bullet.caddy': 'Taobh thiar de Caddy: cuir API ar /api agus usaid VITE_API_BASE=/api.',
-  'about.accessibility': 'Inrochtaineacht: teamaí, codarsnacht ard, clofhoireann inleite, agus ionsamhluithe radhairc datha.',
+  'about.accessibility':
+    'Inrochtaineacht: teamaí, codarsnacht ard, clofhoireann inleite, agus ionsamhluithe radhairc datha.',
   'about.cta.create': 'Cruthaigh vótaíocht',
   'about.cta.dev': 'Uirlisí API / LLM',
   'about.section.stack': 'Cumais agus pointi deiridh',
@@ -691,18 +746,24 @@ const gaOverrides = {
   'admin.exportDone': 'Tosaithe an íoslódáil: {file}',
   'admin.exporting': 'Ag easpórtáil…',
   'admin.exportErr': 'Theip ar an íoslódáil.',
-  'admin.export.accessDenied': 'Cead diúltaithe: ní féidir ach le admin nó superadmin sonraí a easpórtáil.',
+  'admin.export.accessDenied':
+    'Cead diúltaithe: ní féidir ach le admin nó superadmin sonraí a easpórtáil.',
   'admin.export.title': 'Easpórtáil sonraí',
-  'admin.export.subtitle': 'Íoslódáil snapshots iomlána le haghaidh cúltacaí, comhlíonta agus imirce.',
-  'admin.export.intro': 'D’fhéadfadh sonraí pearsanta nó sonraí íogaire oibríochta a bheith in easpórtálacha. Déileáil leo mar rúin léiriúcháin: criptigh ag sosa, roinn go cúramach, agus scrios cóipeanna nuair nach bhfuil gá leo níos mó.',
-  'admin.export.flowHint': 'Tosaíonn gach íoslódáil láithreach i do bhrabhsálaí. Cuimsíonn ainmneacha comhaid dáta na heaspórtála (am áitiúil).',
+  'admin.export.subtitle':
+    'Íoslódáil snapshots iomlána le haghaidh cúltacaí, comhlíonta agus imirce.',
+  'admin.export.intro':
+    'D’fhéadfadh sonraí pearsanta nó sonraí íogaire oibríochta a bheith in easpórtálacha. Déileáil leo mar rúin léiriúcháin: criptigh ag sosa, roinn go cúramach, agus scrios cóipeanna nuair nach bhfuil gá leo níos mó.',
+  'admin.export.flowHint':
+    'Tosaíonn gach íoslódáil láithreach i do bhrabhsálaí. Cuimsíonn ainmneacha comhaid dáta na heaspórtála (am áitiúil).',
   'admin.export.sectionTitle': 'Tacair sonraí',
   'admin.export.usersTitle': 'Usáideoirí',
   'admin.export.usersDesc': 'Cuntais eolaire, róil, agus staid gníomhachtaithe.',
   'admin.export.pollsTitle': 'Pobalbhreitheanna',
-  'admin.export.pollsDesc': 'Sainmhínithe pobalbhreithe, roghanna, céimeanna, agus meiteashonraí gaolmhara.',
+  'admin.export.pollsDesc':
+    'Sainmhínithe pobalbhreithe, roghanna, céimeanna, agus meiteashonraí gaolmhara.',
   'admin.export.auditTitle': 'Logaí iniúchta',
-  'admin.export.auditDesc': 'Gníomhartha riaracháin agus imeachtaí slándála ábhartha (féadfaidh sé a bheith mór ar shuíomhanna gnóthacha).',
+  'admin.export.auditDesc':
+    'Gníomhartha riaracháin agus imeachtaí slándála ábhartha (féadfaidh sé a bheith mór ar shuíomhanna gnóthacha).',
   'admin.export.formatCsv': 'Formaid CSV',
   'admin.export.formatJson': 'Formaid JSON',
   'admin.export.ariaDownload': 'Íoslódáil {dataset} mar {format}',
@@ -805,7 +866,8 @@ const gaOverrides = {
   'admin.polls.confirmBulkDelete': 'Scrios na pobalbhreitheanna roghnaithe?',
   'admin.polls.errBulk': 'Theip ar oibriocht baisce ar {id}',
   'admin.polls.simulationBadge': 'Ionsamhladh',
-  'admin.users.accessDenied': 'Cead diúltaithe: ní féidir ach le admin nó superadmin usáideoirí a bhainistiú.',
+  'admin.users.accessDenied':
+    'Cead diúltaithe: ní féidir ach le admin nó superadmin usáideoirí a bhainistiú.',
   'admin.users.heading': 'Usáideoirí',
   'admin.users.pageSubtitle': '{shown} as {total} usaideoir (tar eis scagairi)',
   'admin.users.refresh': 'Athnuaigh',
@@ -889,7 +951,8 @@ const gaOverrides = {
   'admin.users.errActivate': 'Theip ar ghniomhachtu usaideoira',
   'admin.users.confirmDelete': 'Scrios usaideoir {id}?',
   'admin.users.appSessionTitle': 'Logail isteach aip (bainistiocht sariarthora)',
-  'admin.users.appSessionIntro': 'Ni feidir leis an token admin dara sariarthoir a chruthu. Logail isteach le hainm usaideoira agus focal faire sariarthora ata ann cheana ionas gur féidir leis an leathanach seo glaoch ar API na haipe ar do shon.',
+  'admin.users.appSessionIntro':
+    'Ni feidir leis an token admin dara sariarthoir a chruthu. Logail isteach le hainm usaideoira agus focal faire sariarthora ata ann cheana ionas gur féidir leis an leathanach seo glaoch ar API na haipe ar do shon.',
   'admin.users.appSessionUsername': 'Ainm usaideoira',
   'admin.users.appSessionPassword': 'Focal faire',
   'admin.users.appSessionSignIn': 'Logail isteach',
@@ -897,12 +960,17 @@ const gaOverrides = {
   'admin.users.appSessionSignOut': 'Logail amach seisiun aip',
   'admin.users.appSessionSignedIn': 'Seisiun API aip: {user} ({role})',
   'admin.users.appSessionErrLogin': 'Theip ar logail isteach aip.',
-  'admin.users.appSessionErrLoginNotSuperadmin': 'Nio sariarthoir an cuntas sin. Logail isteach le husaideoir sariarthora.',
-  'admin.users.appSessionErrNotSuperadmin': 'Nio sariarthoir an seisiun aip sabhailte; logail isteach aris.',
-  'admin.users.errNeedAppSession': 'Logail isteach faoi "Logail isteach aip" le cuntas sariarthora ar dtus, no bain úsáid as bootstrap (gan sariarthoir go foill) leis an token admin.',
-  'admin.audit.accessDenied': 'Cead diúltaithe: ni feidir ach le admin no superadmin logai iniuchta a fheiceail.',
+  'admin.users.appSessionErrLoginNotSuperadmin':
+    'Nio sariarthoir an cuntas sin. Logail isteach le husaideoir sariarthora.',
+  'admin.users.appSessionErrNotSuperadmin':
+    'Nio sariarthoir an seisiun aip sabhailte; logail isteach aris.',
+  'admin.users.errNeedAppSession':
+    'Logail isteach faoi "Logail isteach aip" le cuntas sariarthora ar dtus, no bain úsáid as bootstrap (gan sariarthoir go foill) leis an token admin.',
+  'admin.audit.accessDenied':
+    'Cead diúltaithe: ni feidir ach le admin no superadmin logai iniuchta a fheiceail.',
   'admin.audit.heading': 'Logai iniuchta',
-  'admin.audit.intro': 'Meaitsealaionn na scagairi an API (teorainn 1-500, 100 de reir reamhshocraithe nuair a fhagtar ar lar). Usaid Scag chun an URL a nuashonru le haghaidh comhroinnte.',
+  'admin.audit.intro':
+    'Meaitsealaionn na scagairi an API (teorainn 1-500, 100 de reir reamhshocraithe nuair a fhagtar ar lar). Usaid Scag chun an URL a nuashonru le haghaidh comhroinnte.',
   'admin.audit.placeholderAction': 'Gniomh',
   'admin.audit.filterAction': 'Scag de reir gniomha',
   'admin.audit.placeholderActor': 'Aisteoir',
@@ -924,12 +992,15 @@ const gaOverrides = {
   'admin.audit.colActor': 'Aisteoir',
   'admin.audit.colTarget': 'Sprioc',
   'admin.audit.colTime': 'Am',
-  'admin.status.accessDenied': 'Cead diúltaithe: ni feidir ach le admin no superadmin stadas an choiris a fheiceail.',
+  'admin.status.accessDenied':
+    'Cead diúltaithe: ni feidir ach le admin no superadmin stadas an choiris a fheiceail.',
   'admin.status.heading': 'Stadas an choiris',
-  'admin.status.subtitle': 'Seicealacha slainte, meiteashonrai tógala anaithnide, comhaireamh sonrai deimhnithe, agus geosuioimh an heatmap votai.',
+  'admin.status.subtitle':
+    'Seicealacha slainte, meiteashonrai tógala anaithnide, comhaireamh sonrai deimhnithe, agus geosuioimh an heatmap votai.',
   'admin.status.errLoad': 'Theip ar lodail stadas an choiris',
   'admin.status.sectionHealth': 'Slainte na seirbhise',
-  'admin.status.sectionHealthHint': 'Pointi deiridh phoibli a usaidtear ag load balancers agus seicealacha uptime. Is feidir le liveness pas a fháil agus readiness ag teip nuair nach bhfuil spleachais ar fail.',
+  'admin.status.sectionHealthHint':
+    'Pointi deiridh phoibli a usaidtear ag load balancers agus seicealacha uptime. Is feidir le liveness pas a fháil agus readiness ag teip nuair nach bhfuil spleachais ar fail.',
   'admin.status.sectionBuild': 'Build agus runtime API',
   'admin.status.sectionBuildHint': 'Meiteashonrai neamh-íogair ó GET /info (gan auth).',
   'admin.status.sectionData': 'Snapshot sonrai',
@@ -948,7 +1019,8 @@ const gaOverrides = {
   'admin.status.readiness': 'Probe readiness',
   'admin.status.requestFailed': 'Theip ar iarratas',
   'admin.status.ok': 'Ar fail ({status})',
-  'admin.status.readinessFailTitle': 'Teip readiness (an envelope earráide JSON ceanna le bealaí eile)',
+  'admin.status.readinessFailTitle':
+    'Teip readiness (an envelope earráide JSON ceanna le bealaí eile)',
   'admin.status.unavailable': 'Níl ar fáil ({status})',
   'admin.status.usersTitle': 'Usáideoirí iomlána',
   'admin.status.pollsTitle': 'Pobalbhreitheanna iomlána',
@@ -962,7 +1034,8 @@ const gaOverrides = {
   'admin.status.httpError': 'Earraidh HTTP {status}',
   'admin.status.healthUnexpectedTitle': 'Neamh-2xx no corp gan choinne',
   'admin.status.voteGeoHeading': 'Heatmap geosuioimh votai',
-  'admin.status.voteGeoDesc': 'Nuair ata se cumasaithe, feadfaidh an API comhordanai votai garbha a thaifeadadh le haghaidh heatmaps. Deimhnigh go meaitsealaionn seo do pholasaí priochais sula gcuireann tu ar siul e.',
+  'admin.status.voteGeoDesc':
+    'Nuair ata se cumasaithe, feadfaidh an API comhordanai votai garbha a thaifeadadh le haghaidh heatmaps. Deimhnigh go meaitsealaionn seo do pholasaí priochais sula gcuireann tu ar siul e.',
   'admin.status.voteGeoEnabled': 'Cumasaithe',
   'admin.status.voteGeoDisabled': 'Díchumasaithe',
   'admin.status.voteGeoEnable': 'Cumasaigh geosuioimh votai',
@@ -990,7 +1063,8 @@ const gaOverrides = {
   'admin.dashboard.export': 'Easpórtáil sonraí',
   'admin.dashboard.status': 'Stadas an choiris',
   'admin.dashboard.impersonate': 'Aithris ar usaideoir',
-  'admin.dashboard.subtitle': 'Monatóir úsáid, críochnaigh seiceálacha tosaithe, agus léim chuig na huirlisí is minice a usáidtear.',
+  'admin.dashboard.subtitle':
+    'Monatóir úsáid, críochnaigh seiceálacha tosaithe, agus léim chuig na huirlisí is minice a usáidtear.',
   'admin.dashboard.kpi.heading': 'Príomh-mhéadrachtaí',
   'admin.dashboard.kpi.usersTotal': 'Cuntais usaideoira',
   'admin.dashboard.kpi.usersActive': 'Usáideoirí gníomhacha',
@@ -1030,20 +1104,25 @@ const gaOverrides = {
   'admin.dashboard.setup.status.pending': 'Le déanamh',
   'admin.dashboard.quick.title': 'Gniomhartha tapa',
   'admin.dashboard.quick.users.desc': 'Cuardach, roil, gniomhachtu agus oibriochta baisce',
-  'admin.dashboard.quick.polls.desc': 'Cruthaigh pobalbhreitheanna, cartlann, athshocraigh votai, scrudaigh sonrai',
+  'admin.dashboard.quick.polls.desc':
+    'Cruthaigh pobalbhreitheanna, cartlann, athshocraigh votai, scrudaigh sonrai',
   'admin.dashboard.quick.audit.desc': 'Scag gniomhartha riarthora le URLanna inroinnte',
-  'admin.dashboard.quick.export.desc': 'Easpórtálacha CSV agus JSON le haghaidh cúltacaí comhlíonta',
+  'admin.dashboard.quick.export.desc':
+    'Easpórtálacha CSV agus JSON le haghaidh cúltacaí comhlíonta',
   'admin.dashboard.quick.status.desc': 'Probeanna beo, eolas build, agus scorán heatmap votai',
-  'admin.dashboard.quick.impersonate.desc': 'Logail isteach mar usaideoir eile le haghaidh tacaiochta',
+  'admin.dashboard.quick.impersonate.desc':
+    'Logail isteach mar usaideoir eile le haghaidh tacaiochta',
   'admin.dashboard.quick.developer.desc': 'Scéim OpenAPI, probeanna, agus uirlisi LLM',
   'admin.dashboard.simulation.title': 'Ionsamhladh',
-  'admin.dashboard.simulation.subtitle': 'Giniuint usaideoiri, pobalbhreitheanna, agus votai tástála chun sreafaí painéil agus modhnóireachta a chleachtadh gan trácht fíor.',
+  'admin.dashboard.simulation.subtitle':
+    'Giniuint usaideoiri, pobalbhreitheanna, agus votai tástála chun sreafaí painéil agus modhnóireachta a chleachtadh gan trácht fíor.',
   'admin.dashboard.simulation.users': 'Usáideoirí le cruthu',
   'admin.dashboard.simulation.polls': 'Pobalbhreitheanna le cruthu',
   'admin.dashboard.simulation.votes': 'Votai in aghaidh na pobalbhreithe',
   'admin.dashboard.simulation.run': 'Rith ionsamhladh',
   'admin.dashboard.simulation.running': 'Ionsamhladh ag rith…',
-  'admin.dashboard.simulation.done': '{users} usaideoir, {polls} pobalbhreith, agus {votes} votai cruthaithe.',
+  'admin.dashboard.simulation.done':
+    '{users} usaideoir, {polls} pobalbhreith, agus {votes} votai cruthaithe.',
   'admin.dashboard.simulation.err': 'Theip ar an ionsamhladh.',
   'admin.login.title': 'Logáil isteach riarthóra',
   'admin.login.sessionCheck': 'Ag seiceail seisiun riarthora…',
@@ -1060,27 +1139,37 @@ const gaOverrides = {
   'admin.login.firstRunGuide.step1': 'Logail isteach le do `ADMIN_TOKEN`.',
   'admin.login.firstRunGuide.step2': 'Ma iarrtar ort, cruthaigh an chéad chuntas sariarthora.',
   'admin.login.firstRunGuide.step3': 'Oscail Usáideoirí agus deimhnigh do chuntas admin bootstrap.',
-  'admin.login.firstRunGuide.step4': 'Cruthaigh pobalbhreith tástála agus caith vota amhain on leathanach poibli.',
-  'admin.login.firstRunGuide.step5': 'Oscail Stadas an choiris chun a dheimhnú go bhfuil na probeanna health/readiness glas.',
-  'admin.login.firstRunGuide.diagnosticsPrefix': 'An dteastaionn diagnóisic API freisin? Tabhair cuairt ar',
+  'admin.login.firstRunGuide.step4':
+    'Cruthaigh pobalbhreith tástála agus caith vota amhain on leathanach poibli.',
+  'admin.login.firstRunGuide.step5':
+    'Oscail Stadas an choiris chun a dheimhnú go bhfuil na probeanna health/readiness glas.',
+  'admin.login.firstRunGuide.diagnosticsPrefix':
+    'An dteastaionn diagnóisic API freisin? Tabhair cuairt ar',
   'admin.login.firstRunGuide.diagnosticsLink': 'Uirlisi API / LLM',
-  'admin.login.bootstrap.noAdmin': 'Níl aon chuntas admin ann go fóill. Cruthaigh an chéad sariarthoir thíos, ansin lean ar aghaidh chuig an bpainéal.',
-  'admin.login.bootstrap.errInvalidInput': 'Iontrail ainm usaideoira agus focal faire baili (8 gcarachtar ar a laghad).',
+  'admin.login.bootstrap.noAdmin':
+    'Níl aon chuntas admin ann go fóill. Cruthaigh an chéad sariarthoir thíos, ansin lean ar aghaidh chuig an bpainéal.',
+  'admin.login.bootstrap.errInvalidInput':
+    'Iontrail ainm usaideoira agus focal faire baili (8 gcarachtar ar a laghad).',
   'admin.login.bootstrap.errCreateFail': 'Theip ar chruthu an chéad chuntas admin.',
   'admin.login.bootstrap.ariaSection': 'Cruthaigh an chéad chuntas admin',
   'admin.login.bootstrap.title': 'Cruthaigh an chéad chuntas admin',
-  'admin.login.bootstrap.intro': 'Níl aon usaideoiri admin ann go foill. Cruthaionn an chaim aonuaire seo an chéad sariarthoir leis an token admin a iontraiodh.',
+  'admin.login.bootstrap.intro':
+    'Níl aon usaideoiri admin ann go foill. Cruthaionn an chaim aonuaire seo an chéad sariarthoir leis an token admin a iontraiodh.',
   'admin.login.bootstrap.ariaForm': 'Foirm chruthu an chéad admin',
   'admin.login.bootstrap.homelab-userPlaceholder': 'Ainm usaideoira',
   'admin.login.bootstrap.passwordPlaceholder': 'Focal faire (8 gcarachtar ar a laghad)',
   'admin.login.bootstrap.creating': 'Ag cruthu…',
   'admin.login.bootstrap.create': 'Cruthaigh sariarthoir',
-  'admin.impersonate.accessDenied': 'Cead diúltaithe: ni feidir ach le sariarthoir usaideoiri a aithris.',
+  'admin.impersonate.accessDenied':
+    'Cead diúltaithe: ni feidir ach le sariarthoir usaideoiri a aithris.',
   'admin.impersonate.title': 'Aithris ar usaideoir',
-  'admin.impersonate.subtitle': 'Eisigh JWT gearrshaolach a fheidhmionn mar an sprioc-usaideoir le haghaidh dibaagaithe agus tacaiochta (caith leis mar fhocal faire).',
-  'admin.impersonate.intro': 'Is feidir le haon duine a bhfuil an token aige gniomhartha API a dhéanamh mar an usaideoir sin go dtia go n-imíonn se in éag. Na greamaigh i gcomhrai, i dticeid, no i logai; cúlghairm tríd fanacht go n-imíonn se in éag no runai freastalaí a rothlú de réir do runbook.',
+  'admin.impersonate.subtitle':
+    'Eisigh JWT gearrshaolach a fheidhmionn mar an sprioc-usaideoir le haghaidh dibaagaithe agus tacaiochta (caith leis mar fhocal faire).',
+  'admin.impersonate.intro':
+    'Is feidir le haon duine a bhfuil an token aige gniomhartha API a dhéanamh mar an usaideoir sin go dtia go n-imíonn se in éag. Na greamaigh i gcomhrai, i dticeid, no i logai; cúlghairm tríd fanacht go n-imíonn se in éag no runai freastalaí a rothlú de réir do runbook.',
   'admin.impersonate.sectionRequest': 'Iarr token',
-  'admin.impersonate.sectionRequestHint': 'Bain úsáid as an ID usaideoira uimhriuil on eolaire usaideoiri (an chéad cholún). Caithfidh an usaideoir a bheith ann cheana.',
+  'admin.impersonate.sectionRequestHint':
+    'Bain úsáid as an ID usaideoira uimhriuil on eolaire usaideoiri (an chéad cholún). Caithfidh an usaideoir a bheith ann cheana.',
   'admin.impersonate.labelUserId': 'ID usaideoira',
   'admin.impersonate.ariaForm': 'Foirm aithrise usaideoira',
   'admin.impersonate.placeholderUserId': 'm.sh. 42',
@@ -1089,7 +1178,8 @@ const gaOverrides = {
   'admin.impersonate.submitAria': 'Iarr token aithrise',
   'admin.impersonate.generating': 'Ag eisint…',
   'admin.impersonate.tokenTitle': 'Token aithrise',
-  'admin.impersonate.tokenHint': 'Seol mar Authorization: Bearer le haghaidh bealaí API aip a ghlacann le JWT usaideoira. Coipeail uair amhain agus storail go slan e.',
+  'admin.impersonate.tokenHint':
+    'Seol mar Authorization: Bearer le haghaidh bealaí API aip a ghlacann le JWT usaideoira. Coipeail uair amhain agus storail go slan e.',
   'admin.impersonate.jwtAria': 'Token JWT aithrise',
   'admin.impersonate.copyToken': 'Coipeail token',
   'admin.impersonate.dismissToken': 'Glan den scailean',
@@ -1161,7 +1251,8 @@ const gaOverrides = {
   'developer.billingPollUsage': 'Pollanna neamh-chartlannaithe is leatsa: {current} / {max}.',
   'developer.billingWsRoomCap':
     'Foscríbhneoirí WebSocket comhthréith ag poll (an teorainn is infheidhme do do spás oibre): {max}.',
-  'developer.billingExportUsage': 'Poist easpórtála sonraí críochnaithe inniu (UTC): {current} / {max}.',
+  'developer.billingExportUsage':
+    'Poist easpórtála sonraí críochnaithe inniu (UTC): {current} / {max}.',
   'developer.billingVoteUsage':
     'Vótaí an mhí UTC ar do phollanna (sraitheanna nach bhfuil sa charantín): {current} / {max}.',
   'developer.billingFanoutCap':
@@ -1319,7 +1410,8 @@ const gaOverrides = {
   'policy.section.status.body': 'Foilsimid stadas seirbhise agus eachtrai a bhaineann leis.',
   'policy.section.status.link': 'Feach stadas na seirbhise',
   'policy.section.contact.title': 'Teagmhail phriobhachais',
-  'policy.section.contact.intro': 'Le haghaidh iarratais phriobhachais, usaid na cainéil oifigiula.',
+  'policy.section.contact.intro':
+    'Le haghaidh iarratais phriobhachais, usaid na cainéil oifigiula.',
   'policy.contact.securityEmail': 'Teagmháil shlándála: {email}',
   'policy.section.legal.title': 'Bonn dli',
   'policy.section.legal.body': 'Ta an proiseail bunaithe ar chonradh, leas dlisteanach no toiliu.',
@@ -1336,7 +1428,8 @@ const gaOverrides = {
   'myPolls.listVoteTimingAria': 'Meadracht ama votala',
   'myPolls.pollUsageBanner': 'Pobalbhreitheanna gniomhacha: {current} as {max} (plean: {plan}).',
   'myPolls.retentionTtlDaysLabel': 'Coinneail uathoibrioch (laethanta)',
-  'myPolls.retentionTtlDaysHint': 'Scriosann se pobalbhreitheanna sean go huathoibrioch tar eis an lion laethanta seo.',
+  'myPolls.retentionTtlDaysHint':
+    'Scriosann se pobalbhreitheanna sean go huathoibrioch tar eis an lion laethanta seo.',
   'myPolls.retentionTtlDaysPlaceholder': 'm.sh. 30',
   'myPolls.retentionLegalHoldLabel': 'Coinneail dhlithiuil',
   'myPolls.retentionLegalHoldHint': 'Cuireann seo cosc ar scriosadh uathoibrioch agus e gniomhach.',
@@ -1365,7 +1458,8 @@ const gaOverrides = {
   'cookie.categories.functional': 'Feidhmiuil',
   'cookie.categories.functionalHint': 'Feabhsaionn siad an taithi agus roghanna.',
   'cookie.categories.analytics': 'Anailis',
-  'cookie.categories.analyticsHint': 'Cabhraionn siad linn usaid a thuiscint agus an tairge a fheabhsu.',
+  'cookie.categories.analyticsHint':
+    'Cabhraionn siad linn usaid a thuiscint agus an tairge a fheabhsu.',
   'cookie.categories.marketing': 'Margaiocht',
   'cookie.categories.marketingOff': 'Níl fianain mhargaiochta in usaid.',
   'cookie.categories.save': 'Sabhail roghanna',
@@ -1377,7 +1471,8 @@ const gaOverrides = {
   'poll.metrics.optionHourlyTitle': 'Feidhmiocht rogha in aghaidh na huaire',
   'poll.metrics.optionHourlyHint': 'Comparaid uairiuil votai de reir rogha.',
   'poll.metrics.optionVelocityByMinuteTitle': 'Luas rogha in aghaidh an noimeid',
-  'poll.metrics.optionVelocityByMinuteHint': 'Treochta votai de reir rogha i bhfuinneoga 1 noimead.',
+  'poll.metrics.optionVelocityByMinuteHint':
+    'Treochta votai de reir rogha i bhfuinneoga 1 noimead.',
   'poll.metrics.velocityByMinuteTitle': 'Luas iomlan in aghaidh an noimeid',
   'poll.metrics.velocityByMinuteHint': 'Athruithe ar luas votala noimead ar noimead.',
   'poll.metrics.velocityByMinuteTruncated': 'Gearradh an tsraith mar gheall ar theorainn pointi.',
@@ -1403,7 +1498,8 @@ const gaOverrides = {
 
   'admin.status.retentionAuditLogsLegalHold': 'Coinneail iniuchta faoi bhloc dli',
   'admin.status.retentionRejectedVotesLegalHold': 'Coinneail votai diultaithe faoi bhloc dli',
-  'admin.dashboard.kpi.retentionLegalHoldOn': 'Bloc dli gniomhach',  'admin.dashboard.kpi.retentionPollDefault': 'Coinneail reamhshocraithe',
+  'admin.dashboard.kpi.retentionLegalHoldOn': 'Bloc dli gniomhach',
+  'admin.dashboard.kpi.retentionPollDefault': 'Coinneail reamhshocraithe',
   'admin.dashboard.kpi.retentionAuditLogs': 'Coinneail iniuchta',
   'admin.dashboard.kpi.retentionRejectedVotesMeta': 'Glanadh votai diultaithe: {days} laethanta',
   'developer.upgradeCta': 'Uasghradaigh plean',

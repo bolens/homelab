@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 describe('POST /telemetry/web-vitals', () => {
   let app: FastifyInstance;
-  let fastifyBaseRoutes: (typeof import('./base'))['fastifyBaseRoutes'];
+  let fastifyBaseRoutes: typeof import('./base')['fastifyBaseRoutes'];
 
   beforeAll(async () => {
     process.env.DATABASE_URI ??= 'postgres://asking:asking@127.0.0.1:5432/asking';

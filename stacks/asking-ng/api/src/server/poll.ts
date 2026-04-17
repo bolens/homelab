@@ -1,98 +1,102 @@
+import type { ListPollsMineQuery, VotePollBody } from '@asking-ng/contracts/poll';
 import {
-  formatAllowedPhasesList,
-  isPollPhaseTransitionAllowed,
-  normalizePollPhase,
-  type ModerateVoteBatchBody,
-  type UpdatePollBody,
   createPollBodySchema,
   decideQuarantinedVoteBodySchema,
   editWriteInVoteBodySchema,
   exportPollQuerySchema,
+  formatAllowedPhasesList,
+  isPollPhaseTransitionAllowed,
   listPollsMineQuerySchema,
   listQuarantinedVotesQuerySchema,
+  type ModerateVoteBatchBody,
   moderateVoteBatchBodySchema,
+  normalizePollPhase,
   pollReplayQuerySchema,
   pollVoteHeatmapQuerySchema,
+  type UpdatePollBody,
   updatePollBodySchema,
   votePollBodySchema,
 } from '@asking-ng/contracts/poll';
 import type { FastifyPluginAsync } from 'fastify';
+import { Parser } from 'json2csv';
 import { Op, QueryTypes } from 'sequelize';
+import db from '../connections';
 import { presentCreatePollResponse } from '../controller/poll/createPoll.presenter';
 import { createPollService } from '../controller/poll/createPoll.service';
+import { presentPollResponse } from '../controller/poll/getPoll.presenter';
+import { getPollView } from '../controller/poll/getPoll.service';
+import { presentPollsMineResponse } from '../controller/poll/listPollsMine.presenter';
+import { buildPollsMineView } from '../controller/poll/listPollsMine.service';
+import { presentModerateVoteBatch } from '../controller/poll/moderateVoteBatch.presenter';
+import { moderateVoteBatchService } from '../controller/poll/moderateVoteBatch.service';
 import {
+  presentVoteIdempotentReplay,
+  presentVoteSuccess,
+} from '../controller/poll/voteOnPoll.presenter';
+import { voteOnPollService } from '../controller/poll/voteOnPoll.service';
+import randomId from '../helpers/randomId';
+import { getVoteGeoEnabled } from '../lib/appSettings';
+import {
+  checkDailyDataExportQuotaForWorkspace,
+  recordDataExportJob,
+} from '../lib/billingExportQuota';
+import { checkActivePollQuotaForUser } from '../lib/billingPollQuota';
+import {
+  generateEmbedReadToken,
+  hashEmbedReadToken,
   issueSignedEmbedReadGrant,
   pollEmbedViewAllowed,
   pollSignedReadGrantAllowed,
   readEmbedReadTokenFromRequest,
   verifyEmbedReadToken,
 } from '../lib/embedReadToken';
-import { presentPollResponse } from '../controller/poll/getPoll.presenter';
-import { getPollView } from '../controller/poll/getPoll.service';
-import { presentPollsMineResponse } from '../controller/poll/listPollsMine.presenter';
-import { buildPollsMineView } from '../controller/poll/listPollsMine.service';
-import {
-  checkDailyDataExportQuotaForWorkspace,
-  recordDataExportJob,
-} from '../lib/billingExportQuota';
-import { buildPlanLimitDetails } from '../lib/planLimit';
-import { checkClonePremiumEntitlements, normalizeClonePremiumFields } from '../lib/pollCloneEntitlements';
-import { checkPollMutationEntitlements } from '../lib/pollMutationEntitlements';
-import { checkPollReadEntitlements } from '../lib/pollReadEntitlements';
-import { checkActivePollQuotaForUser } from '../lib/billingPollQuota';
-import { resolveWorkspaceIdForCreatorUserId } from '../lib/workspaceBootstrap';
-import db from '../connections';
-import { getVoteGeoEnabled } from '../lib/appSettings';
-import { notifyPollLive } from '../lib/pollLive';
-import {
-  trustChatBurstOwnerSummary,
-  trustIpBurstOwnerSummary,
-  trustStackSafeguardTags,
-} from '../lib/trustStackSignals';
-import { listPollPhaseHistory } from '../lib/pollPhaseHistory';
-import { pollPhaseScheduleFromRow, resolveEffectivePollPhase } from '../lib/pollPhaseSchedule';
-import { queuePollWebhook } from '../lib/pollWebhooks';
+import { appEnv } from '../lib/env';
 import { normalizeMediaAttachment, normalizeMediaModeration } from '../lib/mediaPolicy';
+import { buildPlanLimitDetails } from '../lib/planLimit';
+import {
+  checkClonePremiumEntitlements,
+  normalizeClonePremiumFields,
+} from '../lib/pollCloneEntitlements';
+import { notifyPollLive } from '../lib/pollLive';
+import { checkPollMutationEntitlements } from '../lib/pollMutationEntitlements';
+import { listPollPhaseHistory, recordPollPhaseTransition } from '../lib/pollPhaseHistory';
+import {
+  pollPhaseScheduleFromRow,
+  resolveEffectivePollPhase,
+  validatePollPhaseScheduleWindow,
+} from '../lib/pollPhaseSchedule';
+import { recordPlatformIdentityConsentEvent } from '../lib/pollPlatformIdentity';
+import { checkPollReadEntitlements } from '../lib/pollReadEntitlements';
+import { queuePollWebhook } from '../lib/pollWebhooks';
 import {
   getPollGeoBinsFromRollups,
   getPollReplayEventsFromRollups,
   getPollVoteRollup,
   refreshPollReadModelsForPollIds,
 } from '../lib/readModelRollups';
-import { publicPollPageUrl, publicPollResultsUrl, publicSiteRoot } from '../lib/sitePublicUrl';
-import { validateWriteInText } from '../lib/writeInHygiene';
-import {
-  presentVoteIdempotentReplay,
-  presentVoteSuccess,
-} from '../controller/poll/voteOnPoll.presenter';
-import { voteOnPollService } from '../controller/poll/voteOnPoll.service';
-import { moderateVoteBatchService } from '../controller/poll/moderateVoteBatch.service';
-import { presentModerateVoteBatch } from '../controller/poll/moderateVoteBatch.presenter';
-import type { ListPollsMineQuery, VotePollBody } from '@asking-ng/contracts/poll';
-import Poll from '../model/Poll';
-import Vote from '../model/Vote';
-import AuditLog from '../models/auditlog.sequelize';
-import { replyJsonError, toAppRequest } from './requestAdapter';
-import { Parser } from 'json2csv';
-import randomId from '../helpers/randomId';
-import { recordPollPhaseTransition } from '../lib/pollPhaseHistory';
-import { validatePollPhaseScheduleWindow } from '../lib/pollPhaseSchedule';
-import { generateEmbedReadToken, hashEmbedReadToken } from '../lib/embedReadToken';
-import { sendCompressedJson } from './compression';
-import { appEnv } from '../lib/env';
-import { recordPlatformIdentityConsentEvent } from '../lib/pollPlatformIdentity';
 import {
   BILLING_LICENSE_EXPIRED_CODE,
   BILLING_LICENSE_EXPIRED_MESSAGE,
 } from '../lib/selfhostProLicense';
+import { publicPollPageUrl, publicPollResultsUrl, publicSiteRoot } from '../lib/sitePublicUrl';
+import {
+  trustChatBurstOwnerSummary,
+  trustIpBurstOwnerSummary,
+  trustStackSafeguardTags,
+} from '../lib/trustStackSignals';
+import { resolveWorkspaceIdForCreatorUserId } from '../lib/workspaceBootstrap';
+import { validateWriteInText } from '../lib/writeInHygiene';
+import Poll from '../model/Poll';
+import Vote from '../model/Vote';
+import AuditLog from '../models/auditlog.sequelize';
+import { sendCompressedJson } from './compression';
+import { replyJsonError, toAppRequest } from './requestAdapter';
 
 export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
   const pollSharedEditorIds = (poll: { get: (field: string) => unknown }): number[] => {
     const raw = (poll.get('sharedEditorUserIds') as unknown) ?? [];
     if (!Array.isArray(raw)) return [];
-    return raw
-      .map((id) => Number(id))
-      .filter((id) => Number.isInteger(id) && id > 0);
+    return raw.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0);
   };
 
   const canEditDraftViaJwt = (
@@ -509,7 +513,12 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     if (result.kind === 'duplicate_vote') {
-      const err = replyJsonError(request.id, 409, 'DUPLICATE_VOTE', 'You already voted on this poll.');
+      const err = replyJsonError(
+        request.id,
+        409,
+        'DUPLICATE_VOTE',
+        'You already voted on this poll.',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
@@ -533,9 +542,9 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     reply.code(200).send(
       presentVoteSuccess({
         vote: result.vote,
-        ballot_votes: result.ballotVotes,
-        option_indices: result.optionIndices,
-        moderation: result.moderation,
+        ...(result.ballotVotes ? { ballot_votes: result.ballotVotes } : {}),
+        ...(result.optionIndices ? { option_indices: result.optionIndices } : {}),
+        ...(result.moderation ? { moderation: result.moderation } : {}),
       }),
     );
   });
@@ -560,7 +569,10 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
 
     const embedHash = poll.get('embedReadTokenHash') as string | null | undefined;
     const embedToken = readEmbedReadTokenFromRequest(reqLike);
-    if (!verifyEmbedReadToken(embedHash, embedToken) && !pollSignedReadGrantAllowed(reqLike, pollId)) {
+    if (
+      !verifyEmbedReadToken(embedHash, embedToken) &&
+      !pollSignedReadGrantAllowed(reqLike, pollId)
+    ) {
       const err = replyJsonError(
         request.id,
         403,
@@ -616,7 +628,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const apiKeyTrim = typeof apiKey === 'string' ? apiKey.trim() : '';
     const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
     const ownerId = poll.get('creatorUserId') as number | null | undefined;
-    const jwtOk = request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
+    const jwtOk =
+      request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
     if (!apiKeyOk && !jwtOk) {
       const err = replyJsonError(
         request.id,
@@ -646,7 +659,10 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         : typeof ttlRaw === 'number'
           ? Math.floor(ttlRaw)
           : 30 * 60;
-    const signed = issueSignedEmbedReadGrant(pollId, Number.isFinite(ttlSeconds) ? ttlSeconds : 30 * 60);
+    const signed = issueSignedEmbedReadGrant(
+      pollId,
+      Number.isFinite(ttlSeconds) ? ttlSeconds : 30 * 60,
+    );
     if (!signed) {
       const err = replyJsonError(
         request.id,
@@ -747,7 +763,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const mediaModeration = normalizeMediaModeration(poll.get('mediaModeration'));
     const mediaBlurByDefault = poll.get('mediaBlurByDefault') !== false;
     const themePreset = String(poll.get('themePreset') ?? 'default');
-    const selectionMode = String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
+    const selectionMode =
+      String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
     const voteEligibilityRaw = String(poll.get('voteEligibility') ?? 'anonymous');
     const voteEligibility =
       voteEligibilityRaw === 'account' || voteEligibilityRaw === 'platform_linked'
@@ -764,7 +781,10 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const platformIdentityConsentCapturedAt =
       (poll.get('platformIdentityConsentCapturedAt') as number | null | undefined) ?? null;
     const autoDeleteAtMs =
-      !retentionLegalHold && retentionTtlDays != null && Number.isFinite(expiration) && expiration > 0
+      !retentionLegalHold &&
+      retentionTtlDays != null &&
+      Number.isFinite(expiration) &&
+      expiration > 0
         ? expiration + retentionTtlDays * 24 * 60 * 60 * 1000
         : null;
     const expired = Number.isFinite(expiration) && expiration > 0 && now > expiration;
@@ -783,7 +803,9 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const votePath = `poll/${encodeURIComponent(pollId)}/vote`;
     const phaseHistory = await listPollPhaseHistory(pollId, { limit: 50 });
     const youOwnThisPoll =
-      request.user != null && creatorUserId != null && Number(request.user.id) === Number(creatorUserId);
+      request.user != null &&
+      creatorUserId != null &&
+      Number(request.user.id) === Number(creatorUserId);
     const [rateCountersRow] = youOwnThisPoll
       ? ((await db.query(
           `SELECT
@@ -935,7 +957,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
           ? {
               moderation_counters: {
                 votes_last_1m: votesLast1m,
-                unique_ip_hashes_last_1m: Number(rateCountersRow?.unique_ip_hashes_last_1m ?? 0) || 0,
+                unique_ip_hashes_last_1m:
+                  Number(rateCountersRow?.unique_ip_hashes_last_1m ?? 0) || 0,
                 unique_accounts_last_1m: Number(rateCountersRow?.unique_accounts_last_1m ?? 0) || 0,
                 top_ip_votes_last_1m: Number(rateCountersRow?.top_ip_votes_last_1m ?? 0) || 0,
                 quarantined_votes_pending: quarantinedVotesPending,
@@ -977,7 +1000,12 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     }
     const mediaAttachment = normalizeMediaAttachment(poll.get('mediaAttachment'));
     if (!mediaAttachment) {
-      const err = replyJsonError(request.id, 409, 'MEDIA_NOT_CONFIGURED', 'This poll has no media attachment.');
+      const err = replyJsonError(
+        request.id,
+        409,
+        'MEDIA_NOT_CONFIGURED',
+        'This poll has no media attachment.',
+      );
       reply.code(err.statusCode).send(err.body);
       return;
     }
@@ -989,7 +1017,9 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         ? current
         : {
             status: 'reported' as const,
-            reported_reason: reasonRaw ? reasonRaw.slice(0, 500) : current.reported_reason ?? null,
+            reported_reason: reasonRaw
+              ? reasonRaw.slice(0, 500)
+              : (current.reported_reason ?? null),
             last_action_at: new Date().toISOString(),
             last_actor: 'public_report',
           };
@@ -1036,7 +1066,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const apiKeyTrim = typeof apiKey === 'string' ? apiKey.trim() : '';
     const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
     const ownerId = poll.get('creatorUserId') as number | null | undefined;
-    const jwtOk = request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
+    const jwtOk =
+      request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
     if (!apiKeyOk && !jwtOk) {
       const err = replyJsonError(
         request.id,
@@ -1050,7 +1081,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const status = parsed.data.status;
     const limit = parsed.data.limit;
     const offset = parsed.data.offset;
-    const statusFilter = status === 'all' ? { [Op.in]: ['pending', 'approved', 'rejected'] } : status;
+    const statusFilter =
+      status === 'all' ? { [Op.in]: ['pending', 'approved', 'rejected'] } : status;
     const rows = await Vote.findAll({
       where: {
         pollId,
@@ -1097,202 +1129,222 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
-  app.put<{ Params: { id: string; voteId: string } }>('/:id/quarantine/:voteId', async (request, reply) => {
-    const parsed = decideQuarantinedVoteBodySchema.safeParse(request.body);
-    if (!parsed.success) {
-      const err = replyJsonError(
-        request.id,
-        400,
-        'VALIDATION_ERROR',
-        'Invalid request',
-        parsed.error.flatten(),
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const pollId = request.params.id?.trim();
-    const voteId = request.params.voteId?.trim();
-    if (!pollId || !voteId) {
-      const err = replyJsonError(request.id, 400, 'BAD_REQUEST', 'Poll id and vote id are required.');
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const apiKey = apiKeyFrom(request);
-    const poll = await Poll.findByPk(pollId);
-    if (!poll) {
-      const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Poll not found.');
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const targetApiKey = poll.get('api_key') as string | undefined;
-    const apiKeyTrim = typeof apiKey === 'string' ? apiKey.trim() : '';
-    const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
-    const ownerId = poll.get('creatorUserId') as number | null | undefined;
-    const jwtOk = request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
-    if (!apiKeyOk && !jwtOk) {
-      const err = replyJsonError(
-        request.id,
-        401,
-        'UNAUTHORIZED',
-        'Valid api_key header or signed-in poll owner (Authorization: Bearer) is required.',
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const vote = await Vote.findByPk(voteId);
-    if (!vote || String(vote.get('pollId')) !== pollId) {
-      const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Quarantined vote not found.');
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const body = parsed.data;
-    const action = body.action;
-    const currentStatus = String(vote.get('quarantineStatus') ?? 'pending');
-    const isQuarantined = !!vote.get('isQuarantined');
-    if (action === 'revert' && currentStatus !== 'approved' && currentStatus !== 'rejected') {
-      const err = replyJsonError(
-        request.id,
-        400,
-        'VOTE_REVERT_NOT_ALLOWED',
-        'Only approved or rejected votes can be reverted to pending.',
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    if (action !== 'revert' && !(isQuarantined || currentStatus === 'pending')) {
-      const err = replyJsonError(
-        request.id,
-        400,
-        'VOTE_NOT_QUARANTINED',
-        'Vote is not pending quarantine review.',
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    let quarantineStatus: 'pending' | 'approved' | 'rejected';
-    let nextIsQuarantined: boolean;
-    if (action === 'approve') {
-      quarantineStatus = 'approved';
-      nextIsQuarantined = false;
-    } else if (action === 'reject') {
-      quarantineStatus = 'rejected';
-      nextIsQuarantined = true;
-    } else {
-      quarantineStatus = 'pending';
-      nextIsQuarantined = true;
-    }
-    await Vote.update(
-      {
-        quarantineStatus,
-        isQuarantined: nextIsQuarantined,
-        quarantineDecidedAt: new Date(),
-        quarantineDecidedBy: request.user?.homelab-user ?? 'api_key',
-        quarantineNote: body.note ?? null,
-      },
-      { where: { id: voteId, pollId } },
-    );
-    reply.code(200).send({
-      status: 'success',
-      data: {
-        vote_id: voteId,
-        quarantine_status: quarantineStatus,
-        is_quarantined: nextIsQuarantined,
-      },
-    });
-  });
-
-  app.put<{ Params: { id: string; voteId: string } }>('/:id/votes/:voteId/text', async (request, reply) => {
-    const parsed = editWriteInVoteBodySchema.safeParse(request.body);
-    if (!parsed.success) {
-      const err = replyJsonError(
-        request.id,
-        400,
-        'VALIDATION_ERROR',
-        'Invalid request',
-        parsed.error.flatten(),
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const pollId = request.params.id?.trim();
-    const voteId = request.params.voteId?.trim();
-    if (!pollId || !voteId) {
-      const err = replyJsonError(request.id, 400, 'BAD_REQUEST', 'Poll id and vote id are required.');
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const poll = await Poll.findByPk(pollId);
-    if (!poll) {
-      const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Poll not found.');
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const apiKey = apiKeyFrom(request);
-    const targetApiKey = poll.get('api_key') as string | undefined;
-    const apiKeyTrim = typeof apiKey === 'string' ? apiKey.trim() : '';
-    const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
-    const ownerId = poll.get('creatorUserId') as number | null | undefined;
-    const jwtOk = request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
-    if (!apiKeyOk && !jwtOk) {
-      const err = replyJsonError(
-        request.id,
-        401,
-        'UNAUTHORIZED',
-        'Valid api_key header or signed-in poll owner (Authorization: Bearer) is required.',
-      );
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const vote = await Vote.findByPk(voteId);
-    if (!vote || String(vote.get('pollId')) !== pollId) {
-      const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Vote not found.');
-      reply.code(err.statusCode).send(err.body);
-      return;
-    }
-    const nextOption = parsed.data.option.trim();
-    const validOptions = ((poll.get('options') as string[] | null | undefined) ?? []).filter(Boolean);
-    if (!validOptions.includes(nextOption)) {
-      const writeInCheck = validateWriteInText(nextOption, {
-        allowWriteIn: !!poll.get('allowWriteIn'),
-        writeInMaxLength: Number(poll.get('writeInMaxLength') ?? 80),
-        writeInBlocklist: (
-          (poll.get('writeInBlocklist') as string[] | null | undefined) ?? []
-        ).filter((s) => typeof s === 'string' && s.trim() !== ''),
-        writeInProfanityFilter: poll.get('writeInProfanityFilter') !== false,
-      });
-      if (!writeInCheck.ok) {
-        const err = replyJsonError(request.id, 400, writeInCheck.code, writeInCheck.message);
+  app.put<{ Params: { id: string; voteId: string } }>(
+    '/:id/quarantine/:voteId',
+    async (request, reply) => {
+      const parsed = decideQuarantinedVoteBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'VALIDATION_ERROR',
+          'Invalid request',
+          parsed.error.flatten(),
+        );
         reply.code(err.statusCode).send(err.body);
         return;
       }
-    }
-    const prevOption = String(vote.get('option') ?? '');
-    await Vote.update({ option: nextOption }, { where: { id: voteId, pollId } });
-    await AuditLog.create({
-      action: 'moderation.write_in.edit',
-      actor: request.user?.homelab-user ?? 'api_key',
-      target: `poll:${pollId}:vote:${voteId}`,
-      details: {
-        poll_id: pollId,
-        vote_id: voteId,
-        previous_option: prevOption,
-        new_option: nextOption,
-        note: parsed.data.note?.trim() || null,
-      },
-    });
-    notifyPollLive(pollId, { type: 'update' });
-    queuePollWebhook(pollId, 'poll_updated', {
-      moderation_vote_id: voteId,
-      moderation_action: 'write_in_edit',
-    });
-    reply.code(200).send({
-      status: 'success',
-      data: {
-        vote_id: voteId,
-        option: nextOption,
-      },
-    });
-  });
+      const pollId = request.params.id?.trim();
+      const voteId = request.params.voteId?.trim();
+      if (!pollId || !voteId) {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'BAD_REQUEST',
+          'Poll id and vote id are required.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const apiKey = apiKeyFrom(request);
+      const poll = await Poll.findByPk(pollId);
+      if (!poll) {
+        const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Poll not found.');
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const targetApiKey = poll.get('api_key') as string | undefined;
+      const apiKeyTrim = typeof apiKey === 'string' ? apiKey.trim() : '';
+      const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
+      const ownerId = poll.get('creatorUserId') as number | null | undefined;
+      const jwtOk =
+        request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
+      if (!apiKeyOk && !jwtOk) {
+        const err = replyJsonError(
+          request.id,
+          401,
+          'UNAUTHORIZED',
+          'Valid api_key header or signed-in poll owner (Authorization: Bearer) is required.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const vote = await Vote.findByPk(voteId);
+      if (!vote || String(vote.get('pollId')) !== pollId) {
+        const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Quarantined vote not found.');
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const body = parsed.data;
+      const action = body.action;
+      const currentStatus = String(vote.get('quarantineStatus') ?? 'pending');
+      const isQuarantined = !!vote.get('isQuarantined');
+      if (action === 'revert' && currentStatus !== 'approved' && currentStatus !== 'rejected') {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'VOTE_REVERT_NOT_ALLOWED',
+          'Only approved or rejected votes can be reverted to pending.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      if (action !== 'revert' && !(isQuarantined || currentStatus === 'pending')) {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'VOTE_NOT_QUARANTINED',
+          'Vote is not pending quarantine review.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      let quarantineStatus: 'pending' | 'approved' | 'rejected';
+      let nextIsQuarantined: boolean;
+      if (action === 'approve') {
+        quarantineStatus = 'approved';
+        nextIsQuarantined = false;
+      } else if (action === 'reject') {
+        quarantineStatus = 'rejected';
+        nextIsQuarantined = true;
+      } else {
+        quarantineStatus = 'pending';
+        nextIsQuarantined = true;
+      }
+      await Vote.update(
+        {
+          quarantineStatus,
+          isQuarantined: nextIsQuarantined,
+          quarantineDecidedAt: new Date(),
+          quarantineDecidedBy: request.user?.homelab-user ?? 'api_key',
+          quarantineNote: body.note ?? null,
+        },
+        { where: { id: voteId, pollId } },
+      );
+      reply.code(200).send({
+        status: 'success',
+        data: {
+          vote_id: voteId,
+          quarantine_status: quarantineStatus,
+          is_quarantined: nextIsQuarantined,
+        },
+      });
+    },
+  );
+
+  app.put<{ Params: { id: string; voteId: string } }>(
+    '/:id/votes/:voteId/text',
+    async (request, reply) => {
+      const parsed = editWriteInVoteBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'VALIDATION_ERROR',
+          'Invalid request',
+          parsed.error.flatten(),
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const pollId = request.params.id?.trim();
+      const voteId = request.params.voteId?.trim();
+      if (!pollId || !voteId) {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'BAD_REQUEST',
+          'Poll id and vote id are required.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const poll = await Poll.findByPk(pollId);
+      if (!poll) {
+        const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Poll not found.');
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const apiKey = apiKeyFrom(request);
+      const targetApiKey = poll.get('api_key') as string | undefined;
+      const apiKeyTrim = typeof apiKey === 'string' ? apiKey.trim() : '';
+      const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
+      const ownerId = poll.get('creatorUserId') as number | null | undefined;
+      const jwtOk =
+        request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
+      if (!apiKeyOk && !jwtOk) {
+        const err = replyJsonError(
+          request.id,
+          401,
+          'UNAUTHORIZED',
+          'Valid api_key header or signed-in poll owner (Authorization: Bearer) is required.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const vote = await Vote.findByPk(voteId);
+      if (!vote || String(vote.get('pollId')) !== pollId) {
+        const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'Vote not found.');
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      const nextOption = parsed.data.option.trim();
+      const validOptions = ((poll.get('options') as string[] | null | undefined) ?? []).filter(
+        Boolean,
+      );
+      if (!validOptions.includes(nextOption)) {
+        const writeInCheck = validateWriteInText(nextOption, {
+          allowWriteIn: !!poll.get('allowWriteIn'),
+          writeInMaxLength: Number(poll.get('writeInMaxLength') ?? 80),
+          writeInBlocklist: (
+            (poll.get('writeInBlocklist') as string[] | null | undefined) ?? []
+          ).filter((s) => typeof s === 'string' && s.trim() !== ''),
+          writeInProfanityFilter: poll.get('writeInProfanityFilter') !== false,
+        });
+        if (!writeInCheck.ok) {
+          const err = replyJsonError(request.id, 400, writeInCheck.code, writeInCheck.message);
+          reply.code(err.statusCode).send(err.body);
+          return;
+        }
+      }
+      const prevOption = String(vote.get('option') ?? '');
+      await Vote.update({ option: nextOption }, { where: { id: voteId, pollId } });
+      await AuditLog.create({
+        action: 'moderation.write_in.edit',
+        actor: request.user?.homelab-user ?? 'api_key',
+        target: `poll:${pollId}:vote:${voteId}`,
+        details: {
+          poll_id: pollId,
+          vote_id: voteId,
+          previous_option: prevOption,
+          new_option: nextOption,
+          note: parsed.data.note?.trim() || null,
+        },
+      });
+      notifyPollLive(pollId, { type: 'update' });
+      queuePollWebhook(pollId, 'poll_updated', {
+        moderation_vote_id: voteId,
+        moderation_action: 'write_in_edit',
+      });
+      reply.code(200).send({
+        status: 'success',
+        data: {
+          vote_id: voteId,
+          option: nextOption,
+        },
+      });
+    },
+  );
 
   app.put<{ Params: { id: string } }>('/:id/moderation/batch', async (request, reply) => {
     const parsed = moderateVoteBatchBodySchema.safeParse(request.body);
@@ -1481,12 +1533,21 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
          AND COALESCE("isQuarantined", false) = false
        GROUP BY option;`,
       { replacements: { pollId }, type: QueryTypes.SELECT },
-    )) as Array<{ option: string; vote_count: string | number; weighted_vote_count: string | number }>;
+    )) as Array<{
+      option: string;
+      vote_count: string | number;
+      weighted_vote_count: string | number;
+    }>;
     const rows = options.map((opt) => {
       const row = voteData.find((v) => v.option === opt);
       const n = row ? Number.parseInt(String(row.vote_count), 10) || 0 : 0;
       const weighted = row ? Number.parseInt(String(row.weighted_vote_count), 10) || n : 0;
-      return { option: opt, votes: boostedVotingEnabled ? weighted : n, weighted_votes: weighted, unweighted_votes: n };
+      return {
+        option: opt,
+        votes: boostedVotingEnabled ? weighted : n,
+        weighted_votes: weighted,
+        unweighted_votes: n,
+      };
     });
     const velocityRows = (await db.query(
       `SELECT
@@ -1500,7 +1561,10 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       { replacements: { pollId }, type: QueryTypes.SELECT },
     )) as Array<{ minute_utc: Date | string; vote_count: string | number }>;
     const voteVelocity = velocityRows.map((r) => ({
-      minute_utc: r.minute_utc instanceof Date ? r.minute_utc.toISOString() : new Date(String(r.minute_utc)).toISOString(),
+      minute_utc:
+        r.minute_utc instanceof Date
+          ? r.minute_utc.toISOString()
+          : new Date(String(r.minute_utc)).toISOString(),
       vote_count: Number(r.vote_count ?? 0) || 0,
     }));
     const phaseHistory = await listPollPhaseHistory(pollId, { limit: 200 });
@@ -1583,7 +1647,9 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         option: r.option,
         votes: r.votes,
         ...(boostedVotingEnabled ? { weighted_votes: r.weighted_votes } : {}),
-        ...(boostedVotingEnabled && showUnweightedValues ? { unweighted_votes: r.unweighted_votes } : {}),
+        ...(boostedVotingEnabled && showUnweightedValues
+          ? { unweighted_votes: r.unweighted_votes }
+          : {}),
       })),
       totalVotes: rows.reduce((a, r) => a + r.votes, 0),
     };
@@ -1592,7 +1658,9 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         option: r.option,
         votes: r.votes,
         ...(boostedVotingEnabled ? { weighted_votes: r.weighted_votes } : {}),
-        ...(boostedVotingEnabled && showUnweightedValues ? { unweighted_votes: r.unweighted_votes } : {}),
+        ...(boostedVotingEnabled && showUnweightedValues
+          ? { unweighted_votes: r.unweighted_votes }
+          : {}),
       }));
       const parser = new Parser({
         fields: [
@@ -1756,7 +1824,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
           type: QueryTypes.SELECT,
         },
       );
-      const firstTsMs = rows.length ? new Date(rows[0].created_at).getTime() : null;
+      const firstRow = rows[0];
+      const firstTsMs = firstRow ? new Date(firstRow.created_at).getTime() : null;
       events = rows
         .map((row) => {
           const optionIndex = optionIndexByLabel.get(String(row.option));
@@ -1863,9 +1932,11 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     const minCount = Number(parsed.data.minCount ?? 2);
-    let rows:
-      | Array<{ latitude_bucket: string | number; longitude_bucket: string | number; votes_count: string | number }>
-      | null = null;
+    let rows: Array<{
+      latitude_bucket: string | number;
+      longitude_bucket: string | number;
+      votes_count: string | number;
+    }> | null = null;
     if (appEnv.readModelEnabled) {
       try {
         await refreshPollReadModelsForPollIds([pollId]);
@@ -1898,7 +1969,11 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
           replacements: { pollId, minCount },
           type: QueryTypes.SELECT,
         },
-      )) as Array<{ latitude_bucket: string | number; longitude_bucket: string | number; votes_count: string | number }>;
+      )) as Array<{
+        latitude_bucket: string | number;
+        longitude_bucket: string | number;
+        votes_count: string | number;
+      }>;
     }
     const points = rows
       .map((row) => ({
@@ -1955,14 +2030,17 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     }
     const now = Date.now();
     const existingExpiration = Number(source.get('expiration')) || now + 7 * 24 * 3600 * 1000;
-    const safeExpiration = existingExpiration <= now + 60_000 ? now + 7 * 24 * 3600 * 1000 : existingExpiration;
+    const safeExpiration =
+      existingExpiration <= now + 60_000 ? now + 7 * 24 * 3600 * 1000 : existingExpiration;
     const sourceTitle = String(source.get('title') ?? 'Untitled poll');
     const copiedTitle = sourceTitle.includes('(copy)') ? sourceTitle : `${sourceTitle} (copy)`;
     const newCreatorId =
-      ownerId != null && Number.isInteger(Number(ownerId)) && Number(ownerId) > 0 ? Number(ownerId) : null;
+      ownerId != null && Number.isInteger(Number(ownerId)) && Number(ownerId) > 0
+        ? Number(ownerId)
+        : null;
     const quota = await checkActivePollQuotaForUser({
       creatorUserId: newCreatorId,
-      sessionUserRole: jwtOk ? request.user?.role ?? null : null,
+      sessionUserRole: jwtOk ? (request.user?.role ?? null) : null,
     });
     if (!quota.ok) {
       const err = replyJsonError(
@@ -2066,7 +2144,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         const raw = String(source.get('voteEligibility') ?? 'anonymous');
         return raw === 'account' || raw === 'platform_linked' ? raw : 'anonymous';
       })(),
-      platformIdentityProvider: (source.get('platformIdentityProvider') as string | null | undefined) ?? null,
+      platformIdentityProvider:
+        (source.get('platformIdentityProvider') as string | null | undefined) ?? null,
       platformIdentityConsentVersion:
         (source.get('platformIdentityConsentVersion') as string | null | undefined) ?? null,
       platformIdentityConsentCapturedAt:
@@ -2198,24 +2277,31 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     if (body.open_at !== undefined) patch.openAt = body.open_at;
     if (body.lock_at !== undefined) patch.lockAt = body.lock_at;
     if (body.reveal_at !== undefined) patch.revealAt = body.reveal_at;
-    if (body.boosted_voting_enabled !== undefined) patch.boostedVotingEnabled = body.boosted_voting_enabled;
+    if (body.boosted_voting_enabled !== undefined)
+      patch.boostedVotingEnabled = body.boosted_voting_enabled;
     if (body.max_boost_weight !== undefined) patch.maxBoostWeight = body.max_boost_weight ?? 3;
-    if (body.show_unweighted_values !== undefined) patch.showUnweightedValues = body.show_unweighted_values;
+    if (body.show_unweighted_values !== undefined)
+      patch.showUnweightedValues = body.show_unweighted_values;
     if (body.run_of_show_key !== undefined) patch.runOfShowKey = body.run_of_show_key;
     if (body.run_of_show_order !== undefined) patch.runOfShowOrder = body.run_of_show_order;
     if (body.next_poll_id !== undefined) patch.nextPollId = body.next_poll_id;
-    if (body.auto_advance_on_close !== undefined) patch.autoAdvanceOnClose = body.auto_advance_on_close;
+    if (body.auto_advance_on_close !== undefined)
+      patch.autoAdvanceOnClose = body.auto_advance_on_close;
     if (body.vanity_slug !== undefined) patch.vanitySlug = body.vanity_slug;
     if (body.vote_friction_tier !== undefined) patch.voteFrictionTier = body.vote_friction_tier;
     if (body.soft_throttle_max_votes_per_min !== undefined) {
       patch.softThrottleMaxVotesPerMin = body.soft_throttle_max_votes_per_min ?? 30;
     }
     if (body.pow_difficulty !== undefined) patch.powDifficulty = body.pow_difficulty ?? 4;
-    if (body.results_delay_seconds !== undefined) patch.resultsDelaySeconds = body.results_delay_seconds ?? 0;
+    if (body.results_delay_seconds !== undefined)
+      patch.resultsDelaySeconds = body.results_delay_seconds ?? 0;
     if (body.allow_write_in !== undefined) patch.allowWriteIn = body.allow_write_in;
-    if (body.write_in_max_length !== undefined) patch.writeInMaxLength = body.write_in_max_length ?? 80;
-    if (body.write_in_blocklist !== undefined) patch.writeInBlocklist = body.write_in_blocklist ?? [];
-    if (body.write_in_profanity_filter !== undefined) patch.writeInProfanityFilter = body.write_in_profanity_filter;
+    if (body.write_in_max_length !== undefined)
+      patch.writeInMaxLength = body.write_in_max_length ?? 80;
+    if (body.write_in_blocklist !== undefined)
+      patch.writeInBlocklist = body.write_in_blocklist ?? [];
+    if (body.write_in_profanity_filter !== undefined)
+      patch.writeInProfanityFilter = body.write_in_profanity_filter;
     if (body.shared_editor_user_ids !== undefined) {
       const ownerUserId = (poll.get('creatorUserId') as number | null | undefined) ?? null;
       const ids = body.shared_editor_user_ids ?? [];
@@ -2332,9 +2418,17 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const currentSchedule = pollPhaseScheduleFromRow(poll);
     const mergedSchedule = {
       open_at:
-        patch.openAt !== undefined ? (patch.openAt === null ? null : Number(patch.openAt)) : currentSchedule.open_at,
+        patch.openAt !== undefined
+          ? patch.openAt === null
+            ? null
+            : Number(patch.openAt)
+          : currentSchedule.open_at,
       lock_at:
-        patch.lockAt !== undefined ? (patch.lockAt === null ? null : Number(patch.lockAt)) : currentSchedule.lock_at,
+        patch.lockAt !== undefined
+          ? patch.lockAt === null
+            ? null
+            : Number(patch.lockAt)
+          : currentSchedule.lock_at,
       reveal_at:
         patch.revealAt !== undefined
           ? patch.revealAt === null
@@ -2393,7 +2487,9 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     }
     if (patch.boostedVotingEnabled === true || patch.allowWriteIn === true) {
       const mode = String(
-        patch.selectionMode !== undefined ? patch.selectionMode : poll.get('selectionMode') ?? 'single',
+        patch.selectionMode !== undefined
+          ? patch.selectionMode
+          : (poll.get('selectionMode') ?? 'single'),
       );
       if (mode === 'multi') {
         const err = replyJsonError(
@@ -2434,7 +2530,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       phase: body.phase,
       voting_paused: body.voting_paused,
       pause_message: body.pause_message,
-      show_notes: body.show_notes === undefined ? undefined : body.show_notes === null ? null : '[redacted]',
+      show_notes:
+        body.show_notes === undefined ? undefined : body.show_notes === null ? null : '[redacted]',
       embed_read_token_rotated: body.generate_embed_read_token === true,
     });
     const payload: {
@@ -2469,7 +2566,8 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const apiKeyTrim = typeof apiKey === 'string' ? apiKey.trim() : '';
     const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
     const ownerId = poll.get('creatorUserId') as number | null | undefined;
-    const jwtOk = request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
+    const jwtOk =
+      request.user != null && ownerId != null && Number(ownerId) === Number(request.user.id);
     if (!apiKeyOk && !jwtOk) {
       const err = replyJsonError(
         request.id,

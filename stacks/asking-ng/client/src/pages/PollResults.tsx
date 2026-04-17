@@ -27,7 +27,7 @@ type PollResultsApiData = {
 
 async function fetchResults(id: string, embedToken: string): Promise<PollResultsApiData> {
   const json = (await apiFetch(`poll/${id}`, {
-    embedToken: embedToken || undefined,
+    ...(embedToken ? { embedToken } : {}),
   })) as { data: PollResultsApiData };
   return json.data;
 }
@@ -171,7 +171,9 @@ export default function PollResults() {
   if (isLoading) {
     return (
       <div className='ui-page-shell asking-public-layout asking-poll-page' id='asking-poll-page'>
-        <p className='asking-poll-page__status asking-poll-page__status--loading'>{t('poll.loading')}</p>
+        <p className='asking-poll-page__status asking-poll-page__status--loading'>
+          {t('poll.loading')}
+        </p>
       </div>
     );
   }
@@ -291,7 +293,10 @@ export default function PollResults() {
               })}
             >
               <span className='asking-poll-page__option-title'>{o.label}</span>
-              <span className='asking-poll-page__option-result' title={resultPercent(o.votes, totalVotes)}>
+              <span
+                className='asking-poll-page__option-result'
+                title={resultPercent(o.votes, totalVotes)}
+              >
                 {formatLocaleInteger(o.votes, localeTag)} · {resultPercent(o.votes, totalVotes)}
               </span>
               <div className='asking-poll-page__option-fill-layer' aria-hidden='true'>
@@ -328,7 +333,9 @@ export default function PollResults() {
         </p>
       ) : null}
       {sceneSafeMode ? (
-        <p className='asking-poll-page__refresh-meta asking-poll-page__results-shortcut-hint'>{t('poll.resultsFullscreenHint')}</p>
+        <p className='asking-poll-page__refresh-meta asking-poll-page__results-shortcut-hint'>
+          {t('poll.resultsFullscreenHint')}
+        </p>
       ) : null}
     </div>
   );

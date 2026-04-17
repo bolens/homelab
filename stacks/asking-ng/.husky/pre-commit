@@ -1,0 +1,5 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+./scripts/scan-secrets-staged.sh
+pnpm exec lint-staged

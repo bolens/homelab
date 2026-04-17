@@ -184,10 +184,6 @@
     color-scheme: light;
   }
 
-  html[data-bs-theme="dark"] {
-    color-scheme: dark;
-  }
-
   :root {
     /* Default light: warm workspace canvas + lifted cards (inspired by DocuSeal DaisyUI docuseal theme) */
     --color-bg-canvas: #f0ebe6;
@@ -365,6 +361,7 @@
 
   /* Same palette when Bootstrap color mode is dark (source of truth for `data-bs-theme`) */
   html[data-bs-theme="dark"] {
+    color-scheme: dark;
     --color-bg-canvas: #121214;
     --color-text: #f4f4f5;
     --color-text-muted: #a1a1aa;
@@ -494,8 +491,8 @@
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     line-height: 1.5;
     /* Notched phones / home indicator: keep content inside safe area without disabling zoom */
-    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
-    padding-block-end: env(safe-area-inset-bottom, 0px);
+    padding-inline: env(safe-area-inset-left, 0) env(safe-area-inset-right, 0);
+    padding-block-end: env(safe-area-inset-bottom, 0);
   }
 
   .asking-app {
@@ -981,7 +978,7 @@
 
   .ui-input:disabled,
   .ui-select:disabled,
-  textarea.ui-input:disabled {
+  .ui-textarea:disabled {
     background-color: color-mix(in oklch, var(--color-bg-muted) 78%, var(--color-bg-surface) 22%);
     color: var(--color-text-muted);
   }
@@ -989,7 +986,7 @@
   @media (forced-colors: active) {
     .asking-admin-page__toolbar-btn,
     .asking-admin-page__toolbar-btn.ui-button,
-    button.asking-poll-page__option,
+    .asking-poll-page__option,
     .asking-admin-page__table-sort-btn,
     .asking-admin-page__btn,
     .asking-admin-page__btn.ui-button {
@@ -1021,7 +1018,7 @@
   }
 
   /* Inline-size container for admin toolbars + tables (narrow split views, sidebars) */
-.asking-admin-page__cq-root {
+  .asking-admin-page__cq-root {
     container-type: inline-size;
     container-name: admin-panel;
   }
@@ -1141,7 +1138,7 @@
     padding: 0.5rem 1rem;
     background: var(--color-bg-inverse);
     color: var(--color-text-on-inverse);
-    border-radius: 0 0 8px 0;
+    border-radius: 0 0 8px;
     font-weight: 600;
     text-decoration: none;
     transform: translateY(-120%);
@@ -1308,7 +1305,7 @@
 
   .asking-app-navbar__link {
     display: block;
-    padding: 0.5rem 0.5rem;
+    padding: 0.5rem;
     font-size: 1rem;
     font-weight: 600;
     font-family: inherit;
@@ -2169,21 +2166,21 @@
     align-items: center;
   }
 
-  .asking-admin-users-page__tool-form-row .asking-admin-users-page__input--question,
-  .asking-admin-users-page__tool-form-row .asking-admin-users-page__input--wide {
+  :where(.asking-admin-users-page__tool-form-row) .asking-admin-users-page__input--question,
+  :where(.asking-admin-users-page__tool-form-row) .asking-admin-users-page__input--wide {
     margin-inline-start: 0;
   }
 
-  .asking-admin-users-page__tool-form-row .asking-admin-page__toolbar-btn {
+  :where(.asking-admin-users-page__tool-form-row) .asking-admin-page__toolbar-btn {
     margin-inline-start: 0;
   }
 
-  .asking-admin-users-page__form--session .asking-admin-users-page__input,
-  .asking-admin-users-page__form--session .asking-admin-page__toolbar-btn {
+  :where(.asking-admin-users-page__form--session) .asking-admin-users-page__input,
+  :where(.asking-admin-users-page__form--session) .asking-admin-page__toolbar-btn {
     margin-inline-start: 0;
   }
 
-  .asking-admin-users-page__actions-cell .asking-admin-page__toolbar-btn {
+  :where(.asking-admin-users-page__actions-cell) .asking-admin-page__toolbar-btn {
     margin-inline-start: 0;
   }
 
@@ -2194,7 +2191,7 @@
     gap: 0.375rem;
   }
 
-  .asking-admin-polls-page__actions-cell .asking-admin-page__toolbar-btn {
+  :where(.asking-admin-polls-page__actions-cell) .asking-admin-page__toolbar-btn {
     margin-inline-start: 0;
   }
 
@@ -2214,7 +2211,7 @@
     color: var(--color-text-muted);
   }
 
-.asking-admin-polls-page__sim-badge {
+  .asking-admin-polls-page__sim-badge {
     display: inline-block;
     margin-inline-start: 0.5rem;
     padding: 0.1rem 0.45rem;
@@ -2317,9 +2314,9 @@
     gap: 0.5rem;
   }
 
-  .asking-admin-polls-page__create-form > .asking-admin-page__toolbar-btn,
-  .asking-admin-users-page__create-form > .asking-admin-page__toolbar-btn,
-  .asking-admin-audit-page__filter-form > .asking-admin-page__toolbar-btn {
+  :where(.asking-admin-polls-page__create-form) > .asking-admin-page__toolbar-btn,
+  :where(.asking-admin-users-page__create-form) > .asking-admin-page__toolbar-btn,
+  :where(.asking-admin-audit-page__filter-form) > .asking-admin-page__toolbar-btn {
     margin-inline-start: 0;
   }
 
@@ -2369,11 +2366,6 @@
     }
   }
 
-  .asking-admin-page__toolbar-btn:hover:not(:disabled) {
-    background-color: var(--accent-surface);
-    border-color: var(--accent-border-strong);
-  }
-
   .asking-admin-page__toolbar-btn--danger {
     color: var(--color-danger);
     border-color: var(--color-danger);
@@ -2393,12 +2385,6 @@
     --ui-button-bg: var(--color-bg-surface);
     --ui-button-border: var(--color-border);
     --ui-button-fg: var(--color-text);
-  }
-
-  .asking-admin-page__toolbar-btn.ui-button:hover:not(:disabled) {
-    --ui-button-bg: var(--accent-surface);
-    --ui-button-border: var(--accent-border-strong);
-    transform: none;
   }
 
   .asking-admin-page__toolbar-btn.ui-button--primary {
@@ -2425,7 +2411,9 @@
     --ui-button-bg: var(--color-bg-surface);
   }
 
-  .asking-admin-page__toolbar-btn.asking-admin-page__toolbar-btn--danger.ui-button:hover:not(:disabled) {
+  .asking-admin-page__toolbar-btn.asking-admin-page__toolbar-btn--danger.ui-button:hover:not(
+      :disabled
+    ) {
     --ui-button-bg: color-mix(in oklch, var(--color-danger) 12%, var(--color-bg-surface));
     --ui-button-border: var(--color-danger);
     color: var(--color-danger);
@@ -2436,6 +2424,17 @@
   .asking-admin-users-page__search-bar > .asking-admin-page__toolbar-btn.ui-button,
   .asking-admin-users-page__bulk-actions > .asking-admin-page__toolbar-btn.ui-button {
     margin-inline-start: 0;
+  }
+
+  .asking-admin-page__toolbar-btn:hover:not(:disabled) {
+    background-color: var(--accent-surface);
+    border-color: var(--accent-border-strong);
+  }
+
+  .asking-admin-page__toolbar-btn.ui-button:hover:not(:disabled) {
+    --ui-button-bg: var(--accent-surface);
+    --ui-button-border: var(--accent-border-strong);
+    transform: none;
   }
 
   .asking-admin-polls-page__table {
@@ -2466,7 +2465,8 @@
     box-sizing: border-box;
   }
 
-  .asking-admin-polls-page__pagination-bar .asking-admin-page__toolbar-btn {
+  .asking-admin-polls-page__pagination-bar
+    .asking-admin-page__toolbar-btn.asking-admin-page__toolbar-btn {
     margin-inline-start: 0;
   }
 
@@ -2486,8 +2486,8 @@
     color: var(--color-text-subtle);
   }
 
-.asking-admin-page__jump-link,
-.asking-home-page__jump-link {
+  .asking-admin-page__jump-link,
+  .asking-home-page__jump-link {
     display: inline-block;
     margin-block-end: 0.625rem;
     font-size: 0.875rem;
@@ -2495,7 +2495,7 @@
     text-underline-offset: 2px;
   }
 
-.asking-admin-page__mobile-bulk-actions {
+  .asking-admin-page__mobile-bulk-actions {
     display: none;
   }
 
@@ -2557,7 +2557,7 @@
     }
   }
 
-  nav.asking-app-navbar.asking-app-navbar--surface {
+  .asking-app-navbar.asking-app-navbar--surface {
     position: sticky;
     top: 0;
     z-index: 1030;
@@ -2566,7 +2566,7 @@
   }
 
   /* Toggler icon is an embedded SVG; tint via mask so stroke follows `var(--color-text)`. */
-  html[data-color-theme] nav.asking-app-navbar .asking-app-navbar__toggler-icon {
+  html[data-color-theme] .asking-app-navbar .asking-app-navbar__toggler-icon {
     background-image: none !important;
     background-color: var(--color-text);
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath stroke='black' stroke-width='2' stroke-linecap='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
@@ -2597,14 +2597,7 @@
     border-color: var(--color-border);
   }
 
-  html[data-color-theme] .leaflet-bar a:hover,
-  html[data-color-theme] .leaflet-bar a:focus {
-    background-color: color-mix(in oklch, var(--color-bg-surface) 78%, var(--color-text) 22%);
-    color: var(--color-text);
-    border-color: var(--color-border);
-  }
-
-  html[data-color-theme] .leaflet-bar a.leaflet-disabled {
+  html[data-color-theme] .leaflet-bar .leaflet-disabled {
     color: var(--color-text-faint);
     background-color: var(--color-bg-muted);
   }
@@ -2629,6 +2622,13 @@
     color: var(--accent-control);
   }
 
+  html[data-color-theme] .leaflet-bar a:hover,
+  html[data-color-theme] .leaflet-bar a:focus {
+    background-color: color-mix(in oklch, var(--color-bg-surface) 78%, var(--color-text) 22%);
+    color: var(--color-text);
+    border-color: var(--color-border);
+  }
+
   .asking-admin-polls-page__modal-actions {
     margin-block-start: 1rem;
     display: flex;
@@ -2640,11 +2640,14 @@
     margin-block-start: 0.5rem;
   }
 
-  .asking-admin-polls-page__modal-actions--start .asking-admin-page__toolbar-btn {
+  .asking-admin-polls-page__modal-actions--start
+    .asking-admin-page__toolbar-btn.asking-admin-page__toolbar-btn {
     margin-inline-start: 0;
   }
 
-  .asking-admin-polls-page__modal-actions--start .asking-admin-page__toolbar-btn + .asking-admin-page__toolbar-btn {
+  .asking-admin-polls-page__modal-actions--start
+    .asking-admin-page__toolbar-btn.asking-admin-page__toolbar-btn
+    + .asking-admin-page__toolbar-btn.asking-admin-page__toolbar-btn {
     margin-inline-start: 0.5rem;
   }
 
@@ -2808,7 +2811,7 @@
     opacity: 0.88;
   }
 
-.asking-admin-page__banner-error {
+  .asking-admin-page__banner-error {
     color: var(--color-danger);
     margin-block-end: 0.75rem;
   }
@@ -3112,17 +3115,17 @@
   }
 
   /* Primary tools: dashboard-style intro (title + actions on one horizontal rhythm) */
-  .asking-home-page > header.ui-page-hero,
-  .asking-my-polls-page > header.ui-page-header {
+  .asking-home-page > .ui-page-hero,
+  .asking-my-polls-page > .ui-page-header {
     text-align: start;
   }
 
-  .asking-home-page > header.ui-page-hero .ui-page-hero-tagline {
+  .asking-home-page > .ui-page-hero .ui-page-hero-tagline {
     margin-inline: 0;
     max-width: 36rem;
   }
 
-  .asking-my-polls-page > header.ui-page-header {
+  .asking-my-polls-page > .ui-page-header {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
@@ -3130,22 +3133,22 @@
     gap: 0.75rem 1.25rem;
   }
 
-  .asking-my-polls-page > header.ui-page-header .ui-page-header__title {
+  .asking-my-polls-page > .ui-page-header .ui-page-header__title {
     flex: 1 1 12rem;
     margin: 0;
     min-width: 0;
   }
 
-  .asking-my-polls-page > header.ui-page-header .ui-page-header__actions {
+  .asking-my-polls-page > .ui-page-header .ui-page-header__actions {
     margin-top: 0;
     flex: 0 1 auto;
   }
 
-  .asking-public-layout.asking-public-layout--wider > header.ui-page-header {
+  .asking-public-layout.asking-public-layout--wider > .ui-page-header {
     text-align: start;
   }
 
-  .asking-public-layout.asking-public-layout--wider > header.ui-page-header .ui-page-header__subtitle {
+  .asking-public-layout.asking-public-layout--wider > .ui-page-header .ui-page-header__subtitle {
     margin-inline: 0;
     max-width: 40rem;
   }
@@ -3156,21 +3159,21 @@
     margin-block-end: 2.5rem;
   }
 
-  .asking-poll-page[data-poll-theme='sunset'] {
+  .asking-poll-page[data-poll-theme="sunset"] {
     --accent-control: #ea580c;
     --color-focus-ring: #ea580c;
     --color-poll-fill-leader: #f97316;
     --color-poll-result-leading: #16a34a;
   }
 
-  .asking-poll-page[data-poll-theme='ocean'] {
+  .asking-poll-page[data-poll-theme="ocean"] {
     --accent-control: #0ea5e9;
     --color-focus-ring: #0ea5e9;
     --color-poll-fill-leader: #0284c7;
     --color-poll-result-leading: #14b8a6;
   }
 
-  .asking-poll-page[data-poll-theme='neon'] {
+  .asking-poll-page[data-poll-theme="neon"] {
     --accent-control: #a855f7;
     --color-focus-ring: #a855f7;
     --color-poll-fill-leader: #22d3ee;
@@ -3297,54 +3300,54 @@
     background: color-mix(in oklch, var(--accent-surface) 35%, var(--color-bg-surface) 65%);
   }
 
-  .asking-poll-page--scene-safe .asking-poll-page__title {
+  :where(.asking-poll-page--scene-safe) .asking-poll-page__title {
     font-size: clamp(1.6rem, 3.4vw, 2.6rem);
     line-height: 1.15;
   }
 
-  .asking-poll-page--scene-safe .asking-poll-page__vote-card {
+  :where(.asking-poll-page--scene-safe) .asking-poll-page__vote-card {
     padding: 1.2rem 1.35rem 1.3rem;
     border-radius: 18px;
   }
 
-  .asking-poll-page--scene-safe .asking-poll-page__option {
+  :where(.asking-poll-page--scene-safe) .asking-poll-page__option {
     min-height: 4.5rem;
     border-radius: 14px;
   }
 
-  .asking-poll-page--scene-safe .asking-poll-page__option-title {
+  :where(.asking-poll-page--scene-safe) .asking-poll-page__option-title {
     font-size: clamp(1.05rem, 2vw, 1.45rem);
     font-weight: 700;
   }
 
-  .asking-poll-page--scene-safe .asking-poll-page__option-result {
+  :where(.asking-poll-page--scene-safe) .asking-poll-page__option-result {
     font-size: clamp(1.2rem, 2.1vw, 1.7rem);
     font-weight: 800;
   }
 
   .asking-poll-page--presenter-contrast {
-    color: #fff;
+    color: oklch(1 0 0);
   }
 
-  .asking-poll-page--presenter-contrast .asking-poll-page__vote-card,
-  .asking-poll-page--presenter-contrast .asking-poll-page__option {
-    background: #000;
-    border-color: #fff;
+  :where(.asking-poll-page--presenter-contrast) .asking-poll-page__vote-card,
+  :where(.asking-poll-page--presenter-contrast) .asking-poll-page__option {
+    background: oklch(0 0 0);
+    border-color: oklch(1 0 0);
     box-shadow: none;
   }
 
-  .asking-poll-page--presenter-contrast .asking-poll-page__refresh-meta,
-  .asking-poll-page--presenter-contrast .asking-poll-page__title,
-  .asking-poll-page--presenter-contrast .asking-poll-page__option-title,
-  .asking-poll-page--presenter-contrast .asking-poll-page__option-result {
-    color: #fff;
+  :where(.asking-poll-page--presenter-contrast) .asking-poll-page__refresh-meta,
+  :where(.asking-poll-page--presenter-contrast) .asking-poll-page__title,
+  :where(.asking-poll-page--presenter-contrast) .asking-poll-page__option-title,
+  :where(.asking-poll-page--presenter-contrast) .asking-poll-page__option-result {
+    color: oklch(1 0 0);
   }
 
-  .asking-poll-page--presenter-contrast .asking-poll-page__option-fill {
-    background: color-mix(in oklch, #0ff 72%, transparent);
+  :where(.asking-poll-page--presenter-contrast) .asking-poll-page__option-fill {
+    background: color-mix(in oklch, rgb(0 255 255) 72%, transparent);
   }
 
-  .asking-poll-page__vote-card .asking-poll-page__geo-optin {
+  :where(.asking-poll-page__vote-card) .asking-poll-page__geo-optin {
     width: 100%;
     max-width: none;
     margin: 0 0 0.75rem;
@@ -3352,7 +3355,7 @@
     border-block-end: 1px solid var(--accent-border);
   }
 
-  .asking-poll-page__options-stack .asking-poll-page__option {
+  :where(.asking-poll-page__options-stack) .asking-poll-page__option {
     width: 100%;
     max-width: none;
     margin-inline: 0;
@@ -3601,9 +3604,9 @@
   }
 
   .asking-my-polls-page__inline-badge--owner-snapshot {
-    border-color: color-mix(in oklch, var(--color-danger, #c62828) 34%, var(--accent-border) 66%);
-    background: color-mix(in oklch, var(--color-danger, #c62828) 12%, var(--accent-surface) 88%);
-    color: color-mix(in oklch, var(--color-danger, #c62828) 52%, var(--color-text-muted) 48%);
+    border-color: color-mix(in oklch, var(--color-danger) 34%, var(--accent-border) 66%);
+    background: color-mix(in oklch, var(--color-danger) 12%, var(--accent-surface) 88%);
+    color: color-mix(in oklch, var(--color-danger) 52%, var(--color-text-muted) 48%);
   }
 
   .asking-my-polls-page__manage {
@@ -3675,11 +3678,11 @@
 
   @media (prefers-reduced-motion: no-preference) {
     .asking-my-polls-page__delay-preview::before {
-      animation: asking-my-polls-page__live-dot-pulse 1.6s ease-in-out infinite;
+      animation: asking-my-polls-page-live-dot-pulse 1.6s ease-in-out infinite;
     }
   }
 
-  @keyframes asking-my-polls-page__live-dot-pulse {
+  @keyframes asking-my-polls-page-live-dot-pulse {
     0%,
     100% {
       opacity: 0.55;
@@ -3773,8 +3776,8 @@
 
   .asking-my-polls-page__panic-btn,
   .asking-my-polls-page__delete-btn {
-    border-color: color-mix(in srgb, var(--color-danger, #c62828) 55%, transparent);
-    color: var(--color-danger, #c62828);
+    border-color: color-mix(in srgb, var(--color-danger) 55%, transparent);
+    color: var(--color-danger);
   }
 
   .asking-not-found-page__title {
@@ -3793,9 +3796,6 @@
     position: relative;
     cursor: pointer;
     overflow: hidden;
-  }
-
-  button.asking-poll-page__option {
     font: inherit;
     color: inherit;
     appearance: none;
@@ -3804,24 +3804,24 @@
     text-align: left;
   }
 
-  button.asking-poll-page__option:focus-visible {
+  .asking-poll-page__option:focus-visible {
     outline: 2px solid var(--accent-control);
     outline-offset: 3px;
   }
 
-  button.asking-poll-page__option:disabled {
+  .asking-poll-page__option:disabled {
     cursor: default;
   }
 
-  button.asking-poll-page__option[data-hover="true"]:not(:disabled) {
+  .asking-poll-page__option[data-hover="true"]:not(:disabled) {
     box-shadow: 0 2px 8px 0 var(--color-shadow-hover);
   }
 
-  button.asking-poll-page__option:active:not(:disabled) {
+  .asking-poll-page__option:active:not(:disabled) {
     box-shadow: 0 2px 8px 0 var(--color-shadow-hover);
   }
 
-  button.asking-poll-page__option[disabled][data-archived="true"] {
+  .asking-poll-page__option[disabled][data-archived="true"] {
     opacity: 0.95;
   }
 
@@ -3859,17 +3859,17 @@
     font-weight: bold;
   }
 
-  button.asking-poll-page__option[data-leading="true"] {
+  .asking-poll-page__option[data-leading="true"] {
     box-shadow: inset 0 0 0 2px var(--accent-control);
   }
 
   @media (prefers-contrast: more) {
-    button.asking-poll-page__option[data-leading="true"] {
+    .asking-poll-page__option[data-leading="true"] {
       box-shadow: inset 0 0 0 3px var(--accent-control);
     }
   }
 
-  html[data-high-contrast="on"] button.asking-poll-page__option[data-leading="true"] {
+  html[data-high-contrast="on"] .asking-poll-page__option[data-leading="true"] {
     box-shadow: inset 0 0 0 3px var(--accent-control);
   }
 
@@ -4152,23 +4152,23 @@
 
   @media (prefers-reduced-motion: no-preference) {
     .asking-poll-page[data-results-live-pulse] .asking-poll-page__results-total--live::before {
-      animation: poll-live-dot-pulse 1.5s ease-out infinite;
+      animation: asking-poll-live-dot-pulse 1.5s ease-out infinite;
     }
 
     .asking-poll-page__option[data-updated="true"] {
-      animation: poll-option-update-flash 0.65s ease-out;
+      animation: asking-poll-option-update-flash 0.65s ease-out;
     }
 
     .asking-poll-page__option[data-updated="true"] .asking-poll-page__option-fill {
-      animation: poll-option-fill-shimmer 0.8s ease-out;
+      animation: asking-poll-option-fill-shimmer 0.8s ease-out;
     }
 
     .asking-poll-page__results-total[data-updated="true"] {
-      animation: poll-total-update-pop 0.45s ease-out;
+      animation: asking-poll-total-update-pop 0.45s ease-out;
     }
   }
 
-  @keyframes poll-live-dot-pulse {
+  @keyframes asking-poll-live-dot-pulse {
     0% {
       transform: scale(0.95);
       box-shadow: 0 0 0 0 color-mix(in oklch, var(--accent-control) 38%, transparent);
@@ -4183,7 +4183,7 @@
     }
   }
 
-  @keyframes poll-option-update-flash {
+  @keyframes asking-poll-option-update-flash {
     0% {
       transform: translateY(-1px);
       filter: saturate(1.08);
@@ -4194,7 +4194,7 @@
     }
   }
 
-  @keyframes poll-option-fill-shimmer {
+  @keyframes asking-poll-option-fill-shimmer {
     0% {
       background-position: 100% 0;
     }
@@ -4203,7 +4203,7 @@
     }
   }
 
-  @keyframes poll-total-update-pop {
+  @keyframes asking-poll-total-update-pop {
     0% {
       transform: translateY(-1px) scale(1.01);
     }
@@ -4281,7 +4281,7 @@
       margin-top: 0;
     }
 
-    .ui-settings-panel .ui-input.ui-input--stack {
+    :where(.ui-settings-panel) .ui-input.ui-input--stack {
       width: 100%;
     }
 
@@ -4454,6 +4454,28 @@
       min-width: 67.5rem;
     }
 
+    .asking-admin-users-page__table thead th,
+    .asking-admin-polls-page__table thead th,
+    .asking-admin-audit-page__table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--color-bg-surface);
+      border-bottom: 1px solid var(--accent-border-strong);
+    }
+
+    .asking-admin-audit-page__table td {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .asking-admin-users-page__table td:nth-child(2),
+    .asking-admin-polls-page__table td:nth-child(2),
+    .asking-admin-polls-page__table td:nth-child(3) {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
     .asking-admin-users-page__table th:nth-child(1),
     .asking-admin-users-page__table td:nth-child(1) {
       width: 10rem;
@@ -4556,14 +4578,6 @@
       white-space: nowrap;
     }
 
-    .asking-admin-users-page__table td:nth-child(2),
-    .asking-admin-polls-page__table td:nth-child(2),
-    .asking-admin-polls-page__table td:nth-child(3),
-    .asking-admin-audit-page__table td {
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
     .asking-admin-users-page__table tbody td:first-child,
     .asking-admin-polls-page__table tbody td:first-child {
       font-variant-numeric: tabular-nums;
@@ -4577,16 +4591,6 @@
     .asking-admin-users-page__table td:last-child button + button,
     .asking-admin-polls-page__table td:last-child button + button {
       margin-inline-start: 0.375rem;
-    }
-
-    .asking-admin-users-page__table thead th,
-    .asking-admin-polls-page__table thead th,
-    .asking-admin-audit-page__table thead th {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      background: var(--color-bg-surface);
-      border-bottom: 1px solid var(--accent-border-strong);
     }
 
     @media (hover: hover) and (pointer: fine) {
@@ -4698,7 +4702,7 @@
       min-width: 0 !important;
       font-size: 1em;
       min-height: 2.75rem;
-      padding: 0.75rem 0.75rem;
+      padding: 0.75rem;
     }
 
     .ui-poll-option-row {
@@ -4834,7 +4838,7 @@
       justify-content: space-between;
     }
 
-    .asking-poll-page__results-toolbar-field .ui-input.ui-input--stack {
+    :where(.asking-poll-page__results-toolbar-field) .ui-input.ui-input--stack {
       width: min(8.75rem, 46%);
       min-width: 0;
       margin: 0;

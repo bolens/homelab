@@ -1,4 +1,8 @@
-export type PlanLimitRequiredPlan = 'cloud-team' | 'cloud-pro' | 'selfhost-pro' | 'enterprise-custom';
+export type PlanLimitRequiredPlan =
+  | 'cloud-team'
+  | 'cloud-pro'
+  | 'selfhost-pro'
+  | 'enterprise-custom';
 
 export function buildPlanLimitDetails(args: {
   plan: string;

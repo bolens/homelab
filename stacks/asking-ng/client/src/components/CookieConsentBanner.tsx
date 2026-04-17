@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useT } from '../i18n/I18nContext';
 import {
   COOKIE_CONSENT_CHANGED_EVENT,
+  type ConsentRegionHint,
+  type CookieConsentState,
   fetchConsentRegion,
   getCookieConsentState,
   getParsedGranularConsent,
@@ -9,8 +11,6 @@ import {
   saveCookieConsent,
   saveGranularConsent,
   setGranularUiPreference,
-  type ConsentRegionHint,
-  type CookieConsentState,
 } from '../lib/cookieConsent';
 import { Button } from '../ui';
 import CookieConsentCategoriesForm from './CookieConsentCategoriesForm';
@@ -23,7 +23,8 @@ function useCookieConsentState(): CookieConsentState {
       setState(getCookieConsentState());
     };
     window.addEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange as EventListener);
-    return () => window.removeEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange as EventListener);
+    return () =>
+      window.removeEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange as EventListener);
   }, []);
 
   return state;
@@ -112,14 +113,30 @@ export default function CookieConsentBanner() {
       ) : (
         <div className='asking-cookie-banner__actions asking-cookie-banner__actions--stack'>
           <div className='asking-cookie-banner__actions asking-cookie-banner__actions--row'>
-            <Button type='button' variant='secondary' size='sm' onClick={() => saveCookieConsent('rejected', 'banner')}>
+            <Button
+              type='button'
+              variant='secondary'
+              size='sm'
+              onClick={() => saveCookieConsent('rejected', 'banner')}
+            >
               {t('privacy.cookie.keepOff')}
             </Button>
-            <Button type='button' variant='secondary' size='sm' onClick={() => saveCookieConsent('accepted', 'banner')}>
+            <Button
+              type='button'
+              variant='secondary'
+              size='sm'
+              onClick={() => saveCookieConsent('accepted', 'banner')}
+            >
               {t('privacy.cookie.allow')}
             </Button>
           </div>
-          <Button type='button' variant='ghost' size='sm' className='asking-cookie-banner__link' onClick={switchToGranular}>
+          <Button
+            type='button'
+            variant='ghost'
+            size='sm'
+            className='asking-cookie-banner__link'
+            onClick={switchToGranular}
+          >
             {t('cookie.banner.customize')}
           </Button>
         </div>

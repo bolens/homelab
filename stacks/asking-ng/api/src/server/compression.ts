@@ -11,7 +11,7 @@ function selectEncoding(acceptEncodingHeader: string | undefined): CompressionEn
     .split(',')
     .map((entry) => {
       const [nameRaw, ...params] = entry.trim().split(';');
-      const name = nameRaw.trim().toLowerCase();
+      const name = (nameRaw ?? '').trim().toLowerCase();
       let q = 1;
       for (const param of params) {
         const [keyRaw, valueRaw] = param.split('=');
@@ -39,7 +39,9 @@ export function sendCompressedJson(
 ): void {
   const responseBody = JSON.stringify(payload);
   const acceptEncoding =
-    typeof request.headers['accept-encoding'] === 'string' ? request.headers['accept-encoding'] : undefined;
+    typeof request.headers['accept-encoding'] === 'string'
+      ? request.headers['accept-encoding']
+      : undefined;
   const encoding = selectEncoding(acceptEncoding);
   const responseBytes = Buffer.from(responseBody, 'utf8');
   const compressedBytes =

@@ -1,6 +1,6 @@
 import type { DecideQuarantinedVoteBody } from '@asking-ng/contracts/poll';
-import type { AppRequestHandler } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 import { presentDecideQuarantinedVote } from './decideQuarantinedVote.presenter';
 import { decideQuarantinedVoteService } from './decideQuarantinedVote.service';

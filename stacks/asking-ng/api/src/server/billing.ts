@@ -150,7 +150,9 @@ export const fastifyBillingRoutes: FastifyPluginAsync = async (app) => {
       );
       observeIntegrationEvent('polar_webhook_stored');
       try {
-        const { applyPolarSubscriptionWebhookEvent } = await import('../lib/polarSubscriptionApply.js');
+        const { applyPolarSubscriptionWebhookEvent } = await import(
+          '../lib/polarSubscriptionApply.js'
+        );
         await applyPolarSubscriptionWebhookEvent(verifiedEvent, request.log);
       } catch (err: unknown) {
         request.log.error(

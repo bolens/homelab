@@ -274,7 +274,8 @@ export const openApiDocument = {
                   acceptTermsAndPrivacy: {
                     type: 'boolean',
                     enum: [true],
-                    description: 'Must be true: user has read and agrees to Terms and Privacy policy.',
+                    description:
+                      'Must be true: user has read and agrees to Terms and Privacy policy.',
                   },
                 },
               },
@@ -399,7 +400,8 @@ export const openApiDocument = {
     },
     '/telemetry/consent-region': {
       get: {
-        summary: 'Public consent region hint for cookie UI (no raw country code; from geo header or FORCE_CONSENT_REGION)',
+        summary:
+          'Public consent region hint for cookie UI (no raw country code; from geo header or FORCE_CONSENT_REGION)',
         tags: ['Telemetry'],
         responses: {
           '200': {
@@ -826,7 +828,8 @@ export const openApiDocument = {
                         hint_locale: {
                           type: 'string',
                           enum: ['en', 'en-gb', 'es'],
-                          description: 'Optional per-target locale for webhook command hint strings.',
+                          description:
+                            'Optional per-target locale for webhook command hint strings.',
                         },
                         include_results_snapshot: {
                           type: 'boolean',

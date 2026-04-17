@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   hasExtendedRetentionForBillingPlan,
-  hasModerationAutomationForBillingPlan,
   hasForensicReplayForBillingPlan,
-  hasWebhookAutomationForBillingPlan,
+  hasModerationAutomationForBillingPlan,
   hasVoteHeatmapForBillingPlan,
+  hasWebhookAutomationForBillingPlan,
   maxAuthenticatedRestBurstPerMinuteForBillingPlan,
   maxAuthenticatedRestSustainedPerMinuteForBillingPlan,
   maxCampaignAttributionIncrementsPerUtcDayForBillingPlan,

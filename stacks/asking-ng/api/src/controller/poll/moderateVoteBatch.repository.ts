@@ -23,9 +23,16 @@ export async function applyModerationBatch(args: {
   if (args.selector === 'user_id') where.userId = Number.parseInt(args.selectorValue, 10) || -1;
 
   if (args.action === 'remove') {
-    where[Op.or] = [{ isQuarantined: false }, { quarantineStatus: 'approved' }, { quarantineStatus: null }];
+    where[Op.or] = [
+      { isQuarantined: false },
+      { quarantineStatus: 'approved' },
+      { quarantineStatus: null },
+    ];
   } else {
-    where[Op.or] = [{ isQuarantined: true }, { quarantineStatus: { [Op.in]: ['pending', 'rejected'] } }];
+    where[Op.or] = [
+      { isQuarantined: true },
+      { quarantineStatus: { [Op.in]: ['pending', 'rejected'] } },
+    ];
   }
 
   const updates =

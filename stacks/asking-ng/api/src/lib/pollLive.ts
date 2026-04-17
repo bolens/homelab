@@ -1,7 +1,7 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { WebSocket, WebSocketServer } from 'ws';
-import { appEnv } from './env';
+import Poll from '../model/Poll';
 import {
   clearPollLiveRoomCreatorForFanout,
   prunePollLiveFanoutLimiter,
@@ -9,7 +9,7 @@ import {
   takePollLiveFanoutOrShed,
 } from './billingWsFanout';
 import { resolveEffectivePollLiveRoomCap } from './billingWsQuota';
-import Poll from '../model/Poll';
+import { appEnv } from './env';
 import { logger } from './logger';
 import { matchPollLivePath } from './pollLivePath';
 import {

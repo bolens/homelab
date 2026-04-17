@@ -1,13 +1,13 @@
 import type { Subscription } from '@polar-sh/sdk/models/components/subscription';
 import type { FastifyBaseLogger } from 'fastify';
 import { Op } from 'sequelize';
+import Workspace from '../models/workspace.sequelize';
+import { observeIntegrationEvent } from './metrics';
 import { createPolarServerClient } from './polarApiClient';
 import {
   analyzePolarSubscriptionPlan,
   persistPolarSubscriptionSnapshotOnWorkspace,
 } from './polarSubscriptionApply';
-import { observeIntegrationEvent } from './metrics';
-import Workspace from '../models/workspace.sequelize';
 
 export type PolarReconcileRow = {
   ownerUserId: number;
@@ -151,7 +151,12 @@ export async function reconcilePolarSubscriptionsFromApi(options: {
 
     let updated = false;
     if (!options.dryRun) {
-      updated = await persistPolarSubscriptionSnapshotOnWorkspace(workspace, remote, RECONCILE_EVENT, options.log);
+      updated = await persistPolarSubscriptionSnapshotOnWorkspace(
+        workspace,
+        remote,
+        RECONCILE_EVENT,
+        options.log,
+      );
     }
 
     if (updated) rowsUpdated += 1;

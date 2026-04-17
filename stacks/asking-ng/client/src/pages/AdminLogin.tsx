@@ -123,8 +123,17 @@ export default function AdminLogin() {
 
   if (!adminSessionReady) {
     return (
-      <Container size='sm' className='asking-admin-page asking-admin-login-page' id='asking-admin-login-page'>
-        <Card role='status' aria-live='polite' className='asking-admin-login-page__hint' tone='muted'>
+      <Container
+        size='sm'
+        className='asking-admin-page asking-admin-login-page'
+        id='asking-admin-login-page'
+      >
+        <Card
+          role='status'
+          aria-live='polite'
+          className='asking-admin-login-page__hint'
+          tone='muted'
+        >
           {t('admin.login.sessionCheck')}
         </Card>
       </Container>
@@ -133,8 +142,17 @@ export default function AdminLogin() {
 
   if (admin) {
     return (
-      <Container size='sm' className='asking-admin-page asking-admin-login-page' id='asking-admin-login-page'>
-        <Card role='status' aria-live='polite' className='asking-admin-login-page__hint' tone='muted'>
+      <Container
+        size='sm'
+        className='asking-admin-page asking-admin-login-page'
+        id='asking-admin-login-page'
+      >
+        <Card
+          role='status'
+          aria-live='polite'
+          className='asking-admin-login-page__hint'
+          tone='muted'
+        >
           {t('admin.login.redirecting')}
         </Card>
       </Container>
@@ -142,7 +160,11 @@ export default function AdminLogin() {
   }
 
   return (
-    <Container size='md' className='asking-admin-page asking-admin-login-page' id='asking-admin-login-page'>
+    <Container
+      size='md'
+      className='asking-admin-page asking-admin-login-page'
+      id='asking-admin-login-page'
+    >
       <section className='asking-admin-login-page__layout'>
         <header className='asking-admin-page__header'>
           <h1 className='asking-admin-page__title' id='asking-admin-login-page__title'>
@@ -160,7 +182,10 @@ export default function AdminLogin() {
           aria-labelledby='asking-admin-login-page__setup-cta-heading'
           tone='muted'
         >
-          <h2 className='asking-admin-page__setup-title' id='asking-admin-login-page__setup-cta-heading'>
+          <h2
+            className='asking-admin-page__setup-title'
+            id='asking-admin-login-page__setup-cta-heading'
+          >
             New instance?
           </h2>
           <p className='asking-admin-login-page__hint'>
@@ -172,7 +197,8 @@ export default function AdminLogin() {
           </p>
         </Card>
 
-        {bootstrapStatus && (bootstrapStatus.noAdminExists || bootstrapStatus.adminTokenIsDefault) ? (
+        {bootstrapStatus &&
+        (bootstrapStatus.noAdminExists || bootstrapStatus.adminTokenIsDefault) ? (
           <Card
             role='status'
             aria-live='polite'
@@ -183,8 +209,8 @@ export default function AdminLogin() {
               {bootstrapStatus.adminTokenIsDefault ? (
                 <p>
                   For security, update your admin token in the stack environment (for example in
-                  your `STACK_ENV` or Docker compose secrets) and restart the API before creating
-                  an admin user.
+                  your `STACK_ENV` or Docker compose secrets) and restart the API before creating an
+                  admin user.
                 </p>
               ) : null}
               {bootstrapStatus.noAdminExists ? (
@@ -226,9 +252,9 @@ export default function AdminLogin() {
                   className='asking-admin-login-page__field'
                   label={t('admin.login.tokenLabel')}
                   htmlFor='asking-admin-login-page__token'
-                  error={
-                    field.state.meta.errors.length > 0 ? String(field.state.meta.errors[0]) : undefined
-                  }
+                  {...(field.state.meta.errors.length > 0
+                    ? { error: String(field.state.meta.errors[0]) }
+                    : {})}
                 >
                   <Input
                     id='asking-admin-login-page__token'
@@ -266,7 +292,10 @@ export default function AdminLogin() {
           aria-labelledby='asking-admin-login-page__first-run-guide-heading'
           tone='muted'
         >
-          <h2 className='asking-admin-page__setup-title' id='asking-admin-login-page__first-run-guide-heading'>
+          <h2
+            className='asking-admin-page__setup-title'
+            id='asking-admin-login-page__first-run-guide-heading'
+          >
             {t('admin.login.firstRunGuide.title')}
           </h2>
           <ol className='asking-admin-page__setup-list'>
@@ -289,7 +318,10 @@ export default function AdminLogin() {
             aria-labelledby='asking-admin-login-page__bootstrap-heading'
             tone='accent'
           >
-            <h2 className='asking-admin-page__setup-title' id='asking-admin-login-page__bootstrap-heading'>
+            <h2
+              className='asking-admin-page__setup-title'
+              id='asking-admin-login-page__bootstrap-heading'
+            >
               {t('admin.login.bootstrap.title')}
             </h2>
             <p className='asking-admin-login-page__hint'>{t('admin.login.bootstrap.intro')}</p>
@@ -305,40 +337,36 @@ export default function AdminLogin() {
                   label={t('admin.login.bootstrap.homelab-userPlaceholder')}
                   htmlFor='asking-admin-login-page__bootstrap-homelab-user'
                 >
-                <Input
-                  id='asking-admin-login-page__bootstrap-homelab-user'
-                  type='text'
-                  placeholder={t('admin.login.bootstrap.homelab-userPlaceholder')}
-                  value={bootstrapUsername}
-                  onChange={(e) => setBootstrapUsername(e.target.value)}
-                  className='asking-admin-login-page__token ui-input--stack'
-                  autoComplete='homelab-user'
-                  disabled={bootstrapping}
-                />
+                  <Input
+                    id='asking-admin-login-page__bootstrap-homelab-user'
+                    type='text'
+                    placeholder={t('admin.login.bootstrap.homelab-userPlaceholder')}
+                    value={bootstrapUsername}
+                    onChange={(e) => setBootstrapUsername(e.target.value)}
+                    className='asking-admin-login-page__token ui-input--stack'
+                    autoComplete='homelab-user'
+                    disabled={bootstrapping}
+                  />
                 </Field>
                 <Field
                   className='asking-admin-login-page__field'
                   label={t('admin.login.bootstrap.passwordPlaceholder')}
                   htmlFor='asking-admin-login-page__bootstrap-password'
                 >
-                <Input
-                  id='asking-admin-login-page__bootstrap-password'
-                  type='password'
-                  placeholder={t('admin.login.bootstrap.passwordPlaceholder')}
-                  value={bootstrapPassword}
-                  onChange={(e) => setBootstrapPassword(e.target.value)}
-                  className='asking-admin-login-page__token ui-input--stack'
-                  autoComplete='new-password'
-                  disabled={bootstrapping}
-                />
+                  <Input
+                    id='asking-admin-login-page__bootstrap-password'
+                    type='password'
+                    placeholder={t('admin.login.bootstrap.passwordPlaceholder')}
+                    value={bootstrapPassword}
+                    onChange={(e) => setBootstrapPassword(e.target.value)}
+                    className='asking-admin-login-page__token ui-input--stack'
+                    autoComplete='new-password'
+                    disabled={bootstrapping}
+                  />
                 </Field>
               </Stack>
               <div className='asking-admin-login-page__actions'>
-                <Button
-                  type='submit'
-                  disabled={bootstrapping}
-                  aria-busy={bootstrapping}
-                >
+                <Button type='submit' disabled={bootstrapping} aria-busy={bootstrapping}>
                   {bootstrapping
                     ? t('admin.login.bootstrap.creating')
                     : t('admin.login.bootstrap.create')}

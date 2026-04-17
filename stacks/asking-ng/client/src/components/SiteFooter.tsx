@@ -31,7 +31,12 @@ export default function SiteFooter() {
     <footer className='asking-app__footer' id='asking-app__footer'>
       <Inline gap='sm' wrap align='center' className='asking-app__footer-text'>
         <span>{t('footer.poweredBy')}</span>
-        <a className='asking-app__footer-link' href={href} rel='noopener noreferrer' target='_blank'>
+        <a
+          className='asking-app__footer-link'
+          href={href}
+          rel='noopener noreferrer'
+          target='_blank'
+        >
           {t('footer.brandName')}
         </a>
         <span aria-hidden>·</span>

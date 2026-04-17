@@ -40,7 +40,10 @@ function runNext(): void {
     void task
       .run()
       .catch((err: unknown) => {
-        logger.warn({ event: 'async_job.failed', err, taskId: task.id, taskName: task.name }, 'async job failed');
+        logger.warn(
+          { event: 'async_job.failed', err, taskId: task.id, taskName: task.name },
+          'async job failed',
+        );
       })
       .finally(() => {
         activeWorkers -= 1;
@@ -110,4 +113,3 @@ export async function stopAsyncJobs(timeoutMs = 15_000): Promise<void> {
   ]);
   setAsyncQueueDepth(queue.length);
 }
-

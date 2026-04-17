@@ -29,8 +29,8 @@ export function isWebShareLikelyAvailable(url: string): boolean {
  */
 export async function shareUrlNative(opts: {
   url: string;
-  title?: string;
-  text?: string;
+  title?: string | undefined;
+  text?: string | undefined;
 }): Promise<ShareUrlResult> {
   if (!canShareUrl(opts.url)) {
     return { kind: 'unavailable' };

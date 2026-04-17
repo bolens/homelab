@@ -1,5 +1,5 @@
-import type { AppRequestHandler } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 import { presentPollResponse } from './getPoll.presenter';
 import { getPollView } from './getPoll.service';

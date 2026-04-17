@@ -1,6 +1,6 @@
 import type { AuthLoginBody } from '@asking-ng/contracts/auth';
-import type { AppRequest, AppResponse } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
+import type { AppRequest, AppResponse } from '../../types/http';
 import { presentAuthSuccess } from './auth.presenter';
 import { loginUser } from './auth.service';
 

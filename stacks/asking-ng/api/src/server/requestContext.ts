@@ -44,7 +44,12 @@ export const requestContextPlugin: FastifyPluginAsync = async (app) => {
               billingPlan,
             };
             setSessionUserCache(snapshot);
-            user = { id: snapshot.id, homelab-user: snapshot.homelab-user, role: snapshot.role, billingPlan };
+            user = {
+              id: snapshot.id,
+              homelab-user: snapshot.homelab-user,
+              role: snapshot.role,
+              billingPlan,
+            };
           }
         }
       }

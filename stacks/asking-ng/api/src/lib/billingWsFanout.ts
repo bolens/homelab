@@ -1,9 +1,9 @@
-import Poll from '../model/Poll';
 import { findBillingPlanAndRoleByUserId } from '../controller/self/self.repository';
+import Poll from '../model/Poll';
 import { maxWsFanoutMessagesPerSecondForBillingPlan } from './billingLimits';
+import { recordBillingWsFanoutShed } from './billingWsFanoutLedger';
 import { appEnv } from './env';
 import { logger } from './logger';
-import { recordBillingWsFanoutShed } from './billingWsFanoutLedger';
 
 const CACHE_TTL_MS = 60_000;
 const planCache = new Map<number, { plan: string; role: string | null; exp: number }>();
@@ -54,7 +54,10 @@ async function refreshPlanCache(uid: number): Promise<void> {
     const { billingPlan, role } = await findBillingPlanAndRoleByUserId(uid);
     planCache.set(uid, { plan: billingPlan, role, exp: Date.now() + CACHE_TTL_MS });
   } catch (err: unknown) {
-    logger.warn({ event: 'billing.ws_fanout.plan_cache_failed', err, uid }, 'ws fanout plan cache refresh failed');
+    logger.warn(
+      { event: 'billing.ws_fanout.plan_cache_failed', err, uid },
+      'ws fanout plan cache refresh failed',
+    );
   }
 }
 
@@ -62,11 +65,15 @@ async function refreshPlanCache(uid: number): Promise<void> {
  * Hard ceiling + optional billing tier cap (messages/sec of **server→client** `notifyPollLive` payloads per poll).
  * When `BILLING_ENFORCE_LIMITS` and creator is unknown briefly, returns env cap until `creatorUserId` is cached.
  */
-export function effectiveWsFanoutMessagesPerSecondForWorkspace(creatorUserId: number | null): number {
+export function effectiveWsFanoutMessagesPerSecondForWorkspace(
+  creatorUserId: number | null,
+): number {
   const envCap = appEnv.wsFanoutMaxPerPollPerSec;
   if (!appEnv.billingEnforceLimits) return envCap;
   const uid =
-    typeof creatorUserId === 'number' && Number.isFinite(creatorUserId) && creatorUserId > 0 ? creatorUserId : null;
+    typeof creatorUserId === 'number' && Number.isFinite(creatorUserId) && creatorUserId > 0
+      ? creatorUserId
+      : null;
   if (uid == null) {
     return Math.min(envCap, maxWsFanoutMessagesPerSecondForBillingPlan('free'));
   }
@@ -81,7 +88,10 @@ export function effectiveWsFanoutMessagesPerSecondForWorkspace(creatorUserId: nu
   return envCap;
 }
 
-export function setPollLiveRoomCreatorForFanout(pollId: string, creatorUserId: number | null | undefined): void {
+export function setPollLiveRoomCreatorForFanout(
+  pollId: string,
+  creatorUserId: number | null | undefined,
+): void {
   roomCreatorByPollId.set(pollId, creatorUserId ?? null);
 }
 
@@ -104,7 +114,10 @@ export function ensurePollCreatorForFanout(pollId: string): void {
         typeof cid === 'number' && Number.isFinite(cid) && cid > 0 ? cid : null,
       );
     } catch (err: unknown) {
-      logger.warn({ event: 'billing.ws_fanout.creator_lookup_failed', err, pollId }, 'ws fanout creator lookup failed');
+      logger.warn(
+        { event: 'billing.ws_fanout.creator_lookup_failed', err, pollId },
+        'ws fanout creator lookup failed',
+      );
     } finally {
       pendingCreatorFetch.delete(pollId);
     }
@@ -117,7 +130,9 @@ export function ensurePollCreatorForFanout(pollId: string): void {
  */
 export function takePollLiveFanoutOrShed(pollId: string): boolean {
   ensurePollCreatorForFanout(pollId);
-  const uidForCap = roomCreatorByPollId.has(pollId) ? (roomCreatorByPollId.get(pollId) ?? null) : null;
+  const uidForCap = roomCreatorByPollId.has(pollId)
+    ? (roomCreatorByPollId.get(pollId) ?? null)
+    : null;
   const cap = effectiveWsFanoutMessagesPerSecondForWorkspace(uidForCap);
   const ok = limiter.take(pollId, cap);
   if (!ok) {

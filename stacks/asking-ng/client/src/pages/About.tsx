@@ -7,7 +7,10 @@ export default function About() {
   const t = useT();
   useDocumentTitle(t('about.docTitle'));
   return (
-    <article className='ui-page-shell asking-public-layout asking-about-page' id='asking-about-page'>
+    <article
+      className='ui-page-shell asking-public-layout asking-about-page'
+      id='asking-about-page'
+    >
       <header className='ui-page-hero'>
         <h1 className='ui-page-hero-title' id='asking-about-page__title'>
           {t('about.title')}
@@ -41,7 +44,11 @@ export default function About() {
 
         <Card
           as='section'
-          className={cx('asking-about-page__panel', 'asking-about-page__panel--a11y', 'ui-card--form-panel')}
+          className={cx(
+            'asking-about-page__panel',
+            'asking-about-page__panel--a11y',
+            'ui-card--form-panel',
+          )}
           padding='none'
           aria-labelledby='asking-about-page__a11y-heading'
         >
@@ -52,7 +59,11 @@ export default function About() {
         </Card>
       </div>
 
-      <nav className='asking-about-page__actions' id='asking-about-page__actions' aria-label={t('about.nav.actions')}>
+      <nav
+        className='asking-about-page__actions'
+        id='asking-about-page__actions'
+        aria-label={t('about.nav.actions')}
+      >
         <Link to='/' className={cx('ui-button', 'ui-button--md', 'ui-button--primary')}>
           {t('about.cta.create')}
         </Link>

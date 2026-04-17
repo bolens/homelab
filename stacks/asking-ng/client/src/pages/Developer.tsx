@@ -7,11 +7,11 @@ import { useLocaleTag, useT } from '../i18n/I18nContext';
 import type { MessageKey } from '../i18n/locales';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
 import {
-  billingExportReminder,
-  billingUpgradeHintFromError,
-  billingPastDueBannerPayload,
-  billingUsageWarningSeverity,
   type BillingUsageWarningsPayload,
+  billingExportReminder,
+  billingPastDueBannerPayload,
+  billingUpgradeHintFromError,
+  billingUsageWarningSeverity,
   type ProfileBillingApiPayload,
 } from '../lib/profileBillingApi';
 import {
@@ -21,8 +21,8 @@ import {
   profileBillingQueryKey,
   profileLlmGatewayTokenQueryKey,
 } from '../lib/queryKeys';
-import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
 import { streamingObsDocHref } from '../lib/streamingObsDocHref';
+import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
 import {
   Button,
   Container,
@@ -81,17 +81,26 @@ function formatBillingUsageWarnings(
   const parts: string[] = [];
   if (w.activePolls) {
     parts.push(
-      t('developer.billingWarnMeter', { meter: t('developer.billingMeterPolls'), level: w.activePolls }),
+      t('developer.billingWarnMeter', {
+        meter: t('developer.billingMeterPolls'),
+        level: w.activePolls,
+      }),
     );
   }
   if (w.votesThisMonth) {
     parts.push(
-      t('developer.billingWarnMeter', { meter: t('developer.billingMeterVotes'), level: w.votesThisMonth }),
+      t('developer.billingWarnMeter', {
+        meter: t('developer.billingMeterVotes'),
+        level: w.votesThisMonth,
+      }),
     );
   }
   if (w.dataExports) {
     parts.push(
-      t('developer.billingWarnMeter', { meter: t('developer.billingMeterExports'), level: w.dataExports }),
+      t('developer.billingWarnMeter', {
+        meter: t('developer.billingMeterExports'),
+        level: w.dataExports,
+      }),
     );
   }
   if (w.pollWebhooksThisUtcMinute) {
@@ -212,8 +221,8 @@ export default function Developer() {
   const [toast, setToast] = useState<{
     kind: 'ok' | 'error';
     text: string;
-    upgradeUrl?: string;
-    upgradeIsLicenseRenewal?: boolean;
+    upgradeUrl?: string | undefined;
+    upgradeIsLicenseRenewal?: boolean | undefined;
   } | null>(null);
   const [userJwt, setUserJwt] = useState(() => getStoredUserJwt() ?? '');
 
@@ -374,7 +383,9 @@ export default function Developer() {
     },
   });
 
-  const modelsError = modelsQuery.isError ? errMsg(modelsQuery.error, t('developer.modelsLoading')) : '';
+  const modelsError = modelsQuery.isError
+    ? errMsg(modelsQuery.error, t('developer.modelsLoading'))
+    : '';
   const statusErrUpgradeHint = billingUpgradeHintFromError(statusQuery.error, billingQuery.data);
   const modelsErrUpgradeHint = billingUpgradeHintFromError(modelsQuery.error, billingQuery.data);
 
@@ -404,7 +415,11 @@ export default function Developer() {
   });
 
   return (
-    <Container size='lg' className='ui-page-shell asking-public-layout asking-public-layout--wider asking-developer-page' id='asking-developer-page'>
+    <Container
+      size='lg'
+      className='ui-page-shell asking-public-layout asking-public-layout--wider asking-developer-page'
+      id='asking-developer-page'
+    >
       <PageHeader
         title={t('developer.title')}
         titleId='asking-developer-page__title'
@@ -483,7 +498,12 @@ export default function Developer() {
           {billingPastDue ? (
             <Notice tone='error' className='ui-usage-banner'>
               {t('billing.pastDueBanner')}{' '}
-              <a href={billingPastDue.portalUrl} target='_blank' rel='noreferrer' className='ui-link'>
+              <a
+                href={billingPastDue.portalUrl}
+                target='_blank'
+                rel='noreferrer'
+                className='ui-link'
+              >
                 {t('billing.openCustomerPortal')}
               </a>
             </Notice>
@@ -585,44 +605,44 @@ export default function Developer() {
             </p>
           ) : null}
           {polarBillingHasLinks(billingQuery.data) && (
-          <ul className='asking-developer__list'>
-            {typeof billingQuery.data?.polar?.customerPortalUrl === 'string' &&
-              billingQuery.data.polar.customerPortalUrl.trim() !== '' && (
-                <li>
-                  <a
-                    href={billingQuery.data.polar.customerPortalUrl.trim()}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                  >
-                    {t('developer.billingPortal')}
-                  </a>
-                </li>
-              )}
-            {typeof billingQuery.data?.polar?.checkoutCloudTeamUrl === 'string' &&
-              billingQuery.data.polar.checkoutCloudTeamUrl.trim() !== '' && (
-                <li>
-                  <a
-                    href={billingQuery.data.polar.checkoutCloudTeamUrl.trim()}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                  >
-                    {t('developer.billingCheckoutTeam')}
-                  </a>
-                </li>
-              )}
-            {typeof billingQuery.data?.polar?.checkoutCloudProUrl === 'string' &&
-              billingQuery.data.polar.checkoutCloudProUrl.trim() !== '' && (
-                <li>
-                  <a
-                    href={billingQuery.data.polar.checkoutCloudProUrl.trim()}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                  >
-                    {t('developer.billingCheckoutPro')}
-                  </a>
-                </li>
-              )}
-          </ul>
+            <ul className='asking-developer__list'>
+              {typeof billingQuery.data?.polar?.customerPortalUrl === 'string' &&
+                billingQuery.data.polar.customerPortalUrl.trim() !== '' && (
+                  <li>
+                    <a
+                      href={billingQuery.data.polar.customerPortalUrl.trim()}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      {t('developer.billingPortal')}
+                    </a>
+                  </li>
+                )}
+              {typeof billingQuery.data?.polar?.checkoutCloudTeamUrl === 'string' &&
+                billingQuery.data.polar.checkoutCloudTeamUrl.trim() !== '' && (
+                  <li>
+                    <a
+                      href={billingQuery.data.polar.checkoutCloudTeamUrl.trim()}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      {t('developer.billingCheckoutTeam')}
+                    </a>
+                  </li>
+                )}
+              {typeof billingQuery.data?.polar?.checkoutCloudProUrl === 'string' &&
+                billingQuery.data.polar.checkoutCloudProUrl.trim() !== '' && (
+                  <li>
+                    <a
+                      href={billingQuery.data.polar.checkoutCloudProUrl.trim()}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      {t('developer.billingCheckoutPro')}
+                    </a>
+                  </li>
+                )}
+            </ul>
           )}
         </SectionPanel>
       )}
@@ -639,7 +659,12 @@ export default function Developer() {
             {statusErrUpgradeHint.url ? (
               <>
                 {' '}
-                <a href={statusErrUpgradeHint.url} target='_blank' rel='noreferrer' className='ui-link'>
+                <a
+                  href={statusErrUpgradeHint.url}
+                  target='_blank'
+                  rel='noreferrer'
+                  className='ui-link'
+                >
                   {t(
                     statusErrUpgradeHint.isLicenseRenewal
                       ? 'developer.renewLicenseCta'
@@ -713,7 +738,9 @@ export default function Developer() {
                   disabled={saveGatewayTokenMutation.isPending}
                   aria-busy={saveGatewayTokenMutation.isPending}
                 >
-                  {saveGatewayTokenMutation.isPending ? t('developer.sending') : t('developer.save')}
+                  {saveGatewayTokenMutation.isPending
+                    ? t('developer.sending')
+                    : t('developer.save')}
                 </Button>
               </Inline>
             </FormRow>
@@ -726,7 +753,10 @@ export default function Developer() {
 
         {llmActive && (
           <>
-            <h5 className='ui-page-heading asking-developer__heading--spaced' id='asking-developer-page__models-heading'>
+            <h5
+              className='ui-page-heading asking-developer__heading--spaced'
+              id='asking-developer-page__models-heading'
+            >
               {t('developer.modelsHeading')}
             </h5>
             {modelsQuery.isLoading && <p>{t('developer.modelsLoading')}</p>}
@@ -736,7 +766,12 @@ export default function Developer() {
                 {modelsErrUpgradeHint.url ? (
                   <>
                     {' '}
-                    <a href={modelsErrUpgradeHint.url} target='_blank' rel='noreferrer' className='ui-link'>
+                    <a
+                      href={modelsErrUpgradeHint.url}
+                      target='_blank'
+                      rel='noreferrer'
+                      className='ui-link'
+                    >
                       {t(
                         modelsErrUpgradeHint.isLicenseRenewal
                           ? 'developer.renewLicenseCta'
@@ -758,7 +793,10 @@ export default function Developer() {
               </p>
             )}
 
-            <h5 className='ui-page-heading asking-developer__heading--spaced-sm' id='asking-developer-page__chat-heading'>
+            <h5
+              className='ui-page-heading asking-developer__heading--spaced-sm'
+              id='asking-developer-page__chat-heading'
+            >
               {t('developer.chatHeading')}
             </h5>
             <FormRow label={t('developer.modelLabel')} htmlFor='asking-developer__model-select'>
@@ -832,7 +870,12 @@ export default function Developer() {
                 {chatErrUpgradeUrl ? (
                   <>
                     {' '}
-                    <a href={chatErrUpgradeUrl} target='_blank' rel='noreferrer' className='ui-link'>
+                    <a
+                      href={chatErrUpgradeUrl}
+                      target='_blank'
+                      rel='noreferrer'
+                      className='ui-link'
+                    >
                       {t(
                         chatErrUpgradeIsLicenseRenewal
                           ? 'developer.renewLicenseCta'
@@ -878,7 +921,11 @@ export default function Developer() {
             <>
               {' '}
               <a href={toast.upgradeUrl} target='_blank' rel='noreferrer' className='ui-link'>
-                {t(toast.upgradeIsLicenseRenewal ? 'developer.renewLicenseCta' : 'developer.upgradeCta')}
+                {t(
+                  toast.upgradeIsLicenseRenewal
+                    ? 'developer.renewLicenseCta'
+                    : 'developer.upgradeCta',
+                )}
               </a>
             </>
           ) : null}

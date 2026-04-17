@@ -18,7 +18,8 @@ describe('aggregateVelocityUtcBuckets', () => {
     ];
     const out = aggregateVelocityUtcBuckets(rows, 5);
     expect(out).toHaveLength(1);
-    expect(out[0].minuteUtcIso).toBe('2026-01-01T00:00:00.000Z');
-    expect(out[0].voteCount).toBe(6);
+    const first = out[0];
+    expect(first?.minuteUtcIso).toBe('2026-01-01T00:00:00.000Z');
+    expect(first?.voteCount).toBe(6);
   });
 });

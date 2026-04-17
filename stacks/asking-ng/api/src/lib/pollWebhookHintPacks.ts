@@ -11,7 +11,11 @@ export type PollWebhookHintPack = {
   command_aliases: PollWebhookCommandAliasMap;
 };
 
-export const SUPPORTED_POLL_WEBHOOK_HINT_LOCALES: readonly PollWebhookHintLocale[] = ['en', 'en-gb', 'es'];
+export const SUPPORTED_POLL_WEBHOOK_HINT_LOCALES: readonly PollWebhookHintLocale[] = [
+  'en',
+  'en-gb',
+  'es',
+];
 
 export function coercePollWebhookHintLocale(raw: string): PollWebhookHintLocale {
   const t = raw.trim().toLowerCase().replace(/_/g, '-');
@@ -32,7 +36,10 @@ export function resolvePollWebhookHintLocale(
   return fallback;
 }
 
-export function pollWebhookHintPackForLocale(pollId: string, locale: PollWebhookHintLocale): PollWebhookHintPack {
+export function pollWebhookHintPackForLocale(
+  pollId: string,
+  locale: PollWebhookHintLocale,
+): PollWebhookHintPack {
   if (locale === 'es') {
     return {
       chat_vote_short: `!votar ${pollId} <opción>`,
@@ -63,7 +70,9 @@ export function pollWebhookHintPackForLocale(pollId: string, locale: PollWebhook
   };
 }
 
-export function buildAllPollWebhookHintPacks(pollId: string): Record<PollWebhookHintLocale, PollWebhookHintPack> {
+export function buildAllPollWebhookHintPacks(
+  pollId: string,
+): Record<PollWebhookHintLocale, PollWebhookHintPack> {
   const out = {} as Record<PollWebhookHintLocale, PollWebhookHintPack>;
   for (const loc of SUPPORTED_POLL_WEBHOOK_HINT_LOCALES) {
     out[loc] = pollWebhookHintPackForLocale(pollId, loc);

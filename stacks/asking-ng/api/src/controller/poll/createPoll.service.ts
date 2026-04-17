@@ -1,17 +1,15 @@
 import type { CreatePollBody } from '@asking-ng/contracts/poll';
-import type { AppRequest } from '../../types/http';
 import randomId from '../../helpers/randomId';
-import {
-  type SelfhostProLicenseExpiredDetails,
-} from '../../lib/selfhostProLicense';
-import { checkPollMutationEntitlements } from '../../lib/pollMutationEntitlements';
 import { checkActivePollQuotaForUser } from '../../lib/billingPollQuota';
-import { resolveWorkspaceIdForCreatorUserId } from '../../lib/workspaceBootstrap';
 import { generateEmbedReadToken, hashEmbedReadToken } from '../../lib/embedReadToken';
-import { recordPlatformIdentityConsentEvent } from '../../lib/pollPlatformIdentity';
+import { checkPollMutationEntitlements } from '../../lib/pollMutationEntitlements';
 import { recordPollPhaseTransition } from '../../lib/pollPhaseHistory';
+import { recordPlatformIdentityConsentEvent } from '../../lib/pollPlatformIdentity';
 import { generateWebhookSecret } from '../../lib/pollWebhooks';
+import { type SelfhostProLicenseExpiredDetails } from '../../lib/selfhostProLicense';
 import { isPublicWebhookUrl } from '../../lib/webhookUrlSafe';
+import { resolveWorkspaceIdForCreatorUserId } from '../../lib/workspaceBootstrap';
+import type { AppRequest } from '../../types/http';
 import { createPollRow, findPollById, findPollByVanitySlug } from './createPoll.repository';
 
 export type CreatePollResult =
@@ -36,7 +34,10 @@ export type CreatePollResult =
       };
     };
 
-export async function createPollService(req: AppRequest, body: CreatePollBody): Promise<CreatePollResult> {
+export async function createPollService(
+  req: AppRequest,
+  body: CreatePollBody,
+): Promise<CreatePollResult> {
   const {
     title,
     options,
@@ -76,17 +77,17 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
   const bodyRecord = body as Record<string, unknown>;
   const mediaAttachmentRaw = bodyRecord.media_attachment;
   const mediaBlurByDefaultRaw = bodyRecord.media_blur_by_default;
-  const themePresetRaw = typeof bodyRecord.theme_preset === 'string' ? bodyRecord.theme_preset : 'default';
+  const themePresetRaw =
+    typeof bodyRecord.theme_preset === 'string' ? bodyRecord.theme_preset : 'default';
 
-  const incomingTargets =
-    ((webhook_targets ?? []) as Array<{
-      url: string;
-      secret?: string;
-      hint_locale?: 'en' | 'en-gb' | 'es';
-      include_results_snapshot?: boolean;
-      include_owner_snapshot?: boolean;
-      include_owner_events?: boolean;
-    }>) ?? [];
+  const incomingTargets = (webhook_targets ?? []) as Array<{
+    url: string;
+    secret?: string;
+    hint_locale?: 'en' | 'en-gb' | 'es';
+    include_results_snapshot?: boolean;
+    include_owner_snapshot?: boolean;
+    include_owner_events?: boolean;
+  }>;
   const generatedWebhookSecrets: Array<{ url: string; secret: string }> = [];
   const webhookTargets: Array<{
     url: string;
@@ -162,10 +163,18 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
     return { kind: 'billing_license_expired', details: premiumBlock.details };
   }
   if (premiumBlock?.kind === 'plan_limit_automation') {
-    return { kind: 'plan_limit_automation', plan: premiumBlock.plan, requiredPlan: premiumBlock.requiredPlan };
+    return {
+      kind: 'plan_limit_automation',
+      plan: premiumBlock.plan,
+      requiredPlan: premiumBlock.requiredPlan,
+    };
   }
   if (premiumBlock?.kind === 'plan_limit_retention') {
-    return { kind: 'plan_limit_retention', plan: premiumBlock.plan, requiredPlan: premiumBlock.requiredPlan };
+    return {
+      kind: 'plan_limit_retention',
+      plan: premiumBlock.plan,
+      requiredPlan: premiumBlock.requiredPlan,
+    };
   }
 
   const quota = await checkActivePollQuotaForUser({
@@ -173,7 +182,12 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
     sessionUserRole: req.user?.role ?? null,
   });
   if (!quota.ok) {
-    return { kind: 'usage_limit_active_polls', max: quota.max, current: quota.current, plan: quota.plan };
+    return {
+      kind: 'usage_limit_active_polls',
+      max: quota.max,
+      current: quota.current,
+      plan: quota.plan,
+    };
   }
 
   let embedReadToken: string | undefined;

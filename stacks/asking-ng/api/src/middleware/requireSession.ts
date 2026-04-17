@@ -1,4 +1,3 @@
-import type { AppRequest, AppRequestHandler, AppResponse } from '../types/http';
 import { jsonError } from '../lib/jsonError';
 import {
   getSessionUserFromCache,
@@ -6,13 +5,17 @@ import {
   setSessionUserCache,
 } from '../lib/sessionUserCache';
 import User from '../models/user.sequelize';
+import type { AppRequest, AppRequestHandler, AppResponse } from '../types/http';
 import { verifyToken } from '../utils/auth';
 
 /**
  * Validates Bearer JWT when `res` is set, writes JSON errors and returns false.
  * When `res` is null (optional attach), returns false without writing.
  */
-export async function authenticateBearer(req: AppRequest, res: AppResponse | null): Promise<boolean> {
+export async function authenticateBearer(
+  req: AppRequest,
+  res: AppResponse | null,
+): Promise<boolean> {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     if (res) jsonError(res, req, 401, 'MISSING_AUTHORIZATION', 'Missing Authorization header');

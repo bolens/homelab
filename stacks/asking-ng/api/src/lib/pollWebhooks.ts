@@ -1,10 +1,10 @@
 import { createHmac, randomBytes } from 'node:crypto';
 import Poll from '../model/Poll';
-import { takePollWebhookDeliveryForPoll } from './billingPollWebhookDelivery';
 import { enqueueAsyncJob } from './asyncJobs';
+import { takePollWebhookDeliveryForPoll } from './billingPollWebhookDelivery';
 import { appEnv } from './env';
 import { logger } from './logger';
-import { isPublicWebhookUrl } from './webhookUrlSafe';
+import { recordPollWebhookDeliveryTelemetry } from './pollWebhookDeliveryTelemetry';
 import {
   buildAllPollWebhookHintPacks,
   pollWebhookHintPackForLocale,
@@ -12,9 +12,9 @@ import {
   SUPPORTED_POLL_WEBHOOK_HINT_LOCALES,
 } from './pollWebhookHintPacks';
 import { fetchPollWebhookOwnerEvents } from './pollWebhookOwnerEvents';
-import { recordPollWebhookDeliveryTelemetry } from './pollWebhookDeliveryTelemetry';
 import { fetchPollWebhookOwnerSnapshot } from './pollWebhookOwnerSnapshot';
 import { fetchPollWebhookPublicResultsSnapshot } from './pollWebhookResultsSnapshot';
+import { isPublicWebhookUrl } from './webhookUrlSafe';
 
 type PollWebhookEvent = 'vote' | 'poll_updated' | 'poll_deleted';
 
@@ -33,10 +33,16 @@ function utcMsFromPollField(raw: unknown): number | null {
 }
 
 /** Snapshot from DB at enqueue time; overlays/bots can read without refetching the poll API. */
-function buildStreamerContextFromPollRow(poll: { get(key: string): unknown }): Record<string, unknown> {
+function buildStreamerContextFromPollRow(poll: {
+  get(key: string): unknown;
+}): Record<string, unknown> {
   const titleRaw = poll.get('title');
   const pollTitle =
-    typeof titleRaw === 'string' ? titleRaw : titleRaw === null || titleRaw === undefined ? '' : String(titleRaw);
+    typeof titleRaw === 'string'
+      ? titleRaw
+      : titleRaw === null || titleRaw === undefined
+        ? ''
+        : String(titleRaw);
 
   const phaseRaw = poll.get('phase');
   const phase = typeof phaseRaw === 'string' && phaseRaw.trim() !== '' ? phaseRaw.trim() : 'open';
@@ -120,7 +126,9 @@ async function postWebhook(
   const normalizedData: Record<string, unknown> = {
     ...data,
     poll_path:
-      typeof data.poll_path === 'string' && data.poll_path.trim() !== '' ? data.poll_path : pollPathDefault,
+      typeof data.poll_path === 'string' && data.poll_path.trim() !== ''
+        ? data.poll_path
+        : pollPathDefault,
     results_path:
       typeof data.results_path === 'string' && data.results_path.trim() !== ''
         ? data.results_path
@@ -203,7 +211,10 @@ export function queuePollWebhook(
   data: Record<string, unknown>,
 ): void {
   if (appEnv.incidentMode) {
-    logger.info({ event: 'poll.webhook.skipped_incident_mode', pollId, webhookEvent: event }, 'poll webhook skipped');
+    logger.info(
+      { event: 'poll.webhook.skipped_incident_mode', pollId, webhookEvent: event },
+      'poll webhook skipped',
+    );
     return;
   }
   void (async () => {
@@ -240,8 +251,7 @@ export function queuePollWebhook(
             include_owner_events?: unknown;
           }>
         | null
-        | undefined) ??
-      [];
+        | undefined) ?? [];
     if (targetsRaw.length === 0) return;
 
     const anyWantsResultsSnapshot = targetsRaw.some((t) => t?.include_results_snapshot === true);
@@ -294,7 +304,10 @@ export function queuePollWebhook(
       try {
         url = new URL(urlStr);
       } catch {
-        logger.warn({ event: 'poll.webhook.invalid_url_stored', pollId }, 'poll webhook: invalid URL stored');
+        logger.warn(
+          { event: 'poll.webhook.invalid_url_stored', pollId },
+          'poll webhook: invalid URL stored',
+        );
         continue;
       }
       if (!isPublicWebhookUrl(url)) {
@@ -308,8 +321,11 @@ export function queuePollWebhook(
         continue;
       }
       const targetHintLocale =
-        typeof target.hint_locale === 'string' ? target.hint_locale.trim().toLowerCase() : undefined;
-      const includeResultsSnapshot = target.include_results_snapshot === true && resultsSnapshot != null;
+        typeof target.hint_locale === 'string'
+          ? target.hint_locale.trim().toLowerCase()
+          : undefined;
+      const includeResultsSnapshot =
+        target.include_results_snapshot === true && resultsSnapshot != null;
       const includeOwnerSnapshot = target.include_owner_snapshot === true && ownerSnapshot != null;
       const includeOwnerEvents = target.include_owner_events === true && ownerEvents != null;
       enqueueAsyncJob(`poll_webhook:${event}:${pollId}`, async () => {

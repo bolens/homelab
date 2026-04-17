@@ -42,14 +42,20 @@ export function buildBillingUsageWarnings(args: {
     args.pollWebhookDeliveriesThisUtcMinute != null &&
     args.maxPollWebhookDeliveriesPerUtcMinute != null
   ) {
-    const wh = meterWarning(args.pollWebhookDeliveriesThisUtcMinute, args.maxPollWebhookDeliveriesPerUtcMinute);
+    const wh = meterWarning(
+      args.pollWebhookDeliveriesThisUtcMinute,
+      args.maxPollWebhookDeliveriesPerUtcMinute,
+    );
     if (wh) out.pollWebhooksThisUtcMinute = wh;
   }
   if (
     args.campaignAttributionIncrementsToday != null &&
     args.maxCampaignAttributionPerUtcDay != null
   ) {
-    const ca = meterWarning(args.campaignAttributionIncrementsToday, args.maxCampaignAttributionPerUtcDay);
+    const ca = meterWarning(
+      args.campaignAttributionIncrementsToday,
+      args.maxCampaignAttributionPerUtcDay,
+    );
     if (ca) out.campaignAttribution = ca;
   }
   return Object.keys(out).length > 0 ? out : undefined;

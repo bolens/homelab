@@ -1,5 +1,5 @@
-import type { CreateUserBody, RolePatchBody, SetPasswordBody } from '../../schemas/admin';
 import { ensureDefaultWorkspaceForUser } from '../../lib/workspaceBootstrap';
+import type { CreateUserBody, RolePatchBody, SetPasswordBody } from '../../schemas/admin';
 import { hashPassword } from '../../utils/auth';
 import {
   createUserRecord,

@@ -1,8 +1,8 @@
-import User from '../../models/user.sequelize';
-import Workspace from '../../models/workspace.sequelize';
 import { Op, type Transaction } from 'sequelize';
 import Poll from '../../model/Poll';
 import Vote from '../../model/Vote';
+import User from '../../models/user.sequelize';
+import Workspace from '../../models/workspace.sequelize';
 
 export async function findUserById(id: number) {
   return User.findByPk(id);
@@ -53,7 +53,9 @@ export async function findBillingPlanByUserId(userId: number): Promise<string> {
 export async function findBillingPlanAndRoleByUserId(
   userId: number,
 ): Promise<{ billingPlan: string; role: string | null }> {
-  const row = await User.findByPk(userId, { attributes: ['defaultWorkspaceId', 'billingPlan', 'role'] });
+  const row = await User.findByPk(userId, {
+    attributes: ['defaultWorkspaceId', 'billingPlan', 'role'],
+  });
   if (!row) {
     return { billingPlan: 'free', role: null };
   }
@@ -119,10 +121,7 @@ export async function findVotesForUser(userId: number) {
 }
 
 export async function anonymizeUserReferences(id: number, transaction: Transaction) {
-  await Poll.update(
-    { creatorUserId: null },
-    { where: { creatorUserId: id }, transaction },
-  );
+  await Poll.update({ creatorUserId: null }, { where: { creatorUserId: id }, transaction });
 
   const polls = await Poll.findAll({
     attributes: ['id', 'sharedEditorUserIds'],
@@ -139,5 +138,8 @@ export async function anonymizeUserReferences(id: number, transaction: Transacti
   }
 
   await Vote.update({ userId: null }, { where: { userId: id }, transaction });
-  await Vote.update({ quarantineDecidedBy: null }, { where: { quarantineDecidedBy: id }, transaction });
+  await Vote.update(
+    { quarantineDecidedBy: null },
+    { where: { quarantineDecidedBy: id }, transaction },
+  );
 }

@@ -1,5 +1,4 @@
 import type { ExportPollQuery } from '@asking-ng/contracts/poll';
-import type { AppRequestHandler } from '../../types/http';
 import { Parser } from 'json2csv';
 import { QueryTypes } from 'sequelize';
 import db from '../../connections';
@@ -7,6 +6,7 @@ import { pollEmbedViewAllowed, readEmbedReadTokenFromRequest } from '../../lib/e
 import { jsonError } from '../../lib/jsonError';
 import { listPollPhaseHistory } from '../../lib/pollPhaseHistory';
 import Poll from '../../model/Poll';
+import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {

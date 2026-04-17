@@ -15,12 +15,12 @@ vi.mock('../models/workspace.sequelize', () => ({
   default: {},
 }));
 
+import type { Subscription } from '@polar-sh/sdk/models/components/subscription';
 import {
   analyzePolarSubscriptionPlan,
   resolveBillingPlanFromPolarProductId,
   subscriptionGrantsPaidPlan,
 } from './polarSubscriptionApply';
-import type { Subscription } from '@polar-sh/sdk/models/components/subscription';
 
 describe('polarSubscriptionApply helpers', () => {
   it('subscriptionGrantsPaidPlan respects status and revoked', () => {

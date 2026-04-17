@@ -1,12 +1,12 @@
-import Poll from '../model/Poll';
-import User from '../models/user.sequelize';
 import { findBillingPlanAndRoleForVoteQuota } from '../controller/self/self.repository';
+import Poll from '../model/Poll';
 import AuditLog from '../models/auditlog.sequelize';
+import User from '../models/user.sequelize';
 import { maxOutboundPollWebhookDeliveriesPerMinuteForBillingPlan } from './billingLimits';
-import { recordPollWebhookDeliveryTelemetry } from './pollWebhookDeliveryTelemetry';
 import { appEnv } from './env';
 import { logger } from './logger';
 import { observeIntegrationEvent } from './metrics';
+import { recordPollWebhookDeliveryTelemetry } from './pollWebhookDeliveryTelemetry';
 
 const buckets = new Map<string, number>();
 export const POLL_WEBHOOK_DELIVERY_SHED_AUDIT_ACTION = 'usage.poll_webhook_delivery_shed';
@@ -17,7 +17,9 @@ export function resetPollWebhookDeliveryMeterForTests(): void {
 }
 
 /** Scope key for the signed-in user's default billing workspace (`w:{id}` or `u:{userId}` fallback). */
-export async function resolveWebhookDeliveryScopeKeyForSignedInUser(userId: number): Promise<string | null> {
+export async function resolveWebhookDeliveryScopeKeyForSignedInUser(
+  userId: number,
+): Promise<string | null> {
   const row = await User.findByPk(userId, { attributes: ['defaultWorkspaceId'] });
   if (!row) return null;
   const def = row.get('defaultWorkspaceId') as number | null | undefined;
@@ -171,7 +173,12 @@ async function recordPollWebhookDeliveryShed(args: {
     });
   } catch (err: unknown) {
     logger.warn(
-      { event: 'billing.poll_webhook_delivery_meter.write_failed', err, pollId: args.pollId, workspaceUserId },
+      {
+        event: 'billing.poll_webhook_delivery_meter.write_failed',
+        err,
+        pollId: args.pollId,
+        workspaceUserId,
+      },
       'failed to record poll webhook delivery shed metering row',
     );
   }

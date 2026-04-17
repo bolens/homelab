@@ -1,5 +1,5 @@
-import type { AppRequest } from '../../types/http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AppRequest } from '../../types/http';
 import { getPollView } from './getPoll.service';
 
 const {
@@ -50,26 +50,37 @@ vi.mock('./getPoll.repository', () => ({
   getPollVoteAnalytics: mockGetPollVoteAnalytics,
 }));
 
-const { mockTrustIpBurstOwnerSummary, mockTrustChatBurstOwnerSummary, mockTrustStackSafeguardTags } =
-  vi.hoisted(() => {
-    const mockTrustIpBurstOwnerSummary = vi.fn((): {
+const {
+  mockTrustIpBurstOwnerSummary,
+  mockTrustChatBurstOwnerSummary,
+  mockTrustStackSafeguardTags,
+} = vi.hoisted(() => {
+  const mockTrustIpBurstOwnerSummary = vi.fn(
+    (): {
       enabled: boolean;
       window_sec?: number;
       vote_threshold?: number;
-    } => ({ enabled: false }));
-    const mockTrustChatBurstOwnerSummary = vi.fn((): {
+    } => ({ enabled: false }),
+  );
+  const mockTrustChatBurstOwnerSummary = vi.fn(
+    (): {
       enabled: boolean;
       window_sec?: number;
       vote_threshold?: number;
-    } => ({ enabled: false }));
-    const mockTrustStackSafeguardTags = vi.fn(() => {
-      const tags: string[] = [];
-      if (mockTrustIpBurstOwnerSummary().enabled) tags.push('trust_stack:ip_burst');
-      if (mockTrustChatBurstOwnerSummary().enabled) tags.push('trust_stack:chat_burst');
-      return tags;
-    });
-    return { mockTrustIpBurstOwnerSummary, mockTrustChatBurstOwnerSummary, mockTrustStackSafeguardTags };
+    } => ({ enabled: false }),
+  );
+  const mockTrustStackSafeguardTags = vi.fn(() => {
+    const tags: string[] = [];
+    if (mockTrustIpBurstOwnerSummary().enabled) tags.push('trust_stack:ip_burst');
+    if (mockTrustChatBurstOwnerSummary().enabled) tags.push('trust_stack:chat_burst');
+    return tags;
   });
+  return {
+    mockTrustIpBurstOwnerSummary,
+    mockTrustChatBurstOwnerSummary,
+    mockTrustStackSafeguardTags,
+  };
+});
 
 vi.mock('../../lib/trustStackSignals', () => ({
   trustIpBurstOwnerSummary: mockTrustIpBurstOwnerSummary,

@@ -56,7 +56,11 @@ function parseStoredV2(raw: string): StoredV2 | null {
     if (!j || typeof j !== 'object' || Array.isArray(j)) return null;
     const o = j as Record<string, unknown>;
     if (o.v !== V2) return null;
-    if (typeof o.analytics !== 'boolean' || typeof o.functional !== 'boolean' || typeof o.marketing !== 'boolean') {
+    if (
+      typeof o.analytics !== 'boolean' ||
+      typeof o.functional !== 'boolean' ||
+      typeof o.marketing !== 'boolean'
+    ) {
       return null;
     }
     return {
@@ -144,7 +148,10 @@ export async function fetchConsentRegion(): Promise<ConsentRegionHint> {
     .then(async (r) => {
       if (!r.ok) return 'unknown' as const;
       const j = (await r.json()) as { region?: string };
-      const reg = j.region === 'eu' || j.region === 'non-eu' ? (j.region as ConsentRegionHint) : ('unknown' as const);
+      const reg =
+        j.region === 'eu' || j.region === 'non-eu'
+          ? (j.region as ConsentRegionHint)
+          : ('unknown' as const);
       regionCache = reg;
       return reg;
     })
@@ -169,15 +176,20 @@ function dispatchConsentChanged(analyticsEnabled: boolean): void {
 
 function postTelemetry(
   body:
-    | { mode: 'simple'; choice: CookieConsentChoice; source?: CookieConsentSource; clientTs: string }
+    | {
+        mode: 'simple';
+        choice: CookieConsentChoice;
+        source?: CookieConsentSource | undefined;
+        clientTs: string;
+      }
     | {
         mode: 'granular';
         necessary: true;
         functional: boolean;
         analytics: boolean;
         marketing: boolean;
-        consentRegion?: ConsentRegionHint;
-        source?: CookieConsentSource;
+        consentRegion?: ConsentRegionHint | undefined;
+        source?: CookieConsentSource | undefined;
         clientTs: string;
       },
 ): void {

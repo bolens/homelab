@@ -29,7 +29,8 @@ function normalizePositiveMs(value: number): number | null {
 export function evaluateSelfhostProLicenseState(nowMs = Date.now()): SelfhostProLicenseState {
   const validUntilMs = normalizePositiveMs(appEnv.selfhostProLicenseValidUntilMs);
   const lastVerifiedMs = normalizePositiveMs(appEnv.selfhostProLicenseLastVerifiedMs);
-  const graceMs = Math.max(0, Math.trunc(appEnv.selfhostProLicenseOfflineGraceHours)) * 60 * 60 * 1000;
+  const graceMs =
+    Math.max(0, Math.trunc(appEnv.selfhostProLicenseOfflineGraceHours)) * 60 * 60 * 1000;
 
   if (validUntilMs == null) {
     return {

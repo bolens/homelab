@@ -48,7 +48,9 @@ describe('findWorkspaceForPolarSubscription', () => {
   it('resolves by asking_ng_workspace_id before other strategies', async () => {
     const ws = { id: 9, get: (k: string) => (k === 'ownerUserId' ? 42 : undefined) };
     mocks.wsFindByPk.mockResolvedValue(ws);
-    const got = await findWorkspaceForPolarSubscription(sub({ metadata: { asking_ng_workspace_id: '9' } }));
+    const got = await findWorkspaceForPolarSubscription(
+      sub({ metadata: { asking_ng_workspace_id: '9' } }),
+    );
     expect(got).toBe(ws);
     expect(mocks.wsFindByPk).toHaveBeenCalledWith(9);
     expect(mocks.userFindByPk).not.toHaveBeenCalled();
@@ -65,7 +67,9 @@ describe('findWorkspaceForPolarSubscription', () => {
     mocks.userFindByPk.mockResolvedValue(user);
     mocks.ensure.mockResolvedValue(5);
     mocks.wsFindByPk.mockResolvedValue(ws);
-    const got = await findWorkspaceForPolarSubscription(sub({ metadata: { asking_ng_user_id: '42' } }));
+    const got = await findWorkspaceForPolarSubscription(
+      sub({ metadata: { asking_ng_user_id: '42' } }),
+    );
     expect(got).toBe(ws);
     expect(mocks.userFindByPk).toHaveBeenCalledWith(42);
     expect(mocks.ensure).toHaveBeenCalledWith(user);
@@ -112,7 +116,9 @@ describe('findWorkspaceForPolarSubscription', () => {
       if (q?.where?.polarSubscriptionId === 'sub_99' && q?.where?.ownerUserId === 42) return ws;
       return null;
     });
-    const got = await findWorkspaceForPolarSubscription(sub({ metadata: { asking_ng_user_id: '42' } }));
+    const got = await findWorkspaceForPolarSubscription(
+      sub({ metadata: { asking_ng_user_id: '42' } }),
+    );
     expect(got).toBe(ws);
     expect(mocks.wsFindOne).toHaveBeenCalledWith({
       where: { polarSubscriptionId: 'sub_99', ownerUserId: 42 },
@@ -137,7 +143,9 @@ describe('findWorkspaceForPolarSubscription', () => {
       if (q?.where?.polarSubscriptionId === 'sub_99') return ws;
       return null;
     });
-    const got = await findWorkspaceForPolarSubscription(sub({ metadata: { asking_ng_user_id: '0' } }));
+    const got = await findWorkspaceForPolarSubscription(
+      sub({ metadata: { asking_ng_user_id: '0' } }),
+    );
     expect(got).toBe(ws);
     expect(mocks.userFindByPk).not.toHaveBeenCalled();
   });
@@ -149,7 +157,9 @@ describe('findWorkspaceForPolarSubscription', () => {
       if (q?.where?.polarSubscriptionId === 'sub_99') return ws;
       return null;
     });
-    const got = await findWorkspaceForPolarSubscription(sub({ metadata: { asking_ng_user_id: '7' } }));
+    const got = await findWorkspaceForPolarSubscription(
+      sub({ metadata: { asking_ng_user_id: '7' } }),
+    );
     expect(got).toBe(ws);
     expect(mocks.userFindByPk).toHaveBeenCalledWith(7);
     expect(mocks.wsFindOne).toHaveBeenCalledTimes(1);

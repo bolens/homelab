@@ -1,6 +1,5 @@
 import type { Order } from 'sequelize';
-import { Op } from 'sequelize';
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import db from '../../connections';
 import Poll from '../../model/Poll';
 
@@ -138,8 +137,14 @@ export async function listPollVoteMetrics(
     ? 'AND COALESCE("isQuarantined", false) = false'
     : '';
 
-  const [voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows, voteHourBinRows, voteDowBinRows] =
-    await Promise.all([
+  const [
+    voteMetricsRows,
+    peakHourRows,
+    peakDowRows,
+    optionFunnelRows,
+    voteHourBinRows,
+    voteDowBinRows,
+  ] = await Promise.all([
     db.query(
       `SELECT
         "pollId" AS poll_id,
@@ -227,5 +232,12 @@ export async function listPollVoteMetrics(
     ) as Promise<VoteDowBinRow[]>,
   ]);
 
-  return { voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows, voteHourBinRows, voteDowBinRows };
+  return {
+    voteMetricsRows,
+    peakHourRows,
+    peakDowRows,
+    optionFunnelRows,
+    voteHourBinRows,
+    voteDowBinRows,
+  };
 }

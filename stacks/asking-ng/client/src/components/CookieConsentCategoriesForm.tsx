@@ -32,7 +32,9 @@ export default function CookieConsentCategoriesForm({
       <div className='asking-cookie-categories__row'>
         <div className='asking-cookie-categories__label'>
           <span className='asking-cookie-categories__name'>{t('cookie.categories.necessary')}</span>
-          <span className='asking-cookie-categories__hint'>{t('cookie.categories.necessaryHint')}</span>
+          <span className='asking-cookie-categories__hint'>
+            {t('cookie.categories.necessaryHint')}
+          </span>
         </div>
         <div className='asking-cookie-categories__switch'>
           <Switch id={`${p}-necessary`} checked disabled readOnly aria-readonly='true' />
@@ -44,8 +46,12 @@ export default function CookieConsentCategoriesForm({
 
       <div className='asking-cookie-categories__row'>
         <div className='asking-cookie-categories__label'>
-          <span className='asking-cookie-categories__name'>{t('cookie.categories.functional')}</span>
-          <span className='asking-cookie-categories__hint'>{t('cookie.categories.functionalHint')}</span>
+          <span className='asking-cookie-categories__name'>
+            {t('cookie.categories.functional')}
+          </span>
+          <span className='asking-cookie-categories__hint'>
+            {t('cookie.categories.functionalHint')}
+          </span>
         </div>
         <div className='asking-cookie-categories__switch'>
           <Switch
@@ -62,7 +68,9 @@ export default function CookieConsentCategoriesForm({
       <div className='asking-cookie-categories__row'>
         <div className='asking-cookie-categories__label'>
           <span className='asking-cookie-categories__name'>{t('cookie.categories.analytics')}</span>
-          <span className='asking-cookie-categories__hint'>{t('cookie.categories.analyticsHint')}</span>
+          <span className='asking-cookie-categories__hint'>
+            {t('cookie.categories.analyticsHint')}
+          </span>
         </div>
         <div className='asking-cookie-categories__switch'>
           <Switch
@@ -79,7 +87,9 @@ export default function CookieConsentCategoriesForm({
       <div className='asking-cookie-categories__row asking-cookie-categories__row--muted'>
         <div className='asking-cookie-categories__label'>
           <span className='asking-cookie-categories__name'>{t('cookie.categories.marketing')}</span>
-          <span className='asking-cookie-categories__hint'>{t('cookie.categories.marketingOff')}</span>
+          <span className='asking-cookie-categories__hint'>
+            {t('cookie.categories.marketingOff')}
+          </span>
         </div>
         <div className='asking-cookie-categories__switch'>
           <Switch id={`${p}-marketing`} checked={false} disabled readOnly />

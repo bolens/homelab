@@ -1,6 +1,6 @@
 import { authLoginBodySchema } from '@asking-ng/contracts/auth';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch } from '../http';
 import { useT } from '../i18n/I18nContext';
@@ -56,7 +56,12 @@ export default function Login() {
         {' · '}
         <Link to='/'>{t('login.backHome')}</Link>
       </p>
-      <form id='asking-login-page__form' onSubmit={handleSubmit} aria-label={t('login.formAria')} className='asking-auth-page__form'>
+      <form
+        id='asking-login-page__form'
+        onSubmit={handleSubmit}
+        aria-label={t('login.formAria')}
+        className='asking-auth-page__form'
+      >
         <Stack gap='md'>
           <VisuallyHidden as='label' htmlFor='asking-auth-page__homelab-user'>
             {t('login.homelab-user')}

@@ -28,7 +28,10 @@ export default function Terms() {
   );
 
   return (
-    <article className='ui-page-shell asking-public-layout asking-about-page asking-terms-page' id='asking-terms-page'>
+    <article
+      className='ui-page-shell asking-public-layout asking-about-page asking-terms-page'
+      id='asking-terms-page'
+    >
       <header className='ui-page-hero'>
         <h1 className='ui-page-hero-title' id='asking-terms-page__title'>
           {t('terms.title')}
@@ -36,7 +39,9 @@ export default function Terms() {
         <p className='ui-page-hero-tagline asking-about-page__intro'>{t('terms.lead')}</p>
         <p className='asking-terms-page__disclaimer'>{t('terms.notLegalAdvice')}</p>
         {lastUpdated ? (
-          <p className='asking-terms-page__disclaimer'>{t('terms.lastUpdated', { date: lastUpdated })}</p>
+          <p className='asking-terms-page__disclaimer'>
+            {t('terms.lastUpdated', { date: lastUpdated })}
+          </p>
         ) : null}
       </header>
 
@@ -62,13 +67,20 @@ export default function Terms() {
                 </>
               ) : null}
               {legalUrl ? (
-                <a className='asking-app__footer-link' href={legalUrl} rel='noopener noreferrer' target='_blank'>
+                <a
+                  className='asking-app__footer-link'
+                  href={legalUrl}
+                  rel='noopener noreferrer'
+                  target='_blank'
+                >
                   {t('terms.contact.urlCta')}
                 </a>
               ) : null}
             </p>
           ) : (
-            <p className='asking-terms-page__contact-placeholder'>{t('terms.contact.configureHint')}</p>
+            <p className='asking-terms-page__contact-placeholder'>
+              {t('terms.contact.configureHint')}
+            </p>
           )}
         </Card>
 
@@ -178,7 +190,11 @@ export default function Terms() {
         </Card>
       </div>
 
-      <nav className='asking-about-page__actions' id='asking-terms-page__actions' aria-label={t('terms.nav.actions')}>
+      <nav
+        className='asking-about-page__actions'
+        id='asking-terms-page__actions'
+        aria-label={t('terms.nav.actions')}
+      >
         <Link to='/' className={cx('ui-button', 'ui-button--md', 'ui-button--primary')}>
           {t('terms.cta.home')}
         </Link>

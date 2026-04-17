@@ -342,7 +342,9 @@ export const updatePollBodySchema = z
       .union([z.array(writeInBlocklistItemSchema).max(200), z.null()])
       .optional(),
     write_in_profanity_filter: z.boolean().optional(),
-    shared_editor_user_ids: z.union([z.array(collaboratorUserIdSchema).max(20), z.null()]).optional(),
+    shared_editor_user_ids: z
+      .union([z.array(collaboratorUserIdSchema).max(20), z.null()])
+      .optional(),
     media_attachment: z.union([mediaAttachmentSchema, z.null()]).optional(),
     media_blur_by_default: z.boolean().optional(),
     theme_preset: z.union([pollThemePresetSchema, z.null()]).optional(),
@@ -570,8 +572,7 @@ export const votePollBodySchema = z
   )
   .refine(
     (d) =>
-      d.option_indices === undefined ||
-      new Set(d.option_indices).size === d.option_indices.length,
+      d.option_indices === undefined || new Set(d.option_indices).size === d.option_indices.length,
     { message: 'option_indices must not contain duplicates', path: ['option_indices'] },
   );
 

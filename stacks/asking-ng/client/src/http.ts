@@ -5,18 +5,18 @@ type ApiFetchOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
   adminToken?: string | false;
   /** Sent as `Authorization: Bearer …` (e.g. optional `LLM_GATEWAY_TOKEN` on `/llm/*`). */
-  bearerToken?: string;
+  bearerToken?: string | undefined;
   /** Poll creator secret for `PUT`/`DELETE /poll/:id` when not using owner JWT. */
-  pollApiKey?: string;
+  pollApiKey?: string | undefined;
   /** For gated polls: sent as `X-Poll-Embed-Token` (matches `embed_token` query on the API). */
-  embedToken?: string;
+  embedToken?: string | undefined;
 };
 
 export interface ApiFetchError extends Error {
   status: number;
   body: unknown;
-  requestId?: string;
-  errorCode?: string;
+  requestId?: string | undefined;
+  errorCode?: string | undefined;
   /** Present for Zod `VALIDATION_ERROR` responses from the API. */
   details?: unknown;
 }

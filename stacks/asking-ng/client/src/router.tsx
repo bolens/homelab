@@ -15,8 +15,8 @@ import CookieConsentBanner from './components/CookieConsentBanner';
 import Navbar from './components/Navbar';
 import NetworkStatusBanner from './components/NetworkStatusBanner';
 import SiteFooter from './components/SiteFooter';
-import { useT, useUILocale } from './i18n/I18nContext';
 import { apiFetch, isApiFetchError } from './http';
+import { useT, useUILocale } from './i18n/I18nContext';
 import { hasAdminRouteCredential } from './lib/jwtRole';
 import { parsePollSearch } from './lib/pollRouteSearch';
 import About from './pages/About';
@@ -75,8 +75,7 @@ async function maybeRedirectToAdminOnFirstRun() {
     const status = (await apiFetch('admin/bootstrap-status', {
       adminToken: false,
     })) as AdminBootstrapStatus;
-    const needsBootstrap =
-      Boolean(status?.noAdminExists) || Boolean(status?.adminTokenIsDefault);
+    const needsBootstrap = Boolean(status?.noAdminExists) || Boolean(status?.adminTokenIsDefault);
     if (needsBootstrap) {
       throw redirect({ to: '/admin/setup' });
     }
@@ -114,7 +113,10 @@ function NotFoundView() {
   const t = useT();
   return (
     <div className='ui-page-shell asking-not-found-page' id='asking-not-found-page'>
-      <h1 className='ui-alert ui-alert--danger asking-not-found-page__title' id='asking-not-found-page__title'>
+      <h1
+        className='ui-alert ui-alert--danger asking-not-found-page__title'
+        id='asking-not-found-page__title'
+      >
         {t('notFound.title')}
       </h1>
       <p>
@@ -306,7 +308,7 @@ const basepath = String(import.meta.env.BASE_URL ?? '/').replace(/\/$/, '') || '
 
 const router = createRouter({
   routeTree,
-  basepath: basepath === '/' ? undefined : basepath,
+  ...(basepath === '/' ? {} : { basepath }),
 });
 
 export function AppRouter() {

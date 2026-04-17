@@ -3,7 +3,13 @@ import { findBillingPlanAndRoleForVoteQuota } from '../controller/self/self.repo
 import { maxVotesPerMonthForBillingPlan, utcCalendarMonthBounds } from './billingLimits';
 import { appEnv } from './env';
 
-export type MonthlyVoteQuotaDenied = { ok: false; max: number; current: number; plan: string; incoming: number };
+export type MonthlyVoteQuotaDenied = {
+  ok: false;
+  max: number;
+  current: number;
+  plan: string;
+  incoming: number;
+};
 export type MonthlyVoteQuotaOk = { ok: true };
 
 /**

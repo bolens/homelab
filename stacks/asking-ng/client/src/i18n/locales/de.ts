@@ -100,7 +100,8 @@ const deOverrides = {
   'myPolls.docTitle': 'Meine Umfragen',
   'myPolls.title': 'Meine Umfragen',
   'myPolls.loading': 'Deine Umfragen werden geladen…',
-  'myPolls.empty': 'Noch keine Umfragen mit deinem Konto verknüpft. Erstelle eine auf der Startseite mit Anmeldung oder du hast nur anonyme Umfragen (api_key).',
+  'myPolls.empty':
+    'Noch keine Umfragen mit deinem Konto verknüpft. Erstelle eine auf der Startseite mit Anmeldung oder du hast nur anonyme Umfragen (api_key).',
   'myPolls.archived': 'Archiviert',
   'myPolls.phase': 'Ablaufphase {phase}',
   'myPolls.views': '{count} Aufrufe',
@@ -129,9 +130,11 @@ const deOverrides = {
   'myPolls.phaseOptionRevealed': 'Veröffentlicht',
   'myPolls.pauseCheck': 'Abstimmung pausieren',
   'myPolls.pauseMessageLabel': 'Pausennachricht',
-  'myPolls.pauseMessageHint': 'Optionaler Kurztext, der Wählenden angezeigt wird, wenn die Abstimmung pausiert ist.',
+  'myPolls.pauseMessageHint':
+    'Optionaler Kurztext, der Wählenden angezeigt wird, wenn die Abstimmung pausiert ist.',
   'myPolls.showNotesLabel': 'Private Notizen',
-  'myPolls.showNotesHint': 'Private Run-of-Show-Notizen, die nur du mit Anmeldung auf der Umfrageseite siehst.',
+  'myPolls.showNotesHint':
+    'Private Run-of-Show-Notizen, die nur du mit Anmeldung auf der Umfrageseite siehst.',
   'myPolls.sharedEditorsLabel': 'Geteilte Entwurfseditoren (Nutzer-IDs)',
   'myPolls.sharedEditorsHint':
     'Kommagetrennte Nutzer-IDs. Geteilte Editoren können diese Umfrage bearbeiten, solange sie im Entwurf bleibt.',
@@ -168,87 +171,112 @@ const deOverrides = {
   'myPolls.voteEligibility.account': 'Nur angemeldete Nutzer',
   'myPolls.voteEligibility.platformLinked': 'Nur plattformverknupfte Konten',
   'myPolls.openAtLabel': 'Öffnen am (optional)',
-  'myPolls.openAtHint': 'UTC-geplanter Start. Vor diesem Zeitpunkt verhält sich die effektive Phase wie Entwurf.',
+  'myPolls.openAtHint':
+    'UTC-geplanter Start. Vor diesem Zeitpunkt verhält sich die effektive Phase wie Entwurf.',
   'myPolls.lockAtLabel': 'Sperren am (optional)',
-  'myPolls.lockAtHint': 'UTC-geplante Sperrzeit. Zu diesem Zeitpunkt wird die Abstimmung automatisch gesperrt.',
+  'myPolls.lockAtHint':
+    'UTC-geplante Sperrzeit. Zu diesem Zeitpunkt wird die Abstimmung automatisch gesperrt.',
   'myPolls.revealAtLabel': 'Veröffentlichen am (optional)',
-  'myPolls.revealAtHint': 'UTC-geplante Veröffentlichung. Zu diesem Zeitpunkt wird die effektive Phase veröffentlicht.',
+  'myPolls.revealAtHint':
+    'UTC-geplante Veröffentlichung. Zu diesem Zeitpunkt wird die effektive Phase veröffentlicht.',
   'myPolls.boostedVotingEnabled': 'Gewichtete Stimmen aktivieren',
   'myPolls.maxBoostWeightLabel': 'Maximales Boost-Gewicht',
-  'myPolls.maxBoostWeightHint': 'Maximal akzeptiertes Gewicht pro Stimme bei aktivierter Gewichtung (1-10).',
+  'myPolls.maxBoostWeightHint':
+    'Maximal akzeptiertes Gewicht pro Stimme bei aktivierter Gewichtung (1-10).',
   'myPolls.showUnweightedValues': 'Auch ungewichtete Werte anzeigen',
   'myPolls.runOfShowKeyLabel': 'Run-of-Show-Schlüssel (optional)',
-  'myPolls.runOfShowKeyHint': 'Nutze denselben Schlüssel bei verwandten Umfragen, um sie in einer Warteschlange zu gruppieren.',
+  'myPolls.runOfShowKeyHint':
+    'Nutze denselben Schlüssel bei verwandten Umfragen, um sie in einer Warteschlange zu gruppieren.',
   'myPolls.runOfShowOrderLabel': 'Run-of-Show-Reihenfolge (optional)',
-  'myPolls.runOfShowOrderHint': 'Kleinere Zahlen erscheinen früher, wenn als Warteschlange sortiert wird.',
+  'myPolls.runOfShowOrderHint':
+    'Kleinere Zahlen erscheinen früher, wenn als Warteschlange sortiert wird.',
   'myPolls.nextPollIdLabel': 'Nächste Umfrage-ID (optional)',
-  'myPolls.nextPollIdHint': 'Wenn diese Umfrage schließt (gesperrt/veröffentlicht), kann der Auto-Fortschritt die verknüpfte Umfrage öffnen.',
+  'myPolls.nextPollIdHint':
+    'Wenn diese Umfrage schließt (gesperrt/veröffentlicht), kann der Auto-Fortschritt die verknüpfte Umfrage öffnen.',
   'myPolls.vanitySlugLabel': 'Vanity-Slug (optional)',
-  'myPolls.vanitySlugHint': 'Kurzer Share-Alias, aufgelöst über /s/{slug}. Nur Kleinbuchstaben, Zahlen und "-".',
+  'myPolls.vanitySlugHint':
+    'Kurzer Share-Alias, aufgelöst über /s/{slug}. Nur Kleinbuchstaben, Zahlen und "-".',
   'myPolls.webhookTargetsLabel': 'Webhook-Ziele (optional)',
-  'myPolls.webhookTargetsHint': 'Sende signierte Aktualisierungen an einen oder mehrere HTTPS-Endpunkte. Lasse das Secret leer, um bestehende Secrets zu behalten oder für neue Ziele automatisch zu erzeugen.',
+  'myPolls.webhookTargetsHint':
+    'Sende signierte Aktualisierungen an einen oder mehrere HTTPS-Endpunkte. Lasse das Secret leer, um bestehende Secrets zu behalten oder für neue Ziele automatisch zu erzeugen.',
   'myPolls.webhookUrlPlaceholder': 'https://beispiel.de/webhook',
   'myPolls.webhookSecretPlaceholder': 'Optionales Secret (mindestens 16 Zeichen)',
   'myPolls.webhookSnapshotResultsBadge': 'Webhook-Ergebnis-Snapshot',
   'myPolls.webhookSnapshotOwnerBadge': 'Webhook-Eigentuemer-Snapshot',
   'myPolls.badgeLegendLabel': 'Badge-Legende:',
   'myPolls.badgeLegendAria': 'Webhook-Badge-Legende',
-  'myPolls.webhookIncludeResultsSnapshot': 'Verzoegerten oeffentlichen Ergebnis-Snapshot einschliessen',
-  'myPolls.webhookIncludeOwnerSnapshot': 'Eigentuemer-Moderations-Snapshot einschliessen (sensibel)',
-  'myPolls.webhookIncludeOwnerEvents': 'Eigentuemer-Automatisierungsereignisse einschliessen (sensibel)',
+  'myPolls.webhookIncludeResultsSnapshot':
+    'Verzoegerten oeffentlichen Ergebnis-Snapshot einschliessen',
+  'myPolls.webhookIncludeOwnerSnapshot':
+    'Eigentuemer-Moderations-Snapshot einschliessen (sensibel)',
+  'myPolls.webhookIncludeOwnerEvents':
+    'Eigentuemer-Automatisierungsereignisse einschliessen (sensibel)',
   'myPolls.webhookSnapshotsHint':
     'Snapshot-Optionen gelten pro Ziel. Nutze den Eigentuemer-Snapshot nur fuer Endpunkte, die du voll kontrollierst.',
   'myPolls.webhookTargetAdd': 'Webhook-Ziel hinzufügen',
   'myPolls.webhookTargetRemove': 'Entfernen',
   'myPolls.autoAdvanceOnClose': 'Nächste Umfrage beim Schließen automatisch öffnen',
   'myPolls.voteFrictionTierLabel': 'Stufe der Zuschauerschutzmaßnahmen',
-  'myPolls.voteFrictionTierHint': 'Erhöhe die Schutzmaßnahmen bei Raids oder Bot-Spitzen (offen -> soft throttle -> proof-of-work).',
+  'myPolls.voteFrictionTierHint':
+    'Erhöhe die Schutzmaßnahmen bei Raids oder Bot-Spitzen (offen -> soft throttle -> proof-of-work).',
   'myPolls.voteFrictionOpen': 'Offen (keine zusätzlichen Schutzmaßnahmen)',
   'myPolls.voteFrictionSoftThrottle': 'Soft Throttle (Stimmen/Min pro Quelle begrenzt)',
   'myPolls.voteFrictionPow': 'Proof-of-Work (pow_nonce erforderlich)',
   'myPolls.softThrottleMaxVotesLabel': 'Soft-Throttle-Maximum Stimmen pro Minute',
-  'myPolls.softThrottleMaxVotesHint': 'Maximal akzeptierte Stimmen pro Minute von einem Quell-Hash bei aktivem Soft Throttle.',
+  'myPolls.softThrottleMaxVotesHint':
+    'Maximal akzeptierte Stimmen pro Minute von einem Quell-Hash bei aktivem Soft Throttle.',
   'myPolls.powDifficultyLabel': 'Proof-of-Work-Schwierigkeit',
-  'myPolls.powDifficultyHint': 'Erforderliche Anzahl führender Null-Hexzeichen für SHA-256(pollId:nonce) im Proof-of-Work-Modus.',
+  'myPolls.powDifficultyHint':
+    'Erforderliche Anzahl führender Null-Hexzeichen für SHA-256(pollId:nonce) im Proof-of-Work-Modus.',
   'myPolls.resultsDelaySecondsLabel': 'Verzögerung der Ergebnisanzeige (Sekunden)',
-  'myPolls.resultsDelaySecondsHint': 'Verzögert die Ergebnisanzeige zur Reduktion von Mitläufereffekten (0 = sofort).',
+  'myPolls.resultsDelaySecondsHint':
+    'Verzögert die Ergebnisanzeige zur Reduktion von Mitläufereffekten (0 = sofort).',
   'myPolls.resultsDelayPreset.off': 'Aus (0s)',
   'myPolls.resultsDelayPreset.low': 'Niedrig (10s)',
   'myPolls.resultsDelayPreset.medium': 'Mittel (20s)',
   'myPolls.resultsDelayPreset.high': 'Hoch (30s)',
   'myPolls.resultsDelayPreset.custom': 'Benutzerdefiniert',
-  'myPolls.resultsDelayRevealPreview': 'Sichtbare Summen zeigen aktuell Daten bis {ts} (ca. {seconds}s verzögert).',
+  'myPolls.resultsDelayRevealPreview':
+    'Sichtbare Summen zeigen aktuell Daten bis {ts} (ca. {seconds}s verzögert).',
   'myPolls.saveSettings': 'Änderungen speichern',
   'myPolls.saving': 'Speichert…',
   'myPolls.saved': 'Gespeichert.',
   'myPolls.saveErr': 'Änderungen konnten nicht gespeichert werden.',
-  'myPolls.panicHint': 'Sperrt die Umfrage sofort, pausiert Abstimmung und zeigt eine öffentliche Pausennachricht.',
+  'myPolls.panicHint':
+    'Sperrt die Umfrage sofort, pausiert Abstimmung und zeigt eine öffentliche Pausennachricht.',
   'myPolls.panicBtn': 'Abstimmung sofort stoppen (Panik)',
-  'myPolls.panicConfirm': 'Abstimmung für „{title}“ jetzt vollständig stoppen? Die Umfrage wird gesperrt und Zuschauer sehen die Pausennachricht.',
+  'myPolls.panicConfirm':
+    'Abstimmung für „{title}“ jetzt vollständig stoppen? Die Umfrage wird gesperrt und Zuschauer sehen die Pausennachricht.',
   'myPolls.panicWorking': 'Wird gestoppt…',
   'myPolls.panicDone': 'Abstimmung gestoppt. Umfrage ist gesperrt.',
   'myPolls.panicErr': 'Abstimmung konnte nicht gestoppt werden.',
   'myPolls.embedHeading': 'Embed-Zugang',
   'myPolls.embedBadge': 'Embed-Schutz',
-  'myPolls.embedOn': 'Read-only-Embed-Token ist aktiviert (nutze ?embed_token=… oder X-Poll-Embed-Token).',
+  'myPolls.embedOn':
+    'Read-only-Embed-Token ist aktiviert (nutze ?embed_token=… oder X-Poll-Embed-Token).',
   'myPolls.embedOff': 'Kein Embed-Schutz — Umfrage ist ohne Embed-Token lesbar.',
   'myPolls.embedRotate': 'Neues Embed-Token erzeugen',
-  'myPolls.embedRotateHint': 'Beim Rotieren wird das alte Token sofort ungültig. Das neue wird nur einmal angezeigt.',
+  'myPolls.embedRotateHint':
+    'Beim Rotieren wird das alte Token sofort ungültig. Das neue wird nur einmal angezeigt.',
   'myPolls.rotatingEmbed': 'Wird erzeugt…',
   'myPolls.embedRotateErr': 'Embed-Token konnte nicht erzeugt werden.',
-  'myPolls.embedTokenTitle': 'Neues Embed-Read-Token (jetzt sichern - es kann nicht wiederhergestellt werden):',
+  'myPolls.embedTokenTitle':
+    'Neues Embed-Read-Token (jetzt sichern - es kann nicht wiederhergestellt werden):',
   'myPolls.embedCopy': 'Embed-Token kopieren',
   'myPolls.embedFrameUrl': 'Embed-Viewer-URL',
   'myPolls.embedFrameUrlHint':
     'Kompakte Embed-Seite inkl. Token (Browser-Quelle, iframe oder OBS).',
   'myPolls.simulationBadge': 'Simulationsdaten',
   'myPolls.deletePoll': 'Umfrage dauerhaft löschen',
-  'myPolls.deleteConfirm': 'Umfrage „{title}“ und alle Stimmen löschen? Das kann nicht rückgängig gemacht werden.',
+  'myPolls.deleteConfirm':
+    'Umfrage „{title}“ und alle Stimmen löschen? Das kann nicht rückgängig gemacht werden.',
   'myPolls.deleting': 'Wird gelöscht…',
   'myPolls.deleteErr': 'Umfrage konnte nicht gelöscht werden.',
-  'myPolls.archivedReadOnly': 'Diese Umfrage ist archiviert. Phase, Pause, Notizen und Embed-Einstellungen können erst nach Entarchivierung geändert werden.',
+  'myPolls.archivedReadOnly':
+    'Diese Umfrage ist archiviert. Phase, Pause, Notizen und Embed-Einstellungen können erst nach Entarchivierung geändert werden.',
   'myPolls.exportHeading': 'Ergebnisse herunterladen',
-  'myPolls.exportHint': 'Verwendet deine Anmeldung (und erfüllt Embed-Schutz für Eigentümerinnen/Eigentümer).',
+  'myPolls.exportHint':
+    'Verwendet deine Anmeldung (und erfüllt Embed-Schutz für Eigentümerinnen/Eigentümer).',
   'myPolls.exportCsvSummary': 'CSV (Summen)',
   'myPolls.exportJsonSummary': 'JSON (Summen)',
   'myPolls.exportCsvVotes': 'CSV (pro Stimme)',
@@ -256,7 +284,8 @@ const deOverrides = {
   'myPolls.exportDone': 'Download gestartet.',
   'myPolls.exportErr': 'Export konnte nicht heruntergeladen werden.',
   'myPolls.moderationQueueHeading': 'Moderationswarteschlange',
-  'myPolls.moderationQueueHint': 'Überprüfe Quarantäne-Stimmen mit Genehmigen, Ablehnen oder Rückgängig. Aktionen werden auditiert.',
+  'myPolls.moderationQueueHint':
+    'Überprüfe Quarantäne-Stimmen mit Genehmigen, Ablehnen oder Rückgängig. Aktionen werden auditiert.',
   'myPolls.moderationQueueStatus': 'Warteschlangenfilter',
   'myPolls.queuePending': 'Ausstehend',
   'myPolls.queueApproved': 'Genehmigt',
@@ -273,7 +302,8 @@ const deOverrides = {
   'myPolls.quarantineSourceLine': 'IP-Hash: {ip} · Nutzer-ID: {user}',
   'myPolls.quarantineVoteMeta': 'Stimmen-ID {voteId} · {status} · Gewicht {weight}',
   'myPolls.batchHeading': 'Batch-Rollback-Werkzeuge',
-  'myPolls.batchHint': 'Stimmen gesammelt nach Quell-IP-Hash oder Nutzer-ID entfernen/wiederherstellen, mit Grundcode für Audits.',
+  'myPolls.batchHint':
+    'Stimmen gesammelt nach Quell-IP-Hash oder Nutzer-ID entfernen/wiederherstellen, mit Grundcode für Audits.',
   'myPolls.batchSelector': 'Abgleichsfeld',
   'myPolls.batchSelectorIp': 'Quell-IP-Hash',
   'myPolls.batchSelectorUser': 'Nutzer-ID',
@@ -284,7 +314,8 @@ const deOverrides = {
   'myPolls.batchDone': 'Batch-Aktion angewendet.',
   'myPolls.batchErr': 'Batch-Aktion konnte nicht angewendet werden.',
   'myPolls.distributionHeading': 'Freigabe-Assets',
-  'myPolls.distributionHint': 'Schnelllinks und Snippets für Chat, Overlays, mobiles Teilen und QR-Übergaben.',
+  'myPolls.distributionHint':
+    'Schnelllinks und Snippets für Chat, Overlays, mobiles Teilen und QR-Übergaben.',
   'myPolls.cloneBtn': 'Umfrage als Entwurf klonen',
   'myPolls.cloning': 'Wird geklont…',
   'myPolls.cloneDone': 'Umfrage geklont.',
@@ -302,7 +333,8 @@ const deOverrides = {
   'myPolls.copyDone': 'Kopiert.',
   'myPolls.publicPollUrl': 'Öffentlicher Umfrage-Link',
   'myPolls.sharePresets': 'Share-Voreinstellungen',
-  'myPolls.sharePresetsHint': 'Voreingestellte Links für Stream-Overlays, mobiles Teilen und Ergebnis-Szene.',
+  'myPolls.sharePresetsHint':
+    'Voreingestellte Links für Stream-Overlays, mobiles Teilen und Ergebnis-Szene.',
   'myPolls.sharePresetOverlayLabel': 'Overlay-URL',
   'myPolls.sharePresetOverlayCta': 'Jetzt live abstimmen:',
   'myPolls.sharePresetChatLabel': 'Chat-Befehl-URL',
@@ -327,7 +359,8 @@ const deOverrides = {
   'home.banner.share': 'Link teilen',
   'home.banner.copyOk': 'Link in die Zwischenablage kopiert.',
   'home.banner.copyManual': 'Manuell kopieren:',
-  'home.banner.secretHint': 'Creator-Secret speichern - benötigt zum Ändern der Laufzeit oder Löschen per API.',
+  'home.banner.secretHint':
+    'Creator-Secret speichern - benötigt zum Ändern der Laufzeit oder Löschen per API.',
   'home.banner.showSecret': 'Creator-Secret anzeigen',
   'home.banner.showWebhookSecret': 'Webhook-Signatur-Secret anzeigen',
   'home.form.aria': 'Umfrage erstellen',
@@ -371,15 +404,18 @@ const deOverrides = {
   'home.err.createRetry': 'Umfrage konnte nicht erstellt werden. Erneut versuchen.',
   'home.err.expiration': 'Ablaufwert ist ungültig.',
   'home.err.invalid': 'Bitte markierte Felder korrigieren und erneut versuchen.',
-  'home.err.webhookSecret': 'Webhook-Secret muss mindestens 16 Zeichen haben oder leer bleiben für Auto-Generierung.',
+  'home.err.webhookSecret':
+    'Webhook-Secret muss mindestens 16 Zeichen haben oder leer bleiben für Auto-Generierung.',
   'home.startOver': 'Neue Umfrage starten',
   'home.webhookHeading': 'Automatisierung (optional)',
   'home.webhookIntro': 'HTTPS-URL für signierte JSON-POSTs bei Stimmen- oder Metadatenänderungen.',
   'home.webhookUrl': 'Webhook-URL (https)',
   'home.webhookSecret': 'Webhook-Signatur-Secret (mind. 16 Zeichen oder leer für Auto-Generierung)',
-  'home.webhookIncludeResultsSnapshot': 'Verzoegerten oeffentlichen Ergebnis-Snapshot einschliessen',
+  'home.webhookIncludeResultsSnapshot':
+    'Verzoegerten oeffentlichen Ergebnis-Snapshot einschliessen',
   'home.webhookIncludeOwnerSnapshot': 'Eigentuemer-Moderations-Snapshot einschliessen (sensibel)',
-  'home.webhookIncludeOwnerEvents': 'Eigentuemer-Automatisierungsereignisse einschliessen (sensibel)',
+  'home.webhookIncludeOwnerEvents':
+    'Eigentuemer-Automatisierungsereignisse einschliessen (sensibel)',
   'home.webhookSnapshotsHint':
     'Snapshot-Optionen gelten pro Ziel. Nutze den Eigentuemer-Snapshot nur fuer Endpunkte, die du voll kontrollierst.',
   'home.webhookTargetAdd': 'Webhook-Ziel hinzufügen',
@@ -387,7 +423,8 @@ const deOverrides = {
   'home.webhookSignInHint': 'Anmelden, damit neue Umfragen unter Meine Umfragen erscheinen.',
   'home.banner.webhookSecret': 'Webhook-Signatur-Secret (speichern - zur Verifikation):',
   'home.err.webhookUrl': 'Webhook-URL muss gültiges https sein (oder http://localhost in dev).',
-  'home.hero.tagline': 'Anonyme Umfragen mit Live-Ergebnissen. Zum Abstimmen ist kein Konto nötig; optional anmelden, um Umfragen unter Meine Umfragen zu behalten.',
+  'home.hero.tagline':
+    'Anonyme Umfragen mit Live-Ergebnissen. Zum Abstimmen ist kein Konto nötig; optional anmelden, um Umfragen unter Meine Umfragen zu behalten.',
   'home.flow.title': 'So funktioniert es',
   'home.flow.step1': 'Frage stellen',
   'home.flow.step2': 'Zwei oder mehr Antwortoptionen hinzufügen',
@@ -407,9 +444,11 @@ const deOverrides = {
   'home.showNotesHint': 'Nur für dich sichtbar bei Anmeldung auf der Umfrageseite.',
   'home.showNotesPlaceholder': 'Ablaufhinweise, Sponsor-Reads, Overlay-Notizen…',
   'home.embedTokenCheck': 'Read-only-Embed-Token generieren',
-  'home.embedTokenHint': 'Für Overlays: ?embed_token=... an URL anhängen oder Header X-Poll-Embed-Token senden.',
+  'home.embedTokenHint':
+    'Für Overlays: ?embed_token=... an URL anhängen oder Header X-Poll-Embed-Token senden.',
   'home.resultsDelayLabel': 'Live-Ergebnisverzögerung',
-  'home.resultsDelayHint': 'Optional: öffentliche Live-Summen verzögern, um taktische Manipulation zu reduzieren.',
+  'home.resultsDelayHint':
+    'Optional: öffentliche Live-Summen verzögern, um taktische Manipulation zu reduzieren.',
   'home.resultsDelayPreset.off': 'Aus (0s)',
   'home.resultsDelayPreset.low': 'Niedrig (10s)',
   'home.resultsDelayPreset.medium': 'Mittel (20s)',
@@ -524,17 +563,21 @@ const deOverrides = {
   'poll.votingClosedHint': 'Die Abstimmung ist für diese Sitzung geschlossen; Ergebnisse unten.',
   'poll.impressions': 'Ungefähre Seitenaufrufe: {count}',
   'poll.showNotesTitle': 'Deine Show-Notizen',
-  'poll.refreshHint': 'Live-Summen: etwa alle {visible}s im sichtbaren Tab, alle {hidden}s im Hintergrund.',
-  'poll.refreshHintLive': 'Live-Summen: vom Server per WebSocket gepusht (HTTP-Refresh alle {fallback}s als Fallback).',
+  'poll.refreshHint':
+    'Live-Summen: etwa alle {visible}s im sichtbaren Tab, alle {hidden}s im Hintergrund.',
+  'poll.refreshHintLive':
+    'Live-Summen: vom Server per WebSocket gepusht (HTTP-Refresh alle {fallback}s als Fallback).',
   'poll.billingWsSubscriberLimitHint':
     'Die Live-Verbindung wurde geschlossen, weil diese Umfrage das Limit gleichzeitiger Zuschauer fuer ihren Plan erreicht hat. Summen aktualisieren sich weiter per Zeitgeber; fuer grosse Auditorien braucht der Ersteller ggf. einen hoeheren Plan.',
-  'poll.resultsDelayInfo': 'Live-Anti-Snipe-Verzögerung: Ergebnisse werden {seconds}s verzögert angezeigt ({pending} neuere Stimmen ausstehend).',
+  'poll.resultsDelayInfo':
+    'Live-Anti-Snipe-Verzögerung: Ergebnisse werden {seconds}s verzögert angezeigt ({pending} neuere Stimmen ausstehend).',
   'poll.voteFail': 'Abstimmung fehlgeschlagen.',
   'poll.signInToVote': 'Diese Umfrage akzeptiert nur Stimmen von angemeldeten Nutzern.',
   'poll.signInToVoteCta': 'Zum Abstimmen anmelden',
   'poll.accountGatedPrivacy':
     'Nach der Anmeldung ist deine Stimme mit deinem Konto verknüpft, damit Mehrfachstimmen verhindert werden können.',
-  'poll.ownerShareAdvancedHint': 'Klonen, Exporte, Embed-Tools und Moderationswarteschlange in „Meine Umfragen“.',
+  'poll.ownerShareAdvancedHint':
+    'Klonen, Exporte, Embed-Tools und Moderationswarteschlange in „Meine Umfragen“.',
   'poll.expires': 'Läuft ab:',
   'poll.expired': 'Abgelaufen',
   'poll.timeNever': 'Nie',
@@ -542,14 +585,17 @@ const deOverrides = {
   'poll.votesCount': '{title}, {count} Stimmen',
   'poll.leadingSr': 'führende Option',
   'poll.leadingBadge': 'Führend',
-  'poll.voteKeyboardHint': 'Mit Hoch/Runter oder Links/Rechts zwischen Optionen wechseln. Mit Leertaste/Enter abstimmen.',
+  'poll.voteKeyboardHint':
+    'Mit Hoch/Runter oder Links/Rechts zwischen Optionen wechseln. Mit Leertaste/Enter abstimmen.',
   'poll.geoOptIn': 'Meine ungefähre Position mit dieser Stimme teilen (optional)',
-  'poll.geoPrivacy': 'Wenn aktiviert, fragt die App beim Abstimmen einmal die Position ab. Es werden nur grobe Kartenzellen gespeichert.',
+  'poll.geoPrivacy':
+    'Wenn aktiviert, fragt die App beim Abstimmen einmal die Position ab. Es werden nur grobe Kartenzellen gespeichert.',
   'poll.geoEnabled': 'Standortfreigabe ist für deine nächste Stimme aktiviert.',
   'poll.geoDenied': 'Standortzugriff wurde verweigert. Deine Stimme wurde ohne Standort gezählt.',
   'poll.geoUnavailable': 'Standort ist in diesem Browser/Sitzung nicht verfügbar.',
   'poll.heatmapTitle': 'Stimmen-Heatmap',
-  'poll.heatmapPrivacy': 'Diese Karte zeigt nur aggregierte, unscharfe Bereiche; exakte Koordinaten werden nie gezeigt.',
+  'poll.heatmapPrivacy':
+    'Diese Karte zeigt nur aggregierte, unscharfe Bereiche; exakte Koordinaten werden nie gezeigt.',
   'poll.heatmapLoading': 'Heatmap wird geladen…',
   'poll.heatmapError': 'Heatmap-Daten konnten nicht geladen werden.',
   'poll.heatmapEmpty': 'Noch keine Heatmap-Daten vorhanden.',
@@ -570,7 +616,8 @@ const deOverrides = {
   'poll.replaySpeed': 'Geschwindigkeit',
   'poll.replayTimelineAria': 'Wiedergabe-Zeitleiste',
   'poll.replayVotesShown': '{shown} von {total} Stimmen angezeigt',
-  'poll.replayActiveHint': 'Wiedergabe ist verfügbar, sobald die Umfrage abgeschlossen ist (abgelaufen, gesperrt, veröffentlicht oder archiviert).',
+  'poll.replayActiveHint':
+    'Wiedergabe ist verfügbar, sobald die Umfrage abgeschlossen ist (abgelaufen, gesperrt, veröffentlicht oder archiviert).',
   'poll.metricsTitle': 'Umfrage-Metriken',
   'poll.metrics.votesLast5mVelocity': 'Stimmen letzte 5 Min.: {count}',
   'poll.metrics.lifetimeVelocity': 'Tempo (Lebenszeit): {value}',
@@ -586,7 +633,8 @@ const deOverrides = {
   'poll.metrics.weekdayAxis': 'Reihenfolge: {days} (UTC)',
   'poll.state.label': 'Zustand',
   'poll.simulationBadge': 'Simuliert',
-  'poll.simulationNotice': 'Dies sind Simulationsdaten für Tests und Demos; nicht als Beleg für echte Stimmen verwenden.',
+  'poll.simulationNotice':
+    'Dies sind Simulationsdaten für Tests und Demos; nicht als Beleg für echte Stimmen verwenden.',
   'poll.instructions.vote': 'Wähle unten eine Option, um abzustimmen.',
   'poll.instructions.multi': 'Wähle eine oder mehrere Optionen und tippe auf „Stimme abgeben“.',
   'poll.submitMultiVote': 'Stimme abgeben',
@@ -617,13 +665,16 @@ const deOverrides = {
   'poll.totalVotes': 'Gesamtstimmen: {count}',
   'about.docTitle': 'Über',
   'about.title': 'Ueber asking-ng',
-  'about.p1': 'Strawpoll-artige Umfragen mit schlanker Admin-Oberflaeche, Audit-Logs und Postgres-Speicherung. Inspiriert von',
+  'about.p1':
+    'Strawpoll-artige Umfragen mit schlanker Admin-Oberflaeche, Audit-Logs und Postgres-Speicherung. Inspiriert von',
   'about.p1.link': 'Projekt jdleo/asking',
   'about.bullet.api': 'Oeffentliche API: /poll, /healthcheck, /ready, /info, /api-docs',
-  'about.bullet.llm': 'Optionales LLM-Proxy: /llm/status, /llm/v1/models, /llm/v1/chat/completions.',
+  'about.bullet.llm':
+    'Optionales LLM-Proxy: /llm/status, /llm/v1/models, /llm/v1/chat/completions.',
   'about.bullet.admin': 'Admin-Routen: /admin/* (Token in x-admin-token)',
   'about.bullet.caddy': 'Hinter Caddy: API auf /api mounten und VITE_API_BASE=/api setzen.',
-  'about.accessibility': 'Barrierefreiheit: Themen, hoher Kontrast, gut lesbare Schrift und Farbseh-Simulationen.',
+  'about.accessibility':
+    'Barrierefreiheit: Themen, hoher Kontrast, gut lesbare Schrift und Farbseh-Simulationen.',
   'about.cta.create': 'Umfrage erstellen',
   'about.cta.dev': 'API-/LLM-Tools',
   'about.section.stack': 'Funktionen und Endpunkte',
@@ -692,18 +743,23 @@ const deOverrides = {
   'admin.exportDone': 'Download gestartet: {file}',
   'admin.exporting': 'Export laeuft…',
   'admin.exportErr': 'Download fehlgeschlagen.',
-  'admin.export.accessDenied': 'Zugriff verweigert: Nur Admin oder Superadmin duerfen Daten exportieren.',
+  'admin.export.accessDenied':
+    'Zugriff verweigert: Nur Admin oder Superadmin duerfen Daten exportieren.',
   'admin.export.title': 'Daten exportieren',
-  'admin.export.subtitle': 'Lade vollstaendige Snapshots fuer Backups, Compliance und Migrationen herunter.',
-  'admin.export.intro': 'Exporte koennen personenbezogene oder sensible Betriebsdaten enthalten. Behandle sie wie Produktionsgeheimnisse: verschluesselt speichern, nur eng teilen und Kopien loeschen, wenn sie nicht mehr gebraucht werden.',
-  'admin.export.flowHint': 'Jeder Download startet sofort im Browser. Dateinamen enthalten das Exportdatum (Ortszeit).',
+  'admin.export.subtitle':
+    'Lade vollstaendige Snapshots fuer Backups, Compliance und Migrationen herunter.',
+  'admin.export.intro':
+    'Exporte koennen personenbezogene oder sensible Betriebsdaten enthalten. Behandle sie wie Produktionsgeheimnisse: verschluesselt speichern, nur eng teilen und Kopien loeschen, wenn sie nicht mehr gebraucht werden.',
+  'admin.export.flowHint':
+    'Jeder Download startet sofort im Browser. Dateinamen enthalten das Exportdatum (Ortszeit).',
   'admin.export.sectionTitle': 'Datensaetze',
   'admin.export.usersTitle': 'Benutzer',
   'admin.export.usersDesc': 'Verzeichniskonten, Rollen und Aktivierungsstatus.',
   'admin.export.pollsTitle': 'Umfragen',
   'admin.export.pollsDesc': 'Umfragedefinitionen, Optionen, Phasen und zugehoerige Metadaten.',
   'admin.export.auditTitle': 'Audit-Logs',
-  'admin.export.auditDesc': 'Admin-Aktionen und sicherheitsrelevante Ereignisse (bei aktiven Instanzen ggf. sehr gross).',
+  'admin.export.auditDesc':
+    'Admin-Aktionen und sicherheitsrelevante Ereignisse (bei aktiven Instanzen ggf. sehr gross).',
   'admin.export.formatCsv': 'CSV-Format',
   'admin.export.formatJson': 'JSON-Format',
   'admin.export.ariaDownload': '{dataset} als {format} herunterladen',
@@ -806,7 +862,8 @@ const deOverrides = {
   'admin.polls.confirmBulkDelete': 'Ausgewaehlte Umfragen loeschen?',
   'admin.polls.errBulk': 'Sammelaktion bei {id} fehlgeschlagen',
   'admin.polls.simulationBadge': 'Testmodus',
-  'admin.users.accessDenied': 'Zugriff verweigert: Nur Admin oder Superadmin duerfen Benutzer verwalten.',
+  'admin.users.accessDenied':
+    'Zugriff verweigert: Nur Admin oder Superadmin duerfen Benutzer verwalten.',
   'admin.users.heading': 'Benutzer',
   'admin.users.pageSubtitle': '{shown} von {total} Benutzern (nach Filtern)',
   'admin.users.refresh': 'Aktualisieren',
@@ -890,7 +947,8 @@ const deOverrides = {
   'admin.users.errActivate': 'Benutzer konnte nicht aktiviert werden',
   'admin.users.confirmDelete': 'Benutzer {id} loeschen?',
   'admin.users.appSessionTitle': 'App-Anmeldung (Superadmin-Verwaltung)',
-  'admin.users.appSessionIntro': 'Das Admin-Token kann keinen zweiten Superadmin anlegen. Melde dich mit Benutzername und Passwort eines bestehenden Superadmins an, damit diese Seite die App-API in deinem Namen aufrufen kann.',
+  'admin.users.appSessionIntro':
+    'Das Admin-Token kann keinen zweiten Superadmin anlegen. Melde dich mit Benutzername und Passwort eines bestehenden Superadmins an, damit diese Seite die App-API in deinem Namen aufrufen kann.',
   'admin.users.appSessionUsername': 'Benutzername',
   'admin.users.appSessionPassword': 'Passwort',
   'admin.users.appSessionSignIn': 'Anmelden',
@@ -898,12 +956,17 @@ const deOverrides = {
   'admin.users.appSessionSignOut': 'App-Sitzung abmelden',
   'admin.users.appSessionSignedIn': 'App-API-Sitzung: {user} ({role})',
   'admin.users.appSessionErrLogin': 'App-Anmeldung fehlgeschlagen.',
-  'admin.users.appSessionErrLoginNotSuperadmin': 'Dieses Konto ist kein Superadmin. Melde dich mit einem Superadmin-Benutzer an.',
-  'admin.users.appSessionErrNotSuperadmin': 'Die gespeicherte App-Sitzung ist kein Superadmin; bitte erneut anmelden.',
-  'admin.users.errNeedAppSession': 'Melde dich zuerst unter "App-Anmeldung" mit einem Superadmin-Konto an oder nutze Bootstrap (noch kein Superadmin) ueber das Admin-Token.',
-  'admin.audit.accessDenied': 'Zugriff verweigert: Nur Admin oder Superadmin duerfen Audit-Logs ansehen.',
+  'admin.users.appSessionErrLoginNotSuperadmin':
+    'Dieses Konto ist kein Superadmin. Melde dich mit einem Superadmin-Benutzer an.',
+  'admin.users.appSessionErrNotSuperadmin':
+    'Die gespeicherte App-Sitzung ist kein Superadmin; bitte erneut anmelden.',
+  'admin.users.errNeedAppSession':
+    'Melde dich zuerst unter "App-Anmeldung" mit einem Superadmin-Konto an oder nutze Bootstrap (noch kein Superadmin) ueber das Admin-Token.',
+  'admin.audit.accessDenied':
+    'Zugriff verweigert: Nur Admin oder Superadmin duerfen Audit-Logs ansehen.',
   'admin.audit.heading': 'Audit-Logs',
-  'admin.audit.intro': 'Filter entsprechen der API (Limit 1-500, Standard 100 wenn weggelassen). Nutze Filtern, um die URL zum Teilen zu aktualisieren.',
+  'admin.audit.intro':
+    'Filter entsprechen der API (Limit 1-500, Standard 100 wenn weggelassen). Nutze Filtern, um die URL zum Teilen zu aktualisieren.',
   'admin.audit.placeholderAction': 'Aktion',
   'admin.audit.filterAction': 'Nach Aktion filtern',
   'admin.audit.placeholderActor': 'Akteur',
@@ -925,12 +988,15 @@ const deOverrides = {
   'admin.audit.colActor': 'Akteur',
   'admin.audit.colTarget': 'Ziel',
   'admin.audit.colTime': 'Zeit',
-  'admin.status.accessDenied': 'Zugriff verweigert: Nur Admin oder Superadmin duerfen den Systemstatus ansehen.',
+  'admin.status.accessDenied':
+    'Zugriff verweigert: Nur Admin oder Superadmin duerfen den Systemstatus ansehen.',
   'admin.status.heading': 'Systemstatus',
-  'admin.status.subtitle': 'Health-Checks, anonyme Build-Metadaten, authentifizierte Datenzaehlungen und Geolokalisierung der Abstimmungs-Heatmap.',
+  'admin.status.subtitle':
+    'Health-Checks, anonyme Build-Metadaten, authentifizierte Datenzaehlungen und Geolokalisierung der Abstimmungs-Heatmap.',
   'admin.status.errLoad': 'Systemstatus konnte nicht geladen werden',
   'admin.status.sectionHealth': 'Dienstgesundheit',
-  'admin.status.sectionHealthHint': 'Oeffentliche Endpunkte fuer Load-Balancer und Uptime-Pruefungen. Liveness kann erfolgreich sein, waehrend Readiness bei fehlenden Abhaengigkeiten scheitert.',
+  'admin.status.sectionHealthHint':
+    'Oeffentliche Endpunkte fuer Load-Balancer und Uptime-Pruefungen. Liveness kann erfolgreich sein, waehrend Readiness bei fehlenden Abhaengigkeiten scheitert.',
   'admin.status.sectionBuild': 'API-Build und Laufzeit',
   'admin.status.sectionBuildHint': 'Nicht sensible Metadaten von GET /info (ohne Auth).',
   'admin.status.sectionData': 'Daten-Snapshot',
@@ -949,7 +1015,8 @@ const deOverrides = {
   'admin.status.readiness': 'Readiness-Probe',
   'admin.status.requestFailed': 'Anfrage fehlgeschlagen',
   'admin.status.ok': 'Verfuegbar ({status})',
-  'admin.status.readinessFailTitle': 'Readiness-Fehler (gleiches JSON-Fehlerformat wie andere Routen)',
+  'admin.status.readinessFailTitle':
+    'Readiness-Fehler (gleiches JSON-Fehlerformat wie andere Routen)',
   'admin.status.unavailable': 'Nicht verfuegbar ({status})',
   'admin.status.usersTitle': 'Benutzer gesamt',
   'admin.status.pollsTitle': 'Umfragen gesamt',
@@ -963,13 +1030,15 @@ const deOverrides = {
   'admin.status.httpError': 'HTTP-Fehler {status}',
   'admin.status.healthUnexpectedTitle': 'Nicht-2xx oder unerwarteter Body',
   'admin.status.voteGeoHeading': 'Abstimmungs-Geolokalisierungs-Heatmap',
-  'admin.status.voteGeoDesc': 'Wenn aktiviert, kann die API ungefaehre Abstimmungskoordinaten fuer Heatmaps speichern. Pruefe vor dem Aktivieren, ob das zu deiner Datenschutzrichtlinie passt.',
+  'admin.status.voteGeoDesc':
+    'Wenn aktiviert, kann die API ungefaehre Abstimmungskoordinaten fuer Heatmaps speichern. Pruefe vor dem Aktivieren, ob das zu deiner Datenschutzrichtlinie passt.',
   'admin.status.voteGeoEnabled': 'Aktiviert',
   'admin.status.voteGeoDisabled': 'Deaktiviert',
   'admin.status.voteGeoEnable': 'Abstimmungs-Geolokalisierung aktivieren',
   'admin.status.voteGeoDisable': 'Abstimmungs-Geolokalisierung deaktivieren',
   'admin.status.voteGeoSaving': 'Speichere…',
-  'admin.status.voteGeoErr': 'Einstellung fuer Abstimmungs-Geolokalisierung konnte nicht aktualisiert werden.',
+  'admin.status.voteGeoErr':
+    'Einstellung fuer Abstimmungs-Geolokalisierung konnte nicht aktualisiert werden.',
   'admin.status.sectionTrust': 'Vertrauen und Moderation',
   'admin.status.sectionTrustHint':
     'Globale Quarantaene-Rollups (ausstehende Pruefung durch Besitzer), Moderationsentscheidungen in den letzten 24 Stunden und Stimmzeilen nach angemeldet vs. anonym geteilt.',
@@ -991,7 +1060,8 @@ const deOverrides = {
   'admin.dashboard.export': 'Daten exportieren',
   'admin.dashboard.status': 'Systemstatus',
   'admin.dashboard.impersonate': 'Benutzer imitieren',
-  'admin.dashboard.subtitle': 'Nutzung ueberwachen, Onboarding-Pruefungen abschliessen und schnell zu den wichtigsten Tools springen.',
+  'admin.dashboard.subtitle':
+    'Nutzung ueberwachen, Onboarding-Pruefungen abschliessen und schnell zu den wichtigsten Tools springen.',
   'admin.dashboard.kpi.heading': 'Schluesselmetriken',
   'admin.dashboard.kpi.usersTotal': 'Benutzerkonten',
   'admin.dashboard.kpi.usersActive': 'Aktive Benutzer',
@@ -1031,20 +1101,23 @@ const deOverrides = {
   'admin.dashboard.setup.status.pending': 'Offen',
   'admin.dashboard.quick.title': 'Schnellaktionen',
   'admin.dashboard.quick.users.desc': 'Suche, Rollen, Aktivierung und Sammelaktionen',
-  'admin.dashboard.quick.polls.desc': 'Umfragen erstellen, archivieren, Stimmen resetten, Details pruefen',
+  'admin.dashboard.quick.polls.desc':
+    'Umfragen erstellen, archivieren, Stimmen resetten, Details pruefen',
   'admin.dashboard.quick.audit.desc': 'Admin-Aktionen mit teilbaren URLs filtern',
   'admin.dashboard.quick.export.desc': 'CSV- und JSON-Exporte fuer Compliance-Backups',
   'admin.dashboard.quick.status.desc': 'Live-Probes, Build-Info und Abstimmungs-Heatmap-Schalter',
   'admin.dashboard.quick.impersonate.desc': 'Als anderer Benutzer anmelden fuer Support',
   'admin.dashboard.quick.developer.desc': 'OpenAPI-Schema, Probes und LLM-Tools',
   'admin.dashboard.simulation.title': 'Testsimulation',
-  'admin.dashboard.simulation.subtitle': 'Testbenutzer, Umfragen und Stimmen erzeugen, um Dashboard- und Moderationsablaeufe ohne echten Traffic zu pruefen.',
+  'admin.dashboard.simulation.subtitle':
+    'Testbenutzer, Umfragen und Stimmen erzeugen, um Dashboard- und Moderationsablaeufe ohne echten Traffic zu pruefen.',
   'admin.dashboard.simulation.users': 'Zu erstellende Benutzer',
   'admin.dashboard.simulation.polls': 'Zu erstellende Umfragen',
   'admin.dashboard.simulation.votes': 'Stimmen pro Umfrage',
   'admin.dashboard.simulation.run': 'Simulation ausfuehren',
   'admin.dashboard.simulation.running': 'Simulation laeuft…',
-  'admin.dashboard.simulation.done': '{users} Benutzer, {polls} Umfragen und {votes} Stimmen erstellt.',
+  'admin.dashboard.simulation.done':
+    '{users} Benutzer, {polls} Umfragen und {votes} Stimmen erstellt.',
   'admin.dashboard.simulation.err': 'Simulation fehlgeschlagen.',
   'admin.login.title': 'Admin-Anmeldung',
   'admin.login.sessionCheck': 'Admin-Sitzung wird geprueft…',
@@ -1061,27 +1134,36 @@ const deOverrides = {
   'admin.login.firstRunGuide.step1': 'Melde dich mit deinem `ADMIN_TOKEN` an.',
   'admin.login.firstRunGuide.step2': 'Falls abgefragt, erstelle das erste Superadmin-Konto.',
   'admin.login.firstRunGuide.step3': 'Oeffne Benutzer und bestaetige dein Bootstrap-Admin-Konto.',
-  'admin.login.firstRunGuide.step4': 'Erstelle eine Test-Umfrage und gib eine Stimme auf der oeffentlichen Seite ab.',
-  'admin.login.firstRunGuide.step5': 'Oeffne Systemstatus und bestaetige gruene Health-/Readiness-Probes.',
+  'admin.login.firstRunGuide.step4':
+    'Erstelle eine Test-Umfrage und gib eine Stimme auf der oeffentlichen Seite ab.',
+  'admin.login.firstRunGuide.step5':
+    'Oeffne Systemstatus und bestaetige gruene Health-/Readiness-Probes.',
   'admin.login.firstRunGuide.diagnosticsPrefix': 'API-Diagnose ebenfalls noetig? Besuche',
   'admin.login.firstRunGuide.diagnosticsLink': 'API / LLM-Tools',
-  'admin.login.bootstrap.noAdmin': 'Es gibt noch kein Admin-Konto. Erstelle unten den ersten Superadmin und fahre dann mit dem Dashboard fort.',
-  'admin.login.bootstrap.errInvalidInput': 'Gueltigen Benutzernamen und Passwort eingeben (mindestens 8 Zeichen).',
+  'admin.login.bootstrap.noAdmin':
+    'Es gibt noch kein Admin-Konto. Erstelle unten den ersten Superadmin und fahre dann mit dem Dashboard fort.',
+  'admin.login.bootstrap.errInvalidInput':
+    'Gueltigen Benutzernamen und Passwort eingeben (mindestens 8 Zeichen).',
   'admin.login.bootstrap.errCreateFail': 'Erstes Admin-Konto konnte nicht erstellt werden.',
   'admin.login.bootstrap.ariaSection': 'Erstes Admin-Konto erstellen',
   'admin.login.bootstrap.title': 'Erstes Admin-Konto erstellen',
-  'admin.login.bootstrap.intro': 'Es gibt noch keine Admin-Benutzer. Dieser einmalige Schritt erstellt den ersten Superadmin mit dem eingegebenen Admin-Token.',
+  'admin.login.bootstrap.intro':
+    'Es gibt noch keine Admin-Benutzer. Dieser einmalige Schritt erstellt den ersten Superadmin mit dem eingegebenen Admin-Token.',
   'admin.login.bootstrap.ariaForm': 'Formular erstes Admin-Konto',
   'admin.login.bootstrap.homelab-userPlaceholder': 'Benutzername',
   'admin.login.bootstrap.passwordPlaceholder': 'Passwort (mindestens 8 Zeichen)',
   'admin.login.bootstrap.creating': 'Erstelle…',
   'admin.login.bootstrap.create': 'Superadmin erstellen',
-  'admin.impersonate.accessDenied': 'Zugriff verweigert: Nur Superadmin duerfen Benutzer imitieren.',
+  'admin.impersonate.accessDenied':
+    'Zugriff verweigert: Nur Superadmin duerfen Benutzer imitieren.',
   'admin.impersonate.title': 'Benutzer imitieren',
-  'admin.impersonate.subtitle': 'JWT mit kurzer Laufzeit ausstellen, das fuer Debugging und Support als Zielbenutzer agiert (wie Passwort behandeln).',
-  'admin.impersonate.intro': 'Jeder mit dem Token kann bis zum Ablauf API-Aktionen als dieser Benutzer ausfuehren. Nicht in Chats, Tickets oder Logs einfügen; widerrufen durch Ablauf abwarten oder Server-Secrets laut Runbook rotieren.',
+  'admin.impersonate.subtitle':
+    'JWT mit kurzer Laufzeit ausstellen, das fuer Debugging und Support als Zielbenutzer agiert (wie Passwort behandeln).',
+  'admin.impersonate.intro':
+    'Jeder mit dem Token kann bis zum Ablauf API-Aktionen als dieser Benutzer ausfuehren. Nicht in Chats, Tickets oder Logs einfügen; widerrufen durch Ablauf abwarten oder Server-Secrets laut Runbook rotieren.',
   'admin.impersonate.sectionRequest': 'Token anfordern',
-  'admin.impersonate.sectionRequestHint': 'Nutze die numerische Benutzer-ID aus dem Benutzerverzeichnis (erste Spalte). Der Benutzer muss bereits existieren.',
+  'admin.impersonate.sectionRequestHint':
+    'Nutze die numerische Benutzer-ID aus dem Benutzerverzeichnis (erste Spalte). Der Benutzer muss bereits existieren.',
   'admin.impersonate.labelUserId': 'Benutzer-ID',
   'admin.impersonate.ariaForm': 'Formular Benutzer-Imitation',
   'admin.impersonate.placeholderUserId': 'z. B. 42',
@@ -1090,7 +1172,8 @@ const deOverrides = {
   'admin.impersonate.submitAria': 'Imitations-Token anfordern',
   'admin.impersonate.generating': 'Stelle aus…',
   'admin.impersonate.tokenTitle': 'Imitations-Token',
-  'admin.impersonate.tokenHint': 'Als Authorization: Bearer fuer App-API-Routen senden, die Benutzer-JWT akzeptieren. Einmal kopieren und sicher speichern.',
+  'admin.impersonate.tokenHint':
+    'Als Authorization: Bearer fuer App-API-Routen senden, die Benutzer-JWT akzeptieren. Einmal kopieren und sicher speichern.',
   'admin.impersonate.jwtAria': 'Imitations-JWT-Token',
   'admin.impersonate.copyToken': 'Token kopieren',
   'admin.impersonate.dismissToken': 'Vom Bildschirm entfernen',
@@ -1101,7 +1184,8 @@ const deOverrides = {
   'developer.docTitle': 'Entwickler: API / LLM',
   'developer.title': 'API- und LLM-Tools',
   'developer.introBefore': 'Verwendet dieselbe API-Basis wie die App (',
-  'developer.introBetween': '). Dokumentation oeffnet in neuem Tab; lokales LLM optional, wenn der Server ',
+  'developer.introBetween':
+    '). Dokumentation oeffnet in neuem Tab; lokales LLM optional, wenn der Server ',
   'developer.introAfter': ' konfiguriert hat.',
   'developer.sectionOpenApi': 'OpenAPI-Dokumentation',
   'developer.openApiLink': 'Swagger UI oeffnen (/api-docs)',
@@ -1271,7 +1355,8 @@ const deOverrides = {
   'terms.section.availability.title': 'Verfuegbarkeit',
   'terms.section.availability.body': 'Der Dienst kann sich aendern oder ausfallen.',
   'terms.section.indemnity.title': 'Freistellung',
-  'terms.section.indemnity.body': 'Du stellst uns bei Anspruechen aus missbraeuchlicher Nutzung frei.',
+  'terms.section.indemnity.body':
+    'Du stellst uns bei Anspruechen aus missbraeuchlicher Nutzung frei.',
   'terms.section.liability.title': 'Haftungsbeschraenkung',
   'terms.section.liability.body': 'Haftung ist im gesetzlich zulaessigen Rahmen begrenzt.',
   'terms.section.law.title': 'Anwendbares Recht',
@@ -1323,7 +1408,8 @@ const deOverrides = {
   'policy.section.contact.intro': 'Nutze fuer Datenschutzanfragen die offiziellen Kanaele.',
   'policy.contact.securityEmail': 'Sicherheitskontakt: {email}',
   'policy.section.legal.title': 'Rechtsgrundlage',
-  'policy.section.legal.body': 'Verarbeitung basiert auf Vertrag, berechtigtem Interesse oder Einwilligung.',
+  'policy.section.legal.body':
+    'Verarbeitung basiert auf Vertrag, berechtigtem Interesse oder Einwilligung.',
   'policy.section.legal.termsLink': 'Bedingungen ansehen',
   'policy.nav.actions': 'Aktionen auf der Datenschutzseite',
   'policy.cta.home': 'Zur Startseite',
@@ -1392,7 +1478,8 @@ const deOverrides = {
   'poll.retentionAutoDeleteOverdueDays': 'Loeschung seit {days} Tagen ueberfaellig',
   'poll.retentionLegalHoldActive': 'Rechtliche Aufbewahrung aktiv',
   'admin.status.sectionRetention': 'Datenaufbewahrung',
-  'admin.status.sectionRetentionHint': 'Konfiguration und Status automatischer Aufbewahrungsregeln.',
+  'admin.status.sectionRetentionHint':
+    'Konfiguration und Status automatischer Aufbewahrungsregeln.',
   'admin.status.retentionPollDefault': 'Standard-Aufbewahrung fuer Umfragen',
   'admin.status.retentionSweepInterval': 'Aufbewahrungs-Sweep-Intervall',
   'admin.status.retentionSweepBatch': 'Sweep-Batch-Groesse',
@@ -1404,7 +1491,8 @@ const deOverrides = {
 
   'admin.status.retentionAuditLogsLegalHold': 'Audit-Aufbewahrung mit Legal Hold',
   'admin.status.retentionRejectedVotesLegalHold': 'Aufbewahrung abgelehnter Stimmen mit Legal Hold',
-  'admin.dashboard.kpi.retentionLegalHoldOn': 'Legal Hold aktiv',  'admin.dashboard.kpi.retentionPollDefault': 'Standard-Aufbewahrung',
+  'admin.dashboard.kpi.retentionLegalHoldOn': 'Legal Hold aktiv',
+  'admin.dashboard.kpi.retentionPollDefault': 'Standard-Aufbewahrung',
   'admin.dashboard.kpi.retentionAuditLogs': 'Audit-Aufbewahrung',
   'admin.dashboard.kpi.retentionRejectedVotesMeta': 'Bereinigung abgelehnter Stimmen: {days} Tage',
   'developer.upgradeCta': 'Plan upgraden',

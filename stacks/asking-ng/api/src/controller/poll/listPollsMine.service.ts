@@ -1,6 +1,6 @@
 import type { ListPollsMineQuery } from '@asking-ng/contracts/poll';
-import type { AppRequest } from '../../types/http';
 import { getRequestContext } from '../../lib/requestContext';
+import type { AppRequest } from '../../types/http';
 import {
   getPollAndVoteColumns,
   listPollRows,
@@ -67,7 +67,7 @@ export async function buildPollsMineView(
 
   const { rows, count } = await listPollRows({
     uid,
-    runOfShowKey: run_of_show_key,
+    ...(run_of_show_key ? { runOfShowKey: run_of_show_key } : {}),
     sort,
     limit,
     offset,
@@ -75,8 +75,14 @@ export async function buildPollsMineView(
   });
 
   const pollIds = rows.map((p) => String(p.get('id')));
-  const { voteMetricsRows, peakHourRows, peakDowRows, optionFunnelRows, voteHourBinRows, voteDowBinRows } =
-    await listPollVoteMetrics(pollIds, voteColumns);
+  const {
+    voteMetricsRows,
+    peakHourRows,
+    peakDowRows,
+    optionFunnelRows,
+    voteHourBinRows,
+    voteDowBinRows,
+  } = await listPollVoteMetrics(pollIds, voteColumns);
 
   const byPollId = new Map(voteMetricsRows.map((row) => [row.poll_id, row]));
   const peakHourByPollId = new Map(peakHourRows.map((row) => [row.poll_id, row]));
@@ -134,12 +140,10 @@ export async function buildPollsMineView(
     const votesLast5m = Number(row?.votes_last_5m ?? 0) || 0;
     const votesLast24h = Number(row?.votes_last_24h ?? 0) || 0;
     const impressionCount = Number(p.get('impressionCount')) || 0;
-    const viewsByHourRaw = (p.get('viewEventsByHour') as Record<string, unknown> | null | undefined) ?? {};
+    const viewsByHourRaw =
+      (p.get('viewEventsByHour') as Record<string, unknown> | null | undefined) ?? {};
     const minHourKey = Number(
-      new Date(nowMs - 24 * 3600 * 1000)
-        .toISOString()
-        .slice(0, 13)
-        .replace(/[-T:]/g, ''),
+      new Date(nowMs - 24 * 3600 * 1000).toISOString().slice(0, 13).replace(/[-T:]/g, ''),
     );
     const viewsLast24h = Object.entries(viewsByHourRaw)
       .filter(([k]) => /^\d{10}$/.test(k) && Number(k) >= minHourKey)
@@ -187,14 +191,21 @@ export async function buildPollsMineView(
     const pid = String(p.get('id'));
     const expiration = Number(p.get('expiration')) || 0;
     const retentionTtlDays =
-      p.get('retentionTtlDays') == null ? null : Math.max(1, Number(p.get('retentionTtlDays')) || 0);
+      p.get('retentionTtlDays') == null
+        ? null
+        : Math.max(1, Number(p.get('retentionTtlDays')) || 0);
     const retentionLegalHold = p.get('retentionLegalHold') === true;
     const autoDeleteAtMs =
-      !retentionLegalHold && retentionTtlDays != null && Number.isFinite(expiration) && expiration > 0
+      !retentionLegalHold &&
+      retentionTtlDays != null &&
+      Number.isFinite(expiration) &&
+      expiration > 0
         ? expiration + retentionTtlDays * 24 * 60 * 60 * 1000
         : null;
-    const hourlyVotesByHourUtc = hourlyVotesByPollId.get(pid) ?? Array.from({ length: 24 }, () => 0);
-    const weekdayVotesByDowUtc = weekdayVotesByPollId.get(pid) ?? Array.from({ length: 7 }, () => 0);
+    const hourlyVotesByHourUtc =
+      hourlyVotesByPollId.get(pid) ?? Array.from({ length: 24 }, () => 0);
+    const weekdayVotesByDowUtc =
+      weekdayVotesByPollId.get(pid) ?? Array.from({ length: 7 }, () => 0);
     const configuredOptions = ((p.get('options') as string[] | null | undefined) ?? [])
       .filter((opt) => typeof opt === 'string' && opt.trim() !== '')
       .map((opt) => opt.trim());
@@ -240,8 +251,7 @@ export async function buildPollsMineView(
               include_owner_events?: boolean;
             }>
           | null
-          | undefined) ??
-        []
+          | undefined) ?? []
       )
         .map((t) => ({
           url: typeof t?.url === 'string' ? t.url.trim() : '',

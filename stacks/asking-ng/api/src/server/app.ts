@@ -1,20 +1,29 @@
 import { randomUUID } from 'node:crypto';
-import fastify, { type FastifyInstance } from 'fastify';
 import fastifyCompress from '@fastify/compress';
 import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifyUnderPressure from '@fastify/under-pressure';
+import fastify, { type FastifyInstance } from 'fastify';
 import pkg from '../../package.json';
-import { appEnv } from '../lib/env';
-import { billingApiRateLimitErrorBody, billingHttpRateLimitKey, billingHttpRateLimitMax, billingHttpRateLimitWindowMs } from '../lib/billingHttpRateLimit';
 import { recordBillingApiRateLimited } from '../lib/billingApiRateLimitLedger';
-import { observeHttpRequest, observeIntegrationEvent, renderPrometheusMetrics } from '../lib/metrics';
+import {
+  billingApiRateLimitErrorBody,
+  billingHttpRateLimitKey,
+  billingHttpRateLimitMax,
+  billingHttpRateLimitWindowMs,
+} from '../lib/billingHttpRateLimit';
+import { appEnv } from '../lib/env';
 import { sharedLoggerOptions } from '../lib/logConfig';
+import {
+  observeHttpRequest,
+  observeIntegrationEvent,
+  renderPrometheusMetrics,
+} from '../lib/metrics';
 import sequelize from '../models';
 import { fastifyAdminRoutes } from './admin';
-import { fastifyBillingRoutes } from './billing';
 import { fastifyBaseRoutes } from './base';
+import { fastifyBillingRoutes } from './billing';
 import { registerFastifyErrorHandling } from './errorHandling';
 import { fastifyLlmRoutes } from './llm';
 import { fastifyPollRoutes } from './poll';

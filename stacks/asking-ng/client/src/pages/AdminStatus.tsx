@@ -125,7 +125,10 @@ export default function AdminStatus() {
   const { admin } = useAdmin();
   const queryClient = useQueryClient();
 
-  const canView = !!(admin && (admin.role === 'mod' || admin.role === 'admin' || admin.role === 'superadmin'));
+  const canView = !!(
+    admin &&
+    (admin.role === 'mod' || admin.role === 'admin' || admin.role === 'superadmin')
+  );
   const canManageVoteGeo = !!(admin && (admin.role === 'admin' || admin.role === 'superadmin'));
 
   const statusQuery = useQuery({
@@ -246,7 +249,10 @@ export default function AdminStatus() {
   }
 
   return (
-    <div className='asking-admin-shell asking-admin-status-page asking-admin-page__cq-root' id='asking-admin-status-page'>
+    <div
+      className='asking-admin-shell asking-admin-status-page asking-admin-page__cq-root'
+      id='asking-admin-status-page'
+    >
       <PageHeader
         className='asking-admin-page__header'
         titleId='asking-admin-status-page__title'
@@ -270,86 +276,94 @@ export default function AdminStatus() {
           hint={t('admin.status.sectionHealthHint')}
           bodyClassName='asking-admin-page__card asking-admin-status-page__probe-card'
         >
-            <div className='asking-admin-status-page__probe-grid'>
-              <div
-                className={`asking-admin-status-page__probe-tile asking-admin-status-page__probe-tile--${healthTone}`}
-                aria-label={t('admin.status.liveness')}
-              >
-                <div className='asking-admin-status-page__probe-head'>
-                  <span className='asking-admin-status-page__probe-name'>{t('admin.status.liveness')}</span>
-                  <code className='asking-admin-status-page__probe-route'>
-                    {t('admin.status.livenessRoute')}
-                  </code>
-                </div>
-                <div className='asking-admin-status-page__probe-value'>
-                  {healthQuery.isPending ? (
-                    <span className='asking-admin-status-page__probe-pending'>{t('admin.status.pending')}</span>
-                  ) : healthQuery.isError ? (
-                    <span className='asking-admin-page__status asking-admin-page__status--error'>
-                      {errMsg(healthQuery.error, t('admin.status.requestFailed'))}
-                    </span>
-                  ) : healthQuery.data?.ok ? (
-                    <span className='asking-admin-page__status asking-admin-page__status--success'>
-                      {t('admin.status.ok', {
-                        status: formatLocaleInteger(healthQuery.data.status, localeTag),
-                      })}
-                    </span>
-                  ) : (
-                    <span
-                      className='asking-admin-page__status asking-admin-page__status--error'
-                      title={t('admin.status.healthUnexpectedTitle')}
-                    >
-                      {healthFail ??
-                        t('admin.status.httpError', {
-                          status:
-                            healthQuery.data?.status != null
-                              ? formatLocaleInteger(healthQuery.data.status, localeTag)
-                              : '—',
-                        })}
-                    </span>
-                  )}
-                </div>
+          <div className='asking-admin-status-page__probe-grid'>
+            <div
+              className={`asking-admin-status-page__probe-tile asking-admin-status-page__probe-tile--${healthTone}`}
+              aria-label={t('admin.status.liveness')}
+            >
+              <div className='asking-admin-status-page__probe-head'>
+                <span className='asking-admin-status-page__probe-name'>
+                  {t('admin.status.liveness')}
+                </span>
+                <code className='asking-admin-status-page__probe-route'>
+                  {t('admin.status.livenessRoute')}
+                </code>
               </div>
-              <div
-                className={`asking-admin-status-page__probe-tile asking-admin-status-page__probe-tile--${readyTone}`}
-                aria-label={t('admin.status.readiness')}
-              >
-                <div className='asking-admin-status-page__probe-head'>
-                  <span className='asking-admin-status-page__probe-name'>{t('admin.status.readiness')}</span>
-                  <code className='asking-admin-status-page__probe-route'>
-                    {t('admin.status.readinessRoute')}
-                  </code>
-                </div>
-                <div className='asking-admin-status-page__probe-value'>
-                  {readyQuery.isPending ? (
-                    <span className='asking-admin-status-page__probe-pending'>{t('admin.status.pending')}</span>
-                  ) : readyQuery.isError ? (
-                    <span className='asking-admin-page__status asking-admin-page__status--error'>
-                      {errMsg(readyQuery.error, t('admin.status.requestFailed'))}
-                    </span>
-                  ) : readyQuery.data?.ok ? (
-                    <span className='asking-admin-page__status asking-admin-page__status--success'>
-                      {t('admin.status.ok', {
-                        status: formatLocaleInteger(readyQuery.data.status, localeTag),
+              <div className='asking-admin-status-page__probe-value'>
+                {healthQuery.isPending ? (
+                  <span className='asking-admin-status-page__probe-pending'>
+                    {t('admin.status.pending')}
+                  </span>
+                ) : healthQuery.isError ? (
+                  <span className='asking-admin-page__status asking-admin-page__status--error'>
+                    {errMsg(healthQuery.error, t('admin.status.requestFailed'))}
+                  </span>
+                ) : healthQuery.data?.ok ? (
+                  <span className='asking-admin-page__status asking-admin-page__status--success'>
+                    {t('admin.status.ok', {
+                      status: formatLocaleInteger(healthQuery.data.status, localeTag),
+                    })}
+                  </span>
+                ) : (
+                  <span
+                    className='asking-admin-page__status asking-admin-page__status--error'
+                    title={t('admin.status.healthUnexpectedTitle')}
+                  >
+                    {healthFail ??
+                      t('admin.status.httpError', {
+                        status:
+                          healthQuery.data?.status != null
+                            ? formatLocaleInteger(healthQuery.data.status, localeTag)
+                            : '—',
                       })}
-                    </span>
-                  ) : (
-                    <span
-                      className='asking-admin-page__status asking-admin-page__status--error'
-                      title={t('admin.status.readinessFailTitle')}
-                    >
-                      {readyFail ??
-                        t('admin.status.unavailable', {
-                          status:
-                            readyQuery.data?.status != null
-                              ? formatLocaleInteger(readyQuery.data.status, localeTag)
-                              : '—',
-                        })}
-                    </span>
-                  )}
-                </div>
+                  </span>
+                )}
               </div>
             </div>
+            <div
+              className={`asking-admin-status-page__probe-tile asking-admin-status-page__probe-tile--${readyTone}`}
+              aria-label={t('admin.status.readiness')}
+            >
+              <div className='asking-admin-status-page__probe-head'>
+                <span className='asking-admin-status-page__probe-name'>
+                  {t('admin.status.readiness')}
+                </span>
+                <code className='asking-admin-status-page__probe-route'>
+                  {t('admin.status.readinessRoute')}
+                </code>
+              </div>
+              <div className='asking-admin-status-page__probe-value'>
+                {readyQuery.isPending ? (
+                  <span className='asking-admin-status-page__probe-pending'>
+                    {t('admin.status.pending')}
+                  </span>
+                ) : readyQuery.isError ? (
+                  <span className='asking-admin-page__status asking-admin-page__status--error'>
+                    {errMsg(readyQuery.error, t('admin.status.requestFailed'))}
+                  </span>
+                ) : readyQuery.data?.ok ? (
+                  <span className='asking-admin-page__status asking-admin-page__status--success'>
+                    {t('admin.status.ok', {
+                      status: formatLocaleInteger(readyQuery.data.status, localeTag),
+                    })}
+                  </span>
+                ) : (
+                  <span
+                    className='asking-admin-page__status asking-admin-page__status--error'
+                    title={t('admin.status.readinessFailTitle')}
+                  >
+                    {readyFail ??
+                      t('admin.status.unavailable', {
+                        status:
+                          readyQuery.data?.status != null
+                            ? formatLocaleInteger(readyQuery.data.status, localeTag)
+                            : '—',
+                      })}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </SectionPanel>
 
         <SectionPanel
@@ -359,44 +373,48 @@ export default function AdminStatus() {
           hint={t('admin.status.sectionBuildHint')}
           bodyClassName='asking-admin-page__card'
         >
-            {apiInfoQuery.isPending ? (
-              <Notice as='p' tone='loading' className='asking-admin-status-page__build-pending'>
-                {t('admin.status.pending')}
-              </Notice>
-            ) : apiInfoQuery.isError ? (
-              <Notice as='p' tone='error' className='asking-admin-page__status asking-admin-page__status--error'>
-                {errMsg(apiInfoQuery.error, t('admin.status.buildErr'))}
-              </Notice>
-            ) : apiInfo ? (
-              <dl className='asking-admin-status-page__dl'>
-                <dt>{t('admin.status.buildLabelService')}</dt>
-                <dd>{apiInfo.service}</dd>
-                <dt>{t('admin.status.buildLabelVersion')}</dt>
-                <dd>{apiInfo.version}</dd>
-                {apiInfo.node ? (
-                  <>
-                    <dt>{t('admin.status.buildLabelNode')}</dt>
-                    <dd>{t('admin.status.node', { node: apiInfo.node })}</dd>
-                  </>
-                ) : null}
-                {apiInfo.environment ? (
-                  <>
-                    <dt>{t('admin.status.buildLabelEnv')}</dt>
-                    <dd>{apiInfo.environment}</dd>
-                  </>
-                ) : null}
-                {apiInfo.commit ? (
-                  <>
-                    <dt>{t('admin.status.buildLabelCommit')}</dt>
-                    <dd>
-                      <code title={t('admin.status.commitTitle')}>{apiInfo.commit}</code>
-                    </dd>
-                  </>
-                ) : null}
-              </dl>
-            ) : (
-              <p className='asking-admin-page__help-text'>{t('admin.status.buildEmpty')}</p>
-            )}
+          {apiInfoQuery.isPending ? (
+            <Notice as='p' tone='loading' className='asking-admin-status-page__build-pending'>
+              {t('admin.status.pending')}
+            </Notice>
+          ) : apiInfoQuery.isError ? (
+            <Notice
+              as='p'
+              tone='error'
+              className='asking-admin-page__status asking-admin-page__status--error'
+            >
+              {errMsg(apiInfoQuery.error, t('admin.status.buildErr'))}
+            </Notice>
+          ) : apiInfo ? (
+            <dl className='asking-admin-status-page__dl'>
+              <dt>{t('admin.status.buildLabelService')}</dt>
+              <dd>{apiInfo.service}</dd>
+              <dt>{t('admin.status.buildLabelVersion')}</dt>
+              <dd>{apiInfo.version}</dd>
+              {apiInfo.node ? (
+                <>
+                  <dt>{t('admin.status.buildLabelNode')}</dt>
+                  <dd>{t('admin.status.node', { node: apiInfo.node })}</dd>
+                </>
+              ) : null}
+              {apiInfo.environment ? (
+                <>
+                  <dt>{t('admin.status.buildLabelEnv')}</dt>
+                  <dd>{apiInfo.environment}</dd>
+                </>
+              ) : null}
+              {apiInfo.commit ? (
+                <>
+                  <dt>{t('admin.status.buildLabelCommit')}</dt>
+                  <dd>
+                    <code title={t('admin.status.commitTitle')}>{apiInfo.commit}</code>
+                  </dd>
+                </>
+              ) : null}
+            </dl>
+          ) : (
+            <p className='asking-admin-page__help-text'>{t('admin.status.buildEmpty')}</p>
+          )}
         </SectionPanel>
 
         <SectionPanel
@@ -406,50 +424,56 @@ export default function AdminStatus() {
           hint={t('admin.status.sectionDataHint')}
           bodyClassName='asking-admin-page__card asking-admin-status-page__data-card'
         >
-            <div className='asking-admin-page__kpi-grid asking-admin-status-page__kpi-grid'>
-              <KpiCard title={t('admin.status.usersTitle')}>
-                <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.usersTotal')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status ? formatLocaleInteger(status.users.total, localeTag) : kpiPlaceholder}
+          <div className='asking-admin-page__kpi-grid asking-admin-status-page__kpi-grid'>
+            <KpiCard title={t('admin.status.usersTitle')}>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.dashboard.kpi.usersTotal')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status ? formatLocaleInteger(status.users.total, localeTag) : kpiPlaceholder}
+              </span>
+              {status ? (
+                <span className='asking-admin-page__kpi-meta'>
+                  {t('admin.dashboard.kpi.usersActive')}:{' '}
+                  {formatLocaleInteger(status.users.active, localeTag)}
                 </span>
-                {status ? (
-                  <span className='asking-admin-page__kpi-meta'>
-                    {t('admin.dashboard.kpi.usersActive')}:{' '}
-                    {formatLocaleInteger(status.users.active, localeTag)}
-                  </span>
-                ) : null}
-              </KpiCard>
-              <KpiCard title={t('admin.status.pollsTitle')}>
-                <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.pollsTotal')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status ? formatLocaleInteger(status.polls.total, localeTag) : kpiPlaceholder}
+              ) : null}
+            </KpiCard>
+            <KpiCard title={t('admin.status.pollsTitle')}>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.dashboard.kpi.pollsTotal')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status ? formatLocaleInteger(status.polls.total, localeTag) : kpiPlaceholder}
+              </span>
+              {status ? (
+                <span className='asking-admin-page__kpi-meta'>
+                  {t('admin.dashboard.kpi.pollsMeta', { archived: status.polls.archived })}
                 </span>
-                {status ? (
-                  <span className='asking-admin-page__kpi-meta'>
-                    {t('admin.dashboard.kpi.pollsMeta', { archived: status.polls.archived })}
-                  </span>
-                ) : null}
-              </KpiCard>
-              <KpiCard title={t('admin.status.auditTitle')}>
-                <span className='asking-admin-page__kpi-label'>{t('admin.dashboard.kpi.audit24h')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.auditLogs.last24h, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard title={t('admin.status.tsTitle')}>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.snapshotGenerated')}</span>
-                <span className='asking-admin-page__kpi-value asking-admin-status-page__kpi-ts'>
-                  {status ? formatLocaleDateTime(status.timestamp, localeTag) : kpiPlaceholder}
-                </span>
-              </KpiCard>
-            </div>
-            <p className='asking-admin-status-page__data-footer'>
-              <Link to='/admin/export' className='asking-admin-page__jump-link'>
-                {t('admin.status.linkFullExport')}
-              </Link>
-            </p>
+              ) : null}
+            </KpiCard>
+            <KpiCard title={t('admin.status.auditTitle')}>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.dashboard.kpi.audit24h')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status ? formatLocaleInteger(status.auditLogs.last24h, localeTag) : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard title={t('admin.status.tsTitle')}>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.snapshotGenerated')}
+              </span>
+              <span className='asking-admin-page__kpi-value asking-admin-status-page__kpi-ts'>
+                {status ? formatLocaleDateTime(status.timestamp, localeTag) : kpiPlaceholder}
+              </span>
+            </KpiCard>
+          </div>
+          <p className='asking-admin-status-page__data-footer'>
+            <Link to='/admin/export' className='asking-admin-page__jump-link'>
+              {t('admin.status.linkFullExport')}
+            </Link>
+          </p>
         </SectionPanel>
 
         <SectionPanel
@@ -459,97 +483,131 @@ export default function AdminStatus() {
           hint={t('admin.status.sectionTrustHint')}
           bodyClassName='asking-admin-page__card asking-admin-status-page__data-card'
         >
-            <div className='asking-admin-page__kpi-grid asking-admin-status-page__kpi-grid'>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.trustPendingTotal')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.trustMetrics?.quarantine_pending_total ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.trustPendingPolls')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.trustMetrics?.quarantine_pending_polls ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.trustQuarantinePendingAccount')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(
-                        status.trustMetrics?.quarantine_pending_account_linked ?? 0,
-                        localeTag,
-                      )
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.trustApproved24h')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.trustMetrics?.quarantine_approved_last_24h ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.trustRejected24h')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.trustMetrics?.quarantine_rejected_last_24h ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.trustVotes24hAccount')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(
-                        status.trustMetrics?.votes_account_linked_last_24h ?? 0,
-                        localeTag,
-                      )
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.trustVotes24hAnonymous')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.trustMetrics?.votes_anonymous_last_24h ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.trustRiskAvgPending')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {statusQuery.isPending
-                    ? kpiPlaceholder
-                    : status?.trustMetrics?.trust_risk_avg_pending != null
-                      ? String(status.trustMetrics.trust_risk_avg_pending)
-                      : '—'}
-                </span>
-              </KpiCard>
-            </div>
-            <h3 className='asking-admin-status-page__trust-subheading' id='asking-admin-status-page__trust-by-reason-heading'>
-              {t('admin.status.trustByReason')}
-            </h3>
-            {!status ? (
-              <p className='asking-admin-page__help-text'>{kpiPlaceholder}</p>
-            ) : trustReasonRows.length === 0 ? (
-              <p className='asking-admin-page__help-text'>{t('admin.status.trustByReasonEmpty')}</p>
-            ) : (
-              <dl className='asking-admin-status-page__dl asking-admin-status-page__trust-reason-dl'>
-                {trustReasonRows.map(({ reason, count }) => (
-                  <React.Fragment key={reason}>
-                    <dt>{formatQuarantineReasonLabel(t, reason)}</dt>
-                    <dd>{formatLocaleInteger(count, localeTag)}</dd>
-                  </React.Fragment>
-                ))}
-              </dl>
-            )}
+          <div className='asking-admin-page__kpi-grid asking-admin-status-page__kpi-grid'>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.trustPendingTotal')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.trustMetrics?.quarantine_pending_total ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.trustPendingPolls')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.trustMetrics?.quarantine_pending_polls ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.trustQuarantinePendingAccount')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.trustMetrics?.quarantine_pending_account_linked ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.trustApproved24h')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.trustMetrics?.quarantine_approved_last_24h ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.trustRejected24h')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.trustMetrics?.quarantine_rejected_last_24h ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.trustVotes24hAccount')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.trustMetrics?.votes_account_linked_last_24h ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.trustVotes24hAnonymous')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.trustMetrics?.votes_anonymous_last_24h ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.trustRiskAvgPending')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {statusQuery.isPending
+                  ? kpiPlaceholder
+                  : status?.trustMetrics?.trust_risk_avg_pending != null
+                    ? String(status.trustMetrics.trust_risk_avg_pending)
+                    : '—'}
+              </span>
+            </KpiCard>
+          </div>
+          <h3
+            className='asking-admin-status-page__trust-subheading'
+            id='asking-admin-status-page__trust-by-reason-heading'
+          >
+            {t('admin.status.trustByReason')}
+          </h3>
+          {!status ? (
+            <p className='asking-admin-page__help-text'>{kpiPlaceholder}</p>
+          ) : trustReasonRows.length === 0 ? (
+            <p className='asking-admin-page__help-text'>{t('admin.status.trustByReasonEmpty')}</p>
+          ) : (
+            <dl className='asking-admin-status-page__dl asking-admin-status-page__trust-reason-dl'>
+              {trustReasonRows.map(({ reason, count }) => (
+                <React.Fragment key={reason}>
+                  <dt>{formatQuarantineReasonLabel(t, reason)}</dt>
+                  <dd>{formatLocaleInteger(count, localeTag)}</dd>
+                </React.Fragment>
+              ))}
+            </dl>
+          )}
         </SectionPanel>
 
         <SectionPanel
@@ -559,68 +617,93 @@ export default function AdminStatus() {
           hint={t('admin.status.sectionWebhooksHint')}
           bodyClassName='asking-admin-page__card asking-admin-status-page__data-card'
         >
-            <div className='asking-admin-page__kpi-grid asking-admin-status-page__kpi-grid'>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.webhooksAttempts')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.webhookDeliveryTelemetry?.attempted ?? 0, localeTag)
-                    : kpiPlaceholder}
+          <div className='asking-admin-page__kpi-grid asking-admin-status-page__kpi-grid'>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.webhooksAttempts')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(status.webhookDeliveryTelemetry?.attempted ?? 0, localeTag)
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.webhooksDeliveredOk')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.webhookDeliveryTelemetry?.delivered_ok ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.webhooksDeliveredNon2xx')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.webhookDeliveryTelemetry?.delivered_non_2xx ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.webhooksDeliveryFailed')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.webhookDeliveryTelemetry?.delivery_failed ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>{t('admin.status.webhooksShed')}</span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(status.webhookDeliveryTelemetry?.shed ?? 0, localeTag)
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.webhooksCurrentMinute')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.webhookDeliveryTelemetry?.current_minute_attempted ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+              {status ? (
+                <span className='asking-admin-page__kpi-meta'>
+                  {t('admin.status.webhooksCurrentMinuteShed', {
+                    count: formatLocaleInteger(
+                      status.webhookDeliveryTelemetry?.current_minute_shed ?? 0,
+                      localeTag,
+                    ),
+                  })}
                 </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.webhooksDeliveredOk')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.webhookDeliveryTelemetry?.delivered_ok ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.webhooksDeliveredNon2xx')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.webhookDeliveryTelemetry?.delivered_non_2xx ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.webhooksDeliveryFailed')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.webhookDeliveryTelemetry?.delivery_failed ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.webhooksShed')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.webhookDeliveryTelemetry?.shed ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.webhooksCurrentMinute')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.webhookDeliveryTelemetry?.current_minute_attempted ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-                {status ? (
-                  <span className='asking-admin-page__kpi-meta'>
-                    {t('admin.status.webhooksCurrentMinuteShed', {
-                      count: formatLocaleInteger(status.webhookDeliveryTelemetry?.current_minute_shed ?? 0, localeTag),
-                    })}
-                  </span>
-                ) : null}
-              </KpiCard>
-            </div>
-            <p className='asking-admin-page__help-text'>
-              {t('admin.status.webhooksWindowNote', {
-                window: status?.webhookDeliveryTelemetry?.window_minutes ?? 15,
-              })}
-            </p>
+              ) : null}
+            </KpiCard>
+          </div>
+          <p className='asking-admin-page__help-text'>
+            {t('admin.status.webhooksWindowNote', {
+              window: status?.webhookDeliveryTelemetry?.window_minutes ?? 15,
+            })}
+          </p>
         </SectionPanel>
 
         <SectionPanel
@@ -630,233 +713,249 @@ export default function AdminStatus() {
           hint={t('admin.status.sectionRetentionHint')}
           bodyClassName='asking-admin-page__card asking-admin-status-page__data-card'
         >
-            <div className='asking-admin-page__kpi-grid asking-admin-status-page__kpi-grid'>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.retentionPollDefault')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(
-                        status.retentionPolicy?.poll_retention_ttl_days_default ?? 0,
-                        localeTag,
-                      )
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.retentionSweepInterval')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(
-                        status.retentionPolicy?.poll_retention_sweep_interval_sec ?? 0,
-                        localeTag,
-                      )
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.retentionSweepBatch')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(
-                        status.retentionPolicy?.poll_retention_sweep_batch_size ?? 0,
-                        localeTag,
-                      )
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.retentionAuditLogs')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(status.retentionPolicy?.audit_log_retention_days ?? 0, localeTag)
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
-              <KpiCard>
-                <span className='asking-admin-page__kpi-label'>{t('admin.status.retentionRejectedVotes')}</span>
-                <span className='asking-admin-page__kpi-value'>
-                  {status
-                    ? formatLocaleInteger(
-                        status.retentionPolicy?.moderation_rejected_vote_retention_days ?? 0,
-                        localeTag,
-                      )
-                    : kpiPlaceholder}
-                </span>
-              </KpiCard>
+          <div className='asking-admin-page__kpi-grid asking-admin-status-page__kpi-grid'>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.retentionPollDefault')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.retentionPolicy?.poll_retention_ttl_days_default ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.retentionSweepInterval')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.retentionPolicy?.poll_retention_sweep_interval_sec ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.retentionSweepBatch')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.retentionPolicy?.poll_retention_sweep_batch_size ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.retentionAuditLogs')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.retentionPolicy?.audit_log_retention_days ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+            <KpiCard>
+              <span className='asking-admin-page__kpi-label'>
+                {t('admin.status.retentionRejectedVotes')}
+              </span>
+              <span className='asking-admin-page__kpi-value'>
+                {status
+                  ? formatLocaleInteger(
+                      status.retentionPolicy?.moderation_rejected_vote_retention_days ?? 0,
+                      localeTag,
+                    )
+                  : kpiPlaceholder}
+              </span>
+            </KpiCard>
+          </div>
+          {canManageVoteGeo && retentionDraft ? (
+            <div className='asking-admin-page__card-actions asking-admin-status-page__votegeo-actions'>
+              <label>
+                {t('admin.status.retentionPollDefault')}
+                <input
+                  type='number'
+                  min={0}
+                  max={3650}
+                  value={retentionDraft.poll_retention_ttl_days_default}
+                  onChange={(e) =>
+                    setRetentionDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            poll_retention_ttl_days_default: parsePolicyNumber(
+                              e.target.value,
+                              prev.poll_retention_ttl_days_default,
+                              0,
+                              3650,
+                            ),
+                          }
+                        : prev,
+                    )
+                  }
+                />
+              </label>
+              <label>
+                {t('admin.status.retentionSweepInterval')}
+                <input
+                  type='number'
+                  min={30}
+                  max={86400}
+                  value={retentionDraft.poll_retention_sweep_interval_sec}
+                  onChange={(e) =>
+                    setRetentionDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            poll_retention_sweep_interval_sec: parsePolicyNumber(
+                              e.target.value,
+                              prev.poll_retention_sweep_interval_sec,
+                              30,
+                              86400,
+                            ),
+                          }
+                        : prev,
+                    )
+                  }
+                />
+              </label>
+              <label>
+                {t('admin.status.retentionSweepBatch')}
+                <input
+                  type='number'
+                  min={10}
+                  max={5000}
+                  value={retentionDraft.poll_retention_sweep_batch_size}
+                  onChange={(e) =>
+                    setRetentionDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            poll_retention_sweep_batch_size: parsePolicyNumber(
+                              e.target.value,
+                              prev.poll_retention_sweep_batch_size,
+                              10,
+                              5000,
+                            ),
+                          }
+                        : prev,
+                    )
+                  }
+                />
+              </label>
+              <label>
+                {t('admin.status.retentionAuditLogs')}
+                <input
+                  type='number'
+                  min={0}
+                  max={3650}
+                  value={retentionDraft.audit_log_retention_days}
+                  onChange={(e) =>
+                    setRetentionDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            audit_log_retention_days: parsePolicyNumber(
+                              e.target.value,
+                              prev.audit_log_retention_days,
+                              0,
+                              3650,
+                            ),
+                          }
+                        : prev,
+                    )
+                  }
+                />
+              </label>
+              <label>
+                {t('admin.status.retentionRejectedVotes')}
+                <input
+                  type='number'
+                  min={0}
+                  max={3650}
+                  value={retentionDraft.moderation_rejected_vote_retention_days}
+                  onChange={(e) =>
+                    setRetentionDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            moderation_rejected_vote_retention_days: parsePolicyNumber(
+                              e.target.value,
+                              prev.moderation_rejected_vote_retention_days,
+                              0,
+                              3650,
+                            ),
+                          }
+                        : prev,
+                    )
+                  }
+                />
+              </label>
+              <label>
+                <input
+                  type='checkbox'
+                  checked={retentionDraft.audit_log_retention_legal_hold === true}
+                  onChange={(e) =>
+                    setRetentionDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            audit_log_retention_legal_hold: e.target.checked,
+                          }
+                        : prev,
+                    )
+                  }
+                />
+                {t('admin.status.retentionAuditLogsLegalHold')}
+              </label>
+              <label>
+                <input
+                  type='checkbox'
+                  checked={retentionDraft.moderation_rejected_vote_retention_legal_hold === true}
+                  onChange={(e) =>
+                    setRetentionDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            moderation_rejected_vote_retention_legal_hold: e.target.checked,
+                          }
+                        : prev,
+                    )
+                  }
+                />
+                {t('admin.status.retentionRejectedVotesLegalHold')}
+              </label>
+              <Button
+                type='button'
+                variant='secondary'
+                onClick={() => retentionPolicyMutation.mutate(retentionDraft)}
+                disabled={retentionPolicyMutation.isPending || retentionPolicyQuery.isPending}
+              >
+                {retentionPolicyMutation.isPending
+                  ? t('admin.status.retentionPolicySaving')
+                  : t('admin.status.retentionPolicySave')}
+              </Button>
             </div>
-            {canManageVoteGeo && retentionDraft ? (
-              <div className='asking-admin-page__card-actions asking-admin-status-page__votegeo-actions'>
-                <label>
-                  {t('admin.status.retentionPollDefault')}
-                  <input
-                    type='number'
-                    min={0}
-                    max={3650}
-                    value={retentionDraft.poll_retention_ttl_days_default}
-                    onChange={(e) =>
-                      setRetentionDraft((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              poll_retention_ttl_days_default: parsePolicyNumber(
-                                e.target.value,
-                                prev.poll_retention_ttl_days_default,
-                                0,
-                                3650,
-                              ),
-                            }
-                          : prev,
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  {t('admin.status.retentionSweepInterval')}
-                  <input
-                    type='number'
-                    min={30}
-                    max={86400}
-                    value={retentionDraft.poll_retention_sweep_interval_sec}
-                    onChange={(e) =>
-                      setRetentionDraft((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              poll_retention_sweep_interval_sec: parsePolicyNumber(
-                                e.target.value,
-                                prev.poll_retention_sweep_interval_sec,
-                                30,
-                                86400,
-                              ),
-                            }
-                          : prev,
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  {t('admin.status.retentionSweepBatch')}
-                  <input
-                    type='number'
-                    min={10}
-                    max={5000}
-                    value={retentionDraft.poll_retention_sweep_batch_size}
-                    onChange={(e) =>
-                      setRetentionDraft((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              poll_retention_sweep_batch_size: parsePolicyNumber(
-                                e.target.value,
-                                prev.poll_retention_sweep_batch_size,
-                                10,
-                                5000,
-                              ),
-                            }
-                          : prev,
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  {t('admin.status.retentionAuditLogs')}
-                  <input
-                    type='number'
-                    min={0}
-                    max={3650}
-                    value={retentionDraft.audit_log_retention_days}
-                    onChange={(e) =>
-                      setRetentionDraft((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              audit_log_retention_days: parsePolicyNumber(
-                                e.target.value,
-                                prev.audit_log_retention_days,
-                                0,
-                                3650,
-                              ),
-                            }
-                          : prev,
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  {t('admin.status.retentionRejectedVotes')}
-                  <input
-                    type='number'
-                    min={0}
-                    max={3650}
-                    value={retentionDraft.moderation_rejected_vote_retention_days}
-                    onChange={(e) =>
-                      setRetentionDraft((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              moderation_rejected_vote_retention_days: parsePolicyNumber(
-                                e.target.value,
-                                prev.moderation_rejected_vote_retention_days,
-                                0,
-                                3650,
-                              ),
-                            }
-                          : prev,
-                      )
-                    }
-                  />
-                </label>
-                <label>
-                  <input
-                    type='checkbox'
-                    checked={retentionDraft.audit_log_retention_legal_hold === true}
-                    onChange={(e) =>
-                      setRetentionDraft((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              audit_log_retention_legal_hold: e.target.checked,
-                            }
-                          : prev,
-                      )
-                    }
-                  />
-                  {t('admin.status.retentionAuditLogsLegalHold')}
-                </label>
-                <label>
-                  <input
-                    type='checkbox'
-                    checked={retentionDraft.moderation_rejected_vote_retention_legal_hold === true}
-                    onChange={(e) =>
-                      setRetentionDraft((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              moderation_rejected_vote_retention_legal_hold: e.target.checked,
-                            }
-                          : prev,
-                      )
-                    }
-                  />
-                  {t('admin.status.retentionRejectedVotesLegalHold')}
-                </label>
-                <Button
-                  type='button'
-                  variant='secondary'
-                  onClick={() => retentionPolicyMutation.mutate(retentionDraft)}
-                  disabled={retentionPolicyMutation.isPending || retentionPolicyQuery.isPending}
-                >
-                  {retentionPolicyMutation.isPending
-                    ? t('admin.status.retentionPolicySaving')
-                    : t('admin.status.retentionPolicySave')}
-                </Button>
-              </div>
-            ) : null}
-            {retentionPolicyError ? (
-              <Notice tone='error' className='asking-admin-page__status asking-admin-page__status--error'>
-                {retentionPolicyError}
-              </Notice>
-            ) : null}
+          ) : null}
+          {retentionPolicyError ? (
+            <Notice
+              tone='error'
+              className='asking-admin-page__status asking-admin-page__status--error'
+            >
+              {retentionPolicyError}
+            </Notice>
+          ) : null}
         </SectionPanel>
 
         {canManageVoteGeo ? (
@@ -874,7 +973,9 @@ export default function AdminStatus() {
               aria-label={t('admin.status.voteGeoHeading')}
             >
               {voteGeoQuery.isPending ? (
-                <span className='asking-admin-status-page__probe-pending'>{t('admin.status.pending')}</span>
+                <span className='asking-admin-status-page__probe-pending'>
+                  {t('admin.status.pending')}
+                </span>
               ) : voteGeoQuery.isError ? (
                 <span className='asking-admin-page__status asking-admin-page__status--error'>
                   {t('admin.status.voteGeoErr')}
@@ -947,7 +1048,9 @@ export default function AdminStatus() {
                 <select
                   value={simTargetPlan}
                   onChange={(e) =>
-                    setSimTargetPlan(e.target.value as BillingDowngradeSimulationPayload['targetPlan'])
+                    setSimTargetPlan(
+                      e.target.value as BillingDowngradeSimulationPayload['targetPlan'],
+                    )
                   }
                 >
                   <option value='free'>free</option>
@@ -967,7 +1070,10 @@ export default function AdminStatus() {
               </Button>
             </div>
             {downgradeSimError ? (
-              <Notice tone='error' className='asking-admin-page__status asking-admin-page__status--error'>
+              <Notice
+                tone='error'
+                className='asking-admin-page__status asking-admin-page__status--error'
+              >
                 {downgradeSimError}
               </Notice>
             ) : null}
@@ -980,7 +1086,8 @@ export default function AdminStatus() {
                   <strong>Target:</strong> <code>{downgradeSimMutation.data.targetPlan}</code>
                 </p>
                 <p>
-                  <strong>Active polls:</strong> {formatLocaleInteger(downgradeSimMutation.data.usage.activePolls, localeTag)} /{' '}
+                  <strong>Active polls:</strong>{' '}
+                  {formatLocaleInteger(downgradeSimMutation.data.usage.activePolls, localeTag)} /{' '}
                   {formatLocaleInteger(downgradeSimMutation.data.limits.activePolls, localeTag)} ·{' '}
                   <strong>Votes (UTC month):</strong>{' '}
                   {formatLocaleInteger(downgradeSimMutation.data.usage.votesThisMonth, localeTag)} /{' '}

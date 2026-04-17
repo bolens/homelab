@@ -147,7 +147,10 @@ export default function AdminAuditLogs() {
   }
 
   return (
-    <div className='asking-admin-page asking-admin-audit-page asking-admin-page__cq-root' id='asking-admin-audit-page'>
+    <div
+      className='asking-admin-page asking-admin-audit-page asking-admin-page__cq-root'
+      id='asking-admin-audit-page'
+    >
       <PageHeader
         className='asking-admin-page__header'
         titleId='asking-admin-audit-page__title'
@@ -161,7 +164,10 @@ export default function AdminAuditLogs() {
         titleId='asking-admin-audit-page__filters-heading'
         title={<span className='asking-admin-page__section-title'>{t('admin.audit.filter')}</span>}
       >
-        <div className='asking-admin-audit-page__filter-form' id='asking-admin-audit-page__filter-form'>
+        <div
+          className='asking-admin-audit-page__filter-form'
+          id='asking-admin-audit-page__filter-form'
+        >
           <input
             placeholder={t('admin.audit.placeholderAction')}
             value={action}
@@ -217,7 +223,11 @@ export default function AdminAuditLogs() {
             {t('admin.audit.filter')}
           </Button>
           {isFetching ? (
-            <span className='asking-admin-audit-page__filter-status' role='status' aria-live='polite'>
+            <span
+              className='asking-admin-audit-page__filter-status'
+              role='status'
+              aria-live='polite'
+            >
               {t('admin.audit.loading')}
             </span>
           ) : null}
@@ -259,7 +269,9 @@ export default function AdminAuditLogs() {
               {table.getRowModel().rows.map((row) => (
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    <td key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
                   ))}
                 </tr>
               ))}

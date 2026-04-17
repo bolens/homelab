@@ -2,7 +2,11 @@ import { QueryTypes } from 'sequelize';
 import db from '../connections';
 import { computePollWebhookPublicDelayWindow } from './pollWebhookDelayWindow';
 
-type VoteTallyRow = { option: string; vote_count: string | number; weighted_vote_count: string | number };
+type VoteTallyRow = {
+  option: string;
+  vote_count: string | number;
+  weighted_vote_count: string | number;
+};
 
 function buildOptionVoteRow(
   label: string,
@@ -40,7 +44,9 @@ export async function fetchPollWebhookPublicResultsSnapshot(args: {
     resultsVisibleThroughMs,
     resultsVisibleThroughIso,
   } = delay;
-  const liveVoteWindowSql = liveResultsAreDelayed ? `AND "createdAt" <= :resultsVisibleThrough` : ``;
+  const liveVoteWindowSql = liveResultsAreDelayed
+    ? `AND "createdAt" <= :resultsVisibleThrough`
+    : ``;
 
   const configuredOptions = ((poll.get('options') as string[]) || []).filter(
     (s) => typeof s === 'string' && s.trim() !== '',
@@ -72,7 +78,12 @@ export async function fetchPollWebhookPublicResultsSnapshot(args: {
 
   const seen = new Set(configuredOptions);
   const optionsOut: Record<string, unknown>[] = configuredOptions.map((label) =>
-    buildOptionVoteRow(label, byOption.get(label) ?? { vc: 0, wv: 0 }, boostedVotingEnabled, showUnweightedValues),
+    buildOptionVoteRow(
+      label,
+      byOption.get(label) ?? { vc: 0, wv: 0 },
+      boostedVotingEnabled,
+      showUnweightedValues,
+    ),
   );
 
   for (const row of rows) {

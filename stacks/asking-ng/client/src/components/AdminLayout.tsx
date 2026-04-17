@@ -79,15 +79,25 @@ export default function AdminLayout() {
 
   return (
     <div className='asking-admin-app'>
-      <aside className='asking-admin-app__sidebar' id='asking-admin-app__sidebar' aria-label={t('admin.chrome.sidebarAria')}>
+      <aside
+        className='asking-admin-app__sidebar'
+        id='asking-admin-app__sidebar'
+        aria-label={t('admin.chrome.sidebarAria')}
+      >
         <div className='asking-admin-app__brand'>
           <Link to='/admin' className='asking-admin-app__brand-link'>
             {t('admin.chrome.brandShort')}
           </Link>
         </div>
-        <nav className='asking-admin-app__sidenav' id='asking-admin-app__sidenav' aria-label={t('admin.chrome.navAria')}>
+        <nav
+          className='asking-admin-app__sidenav'
+          id='asking-admin-app__sidenav'
+          aria-label={t('admin.chrome.navAria')}
+        >
           <div className='asking-admin-app__nav-group'>
-            <div className='asking-admin-app__nav-group-label'>{t('admin.chrome.nav.group.overview')}</div>
+            <div className='asking-admin-app__nav-group-label'>
+              {t('admin.chrome.nav.group.overview')}
+            </div>
             <AdminSidenavLink
               to='/admin'
               pathname={pathname}
@@ -141,7 +151,9 @@ export default function AdminLayout() {
             ) : null}
           </div>
           <div className='asking-admin-app__nav-group'>
-            <div className='asking-admin-app__nav-group-label'>{t('admin.chrome.nav.group.system')}</div>
+            <div className='asking-admin-app__nav-group-label'>
+              {t('admin.chrome.nav.group.system')}
+            </div>
             <AdminSidenavLink
               to='/admin/status'
               pathname={pathname}
@@ -161,7 +173,10 @@ export default function AdminLayout() {
           </div>
         </nav>
         <div className='asking-admin-app__sidebar-footer'>
-          <Link to='/' className='asking-admin-app__sidenav-link asking-admin-app__sidenav-link--footer'>
+          <Link
+            to='/'
+            className='asking-admin-app__sidenav-link asking-admin-app__sidenav-link--footer'
+          >
             <span className='asking-admin-app__sidenav-icon' aria-hidden>
               <IconHouse />
             </span>
@@ -179,7 +194,11 @@ export default function AdminLayout() {
         </div>
       </aside>
       <div className='asking-admin-app__stage'>
-        <main id='asking-admin-app__main' className='asking-admin-app__content' aria-label={t('admin.chrome.mainAria')}>
+        <main
+          id='asking-admin-app__main'
+          className='asking-admin-app__content'
+          aria-label={t('admin.chrome.mainAria')}
+        >
           <Outlet />
         </main>
       </div>

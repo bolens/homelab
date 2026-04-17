@@ -1,13 +1,13 @@
 import type { ModerateVoteBatchBody } from '@asking-ng/contracts/poll';
-import { findBillingPlanAndRoleForVoteQuota } from '../self/self.repository';
 import { hasModerationAutomationForBillingPlan } from '../../lib/billingLimits';
 import { appEnv } from '../../lib/env';
+import { notifyPollLive } from '../../lib/pollLive';
+import { queuePollWebhook } from '../../lib/pollWebhooks';
 import {
   type SelfhostProLicenseExpiredDetails,
   selfhostProLicenseExpiredDetailsForPlan,
 } from '../../lib/selfhostProLicense';
-import { notifyPollLive } from '../../lib/pollLive';
-import { queuePollWebhook } from '../../lib/pollWebhooks';
+import { findBillingPlanAndRoleForVoteQuota } from '../self/self.repository';
 import {
   applyModerationBatch,
   createModerationBatchAuditLog,
@@ -42,14 +42,16 @@ export async function moderateVoteBatchService(args: {
   const apiKeyTrim = typeof args.apiKey === 'string' ? args.apiKey.trim() : '';
   const apiKeyOk = apiKeyTrim !== '' && apiKeyTrim === targetApiKey;
   const ownerId = poll.get('creatorUserId') as number | null | undefined;
-  const jwtOk = args.actorUserId != null && ownerId != null && Number(ownerId) === Number(args.actorUserId);
+  const jwtOk =
+    args.actorUserId != null && ownerId != null && Number(ownerId) === Number(args.actorUserId);
   if (!apiKeyOk && !jwtOk) return { kind: 'unauthorized' };
   if (appEnv.billingEnforceLimits) {
     const { billingPlan, role } =
       typeof ownerId === 'number' && Number.isFinite(ownerId) && ownerId > 0
         ? await findBillingPlanAndRoleForVoteQuota({ pollId: args.pollId, creatorUserId: ownerId })
         : { billingPlan: 'free', role: null };
-    const licenseExpired = role !== 'superadmin' ? selfhostProLicenseExpiredDetailsForPlan(billingPlan) : null;
+    const licenseExpired =
+      role !== 'superadmin' ? selfhostProLicenseExpiredDetailsForPlan(billingPlan) : null;
     if (licenseExpired) {
       return { kind: 'billing_license_expired', details: licenseExpired };
     }
