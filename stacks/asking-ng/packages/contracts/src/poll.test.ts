@@ -159,6 +159,156 @@ describe('createPollBodySchema', () => {
       expiration: 999999999999999,
       limit_ip: true,
       vote_eligibility: 'account',
+      account_vote_consent_ack: true,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('requires account_vote_consent_ack=true when vote_eligibility=account', () => {
+    const missing = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      vote_eligibility: 'account',
+    });
+    expect(missing.success).toBe(false);
+    const ok = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      vote_eligibility: 'account',
+      account_vote_consent_ack: true,
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('requires account_vote_consent_ack=true when vote_eligibility=platform_linked', () => {
+    const missing = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      vote_eligibility: 'platform_linked',
+    });
+    expect(missing.success).toBe(false);
+    const ok = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      vote_eligibility: 'platform_linked',
+      account_vote_consent_ack: true,
+      platform_identity_provider: 'twitch',
+      platform_identity_consent_version: 'v1',
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('requires platform identity metadata when vote_eligibility=platform_linked', () => {
+    const missing = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      vote_eligibility: 'platform_linked',
+      account_vote_consent_ack: true,
+    });
+    expect(missing.success).toBe(false);
+    const ok = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      vote_eligibility: 'platform_linked',
+      account_vote_consent_ack: true,
+      platform_identity_provider: 'twitch',
+      platform_identity_consent_version: 'v1',
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('accepts retention_ttl_days', () => {
+    const r = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      retention_ttl_days: 30,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('accepts retention_legal_hold', () => {
+    const r = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      retention_legal_hold: true,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('accepts webhook target hint_locale override', () => {
+    const r = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      webhook_targets: [{ url: 'https://hooks.example.test/poll', secret: 'abcdefghijklmnop', hint_locale: 'es' }],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('accepts webhook target include_results_snapshot', () => {
+    const r = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      webhook_targets: [
+        {
+          url: 'https://hooks.example.test/poll',
+          secret: 'abcdefghijklmnop',
+          include_results_snapshot: true,
+        },
+      ],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('accepts webhook target include_owner_snapshot', () => {
+    const r = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      webhook_targets: [
+        {
+          url: 'https://hooks.example.test/poll',
+          secret: 'abcdefghijklmnop',
+          include_owner_snapshot: true,
+        },
+      ],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('accepts webhook target include_owner_events', () => {
+    const r = createPollBodySchema.safeParse({
+      title: 't',
+      options: ['a', 'b'],
+      expiration: 999999999999999,
+      limit_ip: true,
+      webhook_targets: [
+        {
+          url: 'https://hooks.example.test/poll',
+          secret: 'abcdefghijklmnop',
+          include_owner_events: true,
+        },
+      ],
     });
     expect(r.success).toBe(true);
   });
@@ -202,12 +352,80 @@ describe('updatePollBodySchema', () => {
   });
 
   it('accepts vote_eligibility-only patch', () => {
-    const r = updatePollBodySchema.safeParse({ vote_eligibility: 'account' });
+    const r = updatePollBodySchema.safeParse({
+      vote_eligibility: 'account',
+      account_vote_consent_ack: true,
+    });
     expect(r.success).toBe(true);
+  });
+
+  it('requires account_vote_consent_ack=true when patching vote_eligibility=account', () => {
+    const missing = updatePollBodySchema.safeParse({ vote_eligibility: 'account' });
+    expect(missing.success).toBe(false);
+    const ok = updatePollBodySchema.safeParse({
+      vote_eligibility: 'account',
+      account_vote_consent_ack: true,
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('requires account_vote_consent_ack=true when patching vote_eligibility=platform_linked', () => {
+    const missing = updatePollBodySchema.safeParse({ vote_eligibility: 'platform_linked' });
+    expect(missing.success).toBe(false);
+    const ok = updatePollBodySchema.safeParse({
+      vote_eligibility: 'platform_linked',
+      account_vote_consent_ack: true,
+      platform_identity_provider: 'twitch',
+      platform_identity_consent_version: 'v1',
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('requires identity metadata when patching vote_eligibility=platform_linked', () => {
+    const missing = updatePollBodySchema.safeParse({
+      vote_eligibility: 'platform_linked',
+      account_vote_consent_ack: true,
+    });
+    expect(missing.success).toBe(false);
+    const ok = updatePollBodySchema.safeParse({
+      vote_eligibility: 'platform_linked',
+      account_vote_consent_ack: true,
+      platform_identity_provider: 'twitch',
+      platform_identity_consent_version: 'v1',
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('rejects panic combined with account_vote_consent_ack', () => {
+    expect(
+      updatePollBodySchema.safeParse({ panic: true, account_vote_consent_ack: true }).success,
+    ).toBe(false);
   });
 
   it('rejects panic combined with vote_eligibility', () => {
     expect(updatePollBodySchema.safeParse({ panic: true, vote_eligibility: 'account' }).success).toBe(
+      false,
+    );
+  });
+
+  it('accepts retention_ttl_days-only patch', () => {
+    const r = updatePollBodySchema.safeParse({ retention_ttl_days: 60 });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects panic combined with retention_ttl_days', () => {
+    expect(updatePollBodySchema.safeParse({ panic: true, retention_ttl_days: 30 }).success).toBe(
+      false,
+    );
+  });
+
+  it('accepts retention_legal_hold-only patch', () => {
+    const r = updatePollBodySchema.safeParse({ retention_legal_hold: true });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects panic combined with retention_legal_hold', () => {
+    expect(updatePollBodySchema.safeParse({ panic: true, retention_legal_hold: true }).success).toBe(
       false,
     );
   });
@@ -267,6 +485,20 @@ describe('updatePollBodySchema', () => {
       write_in_max_length: 100,
       write_in_blocklist: ['foo', 'bar'],
       write_in_profanity_filter: false,
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('rejects invalid webhook target hint_locale override', () => {
+    const r = updatePollBodySchema.safeParse({
+      webhook_targets: [{ url: 'https://hooks.example.test/poll', hint_locale: 'de' }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('accepts include_owner_events in webhook target patch', () => {
+    const r = updatePollBodySchema.safeParse({
+      webhook_targets: [{ url: 'https://hooks.example.test/poll', include_owner_events: true }],
     });
     expect(r.success).toBe(true);
   });

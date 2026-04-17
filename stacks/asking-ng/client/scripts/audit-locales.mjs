@@ -23,6 +23,7 @@ const LOCALES = [
 const PREFIXES = ['nav.', 'login.', 'register.', 'home.', 'myPolls.', 'poll.', 'about.', 'status.', 'admin.', 'developer.'];
 
 const failOnUntranslated = process.argv.includes('--fail-on-untranslated');
+const listUntranslated = process.argv.includes('--list-untranslated');
 
 const load = async (file) => import(pathToFileURL(path.join(localesDir, file)).href);
 
@@ -51,6 +52,10 @@ for (const [file, exportName] of LOCALES) {
   for (const prefix of PREFIXES) {
     const count = untranslated.filter((k) => k.startsWith(prefix)).length;
     if (count > 0) console.log(`    ${prefix} ${count}`);
+  }
+  if (listUntranslated && untranslated.length > 0) {
+    console.log('  untranslated keys:');
+    for (const key of untranslated) console.log(`    ${key}`);
   }
 
   if (missing.length > 0 || extra.length > 0 || (failOnUntranslated && untranslated.length > 0)) {

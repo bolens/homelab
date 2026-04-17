@@ -124,6 +124,29 @@ export async function countVotesByPollAndUser(args: { pollId: string; userId: nu
   return Number(r?.c ?? 0) || 0;
 }
 
+export async function countVotesByPollAndPlatformIdentity(args: {
+  pollId: string;
+  provider: string;
+  subjectHash: string;
+}): Promise<number> {
+  const [r] = (await db.query(
+    `SELECT COUNT(*)::int AS c
+     FROM votes
+     WHERE "pollId" = :pollId
+       AND "platformIdentityProvider" = :provider
+       AND "platformIdentitySubjectHash" = :subjectHash`,
+    {
+      replacements: {
+        pollId: args.pollId,
+        provider: args.provider,
+        subjectHash: args.subjectHash,
+      },
+      type: QueryTypes.SELECT,
+    },
+  )) as Array<{ c: string | number }>;
+  return Number(r?.c ?? 0) || 0;
+}
+
 export async function countLimitIpBallotsForPoll(args: { pollId: string; baseId: string }): Promise<number> {
   const [r] = (await db.query(
     `SELECT COUNT(*)::int AS c

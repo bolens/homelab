@@ -159,6 +159,10 @@ export const en = {
   'myPolls.listVoteTimingAria': 'Vote activity by clock hour and weekday (UTC)',
   'myPolls.paused': 'Voting paused',
   'myPolls.webhookOn': 'Webhook',
+  'myPolls.webhookSnapshotResultsBadge': 'Webhook results snapshot',
+  'myPolls.webhookSnapshotOwnerBadge': 'Webhook owner snapshot',
+  'myPolls.badgeLegendLabel': 'Badge legend:',
+  'myPolls.badgeLegendAria': 'Webhook badge legend',
   'myPolls.backHome': 'Home',
   'myPolls.pollUsageBanner': 'Active polls: {current} of {max} (plan: {plan}).',
   'myPolls.needLogin': 'Sign in to see polls created under your account.',
@@ -209,6 +213,18 @@ export const en = {
     'Editable only in draft. Signed-in-only requires voters to send a user JWT with each vote.',
   'myPolls.voteEligibility.anonymous': 'Anyone (anonymous or signed-in)',
   'myPolls.voteEligibility.account': 'Signed-in users only',
+  'myPolls.voteEligibility.platformLinked': 'Platform-linked identity (scaffold)',
+  'myPolls.retentionTtlDaysLabel': 'Auto-delete retention (days)',
+  'myPolls.retentionTtlDaysHint':
+    'Delete this poll after expiration + N days. Leave blank to use the server default retention policy.',
+  'myPolls.retentionTtlDaysPlaceholder': 'Use server default',
+  'myPolls.retentionLegalHoldLabel': 'Legal hold (pause auto-delete)',
+  'myPolls.retentionLegalHoldHint':
+    'When enabled, retention sweeps skip this poll until legal hold is turned off.',
+  'myPolls.retentionLegalHoldActive': 'Auto-delete paused (legal hold active).',
+  'myPolls.retentionAutoDeleteAt': 'Auto-delete at {date} ({relative})',
+  'myPolls.retentionAutoDeleteInDays': 'in {days} day(s)',
+  'myPolls.retentionAutoDeleteOverdueDays': '{days} day(s) overdue',
   'myPolls.openAtLabel': 'Open at (optional)',
   'myPolls.openAtHint':
     'UTC-aligned schedule start. Before this time the effective phase behaves as Draft.',
@@ -239,6 +255,11 @@ export const en = {
     'Send signed updates to one or more HTTPS endpoints. Leave secret blank to keep current secret on existing targets or auto-generate for new ones.',
   'myPolls.webhookUrlPlaceholder': 'https://example.com/webhook',
   'myPolls.webhookSecretPlaceholder': 'Optional secret (min 16 chars)',
+  'myPolls.webhookIncludeResultsSnapshot': 'Include delayed public results snapshot',
+  'myPolls.webhookIncludeOwnerSnapshot': 'Include owner moderation snapshot (sensitive)',
+  'myPolls.webhookIncludeOwnerEvents': 'Include owner automation events (sensitive)',
+  'myPolls.webhookSnapshotsHint':
+    'Snapshot flags are per-target. Use owner snapshot or owner events only for endpoints you fully control.',
   'myPolls.webhookTargetAdd': 'Add webhook target',
   'myPolls.webhookTargetRemove': 'Remove',
   'myPolls.autoAdvanceOnClose': 'Auto-open next poll when this one closes',
@@ -268,6 +289,8 @@ export const en = {
   'myPolls.saving': 'Saving…',
   'myPolls.saved': 'Saved.',
   'myPolls.saveErr': 'Could not save changes.',
+  'myPolls.upgradeCta': 'Upgrade plan',
+  'myPolls.renewLicenseCta': 'Renew license',
   'myPolls.panicHint':
     'Immediately locks the poll, pauses voting, and shows a public pause message (API: PUT with { "panic": true }).',
   'myPolls.panicBtn': 'Stop voting now (panic)',
@@ -576,10 +599,21 @@ export const en = {
   'home.voteEligibility': 'Who can vote:',
   'home.voteEligibility.anonymous': 'Anyone (anonymous or signed-in)',
   'home.voteEligibility.account': 'Signed-in users only',
+  'home.voteEligibility.platformLinked': 'Platform-linked identity (scaffold)',
   'home.voteEligibility.hint':
     'Signed-in-only ties each ballot to your app account (JWT). Viewers without an account see results but cannot vote.',
   'home.voteEligibility.accountConsentNote':
     'Account-only voting records which signed-in user cast each ballot in this deployment. Enable only when your audience understands they must sign in to vote.',
+  'home.voteEligibility.regionLegalNote.eu':
+    'Regional compliance note (EU/EEA/UK): identity-linked voting can require explicit consent language and stronger disclosure. Review your Terms/Privacy wording and retention settings before enabling it.',
+  'home.voteEligibility.regionLegalNote.nonEu':
+    'Regional compliance note: identity-linked voting can trigger local consent or disclosure requirements. Review your Terms/Privacy wording and retention settings before enabling it.',
+  'home.voteEligibility.regionLegalNote.unknown':
+    'Compliance note: we could not detect a consent region for this session. Treat identity-linked voting as high-risk and confirm your Terms/Privacy wording and retention settings before enabling it.',
+  'home.retentionTtlDays': 'Auto-delete retention (days):',
+  'home.retentionTtlDays.hint':
+    'Optional: delete this poll after expiration + N days. Leave blank to use the server default policy.',
+  'home.retentionTtlDays.placeholder': 'Use server default',
   'home.expiration': 'Expiration:',
   'home.exp.never': 'Never',
   'home.exp.10m': '10 minutes',
@@ -591,6 +625,8 @@ export const en = {
   'home.no': 'No',
   'home.submit': 'Create poll',
   'home.submitting': 'Creating…',
+  'home.upgradeCta': 'Upgrade plan',
+  'home.renewLicenseCta': 'Renew license',
   'home.err.twoOptions': 'You must have at least 2 non-empty answers.',
   'home.err.maxOptions': 'At most 32 options are allowed.',
   'home.err.title': 'You must have a title.',
@@ -610,6 +646,11 @@ export const en = {
     'HTTPS URL to receive signed JSON POSTs when votes or poll metadata change. Leave blank to skip.',
   'home.webhookUrl': 'Webhook URL (https)',
   'home.webhookSecret': 'Webhook signing secret (min 16 chars, or leave blank to auto-generate)',
+  'home.webhookIncludeResultsSnapshot': 'Include delayed public results snapshot',
+  'home.webhookIncludeOwnerSnapshot': 'Include owner moderation snapshot (sensitive)',
+  'home.webhookIncludeOwnerEvents': 'Include owner automation events (sensitive)',
+  'home.webhookSnapshotsHint':
+    'Snapshot flags are per-target. Use owner snapshot or owner events only for endpoints you fully control.',
   'home.webhookTargetAdd': 'Add webhook target',
   'home.webhookTargetRemove': 'Remove',
   'home.webhookSignInHint': 'Sign in so new polls are listed under My polls.',
@@ -764,10 +805,18 @@ export const en = {
   'poll.resultsDelayInfo':
     'Live anti-snipe delay: results are shown {seconds}s behind real-time ({pending} newer votes pending reveal).',
   'poll.voteFail': 'Vote failed.',
+  'poll.upgradeCta': 'Upgrade plan',
+  'poll.renewLicenseCta': 'Renew license',
   'poll.signInToVote': 'This poll only accepts votes from signed-in users.',
   'poll.signInToVoteCta': 'Sign in to vote',
   'poll.accountGatedPrivacy':
     'After you sign in, your ballot is tied to your account on this site so duplicate votes can be prevented.',
+  'poll.identityLinkedRegionalNotice.eu':
+    'Identity-linked voting is enabled. In EU/EEA/UK contexts, additional consent, notice, and retention rights may apply.',
+  'poll.identityLinkedRegionalNotice.nonEu':
+    'Identity-linked voting is enabled. Depending on your local jurisdiction, additional consent, notice, or retention rights may apply.',
+  'poll.identityLinkedRegionalNotice.unknown':
+    'Identity-linked voting is enabled. Region detection is unavailable, so apply your strictest consent and retention policy.',
   'poll.ownerShareAdvancedHint': 'Clone, exports, embed tools, and moderation queue live in My Polls.',
   'poll.trustIpBurstOff':
     'Trust: IP burst auto-quarantine is off for this deployment. Moderation queue (pending): {pending}.',
@@ -777,6 +826,8 @@ export const en = {
     'Trust: chat-channel burst auto-quarantine is off for this deployment. Same queue (pending): {pending}.',
   'poll.trustChatBurstOn':
     'Trust: chat-channel burst is on — when a channel id hits {threshold}+ votes within {window}s, new votes are quarantined. Queue (pending): {pending}.',
+  'poll.trustAccountLinkedMix':
+    'Trust: last 24h vote rows — signed-in {signedIn24h}, anonymous {anonymous24h}. Queue pending (signed-in): {pendingSignedIn}.',
   'poll.expires': 'Expires:',
   'poll.expired': 'Expired',
   'poll.timeNever': 'Never',
@@ -833,12 +884,23 @@ export const en = {
   'poll.metrics.optionHourlyTitle': 'Per-option hourly pattern (UTC)',
   'poll.metrics.optionHourlyHint':
     'Vote counts by clock hour for each configured answer (owner-only; same UTC buckets as above).',
+  'poll.metrics.optionVelocityByMinuteTitle': 'Per-option vote rate (UTC minutes)',
+  'poll.metrics.optionVelocityByMinuteHint':
+    'Same UTC minute grid for every answer (up to 120 most recent active minutes, oldest to newest). Zeros show minutes with no votes for that option. The bucket size above applies here too.',
   'poll.metrics.velocityByMinuteTitle': 'Vote rate by UTC minute',
   'poll.metrics.velocityByMinuteHint':
     'Each bar is one UTC minute that received at least one vote (oldest to newest, left to right).',
   'poll.metrics.velocityByMinuteTruncated':
     'This chart is capped at 4000 most recent voting minutes — older minutes may be missing. Use export JSON for the full minute series.',
   'poll.metrics.velocityByMinuteAria': 'Votes per UTC minute timeline',
+  'poll.metrics.velocityResolutionLabel': 'UTC bucket size',
+  'poll.metrics.velocityResolution1': '1 minute (raw)',
+  'poll.metrics.velocityResolution5': '5 minutes',
+  'poll.metrics.velocityResolution15': '15 minutes',
+  'poll.retentionAutoDeleteAt': 'Auto-delete at {date} ({relative})',
+  'poll.retentionAutoDeleteInDays': 'in {days} day(s)',
+  'poll.retentionAutoDeleteOverdueDays': '{days} day(s) overdue',
+  'poll.retentionLegalHoldActive': 'Auto-delete paused (legal hold active).',
   'poll.state.label': 'Status',
   'poll.simulationBadge': 'Simulation',
   'poll.simulationNotice':
@@ -1251,6 +1313,24 @@ export const en = {
   'admin.status.sectionTrust': 'Trust and moderation',
   'admin.status.sectionTrustHint':
     'Global vote quarantine rollups (pending owner review), moderator decisions in the last 24 hours, and vote-row counts split by signed-in vs anonymous ballots.',
+  'admin.status.sectionWebhooks': 'Webhook delivery snapshot',
+  'admin.status.sectionWebhooksHint':
+    'Recent in-process telemetry for signed poll webhooks. Useful for quick runtime checks before diving into logs.',
+  'admin.status.sectionRetention': 'Retention policy',
+  'admin.status.sectionRetentionHint':
+    'Current API retention configuration from environment: poll auto-delete defaults plus optional audit and moderation cleanup windows.',
+  'admin.status.retentionPollDefault': 'Poll default retention (days)',
+  'admin.status.retentionSweepInterval': 'Poll retention sweep interval (sec)',
+  'admin.status.retentionSweepBatch': 'Poll retention sweep batch size',
+  'admin.status.retentionAuditLogs': 'Audit log retention (days, 0=off)',
+  'admin.status.retentionRejectedVotes':
+    'Rejected moderation vote retention (days, 0=off)',
+  'admin.status.retentionAuditLogsLegalHold': 'Audit-log legal hold (pause deletes)',
+  'admin.status.retentionRejectedVotesLegalHold':
+    'Rejected-vote legal hold (pause deletes)',
+  'admin.status.retentionPolicySave': 'Save retention policy',
+  'admin.status.retentionPolicySaving': 'Saving retention policy…',
+  'admin.status.retentionPolicyErr': 'Failed to update retention policy.',
   'admin.status.trustPendingTotal': 'Pending quarantine reviews',
   'admin.status.trustPendingPolls': 'Polls with pending reviews',
   'admin.status.trustApproved24h': 'Approved (24h)',
@@ -1261,6 +1341,15 @@ export const en = {
   'admin.status.trustVotes24hAccount': 'Vote rows last 24h (signed-in ballot)',
   'admin.status.trustVotes24hAnonymous': 'Vote rows last 24h (anonymous ballot)',
   'admin.status.trustQuarantinePendingAccount': 'Pending quarantine (signed-in ballot)',
+  'admin.status.webhooksAttempts': 'Webhook attempts',
+  'admin.status.webhooksDeliveredOk': 'Delivered OK',
+  'admin.status.webhooksDeliveredNon2xx': 'Delivered non-2xx',
+  'admin.status.webhooksDeliveryFailed': 'Delivery failed',
+  'admin.status.webhooksShed': 'Shed by rate cap',
+  'admin.status.webhooksCurrentMinute': 'Attempts this UTC minute',
+  'admin.status.webhooksCurrentMinuteShed': 'Shed this minute: {count}',
+  'admin.status.webhooksWindowNote':
+    'Rolling {window}-minute snapshot from the current API process only. Counters reset on API restart and are not a durable audit source.',
   'admin.dashboard.title': 'Admin dashboard',
   'admin.dashboard.signedIn': 'Signed in as {user} ({role})',
   'admin.dashboard.users': 'Manage users',
@@ -1277,6 +1366,10 @@ export const en = {
   'admin.dashboard.kpi.pollsTotal': 'Polls',
   'admin.dashboard.kpi.pollsMeta': '{archived} archived',
   'admin.dashboard.kpi.audit24h': 'Audit events (24h)',
+  'admin.dashboard.kpi.retentionPollDefault': 'Poll retention default (days)',
+  'admin.dashboard.kpi.retentionAuditLogs': 'Audit log retention (days)',
+  'admin.dashboard.kpi.retentionRejectedVotesMeta': 'Rejected vote cleanup: {days} days',
+  'admin.dashboard.kpi.retentionLegalHoldOn': 'Legal hold active',
   'admin.dashboard.kpi.trustPending': 'Quarantine queue (pending)',
   'admin.dashboard.kpi.trustPendingMeta': '{polls} polls with backlog',
   'admin.dashboard.kpi.trustDecisions24h': 'Queue decisions (24h)',
@@ -1397,6 +1490,18 @@ export const en = {
   'developer.sectionOpenApi': 'OpenAPI',
   'developer.openApiLink': 'Open Swagger UI (/api-docs)',
   'developer.sectionStreaming': 'Streaming overlays',
+  'developer.sectionWebhookExamples': 'Webhook payload examples',
+  'developer.webhookExamplesIntro':
+    'Reference examples for the newer poll webhook helper fields. Use these to inspect `results_snapshot` and `owner_snapshot` shapes without digging through docs first.',
+  'developer.webhookExamplesDocsBefore': 'Canonical reference:',
+  'developer.webhookExamplesDocsAfter':
+    'for the live schema, plus `docs/WEBHOOK-COMMAND-HINTS-RECEIVERS.md` in the repo for negotiation, fallback, and sensitivity guidance.',
+  'developer.webhookExamplesResultsNote':
+    'Results snapshot example: public tally view, quarantine-excluded, and aligned with live results delay.',
+  'developer.webhookExamplesOwnerNote':
+    'Owner snapshot example: sensitive moderation-style counters for trusted receivers only.',
+  'developer.webhookResultsExampleAria': 'Webhook results snapshot example JSON',
+  'developer.webhookOwnerExampleAria': 'Webhook owner snapshot example JSON',
   'developer.sectionLlm': 'LLM gateway',
   'developer.statusLoading': 'Loading status…',
   'developer.errStatus': 'Could not load LLM status.',
@@ -1432,6 +1537,8 @@ export const en = {
   'developer.testOk': 'LLM connection OK ({count} models visible).',
   'developer.testFail': 'LLM connection test failed.',
   'developer.errChat': 'Chat request failed.',
+  'developer.upgradeCta': 'Upgrade plan',
+  'developer.renewLicenseCta': 'Renew license',
   'developer.chatOutputAria': 'Assistant reply',
   'developer.sectionBilling': 'Hosted billing (Polar)',
   'developer.billingIntro':
@@ -1447,6 +1554,9 @@ export const en = {
   'developer.billingWebhookUsage':
     'Outbound poll webhook POST attempts this UTC minute (in-process meter): {current} / {max}.',
   'developer.billingMeterWebhooks': 'poll webhooks (UTC minute)',
+  'developer.billingCampaignAttributionUsage':
+    'Campaign (UTM) attribution increments this UTC day (in-process meter): {current} / {max}.',
+  'developer.billingMeterCampaign': 'campaign attribution (UTC day)',
   'developer.billingUsageWarningsLine': 'Threshold hints: {detail}.',
   'developer.billingMeterPolls': 'active polls',
   'developer.billingMeterVotes': 'votes (UTC month)',

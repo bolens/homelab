@@ -63,6 +63,20 @@ export function errMsg(err: unknown, fallback: string): string {
   }
   if (
     isApiFetchError(err) &&
+    typeof err.errorCode === 'string' &&
+    (err.errorCode.startsWith('PLAN_LIMIT_') || err.errorCode === 'BILLING_LICENSE_EXPIRED') &&
+    err.details &&
+    typeof err.details === 'object' &&
+    !Array.isArray(err.details)
+  ) {
+    const d = err.details as Record<string, unknown>;
+    const hint = d.upgrade_hint;
+    if (typeof hint === 'string' && hint.trim() !== '' && !m.includes(hint.trim())) {
+      m = `${m} ${hint.trim()}`;
+    }
+  }
+  if (
+    isApiFetchError(err) &&
     typeof ae.errorCode === 'string' &&
     ae.errorCode.trim() !== '' &&
     !m.includes(ae.errorCode)

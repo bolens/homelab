@@ -45,12 +45,21 @@ type PollVoteMinuteBinRow = {
   vote_count: string | number;
 };
 
+type PollOptionVoteMinuteBinRow = {
+  option_label: string;
+  minute_utc: Date | string;
+  vote_count: string | number;
+};
+
 type PollRateCountersRow = {
   votes_last_1m: string | number;
   unique_ip_hashes_last_1m: string | number;
   unique_accounts_last_1m: string | number;
   top_ip_votes_last_1m: string | number;
   quarantined_votes_pending: string | number;
+  quarantined_votes_pending_account_linked: string | number;
+  votes_account_linked_last_24h: string | number;
+  votes_anonymous_last_24h: string | number;
 };
 
 type PollDelayedPendingRow = {
@@ -68,6 +77,11 @@ export type PollVoteAnalytics = {
   optionHourBins: PollOptionHourBinRow[];
   /** Owner-only: up to 4000 most recent UTC minutes with ≥1 vote (chronological after service normalizes). */
   voteMinuteBins: PollVoteMinuteBinRow[];
+  /**
+   * Owner-only: per-option counts on the same ≤120 most recent distinct UTC minutes (any option);
+   * aligns with aggregate minute chart for cross-option comparison (sparse rows filled in service).
+   */
+  optionVoteMinuteBins: PollOptionVoteMinuteBinRow[];
   rateCountersRow: PollRateCountersRow | undefined;
   delayedVotesPending: number;
 };
@@ -223,6 +237,41 @@ export async function getPollVoteAnalytics({
       )) as PollVoteMinuteBinRow[])
     : [];
 
+  const liveVoteWindowSqlV = liveResultsAreDelayed
+    ? `AND v."createdAt" <= :resultsVisibleThrough`
+    : '';
+
+  const optionVoteMinuteBins = youOwnThisPoll
+    ? ((await db.query(
+        `WITH cap_minutes AS (
+          SELECT date_trunc('minute', "createdAt" AT TIME ZONE 'UTC') AS minute_utc
+          FROM votes
+          WHERE "pollId" = :pollId
+            AND COALESCE("isQuarantined", false) = false
+            ${liveVoteWindowSql}
+          GROUP BY 1
+          ORDER BY 1 DESC
+          LIMIT 120
+        )
+        SELECT
+          COALESCE(v."option", '') AS option_label,
+          date_trunc('minute', v."createdAt" AT TIME ZONE 'UTC') AS minute_utc,
+          COUNT(*)::int AS vote_count
+        FROM votes v
+        INNER JOIN cap_minutes m
+          ON date_trunc('minute', v."createdAt" AT TIME ZONE 'UTC') = m.minute_utc
+        WHERE v."pollId" = :pollId
+          AND COALESCE(v."isQuarantined", false) = false
+          ${liveVoteWindowSqlV}
+        GROUP BY COALESCE(v."option", ''), date_trunc('minute', v."createdAt" AT TIME ZONE 'UTC')
+        ORDER BY option_label ASC, minute_utc ASC`,
+        {
+          replacements: { pollId, resultsVisibleThrough: resultsVisibleThroughIso },
+          type: QueryTypes.SELECT,
+        },
+      )) as PollOptionVoteMinuteBinRow[])
+    : [];
+
   const [rateCountersRow] = youOwnThisPoll
     ? ((await db.query(
         `SELECT
@@ -252,7 +301,20 @@ export async function getPollVoteAnalytics({
           ), 0)::int AS top_ip_votes_last_1m,
           COUNT(*) FILTER (
             WHERE COALESCE("isQuarantined", false) = true AND COALESCE("quarantineStatus", 'pending') = 'pending'
-          )::int AS quarantined_votes_pending
+          )::int AS quarantined_votes_pending,
+          COUNT(*) FILTER (
+            WHERE COALESCE("isQuarantined", false) = true
+              AND COALESCE("quarantineStatus", 'pending') = 'pending'
+              AND "userId" IS NOT NULL
+          )::int AS quarantined_votes_pending_account_linked,
+          COUNT(*) FILTER (
+            WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
+              AND "userId" IS NOT NULL
+          )::int AS votes_account_linked_last_24h,
+          COUNT(*) FILTER (
+            WHERE "createdAt" >= NOW() - INTERVAL '24 hours'
+              AND "userId" IS NULL
+          )::int AS votes_anonymous_last_24h
          FROM votes
          WHERE "pollId" = :pollId`,
         { replacements: { pollId }, type: QueryTypes.SELECT },
@@ -282,6 +344,7 @@ export async function getPollVoteAnalytics({
     dowBins,
     optionHourBins,
     voteMinuteBins,
+    optionVoteMinuteBins,
     rateCountersRow,
     delayedVotesPending: Number(delayedPendingRow?.delayed_votes_pending ?? 0) || 0,
   };

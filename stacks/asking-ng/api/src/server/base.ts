@@ -13,6 +13,15 @@ import {
 } from '../lib/billingExportQuota';
 import { buildBillingUsageWarnings, type BillingUsageWarnings } from '../lib/billingUsageWarnings';
 import {
+  countBillingUsageActionsForWorkspaceUtcDay,
+  listDailyBillingUsageRollupsForWorkspace,
+  listRecentBillingUsageLedgerForWorkspace,
+  type BillingUsageLedgerDailyRollupEntry,
+  type BillingUsageLedgerEntry,
+} from '../lib/billingUsageLedger';
+import { evaluateSelfhostProLicenseState } from '../lib/selfhostProLicense';
+import { readCampaignAttributionDayMeter } from '../lib/billingCampaignAttributionQuota';
+import {
   readPollWebhookDeliveryMeterForScope,
   resolveWebhookDeliveryScopeKeyForSignedInUser,
 } from '../lib/billingPollWebhookDelivery';
@@ -854,10 +863,47 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
             pastDue: polarWorkspace.polarSubscriptionStatus === 'past_due',
           }
         : undefined;
+    const selfhostProLicense = billingPlan === 'selfhost-pro' ? evaluateSelfhostProLicenseState() : undefined;
     let usage:
-      | { limitsEnforced: false }
+      | {
+          limitsEnforced: false;
+          usageLedger?: BillingUsageLedgerEntry[];
+          usageLedgerDaily?: BillingUsageLedgerDailyRollupEntry[];
+          usageReconcile?: {
+            generatedAt: string;
+            checks: Array<{
+              meter:
+                | 'data_exports'
+                | 'campaign_attribution'
+                | 'poll_webhook_delivery'
+                | 'api_rate_limit'
+                | 'ws_fanout';
+              window: 'utc_day';
+              derived: number | null;
+              raw: number | null;
+              status: 'ok' | 'mismatch' | 'unavailable';
+            }>;
+          };
+        }
       | {
           limitsEnforced: true;
+          usageLedger?: BillingUsageLedgerEntry[];
+          usageLedgerDaily?: BillingUsageLedgerDailyRollupEntry[];
+          usageReconcile?: {
+            generatedAt: string;
+            checks: Array<{
+              meter:
+                | 'data_exports'
+                | 'campaign_attribution'
+                | 'poll_webhook_delivery'
+                | 'api_rate_limit'
+                | 'ws_fanout';
+              window: 'utc_day';
+              derived: number | null;
+              raw: number | null;
+              status: 'ok' | 'mismatch' | 'unavailable';
+            }>;
+          };
           activePolls: number;
           maxActivePolls: number;
           votesThisMonth: number;
@@ -869,8 +915,14 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
           /** In-process counter for this UTC minute; omits when plan has no finite webhook cap. */
           webhookDeliveriesThisUtcMinute?: number;
           maxWebhookDeliveriesPerUtcMinute?: number;
+          campaignAttributionIncrementsToday?: number;
+          maxCampaignAttributionPerUtcDay?: number;
           warnings?: BillingUsageWarnings;
         };
+    const usageLedger =
+      uid != null ? await listRecentBillingUsageLedgerForWorkspace({ workspaceUserId: uid, limit: 25 }) : [];
+    const usageLedgerDaily =
+      uid != null ? await listDailyBillingUsageRollupsForWorkspace({ workspaceUserId: uid, days: 14 }) : [];
     if (appEnv.billingEnforceLimits && uid != null) {
       const month = utcCalendarMonthBounds();
       const maxActivePolls = maxActivePollsForBillingPlan(billingPlan);
@@ -892,6 +944,10 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
         webhookScopeKey != null
           ? readPollWebhookDeliveryMeterForScope(webhookScopeKey, billingPlan)
           : { current: 0, max: 0, metered: false };
+      const attrMeter =
+        webhookScopeKey != null
+          ? readCampaignAttributionDayMeter(webhookScopeKey, billingPlan)
+          : { current: 0, max: 0, metered: false };
       const warnings = buildBillingUsageWarnings({
         activePolls,
         maxActivePolls,
@@ -905,9 +961,80 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
               maxPollWebhookDeliveriesPerUtcMinute: hookMeter.max,
             }
           : {}),
+        ...(attrMeter.metered
+          ? {
+              campaignAttributionIncrementsToday: attrMeter.current,
+              maxCampaignAttributionPerUtcDay: attrMeter.max,
+            }
+          : {}),
       });
+      const todayUtc = new Date().toISOString().slice(0, 10);
+      const exportDerivedToday =
+        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.data_export')?.amount ?? 0;
+      const campaignShedDerivedToday =
+        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.campaign_attribution_shed')
+          ?.amount ?? 0;
+      const pollWebhookShedDerivedToday =
+        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.poll_webhook_delivery_shed')
+          ?.amount ?? 0;
+      const apiRateDerivedToday =
+        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.api_rate_limited')?.amount ?? 0;
+      const wsFanoutDerivedToday =
+        usageLedgerDaily.find((r) => r.dayUtc === todayUtc && r.action === 'usage.ws_fanout_shed')?.amount ?? 0;
+      const rawUsageToday = await countBillingUsageActionsForWorkspaceUtcDay({ workspaceUserId: uid });
+      const usageReconcile = {
+        generatedAt: new Date().toISOString(),
+        checks: [
+          {
+            meter: 'data_exports' as const,
+            window: 'utc_day' as const,
+            derived: exportDerivedToday,
+            raw: rawUsageToday.dataExport,
+            status: exportDerivedToday === rawUsageToday.dataExport ? ('ok' as const) : ('mismatch' as const),
+          },
+          {
+            meter: 'campaign_attribution' as const,
+            window: 'utc_day' as const,
+            derived: campaignShedDerivedToday,
+            raw: rawUsageToday.campaignAttributionShed,
+            status:
+              campaignShedDerivedToday === rawUsageToday.campaignAttributionShed
+                ? ('ok' as const)
+                : ('mismatch' as const),
+          },
+          {
+            meter: 'poll_webhook_delivery' as const,
+            window: 'utc_day' as const,
+            derived: pollWebhookShedDerivedToday,
+            raw: rawUsageToday.pollWebhookDeliveryShed,
+            status:
+              pollWebhookShedDerivedToday === rawUsageToday.pollWebhookDeliveryShed
+                ? ('ok' as const)
+                : ('mismatch' as const),
+          },
+          {
+            meter: 'api_rate_limit' as const,
+            window: 'utc_day' as const,
+            derived: apiRateDerivedToday,
+            raw: rawUsageToday.apiRateLimited,
+            status:
+              apiRateDerivedToday === rawUsageToday.apiRateLimited ? ('ok' as const) : ('mismatch' as const),
+          },
+          {
+            meter: 'ws_fanout' as const,
+            window: 'utc_day' as const,
+            derived: wsFanoutDerivedToday,
+            raw: rawUsageToday.wsFanoutShed,
+            status:
+              wsFanoutDerivedToday === rawUsageToday.wsFanoutShed ? ('ok' as const) : ('mismatch' as const),
+          },
+        ],
+      };
       usage = {
         limitsEnforced: true,
+        usageLedger,
+        ...(usageLedgerDaily.length > 0 ? { usageLedgerDaily } : {}),
+        usageReconcile,
         activePolls,
         maxActivePolls,
         votesThisMonth,
@@ -922,10 +1049,30 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
               maxWebhookDeliveriesPerUtcMinute: hookMeter.max,
             }
           : {}),
+        ...(attrMeter.metered
+          ? {
+              campaignAttributionIncrementsToday: attrMeter.current,
+              maxCampaignAttributionPerUtcDay: attrMeter.max,
+            }
+          : {}),
         ...(warnings ? { warnings } : {}),
       };
     } else {
-      usage = { limitsEnforced: false };
+      usage = {
+        limitsEnforced: false,
+        ...(usageLedger.length > 0 ? { usageLedger } : {}),
+        ...(usageLedgerDaily.length > 0 ? { usageLedgerDaily } : {}),
+        usageReconcile: {
+          generatedAt: new Date().toISOString(),
+          checks: [
+            { meter: 'data_exports', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
+            { meter: 'campaign_attribution', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
+            { meter: 'poll_webhook_delivery', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
+            { meter: 'api_rate_limit', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
+            { meter: 'ws_fanout', window: 'utc_day', derived: null, raw: null, status: 'unavailable' },
+          ],
+        },
+      };
     }
     reply.send(
       presentPolarBillingLinks({
@@ -935,6 +1082,7 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
         billingPlan,
         usage,
         subscription,
+        ...(selfhostProLicense ? { selfhostProLicense } : {}),
       }),
     );
   });

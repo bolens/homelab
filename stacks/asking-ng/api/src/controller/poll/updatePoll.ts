@@ -14,6 +14,12 @@ import {
   validatePollPhaseScheduleWindow,
 } from '../../lib/pollPhaseSchedule';
 import { appEnv } from '../../lib/env';
+import { buildPlanLimitDetails } from '../../lib/planLimit';
+import { checkPollMutationEntitlements } from '../../lib/pollMutationEntitlements';
+import {
+  BILLING_LICENSE_EXPIRED_CODE,
+  BILLING_LICENSE_EXPIRED_MESSAGE,
+} from '../../lib/selfhostProLicense';
 import { queuePollWebhook } from '../../lib/pollWebhooks';
 import Poll from '../../model/Poll';
 import { singleString } from '../../utils/http';
@@ -70,6 +76,8 @@ const updatePoll: AppRequestHandler = async (req, res) => {
     webhook_targets,
     panic,
     vote_eligibility,
+    retention_ttl_days,
+    retention_legal_hold,
   } = body;
 
   if (!pollId) {
@@ -96,6 +104,47 @@ const updatePoll: AppRequestHandler = async (req, res) => {
       401,
       'UNAUTHORIZED',
       'Valid api_key header or signed-in poll owner (Authorization: Bearer) is required.',
+    );
+    return;
+  }
+  const premiumBlock = await checkPollMutationEntitlements({
+    ownerUserId: ownerId,
+    requiresAutomation:
+      webhook_targets !== undefined && Array.isArray(webhook_targets) && webhook_targets.length > 0,
+    requiresRetention:
+      (retention_ttl_days !== undefined && retention_ttl_days !== null) || retention_legal_hold === true,
+  });
+  if (premiumBlock?.kind === 'billing_license_expired') {
+    jsonError(res, req, 403, BILLING_LICENSE_EXPIRED_CODE, BILLING_LICENSE_EXPIRED_MESSAGE, premiumBlock.details);
+    return;
+  }
+  if (premiumBlock?.kind === 'plan_limit_automation') {
+    jsonError(
+      res,
+      req,
+      403,
+      'PLAN_LIMIT_AUTOMATION',
+      'Webhook automation is not available on this billing plan.',
+      buildPlanLimitDetails({
+        plan: premiumBlock.plan,
+        requiredPlan: premiumBlock.requiredPlan,
+        feature: 'Webhook automation',
+      }),
+    );
+    return;
+  }
+  if (premiumBlock?.kind === 'plan_limit_retention') {
+    jsonError(
+      res,
+      req,
+      403,
+      'PLAN_LIMIT_RETENTION',
+      'Custom retention is not available on this billing plan.',
+      buildPlanLimitDetails({
+        plan: premiumBlock.plan,
+        requiredPlan: premiumBlock.requiredPlan,
+        feature: 'Custom retention policy',
+      }),
     );
     return;
   }
@@ -172,6 +221,12 @@ const updatePoll: AppRequestHandler = async (req, res) => {
         return;
       }
       patch.voteEligibility = vote_eligibility === null ? 'anonymous' : vote_eligibility;
+    }
+    if (retention_ttl_days !== undefined) {
+      patch.retentionTtlDays = retention_ttl_days === null ? null : retention_ttl_days;
+    }
+    if (retention_legal_hold !== undefined) {
+      patch.retentionLegalHold = retention_legal_hold;
     }
   }
 
@@ -430,6 +485,8 @@ const updatePoll: AppRequestHandler = async (req, res) => {
     write_in_max_length: usedPanic ? undefined : write_in_max_length,
     write_in_blocklist: usedPanic ? undefined : write_in_blocklist,
     write_in_profanity_filter: usedPanic ? undefined : write_in_profanity_filter,
+    retention_ttl_days: usedPanic ? undefined : retention_ttl_days,
+    retention_legal_hold: usedPanic ? undefined : retention_legal_hold,
     webhook_targets: usedPanic ? undefined : webhook_targets,
     voting_paused: usedPanic ? true : voting_paused,
     pause_message: resolvedPauseForWebhook,

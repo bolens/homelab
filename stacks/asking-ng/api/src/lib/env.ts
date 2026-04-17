@@ -1,4 +1,5 @@
 import { cleanEnv, num, str } from 'envalid';
+import { coercePollWebhookHintLocale } from './pollWebhookHintPacks';
 
 function parseBoolish(value: string, fallback: boolean): boolean {
   const normalized = value.trim().toLowerCase();
@@ -36,6 +37,11 @@ const env = cleanEnv(
     ASYNC_JOB_RUNNER_ENABLED: str({ default: '' }),
     ASYNC_JOB_RUNNER_CONCURRENCY: num({ default: 2 }),
     ASYNC_JOB_QUEUE_MAX: num({ default: 5000 }),
+    POLL_RETENTION_SWEEP_INTERVAL_SEC: num({ default: 300 }),
+    POLL_RETENTION_SWEEP_BATCH_SIZE: num({ default: 200 }),
+    POLL_RETENTION_TTL_DAYS_DEFAULT: num({ default: 0 }),
+    AUDIT_LOG_RETENTION_DAYS: num({ default: 0 }),
+    MODERATION_REJECTED_VOTE_RETENTION_DAYS: num({ default: 0 }),
     PLATFORM_WEBHOOK_ID_HASH_SALT: str({ default: '' }),
     ENABLE_PLATFORM_WEBHOOKS: str({ default: '' }),
     PLATFORM_WEBHOOK_SHARED_SECRET: str({ default: '' }),
@@ -50,7 +56,17 @@ const env = cleanEnv(
     POLAR_ACCESS_TOKEN: str({ default: '' }),
     /** `production` (default) or `sandbox` — must match where subscriptions live. */
     POLAR_SERVER: str({ default: '' }),
+    /** Background Polar reconcile interval in seconds; 0 disables scheduled reconcile worker. */
+    POLAR_RECONCILE_INTERVAL_SEC: num({ default: 0 }),
+    /** Max workspaces scanned per scheduled reconcile run (safety cap still applies in reconcile function). */
+    POLAR_RECONCILE_LIMIT: num({ default: 50 }),
     BILLING_ENFORCE_LIMITS: str({ default: '' }),
+    /** Self-host Pro license expiration (UTC ms since epoch). 0/empty disables self-host license evaluation. */
+    SELFHOST_PRO_LICENSE_VALID_UNTIL_MS: num({ default: 0 }),
+    /** Last successful local/remote license verification timestamp (UTC ms). */
+    SELFHOST_PRO_LICENSE_LAST_VERIFIED_MS: num({ default: 0 }),
+    /** Offline grace window in hours after expiry while verification is unavailable (default ~72h). */
+    SELFHOST_PRO_LICENSE_OFFLINE_GRACE_HOURS: num({ default: 72 }),
     PUBLIC_SITE_URL: str({ default: '' }),
     WS_ALLOWED_ORIGINS: str({ default: '' }),
     WS_ALLOW_MISSING_ORIGIN: str({ default: '' }),
@@ -111,6 +127,8 @@ const env = cleanEnv(
     AUTH_PROXY_DEFAULT_ROLE: str({ default: 'user' }),
     AUTH_PROXY_AUTO_PROVISION: str({ default: '' }),
     AUTH_PROXY_TRUSTED_IPS: str({ default: '' }),
+    /** Default locale for poll integration webhook `command_hints` (`en` | `en-gb` | `es`). */
+    POLL_WEBHOOK_HINT_LOCALE: str({ default: 'en' }),
     /** `eu` | `non-eu` | empty (derive from geo header when set). */
     FORCE_CONSENT_REGION: str({ default: '' }),
     /** Lowercase HTTP header name with ISO country code (e.g. Cloudflare `cf-ipcountry`). */
@@ -151,6 +169,20 @@ export const appEnv = {
   asyncJobRunnerEnabled: parseBoolish(env.ASYNC_JOB_RUNNER_ENABLED, false),
   asyncJobRunnerConcurrency: Math.min(16, Math.max(1, Math.floor(env.ASYNC_JOB_RUNNER_CONCURRENCY))),
   asyncJobQueueMax: Math.min(100_000, Math.max(100, Math.floor(env.ASYNC_JOB_QUEUE_MAX))),
+  pollRetentionSweepIntervalSec: Math.min(
+    86_400,
+    Math.max(30, Math.floor(env.POLL_RETENTION_SWEEP_INTERVAL_SEC)),
+  ),
+  pollRetentionSweepBatchSize: Math.min(
+    5_000,
+    Math.max(10, Math.floor(env.POLL_RETENTION_SWEEP_BATCH_SIZE)),
+  ),
+  pollRetentionTtlDaysDefault: Math.max(0, Math.min(3650, Math.floor(env.POLL_RETENTION_TTL_DAYS_DEFAULT))),
+  auditLogRetentionDays: Math.max(0, Math.min(3650, Math.floor(env.AUDIT_LOG_RETENTION_DAYS))),
+  moderationRejectedVoteRetentionDays: Math.max(
+    0,
+    Math.min(3650, Math.floor(env.MODERATION_REJECTED_VOTE_RETENTION_DAYS)),
+  ),
   platformWebhookIdHashSalt: env.PLATFORM_WEBHOOK_ID_HASH_SALT.trim() || 'dev-platform-id-salt',
   enablePlatformWebhooks: parseBoolish(env.ENABLE_PLATFORM_WEBHOOKS, false),
   platformWebhookSharedSecret: env.PLATFORM_WEBHOOK_SHARED_SECRET.trim(),
@@ -163,7 +195,15 @@ export const appEnv = {
   polarProductIdCloudPro: env.POLAR_PRODUCT_ID_CLOUD_PRO.trim(),
   polarAccessToken: env.POLAR_ACCESS_TOKEN.trim(),
   polarServer: env.POLAR_SERVER.trim().toLowerCase() === 'sandbox' ? 'sandbox' : 'production',
+  polarReconcileIntervalSec: Math.max(0, Math.min(86_400, Math.floor(env.POLAR_RECONCILE_INTERVAL_SEC))),
+  polarReconcileLimit: Math.max(1, Math.min(200, Math.floor(env.POLAR_RECONCILE_LIMIT))),
   billingEnforceLimits: parseBoolish(env.BILLING_ENFORCE_LIMITS, false),
+  selfhostProLicenseValidUntilMs: Math.max(0, Math.floor(env.SELFHOST_PRO_LICENSE_VALID_UNTIL_MS)),
+  selfhostProLicenseLastVerifiedMs: Math.max(0, Math.floor(env.SELFHOST_PRO_LICENSE_LAST_VERIFIED_MS)),
+  selfhostProLicenseOfflineGraceHours: Math.max(
+    0,
+    Math.min(24 * 30, Math.floor(env.SELFHOST_PRO_LICENSE_OFFLINE_GRACE_HOURS)),
+  ),
   publicSiteUrl: env.PUBLIC_SITE_URL.trim().replace(/\/$/, ''),
   wsAllowedOriginsRaw: env.WS_ALLOWED_ORIGINS,
   wsAllowMissingOrigin: parseBoolish(env.WS_ALLOW_MISSING_ORIGIN, false),
@@ -239,4 +279,5 @@ export const appEnv = {
     return '';
   })(),
   consentCountryHeader: env.CONSENT_COUNTRY_HEADER.trim().toLowerCase() || 'cf-ipcountry',
+  pollWebhookHintLocale: coercePollWebhookHintLocale(env.POLL_WEBHOOK_HINT_LOCALE.trim() || 'en'),
 } as const;

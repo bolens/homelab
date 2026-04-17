@@ -7,12 +7,15 @@ import { appEnv } from '../../lib/env';
 import { pollEmbedReadAllowed, readEmbedReadTokenFromRequest } from '../../lib/embedReadToken';
 import { notifyPollLive } from '../../lib/pollLive';
 import { pollPhaseScheduleFromRow, resolveEffectivePollPhase } from '../../lib/pollPhaseSchedule';
+import { pollWebhookHintPackForLocale } from '../../lib/pollWebhookHintPacks';
 import { queuePollWebhook } from '../../lib/pollWebhooks';
+import { publicPollPageUrl, publicPollResultsUrl } from '../../lib/sitePublicUrl';
 import { validateWriteInText } from '../../lib/writeInHygiene';
 import type { AppRequest } from '../../types/http';
 import randomId from '../../helpers/randomId';
 import db from '../../connections';
 import {
+  countVotesByPollAndPlatformIdentity,
   countLimitIpBallotsForPoll,
   countRecentVotesForChatChannel,
   countRecentVotesForChatChannelWindowSeconds,
@@ -25,6 +28,7 @@ import {
   findVotesByIdempotencyKey,
   countVotesByPollAndUser,
 } from './voteOnPoll.repository';
+import { upsertPlatformIdentityMapping } from '../../lib/pollPlatformIdentity';
 
 function quantizeCoordinate(raw: unknown, min: number, max: number): number | null {
   if (typeof raw !== 'number' || !Number.isFinite(raw) || raw < min || raw > max) return null;
@@ -40,6 +44,13 @@ function isPostgresUniqueViolation(err: unknown): boolean {
 function hashIp(ipRaw: string): string {
   const salt = appEnv.voteIpHashSalt;
   return createHash('sha256').update(`${salt}:${ipRaw.trim()}`).digest('hex');
+}
+
+function hashPlatformSubject(provider: string, subjectRaw: string): string {
+  const salt = appEnv.voteIpHashSalt;
+  return createHash('sha256')
+    .update(`${salt}:platform:${provider.trim().toLowerCase()}:${subjectRaw.trim()}`)
+    .digest('hex');
 }
 
 function validatePow(pollId: string, nonce: string, difficulty: number): boolean {
@@ -58,6 +69,14 @@ function normalizeIdempotencyKey(raw: string | undefined): string | null {
   const v = raw?.trim();
   if (!v) return null;
   return v.slice(0, 128);
+}
+
+function readSingleHeader(headers: AppRequest['headers'], key: string): string | null {
+  const raw = headers[key] ?? headers[key.toLowerCase()];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
 }
 
 export type VoteOnPollResult =
@@ -86,6 +105,9 @@ export type VoteOnPollResult =
       incoming: number;
     }
   | { kind: 'vote_requires_sign_in' }
+  | { kind: 'platform_identity_not_configured' }
+  | { kind: 'platform_identity_required' }
+  | { kind: 'platform_identity_provider_mismatch'; expectedProvider: string; receivedProvider: string }
   | {
       kind: 'ok';
       vote: unknown;
@@ -171,6 +193,14 @@ export async function voteOnPollService(
     if (!poll) return { kind: 'not_found' };
 
     const resolvedPollId = String(poll.get('id'));
+    const pollUrl = publicPollPageUrl(req, resolvedPollId);
+    const resultsUrl = publicPollResultsUrl(req, resolvedPollId);
+    const hintLocale = appEnv.pollWebhookHintLocale;
+    const hintPack = pollWebhookHintPackForLocale(resolvedPollId, hintLocale);
+    const commandHints = {
+      ...hintPack,
+      hint_locale: hintLocale,
+    };
     const embedHash = poll.get('embedReadTokenHash') as string | null | undefined;
     const embedToken = readEmbedReadTokenFromRequest(req);
     const creatorUserId = poll.get('creatorUserId') as number | null | undefined;
@@ -187,15 +217,43 @@ export async function voteOnPollService(
     if (phase !== 'open') return { kind: 'poll_not_accepting_votes' };
     if (poll.get('votingPaused')) return { kind: 'poll_voting_paused' };
 
+    const voteEligibilityRaw = String(poll.get('voteEligibility') ?? 'anonymous');
     const voteEligibility =
-      String(poll.get('voteEligibility') ?? 'anonymous') === 'account' ? 'account' : 'anonymous';
+      voteEligibilityRaw === 'account' || voteEligibilityRaw === 'platform_linked'
+        ? voteEligibilityRaw
+        : 'anonymous';
     let signedInUserId: number | null = null;
     if (req.user?.id != null) {
       const n = Number(req.user.id);
       if (Number.isFinite(n) && n > 0) signedInUserId = n;
     }
-    if (voteEligibility === 'account' && signedInUserId == null) {
+    if (voteEligibility !== 'anonymous' && signedInUserId == null) {
       return { kind: 'vote_requires_sign_in' };
+    }
+    let platformIdentityProvider: string | null = null;
+    let platformIdentitySubjectHash: string | null = null;
+    if (voteEligibility === 'platform_linked') {
+      const expectedProvider = String(poll.get('platformIdentityProvider') ?? '').trim().toLowerCase();
+      if (expectedProvider === '') return { kind: 'platform_identity_not_configured' };
+      const providerHeader = readSingleHeader(req.headers, 'x-platform-provider');
+      const subjectHeader = readSingleHeader(req.headers, 'x-platform-subject');
+      if (
+        subjectHeader == null ||
+        subjectHeader.length > 256 ||
+        !/^[A-Za-z0-9._:@-]+$/.test(subjectHeader)
+      ) {
+        return { kind: 'platform_identity_required' };
+      }
+      const receivedProvider = (providerHeader ?? expectedProvider).toLowerCase();
+      if (receivedProvider !== expectedProvider) {
+        return {
+          kind: 'platform_identity_provider_mismatch',
+          expectedProvider,
+          receivedProvider,
+        };
+      }
+      platformIdentityProvider = expectedProvider;
+      platformIdentitySubjectHash = hashPlatformSubject(expectedProvider, subjectHeader);
     }
 
     const validOptions = (poll.get('options') as string[] | null) || [];
@@ -370,7 +428,18 @@ export async function voteOnPollService(
 
     const limitIp = !!poll.get('limit_ip');
     const ipBallotBaseId = `${req.ip}-${resolvedPollId}`;
-    if (voteEligibility === 'account' && signedInUserId != null) {
+    if (
+      voteEligibility === 'platform_linked' &&
+      platformIdentityProvider != null &&
+      platformIdentitySubjectHash != null
+    ) {
+      const priorByIdentity = await countVotesByPollAndPlatformIdentity({
+        pollId: resolvedPollId,
+        provider: platformIdentityProvider,
+        subjectHash: platformIdentitySubjectHash,
+      });
+      if (priorByIdentity > 0) return { kind: 'duplicate_vote' };
+    } else if (voteEligibility !== 'anonymous' && signedInUserId != null) {
       const priorUser = await countVotesByPollAndUser({
         pollId: resolvedPollId,
         userId: signedInUserId,
@@ -426,6 +495,8 @@ export async function voteOnPollService(
               quarantineReason,
               quarantineStatus: shouldQuarantine ? 'pending' : null,
               trustRiskScore: shouldQuarantine ? trustRiskScore : null,
+              platformIdentityProvider,
+              platformIdentitySubjectHash,
               vote_latitude: lat,
               vote_longitude: lon,
             },
@@ -437,11 +508,40 @@ export async function voteOnPollService(
       });
 
       notifyPollLive(resolvedPollId, { type: 'update' });
+      if (platformIdentityProvider && platformIdentitySubjectHash) {
+        for (const v of votes as Array<{ get?: (k: string) => unknown }>) {
+          const voteIdRaw = typeof v?.get === 'function' ? v.get('id') : null;
+          const voteId = typeof voteIdRaw === 'string' && voteIdRaw.trim() !== '' ? voteIdRaw : randomId(16);
+          await upsertPlatformIdentityMapping({
+            pollId: resolvedPollId,
+            provider: platformIdentityProvider,
+            subjectHash: platformIdentitySubjectHash,
+            userId: signedInUserId,
+            voteId,
+          });
+        }
+      }
       queuePollWebhook(resolvedPollId, 'vote', {
         selection_mode: 'multi',
         option_indices: indices,
         options: indices.map((i) => validOptions[i]),
         weight: 1,
+        vote_eligibility: voteEligibility,
+        voter_user_id: signedInUserId,
+        poll_url: pollUrl,
+        results_url: resultsUrl,
+        command_hints: commandHints,
+        platform_identity_provider: platformIdentityProvider,
+        platform_identity_subject_hash: platformIdentitySubjectHash,
+        moderation: shouldQuarantine
+          ? {
+              quarantined: true,
+              reason: quarantineReason,
+              trust_risk_score: trustRiskScore,
+            }
+          : {
+              quarantined: false,
+            },
         chat_channel_id: chatChannelId,
         idempotency_key: commandIdempotencyKey,
       });
@@ -479,14 +579,43 @@ export async function voteOnPollService(
       quarantineReason,
       quarantineStatus: shouldQuarantine ? 'pending' : null,
       trustRiskScore: shouldQuarantine ? trustRiskScore : null,
+      platformIdentityProvider,
+      platformIdentitySubjectHash,
       vote_latitude: lat,
       vote_longitude: lon,
     });
 
     notifyPollLive(resolvedPollId, { type: 'update' });
+    if (platformIdentityProvider && platformIdentitySubjectHash) {
+      const voteIdRaw = (vote as { get?: (k: string) => unknown })?.get?.('id');
+      const voteId = typeof voteIdRaw === 'string' && voteIdRaw.trim() !== '' ? voteIdRaw : randomId(16);
+      await upsertPlatformIdentityMapping({
+        pollId: resolvedPollId,
+        provider: platformIdentityProvider,
+        subjectHash: platformIdentitySubjectHash,
+        userId: signedInUserId,
+        voteId,
+      });
+    }
     queuePollWebhook(resolvedPollId, 'vote', {
       option: optionStr,
       weight: boostWeight,
+      vote_eligibility: voteEligibility,
+      voter_user_id: signedInUserId,
+      poll_url: pollUrl,
+      results_url: resultsUrl,
+      command_hints: commandHints,
+      platform_identity_provider: platformIdentityProvider,
+      platform_identity_subject_hash: platformIdentitySubjectHash,
+      moderation: shouldQuarantine
+        ? {
+            quarantined: true,
+            reason: quarantineReason,
+            trust_risk_score: trustRiskScore,
+          }
+        : {
+            quarantined: false,
+          },
       chat_channel_id: chatChannelId,
       idempotency_key: commandIdempotencyKey,
     });

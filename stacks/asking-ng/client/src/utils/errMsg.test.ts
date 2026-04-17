@@ -83,4 +83,32 @@ describe('errMsg', () => {
     expect(m).toContain('+3 this request');
     expect(m).toContain('[USAGE_LIMIT_VOTES]');
   });
+
+  it('appends upgrade hint for PLAN_LIMIT_* errors', () => {
+    const e = makeApiError(403, 'Custom retention is not available on this billing plan.', {
+      errorCode: 'PLAN_LIMIT_RETENTION',
+    });
+    (e as { details?: unknown }).details = {
+      plan: 'free',
+      required_plan: 'cloud-team',
+      upgrade_hint: 'Custom retention policy requires cloud-team or higher.',
+    };
+    const m = errMsg(e, 'fallback');
+    expect(m).toContain('Custom retention policy requires cloud-team or higher.');
+    expect(m).toContain('[PLAN_LIMIT_RETENTION]');
+  });
+
+  it('appends upgrade hint for BILLING_LICENSE_EXPIRED', () => {
+    const e = makeApiError(403, 'Self-host Pro license is expired for premium feature use.', {
+      errorCode: 'BILLING_LICENSE_EXPIRED',
+    });
+    (e as { details?: unknown }).details = {
+      plan: 'selfhost-pro',
+      license_status: 'expired',
+      upgrade_hint: 'Self-host Pro license has expired. Renew license to continue premium features.',
+    };
+    const m = errMsg(e, 'fallback');
+    expect(m).toContain('Renew license to continue premium features.');
+    expect(m).toContain('[BILLING_LICENSE_EXPIRED]');
+  });
 });

@@ -197,7 +197,11 @@ export const openApiDocument = {
         responses: {
           '204': { description: 'Signature valid; event accepted (no response body).' },
           '400': jsonErrorResponse,
-          '403': jsonErrorResponse,
+          '403': {
+            ...jsonErrorResponse,
+            description:
+              'Embed token required, `FEATURE_DISABLED` when vote geo collection is off, or when `BILLING_ENFORCE_LIMITS=true`: `PLAN_LIMIT_HEATMAP` for `free` plan workspaces (details include `plan`, `required_plan`, `upgrade_hint`) and `BILLING_LICENSE_EXPIRED` for expired `selfhost-pro` premium access.',
+          },
           '404': jsonErrorResponse,
           '503': jsonErrorResponse,
           '500': jsonErrorResponse,
@@ -243,7 +247,11 @@ export const openApiDocument = {
           '200': { description: '{ user, token }' },
           '400': jsonErrorResponse,
           '401': jsonErrorResponse,
-          '403': jsonErrorResponse,
+          '403': {
+            ...jsonErrorResponse,
+            description:
+              'Embed token required, or when `BILLING_ENFORCE_LIMITS=true`: `PLAN_LIMIT_FORENSIC` for `free` plan workspaces (details include `plan`, `required_plan`, `upgrade_hint`) and `BILLING_LICENSE_EXPIRED` for expired `selfhost-pro` premium access.',
+          },
           '429': jsonErrorResponse,
           '500': jsonErrorResponse,
         },
@@ -357,7 +365,7 @@ export const openApiDocument = {
         responses: {
           '200': {
             description:
-              '{ polar, billing: { plan, pastDue?, subscriptionStatus? }, usage: { ... } } — Polar URLs from POLAR_*; plan from DB; `billing.pastDue` + `billing.subscriptionStatus` when the default workspace is linked to Polar (e.g. `past_due` for grace UX). When BILLING_ENFORCE_LIMITS=true, usage includes meters plus outbound WS fanout cap (`min(WS_FANOUT_MAX_PER_POLL_PER_SEC, plan tier)`), optional `webhookDeliveriesThisUtcMinute` / `maxWebhookDeliveriesPerUtcMinute` (in-process UTC-minute outbound **poll** webhook attempts for the billing workspace), and optional `warnings` (`80` / `95` per meter) when nearing caps.',
+              '{ polar, billing: { plan, pastDue?, subscriptionStatus?, selfhostProLicense? }, usage: { ... } } — Polar URLs from POLAR_*; plan from DB; `billing.pastDue` + `billing.subscriptionStatus` when the default workspace is linked to Polar (e.g. `past_due` for grace UX). For `selfhost-pro`, `billing.selfhostProLicense` exposes phase-1 license state (`active` / `grace` / `expired` / `unknown`) from env-backed timestamps. `usage.usageLedger` now includes recent customer-visible metered rows (latest first; currently `usage.data_export`, `usage.campaign_attribution_shed`, `usage.poll_webhook_delivery_shed`, `usage.ws_fanout_shed`, and `usage.api_rate_limited`), `usage.usageLedgerDaily` includes UTC-day grouped rollups for the same action taxonomy (default trailing 14 days), and `usage.usageReconcile` includes internal UTC-day parity checks between rollup-derived counts and uncapped raw `audit_logs` action counts for exports, shed telemetry actions, and API rate-limit hits. Future metered actions should be added to `usage.usageLedger` and `usage.usageReconcile` together so customer-visible history remains explainable against raw logs. When BILLING_ENFORCE_LIMITS=true, usage includes meters plus outbound WS fanout cap (`min(WS_FANOUT_MAX_PER_POLL_PER_SEC, plan tier)`), optional `webhookDeliveriesThisUtcMinute` / `maxWebhookDeliveriesPerUtcMinute`, optional `campaignAttributionIncrementsToday` / `maxCampaignAttributionPerUtcDay` (in-process UTC **day** UTM attribution increments for the billing workspace), and optional `warnings` (`80` / `95` per meter) when nearing caps.',
           },
           '401': jsonErrorResponse,
           '500': jsonErrorResponse,
@@ -763,9 +771,36 @@ export const openApiDocument = {
                   },
                   vote_eligibility: {
                     type: 'string',
-                    enum: ['anonymous', 'account'],
+                    enum: ['anonymous', 'account', 'platform_linked'],
                     description:
-                      '`anonymous` (default): public voting. `account`: voters must send `Authorization: Bearer` with a valid user JWT; one ballot per user.',
+                      '`anonymous` (default): public voting. `account`: voters must send `Authorization: Bearer` with a valid user JWT; one ballot per user. `platform_linked`: roadmap scaffold for provider-linked voter identity (currently same signed-in requirement as `account`).',
+                  },
+                  account_vote_consent_ack: {
+                    type: 'boolean',
+                    description:
+                      'Required as `true` when `vote_eligibility` is `account` or `platform_linked` to explicitly acknowledge signed-in identity gating consent/copy.',
+                  },
+                  platform_identity_provider: {
+                    type: 'string',
+                    description:
+                      'Required when `vote_eligibility=platform_linked`; provider key scaffold (for future OAuth/provider binding).',
+                  },
+                  platform_identity_consent_version: {
+                    type: 'string',
+                    description:
+                      'Required when `vote_eligibility=platform_linked`; consent/policy copy version acknowledged by creator.',
+                  },
+                  retention_ttl_days: {
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 3650,
+                    description:
+                      'Optional per-poll retention window in days after expiration; auto-delete worker removes expired polls after this TTL.',
+                  },
+                  retention_legal_hold: {
+                    type: 'boolean',
+                    description:
+                      'Optional legal-hold switch. When true, retention sweeps skip auto-delete for this poll until cleared.',
                   },
                   generate_embed_read_token: {
                     type: 'boolean',
@@ -788,6 +823,21 @@ export const openApiDocument = {
                           description:
                             'Optional signing secret; if omitted the server generates one and returns it once in create response.',
                         },
+                        hint_locale: {
+                          type: 'string',
+                          enum: ['en', 'en-gb', 'es'],
+                          description: 'Optional per-target locale for webhook command hint strings.',
+                        },
+                        include_results_snapshot: {
+                          type: 'boolean',
+                          description:
+                            'When true, this target receives `data.results_snapshot` on poll webhooks (public tallies; excludes quarantined votes).',
+                        },
+                        include_owner_snapshot: {
+                          type: 'boolean',
+                          description:
+                            'When true, this target receives `data.owner_snapshot` (moderation-style counters; sensitive — trusted URLs only).',
+                        },
                       },
                     },
                   },
@@ -804,7 +854,7 @@ export const openApiDocument = {
           '400': jsonErrorResponse,
           '403': {
             description:
-              'When `BILLING_ENFORCE_LIMITS=true`: `USAGE_LIMIT_ACTIVE_POLLS` if the signed-in creator already owns `max` non-archived polls for their `billing_plan` (details include max, current, plan).',
+              'When `BILLING_ENFORCE_LIMITS=true`: `USAGE_LIMIT_ACTIVE_POLLS` if the signed-in creator already owns `max` non-archived polls for their `billing_plan` (details include max, current, plan), `PLAN_LIMIT_AUTOMATION` when non-empty `webhook_targets` are requested on a `free` workspace, `PLAN_LIMIT_RETENTION` when `retention_ttl_days` or `retention_legal_hold=true` is requested on a `free` workspace (plan-limit details include `plan`, `required_plan`, `upgrade_hint`), and `BILLING_LICENSE_EXPIRED` when `selfhost-pro` premium license is expired.',
           },
           '429': jsonErrorResponse,
           '500': jsonErrorResponse,
@@ -861,7 +911,26 @@ export const openApiDocument = {
       get: {
         summary: 'oEmbed-style JSON for embeds / link previews (public)',
         tags: ['Polls'],
-        parameters: [pollIdParam, ...pollEmbedAccessParams],
+        parameters: [
+          pollIdParam,
+          ...pollEmbedAccessParams,
+          {
+            name: 'X-Platform-Provider',
+            in: 'header',
+            required: false,
+            schema: { type: 'string', maxLength: 64 },
+            description:
+              'For `vote_eligibility=platform_linked`: provider key. Must match poll `platform_identity_provider` when provided.',
+          },
+          {
+            name: 'X-Platform-Subject',
+            in: 'header',
+            required: false,
+            schema: { type: 'string', maxLength: 256 },
+            description:
+              'For `vote_eligibility=platform_linked`: required provider-subject identifier for the voter (ASCII token shape).',
+          },
+        ],
         responses: {
           '200': { description: 'OEmbed JSON (type link + html snippet)' },
           '403': jsonErrorResponse,
@@ -873,13 +942,13 @@ export const openApiDocument = {
     '/poll/{id}/meta': {
       get: {
         summary:
-          'Compact poll metadata for bots (option indices, can_vote, vote_path, vote_http_method, timestamps_timezone, phase schedule/countdowns, boosted voting flags, run-of-show links, vote friction config, integrity_panel, pause_message, embed_gate, public_poll_url/public_results_url; no tallies, no impression bump)',
+          'Compact poll metadata for bots (option indices, can_vote, vote_path, vote_http_method, timestamps_timezone, phase schedule/countdowns, boosted voting flags, run-of-show links, vote friction config, retention fields, integrity_panel, pause_message, embed_gate, public_poll_url/public_results_url; no tallies, no impression bump)',
         tags: ['Polls'],
         parameters: [pollIdParam, ...pollEmbedAccessParams],
         responses: {
           '200': {
             description:
-              '{ status, data: { …, **phase** (effective at `server_now_ms`), **phase_schedule** (`open_at`, `lock_at`, `reveal_at`), **boosted_voting_enabled**, **max_boost_weight**, **show_unweighted_values**, run-of-show fields (**run_of_show_key**, **run_of_show_order**, **vanity_slug**, **next_poll_id**, **auto_advance_on_close**), vote-friction fields (**vote_friction_tier**, **soft_throttle_max_votes_per_min**, **pow_difficulty**), **integrity_panel** safeguard summary, optional owner-only **moderation_counters** (`votes_last_1m`, `unique_ip_hashes_last_1m`, `unique_accounts_last_1m`, `top_ip_votes_last_1m`), **vote_path** (e.g. `poll/{id}/vote` relative to API base), **vote_http_method**: `PUT`, **timestamps_timezone**: `UTC`, **phase_history**: oldest→newest phase events (`from_phase`, `to_phase`, `at`, `actor_type`, `actor_user_id`, `source`), **public_results_url** (`/{id}/results`) } } — **public_poll_url** uses `PUBLIC_SITE_URL` / `CORS_ORIGIN` or request Host (same rules as oEmbed).',
+              '{ status, data: { …, **phase** (effective at `server_now_ms`), **phase_schedule** (`open_at`, `lock_at`, `reveal_at`), **boosted_voting_enabled**, **max_boost_weight**, **show_unweighted_values**, run-of-show fields (**run_of_show_key**, **run_of_show_order**, **vanity_slug**, **next_poll_id**, **auto_advance_on_close**), vote-friction fields (**vote_friction_tier**, **soft_throttle_max_votes_per_min**, **pow_difficulty**), retention fields (**`retention_ttl_days`**, **`retention_legal_hold`**, **`auto_delete_at_ms`**), **integrity_panel** safeguard summary, optional owner-only **moderation_counters** (`votes_last_1m`, `unique_ip_hashes_last_1m`, `unique_accounts_last_1m`, `top_ip_votes_last_1m`, `quarantined_votes_pending`, `quarantined_votes_pending_account_linked`, `votes_account_linked_last_24h`, `votes_anonymous_last_24h`), **vote_path** (e.g. `poll/{id}/vote` relative to API base), **vote_http_method**: `PUT`, **timestamps_timezone**: `UTC`, **phase_history**: oldest→newest phase events (`from_phase`, `to_phase`, `at`, `actor_type`, `actor_user_id`, `source`), **public_results_url** (`/{id}/results`) } } — **public_poll_url** uses `PUBLIC_SITE_URL` / `CORS_ORIGIN` or request Host (same rules as oEmbed).',
           },
           '403': jsonErrorResponse,
           '404': jsonErrorResponse,
@@ -939,7 +1008,7 @@ export const openApiDocument = {
           '401': jsonErrorResponse,
           '403': {
             description:
-              'When BILLING_ENFORCE_LIMITS=true: USAGE_LIMIT_ACTIVE_POLLS if cloning would exceed non-archived poll cap for the creator billing plan.',
+              'When BILLING_ENFORCE_LIMITS=true: USAGE_LIMIT_ACTIVE_POLLS if cloning would exceed non-archived poll cap for the creator billing plan; PLAN_LIMIT_AUTOMATION if the source poll has non-empty webhook_targets on a free workspace; PLAN_LIMIT_RETENTION if the source poll has custom retention_ttl_days or retention_legal_hold=true on a free workspace (plan-limit details include plan, required_plan, upgrade_hint); BILLING_LICENSE_EXPIRED when selfhost-pro premium license is expired on those premium paths.',
           },
           '404': jsonErrorResponse,
           '500': jsonErrorResponse,
@@ -975,6 +1044,11 @@ export const openApiDocument = {
           '200': { description: '{ status, data: { vote_id, option } }' },
           '400': jsonErrorResponse,
           '401': jsonErrorResponse,
+          '403': {
+            ...jsonErrorResponse,
+            description:
+              'When `BILLING_ENFORCE_LIMITS=true`: `PLAN_LIMIT_AUTOMATION` if non-empty `webhook_targets` are set on a `free` workspace, `PLAN_LIMIT_RETENTION` if `retention_ttl_days` is set to a non-null value or `retention_legal_hold=true` on a `free` workspace (details include `plan`, `required_plan`, `upgrade_hint`), or `BILLING_LICENSE_EXPIRED` when `selfhost-pro` premium license is expired.',
+          },
           '404': jsonErrorResponse,
           '500': jsonErrorResponse,
         },
@@ -989,7 +1063,7 @@ export const openApiDocument = {
         responses: {
           '200': {
             description:
-              'Poll with vote counts, **phase** (effective at `server_now_ms`), **phase_schedule** (`open_at`, `lock_at`, `reveal_at`), boosted voting fields (**boosted_voting_enabled**, **max_boost_weight**, **show_unweighted_values**), run-of-show fields (**run_of_show_key**, **run_of_show_order**, **vanity_slug**, **next_poll_id**, **auto_advance_on_close**), vote-friction fields (**vote_friction_tier**, **soft_throttle_max_votes_per_min**, **pow_difficulty**), write-in hygiene fields (**allow_write_in**, **write_in_max_length**, **write_in_blocklist**, **write_in_profanity_filter**), **integrity_panel** safeguard summary, optional owner-only **moderation_counters** (`votes_last_1m`, `unique_ip_hashes_last_1m`, `unique_accounts_last_1m`, `top_ip_votes_last_1m`), **metrics** (aggregate UTC hour/weekday histograms; when **`you_own_this_poll`**, also **`option_hourly_votes_utc`**: per configured option, **`hourly_votes_by_hour_utc`** length 24, and **`vote_velocity_by_minute_utc`**: same shape as export summary — up to **4000** most recent UTC minutes with ≥1 vote, chronological; **`vote_velocity_by_minute_utc_truncated`**: `true` when that cap is hit), **voting_paused**, **pause_message**, **impression_count**, **option_entries**; **show_notes** only when caller JWT matches poll owner. **`embed_gate`**: an embed-read hash is configured (WS/live clients may need **`ws_bearer`** when **`you_own_this_poll`**). **`you_own_this_poll`**: caller JWT is the poll creator.',
+              'Poll with vote counts, **phase** (effective at `server_now_ms`), **phase_schedule** (`open_at`, `lock_at`, `reveal_at`), boosted voting fields (**boosted_voting_enabled**, **max_boost_weight**, **show_unweighted_values**), run-of-show fields (**run_of_show_key**, **run_of_show_order**, **vanity_slug**, **next_poll_id**, **auto_advance_on_close**), vote-friction fields (**vote_friction_tier**, **soft_throttle_max_votes_per_min**, **pow_difficulty**), write-in hygiene fields (**allow_write_in**, **write_in_max_length**, **write_in_blocklist**, **write_in_profanity_filter**), retention fields (**`retention_ttl_days`**, **`retention_legal_hold`**, **`auto_delete_at_ms`**), **integrity_panel** safeguard summary, optional owner-only **moderation_counters** (`votes_last_1m`, `unique_ip_hashes_last_1m`, `unique_accounts_last_1m`, `top_ip_votes_last_1m`, `quarantined_votes_pending`, `quarantined_votes_pending_account_linked`, `votes_account_linked_last_24h`, `votes_anonymous_last_24h`), **metrics** (aggregate UTC hour/weekday histograms; when **`you_own_this_poll`**, also **`option_hourly_votes_utc`**: per configured option, **`hourly_votes_by_hour_utc`** length 24, **`vote_velocity_by_minute_utc`**: same shape as export summary — up to **4000** most recent UTC minutes with ≥1 vote, chronological; **`vote_velocity_by_minute_utc_truncated`**: `true` when that cap is hit; and **`option_vote_velocity_by_minute_utc`**: per configured option, each with **`vote_velocity_by_minute_utc`** `{ minute_utc, vote_count }[]` on the same up-to-**120** most recent distinct UTC minutes that had any vote, zeros filled, chronological), **voting_paused**, **pause_message**, **impression_count**, **option_entries**; **show_notes** only when caller JWT matches poll owner. **`embed_gate`**: an embed-read hash is configured (WS/live clients may need **`ws_bearer`** when **`you_own_this_poll`**). **`you_own_this_poll`**: caller JWT is the poll creator.',
           },
           '400': jsonErrorResponse,
           '403': jsonErrorResponse,
@@ -1073,9 +1147,39 @@ export const openApiDocument = {
                   vote_eligibility: {
                     type: 'string',
                     nullable: true,
-                    enum: ['anonymous', 'account'],
+                    enum: ['anonymous', 'account', 'platform_linked'],
                     description:
                       'Editable only while the poll is in **draft**. `null` resets to **anonymous**.',
+                  },
+                  account_vote_consent_ack: {
+                    type: 'boolean',
+                    description:
+                      'Required as `true` whenever patching `vote_eligibility=account` or `vote_eligibility=platform_linked`.',
+                  },
+                  platform_identity_provider: {
+                    type: 'string',
+                    nullable: true,
+                    description:
+                      'When `vote_eligibility=platform_linked`, provider key scaffold for provider-linked identity mode.',
+                  },
+                  platform_identity_consent_version: {
+                    type: 'string',
+                    nullable: true,
+                    description:
+                      'When `vote_eligibility=platform_linked`, consent/policy copy version acknowledged for identity-linked voting.',
+                  },
+                  retention_ttl_days: {
+                    type: 'integer',
+                    nullable: true,
+                    minimum: 1,
+                    maximum: 3650,
+                    description:
+                      'Optional per-poll retention window (days) after expiration; `null` clears to use global default.',
+                  },
+                  retention_legal_hold: {
+                    type: 'boolean',
+                    description:
+                      'When true, pause retention auto-delete for this poll (legal hold).',
                   },
                   generate_embed_read_token: {
                     type: 'boolean',
@@ -1090,7 +1194,7 @@ export const openApiDocument = {
                   },
                 },
                 description:
-                  'Send at least one field. **panic**: true alone (or with **pause_message** only) is a kill switch; do not combine with phase, voting_paused, expiration, show_notes, or embed rotation.',
+                  'Send at least one field. **panic**: true alone (or with **pause_message** only) is a kill switch; do not combine with phase, voting_paused, expiration, show_notes, account_vote_consent_ack, platform_identity_provider, platform_identity_consent_version, retention_ttl_days, retention_legal_hold, or embed rotation.',
               },
             },
           },
@@ -1233,14 +1337,22 @@ export const openApiDocument = {
         },
         responses: {
           '200': { description: 'Vote recorded' },
-          '400': jsonErrorResponse,
+          '400': {
+            ...jsonErrorResponse,
+            description:
+              'Validation errors and vote-shape checks, plus `PLATFORM_IDENTITY_REQUIRED` when a platform-linked poll is voted without valid `X-Platform-Subject` header.',
+          },
           '403': {
             ...jsonErrorResponse,
             description:
-              'Embed token required, or when `BILLING_ENFORCE_LIMITS=true`: `USAGE_LIMIT_VOTES` if the poll owner would exceed monthly non-quarantined vote rows for their billing plan (details: max, current, plan, incoming). Otherwise structured error per default schema.',
+              'Embed token required, `PLATFORM_IDENTITY_PROVIDER_MISMATCH` for provider mismatch on platform-linked polls, or when `BILLING_ENFORCE_LIMITS=true`: `USAGE_LIMIT_VOTES` if the poll owner would exceed monthly non-quarantined vote rows for their billing plan (details: max, current, plan, incoming). Otherwise structured error per default schema.',
           },
           '404': jsonErrorResponse,
-          '409': jsonErrorResponse,
+          '409': {
+            ...jsonErrorResponse,
+            description:
+              'Conflict conditions such as duplicate votes and `PLATFORM_IDENTITY_NOT_CONFIGURED` when a platform-linked poll is missing provider metadata.',
+          },
           '429': jsonErrorResponse,
           '500': jsonErrorResponse,
         },
@@ -1322,7 +1434,7 @@ export const openApiDocument = {
         responses: {
           '200': {
             description:
-              'users, polls, audit summary, creatorMetrics (votes / peaks / histograms), trustMetrics (quarantine_pending_total, quarantine_pending_polls, quarantine_pending_by_reason, quarantine_approved_last_24h, quarantine_rejected_last_24h, trust_risk_avg_pending, quarantine_pending_account_linked, votes_account_linked_last_24h, votes_anonymous_last_24h)',
+              'users, polls, audit summary, creatorMetrics (votes / peaks / histograms), trustMetrics (quarantine_pending_total, quarantine_pending_polls, quarantine_pending_by_reason, quarantine_approved_last_24h, quarantine_rejected_last_24h, trust_risk_avg_pending, quarantine_pending_account_linked, votes_account_linked_last_24h, votes_anonymous_last_24h), webhookDeliveryTelemetry (recent in-process poll webhook attempts / ok / non-2xx / failed / shed counters; current API process only)',
           },
           '401': jsonErrorResponse,
           '429': jsonErrorResponse,

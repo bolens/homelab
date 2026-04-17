@@ -3,17 +3,6 @@
 
   html[data-color-theme="dracula"] {
     color-scheme: dark;
-    /* Bootstrap surfaces + navbar use rgba(var(--bs-*-rgb), …); set RGB or themes look identical. */
-    --bs-body-bg-rgb: 40, 42, 54;
-    --bs-body-color-rgb: 248, 248, 242;
-    --bs-emphasis-color-rgb: 248, 248, 242;
-    --bs-secondary-color-rgb: 233, 233, 244;
-    --bs-tertiary-color-rgb: 98, 114, 164;
-    --bs-secondary-bg-rgb: 68, 71, 90;
-    --bs-tertiary-bg-rgb: 68, 71, 90;
-    --bs-link-color-rgb: 189, 147, 249;
-    --bs-link-hover-color-rgb: 189, 147, 249;
-    --bs-primary-rgb: 189, 147, 249;
     --color-text: #f8f8f2;
     --color-text-muted: #e9e9f4;
     --color-text-subtle: #6272a4;
@@ -44,16 +33,6 @@
 
   html[data-color-theme="solarized-dark"] {
     color-scheme: dark;
-    --bs-body-bg-rgb: 0, 43, 54;
-    --bs-body-color-rgb: 147, 161, 161;
-    --bs-emphasis-color-rgb: 147, 161, 161;
-    --bs-secondary-color-rgb: 131, 148, 150;
-    --bs-tertiary-color-rgb: 101, 123, 131;
-    --bs-secondary-bg-rgb: 7, 54, 66;
-    --bs-tertiary-bg-rgb: 7, 54, 66;
-    --bs-link-color-rgb: 38, 139, 210;
-    --bs-link-hover-color-rgb: 38, 139, 210;
-    --bs-primary-rgb: 38, 139, 210;
     --color-text: #93a1a1;
     --color-text-muted: #839496;
     --color-text-subtle: #657b83;
@@ -84,16 +63,6 @@
 
   html[data-color-theme="solarized-light"] {
     color-scheme: light;
-    --bs-body-bg-rgb: 253, 246, 227;
-    --bs-body-color-rgb: 88, 110, 117;
-    --bs-emphasis-color-rgb: 88, 110, 117;
-    --bs-secondary-color-rgb: 101, 123, 131;
-    --bs-tertiary-color-rgb: 131, 148, 150;
-    --bs-secondary-bg-rgb: 238, 232, 213;
-    --bs-tertiary-bg-rgb: 238, 232, 213;
-    --bs-link-color-rgb: 38, 139, 210;
-    --bs-link-hover-color-rgb: 38, 139, 210;
-    --bs-primary-rgb: 38, 139, 210;
     --color-text: #586e75;
     --color-text-muted: #657b83;
     --color-text-subtle: #839496;
@@ -124,16 +93,6 @@
 
   html[data-color-theme="nord"] {
     color-scheme: dark;
-    --bs-body-bg-rgb: 46, 52, 64;
-    --bs-body-color-rgb: 236, 239, 244;
-    --bs-emphasis-color-rgb: 236, 239, 244;
-    --bs-secondary-color-rgb: 229, 233, 240;
-    --bs-tertiary-color-rgb: 216, 222, 233;
-    --bs-secondary-bg-rgb: 59, 66, 82;
-    --bs-tertiary-bg-rgb: 59, 66, 82;
-    --bs-link-color-rgb: 136, 192, 208;
-    --bs-link-hover-color-rgb: 136, 192, 208;
-    --bs-primary-rgb: 94, 129, 172;
     --color-text: #eceff4;
     --color-text-muted: #e5e9f0;
     --color-text-subtle: #d8dee9;
@@ -164,16 +123,6 @@
 
   html[data-color-theme="gruvbox-dark"] {
     color-scheme: dark;
-    --bs-body-bg-rgb: 40, 40, 40;
-    --bs-body-color-rgb: 235, 219, 178;
-    --bs-emphasis-color-rgb: 235, 219, 178;
-    --bs-secondary-color-rgb: 213, 196, 161;
-    --bs-tertiary-color-rgb: 189, 174, 147;
-    --bs-secondary-bg-rgb: 60, 56, 54;
-    --bs-tertiary-bg-rgb: 60, 56, 54;
-    --bs-link-color-rgb: 254, 128, 25;
-    --bs-link-hover-color-rgb: 254, 128, 25;
-    --bs-primary-rgb: 254, 128, 25;
     --color-text: #ebdbb2;
     --color-text-muted: #d5c4a1;
     --color-text-subtle: #bdae93;
@@ -204,16 +153,6 @@
 
   html[data-color-theme="gruvbox-light"] {
     color-scheme: light;
-    --bs-body-bg-rgb: 251, 241, 199;
-    --bs-body-color-rgb: 60, 56, 54;
-    --bs-emphasis-color-rgb: 60, 56, 54;
-    --bs-secondary-color-rgb: 80, 73, 69;
-    --bs-tertiary-color-rgb: 102, 92, 84;
-    --bs-secondary-bg-rgb: 235, 219, 178;
-    --bs-tertiary-bg-rgb: 235, 219, 178;
-    --bs-link-color-rgb: 214, 93, 14;
-    --bs-link-hover-color-rgb: 214, 93, 14;
-    --bs-primary-rgb: 214, 93, 14;
     --color-text: #3c3836;
     --color-text-muted: #504945;
     --color-text-subtle: #665c54;
@@ -244,16 +183,6 @@
 
   html[data-color-theme="catppuccin-mocha"] {
     color-scheme: dark;
-    --bs-body-bg-rgb: 30, 30, 46;
-    --bs-body-color-rgb: 205, 214, 244;
-    --bs-emphasis-color-rgb: 205, 214, 244;
-    --bs-secondary-color-rgb: 186, 194, 222;
-    --bs-tertiary-color-rgb: 166, 173, 200;
-    --bs-secondary-bg-rgb: 49, 50, 68;
-    --bs-tertiary-bg-rgb: 49, 50, 68;
-    --bs-link-color-rgb: 203, 166, 247;
-    --bs-link-hover-color-rgb: 203, 166, 247;
-    --bs-primary-rgb: 203, 166, 247;
     --color-text: #cdd6f4;
     --color-text-muted: #bac2de;
     --color-text-subtle: #a6adc8;
@@ -284,16 +213,6 @@
 
   html[data-color-theme="tokyo-night"] {
     color-scheme: dark;
-    --bs-body-bg-rgb: 26, 27, 38;
-    --bs-body-color-rgb: 192, 202, 245;
-    --bs-emphasis-color-rgb: 192, 202, 245;
-    --bs-secondary-color-rgb: 169, 177, 214;
-    --bs-tertiary-color-rgb: 86, 95, 137;
-    --bs-secondary-bg-rgb: 41, 46, 66;
-    --bs-tertiary-bg-rgb: 41, 46, 66;
-    --bs-link-color-rgb: 122, 162, 247;
-    --bs-link-hover-color-rgb: 122, 162, 247;
-    --bs-primary-rgb: 122, 162, 247;
     --color-text: #c0caf5;
     --color-text-muted: #a9b1d6;
     --color-text-subtle: #565f89;
@@ -320,5 +239,10 @@
       var(--accent-control) 84%,
       var(--color-bg-inverse) 16%
     );
+  }
+
+  /* Optional palette themes only set surface/muted; keep canvas in sync unless extended later */
+  html[data-color-theme] {
+    --color-bg-canvas: var(--color-bg-surface);
   }
 }

@@ -3,6 +3,7 @@ import { findBillingPlanAndRoleByUserId } from '../controller/self/self.reposito
 import { maxWsFanoutMessagesPerSecondForBillingPlan } from './billingLimits';
 import { appEnv } from './env';
 import { logger } from './logger';
+import { recordBillingWsFanoutShed } from './billingWsFanoutLedger';
 
 const CACHE_TTL_MS = 60_000;
 const planCache = new Map<number, { plan: string; role: string | null; exp: number }>();
@@ -124,6 +125,15 @@ export function takePollLiveFanoutOrShed(pollId: string): boolean {
       { event: 'poll.live.ws_fanout_shed', pollId, code: 'USAGE_LIMIT_WS_FANOUT', cap },
       'poll live outbound fanout cap exceeded for this poll; update broadcast dropped',
     );
+    if (appEnv.billingEnforceLimits && typeof uidForCap === 'number' && uidForCap > 0) {
+      const cached = cachedPlanFields(uidForCap);
+      void recordBillingWsFanoutShed({
+        userId: uidForCap,
+        billingPlan: cached?.plan ?? 'free',
+        pollId,
+        cap,
+      });
+    }
   }
   return ok;
 }

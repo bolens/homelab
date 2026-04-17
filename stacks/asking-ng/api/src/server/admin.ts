@@ -6,8 +6,20 @@ import { timingSafeAdminTokenEqual } from '../lib/adminToken';
 import { appEnv } from '../lib/env';
 import { reconcilePolarSubscriptionsFromApi } from '../lib/polarSubscriptionReconcile';
 import { resolveWorkspaceIdForCreatorUserId } from '../lib/workspaceBootstrap';
+import {
+  hasExtendedRetentionForBillingPlan,
+  hasWebhookAutomationForBillingPlan,
+  maxActivePollsForBillingPlan,
+  maxDataExportsPerDayForBillingPlan,
+  maxVotesPerMonthForBillingPlan,
+  normalizeBillingPlan,
+  type KnownBillingPlan,
+  utcCalendarMonthBounds,
+} from '../lib/billingLimits';
+import { countCompletedDataExportsForWorkspaceUtcDay } from '../lib/billingExportQuota';
 import { notifyWebhook, sinkAuditLog } from '../lib/integrationWebhooks';
 import { notifyPollLive } from '../lib/pollLive';
+import { readPollWebhookDeliveryTelemetry } from '../lib/pollWebhookDeliveryTelemetry';
 import { queuePollWebhook } from '../lib/pollWebhooks';
 import {
   getGlobalVoteRollups,
@@ -17,7 +29,9 @@ import {
   refreshPollVoteRollupsNow,
 } from '../lib/readModelRollups';
 import {
+  getRetentionPolicySettings,
   getSignupsEnabled,
+  setRetentionPolicySettings,
   getVoteGeoEnabled,
   setSignupsEnabled,
   setVoteGeoEnabled,
@@ -117,7 +131,11 @@ async function logAdminAction(
 export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
   app.get('/bootstrap-status', async (_request, reply) => {
     const adminCount = await User.count({ where: { role: { [Op.in]: ['admin', 'superadmin'] } } });
-    reply.send({ noAdminExists: adminCount === 0 });
+    const adminTokenIsDefault = !appEnv.adminToken || appEnv.adminToken === 'changeme';
+    reply.send({
+      noAdminExists: adminCount === 0,
+      adminTokenIsDefault,
+    });
   });
 
   app.get('/me', async (request, reply) => {
@@ -365,6 +383,8 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     const trustAvgRaw = trustTotalsRow?.trust_risk_avg_pending;
     const trust_risk_avg_pending =
       trustAvgRaw != null && Number.isFinite(trustAvgRaw) ? Math.round(Number(trustAvgRaw) * 10) / 10 : null;
+    const retentionPolicy = await getRetentionPolicySettings();
+    const webhookDeliveryTelemetry = readPollWebhookDeliveryTelemetry(15);
     reply.send({
       users: { total: userCount, active: activeUserCount },
       polls: { total: pollCount, archived: archivedPollCount },
@@ -394,6 +414,8 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
           Number(trustTotalsRow?.votes_account_linked_last_24h ?? 0) || 0,
         votes_anonymous_last_24h: Number(trustTotalsRow?.votes_anonymous_last_24h ?? 0) || 0,
       },
+      retentionPolicy,
+      webhookDeliveryTelemetry,
       timestamp: new Date().toISOString(),
     });
   });
@@ -906,6 +928,71 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     reply.send({ enabled: false });
   });
 
+  app.get('/retention-policy', async (request, reply) => {
+    if (!(await requireAdminAuth(request, reply, adminElevatedRoles))) return;
+    reply.send(await getRetentionPolicySettings());
+  });
+
+  app.post('/retention-policy', async (request, reply) => {
+    if (!(await requireAdminAuth(request, reply, adminElevatedRoles))) return;
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const parseIntField = (key: string): number | null => {
+      const raw = body[key];
+      const n =
+        typeof raw === 'number'
+          ? raw
+          : typeof raw === 'string'
+            ? Number.parseInt(raw.trim(), 10)
+            : Number.NaN;
+      return Number.isFinite(n) ? Math.floor(n) : null;
+    };
+    const next = {
+      poll_retention_ttl_days_default: parseIntField('poll_retention_ttl_days_default'),
+      poll_retention_sweep_interval_sec: parseIntField('poll_retention_sweep_interval_sec'),
+      poll_retention_sweep_batch_size: parseIntField('poll_retention_sweep_batch_size'),
+      audit_log_retention_days: parseIntField('audit_log_retention_days'),
+      moderation_rejected_vote_retention_days: parseIntField('moderation_rejected_vote_retention_days'),
+      audit_log_retention_legal_hold:
+        body.audit_log_retention_legal_hold === true ||
+        String(body.audit_log_retention_legal_hold ?? '')
+          .trim()
+          .toLowerCase() === 'true',
+      moderation_rejected_vote_retention_legal_hold:
+        body.moderation_rejected_vote_retention_legal_hold === true ||
+        String(body.moderation_rejected_vote_retention_legal_hold ?? '')
+          .trim()
+          .toLowerCase() === 'true',
+    };
+    if (
+      next.poll_retention_ttl_days_default == null ||
+      next.poll_retention_sweep_interval_sec == null ||
+      next.poll_retention_sweep_batch_size == null ||
+      next.audit_log_retention_days == null ||
+      next.moderation_rejected_vote_retention_days == null
+    ) {
+      const err = replyJsonError(
+        request.id,
+        400,
+        'BAD_REQUEST',
+        'Retention policy fields must be finite integers.',
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    await setRetentionPolicySettings({
+      poll_retention_ttl_days_default: next.poll_retention_ttl_days_default,
+      poll_retention_sweep_interval_sec: next.poll_retention_sweep_interval_sec,
+      poll_retention_sweep_batch_size: next.poll_retention_sweep_batch_size,
+      audit_log_retention_days: next.audit_log_retention_days,
+      moderation_rejected_vote_retention_days: next.moderation_rejected_vote_retention_days,
+      audit_log_retention_legal_hold: next.audit_log_retention_legal_hold,
+      moderation_rejected_vote_retention_legal_hold:
+        next.moderation_rejected_vote_retention_legal_hold,
+    });
+    await logAdminAction('set_retention_policy', 'admin', null, next);
+    reply.send(await getRetentionPolicySettings());
+  });
+
   /**
    * Fetch each workspace's Polar subscription by `polar_subscription_id` and align `workspaces.billing_plan`
    * (mirrored on the owner user) with the same rules as webhooks (drift repair when webhooks were missed).
@@ -960,5 +1047,149 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       const err = replyJsonError(request.id, 500, 'INTERNAL_ERROR', 'Polar reconcile failed.');
       reply.code(err.statusCode).send(err.body);
     }
+  });
+
+  app.post('/billing/downgrade-simulate', async (request, reply) => {
+    if (!(await requireAdminAuth(request, reply, adminElevatedRoles))) return;
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const userIdRaw = body.userId ?? body.user_id;
+    const userId =
+      typeof userIdRaw === 'number' && Number.isFinite(userIdRaw)
+        ? Math.floor(userIdRaw)
+        : typeof userIdRaw === 'string'
+          ? Number.parseInt(userIdRaw, 10)
+          : Number.NaN;
+    if (!Number.isFinite(userId) || userId <= 0) {
+      const err = replyJsonError(request.id, 400, 'BAD_REQUEST', 'userId must be a positive integer.');
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    const targetPlanRaw =
+      typeof body.targetPlan === 'string'
+        ? body.targetPlan
+        : typeof body.target_plan === 'string'
+          ? body.target_plan
+          : '';
+    const targetPlan = normalizeBillingPlan(targetPlanRaw);
+    const allowedPlans = new Set<KnownBillingPlan>([
+      'free',
+      'cloud-team',
+      'cloud-pro',
+      'selfhost-pro',
+      'enterprise-custom',
+    ]);
+    if (!allowedPlans.has(targetPlan)) {
+      const err = replyJsonError(request.id, 400, 'BAD_REQUEST', 'targetPlan is invalid.');
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+
+    const owner = await User.findByPk(userId, {
+      attributes: ['id', 'homelab-user', 'defaultWorkspaceId', 'billingPlan'],
+    });
+    if (!owner) {
+      const err = replyJsonError(request.id, 404, 'NOT_FOUND', 'User not found.');
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+
+    const currentPlan = normalizeBillingPlan((owner.get('billingPlan') as string | null | undefined) ?? 'free');
+    const workspaceId = await resolveWorkspaceIdForCreatorUserId(userId);
+    const month = utcCalendarMonthBounds();
+    const [activePolls, votesThisMonth, exportsToday, ownedPolls] = await Promise.all([
+      Poll.count({ where: { creatorUserId: userId, archived: false } }),
+      Vote.count({
+        include: [
+          {
+            model: Poll,
+            as: 'poll',
+            required: true,
+            attributes: [],
+            where: { creatorUserId: userId },
+          },
+        ],
+        where: {
+          isQuarantined: false,
+          createdAt: { [Op.gte]: month.start, [Op.lt]: month.endExclusive },
+        },
+      }),
+      countCompletedDataExportsForWorkspaceUtcDay(userId),
+      Poll.findAll({
+        where: { creatorUserId: userId, archived: false },
+        attributes: ['id', 'webhookTargets', 'retentionTtlDays', 'retentionLegalHold'],
+      }),
+    ]);
+
+    let pollsWithWebhookAutomation = 0;
+    let pollsWithExtendedRetention = 0;
+    for (const p of ownedPolls) {
+      const webhooks =
+        (p.get('webhookTargets') as Array<{ url?: string; secret?: string }> | null | undefined) ?? [];
+      if (Array.isArray(webhooks) && webhooks.some((w) => typeof w?.url === 'string' && w.url.trim() !== '')) {
+        pollsWithWebhookAutomation += 1;
+      }
+      const ttl = p.get('retentionTtlDays') as number | null | undefined;
+      const hold = p.get('retentionLegalHold') as boolean | null | undefined;
+      if ((typeof ttl === 'number' && Number.isFinite(ttl) && ttl > 0) || hold === true) {
+        pollsWithExtendedRetention += 1;
+      }
+    }
+
+    const limits = {
+      activePolls: maxActivePollsForBillingPlan(targetPlan),
+      votesPerMonth: maxVotesPerMonthForBillingPlan(targetPlan),
+      exportsPerDay: maxDataExportsPerDayForBillingPlan(targetPlan),
+    };
+    const usage = {
+      activePolls,
+      votesThisMonth,
+      exportsToday,
+      pollsWithWebhookAutomation,
+      pollsWithExtendedRetention,
+    };
+    const flags = {
+      webhookAutomationAllowed: hasWebhookAutomationForBillingPlan(targetPlan),
+      extendedRetentionAllowed: hasExtendedRetentionForBillingPlan(targetPlan),
+    };
+    const violations = [
+      ...(usage.activePolls > limits.activePolls
+        ? [{ code: 'USAGE_LIMIT_ACTIVE_POLLS', current: usage.activePolls, max: limits.activePolls }]
+        : []),
+      ...(usage.votesThisMonth > limits.votesPerMonth
+        ? [{ code: 'USAGE_LIMIT_VOTES', current: usage.votesThisMonth, max: limits.votesPerMonth }]
+        : []),
+      ...(usage.exportsToday > limits.exportsPerDay
+        ? [{ code: 'USAGE_LIMIT_EXPORTS', current: usage.exportsToday, max: limits.exportsPerDay }]
+        : []),
+      ...(!flags.webhookAutomationAllowed && usage.pollsWithWebhookAutomation > 0
+        ? [{ code: 'PLAN_LIMIT_AUTOMATION', affectedPolls: usage.pollsWithWebhookAutomation }]
+        : []),
+      ...(!flags.extendedRetentionAllowed && usage.pollsWithExtendedRetention > 0
+        ? [{ code: 'PLAN_LIMIT_RETENTION', affectedPolls: usage.pollsWithExtendedRetention }]
+        : []),
+    ];
+
+    await logAdminAction('billing_downgrade_simulate', request.user?.homelab-user ?? 'admin_token', userId, {
+      workspace_id: workspaceId,
+      current_plan: currentPlan,
+      target_plan: targetPlan,
+      violations: violations.map((v) => v.code),
+    });
+    reply.send({
+      ok: true,
+      user: {
+        id: Number(owner.get('id')),
+        homelab-user: String(owner.get('homelab-user') ?? ''),
+        workspaceId,
+      },
+      currentPlan,
+      targetPlan,
+      usage,
+      limits,
+      flags,
+      violations,
+      wouldBlock: violations.length > 0,
+      generatedAt: new Date().toISOString(),
+    });
   });
 };

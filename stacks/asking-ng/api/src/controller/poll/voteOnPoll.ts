@@ -60,6 +60,36 @@ const voteOnPoll: AppRequestHandler = async (req, res) => {
       );
       return;
     }
+    if (result.kind === 'platform_identity_not_configured') {
+      jsonError(
+        res,
+        req,
+        400,
+        'PLATFORM_IDENTITY_NOT_CONFIGURED',
+        'This poll requires platform-linked identity, but provider configuration is missing.',
+      );
+      return;
+    }
+    if (result.kind === 'platform_identity_required') {
+      jsonError(
+        res,
+        req,
+        400,
+        'PLATFORM_IDENTITY_REQUIRED',
+        'This poll requires x-platform-subject (and optional x-platform-provider) headers.',
+      );
+      return;
+    }
+    if (result.kind === 'platform_identity_provider_mismatch') {
+      jsonError(
+        res,
+        req,
+        400,
+        'PLATFORM_IDENTITY_PROVIDER_MISMATCH',
+        `Platform identity provider mismatch. Expected ${result.expectedProvider}, got ${result.receivedProvider}.`,
+      );
+      return;
+    }
     if (result.kind === 'boost_weight_disabled') {
       jsonError(
         res,

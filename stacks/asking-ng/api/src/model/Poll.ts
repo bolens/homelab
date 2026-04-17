@@ -23,8 +23,14 @@ const Poll = db.define('poll', {
   themePreset: { type: DataTypes.STRING(24), allowNull: false, defaultValue: 'default' },
   /** single: one choice per ballot; multi: multiple fixed options, one DB row per selected option. */
   selectionMode: { type: DataTypes.STRING(8), allowNull: false, defaultValue: 'single' },
-  /** anonymous: public voting; account: JWT required, one ballot per user id. */
+  /** anonymous: public voting; account/platform_linked: JWT required, one ballot per user id. */
   voteEligibility: { type: DataTypes.STRING(16), allowNull: false, defaultValue: 'anonymous' },
+  /** Provider key for platform-linked identity mode (scaffold metadata). */
+  platformIdentityProvider: { type: DataTypes.STRING(64), allowNull: true },
+  /** Consent/policy copy version acknowledged for identity-linked voting. */
+  platformIdentityConsentVersion: { type: DataTypes.STRING(64), allowNull: true },
+  /** UTC epoch ms when consent metadata was captured/updated. */
+  platformIdentityConsentCapturedAt: { type: DataTypes.BIGINT, allowNull: true },
   impressionCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   impressionAttribution: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
   viewEventsByHour: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
@@ -48,6 +54,8 @@ const Poll = db.define('poll', {
   writeInBlocklist: { type: DataTypes.ARRAY(DataTypes.STRING), allowNull: false, defaultValue: [] },
   writeInProfanityFilter: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   resultsDelaySeconds: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  retentionTtlDays: { type: DataTypes.INTEGER, allowNull: true },
+  retentionLegalHold: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 });
 
 export default Poll;

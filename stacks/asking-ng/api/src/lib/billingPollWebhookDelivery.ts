@@ -1,12 +1,15 @@
 import Poll from '../model/Poll';
 import User from '../models/user.sequelize';
 import { findBillingPlanAndRoleForVoteQuota } from '../controller/self/self.repository';
+import AuditLog from '../models/auditlog.sequelize';
 import { maxOutboundPollWebhookDeliveriesPerMinuteForBillingPlan } from './billingLimits';
+import { recordPollWebhookDeliveryTelemetry } from './pollWebhookDeliveryTelemetry';
 import { appEnv } from './env';
 import { logger } from './logger';
 import { observeIntegrationEvent } from './metrics';
 
 const buckets = new Map<string, number>();
+export const POLL_WEBHOOK_DELIVERY_SHED_AUDIT_ACTION = 'usage.poll_webhook_delivery_shed';
 
 /** Test-only: clears in-memory webhook delivery counters. */
 export function resetPollWebhookDeliveryMeterForTests(): void {
@@ -118,6 +121,14 @@ export async function takePollWebhookDeliveryForPoll(args: {
   const ok = takePollWebhookDeliverySlot(scope.scopeKey, scope.billingPlan);
   if (!ok) {
     const max = maxOutboundPollWebhookDeliveriesPerMinuteForBillingPlan(scope.billingPlan);
+    recordPollWebhookDeliveryTelemetry('shed');
+    await recordPollWebhookDeliveryShed({
+      creatorUserId: args.creatorUserId,
+      pollId: args.pollId,
+      scopeKey: scope.scopeKey,
+      plan: scope.billingPlan,
+      maxPerMinute: max,
+    });
     logger.warn(
       {
         event: 'poll.webhook.delivery_shed',
@@ -132,4 +143,36 @@ export async function takePollWebhookDeliveryForPoll(args: {
     observeIntegrationEvent('poll_webhook_delivery_shed');
   }
   return ok;
+}
+
+async function recordPollWebhookDeliveryShed(args: {
+  creatorUserId: number | null | undefined;
+  pollId: string;
+  scopeKey: string;
+  plan: string;
+  maxPerMinute: number;
+}): Promise<void> {
+  const workspaceUserId =
+    args.creatorUserId != null && Number.isFinite(args.creatorUserId) && args.creatorUserId > 0
+      ? args.creatorUserId
+      : null;
+  if (workspaceUserId == null) return;
+  try {
+    await AuditLog.create({
+      action: POLL_WEBHOOK_DELIVERY_SHED_AUDIT_ACTION,
+      actor: `workspace:${workspaceUserId}`,
+      target: args.pollId,
+      details: {
+        workspace_user_id: workspaceUserId,
+        scope_key: args.scopeKey,
+        plan: args.plan,
+        max_per_minute: args.maxPerMinute,
+      },
+    });
+  } catch (err: unknown) {
+    logger.warn(
+      { event: 'billing.poll_webhook_delivery_meter.write_failed', err, pollId: args.pollId, workspaceUserId },
+      'failed to record poll webhook delivery shed metering row',
+    );
+  }
 }

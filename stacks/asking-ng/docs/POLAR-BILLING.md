@@ -30,6 +30,8 @@ This doc is the **implementation handoff** for engineers. Product caps and tiers
 | `POLAR_PRODUCT_ID_CLOUD_PRO` | Optional until SKUs exist | Polar **`product_id`** for Pro → `billing_plan=cloud-pro`. |
 | `POLAR_ACCESS_TOKEN` | Optional | **Organization access token** for Polar’s HTTP API (`subscriptions:read`). Enables **`POST /admin/billing/reconcile-polar`** to fetch each workspace `polar_subscription_id` and repair **`workspaces.billing_plan`** (and mirror) when webhooks lag or fail. |
 | `POLAR_SERVER` | Optional | `production` (default) or `sandbox` — must match the tenant where subscriptions live. |
+| `POLAR_RECONCILE_INTERVAL_SEC` | Optional | Background scheduled reconcile interval in seconds (`0` disables). Requires `POLAR_ACCESS_TOKEN`; runs in the API process and applies the same entitlement rules as webhooks/admin reconcile. |
+| `POLAR_RECONCILE_LIMIT` | Optional | Max workspaces scanned per scheduled reconcile run (bounded to 1..200 in runtime config). |
 
 Wired in **`stack.env.example`** and **`api/src/lib/env.ts`**; webhook handler: **`POST /billing/webhooks/polar`** (see `api/src/server/billing.ts`). Idempotent receipts in table **`polar_webhook_deliveries`** (`webhook_id` = Standard `webhook-id` header, or `sha256:` body hash fallback).
 
@@ -44,7 +46,7 @@ Wired in **`stack.env.example`** and **`api/src/lib/env.ts`**; webhook handler: 
 - **Body:** verified as **raw bytes** (Standard Webhooks); the API uses a scoped Fastify JSON parser so the body stays a `Buffer` for `validateEvent`.
 - **Verification (TypeScript):** `@polar-sh/sdk/webhooks` — `validateEvent(body, headers, POLAR_WEBHOOK_SECRET)`.
 - **Idempotency:** insert into **`polar_webhook_deliveries`** keyed by **`webhook-id`** (or body-hash fallback); duplicate deliveries return **204** without re-running entitlement logic (avoids double-applying the same delivery).
-- **Entitlements:** after a **new** delivery row is stored, the API runs **`applyPolarSubscriptionWebhookEvent`** for `subscription.*` events (see `api/src/lib/polarSubscriptionApply.ts`): resolves the billing **`workspaces`** row (metadata **`asking_ng_workspace_id`**, then **`asking_ng_user_id`** default workspace, then workspace Polar ids), updates **`workspaces.polar_*`** + **`workspaces.billing_plan`**, and mirrors onto the owner **`users`** row. Failures are logged but still return **204** so Polar does not wedge retries.
+- **Entitlements:** after a **new** delivery row is stored, the API runs **`applyPolarSubscriptionWebhookEvent`** for `subscription.*` events (see `api/src/lib/polarSubscriptionApply.ts`): resolves the billing **`workspaces`** row (metadata **`asking_ng_workspace_id`**, then **`asking_ng_user_id`** default workspace, then workspace Polar ids), updates **`workspaces.polar_*`** + **`workspaces.billing_plan`**, and mirrors onto the owner **`users`** row. When both `asking_ng_workspace_id` and `asking_ng_user_id` are provided, the resolver now enforces owner consistency to avoid cross-user workspace binding; fallback Polar-id lookups are owner-scoped when `asking_ng_user_id` is present. Failures are logged but still return **204** so Polar does not wedge retries.
 - **Failure handling:** invalid signature → **403**; misconfiguration (enabled, no secret) → **503**; verification success → **204** no body.
 
 Polar docs: [Webhooks delivery](https://docs.polar.sh/integrate/webhooks/delivery), [Setup webhooks](https://docs.polar.sh/developers/webhooks).
@@ -63,7 +65,7 @@ Create **one Polar product or price per** commercial plan or add-on (naming shou
 
 Configure **`POLAR_PRODUCT_ID_CLOUD_TEAM`** and **`POLAR_PRODUCT_ID_CLOUD_PRO`** to the Polar **`product_id`** values emitted on subscription payloads. The webhook handler maps **`subscription.active`**, **`subscription.updated`**, **`subscription.uncanceled`**, **`subscription.canceled`**, and **`subscription.revoked`** to **`workspaces.billing_plan`** (and mirrors **`users.billing_plan`**) (`free` \| `cloud-team` \| `cloud-pro`): paid access is kept for **`active`**, **`trialing`**, and **`past_due`**; **`subscription.revoked`** never grants a paid plan.
 
-**Linking checkout:** set **metadata** **`asking_ng_user_id`** to the numeric **`users.id`** (default workspace is created on signup / first use). Optionally set **`asking_ng_workspace_id`** to a specific **`workspaces.id`**. Otherwise the resolver matches **`workspaces.polar_subscription_id`**, then **`workspaces.polar_customer_id`** (mirrors stay aligned on the owner user).
+**Linking checkout:** set **metadata** **`asking_ng_user_id`** to the numeric **`users.id`** (default workspace is created on signup / first use). For multi-workspace billing, set **`asking_ng_workspace_id`** to the intended **`workspaces.id`** and keep `asking_ng_user_id` aligned with that workspace owner. Otherwise the resolver matches **`workspaces.polar_subscription_id`**, then **`workspaces.polar_customer_id`** (owner-scoped when `asking_ng_user_id` exists; mirrors stay aligned on the owner user).
 
 On `subscription.canceled` / `invoice.payment_failed`, apply the **grace** and **downgrade** rules from [MONETIZATION-AND-PACKAGING.md](MONETIZATION-AND-PACKAGING.md) and [OPERATIONS.md](OPERATIONS.md) (today: non-paid subscription statuses set **`billing_plan`** back to **`free`**).
 
@@ -95,7 +97,7 @@ When a customer exceeds hosted self-serve limits or needs regulated modules, **s
 **Reconstruction playbook (outline):**
 
 1. Export or query Polar dashboard / API periodically for subscription list (ops backup), or rely on DB + webhook DLQ replay.
-2. If webhooks were down: replay from Polar’s delivery history or call **`POST /admin/billing/reconcile-polar`** with **`POLAR_ACCESS_TOKEN`** set (optional JSON body `{ "dryRun": true, "limit": 50 }` to preview drift). The handler walks **`workspaces`** with non-empty **`polar_subscription_id`**, calls Polar **`subscriptions.get`**, and applies the same entitlement rules as webhooks. **`dryRun: true`** reports drift without writing the DB.
+2. If webhooks were down: replay from Polar’s delivery history, rely on scheduled reconcile (`POLAR_RECONCILE_INTERVAL_SEC` + `POLAR_ACCESS_TOKEN`), or call **`POST /admin/billing/reconcile-polar`** manually (optional JSON body `{ "dryRun": true, "limit": 50 }` to preview drift). The reconciler walks **`workspaces`** with non-empty **`polar_subscription_id`**, calls Polar **`subscriptions.get`**, and applies the same entitlement rules as webhooks. **`dryRun: true`** reports drift without writing the DB.
 3. If changing billing vendor: freeze plan **upgrades** until dual-write or one-time migration maps old IDs → new processor; keep `billing_plan` enum stable.
 
 **Runtime during Polar outage:** customers may be unable to open checkout or portal; existing sessions should keep working on **cached** `billing_plan` until grace policies in [MONETIZATION-AND-PACKAGING.md](MONETIZATION-AND-PACKAGING.md) / [OPERATIONS.md](OPERATIONS.md) apply. Do not silently expand paid entitlements on “assume still paid” without a reconciliation timestamp policy.
@@ -131,7 +133,7 @@ v1 price book is **USD**. If you add **other settlement currencies**, confirm Po
 
 ## Entitlement scope (v1)
 
-**Source of truth:** **`workspaces.billing_plan`** on each user’s **default workspace** (one workspace per owner today, unique on `owner_user_id`). **`users.billing_plan`** is kept in sync for API compatibility and older readers. Product docs may still say **`workspace_plan`** — that maps to the default workspace’s **`billing_plan`**. Multi-workspace (several billable workspaces per account) is a later schema + checkout metadata extension beyond **`asking_ng_workspace_id`**.
+**Source of truth:** **`workspaces.billing_plan`** on each billed workspace; **`users.billing_plan`** remains a compatibility mirror for owner profile reads and older paths. Product docs may still say **`workspace_plan`** — that maps to the workspace **`billing_plan`** used for enforcement. For multi-workspace checkouts, include **`asking_ng_workspace_id`** metadata (plus aligned **`asking_ng_user_id`** for owner-scope safety).
 
 ---
 

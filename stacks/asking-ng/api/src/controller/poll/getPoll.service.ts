@@ -1,4 +1,5 @@
 import type { AppRequest } from '../../types/http';
+import { takeCampaignAttributionIncrementForPoll } from '../../lib/billingCampaignAttributionQuota';
 import { pollEmbedViewAllowed, readEmbedReadTokenFromRequest } from '../../lib/embedReadToken';
 import { normalizeMediaAttachment, normalizeMediaModeration } from '../../lib/mediaPolicy';
 import { pollPhaseScheduleFromRow, resolveEffectivePollPhase } from '../../lib/pollPhaseSchedule';
@@ -49,6 +50,42 @@ function hourBucketKeyUtc(ms: number): string {
   return `${yyyy}${mm}${dd}${hh}`;
 }
 
+function minuteUtcIsoFromRow(minuteUtc: Date | string): string {
+  return minuteUtc instanceof Date
+    ? minuteUtc.toISOString()
+    : new Date(String(minuteUtc)).toISOString();
+}
+
+function buildOptionVoteVelocityByMinuteUtc(
+  configuredOptions: string[],
+  optionVoteMinuteBins: Array<{
+    option_label: string;
+    minute_utc: Date | string;
+    vote_count: string | number;
+  }>,
+): Array<{ option: string; vote_velocity_by_minute_utc: Array<{ minute_utc: string; vote_count: number }> }> {
+  const minuteIsoSet = new Set<string>();
+  for (const row of optionVoteMinuteBins) {
+    minuteIsoSet.add(minuteUtcIsoFromRow(row.minute_utc));
+  }
+  const minutesAsc = [...minuteIsoSet].sort((a, b) => Date.parse(a) - Date.parse(b));
+  const byOption = new Map<string, Map<string, number>>();
+  for (const row of optionVoteMinuteBins) {
+    const opt = String(row.option_label ?? '');
+    const iso = minuteUtcIsoFromRow(row.minute_utc);
+    const inner = byOption.get(opt) ?? new Map();
+    inner.set(iso, Number(row.vote_count) || 0);
+    byOption.set(opt, inner);
+  }
+  return configuredOptions.map((label) => ({
+    option: label,
+    vote_velocity_by_minute_utc: minutesAsc.map((iso) => ({
+      minute_utc: iso,
+      vote_count: byOption.get(label)?.get(iso) ?? 0,
+    })),
+  }));
+}
+
 function pruneHourlyViewBuckets(
   raw: Record<string, unknown>,
   nowMs: number,
@@ -97,15 +134,29 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
     const current =
       ((poll.get('impressionAttribution') as Record<string, number> | null | undefined) ?? {});
     const key = `${campaign.source}|${campaign.medium}|${campaign.campaign}`;
-    const next = { ...current, [key]: Math.max(0, Number(current[key] ?? 0)) + 1 };
-    await Poll.update(
-      {
-        impressionCount: Number(poll.get('impressionCount') ?? 0) + 1,
-        impressionAttribution: next,
-        viewEventsByHour: nextByHour,
-      },
-      { where: { id: pollId } },
-    );
+    const allowAttribution = await takeCampaignAttributionIncrementForPoll({
+      pollId,
+      creatorUserId,
+    });
+    if (allowAttribution) {
+      const next = { ...current, [key]: Math.max(0, Number(current[key] ?? 0)) + 1 };
+      await Poll.update(
+        {
+          impressionCount: Number(poll.get('impressionCount') ?? 0) + 1,
+          impressionAttribution: next,
+          viewEventsByHour: nextByHour,
+        },
+        { where: { id: pollId } },
+      );
+    } else {
+      await Poll.update(
+        {
+          impressionCount: Number(poll.get('impressionCount') ?? 0) + 1,
+          viewEventsByHour: nextByHour,
+        },
+        { where: { id: pollId } },
+      );
+    }
   }
 
   const title = poll.get('title');
@@ -160,8 +211,25 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
   const mediaBlurByDefault = poll.get('mediaBlurByDefault') !== false;
   const themePreset = String(poll.get('themePreset') ?? 'default');
   const selectionMode = String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
+  const voteEligibilityRaw = String(poll.get('voteEligibility') ?? 'anonymous');
   const voteEligibility =
-    String(poll.get('voteEligibility') ?? 'anonymous') === 'account' ? 'account' : 'anonymous';
+    voteEligibilityRaw === 'account' || voteEligibilityRaw === 'platform_linked'
+      ? voteEligibilityRaw
+      : 'anonymous';
+  const retentionTtlDaysRaw = poll.get('retentionTtlDays');
+  const retentionTtlDays =
+    retentionTtlDaysRaw == null ? null : Math.max(1, Number(retentionTtlDaysRaw) || 0) || null;
+  const retentionLegalHold = poll.get('retentionLegalHold') === true;
+  const platformIdentityProvider =
+    (poll.get('platformIdentityProvider') as string | null | undefined) ?? null;
+  const platformIdentityConsentVersion =
+    (poll.get('platformIdentityConsentVersion') as string | null | undefined) ?? null;
+  const platformIdentityConsentCapturedAt =
+    (poll.get('platformIdentityConsentCapturedAt') as number | null | undefined) ?? null;
+  const autoDeleteAtMs =
+    !retentionLegalHold && retentionTtlDays != null && Number.isFinite(Number(expiration)) && Number(expiration) > 0
+      ? Number(expiration) + retentionTtlDays * 24 * 60 * 60 * 1000
+      : null;
   const expired =
     Number.isFinite(Number(expiration)) && Number(expiration) > 0 && now > Number(expiration);
   const liveResultsAreDelayed =
@@ -180,6 +248,7 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
     dowBins,
     optionHourBins,
     voteMinuteBins,
+    optionVoteMinuteBins,
     rateCountersRow,
     delayedVotesPending,
   } = await getPollVoteAnalytics({
@@ -276,6 +345,10 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
       })()
     : [];
 
+  const optionVoteVelocityByMinuteUtc = youOwnThisPoll
+    ? buildOptionVoteVelocityByMinuteUtc(options, optionVoteMinuteBins)
+    : [];
+
   return {
     kind: 'ok',
     data: {
@@ -321,6 +394,12 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
       theme_preset: themePreset,
       selection_mode: selectionMode,
       vote_eligibility: voteEligibility,
+      platform_identity_provider: platformIdentityProvider,
+      platform_identity_consent_version: platformIdentityConsentVersion,
+      platform_identity_consent_captured_at_ms: platformIdentityConsentCapturedAt,
+      retention_ttl_days: retentionTtlDays,
+      retention_legal_hold: retentionLegalHold,
+      auto_delete_at_ms: autoDeleteAtMs,
       live_results_are_delayed: liveResultsAreDelayed,
       results_visible_through_ms: resultsVisibleThroughMs,
       delayed_votes_pending: delayedVotesPending,
@@ -329,7 +408,9 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
           embedGate ? 'embed_gate' : null,
           boostedVotingEnabled ? 'boosted_voting' : null,
           selectionMode === 'multi' ? 'selection_mode:multi' : null,
-          voteEligibility === 'account' ? 'vote_eligibility:account' : null,
+          voteEligibility === 'account' || voteEligibility === 'platform_linked'
+            ? `vote_eligibility:${voteEligibility}`
+            : null,
           voteFrictionTier !== 'open' ? `vote_friction:${voteFrictionTier}` : null,
           resultsDelaySeconds > 0 ? `results_delay:${resultsDelaySeconds}s` : null,
           ...trustStackSafeguardTags(),
@@ -353,6 +434,11 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
               unique_accounts_last_1m: Number(rateCountersRow?.unique_accounts_last_1m ?? 0) || 0,
               top_ip_votes_last_1m: Number(rateCountersRow?.top_ip_votes_last_1m ?? 0) || 0,
               quarantined_votes_pending: Number(rateCountersRow?.quarantined_votes_pending ?? 0) || 0,
+              quarantined_votes_pending_account_linked:
+                Number(rateCountersRow?.quarantined_votes_pending_account_linked ?? 0) || 0,
+              votes_account_linked_last_24h:
+                Number(rateCountersRow?.votes_account_linked_last_24h ?? 0) || 0,
+              votes_anonymous_last_24h: Number(rateCountersRow?.votes_anonymous_last_24h ?? 0) || 0,
               trust_ip_burst: trustIpBurstOwnerSummary(),
               trust_chat_burst: trustChatBurstOwnerSummary(),
             },
@@ -387,6 +473,9 @@ export async function getPollView(req: AppRequest, pollId: string): Promise<GetP
         weekday_votes_by_dow_utc: weekdayVotesByDowUtc,
         ...(youOwnThisPoll ? { option_hourly_votes_utc: optionHourlyVotesUtc } : {}),
         ...(youOwnThisPoll ? { vote_velocity_by_minute_utc: voteVelocityByMinuteUtc } : {}),
+        ...(youOwnThisPoll && options.length > 0
+          ? { option_vote_velocity_by_minute_utc: optionVoteVelocityByMinuteUtc }
+          : {}),
         ...(youOwnThisPoll && voteVelocityByMinuteUtcTruncated
           ? { vote_velocity_by_minute_utc_truncated: true }
           : {}),

@@ -1,9 +1,14 @@
 import type { CreatePollBody } from '@asking-ng/contracts/poll';
 import type { AppRequest } from '../../types/http';
 import randomId from '../../helpers/randomId';
+import {
+  type SelfhostProLicenseExpiredDetails,
+} from '../../lib/selfhostProLicense';
+import { checkPollMutationEntitlements } from '../../lib/pollMutationEntitlements';
 import { checkActivePollQuotaForUser } from '../../lib/billingPollQuota';
 import { resolveWorkspaceIdForCreatorUserId } from '../../lib/workspaceBootstrap';
 import { generateEmbedReadToken, hashEmbedReadToken } from '../../lib/embedReadToken';
+import { recordPlatformIdentityConsentEvent } from '../../lib/pollPlatformIdentity';
 import { recordPollPhaseTransition } from '../../lib/pollPhaseHistory';
 import { generateWebhookSecret } from '../../lib/pollWebhooks';
 import { isPublicWebhookUrl } from '../../lib/webhookUrlSafe';
@@ -17,6 +22,9 @@ export type CreatePollResult =
   | { kind: 'invalid_next_poll_missing_target' }
   | { kind: 'invalid_next_poll_wrong_owner' }
   | { kind: 'invalid_vanity_slug_in_use' }
+  | { kind: 'plan_limit_automation'; plan: string; requiredPlan: 'cloud-team' }
+  | { kind: 'plan_limit_retention'; plan: string; requiredPlan: 'cloud-team' }
+  | { kind: 'billing_license_expired'; details: SelfhostProLicenseExpiredDetails }
   | { kind: 'usage_limit_active_polls'; max: number; current: number; plan: string }
   | {
       kind: 'ok';
@@ -60,15 +68,34 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
     shared_editor_user_ids,
     selection_mode,
     vote_eligibility,
+    retention_ttl_days,
+    retention_legal_hold,
+    platform_identity_provider,
+    platform_identity_consent_version,
   } = body;
   const bodyRecord = body as Record<string, unknown>;
   const mediaAttachmentRaw = bodyRecord.media_attachment;
   const mediaBlurByDefaultRaw = bodyRecord.media_blur_by_default;
   const themePresetRaw = typeof bodyRecord.theme_preset === 'string' ? bodyRecord.theme_preset : 'default';
 
-  const incomingTargets = webhook_targets ?? [];
+  const incomingTargets =
+    ((webhook_targets ?? []) as Array<{
+      url: string;
+      secret?: string;
+      hint_locale?: 'en' | 'en-gb' | 'es';
+      include_results_snapshot?: boolean;
+      include_owner_snapshot?: boolean;
+      include_owner_events?: boolean;
+    }>) ?? [];
   const generatedWebhookSecrets: Array<{ url: string; secret: string }> = [];
-  const webhookTargets: Array<{ url: string; secret: string }> = [];
+  const webhookTargets: Array<{
+    url: string;
+    secret: string;
+    hint_locale?: 'en' | 'en-gb' | 'es';
+    include_results_snapshot?: boolean;
+    include_owner_snapshot?: boolean;
+    include_owner_events?: boolean;
+  }> = [];
   for (const t of incomingTargets) {
     let u: URL;
     try {
@@ -81,7 +108,19 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
     }
     const secret = t.secret?.trim() ? t.secret.trim() : generateWebhookSecret();
     if (!t.secret?.trim()) generatedWebhookSecrets.push({ url: u.toString(), secret });
-    webhookTargets.push({ url: u.toString(), secret });
+    const entry: {
+      url: string;
+      secret: string;
+      hint_locale?: 'en' | 'en-gb' | 'es';
+      include_results_snapshot?: boolean;
+      include_owner_snapshot?: boolean;
+      include_owner_events?: boolean;
+    } = { url: u.toString(), secret };
+    if (t.hint_locale != null) entry.hint_locale = t.hint_locale;
+    if (t.include_results_snapshot === true) entry.include_results_snapshot = true;
+    if (t.include_owner_snapshot === true) entry.include_owner_snapshot = true;
+    if (t.include_owner_events === true) entry.include_owner_events = true;
+    webhookTargets.push(entry);
   }
 
   const creatorUserId = req.user?.id ?? null;
@@ -114,6 +153,20 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
     const existing = await findPollByVanitySlug(vanitySlug);
     if (existing) return { kind: 'invalid_vanity_slug_in_use' };
   }
+  const premiumBlock = await checkPollMutationEntitlements({
+    ownerUserId: creatorUserId,
+    requiresAutomation: incomingTargets.length > 0,
+    requiresRetention: retention_ttl_days != null || retention_legal_hold === true,
+  });
+  if (premiumBlock?.kind === 'billing_license_expired') {
+    return { kind: 'billing_license_expired', details: premiumBlock.details };
+  }
+  if (premiumBlock?.kind === 'plan_limit_automation') {
+    return { kind: 'plan_limit_automation', plan: premiumBlock.plan, requiredPlan: premiumBlock.requiredPlan };
+  }
+  if (premiumBlock?.kind === 'plan_limit_retention') {
+    return { kind: 'plan_limit_retention', plan: premiumBlock.plan, requiredPlan: premiumBlock.requiredPlan };
+  }
 
   const quota = await checkActivePollQuotaForUser({
     creatorUserId,
@@ -131,6 +184,7 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
   }
 
   const workspaceId = await resolveWorkspaceIdForCreatorUserId(creatorUserId);
+  const captureConsentMetadata = vote_eligibility === 'platform_linked';
 
   const poll = await createPollRow({
     id: randomId(16),
@@ -171,6 +225,15 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
     themePreset: themePresetRaw,
     selectionMode: selection_mode ?? 'single',
     voteEligibility: vote_eligibility ?? 'anonymous',
+    platformIdentityProvider: captureConsentMetadata
+      ? (platform_identity_provider?.trim() ?? null)
+      : null,
+    platformIdentityConsentVersion: captureConsentMetadata
+      ? (platform_identity_consent_version?.trim() ?? null)
+      : null,
+    platformIdentityConsentCapturedAt: captureConsentMetadata ? Date.now() : null,
+    retentionTtlDays: retention_ttl_days ?? null,
+    retentionLegalHold: retention_legal_hold ?? false,
   });
 
   const id = poll.get('id') as string;
@@ -184,6 +247,22 @@ export async function createPollService(req: AppRequest, body: CreatePollBody): 
     actorUserId: creatorUserId,
     source: 'poll_create',
   });
+  if (
+    captureConsentMetadata &&
+    typeof platform_identity_provider === 'string' &&
+    platform_identity_provider.trim() !== '' &&
+    typeof platform_identity_consent_version === 'string' &&
+    platform_identity_consent_version.trim() !== ''
+  ) {
+    await recordPlatformIdentityConsentEvent({
+      pollId: id,
+      provider: platform_identity_provider.trim(),
+      consentVersion: platform_identity_consent_version.trim(),
+      capturedAtMs: Number(poll.get('platformIdentityConsentCapturedAt') ?? Date.now()),
+      actorUserId: creatorUserId,
+      source: 'poll_create',
+    });
+  }
 
   const data: {
     id: string;

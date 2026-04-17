@@ -35,6 +35,11 @@ export async function buildPollsMineView(
     'themePreset',
     'selectionMode',
     'voteEligibility',
+    'platformIdentityProvider',
+    'platformIdentityConsentVersion',
+    'platformIdentityConsentCapturedAt',
+    'retentionTtlDays',
+    'retentionLegalHold',
     'impressionCount',
     'impressionAttribution',
     'viewEventsByHour',
@@ -180,6 +185,14 @@ export async function buildPollsMineView(
         : null;
     const peakDowVotes = peakDowRow != null ? Number(peakDowRow.peak_dow_votes ?? 0) || 0 : 0;
     const pid = String(p.get('id'));
+    const expiration = Number(p.get('expiration')) || 0;
+    const retentionTtlDays =
+      p.get('retentionTtlDays') == null ? null : Math.max(1, Number(p.get('retentionTtlDays')) || 0);
+    const retentionLegalHold = p.get('retentionLegalHold') === true;
+    const autoDeleteAtMs =
+      !retentionLegalHold && retentionTtlDays != null && Number.isFinite(expiration) && expiration > 0
+        ? expiration + retentionTtlDays * 24 * 60 * 60 * 1000
+        : null;
     const hourlyVotesByHourUtc = hourlyVotesByPollId.get(pid) ?? Array.from({ length: 24 }, () => 0);
     const weekdayVotesByDowUtc = weekdayVotesByPollId.get(pid) ?? Array.from({ length: 7 }, () => 0);
     const configuredOptions = ((p.get('options') as string[] | null | undefined) ?? [])
@@ -217,13 +230,30 @@ export async function buildPollsMineView(
             | undefined) ?? []
         ).filter((t) => typeof t?.url === 'string' && t.url.trim() !== '').length > 0,
       webhook_targets: (
-        (p.get('webhookTargets') as Array<{ url?: string; secret?: string }> | null | undefined) ??
+        (p.get('webhookTargets') as
+          | Array<{
+              url?: string;
+              secret?: string;
+              hint_locale?: string;
+              include_results_snapshot?: boolean;
+              include_owner_snapshot?: boolean;
+              include_owner_events?: boolean;
+            }>
+          | null
+          | undefined) ??
         []
       )
         .map((t) => ({
           url: typeof t?.url === 'string' ? t.url.trim() : '',
           secret:
             typeof t?.secret === 'string' && t.secret.trim() !== '' ? t.secret.trim() : undefined,
+          hint_locale:
+            typeof t?.hint_locale === 'string' && t.hint_locale.trim() !== ''
+              ? t.hint_locale.trim()
+              : undefined,
+          include_results_snapshot: t?.include_results_snapshot === true ? true : undefined,
+          include_owner_snapshot: t?.include_owner_snapshot === true ? true : undefined,
+          include_owner_events: t?.include_owner_events === true ? true : undefined,
         }))
         .filter((t) => t.url !== ''),
       phase: (p.get('phase') as string) || 'open',
@@ -237,8 +267,19 @@ export async function buildPollsMineView(
         : [],
       theme_preset: String(p.get('themePreset') ?? 'default'),
       selection_mode: String(p.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single',
-      vote_eligibility:
-        String(p.get('voteEligibility') ?? 'anonymous') === 'account' ? 'account' : 'anonymous',
+      vote_eligibility: (() => {
+        const raw = String(p.get('voteEligibility') ?? 'anonymous');
+        return raw === 'account' || raw === 'platform_linked' ? raw : 'anonymous';
+      })(),
+      platform_identity_provider:
+        (p.get('platformIdentityProvider') as string | null | undefined) ?? null,
+      platform_identity_consent_version:
+        (p.get('platformIdentityConsentVersion') as string | null | undefined) ?? null,
+      platform_identity_consent_captured_at_ms:
+        (p.get('platformIdentityConsentCapturedAt') as number | null | undefined) ?? null,
+      retention_ttl_days: retentionTtlDays,
+      retention_legal_hold: retentionLegalHold,
+      auto_delete_at_ms: autoDeleteAtMs,
       has_embed_read_token: Boolean(hash),
       open_at: (p.get('openAt') as number | null | undefined) ?? null,
       lock_at: (p.get('lockAt') as number | null | undefined) ?? null,

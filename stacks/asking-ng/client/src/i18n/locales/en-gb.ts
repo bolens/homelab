@@ -805,8 +805,20 @@ const enGbOverrides = {
   'poll.renewLicenseCta': 'Renew licence',
   'admin.status.sectionRetention': 'Data retention',
   'admin.status.sectionRetentionHint': 'Configuration and status for automatic retention policies.',
+  'admin.status.sectionWebhooks': 'Webhook delivery snapshot',
+  'admin.status.sectionWebhooksHint':
+    'Recent in-process telemetry for signed poll webhooks. Useful for quick runtime checks before diving into logs.',
   'admin.status.retentionPolicySaving': 'Saving policy…',
   'admin.status.retentionPolicyErr': 'Could not save retention policy.',
+  'admin.status.webhooksAttempts': 'Webhook attempts',
+  'admin.status.webhooksDeliveredOk': 'Delivered OK',
+  'admin.status.webhooksDeliveredNon2xx': 'Delivered non-2xx',
+  'admin.status.webhooksDeliveryFailed': 'Delivery failed',
+  'admin.status.webhooksShed': 'Shed by rate cap',
+  'admin.status.webhooksCurrentMinute': 'Attempts this UTC minute',
+  'admin.status.webhooksCurrentMinuteShed': 'Shed this minute: {count}',
+  'admin.status.webhooksWindowNote':
+    'Rolling {window}-minute snapshot from the current API process only. Counters reset on API restart and are not a durable audit source.',
   'terms.section.eligibility.body':
     'You may use the service only if you can form a binding contract where you live and meet any minimum age required by applicable law. If you use the service on behalf of an organisation, you represent that you have authority to bind that organisation.',
   'terms.section.use.body':

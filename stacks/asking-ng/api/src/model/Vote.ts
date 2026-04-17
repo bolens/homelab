@@ -17,6 +17,8 @@ const Vote = db.define('vote', {
   quarantineDecidedBy: { type: DataTypes.INTEGER, allowNull: true },
   quarantineNote: { type: DataTypes.STRING(500), allowNull: true },
   trustRiskScore: { type: DataTypes.SMALLINT, allowNull: true },
+  platformIdentityProvider: { type: DataTypes.STRING(64), allowNull: true },
+  platformIdentitySubjectHash: { type: DataTypes.STRING(64), allowNull: true },
   vote_latitude: { type: DataTypes.DECIMAL(4, 1), allowNull: true },
   vote_longitude: { type: DataTypes.DECIMAL(5, 1), allowNull: true },
 });

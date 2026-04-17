@@ -11,6 +11,8 @@ import { logger } from './lib/logger';
 import { runMigrations } from './lib/migrate';
 import { attachPollLiveWss } from './lib/pollLive';
 import { stopAsyncJobs } from './lib/asyncJobs';
+import { startPollRetentionWorker, stopPollRetentionWorker } from './lib/pollRetention';
+import { startPolarReconcileWorker, stopPolarReconcileWorker } from './lib/polarReconcileWorker';
 import { buildFastifyApp } from './server/app';
 import sequelize from './models';
 import './models/auditlog.sequelize';
@@ -39,6 +41,8 @@ async function shutdown(signal: string) {
   await stopAsyncJobs().catch((err: unknown) => {
     logger.error({ event: 'api.shutdown.async_jobs_failed', err }, 'async job shutdown error');
   });
+  stopPollRetentionWorker();
+  stopPolarReconcileWorker();
   await sequelize.close().catch((err: unknown) => {
     logger.error({ event: 'api.shutdown.sequelize_close_failed', err }, 'sequelize.close error');
   });
@@ -126,6 +130,8 @@ async function bootstrap() {
   const listenPort = Number.isFinite(port) && port >= 1 && port <= 65535 ? port : 3001;
   app = await buildFastifyApp();
   attachPollLiveWss(app.server as Server);
+  startPollRetentionWorker();
+  startPolarReconcileWorker();
   await app.listen({ host: '0.0.0.0', port: listenPort });
   logger.info({ event: 'api.bootstrap.listen_ready', port: listenPort }, 'fastify api server listening');
 }

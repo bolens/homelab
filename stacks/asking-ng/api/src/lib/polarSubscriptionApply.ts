@@ -54,6 +54,12 @@ function isSubscriptionData(data: unknown): data is Subscription {
 
 export type WorkspaceInstance = NonNullable<Awaited<ReturnType<typeof Workspace.findByPk>>>;
 
+function parsePositiveInteger(input: unknown): number | null {
+  if (input === undefined || input === null) return null;
+  const n = Number(String(input).trim());
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 /**
  * Resolve billing workspace from a Polar subscription payload (webhooks + reconcile).
  * Order: **`asking_ng_workspace_id`** metadata → **`asking_ng_user_id`** (default workspace) →
@@ -62,38 +68,47 @@ export type WorkspaceInstance = NonNullable<Awaited<ReturnType<typeof Workspace.
 export async function findWorkspaceForPolarSubscription(sub: Subscription): Promise<WorkspaceInstance | null> {
   const meta = sub.metadata && typeof sub.metadata === 'object' ? sub.metadata : {};
   const metaRec = meta as Record<string, unknown>;
+  const workspaceMetaId = parsePositiveInteger(metaRec['asking_ng_workspace_id']);
+  const userMetaId = parsePositiveInteger(metaRec['asking_ng_user_id']);
 
-  const wsMeta = metaRec['asking_ng_workspace_id'];
-  if (wsMeta !== undefined && wsMeta !== null) {
-    const n = Number(String(wsMeta).trim());
-    if (Number.isInteger(n) && n > 0) {
-      const byWsId = await Workspace.findByPk(n);
-      if (byWsId) return byWsId;
+  if (workspaceMetaId != null) {
+    const byWsId = await Workspace.findByPk(workspaceMetaId);
+    if (byWsId) {
+      // When both are present, enforce owner consistency so checkout metadata cannot cross-wire another user's workspace.
+      if (userMetaId == null || Number(byWsId.get('ownerUserId')) === userMetaId) {
+        return byWsId;
+      }
     }
   }
 
-  const userMeta = metaRec['asking_ng_user_id'];
-  if (userMeta !== undefined && userMeta !== null) {
-    const n = Number(String(userMeta).trim());
-    if (Number.isInteger(n) && n > 0) {
-      const byId = await User.findByPk(n);
-      if (byId) {
-        await ensureDefaultWorkspaceForUser(byId);
-        const wid = byId.get('defaultWorkspaceId') as number | null | undefined;
-        if (wid != null && wid > 0) {
-          const ws = await Workspace.findByPk(wid);
-          if (ws) return ws;
-        }
+  if (userMetaId != null) {
+    const byId = await User.findByPk(userMetaId);
+    if (byId) {
+      await ensureDefaultWorkspaceForUser(byId);
+      const wid = byId.get('defaultWorkspaceId') as number | null | undefined;
+      if (wid != null && wid > 0) {
+        const ws = await Workspace.findByPk(wid);
+        if (ws) return ws;
       }
     }
   }
 
   if (sub.id) {
-    const bySubscriptionId = await Workspace.findOne({ where: { polarSubscriptionId: sub.id } });
+    const bySubscriptionId = await Workspace.findOne({
+      where:
+        userMetaId != null
+          ? { polarSubscriptionId: sub.id, ownerUserId: userMetaId }
+          : { polarSubscriptionId: sub.id },
+    });
     if (bySubscriptionId) return bySubscriptionId;
   }
   if (sub.customerId) {
-    const byCustomer = await Workspace.findOne({ where: { polarCustomerId: sub.customerId } });
+    const byCustomer = await Workspace.findOne({
+      where:
+        userMetaId != null
+          ? { polarCustomerId: sub.customerId, ownerUserId: userMetaId }
+          : { polarCustomerId: sub.customerId },
+    });
     if (byCustomer) return byCustomer;
   }
   return null;

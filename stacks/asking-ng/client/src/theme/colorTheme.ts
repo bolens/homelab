@@ -19,6 +19,7 @@ export const COLOR_THEME_IDS = [
 
 export type ColorThemeId = (typeof COLOR_THEME_IDS)[number];
 
+/** Default for new sessions / missing storage: follow system theme. */
 const DEFAULT_THEME: ColorThemeId = 'system';
 
 function isColorThemeId(value: string): value is ColorThemeId {
@@ -39,7 +40,8 @@ export function readStoredThemeId(): ColorThemeId {
 /** Bootstrap `data-bs-theme` for navbar / native form chrome. */
 function bootstrapModeFor(themeId: ColorThemeId): 'light' | 'dark' {
   if (themeId === 'system') {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'light';
+    // If preference cannot be detected, prefer dark for safer contrast.
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
   if (themeId === 'light' || themeId === 'solarized-light' || themeId === 'gruvbox-light')

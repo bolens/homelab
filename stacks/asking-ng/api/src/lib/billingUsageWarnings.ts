@@ -7,6 +7,8 @@ export type BillingUsageWarnings = {
   dataExports?: BillingMeterWarningCode;
   /** Outbound signed poll webhook POST attempts this UTC minute vs tier cap. */
   pollWebhooksThisUtcMinute?: BillingMeterWarningCode;
+  /** UTM / campaign attributed view increments this UTC day vs tier cap. */
+  campaignAttribution?: BillingMeterWarningCode;
 };
 
 function meterWarning(cur: number, max: number): BillingMeterWarningCode | undefined {
@@ -26,6 +28,8 @@ export function buildBillingUsageWarnings(args: {
   maxExportsPerDay: number;
   pollWebhookDeliveriesThisUtcMinute?: number;
   maxPollWebhookDeliveriesPerUtcMinute?: number;
+  campaignAttributionIncrementsToday?: number;
+  maxCampaignAttributionPerUtcDay?: number;
 }): BillingUsageWarnings | undefined {
   const out: BillingUsageWarnings = {};
   const ap = meterWarning(args.activePolls, args.maxActivePolls);
@@ -40,6 +44,13 @@ export function buildBillingUsageWarnings(args: {
   ) {
     const wh = meterWarning(args.pollWebhookDeliveriesThisUtcMinute, args.maxPollWebhookDeliveriesPerUtcMinute);
     if (wh) out.pollWebhooksThisUtcMinute = wh;
+  }
+  if (
+    args.campaignAttributionIncrementsToday != null &&
+    args.maxCampaignAttributionPerUtcDay != null
+  ) {
+    const ca = meterWarning(args.campaignAttributionIncrementsToday, args.maxCampaignAttributionPerUtcDay);
+    if (ca) out.campaignAttribution = ca;
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }

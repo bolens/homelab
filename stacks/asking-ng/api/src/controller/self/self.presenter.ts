@@ -1,4 +1,9 @@
 import type { BillingUsageWarnings } from '../../lib/billingUsageWarnings';
+import type {
+  BillingUsageLedgerDailyRollupEntry,
+  BillingUsageLedgerEntry,
+} from '../../lib/billingUsageLedger';
+import type { SelfhostProLicenseState } from '../../lib/selfhostProLicense';
 
 type ProfileSummary = {
   id: number;
@@ -22,6 +27,26 @@ export function presentProfile(payload: { user: ProfileSummary }): Record<string
 
 export type PolarBillingUsage = {
   limitsEnforced: boolean;
+  /** Recent metered usage rows for customer-visible reconciliation/export checks (latest first). */
+  usageLedger?: BillingUsageLedgerEntry[];
+  /** Daily UTC rollups by action for quick customer-side reconciliation. */
+  usageLedgerDaily?: BillingUsageLedgerDailyRollupEntry[];
+  /** Internal meter-vs-ledger checks for support/debug visibility. */
+  usageReconcile?: {
+    generatedAt: string;
+    checks: Array<{
+      meter:
+        | 'data_exports'
+        | 'campaign_attribution'
+        | 'poll_webhook_delivery'
+        | 'api_rate_limit'
+        | 'ws_fanout';
+      window: 'utc_day';
+      derived: number | null;
+      raw: number | null;
+      status: 'ok' | 'mismatch' | 'unavailable';
+    }>;
+  };
   activePolls?: number;
   maxActivePolls?: number;
   /** Non-quarantined vote rows this UTC calendar month for polls this user owns as creator. */
@@ -37,6 +62,9 @@ export type PolarBillingUsage = {
   /** Outbound signed poll webhook POST attempts in the current UTC minute (in-process meter). */
   webhookDeliveriesThisUtcMinute?: number;
   maxWebhookDeliveriesPerUtcMinute?: number;
+  /** UTM / campaign attributed view increments this UTC day (in-process meter). */
+  campaignAttributionIncrementsToday?: number;
+  maxCampaignAttributionPerUtcDay?: number;
   /** Approaching numeric caps (80% / 95% of max) for dashboard UX. */
   warnings?: BillingUsageWarnings;
 };
@@ -49,6 +77,8 @@ export type PolarBillingLinks = {
   usage: PolarBillingUsage;
   /** When the default workspace is linked to Polar, surface last known subscription status (e.g. `past_due`). */
   subscription?: { polarStatus: string | null; pastDue: boolean };
+  /** Self-host Pro license status surface (phase 1 visibility; enforcement wiring follows). */
+  selfhostProLicense?: SelfhostProLicenseState;
 };
 
 export function presentPolarBillingLinks(links: PolarBillingLinks): Record<string, unknown> {
@@ -60,6 +90,9 @@ export function presentPolarBillingLinks(links: PolarBillingLinks): Record<strin
     if (links.subscription.pastDue) {
       billing.pastDue = true;
     }
+  }
+  if (links.selfhostProLicense) {
+    billing.selfhostProLicense = links.selfhostProLicense;
   }
   return {
     polar: {

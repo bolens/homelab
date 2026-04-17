@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="theme-color" id="asking-theme-color" content="#ffffff" />
+    <meta name="theme-color" id="asking-theme-color" content="#18181b" />
     <script>
       (function () {
         var k = 'asking-ng-color-theme';
@@ -24,11 +24,15 @@
           'tokyo-night',
         ];
         if (!id || ids.indexOf(id) < 0) id = 'system';
+        var hasMql = typeof window.matchMedia === 'function';
+        var prefersDark = hasMql ? window.matchMedia('(prefers-color-scheme: dark)').matches : null;
         var bs =
           id === 'system'
-            ? matchMedia('(prefers-color-scheme: dark)').matches
+            ? prefersDark == null
               ? 'dark'
-              : 'light'
+              : prefersDark
+                ? 'dark'
+                : 'light'
             : id === 'light' || id === 'solarized-light' || id === 'gruvbox-light'
               ? 'light'
               : id === 'dark'

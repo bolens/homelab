@@ -14,8 +14,10 @@ const {
   mockFindVoteByIdempotencyKey,
   mockFindVotesByIdempotencyKey,
   mockCountVotesByPollAndUser,
+  mockCountVotesByPollAndPlatformIdentity,
   mockCreateVoteRow,
   mockCreateVoteRowInTransaction,
+  mockUpsertPlatformIdentityMapping,
   mockGetVoteGeoEnabled,
   mockPollEmbedReadAllowed,
   mockReadEmbedReadTokenFromRequest,
@@ -37,6 +39,9 @@ const {
     trustChatBurstVoteThreshold: 0,
     trustChatBurstWindowSec: 10,
     billingEnforceLimits: false,
+    publicSiteUrl: '',
+    corsOrigins: [],
+    pollWebhookHintLocale: 'en' as 'en' | 'en-gb' | 'es',
   };
   return {
     mockFindPollByIdOrSlug: vi.fn(),
@@ -48,8 +53,10 @@ const {
     mockFindVoteByIdempotencyKey: vi.fn(),
     mockFindVotesByIdempotencyKey: vi.fn(),
     mockCountVotesByPollAndUser: vi.fn(),
+    mockCountVotesByPollAndPlatformIdentity: vi.fn(),
     mockCreateVoteRow: vi.fn(),
     mockCreateVoteRowInTransaction: vi.fn(),
+    mockUpsertPlatformIdentityMapping: vi.fn(),
     mockGetVoteGeoEnabled: vi.fn(),
     mockPollEmbedReadAllowed: vi.fn(),
     mockReadEmbedReadTokenFromRequest: vi.fn(),
@@ -121,8 +128,13 @@ vi.mock('./voteOnPoll.repository', () => ({
   findVoteByIdempotencyKey: mockFindVoteByIdempotencyKey,
   findVotesByIdempotencyKey: mockFindVotesByIdempotencyKey,
   countVotesByPollAndUser: mockCountVotesByPollAndUser,
+  countVotesByPollAndPlatformIdentity: mockCountVotesByPollAndPlatformIdentity,
   createVoteRow: mockCreateVoteRow,
   createVoteRowInTransaction: mockCreateVoteRowInTransaction,
+}));
+
+vi.mock('../../lib/pollPlatformIdentity', () => ({
+  upsertPlatformIdentityMapping: mockUpsertPlatformIdentityMapping,
 }));
 
 type PollFields = Record<string, unknown>;
@@ -155,7 +167,7 @@ function pollRow(fields: Partial<PollFields> = {}) {
 }
 
 function req(overrides: Partial<AppRequest> = {}): AppRequest {
-  return { ip: '203.0.113.7', user: undefined, ...overrides } as AppRequest;
+  return { ip: '203.0.113.7', user: undefined, headers: {}, secure: false, ...overrides } as AppRequest;
 }
 
 describe('voteOnPollService (multi-select)', () => {
@@ -180,6 +192,7 @@ describe('voteOnPollService (multi-select)', () => {
     mockFindVoteByIdempotencyKey.mockResolvedValue(null);
     mockFindVotesByIdempotencyKey.mockResolvedValue([]);
     mockCountVotesByPollAndUser.mockResolvedValue(0);
+    mockCountVotesByPollAndPlatformIdentity.mockResolvedValue(0);
     mockRandomId.mockReturnValue('vote-rand-id');
     mockTransaction.mockImplementation(async (fn: (t: unknown) => Promise<unknown>) => fn({}));
     mockValidateWriteInText.mockReturnValue({ ok: true as const });
@@ -218,6 +231,14 @@ describe('voteOnPollService (multi-select)', () => {
         selection_mode: 'multi',
         option_indices: [0, 2],
         options: ['A', 'C'],
+        vote_eligibility: 'anonymous',
+        poll_url: expect.stringContaining('/poll-1'),
+        results_url: expect.stringContaining('/poll-1/results'),
+        command_hints: expect.objectContaining({
+          chat_vote_short: '!vote poll-1 <option>',
+          chat_results_short: '!results poll-1',
+        }),
+        moderation: { quarantined: false },
       }),
     );
   });
@@ -324,6 +345,7 @@ describe('voteOnPollService (single-choice)', () => {
     mockFindVoteByIdempotencyKey.mockResolvedValue(null);
     mockFindVotesByIdempotencyKey.mockResolvedValue([]);
     mockCountVotesByPollAndUser.mockResolvedValue(0);
+    mockCountVotesByPollAndPlatformIdentity.mockResolvedValue(0);
     mockRandomId.mockReturnValue('single-rand');
     mockValidateWriteInText.mockReturnValue({ ok: true as const });
     mockCreateVoteRow.mockResolvedValue({ row: 'ok' });
@@ -366,6 +388,7 @@ describe('voteOnPollService (vote_eligibility=account)', () => {
     mockCountRecentVotesForChatChannelWindowSeconds.mockResolvedValue(0);
     mockCountLimitIpBallotsForPoll.mockResolvedValue(0);
     mockCountVotesByPollAndUser.mockResolvedValue(0);
+    mockCountVotesByPollAndPlatformIdentity.mockResolvedValue(0);
     mockFindVoteByIdempotencyKey.mockResolvedValue(null);
     mockFindVotesByIdempotencyKey.mockResolvedValue([]);
     mockRandomId.mockReturnValue('acc-rand');
@@ -384,7 +407,7 @@ describe('voteOnPollService (vote_eligibility=account)', () => {
     mockFindPollByIdOrSlug.mockResolvedValue(pollRow({ voteEligibility: 'account' }));
     mockCountVotesByPollAndUser.mockResolvedValue(1);
     const r = await voteOnPollService(
-      req({ user: { id: 42 } }),
+      req({ user: { id: 42, homelab-user: 'u42', role: 'user' } }),
       'poll-1',
       { option_index: 0 } as VotePollBody,
     );
@@ -398,12 +421,130 @@ describe('voteOnPollService (vote_eligibility=account)', () => {
     );
     mockCountLimitIpBallotsForPoll.mockResolvedValue(1);
     const r = await voteOnPollService(
-      req({ user: { id: 7 } }),
+      req({ user: { id: 7, homelab-user: 'u7', role: 'user' } }),
       'poll-1',
       { option_index: 0 } as VotePollBody,
     );
     expect(r.kind).toBe('ok');
     expect(mockCountLimitIpBallotsForPoll).not.toHaveBeenCalled();
+  });
+});
+
+describe('voteOnPollService (vote_eligibility=platform_linked)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    appEnvMutable.trustIpBurstVoteThreshold = 0;
+    appEnvMutable.trustIpBurstWindowSec = 10;
+    appEnvMutable.trustChatBurstVoteThreshold = 0;
+    appEnvMutable.trustChatBurstWindowSec = 10;
+    appEnvMutable.billingEnforceLimits = false;
+    mockCheckMonthlyVoteQuotaForCreator.mockResolvedValue({ ok: true });
+    mockPollEmbedReadAllowed.mockReturnValue(true);
+    mockReadEmbedReadTokenFromRequest.mockReturnValue('');
+    mockPollPhaseScheduleFromRow.mockReturnValue({});
+    mockResolveEffectivePollPhase.mockReturnValue('open');
+    mockGetVoteGeoEnabled.mockResolvedValue(false);
+    mockCountRecentVotesForSourceIp.mockResolvedValue(0);
+    mockCountRecentVotesForSourceIpWindowSeconds.mockResolvedValue(0);
+    mockCountRecentVotesForChatChannel.mockResolvedValue(0);
+    mockCountRecentVotesForChatChannelWindowSeconds.mockResolvedValue(0);
+    mockCountLimitIpBallotsForPoll.mockResolvedValue(0);
+    mockCountVotesByPollAndUser.mockResolvedValue(0);
+    mockCountVotesByPollAndPlatformIdentity.mockResolvedValue(0);
+    mockFindVoteByIdempotencyKey.mockResolvedValue(null);
+    mockFindVotesByIdempotencyKey.mockResolvedValue([]);
+    mockRandomId.mockReturnValue('platform-rand');
+    mockValidateWriteInText.mockReturnValue({ ok: true as const });
+    mockCreateVoteRow.mockResolvedValue({ row: 'ok' });
+  });
+
+  it('requires provider configuration on platform-linked poll', async () => {
+    mockFindPollByIdOrSlug.mockResolvedValue(pollRow({ voteEligibility: 'platform_linked' }));
+    const r = await voteOnPollService(
+      req({ user: { id: 42 } as never }),
+      'poll-1',
+      { option_index: 0 } as VotePollBody,
+    );
+    expect(r.kind).toBe('platform_identity_not_configured');
+  });
+
+  it('requires platform subject header on platform-linked poll', async () => {
+    mockFindPollByIdOrSlug.mockResolvedValue(
+      pollRow({ voteEligibility: 'platform_linked', platformIdentityProvider: 'twitch' }),
+    );
+    const r = await voteOnPollService(
+      req({ user: { id: 42 } as never, headers: {} as never }),
+      'poll-1',
+      { option_index: 0 } as VotePollBody,
+    );
+    expect(r.kind).toBe('platform_identity_required');
+  });
+
+  it('rejects provider mismatch for platform-linked poll', async () => {
+    mockFindPollByIdOrSlug.mockResolvedValue(
+      pollRow({ voteEligibility: 'platform_linked', platformIdentityProvider: 'twitch' }),
+    );
+    const r = await voteOnPollService(
+      req({
+        user: { id: 42 } as never,
+        headers: { 'x-platform-subject': 'user123', 'x-platform-provider': 'youtube' } as never,
+      }),
+      'poll-1',
+      { option_index: 0 } as VotePollBody,
+    );
+    expect(r.kind).toBe('platform_identity_provider_mismatch');
+    if (r.kind !== 'platform_identity_provider_mismatch') return;
+    expect(r.expectedProvider).toBe('twitch');
+    expect(r.receivedProvider).toBe('youtube');
+  });
+
+  it('deduplicates by provider+subject identity hash', async () => {
+    mockFindPollByIdOrSlug.mockResolvedValue(
+      pollRow({ voteEligibility: 'platform_linked', platformIdentityProvider: 'twitch' }),
+    );
+    mockCountVotesByPollAndPlatformIdentity.mockResolvedValue(1);
+    const r = await voteOnPollService(
+      req({
+        user: { id: 42, homelab-user: 'u42', role: 'user' } as never,
+        headers: { 'x-platform-subject': 'user123', 'x-platform-provider': 'twitch' } as never,
+      }),
+      'poll-1',
+      { option_index: 0 } as VotePollBody,
+    );
+    expect(r.kind).toBe('duplicate_vote');
+  });
+
+  it('accepts vote when provider and subject headers match configured provider', async () => {
+    mockFindPollByIdOrSlug.mockResolvedValue(
+      pollRow({ voteEligibility: 'platform_linked', platformIdentityProvider: 'twitch' }),
+    );
+    const r = await voteOnPollService(
+      req({
+        user: { id: 42, homelab-user: 'u42', role: 'user' } as never,
+        headers: { 'x-platform-subject': 'user123', 'x-platform-provider': 'twitch' } as never,
+      }),
+      'poll-1',
+      { option_index: 0 } as VotePollBody,
+    );
+    expect(r.kind).toBe('ok');
+    expect(mockUpsertPlatformIdentityMapping).toHaveBeenCalledTimes(1);
+    expect(mockQueuePollWebhook).toHaveBeenCalledWith(
+      'poll-1',
+      'vote',
+      expect.objectContaining({
+        vote_eligibility: 'platform_linked',
+        voter_user_id: 42,
+        poll_url: expect.stringContaining('/poll-1'),
+        results_url: expect.stringContaining('/poll-1/results'),
+        command_hints: expect.objectContaining({
+          chat_vote_short: '!vote poll-1 <option>',
+          chat_results_short: '!results poll-1',
+        }),
+        platform_identity_provider: 'twitch',
+        platform_identity_subject_hash: expect.any(String),
+        moderation: { quarantined: false },
+      }),
+    );
   });
 });
 
@@ -429,6 +570,7 @@ describe('voteOnPollService (trust ip burst)', () => {
     mockFindVoteByIdempotencyKey.mockResolvedValue(null);
     mockFindVotesByIdempotencyKey.mockResolvedValue([]);
     mockCountVotesByPollAndUser.mockResolvedValue(0);
+    mockCountVotesByPollAndPlatformIdentity.mockResolvedValue(0);
     mockRandomId.mockReturnValue('burst-rand');
     mockValidateWriteInText.mockReturnValue({ ok: true as const });
     mockCreateVoteRow.mockResolvedValue({ row: 'ok' });
@@ -490,6 +632,7 @@ describe('voteOnPollService (trust chat burst)', () => {
     mockFindVoteByIdempotencyKey.mockResolvedValue(null);
     mockFindVotesByIdempotencyKey.mockResolvedValue([]);
     mockCountVotesByPollAndUser.mockResolvedValue(0);
+    mockCountVotesByPollAndPlatformIdentity.mockResolvedValue(0);
     mockRandomId.mockReturnValue('chat-burst-rand');
     mockValidateWriteInText.mockReturnValue({ ok: true as const });
     mockCreateVoteRow.mockResolvedValue({ row: 'ok' });

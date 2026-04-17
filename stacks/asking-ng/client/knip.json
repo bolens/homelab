@@ -3,5 +3,16 @@
   "vite": true,
   "vitest": true,
   "playwright": true,
-  "ignoreDependencies": ["bootstrap"]
+  "ignoreIssues": {
+    "src/helpers/pollUrl.ts": ["exports"],
+    "src/lib/cookieConsent.ts": ["exports", "types"],
+    "src/lib/profileBillingApi.ts": ["exports", "types"],
+    "src/lib/queryKeys.ts": ["exports"],
+    "src/lib/umami.ts": ["exports"],
+    "src/components/CookieConsentCategoriesForm.tsx": ["types"],
+    "src/lib/formatQuarantineReasonLabel.ts": ["types"],
+    "src/lib/legalSite.ts": ["types"],
+    "src/ui/Dialog.tsx": ["types"],
+    "src/ui/VisuallyHidden.tsx": ["types"]
+  }
 }

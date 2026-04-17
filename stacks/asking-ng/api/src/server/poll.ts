@@ -35,6 +35,10 @@ import {
   checkDailyDataExportQuotaForWorkspace,
   recordDataExportJob,
 } from '../lib/billingExportQuota';
+import { buildPlanLimitDetails } from '../lib/planLimit';
+import { checkClonePremiumEntitlements, normalizeClonePremiumFields } from '../lib/pollCloneEntitlements';
+import { checkPollMutationEntitlements } from '../lib/pollMutationEntitlements';
+import { checkPollReadEntitlements } from '../lib/pollReadEntitlements';
 import { checkActivePollQuotaForUser } from '../lib/billingPollQuota';
 import { resolveWorkspaceIdForCreatorUserId } from '../lib/workspaceBootstrap';
 import db from '../connections';
@@ -76,6 +80,11 @@ import { validatePollPhaseScheduleWindow } from '../lib/pollPhaseSchedule';
 import { generateEmbedReadToken, hashEmbedReadToken } from '../lib/embedReadToken';
 import { sendCompressedJson } from './compression';
 import { appEnv } from '../lib/env';
+import { recordPlatformIdentityConsentEvent } from '../lib/pollPlatformIdentity';
+import {
+  BILLING_LICENSE_EXPIRED_CODE,
+  BILLING_LICENSE_EXPIRED_MESSAGE,
+} from '../lib/selfhostProLicense';
 
 export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
   const pollSharedEditorIds = (poll: { get: (field: string) => unknown }): number[] => {
@@ -249,6 +258,47 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       reply.code(err.statusCode).send(err.body);
       return;
     }
+    if (result.kind === 'plan_limit_automation') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_AUTOMATION',
+        'Webhook automation is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: result.plan,
+          requiredPlan: result.requiredPlan,
+          feature: 'Webhook automation',
+        }),
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (result.kind === 'plan_limit_retention') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_RETENTION',
+        'Custom retention is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: result.plan,
+          requiredPlan: result.requiredPlan,
+          feature: 'Custom retention policy',
+        }),
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (result.kind === 'billing_license_expired') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        BILLING_LICENSE_EXPIRED_CODE,
+        BILLING_LICENSE_EXPIRED_MESSAGE,
+        result.details,
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
     if (result.kind === 'usage_limit_active_polls') {
       const err = replyJsonError(
         request.id,
@@ -334,6 +384,37 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         401,
         'VOTE_REQUIRES_SIGN_IN',
         'This poll only accepts votes from signed-in users. Send Authorization: Bearer with a valid user JWT.',
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (result.kind === 'platform_identity_not_configured') {
+      const err = replyJsonError(
+        request.id,
+        409,
+        'PLATFORM_IDENTITY_NOT_CONFIGURED',
+        'This platform-linked poll is missing provider configuration. Poll owner must set platform identity provider metadata.',
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (result.kind === 'platform_identity_required') {
+      const err = replyJsonError(
+        request.id,
+        401,
+        'PLATFORM_IDENTITY_REQUIRED',
+        'This poll requires platform-linked identity. Include X-Platform-Subject (and optionally X-Platform-Provider) with your signed-in vote request.',
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (result.kind === 'platform_identity_provider_mismatch') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLATFORM_IDENTITY_PROVIDER_MISMATCH',
+        `Platform identity provider mismatch. Expected ${result.expectedProvider}.`,
+        { expected_provider: result.expectedProvider, received_provider: result.receivedProvider },
       );
       reply.code(err.statusCode).send(err.body);
       return;
@@ -667,8 +748,25 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const mediaBlurByDefault = poll.get('mediaBlurByDefault') !== false;
     const themePreset = String(poll.get('themePreset') ?? 'default');
     const selectionMode = String(poll.get('selectionMode') ?? 'single') === 'multi' ? 'multi' : 'single';
+    const voteEligibilityRaw = String(poll.get('voteEligibility') ?? 'anonymous');
     const voteEligibility =
-      String(poll.get('voteEligibility') ?? 'anonymous') === 'account' ? 'account' : 'anonymous';
+      voteEligibilityRaw === 'account' || voteEligibilityRaw === 'platform_linked'
+        ? voteEligibilityRaw
+        : 'anonymous';
+    const retentionTtlDaysRaw = poll.get('retentionTtlDays');
+    const retentionTtlDays =
+      retentionTtlDaysRaw == null ? null : Math.max(1, Number(retentionTtlDaysRaw) || 0) || null;
+    const retentionLegalHold = poll.get('retentionLegalHold') === true;
+    const platformIdentityProvider =
+      (poll.get('platformIdentityProvider') as string | null | undefined) ?? null;
+    const platformIdentityConsentVersion =
+      (poll.get('platformIdentityConsentVersion') as string | null | undefined) ?? null;
+    const platformIdentityConsentCapturedAt =
+      (poll.get('platformIdentityConsentCapturedAt') as number | null | undefined) ?? null;
+    const autoDeleteAtMs =
+      !retentionLegalHold && retentionTtlDays != null && Number.isFinite(expiration) && expiration > 0
+        ? expiration + retentionTtlDays * 24 * 60 * 60 * 1000
+        : null;
     const expired = Number.isFinite(expiration) && expiration > 0 && now > expiration;
     const signedInOk =
       request.user != null &&
@@ -680,7 +778,7 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       !expired &&
       phase === 'open' &&
       options.length >= 2 &&
-      (voteEligibility !== 'account' || signedInOk);
+      (voteEligibility === 'anonymous' || signedInOk);
 
     const votePath = `poll/${encodeURIComponent(pollId)}/vote`;
     const phaseHistory = await listPollPhaseHistory(pollId, { limit: 50 });
@@ -794,6 +892,12 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         theme_preset: themePreset,
         selection_mode: selectionMode,
         vote_eligibility: voteEligibility,
+        platform_identity_provider: platformIdentityProvider,
+        platform_identity_consent_version: platformIdentityConsentVersion,
+        platform_identity_consent_captured_at_ms: platformIdentityConsentCapturedAt,
+        retention_ttl_days: retentionTtlDays,
+        retention_legal_hold: retentionLegalHold,
+        auto_delete_at_ms: autoDeleteAtMs,
         expiration,
         embed_gate: embedGate,
         public_poll_url: publicPollPageUrl(reqLike, pollId),
@@ -808,7 +912,9 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
             embedGate ? 'embed_gate' : null,
             boostedVotingEnabled ? 'boosted_voting' : null,
             selectionMode === 'multi' ? 'selection_mode:multi' : null,
-            voteEligibility === 'account' ? 'vote_eligibility:account' : null,
+            voteEligibility === 'account' || voteEligibility === 'platform_linked'
+              ? `vote_eligibility:${voteEligibility}`
+              : null,
             voteFrictionTier !== 'open' ? `vote_friction:${voteFrictionTier}` : null,
             resultsDelaySeconds > 0 ? `results_delay:${resultsDelaySeconds}s` : null,
             ...trustStackSafeguardTags(),
@@ -1229,6 +1335,32 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       reply.code(err.statusCode).send(err.body);
       return;
     }
+    if (result.kind === 'plan_limit_automation') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_AUTOMATION',
+        'Moderation batch automation is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: result.plan,
+          requiredPlan: result.requiredPlan,
+          feature: 'Moderation batch automation',
+        }),
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (result.kind === 'billing_license_expired') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        BILLING_LICENSE_EXPIRED_CODE,
+        BILLING_LICENSE_EXPIRED_MESSAGE,
+        result.details,
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
     reply.code(200).send(
       presentModerateVoteBatch({
         action: result.action,
@@ -1548,6 +1680,37 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       reply.code(err.statusCode).send(err.body);
       return;
     }
+    const replayPremiumBlock = await checkPollReadEntitlements({
+      pollId,
+      ownerUserId: poll.get('creatorUserId') as number | null | undefined,
+      feature: 'forensic_replay',
+    });
+    if (replayPremiumBlock?.kind === 'billing_license_expired') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        BILLING_LICENSE_EXPIRED_CODE,
+        BILLING_LICENSE_EXPIRED_MESSAGE,
+        replayPremiumBlock.details,
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (replayPremiumBlock?.kind === 'plan_limit_forensic') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_FORENSIC',
+        'Vote replay is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: replayPremiumBlock.plan,
+          requiredPlan: replayPremiumBlock.requiredPlan,
+          feature: 'Vote replay',
+        }),
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
 
     const options = ((poll.get('options') as string[]) || []).map((opt) => String(opt));
     const optionIndexByLabel = new Map<string, number>();
@@ -1668,6 +1831,37 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       reply.code(err.statusCode).send(err.body);
       return;
     }
+    const heatmapPremiumBlock = await checkPollReadEntitlements({
+      pollId,
+      ownerUserId: poll.get('creatorUserId') as number | null | undefined,
+      feature: 'vote_heatmap',
+    });
+    if (heatmapPremiumBlock?.kind === 'billing_license_expired') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        BILLING_LICENSE_EXPIRED_CODE,
+        BILLING_LICENSE_EXPIRED_MESSAGE,
+        heatmapPremiumBlock.details,
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (heatmapPremiumBlock?.kind === 'plan_limit_heatmap') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_HEATMAP',
+        'Vote heatmap is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: heatmapPremiumBlock.plan,
+          requiredPlan: heatmapPremiumBlock.requiredPlan,
+          feature: 'Vote heatmap',
+        }),
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
     const minCount = Number(parsed.data.minCount ?? 2);
     let rows:
       | Array<{ latitude_bucket: string | number; longitude_bucket: string | number; votes_count: string | number }>
@@ -1782,6 +1976,49 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     const workspaceId = await resolveWorkspaceIdForCreatorUserId(newCreatorId);
+    const premiumFields = normalizeClonePremiumFields(source);
+    const premiumBlock = await checkClonePremiumEntitlements({ pollId, ownerId, source });
+    if (premiumBlock?.kind === 'billing_license_expired') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        BILLING_LICENSE_EXPIRED_CODE,
+        BILLING_LICENSE_EXPIRED_MESSAGE,
+        premiumBlock.details,
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (premiumBlock?.kind === 'plan_limit_automation') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_AUTOMATION',
+        'Webhook automation is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: premiumBlock.plan,
+          requiredPlan: premiumBlock.requiredPlan,
+          feature: 'Webhook automation',
+        }),
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (premiumBlock?.kind === 'plan_limit_retention') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_RETENTION',
+        'Custom retention is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: premiumBlock.plan,
+          requiredPlan: premiumBlock.requiredPlan,
+          feature: 'Custom retention',
+        }),
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
 
     await db.sync();
     const clone = await Poll.create({
@@ -1793,17 +2030,7 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       limit_ip: !!source.get('limit_ip'),
       creatorUserId: ownerId ?? null,
       workspaceId,
-      webhookTargets: (
-        (source.get('webhookTargets') as Array<{ url?: string; secret?: string }> | null | undefined) ?? []
-      )
-        .filter(
-          (t): t is { url: string; secret: string } =>
-            typeof t?.url === 'string' &&
-            t.url.trim() !== '' &&
-            typeof t?.secret === 'string' &&
-            t.secret.trim() !== '',
-        )
-        .map((t) => ({ url: t.url.trim(), secret: t.secret.trim() })),
+      webhookTargets: premiumFields.webhookTargets,
       phase: 'draft',
       votingPaused: false,
       pauseMessage: null,
@@ -1835,8 +2062,17 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       mediaModeration: normalizeMediaModeration(source.get('mediaModeration')),
       themePreset: String(source.get('themePreset') ?? 'default'),
       selectionMode: String(source.get('selectionMode') ?? 'single'),
-      voteEligibility:
-        String(source.get('voteEligibility') ?? 'anonymous') === 'account' ? 'account' : 'anonymous',
+      voteEligibility: (() => {
+        const raw = String(source.get('voteEligibility') ?? 'anonymous');
+        return raw === 'account' || raw === 'platform_linked' ? raw : 'anonymous';
+      })(),
+      platformIdentityProvider: (source.get('platformIdentityProvider') as string | null | undefined) ?? null,
+      platformIdentityConsentVersion:
+        (source.get('platformIdentityConsentVersion') as string | null | undefined) ?? null,
+      platformIdentityConsentCapturedAt:
+        (source.get('platformIdentityConsentCapturedAt') as number | null | undefined) ?? null,
+      retentionTtlDays: premiumFields.retentionTtlDays,
+      retentionLegalHold: premiumFields.retentionLegalHold,
     });
     const clonedId = clone.get('id') as string;
     await recordPollPhaseTransition({
@@ -1897,6 +2133,58 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         401,
         'UNAUTHORIZED',
         'Valid api_key header or signed-in poll owner (Authorization: Bearer) is required.',
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    const ownerId = poll.get('creatorUserId') as number | null | undefined;
+    const premiumBlock = await checkPollMutationEntitlements({
+      ownerUserId: ownerId,
+      requiresAutomation:
+        body.webhook_targets !== undefined &&
+        Array.isArray(body.webhook_targets) &&
+        body.webhook_targets.length > 0,
+      requiresRetention:
+        (body.retention_ttl_days !== undefined && body.retention_ttl_days !== null) ||
+        body.retention_legal_hold === true,
+    });
+    if (premiumBlock?.kind === 'billing_license_expired') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        BILLING_LICENSE_EXPIRED_CODE,
+        BILLING_LICENSE_EXPIRED_MESSAGE,
+        premiumBlock.details,
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (premiumBlock?.kind === 'plan_limit_automation') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_AUTOMATION',
+        'Webhook automation is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: premiumBlock.plan,
+          requiredPlan: premiumBlock.requiredPlan,
+          feature: 'Webhook automation',
+        }),
+      );
+      reply.code(err.statusCode).send(err.body);
+      return;
+    }
+    if (premiumBlock?.kind === 'plan_limit_retention') {
+      const err = replyJsonError(
+        request.id,
+        403,
+        'PLAN_LIMIT_RETENTION',
+        'Custom retention is not available on this billing plan.',
+        buildPlanLimitDetails({
+          plan: premiumBlock.plan,
+          requiredPlan: premiumBlock.requiredPlan,
+          feature: 'Custom retention policy',
+        }),
       );
       reply.code(err.statusCode).send(err.body);
       return;
@@ -1963,7 +2251,62 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     }
     if (body.vote_eligibility !== undefined) {
       patch.voteEligibility =
-        body.vote_eligibility === null ? 'anonymous' : (body.vote_eligibility as 'anonymous' | 'account');
+        body.vote_eligibility === null
+          ? 'anonymous'
+          : (body.vote_eligibility as 'anonymous' | 'account' | 'platform_linked');
+    }
+    if (body.platform_identity_provider !== undefined) {
+      patch.platformIdentityProvider = body.platform_identity_provider;
+    }
+    if (body.platform_identity_consent_version !== undefined) {
+      patch.platformIdentityConsentVersion = body.platform_identity_consent_version;
+    }
+    let shouldRecordPlatformConsentHistory = false;
+    const nextVoteEligibility =
+      patch.voteEligibility !== undefined
+        ? String(patch.voteEligibility)
+        : String(poll.get('voteEligibility') ?? 'anonymous');
+    if (nextVoteEligibility === 'platform_linked') {
+      const nextProvider =
+        patch.platformIdentityProvider !== undefined
+          ? patch.platformIdentityProvider
+          : ((poll.get('platformIdentityProvider') as string | null | undefined) ?? null);
+      const nextConsentVersion =
+        patch.platformIdentityConsentVersion !== undefined
+          ? patch.platformIdentityConsentVersion
+          : ((poll.get('platformIdentityConsentVersion') as string | null | undefined) ?? null);
+      if (
+        typeof nextProvider !== 'string' ||
+        nextProvider.trim() === '' ||
+        typeof nextConsentVersion !== 'string' ||
+        nextConsentVersion.trim() === ''
+      ) {
+        const err = replyJsonError(
+          request.id,
+          400,
+          'MISSING_PLATFORM_IDENTITY_METADATA',
+          'platform_identity_provider and platform_identity_consent_version are required when vote_eligibility=platform_linked.',
+        );
+        reply.code(err.statusCode).send(err.body);
+        return;
+      }
+      patch.platformIdentityProvider = nextProvider.trim();
+      patch.platformIdentityConsentVersion = nextConsentVersion.trim();
+      patch.platformIdentityConsentCapturedAt = Date.now();
+      shouldRecordPlatformConsentHistory =
+        patch.voteEligibility === 'platform_linked' ||
+        patch.platformIdentityProvider !== undefined ||
+        patch.platformIdentityConsentVersion !== undefined;
+    } else if (patch.voteEligibility === 'anonymous') {
+      patch.platformIdentityProvider = null;
+      patch.platformIdentityConsentVersion = null;
+      patch.platformIdentityConsentCapturedAt = null;
+    }
+    if (body.retention_ttl_days !== undefined) {
+      patch.retentionTtlDays = body.retention_ttl_days === null ? null : body.retention_ttl_days;
+    }
+    if (body.retention_legal_hold !== undefined) {
+      patch.retentionLegalHold = body.retention_legal_hold;
     }
     if (body.webhook_targets !== undefined) patch.webhookTargets = body.webhook_targets ?? [];
     let embedReadToken: string | undefined;
@@ -2064,6 +2407,16 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       }
     }
     await Poll.update(patch, { where: { id: pollId } });
+    if (shouldRecordPlatformConsentHistory) {
+      await recordPlatformIdentityConsentEvent({
+        pollId,
+        provider: String(patch.platformIdentityProvider ?? ''),
+        consentVersion: String(patch.platformIdentityConsentVersion ?? ''),
+        capturedAtMs: Number(patch.platformIdentityConsentCapturedAt ?? Date.now()),
+        actorUserId: jwtOk ? Number(request.user?.id) : null,
+        source: 'poll_update',
+      });
+    }
     const fromPhase = normalizePollPhase(poll.get('phase'));
     const toPhase = typeof patch.phase === 'string' ? normalizePollPhase(patch.phase) : fromPhase;
     if (fromPhase !== toPhase) {

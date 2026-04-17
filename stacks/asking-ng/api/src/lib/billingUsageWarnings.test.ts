@@ -55,4 +55,19 @@ describe('buildBillingUsageWarnings', () => {
       }),
     ).toEqual({ pollWebhooksThisUtcMinute: '80' });
   });
+
+  it('flags 95% for campaign attribution increments today', () => {
+    expect(
+      buildBillingUsageWarnings({
+        activePolls: 0,
+        maxActivePolls: 20,
+        votesThisMonth: 0,
+        maxVotesPerMonth: 50_000,
+        exportsToday: 0,
+        maxExportsPerDay: 3,
+        campaignAttributionIncrementsToday: 96,
+        maxCampaignAttributionPerUtcDay: 100,
+      }),
+    ).toEqual({ campaignAttribution: '95' });
+  });
 });

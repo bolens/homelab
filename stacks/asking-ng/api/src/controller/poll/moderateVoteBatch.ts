@@ -1,6 +1,8 @@
 import type { ModerateVoteBatchBody } from '@asking-ng/contracts/poll';
 import type { AppRequestHandler } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
+import { buildPlanLimitDetails } from '../../lib/planLimit';
+import { BILLING_LICENSE_EXPIRED_CODE, BILLING_LICENSE_EXPIRED_MESSAGE } from '../../lib/selfhostProLicense';
 import { singleString } from '../../utils/http';
 import { presentModerateVoteBatch } from './moderateVoteBatch.presenter';
 import { moderateVoteBatchService } from './moderateVoteBatch.service';
@@ -41,6 +43,32 @@ const moderateVoteBatch: AppRequestHandler = async (req, res) => {
       401,
       'UNAUTHORIZED',
       'Valid api_key header or signed-in poll owner (Authorization: Bearer) is required.',
+    );
+    return;
+  }
+  if (result.kind === 'plan_limit_automation') {
+    jsonError(
+      res,
+      req,
+      403,
+      'PLAN_LIMIT_AUTOMATION',
+      'Moderation batch automation is not available on this billing plan.',
+      buildPlanLimitDetails({
+        plan: result.plan,
+        requiredPlan: result.requiredPlan,
+        feature: 'Moderation batch automation',
+      }),
+    );
+    return;
+  }
+  if (result.kind === 'billing_license_expired') {
+    jsonError(
+      res,
+      req,
+      403,
+      BILLING_LICENSE_EXPIRED_CODE,
+      BILLING_LICENSE_EXPIRED_MESSAGE,
+      result.details,
     );
     return;
   }

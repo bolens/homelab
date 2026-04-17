@@ -8,6 +8,7 @@ import fastifyUnderPressure from '@fastify/under-pressure';
 import pkg from '../../package.json';
 import { appEnv } from '../lib/env';
 import { billingApiRateLimitErrorBody, billingHttpRateLimitKey, billingHttpRateLimitMax, billingHttpRateLimitWindowMs } from '../lib/billingHttpRateLimit';
+import { recordBillingApiRateLimited } from '../lib/billingApiRateLimitLedger';
 import { observeHttpRequest, observeIntegrationEvent, renderPrometheusMetrics } from '../lib/metrics';
 import { sharedLoggerOptions } from '../lib/logConfig';
 import sequelize from '../models';
@@ -77,6 +78,12 @@ export async function buildFastifyApp(
     onExceeded: (req) => {
       if (appEnv.billingEnforceLimits && req.user?.id != null) {
         observeIntegrationEvent('billing_api_rate_limited');
+        void recordBillingApiRateLimited({
+          userId: req.user.id,
+          billingPlan: req.user.billingPlan?.trim() || 'free',
+          max: billingHttpRateLimitMax(req),
+          route: req.routeOptions?.url ?? req.url,
+        });
       }
     },
   });

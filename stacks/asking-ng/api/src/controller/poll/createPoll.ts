@@ -1,6 +1,8 @@
 import type { CreatePollBody } from '@asking-ng/contracts/poll';
 import type { AppRequestHandler } from '../../types/http';
 import { jsonError } from '../../lib/jsonError';
+import { buildPlanLimitDetails } from '../../lib/planLimit';
+import { BILLING_LICENSE_EXPIRED_CODE, BILLING_LICENSE_EXPIRED_MESSAGE } from '../../lib/selfhostProLicense';
 import { presentCreatePollResponse } from './createPoll.presenter';
 import { createPollService } from './createPoll.service';
 
@@ -45,6 +47,47 @@ const createPoll: AppRequestHandler = async (req, res) => {
   }
   if (result.kind === 'invalid_vanity_slug_in_use') {
     jsonError(res, req, 400, 'INVALID_VANITY_SLUG', 'vanity_slug is already in use.');
+    return;
+  }
+  if (result.kind === 'plan_limit_automation') {
+    jsonError(
+      res,
+      req,
+      403,
+      'PLAN_LIMIT_AUTOMATION',
+      'Webhook automation is not available on this billing plan.',
+      buildPlanLimitDetails({
+        plan: result.plan,
+        requiredPlan: result.requiredPlan,
+        feature: 'Webhook automation',
+      }),
+    );
+    return;
+  }
+  if (result.kind === 'plan_limit_retention') {
+    jsonError(
+      res,
+      req,
+      403,
+      'PLAN_LIMIT_RETENTION',
+      'Custom retention is not available on this billing plan.',
+      buildPlanLimitDetails({
+        plan: result.plan,
+        requiredPlan: result.requiredPlan,
+        feature: 'Custom retention policy',
+      }),
+    );
+    return;
+  }
+  if (result.kind === 'billing_license_expired') {
+    jsonError(
+      res,
+      req,
+      403,
+      BILLING_LICENSE_EXPIRED_CODE,
+      BILLING_LICENSE_EXPIRED_MESSAGE,
+      result.details,
+    );
     return;
   }
   if (result.kind === 'usage_limit_active_polls') {

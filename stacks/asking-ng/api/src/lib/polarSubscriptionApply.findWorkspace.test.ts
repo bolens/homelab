@@ -46,7 +46,7 @@ describe('findWorkspaceForPolarSubscription', () => {
   });
 
   it('resolves by asking_ng_workspace_id before other strategies', async () => {
-    const ws = { id: 9 };
+    const ws = { id: 9, get: (k: string) => (k === 'ownerUserId' ? 42 : undefined) };
     mocks.wsFindByPk.mockResolvedValue(ws);
     const got = await findWorkspaceForPolarSubscription(sub({ metadata: { asking_ng_workspace_id: '9' } }));
     expect(got).toBe(ws);
@@ -81,6 +81,42 @@ describe('findWorkspaceForPolarSubscription', () => {
     const got = await findWorkspaceForPolarSubscription(sub({ metadata: {} }));
     expect(got).toBe(ws);
     expect(mocks.wsFindOne).toHaveBeenCalledWith({ where: { polarSubscriptionId: 'sub_99' } });
+  });
+
+  it('rejects workspace metadata when owner mismatches asking_ng_user_id and falls back to user default workspace', async () => {
+    const wsWrongOwner = { id: 9, get: (k: string) => (k === 'ownerUserId' ? 999 : undefined) };
+    const user = {
+      get(k: string) {
+        if (k === 'defaultWorkspaceId') return 5;
+        return undefined;
+      },
+    };
+    const wsDefault = { id: 5, get: (k: string) => (k === 'ownerUserId' ? 42 : undefined) };
+    mocks.wsFindByPk.mockImplementation(async (id: number) => {
+      if (id === 9) return wsWrongOwner;
+      if (id === 5) return wsDefault;
+      return null;
+    });
+    mocks.userFindByPk.mockResolvedValue(user);
+    mocks.ensure.mockResolvedValue(5);
+    const got = await findWorkspaceForPolarSubscription(
+      sub({ metadata: { asking_ng_workspace_id: '9', asking_ng_user_id: '42' } }),
+    );
+    expect(got).toBe(wsDefault);
+  });
+
+  it('scopes subscription/customer fallback lookups by asking_ng_user_id owner when provided', async () => {
+    const ws = { id: 13 };
+    mocks.userFindByPk.mockResolvedValue(null);
+    mocks.wsFindOne.mockImplementation(async (q: { where?: Record<string, unknown> }) => {
+      if (q?.where?.polarSubscriptionId === 'sub_99' && q?.where?.ownerUserId === 42) return ws;
+      return null;
+    });
+    const got = await findWorkspaceForPolarSubscription(sub({ metadata: { asking_ng_user_id: '42' } }));
+    expect(got).toBe(ws);
+    expect(mocks.wsFindOne).toHaveBeenCalledWith({
+      where: { polarSubscriptionId: 'sub_99', ownerUserId: 42 },
+    });
   });
 
   it('falls back to workspaces.polar_customer_id when subscription id unmatched', async () => {

@@ -1,11 +1,17 @@
 import type { AppRequestHandler } from '../../types/http';
 import db from '../../connections';
 import randomId from '../../helpers/randomId';
+import { checkClonePremiumEntitlements, normalizeClonePremiumFields } from '../../lib/pollCloneEntitlements';
+import { buildPlanLimitDetails } from '../../lib/planLimit';
 import { checkActivePollQuotaForUser } from '../../lib/billingPollQuota';
 import { resolveWorkspaceIdForCreatorUserId } from '../../lib/workspaceBootstrap';
 import { jsonError } from '../../lib/jsonError';
 import { notifyPollLive } from '../../lib/pollLive';
 import { recordPollPhaseTransition } from '../../lib/pollPhaseHistory';
+import {
+  BILLING_LICENSE_EXPIRED_CODE,
+  BILLING_LICENSE_EXPIRED_MESSAGE,
+} from '../../lib/selfhostProLicense';
 import Poll from '../../model/Poll';
 import { singleString } from '../../utils/http';
 
@@ -69,6 +75,49 @@ const clonePoll: AppRequestHandler = async (req, res) => {
   }
 
   const workspaceId = await resolveWorkspaceIdForCreatorUserId(newCreatorId);
+  const premiumFields = normalizeClonePremiumFields(source);
+  const premiumBlock = await checkClonePremiumEntitlements({ pollId, ownerId, source });
+  if (premiumBlock?.kind === 'billing_license_expired') {
+    jsonError(
+      res,
+      req,
+      403,
+      BILLING_LICENSE_EXPIRED_CODE,
+      BILLING_LICENSE_EXPIRED_MESSAGE,
+      premiumBlock.details,
+    );
+    return;
+  }
+  if (premiumBlock?.kind === 'plan_limit_automation') {
+    jsonError(
+      res,
+      req,
+      403,
+      'PLAN_LIMIT_AUTOMATION',
+      'Webhook automation is not available on this billing plan.',
+      buildPlanLimitDetails({
+        plan: premiumBlock.plan,
+        requiredPlan: premiumBlock.requiredPlan,
+        feature: 'Webhook automation',
+      }),
+    );
+    return;
+  }
+  if (premiumBlock?.kind === 'plan_limit_retention') {
+    jsonError(
+      res,
+      req,
+      403,
+      'PLAN_LIMIT_RETENTION',
+      'Custom retention is not available on this billing plan.',
+      buildPlanLimitDetails({
+        plan: premiumBlock.plan,
+        requiredPlan: premiumBlock.requiredPlan,
+        feature: 'Custom retention',
+      }),
+    );
+    return;
+  }
 
   await db.sync();
   const clone = await Poll.create({
@@ -80,20 +129,7 @@ const clonePoll: AppRequestHandler = async (req, res) => {
     limit_ip: !!source.get('limit_ip'),
     creatorUserId: ownerId ?? null,
     workspaceId,
-    webhookTargets: (
-      (source.get('webhookTargets') as
-        | Array<{ url?: string; secret?: string }>
-        | null
-        | undefined) ?? []
-    )
-      .filter(
-        (t): t is { url: string; secret: string } =>
-          typeof t?.url === 'string' &&
-          t.url.trim() !== '' &&
-          typeof t?.secret === 'string' &&
-          t.secret.trim() !== '',
-      )
-      .map((t) => ({ url: t.url.trim(), secret: t.secret.trim() })),
+    webhookTargets: premiumFields.webhookTargets,
     phase: 'draft',
     votingPaused: false,
     pauseMessage: null,
@@ -119,6 +155,8 @@ const clonePoll: AppRequestHandler = async (req, res) => {
     ).filter((s) => typeof s === 'string' && s.trim() !== ''),
     writeInProfanityFilter: source.get('writeInProfanityFilter') !== false,
     resultsDelaySeconds: Number(source.get('resultsDelaySeconds') ?? 0),
+    retentionTtlDays: premiumFields.retentionTtlDays,
+    retentionLegalHold: premiumFields.retentionLegalHold,
   });
 
   const clonedId = clone.get('id') as string;

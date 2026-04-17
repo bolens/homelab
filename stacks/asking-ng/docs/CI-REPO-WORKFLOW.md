@@ -16,6 +16,7 @@ Reference for CI execution requirements, workflow responsibilities, monorepo ext
 - [API-REFERENCE.md](API-REFERENCE.md)
 - [OPERATIONS.md](OPERATIONS.md)
 - [API-MIGRATION-TRACKER.md](API-MIGRATION-TRACKER.md)
+- [LEGAL-COPY-MATRIX.md](LEGAL-COPY-MATRIX.md)
 
 ## Root Requirement for GitHub Actions
 
@@ -63,3 +64,26 @@ If `docker compose build` warns that the Buildx plugin should be installed, buil
 - Installing Buildx removes the warning and standardizes BuildKit usage.
 - Install docs: [Docker Buildx install](https://docs.docker.com/build/buildx/install/).
 - Additional context: [Docker Compose: Buildx plugin warning](https://github.com/homelab-user/homelab/blob/main/documents/TROUBLESHOOTING.md).
+
+## Release Gate: Identity-Linked Legal Copy
+
+When a PR changes identity-linked legal/privacy copy, treat this as a required
+release gate before merge.
+
+Trigger paths (minimum):
+
+- `client/src/i18n/locales/en.ts` keys:
+  - `home.voteEligibility.regionLegalNote.*`
+  - `poll.identityLinkedRegionalNotice.*`
+- Locale overrides that redefine the same keys.
+- Any change to `client/src/lib/cookieConsent.ts` region mapping semantics.
+
+Checklist:
+
+1. Confirm copy intent still matches `docs/LEGAL-COPY-MATRIX.md`.
+2. Update matrix rows if trigger, messaging goal, or key mapping changed.
+3. Verify `Home`, `MyPolls`, and `Poll` still render region-aware variants for
+   `eu` / `non-eu` / `unknown`.
+4. Run lints and type checks for client i18n surfaces.
+5. Include a short legal/compliance note in PR description when semantics
+   changed (not required for typo-only edits).

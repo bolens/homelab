@@ -27,6 +27,23 @@ const httpsWebhookUrl = z
 const webhookTargetSchema = z.object({
   url: httpsWebhookUrl,
   secret: z.string().trim().min(16).max(128).optional(),
+  /** Optional webhook-localized hint locale override (`en` | `en-gb` | `es`). */
+  hint_locale: z.enum(['en', 'en-gb', 'es']).optional(),
+  /**
+   * When true, signed poll webhooks to this URL include `data.results_snapshot` (public tallies,
+   * excludes quarantined votes; honors results delay like `GET /poll/:id`).
+   */
+  include_results_snapshot: z.boolean().optional(),
+  /**
+   * When true, signed poll webhooks include `data.owner_snapshot` (moderation counters and delayed-vote
+   * counts aligned with owner `GET /poll/:id`). **Sensitive** — only use on URLs you control.
+   */
+  include_owner_snapshot: z.boolean().optional(),
+  /**
+   * When true, signed poll webhooks may include additive `data.owner_events` (bounded moderation/trust
+   * event summaries for owner automation). **Sensitive** — only use on URLs you control.
+   */
+  include_owner_events: z.boolean().optional(),
 });
 
 const runOfShowKeySchema = z
@@ -45,13 +62,23 @@ const vanitySlugSchema = z
 
 const writeInBlocklistItemSchema = z.string().trim().min(1).max(64);
 const collaboratorUserIdSchema = z.coerce.number().int().positive();
+const platformIdentityProviderSchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(64)
+  .regex(
+    /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/,
+    'platform_identity_provider must use lowercase letters, numbers, dot, underscore, or dash',
+  );
+const platformIdentityConsentVersionSchema = z.string().trim().min(1).max(64);
 export const pollThemePresetSchema = z.enum(['default', 'sunset', 'ocean', 'neon']);
 /** How voters submit choices for this poll. */
 export const pollSelectionModeSchema = z.enum(['single', 'multi']);
 export type PollSelectionMode = z.infer<typeof pollSelectionModeSchema>;
 
 /** Who may cast a ballot (`PUT /poll/:id/vote`). */
-export const pollVoteEligibilitySchema = z.enum(['anonymous', 'account']);
+export const pollVoteEligibilitySchema = z.enum(['anonymous', 'account', 'platform_linked']);
 export type PollVoteEligibility = z.infer<typeof pollVoteEligibilitySchema>;
 
 /**
@@ -177,10 +204,21 @@ export const createPollBodySchema = z
     /** `multi` allows one ballot with several fixed options (no write-ins, no boosted weights in v1). */
     selection_mode: pollSelectionModeSchema.optional().default('single'),
     /**
-     * `anonymous` (default): anyone may vote. `account`: voter must send a valid user JWT
-     * (`Authorization: Bearer`); one ballot per authenticated user.
+     * `anonymous` (default): anyone may vote. `account`: voter must send a valid user JWT.
+     * `platform_linked`: roadmap scaffold for provider-linked identity (currently same JWT
+     * requirement semantics as account mode until provider integration lands).
      */
     vote_eligibility: pollVoteEligibilitySchema.optional().default('anonymous'),
+    /** Explicit creator acknowledgement for signed-in-only voting copy/consent UX. */
+    account_vote_consent_ack: z.boolean().optional(),
+    /** Provider identifier for `platform_linked` eligibility mode (scaffold). */
+    platform_identity_provider: platformIdentityProviderSchema.optional(),
+    /** Consent copy/policy version acknowledged for identity-linked voting (scaffold). */
+    platform_identity_consent_version: platformIdentityConsentVersionSchema.optional(),
+    /** Optional per-poll retention window (days) after expiration before auto-delete. */
+    retention_ttl_days: z.coerce.number().int().min(1).max(3650).optional(),
+    /** Optional legal-hold switch: pause retention auto-delete for this poll. */
+    retention_legal_hold: z.boolean().optional(),
   })
   .refine((d) => new Set(d.options).size === d.options.length, {
     message: 'Duplicate options are not allowed',
@@ -238,7 +276,25 @@ export const createPollBodySchema = z
   .refine((d) => d.selection_mode !== 'multi' || d.allow_write_in !== true, {
     message: 'multi selection_mode cannot be combined with allow_write_in',
     path: ['selection_mode'],
-  });
+  })
+  .refine((d) => d.vote_eligibility === 'anonymous' || d.account_vote_consent_ack === true, {
+    message:
+      'account_vote_consent_ack=true is required when vote_eligibility is account or platform_linked',
+    path: ['account_vote_consent_ack'],
+  })
+  .refine(
+    (d) =>
+      d.vote_eligibility !== 'platform_linked' ||
+      (d.platform_identity_provider !== undefined &&
+        d.platform_identity_provider.trim() !== '' &&
+        d.platform_identity_consent_version !== undefined &&
+        d.platform_identity_consent_version.trim() !== ''),
+    {
+      message:
+        'platform_identity_provider and platform_identity_consent_version are required when vote_eligibility=platform_linked',
+      path: ['platform_identity_provider'],
+    },
+  );
 
 export type CreatePollBody = z.infer<typeof createPollBodySchema>;
 
@@ -292,6 +348,13 @@ export const updatePollBodySchema = z
     theme_preset: z.union([pollThemePresetSchema, z.null()]).optional(),
     selection_mode: z.union([pollSelectionModeSchema, z.null()]).optional(),
     vote_eligibility: z.union([pollVoteEligibilitySchema, z.null()]).optional(),
+    account_vote_consent_ack: z.boolean().optional(),
+    platform_identity_provider: z.union([platformIdentityProviderSchema, z.null()]).optional(),
+    platform_identity_consent_version: z
+      .union([platformIdentityConsentVersionSchema, z.null()])
+      .optional(),
+    retention_ttl_days: z.union([z.coerce.number().int().min(1).max(3650), z.null()]).optional(),
+    retention_legal_hold: z.boolean().optional(),
     webhook_targets: z.union([z.array(webhookTargetSchema).max(10), z.null()]).optional(),
     /**
      * One-shot kill switch: sets **phase** to `locked`, **voting_paused** true, and **pause_message**
@@ -334,6 +397,11 @@ export const updatePollBodySchema = z
       d.theme_preset !== undefined ||
       d.selection_mode !== undefined ||
       d.vote_eligibility !== undefined ||
+      d.account_vote_consent_ack !== undefined ||
+      d.platform_identity_provider !== undefined ||
+      d.platform_identity_consent_version !== undefined ||
+      d.retention_ttl_days !== undefined ||
+      d.retention_legal_hold !== undefined ||
       d.webhook_targets !== undefined,
     { message: 'At least one field is required', path: ['expiration'] },
   )
@@ -371,12 +439,17 @@ export const updatePollBodySchema = z
         d.theme_preset === undefined &&
         d.selection_mode === undefined &&
         d.vote_eligibility === undefined &&
+        d.account_vote_consent_ack === undefined &&
+        d.platform_identity_provider === undefined &&
+        d.platform_identity_consent_version === undefined &&
+        d.retention_ttl_days === undefined &&
+        d.retention_legal_hold === undefined &&
         d.webhook_targets === undefined
       );
     },
     {
       message:
-        'panic cannot be combined with expiration, phase, voting_paused, show_notes, generate_embed_read_token, schedule fields, boosted voting fields, run-of-show fields, vanity_slug, friction settings, results delay, write-in settings, media settings, shared_editor_user_ids, selection_mode, vote_eligibility, or webhook_targets',
+        'panic cannot be combined with expiration, phase, voting_paused, show_notes, generate_embed_read_token, schedule fields, boosted voting fields, run-of-show fields, vanity_slug, friction settings, results delay, write-in settings, media settings, shared_editor_user_ids, selection_mode, vote_eligibility, account_vote_consent_ack, platform_identity_provider, platform_identity_consent_version, retention_ttl_days, retention_legal_hold, or webhook_targets',
       path: ['panic'],
     },
   )
@@ -426,6 +499,31 @@ export const updatePollBodySchema = z
     {
       message: 'shared_editor_user_ids contains duplicates',
       path: ['shared_editor_user_ids'],
+    },
+  )
+  .refine(
+    (d) =>
+      d.vote_eligibility === undefined ||
+      d.vote_eligibility === null ||
+      d.vote_eligibility === 'anonymous' ||
+      d.account_vote_consent_ack === true,
+    {
+      message:
+        'account_vote_consent_ack=true is required when vote_eligibility is account or platform_linked',
+      path: ['account_vote_consent_ack'],
+    },
+  )
+  .refine(
+    (d) =>
+      d.vote_eligibility !== 'platform_linked' ||
+      (typeof d.platform_identity_provider === 'string' &&
+        d.platform_identity_provider.trim() !== '' &&
+        typeof d.platform_identity_consent_version === 'string' &&
+        d.platform_identity_consent_version.trim() !== ''),
+    {
+      message:
+        'platform_identity_provider and platform_identity_consent_version are required when vote_eligibility=platform_linked',
+      path: ['platform_identity_provider'],
     },
   );
 

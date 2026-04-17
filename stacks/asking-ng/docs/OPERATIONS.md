@@ -353,6 +353,22 @@ Recommended toggle flow:
 3. Watch logs for `poll.webhook.skipped_incident_mode` and `status.history.fallback_incident_mode`.
 4. Disable incident mode once upstream dependencies stabilize and post-incident checks pass.
 
+### Webhook receiver trust boundary
+
+When a poll target enables `webhook_targets[].include_owner_snapshot`, treat that destination with the same or stricter trust boundary as the webhook secret itself.
+
+- Enable owner snapshots only for endpoints you fully control.
+- Rotate the target secret if receiver ownership, hosting, or forwarding paths change.
+- Do not relay `owner_snapshot` payloads through shared chat bots, generic no-code automation hops, or third-party fan-out services unless you accept that operational traffic patterns may leak.
+
+`owner_snapshot` carries counts and trust-stack summaries rather than per-voter identity, but delayed-vote counters and burst signals can still expose moderation-sensitive behavior. See [WEBHOOK-COMMAND-HINTS-RECEIVERS.md](WEBHOOK-COMMAND-HINTS-RECEIVERS.md) and [API-REFERENCE.md](API-REFERENCE.md) for the exact payload fields.
+
+### Webhook runtime visibility handoff
+
+- **Shipped now:** Admin Status shows a lightweight webhook runtime panel backed by `GET /admin/status` `webhookDeliveryTelemetry`.
+- **Important caveat:** those counters are **current-process memory only**. They reset on API restart and do not merge across multiple API instances.
+- **If another agent picks this up:** preserve the existing Admin Status panel as the operator entry point, but replace the in-memory source with durable audit-log / rollup-backed counters before expanding the UI further.
+
 ## Embed Read-Only URL Grants
 
 For browser overlays and stream tooling that must not hold `api_key`, owner workflows can mint short-lived signed read URLs. Step-by-step OBS and URL usage: [STREAMING-OBS-BROWSER-SOURCE.md](STREAMING-OBS-BROWSER-SOURCE.md).

@@ -180,3 +180,54 @@ export function maxOutboundPollWebhookDeliveriesPerMinuteForBillingPlan(plan: st
       return 30;
   }
 }
+
+/**
+ * UTM / campaign **attributed** poll view increments (`impressionAttribution` bumps) per billing
+ * workspace per **UTC calendar day** (MONETIZATION “Campaign attribution queries / day”).
+ */
+export function maxCampaignAttributionIncrementsPerUtcDayForBillingPlan(plan: string): number {
+  const p = normalizeBillingPlan(plan);
+  switch (p) {
+    case 'free':
+      return 100;
+    case 'cloud-team':
+      return 5_000;
+    case 'cloud-pro':
+      return 50_000;
+    case 'selfhost-pro':
+    case 'enterprise-custom':
+      return Number.MAX_SAFE_INTEGER;
+    default:
+      return 100;
+  }
+}
+
+/** Premium forensic timeline entitlement (`GET /poll/:id/replay`). */
+export function hasForensicReplayForBillingPlan(plan: string): boolean {
+  const p = normalizeBillingPlan(plan);
+  return p !== 'free';
+}
+
+/** Premium vote geo heatmap entitlement (`GET /poll/:id/heatmap`). */
+export function hasVoteHeatmapForBillingPlan(plan: string): boolean {
+  const p = normalizeBillingPlan(plan);
+  return p !== 'free';
+}
+
+/** Premium moderation batch automation entitlement (`PUT /poll/:id/moderation/batch`). */
+export function hasModerationAutomationForBillingPlan(plan: string): boolean {
+  const p = normalizeBillingPlan(plan);
+  return p !== 'free';
+}
+
+/** Premium webhook automation entitlement (`webhook_targets` on poll create/update). */
+export function hasWebhookAutomationForBillingPlan(plan: string): boolean {
+  const p = normalizeBillingPlan(plan);
+  return p !== 'free';
+}
+
+/** Premium extended retention entitlement (`retention_ttl_days` create/update fields). */
+export function hasExtendedRetentionForBillingPlan(plan: string): boolean {
+  const p = normalizeBillingPlan(plan);
+  return p !== 'free';
+}
