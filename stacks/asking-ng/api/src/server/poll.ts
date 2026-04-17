@@ -113,7 +113,7 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
 
   const apiKeyFrom = (request: { headers?: unknown }): string | undefined => {
     const headers = (request.headers ?? {}) as Record<string, unknown>;
-    const v = headers.api_key;
+    const v = headers['api_key'];
     if (typeof v === 'string') return v;
     if (Array.isArray(v) && typeof v[0] === 'string') return v[0];
     return undefined;
@@ -652,7 +652,7 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     const query = (request.query ?? {}) as Record<string, unknown>;
-    const ttlRaw = query.ttl_seconds;
+    const ttlRaw = query['ttl_seconds'];
     const ttlSeconds =
       typeof ttlRaw === 'string'
         ? Number.parseInt(ttlRaw, 10)
@@ -1010,7 +1010,7 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     const body = (request.body ?? {}) as Record<string, unknown>;
-    const reasonRaw = typeof body.reason === 'string' ? body.reason.trim() : '';
+    const reasonRaw = typeof body['reason'] === 'string' ? body['reason'].trim() : '';
     const current = normalizeMediaModeration(poll.get('mediaModeration'));
     const next =
       current.status === 'takedown'
@@ -1466,7 +1466,7 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
 
-    const apiKeyHeader = request.headers.api_key;
+    const apiKeyHeader = request.headers['api_key'];
     const apiKey =
       typeof apiKeyHeader === 'string'
         ? apiKeyHeader
@@ -2269,43 +2269,43 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     const patch: Record<string, unknown> = {};
-    if (body.expiration !== undefined) patch.expiration = body.expiration;
-    if (body.phase !== undefined) patch.phase = body.phase;
-    if (body.voting_paused !== undefined) patch.votingPaused = body.voting_paused;
-    if (body.pause_message !== undefined) patch.pauseMessage = body.pause_message;
-    if (body.show_notes !== undefined) patch.showNotes = body.show_notes;
-    if (body.open_at !== undefined) patch.openAt = body.open_at;
-    if (body.lock_at !== undefined) patch.lockAt = body.lock_at;
-    if (body.reveal_at !== undefined) patch.revealAt = body.reveal_at;
+    if (body.expiration !== undefined) patch['expiration'] = body.expiration;
+    if (body.phase !== undefined) patch['phase'] = body.phase;
+    if (body.voting_paused !== undefined) patch['votingPaused'] = body.voting_paused;
+    if (body.pause_message !== undefined) patch['pauseMessage'] = body.pause_message;
+    if (body.show_notes !== undefined) patch['showNotes'] = body.show_notes;
+    if (body.open_at !== undefined) patch['openAt'] = body.open_at;
+    if (body.lock_at !== undefined) patch['lockAt'] = body.lock_at;
+    if (body.reveal_at !== undefined) patch['revealAt'] = body.reveal_at;
     if (body.boosted_voting_enabled !== undefined)
-      patch.boostedVotingEnabled = body.boosted_voting_enabled;
-    if (body.max_boost_weight !== undefined) patch.maxBoostWeight = body.max_boost_weight ?? 3;
+      patch['boostedVotingEnabled'] = body.boosted_voting_enabled;
+    if (body.max_boost_weight !== undefined) patch['maxBoostWeight'] = body.max_boost_weight ?? 3;
     if (body.show_unweighted_values !== undefined)
-      patch.showUnweightedValues = body.show_unweighted_values;
-    if (body.run_of_show_key !== undefined) patch.runOfShowKey = body.run_of_show_key;
-    if (body.run_of_show_order !== undefined) patch.runOfShowOrder = body.run_of_show_order;
-    if (body.next_poll_id !== undefined) patch.nextPollId = body.next_poll_id;
+      patch['showUnweightedValues'] = body.show_unweighted_values;
+    if (body.run_of_show_key !== undefined) patch['runOfShowKey'] = body.run_of_show_key;
+    if (body.run_of_show_order !== undefined) patch['runOfShowOrder'] = body.run_of_show_order;
+    if (body.next_poll_id !== undefined) patch['nextPollId'] = body.next_poll_id;
     if (body.auto_advance_on_close !== undefined)
-      patch.autoAdvanceOnClose = body.auto_advance_on_close;
-    if (body.vanity_slug !== undefined) patch.vanitySlug = body.vanity_slug;
-    if (body.vote_friction_tier !== undefined) patch.voteFrictionTier = body.vote_friction_tier;
+      patch['autoAdvanceOnClose'] = body.auto_advance_on_close;
+    if (body.vanity_slug !== undefined) patch['vanitySlug'] = body.vanity_slug;
+    if (body.vote_friction_tier !== undefined) patch['voteFrictionTier'] = body.vote_friction_tier;
     if (body.soft_throttle_max_votes_per_min !== undefined) {
-      patch.softThrottleMaxVotesPerMin = body.soft_throttle_max_votes_per_min ?? 30;
+      patch['softThrottleMaxVotesPerMin'] = body.soft_throttle_max_votes_per_min ?? 30;
     }
-    if (body.pow_difficulty !== undefined) patch.powDifficulty = body.pow_difficulty ?? 4;
+    if (body.pow_difficulty !== undefined) patch['powDifficulty'] = body.pow_difficulty ?? 4;
     if (body.results_delay_seconds !== undefined)
-      patch.resultsDelaySeconds = body.results_delay_seconds ?? 0;
-    if (body.allow_write_in !== undefined) patch.allowWriteIn = body.allow_write_in;
+      patch['resultsDelaySeconds'] = body.results_delay_seconds ?? 0;
+    if (body.allow_write_in !== undefined) patch['allowWriteIn'] = body.allow_write_in;
     if (body.write_in_max_length !== undefined)
-      patch.writeInMaxLength = body.write_in_max_length ?? 80;
+      patch['writeInMaxLength'] = body.write_in_max_length ?? 80;
     if (body.write_in_blocklist !== undefined)
-      patch.writeInBlocklist = body.write_in_blocklist ?? [];
+      patch['writeInBlocklist'] = body.write_in_blocklist ?? [];
     if (body.write_in_profanity_filter !== undefined)
-      patch.writeInProfanityFilter = body.write_in_profanity_filter;
+      patch['writeInProfanityFilter'] = body.write_in_profanity_filter;
     if (body.shared_editor_user_ids !== undefined) {
       const ownerUserId = (poll.get('creatorUserId') as number | null | undefined) ?? null;
       const ids = body.shared_editor_user_ids ?? [];
-      patch.sharedEditorUserIds = Array.from(
+      patch['sharedEditorUserIds'] = Array.from(
         new Set(
           ids
             .map((id: number) => Number(id))
@@ -2316,50 +2316,50 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         ),
       );
     }
-    if (bodyRecord.media_attachment !== undefined) {
-      patch.mediaAttachment = bodyRecord.media_attachment ?? null;
-      if (bodyRecord.media_attachment === null) {
-        patch.mediaModeration = { status: 'active' };
+    if (bodyRecord['media_attachment'] !== undefined) {
+      patch['mediaAttachment'] = bodyRecord['media_attachment'] ?? null;
+      if (bodyRecord['media_attachment'] === null) {
+        patch['mediaModeration'] = { status: 'active' };
       }
     }
-    if (bodyRecord.media_blur_by_default !== undefined) {
-      patch.mediaBlurByDefault = Boolean(bodyRecord.media_blur_by_default);
+    if (bodyRecord['media_blur_by_default'] !== undefined) {
+      patch['mediaBlurByDefault'] = Boolean(bodyRecord['media_blur_by_default']);
     }
-    if (bodyRecord.theme_preset !== undefined) {
-      patch.themePreset =
-        typeof bodyRecord.theme_preset === 'string' && bodyRecord.theme_preset.trim() !== ''
-          ? bodyRecord.theme_preset
+    if (bodyRecord['theme_preset'] !== undefined) {
+      patch['themePreset'] =
+        typeof bodyRecord['theme_preset'] === 'string' && bodyRecord['theme_preset'].trim() !== ''
+          ? bodyRecord['theme_preset']
           : 'default';
     }
     if (body.selection_mode !== undefined) {
-      patch.selectionMode =
+      patch['selectionMode'] =
         body.selection_mode === null ? 'single' : (body.selection_mode as 'single' | 'multi');
     }
     if (body.vote_eligibility !== undefined) {
-      patch.voteEligibility =
+      patch['voteEligibility'] =
         body.vote_eligibility === null
           ? 'anonymous'
           : (body.vote_eligibility as 'anonymous' | 'account' | 'platform_linked');
     }
     if (body.platform_identity_provider !== undefined) {
-      patch.platformIdentityProvider = body.platform_identity_provider;
+      patch['platformIdentityProvider'] = body.platform_identity_provider;
     }
     if (body.platform_identity_consent_version !== undefined) {
-      patch.platformIdentityConsentVersion = body.platform_identity_consent_version;
+      patch['platformIdentityConsentVersion'] = body.platform_identity_consent_version;
     }
     let shouldRecordPlatformConsentHistory = false;
     const nextVoteEligibility =
-      patch.voteEligibility !== undefined
-        ? String(patch.voteEligibility)
+      patch['voteEligibility'] !== undefined
+        ? String(patch['voteEligibility'])
         : String(poll.get('voteEligibility') ?? 'anonymous');
     if (nextVoteEligibility === 'platform_linked') {
       const nextProvider =
-        patch.platformIdentityProvider !== undefined
-          ? patch.platformIdentityProvider
+        patch['platformIdentityProvider'] !== undefined
+          ? patch['platformIdentityProvider']
           : ((poll.get('platformIdentityProvider') as string | null | undefined) ?? null);
       const nextConsentVersion =
-        patch.platformIdentityConsentVersion !== undefined
-          ? patch.platformIdentityConsentVersion
+        patch['platformIdentityConsentVersion'] !== undefined
+          ? patch['platformIdentityConsentVersion']
           : ((poll.get('platformIdentityConsentVersion') as string | null | undefined) ?? null);
       if (
         typeof nextProvider !== 'string' ||
@@ -2376,31 +2376,31 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         reply.code(err.statusCode).send(err.body);
         return;
       }
-      patch.platformIdentityProvider = nextProvider.trim();
-      patch.platformIdentityConsentVersion = nextConsentVersion.trim();
-      patch.platformIdentityConsentCapturedAt = Date.now();
+      patch['platformIdentityProvider'] = nextProvider.trim();
+      patch['platformIdentityConsentVersion'] = nextConsentVersion.trim();
+      patch['platformIdentityConsentCapturedAt'] = Date.now();
       shouldRecordPlatformConsentHistory =
-        patch.voteEligibility === 'platform_linked' ||
-        patch.platformIdentityProvider !== undefined ||
-        patch.platformIdentityConsentVersion !== undefined;
-    } else if (patch.voteEligibility === 'anonymous') {
-      patch.platformIdentityProvider = null;
-      patch.platformIdentityConsentVersion = null;
-      patch.platformIdentityConsentCapturedAt = null;
+        patch['voteEligibility'] === 'platform_linked' ||
+        patch['platformIdentityProvider'] !== undefined ||
+        patch['platformIdentityConsentVersion'] !== undefined;
+    } else if (patch['voteEligibility'] === 'anonymous') {
+      patch['platformIdentityProvider'] = null;
+      patch['platformIdentityConsentVersion'] = null;
+      patch['platformIdentityConsentCapturedAt'] = null;
     }
     if (body.retention_ttl_days !== undefined) {
-      patch.retentionTtlDays = body.retention_ttl_days === null ? null : body.retention_ttl_days;
+      patch['retentionTtlDays'] = body.retention_ttl_days === null ? null : body.retention_ttl_days;
     }
     if (body.retention_legal_hold !== undefined) {
-      patch.retentionLegalHold = body.retention_legal_hold;
+      patch['retentionLegalHold'] = body.retention_legal_hold;
     }
-    if (body.webhook_targets !== undefined) patch.webhookTargets = body.webhook_targets ?? [];
+    if (body.webhook_targets !== undefined) patch['webhookTargets'] = body.webhook_targets ?? [];
     let embedReadToken: string | undefined;
     if (body.generate_embed_read_token === true) {
       embedReadToken = generateEmbedReadToken();
-      patch.embedReadTokenHash = hashEmbedReadToken(embedReadToken);
+      patch['embedReadTokenHash'] = hashEmbedReadToken(embedReadToken);
     }
-    const nextPhaseRaw = patch.phase;
+    const nextPhaseRaw = patch['phase'];
     if (typeof nextPhaseRaw === 'string') {
       const fromPhase = normalizePollPhase(poll.get('phase'));
       const toPhase = nextPhaseRaw as typeof fromPhase;
@@ -2418,22 +2418,22 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     const currentSchedule = pollPhaseScheduleFromRow(poll);
     const mergedSchedule = {
       open_at:
-        patch.openAt !== undefined
-          ? patch.openAt === null
+        patch['openAt'] !== undefined
+          ? patch['openAt'] === null
             ? null
-            : Number(patch.openAt)
+            : Number(patch['openAt'])
           : currentSchedule.open_at,
       lock_at:
-        patch.lockAt !== undefined
-          ? patch.lockAt === null
+        patch['lockAt'] !== undefined
+          ? patch['lockAt'] === null
             ? null
-            : Number(patch.lockAt)
+            : Number(patch['lockAt'])
           : currentSchedule.lock_at,
       reveal_at:
-        patch.revealAt !== undefined
-          ? patch.revealAt === null
+        patch['revealAt'] !== undefined
+          ? patch['revealAt'] === null
             ? null
-            : Number(patch.revealAt)
+            : Number(patch['revealAt'])
           : currentSchedule.reveal_at,
     };
     const scheduleErr = validatePollPhaseScheduleWindow(mergedSchedule);
@@ -2442,7 +2442,7 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
       reply.code(err.statusCode).send(err.body);
       return;
     }
-    if (patch.selectionMode !== undefined) {
+    if (patch['selectionMode'] !== undefined) {
       const currentPhase = normalizePollPhase(poll.get('phase'));
       if (currentPhase !== 'draft') {
         const err = replyJsonError(
@@ -2454,13 +2454,13 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         reply.code(err.statusCode).send(err.body);
         return;
       }
-      const nextMode = String(patch.selectionMode) === 'multi' ? 'multi' : 'single';
+      const nextMode = String(patch['selectionMode']) === 'multi' ? 'multi' : 'single';
       const nextBoosted =
-        patch.boostedVotingEnabled !== undefined
-          ? !!patch.boostedVotingEnabled
+        patch['boostedVotingEnabled'] !== undefined
+          ? !!patch['boostedVotingEnabled']
           : !!poll.get('boostedVotingEnabled');
       const nextWriteIn =
-        patch.allowWriteIn !== undefined ? !!patch.allowWriteIn : !!poll.get('allowWriteIn');
+        patch['allowWriteIn'] !== undefined ? !!patch['allowWriteIn'] : !!poll.get('allowWriteIn');
       if (nextMode === 'multi' && (nextBoosted || nextWriteIn)) {
         const err = replyJsonError(
           request.id,
@@ -2472,7 +2472,7 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         return;
       }
     }
-    if (patch.voteEligibility !== undefined) {
+    if (patch['voteEligibility'] !== undefined) {
       const currentPhase = normalizePollPhase(poll.get('phase'));
       if (currentPhase !== 'draft') {
         const err = replyJsonError(
@@ -2485,10 +2485,10 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
         return;
       }
     }
-    if (patch.boostedVotingEnabled === true || patch.allowWriteIn === true) {
+    if (patch['boostedVotingEnabled'] === true || patch['allowWriteIn'] === true) {
       const mode = String(
-        patch.selectionMode !== undefined
-          ? patch.selectionMode
+        patch['selectionMode'] !== undefined
+          ? patch['selectionMode']
           : (poll.get('selectionMode') ?? 'single'),
       );
       if (mode === 'multi') {
@@ -2506,15 +2506,15 @@ export const fastifyPollRoutes: FastifyPluginAsync = async (app) => {
     if (shouldRecordPlatformConsentHistory) {
       await recordPlatformIdentityConsentEvent({
         pollId,
-        provider: String(patch.platformIdentityProvider ?? ''),
-        consentVersion: String(patch.platformIdentityConsentVersion ?? ''),
-        capturedAtMs: Number(patch.platformIdentityConsentCapturedAt ?? Date.now()),
+        provider: String(patch['platformIdentityProvider'] ?? ''),
+        consentVersion: String(patch['platformIdentityConsentVersion'] ?? ''),
+        capturedAtMs: Number(patch['platformIdentityConsentCapturedAt'] ?? Date.now()),
         actorUserId: jwtOk ? Number(request.user?.id) : null,
         source: 'poll_update',
       });
     }
     const fromPhase = normalizePollPhase(poll.get('phase'));
-    const toPhase = typeof patch.phase === 'string' ? normalizePollPhase(patch.phase) : fromPhase;
+    const toPhase = typeof patch['phase'] === 'string' ? normalizePollPhase(patch['phase']) : fromPhase;
     if (fromPhase !== toPhase) {
       await recordPollPhaseTransition({
         pollId,

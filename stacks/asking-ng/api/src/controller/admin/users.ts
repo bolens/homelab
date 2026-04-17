@@ -34,7 +34,7 @@ export async function getUserHandler(req: AppRequest, res: AppResponse): Promise
   const result = await getUserService({
     actorRole: ctx.role,
     actorUserId: ctx.userId,
-    userIdRaw: singleString(req.params.id) ?? null,
+    userIdRaw: singleString(req.params['id']) ?? null,
   });
 
   if (result.kind === 'invalid_id') {
@@ -82,7 +82,7 @@ export async function deleteUserHandler(req: AppRequest, res: AppResponse): Prom
   const ctx = getRequestContext(req);
   const result = await deleteUserService({
     actorRole: ctx.role,
-    userIdRaw: singleString(req.params.id) ?? null,
+    userIdRaw: singleString(req.params['id']) ?? null,
   });
 
   if (result.kind === 'forbidden') {
@@ -106,7 +106,7 @@ export async function patchUserRoleHandler(req: AppRequest, res: AppResponse): P
   const ctx = getRequestContext(req);
   const result = await patchUserRoleService({
     actorRole: ctx.role,
-    userIdRaw: singleString(req.params.id) ?? null,
+    userIdRaw: singleString(req.params['id']) ?? null,
     body: req.body as RolePatchBody,
   });
 
@@ -139,7 +139,7 @@ export async function resetUserPasswordHandler(req: AppRequest, res: AppResponse
   const ctx = getRequestContext(req);
   const result = await resetUserPasswordService({
     actorRole: ctx.role,
-    userIdRaw: singleString(req.params.id) ?? null,
+    userIdRaw: singleString(req.params['id']) ?? null,
     body: req.body as SetPasswordBody,
   });
 

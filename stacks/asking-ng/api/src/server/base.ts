@@ -132,12 +132,12 @@ const telemetryConsentBodyDiscriminated = z.discriminatedUnion('mode', [
 const telemetryConsentBodySchema = z.preprocess((raw: unknown) => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw;
   const o = raw as Record<string, unknown>;
-  if (!('mode' in o) && (o.choice === 'accepted' || o.choice === 'rejected')) {
+  if (!('mode' in o) && (o['choice'] === 'accepted' || o['choice'] === 'rejected')) {
     return {
       mode: 'simple' as const,
-      choice: o.choice,
-      source: o.source,
-      clientTs: o.clientTs,
+      choice: o['choice'],
+      source: o['source'],
+      clientTs: o['clientTs'],
     };
   }
   return raw;
@@ -528,30 +528,32 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
 
       const body = (request.body ?? {}) as Record<string, unknown>;
       const challenge =
-        typeof body.challenge === 'string' && body.challenge.trim() !== '' ? body.challenge : null;
+        typeof body['challenge'] === 'string' && body['challenge'].trim() !== ''
+          ? body['challenge']
+          : null;
       const eventType =
-        typeof body.type === 'string'
-          ? body.type
-          : typeof body.event_type === 'string'
-            ? body.event_type
-            : typeof body.subscription === 'object' &&
-                body.subscription != null &&
-                typeof (body.subscription as { type?: unknown }).type === 'string'
-              ? ((body.subscription as { type: string }).type ?? '')
+        typeof body['type'] === 'string'
+          ? body['type']
+          : typeof body['event_type'] === 'string'
+            ? body['event_type']
+            : typeof body['subscription'] === 'object' &&
+                body['subscription'] != null &&
+                typeof (body['subscription'] as { type?: unknown })['type'] === 'string'
+              ? ((body['subscription'] as { type: string })['type'] ?? '')
               : 'unknown';
       const deliveryId =
         (typeof request.headers['x-delivery-id'] === 'string'
           ? request.headers['x-delivery-id']
-          : '') || (typeof body.id === 'string' ? body.id : '');
+          : '') || (typeof body['id'] === 'string' ? body['id'] : '');
       const eventObj =
-        typeof body.event === 'object' && body.event != null
-          ? (body.event as Record<string, unknown>)
+        typeof body['event'] === 'object' && body['event'] != null
+          ? (body['event'] as Record<string, unknown>)
           : null;
       const subjectRaw =
-        eventObj != null && typeof eventObj.user_id === 'string'
-          ? eventObj.user_id
-          : eventObj != null && typeof eventObj.channel_id === 'string'
-            ? eventObj.channel_id
+        eventObj != null && typeof eventObj['user_id'] === 'string'
+          ? eventObj['user_id']
+          : eventObj != null && typeof eventObj['channel_id'] === 'string'
+            ? eventObj['channel_id']
             : null;
       const salt = appEnv.platformWebhookIdHashSalt;
       const subjectHash =
@@ -607,7 +609,7 @@ export const fastifyBaseRoutes: FastifyPluginAsync = async (app) => {
 
   app.get('/status/history', async (request, reply) => {
     const query = (request.query ?? {}) as Record<string, unknown>;
-    const windowHoursRaw = query.windowHours;
+    const windowHoursRaw = query['windowHours'];
     const windowHours = parseBoundedInt(
       firstQueryParam(
         typeof windowHoursRaw === 'string' || Array.isArray(windowHoursRaw)

@@ -28,7 +28,7 @@ import {
   setColorVision,
   setDyslexiaMode,
 } from '../theme/readingComfort';
-import { Checkbox, FormRow, Select, Stack } from '../ui';
+import { Checkbox, FormRow, Select, Stack, cx } from '../ui';
 
 const CVD_LABEL_KEY: Record<ColorVisionId, MessageKey> = {
   none: 'nav.colorVision.none',
@@ -149,7 +149,7 @@ export default function UserSettingsForm({ className }: UserSettingsFormProps) {
   }, []);
 
   return (
-    <div className={className}>
+    <div className={cx('asking-user-settings-form', className)}>
       <Stack gap='md'>
         <FormRow label={t('nav.languageLabel')} htmlFor='asking-settings-page__ui-locale'>
           <Select

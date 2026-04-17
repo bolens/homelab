@@ -10,7 +10,7 @@ import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {
-  const v = req.headers.api_key;
+  const v = req.headers['api_key'];
   if (typeof v === 'string') return v;
   if (Array.isArray(v)) return v[0];
   return undefined;
@@ -20,7 +20,7 @@ type VoteRow = { option: string; voted_at: Date; weight?: number };
 type VelocityRow = { minute_utc: Date | string; vote_count: string | number };
 
 const exportPoll: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   const { format, include } = req.validatedQuery as ExportPollQuery;
 
   if (!pollId) {

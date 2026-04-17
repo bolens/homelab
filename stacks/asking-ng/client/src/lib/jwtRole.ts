@@ -25,9 +25,9 @@ function isLikelyAdminRoleJwt(token: string | null | undefined): boolean {
   if (!token?.trim()) return false;
   const payload = readJwtPayloadUnverified(token.trim());
   if (!payload) return false;
-  const expMs = jwtExpMs(payload.exp);
+  const expMs = jwtExpMs(payload['exp']);
   if (expMs != null && expMs <= Date.now()) return false;
-  const role = payload.role;
+  const role = payload['role'];
   return role === 'admin' || role === 'superadmin';
 }
 

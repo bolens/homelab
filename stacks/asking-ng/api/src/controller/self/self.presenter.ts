@@ -85,14 +85,14 @@ export function presentPolarBillingLinks(links: PolarBillingLinks): Record<strin
   const billing: Record<string, unknown> = { plan: links.billingPlan };
   if (links.subscription) {
     if (links.subscription.polarStatus) {
-      billing.subscriptionStatus = links.subscription.polarStatus;
+      billing['subscriptionStatus'] = links.subscription.polarStatus;
     }
     if (links.subscription.pastDue) {
-      billing.pastDue = true;
+      billing['pastDue'] = true;
     }
   }
   if (links.selfhostProLicense) {
-    billing.selfhostProLicense = links.selfhostProLicense;
+    billing['selfhostProLicense'] = links.selfhostProLicense;
   }
   return {
     polar: {

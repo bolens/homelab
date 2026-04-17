@@ -12,7 +12,7 @@ import { singleString } from '../../utils/http';
 
 /** oEmbed 1.0 `link` resource for rich previews (Slack, Discourse, etc.). */
 const getPollEmbed: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   if (!pollId) {
     jsonError(res, req, 400, 'BAD_REQUEST', 'Poll id is required.');
     return;

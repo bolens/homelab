@@ -24,8 +24,8 @@ export function errMsg(err: unknown, fallback: string): string {
     !Array.isArray(err.details)
   ) {
     const d = err.details as Record<string, unknown>;
-    const cur = d.current;
-    const max = d.max;
+    const cur = d['current'];
+    const max = d['max'];
     if (typeof cur === 'number' && typeof max === 'number' && max < Number.MAX_SAFE_INTEGER / 2) {
       m = `${m} (${cur}/${max} active polls).`;
     }
@@ -38,8 +38,8 @@ export function errMsg(err: unknown, fallback: string): string {
     !Array.isArray(err.details)
   ) {
     const d = err.details as Record<string, unknown>;
-    const cur = d.current;
-    const max = d.max;
+    const cur = d['current'];
+    const max = d['max'];
     if (typeof cur === 'number' && typeof max === 'number' && max < Number.MAX_SAFE_INTEGER / 2) {
       m = `${m} (${cur}/${max} exports today UTC).`;
     }
@@ -52,9 +52,9 @@ export function errMsg(err: unknown, fallback: string): string {
     !Array.isArray(err.details)
   ) {
     const d = err.details as Record<string, unknown>;
-    const cur = d.current;
-    const max = d.max;
-    const incoming = d.incoming;
+    const cur = d['current'];
+    const max = d['max'];
+    const incoming = d['incoming'];
     if (typeof cur === 'number' && typeof max === 'number' && max < Number.MAX_SAFE_INTEGER / 2) {
       const inc =
         typeof incoming === 'number' && incoming > 1 ? ` (+${incoming} this request)` : '';
@@ -70,7 +70,7 @@ export function errMsg(err: unknown, fallback: string): string {
     !Array.isArray(err.details)
   ) {
     const d = err.details as Record<string, unknown>;
-    const hint = d.upgrade_hint;
+    const hint = d['upgrade_hint'];
     if (typeof hint === 'string' && hint.trim() !== '' && !m.includes(hint.trim())) {
       m = `${m} ${hint.trim()}`;
     }

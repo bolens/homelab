@@ -29,8 +29,8 @@ export function normalizeOriginEntry(entry: string): string | null {
 
 /** Build allowlist: `WS_ALLOWED_ORIGINS` if non-empty after trim, else `CORS_ORIGIN`. */
 export function buildWsAllowedOriginSet(): ReadonlySet<string> {
-  const wsRaw = (process.env.WS_ALLOWED_ORIGINS ?? '').trim();
-  const corsRaw = (process.env.CORS_ORIGIN ?? '').trim();
+  const wsRaw = (process.env['WS_ALLOWED_ORIGINS'] ?? '').trim();
+  const corsRaw = (process.env['CORS_ORIGIN'] ?? '').trim();
   const raw = wsRaw.length > 0 ? wsRaw : corsRaw;
   const out = new Set<string>();
   for (const part of raw.split(',')) {

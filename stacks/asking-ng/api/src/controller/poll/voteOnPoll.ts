@@ -7,7 +7,7 @@ import { presentVoteIdempotentReplay, presentVoteSuccess } from './voteOnPoll.pr
 import { voteOnPollService } from './voteOnPoll.service';
 
 const voteOnPoll: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   const body = req.body as VotePollBody;
 
   if (!pollId) {

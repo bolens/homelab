@@ -55,19 +55,19 @@ function parseStoredV2(raw: string): StoredV2 | null {
     const j = JSON.parse(raw) as unknown;
     if (!j || typeof j !== 'object' || Array.isArray(j)) return null;
     const o = j as Record<string, unknown>;
-    if (o.v !== V2) return null;
+    if (o['v'] !== V2) return null;
     if (
-      typeof o.analytics !== 'boolean' ||
-      typeof o.functional !== 'boolean' ||
-      typeof o.marketing !== 'boolean'
+      typeof o['analytics'] !== 'boolean' ||
+      typeof o['functional'] !== 'boolean' ||
+      typeof o['marketing'] !== 'boolean'
     ) {
       return null;
     }
     return {
       v: V2,
-      analytics: o.analytics,
-      functional: o.functional,
-      marketing: o.marketing,
+      analytics: o['analytics'],
+      functional: o['functional'],
+      marketing: o['marketing'],
     };
   } catch {
     return null;

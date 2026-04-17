@@ -451,9 +451,9 @@ export default function Home() {
           !Array.isArray(err.details)
         ) {
           const d = err.details as Record<string, unknown>;
-          const cur = typeof d.current === 'number' ? d.current : 0;
-          const max = typeof d.max === 'number' ? d.max : 0;
-          const plan = typeof d.plan === 'string' ? d.plan : '';
+          const cur = typeof d['current'] === 'number' ? d['current'] : 0;
+          const max = typeof d['max'] === 'number' ? d['max'] : 0;
+          const plan = typeof d['plan'] === 'string' ? d['plan'] : '';
           setError(t('home.err.usageLimitPolls', { current: cur, max, plan }));
         } else {
           setError(errMsg(err, t('home.err.createRetry')));

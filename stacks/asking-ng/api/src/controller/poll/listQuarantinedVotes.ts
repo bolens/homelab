@@ -7,14 +7,14 @@ import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {
-  const v = req.headers.api_key;
+  const v = req.headers['api_key'];
   if (typeof v === 'string') return v;
   if (Array.isArray(v)) return v[0];
   return undefined;
 }
 
 const listQuarantinedVotes: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   const { status, limit, offset } = req.validatedQuery as ListQuarantinedVotesQuery;
   const apiKey = apiKeyFrom(req);
 

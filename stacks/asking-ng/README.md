@@ -30,6 +30,7 @@ Primary operator quickstart and navigation hub for running `asking-ng` in a home
 - [docs/POLAR-BILLING.md](docs/POLAR-BILLING.md) (default hosted billing + webhooks)
 - [docs/CREATOR-STREAMER-ROADMAP.md](docs/CREATOR-STREAMER-ROADMAP.md) (creator / streamer backlog)
 - [docs/STREAMING-OBS-BROWSER-SOURCE.md](docs/STREAMING-OBS-BROWSER-SOURCE.md) (OBS / browser overlays)
+- [docs/CLIENT-BEM-LINTING.md](docs/CLIENT-BEM-LINTING.md) (client class naming policy and TSX BEM lint guard)
 
 ## Table of Contents
 

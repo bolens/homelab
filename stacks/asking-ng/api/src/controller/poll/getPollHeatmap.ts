@@ -14,9 +14,9 @@ type HeatPointRow = {
 };
 
 const getPollHeatmap: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   const minCount =
-    typeof req.query.minCount === 'string' ? Number.parseInt(req.query.minCount, 10) || 2 : 2;
+    typeof req.query['minCount'] === 'string' ? Number.parseInt(req.query['minCount'], 10) || 2 : 2;
   if (!pollId) {
     jsonError(res, req, 400, 'BAD_REQUEST', 'Poll id is required.');
     return;

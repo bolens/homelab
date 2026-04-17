@@ -89,31 +89,31 @@ async function postWebhook(
 ): Promise<void> {
   const pollPathDefault = `/${encodeURIComponent(pollId)}`;
   const resultsPathDefault = `${pollPathDefault}/results`;
-  const existingCommandHintsRaw = data.command_hints;
+  const existingCommandHintsRaw = data['command_hints'];
   const existingCommandHints =
     existingCommandHintsRaw && typeof existingCommandHintsRaw === 'object'
       ? (existingCommandHintsRaw as Record<string, unknown>)
       : {};
-  const existingCommandAliasesRaw = existingCommandHints.command_aliases;
+  const existingCommandAliasesRaw = existingCommandHints['command_aliases'];
   const existingCommandAliases =
     existingCommandAliasesRaw && typeof existingCommandAliasesRaw === 'object'
       ? (existingCommandAliasesRaw as Record<string, unknown>)
       : {};
-  const existingCapabilityFlagsRaw = existingCommandHints.capability_flags;
+  const existingCapabilityFlagsRaw = existingCommandHints['capability_flags'];
   const existingCapabilityFlags =
     existingCapabilityFlagsRaw && typeof existingCapabilityFlagsRaw === 'object'
       ? (existingCapabilityFlagsRaw as Record<string, unknown>)
       : {};
   const hintLocaleResolved = resolvePollWebhookHintLocale(
-    existingCommandHints.hint_locale,
+    existingCommandHints['hint_locale'],
     appEnv.pollWebhookHintLocale,
   );
   const activePack = pollWebhookHintPackForLocale(pollId, hintLocaleResolved);
   // When changing the default literal below, append docs/POLL-WEBHOOK-CONTRACT-VERSIONS.md if receivers need a breaking / visibility entry.
   const contractVersionResolved =
-    typeof existingCommandHints.contract_version === 'string' &&
-    existingCommandHints.contract_version.trim() !== ''
-      ? existingCommandHints.contract_version.trim()
+    typeof existingCommandHints['contract_version'] === 'string' &&
+    existingCommandHints['contract_version'].trim() !== ''
+      ? existingCommandHints['contract_version'].trim()
       : '2026-04-webhook-command-hints-v1';
   const {
     command_aliases: _ignoredCommandAliases,
@@ -126,12 +126,12 @@ async function postWebhook(
   const normalizedData: Record<string, unknown> = {
     ...data,
     poll_path:
-      typeof data.poll_path === 'string' && data.poll_path.trim() !== ''
-        ? data.poll_path
+      typeof data['poll_path'] === 'string' && data['poll_path'].trim() !== ''
+        ? data['poll_path']
         : pollPathDefault,
     results_path:
-      typeof data.results_path === 'string' && data.results_path.trim() !== ''
-        ? data.results_path
+      typeof data['results_path'] === 'string' && data['results_path'].trim() !== ''
+        ? data['results_path']
         : resultsPathDefault,
     command_hints: {
       chat_vote_short: activePack.chat_vote_short,
@@ -321,8 +321,8 @@ export function queuePollWebhook(
         continue;
       }
       const targetHintLocale =
-        typeof target.hint_locale === 'string'
-          ? target.hint_locale.trim().toLowerCase()
+        typeof target['hint_locale'] === 'string'
+          ? target['hint_locale'].trim().toLowerCase()
           : undefined;
       const includeResultsSnapshot =
         target.include_results_snapshot === true && resultsSnapshot != null;
@@ -336,8 +336,8 @@ export function queuePollWebhook(
           ...(includeOwnerSnapshot ? { owner_snapshot: ownerSnapshot } : {}),
           ...(includeOwnerEvents ? { owner_events: ownerEvents } : {}),
           command_hints: {
-            ...(data.command_hints && typeof data.command_hints === 'object'
-              ? (data.command_hints as Record<string, unknown>)
+            ...(data['command_hints'] && typeof data['command_hints'] === 'object'
+              ? (data['command_hints'] as Record<string, unknown>)
               : {}),
             ...(targetHintLocale ? { hint_locale: targetHintLocale } : {}),
           },

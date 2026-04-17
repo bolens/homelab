@@ -118,6 +118,13 @@ function probeTone(
   return 'bad';
 }
 
+const PROBE_TILE_TONE_CLASS: Record<ReturnType<typeof probeTone>, string> = {
+  pending: 'asking-admin-status-page__probe-tile--pending',
+  error: 'asking-admin-status-page__probe-tile--error',
+  ok: 'asking-admin-status-page__probe-tile--ok',
+  bad: 'asking-admin-status-page__probe-tile--bad',
+};
+
 export default function AdminStatus() {
   const t = useT();
   const localeTag = useLocaleTag();
@@ -278,7 +285,7 @@ export default function AdminStatus() {
         >
           <div className='asking-admin-status-page__probe-grid'>
             <div
-              className={`asking-admin-status-page__probe-tile asking-admin-status-page__probe-tile--${healthTone}`}
+              className={`asking-admin-status-page__probe-tile ${PROBE_TILE_TONE_CLASS[healthTone]}`}
               aria-label={t('admin.status.liveness')}
             >
               <div className='asking-admin-status-page__probe-head'>
@@ -321,7 +328,7 @@ export default function AdminStatus() {
               </div>
             </div>
             <div
-              className={`asking-admin-status-page__probe-tile asking-admin-status-page__probe-tile--${readyTone}`}
+              className={`asking-admin-status-page__probe-tile ${PROBE_TILE_TONE_CLASS[readyTone]}`}
               aria-label={t('admin.status.readiness')}
             >
               <div className='asking-admin-status-page__probe-head'>

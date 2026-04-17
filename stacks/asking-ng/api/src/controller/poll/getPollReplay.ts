@@ -12,11 +12,11 @@ type ReplayVoteRow = {
 };
 
 const getPollReplay: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   const limit =
-    typeof req.query.limit === 'number'
-      ? req.query.limit
-      : Number.parseInt(String(req.query.limit ?? ''), 10) || 5000;
+    typeof req.query['limit'] === 'number'
+      ? req.query['limit']
+      : Number.parseInt(String(req.query['limit'] ?? ''), 10) || 5000;
   if (!pollId) {
     jsonError(res, req, 400, 'BAD_REQUEST', 'Poll id is required.');
     return;

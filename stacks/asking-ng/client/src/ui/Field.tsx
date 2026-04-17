@@ -33,7 +33,7 @@ export default function Field({
     if (errorId) describedByParts.push(errorId);
     const ariaDescribedBy = describedByParts.length > 0 ? describedByParts.join(' ') : undefined;
     const nextProps: Record<string, unknown> = {};
-    if (label && childProps.id == null) nextProps.id = controlId;
+    if (label && childProps['id'] == null) nextProps['id'] = controlId;
     if (ariaDescribedBy) nextProps['aria-describedby'] = ariaDescribedBy;
     if (error && childProps['aria-invalid'] == null) nextProps['aria-invalid'] = true;
     renderedChildren = React.cloneElement(children, nextProps);

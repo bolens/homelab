@@ -75,10 +75,10 @@ export async function createPollService(
     platform_identity_consent_version,
   } = body;
   const bodyRecord = body as Record<string, unknown>;
-  const mediaAttachmentRaw = bodyRecord.media_attachment;
-  const mediaBlurByDefaultRaw = bodyRecord.media_blur_by_default;
+  const mediaAttachmentRaw = bodyRecord['media_attachment'];
+  const mediaBlurByDefaultRaw = bodyRecord['media_blur_by_default'];
   const themePresetRaw =
-    typeof bodyRecord.theme_preset === 'string' ? bodyRecord.theme_preset : 'default';
+    typeof bodyRecord['theme_preset'] === 'string' ? bodyRecord['theme_preset'] : 'default';
 
   const incomingTargets = (webhook_targets ?? []) as Array<{
     url: string;

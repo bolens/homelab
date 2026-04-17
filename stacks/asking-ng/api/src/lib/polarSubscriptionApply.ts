@@ -47,10 +47,10 @@ function isRecord(data: unknown): data is Record<string, unknown> {
 function isSubscriptionData(data: unknown): data is Subscription {
   if (!isRecord(data)) return false;
   return (
-    typeof data.id === 'string' &&
-    typeof data.customerId === 'string' &&
-    typeof data.productId === 'string' &&
-    typeof data.status === 'string'
+    typeof data['id'] === 'string' &&
+    typeof data['customerId'] === 'string' &&
+    typeof data['productId'] === 'string' &&
+    typeof data['status'] === 'string'
   );
 }
 

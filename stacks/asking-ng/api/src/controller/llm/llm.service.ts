@@ -103,7 +103,7 @@ export async function createChatCompletionsService(
     if (provider === 'ollama') {
       const key = ollamaApiKey();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (key) headers.Authorization = `Bearer ${key}`;
+      if (key) headers['Authorization'] = `Bearer ${key}`;
       const ollamaBody = toOllamaChatPayload(payload);
       const r = await postOllamaChat(headers, JSON.stringify(ollamaBody));
       const text = await r.text();
@@ -118,7 +118,7 @@ export async function createChatCompletionsService(
 
     const key = appEnv.lmStudioApiKey;
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (key) headers.Authorization = `Bearer ${key}`;
+    if (key) headers['Authorization'] = `Bearer ${key}`;
     const r = await postLmStudioChat(headers, JSON.stringify(payload));
     const text = await r.text();
     const data = parseJsonOrNull(text);

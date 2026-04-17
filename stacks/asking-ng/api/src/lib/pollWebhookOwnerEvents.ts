@@ -61,9 +61,9 @@ export async function fetchPollWebhookOwnerEvents(args: {
       action: String(row.get('action') ?? ''),
       actor_role: actor === 'api_key' ? 'api_key' : 'owner',
       count:
-        typeof details.affected_count === 'number'
-          ? details.affected_count
-          : Number(details.affected_count ?? 0) || 0,
+        typeof details['affected_count'] === 'number'
+          ? details['affected_count']
+          : Number(details['affected_count'] ?? 0) || 0,
       created_at_ms: new Date(String(row.get('createdAt'))).getTime(),
     };
   });

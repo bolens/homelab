@@ -139,7 +139,7 @@ export function billingUpgradeHintFromError(
       ? (err.details as Record<string, unknown>)
       : null;
   const requiredPlanFromDetails =
-    typeof details?.required_plan === 'string' ? details.required_plan : null;
+    typeof details?.['required_plan'] === 'string' ? details['required_plan'] : null;
   const requiredPlan =
     requiredPlanFromDetails ??
     (err.errorCode?.startsWith('USAGE_LIMIT_')

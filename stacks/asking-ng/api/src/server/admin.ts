@@ -751,8 +751,8 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     }
     const body = (request.body ?? {}) as Record<string, unknown>;
     const reason =
-      typeof body.reason === 'string' && body.reason.trim()
-        ? body.reason.trim().slice(0, 500)
+      typeof body['reason'] === 'string' && body['reason'].trim()
+        ? body['reason'].trim().slice(0, 500)
         : null;
     const moderation = {
       status: 'takedown',
@@ -826,10 +826,11 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     const query = (request.query ?? {}) as Record<string, unknown>;
-    const limitRaw = typeof query.limit === 'string' ? Number.parseInt(query.limit, 10) : undefined;
+    const limitRaw =
+      typeof query['limit'] === 'string' ? Number.parseInt(query['limit'], 10) : undefined;
     const thresholdRaw =
-      typeof query.diff_threshold === 'string'
-        ? Number.parseInt(query.diff_threshold, 10)
+      typeof query['diff_threshold'] === 'string'
+        ? Number.parseInt(query['diff_threshold'], 10)
         : undefined;
     const limit = typeof limitRaw === 'number' && Number.isFinite(limitRaw) ? limitRaw : 50;
     const diffThreshold =
@@ -916,7 +917,7 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
         },
       },
     };
-    const failOnAlertRaw = typeof query.fail_on_alert === 'string' ? query.fail_on_alert : '';
+    const failOnAlertRaw = typeof query['fail_on_alert'] === 'string' ? query['fail_on_alert'] : '';
     const failOnAlert = ['1', 'true', 'yes'].includes(failOnAlertRaw.trim().toLowerCase());
     if (shouldAlert && failOnAlert) {
       reply.code(503).send(payload);
@@ -990,13 +991,13 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
         'moderation_rejected_vote_retention_days',
       ),
       audit_log_retention_legal_hold:
-        body.audit_log_retention_legal_hold === true ||
-        String(body.audit_log_retention_legal_hold ?? '')
+        body['audit_log_retention_legal_hold'] === true ||
+        String(body['audit_log_retention_legal_hold'] ?? '')
           .trim()
           .toLowerCase() === 'true',
       moderation_rejected_vote_retention_legal_hold:
-        body.moderation_rejected_vote_retention_legal_hold === true ||
-        String(body.moderation_rejected_vote_retention_legal_hold ?? '')
+        body['moderation_rejected_vote_retention_legal_hold'] === true ||
+        String(body['moderation_rejected_vote_retention_legal_hold'] ?? '')
           .trim()
           .toLowerCase() === 'true',
     };
@@ -1048,11 +1049,11 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
     }
     const body = (request.body ?? {}) as Record<string, unknown>;
     const dryRun =
-      body.dryRun === true ||
-      body.dry_run === true ||
-      (typeof body.dryRun === 'string' &&
-        ['1', 'true', 'yes'].includes(body.dryRun.trim().toLowerCase()));
-    const limitRaw = body.limit;
+      body['dryRun'] === true ||
+      body['dry_run'] === true ||
+      (typeof body['dryRun'] === 'string' &&
+        ['1', 'true', 'yes'].includes(body['dryRun'].trim().toLowerCase()));
+    const limitRaw = body['limit'];
     const limitParsed =
       typeof limitRaw === 'number' && Number.isFinite(limitRaw)
         ? Math.floor(limitRaw)
@@ -1088,7 +1089,7 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
   app.post('/billing/downgrade-simulate', async (request, reply) => {
     if (!(await requireAdminAuth(request, reply, adminElevatedRoles))) return;
     const body = (request.body ?? {}) as Record<string, unknown>;
-    const userIdRaw = body.userId ?? body.user_id;
+    const userIdRaw = body['userId'] ?? body['user_id'];
     const userId =
       typeof userIdRaw === 'number' && Number.isFinite(userIdRaw)
         ? Math.floor(userIdRaw)
@@ -1106,10 +1107,10 @@ export const fastifyAdminRoutes: FastifyPluginAsync = async (app) => {
       return;
     }
     const targetPlanRaw =
-      typeof body.targetPlan === 'string'
-        ? body.targetPlan
-        : typeof body.target_plan === 'string'
-          ? body.target_plan
+      typeof body['targetPlan'] === 'string'
+        ? body['targetPlan']
+        : typeof body['target_plan'] === 'string'
+          ? body['target_plan']
           : '';
     const targetPlan = normalizeBillingPlan(targetPlanRaw);
     const allowedPlans = new Set<KnownBillingPlan>([

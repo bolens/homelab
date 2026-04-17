@@ -11,14 +11,14 @@ import { presentModerateVoteBatch } from './moderateVoteBatch.presenter';
 import { moderateVoteBatchService } from './moderateVoteBatch.service';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {
-  const v = req.headers.api_key;
+  const v = req.headers['api_key'];
   if (typeof v === 'string') return v;
   if (Array.isArray(v)) return v[0];
   return undefined;
 }
 
 const moderateVoteBatch: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   const apiKey = apiKeyFrom(req);
   const body = req.body as ModerateVoteBatchBody;
 

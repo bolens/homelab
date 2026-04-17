@@ -103,9 +103,9 @@ export async function exportSelfDataService(args: {
   if (!user) return { kind: 'not_found' };
 
   const account = user.get({ plain: true }) as Record<string, unknown>;
-  delete account.password;
-  delete account.llmGatewayToken;
-  account.has_llm_gateway_token = Boolean(user.get('llmGatewayToken'));
+  delete account['password'];
+  delete account['llmGatewayToken'];
+  account['has_llm_gateway_token'] = Boolean(user.get('llmGatewayToken'));
 
   const ownedPolls = await findPollsOwnedByUser(args.userId);
   const sharedPolls = await findPollsSharedWithUser(args.userId);

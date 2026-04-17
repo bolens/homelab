@@ -19,7 +19,7 @@ import { singleString } from '../../utils/http';
  * Compact poll metadata for bots / chat integrations (no vote tallies, no impression bump).
  */
 const getPollMeta: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   if (!pollId) {
     jsonError(res, req, 400, 'BAD_REQUEST', 'Poll id is required.');
     return;

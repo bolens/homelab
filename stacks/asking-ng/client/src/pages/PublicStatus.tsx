@@ -71,6 +71,12 @@ function toneLabel(
   return t('status.fail', { status: formatLocaleInteger(status ?? 0, localeTag) });
 }
 
+const STATUS_BADGE_TONE_CLASS: Record<ReturnType<typeof statusTone>, string> = {
+  pending: 'asking-status-page__badge--pending',
+  ok: 'asking-status-page__badge--ok',
+  error: 'asking-status-page__badge--error',
+};
+
 export default function PublicStatus() {
   const t = useT();
   const localeTag = useLocaleTag();
@@ -210,7 +216,7 @@ export default function PublicStatus() {
                 <code className='asking-status-page__component-route'>GET /healthcheck</code>
               </div>
               <span
-                className={`asking-status-page__badge asking-status-page__badge--${healthTone}`}
+                className={`asking-status-page__badge ${STATUS_BADGE_TONE_CLASS[healthTone]}`}
               >
                 <span className='asking-status-page__badge-dot' aria-hidden='true' />
                 {healthQuery.isError
@@ -223,7 +229,7 @@ export default function PublicStatus() {
                 <span className='asking-status-page__component-name'>{t('status.readiness')}</span>
                 <code className='asking-status-page__component-route'>GET /ready</code>
               </div>
-              <span className={`asking-status-page__badge asking-status-page__badge--${readyTone}`}>
+              <span className={`asking-status-page__badge ${STATUS_BADGE_TONE_CLASS[readyTone]}`}>
                 <span className='asking-status-page__badge-dot' aria-hidden='true' />
                 {readyQuery.isError
                   ? errMsg(readyQuery.error, t('status.requestFailed'))
@@ -293,8 +299,10 @@ export default function PublicStatus() {
                   <div className='asking-status-page__incident-head'>
                     <strong>{incident.summary}</strong>
                     <span
-                      className={`asking-status-page__badge asking-status-page__badge--${
-                        incident.status === 'resolved' ? 'ok' : 'error'
+                      className={`asking-status-page__badge ${
+                        incident.status === 'resolved'
+                          ? STATUS_BADGE_TONE_CLASS.ok
+                          : STATUS_BADGE_TONE_CLASS.error
                       }`}
                     >
                       <span className='asking-status-page__badge-dot' aria-hidden='true' />

@@ -26,18 +26,18 @@ export function isApiFetchError(err: unknown): err is ApiFetchError {
 }
 
 function messageFromErrorPayload(parsed: Record<string, unknown>): string {
-  const nested = parsed.error;
+  const nested = parsed['error'];
   if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
     const msg = (nested as { message?: unknown }).message;
     if (typeof msg === 'string' && msg.trim() !== '') return msg;
   }
   if (typeof nested === 'string' && nested.trim() !== '') return nested;
-  if (typeof parsed.message === 'string' && parsed.message.trim() !== '') return parsed.message;
+  if (typeof parsed['message'] === 'string' && parsed['message'].trim() !== '') return parsed['message'];
   return '';
 }
 
 function errorCodeFromPayload(parsed: Record<string, unknown>): string | undefined {
-  const nested = parsed.error;
+  const nested = parsed['error'];
   if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
     const code = (nested as { code?: unknown }).code;
     if (typeof code === 'string' && code.trim() !== '') return code;
@@ -46,7 +46,7 @@ function errorCodeFromPayload(parsed: Record<string, unknown>): string | undefin
 }
 
 function detailsFromPayload(parsed: Record<string, unknown>): unknown {
-  const nested = parsed.error;
+  const nested = parsed['error'];
   if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
     return (nested as { details?: unknown }).details;
   }
@@ -70,7 +70,7 @@ export function summaryFromApiErrorBody(body: unknown, httpStatus: number): stri
   const msg = messageFromErrorPayload(parsed);
   if (!msg.trim()) return `HTTP ${httpStatus}`;
   const code = errorCodeFromPayload(parsed);
-  const rid = parsed.requestId;
+  const rid = parsed['requestId'];
   const codePart =
     typeof code === 'string' && code.trim() !== '' && !msg.includes(code) ? ` [${code}]` : '';
   const ridPart = typeof rid === 'string' && rid.trim() !== '' ? ` (request ${rid.trim()})` : '';
@@ -102,7 +102,7 @@ export function apiFetchErrorFromText(status: number, raw: string): ApiFetchErro
   const err = new Error(msg) as ApiFetchError;
   err.status = status;
   err.body = parsed;
-  const rid = parsed.requestId;
+  const rid = parsed['requestId'];
   err.requestId = typeof rid === 'string' ? rid : undefined;
   err.errorCode = errorCodeFromPayload(parsed);
   const det = detailsFromPayload(parsed);
@@ -198,6 +198,6 @@ export function buildAdminBrowserAuthHeaders(): Record<string, string> {
     /* private mode */
   }
   const j = getStoredUserJwt()?.trim();
-  if (j) out.Authorization = `Bearer ${j}`;
+  if (j) out['Authorization'] = `Bearer ${j}`;
   return out;
 }

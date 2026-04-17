@@ -119,6 +119,13 @@ export default function AdminDashboard() {
   const readyPending = readyQuery.isPending || readyQuery.isFetching;
   const readyOk = readyQuery.data?.ok === true;
   const readyFailed = !readyPending && readyQuery.data && !readyOk;
+  const healthRowToneClass = readyPending
+    ? 'asking-admin-dashboard__health-row--pending'
+    : readyOk
+      ? 'asking-admin-dashboard__health-row--ok'
+      : readyFailed
+        ? 'asking-admin-dashboard__health-row--bad'
+        : '';
   const simulationMutation = useMutation({
     mutationFn: () =>
       apiFetch('admin/simulate', {
@@ -213,7 +220,7 @@ export default function AdminDashboard() {
       </PageHeader>
 
       <div
-        className={`asking-admin-dashboard__health-row${readyOk ? ' asking-admin-dashboard__health-row--ok' : ''}${readyFailed ? ' asking-admin-dashboard__health-row--bad' : ''}${readyPending ? ' asking-admin-dashboard__health-row--pending' : ''}`}
+        className={`asking-admin-dashboard__health-row${healthRowToneClass ? ` ${healthRowToneClass}` : ''}`}
         role='status'
         aria-live='polite'
       >

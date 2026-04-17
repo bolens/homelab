@@ -6,7 +6,7 @@ Tracks post-migration UI kit work for `stacks/asking-ng/client`.
 
 - [x] Add a reusable alert primitive for consistent error/warning/info rendering.
 - [x] Replace legacy `error-message` class usage in React pages with UI kit alert styles/component.
-- [x] Add migration guard script to catch legacy Bootstrap-style classnames in `className` literals.
+- [x] Add migration guard linting to catch invalid class tokens in TSX `className`/`cx(...)` literals (`client/scripts/check-classname-bem.mjs`).
 - [x] Improve `Field` accessibility defaults (`id`, `aria-describedby`, `aria-invalid`) to reduce repeated wiring.
 
 ## Next Up
@@ -74,6 +74,7 @@ Tracks post-migration UI kit work for `stacks/asking-ng/client`.
 
 - Admin shells that use `asking-admin-cq-root` now include dashboard, status, export, and impersonate (with users, polls, audit logs); narrow inline-size stacks simulation fields, impersonate row, dashboard columns, and KPI/quick grids without waiting on viewport breakpoints alone.
 - Visual baselines intentionally exclude `/status` for now: React Query timestamp churn + occasional Vite/HMR error-boundary renders made snapshots unstable in `e2e:visual` even with `--workers=1`; keep `/status` in a dedicated deterministic spec if reintroduced.
+- See `docs/CLIENT-BEM-LINTING.md` for current class-token/BEM lint policy and TSX dynamic-modifier guidance.
 - Keep this file updated whenever a migration PR lands.
 - Prefer checking off a small vertical slice (component + 1-2 page migrations + tests) per PR.
 - See `docs/UI-COMPONENT-API-REVIEW.md` for current API decisions and deferrals.
@@ -81,5 +82,7 @@ Tracks post-migration UI kit work for `stacks/asking-ng/client`.
 ## Tooling
 
 - [x] List `tsx` as a client devDependency (i18n audit scripts) and configure knip `ignoreIssues` for intentional library exports so `pnpm run knip` passes.
+- [x] Add TSX class-token BEM guard (`pnpm run lint:classnames`) and wire it into `pnpm run lint` before Stylelint.
+- [x] Constrain dynamic BEM modifier usage in status pages to typed class maps (avoid raw `--${value}` interpolation for runtime tones).
 - [x] CI: `visual` job in `.github/workflows/client.yml` runs `pnpm --filter client run e2e:visual` on `ubuntu-latest` (snapshots are Linux-generated; use `e2e:visual:update` on Linux when updating baselines). Failed runs upload `client/test-results/` as `asking-ng-client-visual-playwright`.
 - [x] Visual Playwright scripts use `--workers=1` so the shared Vite dev server is not hammered by parallel browsers (avoids flaky HMR / half-mounted app trees).

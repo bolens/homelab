@@ -25,7 +25,7 @@ import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {
-  const v = req.headers.api_key;
+  const v = req.headers['api_key'];
   if (typeof v === 'string') return v;
   if (Array.isArray(v)) return v[0];
   return undefined;
@@ -44,7 +44,7 @@ function resolvePanicPauseMessage(bodyPause: string | null | undefined): string 
 }
 
 const updatePoll: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
   const apiKey = apiKeyFrom(req);
   const body = req.body as UpdatePollBody;
   const {
@@ -166,55 +166,55 @@ const updatePoll: AppRequestHandler = async (req, res) => {
   let usedPanic = false;
   if (panic === true) {
     usedPanic = true;
-    patch.phase = 'locked';
-    patch.votingPaused = true;
-    patch.pauseMessage = resolvePanicPauseMessage(pause_message);
+    patch['phase'] = 'locked';
+    patch['votingPaused'] = true;
+    patch['pauseMessage'] = resolvePanicPauseMessage(pause_message);
   } else {
-    if (expiration !== undefined) patch.expiration = expiration;
-    if (phase !== undefined) patch.phase = phase;
-    if (voting_paused !== undefined) patch.votingPaused = voting_paused;
+    if (expiration !== undefined) patch['expiration'] = expiration;
+    if (phase !== undefined) patch['phase'] = phase;
+    if (voting_paused !== undefined) patch['votingPaused'] = voting_paused;
     if (pause_message !== undefined) {
-      patch.pauseMessage = pause_message === null ? null : pause_message;
+      patch['pauseMessage'] = pause_message === null ? null : pause_message;
     }
     if (show_notes !== undefined) {
-      patch.showNotes = show_notes === null ? null : show_notes;
+      patch['showNotes'] = show_notes === null ? null : show_notes;
     }
-    if (open_at !== undefined) patch.openAt = open_at;
-    if (lock_at !== undefined) patch.lockAt = lock_at;
-    if (reveal_at !== undefined) patch.revealAt = reveal_at;
-    if (boosted_voting_enabled !== undefined) patch.boostedVotingEnabled = boosted_voting_enabled;
-    if (show_unweighted_values !== undefined) patch.showUnweightedValues = show_unweighted_values;
+    if (open_at !== undefined) patch['openAt'] = open_at;
+    if (lock_at !== undefined) patch['lockAt'] = lock_at;
+    if (reveal_at !== undefined) patch['revealAt'] = reveal_at;
+    if (boosted_voting_enabled !== undefined) patch['boostedVotingEnabled'] = boosted_voting_enabled;
+    if (show_unweighted_values !== undefined) patch['showUnweightedValues'] = show_unweighted_values;
     if (max_boost_weight !== undefined) {
-      patch.maxBoostWeight = max_boost_weight === null ? 3 : max_boost_weight;
+      patch['maxBoostWeight'] = max_boost_weight === null ? 3 : max_boost_weight;
     }
-    if (run_of_show_key !== undefined) patch.runOfShowKey = run_of_show_key;
-    if (run_of_show_order !== undefined) patch.runOfShowOrder = run_of_show_order;
-    if (next_poll_id !== undefined) patch.nextPollId = next_poll_id;
-    if (auto_advance_on_close !== undefined) patch.autoAdvanceOnClose = auto_advance_on_close;
-    if (vanity_slug !== undefined) patch.vanitySlug = vanity_slug;
-    if (vote_friction_tier !== undefined) patch.voteFrictionTier = vote_friction_tier;
+    if (run_of_show_key !== undefined) patch['runOfShowKey'] = run_of_show_key;
+    if (run_of_show_order !== undefined) patch['runOfShowOrder'] = run_of_show_order;
+    if (next_poll_id !== undefined) patch['nextPollId'] = next_poll_id;
+    if (auto_advance_on_close !== undefined) patch['autoAdvanceOnClose'] = auto_advance_on_close;
+    if (vanity_slug !== undefined) patch['vanitySlug'] = vanity_slug;
+    if (vote_friction_tier !== undefined) patch['voteFrictionTier'] = vote_friction_tier;
     if (soft_throttle_max_votes_per_min !== undefined) {
-      patch.softThrottleMaxVotesPerMin =
+      patch['softThrottleMaxVotesPerMin'] =
         soft_throttle_max_votes_per_min === null ? 30 : soft_throttle_max_votes_per_min;
     }
     if (pow_difficulty !== undefined) {
-      patch.powDifficulty = pow_difficulty === null ? 4 : pow_difficulty;
+      patch['powDifficulty'] = pow_difficulty === null ? 4 : pow_difficulty;
     }
     if (results_delay_seconds !== undefined) {
-      patch.resultsDelaySeconds = results_delay_seconds === null ? 0 : results_delay_seconds;
+      patch['resultsDelaySeconds'] = results_delay_seconds === null ? 0 : results_delay_seconds;
     }
-    if (allow_write_in !== undefined) patch.allowWriteIn = allow_write_in;
+    if (allow_write_in !== undefined) patch['allowWriteIn'] = allow_write_in;
     if (write_in_max_length !== undefined) {
-      patch.writeInMaxLength = write_in_max_length === null ? 80 : write_in_max_length;
+      patch['writeInMaxLength'] = write_in_max_length === null ? 80 : write_in_max_length;
     }
     if (write_in_blocklist !== undefined) {
-      patch.writeInBlocklist = write_in_blocklist === null ? [] : write_in_blocklist;
+      patch['writeInBlocklist'] = write_in_blocklist === null ? [] : write_in_blocklist;
     }
     if (write_in_profanity_filter !== undefined) {
-      patch.writeInProfanityFilter = write_in_profanity_filter;
+      patch['writeInProfanityFilter'] = write_in_profanity_filter;
     }
     if (webhook_targets !== undefined) {
-      patch.webhookTargets = webhook_targets === null ? [] : webhook_targets;
+      patch['webhookTargets'] = webhook_targets === null ? [] : webhook_targets;
     }
     if (vote_eligibility !== undefined) {
       const currentPhase = normalizePollPhase(poll.get('phase'));
@@ -228,23 +228,23 @@ const updatePoll: AppRequestHandler = async (req, res) => {
         );
         return;
       }
-      patch.voteEligibility = vote_eligibility === null ? 'anonymous' : vote_eligibility;
+      patch['voteEligibility'] = vote_eligibility === null ? 'anonymous' : vote_eligibility;
     }
     if (retention_ttl_days !== undefined) {
-      patch.retentionTtlDays = retention_ttl_days === null ? null : retention_ttl_days;
+      patch['retentionTtlDays'] = retention_ttl_days === null ? null : retention_ttl_days;
     }
     if (retention_legal_hold !== undefined) {
-      patch.retentionLegalHold = retention_legal_hold;
+      patch['retentionLegalHold'] = retention_legal_hold;
     }
   }
 
   let embedReadToken: string | undefined;
   if (generate_embed_read_token === true) {
     embedReadToken = generateEmbedReadToken();
-    patch.embedReadTokenHash = hashEmbedReadToken(embedReadToken);
+    patch['embedReadTokenHash'] = hashEmbedReadToken(embedReadToken);
   }
 
-  const nextPhaseRaw = patch.phase;
+  const nextPhaseRaw = patch['phase'];
   if (typeof nextPhaseRaw === 'string') {
     const fromPhase = normalizePollPhase(poll.get('phase'));
     const toPhase = nextPhaseRaw as typeof fromPhase;
@@ -267,22 +267,22 @@ const updatePoll: AppRequestHandler = async (req, res) => {
   const currentSchedule = pollPhaseScheduleFromRow(poll);
   const mergedSchedule = {
     open_at:
-      patch.openAt !== undefined
-        ? patch.openAt === null
+      patch['openAt'] !== undefined
+        ? patch['openAt'] === null
           ? null
-          : Number(patch.openAt)
+          : Number(patch['openAt'])
         : currentSchedule.open_at,
     lock_at:
-      patch.lockAt !== undefined
-        ? patch.lockAt === null
+      patch['lockAt'] !== undefined
+        ? patch['lockAt'] === null
           ? null
-          : Number(patch.lockAt)
+          : Number(patch['lockAt'])
         : currentSchedule.lock_at,
     reveal_at:
-      patch.revealAt !== undefined
-        ? patch.revealAt === null
+      patch['revealAt'] !== undefined
+        ? patch['revealAt'] === null
           ? null
-          : Number(patch.revealAt)
+          : Number(patch['revealAt'])
         : currentSchedule.reveal_at,
   };
   const scheduleErr = validatePollPhaseScheduleWindow(mergedSchedule);
@@ -292,14 +292,14 @@ const updatePoll: AppRequestHandler = async (req, res) => {
   }
 
   const mergedBoostEnabled =
-    patch.boostedVotingEnabled !== undefined
-      ? Boolean(patch.boostedVotingEnabled)
+    patch['boostedVotingEnabled'] !== undefined
+      ? Boolean(patch['boostedVotingEnabled'])
       : Boolean(poll.get('boostedVotingEnabled'));
   const mergedMaxBoost =
-    patch.maxBoostWeight !== undefined
-      ? Number(patch.maxBoostWeight)
+    patch['maxBoostWeight'] !== undefined
+      ? Number(patch['maxBoostWeight'])
       : Number(poll.get('maxBoostWeight') ?? 3);
-  if (!mergedBoostEnabled && patch.maxBoostWeight !== undefined && max_boost_weight !== null) {
+  if (!mergedBoostEnabled && patch['maxBoostWeight'] !== undefined && max_boost_weight !== null) {
     jsonError(
       res,
       req,
@@ -320,16 +320,16 @@ const updatePoll: AppRequestHandler = async (req, res) => {
     return;
   }
   const mergedFrictionTier =
-    patch.voteFrictionTier !== undefined
-      ? String(patch.voteFrictionTier)
+    patch['voteFrictionTier'] !== undefined
+      ? String(patch['voteFrictionTier'])
       : String(poll.get('voteFrictionTier') ?? 'open');
   const mergedSoftThrottle =
-    patch.softThrottleMaxVotesPerMin !== undefined
-      ? Number(patch.softThrottleMaxVotesPerMin)
+    patch['softThrottleMaxVotesPerMin'] !== undefined
+      ? Number(patch['softThrottleMaxVotesPerMin'])
       : Number(poll.get('softThrottleMaxVotesPerMin') ?? 30);
   const mergedPowDifficulty =
-    patch.powDifficulty !== undefined
-      ? Number(patch.powDifficulty)
+    patch['powDifficulty'] !== undefined
+      ? Number(patch['powDifficulty'])
       : Number(poll.get('powDifficulty') ?? 4);
   if (
     mergedFrictionTier === 'soft_throttle' &&
@@ -359,14 +359,14 @@ const updatePoll: AppRequestHandler = async (req, res) => {
   }
 
   const mergedNextPollId =
-    patch.nextPollId !== undefined
-      ? patch.nextPollId === null
+    patch['nextPollId'] !== undefined
+      ? patch['nextPollId'] === null
         ? null
-        : String(patch.nextPollId).trim()
+        : String(patch['nextPollId']).trim()
       : ((poll.get('nextPollId') as string | null | undefined) ?? null);
   const mergedAutoAdvance =
-    patch.autoAdvanceOnClose !== undefined
-      ? Boolean(patch.autoAdvanceOnClose)
+    patch['autoAdvanceOnClose'] !== undefined
+      ? Boolean(patch['autoAdvanceOnClose'])
       : Boolean(poll.get('autoAdvanceOnClose'));
   if (mergedNextPollId != null && mergedNextPollId !== '' && ownerId == null) {
     jsonError(
@@ -409,23 +409,23 @@ const updatePoll: AppRequestHandler = async (req, res) => {
       return;
     }
   }
-  if (patch.vanitySlug !== undefined) {
-    const candidate = patch.vanitySlug === null ? null : String(patch.vanitySlug).trim();
+  if (patch['vanitySlug'] !== undefined) {
+    const candidate = patch['vanitySlug'] === null ? null : String(patch['vanitySlug']).trim();
     if (candidate) {
       const existing = await Poll.findOne({ where: { vanitySlug: candidate } });
       if (existing && String(existing.get('id')) !== pollId) {
         jsonError(res, req, 400, 'INVALID_VANITY_SLUG', 'vanity_slug is already in use.');
         return;
       }
-      patch.vanitySlug = candidate;
+      patch['vanitySlug'] = candidate;
     } else {
-      patch.vanitySlug = null;
+      patch['vanitySlug'] = null;
     }
   }
 
   await Poll.update(patch, { where: { id: pollId } });
   const fromPhase = normalizePollPhase(poll.get('phase'));
-  const toPhase = typeof patch.phase === 'string' ? normalizePollPhase(patch.phase) : fromPhase;
+  const toPhase = typeof patch['phase'] === 'string' ? normalizePollPhase(patch['phase']) : fromPhase;
   if (fromPhase !== toPhase) {
     await recordPollPhaseTransition({
       pollId,

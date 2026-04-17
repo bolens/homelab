@@ -10,15 +10,15 @@ import type { AppRequestHandler } from '../../types/http';
 import { singleString } from '../../utils/http';
 
 function apiKeyFrom(req: Parameters<AppRequestHandler>[0]): string | undefined {
-  const v = req.headers.api_key;
+  const v = req.headers['api_key'];
   if (typeof v === 'string') return v;
   if (Array.isArray(v)) return v[0];
   return undefined;
 }
 
 const editWriteInVote: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
-  const voteId = singleString(req.params.voteId);
+  const pollId = singleString(req.params['id']);
+  const voteId = singleString(req.params['voteId']);
   const { option, note } = req.body as EditWriteInVoteBody;
   const apiKey = apiKeyFrom(req);
   if (!pollId || !voteId) {

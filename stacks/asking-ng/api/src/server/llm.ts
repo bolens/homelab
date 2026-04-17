@@ -12,7 +12,7 @@ import { replyJsonError } from './requestAdapter';
 
 function authHeader(request: { headers?: unknown }): string | null {
   const h = (request.headers ?? {}) as Record<string, unknown>;
-  return typeof h.authorization === 'string' ? h.authorization : null;
+  return typeof h['authorization'] === 'string' ? h['authorization'] : null;
 }
 
 function bearerToken(request: { headers?: unknown }): string | null {

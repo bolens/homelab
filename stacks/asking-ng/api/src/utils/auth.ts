@@ -31,10 +31,14 @@ export function verifyToken(token: string): JwtUserPayload | null {
       return null;
     }
     const p = payload as Record<string, unknown>;
-    if (typeof p.id !== 'number' || typeof p.homelab-user !== 'string' || typeof p.role !== 'string') {
+    if (
+      typeof p['id'] !== 'number' ||
+      typeof p['homelab-user'] !== 'string' ||
+      typeof p['role'] !== 'string'
+    ) {
       return null;
     }
-    return { id: p.id, homelab-user: p.homelab-user, role: p.role };
+    return { id: p['id'], homelab-user: p['homelab-user'], role: p['role'] };
   } catch {
     return null;
   }

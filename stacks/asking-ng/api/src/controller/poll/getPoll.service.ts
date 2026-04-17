@@ -31,10 +31,12 @@ function readCampaignParams(
   req: AppRequest,
 ): { source: string; medium: string; campaign: string } | null {
   const query = (req.query ?? {}) as Record<string, unknown>;
-  const source = typeof query.utm_source === 'string' ? query.utm_source.trim().slice(0, 64) : '';
-  const medium = typeof query.utm_medium === 'string' ? query.utm_medium.trim().slice(0, 64) : '';
+  const source =
+    typeof query['utm_source'] === 'string' ? query['utm_source'].trim().slice(0, 64) : '';
+  const medium =
+    typeof query['utm_medium'] === 'string' ? query['utm_medium'].trim().slice(0, 64) : '';
   const campaign =
-    typeof query.utm_campaign === 'string' ? query.utm_campaign.trim().slice(0, 96) : '';
+    typeof query['utm_campaign'] === 'string' ? query['utm_campaign'].trim().slice(0, 96) : '';
   if (!source && !medium && !campaign) return null;
   return {
     source: source || '(none)',

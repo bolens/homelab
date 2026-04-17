@@ -5,7 +5,7 @@ import { presentPollResponse } from './getPoll.presenter';
 import { getPollView } from './getPoll.service';
 
 const getPoll: AppRequestHandler = async (req, res) => {
-  const pollId = singleString(req.params.id);
+  const pollId = singleString(req.params['id']);
 
   if (!pollId) {
     jsonError(res, req, 400, 'BAD_REQUEST', 'Poll id is required.');

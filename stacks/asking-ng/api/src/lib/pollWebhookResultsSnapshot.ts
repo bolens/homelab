@@ -19,10 +19,10 @@ function buildOptionVoteRow(
     vote_count: boostedVotingEnabled ? cell.wv : cell.vc,
   };
   if (boostedVotingEnabled && showUnweightedValues) {
-    base.unweighted_vote_count = cell.vc;
+    base['unweighted_vote_count'] = cell.vc;
   }
   if (boostedVotingEnabled) {
-    base.weighted_vote_count = cell.wv;
+    base['weighted_vote_count'] = cell.wv;
   }
   return base;
 }

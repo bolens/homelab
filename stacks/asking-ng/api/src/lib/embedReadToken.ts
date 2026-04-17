@@ -28,7 +28,7 @@ export function verifyEmbedReadToken(
 }
 
 export function readEmbedReadTokenFromRequest(req: AppRequest): string | undefined {
-  const q = req.query?.embed_token;
+  const q = req.query?.['embed_token'];
   if (typeof q === 'string' && q.trim() !== '') return q.trim();
   if (Array.isArray(q) && typeof q[0] === 'string' && q[0].trim() !== '') return q[0].trim();
   const h = req.headers['x-poll-embed-token'];
@@ -96,8 +96,8 @@ function verifyEmbedReadSignature(pollId: string, expSec: number, sig: string): 
 }
 
 function readSignedEmbedFields(req: AppRequest): { expSec: number; sig: string } | null {
-  const expRaw = req.query?.embed_exp;
-  const sigRaw = req.query?.embed_sig;
+  const expRaw = req.query?.['embed_exp'];
+  const sigRaw = req.query?.['embed_sig'];
   const expValue =
     typeof expRaw === 'string'
       ? expRaw
