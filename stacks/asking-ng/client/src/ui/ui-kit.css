@@ -1,5 +1,6 @@
 @layer components {
   :root {
+    /* Global tokens: spacing, radii, shadows */
     --ui-radius-sm: 8px;
     --ui-radius-md: 12px;
     --ui-radius-lg: 16px;
@@ -13,6 +14,24 @@
 
     --ui-shadow-sm: 0 1px 2px color-mix(in srgb, var(--color-text) 12%, transparent);
     --ui-shadow-md: 0 10px 30px color-mix(in srgb, var(--color-text) 10%, transparent);
+
+    /* Semantic tokens: intent/surface aliases over base palette */
+    --ui-surface-default: var(--color-bg-surface);
+    --ui-surface-muted: var(--color-bg-muted);
+    --ui-text-default: var(--color-text);
+    --ui-text-muted: var(--color-text-muted);
+    --ui-border-default: var(--color-border);
+    --ui-accent-default: var(--accent-control);
+    --ui-accent-weak: var(--accent-surface);
+    --ui-success-default: var(--color-success);
+    --ui-warning-default: var(--color-warning);
+    --ui-danger-default: var(--color-danger);
+
+    /* Component tokens: per-primitive internals */
+    /* Slightly rounder controls (DocuSeal / DaisyUI-style soft product chrome) */
+    --ui-button-radius: 1rem;
+    --ui-input-radius: 0.875rem;
+    --ui-dialog-radius: var(--ui-radius-lg);
   }
 
   .ui-container {
@@ -59,6 +78,23 @@
 
   .ui-page-heading--center-flush {
     margin-block-start: 0;
+  }
+
+  .ui-page-header {
+    text-align: center;
+  }
+
+  .ui-page-header__title {
+    margin: 0;
+  }
+
+  .ui-page-header__subtitle {
+    margin: 0.35rem 0 0;
+    color: var(--color-text-muted);
+  }
+
+  .ui-page-header__actions {
+    margin-top: 0.5rem;
   }
 
   .ui-stack {
@@ -121,7 +157,9 @@
     border-radius: 14px;
     border: 1px solid var(--accent-border);
     background: var(--color-bg-surface);
-    box-shadow: 0 1px 0 color-mix(in oklch, var(--color-border) 55%, transparent);
+    box-shadow:
+      0 1px 0 color-mix(in oklch, var(--color-border) 55%, transparent),
+      0 12px 40px color-mix(in oklch, var(--color-text) 5%, transparent);
   }
 
   .ui-success-card {
@@ -459,6 +497,85 @@
     align-items: center;
   }
 
+  .ui-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ui-action-row--start {
+    justify-content: flex-start;
+  }
+
+  .ui-action-row--center {
+    justify-content: center;
+  }
+
+  .ui-action-row--end {
+    justify-content: flex-end;
+  }
+
+  .ui-section-card {
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
+    padding: 0.45rem 0.75rem 0.2rem;
+    background: color-mix(in oklch, var(--accent-surface) 72%, transparent);
+  }
+
+  .ui-section-card__summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.96rem;
+    font-weight: 600;
+    color: var(--accent-control);
+    margin-bottom: 0.5rem;
+  }
+
+  .ui-section-card__summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .ui-kpi-card {
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
+    padding: 0.75rem;
+    background: color-mix(in oklch, var(--accent-surface) 75%, transparent);
+  }
+
+  .ui-notice {
+    margin: 0.4rem 0;
+  }
+
+  .ui-notice--info {
+    color: var(--color-text-muted);
+  }
+
+  .ui-notice--success {
+    color: var(--color-success);
+  }
+
+  .ui-notice--error {
+    color: var(--color-danger);
+  }
+
+  .ui-notice--loading {
+    color: var(--color-text-muted);
+  }
+
+  .ui-section-panel__title {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .ui-section-panel__hint {
+    margin: 0.45rem 0 0.7rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
   /* Page marketing / legal headers (replaces `.public-hero*`). */
   .ui-page-hero {
     text-align: center;
@@ -493,7 +610,7 @@
 
     appearance: none;
     border: 1px solid var(--ui-button-border);
-    border-radius: var(--ui-radius-md);
+    border-radius: var(--ui-button-radius);
     background: var(--ui-button-bg);
     color: var(--ui-button-fg);
     line-height: 1.2;
@@ -558,6 +675,16 @@
     --ui-button-fg: var(--color-text);
   }
 
+  .ui-button--primary {
+    --ui-button-bg: var(--accent-control-solid, var(--accent-control));
+    --ui-button-border: var(--accent-control-solid, var(--accent-control));
+  }
+
+  .ui-button--primary:hover:not(:disabled) {
+    background: var(--accent-control-solid-hover, var(--accent-control-hover));
+    border-color: var(--accent-control-solid-hover, var(--accent-control-hover));
+  }
+
   .ui-button--danger {
     --ui-button-bg: var(--color-danger);
     --ui-button-border: var(--color-danger);
@@ -590,7 +717,7 @@
     transform: none;
   }
 
-  .site-public .ui-button.ui-button--lane-secondary {
+  .asking-public-layout .ui-button.ui-button--lane-secondary {
     width: 100%;
     max-width: none;
     margin-inline: 0;
@@ -619,7 +746,7 @@
     transform: none;
   }
 
-  .site-public .ui-button.ui-button--lane-primary {
+  .asking-public-layout .ui-button.ui-button--lane-primary {
     width: 100%;
     max-width: none;
     margin-inline: 0;
@@ -720,11 +847,34 @@
     line-height: 1.45;
   }
 
+  .ui-alert {
+    margin-block-start: 0.875rem;
+    margin-block-end: 0.5rem;
+    font-size: 1rem;
+    line-height: 1.45;
+  }
+
+  .ui-alert--danger {
+    color: var(--color-danger);
+  }
+
+  .ui-alert--warning {
+    color: var(--color-warning);
+  }
+
+  .ui-alert--info {
+    color: var(--color-text-muted);
+  }
+
+  .ui-alert--success {
+    color: var(--color-success);
+  }
+
   .ui-input {
     width: 100%;
     min-height: 2.375rem;
     padding: 0.55rem 0.75rem;
-    border-radius: var(--ui-radius-md);
+    border-radius: var(--ui-input-radius);
     border: 1px solid var(--color-border);
     background: var(--color-bg-surface);
     color: var(--color-text);
@@ -881,7 +1031,7 @@
   .ui-dialog {
     padding: 0;
     border: none;
-    border-radius: var(--ui-radius-lg);
+    border-radius: var(--ui-dialog-radius);
     max-width: min(var(--layout-modal-max, 32rem), 94vw);
     width: 100%;
     margin: auto;
