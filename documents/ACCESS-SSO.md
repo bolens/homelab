@@ -124,13 +124,19 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **authentik**                             | Yes            | Protect hostname; `AUTHENTIK_HOST` must match or OAuth/redirects break. |
 | **asf**                                   | Yes            | Protect ASF IPC hostname; set `IPCPassword` in ASF.json.           |
 | **actual-budget**                         | Yes            | Protect hostname; set server URL in Actual desktop/mobile app to that URL. |
+| **affine**                                | Yes            | Protect hostname; set external URL vars so callbacks and links match the Access-protected domain. |
+| **anything-llm**                          | Yes            | Protect hostname; documents and chats may contain sensitive data. |
+| **appflowy**                              | Yes            | Protect hostname; keep AppFlowy public URL settings aligned with the Access-protected domain. |
 | **baserow**                               | Yes            | Protect hostname; set `BASEROW_PUBLIC_URL` to that URL.            |
 | **bookstack**                             | Yes            | Protect hostname; set `APP_URL` to that URL; change default admin password. |
 | **calibre-web**                           | Yes            | Protect hostname; app has its own login (change default admin password). |
 | **caddy**                                 | Yes            | Reverse proxy; protect the hostnames that Caddy serves.            |
 | **cloudflare-tunnel**                     | N/A            | Tunnel itself; Access runs at the edge before traffic reaches it.  |
 | **convertx**                              | Yes            | Protect hostname; app has accounts (JWT); set `ACCOUNT_REGISTRATION=false` after first user. |
+| **cryptpad**                              | Yes            | Protect hostname; keep CryptPad domain settings aligned with the Access-protected URL. |
+| **cups**                                  | Yes            | Protect hostname; CUPS web UI is full admin (`CUPSADMIN` / `CUPSPASSWORD` in `stack.env`). |
 | **diun** / **watchtower**                 | Yes            | Protect if exposed via tunnel.                                     |
+| **docuseal**                              | Yes            | Protect hostname; set `HOST` / `FORCE_SSL` to match; signing flows and PII. |
 | **dozzle**                                | Yes            | Protect Dozzle hostname; optional `users.yaml` auth in app.        |
 | **freshrss**                              | Yes            | Protect hostname.                                                  |
 | **grafana**                               | Yes            | Protect Grafana hostname; set `GF_SERVER_ROOT_URL` to that URL.    |
@@ -149,8 +155,10 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **linkwarden**                            | Yes            | Protect hostname; set `NEXTAUTH_URL` to that URL.                  |
 | **linkding**                              | Yes            | Protect hostname.                                                  |
 | **librechat**                             | Yes            | Protect LibreChat hostname for social/OAuth redirects.             |
+| **litellm**                               | Yes            | Protect hostname; master key and virtual keys grant API access.    |
 | **mealie**                                | Yes            | Protect hostname; set `BASE_URL` to that URL.                      |
 | **meilisearch**                           | Yes            | Protect hostname if exposing search API; set `MEILI_MASTER_KEY` when production. |
+| **mattermost**                            | Yes            | Protect hostname; set `MM_SERVICESETTINGS_SITEURL` to that URL so login and links stay correct. |
 | **mylar3**                                | Yes            | Protect Mylar3 hostname; configure download clients and indexers in the UI. |
 | **navidrome**                             | Yes            | Protect Navidrome hostname; optional `ND_BASEURL` should match it. |
 | **n8n**                                   | Yes            | Protect n8n hostname; ensure `N8N_HOST` / `WEBHOOK_URL` match.     |
@@ -164,6 +172,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **password-pusher**                       | Yes            | Protect hostname; optional logins use SMTP (see smtp-relay stack). |
 | **perplexica**                            | Yes            | Protect hostname.                                                  |
 | **portainer** (if used)                   | Yes            | Common use case; protect e.g. `portainer.yourdomain.com`.          |
+| **posthog**                               | Yes            | Protect hostname; product analytics and session data; `DOMAIN` must match Access URL. |
 | **privatebin**                            | Yes            | Protect hostname.                                                  |
 | **prometheus** / **cadvisor**             | Yes            | Usually internal; protect if you expose them.                      |
 | **searx-ng**                              | Yes            | Protect hostname.                                                  |
@@ -171,6 +180,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **slink**                                 | Yes            | Protect hostname; set `ORIGIN` to that URL; optional user approval. |
 | **snipe-it**                              | Yes            | Protect hostname; set `APP_URL` to that URL.                       |
 | **stirling-pdf**                          | Yes            | Protect hostname (PDF tools).                                       |
+| **super-productivity**                    | Yes            | Protect hostname; app is browser-only and works well behind Access. |
 | **sonarr**                                | Yes            | Protect Sonarr hostname; use Access as an outer auth layer in front of app auth. |
 | **radarr**                                | Yes            | Protect Radarr hostname; use Access as an outer auth layer in front of app auth. |
 | **lidarr**                                | Yes            | Protect Lidarr hostname; use Access as an outer auth layer in front of app auth. |
@@ -187,6 +197,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **hedgedoc**                              | Yes            | Protect hostname; set `CMD_DOMAIN` to match. |
 | **joplin-server**                         | Yes            | Protect hostname; set `APP_BASE_URL` to that URL. |
 | **keycloak**                              | Yes            | Protect hostname; `KC_HOSTNAME` must match or OAuth/redirects break. |
+| **kokoro-tts**                            | Yes            | Protect hostname; TTS API and UI can process sensitive text/audio. |
 | **mailpit**                               | Yes            | Protect hostname; shows caught emails (internal-only SMTP).                          |
 | **minio**                                 | Yes            | Protect console hostname (e.g. minio.yourdomain.com); optional `MINIO_SERVER_URL`. |
 | **nextcloud**                             | Yes            | Protect hostname; add hostname to `NEXTCLOUD_TRUSTED_DOMAINS`. |
@@ -194,10 +205,13 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **scrutiny**                              | Yes            | Protect hostname. |
 | **seafile**                               | Yes            | Protect hostname; set `SEAFILE_SERVER_HOSTNAME` to match. |
 | **syncthing**                             | Yes            | Protect hostname. |
+| **trilium**                               | Yes            | Protect hostname; use Access as outer auth for the web app endpoint. |
+| **umami**                                 | Yes            | Protect dashboard hostname; change default admin password. Tracker `script.js` must be reachable from sites you measure (often same or dedicated hostname—see stack README). |
 | **vaultwarden**                           | Yes            | Protect Vaultwarden hostname; optional `ADMIN_TOKEN` for `/admin`. |
 | **vikunja**                               | Yes            | Protect hostname; set `VIKUNJA_SERVICE_PUBLICURL` to that URL (with trailing slash). |
 | **woodpecker-ci**                         | Yes            | Protect hostname (e.g. ci.yourdomain.com); Gitea OAuth redirect must match. |
 | **web-check**                             | Yes            | Protect hostname.                                                  |
+| **whisper-asr**                           | Yes            | Protect hostname; ASR API can process sensitive audio.             |
 | **yourls**                                | Yes            | Protect shortener hostname(s).                                     |
 | **zigbee2mqtt**                           | Yes            | Protect Zigbee2MQTT admin UI hostname.                             |
 

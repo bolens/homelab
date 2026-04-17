@@ -54,10 +54,11 @@ app_categories:
 
   - id: apps_dev
     name: "Developer & IT utilities"
-    descriptor: "it-tools, ConvertX, Dozzle, Gitea, Kasm, CI, dashboard, PDF, NetBox, Snipe-IT"
+    descriptor: "it-tools, ConvertX, CUPS, Dozzle, Gitea, Kasm, CI, dashboard, PDF, NetBox, PostHog, Snipe-IT"
     stacks:
       - baserow
       - convertx
+      - cups
       - dozzle
       - gitea
       - harbor
@@ -66,10 +67,11 @@ app_categories:
       - kasm
       - netbox
       - ntfy
+      - posthog
       - snipe-it
       - stirling-pdf
       - woodpecker-ci
-    description: "it-tools, ConvertX, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, Snipe-IT"
+    description: "it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT"
 
   - id: apps_gaming
     name: "Gaming"
@@ -108,6 +110,7 @@ app_categories:
       - audiobookshelf
       - bookstack
       - calibre-web
+      - docuseal
       - emby
       - firefly-iii
       - freshrss

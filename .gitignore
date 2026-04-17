@@ -16,6 +16,9 @@ shared.env
 # Local .local hostnames list – copy from scripts/local-hosts.conf.example
 scripts/local-hosts.conf
 
+# LiteLLM proxy model list (generated from litellm_config.yaml.example by prepare-stack.sh)
+stacks/litellm/litellm_config.yaml
+
 # Config files that may contain secrets (keep .example templates)
 config.yml
 config.yaml
@@ -91,6 +94,15 @@ data/
 # Harbor installer (large archive + extracted dir with generated configs)
 stacks/harbor/harbor/
 stacks/harbor/*.tgz
+
+# PostHog hobby: upstream clone + generated compose copies (see stacks/posthog/README.md)
+stacks/posthog/posthog/
+stacks/posthog/docker-compose.base.yml
+stacks/posthog/docker-compose.hobby.yml
+stacks/posthog/dev-services.env
+stacks/posthog/compose/
+stacks/posthog/share/
+stacks/posthog/posthog.merged.compose.yml
 
 # OS and editor
 .DS_Store

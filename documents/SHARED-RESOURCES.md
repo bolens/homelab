@@ -51,9 +51,15 @@ For **internal-only mailing** (no external delivery), deploy the **mailpit** sta
 
 The **ollama** stack is the shared backend for:
 
-- Open WebUI, LibreChat, Open Notebook, Perplexica
+- Open WebUI, LibreChat, Open Notebook, Perplexica, AnythingLLM, Paperless-GPT, Paperless-AI-Next, Nodepad (and optional backends behind **LiteLLM**)
 
-Set `OLLAMA_BASE_URL=http://ollama:11434` in each app’s `stack.env` when both stacks are on the `monitor` network. See [stacks/ollama/README.md](../stacks/ollama/README.md) and each AI stack’s README.
+Set `OLLAMA_BASE_URL=http://ollama:11434` (or provider-specific vars such as `OLLAMA_BASE_PATH`, `OLLAMA_HOST`, `OLLAMA_API_URL`) in each app’s `stack.env` when both stacks are on the `monitor` network. See [stacks/ollama/README.md](../stacks/ollama/README.md) and each AI stack’s README.
+
+**LiteLLM** ([stacks/litellm](../stacks/litellm/README.md)) is an optional **OpenAI-compatible proxy** in front of Ollama and cloud APIs. Point clients at `http://litellm:4000/v1` with `LITELLM_MASTER_KEY` (or virtual keys) instead of calling Ollama directly when you want unified keys and routing.
+
+**Whisper ASR** ([stacks/whisper-asr](../stacks/whisper-asr/README.md)) is an optional **speech-to-text** HTTP service (`whisper-asr:9000`) for Open WebUI, AnythingLLM, or workflows—protect it with Caddy / Access like any other AI endpoint.
+
+**Kokoro TTS** ([stacks/kokoro-tts](../stacks/kokoro-tts/README.md)) is an optional **text-to-speech** service (`kokoro-tts:8880`): browser UI at `/web`, OpenAI-compatible API at `/v1`—useful with Open WebUI or scripts; protect the hostname the same way as other AI endpoints.
 
 ### External volumes (media / downloads)
 

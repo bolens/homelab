@@ -1,0 +1,18 @@
+# Woodpecker CI — runs on your Gitea-connected Woodpecker instance when this repo is enabled.
+# Docs: https://woodpecker-ci.org/docs/usage/workflows
+#
+# Requires: agent with Docker; clone must include git history for gitleaks (default detect).
+when:
+  - event: [push, pull_request, manual]
+
+steps:
+  - name: gitleaks
+    image: docker.io/zricethezav/gitleaks:v8.24.0
+    commands:
+      - gitleaks detect --source . --redact --verbose
+
+  - name: compose-yaml-parse
+    image: docker.io/library/alpine:3.21
+    commands:
+      - apk add --no-cache python3 py3-pyyaml
+      - python3 scripts/ci-parse-composes.py

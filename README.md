@@ -51,13 +51,13 @@ torrents, *arr, Usenet`"]
         apps_ai["`AI & LLM
 local models, chat UIs`"]
         apps_dev["`Developer & IT utilities
-it-tools, ConvertX, Dozzle, Gitea, Kasm, CI, dashboard, PDF, NetBox, Snipe-IT`"]
+it-tools, ConvertX, CUPS, Dozzle, Gitea, Kasm, CI, dashboard, PDF, NetBox, PostHog, Snipe-IT`"]
         apps_gaming["`Gaming
 ROMs, Steam, in-browser emulation`"]
         apps_home["`Home automation & IoT
 Home Assistant, MQTT, Zigbee`"]
         apps_links["`Links, shorteners & presence
-YOURLS, Linkstack, Stoat, homepage`"]
+YOURLS, Shlink, Linkstack, Stoat, homepage`"]
         apps_media["`Media & personal data
 photos, docs, music, RSS, notes`"]
         apps_osint["`OSINT & recon
@@ -176,15 +176,15 @@ Auto-updates`"]
 
 - **Traffic:** All HTTP(S) to apps and to web UIs (e.g. Uptime Kuma, Grafana) goes through Caddy. Clients reach Caddy directly (local DNS) or via Cloudflare Tunnel; Caddy routes by hostname.
 - **VPN & remote access:** **Headscale** – mesh VPN (Tailscale); mesh clients reach Caddy and apps. **WireGuard** – remote-access VPN (UDP 51820); VPN clients connect from outside. **Gluetun** – outbound VPN for containers; media acquisition stacks (e.g. qbittorrent) send traffic through Gluetun to a VPN provider.
-- **Application categories:** **Media acquisition & *arr** – download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, MeTube, Mylar3). **AI & LLM** – local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica). **Developer & IT utilities** – it-tools, ConvertX, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, Snipe-IT. **Gaming** – Steam automation (ASF), ROM manager and in-browser emulation (RomM). **Home automation & IoT** – Home Assistant, Mosquitto (MQTT), Zigbee2MQTT. **Links, shorteners & presence** – YOURLS, Linkstack, Stoat, static homepage/landing. **Media & personal data** – consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting). **OSINT & recon** – homelab-user/email/phone recon, breach lookups, subdomain enumeration, AIL. **Privacy & opt-out** – data broker deletion (Naisho, Privotron). **Search** – SearXNG, Meilisearch. **Security & compliance tooling** – SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP), digital forensics (Acquire, Plaso, Docker Forensics Toolkit). **Security & identity** – passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik). **Tor / dark web** – OnionScan, OnionProbe, TorBot. **Workflow automation** – n8n, Node-RED
+- **Application categories:** **Media acquisition & *arr** – download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, MeTube, Mylar3). **AI & LLM** – local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica). **Developer & IT utilities** – it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT. **Gaming** – Steam automation (ASF), ROM manager and in-browser emulation (RomM). **Home automation & IoT** – Home Assistant, Mosquitto (MQTT), Zigbee2MQTT. **Links, shorteners & presence** – YOURLS, Shlink, Linkstack, Stoat, static homepage/landing. **Media & personal data** – consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting). **OSINT & recon** – homelab-user/email/phone recon, breach lookups, subdomain enumeration, AIL. **Privacy & opt-out** – data broker deletion (Naisho, Privotron). **Search** – SearXNG, Meilisearch. **Security & compliance tooling** – SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP), digital forensics (Acquire, Plaso, Docker Forensics Toolkit). **Security & identity** – passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik). **Tor / dark web** – OnionScan, OnionProbe, TorBot. **Workflow automation** – n8n, Node-RED
 - **Application stacks (detail):** Each category and what it does:
 - **Media acquisition & *arr:** download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, MeTube, Mylar3) Stacks: qbittorrent, rtorrent-flood, nzbget, nzbhydra2, prowlarr, sonarr, radarr, lidarr, readarr, bazarr, metube, mylar3.
 - **AI & LLM:** local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica) Stacks: ollama, open-webui, librechat, open-notebook, perplexica.
-- **Developer & IT utilities:** it-tools, ConvertX, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, Snipe-IT Stacks: baserow, convertx, dozzle, gitea, harbor, homarr, it-tools, kasm, netbox, ntfy, snipe-it, stirling-pdf, woodpecker-ci.
+- **Developer & IT utilities:** it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT Stacks: baserow, convertx, cups, dozzle, gitea, harbor, homarr, it-tools, kasm, netbox, ntfy, posthog, snipe-it, stirling-pdf, woodpecker-ci.
 - **Gaming:** Steam automation (ASF), ROM manager and in-browser emulation (RomM) Stacks: asf, romm.
 - **Home automation & IoT:** Home Assistant, Mosquitto (MQTT), Zigbee2MQTT Stacks: home-assistant, mosquitto, zigbee2mqtt.
 - **Links, shorteners & presence:** YOURLS, Shlink, Linkstack, Stoat, static homepage/landing Stacks: homepage, linkstack, shlink, stoat, yourls.
-- **Media & personal data:** consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting) Stacks: actual-budget, archivebox, audiobookshelf, bookstack, calibre-web, emby, firefly-iii, freshrss, hedgedoc, immich, jellyfin, joplin-server, logseq-sync, kavita, komga, lanraragi, linkding, linkwarden, mealie, navidrome, nextcloud, outline, paperless-ngx, plex, seafile, slink, syncthing, vikunja.
+- **Media & personal data:** consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting) Stacks: actual-budget, archivebox, audiobookshelf, bookstack, calibre-web, docuseal, emby, firefly-iii, freshrss, hedgedoc, immich, jellyfin, joplin-server, logseq-sync, kavita, komga, lanraragi, linkding, linkwarden, mealie, navidrome, nextcloud, outline, paperless-ngx, plex, seafile, slink, syncthing, vikunja.
 - **OSINT & recon:** homelab-user/email/phone recon, breach lookups, subdomain enumeration, AIL Stacks: social-hunt, maigret, spiderfoot, phoneinfoga, theharvester, holehe, blackbird, ghunt, metagoofil, reconftw, sublist3r, ail, web-check.
 - **Privacy & opt-out:** data broker deletion (Naisho, Privotron) Stacks: naisho, privotron.
 - **Search:** SearXNG, Meilisearch Stacks: meilisearch, searx-ng.
@@ -231,9 +231,12 @@ Auto-updates`"]
 | [**stacks/acquire**](stacks/acquire/README.md) | Digital forensics artifact collection (Acquire/Dissect) – gather artifacts from disk images or dirs into an archive; CLI only |
 | [**stacks/adguard-home**](stacks/adguard-home/README.md) | Network-wide DNS ad/tracker blocking and web UI; DNS on host 53/853, UI via Caddy |
 | [**stacks/actual-budget**](stacks/actual-budget/README.md) | Envelope-style budgeting (Actual Budget sync server); use with desktop/mobile app |
+| [**stacks/affine**](stacks/affine/README.md) | Self-hosted AFFiNE workspace (docs, whiteboards, and knowledge graph) |
 | [**stacks/alertmanager**](stacks/alertmanager/README.md) | Prometheus Alertmanager – route alerts to email, webhooks, chat (use with Prometheus) |
+| [**stacks/appflowy**](stacks/appflowy/README.md) | AppFlowy collaboration/productivity workspace scaffold for homelab deployment |
 | [**stacks/authentik**](stacks/authentik/README.md) | Identity provider / SSO (OIDC, OAuth2, SAML); use as IdP for other apps or Cloudflare Access |
 | [**stacks/asf**](stacks/asf/README.md) | ArchiSteamFarm – Steam card idling and automation; web IPC (ASF-ui, API) behind Caddy |
+| [**stacks/anything-llm**](stacks/anything-llm/README.md) | Local RAG workspaces (documents + LanceDB + Ollama; Mintplex AnythingLLM) |
 | [**stacks/audiobookshelf**](stacks/audiobookshelf/README.md) | Audiobook and podcast server |
 | [**stacks/bazarr**](stacks/bazarr/README.md) | Subtitle manager and downloader for Sonarr/Radarr libraries |
 | [**stacks/blackbird**](stacks/blackbird/README.md) | OSINT: homelab-user/email search across many sites with optional PDF/CSV reports |
@@ -246,6 +249,7 @@ Auto-updates`"]
 | [**stacks/cloudflare-tunnel**](stacks/cloudflare-tunnel/README.md) | Expose services via Cloudflare without port forwarding (cloudflared) |
 | [**stacks/convertx**](stacks/convertx/README.md) | Self-hosted online file converter (1000+ formats: documents, images, video, e-books) |
 | [**stacks/crowdsec**](stacks/crowdsec/README.md) | CrowdSec Security Engine – collaborative intrusion prevention and curated blocklists for malicious IPs |
+| [**stacks/cryptpad**](stacks/cryptpad/README.md) | End-to-end encrypted collaborative docs, sheets, forms, and drive (CryptPad) |
 | [**stacks/dependency-track**](stacks/dependency-track/README.md) | OWASP Dependency-Track – SBOM/dependency vulnerability tracking (upload CycloneDX/SPDX, CVE alerts) |
 | [**stacks/diun**](stacks/diun/README.md) | Docker image update notifier (Telegram, Discord, etc.) |
 | [**stacks/docker-gc**](stacks/docker-gc/README.md) | Garbage collector for Docker containers and images (removes old stopped containers and unused images) |
@@ -274,8 +278,10 @@ Auto-updates`"]
 | [**stacks/kasm**](stacks/kasm/README.md) | Container streaming platform – browser-based desktops and apps (Kasm Workspaces) |
 | [**stacks/kavita**](stacks/kavita/README.md) | Comics, manga, and eBook server – web reader, OPDS, reading progress |
 | [**stacks/keycloak**](stacks/keycloak/README.md) | Identity provider / SSO (OIDC, OAuth2, SAML); use as IdP for other apps |
+| [**stacks/kokoro-tts**](stacks/kokoro-tts/README.md) | Kokoro-82M TTS — web UI (`/web`) + OpenAI-compatible speech API (CPU/GPU images) |
 | [**stacks/komga**](stacks/komga/README.md) | Comics and manga server – web reader, OPDS (Tachiyomi), reading progress |
 | [**stacks/librechat**](stacks/librechat/README.md) | ChatGPT-style UI with agents, MCP, code interpreter (MongoDB + Redis) |
+| [**stacks/litellm**](stacks/litellm/README.md) | OpenAI-compatible LLM proxy (Ollama + cloud providers; virtual keys optional with Postgres) |
 | [**stacks/lanraragi**](stacks/lanraragi/README.md) | Tag-based comic/manga archive manager (CBR, CBZ, PDF; plugins) |
 | [**stacks/lidarr**](stacks/lidarr/README.md) | Music collection manager for Usenet and torrents (Lidarr) |
 | [**stacks/linkstack**](stacks/linkstack/README.md) | Self-hosted link-in-bio page (Linktree-style: one URL with your links) |
@@ -285,6 +291,7 @@ Auto-updates`"]
 | [**stacks/logseq-sync**](stacks/logseq-sync/README.md) | Community Logseq sync backend (experimental; see README) |
 | [**stacks/maigret**](stacks/maigret/README.md) | OSINT: collect a dossier by homelab-user from thousands of sites (web UI, HTML/PDF/XMind reports) |
 | [**stacks/mailpit**](stacks/mailpit/README.md) | Local SMTP catcher for dev/testing – catches all mail, no external delivery (use with Postfix for internal-only) |
+| [**stacks/mattermost**](stacks/mattermost/README.md) | Team chat and collaboration platform with PostgreSQL backend |
 | [**stacks/mealie**](stacks/mealie/README.md) | Recipe manager and meal planner |
 | [**stacks/meilisearch**](stacks/meilisearch/README.md) | Fast search engine (API, typo tolerance, faceting) |
 | [**stacks/minio**](stacks/minio/README.md) | S3-compatible object storage (backups, app uploads, Outline/Firefly backend) |
@@ -342,9 +349,12 @@ Auto-updates`"]
 | [**stacks/stirling-pdf**](stacks/stirling-pdf/README.md) | PDF tools – merge, split, OCR, convert, watermark (web UI) |
 | [**stacks/stoat**](stacks/stoat/README.md) | Self-hosted Stoat chat platform (API, web, media, notifications, optional voice) |
 | [**stacks/sublist3r**](stacks/sublist3r/README.md) | Subdomain enumeration tool using multiple search engines and output to files |
+| [**stacks/super-productivity**](stacks/super-productivity/README.md) | Task/timeboxing productivity app served as a web UI |
 | [**stacks/theharvester**](stacks/theharvester/README.md) | OSINT: emails, hosts, and subdomains via multi-source recon (REST API variant) |
 | [**stacks/threat-dragon**](stacks/threat-dragon/README.md) | OWASP Threat Dragon – threat modeling (diagrams, STRIDE; save to GitHub/Bitbucket/GitLab) |
+| [**stacks/trilium**](stacks/trilium/README.md) | Hierarchical self-hosted notes and knowledge base (TriliumNext) |
 | [**stacks/torbot**](stacks/torbot/README.md) | OWASP TorBot – Dark Web OSINT crawler (.onion crawl, email extraction, link tree, JSON export; Tor in separate container) |
+| [**stacks/umami**](stacks/umami/README.md) | Privacy-focused web analytics (dashboard + lightweight tracker) |
 | [**stacks/uptime-kuma**](stacks/uptime-kuma/README.md) | Status page and monitoring |
 | [**stacks/vaultwarden**](stacks/vaultwarden/README.md) | Lightweight Bitwarden-compatible password manager |
 | [**stacks/vector**](stacks/vector/README.md) | Log shipper – host and container logs to Loki for Grafana |
@@ -353,6 +363,7 @@ Auto-updates`"]
 | [**stacks/woodpecker-ci**](stacks/woodpecker-ci/README.md) | Lightweight CI/CD (server + agent); integrate with Gitea |
 | [**stacks/watchtower**](stacks/watchtower/README.md) | Automatic container image updates (nickfedor fork, Docker 29+) |
 | [**stacks/web-check**](stacks/web-check/README.md) | OSINT and website analysis tool |
+| [**stacks/whisper-asr**](stacks/whisper-asr/README.md) | Whisper / faster-whisper HTTP transcription API (OpenAI-style ASR) |
 | [**stacks/yourls**](stacks/yourls/README.md) | Self-hosted URL shortener (YOURLS): short links, web UI, optional API |
 | [**stacks/zap**](stacks/zap/README.md) | OWASP ZAP – web/API security scanner (daemon + web UI; baseline/active scans; access via Caddy) |
 | [**stacks/zigbee2mqtt**](stacks/zigbee2mqtt/README.md) | Zigbee-to-MQTT bridge for Home Assistant and other automation (web UI via Caddy) |
@@ -387,6 +398,7 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 **Optional – shared TZ/locale:** From the `docker/` repo root, copy `shared.env.example` → `shared.env` and set your timezone and locale once; use it with CLI (`docker compose --env-file ../shared.env --env-file stack.env`) or add the same four variables in Portainer. See [documents/SHARED-RESOURCES.md](documents/SHARED-RESOURCES.md#1-shared-env-file-tz--locale).
 
 - **stacks/ail** — optional `stack.env` with `TZ`; uses community image cciucd/ail-framework; >6GB RAM recommended; reset password after first login: `docker exec ail bin/LAUNCH.sh -rp`
+- **stacks/anything-llm** — `./prepare-stack.sh`; set `JWT_SECRET` in `stack.env`; pull Ollama chat + embedding models per `stack.env.example`; `docker compose --env-file stack.env up -d`
 - **stacks/archivebox** — `stack.env.example` → `stack.env`; set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `SEARCH_BACKEND_PASSWORD` (and adjust `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` for your Caddy hostnames)
 - **stacks/acquire** — optional `stack.env.example` → `stack.env` (e.g. `TZ`). CLI only; mount evidence under `./data`, run `docker compose run --rm acquire /data/evidence.vmdk -o /data/output.tar`. See stack README.
 - **stacks/adguard-home** — optional `stack.env.example` → `stack.env`. DNS on host 53/853; web UI via Caddy to adguard-home:3000. Run setup wizard on first visit.
@@ -424,7 +436,8 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/komga** — `stack.env.example` → `stack.env` (optional TZ, JAVA_TOOL_OPTIONS); create first user in the web UI, then add libraries (default `/data` or bind-mount).
 - **stacks/kavita** — `stack.env.example` → `stack.env` (optional TZ, PUID, PGID); run setup wizard in the web UI and add libraries (e.g. `/data` or bind-mount).
 - **stacks/infisical** — `stack.env.example` → `stack.env`; set `ENCRYPTION_KEY`, `AUTH_SECRET`, `POSTGRES_PASSWORD`, `SITE_URL` (e.g. `https://infisical.home` or `https://secrets.yourdomain.com`)
-- **stacks/librechat** — `stack.env.example` → `stack.env`; set `JWT_SECRET`, `JWT_REFRESH_SECRET` (e.g. `openssl rand -base64 32`); set `MONGO_INITDB_ROOT_PASSWORD`, `REDIS_PASSWORD`; set `OLLAMA_BASE_URL` if using Ollama
+- **stacks/librechat** — `./prepare-stack.sh` or `stack.env.example` → `stack.env`; set `JWT_SECRET`, `JWT_REFRESH_SECRET` (e.g. `openssl rand -base64 32`); set `MONGO_INITDB_ROOT_PASSWORD`, `REDIS_PASSWORD`; set `DOMAIN_CLIENT` / `DOMAIN_SERVER` and `OLLAMA_BASE_URL` for Caddy + Ollama
+- **stacks/litellm** — `./prepare-stack.sh`; set `LITELLM_MASTER_KEY`, `POSTGRES_PASSWORD`, `UI_*`; edit `litellm_config.yaml` for providers; `docker compose up -d` (bundled Postgres; see stack README)
 - **stacks/linkstack** — `stack.env.example` → `stack.env` (all vars optional); optional `HTTP_SERVER_NAME` / `HTTPS_SERVER_NAME` when behind Caddy
 - **stacks/lanraragi** — `stack.env.example` → `stack.env` (optional TZ, LRR_UID, LRR_GID); upload or drop archives in the web UI or content volume.
 - **stacks/linkwarden** — `stack.env.example` → `stack.env`; set `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, `MEILI_MASTER_KEY` (and `NEXTAUTH_URL` if behind Caddy)
@@ -447,13 +460,15 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/netbox** — Pointer stack; use upstream netbox-docker. Attach to `monitor` network and add Caddy block for netbox.yourdomain.com. See stack README.
 - **stacks/nzbget** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`, optional `UMASK`, and optionally `NZBGET_USER`/`NZBGET_PASS` for the web UI. Configure Usenet servers in the NZBGet UI.
 - **stacks/nzbhydra2** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`, optional `UMASK`. Configure upstream indexers and API key in the NZBHydra 2 UI.
-- **stacks/ollama** — `stack.env.example` → `stack.env`; optional `OLLAMA_MODELS_PATH` (absolute path recommended for models); other data uses Docker volume; GPU requires NVIDIA Container Toolkit
+- **stacks/ollama** — `./prepare-stack.sh` or `stack.env.example` → `stack.env`; optional `OLLAMA_MODELS_PATH` (absolute path recommended for models); other data uses Docker volume; compose includes NVIDIA `deploy` (comment it out on CPU-only hosts without the toolkit); GPU needs NVIDIA Container Toolkit + Docker runtime config
 - **stacks/onionprobe** — run `./clone-repo.sh` once to clone the upstream repo into `./repo`; optional `stack.env` for `GRAFANA_DATABASE_PASSWORD`, `GF_SERVER_ROOT_URL`; access via Caddy (onionprobe.home → Grafana)
 - **stacks/onionscan** — CLI only; no web UI or ports. Optional: `stack.env` with TZ. Start with `docker compose up -d`, wait for Tor (logs), then `docker compose exec onionscan onionscan [options] <onion-address>`. See stack README.
 - **stacks/outline** — `stack.env.example` → `stack.env`; set `POSTGRES_PASSWORD`, `URL` (e.g. https://outline.yourdomain.com), `SECRET_KEY`, `UTILS_SECRET`, and S3 vars if using MinIO. Create bucket in MinIO. Access via Caddy to outline:3000.
-- **stacks/open-notebook** — `stack.env.example` → `stack.env`; set `OPEN_NOTEBOOK_ENCRYPTION_KEY` (e.g. `openssl rand -base64 32`); optional `OLLAMA_BASE_URL`
-- **stacks/open-webui** — `stack.env.example` → `stack.env`; set `OLLAMA_BASE_URL` to reach Ollama (e.g. `http://ollama:11434` or `http://host.docker.internal:11434`)
+- **stacks/open-notebook** — run `./prepare-stack.sh`; set `OPEN_NOTEBOOK_ENCRYPTION_KEY` (e.g. `openssl rand -base64 32`), `SURREAL_PASSWORD`, and `API_URL` (must match your Caddy hostname, e.g. https://notebook.yourdomain.com); optional `OLLAMA_BASE_URL`
+- **stacks/open-webui** — `stack.env.example` → `stack.env`; set `OLLAMA_BASE_URL` to reach Ollama (e.g. `http://ollama:11434` or `http://host.docker.internal:11434`); optional `OPENAI_API_BASE_URL` + `OPENAI_API_KEY` for **litellm** (see stack README / ENV-VARS)
 - **stacks/paperless-ngx** — `stack.env.example` → `stack.env`; set `PAPERLESS_URL`, `PAPERLESS_SECRET_KEY`
+- **stacks/paperless-ai-next** — `./prepare-stack.sh`; external volume `paperless-ai-next_paperless_ai_next_data` must exist; `stack.env` per `stack.env.example`; `docker compose --env-file stack.env up -d`
+- **stacks/paperless-gpt** — `./prepare-stack.sh`; external volumes for prompts/hocr/pdf must exist; `stack.env` per `stack.env.example`; `docker compose --env-file stack.env up -d`
 - **stacks/password-pusher** — `stack.env.example` → `stack.env`; set `PWPUSH_MASTER_KEY` (generate at https://us.pwpush.com/generate_key); optional `PWP__HOST_DOMAIN` if behind Caddy
 - **stacks/perplexica** — `stack.env.example` → `stack.env`; optional `PERPLEXICA_DATA_PATH`, `SEARXNG_API_URL`, `OLLAMA_BASE_URL`
 - **stacks/plex** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`, `VERSION=docker`, and optionally `PLEX_CLAIM` (from Plex) on first run to link the server to your account.
@@ -462,7 +477,7 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/prometheus** — copy `prometheus.yml.example` to `~/.config/prometheus/prometheus.yml` and `alerts.yml.example` to `~/.config/prometheus/rules/alerts.yml` (create both dirs if needed); when deploying from Portainer set `PROMETHEUS_CONFIG_PATH` and `PROMETHEUS_RULES_PATH` to the absolute paths of that file and the rules directory; no secrets
 - **stacks/promtail** — Copy `promtail-config.yml.example` to `~/.config/promtail/promtail-config.yml` (create dir if needed). Deploy after Loki; from Portainer set `PROMTAIL_CONFIG_PATH` to that absolute path. Optional `stack.env`. No Caddy; ships logs to http://loki:3100 on `monitor`.
 - **stacks/qbittorrent** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`; configure Gluetun VPN (`VPN_SERVICE_PROVIDER`, `VPN_TYPE`, and provider-specific vars, e.g. WireGuard keys). Create `torrents` network and `torrents_downloads` volume if not present. See stack README and [Gluetun docs](https://gluetun.com/configuration/).
-- **stacks/searx-ng** — `stack.env.example` → `stack.env`; set `SEARXNG_SECRET` (and optionally `SEARXNG_BASE_URL`)
+- **stacks/searx-ng** — `./prepare-stack.sh` or `stack.env.example` → `stack.env`; set `SEARXNG_SECRET`, `SEARXNG_BASE_URL` (must match the public Caddy URL), and optionally `SEARXNG_SETTINGS_PATH` (default `~/.config/searx-ng/settings.yml`); deploy with `docker compose --env-file stack.env up -d` so volume paths interpolate correctly
 - **stacks/scrutiny** — `stack.env.example` → `stack.env` (optional TZ). Runs privileged for SMART/device access; adjust `devices` in compose if needed. Access via Caddy to scrutiny:8080.
 - **stacks/seafile** — `stack.env.example` → `stack.env`; set `MYSQL_ROOT_PASSWORD`, `SEAFILE_DB_PASSWORD`, `SEAFILE_SERVER_HOSTNAME` (e.g. seafile.yourdomain.com). Access via Caddy to seafile:80.
 - **stacks/simplelogin** — `stack.env.example` → `stack.env`; create `data/dkim.key` (see README); set `URL`, `EMAIL_DOMAIN`, `EMAIL_SERVERS_WITH_PRIORITY`, `SUPPORT_EMAIL`, `FLASK_SECRET` (`openssl rand -hex 32`), `POSTGRES_PASSWORD`; run migration and init once (see stack README)
@@ -475,12 +490,14 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/stoat** — no `stack.env.example`; from the stack directory, download and run `generate_config.sh` from `stoatchat/self-hosted` to create `.env.web`, `Revolt.toml`, and `livekit.yml`; then optionally change `HOSTNAME=:80` in `.env.web` when running behind this repo’s main Caddy; see stack README and upstream docs for advanced config
 - **stacks/threat-dragon** — `stack.env.example` → `stack.env`; set `SESSION_SIGNING_KEY` (e.g. `openssl rand -hex 16`); for repo storage set GitHub/Bitbucket/GitLab OAuth vars. See stack README.
 - **stacks/torbot** — CLI only (OWASP TorBot). No ports. Optional: `stack.env` with TZ. Start with `docker compose up -d`, wait for Tor (`docker compose logs -f tor`), then `docker compose exec torbot torbot -u <url> --host tor --port 9050 [options]`. See stack README.
+- **stacks/umami** — `./prepare-stack.sh` or `stack.env.example` → `stack.env`; set `POSTGRES_PASSWORD` and `APP_SECRET` (`openssl rand -base64 32`); `./prepare-stack.sh` copies `stack.env` → `.env` so Compose substitutes `${VAR}` in `DATABASE_URL`. Edit `caddy_snippet.conf`, reload Caddy. Default login admin / umami — change immediately. Access via Caddy to umami:3000.
 - **stacks/vaultwarden** — `stack.env.example` → `stack.env`; set `DOMAIN` if behind Caddy, `SIGNUPS_ALLOWED` (false after first account)
 - **stacks/vector** — optional `stack.env.example` → `stack.env`. Log shipper to Loki (http://loki:3100); ensure Loki stack is on `monitor` network. No Caddy.
 - **stacks/vikunja** — `stack.env.example` → `stack.env`; set `VIKUNJA_SERVICE_PUBLICURL` (e.g. https://vikunja.yourdomain.com/ with trailing slash). No host ports; access via Caddy to vikunja:3456.
 - **stacks/woodpecker-ci** — `stack.env.example` → `stack.env`; set `WOODPECKER_DB_PASSWORD`, `WOODPECKER_GITEA_URL`, `WOODPECKER_GITEA_CLIENT`, `WOODPECKER_GITEA_SECRET`, `WOODPECKER_AGENT_SECRET`. Create OAuth app in Gitea. Access via Caddy to woodpecker-server:8000.
 - **stacks/wireguard** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`, `SERVERURL` (public IP or DNS, or `auto`), `SERVERPORT` (51820), `PEERS`. Forward UDP 51820 on your router. No Caddy hostname. See stack README.
 - **stacks/web-check** — optional: `stack.env.example` → `stack.env` for API keys
+- **stacks/whisper-asr** — `./prepare-stack.sh`; tune `ASR_MODEL` / `ASR_ENGINE` in `stack.env`; `docker compose --env-file stack.env up -d` (GPU: see stack README)
 - **stacks/watchtower** — TZ, LANG, LC_ALL, LC_CTYPE in `stack.env` if you choose to override defaults
 - **stacks/yourls** — `stack.env.example` → `stack.env`; set `YOURLS_SITE` (e.g. https://short.home or https://short.yourdomain.com) to match Caddy hostname; set `YOURLS_USER`, `YOURLS_PASS`, `YOURLS_COOKIEKEY`, `YOURLS_DB_PASSWORD`, `YOURLS_DB_ROOT_PASSWORD`
 - **stacks/zap** — Optional: `stack.env` with TZ. No host ports; access via Caddy (e.g. https://zap.home). See stack README.
@@ -490,6 +507,7 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/kasm** — optional `stack.env.example` → `stack.env` (DOCKER_HUB_*, DOCKER_MTU). No host ports; access via Caddy to kasm:443 (main UI) and kasm:3000 (setup wizard). Complete setup wizard at kasm-setup.yourdomain.com first; then set Proxy Port to 0 in Admin → Zones. Requires privileged mode (DinD).
 - **stacks/joplin-server** — `stack.env.example` → `stack.env`; set `POSTGRES_PASSWORD`, `APP_BASE_URL` (e.g. https://joplin.yourdomain.com). Access via Caddy to joplin-server:22300.
 - **stacks/keycloak** — `stack.env.example` → `stack.env`; set `POSTGRES_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`, `KC_HOSTNAME` (e.g. https://keycloak.yourdomain.com). Access via Caddy to keycloak:8080.
+- **stacks/kokoro-tts** — `./prepare-stack.sh`; optional `KOKORO_IMAGE_TAG` / `API_LOG_LEVEL` in `stack.env`; `docker compose --env-file stack.env up -d` (GPU: see stack README)
 - **stacks/lidarr** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`. Wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2 in the Lidarr UI.
 - **stacks/prowlarr** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`. Configure indexers and app sync for Sonarr/Radarr/Lidarr/Readarr in the Prowlarr UI.
 - **stacks/radarr** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`. Wire to NZBGet/qBittorrent and Prowlarr/NZBHydra 2 in the Radarr UI.
@@ -539,15 +557,19 @@ These stacks expose a dedicated health/status URL so you can monitor them withou
 | Stack | Endpoint |
 |-------|----------|
 | **alertmanager** | `/-/healthy` |
+| **anything-llm** | (use HTTP check to app URL) |
 | **audiobookshelf** | `/healthcheck` |
 | **cadvisor** | `/healthz` |
 | **convertx** | (use HTTP check to app URL) |
 | **grafana** | `/api/health` |
 | **headscale** | `/health` |
 | **immich** | `/api/server/ping` |
+| **kokoro-tts** | `/docs` (FastAPI OpenAPI; UI at `/web`) |
 | **librechat** | (use HTTP check to app URL) |
+| **litellm** | `/health/liveliness` (upstream spelling) |
 | **loki** | `http://loki:3100/ready` (internal; no Caddy) |
 | **mealie** | `/api/app/about` |
+| **mattermost** | `/api/v4/system/ping` |
 | **n8n** | `/healthz` |
 | **naisho** | `/up` |
 | **navidrome** | (no dedicated health endpoint; use HTTP check to app URL, e.g. `https://music.yourdomain.com/`) |
@@ -561,7 +583,9 @@ These stacks expose a dedicated health/status URL so you can monitor them withou
 | **promtail** | `http://promtail:9080/ready` (internal; no Caddy) |
 | **shlink** | `/rest/v3/health` (or use HTTP check to app URL) |
 | **slink** | (use HTTP check to app URL) |
+| **umami** | `/api/heartbeat` |
 | **vaultwarden** | `/alive` |
+| **whisper-asr** | (use HTTP check to app URL, e.g. `/` on port 9000) |
 | **yourls** | (no dedicated health endpoint; use HTTP check to app URL) |
 
 Other stacks (paperless-ngx, linkwarden, searx-ng, linkstack, caddy, infisical, romm, komga, calibre-web, mylar3, kavita, lanraragi, etc.) have no dedicated health endpoint; use an HTTP check to the app URL if needed. Keep this table alphabetized by stack name when adding new entries.
