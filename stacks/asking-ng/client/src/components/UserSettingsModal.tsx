@@ -11,14 +11,17 @@ export default function UserSettingsModal({ show, onHide }: UserSettingsModalPro
   const t = useT();
   return (
     <Dialog
+      id='asking-settings-modal'
       open={show}
       onClose={onHide}
-      titleId='user-settings-title'
+      titleId='asking-settings-modal__title'
       title={t('nav.settingsTitle')}
       closeAriaLabel={t('nav.closeDialog')}
-      bodyClassName='app-settings-modal-body'
+      bodyClassName='asking-settings-modal__body'
     >
-      <UserSettingsForm />
+      <div id='asking-settings-modal__user-preferences'>
+        <UserSettingsForm />
+      </div>
     </Dialog>
   );
 }

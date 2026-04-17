@@ -13,15 +13,19 @@ import { apiFetch, isApiFetchError } from '../http';
 import { useT } from '../i18n/I18nContext';
 import type { MessageKey } from '../i18n/locales';
 import {
+  billingExportReminder,
+  billingUpgradeHintFromError,
   billingPastDueBannerPayload,
   billingUsageAtCap,
   billingUsageWarningSeverity,
   type ProfileBillingApiPayload,
 } from '../lib/profileBillingApi';
+import { fetchConsentRegion, type ConsentRegionHint } from '../lib/cookieConsent';
 import { profileBillingQueryKey } from '../lib/queryKeys';
 import { streamingObsDocHref } from '../lib/streamingObsDocHref';
 import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
 import {
+  ActionRow,
   Button,
   Card,
   Checkbox,
@@ -30,6 +34,8 @@ import {
   FormRow,
   FormSection,
   Input,
+  Notice,
+  PageHeader,
   Select,
   Textarea,
   VisuallyHidden,
@@ -139,15 +145,26 @@ function homePostCreateTrackedPollShareUrl(pollId: string, presetId: string): st
 export default function Home() {
   const t = useT();
   useDocumentTitle(t('home.docTitle'));
-  const [webhookTargets, setWebhookTargets] = useState<Array<{ url: string; secret: string }>>([
-    { url: '', secret: '' },
-  ]);
+  const [webhookTargets, setWebhookTargets] = useState<
+    Array<{
+      url: string;
+      secret: string;
+      include_results_snapshot?: boolean;
+      include_owner_snapshot?: boolean;
+      include_owner_events?: boolean;
+    }>
+  >([{ url: '', secret: '' }]);
   const [answers, setAnswers] = useState<string[]>(['', '']);
   const [title, setTitle] = useState('');
   const [error, setError] = useState('');
+  const [errorUpgradeUrl, setErrorUpgradeUrl] = useState<string | null>(null);
+  const [errorUpgradeIsLicenseRenewal, setErrorUpgradeIsLicenseRenewal] = useState(false);
   const [limitIp, setLimitIp] = useState('yes');
   const [selectionMode, setSelectionMode] = useState<'single' | 'multi'>('single');
-  const [voteEligibility, setVoteEligibility] = useState<'anonymous' | 'account'>('anonymous');
+  const [voteEligibility, setVoteEligibility] = useState<'anonymous' | 'account' | 'platform_linked'>(
+    'anonymous',
+  );
+  const [retentionTtlDaysInput, setRetentionTtlDaysInput] = useState('');
   const [expirationDate, setExpirationDate] = useState('never');
   const [created, setCreated] = useState<{
     id: string;
@@ -170,6 +187,7 @@ export default function Home() {
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [sharePresetId, setSharePresetId] = useState<string>(SHARE_PRESET_IDS[0]);
   const [quickMode, setQuickMode] = useState<'default' | 'stream-safe' | 'embed-locked'>('default');
+  const [consentRegion, setConsentRegion] = useState<ConsentRegionHint>('unknown');
 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const answersGroupRef = useRef<HTMLDivElement>(null);
@@ -180,6 +198,9 @@ export default function Home() {
     };
     sync();
     return subscribeUserJwtChanged(sync);
+  }, []);
+  useEffect(() => {
+    void fetchConsentRegion().then((region) => setConsentRegion(region));
   }, []);
 
   const billingUsageQuery = useQuery({
@@ -193,6 +214,7 @@ export default function Home() {
   });
   const billingUsageWarning = billingUsageWarningSeverity(billingUsageQuery.data);
   const billingPastDue = billingPastDueBannerPayload(billingUsageQuery.data);
+  const exportReminder = billingExportReminder(billingUsageQuery.data);
 
   const focusTitle = () => {
     requestAnimationFrame(() => {
@@ -284,11 +306,14 @@ export default function Home() {
     setCreated(null);
     setLinkHint('');
     setError('');
+    setErrorUpgradeUrl(null);
+    setErrorUpgradeIsLicenseRenewal(false);
     setTitle('');
     setAnswers(['', '']);
     setLimitIp('yes');
     setSelectionMode('single');
     setVoteEligibility('anonymous');
+    setRetentionTtlDaysInput('');
     setExpirationDate('never');
     setWebhookTargets([{ url: '', secret: '' }]);
     setPhase('open');
@@ -306,6 +331,8 @@ export default function Home() {
     if (submitting) return;
     setCreated(null);
     setLinkHint('');
+    setErrorUpgradeUrl(null);
+    setErrorUpgradeIsLicenseRenewal(false);
     const trimmedAnswers = answers.map((answer) => answer.trim());
     const filteredAnswers = trimmedAnswers.filter((answer) => answer !== '');
 
@@ -329,6 +356,9 @@ export default function Home() {
       .map((target) => ({
         url: target.url.trim(),
         secret: target.secret.trim(),
+        include_results_snapshot: target.include_results_snapshot === true,
+        include_owner_snapshot: target.include_owner_snapshot === true,
+        include_owner_events: target.include_owner_events === true,
       }))
       .filter((target) => target.url !== '');
     const pollData = {
@@ -337,7 +367,26 @@ export default function Home() {
       limit_ip,
       expiration,
       ...(selectionMode === 'multi' ? { selection_mode: 'multi' as const } : {}),
-      ...(voteEligibility === 'account' ? { vote_eligibility: 'account' as const } : {}),
+      ...(voteEligibility !== 'anonymous'
+        ? {
+            vote_eligibility: voteEligibility,
+            account_vote_consent_ack: true as const,
+            ...(voteEligibility === 'platform_linked'
+              ? {
+                  platform_identity_provider: 'oauth_scaffold',
+                  platform_identity_consent_version: 'v1',
+                }
+              : {}),
+          }
+        : {}),
+      ...(retentionTtlDaysInput.trim() !== ''
+        ? {
+            retention_ttl_days: Math.max(
+              1,
+              Math.min(3650, Number.parseInt(retentionTtlDaysInput.trim(), 10) || 0),
+            ),
+          }
+        : {}),
       phase,
       results_delay_seconds: resultsDelaySeconds,
       ...(sn ? { show_notes: sn } : {}),
@@ -347,6 +396,9 @@ export default function Home() {
             webhook_targets: normalizedWebhookTargets.map((target) => ({
               url: target.url,
               ...(target.secret !== '' ? { secret: target.secret } : {}),
+              ...(target.include_results_snapshot ? { include_results_snapshot: true } : {}),
+              ...(target.include_owner_snapshot ? { include_owner_snapshot: true } : {}),
+              ...(target.include_owner_events ? { include_owner_events: true } : {}),
             })),
           }
         : {}),
@@ -382,11 +434,15 @@ export default function Home() {
           ...(d.data.embed_read_token ? { embed_read_token: d.data.embed_read_token } : {}),
         });
         setError('');
+        setErrorUpgradeIsLicenseRenewal(false);
         if (sessionJwt) {
           void queryClient.invalidateQueries({ queryKey: profileBillingQueryKey(sessionJwt) });
         }
       })
       .catch((err: unknown) => {
+        const upgradeHint = billingUpgradeHintFromError(err, billingUsageQuery.data);
+        setErrorUpgradeUrl(upgradeHint.url);
+        setErrorUpgradeIsLicenseRenewal(upgradeHint.isLicenseRenewal);
         if (
           isApiFetchError(err) &&
           err.errorCode === 'USAGE_LIMIT_ACTIVE_POLLS' &&
@@ -510,6 +566,7 @@ export default function Home() {
     setPhase('open');
     setShowNotes(t(keys.notes));
     setGenerateEmbedToken(false);
+    setRetentionTtlDaysInput('');
     setResultsDelaySeconds(0);
     setResultsDelayPreset('off');
     requestAnimationFrame(() => titleInputRef.current?.focus());
@@ -550,7 +607,7 @@ export default function Home() {
   const activeFeatureBadges = [
     phase === 'draft' ? t('home.featureBadge.draftStart') : null,
     selectionMode === 'multi' ? t('home.featureBadge.multiChoice') : null,
-    voteEligibility === 'account' ? t('home.featureBadge.accountVotes') : null,
+    voteEligibility !== 'anonymous' ? t('home.featureBadge.accountVotes') : null,
     limitIp === 'yes' ? t('home.featureBadge.oneIp') : null,
     resultsDelaySeconds > 0
       ? t('home.featureBadge.resultsDelay', { seconds: resultsDelaySeconds })
@@ -565,7 +622,7 @@ export default function Home() {
     ? [
         phase === 'draft' ? t('home.featureBadge.createdDraft') : t('home.featureBadge.createdLive'),
         selectionMode === 'multi' ? t('home.featureBadge.multiChoice') : null,
-        voteEligibility === 'account' ? t('home.featureBadge.accountVotes') : null,
+        voteEligibility !== 'anonymous' ? t('home.featureBadge.accountVotes') : null,
         limitIp === 'yes' ? t('home.featureBadge.oneIp') : t('home.featureBadge.multiIp'),
         resultsDelaySeconds > 0
           ? t('home.featureBadge.resultsDelay', { seconds: resultsDelaySeconds })
@@ -576,14 +633,23 @@ export default function Home() {
     : [];
 
   return (
-    <Container size='lg' className='ui-page-shell site-public'>
+    <Container size='lg' className='ui-page-shell asking-public-layout asking-home-page' id='asking-home-page'>
       {created ? (
-        <h1 className={cx('ui-page-hero-title', 'ui-page-hero-title--success')}>{t('home.banner.title')}</h1>
+        <PageHeader
+          className='ui-page-hero'
+          titleId='asking-home-page__title'
+          titleClassName={cx('ui-page-hero-title', 'ui-page-hero-title--success')}
+          title={t('home.banner.title')}
+        />
       ) : (
-        <header className='ui-page-hero'>
-          <h1 className='ui-page-hero-title'>{t('home.pageH1')}</h1>
-          <p className='ui-page-hero-tagline'>{t('home.hero.tagline')}</p>
-        </header>
+        <PageHeader
+          className='ui-page-hero'
+          titleId='asking-home-page__title'
+          titleClassName='ui-page-hero-title'
+          subtitleClassName='ui-page-hero-tagline'
+          title={t('home.pageH1')}
+          subtitle={t('home.hero.tagline')}
+        />
       )}
       {created && (
         <Card as='section' className='ui-created-banner ui-success-card'>
@@ -620,11 +686,10 @@ export default function Home() {
             </div>
           ) : null}
           <details className='ui-postcreate-card' open>
-            <summary className='ui-postcreate-summary'>{t('myPolls.distributionHeading')}</summary>
-            <section
-              className='ui-share-kit'
-              aria-label={t('myPolls.distributionHeading')}
-            >
+            <summary className='ui-postcreate-summary' id='asking-home-page__distribution-summary'>
+              {t('myPolls.distributionHeading')}
+            </summary>
+            <section className='ui-share-kit' aria-labelledby='asking-home-page__distribution-summary'>
               <p className='ui-copy-muted'>{t('myPolls.distributionHint')}</p>
               <p className='ui-copy-muted'>
                 <a href={streamingObsDocHref()} target='_blank' rel='noopener noreferrer'>
@@ -632,9 +697,9 @@ export default function Home() {
                 </a>
               </p>
               <div className='ui-share-kit-controls'>
-                <label htmlFor='home-share-preset'>{t('home.postCreate.sharePresetLabel')}</label>
+                <label htmlFor='asking-home-page__share-preset'>{t('home.postCreate.sharePresetLabel')}</label>
                 <Select
-                  id='home-share-preset'
+                  id='asking-home-page__share-preset'
                   className='ui-input--stack'
                   value={sharePresetId}
                   onChange={(e) => setSharePresetId(e.target.value)}
@@ -676,7 +741,7 @@ export default function Home() {
                     href={qrImageUrl}
                     target='_blank'
                     rel='noreferrer'
-                    className='admin-jump-link'
+                    className='asking-home-page__jump-link'
                   >
                     {t('home.postCreate.qrOpenNewTab')}
                   </a>
@@ -685,9 +750,9 @@ export default function Home() {
             </section>
           </details>
           {linkHint ? (
-            <p className='ui-copy-muted' role='status' aria-live='polite'>
+            <Notice tone='info' className='ui-copy-muted' aria-live='polite'>
               {linkHint}
-            </p>
+            </Notice>
           ) : null}
           <details className='ui-postcreate-card'>
             <summary className='ui-postcreate-summary'>{t('home.postCreate.accessSecretsSummary')}</summary>
@@ -769,6 +834,7 @@ export default function Home() {
       )}
       {!created ? (
         <form
+          id='asking-home-page__create-poll-form'
           className='ui-form-page-gap'
           onSubmit={(e) => {
             e.preventDefault();
@@ -777,8 +843,10 @@ export default function Home() {
           aria-label={t('home.form.aria')}
         >
           <Card padding='none' className='ui-card--form-panel'>
-            <section className='ui-flow' aria-label={t('home.flow.title')}>
-              <h2 className='ui-flow-heading'>{t('home.flow.title')}</h2>
+            <section className='ui-flow' aria-labelledby='asking-home-page__flow-heading'>
+              <h2 className='ui-flow-heading' id='asking-home-page__flow-heading'>
+                {t('home.flow.title')}
+              </h2>
               <ol className='ui-flow-list ui-flow-list--loose'>
                 <li>{t('home.flow.step1')}</li>
                 <li>{t('home.flow.step2')}</li>
@@ -790,12 +858,12 @@ export default function Home() {
             <FormRow
               className='ui-form-block'
               label={t('home.templateGallery.label')}
-              htmlFor='home-template-gallery'
+              htmlFor='asking-home-page__template-gallery'
               hint={t('home.templateGallery.hint')}
             >
-              <div className='my-polls-manage-row'>
+              <ActionRow className='asking-home-page__manage-row'>
                 <Select
-                  id='home-template-gallery'
+                  id='asking-home-page__template-gallery'
                   className='ui-input--stack'
                   value={selectedTemplateId}
                   onChange={(e) => setSelectedTemplateId(e.target.value)}
@@ -823,13 +891,13 @@ export default function Home() {
                 >
                   {t('home.templateGallery.clear')}
                 </Button>
-              </div>
+              </ActionRow>
             </FormRow>
 
-            <FormRow className='ui-form-block' label={t('home.titleLabel')} htmlFor='home-poll-title'>
+            <FormRow className='ui-form-block' label={t('home.titleLabel')} htmlFor='asking-home-page__poll-title'>
               <Input
                 ref={titleInputRef}
-                id='home-poll-title'
+                id='asking-home-page__poll-title'
                 placeholder={t('home.titlePlaceholder')}
                 className='ui-input--stack'
                 maxLength={500}
@@ -838,8 +906,8 @@ export default function Home() {
               />
             </FormRow>
 
-            <FormSection className='ui-form-block' title={t('home.answersHeading')} titleId='home-answers-heading'>
-              <div ref={answersGroupRef} role='group' aria-labelledby='home-answers-heading'>
+            <FormSection className='ui-form-block' title={t('home.answersHeading')} titleId='asking-home-page__answers-heading'>
+              <div ref={answersGroupRef} role='group' aria-labelledby='asking-home-page__answers-heading'>
                 {renderAnswers()}
               </div>
               <Button
@@ -861,9 +929,10 @@ export default function Home() {
               className='ui-form-block'
               aria-label={t('home.quickMode.sectionAria')}
               title={t('home.quickMode.title')}
+              titleId='asking-home-page__quick-mode-heading'
               hint={t('home.quickMode.hint')}
             >
-              <div className='my-polls-manage-row'>
+              <ActionRow className='asking-home-page__manage-row'>
                 <Button
                   type='button'
                   variant='secondary'
@@ -888,7 +957,7 @@ export default function Home() {
                 >
                   {t('home.quickMode.embed')}
                 </Button>
-              </div>
+              </ActionRow>
               <p className='ui-form-hint'>{t('home.quickMode.presetsFootnote')}</p>
             </FormSection>
 
@@ -897,6 +966,7 @@ export default function Home() {
                 className='ui-form-block'
                 aria-label={t('home.audienceSafeguards.aria')}
                 title={t('home.audienceSafeguards.title')}
+                titleId='asking-home-page__audience-safeguards-heading'
               >
                 <p className='ui-copy-muted'>{activeFeatureBadges.join(' · ')}</p>
               </FormSection>
@@ -908,15 +978,15 @@ export default function Home() {
                 <span className='ui-disclosure-summary-hint'>{t('home.moreOptionsHint')}</span>
               </summary>
               <div className='ui-settings-grid ui-disclosure-body'>
-                <section className='ui-settings-panel' aria-labelledby='home-settings-heading'>
-                  <h2 className='ui-field-heading' id='home-settings-heading'>
+                <section className='ui-settings-panel' aria-labelledby='asking-home-page__settings-heading'>
+                  <h2 className='ui-field-heading' id='asking-home-page__settings-heading'>
                     {t('home.settings')}
                   </h2>
                   <div className='ui-setting-row'>
-                    <label htmlFor='limit_ip_select'>{t('home.limitIp')}</label>
+                    <label htmlFor='asking-home-page__limit-ip'>{t('home.limitIp')}</label>
                     <Select
                       name='limit_ip'
-                      id='limit_ip_select'
+                      id='asking-home-page__limit-ip'
                       value={limitIp}
                       onChange={(e) => setLimitIp(e.target.value)}
                     >
@@ -925,10 +995,10 @@ export default function Home() {
                     </Select>
                   </div>
                   <div className='ui-setting-row'>
-                    <label htmlFor='selection_mode_select'>{t('home.selectionMode')}</label>
+                    <label htmlFor='asking-home-page__selection-mode'>{t('home.selectionMode')}</label>
                     <Select
                       name='selection_mode'
-                      id='selection_mode_select'
+                      id='asking-home-page__selection-mode'
                       value={selectionMode}
                       onChange={(e) => setSelectionMode(e.target.value === 'multi' ? 'multi' : 'single')}
                     >
@@ -937,28 +1007,44 @@ export default function Home() {
                     </Select>
                   </div>
                   <div className='ui-setting-row'>
-                    <label htmlFor='vote_eligibility_select'>{t('home.voteEligibility')}</label>
+                    <label htmlFor='asking-home-page__vote-eligibility'>{t('home.voteEligibility')}</label>
                     <Select
                       name='vote_eligibility'
-                      id='vote_eligibility_select'
+                      id='asking-home-page__vote-eligibility'
                       value={voteEligibility}
                       onChange={(e) =>
-                        setVoteEligibility(e.target.value === 'account' ? 'account' : 'anonymous')
+                        setVoteEligibility(
+                          e.target.value === 'account' || e.target.value === 'platform_linked'
+                            ? e.target.value
+                            : 'anonymous',
+                        )
                       }
                     >
                       <option value='anonymous'>{t('home.voteEligibility.anonymous')}</option>
                       <option value='account'>{t('home.voteEligibility.account')}</option>
+                      <option value='platform_linked'>{t('home.voteEligibility.platformLinked')}</option>
                     </Select>
                   </div>
                   <p className='ui-form-hint'>{t('home.voteEligibility.hint')}</p>
-                  {voteEligibility === 'account' ? (
-                    <p className='ui-form-hint'>{t('home.voteEligibility.accountConsentNote')}</p>
+                  {voteEligibility !== 'anonymous' ? (
+                    <>
+                      <p className='ui-form-hint'>{t('home.voteEligibility.accountConsentNote')}</p>
+                      <p className='ui-form-hint'>
+                        {t(
+                          consentRegion === 'eu'
+                            ? 'home.voteEligibility.regionLegalNote.eu'
+                            : consentRegion === 'non-eu'
+                              ? 'home.voteEligibility.regionLegalNote.nonEu'
+                              : 'home.voteEligibility.regionLegalNote.unknown',
+                        )}
+                      </p>
+                    </>
                   ) : null}
                   <div className='ui-setting-row'>
-                    <label htmlFor='expiration_select'>{t('home.expiration')}</label>
+                    <label htmlFor='asking-home-page__expiration'>{t('home.expiration')}</label>
                     <Select
                       name='expiration'
-                      id='expiration_select'
+                      id='asking-home-page__expiration'
                       value={expirationDate}
                       onChange={(e) => setExpirationDate(e.target.value)}
                     >
@@ -970,9 +1056,24 @@ export default function Home() {
                       <option value='1mo'>{t('home.exp.1mo')}</option>
                     </Select>
                   </div>
+                  <div className='ui-setting-row'>
+                    <label htmlFor='asking-home-page__retention-ttl-days'>{t('home.retentionTtlDays')}</label>
+                    <Input
+                      id='asking-home-page__retention-ttl-days'
+                      className='ui-input--stack'
+                      type='number'
+                      min={1}
+                      max={3650}
+                      step={1}
+                      value={retentionTtlDaysInput}
+                      onChange={(e) => setRetentionTtlDaysInput(e.target.value)}
+                      placeholder={t('home.retentionTtlDays.placeholder')}
+                    />
+                  </div>
+                  <p className='ui-form-hint'>{t('home.retentionTtlDays.hint')}</p>
                 </section>
-                <section className='ui-settings-panel' aria-labelledby='home-webhook-heading'>
-                  <h2 className='ui-field-heading' id='home-webhook-heading'>
+                <section className='ui-settings-panel' aria-labelledby='asking-home-page__webhook-heading'>
+                  <h2 className='ui-field-heading' id='asking-home-page__webhook-heading'>
                     {t('home.webhookHeading')}
                   </h2>
                   <p className='ui-copy-muted'>{t('home.webhookIntro')}</p>
@@ -984,12 +1085,12 @@ export default function Home() {
                     </p>
                   ) : null}
                   {webhookTargets.map((target, idx) => (
-                    <div key={`home-webhook-target-${idx}`} className='my-polls-manage-row'>
-                      <VisuallyHidden as='label' htmlFor={`home-webhook-url-${idx}`}>
+                    <ActionRow key={`asking-home-page__webhook-row-${idx}`} className='asking-home-page__manage-row'>
+                      <VisuallyHidden as='label' htmlFor={`asking-home-page__webhook-url-${idx}`}>
                         {t('home.webhookUrl')}
                       </VisuallyHidden>
                       <Input
-                        id={`home-webhook-url-${idx}`}
+                        id={`asking-home-page__webhook-url-${idx}`}
                         className='ui-input--stack'
                         maxLength={2048}
                         value={target.url}
@@ -1003,11 +1104,11 @@ export default function Home() {
                         placeholder={t('home.webhookUrl')}
                         autoComplete='off'
                       />
-                      <VisuallyHidden as='label' htmlFor={`home-webhook-secret-${idx}`}>
+                      <VisuallyHidden as='label' htmlFor={`asking-home-page__webhook-secret-${idx}`}>
                         {t('home.webhookSecret')}
                       </VisuallyHidden>
                       <Input
-                        id={`home-webhook-secret-${idx}`}
+                        id={`asking-home-page__webhook-secret-${idx}`}
                         className='ui-input--stack'
                         maxLength={128}
                         type='password'
@@ -1033,7 +1134,45 @@ export default function Home() {
                       >
                         {t('home.webhookTargetRemove')}
                       </Button>
-                    </div>
+                      <Checkbox
+                        id={`asking-home-page__webhook-results-snapshot-${idx}`}
+                        checked={target.include_results_snapshot === true}
+                        onChange={(e) =>
+                          setWebhookTargets((prev) =>
+                            prev.map((row, rowIdx) =>
+                              rowIdx === idx
+                                ? { ...row, include_results_snapshot: e.target.checked }
+                                : row,
+                            ),
+                          )
+                        }
+                        label={t('home.webhookIncludeResultsSnapshot')}
+                      />
+                      <Checkbox
+                        id={`asking-home-page__webhook-owner-snapshot-${idx}`}
+                        checked={target.include_owner_snapshot === true}
+                        onChange={(e) =>
+                          setWebhookTargets((prev) =>
+                            prev.map((row, rowIdx) =>
+                              rowIdx === idx ? { ...row, include_owner_snapshot: e.target.checked } : row,
+                            ),
+                          )
+                        }
+                        label={t('home.webhookIncludeOwnerSnapshot')}
+                      />
+                      <Checkbox
+                        id={`asking-home-page__webhook-owner-events-${idx}`}
+                        checked={target.include_owner_events === true}
+                        onChange={(e) =>
+                          setWebhookTargets((prev) =>
+                            prev.map((row, rowIdx) =>
+                              rowIdx === idx ? { ...row, include_owner_events: e.target.checked } : row,
+                            ),
+                          )
+                        }
+                        label={t('home.webhookIncludeOwnerSnapshot')}
+                      />
+                    </ActionRow>
                   ))}
                   <Button
                     type='button'
@@ -1043,15 +1182,16 @@ export default function Home() {
                   >
                     {t('home.webhookTargetAdd')}
                   </Button>
+                  <p className='ui-form-hint'>{t('home.webhookSnapshotsHint')}</p>
                 </section>
-                <section className='ui-settings-panel' aria-labelledby='home-creator-heading'>
-                  <h2 className='ui-field-heading' id='home-creator-heading'>
+                <section className='ui-settings-panel' aria-labelledby='asking-home-page__creator-heading'>
+                  <h2 className='ui-field-heading' id='asking-home-page__creator-heading'>
                     {t('home.creatorHeading')}
                   </h2>
                   <div className='ui-setting-row'>
-                    <label htmlFor='home-phase'>{t('home.phaseLabel')}</label>
+                    <label htmlFor='asking-home-page__phase'>{t('home.phaseLabel')}</label>
                     <Select
-                      id='home-phase'
+                      id='asking-home-page__phase'
                       name='phase'
                       value={phase}
                       onChange={(e) => setPhase(e.target.value === 'draft' ? 'draft' : 'open')}
@@ -1063,11 +1203,11 @@ export default function Home() {
                   <FormRow
                     className='ui-form-block'
                     label={t('home.showNotesLabel')}
-                    htmlFor='home-show-notes'
+                    htmlFor='asking-home-page__show-notes'
                     hint={t('home.showNotesHint')}
                   >
                     <Textarea
-                      id='home-show-notes'
+                      id='asking-home-page__show-notes'
                       className='ui-input--stack'
                       rows={4}
                       maxLength={10_000}
@@ -1079,7 +1219,7 @@ export default function Home() {
                   </FormRow>
                   <div className='ui-setting-row ui-setting-row--checkbox'>
                     <Checkbox
-                      id='home-embed-token'
+                      id='asking-home-page__embed-token'
                       checked={generateEmbedToken}
                       onChange={(e) => setGenerateEmbedToken(e.target.checked)}
                       label={t('home.embedTokenCheck')}
@@ -1089,11 +1229,11 @@ export default function Home() {
                   <FormRow
                     className='ui-form-block'
                     label={t('home.resultsDelayLabel')}
-                    htmlFor='home-results-delay'
+                    htmlFor='asking-home-page__results-delay'
                     hint={t('home.resultsDelayHint')}
                   >
                     <Select
-                      id='home-results-delay'
+                      id='asking-home-page__results-delay'
                       className='ui-input--stack'
                       value={resultsDelayPreset}
                       onChange={(e) => {
@@ -1117,7 +1257,7 @@ export default function Home() {
 
             <div className='ui-form-footer ui-form-footer--sticky-narrow'>
               {billingPastDue ? (
-                <p className='error-message ui-usage-banner' role='alert'>
+                <Notice tone='error' className='ui-usage-banner' role='alert'>
                   {t('billing.pastDueBanner')}{' '}
                   <a
                     href={billingPastDue.portalUrl}
@@ -1127,39 +1267,54 @@ export default function Home() {
                   >
                     {t('billing.openCustomerPortal')}
                   </a>
-                </p>
+                </Notice>
               ) : null}
               {billingUsageWarning ? (
+                billingUsageWarning === '95' ? (
+                  <Notice tone='error' className='ui-usage-banner' role='status'>
+                    {t('billing.usageNearLimit95')}
+                  </Notice>
+                ) : (
+                  <p className='ui-copy-muted ui-usage-banner' role='status'>
+                    {t('billing.usageNearLimit80')}
+                  </p>
+                )
+              ) : null}
+              {exportReminder ? (
                 <p
                   className={
-                    billingUsageWarning === '95'
-                      ? 'error-message ui-usage-banner'
+                    exportReminder.atCap || exportReminder.nearCap === '95'
+                      ? 'ui-alert ui-alert--danger ui-usage-banner'
                       : 'ui-copy-muted ui-usage-banner'
                   }
                   role='status'
                 >
-                  {billingUsageWarning === '95'
-                    ? t('billing.usageNearLimit95')
-                    : t('billing.usageNearLimit80')}
+                  {t('developer.billingExportUsage', {
+                    current: exportReminder.current,
+                    max: exportReminder.max,
+                  })}
                 </p>
               ) : null}
               {billingUsageQuery.data?.usage?.limitsEnforced &&
               typeof billingUsageQuery.data.usage.activePolls === 'number' &&
               typeof billingUsageQuery.data.usage.maxActivePolls === 'number' ? (
-                <p
-                  className={
-                    billingUsageAtCap(billingUsageQuery.data)
-                      ? 'error-message ui-usage-banner'
-                      : 'ui-copy-muted ui-usage-banner'
-                  }
-                  role='status'
-                >
-                  {t('home.pollUsageBanner', {
-                    current: billingUsageQuery.data.usage.activePolls,
-                    max: billingUsageQuery.data.usage.maxActivePolls,
-                    plan: billingUsageQuery.data.billing?.plan ?? 'free',
-                  })}
-                </p>
+                billingUsageAtCap(billingUsageQuery.data) ? (
+                  <Notice tone='error' className='ui-usage-banner' role='status'>
+                    {t('home.pollUsageBanner', {
+                      current: billingUsageQuery.data.usage.activePolls,
+                      max: billingUsageQuery.data.usage.maxActivePolls,
+                      plan: billingUsageQuery.data.billing?.plan ?? 'free',
+                    })}
+                  </Notice>
+                ) : (
+                  <p className='ui-copy-muted ui-usage-banner' role='status'>
+                    {t('home.pollUsageBanner', {
+                      current: billingUsageQuery.data.usage.activePolls,
+                      max: billingUsageQuery.data.usage.maxActivePolls,
+                      plan: billingUsageQuery.data.billing?.plan ?? 'free',
+                    })}
+                  </p>
+                )
               ) : null}
               <Button
                 type='submit'
@@ -1176,7 +1331,26 @@ export default function Home() {
                 {submitting ? t('home.submitting') : t('home.submit')}
               </Button>
               <div aria-live='polite'>
-                {error ? <p className='error-message'>{error}</p> : null}
+                {error ? (
+                  <Notice tone='error'>
+                    {error}
+                    {errorUpgradeUrl ? (
+                      <>
+                        {' '}
+                        <a
+                          href={errorUpgradeUrl}
+                          target='_blank'
+                          rel='noreferrer'
+                          className='ui-link'
+                        >
+                          {t(
+                            errorUpgradeIsLicenseRenewal ? 'home.renewLicenseCta' : 'home.upgradeCta',
+                          )}
+                        </a>
+                      </>
+                    ) : null}
+                  </Notice>
+                ) : null}
               </div>
             </div>
           </Card>

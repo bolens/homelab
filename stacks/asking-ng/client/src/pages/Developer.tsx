@@ -7,6 +7,8 @@ import { useLocaleTag, useT } from '../i18n/I18nContext';
 import type { MessageKey } from '../i18n/locales';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
 import {
+  billingExportReminder,
+  billingUpgradeHintFromError,
   billingPastDueBannerPayload,
   billingUsageWarningSeverity,
   type BillingUsageWarningsPayload,
@@ -21,7 +23,18 @@ import {
 } from '../lib/queryKeys';
 import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
 import { streamingObsDocHref } from '../lib/streamingObsDocHref';
-import { Button, Container, FormRow, Inline, Input, Select, Textarea } from '../ui';
+import {
+  Button,
+  Container,
+  FormRow,
+  Inline,
+  Input,
+  Notice,
+  PageHeader,
+  SectionPanel,
+  Select,
+  Textarea,
+} from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 const LLM_GATEWAY_STORAGE_KEY = 'askingNgLlmGatewayToken';
@@ -89,6 +102,14 @@ function formatBillingUsageWarnings(
       }),
     );
   }
+  if (w.campaignAttribution) {
+    parts.push(
+      t('developer.billingWarnMeter', {
+        meter: t('developer.billingMeterCampaign'),
+        level: w.campaignAttribution,
+      }),
+    );
+  }
   return parts.join(t('developer.billingWarnListSep'));
 }
 
@@ -105,6 +126,76 @@ function assistantText(data: unknown): string {
   return typeof c === 'string' ? c : '';
 }
 
+const webhookResultsSnapshotExample = JSON.stringify(
+  {
+    event: 'poll_updated',
+    poll_id: 'poll_123',
+    data: {
+      poll_path: '/poll_123',
+      results_path: '/poll_123/results',
+      streamer_context: {
+        poll_title: 'What should we play next?',
+        phase: 'open',
+        voting_paused: false,
+        archived: false,
+        selection_mode: 'single',
+        schedule_utc_ms: {
+          open_at: null,
+          lock_at: null,
+          reveal_at: null,
+          expires_at: 1760000000000,
+        },
+      },
+      results_snapshot: {
+        captured_at_ms: 1759999900000,
+        effective_phase: 'open',
+        results_delay_applied: true,
+        results_visible_through_ms: 1759999870000,
+        boosted_voting_enabled: false,
+        options: [
+          { option: 'Mario Kart', vote_count: 42 },
+          { option: 'Tetris 99', vote_count: 31 },
+        ],
+        metrics: {
+          total_votes: 73,
+          total_weighted_votes: 73,
+        },
+      },
+    },
+  },
+  null,
+  2,
+);
+
+const webhookOwnerSnapshotExample = JSON.stringify(
+  {
+    event: 'vote',
+    poll_id: 'poll_123',
+    data: {
+      owner_snapshot: {
+        captured_at_ms: 1759999900000,
+        effective_phase: 'open',
+        results_delay_applied: true,
+        moderation_counters: {
+          votes_last_1m: 8,
+          unique_ip_hashes_last_1m: 6,
+          unique_accounts_last_1m: 2,
+          top_ip_votes_last_1m: 2,
+          quarantined_votes_pending: 3,
+          quarantined_votes_pending_account_linked: 1,
+          votes_account_linked_last_24h: 14,
+          votes_anonymous_last_24h: 201,
+          trust_ip_burst: { enabled: true, window_sec: 10, vote_threshold: 4 },
+          trust_chat_burst: { enabled: false },
+        },
+        delayed_votes_pending: 11,
+      },
+    },
+  },
+  null,
+  2,
+);
+
 export default function Developer() {
   const t = useT();
   const localeTag = useLocaleTag();
@@ -116,7 +207,14 @@ export default function Developer() {
   const [prompt, setPrompt] = useState('');
   const [assistantOut, setAssistantOut] = useState('');
   const [chatErr, setChatErr] = useState('');
-  const [toast, setToast] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [chatErrUpgradeUrl, setChatErrUpgradeUrl] = useState<string | null>(null);
+  const [chatErrUpgradeIsLicenseRenewal, setChatErrUpgradeIsLicenseRenewal] = useState(false);
+  const [toast, setToast] = useState<{
+    kind: 'ok' | 'error';
+    text: string;
+    upgradeUrl?: string;
+    upgradeIsLicenseRenewal?: boolean;
+  } | null>(null);
   const [userJwt, setUserJwt] = useState(() => getStoredUserJwt() ?? '');
 
   useEffect(() => {
@@ -211,6 +309,7 @@ export default function Developer() {
     modelIds.length > 0 && modelIds.includes(model) ? model : (modelIds[0] ?? '');
   const billingUsageWarning = billingUsageWarningSeverity(billingQuery.data);
   const billingPastDue = billingPastDueBannerPayload(billingQuery.data);
+  const exportReminder = billingExportReminder(billingQuery.data);
 
   const saveGatewayTokenMutation = useMutation({
     mutationFn: async (rawInput: string) => {
@@ -236,7 +335,13 @@ export default function Developer() {
       invalidateDeveloperLlmQueries(queryClient, userJwt, v);
     },
     onError: (e: unknown) => {
-      setToast({ kind: 'error', text: errMsg(e, t('developer.gatewayTokenSaveFail')) });
+      const hint = billingUpgradeHintFromError(e, billingQuery.data);
+      setToast({
+        kind: 'error',
+        text: errMsg(e, t('developer.gatewayTokenSaveFail')),
+        upgradeUrl: hint.url ?? undefined,
+        upgradeIsLicenseRenewal: hint.isLicenseRenewal,
+      });
     },
   });
 
@@ -256,16 +361,22 @@ export default function Developer() {
     },
     onSuccess: (data) => {
       setChatErr('');
+      setChatErrUpgradeUrl(null);
+      setChatErrUpgradeIsLicenseRenewal(false);
       setAssistantOut(assistantText(data));
     },
     onError: (e: unknown) => {
       setAssistantOut('');
+      const hint = billingUpgradeHintFromError(e, billingQuery.data);
+      setChatErrUpgradeUrl(hint.url);
+      setChatErrUpgradeIsLicenseRenewal(hint.isLicenseRenewal);
       setChatErr(errMsg(e, t('developer.errChat')));
     },
   });
 
-  const modelsError =
-    modelsQuery.isError && modelsQuery.error instanceof Error ? modelsQuery.error.message : '';
+  const modelsError = modelsQuery.isError ? errMsg(modelsQuery.error, t('developer.modelsLoading')) : '';
+  const statusErrUpgradeHint = billingUpgradeHintFromError(statusQuery.error, billingQuery.data);
+  const modelsErrUpgradeHint = billingUpgradeHintFromError(modelsQuery.error, billingQuery.data);
 
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
@@ -282,69 +393,121 @@ export default function Developer() {
       });
     },
     onError: (e: unknown) => {
-      setToast({ kind: 'error', text: errMsg(e, t('developer.testFail')) });
+      const hint = billingUpgradeHintFromError(e, billingQuery.data);
+      setToast({
+        kind: 'error',
+        text: errMsg(e, t('developer.testFail')),
+        upgradeUrl: hint.url ?? undefined,
+        upgradeIsLicenseRenewal: hint.isLicenseRenewal,
+      });
     },
   });
 
   return (
-    <Container size='lg' className='ui-page-shell page-narrow-wider'>
-      <h2 className='poll-header about-cta'>{t('developer.title')}</h2>
-      <p className='developer-intro'>
-        {t('developer.introBefore')}
-        <code>VITE_API_BASE</code>
-        {t('developer.introBetween')}
-        <code>LLM_PROVIDER</code>
-        {t('developer.introAfter')}
-      </p>
+    <Container size='lg' className='ui-page-shell asking-public-layout asking-public-layout--wider asking-developer-page' id='asking-developer-page'>
+      <PageHeader
+        title={t('developer.title')}
+        titleId='asking-developer-page__title'
+        subtitle={
+          <span className='asking-developer__intro'>
+            {t('developer.introBefore')}
+            <code>VITE_API_BASE</code>
+            {t('developer.introBetween')}
+            <code>LLM_PROVIDER</code>
+            {t('developer.introAfter')}
+          </span>
+        }
+      />
 
-      <section className='developer-section'>
-        <h5 className='ui-page-heading'>{t('developer.sectionOpenApi')}</h5>
+      <SectionPanel
+        className='asking-developer__section'
+        titleId='asking-developer__openapi-heading'
+        title={<span className='ui-page-heading'>{t('developer.sectionOpenApi')}</span>}
+      >
         <p>
           <a href={apiUrl('api-docs/')} target='_blank' rel='noopener noreferrer'>
             {t('developer.openApiLink')}
           </a>
         </p>
-      </section>
+      </SectionPanel>
 
-      <section className='developer-section'>
-        <h5 className='ui-page-heading'>{t('developer.sectionStreaming')}</h5>
+      <SectionPanel
+        className='asking-developer__section'
+        titleId='asking-developer__streaming-heading'
+        title={<span className='ui-page-heading'>{t('developer.sectionStreaming')}</span>}
+      >
         <p>
           <a href={streamingObsDocHref()} target='_blank' rel='noopener noreferrer'>
             {t('docs.streamingObsBrowserSource')}
           </a>
         </p>
-      </section>
+      </SectionPanel>
+
+      <SectionPanel
+        className='asking-developer__section'
+        titleId='asking-developer__webhook-examples-heading'
+        title={<span className='ui-page-heading'>{t('developer.sectionWebhookExamples')}</span>}
+      >
+        <p className='asking-developer__intro'>{t('developer.webhookExamplesIntro')}</p>
+        <p className='asking-developer__intro'>
+          {t('developer.webhookExamplesDocsBefore')}{' '}
+          <a href={apiUrl('api-docs/')} target='_blank' rel='noopener noreferrer'>
+            {t('developer.openApiLink')}
+          </a>{' '}
+          {t('developer.webhookExamplesDocsAfter')}
+        </p>
+        <p className='asking-developer__intro'>{t('developer.webhookExamplesResultsNote')}</p>
+        <Textarea
+          className='ui-input--stack asking-developer__textarea'
+          rows={20}
+          value={webhookResultsSnapshotExample}
+          readOnly
+          aria-label={t('developer.webhookResultsExampleAria')}
+        />
+        <p className='asking-developer__intro'>{t('developer.webhookExamplesOwnerNote')}</p>
+        <Textarea
+          className='ui-input--stack asking-developer__textarea'
+          rows={20}
+          value={webhookOwnerSnapshotExample}
+          readOnly
+          aria-label={t('developer.webhookOwnerExampleAria')}
+        />
+      </SectionPanel>
 
       {userJwt && billingQuery.isSuccess && (
-        <section className='developer-section'>
-          <h5 className='ui-page-heading'>{t('developer.sectionBilling')}</h5>
+        <SectionPanel
+          className='asking-developer__section'
+          titleId='asking-developer__billing-heading'
+          title={<span className='ui-page-heading'>{t('developer.sectionBilling')}</span>}
+        >
           {billingPastDue ? (
-            <p className='error-message ui-usage-banner' role='alert'>
+            <Notice tone='error' className='ui-usage-banner'>
               {t('billing.pastDueBanner')}{' '}
               <a href={billingPastDue.portalUrl} target='_blank' rel='noreferrer' className='ui-link'>
                 {t('billing.openCustomerPortal')}
               </a>
-            </p>
+            </Notice>
           ) : null}
           {billingUsageWarning ? (
-            <p
-              className={billingUsageWarning === '95' ? 'error-message' : 'developer-intro'}
-              role='status'
-            >
-              {billingUsageWarning === '95'
-                ? t('billing.usageNearLimit95')
-                : t('billing.usageNearLimit80')}
-            </p>
+            billingUsageWarning === '95' ? (
+              <Notice tone='error' role='status'>
+                {t('billing.usageNearLimit95')}
+              </Notice>
+            ) : (
+              <p className='asking-developer__intro' role='status'>
+                {t('billing.usageNearLimit80')}
+              </p>
+            )
           ) : null}
-          <p className='developer-intro'>{t('developer.billingIntro')}</p>
-          <p className='developer-intro'>
+          <p className='asking-developer__intro'>{t('developer.billingIntro')}</p>
+          <p className='asking-developer__intro'>
             <strong>{t('developer.billingCurrentPlan')}</strong>{' '}
             <code>{billingQuery.data?.billing?.plan ?? 'free'}</code>
           </p>
           {billingQuery.data?.usage?.limitsEnforced &&
           typeof billingQuery.data.usage.activePolls === 'number' &&
           typeof billingQuery.data.usage.maxActivePolls === 'number' ? (
-            <p className='developer-intro'>
+            <p className='asking-developer__intro'>
               {t('developer.billingPollUsage', {
                 current: billingQuery.data.usage.activePolls,
                 max: billingQuery.data.usage.maxActivePolls,
@@ -355,7 +518,7 @@ export default function Developer() {
           typeof billingQuery.data.usage.votesThisMonth === 'number' &&
           typeof billingQuery.data.usage.maxVotesPerMonth === 'number' &&
           billingQuery.data.usage.maxVotesPerMonth < Number.MAX_SAFE_INTEGER / 2 ? (
-            <p className='developer-intro'>
+            <p className='asking-developer__intro'>
               {t('developer.billingVoteUsage', {
                 current: billingQuery.data.usage.votesThisMonth,
                 max: billingQuery.data.usage.maxVotesPerMonth,
@@ -364,7 +527,7 @@ export default function Developer() {
           ) : null}
           {billingQuery.data?.usage?.limitsEnforced &&
           typeof billingQuery.data.usage.maxWsSubscribersPerPoll === 'number' ? (
-            <p className='developer-intro'>
+            <p className='asking-developer__intro'>
               {t('developer.billingWsRoomCap', {
                 max: billingQuery.data.usage.maxWsSubscribersPerPoll,
               })}
@@ -374,16 +537,21 @@ export default function Developer() {
           typeof billingQuery.data.usage.exportsToday === 'number' &&
           typeof billingQuery.data.usage.maxExportsPerDay === 'number' &&
           billingQuery.data.usage.maxExportsPerDay < Number.MAX_SAFE_INTEGER / 2 ? (
-            <p className='developer-intro'>
+            <p className='asking-developer__intro'>
               {t('developer.billingExportUsage', {
                 current: billingQuery.data.usage.exportsToday,
                 max: billingQuery.data.usage.maxExportsPerDay,
               })}
             </p>
           ) : null}
+          {exportReminder?.atCap ? (
+            <Notice tone='error' role='status'>
+              {t('billing.usageNearLimit95')}
+            </Notice>
+          ) : null}
           {billingQuery.data?.usage?.limitsEnforced &&
           typeof billingQuery.data.usage.maxPollLiveFanoutPerSec === 'number' ? (
-            <p className='developer-intro'>
+            <p className='asking-developer__intro'>
               {t('developer.billingFanoutCap', {
                 max: billingQuery.data.usage.maxPollLiveFanoutPerSec,
               })}
@@ -392,22 +560,32 @@ export default function Developer() {
           {billingQuery.data?.usage?.limitsEnforced &&
           typeof billingQuery.data.usage.webhookDeliveriesThisUtcMinute === 'number' &&
           typeof billingQuery.data.usage.maxWebhookDeliveriesPerUtcMinute === 'number' ? (
-            <p className='developer-intro'>
+            <p className='asking-developer__intro'>
               {t('developer.billingWebhookUsage', {
                 current: billingQuery.data.usage.webhookDeliveriesThisUtcMinute,
                 max: billingQuery.data.usage.maxWebhookDeliveriesPerUtcMinute,
               })}
             </p>
           ) : null}
+          {billingQuery.data?.usage?.limitsEnforced &&
+          typeof billingQuery.data.usage.campaignAttributionIncrementsToday === 'number' &&
+          typeof billingQuery.data.usage.maxCampaignAttributionPerUtcDay === 'number' ? (
+            <p className='asking-developer__intro'>
+              {t('developer.billingCampaignAttributionUsage', {
+                current: billingQuery.data.usage.campaignAttributionIncrementsToday,
+                max: billingQuery.data.usage.maxCampaignAttributionPerUtcDay,
+              })}
+            </p>
+          ) : null}
           {billingQuery.data?.usage?.limitsEnforced && billingQuery.data.usage.warnings ? (
-            <p className='developer-intro'>
+            <p className='asking-developer__intro'>
               {t('developer.billingUsageWarningsLine', {
                 detail: formatBillingUsageWarnings(billingQuery.data.usage.warnings, t),
               })}
             </p>
           ) : null}
           {polarBillingHasLinks(billingQuery.data) && (
-          <ul className='developer-list'>
+          <ul className='asking-developer__list'>
             {typeof billingQuery.data?.polar?.customerPortalUrl === 'string' &&
               billingQuery.data.polar.customerPortalUrl.trim() !== '' && (
                 <li>
@@ -446,17 +624,34 @@ export default function Developer() {
               )}
           </ul>
           )}
-        </section>
+        </SectionPanel>
       )}
 
-      <section className='developer-section'>
-        <h5 className='ui-page-heading'>{t('developer.sectionLlm')}</h5>
+      <SectionPanel
+        className='asking-developer__section'
+        titleId='asking-developer__llm-heading'
+        title={<span className='ui-page-heading'>{t('developer.sectionLlm')}</span>}
+      >
         {statusQuery.isLoading && <p>{t('developer.statusLoading')}</p>}
         {statusQuery.isError && (
-          <p className='error-message'>{errMsg(statusQuery.error, t('developer.errStatus'))}</p>
+          <Notice tone='error'>
+            {errMsg(statusQuery.error, t('developer.errStatus'))}
+            {statusErrUpgradeHint.url ? (
+              <>
+                {' '}
+                <a href={statusErrUpgradeHint.url} target='_blank' rel='noreferrer' className='ui-link'>
+                  {t(
+                    statusErrUpgradeHint.isLicenseRenewal
+                      ? 'developer.renewLicenseCta'
+                      : 'developer.upgradeCta',
+                  )}
+                </a>
+              </>
+            ) : null}
+          </Notice>
         )}
         {statusQuery.data && (
-          <ul className='developer-list'>
+          <ul className='asking-developer__list'>
             <li>
               <strong>{t('developer.provider')}</strong> {statusQuery.data.provider}
             </li>
@@ -490,19 +685,19 @@ export default function Developer() {
         )}
 
         {statusNeedsToken && (
-          <div className='developer-stack'>
+          <div className='asking-developer__stack'>
             <FormRow
               label={t('developer.gatewayTokenLabel')}
-              htmlFor='llm-gateway-token'
+              htmlFor='asking-developer__gateway-token'
               hint={
                 userJwt
                   ? t('developer.gatewayTokenStoredAccount')
                   : t('developer.gatewayTokenStoredSession')
               }
             >
-              <Inline gap='sm' wrap align='center' className='developer-gateway-row'>
+              <Inline gap='sm' wrap align='center' className='asking-developer__gateway-row'>
                 <Input
-                  id='llm-gateway-token'
+                  id='asking-developer__gateway-token'
                   type='password'
                   autoComplete='off'
                   className='ui-input--stack'
@@ -526,16 +721,34 @@ export default function Developer() {
         )}
 
         {!llmActive && statusQuery.data && (
-          <p className='developer-muted'>{t('developer.noLlmHint')}</p>
+          <p className='asking-developer__muted'>{t('developer.noLlmHint')}</p>
         )}
 
         {llmActive && (
           <>
-            <h5 className='ui-page-heading developer-heading-spaced'>{t('developer.modelsHeading')}</h5>
+            <h5 className='ui-page-heading asking-developer__heading--spaced' id='asking-developer-page__models-heading'>
+              {t('developer.modelsHeading')}
+            </h5>
             {modelsQuery.isLoading && <p>{t('developer.modelsLoading')}</p>}
-            {modelsError && <p className='error-message'>{modelsError}</p>}
+            {modelsError ? (
+              <Notice tone='error'>
+                {modelsError}
+                {modelsErrUpgradeHint.url ? (
+                  <>
+                    {' '}
+                    <a href={modelsErrUpgradeHint.url} target='_blank' rel='noreferrer' className='ui-link'>
+                      {t(
+                        modelsErrUpgradeHint.isLicenseRenewal
+                          ? 'developer.renewLicenseCta'
+                          : 'developer.upgradeCta',
+                      )}
+                    </a>
+                  </>
+                ) : null}
+              </Notice>
+            ) : null}
             {modelsQuery.data && (
-              <p className='developer-intro'>
+              <p className='asking-developer__intro'>
                 {t('developer.modelsCount', {
                   count: formatLocaleInteger(
                     modelIdsFromPayload(modelsQuery.data).length,
@@ -545,13 +758,13 @@ export default function Developer() {
               </p>
             )}
 
-            <h5 className='ui-page-heading developer-heading-spaced-sm'>
+            <h5 className='ui-page-heading asking-developer__heading--spaced-sm' id='asking-developer-page__chat-heading'>
               {t('developer.chatHeading')}
             </h5>
-            <FormRow label={t('developer.modelLabel')} htmlFor='llm-model'>
+            <FormRow label={t('developer.modelLabel')} htmlFor='asking-developer__model-select'>
               <Select
-                id='llm-model'
-                className='ui-input--stack developer-model-input'
+                id='asking-developer__model-select'
+                className='ui-input--stack asking-developer__model-input'
                 value={modelsQuery.isLoading ? '' : modelIds.length === 0 ? '' : selectModelValue}
                 onChange={(e) => setModel(e.target.value)}
                 disabled={modelsQuery.isLoading || modelIds.length === 0}
@@ -571,20 +784,20 @@ export default function Developer() {
               </Select>
             </FormRow>
             <FormRow
-              className='developer-prompt-row'
+              className='asking-developer__prompt-row'
               label={t('developer.messageLabel')}
-              htmlFor='llm-prompt'
+              htmlFor='asking-developer__prompt'
             >
               <Textarea
-                id='llm-prompt'
-                className='ui-input--stack developer-textarea'
+                id='asking-developer__prompt'
+                className='ui-input--stack asking-developer__textarea'
                 rows={4}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder={t('developer.messagePlaceholder')}
               />
             </FormRow>
-            <Inline gap='md' wrap align='center' className='developer-actions'>
+            <Inline gap='md' wrap align='center' className='asking-developer__actions'>
               <Button
                 type='button'
                 variant='secondary'
@@ -614,13 +827,25 @@ export default function Developer() {
               </Button>
             </Inline>
             {chatErr ? (
-              <p className='error-message' role='alert'>
+              <Notice tone='error' role='alert'>
                 {chatErr}
-              </p>
+                {chatErrUpgradeUrl ? (
+                  <>
+                    {' '}
+                    <a href={chatErrUpgradeUrl} target='_blank' rel='noreferrer' className='ui-link'>
+                      {t(
+                        chatErrUpgradeIsLicenseRenewal
+                          ? 'developer.renewLicenseCta'
+                          : 'developer.upgradeCta',
+                      )}
+                    </a>
+                  </>
+                ) : null}
+              </Notice>
             ) : null}
             {assistantOut ? (
               <pre
-                className='developer-output-pre'
+                className='asking-developer__output-pre'
                 role='region'
                 aria-label={t('developer.chatOutputAria')}
                 aria-live='polite'
@@ -630,12 +855,12 @@ export default function Developer() {
             ) : null}
           </>
         )}
-      </section>
+      </SectionPanel>
       {toast ? (
-        <div
-          role='status'
+        <Notice
+          tone={toast.kind === 'ok' ? 'success' : 'error'}
           aria-live='polite'
-          className={toast.kind === 'ok' ? 'ui-copy-muted' : 'error-message'}
+          className={toast.kind === 'ok' ? 'ui-copy-muted' : undefined}
           style={{
             position: 'fixed',
             right: 16,
@@ -649,7 +874,15 @@ export default function Developer() {
           }}
         >
           {toast.text}
-        </div>
+          {toast.upgradeUrl ? (
+            <>
+              {' '}
+              <a href={toast.upgradeUrl} target='_blank' rel='noreferrer' className='ui-link'>
+                {t(toast.upgradeIsLicenseRenewal ? 'developer.renewLicenseCta' : 'developer.upgradeCta')}
+              </a>
+            </>
+          ) : null}
+        </Notice>
       ) : null}
     </Container>
   );

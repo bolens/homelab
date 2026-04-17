@@ -8,7 +8,7 @@ import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import { formatLocaleDateTime } from '../lib/formatLocaleDisplay';
 import { adminAuditLogsQueryKey } from '../lib/queryKeys';
-import { Button } from '../ui';
+import { Button, Notice, PageHeader, SectionPanel } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 type AuditLogRow = {
@@ -140,115 +140,133 @@ export default function AdminAuditLogs() {
 
   if (!admin || (admin.role !== 'admin' && admin.role !== 'superadmin')) {
     return (
-      <div className='polls-page-container-error' role='alert'>
+      <Notice tone='error' className='asking-admin-page__error'>
         {t('admin.audit.accessDenied')}
-      </div>
+      </Notice>
     );
   }
 
   return (
-    <div className='polls-page-container admin-cq-root'>
-      <h3>{t('admin.audit.heading')}</h3>
-      <p className='admin-help-text'>{t('admin.audit.intro')}</p>
-      <div className='poll-form'>
-        <input
-          placeholder={t('admin.audit.placeholderAction')}
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-          aria-label={t('admin.audit.filterAction')}
-        />
-        <input
-          placeholder={t('admin.audit.placeholderActor')}
-          value={actor}
-          onChange={(e) => setActor(e.target.value)}
-          aria-label={t('admin.audit.filterActor')}
-        />
-        <input
-          placeholder={t('admin.audit.placeholderTarget')}
-          value={target}
-          onChange={(e) => setTarget(e.target.value)}
-          className='admin-target-input'
-          aria-label={t('admin.audit.filterTarget')}
-        />
-        <input
-          type='date'
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-          aria-label={t('admin.audit.startDate')}
-        />
-        <input
-          type='date'
-          value={end}
-          onChange={(e) => setEnd(e.target.value)}
-          aria-label={t('admin.audit.endDate')}
-        />
-        <label className='admin-audit-limit-label'>
-          {t('admin.audit.limitLabel')}{' '}
+    <div className='asking-admin-page asking-admin-audit-page asking-admin-page__cq-root' id='asking-admin-audit-page'>
+      <PageHeader
+        className='asking-admin-page__header'
+        titleId='asking-admin-audit-page__title'
+        titleClassName='asking-admin-page__title'
+        subtitleClassName='asking-admin-page__subtitle'
+        title={t('admin.audit.heading')}
+        subtitle={t('admin.audit.intro')}
+      />
+      <SectionPanel
+        className='asking-admin-page__section'
+        titleId='asking-admin-audit-page__filters-heading'
+        title={<span className='asking-admin-page__section-title'>{t('admin.audit.filter')}</span>}
+      >
+        <div className='asking-admin-audit-page__filter-form' id='asking-admin-audit-page__filter-form'>
           <input
-            type='number'
-            min={1}
-            max={500}
-            placeholder={t('admin.audit.placeholderLimit')}
-            value={limit}
-            onChange={(e) => setLimit(e.target.value)}
-            className='admin-audit-limit-input'
-            aria-label={t('admin.audit.limitAria')}
+            placeholder={t('admin.audit.placeholderAction')}
+            value={action}
+            onChange={(e) => setAction(e.target.value)}
+            aria-label={t('admin.audit.filterAction')}
           />
-        </label>
-        <Button
-          type='button'
-          variant='secondary'
-          className='poll-btn'
-          onClick={applyFilters}
-          aria-label={t('admin.audit.filterAria')}
-          title={t('admin.audit.filterTitle')}
-        >
-          {t('admin.audit.filter')}
-        </Button>
-        {isFetching ? (
-          <span className='admin-audit-filter-status' role='status' aria-live='polite'>
-            {t('admin.audit.loading')}
-          </span>
-        ) : null}
-      </div>
-      {loadError ? (
-        <div className='poll-status poll-status-error' role='alert'>
-          {loadError}
+          <input
+            placeholder={t('admin.audit.placeholderActor')}
+            value={actor}
+            onChange={(e) => setActor(e.target.value)}
+            aria-label={t('admin.audit.filterActor')}
+          />
+          <input
+            placeholder={t('admin.audit.placeholderTarget')}
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            className='asking-admin-audit-page__target-input'
+            aria-label={t('admin.audit.filterTarget')}
+          />
+          <input
+            type='date'
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            aria-label={t('admin.audit.startDate')}
+          />
+          <input
+            type='date'
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+            aria-label={t('admin.audit.endDate')}
+          />
+          <label className='asking-admin-audit-page__limit-label'>
+            {t('admin.audit.limitLabel')}{' '}
+            <input
+              type='number'
+              min={1}
+              max={500}
+              placeholder={t('admin.audit.placeholderLimit')}
+              value={limit}
+              onChange={(e) => setLimit(e.target.value)}
+              className='asking-admin-audit-page__limit-input'
+              aria-label={t('admin.audit.limitAria')}
+            />
+          </label>
+          <Button
+            type='button'
+            variant='secondary'
+            className='asking-admin-page__toolbar-btn'
+            onClick={applyFilters}
+            aria-label={t('admin.audit.filterAria')}
+            title={t('admin.audit.filterTitle')}
+          >
+            {t('admin.audit.filter')}
+          </Button>
+          {isFetching ? (
+            <span className='asking-admin-audit-page__filter-status' role='status' aria-live='polite'>
+              {t('admin.audit.loading')}
+            </span>
+          ) : null}
         </div>
+      </SectionPanel>
+      {loadError ? (
+        <Notice tone='error' className='asking-admin-page__status asking-admin-page__status--error'>
+          {loadError}
+        </Notice>
       ) : null}
-      <div className='admin-data-table-wrap'>
-        <table className='admin-audit-table'>
-          <thead>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th key={header.id} scope='col'>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {logs.length === 0 && !isFetching ? (
-              <tr>
-                <td colSpan={columns.length} className='admin-audit-empty-cell'>
-                  {t('admin.auditEmpty')}
-                </td>
-              </tr>
-            ) : null}
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <SectionPanel
+        className='asking-admin-page__section'
+        titleId='asking-admin-audit-page__table-heading'
+        title={<span className='asking-admin-page__section-title'>{t('admin.audit.heading')}</span>}
+      >
+        <div className='asking-admin-page__table-wrap'>
+          <table className='asking-admin-audit-page__table'>
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th key={header.id} scope='col'>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {logs.length === 0 && !isFetching ? (
+                <tr>
+                  <td colSpan={columns.length} className='asking-admin-audit-page__empty-cell'>
+                    {t('admin.auditEmpty')}
+                  </td>
+                </tr>
+              ) : null}
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </SectionPanel>
     </div>
   );
 }

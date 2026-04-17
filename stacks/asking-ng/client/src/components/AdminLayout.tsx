@@ -45,10 +45,10 @@ function AdminSidenavLink({
       {...(search ? { search } : {})}
       // Router default is prefix match; `/admin` would otherwise stay "active" on every child route.
       {...(exact ? { activeOptions: { exact: true } } : {})}
-      className='admin-app-sidenav-link'
+      className='asking-admin-app__sidenav-link'
       aria-current={current ? 'page' : undefined}
     >
-      {icon ? <span className='admin-app-sidenav-icon'>{icon}</span> : null}
+      {icon ? <span className='asking-admin-app__sidenav-icon'>{icon}</span> : null}
       {children}
     </Link>
   );
@@ -71,23 +71,23 @@ export default function AdminLayout() {
 
   if (isLogin) {
     return (
-      <main id='admin-main' aria-label={t('admin.chrome.mainAria')}>
+      <main id='asking-admin-app__main' aria-label={t('admin.chrome.mainAria')}>
         <Outlet />
       </main>
     );
   }
 
   return (
-    <div className='admin-app'>
-      <aside className='admin-app-sidebar' aria-label={t('admin.chrome.sidebarAria')}>
-        <div className='admin-app-brand'>
-          <Link to='/admin' className='admin-app-brand-link'>
+    <div className='asking-admin-app'>
+      <aside className='asking-admin-app__sidebar' id='asking-admin-app__sidebar' aria-label={t('admin.chrome.sidebarAria')}>
+        <div className='asking-admin-app__brand'>
+          <Link to='/admin' className='asking-admin-app__brand-link'>
             {t('admin.chrome.brandShort')}
           </Link>
         </div>
-        <nav className='admin-app-sidenav' aria-label={t('admin.chrome.navAria')}>
-          <div className='admin-app-nav-group'>
-            <div className='admin-app-nav-group-label'>{t('admin.chrome.nav.group.overview')}</div>
+        <nav className='asking-admin-app__sidenav' id='asking-admin-app__sidenav' aria-label={t('admin.chrome.navAria')}>
+          <div className='asking-admin-app__nav-group'>
+            <div className='asking-admin-app__nav-group-label'>{t('admin.chrome.nav.group.overview')}</div>
             <AdminSidenavLink
               to='/admin'
               pathname={pathname}
@@ -97,8 +97,8 @@ export default function AdminLayout() {
               {t('admin.chrome.dashboard')}
             </AdminSidenavLink>
           </div>
-          <div className='admin-app-nav-group'>
-            <div className='admin-app-nav-group-label'>
+          <div className='asking-admin-app__nav-group'>
+            <div className='asking-admin-app__nav-group-label'>
               {t('admin.chrome.nav.group.operations')}
             </div>
             {admin?.role === 'admin' || admin?.role === 'superadmin' ? (
@@ -118,8 +118,8 @@ export default function AdminLayout() {
               {t('admin.dashboard.polls')}
             </AdminSidenavLink>
           </div>
-          <div className='admin-app-nav-group'>
-            <div className='admin-app-nav-group-label'>
+          <div className='asking-admin-app__nav-group'>
+            <div className='asking-admin-app__nav-group-label'>
               {t('admin.chrome.nav.group.compliance')}
             </div>
             <AdminSidenavLink
@@ -140,8 +140,8 @@ export default function AdminLayout() {
               </AdminSidenavLink>
             ) : null}
           </div>
-          <div className='admin-app-nav-group'>
-            <div className='admin-app-nav-group-label'>{t('admin.chrome.nav.group.system')}</div>
+          <div className='asking-admin-app__nav-group'>
+            <div className='asking-admin-app__nav-group-label'>{t('admin.chrome.nav.group.system')}</div>
             <AdminSidenavLink
               to='/admin/status'
               pathname={pathname}
@@ -160,9 +160,9 @@ export default function AdminLayout() {
             ) : null}
           </div>
         </nav>
-        <div className='admin-app-sidebar-footer'>
-          <Link to='/' className='admin-app-sidenav-link admin-app-sidenav-link--footer'>
-            <span className='admin-app-sidenav-icon' aria-hidden>
+        <div className='asking-admin-app__sidebar-footer'>
+          <Link to='/' className='asking-admin-app__sidenav-link asking-admin-app__sidenav-link--footer'>
+            <span className='asking-admin-app__sidenav-icon' aria-hidden>
               <IconHouse />
             </span>
             {t('admin.chrome.public')}
@@ -170,7 +170,7 @@ export default function AdminLayout() {
           <Button
             type='button'
             variant='ghost'
-            className={cx('admin-users-btn', 'admin-app-logout')}
+            className={cx('asking-admin-page__btn', 'asking-admin-app__logout')}
             onClick={handleLogout}
           >
             <IconLogOut aria-hidden />
@@ -178,8 +178,8 @@ export default function AdminLayout() {
           </Button>
         </div>
       </aside>
-      <div className='admin-app-stage'>
-        <main id='admin-main' className='admin-app-content' aria-label={t('admin.chrome.mainAria')}>
+      <div className='asking-admin-app__stage'>
+        <main id='asking-admin-app__main' className='asking-admin-app__content' aria-label={t('admin.chrome.mainAria')}>
           <Outlet />
         </main>
       </div>

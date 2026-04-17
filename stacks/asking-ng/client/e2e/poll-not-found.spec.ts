@@ -16,6 +16,7 @@ test('poll page shows not found when API returns 404', async ({ page }) => {
   });
 
   await gotoAppPath(page, `/${missingId}`);
-  await expect(page.getByRole('heading', { name: /poll not found/i })).toBeVisible();
-  await expect(page.getByRole('link', { name: /create a new poll/i })).toBeVisible();
+  const pollShell = page.locator('#asking-poll-page');
+  await expect(pollShell.locator('#asking-poll-page__title')).toContainText(/poll not found/i);
+  await expect(pollShell.getByRole('link', { name: /create a new poll/i })).toBeVisible();
 });

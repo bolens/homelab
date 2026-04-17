@@ -151,9 +151,9 @@ export default function UserSettingsForm({ className }: UserSettingsFormProps) {
   return (
     <div className={className}>
       <Stack gap='md'>
-        <FormRow label={t('nav.languageLabel')} htmlFor='settings-ui-locale'>
+        <FormRow label={t('nav.languageLabel')} htmlFor='asking-settings-page__ui-locale'>
           <Select
-            id='settings-ui-locale'
+            id='asking-settings-page__ui-locale'
             className='ui-input--stack'
             value={uiLocale}
             onChange={(e) => setUILocale(e.target.value as UILocale)}
@@ -166,9 +166,9 @@ export default function UserSettingsForm({ className }: UserSettingsFormProps) {
             ))}
           </Select>
         </FormRow>
-        <FormRow label={t('nav.themeLabel')} htmlFor='settings-color-theme'>
+        <FormRow label={t('nav.themeLabel')} htmlFor='asking-settings-page__color-theme'>
           <Select
-            id='settings-color-theme'
+            id='asking-settings-page__color-theme'
             className='ui-input--stack'
             value={colorTheme}
             onChange={(e) => {
@@ -184,9 +184,9 @@ export default function UserSettingsForm({ className }: UserSettingsFormProps) {
             ))}
           </Select>
         </FormRow>
-        <FormRow label={t('nav.colorVisionLabel')} htmlFor='settings-color-vision'>
+        <FormRow label={t('nav.colorVisionLabel')} htmlFor='asking-settings-page__color-vision'>
           <Select
-            id='settings-color-vision'
+            id='asking-settings-page__color-vision'
             className='ui-input--stack'
             value={colorVision}
             onChange={(e) => {
@@ -202,9 +202,9 @@ export default function UserSettingsForm({ className }: UserSettingsFormProps) {
             ))}
           </Select>
         </FormRow>
-        <FormRow label={t('nav.readingComfortLabel')} htmlFor='settings-reading-comfort'>
+        <FormRow label={t('nav.readingComfortLabel')} htmlFor='asking-settings-page__reading-comfort'>
           <Select
-            id='settings-reading-comfort'
+            id='asking-settings-page__reading-comfort'
             className='ui-input--stack'
             value={dyslexiaMode}
             onChange={(e) => {
@@ -221,7 +221,7 @@ export default function UserSettingsForm({ className }: UserSettingsFormProps) {
           </Select>
         </FormRow>
         <Checkbox
-          id='settings-high-contrast'
+          id='asking-settings-page__high-contrast'
           label={t('nav.highContrast')}
           checked={highContrast}
           onChange={(e) => setHighContrast(e.target.checked)}

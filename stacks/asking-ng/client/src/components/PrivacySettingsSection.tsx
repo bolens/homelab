@@ -85,21 +85,25 @@ export default function PrivacySettingsSection() {
   const canDelete = deletePassword.trim().length > 0 && deleteConfirm.trim() === 'DELETE';
 
   return (
-    <section className='settings-privacy' aria-label={t('privacy.sectionTitle')}>
-      <h2 className='settings-privacy__title'>{t('privacy.sectionTitle')}</h2>
-      <p className='settings-privacy__lead'>{t('privacy.sectionLead')}</p>
+    <section className='asking-settings-page__privacy' aria-labelledby='asking-settings-page__privacy-section-heading'>
+      <h2 className='asking-settings-page__privacy-title' id='asking-settings-page__privacy-section-heading'>
+        {t('privacy.sectionTitle')}
+      </h2>
+      <p className='asking-settings-page__privacy-lead'>{t('privacy.sectionLead')}</p>
 
-      <div className='settings-privacy__card'>
-        <h3 className='settings-privacy__card-title'>{t('privacy.cookie.title')}</h3>
-        <p className='settings-privacy__text'>{t('privacy.cookie.copy')}</p>
-        <p className='settings-privacy__status'>
+      <div className='asking-settings-page__privacy-card'>
+        <h3 className='asking-settings-page__privacy-card-title' id='asking-settings-page__privacy-cookie-heading'>
+          {t('privacy.cookie.title')}
+        </h3>
+        <p className='asking-settings-page__privacy-text'>{t('privacy.cookie.copy')}</p>
+        <p className='asking-settings-page__privacy-status'>
           {t('privacy.cookie.current')}: <strong>{consentToLabel(consentState, t)}</strong>
         </p>
 
         {showGranular ? (
           <>
             <CookieConsentCategoriesForm
-              idPrefix='settings-privacy'
+              idPrefix='asking-settings-page__privacy'
               functional={functional}
               analytics={analytics}
               onChange={(patch) => {
@@ -107,7 +111,7 @@ export default function PrivacySettingsSection() {
                 if (patch.analytics !== undefined) setAnalytics(patch.analytics);
               }}
             />
-            <Inline gap='sm' wrap className='settings-privacy__actions settings-privacy__actions--after-granular'>
+            <Inline gap='sm' wrap className='asking-settings-page__privacy-actions asking-settings-page__privacy-actions--after-granular'>
               {region !== 'eu' ? (
                 <Button
                   type='button'
@@ -128,7 +132,7 @@ export default function PrivacySettingsSection() {
           </>
         ) : (
           <>
-            <Inline gap='sm' wrap className='settings-privacy__actions'>
+            <Inline gap='sm' wrap className='asking-settings-page__privacy-actions'>
               <Button type='button' variant='secondary' size='sm' onClick={() => setConsent('rejected')}>
                 {t('privacy.cookie.keepOff')}
               </Button>
@@ -136,12 +140,12 @@ export default function PrivacySettingsSection() {
                 {t('privacy.cookie.allow')}
               </Button>
             </Inline>
-            <p className='settings-privacy__text settings-privacy__text--compact mb-0 mt-2'>
+            <p className='asking-settings-page__privacy-text asking-settings-page__privacy-text--compact asking-settings-page__privacy-text--cta'>
               <Button
                 type='button'
                 variant='ghost'
                 size='sm'
-                className='settings-privacy__inline-link'
+                className='asking-settings-page__privacy-inline-link'
                 onClick={() => {
                   setGranularUiPreference(true);
                   setShowGranular(true);
@@ -162,9 +166,11 @@ export default function PrivacySettingsSection() {
         )}
       </div>
 
-      <div className='settings-privacy__card'>
-        <h3 className='settings-privacy__card-title'>{t('privacy.export.title')}</h3>
-        <p className='settings-privacy__text'>{t('privacy.export.copy')}</p>
+      <div className='asking-settings-page__privacy-card'>
+        <h3 className='asking-settings-page__privacy-card-title' id='asking-settings-page__privacy-export-heading'>
+          {t('privacy.export.title')}
+        </h3>
+        <p className='asking-settings-page__privacy-text'>{t('privacy.export.copy')}</p>
         <Button
           type='button'
           variant='secondary'
@@ -209,20 +215,22 @@ export default function PrivacySettingsSection() {
           {exportBusy ? t('privacy.export.busy') : t('privacy.export.cta')}
         </Button>
         {exportErr ? (
-          <p className='settings-privacy__msg settings-privacy__msg--error'>{exportErr}</p>
+          <p className='asking-settings-page__privacy-msg asking-settings-page__privacy-msg--error'>{exportErr}</p>
         ) : null}
       </div>
 
-      <div className='settings-privacy__card settings-privacy__danger'>
-        <h3 className='settings-privacy__card-title'>{t('privacy.delete.title')}</h3>
-        <p className='settings-privacy__text'>{t('privacy.delete.copy')}</p>
+      <div className='asking-settings-page__privacy-card asking-settings-page__privacy-card--danger'>
+        <h3 className='asking-settings-page__privacy-card-title' id='asking-settings-page__privacy-delete-heading'>
+          {t('privacy.delete.title')}
+        </h3>
+        <p className='asking-settings-page__privacy-text'>{t('privacy.delete.copy')}</p>
         {!isSignedIn ? (
-          <p className='settings-privacy__msg settings-privacy__msg--warning'>{t('privacy.delete.needSignIn')}</p>
+          <p className='asking-settings-page__privacy-msg asking-settings-page__privacy-msg--warning'>{t('privacy.delete.needSignIn')}</p>
         ) : null}
         <Stack gap='md'>
-          <FormRow label={t('privacy.delete.password')} htmlFor='settings-delete-password'>
+          <FormRow label={t('privacy.delete.password')} htmlFor='asking-settings-page__delete-password'>
             <Input
-              id='settings-delete-password'
+              id='asking-settings-page__delete-password'
               className='ui-input--stack'
               type='password'
               autoComplete='current-password'
@@ -231,9 +239,9 @@ export default function PrivacySettingsSection() {
               disabled={!isSignedIn}
             />
           </FormRow>
-          <FormRow label={t('privacy.delete.confirmLabel')} htmlFor='settings-delete-confirm'>
+          <FormRow label={t('privacy.delete.confirmLabel')} htmlFor='asking-settings-page__delete-confirm'>
             <Input
-              id='settings-delete-confirm'
+              id='asking-settings-page__delete-confirm'
               className='ui-input--stack'
               type='text'
               spellCheck={false}
@@ -280,10 +288,10 @@ export default function PrivacySettingsSection() {
           </Button>
         </Stack>
         {deleteMsg ? (
-          <p className='settings-privacy__msg settings-privacy__msg--success'>{deleteMsg}</p>
+          <p className='asking-settings-page__privacy-msg asking-settings-page__privacy-msg--success'>{deleteMsg}</p>
         ) : null}
         {deleteErr ? (
-          <p className='settings-privacy__msg settings-privacy__msg--error'>{deleteErr}</p>
+          <p className='asking-settings-page__privacy-msg asking-settings-page__privacy-msg--error'>{deleteErr}</p>
         ) : null}
       </div>
     </section>

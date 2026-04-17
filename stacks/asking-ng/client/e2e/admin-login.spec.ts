@@ -6,8 +6,8 @@ test('admin login reaches dashboard when E2E_ADMIN_TOKEN is set', async ({ page 
   test.skip(!token, 'Set E2E_ADMIN_TOKEN to run admin login e2e');
 
   await gotoAppPath(page, '/admin/login');
-  await page.getByLabel(/admin token/i).fill(token!);
+  await page.locator('#asking-admin-login-page__token').fill(token!);
   await page.getByRole('button', { name: /^login$/i }).click();
   await expect(page).toHaveURL(/\/admin\/?$/);
-  await expect(page.getByRole('heading', { name: /admin dashboard/i })).toBeVisible();
+  await expect(page.locator('#asking-admin-dashboard-page__title')).toBeVisible();
 });

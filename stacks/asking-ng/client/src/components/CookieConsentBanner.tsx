@@ -69,17 +69,18 @@ export default function CookieConsentBanner() {
 
   return (
     <aside
-      className='cookie-consent-banner'
+      className='asking-cookie-banner'
+      id='asking-cookie-banner'
       role='dialog'
       aria-live='polite'
       aria-label={t('cookie.banner.aria')}
     >
-      <p className='cookie-consent-banner__text'>{t('cookie.banner.body')}</p>
+      <p className='asking-cookie-banner__text'>{t('cookie.banner.body')}</p>
 
       {showGranular ? (
         <>
           <CookieConsentCategoriesForm
-            idPrefix='banner'
+            idPrefix='asking-cookie-banner__categories'
             functional={functional}
             analytics={analytics}
             onChange={(patch) => {
@@ -88,8 +89,8 @@ export default function CookieConsentBanner() {
             }}
           />
           <div
-            className={`cookie-consent-banner__actions cookie-consent-banner__actions--split${
-              region === 'eu' ? ' cookie-consent-banner__actions--end' : ''
+            className={`asking-cookie-banner__actions asking-cookie-banner__actions--split${
+              region === 'eu' ? ' asking-cookie-banner__actions--end' : ''
             }`}
           >
             {region !== 'eu' ? (
@@ -97,7 +98,7 @@ export default function CookieConsentBanner() {
                 type='button'
                 variant='ghost'
                 size='sm'
-                className='cookie-consent-banner__link'
+                className='asking-cookie-banner__link'
                 onClick={switchToSimple}
               >
                 {t('cookie.banner.simpleChoice')}
@@ -109,8 +110,8 @@ export default function CookieConsentBanner() {
           </div>
         </>
       ) : (
-        <div className='cookie-consent-banner__actions cookie-consent-banner__actions--stack'>
-          <div className='cookie-consent-banner__actions cookie-consent-banner__actions--row'>
+        <div className='asking-cookie-banner__actions asking-cookie-banner__actions--stack'>
+          <div className='asking-cookie-banner__actions asking-cookie-banner__actions--row'>
             <Button type='button' variant='secondary' size='sm' onClick={() => saveCookieConsent('rejected', 'banner')}>
               {t('privacy.cookie.keepOff')}
             </Button>
@@ -118,7 +119,7 @@ export default function CookieConsentBanner() {
               {t('privacy.cookie.allow')}
             </Button>
           </div>
-          <Button type='button' variant='ghost' size='sm' className='cookie-consent-banner__link' onClick={switchToGranular}>
+          <Button type='button' variant='ghost' size='sm' className='asking-cookie-banner__link' onClick={switchToGranular}>
             {t('cookie.banner.customize')}
           </Button>
         </div>

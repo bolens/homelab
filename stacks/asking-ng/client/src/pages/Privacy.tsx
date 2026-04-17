@@ -21,27 +21,36 @@ export default function Privacy() {
   const providers = useMemo(() => configuredAnalyticsProviders(), []);
 
   return (
-    <article className='ui-page-shell site-public about-page'>
+    <article
+      className='ui-page-shell asking-public-layout asking-privacy-page asking-about-page asking-terms-page'
+      id='asking-privacy-page'
+    >
       <header className='ui-page-hero'>
-        <h1 className='ui-page-hero-title'>{t('policy.title')}</h1>
-        <p className='ui-page-hero-tagline about-page__intro'>{t('policy.lead')}</p>
+        <h1 className='ui-page-hero-title' id='asking-privacy-page__title'>
+          {t('policy.title')}
+        </h1>
+        <p className='ui-page-hero-tagline asking-about-page__intro'>{t('policy.lead')}</p>
         {lastUpdated ? (
-          <p className='terms-disclaimer'>
+          <p className='asking-terms-page__disclaimer'>
             {t('policy.lastUpdated', { date: lastUpdated })}
           </p>
         ) : null}
       </header>
 
-      <div className='about-page__panels'>
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.summary.title')}</h2>
+      <div className='asking-about-page__panels'>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__summary-heading'>
+            {t('policy.section.summary.title')}
+          </h2>
           <p>{t('policy.section.summary.body')}</p>
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.collect.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__collect-heading'>
+            {t('policy.section.collect.title')}
+          </h2>
           <p>{t('policy.section.collect.body')}</p>
-          <ul className='terms-list'>
+          <ul className='asking-terms-page__list'>
             <li>{t('policy.section.collect.bulletAccount')}</li>
             <li>{t('policy.section.collect.bulletPoll')}</li>
             <li>{t('policy.section.collect.bulletVote')}</li>
@@ -49,21 +58,25 @@ export default function Privacy() {
           </ul>
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.cookies.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__cookies-heading'>
+            {t('policy.section.cookies.title')}
+          </h2>
           <p>{t('policy.section.cookies.body')}</p>
           <p>
             <Link to='/settings'>{t('policy.section.cookies.settingsLink')}</Link>
           </p>
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.subprocessors.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__subprocessors-heading'>
+            {t('policy.section.subprocessors.title')}
+          </h2>
           <p>{t('policy.section.subprocessors.intro')}</p>
           {providers.length === 0 ? (
             <p>{t('policy.section.subprocessors.none')}</p>
           ) : (
-            <ul className='terms-list'>
+            <ul className='asking-terms-page__list'>
               {providers.includes('umami') ? <li>{t('policy.section.subprocessors.umami')}</li> : null}
               {providers.includes('plausible') ? <li>{t('policy.section.subprocessors.plausible')}</li> : null}
               {providers.includes('matomo') ? <li>{t('policy.section.subprocessors.matomo')}</li> : null}
@@ -71,57 +84,69 @@ export default function Privacy() {
           )}
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.webhooks.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__webhooks-heading'>
+            {t('policy.section.webhooks.title')}
+          </h2>
           <p>{t('policy.section.webhooks.body')}</p>
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.llm.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__llm-heading'>
+            {t('policy.section.llm.title')}
+          </h2>
           <p>{t('policy.section.llm.body')}</p>
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.retention.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__retention-heading'>
+            {t('policy.section.retention.title')}
+          </h2>
           <p>{t('policy.section.retention.body')}</p>
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.rights.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__rights-heading'>
+            {t('policy.section.rights.title')}
+          </h2>
           <p>{t('policy.section.rights.body')}</p>
           <p>
             <Link to='/settings'>{t('policy.section.rights.settingsLink')}</Link>
           </p>
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.status.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__status-heading'>
+            {t('policy.section.status.title')}
+          </h2>
           <p>{t('policy.section.status.body')}</p>
           <p>
             <Link to='/status'>{t('policy.section.status.link')}</Link>
           </p>
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.contact.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__contact-heading'>
+            {t('policy.section.contact.title')}
+          </h2>
           <p>{t('policy.section.contact.intro')}</p>
           {secEmail ? (
             <p>
-              <a className='site-footer__link' href={`mailto:${secEmail}`}>
+              <a className='asking-app__footer-link' href={`mailto:${secEmail}`}>
                 {t('policy.contact.securityEmail', { email: secEmail })}
               </a>
             </p>
           ) : null}
           {legalEmail || legalUrl ? (
-            <p className='terms-contact-actions'>
+            <p className='asking-terms-page__contact-actions'>
               {legalEmail ? (
-                <a className='site-footer__link' href={`mailto:${legalEmail}`}>
+                <a className='asking-app__footer-link' href={`mailto:${legalEmail}`}>
                   {t('terms.contact.emailCta', { email: legalEmail })}
                 </a>
               ) : null}
               {legalEmail && legalUrl ? ' · ' : null}
               {legalUrl ? (
-                <a className='site-footer__link' href={legalUrl} rel='noopener noreferrer' target='_blank'>
+                <a className='asking-app__footer-link' href={legalUrl} rel='noopener noreferrer' target='_blank'>
                   {t('terms.contact.urlCta')}
                 </a>
               ) : null}
@@ -129,8 +154,10 @@ export default function Privacy() {
           ) : null}
         </Card>
 
-        <Card as='section' className='about-page__panel' padding='none'>
-          <h2 className='ui-flow-heading'>{t('policy.section.legal.title')}</h2>
+        <Card as='section' className='asking-about-page__panel' padding='none'>
+          <h2 className='ui-flow-heading' id='asking-privacy-page__legal-heading'>
+            {t('policy.section.legal.title')}
+          </h2>
           <p>{t('policy.section.legal.body')}</p>
           <p>
             <Link to='/terms'>{t('policy.section.legal.termsLink')}</Link>
@@ -138,7 +165,7 @@ export default function Privacy() {
         </Card>
       </div>
 
-      <nav className='about-page__actions' aria-label={t('policy.nav.actions')}>
+      <nav className='asking-about-page__actions' id='asking-privacy-page__actions' aria-label={t('policy.nav.actions')}>
         <Link to='/' className={cx('ui-button', 'ui-button--md', 'ui-button--primary')}>
           {t('policy.cta.home')}
         </Link>

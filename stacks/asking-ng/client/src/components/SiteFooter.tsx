@@ -20,26 +20,26 @@ export default function SiteFooter() {
 
   if (mode.kind === 'custom') {
     return (
-      <footer className='site-footer'>
-        <p className='site-footer__text'>{mode.text}</p>
+      <footer className='asking-app__footer' id='asking-app__footer'>
+        <p className='asking-app__footer-text'>{mode.text}</p>
       </footer>
     );
   }
 
   const href = parseAttributionUrl();
   return (
-    <footer className='site-footer'>
-      <Inline gap='sm' wrap align='center' className='site-footer__text'>
+    <footer className='asking-app__footer' id='asking-app__footer'>
+      <Inline gap='sm' wrap align='center' className='asking-app__footer-text'>
         <span>{t('footer.poweredBy')}</span>
-        <a className='site-footer__link' href={href} rel='noopener noreferrer' target='_blank'>
+        <a className='asking-app__footer-link' href={href} rel='noopener noreferrer' target='_blank'>
           {t('footer.brandName')}
         </a>
         <span aria-hidden>·</span>
-        <Link className='site-footer__link' to='/privacy'>
+        <Link className='asking-app__footer-link' to='/privacy'>
           {t('footer.privacy')}
         </Link>
         <span aria-hidden>·</span>
-        <Link className='site-footer__link' to='/terms'>
+        <Link className='asking-app__footer-link' to='/terms'>
           {t('footer.terms')}
         </Link>
       </Inline>

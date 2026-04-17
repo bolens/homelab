@@ -147,25 +147,31 @@ export default function PublicStatus() {
   }
 
   return (
-    <article className='ui-page-shell site-public status-page'>
+    <article className='ui-page-shell asking-public-layout asking-status-page' id='asking-status-page'>
       <header className='ui-page-hero'>
-        <h1 className='ui-page-hero-title'>{t('status.title')}</h1>
+        <h1 className='ui-page-hero-title' id='asking-status-page__title'>
+          {t('status.title')}
+        </h1>
         <p className='ui-page-hero-tagline'>{t('status.subtitle')}</p>
       </header>
 
-      <div className='status-page__grid'>
+      <div className='asking-status-page__grid'>
         <Card
           as='section'
           padding='none'
-          className={cx('ui-card--form-panel', 'status-page__card', 'status-page__overall')}
-          aria-labelledby='public-status-heading'
+          className={cx('ui-card--form-panel', 'asking-status-page__card', 'asking-status-page__overall')}
+          aria-labelledby='asking-status-page__current-heading'
         >
-          <h2 id='public-status-heading' className='ui-flow-heading'>
+          <h2 id='asking-status-page__current-heading' className='ui-flow-heading'>
             {t('status.current')}
           </h2>
           <p
-            className={`status-page__overall-state ${
-              apiHealthy ? 'poll-status-success' : isChecking ? '' : 'poll-status-error'
+            className={`asking-status-page__overall-state ${
+              apiHealthy
+                ? 'asking-status-page__status--success'
+                : isChecking
+                  ? ''
+                  : 'asking-status-page__status--error'
             }`}
           >
             {isChecking
@@ -174,7 +180,7 @@ export default function PublicStatus() {
                 ? t('status.operational')
                 : t('status.incident')}
           </p>
-          <p className='status-page__overall-meta'>
+          <p className='asking-status-page__overall-meta'>
             {t('status.updatedAt', { ts: formatLocaleDateTime(updatedAtIso, localeTag) })}
             {' · '}
             {t('status.autoRefresh')}
@@ -184,32 +190,32 @@ export default function PublicStatus() {
         <Card
           as='section'
           padding='none'
-          className={cx('ui-card--form-panel', 'status-page__card')}
-          aria-labelledby='public-status-components-heading'
+          className={cx('ui-card--form-panel', 'asking-status-page__card')}
+          aria-labelledby='asking-status-page__components-heading'
         >
-          <h2 id='public-status-components-heading' className='ui-flow-heading'>
+          <h2 id='asking-status-page__components-heading' className='ui-flow-heading'>
             {t('status.components')}
           </h2>
-          <ul className='status-page__components' role='list'>
-            <li className='status-page__component'>
-              <div className='status-page__component-main'>
-                <span className='status-page__component-name'>{t('status.liveness')}</span>
-                <code className='status-page__component-route'>GET /healthcheck</code>
+          <ul className='asking-status-page__components' role='list'>
+            <li className='asking-status-page__component'>
+              <div className='asking-status-page__component-main'>
+                <span className='asking-status-page__component-name'>{t('status.liveness')}</span>
+                <code className='asking-status-page__component-route'>GET /healthcheck</code>
               </div>
-              <span className={`status-page__badge status-page__badge--${healthTone}`}>
-                <span className='status-page__badge-dot' aria-hidden='true' />
+              <span className={`asking-status-page__badge asking-status-page__badge--${healthTone}`}>
+                <span className='asking-status-page__badge-dot' aria-hidden='true' />
                 {healthQuery.isError
                   ? errMsg(healthQuery.error, t('status.requestFailed'))
                   : toneLabel(healthTone, t, healthQuery.data?.status, localeTag)}
               </span>
             </li>
-            <li className='status-page__component'>
-              <div className='status-page__component-main'>
-                <span className='status-page__component-name'>{t('status.readiness')}</span>
-                <code className='status-page__component-route'>GET /ready</code>
+            <li className='asking-status-page__component'>
+              <div className='asking-status-page__component-main'>
+                <span className='asking-status-page__component-name'>{t('status.readiness')}</span>
+                <code className='asking-status-page__component-route'>GET /ready</code>
               </div>
-              <span className={`status-page__badge status-page__badge--${readyTone}`}>
-                <span className='status-page__badge-dot' aria-hidden='true' />
+              <span className={`asking-status-page__badge asking-status-page__badge--${readyTone}`}>
+                <span className='asking-status-page__badge-dot' aria-hidden='true' />
                 {readyQuery.isError
                   ? errMsg(readyQuery.error, t('status.requestFailed'))
                   : toneLabel(readyTone, t, readyQuery.data?.status, localeTag)}
@@ -221,14 +227,14 @@ export default function PublicStatus() {
         <Card
           as='section'
           padding='none'
-          className={cx('ui-card--form-panel', 'status-page__card')}
-          aria-labelledby='public-status-uptime-heading'
+          className={cx('ui-card--form-panel', 'asking-status-page__card')}
+          aria-labelledby='asking-status-page__uptime-heading'
         >
-          <h2 id='public-status-uptime-heading' className='ui-flow-heading'>
+          <h2 id='asking-status-page__uptime-heading' className='ui-flow-heading'>
             {t('status.uptimeHeading')}
           </h2>
-          <p className='status-page__uptime-value'>{uptimeSummary}</p>
-          <p className='status-page__uptime-note'>
+          <p className='asking-status-page__uptime-value'>{uptimeSummary}</p>
+          <p className='asking-status-page__uptime-note'>
             {historyQuery.isPending
               ? t('status.checking')
               : historyQuery.isError
@@ -248,44 +254,44 @@ export default function PublicStatus() {
         <Card
           as='section'
           padding='none'
-          className={cx('ui-card--form-panel', 'status-page__card')}
-          aria-labelledby='public-status-incidents-heading'
+          className={cx('ui-card--form-panel', 'asking-status-page__card')}
+          aria-labelledby='asking-status-page__incidents-heading'
         >
-          <h2 id='public-status-incidents-heading' className='ui-flow-heading'>
+          <h2 id='asking-status-page__incidents-heading' className='ui-flow-heading'>
             {t('status.recentIncidents')}
           </h2>
           {historyQuery.isPending ? (
-            <p className='status-page__incident-empty'>{t('status.checking')}</p>
+            <p className='asking-status-page__incident-empty'>{t('status.checking')}</p>
           ) : null}
           {historyQuery.isError ? (
-            <p className='poll-status-error' role='alert'>
+            <p className='asking-status-page__status asking-status-page__status--error' role='alert'>
               {errMsg(historyQuery.error, t('status.historyError'))}
             </p>
           ) : null}
           {!historyQuery.isPending && !historyQuery.isError && incidents.length === 0 ? (
-            <p className='status-page__incident-empty'>{t('status.noRecentIncidents')}</p>
+            <p className='asking-status-page__incident-empty'>{t('status.noRecentIncidents')}</p>
           ) : null}
           {!historyQuery.isPending && !historyQuery.isError && incidents.length > 0 ? (
-            <ul className='status-page__incidents' role='list'>
+            <ul className='asking-status-page__incidents' role='list'>
               {incidents.map((incident) => (
                 <li
                   key={`${incident.startedAt}-${incident.endedAt ?? 'open'}`}
-                  className='status-page__incident'
+                  className='asking-status-page__incident'
                 >
-                  <div className='status-page__incident-head'>
+                  <div className='asking-status-page__incident-head'>
                     <strong>{incident.summary}</strong>
                     <span
-                      className={`status-page__badge status-page__badge--${
+                      className={`asking-status-page__badge asking-status-page__badge--${
                         incident.status === 'resolved' ? 'ok' : 'error'
                       }`}
                     >
-                      <span className='status-page__badge-dot' aria-hidden='true' />
+                      <span className='asking-status-page__badge-dot' aria-hidden='true' />
                       {incident.status === 'resolved'
                         ? t('status.incidentResolved')
                         : t('status.incidentInvestigating')}
                     </span>
                   </div>
-                  <p className='status-page__incident-meta'>
+                  <p className='asking-status-page__incident-meta'>
                     {t('status.incidentRange', {
                       start: formatLocaleDateTime(incident.startedAt, localeTag),
                       end: incident.endedAt
@@ -307,20 +313,20 @@ export default function PublicStatus() {
         <Card
           as='section'
           padding='none'
-          className={cx('ui-card--form-panel', 'status-page__card')}
-          aria-labelledby='public-status-build-heading'
+          className={cx('ui-card--form-panel', 'asking-status-page__card')}
+          aria-labelledby='asking-status-page__build-heading'
         >
-          <h2 id='public-status-build-heading' className='ui-flow-heading'>
+          <h2 id='asking-status-page__build-heading' className='ui-flow-heading'>
             {t('status.buildInfo')}
           </h2>
           {infoQuery.isPending ? (
             <p>{t('status.checking')}</p>
           ) : infoQuery.isError ? (
-            <p className='poll-status-error' role='alert'>
+            <p className='asking-status-page__status asking-status-page__status--error' role='alert'>
               {errMsg(infoQuery.error, t('status.infoError'))}
             </p>
           ) : (
-            <dl className='admin-status-dl'>
+            <dl className='asking-admin-status-page__dl'>
               <dt>{t('status.service')}</dt>
               <dd>{info?.service ?? t('status.unknown')}</dd>
               <dt>{t('status.version')}</dt>
@@ -346,14 +352,14 @@ export default function PublicStatus() {
         <Card
           as='section'
           padding='none'
-          className={cx('ui-card--form-panel', 'status-page__card')}
-          aria-labelledby='public-status-stay-updated-heading'
+          className={cx('ui-card--form-panel', 'asking-status-page__card')}
+          aria-labelledby='asking-status-page__stay-updated-heading'
         >
-          <h2 id='public-status-stay-updated-heading' className='ui-flow-heading'>
+          <h2 id='asking-status-page__stay-updated-heading' className='ui-flow-heading'>
             {t('status.stayUpdated')}
           </h2>
-          <p className='status-page__stay-updated-copy'>{t('status.stayUpdatedHint')}</p>
-          <div className='status-page__actions'>
+          <p className='asking-status-page__stay-updated-copy'>{t('status.stayUpdatedHint')}</p>
+          <div className='asking-status-page__actions'>
             <Button type='button' variant='secondary' onClick={() => void copyStatusUrl()}>
               {linkCopied ? t('status.copyLinkDone') : t('status.copyLink')}
             </Button>

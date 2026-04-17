@@ -16,6 +16,7 @@ import Navbar from './components/Navbar';
 import NetworkStatusBanner from './components/NetworkStatusBanner';
 import SiteFooter from './components/SiteFooter';
 import { useT, useUILocale } from './i18n/I18nContext';
+import { apiFetch, isApiFetchError } from './http';
 import { hasAdminRouteCredential } from './lib/jwtRole';
 import { parsePollSearch } from './lib/pollRouteSearch';
 import About from './pages/About';
@@ -39,6 +40,7 @@ const AdminAuditLogs = lazyRouteComponent(() => import('./pages/AdminAuditLogs')
 const AdminExport = lazyRouteComponent(() => import('./pages/AdminExport'));
 const AdminStatus = lazyRouteComponent(() => import('./pages/AdminStatus'));
 const AdminImpersonate = lazyRouteComponent(() => import('./pages/AdminImpersonate'));
+const AdminSetup = lazyRouteComponent(() => import('./pages/AdminSetup'));
 
 function requireAdmin() {
   if (!hasAdminRouteCredential()) {
@@ -63,18 +65,42 @@ function preventReservedPollRoute(id: string) {
   }
 }
 
+type AdminBootstrapStatus = {
+  noAdminExists?: boolean;
+  adminTokenIsDefault?: boolean;
+};
+
+async function maybeRedirectToAdminOnFirstRun() {
+  try {
+    const status = (await apiFetch('admin/bootstrap-status', {
+      adminToken: false,
+    })) as AdminBootstrapStatus;
+    const needsBootstrap =
+      Boolean(status?.noAdminExists) || Boolean(status?.adminTokenIsDefault);
+    if (needsBootstrap) {
+      throw redirect({ to: '/admin/setup' });
+    }
+  } catch (err: unknown) {
+    if (isApiFetchError(err)) {
+      // If the API is not ready yet, fall back to the normal route.
+      return;
+    }
+    return;
+  }
+}
+
 function RootLayout() {
   const t = useT();
   const { uiLocale } = useUILocale();
   return (
     <>
-      <a href='#main-content' className='skip-to-main'>
+      <a href='#asking-app__main' className='asking-app__skip-to-main'>
         {t('nav.skipToMain')}
       </a>
-      <div className='app-shell' data-ui-locale={uiLocale}>
+      <div className='asking-app' id='asking-app' data-ui-locale={uiLocale}>
         <NetworkStatusBanner />
         <Navbar />
-        <main id='main-content' tabIndex={-1}>
+        <main id='asking-app__main' tabIndex={-1}>
           <Outlet />
         </main>
         <CookieConsentBanner />
@@ -87,8 +113,10 @@ function RootLayout() {
 function NotFoundView() {
   const t = useT();
   return (
-    <div className='ui-page-shell'>
-      <h1 className='error-message not-found-title'>{t('notFound.title')}</h1>
+    <div className='ui-page-shell asking-not-found-page' id='asking-not-found-page'>
+      <h1 className='ui-alert ui-alert--danger asking-not-found-page__title' id='asking-not-found-page__title'>
+        {t('notFound.title')}
+      </h1>
       <p>
         <Link to='/'>{t('notFound.back')}</Link>
       </p>
@@ -104,6 +132,7 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
+  beforeLoad: () => maybeRedirectToAdminOnFirstRun(),
   component: Home,
 });
 
@@ -122,12 +151,14 @@ const developerRoute = createRoute({
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'login',
+  beforeLoad: () => maybeRedirectToAdminOnFirstRun(),
   component: Login,
 });
 
 const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'register',
+  beforeLoad: () => maybeRedirectToAdminOnFirstRun(),
   component: Register,
 });
 
@@ -171,6 +202,12 @@ const adminLoginRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: 'login',
   component: AdminLogin,
+});
+
+const adminSetupRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'setup',
+  component: AdminSetup,
 });
 
 const adminDashboardRoute = createRoute({
@@ -252,6 +289,7 @@ const routeTree = rootRoute.addChildren([
   privacyRoute,
   adminRoute.addChildren([
     adminLoginRoute,
+    adminSetupRoute,
     adminDashboardRoute,
     adminUsersRoute,
     adminPollsRoute,

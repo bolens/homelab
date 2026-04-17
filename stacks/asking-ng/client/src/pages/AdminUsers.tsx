@@ -12,7 +12,7 @@ import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
 import { clearStoredUserJwt, getStoredUserJwt, setStoredUserJwt } from '../lib/userSession';
-import { Button, cx, VisuallyHidden } from '../ui';
+import { Button, PageHeader, SectionPanel, cx, Notice, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 import { zodErrorSummary } from '../utils/zodForm';
 import { useAdminWebSocket } from '../wsClient';
@@ -27,9 +27,9 @@ type AdminDirectoryUser = {
 type SortKey = keyof AdminDirectoryUser;
 
 function roleBadgeClass(role: string): string {
-  if (role === 'superadmin') return 'admin-users-role admin-users-role--superadmin';
-  if (role === 'admin') return 'admin-users-role admin-users-role--admin';
-  return 'admin-users-role';
+  if (role === 'superadmin') return 'asking-admin-users-page__role asking-admin-users-page__role--superadmin';
+  if (role === 'admin') return 'asking-admin-users-page__role asking-admin-users-page__role--admin';
+  return 'asking-admin-users-page__role';
 }
 
 export default function AdminUsers() {
@@ -371,9 +371,9 @@ export default function AdminUsers() {
 
   if (!admin || (admin.role !== 'admin' && admin.role !== 'superadmin')) {
     return (
-      <div className='polls-page-container-error' role='alert'>
+      <Notice tone='error' className='asking-admin-page__error'>
         {t('admin.users.accessDenied')}
-      </div>
+      </Notice>
     );
   }
 
@@ -388,46 +388,59 @@ export default function AdminUsers() {
 
   return (
     <div
-      className={`polls-page-container admin-cq-root${selected.length > 0 ? ' has-mobile-bulk-actions' : ''}`}
+      id='asking-admin-users-page'
+      className={`asking-admin-page asking-admin-users-page asking-admin-page__cq-root${
+        selected.length > 0 ? ' asking-admin-page--has-mobile-bulk-actions' : ''
+      }`}
     >
-      <header className='admin-page-header'>
-        <h1 className='admin-page-title'>{t('admin.users.heading')}</h1>
-        <p className='admin-page-subtitle'>
-          {t('admin.users.pageSubtitle', { shown: shownStr, total: totalStr })}
-        </p>
-      </header>
+      <PageHeader
+        className='asking-admin-page__header'
+        titleId='asking-admin-users-page__title'
+        titleClassName='asking-admin-page__title'
+        subtitleClassName='asking-admin-page__subtitle'
+        title={t('admin.users.heading')}
+        subtitle={t('admin.users.pageSubtitle', { shown: shownStr, total: totalStr })}
+      />
 
       {selected.length > 0 ? (
         <a
-          href={mobileStickyBulkActive ? '#admin-users-mobile-bulk' : '#admin-users-bulk-actions'}
-          className='admin-jump-link'
+          href={
+            mobileStickyBulkActive
+              ? '#asking-admin-users-page__mobile-bulk'
+              : '#asking-admin-users-page__bulk-actions'
+          }
+          className='asking-admin-page__jump-link'
         >
           {t('admin.users.skipToBulk')}
         </a>
       ) : null}
 
       {success ? (
-        <div className='poll-status poll-status-success' role='status' aria-live='polite'>
+        <Notice
+          tone='success'
+          className='asking-admin-page__status asking-admin-page__status--success'
+          aria-live='polite'
+        >
           {success}
-        </div>
+        </Notice>
       ) : null}
       {error ? (
-        <div className='poll-status poll-status-error' role='alert'>
+        <Notice tone='error' className='asking-admin-page__status asking-admin-page__status--error'>
           {error}
-        </div>
+        </Notice>
       ) : null}
 
       {admin.role === 'superadmin' && superadminExists ? (
         <section
-          className='admin-users-app-session'
-          aria-labelledby='admin-users-app-session-title'
+          className='asking-admin-users-page__app-session'
+          aria-labelledby='asking-admin-users-page__app-session-title'
         >
-          <h2 id='admin-users-app-session-title' className='admin-users-app-session-title'>
+          <h2 id='asking-admin-users-page__app-session-title' className='asking-admin-users-page__app-session-title'>
             {t('admin.users.appSessionTitle')}
           </h2>
-          <p className='admin-users-app-session-intro'>{t('admin.users.appSessionIntro')}</p>
+          <p className='asking-admin-users-page__app-session-intro'>{t('admin.users.appSessionIntro')}</p>
           {appProfile ? (
-            <div className='admin-users-inline-actions'>
+            <div className='asking-admin-users-page__inline-actions'>
               <span>
                 {t('admin.users.appSessionSignedIn', {
                   user: appProfile.homelab-user,
@@ -437,7 +450,7 @@ export default function AdminUsers() {
               <Button
                 type='button'
                 variant='secondary'
-                className='admin-users-btn'
+                className='asking-admin-page__btn'
                 onClick={() => {
                   clearStoredUserJwt();
                   setAppProfile(null);
@@ -447,25 +460,29 @@ export default function AdminUsers() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleAppLogin} className='admin-users-form admin-users-form--session'>
-              <VisuallyHidden as='label' htmlFor='admin-users-app-homelab-user'>
+            <form
+              id='asking-admin-users-page__app-session-form'
+              onSubmit={handleAppLogin}
+              className='asking-admin-users-page__form asking-admin-users-page__form--session'
+            >
+              <VisuallyHidden as='label' htmlFor='asking-admin-users-page__app-session-homelab-user'>
                 {t('admin.users.appSessionUsername')}
               </VisuallyHidden>
               <input
-                id='admin-users-app-homelab-user'
-                className='admin-users-input'
+                id='asking-admin-users-page__app-session-homelab-user'
+                className='asking-admin-users-page__input'
                 autoComplete='homelab-user'
                 placeholder={t('admin.users.appSessionUsername')}
                 value={appLoginUser}
                 onChange={(e) => setAppLoginUser(e.target.value)}
               />
-              <VisuallyHidden as='label' htmlFor='admin-users-app-password'>
+              <VisuallyHidden as='label' htmlFor='asking-admin-users-page__app-session-password'>
                 {t('admin.users.appSessionPassword')}
               </VisuallyHidden>
               <input
-                id='admin-users-app-password'
+                id='asking-admin-users-page__app-session-password'
                 type='password'
-                className='admin-users-input'
+                className='asking-admin-users-page__input'
                 autoComplete='current-password'
                 placeholder={t('admin.users.appSessionPassword')}
                 value={appLoginPass}
@@ -474,7 +491,7 @@ export default function AdminUsers() {
               <Button
                 type='submit'
                 variant='primary'
-                className='poll-btn'
+                className='asking-admin-page__toolbar-btn'
                 style={{ marginInlineStart: 0 }}
                 disabled={appLoginSubmitting}
               >
@@ -487,139 +504,154 @@ export default function AdminUsers() {
         </section>
       ) : null}
 
-      <form
-        onSubmit={handleCreateUser}
-        className='poll-form poll-form--tight'
-        aria-label={t('admin.users.createFormAria')}
+      <SectionPanel
+        titleId='asking-admin-users-page__create-heading'
+        title={<span className='asking-admin-page__section-title'>{t('admin.users.createLabel')}</span>}
       >
-        <b>{t('admin.users.createLabel')}</b>
-        <VisuallyHidden as='label' htmlFor='admin-users-new-homelab-user'>
-          {t('admin.users.newUsername')}
-        </VisuallyHidden>
-        <input
-          id='admin-users-new-homelab-user'
-          placeholder={t('admin.users.placeholderUsername')}
-          value={newUser.homelab-user}
-          onChange={(e) => setNewUser({ ...newUser, homelab-user: e.target.value })}
-          className='poll-input-question'
-        />
-        <VisuallyHidden as='label' htmlFor='admin-users-new-password'>
-          {t('admin.users.newPassword')}
-        </VisuallyHidden>
-        <input
-          id='admin-users-new-password'
-          type='password'
-          placeholder={t('admin.users.placeholderPassword')}
-          value={newUser.password}
-          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-          className='poll-input-wide'
-        />
-        <VisuallyHidden as='label' htmlFor='admin-users-new-role'>
-          {t('admin.users.newUserRole')}
-        </VisuallyHidden>
-        <select
-          id='admin-users-new-role'
-          value={newUser.role}
-          onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-          className='poll-input-wide'
+        <form
+          id='asking-admin-users-page__create-user-form'
+          onSubmit={handleCreateUser}
+          className='asking-admin-users-page__create-form asking-admin-users-page__create-form--tight'
+          aria-label={t('admin.users.createFormAria')}
         >
-          <option value='user'>{t('admin.users.roleValueUser')}</option>
-          <option value='mod'>{t('admin.users.roleValueMod')}</option>
-          <option value='admin'>{t('admin.users.roleValueAdmin')}</option>
-          {canJwtManageSuperadmin && (
-            <option value='superadmin'>{t('admin.users.roleValueSuperadmin')}</option>
-          )}
-        </select>
-        <Button type='submit' variant='secondary' className='poll-btn'>
-          {t('admin.users.create')}
-        </Button>
-      </form>
+          <VisuallyHidden as='label' htmlFor='asking-admin-users-page__create-homelab-user'>
+            {t('admin.users.newUsername')}
+          </VisuallyHidden>
+          <input
+            id='asking-admin-users-page__create-homelab-user'
+            placeholder={t('admin.users.placeholderUsername')}
+            value={newUser.homelab-user}
+            onChange={(e) => setNewUser({ ...newUser, homelab-user: e.target.value })}
+            className='asking-admin-users-page__input--question'
+          />
+          <VisuallyHidden as='label' htmlFor='asking-admin-users-page__create-password'>
+            {t('admin.users.newPassword')}
+          </VisuallyHidden>
+          <input
+            id='asking-admin-users-page__create-password'
+            type='password'
+            placeholder={t('admin.users.placeholderPassword')}
+            value={newUser.password}
+            onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+            className='asking-admin-users-page__input--wide'
+          />
+          <VisuallyHidden as='label' htmlFor='asking-admin-users-page__create-role'>
+            {t('admin.users.newUserRole')}
+          </VisuallyHidden>
+          <select
+            id='asking-admin-users-page__create-role'
+            value={newUser.role}
+            onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+            className='asking-admin-users-page__input--wide'
+          >
+            <option value='user'>{t('admin.users.roleValueUser')}</option>
+            <option value='mod'>{t('admin.users.roleValueMod')}</option>
+            <option value='admin'>{t('admin.users.roleValueAdmin')}</option>
+            {canJwtManageSuperadmin && (
+              <option value='superadmin'>{t('admin.users.roleValueSuperadmin')}</option>
+            )}
+          </select>
+          <Button type='submit' variant='secondary' className='asking-admin-page__toolbar-btn'>
+            {t('admin.users.create')}
+          </Button>
+        </form>
+      </SectionPanel>
 
-      <div className='polls-search-bar polls-search-bar--tight'>
-        <VisuallyHidden as='label' htmlFor='admin-users-search'>
-          {t('admin.users.searchLabel')}
-        </VisuallyHidden>
-        <input
-          id='admin-users-search'
-          placeholder={t('admin.users.searchPlaceholder')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <VisuallyHidden as='label' htmlFor='admin-users-role-filter'>
-          {t('admin.users.filterRoleLabel')}
-        </VisuallyHidden>
-        <select
-          id='admin-users-role-filter'
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-        >
-          <option value=''>{t('admin.users.roleAll')}</option>
-          <option value='user'>{t('admin.users.roleUser')}</option>
-          <option value='mod'>{t('admin.users.roleMod')}</option>
-          <option value='admin'>{t('admin.users.roleAdmin')}</option>
-          <option value='superadmin'>{t('admin.users.roleSuperadmin')}</option>
-        </select>
-        <VisuallyHidden as='label' htmlFor='admin-users-active-filter'>
-          {t('admin.users.filterStatusLabel')}
-        </VisuallyHidden>
-        <select
-          id='admin-users-active-filter'
-          value={activeFilter}
-          onChange={(e) => setActiveFilter(e.target.value)}
-        >
-          <option value=''>{t('admin.users.statusAll')}</option>
-          <option value='active'>{t('admin.users.statusActive')}</option>
-          <option value='inactive'>{t('admin.users.statusInactive')}</option>
-        </select>
-        <Button
-          type='button'
-          variant='secondary'
-          className='poll-btn'
-          aria-label={t('admin.users.clearFilters')}
-          onClick={() => {
-            setSearch('');
-            setRoleFilter('');
-            setActiveFilter('');
-          }}
-        >
-          {t('admin.users.clear')}
-        </Button>
-        <Button type='button' variant='secondary' className='poll-btn' onClick={() => setRefresh((r) => r + 1)}>
-          {t('admin.users.refresh')}
-        </Button>
-      </div>
+      <SectionPanel
+        titleId='asking-admin-users-page__search-heading'
+        title={<span className='asking-admin-page__section-title'>{t('admin.users.searchLabel')}</span>}
+      >
+        <div className='asking-admin-users-page__search-bar asking-admin-users-page__search-bar--tight'>
+          <VisuallyHidden as='label' htmlFor='asking-admin-users-page__directory-search'>
+            {t('admin.users.searchLabel')}
+          </VisuallyHidden>
+          <input
+            id='asking-admin-users-page__directory-search'
+            placeholder={t('admin.users.searchPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <VisuallyHidden as='label' htmlFor='asking-admin-users-page__role-filter'>
+            {t('admin.users.filterRoleLabel')}
+          </VisuallyHidden>
+          <select
+            id='asking-admin-users-page__role-filter'
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            <option value=''>{t('admin.users.roleAll')}</option>
+            <option value='user'>{t('admin.users.roleUser')}</option>
+            <option value='mod'>{t('admin.users.roleMod')}</option>
+            <option value='admin'>{t('admin.users.roleAdmin')}</option>
+            <option value='superadmin'>{t('admin.users.roleSuperadmin')}</option>
+          </select>
+          <VisuallyHidden as='label' htmlFor='asking-admin-users-page__active-filter'>
+            {t('admin.users.filterStatusLabel')}
+          </VisuallyHidden>
+          <select
+            id='asking-admin-users-page__active-filter'
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value)}
+          >
+            <option value=''>{t('admin.users.statusAll')}</option>
+            <option value='active'>{t('admin.users.statusActive')}</option>
+            <option value='inactive'>{t('admin.users.statusInactive')}</option>
+          </select>
+          <Button
+            type='button'
+            variant='secondary'
+            className='asking-admin-page__toolbar-btn'
+            aria-label={t('admin.users.clearFilters')}
+            onClick={() => {
+              setSearch('');
+              setRoleFilter('');
+              setActiveFilter('');
+            }}
+          >
+            {t('admin.users.clear')}
+          </Button>
+          <Button
+            type='button'
+            variant='secondary'
+            className='asking-admin-page__toolbar-btn'
+            onClick={() => setRefresh((r) => r + 1)}
+          >
+            {t('admin.users.refresh')}
+          </Button>
+        </div>
+      </SectionPanel>
 
-      <section
-        className='admin-users-tools'
-        aria-label={
-          admin.role === 'superadmin'
-            ? t('admin.users.sectionTools')
-            : t('admin.users.resetPasswordCardTitle')
-        }
+      <SectionPanel
+        className='asking-admin-users-page__tools'
+        titleId='asking-admin-users-page__tools-heading'
+        title={t('admin.users.sectionTools')}
+        hint={t('admin.users.resetPasswordCardTitle')}
       >
         {admin.role === 'superadmin' ? (
-          <div className='admin-users-tool-card'>
-            <h3 className='admin-users-tool-card-title'>{t('admin.users.changeRoleCardTitle')}</h3>
-            <form onSubmit={handleChangeRole} className='admin-users-tool-form'>
-              <div className='admin-users-tool-form-row'>
-                <VisuallyHidden as='label' htmlFor='admin-users-role-user-id'>
+          <div className='asking-admin-users-page__tool-card'>
+            <h3 className='asking-admin-users-page__tool-card-title' id='asking-admin-users-page__change-role-heading'>
+              {t('admin.users.changeRoleCardTitle')}
+            </h3>
+            <form id='asking-admin-users-page__change-role-form' onSubmit={handleChangeRole} className='asking-admin-users-page__tool-form'>
+              <div className='asking-admin-users-page__tool-form-row'>
+                <VisuallyHidden as='label' htmlFor='asking-admin-users-page__role-user-id'>
                   {t('admin.users.userIdRole')}
                 </VisuallyHidden>
                 <input
-                  id='admin-users-role-user-id'
+                  id='asking-admin-users-page__role-user-id'
                   placeholder={t('admin.users.placeholderUserId')}
                   value={roleEdit.id}
                   onChange={(e) => setRoleEdit({ ...roleEdit, id: e.target.value })}
-                  className='poll-input-question'
+                  className='asking-admin-users-page__input--question'
                 />
-                <VisuallyHidden as='label' htmlFor='admin-users-role-select'>
+                <VisuallyHidden as='label' htmlFor='asking-admin-users-page__role-select'>
                   {t('admin.users.newRole')}
                 </VisuallyHidden>
                 <select
-                  id='admin-users-role-select'
+                  id='asking-admin-users-page__role-select'
                   value={roleEdit.role}
                   onChange={(e) => setRoleEdit({ ...roleEdit, role: e.target.value })}
-                  className='poll-input-wide'
+                  className='asking-admin-users-page__input--wide'
                 >
                   <option value='user'>{t('admin.users.roleValueUser')}</option>
                   <option value='mod'>{t('admin.users.roleValueMod')}</option>
@@ -628,7 +660,7 @@ export default function AdminUsers() {
                     <option value='superadmin'>{t('admin.users.roleValueSuperadmin')}</option>
                   )}
                 </select>
-                <Button type='submit' variant='secondary' className='poll-btn'>
+                <Button type='submit' variant='secondary' className='asking-admin-page__toolbar-btn'>
                   {t('admin.users.change')}
                 </Button>
               </div>
@@ -636,51 +668,53 @@ export default function AdminUsers() {
           </div>
         ) : null}
 
-        <div className='admin-users-tool-card'>
-          <h3 className='admin-users-tool-card-title'>{t('admin.users.resetPasswordCardTitle')}</h3>
-          <form onSubmit={handleResetPassword} className='admin-users-tool-form'>
-            <div className='admin-users-tool-form-row'>
-              <VisuallyHidden as='label' htmlFor='admin-users-reset-user-id'>
+        <div className='asking-admin-users-page__tool-card'>
+          <h3 className='asking-admin-users-page__tool-card-title' id='asking-admin-users-page__reset-password-heading'>
+            {t('admin.users.resetPasswordCardTitle')}
+          </h3>
+          <form id='asking-admin-users-page__reset-password-form' onSubmit={handleResetPassword} className='asking-admin-users-page__tool-form'>
+            <div className='asking-admin-users-page__tool-form-row'>
+              <VisuallyHidden as='label' htmlFor='asking-admin-users-page__reset-user-id'>
                 {t('admin.users.resetUserId')}
               </VisuallyHidden>
               <input
-                id='admin-users-reset-user-id'
+                id='asking-admin-users-page__reset-user-id'
                 placeholder={t('admin.users.placeholderUserId')}
                 value={resetPw.id}
                 onChange={(e) => setResetPw({ ...resetPw, id: e.target.value })}
-                className='poll-input-question'
+                className='asking-admin-users-page__input--question'
               />
-              <VisuallyHidden as='label' htmlFor='admin-users-reset-password'>
+              <VisuallyHidden as='label' htmlFor='asking-admin-users-page__reset-password'>
                 {t('admin.users.resetPassword')}
               </VisuallyHidden>
               <input
-                id='admin-users-reset-password'
+                id='asking-admin-users-page__reset-password'
                 type='password'
                 placeholder={t('admin.users.placeholderNewPassword')}
                 value={resetPw.password}
                 onChange={(e) => setResetPw({ ...resetPw, password: e.target.value })}
-                className='poll-input-wide'
+                className='asking-admin-users-page__input--wide'
               />
-              <Button type='submit' variant='secondary' className='poll-btn'>
+              <Button type='submit' variant='secondary' className='asking-admin-page__toolbar-btn'>
                 {t('admin.users.reset')}
               </Button>
             </div>
           </form>
         </div>
-      </section>
+      </SectionPanel>
 
-      <section
-        id='admin-users-bulk-actions'
+      <SectionPanel
+        id='asking-admin-users-page__bulk-actions'
         role='region'
-        aria-labelledby='admin-users-bulk-heading'
-        className='polls-bulk-actions polls-bulk-actions--tight'
+        titleId='asking-admin-users-page__bulk-heading'
+        title={t('admin.users.bulkLabel')}
+        className='asking-admin-users-page__bulk-actions asking-admin-users-page__bulk-actions--tight'
         inert={mobileStickyBulkActive}
       >
-        <b id='admin-users-bulk-heading'>{t('admin.users.bulkLabel')}</b>
         <Button
           type='button'
           variant='secondary'
-          className='poll-btn'
+          className='asking-admin-page__toolbar-btn'
           onClick={() => void handleBulk('suspend')}
           disabled={selected.length === 0}
           aria-label={t('admin.users.voiceSuspendBulk')}
@@ -690,7 +724,7 @@ export default function AdminUsers() {
         <Button
           type='button'
           variant='secondary'
-          className='poll-btn'
+          className='asking-admin-page__toolbar-btn'
           onClick={() => void handleBulk('activate')}
           disabled={selected.length === 0}
           aria-label={t('admin.users.voiceActivateBulk')}
@@ -702,149 +736,155 @@ export default function AdminUsers() {
           variant='secondary'
           onClick={() => void handleBulk('delete')}
           disabled={selected.length === 0}
-          className={cx('poll-btn', 'poll-delete-btn')}
+          className={cx('asking-admin-page__toolbar-btn', 'asking-admin-page__toolbar-btn--danger')}
           aria-label={t('admin.users.voiceDeleteBulk')}
         >
           {t('admin.users.delete')}
         </Button>
-        <span className='poll-bulk-selected' role='status' aria-live='polite' aria-atomic='true'>
+        <span className='asking-admin-users-page__bulk-selected' role='status' aria-live='polite' aria-atomic='true'>
           {t('admin.users.selected', { count: formatLocaleInteger(selected.length, localeTag) })}
         </span>
-      </section>
+      </SectionPanel>
 
-      <div className='admin-data-table-wrap'>
-        <table className='admin-users-table'>
-          <thead>
-            <tr>
-              <th scope='col' aria-sort={sortAriaValue('id')}>
-                <button
-                  type='button'
-                  className='table-sort-btn'
-                  onClick={() => handleSortClick('id')}
-                >
-                  {t('admin.users.colId')}
-                  {sortIndicator('id')}
-                </button>
-              </th>
-              <th scope='col' aria-sort={sortAriaValue('homelab-user')}>
-                <button
-                  type='button'
-                  className='table-sort-btn'
-                  onClick={() => handleSortClick('homelab-user')}
-                >
-                  {t('admin.users.colUsername')}
-                  {sortIndicator('homelab-user')}
-                </button>
-              </th>
-              <th scope='col' aria-sort={sortAriaValue('role')}>
-                <button
-                  type='button'
-                  className='table-sort-btn'
-                  onClick={() => handleSortClick('role')}
-                >
-                  {t('admin.users.colRole')}
-                  {sortIndicator('role')}
-                </button>
-              </th>
-              <th scope='col' aria-sort={sortAriaValue('active')}>
-                <button
-                  type='button'
-                  className='table-sort-btn'
-                  onClick={() => handleSortClick('active')}
-                >
-                  {t('admin.users.colActive')}
-                  {sortIndicator('active')}
-                </button>
-              </th>
-              <th scope='col'>{t('admin.users.colActions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.map((u) => (
-              <tr key={u.id}>
-                <td>
-                  <input
-                    type='checkbox'
-                    checked={selected.includes(u.id)}
-                    onChange={() => handleSelect(u.id)}
-                    onKeyDown={(e) => {
-                      if ((e.key === ' ' || e.key === 'Spacebar') && e.shiftKey) {
-                        e.preventDefault();
-                        handleSelect(u.id);
-                      }
-                    }}
-                    aria-label={t('admin.users.selectUser', { homelab-user: u.homelab-user })}
-                  />{' '}
-                  {formatLocaleInteger(u.id, localeTag)}
-                </td>
-                <td>{u.homelab-user}</td>
-                <td>
-                  <span className={roleBadgeClass(u.role)}>{u.role}</span>
-                </td>
-                <td>{u.active ? t('admin.users.yes') : t('admin.users.no')}</td>
-                <td>
-                  <div className='admin-users-actions-cell'>
-                    {u.active ? (
-                      <Button
-                        type='button'
-                        variant='secondary'
-                        className='poll-btn'
-                        onClick={() => void handleSuspend(u.id)}
-                        aria-label={t('admin.users.voiceSuspendRow', { homelab-user: u.homelab-user })}
-                      >
-                        {t('admin.users.suspend')}
-                      </Button>
-                    ) : (
-                      <Button
-                        type='button'
-                        variant='secondary'
-                        className='poll-btn'
-                        onClick={() => void handleActivate(u.id)}
-                        aria-label={t('admin.users.voiceActivateRow', { homelab-user: u.homelab-user })}
-                      >
-                        {t('admin.users.activate')}
-                      </Button>
-                    )}
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      onClick={() => void handleDeleteUser(u.id)}
-                      className={cx('poll-btn', 'poll-delete-btn')}
-                      aria-label={t('admin.users.voiceDeleteRow', { homelab-user: u.homelab-user })}
-                    >
-                      {t('admin.users.delete')}
-                    </Button>
-                  </div>
-                </td>
+      <SectionPanel
+        className='asking-admin-page__section'
+        titleId='asking-admin-users-page__table-heading'
+        title={<VisuallyHidden as='span'>{t('admin.users.heading')}</VisuallyHidden>}
+      >
+        <div className='asking-admin-page__table-wrap'>
+          <table className='asking-admin-users-page__table'>
+            <thead>
+              <tr>
+                <th scope='col' aria-sort={sortAriaValue('id')}>
+                  <button
+                    type='button'
+                    className='asking-admin-page__table-sort-btn'
+                    onClick={() => handleSortClick('id')}
+                  >
+                    {t('admin.users.colId')}
+                    {sortIndicator('id')}
+                  </button>
+                </th>
+                <th scope='col' aria-sort={sortAriaValue('homelab-user')}>
+                  <button
+                    type='button'
+                    className='asking-admin-page__table-sort-btn'
+                    onClick={() => handleSortClick('homelab-user')}
+                  >
+                    {t('admin.users.colUsername')}
+                    {sortIndicator('homelab-user')}
+                  </button>
+                </th>
+                <th scope='col' aria-sort={sortAriaValue('role')}>
+                  <button
+                    type='button'
+                    className='asking-admin-page__table-sort-btn'
+                    onClick={() => handleSortClick('role')}
+                  >
+                    {t('admin.users.colRole')}
+                    {sortIndicator('role')}
+                  </button>
+                </th>
+                <th scope='col' aria-sort={sortAriaValue('active')}>
+                  <button
+                    type='button'
+                    className='asking-admin-page__table-sort-btn'
+                    onClick={() => handleSortClick('active')}
+                  >
+                    {t('admin.users.colActive')}
+                    {sortIndicator('active')}
+                  </button>
+                </th>
+                <th scope='col'>{t('admin.users.colActions')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filteredUsers.map((u) => (
+                <tr key={u.id}>
+                  <td>
+                    <input
+                      type='checkbox'
+                      checked={selected.includes(u.id)}
+                      onChange={() => handleSelect(u.id)}
+                      onKeyDown={(e) => {
+                        if ((e.key === ' ' || e.key === 'Spacebar') && e.shiftKey) {
+                          e.preventDefault();
+                          handleSelect(u.id);
+                        }
+                      }}
+                      aria-label={t('admin.users.selectUser', { homelab-user: u.homelab-user })}
+                    />{' '}
+                    {formatLocaleInteger(u.id, localeTag)}
+                  </td>
+                  <td>{u.homelab-user}</td>
+                  <td>
+                    <span className={roleBadgeClass(u.role)}>{u.role}</span>
+                  </td>
+                  <td>{u.active ? t('admin.users.yes') : t('admin.users.no')}</td>
+                  <td>
+                    <div className='asking-admin-users-page__actions-cell'>
+                      {u.active ? (
+                        <Button
+                          type='button'
+                          variant='secondary'
+                          className='asking-admin-page__toolbar-btn'
+                          onClick={() => void handleSuspend(u.id)}
+                          aria-label={t('admin.users.voiceSuspendRow', { homelab-user: u.homelab-user })}
+                        >
+                          {t('admin.users.suspend')}
+                        </Button>
+                      ) : (
+                        <Button
+                          type='button'
+                          variant='secondary'
+                          className='asking-admin-page__toolbar-btn'
+                          onClick={() => void handleActivate(u.id)}
+                          aria-label={t('admin.users.voiceActivateRow', { homelab-user: u.homelab-user })}
+                        >
+                          {t('admin.users.activate')}
+                        </Button>
+                      )}
+                      <Button
+                        type='button'
+                        variant='secondary'
+                        onClick={() => void handleDeleteUser(u.id)}
+                        className={cx('asking-admin-page__toolbar-btn', 'asking-admin-page__toolbar-btn--danger')}
+                        aria-label={t('admin.users.voiceDeleteRow', { homelab-user: u.homelab-user })}
+                      >
+                        {t('admin.users.delete')}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </SectionPanel>
       {selected.length > 0 ? (
         <section
-          id='admin-users-mobile-bulk'
+          id='asking-admin-users-page__mobile-bulk'
           role='region'
-          aria-labelledby='admin-users-mobile-bulk-heading'
-          className='admin-mobile-bulk-actions'
+          aria-labelledby='asking-admin-users-page__mobile-bulk-heading'
+          className='asking-admin-page__mobile-bulk-actions'
         >
-          <VisuallyHidden as='h2' id='admin-users-mobile-bulk-heading'>
+          <VisuallyHidden as='h2' id='asking-admin-users-page__mobile-bulk-heading'>
             {t('admin.users.bulkLabel')}
           </VisuallyHidden>
           <span
-            className='admin-mobile-bulk-selected'
+            className='asking-admin-page__mobile-bulk-selected'
             role='status'
             aria-live='polite'
             aria-atomic='true'
           >
             {t('admin.users.selected', { count: formatLocaleInteger(selected.length, localeTag) })}
           </span>
-          <div className='admin-mobile-bulk-buttons'>
+          <div className='asking-admin-page__mobile-bulk-buttons'>
             <Button
               type='button'
               variant='secondary'
               onClick={() => void handleBulk('suspend')}
-              className='admin-users-btn'
+              className='asking-admin-page__btn'
               aria-label={t('admin.users.voiceSuspendBulk')}
             >
               {t('admin.users.suspend')}
@@ -853,7 +893,7 @@ export default function AdminUsers() {
               type='button'
               variant='secondary'
               onClick={() => void handleBulk('activate')}
-              className='admin-users-btn'
+              className='asking-admin-page__btn'
               aria-label={t('admin.users.voiceActivateBulk')}
             >
               {t('admin.users.activate')}
@@ -862,7 +902,7 @@ export default function AdminUsers() {
               type='button'
               variant='secondary'
               onClick={() => void handleBulk('delete')}
-              className={cx('admin-users-btn', 'admin-users-btn-delete')}
+              className={cx('asking-admin-page__btn', 'asking-admin-page__btn--danger')}
               aria-label={t('admin.users.voiceDeleteBulk')}
             >
               {t('admin.users.delete')}

@@ -74,5 +74,5 @@ export default function VoteHeatmap({ points, ariaLabel }: VoteHeatmapProps) {
     heatLayerRef.current = layer;
   }, [points, heatThemeEpoch]);
 
-  return <div className='poll-heatmap' ref={mapElRef} role='img' aria-label={ariaLabel} />;
+  return <div className='asking-poll-page__heatmap' ref={mapElRef} role='img' aria-label={ariaLabel} />;
 }

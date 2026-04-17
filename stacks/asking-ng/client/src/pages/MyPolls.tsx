@@ -16,6 +16,8 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import {
+  billingExportReminder,
+  billingUpgradeHintFromError,
   billingPastDueBannerPayload,
   billingUsageAtCap,
   billingUsageWarningSeverity,
@@ -25,7 +27,9 @@ import { mineQueryKey, mineQueryPrefix, profileBillingQueryKey, quarantineQueryK
 import { isWebShareLikelyAvailable, shareUrlNative } from '../lib/webShare';
 import { withUtm } from '../lib/withUtm';
 import { clearStoredUserJwt, getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
+import { fetchConsentRegion, type ConsentRegionHint } from '../lib/cookieConsent';
 import {
+  ActionRow,
   Button,
   Checkbox,
   Container,
@@ -34,7 +38,9 @@ import {
   FormSection,
   Inline,
   Input,
+  PageHeader,
   Select,
+  SectionCard,
   Textarea,
 } from '../ui';
 import { formatQuarantineReasonLabel } from '../lib/formatQuarantineReasonLabel';
@@ -49,7 +55,14 @@ type MinePoll = {
   archived: boolean;
   createdAt: string;
   hasWebhook: boolean;
-  webhook_targets?: Array<{ url: string; secret?: string }>;
+  webhook_targets?: Array<{
+    url: string;
+    secret?: string;
+    hint_locale?: 'en' | 'en-gb' | 'es';
+    include_results_snapshot?: boolean;
+    include_owner_snapshot?: boolean;
+    include_owner_events?: boolean;
+  }>;
   phase: string;
   voting_paused: boolean;
   pause_message: string | null;
@@ -57,7 +70,13 @@ type MinePoll = {
   shared_editor_user_ids: number[];
   theme_preset?: 'default' | 'sunset' | 'ocean' | 'neon';
   selection_mode?: 'single' | 'multi';
-  vote_eligibility?: 'anonymous' | 'account';
+  vote_eligibility?: 'anonymous' | 'account' | 'platform_linked';
+  platform_identity_provider?: string | null;
+  platform_identity_consent_version?: string | null;
+  platform_identity_consent_captured_at_ms?: number | null;
+  retention_ttl_days?: number | null;
+  retention_legal_hold?: boolean;
+  auto_delete_at_ms?: number | null;
   has_embed_read_token: boolean;
   open_at: number | null;
   lock_at: number | null;
@@ -189,20 +208,49 @@ function resultsDelayPresetFromSeconds(
   return 'custom';
 }
 
-type WebhookTargetDraft = { url: string; secret: string };
+type WebhookTargetDraft = {
+  url: string;
+  secret: string;
+  hint_locale?: 'en' | 'en-gb' | 'es';
+  include_results_snapshot?: boolean;
+  include_owner_snapshot?: boolean;
+  include_owner_events?: boolean;
+};
 
 function normalizeWebhookTargets(
-  input: Array<{ url: string; secret?: string }> | null | undefined,
+  input:
+    | Array<{
+        url: string;
+        secret?: string;
+        hint_locale?: 'en' | 'en-gb' | 'es';
+        include_results_snapshot?: boolean;
+        include_owner_snapshot?: boolean;
+        include_owner_events?: boolean;
+      }>
+    | null
+    | undefined,
 ): WebhookTargetDraft[] {
   return (input ?? [])
     .map((row) => ({
       url: typeof row?.url === 'string' ? row.url.trim() : '',
       secret: typeof row?.secret === 'string' ? row.secret : '',
+      hint_locale: row?.hint_locale,
+      include_results_snapshot: row?.include_results_snapshot === true,
+      include_owner_snapshot: row?.include_owner_snapshot === true,
+      include_owner_events: row?.include_owner_events === true,
     }))
     .filter((row) => row.url !== '');
 }
 
-function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
+function PollManagePanel({
+  p,
+  jwt,
+  billingData,
+}: {
+  p: MinePoll;
+  jwt: string;
+  billingData: ProfileBillingApiPayload | undefined;
+}) {
   const t = useT();
   const qc = useQueryClient();
   const [phase, setPhase] = useState<PollPhase>(() => normalizePollPhase(p.phase));
@@ -216,9 +264,15 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
   const [selectionMode, setSelectionMode] = useState<'single' | 'multi'>(
     p.selection_mode === 'multi' ? 'multi' : 'single',
   );
-  const [voteEligibility, setVoteEligibility] = useState<'anonymous' | 'account'>(
-    p.vote_eligibility === 'account' ? 'account' : 'anonymous',
+  const [voteEligibility, setVoteEligibility] = useState<'anonymous' | 'account' | 'platform_linked'>(
+    p.vote_eligibility === 'account' || p.vote_eligibility === 'platform_linked'
+      ? p.vote_eligibility
+      : 'anonymous',
   );
+  const [retentionTtlDaysInput, setRetentionTtlDaysInput] = useState<string>(
+    p.retention_ttl_days == null ? '' : String(p.retention_ttl_days),
+  );
+  const [retentionLegalHold, setRetentionLegalHold] = useState<boolean>(p.retention_legal_hold === true);
   const [embedToken, setEmbedToken] = useState<string | null>(null);
   const [openAtInput, setOpenAtInput] = useState<string>(() => msToLocalInput(p.open_at));
   const [lockAtInput, setLockAtInput] = useState<string>(() => msToLocalInput(p.lock_at));
@@ -257,6 +311,8 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
   const [recurrenceIntervalMinutes, setRecurrenceIntervalMinutes] = useState(60);
   const [saveHint, setSaveHint] = useState('');
   const [saveErr, setSaveErr] = useState('');
+  const [saveUpgradeUrl, setSaveUpgradeUrl] = useState<string | null>(null);
+  const [saveUpgradeIsLicenseRenewal, setSaveUpgradeIsLicenseRenewal] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const [queueStatus, setQueueStatus] = useState<'pending' | 'approved' | 'rejected' | 'all'>(
     'pending',
@@ -269,6 +325,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
   const [batchReasonCode, setBatchReasonCode] = useState<
     'spam_wave' | 'bot_pattern' | 'compromised_account' | 'manual_review'
   >('manual_review');
+  const [consentRegion, setConsentRegion] = useState<ConsentRegionHint>('unknown');
   const pollShareUrl = shareUrlForPoll(p.id);
   const resultsShareUrl = shareUrlForPollResults(p.id);
   const chatVoteSnippet = `!vote ${p.id} <option_number>`;
@@ -346,7 +403,13 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     setSharedEditorUserIdsInput((p.shared_editor_user_ids ?? []).join(', '));
     setThemePreset(p.theme_preset ?? 'default');
     setSelectionMode(p.selection_mode === 'multi' ? 'multi' : 'single');
-    setVoteEligibility(p.vote_eligibility === 'account' ? 'account' : 'anonymous');
+    setVoteEligibility(
+      p.vote_eligibility === 'account' || p.vote_eligibility === 'platform_linked'
+        ? p.vote_eligibility
+        : 'anonymous',
+    );
+    setRetentionTtlDaysInput(p.retention_ttl_days == null ? '' : String(p.retention_ttl_days));
+    setRetentionLegalHold(p.retention_legal_hold === true);
     setOpenAtInput(msToLocalInput(p.open_at));
     setLockAtInput(msToLocalInput(p.lock_at));
     setRevealAtInput(msToLocalInput(p.reveal_at));
@@ -369,6 +432,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     setRecurrenceIntervalMinutes(60);
     setSaveHint('');
     setSaveErr('');
+    setSaveUpgradeUrl(null);
     setExportBusy(false);
     setQueueStatus('pending');
     setModerationNote('');
@@ -385,6 +449,8 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     p.theme_preset,
     p.selection_mode,
     p.vote_eligibility,
+    p.retention_ttl_days,
+    p.retention_legal_hold,
     p.open_at,
     p.lock_at,
     p.reveal_at,
@@ -416,6 +482,9 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     const tick = window.setInterval(() => setDelayPreviewNowMs(Date.now()), 1000);
     return () => window.clearInterval(tick);
   }, []);
+  useEffect(() => {
+    void fetchConsentRegion().then((region) => setConsentRegion(region));
+  }, []);
 
   const mineKey = mineQueryKey(jwt);
   const quarantineKey = quarantineQueryKey(p.id, queueStatus, jwt);
@@ -428,6 +497,12 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
   const invalidateModerationQueries = () => {
     void qc.invalidateQueries({ queryKey: quarantineKey });
     void qc.invalidateQueries({ queryKey: mineKey });
+  };
+
+  const applyUpgradeHintFromError = (e: unknown) => {
+    const hint = billingUpgradeHintFromError(e, billingData);
+    setSaveUpgradeUrl(hint.url);
+    setSaveUpgradeIsLicenseRenewal(hint.isLicenseRenewal);
   };
 
   const queueQuery = useQuery({
@@ -482,8 +557,27 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           .filter((id) => Number.isInteger(id) && id > 0),
         theme_preset: themePreset ?? 'default',
         ...(normalizePollPhase(phase) === 'draft'
-          ? { selection_mode: selectionMode, vote_eligibility: voteEligibility }
+          ? {
+              selection_mode: selectionMode,
+              vote_eligibility: voteEligibility,
+              ...(voteEligibility !== 'anonymous'
+                ? {
+                    account_vote_consent_ack: true as const,
+                    ...(voteEligibility === 'platform_linked'
+                      ? {
+                          platform_identity_provider: 'oauth_scaffold',
+                          platform_identity_consent_version: 'v1',
+                        }
+                      : {}),
+                  }
+                : {}),
+            }
           : {}),
+        retention_ttl_days:
+          retentionTtlDaysInput.trim() === ''
+            ? null
+            : Math.max(1, Math.min(3650, Number.parseInt(retentionTtlDaysInput.trim(), 10) || 0)),
+        retention_legal_hold: retentionLegalHold,
         open_at: localInputToMs(openAtInput),
         lock_at: localInputToMs(lockAtInput),
         reveal_at: localInputToMs(revealAtInput),
@@ -513,6 +607,10 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
                 .map((target) => ({
                   url: target.url.trim(),
                   secret: target.secret.trim() === '' ? undefined : target.secret.trim(),
+                  ...(target.hint_locale ? { hint_locale: target.hint_locale } : {}),
+                  ...(target.include_results_snapshot ? { include_results_snapshot: true } : {}),
+                  ...(target.include_owner_snapshot ? { include_owner_snapshot: true } : {}),
+                  ...(target.include_owner_events ? { include_owner_events: true } : {}),
                 }))
                 .filter((target) => target.url !== ''),
       } as UpdatePollBody;
@@ -525,11 +623,13 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     },
     onSuccess: () => {
       setSaveErr('');
+      setSaveUpgradeUrl(null);
       setSaveHint(t('myPolls.saved'));
       invalidateMineQueries();
     },
     onError: (e: unknown) => {
       setSaveHint('');
+      applyUpgradeHintFromError(e);
       setSaveErr(errMsg(e, t('myPolls.saveErr')));
     },
   });
@@ -551,6 +651,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
       invalidateMineQueries();
     },
     onError: (e: unknown) => {
+      applyUpgradeHintFromError(e);
       setSaveErr(errMsg(e, t('myPolls.embedRotateErr')));
     },
   });
@@ -567,6 +668,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
       invalidateMineQueries();
     },
     onError: (e: unknown) => {
+      applyUpgradeHintFromError(e);
       setSaveErr(errMsg(e, t('myPolls.deleteErr')));
     },
   });
@@ -583,11 +685,13 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     },
     onSuccess: () => {
       setSaveErr('');
+      setSaveUpgradeUrl(null);
       setSaveHint(t('myPolls.panicDone'));
       invalidateMineQueries();
     },
     onError: (e: unknown) => {
       setSaveHint('');
+      applyUpgradeHintFromError(e);
       setSaveErr(errMsg(e, t('myPolls.panicErr')));
     },
   });
@@ -601,12 +705,14 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     },
     onSuccess: (r) => {
       setSaveErr('');
+      setSaveUpgradeUrl(null);
       const cloned = r.data?.id;
       setSaveHint(cloned ? t('myPolls.cloneDoneWithId', { id: cloned }) : t('myPolls.cloneDone'));
       invalidateMineQueries();
     },
     onError: (e: unknown) => {
       setSaveHint('');
+      applyUpgradeHintFromError(e);
       setSaveErr(errMsg(e, t('myPolls.cloneErr')));
     },
   });
@@ -642,11 +748,13 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     },
     onSuccess: (clonedId) => {
       setSaveErr('');
+      setSaveUpgradeUrl(null);
       setSaveHint(t('myPolls.cloneNextSlotDone', { id: clonedId }));
       invalidateMineQueries();
     },
     onError: (e: unknown) => {
       setSaveHint('');
+      applyUpgradeHintFromError(e);
       setSaveErr(errMsg(e, t('myPolls.cloneNextSlotErr')));
     },
   });
@@ -668,11 +776,13 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     },
     onSuccess: () => {
       setSaveErr('');
+      setSaveUpgradeUrl(null);
       setSaveHint(t('myPolls.moderationDone'));
       invalidateModerationQueries();
     },
     onError: (e: unknown) => {
       setSaveHint('');
+      applyUpgradeHintFromError(e);
       setSaveErr(errMsg(e, t('myPolls.moderationErr')));
     },
   });
@@ -694,11 +804,13 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     },
     onSuccess: () => {
       setSaveErr('');
+      setSaveUpgradeUrl(null);
       setSaveHint(t('myPolls.batchDone'));
       invalidateModerationQueries();
     },
     onError: (e: unknown) => {
       setSaveHint('');
+      applyUpgradeHintFromError(e);
       setSaveErr(errMsg(e, t('myPolls.batchErr')));
     },
   });
@@ -737,7 +849,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
     webhookTargets.some((target) => target.url.trim() !== '')
       ? t('myPolls.activeSummary.webhookEnabled')
       : null,
-    voteEligibility === 'account' ? t('home.featureBadge.accountVotes') : null,
+    voteEligibility !== 'anonymous' ? t('home.featureBadge.accountVotes') : null,
     p.has_embed_read_token || embedToken ? t('myPolls.activeSummary.embedGate') : null,
     openAtInput || lockAtInput || revealAtInput ? t('myPolls.activeSummary.scheduleConfigured') : null,
     nextPollId.trim() !== '' ? t('myPolls.activeSummary.nextPollLinked') : null,
@@ -756,14 +868,19 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
   };
 
   return (
-    <div className='my-polls-manage-form'>
+    <div className='asking-my-polls-page__manage-form'>
       {p.archived ? <p className='ui-copy-muted'>{t('myPolls.archivedReadOnly')}</p> : null}
       {activeConfigSummary.length > 0 ? (
-        <div className='my-polls-export-block'>
-          <h3 className='my-polls-embed-heading'>{t('myPolls.sectionCurrentSetup')}</h3>
-          <div className='my-polls-config-badges'>
+        <div className='asking-my-polls-page__export-block'>
+          <h3
+            className='asking-my-polls-page__embed-heading'
+            id={`asking-my-polls-page__current-setup-heading-${p.id}`}
+          >
+            {t('myPolls.sectionCurrentSetup')}
+          </h3>
+          <div className='asking-my-polls-page__config-badges'>
             {activeConfigSummary.map((item) => (
-              <span key={item} className='my-polls-config-badge'>
+              <span key={item} className='asking-my-polls-page__config-badge'>
                 {item}
               </span>
             ))}
@@ -773,15 +890,14 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
 
       {!p.archived ? (
         <>
-          <details className='my-polls-section-card' open>
-            <summary className='my-polls-section-summary'>{t('myPolls.sectionPollStatus')}</summary>
-          <div className='my-polls-manage-row'>
-            <label htmlFor={`my-polls-phase-${p.id}`} className='my-polls-manage-label'>
+          <SectionCard summary={t('myPolls.sectionPollStatus')} open>
+          <div className='asking-my-polls-page__manage-row'>
+            <label htmlFor={`asking-my-polls-page__phase-${p.id}`} className='asking-my-polls-page__manage-label'>
               {t('myPolls.phaseLabel')}
             </label>
             <Select
-              id={`my-polls-phase-${p.id}`}
-              className='ui-input--stack my-polls-manage-select'
+              id={`asking-my-polls-page__phase-${p.id}`}
+              className='ui-input--stack asking-my-polls-page__manage-select'
               value={phase}
               onChange={(e) => setPhase(e.target.value as PollPhase)}
               disabled={saveMutation.isPending}
@@ -794,9 +910,9 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             </Select>
           </div>
 
-          <div className='my-polls-manage-row my-polls-manage-row--checkbox'>
+          <div className='asking-my-polls-page__manage-row asking-my-polls-page__manage-row--checkbox'>
             <Checkbox
-              id={`my-polls-pause-${p.id}`}
+              id={`asking-my-polls-page__pause-${p.id}`}
               checked={votingPaused}
               onChange={(e) => setVotingPaused(e.target.checked)}
               disabled={saveMutation.isPending}
@@ -807,11 +923,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.pauseMessageLabel')}
-            htmlFor={`my-polls-pause-msg-${p.id}`}
+            htmlFor={`asking-my-polls-page__pause-msg-${p.id}`}
             hint={t('myPolls.pauseMessageHint')}
           >
             <Textarea
-              id={`my-polls-pause-msg-${p.id}`}
+              id={`asking-my-polls-page__pause-msg-${p.id}`}
               className='ui-input--stack'
               rows={2}
               maxLength={280}
@@ -820,18 +936,17 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               disabled={saveMutation.isPending}
             />
           </FormRow>
-          </details>
+          </SectionCard>
 
-          <details className='my-polls-section-card' open>
-            <summary className='my-polls-section-summary'>{t('myPolls.sectionTeamCollaboration')}</summary>
+          <SectionCard summary={t('myPolls.sectionTeamCollaboration')} open>
           <FormRow
             className='ui-form-block'
             label={t('myPolls.showNotesLabel')}
-            htmlFor={`my-polls-notes-${p.id}`}
+            htmlFor={`asking-my-polls-page__notes-${p.id}`}
             hint={t('myPolls.showNotesHint')}
           >
             <Textarea
-              id={`my-polls-notes-${p.id}`}
+              id={`asking-my-polls-page__notes-${p.id}`}
               className='ui-input--stack'
               rows={4}
               maxLength={10_000}
@@ -843,11 +958,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.sharedEditorsLabel')}
-            htmlFor={`my-polls-shared-editors-${p.id}`}
+            htmlFor={`asking-my-polls-page__shared-editors-${p.id}`}
             hint={t('myPolls.sharedEditorsHint')}
           >
             <Input
-              id={`my-polls-shared-editors-${p.id}`}
+              id={`asking-my-polls-page__shared-editors-${p.id}`}
               className='ui-input--stack'
               value={sharedEditorUserIdsInput}
               onChange={(e) => setSharedEditorUserIdsInput(e.target.value)}
@@ -858,11 +973,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.selectionModeLabel')}
-            htmlFor={`my-polls-selection-mode-${p.id}`}
+            htmlFor={`asking-my-polls-page__selection-mode-${p.id}`}
             hint={t('myPolls.selectionModeHint')}
           >
             <Select
-              id={`my-polls-selection-mode-${p.id}`}
+              id={`asking-my-polls-page__selection-mode-${p.id}`}
               className='ui-input--stack'
               value={selectionMode}
               onChange={(e) => {
@@ -879,33 +994,49 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.voteEligibilityLabel')}
-            htmlFor={`my-polls-vote-eligibility-${p.id}`}
+            htmlFor={`asking-my-polls-page__vote-eligibility-${p.id}`}
             hint={t('myPolls.voteEligibilityHint')}
           >
             <Select
-              id={`my-polls-vote-eligibility-${p.id}`}
+              id={`asking-my-polls-page__vote-eligibility-${p.id}`}
               className='ui-input--stack'
               value={voteEligibility}
               onChange={(e) =>
-                setVoteEligibility(e.target.value === 'account' ? 'account' : 'anonymous')
+                setVoteEligibility(
+                  e.target.value === 'account' || e.target.value === 'platform_linked'
+                    ? e.target.value
+                    : 'anonymous',
+                )
               }
               disabled={saveMutation.isPending || phase !== 'draft'}
             >
               <option value='anonymous'>{t('myPolls.voteEligibility.anonymous')}</option>
               <option value='account'>{t('myPolls.voteEligibility.account')}</option>
+              <option value='platform_linked'>{t('home.voteEligibility.platformLinked')}</option>
             </Select>
           </FormRow>
-          {voteEligibility === 'account' ? (
-            <p className='ui-form-hint'>{t('home.voteEligibility.accountConsentNote')}</p>
+          {voteEligibility !== 'anonymous' ? (
+            <>
+              <p className='ui-form-hint'>{t('home.voteEligibility.accountConsentNote')}</p>
+              <p className='ui-form-hint'>
+                {t(
+                  consentRegion === 'eu'
+                    ? 'home.voteEligibility.regionLegalNote.eu'
+                    : consentRegion === 'non-eu'
+                      ? 'home.voteEligibility.regionLegalNote.nonEu'
+                      : 'home.voteEligibility.regionLegalNote.unknown',
+                )}
+              </p>
+            </>
           ) : null}
           <FormRow
             className='ui-form-block'
             label={t('myPolls.themePresetLabel')}
-            htmlFor={`my-polls-theme-preset-${p.id}`}
+            htmlFor={`asking-my-polls-page__theme-preset-${p.id}`}
             hint={t('myPolls.themePresetHint')}
           >
             <Select
-              id={`my-polls-theme-preset-${p.id}`}
+              id={`asking-my-polls-page__theme-preset-${p.id}`}
               className='ui-input--stack'
               value={themePreset ?? 'default'}
               onChange={(e) => setThemePreset(e.target.value as MinePoll['theme_preset'])}
@@ -917,18 +1048,17 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               <option value='neon'>{t('myPolls.themePreset.neon')}</option>
             </Select>
           </FormRow>
-          </details>
+          </SectionCard>
 
-          <details className='my-polls-section-card' open>
-            <summary className='my-polls-section-summary'>{t('myPolls.sectionAudienceSafeguards')}</summary>
+          <SectionCard summary={t('myPolls.sectionAudienceSafeguards')} open>
           <FormRow
             className='ui-form-block'
             label={t('myPolls.openAtLabel')}
-            htmlFor={`my-polls-open-at-${p.id}`}
+            htmlFor={`asking-my-polls-page__open-at-${p.id}`}
             hint={t('myPolls.openAtHint')}
           >
             <Input
-              id={`my-polls-open-at-${p.id}`}
+              id={`asking-my-polls-page__open-at-${p.id}`}
               className='ui-input--stack'
               type='datetime-local'
               value={openAtInput}
@@ -939,11 +1069,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.lockAtLabel')}
-            htmlFor={`my-polls-lock-at-${p.id}`}
+            htmlFor={`asking-my-polls-page__lock-at-${p.id}`}
             hint={t('myPolls.lockAtHint')}
           >
             <Input
-              id={`my-polls-lock-at-${p.id}`}
+              id={`asking-my-polls-page__lock-at-${p.id}`}
               className='ui-input--stack'
               type='datetime-local'
               value={lockAtInput}
@@ -954,11 +1084,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.revealAtLabel')}
-            htmlFor={`my-polls-reveal-at-${p.id}`}
+            htmlFor={`asking-my-polls-page__reveal-at-${p.id}`}
             hint={t('myPolls.revealAtHint')}
           >
             <Input
-              id={`my-polls-reveal-at-${p.id}`}
+              id={`asking-my-polls-page__reveal-at-${p.id}`}
               className='ui-input--stack'
               type='datetime-local'
               value={revealAtInput}
@@ -966,7 +1096,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               disabled={saveMutation.isPending}
             />
           </FormRow>
-          <div className='my-polls-manage-actions'>
+          <ActionRow align='start' className='asking-my-polls-page__manage-actions'>
             <Button
               type='button'
               variant='secondary'
@@ -1005,11 +1135,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             >
               Clear schedule
             </Button>
-          </div>
+          </ActionRow>
 
-          <div className='my-polls-manage-row my-polls-manage-row--checkbox'>
+          <div className='asking-my-polls-page__manage-row asking-my-polls-page__manage-row--checkbox'>
             <Checkbox
-              id={`my-polls-boost-enabled-${p.id}`}
+              id={`asking-my-polls-page__boost-enabled-${p.id}`}
               checked={boostedVotingEnabled}
               onChange={(e) => setBoostedVotingEnabled(e.target.checked)}
               disabled={saveMutation.isPending || selectionMode === 'multi'}
@@ -1019,11 +1149,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.maxBoostWeightLabel')}
-            htmlFor={`my-polls-max-boost-${p.id}`}
+            htmlFor={`asking-my-polls-page__max-boost-${p.id}`}
             hint={t('myPolls.maxBoostWeightHint')}
           >
             <Input
-              id={`my-polls-max-boost-${p.id}`}
+              id={`asking-my-polls-page__max-boost-${p.id}`}
               className='ui-input--stack'
               type='number'
               min={1}
@@ -1034,9 +1164,9 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               disabled={saveMutation.isPending || !boostedVotingEnabled}
             />
           </FormRow>
-          <div className='my-polls-manage-row my-polls-manage-row--checkbox'>
+          <div className='asking-my-polls-page__manage-row asking-my-polls-page__manage-row--checkbox'>
             <Checkbox
-              id={`my-polls-show-unweighted-${p.id}`}
+              id={`asking-my-polls-page__show-unweighted-${p.id}`}
               checked={showUnweightedValues}
               onChange={(e) => setShowUnweightedValues(e.target.checked)}
               disabled={saveMutation.isPending || !boostedVotingEnabled}
@@ -1046,11 +1176,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.runOfShowKeyLabel')}
-            htmlFor={`my-polls-run-key-${p.id}`}
+            htmlFor={`asking-my-polls-page__run-key-${p.id}`}
             hint={t('myPolls.runOfShowKeyHint')}
           >
             <Input
-              id={`my-polls-run-key-${p.id}`}
+              id={`asking-my-polls-page__run-key-${p.id}`}
               className='ui-input--stack'
               value={runOfShowKey}
               maxLength={64}
@@ -1061,11 +1191,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.runOfShowOrderLabel')}
-            htmlFor={`my-polls-run-order-${p.id}`}
+            htmlFor={`asking-my-polls-page__run-order-${p.id}`}
             hint={t('myPolls.runOfShowOrderHint')}
           >
             <Input
-              id={`my-polls-run-order-${p.id}`}
+              id={`asking-my-polls-page__run-order-${p.id}`}
               className='ui-input--stack'
               type='number'
               min={0}
@@ -1078,11 +1208,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.nextPollIdLabel')}
-            htmlFor={`my-polls-next-poll-${p.id}`}
+            htmlFor={`asking-my-polls-page__next-poll-${p.id}`}
             hint={t('myPolls.nextPollIdHint')}
           >
             <Input
-              id={`my-polls-next-poll-${p.id}`}
+              id={`asking-my-polls-page__next-poll-${p.id}`}
               className='ui-input--stack'
               value={nextPollId}
               onChange={(e) => setNextPollId(e.target.value)}
@@ -1092,11 +1222,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.vanitySlugLabel')}
-            htmlFor={`my-polls-vanity-slug-${p.id}`}
+            htmlFor={`asking-my-polls-page__vanity-slug-${p.id}`}
             hint={t('myPolls.vanitySlugHint')}
           >
             <Input
-              id={`my-polls-vanity-slug-${p.id}`}
+              id={`asking-my-polls-page__vanity-slug-${p.id}`}
               className='ui-input--stack'
               value={vanitySlug}
               maxLength={64}
@@ -1105,9 +1235,9 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               disabled={saveMutation.isPending}
             />
           </FormRow>
-          <div className='my-polls-manage-row my-polls-manage-row--checkbox'>
+          <div className='asking-my-polls-page__manage-row asking-my-polls-page__manage-row--checkbox'>
             <Checkbox
-              id={`my-polls-auto-advance-${p.id}`}
+              id={`asking-my-polls-page__auto-advance-${p.id}`}
               checked={autoAdvanceOnClose}
               onChange={(e) => setAutoAdvanceOnClose(e.target.checked)}
               disabled={saveMutation.isPending || nextPollId.trim() === ''}
@@ -1117,11 +1247,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.voteFrictionTierLabel')}
-            htmlFor={`my-polls-friction-${p.id}`}
+            htmlFor={`asking-my-polls-page__friction-${p.id}`}
             hint={t('myPolls.voteFrictionTierHint')}
           >
             <Select
-              id={`my-polls-friction-${p.id}`}
+              id={`asking-my-polls-page__friction-${p.id}`}
               className='ui-input--stack'
               value={voteFrictionTier}
               onChange={(e) =>
@@ -1137,11 +1267,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.softThrottleMaxVotesLabel')}
-            htmlFor={`my-polls-soft-throttle-${p.id}`}
+            htmlFor={`asking-my-polls-page__soft-throttle-${p.id}`}
             hint={t('myPolls.softThrottleMaxVotesHint')}
           >
             <Input
-              id={`my-polls-soft-throttle-${p.id}`}
+              id={`asking-my-polls-page__soft-throttle-${p.id}`}
               className='ui-input--stack'
               type='number'
               min={1}
@@ -1155,11 +1285,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.powDifficultyLabel')}
-            htmlFor={`my-polls-pow-difficulty-${p.id}`}
+            htmlFor={`asking-my-polls-page__pow-difficulty-${p.id}`}
             hint={t('myPolls.powDifficultyHint')}
           >
             <Input
-              id={`my-polls-pow-difficulty-${p.id}`}
+              id={`asking-my-polls-page__pow-difficulty-${p.id}`}
               className='ui-input--stack'
               type='number'
               min={1}
@@ -1170,17 +1300,17 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               disabled={saveMutation.isPending || voteFrictionTier !== 'proof_of_work'}
             />
           </FormRow>
-          </details>
-          <details className='my-polls-section-card' open>
-            <summary className='my-polls-section-summary'>{t('myPolls.sectionSharingAutomation')}</summary>
+          </SectionCard>
+          <SectionCard summary={t('myPolls.sectionSharingAutomation')} open>
           <FormSection
             className='ui-form-block'
             title={t('myPolls.webhookTargetsLabel')}
+            titleId={`asking-my-polls-page__webhook-targets-heading-${p.id}`}
             hint={t('myPolls.webhookTargetsHint')}
           >
             {(webhookTargets.length === 0 ? [{ url: '', secret: '' }] : webhookTargets).map(
               (target, idx) => (
-                <div key={`${p.id}-webhook-target-${idx}`} className='my-polls-manage-row'>
+                <div key={`${p.id}-webhook-target-${idx}`} className='asking-my-polls-page__manage-row'>
                   <Input
                     className='ui-input--stack'
                     type='url'
@@ -1208,6 +1338,47 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
                     }
                     disabled={saveMutation.isPending}
                   />
+                  <Checkbox
+                    id={`asking-my-polls-page__webhook-results-snapshot-${p.id}-${idx}`}
+                    checked={target.include_results_snapshot === true}
+                    onChange={(e) =>
+                      setWebhookTargets((prev) =>
+                        (prev.length === 0 ? [{ url: '', secret: '' }] : prev).map((row, rowIdx) =>
+                          rowIdx === idx
+                            ? { ...row, include_results_snapshot: e.target.checked }
+                            : row,
+                        ),
+                      )
+                    }
+                    disabled={saveMutation.isPending}
+                    label={t('myPolls.webhookIncludeResultsSnapshot')}
+                  />
+                  <Checkbox
+                    id={`asking-my-polls-page__webhook-owner-snapshot-${p.id}-${idx}`}
+                    checked={target.include_owner_snapshot === true}
+                    onChange={(e) =>
+                      setWebhookTargets((prev) =>
+                        (prev.length === 0 ? [{ url: '', secret: '' }] : prev).map((row, rowIdx) =>
+                          rowIdx === idx ? { ...row, include_owner_snapshot: e.target.checked } : row,
+                        ),
+                      )
+                    }
+                    disabled={saveMutation.isPending}
+                    label={t('myPolls.webhookIncludeOwnerSnapshot')}
+                  />
+                  <Checkbox
+                    id={`asking-my-polls-page__webhook-owner-events-${p.id}-${idx}`}
+                    checked={target.include_owner_events === true}
+                    onChange={(e) =>
+                      setWebhookTargets((prev) =>
+                        (prev.length === 0 ? [{ url: '', secret: '' }] : prev).map((row, rowIdx) =>
+                          rowIdx === idx ? { ...row, include_owner_events: e.target.checked } : row,
+                        ),
+                      )
+                    }
+                    disabled={saveMutation.isPending}
+                    label={t('myPolls.webhookIncludeOwnerSnapshot')}
+                  />
                   <Button
                     type='button'
                     variant='secondary'
@@ -1225,7 +1396,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
                 </div>
               ),
             )}
-            <div className='my-polls-manage-actions'>
+            <ActionRow align='start' className='asking-my-polls-page__manage-actions'>
               <Button
                 type='button'
                 variant='secondary'
@@ -1239,16 +1410,18 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               >
                 {t('myPolls.webhookTargetAdd')}
               </Button>
-            </div>
+            </ActionRow>
+            <p className='ui-form-hint'>{t('myPolls.webhookSnapshotsHint')}</p>
           </FormSection>
 
           <FormSection
             className='ui-form-block'
             title={t('myPolls.resultsDelaySecondsLabel')}
+            titleId={`asking-my-polls-page__results-delay-section-heading-${p.id}`}
             hint={t('myPolls.resultsDelaySecondsHint')}
           >
             <Select
-              id={`my-polls-results-delay-preset-${p.id}`}
+              id={`asking-my-polls-page__results-delay-preset-${p.id}`}
               className='ui-input--stack'
               value={resultsDelayPreset}
               onChange={(e) => {
@@ -1268,7 +1441,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               <option value='custom'>{t('myPolls.resultsDelayPreset.custom')}</option>
             </Select>
             <Input
-              id={`my-polls-results-delay-${p.id}`}
+              id={`asking-my-polls-page__results-delay-${p.id}`}
               className='ui-input--stack'
               type='number'
               min={0}
@@ -1279,7 +1452,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               disabled={saveMutation.isPending}
             />
             <p
-              className='ui-form-hint my-polls-delay-preview'
+              className='ui-form-hint asking-my-polls-page__delay-preview'
               role='status'
               aria-live='polite'
             >
@@ -1289,9 +1462,42 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               })}
             </p>
           </FormSection>
-          </details>
+          <FormRow
+            className='ui-form-block'
+            label={t('myPolls.retentionTtlDaysLabel')}
+            htmlFor={`asking-my-polls-page__retention-ttl-days-${p.id}`}
+            hint={t('myPolls.retentionTtlDaysHint')}
+          >
+            <Input
+              id={`asking-my-polls-page__retention-ttl-days-${p.id}`}
+              className='ui-input--stack'
+              type='number'
+              min={1}
+              max={3650}
+              step={1}
+              value={retentionTtlDaysInput}
+              placeholder={t('myPolls.retentionTtlDaysPlaceholder')}
+              onChange={(e) => setRetentionTtlDaysInput(e.target.value)}
+              disabled={saveMutation.isPending}
+            />
+          </FormRow>
+          <FormRow
+            className='ui-form-block'
+            label={t('myPolls.retentionLegalHoldLabel')}
+            htmlFor={`asking-my-polls-page__retention-legal-hold-${p.id}`}
+            hint={t('myPolls.retentionLegalHoldHint')}
+          >
+            <Checkbox
+              id={`asking-my-polls-page__retention-legal-hold-${p.id}`}
+              label={t('myPolls.retentionLegalHoldLabel')}
+              checked={retentionLegalHold}
+              onChange={(e) => setRetentionLegalHold(e.target.checked)}
+              disabled={saveMutation.isPending}
+            />
+          </FormRow>
+          </SectionCard>
 
-          <div className='my-polls-manage-actions'>
+          <ActionRow align='start' className='asking-my-polls-page__manage-actions'>
             <Button
               type='button'
               variant='primary'
@@ -1303,10 +1509,15 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             >
               {saveMutation.isPending ? t('myPolls.saving') : t('myPolls.saveSettings')}
             </Button>
-          </div>
+          </ActionRow>
 
-          <div className='my-polls-embed-block'>
-            <h3 className='my-polls-embed-heading'>{t('myPolls.embedHeading')}</h3>
+          <div className='asking-my-polls-page__embed-block'>
+            <h3
+              className='asking-my-polls-page__embed-heading'
+              id={`asking-my-polls-page__embed-gate-heading-${p.id}`}
+            >
+              {t('myPolls.embedHeading')}
+            </h3>
             <p className='ui-copy-muted'>
               {p.has_embed_read_token ? t('myPolls.embedOn') : t('myPolls.embedOff')}
             </p>
@@ -1322,7 +1533,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
                 : t('myPolls.embedRotate')}
             </Button>
             {embedToken ? (
-              <div className='my-polls-embed-token'>
+              <div className='asking-my-polls-page__embed-token'>
                 <p className='ui-copy-subtle'>{t('myPolls.embedTokenTitle')}</p>
                 <details open>
                   <summary className='ui-disclosure-summary--simple'>
@@ -1350,10 +1561,15 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
         </>
       ) : null}
 
-      <div className='my-polls-export-block'>
-        <h3 className='my-polls-embed-heading'>{t('myPolls.exportHeading')}</h3>
+      <div className='asking-my-polls-page__export-block'>
+        <h3
+          className='asking-my-polls-page__embed-heading'
+          id={`asking-my-polls-page__export-section-heading-${p.id}`}
+        >
+          {t('myPolls.exportHeading')}
+        </h3>
         <p className='ui-form-hint'>{t('myPolls.exportHint')}</p>
-        <div className='my-polls-manage-actions my-polls-export-actions'>
+        <ActionRow align='start' className='asking-my-polls-page__manage-actions asking-my-polls-page__export-actions'>
           <Button
             type='button'
             variant='secondary'
@@ -1384,18 +1600,26 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             <IconDownload className='ui-button__icon' aria-hidden />
             {exportBusy ? t('myPolls.exporting') : t('myPolls.exportCsvVotes')}
           </Button>
-        </div>
+        </ActionRow>
       </div>
 
-      <div className='my-polls-export-block'>
-        <h3 className='my-polls-embed-heading'>{t('myPolls.distributionHeading')}</h3>
-        <FormSection hint={t('myPolls.distributionHint')}>
-        <p className='poll-refresh-meta' style={{ marginBlockEnd: 12 }}>
-          <a href={streamingObsDocHref()} target='_blank' rel='noopener noreferrer'>
-            {t('docs.streamingObsBrowserSource')}
-          </a>
-        </p>
-        <Inline className='my-polls-manage-actions' gap='md'>
+      <div className='asking-my-polls-page__export-block'>
+        <h3
+          className='asking-my-polls-page__embed-heading'
+          id={`asking-my-polls-page__distribution-heading-${p.id}`}
+        >
+          {t('myPolls.distributionHeading')}
+        </h3>
+        <FormSection
+          aria-labelledby={`asking-my-polls-page__distribution-heading-${p.id}`}
+          hint={t('myPolls.distributionHint')}
+        >
+          <p className='asking-my-polls-page__refresh-meta' style={{ marginBlockEnd: 12 }}>
+            <a href={streamingObsDocHref()} target='_blank' rel='noopener noreferrer'>
+              {t('docs.streamingObsBrowserSource')}
+            </a>
+          </p>
+        <Inline className='asking-my-polls-page__manage-actions' gap='md'>
           <Button
             type='button'
             variant='secondary'
@@ -1426,10 +1650,18 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               : t('myPolls.cloneNextSlotBtn')}
           </Button>
         </Inline>
-        <FormSection className='ui-form-block' title={t('myPolls.chatSnippetVote')}>
+        <FormSection
+          className='ui-form-block'
+          title={t('myPolls.chatSnippetVote')}
+          titleId={`asking-my-polls-page__share-chat-vote-heading-${p.id}`}
+        >
           <code className='ui-code-block'>{chatVoteSnippet}</code>
         </FormSection>
-        <FormSection className='ui-form-block' title={t('myPolls.chatSnippetShare')}>
+        <FormSection
+          className='ui-form-block'
+          title={t('myPolls.chatSnippetShare')}
+          titleId={`asking-my-polls-page__share-chat-share-heading-${p.id}`}
+        >
           <code className='ui-code-block'>{chatShareSnippet}</code>
           <CopyFeedbackButton
             onCopy={async () => {
@@ -1445,9 +1677,13 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             {t('myPolls.copySnippet')}
           </CopyFeedbackButton>
         </FormSection>
-        <FormSection className='ui-form-block' title={t('myPolls.publicPollUrl')}>
+        <FormSection
+          className='ui-form-block'
+          title={t('myPolls.publicPollUrl')}
+          titleId={`asking-my-polls-page__share-public-url-heading-${p.id}`}
+        >
           <code className='ui-code-block'>{pollShareUrl}</code>
-          <Inline className='my-polls-manage-actions' gap='sm'>
+          <Inline className='asking-my-polls-page__manage-actions' gap='sm'>
             <CopyFeedbackButton
               onCopy={async () => {
                 try {
@@ -1478,10 +1714,11 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormSection
             className='ui-form-block'
             title={t('myPolls.embedFrameUrl')}
+            titleId={`asking-my-polls-page__share-embed-url-heading-${p.id}`}
             hint={t('myPolls.embedFrameUrlHint')}
           >
             <code className='ui-code-block'>{embedViewerUrl}</code>
-            <Inline className='my-polls-manage-actions' gap='sm'>
+            <Inline className='asking-my-polls-page__manage-actions' gap='sm'>
               <CopyFeedbackButton
                 onCopy={async () => {
                   try {
@@ -1501,6 +1738,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
         <FormSection
           className='ui-form-block'
           title={t('myPolls.sharePresets')}
+          titleId={`asking-my-polls-page__share-presets-heading-${p.id}`}
           hint={t('myPolls.sharePresetsHint')}
         >
           {sharePresets.map((preset) => (
@@ -1512,7 +1750,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               <code className='ui-code-block'>
                 {preset.cta} {preset.url}
               </code>
-              <Inline className='my-polls-manage-actions' gap='sm'>
+              <Inline className='asking-my-polls-page__manage-actions' gap='sm'>
                 <CopyFeedbackButton
                   onCopy={async () => {
                     try {
@@ -1543,24 +1781,34 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             </div>
           ))}
         </FormSection>
-        <FormSection className='ui-form-block' title={t('myPolls.qrLabel')} hint={t('myPolls.qrHint')}>
+        <FormSection
+          className='ui-form-block'
+          title={t('myPolls.qrLabel')}
+          titleId={`asking-my-polls-page__share-qr-heading-${p.id}`}
+          hint={t('myPolls.qrHint')}
+        >
           <img src={qrUrl} width={180} height={180} alt={t('myPolls.qrAlt', { title: p.title })} />
         </FormSection>
         </FormSection>
       </div>
 
       {!p.archived ? (
-        <div className='my-polls-export-block'>
-          <h3 className='my-polls-embed-heading'>{t('myPolls.moderationQueueHeading')}</h3>
+        <div className='asking-my-polls-page__export-block'>
+          <h3
+            className='asking-my-polls-page__embed-heading'
+            id={`asking-my-polls-page__moderation-queue-heading-${p.id}`}
+          >
+            {t('myPolls.moderationQueueHeading')}
+          </h3>
           <p className='ui-form-hint'>{t('myPolls.moderationQueueHint')}</p>
 
           <FormRow
             className='ui-form-block'
             label={t('myPolls.moderationQueueStatus')}
-            htmlFor={`my-polls-queue-status-${p.id}`}
+            htmlFor={`asking-my-polls-page__queue-status-${p.id}`}
           >
             <Select
-              id={`my-polls-queue-status-${p.id}`}
+              id={`asking-my-polls-page__queue-status-${p.id}`}
               className='ui-input--stack'
               value={queueStatus}
               onChange={(e) =>
@@ -1580,10 +1828,10 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <FormRow
             className='ui-form-block'
             label={t('myPolls.moderationNote')}
-            htmlFor={`my-polls-moderation-note-${p.id}`}
+            htmlFor={`asking-my-polls-page__moderation-note-${p.id}`}
           >
             <Input
-              id={`my-polls-moderation-note-${p.id}`}
+              id={`asking-my-polls-page__moderation-note-${p.id}`}
               className='ui-input--stack'
               value={moderationNote}
               maxLength={500}
@@ -1599,7 +1847,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             <p className='ui-copy-muted'>{t('myPolls.moderationQueueEmpty')}</p>
           ) : null}
           {!queueQuery.isLoading && (queueQuery.data?.length ?? 0) > 0 ? (
-            <div className='my-polls-embed-token'>
+            <div className='asking-my-polls-page__embed-token'>
               {(queueQuery.data ?? []).map((row) => (
                 <div key={row.id} className='ui-copy-muted' style={{ marginBottom: '0.75rem' }}>
                   <div>
@@ -1611,7 +1859,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
                       weight: row.weight,
                     })}
                   </div>
-                  <div className='my-polls-quarantine-meta'>
+                  <div className='asking-my-polls-page__quarantine-meta'>
                     {formatQuarantineReasonLabel(t, row.quarantine_reason)}
                     {row.trust_risk_score != null && Number.isFinite(row.trust_risk_score) ? (
                       <>
@@ -1626,7 +1874,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
                       user: row.user_id ?? '—',
                     })}
                   </div>
-                  <div className='my-polls-manage-actions'>
+                  <ActionRow align='start' className='asking-my-polls-page__manage-actions'>
                     <Button
                       type='button'
                       variant='secondary'
@@ -1651,22 +1899,30 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
                     >
                       {t('myPolls.moderationRevert')}
                     </Button>
-                  </div>
+                  </ActionRow>
                 </div>
               ))}
             </div>
           ) : null}
 
           <details>
-            <summary className='ui-disclosure-summary--simple'>{t('myPolls.batchHeading')}</summary>
-            <FormSection hint={t('myPolls.batchHint')}>
+            <summary
+              className='ui-disclosure-summary--simple'
+              id={`asking-my-polls-page__batch-disclosure-heading-${p.id}`}
+            >
+              {t('myPolls.batchHeading')}
+            </summary>
+            <FormSection
+              aria-labelledby={`asking-my-polls-page__batch-disclosure-heading-${p.id}`}
+              hint={t('myPolls.batchHint')}
+            >
             <FormRow
               className='ui-form-block'
               label={t('myPolls.batchSelector')}
-              htmlFor={`my-polls-batch-selector-${p.id}`}
+              htmlFor={`asking-my-polls-page__batch-selector-${p.id}`}
             >
               <Select
-                id={`my-polls-batch-selector-${p.id}`}
+                id={`asking-my-polls-page__batch-selector-${p.id}`}
                 className='ui-input--stack'
                 value={batchSelector}
                 onChange={(e) => setBatchSelector(e.target.value as 'source_ip_hash' | 'user_id')}
@@ -1679,10 +1935,10 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             <FormRow
               className='ui-form-block'
               label={t('myPolls.batchSelectorValue')}
-              htmlFor={`my-polls-batch-value-${p.id}`}
+              htmlFor={`asking-my-polls-page__batch-value-${p.id}`}
             >
               <Input
-                id={`my-polls-batch-value-${p.id}`}
+                id={`asking-my-polls-page__batch-value-${p.id}`}
                 className='ui-input--stack'
                 value={batchSelectorValue}
                 onChange={(e) => setBatchSelectorValue(e.target.value)}
@@ -1692,10 +1948,10 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
             <FormRow
               className='ui-form-block'
               label={t('myPolls.batchReasonCode')}
-              htmlFor={`my-polls-batch-reason-${p.id}`}
+              htmlFor={`asking-my-polls-page__batch-reason-${p.id}`}
             >
               <Select
-                id={`my-polls-batch-reason-${p.id}`}
+                id={`asking-my-polls-page__batch-reason-${p.id}`}
                 className='ui-input--stack'
                 value={batchReasonCode}
                 onChange={(e) =>
@@ -1715,7 +1971,7 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
                 <option value='manual_review'>manual_review</option>
               </Select>
             </FormRow>
-            <div className='my-polls-manage-actions'>
+            <ActionRow align='start' className='asking-my-polls-page__manage-actions'>
               <Button
                 type='button'
                 variant='secondary'
@@ -1732,20 +1988,20 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
               >
                 {t('myPolls.batchRestore')}
               </Button>
-            </div>
+            </ActionRow>
             </FormSection>
           </details>
         </div>
       ) : null}
 
-      <div className='my-polls-danger-zone'>
+      <div className='asking-my-polls-page__danger-zone'>
         {!p.archived ? <p className='ui-form-hint'>{t('myPolls.panicHint')}</p> : null}
-        <div className='my-polls-manage-actions my-polls-danger-actions'>
+        <ActionRow align='start' className='asking-my-polls-page__manage-actions asking-my-polls-page__danger-actions'>
           {!p.archived ? (
             <Button
               type='button'
               variant='secondary'
-              className={cx('ui-button--with-inline-icon', 'my-polls-panic-btn')}
+              className={cx('ui-button--with-inline-icon', 'asking-my-polls-page__panic-btn')}
               disabled={panicMutation.isPending || deleteMutation.isPending}
               onClick={handlePanic}
             >
@@ -1756,14 +2012,14 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
           <Button
             type='button'
             variant='secondary'
-            className={cx('ui-button--with-inline-icon', 'my-polls-delete-btn')}
+            className={cx('ui-button--with-inline-icon', 'asking-my-polls-page__delete-btn')}
             disabled={deleteMutation.isPending || panicMutation.isPending}
             onClick={handleDelete}
           >
             <IconTrash2 className='ui-button__icon' aria-hidden />
             {deleteMutation.isPending ? t('myPolls.deleting') : t('myPolls.deletePoll')}
           </Button>
-        </div>
+        </ActionRow>
       </div>
 
       {saveHint ? (
@@ -1772,8 +2028,16 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
         </p>
       ) : null}
       {saveErr ? (
-        <p className='error-message' role='alert'>
+        <p className='ui-alert ui-alert--danger' role='alert'>
           {saveErr}
+          {saveUpgradeUrl ? (
+            <>
+              {' '}
+              <a href={saveUpgradeUrl} target='_blank' rel='noreferrer' className='ui-link'>
+                {t(saveUpgradeIsLicenseRenewal ? 'myPolls.renewLicenseCta' : 'myPolls.upgradeCta')}
+              </a>
+            </>
+          ) : null}
         </p>
       ) : null}
     </div>
@@ -1783,6 +2047,22 @@ function PollManagePanel({ p, jwt }: { p: MinePoll; jwt: string }) {
 export default function MyPolls() {
   const t = useT();
   const localeTag = useLocaleTag();
+  const [badgeLegendOpen, setBadgeLegendOpen] = useState(false);
+  const formatRetentionMeta = (poll: MinePoll): string | null => {
+    if (poll.retention_legal_hold === true) return t('myPolls.retentionLegalHoldActive');
+    if (poll.retention_ttl_days == null || poll.auto_delete_at_ms == null) return null;
+    const when = new Date(poll.auto_delete_at_ms);
+    if (!Number.isFinite(when.getTime())) return null;
+    const deltaDays = Math.ceil((when.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+    const relative =
+      deltaDays >= 0
+        ? t('myPolls.retentionAutoDeleteInDays', { days: deltaDays })
+        : t('myPolls.retentionAutoDeleteOverdueDays', { days: Math.abs(deltaDays) });
+    return t('myPolls.retentionAutoDeleteAt', {
+      date: when.toLocaleString(localeTag),
+      relative,
+    });
+  };
   const weekdayAxis = useMemo(
     () => Array.from({ length: 7 }, (_, i) => formatUtcWeekdayShort(localeTag, i, String(i))).join(' '),
     [localeTag],
@@ -1796,6 +2076,19 @@ export default function MyPolls() {
     const sync = () => setJwt(getStoredUserJwt());
     sync();
     return subscribeUserJwtChanged(sync);
+  }, []);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(min-width: 720px)');
+    const apply = () => setBadgeLegendOpen(mq.matches);
+    apply();
+    const onChange = () => apply();
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    }
+    mq.addListener(onChange);
+    return () => mq.removeListener(onChange);
   }, []);
 
   const { data, isLoading, isError, error } = useQuery({
@@ -1816,8 +2109,10 @@ export default function MyPolls() {
 
   if (!jwt) {
     return (
-      <Container size='lg' className='ui-page-shell'>
-        <h1 className='ui-page-heading'>{t('myPolls.needLogin')}</h1>
+      <Container size='lg' className='ui-page-shell asking-my-polls-page' id='asking-my-polls-page'>
+        <h1 className='ui-page-heading' id='asking-my-polls-page__login-required'>
+          {t('myPolls.needLogin')}
+        </h1>
         <p>
           <Link to='/login'>{t('nav.signIn')}</Link>
         </p>
@@ -1835,19 +2130,51 @@ export default function MyPolls() {
 
   const billingUsageWarning = billingUsageWarningSeverity(billingUsageQuery.data);
   const billingPastDue = billingPastDueBannerPayload(billingUsageQuery.data);
+  const exportReminder = billingExportReminder(billingUsageQuery.data);
 
   return (
-    <Container size='lg' className='ui-page-shell'>
-      <h1 className='ui-page-heading my-polls-header'>{t('myPolls.title')}</h1>
-      <p className='my-polls-actions'>
-        <Button type='button' variant='secondary' size='sm' className='ui-button--lane-secondary' onClick={handleLogout}>
-          {t('nav.signOut')}
-        </Button>
-        {' · '}
-        <Link to='/'>{t('myPolls.backHome')}</Link>
-      </p>
+    <Container size='lg' className='ui-page-shell asking-my-polls-page' id='asking-my-polls-page'>
+      <PageHeader
+        title={t('myPolls.title')}
+        titleId='asking-my-polls-page__title'
+        titleClassName='ui-page-heading asking-my-polls-page__header'
+        actions={
+          <ActionRow align='center' className='asking-my-polls-page__actions'>
+            <Button
+              type='button'
+              variant='secondary'
+              size='sm'
+              className='ui-button--lane-secondary'
+              onClick={handleLogout}
+            >
+              {t('nav.signOut')}
+            </Button>
+            <span aria-hidden>{' · '}</span>
+            <Link to='/'>{t('myPolls.backHome')}</Link>
+          </ActionRow>
+        }
+      />
+      <details
+        className='asking-my-polls-page__badge-legend'
+        role='note'
+        aria-labelledby='asking-my-polls-page__badge-legend-summary'
+        open={badgeLegendOpen}
+        onToggle={(e) => setBadgeLegendOpen((e.currentTarget as HTMLDetailsElement).open)}
+      >
+        <summary className='asking-my-polls-page__badge-legend-summary ui-copy-muted' id='asking-my-polls-page__badge-legend-summary'>
+          {t('myPolls.badgeLegendLabel')}
+        </summary>
+        <div className='asking-my-polls-page__badge-legend-items'>
+          <span className='asking-my-polls-page__inline-badge asking-my-polls-page__inline-badge--results-snapshot'>
+            {t('myPolls.webhookSnapshotResultsBadge')}
+          </span>
+          <span className='asking-my-polls-page__inline-badge asking-my-polls-page__inline-badge--owner-snapshot'>
+            {t('myPolls.webhookSnapshotOwnerBadge')}
+          </span>
+        </div>
+      </details>
       {billingPastDue ? (
-        <p className='error-message ui-usage-banner' role='alert'>
+        <p className='ui-alert ui-alert--danger ui-usage-banner' role='alert'>
           {t('billing.pastDueBanner')}{' '}
           <a href={billingPastDue.portalUrl} target='_blank' rel='noreferrer' className='ui-link'>
             {t('billing.openCustomerPortal')}
@@ -1856,7 +2183,7 @@ export default function MyPolls() {
       ) : null}
       {billingUsageWarning ? (
         <p
-          className={billingUsageWarning === '95' ? 'error-message' : 'ui-copy-muted'}
+          className={billingUsageWarning === '95' ? 'ui-alert ui-alert--danger' : 'ui-copy-muted'}
           role='status'
         >
           {billingUsageWarning === '95'
@@ -1864,11 +2191,28 @@ export default function MyPolls() {
             : t('billing.usageNearLimit80')}
         </p>
       ) : null}
+      {exportReminder ? (
+        <p
+          className={
+            exportReminder.atCap || exportReminder.nearCap === '95'
+              ? 'ui-alert ui-alert--danger'
+              : 'ui-copy-muted'
+          }
+          role='status'
+        >
+          {t('developer.billingExportUsage', {
+            current: exportReminder.current,
+            max: exportReminder.max,
+          })}
+        </p>
+      ) : null}
       {billingUsageQuery.data?.usage?.limitsEnforced &&
       typeof billingUsageQuery.data.usage.activePolls === 'number' &&
       typeof billingUsageQuery.data.usage.maxActivePolls === 'number' ? (
         <p
-          className={billingUsageAtCap(billingUsageQuery.data) ? 'error-message' : 'ui-copy-muted'}
+          className={
+            billingUsageAtCap(billingUsageQuery.data) ? 'ui-alert ui-alert--danger' : 'ui-copy-muted'
+          }
           role='status'
         >
           {t('myPolls.pollUsageBanner', {
@@ -1880,7 +2224,7 @@ export default function MyPolls() {
       ) : null}
       {isLoading ? <p role='status'>{t('myPolls.loading')}</p> : null}
       {isError ? (
-        <p className='error-message' role='alert'>
+        <p className='ui-alert ui-alert--danger' role='alert'>
           {error instanceof Error && error.message === 'NO_JWT'
             ? t('myPolls.needLogin')
             : errMsg(error, t('myPolls.errLoad'))}
@@ -1888,10 +2232,19 @@ export default function MyPolls() {
       ) : null}
       {data?.polls?.length === 0 ? <p>{t('myPolls.empty')}</p> : null}
       {data && data.polls.length > 0 ? (
-        <ul className='my-polls-list'>
-          {data.polls.map((p) => (
-            <li key={p.id} className='my-polls-item'>
-              <div className='my-polls-item-head'>
+        <ul className='asking-my-polls-page__list'>
+          {data.polls.map((p) => {
+            const retentionMeta = formatRetentionMeta(p);
+            const webhookTargets = p.webhook_targets ?? [];
+            const hasResultsSnapshotTarget = webhookTargets.some(
+              (target) => target.include_results_snapshot === true,
+            );
+            const hasOwnerSnapshotTarget = webhookTargets.some(
+              (target) => target.include_owner_snapshot === true,
+            );
+            return (
+            <li key={p.id} className='asking-my-polls-page__item'>
+              <div className='asking-my-polls-page__item-head'>
                 <Link to='/$id' params={{ id: p.id }}>
                   {p.title}
                 </Link>
@@ -1911,13 +2264,25 @@ export default function MyPolls() {
                   </span>
                 ) : null}
                 {p.hasWebhook ? (
-                  <span className='ui-copy-muted'> — {t('myPolls.webhookOn')}</span>
+                  <span className='asking-my-polls-page__inline-badge'> — {t('myPolls.webhookOn')}</span>
+                ) : null}
+                {hasResultsSnapshotTarget ? (
+                  <span className='asking-my-polls-page__inline-badge asking-my-polls-page__inline-badge--results-snapshot'>
+                    {' '}
+                    — {t('myPolls.webhookSnapshotResultsBadge')}
+                  </span>
+                ) : null}
+                {hasOwnerSnapshotTarget ? (
+                  <span className='asking-my-polls-page__inline-badge asking-my-polls-page__inline-badge--owner-snapshot'>
+                    {' '}
+                    — {t('myPolls.webhookSnapshotOwnerBadge')}
+                  </span>
                 ) : null}
                 {p.has_embed_read_token ? (
                   <span className='ui-copy-muted'> — {t('myPolls.embedBadge')}</span>
                 ) : null}
               </div>
-              <div className='ui-copy-muted my-polls-item-meta'>
+              <div className='ui-copy-muted asking-my-polls-page__item-meta'>
                 {t('myPolls.views', { count: p.impression_count })} ·{' '}
                 {t('myPolls.viewsLast24h', { count: Number(p.views_last_24h ?? 0) })} ·{' '}
                 {t('myPolls.votes', { count: p.total_votes })} ·{' '}
@@ -1925,7 +2290,10 @@ export default function MyPolls() {
                 {t('myPolls.votesLast5m', { count: p.votes_last_5m })} ·{' '}
                 {new Date(p.createdAt).toLocaleString(localeTag)}
               </div>
-              <div className='ui-copy-muted my-polls-item-meta'>
+              {retentionMeta ? (
+                <div className='ui-copy-muted asking-my-polls-page__item-meta'>{retentionMeta}</div>
+              ) : null}
+              <div className='ui-copy-muted asking-my-polls-page__item-meta'>
                 {t('myPolls.completionRate', {
                   pct:
                     p.completion_rate_pct != null && Number.isFinite(p.completion_rate_pct)
@@ -1978,11 +2346,11 @@ export default function MyPolls() {
               </div>
               {p.total_votes > 0 ? (
                 <div
-                  className='my-polls-vote-histograms'
+                  className='asking-my-polls-page__vote-histograms'
                   aria-label={t('myPolls.listVoteTimingAria')}
                 >
-                  <p className='ui-copy-muted my-polls-item-meta my-polls-sparkline-row'>
-                    <span className='my-polls-sparkline-label'>{t('poll.metrics.hourly')}</span>{' '}
+                  <p className='ui-copy-muted asking-my-polls-page__item-meta asking-my-polls-page__sparkline-row'>
+                    <span className='asking-my-polls-page__sparkline-label'>{t('poll.metrics.hourly')}</span>{' '}
                     <span aria-hidden='true'>
                       <SparklineBars
                         values={p.hourly_votes_by_hour_utc ?? Array.from({ length: 24 }, () => 0)}
@@ -1991,15 +2359,15 @@ export default function MyPolls() {
                         barWidthPx={3}
                       />
                     </span>
-                    <span className='my-polls-sparkline-axis'>
+                    <span className='asking-my-polls-page__sparkline-axis'>
                       {t('poll.metrics.hourlyAxis', {
                         start: formatUtcHourAtTopOfHour(localeTag, 0, '0'),
                         end: formatUtcHourAtTopOfHour(localeTag, 23, '23'),
                       })}
                     </span>
                   </p>
-                  <p className='ui-copy-muted my-polls-item-meta my-polls-sparkline-row'>
-                    <span className='my-polls-sparkline-label'>{t('poll.metrics.weekday')}</span>{' '}
+                  <p className='ui-copy-muted asking-my-polls-page__item-meta asking-my-polls-page__sparkline-row'>
+                    <span className='asking-my-polls-page__sparkline-label'>{t('poll.metrics.weekday')}</span>{' '}
                     <span aria-hidden='true'>
                       <SparklineBars
                         values={p.weekday_votes_by_dow_utc ?? Array.from({ length: 7 }, () => 0)}
@@ -2008,14 +2376,14 @@ export default function MyPolls() {
                         barWidthPx={5}
                       />
                     </span>
-                    <span className='my-polls-sparkline-axis'>
+                    <span className='asking-my-polls-page__sparkline-axis'>
                       {t('poll.metrics.weekdayAxis', { days: weekdayAxis })}
                     </span>
                   </p>
                 </div>
               ) : null}
               {p.per_option_funnel && p.per_option_funnel.length > 0 ? (
-                <div className='ui-copy-muted my-polls-item-meta'>
+                <div className='ui-copy-muted asking-my-polls-page__item-meta'>
                   {t('myPolls.optionFunnelLabel')}:&nbsp;
                   {p.per_option_funnel
                     .slice(0, 3)
@@ -2033,12 +2401,13 @@ export default function MyPolls() {
                     .join(' · ')}
                 </div>
               ) : null}
-              <details className='my-polls-manage'>
-                <summary className='my-polls-manage-summary'>{t('myPolls.manageToggle')}</summary>
-                <PollManagePanel p={p} jwt={jwt} />
+              <details className='asking-my-polls-page__manage'>
+                <summary className='asking-my-polls-page__manage-summary'>{t('myPolls.manageToggle')}</summary>
+                <PollManagePanel p={p} jwt={jwt} billingData={billingUsageQuery.data} />
               </details>
             </li>
-          ))}
+          );
+          })}
         </ul>
       ) : null}
     </Container>

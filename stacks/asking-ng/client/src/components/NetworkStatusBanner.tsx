@@ -11,8 +11,13 @@ export default function NetworkStatusBanner() {
   if (online) return null;
 
   return (
-    <div className='network-offline-banner' role='status' aria-live='polite'>
-      <IconWifiOff className='network-offline-banner__icon' aria-hidden />
+    <div
+      className='asking-network-banner asking-network-banner--offline'
+      id='asking-app__network-status'
+      role='status'
+      aria-live='polite'
+    >
+      <IconWifiOff className='asking-network-banner__icon' aria-hidden />
       <span>{t('app.offlineBanner')}</span>
     </div>
   );

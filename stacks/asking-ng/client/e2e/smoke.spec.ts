@@ -5,5 +5,5 @@ import { ensureNavbarExpanded } from './helpers/nav';
 test('home shows navigation', async ({ page }) => {
   await gotoAppPath(page, '/');
   await ensureNavbarExpanded(page);
-  await expect(page.getByRole('link', { name: /about/i })).toBeVisible();
+  await expect(page.locator('#asking-app-navbar__about-link')).toBeVisible();
 });

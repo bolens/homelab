@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useSearch } from '@tanstack/react-router';
 import Cookies from 'js-cookie';
 import ReconnectingWebSocket from 'reconnecting-websocket';
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { apiUrl, pollWsUrl } from '../apiBase';
 import CopyFeedbackButton from '../components/CopyFeedbackButton';
 import { IconShare } from '../components/icons/UiIcons';
@@ -16,6 +16,11 @@ import { apiFetch, isApiFetchError } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import type { MessageKey } from '../i18n/locales';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
+import { billingUpgradeHintFromError, type ProfileBillingApiPayload } from '../lib/profileBillingApi';
+import {
+  aggregateVelocityUtcBuckets,
+  type VoteVelocityMinuteRow,
+} from '../lib/aggregateVelocityUtcBuckets';
 import { formatUtcHourAtTopOfHour } from '../lib/formatUtcHourAtTopOfHour';
 import { formatUtcWeekdayShort } from '../lib/formatUtcWeekdayShort';
 import {
@@ -28,12 +33,14 @@ import {
   pollHeatmapQueryKey,
   pollQueryKey,
   pollReplayQueryKey,
+  profileBillingQueryKey,
 } from '../lib/queryKeys';
 import { getStoredUserJwt, subscribeUserJwtChanged } from '../lib/userSession';
 import { streamingObsDocHref } from '../lib/streamingObsDocHref';
 import { withUtm } from '../lib/withUtm';
 import { isWebShareLikelyAvailable, shareUrlNative } from '../lib/webShare';
-import { Button, cx, FormSection, Select, VisuallyHidden } from '../ui';
+import { fetchConsentRegion, type ConsentRegionHint } from '../lib/cookieConsent';
+import { ActionRow, Alert, Button, cx, FormSection, Select, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 const COOKIE_OPTS: Cookies.CookieAttributes = { path: '/' };
@@ -85,6 +92,13 @@ type PollApiData = {
       vote_count: number;
     }>;
     vote_velocity_by_minute_utc_truncated?: boolean;
+    option_vote_velocity_by_minute_utc?: Array<{
+      option: string;
+      vote_velocity_by_minute_utc?: Array<{
+        minute_utc: string;
+        vote_count: number;
+      }>;
+    }>;
   };
   results_delay_seconds?: number;
   live_results_are_delayed?: boolean;
@@ -92,9 +106,18 @@ type PollApiData = {
   delayed_votes_pending?: number;
   theme_preset?: 'default' | 'sunset' | 'ocean' | 'neon';
   selection_mode?: 'single' | 'multi';
-  vote_eligibility?: 'anonymous' | 'account';
+  vote_eligibility?: 'anonymous' | 'account' | 'platform_linked';
+  platform_identity_provider?: string | null;
+  platform_identity_consent_version?: string | null;
+  platform_identity_consent_captured_at_ms?: number | null;
+  retention_ttl_days?: number | null;
+  retention_legal_hold?: boolean;
+  auto_delete_at_ms?: number | null;
   moderation_counters?: {
     quarantined_votes_pending?: number;
+    quarantined_votes_pending_account_linked?: number;
+    votes_account_linked_last_24h?: number;
+    votes_anonymous_last_24h?: number;
     trust_ip_burst?: {
       enabled: boolean;
       window_sec?: number;
@@ -138,6 +161,10 @@ type PollViewModel = {
     optionHourlyVotesUtc?: Array<{ option: string; hourlyVotesByHourUtc: number[] }>;
     voteVelocityByMinuteUtc?: Array<{ minuteUtcIso: string; voteCount: number }>;
     voteVelocityByMinuteTruncated?: boolean;
+    optionVoteVelocityByMinuteUtc?: Array<{
+      option: string;
+      voteVelocityByMinuteUtc: VoteVelocityMinuteRow[];
+    }>;
   };
   resultsDelaySeconds: number;
   liveResultsAreDelayed: boolean;
@@ -145,9 +172,18 @@ type PollViewModel = {
   delayedVotesPending: number;
   themePreset: 'default' | 'sunset' | 'ocean' | 'neon';
   selectionMode: 'single' | 'multi';
-  voteEligibility: 'anonymous' | 'account';
+  voteEligibility: 'anonymous' | 'account' | 'platform_linked';
+  platformIdentityProvider: string | null;
+  platformIdentityConsentVersion: string | null;
+  platformIdentityConsentCapturedAtMs: number | null;
+  retentionTtlDays: number | null;
+  retentionLegalHold: boolean;
+  autoDeleteAtMs: number | null;
   moderationCounters?: {
     quarantinedVotesPending: number;
+    quarantinedVotesPendingAccountLinked: number;
+    votesAccountLinkedLast24h: number;
+    votesAnonymousLast24h: number;
     trustIpBurst: { enabled: false } | { enabled: true; windowSec: number; voteThreshold: number };
     trustChatBurst: { enabled: false } | { enabled: true; windowSec: number; voteThreshold: number };
   };
@@ -193,6 +229,10 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
         : ({ enabled: false as const });
     moderationCounters = {
       quarantinedVotesPending: pending,
+      quarantinedVotesPendingAccountLinked:
+        Number(mc.quarantined_votes_pending_account_linked ?? 0) || 0,
+      votesAccountLinkedLast24h: Number(mc.votes_account_linked_last_24h ?? 0) || 0,
+      votesAnonymousLast24h: Number(mc.votes_anonymous_last_24h ?? 0) || 0,
       trustIpBurst,
       trustChatBurst,
     };
@@ -293,6 +333,45 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
               : {}),
           }
         : {}),
+      ...(Array.isArray(data.metrics?.option_vote_velocity_by_minute_utc) &&
+      data.metrics.option_vote_velocity_by_minute_utc.some(
+        (row) =>
+          Array.isArray(
+            (row as { vote_velocity_by_minute_utc?: unknown }).vote_velocity_by_minute_utc,
+          ) &&
+          ((row as { vote_velocity_by_minute_utc: unknown[] }).vote_velocity_by_minute_utc?.length ??
+            0) > 0,
+      )
+        ? {
+            optionVoteVelocityByMinuteUtc: data.metrics.option_vote_velocity_by_minute_utc.map(
+              (row) => {
+                const r = row as {
+                  option?: unknown;
+                  vote_velocity_by_minute_utc?: unknown;
+                };
+                const series = Array.isArray(r.vote_velocity_by_minute_utc)
+                  ? r.vote_velocity_by_minute_utc
+                  : [];
+                return {
+                  option: typeof r.option === 'string' ? r.option : '',
+                  voteVelocityByMinuteUtc: series.map((pt) => {
+                    const p = pt as { minute_utc?: unknown; vote_count?: unknown };
+                    const iso =
+                      typeof p.minute_utc === 'string'
+                        ? p.minute_utc
+                        : typeof p.minute_utc === 'number' && Number.isFinite(p.minute_utc)
+                          ? new Date(p.minute_utc).toISOString()
+                          : '';
+                    return {
+                      minuteUtcIso: iso,
+                      voteCount: Number(p.vote_count ?? 0) || 0,
+                    };
+                  }),
+                };
+              },
+            ),
+          }
+        : {}),
     },
     resultsDelaySeconds: Math.max(0, Number(data.results_delay_seconds ?? 0) || 0),
     liveResultsAreDelayed: !!data.live_results_are_delayed,
@@ -309,7 +388,33 @@ function mapPollPayload(json: { data: PollApiData }): PollViewModel {
         ? data.theme_preset
         : 'default',
     selectionMode: data.selection_mode === 'multi' ? 'multi' : 'single',
-    voteEligibility: data.vote_eligibility === 'account' ? 'account' : 'anonymous',
+    voteEligibility:
+      data.vote_eligibility === 'account' || data.vote_eligibility === 'platform_linked'
+        ? data.vote_eligibility
+        : 'anonymous',
+    platformIdentityProvider:
+      typeof data.platform_identity_provider === 'string' && data.platform_identity_provider.trim() !== ''
+        ? data.platform_identity_provider
+        : null,
+    platformIdentityConsentVersion:
+      typeof data.platform_identity_consent_version === 'string' &&
+      data.platform_identity_consent_version.trim() !== ''
+        ? data.platform_identity_consent_version
+        : null,
+    platformIdentityConsentCapturedAtMs:
+      typeof data.platform_identity_consent_captured_at_ms === 'number' &&
+      Number.isFinite(data.platform_identity_consent_captured_at_ms)
+        ? data.platform_identity_consent_captured_at_ms
+        : null,
+    retentionTtlDays:
+      typeof data.retention_ttl_days === 'number' && Number.isFinite(data.retention_ttl_days)
+        ? Math.max(1, Math.trunc(data.retention_ttl_days))
+        : null,
+    retentionLegalHold: data.retention_legal_hold === true,
+    autoDeleteAtMs:
+      typeof data.auto_delete_at_ms === 'number' && Number.isFinite(data.auto_delete_at_ms)
+        ? data.auto_delete_at_ms
+        : null,
     ...(moderationCounters !== undefined ? { moderationCounters } : {}),
   };
 }
@@ -436,6 +541,8 @@ export default function Poll() {
   const [linkHint, setLinkHint] = useState('');
   const [ownerShareHint, setOwnerShareHint] = useState('');
   const [voteError, setVoteError] = useState('');
+  const [voteErrorUpgradeUrl, setVoteErrorUpgradeUrl] = useState<string | null>(null);
+  const [voteErrorUpgradeIsLicenseRenewal, setVoteErrorUpgradeIsLicenseRenewal] = useState(false);
   const [geoOptInChecked, setGeoOptInChecked] = useState(false);
   const [geoOptIn, setGeoOptIn] = useState(false);
   const [geoHint, setGeoHint] = useState('');
@@ -448,14 +555,18 @@ export default function Poll() {
   const [expiryAnnouncement, setExpiryAnnouncement] = useState('');
   const lastExpiryBucketRef = useRef<number | null>(null);
   const [hasUserJwt, setHasUserJwt] = useState(() => Boolean(getStoredUserJwt()?.trim()));
+  const [billingJwt, setBillingJwt] = useState(() => getStoredUserJwt()?.trim() ?? '');
   const [liveWsOpen, setLiveWsOpen] = useState(false);
   const [liveWsSubscriberLimitHit, setLiveWsSubscriberLimitHit] = useState(false);
+  const [consentRegion, setConsentRegion] = useState<ConsentRegionHint>('unknown');
   const [replayEnabled, setReplayEnabled] = useState(false);
   const [replaySpeed, setReplaySpeed] = useState(1);
   const [replayPositionMs, setReplayPositionMs] = useState(0);
   const [replayPlaying, setReplayPlaying] = useState(false);
   const [recentlyUpdatedOptions, setRecentlyUpdatedOptions] = useState<Set<number>>(new Set());
   const [resultsLivePulse, setResultsLivePulse] = useState(0);
+  /** Owner minute-velocity chart: aggregate raw API minutes into wider UTC buckets. */
+  const [velocityBucketMinutes, setVelocityBucketMinutes] = useState<1 | 5 | 15>(1);
   const previousOptionVotesRef = useRef<number[]>([]);
   const previousTotalVotesRef = useRef<number | null>(null);
   const liveHighlightClearTimerRef = useRef<number | null>(null);
@@ -465,6 +576,16 @@ export default function Poll() {
     if (liveWsOpen) return POLL_REFRESH_MS_LIVE_WS_FALLBACK;
     return pollRefreshMs;
   }, [online, liveWsOpen, pollRefreshMs]);
+
+  const billingUsageQuery = useQuery({
+    queryKey: profileBillingQueryKey(billingJwt),
+    queryFn: () =>
+      apiFetch('profile/billing', {
+        adminToken: false,
+        bearerToken: billingJwt.trim() || undefined,
+      }) as Promise<ProfileBillingApiPayload>,
+    enabled: Boolean(billingJwt.trim()),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: pollQueryKey(id, embedToken, trackingKey),
@@ -538,9 +659,16 @@ export default function Poll() {
   }, [data, id, hasUserJwt, t]);
 
   useEffect(() => {
-    const syncJwt = () => setHasUserJwt(Boolean(getStoredUserJwt()?.trim()));
+    const syncJwt = () => {
+      const jwt = getStoredUserJwt()?.trim() ?? '';
+      setHasUserJwt(Boolean(jwt));
+      setBillingJwt(jwt);
+    };
     syncJwt();
     return subscribeUserJwtChanged(syncJwt);
+  }, []);
+  useEffect(() => {
+    void fetchConsentRegion().then((region) => setConsentRegion(region));
   }, []);
 
   useEffect(() => {
@@ -686,6 +814,10 @@ export default function Poll() {
     };
   }, [id, embedToken]);
 
+  useEffect(() => {
+    setVelocityBucketMinutes(1);
+  }, [id]);
+
   const poll = data?.kind === 'ok' ? data.poll : null;
   const pollNotFound = data?.kind === 'notfound';
   const fetchError = data?.kind === 'error' ? data.message : '';
@@ -704,9 +836,12 @@ export default function Poll() {
   const themePreset = poll?.themePreset ?? 'default';
   const selectionMode = poll?.selectionMode ?? 'single';
   const voteEligibility = poll?.voteEligibility ?? 'anonymous';
-  const needsAccountToVote = voteEligibility === 'account' && !hasUserJwt;
+  const needsAccountToVote = voteEligibility !== 'anonymous' && !hasUserJwt;
   const isMulti = selectionMode === 'multi';
   const pollMetrics = poll?.metrics;
+  const pollRetentionTtlDays = poll?.retentionTtlDays ?? null;
+  const pollRetentionLegalHold = poll?.retentionLegalHold === true;
+  const pollAutoDeleteAtMs = poll?.autoDeleteAtMs ?? null;
   const resultsDelaySeconds = poll?.resultsDelaySeconds ?? 0;
   const liveResultsAreDelayed = poll?.liveResultsAreDelayed ?? false;
   const delayedVotesPending = poll?.delayedVotesPending ?? 0;
@@ -724,6 +859,60 @@ export default function Poll() {
     formatUtcHourAtTopOfHour(localeTag, hour, '—');
   const formatHourBucketUtc = (h: number) => formatUtcHourAtTopOfHour(localeTag, h, String(h));
   const weekdayAxis = Array.from({ length: 7 }, (_, i) => formatDowUtc(i)).join(' ');
+
+  const velocityDisplayRows = useMemo(() => {
+    const raw = pollMetrics?.voteVelocityByMinuteUtc;
+    if (!raw?.length) return [];
+    return aggregateVelocityUtcBuckets(raw, velocityBucketMinutes);
+  }, [pollMetrics?.voteVelocityByMinuteUtc, velocityBucketMinutes]);
+
+  const hasAggregateVelocity =
+    !!pollMetrics?.voteVelocityByMinuteUtc && pollMetrics.voteVelocityByMinuteUtc.length > 0;
+  const hasOptionVelocity =
+    pollMetrics?.optionVoteVelocityByMinuteUtc?.some((r) => r.voteVelocityByMinuteUtc.length > 0) ??
+    false;
+  const showOwnerVelocitySection = poll?.youOwnThisPoll && (hasAggregateVelocity || hasOptionVelocity);
+
+  const optionVelocityDisplayRows = useMemo(() => {
+    const rows = pollMetrics?.optionVoteVelocityByMinuteUtc;
+    if (!rows?.length) return [];
+    return rows.map((row) => ({
+      option: row.option,
+      displayRows: aggregateVelocityUtcBuckets(row.voteVelocityByMinuteUtc, velocityBucketMinutes),
+    }));
+  }, [pollMetrics?.optionVoteVelocityByMinuteUtc, velocityBucketMinutes]);
+
+  const formatVelocityMinuteUtc = useCallback(
+    (iso: string) => {
+      const ms = Date.parse(iso);
+      if (!Number.isFinite(ms)) return iso;
+      return new Intl.DateTimeFormat(localeTag, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'UTC',
+      }).format(new Date(ms));
+    },
+    [localeTag],
+  );
+  const ownerRetentionMeta = useMemo(() => {
+    if (!poll?.youOwnThisPoll || pollRetentionTtlDays == null) return null;
+    if (pollRetentionLegalHold) return t('poll.retentionLegalHoldActive');
+    if (pollAutoDeleteAtMs == null) return null;
+    const when = new Date(pollAutoDeleteAtMs);
+    if (!Number.isFinite(when.getTime())) return null;
+    const deltaDays = Math.ceil((when.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+    const relative =
+      deltaDays >= 0
+        ? t('poll.retentionAutoDeleteInDays', { days: deltaDays })
+        : t('poll.retentionAutoDeleteOverdueDays', { days: Math.abs(deltaDays) });
+    return t('poll.retentionAutoDeleteAt', {
+      date: when.toLocaleString(localeTag),
+      relative,
+    });
+  }, [poll?.youOwnThisPoll, pollRetentionTtlDays, pollRetentionLegalHold, pollAutoDeleteAtMs, t, localeTag]);
 
   useEffect(() => {
     if (poll) {
@@ -797,6 +986,8 @@ export default function Poll() {
   });
 
   const replayEvents = replayQuery.data?.data.events ?? [];
+  const replayErrorUpgradeHint = billingUpgradeHintFromError(replayQuery.error, billingUsageQuery.data);
+  const heatmapErrorUpgradeHint = billingUpgradeHintFromError(heatmapQuery.error, billingUsageQuery.data);
   const replayDurationMs = replayEvents.length
     ? replayEvents[replayEvents.length - 1]?.offset_ms || 0
     : 0;
@@ -944,6 +1135,8 @@ export default function Poll() {
     },
     onSuccess: () => {
       setVoteError('');
+      setVoteErrorUpgradeUrl(null);
+      setVoteErrorUpgradeIsLicenseRenewal(false);
       postPollSync(pollBcRef.current, { type: 'voted', pollId: id });
       invalidatePollQueries(queryClient, id, embedToken, trackingKey);
     },
@@ -952,6 +1145,9 @@ export default function Poll() {
       setUserVotedOn(-1);
       setMultiSubmitted(false);
       setMultiDraft(new Set());
+      const planLimitUpgradeHint = billingUpgradeHintFromError(err, billingUsageQuery.data);
+      setVoteErrorUpgradeUrl(planLimitUpgradeHint.url);
+      setVoteErrorUpgradeIsLicenseRenewal(planLimitUpgradeHint.isLicenseRenewal);
       setVoteError(errMsg(err, t('poll.voteFail')));
       invalidatePollQueries(queryClient, id, embedToken, trackingKey);
     },
@@ -1150,7 +1346,7 @@ export default function Poll() {
     const rel = formatPollExpiryRelative(localeTag, expiration, nowMs);
     if (rel.state === 'invalid') return null;
     if (rel.state === 'expired') {
-      return <p className='poll-expired-msg'>{t('poll.expired')}</p>;
+      return <p className='asking-poll-page__expired-msg'>{t('poll.expired')}</p>;
     }
     if (rel.state === 'never') {
       return (
@@ -1223,7 +1419,7 @@ export default function Poll() {
             optionBtnRefs.current[index] = el;
           }}
           type='button'
-          className='poll-option'
+          className='asking-poll-page__option'
           disabled={votingDisabled}
           tabIndex={useVoteRadios ? (index === rovingIndex ? 0 : -1) : multiPicking ? 0 : undefined}
           data-hover={optionIsHovering[index] ? 'true' : undefined}
@@ -1251,10 +1447,10 @@ export default function Poll() {
           onKeyDown={(e) => handleOptionKeyDown(index, e)}
           onClick={() => handleOptionClick(index)}
         >
-          <span className={`poll-option-title${isLeading ? ' poll-option-title--leading' : ''}`}>
+          <span className={`asking-poll-page__option-title${isLeading ? ' asking-poll-page__option-title--leading' : ''}`}>
             {option.title}
             {isLeading ? (
-              <span className='poll-leading-badge' aria-hidden='true'>
+              <span className='asking-poll-page__leading-badge' aria-hidden='true'>
                 {t('poll.leadingBadge')}
               </span>
             ) : null}
@@ -1262,13 +1458,13 @@ export default function Poll() {
           {showResults && (
             <>
               <span
-                className={`poll-option-result${isLeading ? ' poll-option-result--leading' : ''}`}
+                className={`asking-poll-page__option-result${isLeading ? ' asking-poll-page__option-result--leading' : ''}`}
               >
                 {formatLocaleInteger(option.votes, localeTag)}
               </span>
-              <div className='poll-option-fill-layer' aria-hidden='true'>
+              <div className='asking-poll-page__option-fill-layer' aria-hidden='true'>
                 <div
-                  className={`poll-option-fill${fillLeader ? ' poll-option-fill--leader' : ''}`}
+                  className={`asking-poll-page__option-fill${fillLeader ? ' asking-poll-page__option-fill--leader' : ''}`}
                   style={{ width: calculateResultWidth(option.votes, replayTotals.total) }}
                 />
               </div>
@@ -1281,8 +1477,8 @@ export default function Poll() {
 
   if (isLoading && !pollNotFound && !fetchError) {
     return (
-      <div className='ui-page-shell site-public poll-page'>
-        <p className='poll-status poll-status-loading' role='status' aria-live='polite'>
+      <div className='ui-page-shell asking-public-layout asking-poll-page' id='asking-poll-page'>
+        <p className='asking-poll-page__status asking-poll-page__status--loading' role='status' aria-live='polite'>
           {t('poll.loading')}
         </p>
       </div>
@@ -1291,9 +1487,11 @@ export default function Poll() {
 
   if (pollNotFound) {
     return (
-      <div className='ui-page-shell site-public poll-page'>
-        <h1 className='poll-page-title poll-header'>{t('poll.notFound.title')}</h1>
-        <p className='poll-status'>{t('poll.notFound.body')}</p>
+      <div className='ui-page-shell asking-public-layout asking-poll-page' id='asking-poll-page'>
+        <h1 className='asking-poll-page__title' id='asking-poll-page__title'>
+          {t('poll.notFound.title')}
+        </h1>
+        <p className='asking-poll-page__status'>{t('poll.notFound.body')}</p>
         <p>
           <Link to='/'>{t('poll.notFound.cta')}</Link>
         </p>
@@ -1303,10 +1501,8 @@ export default function Poll() {
 
   if (fetchError && !title.trim()) {
     return (
-      <div className='ui-page-shell site-public poll-page'>
-        <p className='error-message' role='alert'>
-          {fetchError}
-        </p>
+      <div className='ui-page-shell asking-public-layout asking-poll-page' id='asking-poll-page'>
+        <Alert>{fetchError}</Alert>
         <p>
           <Link to='/'>{t('poll.backHome')}</Link>
         </p>
@@ -1316,15 +1512,16 @@ export default function Poll() {
 
   return (
     <div
-      className={`ui-page-shell site-public poll-page${liveWsOpen ? ' poll-page--live-connected' : ''}`}
+      id='asking-poll-page'
+      className={`ui-page-shell asking-public-layout asking-poll-page${liveWsOpen ? ' asking-poll-page--live-connected' : ''}`}
       data-results-live-pulse={resultsLivePulse}
       data-poll-theme={themePreset}
     >
-      <header className='poll-page-header'>
-        <h1 className='poll-page-title poll-header' id='poll-page-title'>
+      <header className='asking-poll-page__header'>
+        <h1 className='asking-poll-page__title' id='asking-poll-page__title'>
           {title}
         </h1>
-        <div className='poll-page-toolbar'>
+        <ActionRow align='start' className='asking-poll-page__toolbar'>
           <CopyFeedbackButton onCopy={copyShareLink}>{t('poll.copyLink')}</CopyFeedbackButton>
           <Link
             to='/$id/results'
@@ -1347,60 +1544,68 @@ export default function Poll() {
           ) : null}
           {linkHint ? (
             <span
-              className='poll-status poll-status-success poll-copy-hint'
+              className='asking-poll-page__status asking-poll-page__status--success asking-poll-page__copy-hint'
               role='status'
               aria-live='polite'
             >
               {linkHint}
             </span>
           ) : null}
-        </div>
+        </ActionRow>
       </header>
-      {archived ? <p className='poll-archived-note'>{t('poll.archived')}</p> : null}
-      {simulatedPoll ? <p className='poll-sim-warning'>{t('poll.simulationNotice')}</p> : null}
+      {archived ? <p className='asking-poll-page__archived-note'>{t('poll.archived')}</p> : null}
+      {simulatedPoll ? <p className='asking-poll-page__sim-warning'>{t('poll.simulationNotice')}</p> : null}
       {votingPaused && !archived ? (
-        <p className='poll-archived-note' role='status'>
+        <p className='asking-poll-page__archived-note' role='status'>
           {pauseMessage?.trim() ? pauseMessage : t('poll.votingPausedDefault')}
         </p>
       ) : null}
       {!votingPaused && !archived && phase === 'locked' ? (
-        <p className='poll-archived-note'>{t('poll.phaseLockedHint')}</p>
+        <p className='asking-poll-page__archived-note'>{t('poll.phaseLockedHint')}</p>
       ) : null}
       {!votingPaused && !archived && phase === 'draft' ? (
-        <p className='poll-archived-note'>{t('poll.phaseDraftHint')}</p>
+        <p className='asking-poll-page__archived-note'>{t('poll.phaseDraftHint')}</p>
       ) : null}
       {!votingPaused && !archived && phase === 'revealed' ? (
-        <p className='poll-archived-note'>{t('poll.phaseRevealedHint')}</p>
+        <p className='asking-poll-page__archived-note'>{t('poll.phaseRevealedHint')}</p>
       ) : null}
       {showNotes ? (
-        <section className='ui-poll-notes-card' aria-labelledby='poll-show-notes-h'>
-          <h3 id='poll-show-notes-h' className='ui-poll-notes-card-title'>
+        <section className='ui-poll-notes-card' aria-labelledby='asking-poll-page__show-notes-heading'>
+          <h3 id='asking-poll-page__show-notes-heading' className='ui-poll-notes-card-title'>
             {t('poll.showNotesTitle')}
           </h3>
-          <pre className='poll-show-notes'>{showNotes}</pre>
+          <pre className='asking-poll-page__show-notes'>{showNotes}</pre>
         </section>
       ) : null}
       {ownerShareKit ? (
-        <details className='ui-disclosure poll-owner-share-details'>
+        <details className='ui-disclosure asking-poll-page__owner-share-details'>
           <summary className='ui-disclosure-summary'>
             <span className='ui-disclosure-summary-title'>{t('myPolls.distributionHeading')}</span>
             <span className='ui-disclosure-summary-hint'>{t('myPolls.distributionHint')}</span>
           </summary>
-          <div className='ui-disclosure-body poll-owner-share-body'>
-            {voteEligibility === 'account' ? (
-              <p className='poll-refresh-meta' role='note'>
+          <div className='ui-disclosure-body asking-poll-page__owner-share-body'>
+            {voteEligibility !== 'anonymous' ? (
+              <p className='asking-poll-page__refresh-meta' role='note'>
                 {t('home.voteEligibility.accountConsentNote')}
               </p>
             ) : null}
-            <p className='poll-refresh-meta' style={{ marginBlockEnd: 12 }}>
+            <p className='asking-poll-page__refresh-meta' style={{ marginBlockEnd: 12 }}>
               <a href={streamingObsDocHref()} target='_blank' rel='noopener noreferrer'>
                 {t('docs.streamingObsBrowserSource')}
               </a>
             </p>
-            <FormSection className='ui-form-block' title={t('myPolls.chatSnippetVote')}>
+            <FormSection
+              className='ui-form-block'
+              title={t('myPolls.chatSnippetVote')}
+              titleId='asking-poll-page__share-chat-vote-heading'
+            >
               <code className='ui-code-block'>{ownerShareKit.chatVoteSnippet}</code>
             </FormSection>
-            <FormSection className='ui-form-block' title={t('myPolls.chatSnippetShare')}>
+            <FormSection
+              className='ui-form-block'
+              title={t('myPolls.chatSnippetShare')}
+              titleId='asking-poll-page__share-chat-share-heading'
+            >
               <code className='ui-code-block'>{ownerShareKit.chatShareSnippet}</code>
               <CopyFeedbackButton
                 onCopy={async () => {
@@ -1416,7 +1621,11 @@ export default function Poll() {
                 {t('myPolls.copySnippet')}
               </CopyFeedbackButton>
             </FormSection>
-            <FormSection className='ui-form-block' title={t('myPolls.publicPollUrl')}>
+            <FormSection
+              className='ui-form-block'
+              title={t('myPolls.publicPollUrl')}
+              titleId='asking-poll-page__share-public-url-heading'
+            >
               <code className='ui-code-block'>{shareUrlForPoll(id)}</code>
               <div className='ui-inline-actions'>
                 <CopyFeedbackButton
@@ -1449,6 +1658,7 @@ export default function Poll() {
               <FormSection
                 className='ui-form-block'
                 title={t('myPolls.embedFrameUrl')}
+                titleId='asking-poll-page__share-embed-url-heading'
                 hint={t('myPolls.embedFrameUrlHint')}
               >
                 <code className='ui-code-block'>{embedViewerUrl}</code>
@@ -1472,10 +1682,11 @@ export default function Poll() {
             <FormSection
               className='ui-form-block'
               title={t('myPolls.sharePresets')}
+              titleId='asking-poll-page__share-presets-heading'
               hint={t('myPolls.sharePresetsHint')}
             >
               {ownerShareKit.presets.map((preset) => (
-                <div key={preset.id} className='poll-owner-share-preset'>
+                <div key={preset.id} className='asking-poll-page__owner-share-preset'>
                   <p className='ui-form-hint' style={{ marginBlockEnd: 6 }}>
                     <strong>{preset.label}:</strong>
                   </p>
@@ -1514,7 +1725,12 @@ export default function Poll() {
                 </div>
               ))}
             </FormSection>
-            <FormSection className='ui-form-block' title={t('myPolls.qrLabel')} hint={t('myPolls.qrHint')}>
+            <FormSection
+              className='ui-form-block'
+              title={t('myPolls.qrLabel')}
+              titleId='asking-poll-page__share-qr-heading'
+              hint={t('myPolls.qrHint')}
+            >
               <img
                 src={ownerShareKit.qrUrl}
                 width={180}
@@ -1524,18 +1740,18 @@ export default function Poll() {
               />
             </FormSection>
             {ownerShareHint ? (
-              <p className='poll-status poll-status-success' role='status' aria-live='polite'>
+              <p className='asking-poll-page__status asking-poll-page__status--success' role='status' aria-live='polite'>
                 {ownerShareHint}
               </p>
             ) : null}
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               <Link to='/my-polls'>{t('nav.myPolls')}</Link>
               {' — '}
               {t('poll.ownerShareAdvancedHint')}
             </p>
             {poll && poll.moderationCounters ? (
               <>
-                <p className='poll-refresh-meta poll-owner-trust-hint' role='note'>
+                <p className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint' role='note'>
                   {poll.moderationCounters.trustIpBurst.enabled
                     ? t('poll.trustIpBurstOn', {
                         window: formatLocaleInteger(
@@ -1558,7 +1774,7 @@ export default function Poll() {
                         ),
                       })}
                 </p>
-                <p className='poll-refresh-meta poll-owner-trust-hint' role='note'>
+                <p className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint' role='note'>
                   {poll.moderationCounters.trustChatBurst.enabled
                     ? t('poll.trustChatBurstOn', {
                         window: formatLocaleInteger(
@@ -1581,37 +1797,64 @@ export default function Poll() {
                         ),
                       })}
                 </p>
+                <p className='asking-poll-page__refresh-meta asking-poll-page__owner-trust-hint' role='note'>
+                  {t('poll.trustAccountLinkedMix', {
+                    signedIn24h: formatLocaleInteger(
+                      poll.moderationCounters.votesAccountLinkedLast24h,
+                      localeTag,
+                    ),
+                    anonymous24h: formatLocaleInteger(
+                      poll.moderationCounters.votesAnonymousLast24h,
+                      localeTag,
+                    ),
+                    pendingSignedIn: formatLocaleInteger(
+                      poll.moderationCounters.quarantinedVotesPendingAccountLinked,
+                      localeTag,
+                    ),
+                  })}
+                </p>
               </>
             ) : null}
           </div>
         </details>
       ) : null}
-      <div className='poll-meta-row'>
-        <span className='poll-chip' title={t('poll.state.label')}>
+      <div className='asking-poll-page__meta-row'>
+        <span className='asking-poll-page__chip' title={t('poll.state.label')}>
           {pollStateLabel}
         </span>
         {simulatedPoll ? (
-          <span className='poll-chip poll-chip--sim'>{t('poll.simulationBadge')}</span>
+          <span className='asking-poll-page__chip asking-poll-page__chip--sim'>{t('poll.simulationBadge')}</span>
         ) : null}
-        <div className='poll-expiry-slot'>{renderExpiration()}</div>
+        <div className='asking-poll-page__expiry-slot'>{renderExpiration()}</div>
       </div>
       {liveWsSubscriberLimitHit ? (
         <p className='ui-copy-muted' role='status'>
           {t('poll.billingWsSubscriberLimitHint')}
         </p>
       ) : null}
-      <p className='poll-instructions'>
+      <p className='asking-poll-page__instructions'>
         {!votingDisabled
           ? isMulti
             ? t('poll.instructions.multi')
             : t('poll.instructions.vote')
           : t('poll.votingClosedHint')}
       </p>
-      {!completed ? (
-        <p className='poll-refresh-meta poll-replay-hint'>{t('poll.replayActiveHint')}</p>
+      {voteEligibility !== 'anonymous' ? (
+        <p className='asking-poll-page__refresh-meta' role='note'>
+          {t(
+            consentRegion === 'eu'
+              ? 'poll.identityLinkedRegionalNotice.eu'
+              : consentRegion === 'non-eu'
+                ? 'poll.identityLinkedRegionalNotice.nonEu'
+                : 'poll.identityLinkedRegionalNotice.unknown',
+          )}
+        </p>
       ) : null}
-      <div className='poll-footer-meta'>
-        <p className='poll-status poll-refresh-meta'>
+      {!completed ? (
+        <p className='asking-poll-page__refresh-meta asking-poll-page__replay-hint'>{t('poll.replayActiveHint')}</p>
+      ) : null}
+      <div className='asking-poll-page__footer-meta'>
+        <p className='asking-poll-page__status asking-poll-page__refresh-meta'>
           {liveWsOpen
             ? t('poll.refreshHintLive', {
                 fallback: formatLocaleInteger(POLL_REFRESH_MS_LIVE_WS_FALLBACK / 1000, localeTag),
@@ -1622,14 +1865,14 @@ export default function Poll() {
               })}
         </p>
         <p
-          className={`poll-status poll-refresh-meta${showResults ? ' poll-results-total poll-results-total--live' : ''}`}
+          className={`asking-poll-page__status asking-poll-page__refresh-meta${showResults ? ' asking-poll-page__results-total asking-poll-page__results-total--live' : ''}`}
           data-updated={showResults && resultsLivePulse > 0 ? 'true' : undefined}
           role='status'
         >
           {t('poll.impressions', { count: formatLocaleInteger(impressionCount, localeTag) })}
         </p>
         {showResults && liveResultsAreDelayed ? (
-          <p className='poll-status poll-refresh-meta'>
+          <p className='asking-poll-page__status asking-poll-page__refresh-meta'>
             {t('poll.resultsDelayInfo', {
               seconds: formatLocaleInteger(resultsDelaySeconds, localeTag),
               pending: formatLocaleInteger(delayedVotesPending, localeTag),
@@ -1638,46 +1881,52 @@ export default function Poll() {
         ) : null}
       </div>
       {showResults ? (
-        <div className='poll-live-insights-grid'>
-          <section className='poll-replay-wrap poll-metrics-wrap' aria-label={t('poll.metricsSectionAria')}>
-            <h3>{t('poll.metricsTitle')}</h3>
-            <p className='poll-refresh-meta'>
+        <div className='asking-poll-page__live-insights-grid'>
+          <section
+            className='asking-poll-page__replay-wrap asking-poll-page__metrics-wrap'
+            aria-labelledby='asking-poll-page__metrics-heading'
+          >
+            <h3 id='asking-poll-page__metrics-heading'>{t('poll.metricsTitle')}</h3>
+            {ownerRetentionMeta ? (
+              <p className='asking-poll-page__refresh-meta ui-copy-muted'>{ownerRetentionMeta}</p>
+            ) : null}
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.votesLast5mVelocity', {
                 count: formatLocaleInteger(pollMetrics?.votesLast5m ?? 0, localeTag),
               })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.lifetimeVelocity', {
                 value: formatVelocity(pollMetrics?.engagementVelocityVotesPerMin),
               })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.completionRate', { pct: formatPct(pollMetrics?.completionRatePct) })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.optionCoverage', { pct: formatPct(pollMetrics?.optionCoveragePct) })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.leaderMargin', { pct: formatPct(pollMetrics?.leaderMarginPct) })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.timeToFirstResponse', {
                 value: formatDuration(pollMetrics?.timeToFirstVoteMs),
               })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.peakHour', {
                 hour: formatHourUtc(pollMetrics?.peakHourUtc),
                 votes: pollMetrics?.peakHourVotes ?? 0,
               })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.peakDay', {
                 day: formatDowUtc(pollMetrics?.peakDowUtc),
                 votes: pollMetrics?.peakDowVotes ?? 0,
               })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.hourly')}{' '}
               <span aria-hidden='true'>
                 <SparklineBars
@@ -1687,13 +1936,13 @@ export default function Poll() {
                 />
               </span>
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.hourlyAxis', {
                 start: formatHourBucketUtc(0),
                 end: formatHourBucketUtc(23),
               })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               <SparklineLegend
                 values={pollMetrics?.hourlyVotesByHourUtc ?? Array.from({ length: 24 }, () => 0)}
                 bucketLabel={(i) => formatHourBucketUtc(i)}
@@ -1704,7 +1953,7 @@ export default function Poll() {
                 }}
               />
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.weekday')}{' '}
               <span aria-hidden='true'>
                 <SparklineBars
@@ -1714,10 +1963,10 @@ export default function Poll() {
                 />
               </span>
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.metrics.weekdayAxis', { days: weekdayAxis })}
             </p>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               <SparklineLegend
                 values={pollMetrics?.weekdayVotesByDowUtc ?? Array.from({ length: 7 }, () => 0)}
                 bucketLabel={(i) => `${formatDowUtc(i)}`}
@@ -1728,75 +1977,127 @@ export default function Poll() {
                 }}
               />
             </p>
-            {poll?.youOwnThisPoll &&
-            pollMetrics?.voteVelocityByMinuteUtc &&
-            pollMetrics.voteVelocityByMinuteUtc.length > 0 ? (
+            {showOwnerVelocitySection ? (
               <>
-                <h4 className='poll-metrics-subhead'>{t('poll.metrics.velocityByMinuteTitle')}</h4>
-                <p className='poll-refresh-meta ui-copy-muted'>{t('poll.metrics.velocityByMinuteHint')}</p>
-                {pollMetrics.voteVelocityByMinuteTruncated ? (
-                  <p className='poll-refresh-meta poll-metrics-velocity-truncated' role='status'>
-                    {t('poll.metrics.velocityByMinuteTruncated')}
-                  </p>
-                ) : null}
-                <div
-                  className='poll-metrics-velocity-scroll'
-                  role='group'
-                  aria-label={t('poll.metrics.velocityByMinuteAria')}
-                >
-                  <SparklineBars
-                    values={pollMetrics.voteVelocityByMinuteUtc.map((v) => v.voteCount)}
-                    bucketLabel={(i) => {
-                      const iso = pollMetrics.voteVelocityByMinuteUtc![i]?.minuteUtcIso ?? '';
-                      const ms = Date.parse(iso);
-                      if (!Number.isFinite(ms)) return iso || String(i);
-                      return new Intl.DateTimeFormat(localeTag, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                        timeZone: 'UTC',
-                      }).format(new Date(ms));
+                <div className='asking-poll-page__metrics-velocity-resolution'>
+                  <label
+                    htmlFor='asking-poll-page__velocity-bucket'
+                    className='asking-poll-page__metrics-velocity-resolution-label'
+                  >
+                    {t('poll.metrics.velocityResolutionLabel')}
+                  </label>
+                  <Select
+                    id='asking-poll-page__velocity-bucket'
+                    className='asking-poll-page__metrics-velocity-resolution-select'
+                    value={String(velocityBucketMinutes)}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (n === 1 || n === 5 || n === 15) setVelocityBucketMinutes(n);
                     }}
-                    maxHeightPx={28}
-                    barWidthPx={pollMetrics.voteVelocityByMinuteUtc.length > 200 ? 1 : 2}
-                  />
+                  >
+                    <option value='1'>{t('poll.metrics.velocityResolution1')}</option>
+                    <option value='5'>{t('poll.metrics.velocityResolution5')}</option>
+                    <option value='15'>{t('poll.metrics.velocityResolution15')}</option>
+                  </Select>
                 </div>
-                <p className='poll-refresh-meta'>
-                  <SparklineLegend
-                    values={pollMetrics.voteVelocityByMinuteUtc.map((v) => v.voteCount)}
-                    bucketLabel={(i) => {
-                      const iso = pollMetrics.voteVelocityByMinuteUtc![i]?.minuteUtcIso ?? '';
-                      const ms = Date.parse(iso);
-                      if (!Number.isFinite(ms)) return iso || String(i);
-                      return new Intl.DateTimeFormat(localeTag, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                        timeZone: 'UTC',
-                      }).format(new Date(ms));
-                    }}
-                    labels={{
-                      min: t('sparkline.min'),
-                      max: t('sparkline.max'),
-                      peak: t('sparkline.peak'),
-                    }}
-                  />
-                </p>
+                {hasAggregateVelocity ? (
+                  <>
+                    <h4 className='asking-poll-page__metrics-subhead' id='asking-poll-page__metrics-velocity-by-minute-heading'>
+                      {t('poll.metrics.velocityByMinuteTitle')}
+                    </h4>
+                    <p className='asking-poll-page__refresh-meta ui-copy-muted'>{t('poll.metrics.velocityByMinuteHint')}</p>
+                    {pollMetrics?.voteVelocityByMinuteTruncated ? (
+                      <p className='asking-poll-page__refresh-meta asking-poll-page__metrics-velocity-truncated' role='status'>
+                        {t('poll.metrics.velocityByMinuteTruncated')}
+                      </p>
+                    ) : null}
+                    <div
+                      className='asking-poll-page__metrics-velocity-scroll'
+                      role='group'
+                      aria-labelledby='asking-poll-page__metrics-velocity-by-minute-heading'
+                    >
+                      <SparklineBars
+                        values={velocityDisplayRows.map((v) => v.voteCount)}
+                        bucketLabel={(i) =>
+                          formatVelocityMinuteUtc(velocityDisplayRows[i]?.minuteUtcIso ?? '')
+                        }
+                        maxHeightPx={28}
+                        barWidthPx={velocityDisplayRows.length > 200 ? 1 : 2}
+                      />
+                    </div>
+                    <p className='asking-poll-page__refresh-meta'>
+                      <SparklineLegend
+                        values={velocityDisplayRows.map((v) => v.voteCount)}
+                        bucketLabel={(i) =>
+                          formatVelocityMinuteUtc(velocityDisplayRows[i]?.minuteUtcIso ?? '')
+                        }
+                        labels={{
+                          min: t('sparkline.min'),
+                          max: t('sparkline.max'),
+                          peak: t('sparkline.peak'),
+                        }}
+                      />
+                    </p>
+                  </>
+                ) : null}
+                {hasOptionVelocity ? (
+                  <>
+                    <h4 className='asking-poll-page__metrics-subhead' id='asking-poll-page__metrics-option-velocity-by-minute-heading'>
+                      {t('poll.metrics.optionVelocityByMinuteTitle')}
+                    </h4>
+                    <p className='asking-poll-page__refresh-meta ui-copy-muted'>
+                      {t('poll.metrics.optionVelocityByMinuteHint')}
+                    </p>
+                    {optionVelocityDisplayRows.map((row) =>
+                      row.displayRows.length > 0 ? (
+                        <p
+                          key={row.option}
+                          className='asking-poll-page__refresh-meta asking-poll-page__metrics-option-hourly-row'
+                        >
+                          <span className='asking-poll-page__metrics-option-hourly-label'>{row.option}</span>{' '}
+                          <span aria-hidden='true'>
+                            <SparklineBars
+                              values={row.displayRows.map((v) => v.voteCount)}
+                              bucketLabel={(i) =>
+                                formatVelocityMinuteUtc(row.displayRows[i]?.minuteUtcIso ?? '')
+                              }
+                              maxHeightPx={22}
+                              barWidthPx={row.displayRows.length > 200 ? 1 : 2}
+                            />
+                          </span>
+                        </p>
+                      ) : null,
+                    )}
+                    <p className='asking-poll-page__refresh-meta'>
+                      <SparklineLegend
+                        values={optionVelocityDisplayRows[0]?.displayRows.map((v) => v.voteCount) ?? []}
+                        bucketLabel={(i) =>
+                          formatVelocityMinuteUtc(
+                            optionVelocityDisplayRows[0]?.displayRows[i]?.minuteUtcIso ?? '',
+                          )
+                        }
+                        labels={{
+                          min: t('sparkline.min'),
+                          max: t('sparkline.max'),
+                          peak: t('sparkline.peak'),
+                        }}
+                      />
+                    </p>
+                  </>
+                ) : null}
               </>
             ) : null}
             {poll?.youOwnThisPoll &&
             pollMetrics?.optionHourlyVotesUtc &&
             pollMetrics.optionHourlyVotesUtc.length > 0 ? (
               <>
-                <h4 className='poll-metrics-subhead'>{t('poll.metrics.optionHourlyTitle')}</h4>
-                <p className='poll-refresh-meta ui-copy-muted'>{t('poll.metrics.optionHourlyHint')}</p>
+                <h4 className='asking-poll-page__metrics-subhead' id='asking-poll-page__metrics-option-hourly-heading'>
+                  {t('poll.metrics.optionHourlyTitle')}
+                </h4>
+                <p className='asking-poll-page__refresh-meta ui-copy-muted'>{t('poll.metrics.optionHourlyHint')}</p>
                 {pollMetrics.optionHourlyVotesUtc.map((row) => (
-                  <p key={row.option} className='poll-refresh-meta poll-metrics-option-hourly-row'>
-                    <span className='poll-metrics-option-hourly-label'>{row.option}</span>{' '}
+                  <p key={row.option} className='asking-poll-page__refresh-meta asking-poll-page__metrics-option-hourly-row'>
+                    <span className='asking-poll-page__metrics-option-hourly-label'>{row.option}</span>{' '}
                     <span aria-hidden='true'>
                       <SparklineBars
                         values={row.hourlyVotesByHourUtc}
@@ -1807,7 +2108,7 @@ export default function Poll() {
                     </span>
                   </p>
                 ))}
-                <p className='poll-refresh-meta'>
+                <p className='asking-poll-page__refresh-meta'>
                   {t('poll.metrics.hourlyAxis', {
                     start: formatHourBucketUtc(0),
                     end: formatHourBucketUtc(23),
@@ -1817,17 +2118,35 @@ export default function Poll() {
             ) : null}
           </section>
           {showResults && completed ? (
-            <section className='poll-replay-wrap' aria-live='polite'>
-              <h3>{t('poll.replayTitle')}</h3>
+            <section
+              className='asking-poll-page__replay-wrap'
+              aria-live='polite'
+              aria-labelledby='asking-poll-page__replay-heading'
+            >
+              <h3 id='asking-poll-page__replay-heading'>{t('poll.replayTitle')}</h3>
               {replayQuery.isLoading ? (
-                <p className='poll-status'>{t('poll.replayLoading')}</p>
+                <p className='asking-poll-page__status'>{t('poll.replayLoading')}</p>
               ) : null}
               {replayQuery.isError ? (
-                <p className='poll-status poll-status-error'>{t('poll.replayError')}</p>
+                <p className='asking-poll-page__status asking-poll-page__status--error'>
+                  {t('poll.replayError')}
+                  {replayErrorUpgradeHint.url ? (
+                    <>
+                      {' '}
+                      <a href={replayErrorUpgradeHint.url} target='_blank' rel='noreferrer' className='ui-link'>
+                        {t(
+                          replayErrorUpgradeHint.isLicenseRenewal
+                            ? 'poll.renewLicenseCta'
+                            : 'poll.upgradeCta',
+                        )}
+                      </a>
+                    </>
+                  ) : null}
+                </p>
               ) : null}
               {!replayQuery.isLoading && !replayQuery.isError ? (
                 replayEvents.length > 0 ? (
-                  <div className='poll-replay-controls'>
+                  <div className='asking-poll-page__replay-controls'>
                     <Button
                       type='button'
                       variant='secondary'
@@ -1874,7 +2193,7 @@ export default function Poll() {
                         >
                           {t('poll.replaySeekForward')}
                         </Button>
-                        <label className='poll-replay-speed'>
+                        <label className='asking-poll-page__replay-speed'>
                           {t('poll.replaySpeed')}
                           <Select
                             className='ui-input--stack'
@@ -1887,7 +2206,7 @@ export default function Poll() {
                             <option value='4'>4x</option>
                           </Select>
                         </label>
-                        <div className='poll-replay-timeline'>
+                        <div className='asking-poll-page__replay-timeline'>
                           <input
                             type='range'
                             min={0}
@@ -1901,12 +2220,12 @@ export default function Poll() {
                               setReplayPositionMs(Number(e.target.value) || 0);
                             }}
                           />
-                          <div className='poll-replay-time-row' aria-hidden='true'>
+                          <div className='asking-poll-page__replay-time-row' aria-hidden='true'>
                             <span>{formatReplayClock(replayPositionMs)}</span>
                             <span>{formatReplayClock(replayDurationMs)}</span>
                           </div>
                         </div>
-                        <p className='poll-refresh-meta'>
+                        <p className='asking-poll-page__refresh-meta'>
                           {t('poll.replayVotesShown', {
                             shown: replayTotals.total,
                             total: replayEvents.length,
@@ -1916,20 +2235,38 @@ export default function Poll() {
                     ) : null}
                   </div>
                 ) : (
-                  <p className='poll-status'>{t('poll.replayEmpty')}</p>
+                  <p className='asking-poll-page__status'>{t('poll.replayEmpty')}</p>
                 )
               ) : null}
             </section>
           ) : null}
           {showResults ? (
-            <section className='poll-heatmap-wrap' aria-live='polite'>
-              <h3>{t('poll.heatmapTitle')}</h3>
-              <p className='poll-refresh-meta'>{t('poll.heatmapPrivacy')}</p>
+            <section
+              className='asking-poll-page__heatmap-wrap'
+              aria-live='polite'
+              aria-labelledby='asking-poll-page__heatmap-heading'
+            >
+              <h3 id='asking-poll-page__heatmap-heading'>{t('poll.heatmapTitle')}</h3>
+              <p className='asking-poll-page__refresh-meta'>{t('poll.heatmapPrivacy')}</p>
               {heatmapQuery.isLoading ? (
-                <p className='poll-status'>{t('poll.heatmapLoading')}</p>
+                <p className='asking-poll-page__status'>{t('poll.heatmapLoading')}</p>
               ) : null}
               {heatmapQuery.isError ? (
-                <p className='poll-status poll-status-error'>{t('poll.heatmapError')}</p>
+                <p className='asking-poll-page__status asking-poll-page__status--error'>
+                  {t('poll.heatmapError')}
+                  {heatmapErrorUpgradeHint.url ? (
+                    <>
+                      {' '}
+                      <a href={heatmapErrorUpgradeHint.url} target='_blank' rel='noreferrer' className='ui-link'>
+                        {t(
+                          heatmapErrorUpgradeHint.isLicenseRenewal
+                            ? 'poll.renewLicenseCta'
+                            : 'poll.upgradeCta',
+                        )}
+                      </a>
+                    </>
+                  ) : null}
+                </p>
               ) : null}
               {!heatmapQuery.isLoading && !heatmapQuery.isError ? (
                 (heatmapQuery.data?.data.points.length || 0) > 0 ? (
@@ -1938,37 +2275,41 @@ export default function Poll() {
                     ariaLabel={t('poll.heatmapAria')}
                   />
                 ) : (
-                  <p className='poll-status'>{t('poll.heatmapEmpty')}</p>
+                  <p className='asking-poll-page__status'>{t('poll.heatmapEmpty')}</p>
                 )
               ) : null}
             </section>
           ) : null}
         </div>
       ) : null}
-      {fetchError ? (
-        <p className='error-message' role='alert'>
-          {fetchError}
-        </p>
-      ) : null}
+      {fetchError ? <Alert>{fetchError}</Alert> : null}
       {voteError ? (
-        <p className='error-message' role='alert'>
+        <Alert>
           {voteError}
-        </p>
+          {voteErrorUpgradeUrl ? (
+            <>
+              {' '}
+              <a href={voteErrorUpgradeUrl} target='_blank' rel='noreferrer' className='ui-link'>
+                {t(voteErrorUpgradeIsLicenseRenewal ? 'poll.renewLicenseCta' : 'poll.upgradeCta')}
+              </a>
+            </>
+          ) : null}
+        </Alert>
       ) : null}
       {needsAccountToVote && pollReady ? (
         <>
-          <p className='poll-status' role='status'>
+          <p className='asking-poll-page__status' role='status'>
             {t('poll.signInToVote')}{' '}
             <Link to='/login'>{t('poll.signInToVoteCta')}</Link>
           </p>
-          <p className='poll-refresh-meta' role='note'>
+          <p className='asking-poll-page__refresh-meta' role='note'>
             {t('poll.accountGatedPrivacy')}
           </p>
         </>
       ) : null}
-      <section className='poll-vote-card' aria-label={t('poll.voteCardAria')}>
+      <section className='asking-poll-page__vote-card' id='asking-poll-page__vote-card' aria-label={t('poll.voteCardAria')}>
         {!votingDisabled ? (
-          <div className='poll-geo-optin'>
+          <div className='asking-poll-page__geo-optin'>
             <label>
               <input
                 type='checkbox'
@@ -1981,34 +2322,34 @@ export default function Poll() {
               />{' '}
               {t('poll.geoOptIn')}
             </label>
-            <p className='poll-refresh-meta'>
+            <p className='asking-poll-page__refresh-meta'>
               {t('poll.geoPrivacy')}
               {geoOptInChecked && geoOptIn ? ` ${t('poll.geoEnabled')}` : ''}
             </p>
             {geoHint ? (
-              <p className='poll-status poll-status-error' role='status' aria-live='polite'>
+              <p className='asking-poll-page__status asking-poll-page__status--error' role='status' aria-live='polite'>
                 {geoHint}
               </p>
             ) : null}
           </div>
         ) : null}
         {useVoteRadios && options.length > 1 ? (
-          <VisuallyHidden as='p' id='poll-vote-keyboard-hint'>
+          <VisuallyHidden as='p' id='asking-poll-page__vote-keyboard-hint'>
             {t('poll.voteKeyboardHint')}
           </VisuallyHidden>
         ) : null}
         <div
-          className='poll-options-stack'
+          className='asking-poll-page__options-stack'
           role={useVoteRadios ? 'radiogroup' : multiPicking ? 'group' : 'group'}
-          aria-labelledby='poll-page-title'
+          aria-labelledby='asking-poll-page__title'
           aria-describedby={
-            useVoteRadios && options.length > 1 ? 'poll-vote-keyboard-hint' : undefined
+            useVoteRadios && options.length > 1 ? 'asking-poll-page__vote-keyboard-hint' : undefined
           }
         >
           {renderOptions()}
         </div>
         {multiPicking ? (
-          <div className='poll-multi-submit-row'>
+          <div className='asking-poll-page__multi-submit-row'>
             <Button
               type='button'
               variant='primary'
@@ -2018,12 +2359,12 @@ export default function Poll() {
               {t('poll.submitMultiVote')}
             </Button>
             {multiDraft.size === 0 ? (
-              <span className='poll-refresh-meta'>{t('poll.multiSubmitHint')}</span>
+              <span className='asking-poll-page__refresh-meta'>{t('poll.multiSubmitHint')}</span>
             ) : null}
           </div>
         ) : null}
       </section>
-      <div className='poll-mobile-actions' aria-label={t('poll.mobileQuickActionsAria')}>
+      <div className='asking-poll-page__mobile-actions' id='asking-poll-page__mobile-actions' aria-label={t('poll.mobileQuickActionsAria')}>
         <CopyFeedbackButton onCopy={copyShareLink}>{t('poll.copyLink')}</CopyFeedbackButton>
         {showShareButton ? (
           <Button

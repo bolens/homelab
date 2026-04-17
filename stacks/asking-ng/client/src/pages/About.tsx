@@ -7,10 +7,12 @@ export default function About() {
   const t = useT();
   useDocumentTitle(t('about.docTitle'));
   return (
-    <article className='ui-page-shell site-public about-page'>
+    <article className='ui-page-shell asking-public-layout asking-about-page' id='asking-about-page'>
       <header className='ui-page-hero'>
-        <h1 className='ui-page-hero-title'>{t('about.title')}</h1>
-        <p className='ui-page-hero-tagline about-page__intro'>
+        <h1 className='ui-page-hero-title' id='asking-about-page__title'>
+          {t('about.title')}
+        </h1>
+        <p className='ui-page-hero-tagline asking-about-page__intro'>
           {t('about.p1')}{' '}
           <a href='https://github.com/jdleo/asking' target='_blank' rel='noopener noreferrer'>
             {t('about.p1.link')}
@@ -19,17 +21,17 @@ export default function About() {
         </p>
       </header>
 
-      <div className='about-page__panels'>
+      <div className='asking-about-page__panels'>
         <Card
           as='section'
-          className={cx('about-page__panel', 'ui-card--form-panel')}
+          className={cx('asking-about-page__panel', 'ui-card--form-panel')}
           padding='none'
-          aria-labelledby='about-stack-heading'
+          aria-labelledby='asking-about-page__stack-heading'
         >
-          <h2 id='about-stack-heading' className='ui-flow-heading'>
+          <h2 id='asking-about-page__stack-heading' className='ui-flow-heading'>
             {t('about.section.stack')}
           </h2>
-          <ul className='about-page__feature-list'>
+          <ul className='asking-about-page__feature-list'>
             <li>{t('about.bullet.api')}</li>
             <li>{t('about.bullet.llm')}</li>
             <li>{t('about.bullet.admin')}</li>
@@ -39,18 +41,18 @@ export default function About() {
 
         <Card
           as='section'
-          className={cx('about-page__panel', 'about-page__panel--a11y', 'ui-card--form-panel')}
+          className={cx('asking-about-page__panel', 'asking-about-page__panel--a11y', 'ui-card--form-panel')}
           padding='none'
-          aria-labelledby='about-a11y-heading'
+          aria-labelledby='asking-about-page__a11y-heading'
         >
-          <h2 id='about-a11y-heading' className='ui-flow-heading'>
+          <h2 id='asking-about-page__a11y-heading' className='ui-flow-heading'>
             {t('about.section.a11y')}
           </h2>
-          <p className='about-page__a11y-body'>{t('about.accessibility')}</p>
+          <p className='asking-about-page__a11y-body'>{t('about.accessibility')}</p>
         </Card>
       </div>
 
-      <nav className='about-page__actions' aria-label={t('about.nav.actions')}>
+      <nav className='asking-about-page__actions' id='asking-about-page__actions' aria-label={t('about.nav.actions')}>
         <Link to='/' className={cx('ui-button', 'ui-button--md', 'ui-button--primary')}>
           {t('about.cta.create')}
         </Link>

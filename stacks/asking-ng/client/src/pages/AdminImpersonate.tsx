@@ -6,7 +6,7 @@ import { useAdmin } from '../context/AdminContext';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch } from '../http';
 import { useT } from '../i18n/I18nContext';
-import { Button } from '../ui';
+import { Button, Notice, PageHeader, SectionPanel } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 type ImpersonateResponse = { token: string };
@@ -45,60 +45,60 @@ export default function AdminImpersonate() {
 
   if (!admin || admin.role !== 'superadmin') {
     return (
-      <div className='polls-page-container-error' role='alert'>
+      <Notice tone='error' className='asking-admin-page__error'>
         {t('admin.impersonate.accessDenied')}
-      </div>
+      </Notice>
     );
   }
 
   return (
-    <div className='admin-users-container admin-impersonate-page'>
-      <header className='admin-page-header'>
-        <h1 className='admin-page-title'>{t('admin.impersonate.title')}</h1>
-        <p className='admin-page-subtitle'>{t('admin.impersonate.subtitle')}</p>
-      </header>
+    <div className='asking-admin-shell asking-admin-impersonate-page asking-admin-page__cq-root' id='asking-admin-impersonate-page'>
+      <PageHeader
+        className='asking-admin-page__header'
+        titleId='asking-admin-impersonate-page__title'
+        titleClassName='asking-admin-page__title'
+        subtitleClassName='asking-admin-page__subtitle'
+        title={t('admin.impersonate.title')}
+        subtitle={t('admin.impersonate.subtitle')}
+      />
 
-      <p className='admin-impersonate-intro'>{t('admin.impersonate.intro')}</p>
+      <p className='asking-admin-impersonate-page__intro'>{t('admin.impersonate.intro')}</p>
 
-      <section
-        className='admin-impersonate-section'
-        aria-labelledby='admin-impersonate-request-heading'
+      <SectionPanel
+        className='asking-admin-impersonate-page__section'
+        titleId='asking-admin-impersonate-page__request-heading'
+        title={<span className='asking-admin-page__section-title'>{t('admin.impersonate.sectionRequest')}</span>}
+        hint={<span className='asking-admin-page__help-text asking-admin-status-page__section-hint'>{t('admin.impersonate.sectionRequestHint')}</span>}
       >
-        <h2 id='admin-impersonate-request-heading' className='admin-export-section-title'>
-          {t('admin.impersonate.sectionRequest')}
-        </h2>
-        <p className='admin-help-text admin-status-section-hint'>
-          {t('admin.impersonate.sectionRequestHint')}
-        </p>
-
-        <div className='admin-export-card'>
+        <div className='asking-admin-page__card'>
           <form
+            id='asking-admin-impersonate-page__request-form'
             onSubmit={(e) => void handleImpersonate(e)}
             aria-label={t('admin.impersonate.ariaForm')}
           >
-            <div className='admin-impersonate-form-row'>
-              <label htmlFor='impersonate-user-id' className='admin-impersonate-label'>
+            <div className='asking-admin-impersonate-page__form-row'>
+              <label htmlFor='asking-admin-impersonate-page__user-id' className='asking-admin-impersonate-page__label'>
                 {t('admin.impersonate.labelUserId')}
               </label>
               <input
-                id='impersonate-user-id'
+                id='asking-admin-impersonate-page__user-id'
                 type='number'
                 inputMode='numeric'
                 min={1}
                 placeholder={t('admin.impersonate.placeholderUserId')}
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                className='admin-users-input admin-impersonate-input'
+                className='asking-admin-users-page__input asking-admin-impersonate-page__input'
                 aria-label={t('admin.impersonate.ariaUserId')}
                 required
                 disabled={submitting}
               />
             </div>
-            <div className='admin-export-card-actions admin-impersonate-form-actions'>
+            <div className='asking-admin-page__card-actions asking-admin-impersonate-page__form-actions'>
               <Button
                 type='submit'
                 variant='secondary'
-                className='admin-users-btn admin-export-dl-btn'
+                className='asking-admin-page__btn asking-admin-page__download-btn'
                 disabled={submitting}
                 aria-label={t('admin.impersonate.submitAria')}
               >
@@ -108,38 +108,35 @@ export default function AdminImpersonate() {
           </form>
 
           {error ? (
-            <div className='admin-banner-error admin-impersonate-form-error' role='alert'>
+            <Notice tone='error' className='asking-admin-page__banner-error asking-admin-impersonate-page__form-error'>
               {error}
-            </div>
+            </Notice>
           ) : null}
 
-          <p className='admin-impersonate-footer-link'>
-            <Link to='/admin/users' className='admin-jump-link'>
+          <p className='asking-admin-impersonate-page__footer-link'>
+            <Link to='/admin/users' className='asking-admin-page__jump-link'>
               {t('admin.impersonate.linkUsers')}
             </Link>
           </p>
         </div>
-      </section>
+      </SectionPanel>
 
       {token ? (
-        <section
-          className='admin-impersonate-section'
-          aria-labelledby='admin-impersonate-token-heading'
+        <SectionPanel
+          className='asking-admin-impersonate-page__section'
+          titleId='asking-admin-impersonate-page__token-heading'
+          title={<span className='asking-admin-page__section-title'>{t('admin.impersonate.tokenTitle')}</span>}
+          hint={<span className='asking-admin-page__help-text asking-admin-status-page__section-hint'>{t('admin.impersonate.tokenHint')}</span>}
         >
-          <h2 id='admin-impersonate-token-heading' className='admin-export-section-title'>
-            {t('admin.impersonate.tokenTitle')}
-          </h2>
-          <p className='admin-help-text admin-status-section-hint'>
-            {t('admin.impersonate.tokenHint')}
-          </p>
-          <div className='admin-export-success admin-impersonate-token-panel'>
+          <Notice tone='success' className='asking-admin-export-page__success asking-admin-impersonate-page__token-panel'>
             <textarea
+              id='asking-admin-impersonate-page__jwt'
               value={token}
               readOnly
-              className='admin-impersonate-token'
+              className='asking-admin-impersonate-page__token'
               aria-label={t('admin.impersonate.jwtAria')}
             />
-            <div className='admin-impersonate-token-actions'>
+            <div className='asking-admin-impersonate-page__token-actions'>
               <CopyFeedbackButton
                 disabled={submitting}
                 onCopy={async () => {
@@ -156,7 +153,7 @@ export default function AdminImpersonate() {
               <Button
                 type='button'
                 variant='secondary'
-                className='admin-users-btn admin-export-dismiss'
+                className='asking-admin-page__btn asking-admin-page__dismiss-btn'
                 onClick={() => {
                   setToken('');
                   setError('');
@@ -165,8 +162,8 @@ export default function AdminImpersonate() {
                 {t('admin.impersonate.dismissToken')}
               </Button>
             </div>
-          </div>
-        </section>
+          </Notice>
+        </SectionPanel>
       ) : null}
     </div>
   );

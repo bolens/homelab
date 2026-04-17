@@ -5,7 +5,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiFetch } from '../http';
 import { useT } from '../i18n/I18nContext';
 import { setStoredUserJwt } from '../lib/userSession';
-import { Button, Checkbox, Container, Input, Stack, VisuallyHidden } from '../ui';
+import { Alert, Button, Checkbox, Container, Input, Stack, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 export default function Register() {
@@ -63,31 +63,38 @@ export default function Register() {
   );
 
   return (
-    <Container size='sm' className='ui-page-shell'>
-      <h1 className='ui-page-heading ui-page-heading--center'>{t('register.title')}</h1>
-      <p className='ui-copy-muted auth-links'>
+    <Container size='sm' className='ui-page-shell asking-register-page' id='asking-register-page'>
+      <h1 className='ui-page-heading ui-page-heading--center' id='asking-auth-page__title'>
+        {t('register.title')}
+      </h1>
+      <p className='ui-copy-muted asking-auth-page__links'>
         <Link to='/login'>{t('register.loginCta')}</Link>
         {' · '}
         <Link to='/'>{t('register.backHome')}</Link>
       </p>
-      <form onSubmit={handleSubmit} aria-label={t('register.formAria')} className='auth-form'>
+      <form
+        id='asking-register-page__form'
+        onSubmit={handleSubmit}
+        aria-label={t('register.formAria')}
+        className='asking-auth-page__form'
+      >
         <Stack gap='md'>
-          <VisuallyHidden as='label' htmlFor='reg-homelab-user'>
+          <VisuallyHidden as='label' htmlFor='asking-auth-page__homelab-user'>
             {t('register.homelab-user')}
           </VisuallyHidden>
           <Input
-            id='reg-homelab-user'
+            id='asking-auth-page__homelab-user'
             className='ui-input--stack'
             autoComplete='homelab-user'
             value={homelab-user}
             onChange={(e) => setUsername(e.target.value)}
             placeholder={t('register.homelab-user')}
           />
-          <VisuallyHidden as='label' htmlFor='reg-password'>
+          <VisuallyHidden as='label' htmlFor='asking-auth-page__password'>
             {t('register.passwordHint')}
           </VisuallyHidden>
           <Input
-            id='reg-password'
+            id='asking-auth-page__password'
             type='password'
             className='ui-input--stack'
             autoComplete='new-password'
@@ -96,12 +103,12 @@ export default function Register() {
             placeholder={t('register.passwordHint')}
           />
           <Checkbox
-            id='reg-accept-terms'
+            id='asking-auth-page__accept-terms'
             checked={acceptTermsAndPrivacy}
             onChange={(e) => setAcceptTermsAndPrivacy(e.target.checked)}
             aria-label={t('register.acceptAria')}
             label={termsLabel}
-            containerClassName='auth-terms-checkbox'
+            containerClassName='asking-auth-page__terms-checkbox'
           />
           <Button
             type='submit'
@@ -114,11 +121,7 @@ export default function Register() {
           >
             {submitting ? t('register.submitting') : t('register.submit')}
           </Button>
-          {error ? (
-            <p className='error-message' role='alert'>
-              {error}
-            </p>
-          ) : null}
+          {error ? <Alert>{error}</Alert> : null}
         </Stack>
       </form>
     </Container>

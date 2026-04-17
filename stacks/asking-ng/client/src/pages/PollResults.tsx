@@ -6,7 +6,7 @@ import { apiFetch, isApiFetchError } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
 import { pollResultsQueryKey } from '../lib/queryKeys';
-import { Button } from '../ui';
+import { Alert, Button } from '../ui';
 import { errMsg } from '../utils/errMsg';
 
 type PollApiRow = {
@@ -170,8 +170,8 @@ export default function PollResults() {
 
   if (isLoading) {
     return (
-      <div className='ui-page-shell site-public poll-page'>
-        <p className='poll-status poll-status-loading'>{t('poll.loading')}</p>
+      <div className='ui-page-shell asking-public-layout asking-poll-page' id='asking-poll-page'>
+        <p className='asking-poll-page__status asking-poll-page__status--loading'>{t('poll.loading')}</p>
       </div>
     );
   }
@@ -179,13 +179,11 @@ export default function PollResults() {
   if (isError) {
     const notFound = isApiFetchError(error) && error.status === 404;
     return (
-      <div className='ui-page-shell site-public poll-page'>
-        <h1 className='poll-page-title poll-header'>
+      <div className='ui-page-shell asking-public-layout asking-poll-page' id='asking-poll-page'>
+        <h1 className='asking-poll-page__title' id='asking-poll-page__title'>
           {notFound ? t('poll.notFound.title') : t('poll.resultsOnlyTitle')}
         </h1>
-        <p className='error-message' role='alert'>
-          {notFound ? t('poll.notFound.body') : errMsg(error, t('poll.loadErr'))}
-        </p>
+        <Alert>{notFound ? t('poll.notFound.body') : errMsg(error, t('poll.loadErr'))}</Alert>
         <p>
           <Link to='/$id' params={{ id }}>
             {t('poll.resultsBackToPoll')}
@@ -197,18 +195,30 @@ export default function PollResults() {
 
   return (
     <div
-      className={`ui-page-shell site-public poll-page poll-page--results-live${sceneSafeMode ? ' poll-page--scene-safe' : ''}${presenterContrast ? ' poll-page--presenter-contrast' : ''}`}
+      id='asking-poll-page'
+      className={`ui-page-shell asking-public-layout asking-poll-page asking-poll-page--results-live${sceneSafeMode ? ' asking-poll-page--scene-safe' : ''}${presenterContrast ? ' asking-poll-page--presenter-contrast' : ''}`}
       data-results-live-pulse={resultsLivePulse}
     >
-      <header className='poll-page-header'>
-        <div className='poll-page-title-wrap'>
-          <h1 className='poll-page-title poll-header'>{data?.title}</h1>
-          <p className='poll-refresh-meta'>{t('poll.resultsOnlySubtitle')}</p>
+      <header className='asking-poll-page__header'>
+        <div className='asking-poll-page__title-wrap'>
+          <h1 className='asking-poll-page__title' id='asking-poll-page__title'>
+            {data?.title}
+          </h1>
+          <p className='asking-poll-page__refresh-meta'>{t('poll.resultsOnlySubtitle')}</p>
         </div>
-        <div className='poll-results-toolbar' role='group' aria-label={t('poll.resultsToolbarAria')}>
-          <label className='poll-results-toolbar-field'>
+        <div
+          className='asking-poll-page__results-toolbar'
+          id='asking-poll-page__results-toolbar'
+          role='group'
+          aria-label={t('poll.resultsToolbarAria')}
+        >
+          <label
+            className='asking-poll-page__results-toolbar-field'
+            htmlFor='asking-poll-page__results-refresh-interval'
+          >
             {t('poll.resultsRefreshLabel')}
             <select
+              id='asking-poll-page__results-refresh-interval'
               className='ui-input ui-select ui-input--stack'
               value={String(refreshMs)}
               onChange={(evt) => setRefreshMs(Number(evt.target.value) || 5_000)}
@@ -223,7 +233,7 @@ export default function PollResults() {
             type='button'
             variant='secondary'
             size='sm'
-            className='poll-results-toolbar-btn'
+            className='asking-poll-page__results-toolbar-btn'
             onClick={() => setSceneSafeMode((enabled) => !enabled)}
             aria-pressed={sceneSafeMode}
             title={t('poll.resultsSceneSafeTitle')}
@@ -234,7 +244,7 @@ export default function PollResults() {
             type='button'
             variant='secondary'
             size='sm'
-            className='poll-results-toolbar-btn'
+            className='asking-poll-page__results-toolbar-btn'
             onClick={() => setPresenterContrast((enabled) => !enabled)}
             aria-pressed={presenterContrast}
             title={t('poll.resultsContrastTitle')}
@@ -245,7 +255,7 @@ export default function PollResults() {
             type='button'
             variant='secondary'
             size='sm'
-            className='poll-results-toolbar-btn'
+            className='asking-poll-page__results-toolbar-btn'
             onClick={toggleFullscreen}
             title={t('poll.resultsFullscreenTitle')}
           >
@@ -254,19 +264,25 @@ export default function PollResults() {
         </div>
       </header>
       {data?.phase !== 'open' || data?.archived || data?.voting_paused ? (
-        <p className='poll-archived-note'>{t('poll.resultsOnlyClosedBadge')}</p>
+        <p className='asking-poll-page__archived-note'>{t('poll.resultsOnlyClosedBadge')}</p>
       ) : (
-        <p className='poll-refresh-meta'>{t('poll.resultsOnlyLiveBadge')}</p>
+        <p className='asking-poll-page__refresh-meta'>{t('poll.resultsOnlyLiveBadge')}</p>
       )}
       <section
-        className={`poll-vote-card${hasVotes ? '' : ' poll-vote-card--empty'}`}
+        className={`asking-poll-page__vote-card${hasVotes ? '' : ' asking-poll-page__vote-card--empty'}`}
+        id='asking-poll-page__results-summary'
         aria-label={t('poll.resultsOnlyAria')}
       >
-        <div className='poll-options-stack' role='group'>
+        <div
+          className='asking-poll-page__options-stack'
+          id='asking-poll-page__results-options'
+          role='group'
+          aria-labelledby='asking-poll-page__title'
+        >
           {options.map((o) => (
             <div
               key={o.label}
-              className='poll-option'
+              className='asking-poll-page__option'
               data-updated={recentlyUpdatedOptions.has(o.label) ? 'true' : undefined}
               data-empty={hasVotes ? undefined : 'true'}
               aria-label={t('poll.votesCount', {
@@ -274,13 +290,13 @@ export default function PollResults() {
                 count: formatLocaleInteger(o.votes, localeTag),
               })}
             >
-              <span className='poll-option-title'>{o.label}</span>
-              <span className='poll-option-result' title={resultPercent(o.votes, totalVotes)}>
+              <span className='asking-poll-page__option-title'>{o.label}</span>
+              <span className='asking-poll-page__option-result' title={resultPercent(o.votes, totalVotes)}>
                 {formatLocaleInteger(o.votes, localeTag)} · {resultPercent(o.votes, totalVotes)}
               </span>
-              <div className='poll-option-fill-layer' aria-hidden='true'>
+              <div className='asking-poll-page__option-fill-layer' aria-hidden='true'>
                 <div
-                  className='poll-option-fill'
+                  className='asking-poll-page__option-fill'
                   style={{ width: resultWidth(o.votes, totalVotes) }}
                 />
               </div>
@@ -289,7 +305,7 @@ export default function PollResults() {
         </div>
       </section>
       {liveResultsAreDelayed ? (
-        <p className='poll-refresh-meta'>
+        <p className='asking-poll-page__refresh-meta'>
           {t('poll.resultsDelayInfo', {
             seconds: formatLocaleInteger(resultsDelaySeconds, localeTag),
             pending: formatLocaleInteger(delayedVotesPending, localeTag),
@@ -297,7 +313,7 @@ export default function PollResults() {
         </p>
       ) : null}
       <p
-        className={`poll-refresh-meta poll-results-total poll-results-total--live${hasVotes ? '' : ' poll-results-total--empty'}`}
+        className={`asking-poll-page__refresh-meta asking-poll-page__results-total asking-poll-page__results-total--live${hasVotes ? '' : ' asking-poll-page__results-total--empty'}`}
         data-updated={resultsLivePulse > 0 ? 'true' : undefined}
         role='status'
         aria-live='polite'
@@ -312,7 +328,7 @@ export default function PollResults() {
         </p>
       ) : null}
       {sceneSafeMode ? (
-        <p className='poll-refresh-meta poll-results-shortcut-hint'>{t('poll.resultsFullscreenHint')}</p>
+        <p className='asking-poll-page__refresh-meta asking-poll-page__results-shortcut-hint'>{t('poll.resultsFullscreenHint')}</p>
       ) : null}
     </div>
   );

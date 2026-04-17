@@ -10,13 +10,13 @@ import { IconListPolls, IconSignOut } from './icons/UiIcons';
 import UserSettingsModal from './UserSettingsModal';
 
 function navRouteActive(active: boolean): string {
-  return active ? 'asking-navbar__route--active' : '';
+  return active ? 'asking-app-navbar__route--active' : '';
 }
 
 function GitHubMarkIcon() {
   return (
     <svg
-      className='asking-navbar__icon'
+      className='asking-app-navbar__icon'
       width={20}
       height={20}
       viewBox='0 0 24 24'
@@ -32,7 +32,7 @@ function GitHubMarkIcon() {
 function SettingsGearIcon() {
   return (
     <svg
-      className='asking-navbar__icon'
+      className='asking-app-navbar__icon'
       width={20}
       height={20}
       viewBox='0 0 24 24'
@@ -122,7 +122,7 @@ export default function NavbarWrapper() {
 
   const brand = import.meta.env.VITE_APP_NAME || t('nav.brandFallback');
 
-  const navCollapseId = 'asking-main-nav';
+  const navCollapseId = 'asking-app-navbar__drawer';
 
   const showAdminLink = admin != null || noAdminExists;
   const adminNavTo = admin != null ? '/admin' : '/admin/login';
@@ -136,22 +136,22 @@ export default function NavbarWrapper() {
   };
 
   const navBarClass = cx(
-    'asking-navbar',
-    'asking-navbar__main',
-    'asking-navbar--surface',
-    navDark ? 'asking-navbar--dark' : 'asking-navbar--light',
+    'asking-app-navbar',
+    'asking-app-navbar__main',
+    'asking-app-navbar--surface',
+    navDark ? 'asking-app-navbar--dark' : 'asking-app-navbar--light',
   );
 
   return (
     <>
       <UserSettingsModal show={settingsOpen} onHide={() => setSettingsOpen(false)} />
-      <nav className={navBarClass}>
+      <nav className={navBarClass} id='asking-app-navbar'>
         <Link
           to='/'
           className={
             isHome
-              ? 'asking-navbar__brand asking-navbar__brand-text asking-navbar__brand--active'
-              : 'asking-navbar__brand asking-navbar__brand-text'
+              ? 'asking-app-navbar__brand asking-app-navbar__brand-text asking-app-navbar__brand--active'
+              : 'asking-app-navbar__brand asking-app-navbar__brand-text'
           }
           aria-current={isHome ? 'page' : undefined}
           onClick={closeNav}
@@ -160,30 +160,30 @@ export default function NavbarWrapper() {
         </Link>
         <button
           type='button'
-          className='asking-navbar__toggler'
+          className='asking-app-navbar__toggler'
           aria-controls={navCollapseId}
           aria-expanded={navExpanded}
           aria-label={t('nav.menuToggle')}
           onClick={() => setNavExpanded((v) => !v)}
         >
-          <span className='asking-navbar__toggler-icon' />
+          <span className='asking-app-navbar__toggler-icon' />
         </button>
         <div
           id={navCollapseId}
           className={cx(
-            'asking-navbar__collapse',
-            'asking-navbar__links',
-            navExpanded && 'asking-navbar__collapse--open',
+            'asking-app-navbar__collapse',
+            'asking-app-navbar__links',
+            navExpanded && 'asking-app-navbar__collapse--open',
           )}
         >
-          <div className='asking-navbar__cluster'>
-            <div ref={moreRef} className='asking-navbar__dropdown'>
+          <div className='asking-app-navbar__cluster'>
+            <div ref={moreRef} className='asking-app-navbar__dropdown'>
               <button
                 type='button'
-                id='nav-dropdown-more'
+                id='asking-app-navbar__more-trigger'
                 className={cx(
-                  'asking-navbar__link',
-                  'asking-navbar__link--caret',
+                  'asking-app-navbar__link',
+                  'asking-app-navbar__link--caret',
                   navRouteActive(moreActive),
                 )}
                 aria-expanded={moreOpen}
@@ -198,19 +198,20 @@ export default function NavbarWrapper() {
               {moreOpen ? (
                 <ul
                   className={cx(
-                    'asking-navbar__menu',
-                    'asking-navbar__menu--end',
-                    navDark && 'asking-navbar__menu--dark',
-                    'asking-navbar__menu--open',
+                    'asking-app-navbar__menu',
+                    'asking-app-navbar__menu--end',
+                    navDark && 'asking-app-navbar__menu--dark',
+                    'asking-app-navbar__menu--open',
                   )}
                   role='menu'
-                  aria-labelledby='nav-dropdown-more'
+                  aria-labelledby='asking-app-navbar__more-trigger'
                 >
                   <li role='none'>
                     <Link
                       role='menuitem'
                       to='/about'
-                      className={cx('asking-navbar__menu-item', isAbout && 'asking-navbar__menu-item--active')}
+                      id='asking-app-navbar__about-link'
+                      className={cx('asking-app-navbar__menu-item', isAbout && 'asking-app-navbar__menu-item--active')}
                       aria-current={isAbout ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -222,8 +223,8 @@ export default function NavbarWrapper() {
                       role='menuitem'
                       to='/developer'
                       className={cx(
-                        'asking-navbar__menu-item',
-                        isDeveloper && 'asking-navbar__menu-item--active',
+                        'asking-app-navbar__menu-item',
+                        isDeveloper && 'asking-app-navbar__menu-item--active',
                       )}
                       aria-current={isDeveloper ? 'page' : undefined}
                       onClick={closeNav}
@@ -235,7 +236,7 @@ export default function NavbarWrapper() {
                     <Link
                       role='menuitem'
                       to='/privacy'
-                      className={cx('asking-navbar__menu-item', isPrivacy && 'asking-navbar__menu-item--active')}
+                      className={cx('asking-app-navbar__menu-item', isPrivacy && 'asking-app-navbar__menu-item--active')}
                       aria-current={isPrivacy ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -246,7 +247,7 @@ export default function NavbarWrapper() {
                     <Link
                       role='menuitem'
                       to='/terms'
-                      className={cx('asking-navbar__menu-item', isTerms && 'asking-navbar__menu-item--active')}
+                      className={cx('asking-app-navbar__menu-item', isTerms && 'asking-app-navbar__menu-item--active')}
                       aria-current={isTerms ? 'page' : undefined}
                       onClick={closeNav}
                     >
@@ -256,7 +257,7 @@ export default function NavbarWrapper() {
                   <li role='none'>
                     <a
                       role='menuitem'
-                      className='asking-navbar__menu-item'
+                      className='asking-app-navbar__menu-item'
                       href='https://github.com/homelab-user/asking-ng'
                       target='_blank'
                       rel='noopener noreferrer'
@@ -273,13 +274,13 @@ export default function NavbarWrapper() {
               ) : null}
             </div>
             {userJwtPresent ? (
-              <div ref={accountRef} className='asking-navbar__dropdown'>
+              <div ref={accountRef} className='asking-app-navbar__dropdown'>
                 <button
                   type='button'
-                  id='nav-dropdown-account'
+                  id='asking-app-navbar__account-trigger'
                   className={cx(
-                    'asking-navbar__link',
-                    'asking-navbar__link--caret',
+                    'asking-app-navbar__link',
+                    'asking-app-navbar__link--caret',
                     navRouteActive(isMyPolls),
                   )}
                   aria-expanded={accountOpen}
@@ -295,27 +296,27 @@ export default function NavbarWrapper() {
                 {accountOpen ? (
                   <ul
                     className={cx(
-                      'asking-navbar__menu',
-                      'asking-navbar__menu--end',
-                      navDark && 'asking-navbar__menu--dark',
-                      'asking-navbar__menu--open',
+                      'asking-app-navbar__menu',
+                      'asking-app-navbar__menu--end',
+                      navDark && 'asking-app-navbar__menu--dark',
+                      'asking-app-navbar__menu--open',
                     )}
                     role='menu'
-                    aria-labelledby='nav-dropdown-account'
+                    aria-labelledby='asking-app-navbar__account-trigger'
                   >
                     <li role='none'>
                       <Link
                         role='menuitem'
                         to='/my-polls'
                         className={cx(
-                          'asking-navbar__menu-item',
-                          isMyPolls && 'asking-navbar__menu-item--active',
+                          'asking-app-navbar__menu-item',
+                          isMyPolls && 'asking-app-navbar__menu-item--active',
                         )}
                         aria-current={isMyPolls ? 'page' : undefined}
                         onClick={closeNav}
                       >
                         <span className='ui-nav-menu-row'>
-                          <IconListPolls className='asking-navbar__icon' aria-hidden />
+                          <IconListPolls className='asking-app-navbar__icon' aria-hidden />
                           {t('nav.myPolls')}
                         </span>
                       </Link>
@@ -324,13 +325,13 @@ export default function NavbarWrapper() {
                       <button
                         type='button'
                         role='menuitem'
-                        className='asking-navbar__menu-item'
+                        className='asking-app-navbar__menu-item'
                         onClick={() => {
                           handleUserSignOut();
                         }}
                       >
                         <span className='ui-nav-menu-row'>
-                          <IconSignOut className='asking-navbar__icon' aria-hidden />
+                          <IconSignOut className='asking-app-navbar__icon' aria-hidden />
                           {t('nav.signOut')}
                         </span>
                       </button>
@@ -341,7 +342,7 @@ export default function NavbarWrapper() {
             ) : (
               <Link
                 to='/login'
-                className={cx('asking-navbar__link', navRouteActive(isLogin || isRegister))}
+                className={cx('asking-app-navbar__link', navRouteActive(isLogin || isRegister))}
                 aria-current={isLogin || isRegister ? 'page' : undefined}
                 onClick={closeNav}
               >
@@ -351,7 +352,7 @@ export default function NavbarWrapper() {
             {showAdminLink ? (
               <Link
                 to={adminNavTo}
-                className={cx('asking-navbar__link', navRouteActive(isAdmin))}
+                className={cx('asking-app-navbar__link', navRouteActive(isAdmin))}
                 aria-current={isAdmin ? 'page' : undefined}
                 title={admin != null ? adminSignedInFull : undefined}
                 aria-label={admin != null ? adminSignedInFull : undefined}
@@ -363,9 +364,9 @@ export default function NavbarWrapper() {
             <button
               type='button'
               className={cx(
-                'asking-navbar__link',
-                'asking-navbar__settings-slot',
-                'asking-navbar__settings-trigger',
+                'asking-app-navbar__link',
+                'asking-app-navbar__settings-slot',
+                'asking-app-navbar__settings-trigger',
                 navRouteActive(isSettings || settingsOpen),
               )}
               onClick={openSettings}
@@ -374,7 +375,7 @@ export default function NavbarWrapper() {
             >
               <VisuallyHidden>{t('nav.settings')}</VisuallyHidden>
               <SettingsGearIcon />
-              <span className='asking-navbar__settings-caption' aria-hidden>
+              <span className='asking-app-navbar__settings-caption' aria-hidden>
                 {t('nav.settings')}
               </span>
             </button>

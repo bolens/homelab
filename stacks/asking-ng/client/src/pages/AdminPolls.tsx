@@ -7,7 +7,7 @@ import { useMaxWidth600 } from '../hooks/useMaxWidth600';
 import { apiFetch } from '../http';
 import { useLocaleTag, useT } from '../i18n/I18nContext';
 import { formatLocaleInteger } from '../lib/formatLocaleDisplay';
-import { Button, cx, Select, VisuallyHidden } from '../ui';
+import { Button, PageHeader, SectionPanel, cx, Notice, Select, VisuallyHidden } from '../ui';
 import { errMsg } from '../utils/errMsg';
 import { zodErrorSummary } from '../utils/zodForm';
 import { useAdminWebSocket } from '../wsClient';
@@ -422,123 +422,155 @@ export default function AdminPolls() {
 
   if (!admin || (admin.role !== 'mod' && admin.role !== 'admin' && admin.role !== 'superadmin')) {
     return (
-      <div className='polls-page-container-error' role='alert'>
+      <Notice tone='error' className='asking-admin-page__error'>
         {t('admin.polls.accessDenied')}
-      </div>
+      </Notice>
     );
   }
 
   return (
     <div
-      className={`polls-page-container admin-cq-root${selected.length > 0 ? ' has-mobile-bulk-actions' : ''}`}
+      id='asking-admin-polls-page'
+      className={`asking-admin-page asking-admin-polls-page asking-admin-page__cq-root${
+        selected.length > 0 ? ' asking-admin-page--has-mobile-bulk-actions' : ''
+      }`}
     >
-      <header className='admin-page-header'>
-        <h1 className='admin-page-title'>{t('admin.polls.heading')}</h1>
-        <p className='admin-page-subtitle'>
-          {t('admin.polls.pageSubtitle', { shown: shownStr, total: totalStr })}
-        </p>
-      </header>
+      <PageHeader
+        className='asking-admin-page__header'
+        titleId='asking-admin-polls-page__title'
+        titleClassName='asking-admin-page__title'
+        subtitleClassName='asking-admin-page__subtitle'
+        title={t('admin.polls.heading')}
+        subtitle={t('admin.polls.pageSubtitle', { shown: shownStr, total: totalStr })}
+      />
       {selected.length > 0 ? (
         <a
-          href={mobileStickyBulkActive ? '#admin-polls-mobile-bulk' : '#admin-polls-bulk-actions'}
-          className='admin-jump-link'
+          href={
+            mobileStickyBulkActive
+              ? '#asking-admin-polls-page__mobile-bulk'
+              : '#asking-admin-polls-page__bulk-actions'
+          }
+          className='asking-admin-page__jump-link'
         >
           {t('admin.polls.skipToBulk')}
         </a>
       ) : null}
       {loading ? (
-        <div className='poll-status poll-status-loading' role='status' aria-live='polite'>
+        <Notice
+          tone='loading'
+          className='asking-admin-page__status asking-admin-page__status--loading'
+          aria-live='polite'
+        >
           {t('admin.polls.loading')}
-        </div>
+        </Notice>
       ) : null}
       {success ? (
-        <div className='poll-status poll-status-success' role='status' aria-live='polite'>
+        <Notice
+          tone='success'
+          className='asking-admin-page__status asking-admin-page__status--success'
+          aria-live='polite'
+        >
           {success}
-        </div>
+        </Notice>
       ) : null}
       {error ? (
-        <div className='poll-status poll-status-error' role='alert'>
+        <Notice tone='error' className='asking-admin-page__status asking-admin-page__status--error'>
           {error}
-        </div>
+        </Notice>
       ) : null}
 
-      <form
-        onSubmit={handleCreatePoll}
-        className='poll-form poll-form--tight'
-        aria-label={t('admin.polls.createFormAria')}
+      <SectionPanel
+        titleId='asking-admin-polls-page__create-heading'
+        title={<span className='asking-admin-page__section-title'>{t('admin.polls.createLabel')}</span>}
       >
-        <b>{t('admin.polls.createLabel')}</b>
-        <VisuallyHidden as='label' htmlFor='admin-polls-new-question'>
-          {t('admin.polls.labelQuestion')}
-        </VisuallyHidden>
-        <input
-          id='admin-polls-new-question'
-          placeholder={t('admin.polls.placeholderQuestion')}
-          value={newPoll.question}
-          onChange={(e) => setNewPoll({ ...newPoll, question: e.target.value })}
-          className='poll-input-question'
-          required
-        />
-        <VisuallyHidden as='label' htmlFor='admin-polls-new-options'>
-          {t('admin.polls.labelOptions')}
-        </VisuallyHidden>
-        <input
-          id='admin-polls-new-options'
-          placeholder={t('admin.polls.placeholderOptions')}
-          value={newPoll.options}
-          onChange={(e) => setNewPoll({ ...newPoll, options: e.target.value })}
-          className='poll-input-wide'
-          required
-        />
-        <Button type='submit' variant='primary' className='poll-btn'>
-          {t('admin.polls.create')}
-        </Button>
-      </form>
-
-      <div className='polls-search-bar polls-search-bar--tight'>
-        <VisuallyHidden as='label' htmlFor='admin-polls-search'>
-          {t('admin.polls.searchLabel')}
-        </VisuallyHidden>
-        <input
-          id='admin-polls-search'
-          placeholder={t('admin.polls.placeholderSearch')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <Button
-          type='button'
-          variant='secondary'
-          className='poll-btn'
-          aria-label={t('admin.polls.clearSearchAria')}
-          onClick={() => setSearch('')}
+        <form
+          id='asking-admin-polls-page__create-poll-form'
+          onSubmit={handleCreatePoll}
+          className='asking-admin-polls-page__create-form asking-admin-polls-page__create-form--tight'
+          aria-label={t('admin.polls.createFormAria')}
         >
-          {t('admin.polls.clear')}
-        </Button>
-        <label className='admin-polls-sim-toggle'>
+          <VisuallyHidden as='label' htmlFor='asking-admin-polls-page__create-question'>
+            {t('admin.polls.labelQuestion')}
+          </VisuallyHidden>
           <input
-            type='checkbox'
-            checked={hideSimulation}
-            onChange={(e) => setHideSimulation(e.target.checked)}
-          />{' '}
-          {t('admin.polls.hideSimulation')}
-        </label>
-        <Button type='button' variant='secondary' className='poll-btn' onClick={() => setRefresh((r) => r + 1)}>
-          {t('admin.polls.refresh')}
-        </Button>
-      </div>
+            id='asking-admin-polls-page__create-question'
+            placeholder={t('admin.polls.placeholderQuestion')}
+            value={newPoll.question}
+            onChange={(e) => setNewPoll({ ...newPoll, question: e.target.value })}
+            className='asking-admin-polls-page__input--question'
+            required
+          />
+          <VisuallyHidden as='label' htmlFor='asking-admin-polls-page__create-options'>
+            {t('admin.polls.labelOptions')}
+          </VisuallyHidden>
+          <input
+            id='asking-admin-polls-page__create-options'
+            placeholder={t('admin.polls.placeholderOptions')}
+            value={newPoll.options}
+            onChange={(e) => setNewPoll({ ...newPoll, options: e.target.value })}
+            className='asking-admin-polls-page__input--wide'
+            required
+          />
+          <Button type='submit' variant='primary' className='asking-admin-page__toolbar-btn'>
+            {t('admin.polls.create')}
+          </Button>
+        </form>
+      </SectionPanel>
 
-      <section
-        id='admin-polls-bulk-actions'
+      <SectionPanel
+        titleId='asking-admin-polls-page__search-heading'
+        title={<span className='asking-admin-page__section-title'>{t('admin.polls.searchLabel')}</span>}
+      >
+        <div className='asking-admin-polls-page__search-bar asking-admin-polls-page__search-bar--tight'>
+          <VisuallyHidden as='label' htmlFor='asking-admin-polls-page__directory-search'>
+            {t('admin.polls.searchLabel')}
+          </VisuallyHidden>
+          <input
+            id='asking-admin-polls-page__directory-search'
+            placeholder={t('admin.polls.placeholderSearch')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Button
+            type='button'
+            variant='secondary'
+            className='asking-admin-page__toolbar-btn'
+            aria-label={t('admin.polls.clearSearchAria')}
+            onClick={() => setSearch('')}
+          >
+            {t('admin.polls.clear')}
+          </Button>
+          <label className='asking-admin-polls-page__sim-toggle'>
+            <input
+              type='checkbox'
+              checked={hideSimulation}
+              onChange={(e) => setHideSimulation(e.target.checked)}
+            />{' '}
+            {t('admin.polls.hideSimulation')}
+          </label>
+          <Button
+            type='button'
+            variant='secondary'
+            className='asking-admin-page__toolbar-btn'
+            onClick={() => setRefresh((r) => r + 1)}
+          >
+            {t('admin.polls.refresh')}
+          </Button>
+        </div>
+      </SectionPanel>
+
+      <SectionPanel
+        id='asking-admin-polls-page__bulk-actions'
         role='region'
-        aria-labelledby='admin-polls-bulk-heading'
-        className='polls-bulk-actions polls-bulk-actions--tight'
+        titleId='asking-admin-polls-page__bulk-heading'
+        title={t('admin.polls.bulkLabel')}
+        className='asking-admin-polls-page__bulk-actions asking-admin-polls-page__bulk-actions--tight'
         inert={mobileStickyBulkActive}
       >
-        <b id='admin-polls-bulk-heading'>{t('admin.polls.bulkLabel')}</b>
         <Button
           type='button'
           variant='secondary'
-          className='poll-btn'
+          className='asking-admin-page__toolbar-btn'
           disabled={!selected.length || loading}
           onClick={() => void handleBulk('archive')}
           aria-label={t('admin.polls.voiceArchiveBulk')}
@@ -548,7 +580,7 @@ export default function AdminPolls() {
         <Button
           type='button'
           variant='secondary'
-          className='poll-btn'
+          className='asking-admin-page__toolbar-btn'
           disabled={!selected.length || loading}
           onClick={() => void handleBulk('unarchive')}
           aria-label={t('admin.polls.voiceUnarchiveBulk')}
@@ -558,7 +590,7 @@ export default function AdminPolls() {
         <Button
           type='button'
           variant='secondary'
-          className='poll-btn'
+          className='asking-admin-page__toolbar-btn'
           disabled={!selected.length || loading}
           onClick={() => void handleBulk('reset')}
           aria-label={t('admin.polls.voiceResetBulk')}
@@ -570,300 +602,317 @@ export default function AdminPolls() {
           variant='secondary'
           disabled={!selected.length || loading}
           onClick={() => void handleBulk('delete')}
-          className={cx('poll-btn', 'poll-delete-btn')}
+          className={cx('asking-admin-page__toolbar-btn', 'asking-admin-page__toolbar-btn--danger')}
           aria-label={t('admin.polls.voiceDeleteBulk')}
         >
           {t('admin.polls.delete')}
         </Button>
-        <span className='poll-bulk-selected' role='status' aria-live='polite' aria-atomic='true'>
+        <span className='asking-admin-polls-page__bulk-selected' role='status' aria-live='polite' aria-atomic='true'>
           {t('admin.polls.selected', { count: formatLocaleInteger(selected.length, localeTag) })}
         </span>
-      </section>
+      </SectionPanel>
 
-      <div className='admin-data-table-wrap'>
-        <table className='polls-table'>
-          <thead>
-            <tr>
-              <th scope='col' aria-sort={sortAriaValue('id')}>
-                <button
-                  type='button'
-                  className='table-sort-btn'
-                  onClick={() => handleSortClick('id')}
-                >
-                  {t('admin.polls.colId')}
-                  {sortIndicator('id')}
-                </button>
-              </th>
-              <th scope='col' aria-sort={sortAriaValue('question')}>
-                <button
-                  type='button'
-                  className='table-sort-btn'
-                  onClick={() => handleSortClick('question')}
-                >
-                  {t('admin.polls.colQuestion')}
-                  {sortIndicator('question')}
-                </button>
-              </th>
-              <th scope='col'>{t('admin.polls.colOptions')}</th>
-              <th scope='col' aria-sort={sortAriaValue('archived')}>
-                <button
-                  type='button'
-                  className='table-sort-btn'
-                  onClick={() => handleSortClick('archived')}
-                >
-                  {t('admin.polls.colArchived')}
-                  {sortIndicator('archived')}
-                </button>
-              </th>
-              <th scope='col'>{t('admin.polls.colActions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagedPolls.map((p) => (
-              <tr key={p.id}>
-                <td>
-                  <input
-                    type='checkbox'
-                    checked={selected.includes(p.id)}
-                    onChange={() => handleSelect(p.id)}
-                    onKeyDown={(e) => {
-                      if ((e.key === ' ' || e.key === 'Spacebar') && e.shiftKey) {
-                        e.preventDefault();
-                        handleSelect(p.id);
-                      }
-                    }}
-                    aria-label={t('admin.polls.selectPoll', { id: p.id })}
-                  />{' '}
-                  {p.id}
-                </td>
-                <td>
-                  {editId === p.id ? (
-                    <input
-                      value={editPoll.question}
-                      onChange={(e) => setEditPoll({ ...editPoll, question: e.target.value })}
-                      className='poll-input-question'
-                      aria-label={t('admin.polls.editQuestionAria')}
-                    />
-                  ) : (
-                    <>
-                      {p.question}
-                      {isSimulatedPollId(p.id) ? (
-                        <span className='admin-sim-badge'>{t('admin.polls.simulationBadge')}</span>
-                      ) : null}
-                    </>
-                  )}
-                </td>
-                <td>
-                  {editId === p.id ? (
-                    <input
-                      value={editPoll.options}
-                      onChange={(e) => setEditPoll({ ...editPoll, options: e.target.value })}
-                      className='poll-edit-input-wide'
-                      aria-label={t('admin.polls.editOptionsAria')}
-                    />
-                  ) : Array.isArray(p.options) ? (
-                    p.options.join(', ')
-                  ) : (
-                    ''
-                  )}
-                </td>
-                <td>
-                  <span
-                    className={
-                      p.archived
-                        ? 'admin-polls-archive-badge admin-polls-archive-badge--yes'
-                        : 'admin-polls-archive-badge'
-                    }
+      <SectionPanel
+        className='asking-admin-page__section'
+        titleId='asking-admin-polls-page__table-heading'
+        title={<VisuallyHidden as='span'>{t('admin.polls.heading')}</VisuallyHidden>}
+      >
+        <div className='asking-admin-page__table-wrap'>
+          <table className='asking-admin-polls-page__table'>
+            <thead>
+              <tr>
+                <th scope='col' aria-sort={sortAriaValue('id')}>
+                  <button
+                    type='button'
+                    className='asking-admin-page__table-sort-btn'
+                    onClick={() => handleSortClick('id')}
                   >
-                    {p.archived ? t('admin.polls.yes') : t('admin.polls.no')}
-                  </span>
-                </td>
-                <td>
-                  <div className='admin-polls-actions-cell'>
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      className='poll-btn'
-                      onClick={() => void handleShowDetails(p.id)}
-                      disabled={loading || editId === p.id}
-                      aria-label={t('admin.polls.voiceDetailsRow', { id: p.id })}
-                    >
-                      {t('admin.polls.details')}
-                    </Button>
+                    {t('admin.polls.colId')}
+                    {sortIndicator('id')}
+                  </button>
+                </th>
+                <th scope='col' aria-sort={sortAriaValue('question')}>
+                  <button
+                    type='button'
+                    className='asking-admin-page__table-sort-btn'
+                    onClick={() => handleSortClick('question')}
+                  >
+                    {t('admin.polls.colQuestion')}
+                    {sortIndicator('question')}
+                  </button>
+                </th>
+                <th scope='col'>{t('admin.polls.colOptions')}</th>
+                <th scope='col' aria-sort={sortAriaValue('archived')}>
+                  <button
+                    type='button'
+                    className='asking-admin-page__table-sort-btn'
+                    onClick={() => handleSortClick('archived')}
+                  >
+                    {t('admin.polls.colArchived')}
+                    {sortIndicator('archived')}
+                  </button>
+                </th>
+                <th scope='col'>{t('admin.polls.colActions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedPolls.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <input
+                      type='checkbox'
+                      checked={selected.includes(p.id)}
+                      onChange={() => handleSelect(p.id)}
+                      onKeyDown={(e) => {
+                        if ((e.key === ' ' || e.key === 'Spacebar') && e.shiftKey) {
+                          e.preventDefault();
+                          handleSelect(p.id);
+                        }
+                      }}
+                      aria-label={t('admin.polls.selectPoll', { id: p.id })}
+                    />{' '}
+                    {p.id}
+                  </td>
+                  <td>
                     {editId === p.id ? (
-                      <>
-                        <Button
-                          type='button'
-                          variant='secondary'
-                          className='poll-btn'
-                          onClick={() => void handleSaveEdit(p.id)}
-                          disabled={loading}
-                          aria-label={t('admin.polls.voiceSaveRow', { id: p.id })}
-                        >
-                          {t('admin.polls.save')}
-                        </Button>
-                        <Button
-                          type='button'
-                          variant='secondary'
-                          className='poll-btn'
-                          onClick={handleCancelEdit}
-                          disabled={loading}
-                          aria-label={t('admin.polls.voiceCancelEditRow', { id: p.id })}
-                        >
-                          {t('admin.polls.cancel')}
-                        </Button>
-                      </>
+                      <input
+                        value={editPoll.question}
+                        onChange={(e) => setEditPoll({ ...editPoll, question: e.target.value })}
+                        className='asking-admin-polls-page__input--question'
+                        aria-label={t('admin.polls.editQuestionAria')}
+                      />
                     ) : (
                       <>
-                        <Button
-                          type='button'
-                          variant='secondary'
-                          className='poll-btn'
-                          onClick={() => handleEdit(p)}
-                          disabled={loading}
-                          aria-label={t('admin.polls.voiceEditRow', { id: p.id })}
-                        >
-                          {t('admin.polls.edit')}
-                        </Button>
-                        {p.archived ? (
-                          <Button
-                            type='button'
-                            variant='secondary'
-                            className='poll-btn'
-                            onClick={() => void handleUnarchive(p.id)}
-                            disabled={loading}
-                            aria-label={t('admin.polls.voiceUnarchiveRow', { id: p.id })}
-                          >
-                            {t('admin.polls.unarchive')}
-                          </Button>
-                        ) : (
-                          <Button
-                            type='button'
-                            variant='secondary'
-                            className='poll-btn'
-                            onClick={() => void handleArchive(p.id)}
-                            disabled={loading}
-                            aria-label={t('admin.polls.voiceArchiveRow', { id: p.id })}
-                          >
-                            {t('admin.polls.archive')}
-                          </Button>
-                        )}
-                        <Button
-                          type='button'
-                          variant='secondary'
-                          className='poll-btn'
-                          onClick={() => void handleResetVotes(p.id)}
-                          disabled={loading}
-                          aria-label={t('admin.polls.voiceResetVotesRow', { id: p.id })}
-                        >
-                          {t('admin.polls.resetVotes')}
-                        </Button>
-                        <Button
-                          type='button'
-                          variant='secondary'
-                          className='poll-btn'
-                          onClick={() => void handlePauseVoting(p.id, !p.voting_paused)}
-                          disabled={loading || !!p.archived}
-                        >
-                          {p.voting_paused ? t('admin.polls.unpauseVoting') : t('admin.polls.pauseVoting')}
-                        </Button>
-                        <Button
-                          type='button'
-                          variant='secondary'
-                          onClick={() => void handleDelete(p.id)}
-                          disabled={loading}
-                          className={cx('poll-btn', 'poll-delete-btn')}
-                          aria-label={t('admin.polls.voiceDeleteRow', { id: p.id })}
-                        >
-                          {t('admin.polls.delete')}
-                        </Button>
+                        {p.question}
+                        {isSimulatedPollId(p.id) ? (
+                          <span className='asking-admin-polls-page__sim-badge'>{t('admin.polls.simulationBadge')}</span>
+                        ) : null}
                       </>
                     )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  </td>
+                  <td>
+                    {editId === p.id ? (
+                      <input
+                        value={editPoll.options}
+                        onChange={(e) => setEditPoll({ ...editPoll, options: e.target.value })}
+                        className='asking-admin-polls-page__input--edit-wide'
+                        aria-label={t('admin.polls.editOptionsAria')}
+                      />
+                    ) : Array.isArray(p.options) ? (
+                      p.options.join(', ')
+                    ) : (
+                      ''
+                    )}
+                  </td>
+                  <td>
+                    <span
+                      className={
+                        p.archived
+                          ? 'asking-admin-polls-page__archive-badge asking-admin-polls-page__archive-badge--yes'
+                          : 'asking-admin-polls-page__archive-badge'
+                      }
+                    >
+                      {p.archived ? t('admin.polls.yes') : t('admin.polls.no')}
+                    </span>
+                  </td>
+                  <td>
+                    <div className='asking-admin-polls-page__actions-cell'>
+                      <Button
+                        type='button'
+                        variant='secondary'
+                        className='asking-admin-page__toolbar-btn'
+                        onClick={() => void handleShowDetails(p.id)}
+                        disabled={loading || editId === p.id}
+                        aria-label={t('admin.polls.voiceDetailsRow', { id: p.id })}
+                      >
+                        {t('admin.polls.details')}
+                      </Button>
+                      {editId === p.id ? (
+                        <>
+                          <Button
+                            type='button'
+                            variant='secondary'
+                            className='asking-admin-page__toolbar-btn'
+                            onClick={() => void handleSaveEdit(p.id)}
+                            disabled={loading}
+                            aria-label={t('admin.polls.voiceSaveRow', { id: p.id })}
+                          >
+                            {t('admin.polls.save')}
+                          </Button>
+                          <Button
+                            type='button'
+                            variant='secondary'
+                            className='asking-admin-page__toolbar-btn'
+                            onClick={handleCancelEdit}
+                            disabled={loading}
+                            aria-label={t('admin.polls.voiceCancelEditRow', { id: p.id })}
+                          >
+                            {t('admin.polls.cancel')}
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            type='button'
+                            variant='secondary'
+                            className='asking-admin-page__toolbar-btn'
+                            onClick={() => handleEdit(p)}
+                            disabled={loading}
+                            aria-label={t('admin.polls.voiceEditRow', { id: p.id })}
+                          >
+                            {t('admin.polls.edit')}
+                          </Button>
+                          {p.archived ? (
+                            <Button
+                              type='button'
+                              variant='secondary'
+                              className='asking-admin-page__toolbar-btn'
+                              onClick={() => void handleUnarchive(p.id)}
+                              disabled={loading}
+                              aria-label={t('admin.polls.voiceUnarchiveRow', { id: p.id })}
+                            >
+                              {t('admin.polls.unarchive')}
+                            </Button>
+                          ) : (
+                            <Button
+                              type='button'
+                              variant='secondary'
+                              className='asking-admin-page__toolbar-btn'
+                              onClick={() => void handleArchive(p.id)}
+                              disabled={loading}
+                              aria-label={t('admin.polls.voiceArchiveRow', { id: p.id })}
+                            >
+                              {t('admin.polls.archive')}
+                            </Button>
+                          )}
+                          <Button
+                            type='button'
+                            variant='secondary'
+                            className='asking-admin-page__toolbar-btn'
+                            onClick={() => void handleResetVotes(p.id)}
+                            disabled={loading}
+                            aria-label={t('admin.polls.voiceResetVotesRow', { id: p.id })}
+                          >
+                            {t('admin.polls.resetVotes')}
+                          </Button>
+                          <Button
+                            type='button'
+                            variant='secondary'
+                            className='asking-admin-page__toolbar-btn'
+                            onClick={() => void handlePauseVoting(p.id, !p.voting_paused)}
+                            disabled={loading || !!p.archived}
+                          >
+                            {p.voting_paused ? t('admin.polls.unpauseVoting') : t('admin.polls.pauseVoting')}
+                          </Button>
+                          <Button
+                            type='button'
+                            variant='secondary'
+                            onClick={() => void handleDelete(p.id)}
+                            disabled={loading}
+                            className={cx('asking-admin-page__toolbar-btn', 'asking-admin-page__toolbar-btn--danger')}
+                            aria-label={t('admin.polls.voiceDeleteRow', { id: p.id })}
+                          >
+                            {t('admin.polls.delete')}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </SectionPanel>
 
-      <div className='polls-pagination-bar'>
-        <Button
-          type='button'
-          variant='secondary'
-          className='poll-btn'
-          disabled={page <= 1}
-          aria-label={t('admin.polls.prevAria')}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-        >
-          {t('admin.polls.prev')}
-        </Button>
-        <span className='poll-pagination-pageinfo'>
-          {t('admin.polls.pageOf', {
-            page: formatLocaleInteger(page, localeTag),
-            total: formatLocaleInteger(totalPages, localeTag),
-          })}
-        </span>
-        <Button
-          type='button'
-          variant='secondary'
-          className='poll-btn'
-          disabled={page >= totalPages}
-          aria-label={t('admin.polls.nextAria')}
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-        >
-          {t('admin.polls.next')}
-        </Button>
-        <label className='poll-pagination-label'>
-          {t('admin.polls.rowsPerPage')}
-          <Select
-            value={String(rowsPerPage)}
-            onChange={(e) => {
-              setRowsPerPage(Number(e.target.value));
-              setPage(1);
-            }}
+      <SectionPanel
+        className='asking-admin-page__section'
+        titleId='asking-admin-polls-page__pagination-heading'
+        title={<VisuallyHidden as='span'>{t('admin.polls.heading')}</VisuallyHidden>}
+      >
+        <div className='asking-admin-polls-page__pagination-bar'>
+          <Button
+            type='button'
+            variant='secondary'
+            className='asking-admin-page__toolbar-btn'
+            disabled={page <= 1}
+            aria-label={t('admin.polls.prevAria')}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            {[5, 10, 20, 50].map((n) => (
-              <option key={n} value={String(n)}>
-                {n}
-              </option>
-            ))}
-          </Select>
-        </label>
-      </div>
+            {t('admin.polls.prev')}
+          </Button>
+          <span className='asking-admin-polls-page__pagination-pageinfo'>
+            {t('admin.polls.pageOf', {
+              page: formatLocaleInteger(page, localeTag),
+              total: formatLocaleInteger(totalPages, localeTag),
+            })}
+          </span>
+          <Button
+            type='button'
+            variant='secondary'
+            className='asking-admin-page__toolbar-btn'
+            disabled={page >= totalPages}
+            aria-label={t('admin.polls.nextAria')}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            {t('admin.polls.next')}
+          </Button>
+          <label className='asking-admin-polls-page__pagination-label'>
+            {t('admin.polls.rowsPerPage')}
+            <Select
+              value={String(rowsPerPage)}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setPage(1);
+              }}
+            >
+              {[5, 10, 20, 50].map((n) => (
+                <option key={n} value={String(n)}>
+                  {n}
+                </option>
+              ))}
+            </Select>
+          </label>
+        </div>
+      </SectionPanel>
 
       {detailsId && (
         <div
           ref={detailsDialogRef}
           role='dialog'
           aria-modal='true'
-          aria-labelledby='admin-poll-details-title'
-          className='poll-modal-overlay'
+          aria-labelledby='asking-admin-polls-page__details-title'
+          className='asking-admin-polls-page__modal-overlay'
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) handleCloseDetails();
           }}
         >
           <div
-            className='poll-modal-content poll-modal-content--scroll'
+            className='asking-admin-polls-page__modal-content asking-admin-polls-page__modal-content--scroll'
             onMouseDown={(e) => e.stopPropagation()}
           >
             <h2
-              id='admin-poll-details-title'
-              className='poll-modal-title'
+              id='asking-admin-polls-page__details-title'
+              className='asking-admin-polls-page__modal-title'
               ref={detailsTitleRef}
               tabIndex={-1}
             >
               {t('admin.polls.modalTitle')}
             </h2>
-            <div className='poll-modal-actions poll-modal-actions--start'>
-              <Button type='button' variant='secondary' className='poll-btn' onClick={handleCloseDetails}>
+            <div className='asking-admin-polls-page__modal-actions asking-admin-polls-page__modal-actions--start'>
+              <Button
+                type='button'
+                variant='secondary'
+                className='asking-admin-page__toolbar-btn'
+                onClick={handleCloseDetails}
+              >
                 {t('admin.polls.close')}
               </Button>
               {!detailsLoading && detailsPoll ? (
                 <Button
                   type='button'
                   variant='secondary'
-                  className='poll-btn'
+                  className='asking-admin-page__toolbar-btn'
                   onClick={() => {
                     const targetId = detailsPoll.id;
                     handleCloseDetails();
@@ -882,9 +931,13 @@ export default function AdminPolls() {
               ) : null}
             </div>
             {detailsLoading || !detailsPoll ? (
-              <div className='poll-status poll-status-loading' role='status' aria-live='polite'>
+              <Notice
+                tone='loading'
+                className='asking-admin-page__status asking-admin-page__status--loading'
+                aria-live='polite'
+              >
                 {t('admin.polls.loading')}
-              </div>
+              </Notice>
             ) : (
               <>
                 <div>
@@ -920,29 +973,29 @@ export default function AdminPolls() {
       )}
       {selected.length > 0 ? (
         <section
-          id='admin-polls-mobile-bulk'
+          id='asking-admin-polls-page__mobile-bulk'
           role='region'
-          aria-labelledby='admin-polls-mobile-bulk-heading'
-          className='admin-mobile-bulk-actions'
+          aria-labelledby='asking-admin-polls-page__mobile-bulk-heading'
+          className='asking-admin-page__mobile-bulk-actions'
         >
-          <VisuallyHidden as='h2' id='admin-polls-mobile-bulk-heading'>
+          <VisuallyHidden as='h2' id='asking-admin-polls-page__mobile-bulk-heading'>
             {t('admin.polls.bulkLabel')}
           </VisuallyHidden>
           <span
-            className='admin-mobile-bulk-selected'
+            className='asking-admin-page__mobile-bulk-selected'
             role='status'
             aria-live='polite'
             aria-atomic='true'
           >
             {t('admin.polls.selected', { count: formatLocaleInteger(selected.length, localeTag) })}
           </span>
-          <div className='admin-mobile-bulk-buttons'>
+          <div className='asking-admin-page__mobile-bulk-buttons'>
             <Button
               type='button'
               variant='secondary'
               disabled={loading}
               onClick={() => void handleBulk('archive')}
-              className='poll-btn'
+              className='asking-admin-page__toolbar-btn'
               aria-label={t('admin.polls.voiceArchiveBulk')}
             >
               {t('admin.polls.archive')}
@@ -952,7 +1005,7 @@ export default function AdminPolls() {
               variant='secondary'
               disabled={loading}
               onClick={() => void handleBulk('unarchive')}
-              className='poll-btn'
+              className='asking-admin-page__toolbar-btn'
               aria-label={t('admin.polls.voiceUnarchiveBulk')}
             >
               {t('admin.polls.unarchive')}
@@ -962,7 +1015,7 @@ export default function AdminPolls() {
               variant='secondary'
               disabled={loading}
               onClick={() => void handleBulk('reset')}
-              className='poll-btn'
+              className='asking-admin-page__toolbar-btn'
               aria-label={t('admin.polls.voiceResetBulk')}
             >
               {t('admin.polls.resetVotes')}
@@ -972,7 +1025,7 @@ export default function AdminPolls() {
               variant='secondary'
               disabled={loading}
               onClick={() => void handleBulk('delete')}
-              className={cx('poll-btn', 'poll-delete-btn')}
+              className={cx('asking-admin-page__toolbar-btn', 'asking-admin-page__toolbar-btn--danger')}
               aria-label={t('admin.polls.voiceDeleteBulk')}
             >
               {t('admin.polls.delete')}
