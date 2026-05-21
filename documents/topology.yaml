@@ -20,6 +20,8 @@ vpn:
     label: "wireguard<br>Remote access VPN"
   - id: gluetun
     label: "gluetun<br>Container egress VPN"
+  - id: netbird
+    label: "netbird<br>WireGuard mesh VPN"
 
 # Application categories. Order here defines order in the diagram (alphabetical by id).
 app_categories:
@@ -29,6 +31,7 @@ app_categories:
     stacks:
       - bazarr
       - explo
+      - flaresolverr
       - lidarr
       - metube
       - mylar3
@@ -39,26 +42,35 @@ app_categories:
       - radarr
       - readarr
       - rtorrent-flood
+      - seerr
       - sonarr
       - soulseek
+      - whisparr
     description: "download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, Explo, MeTube, Mylar3, Soulseek)"
 
   - id: apps_ai
     name: "AI & LLM"
     descriptor: "local models, chat UIs"
     stacks:
+      - anything-llm
+      - kokoro-tts
+      - litellm
       - ollama
       - open-webui
       - librechat
       - open-notebook
       - perplexica
-    description: "local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica)"
+      - whisper-asr
+    description: "local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica, Anything LLM, LiteLLM, Kokoro TTS, Whisper ASR)"
 
   - id: apps_dev
     name: "Developer & IT utilities"
     descriptor: "it-tools, ConvertX, CUPS, Dozzle, Gitea, Kasm, CI, dashboard, PDF, NetBox, PostHog, Snipe-IT"
     stacks:
+      - asking-ng
       - baserow
+      - beszel
+      - code-server
       - convertx
       - cups
       - dozzle
@@ -67,21 +79,26 @@ app_categories:
       - homarr
       - it-tools
       - kasm
+      - mattermost
       - netbox
+      - nodepad
       - ntfy
       - posthog
       - snipe-it
       - stirling-pdf
+      - terminus
       - woodpecker-ci
-    description: "it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT"
+    description: "it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT, code-server, Beszel, Mattermost, Terminus, NodePad, Asking-NG"
 
   - id: apps_gaming
     name: "Gaming"
     descriptor: "ROMs, Steam, in-browser emulation"
     stacks:
+      - archisteamfarm
       - asf
       - romm
-    description: "Steam automation (ASF), ROM manager and in-browser emulation (RomM)"
+      - twitch-drops-miner
+    description: "Steam automation (ArchiSteamFarm), ROM manager and in-browser emulation (RomM), Twitch drops mining"
 
   - id: apps_home
     name: "Home automation & IoT"
@@ -96,22 +113,26 @@ app_categories:
     name: "Links, shorteners & presence"
     descriptor: "YOURLS, Shlink, Linkstack, Stoat, homepage"
     stacks:
+      - glance
       - homepage
       - linkstack
       - shlink
       - stoat
       - yourls
-    description: "YOURLS, Shlink, Linkstack, Stoat, static homepage/landing"
+    description: "YOURLS, Shlink, Linkstack, Stoat, Glance, static homepage/landing"
 
   - id: apps_media
     name: "Media & personal data"
     descriptor: "photos, docs, music, RSS, notes"
     stacks:
+      - affine
+      - appflowy
       - actual-budget
       - archivebox
       - audiobookshelf
       - bookstack
       - calibre-web
+      - cryptpad
       - docuseal
       - emby
       - firefly-iii
@@ -119,6 +140,7 @@ app_categories:
       - hedgedoc
       - immich
       - jellyfin
+      - jellystat
       - joplin-server
       - logseq-sync
       - kavita
@@ -129,15 +151,20 @@ app_categories:
       - mealie
       - navidrome
       - nextcloud
+      - oasis
       - outline
+      - paperless-ai-next
+      - paperless-gpt
       - paperless-ngx
       - picard
       - plex
       - seafile
       - slink
+      - super-productivity
       - syncthing
+      - trilium
       - vikunja
-    description: "consumption and personal content (photos, docs, music, tagging/organization, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting)"
+    description: "consumption and personal content (photos, docs, music, tagging/organization, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting, Affine, Appflowy, CryptPad, Trilium, Oasis, Paperless AI)"
 
   - id: apps_osint
     name: "OSINT & recon"
@@ -184,21 +211,24 @@ app_categories:
       - plaso
       - threat-dragon
       - zap
-    description: "SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP), digital forensics (Acquire, Plaso, Docker Forensics Toolkit)"
+      - zed-attack-proxy
+    description: "SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP/ZAP GUI), digital forensics (Acquire, Plaso, Docker Forensics Toolkit)"
 
   - id: apps_security
     name: "Security & identity"
     descriptor: "passwords, secrets, aliases, IdP"
     stacks:
       - authentik
+      - enclosed
       - guacamole
       - infisical
       - keycloak
       - password-pusher
       - privatebin
+      - rustdesk
       - simplelogin
       - vaultwarden
-    description: "passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik)"
+    description: "passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik, Enclosed, RustDesk)"
 
   - id: apps_tor
     name: "Tor / dark web"
@@ -213,9 +243,10 @@ app_categories:
     name: "Workflow automation"
     descriptor: "n8n, Node-RED"
     stacks:
+      - calcom
       - n8n
       - node-red
-    description: "n8n, Node-RED"
+    description: "n8n, Node-RED, Cal.com"
 
 # Infrastructure & monitoring. Order is alphabetical by id.
 infra:
@@ -229,6 +260,8 @@ infra:
     label: "cAdvisor<br>Container metrics"
   - id: crowdsec
     label: "crowdsec<br>Security engine"
+  - id: ddns-updater
+    label: "ddns-updater<br>Dynamic DNS"
   - id: diun
     label: "diun<br>Image update notifier"
   - id: dockergc
@@ -243,8 +276,14 @@ infra:
     label: "mailpit<br>SMTP catcher"
   - id: minio
     label: "minio<br>S3 object storage"
+  - id: node-exporter
+    label: "node-exporter<br>Host metrics"
+  - id: nut-server
+    label: "nut-server<br>UPS monitor"
   - id: ntopng
     label: "ntopng<br>Traffic analytics"
+  - id: pihole
+    label: "pihole<br>DNS sinkhole"
   - id: portainer
     label: "portainer<br>Docker UI"
   - id: postfix
@@ -255,6 +294,12 @@ infra:
     label: "restic<br>Backups (cron)"
   - id: scrutiny
     label: "scrutiny<br>SMART disk health"
+  - id: snowflake-relay
+    label: "snowflake-relay<br>Tor bridge relay"
+  - id: umami
+    label: "umami<br>Web analytics"
+  - id: unbound
+    label: "unbound<br>DNS resolver"
   - id: vector
     label: "vector<br>Log shipper"
   - id: watchtower
