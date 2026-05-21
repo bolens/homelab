@@ -10,11 +10,17 @@ stack.env.*
 !stack.env.example
 !stack.env.*.example
 
+# Per-stack Caddy snippets (contain real hostname; .example templates are committed)
+caddy_snippet.conf
+!caddy_snippet.conf.example
+
 # Shared env (TZ, locale) – copy from shared.env.example
 shared.env
 
 # Local .local hostnames list – copy from scripts/local-hosts.conf.example
 scripts/local-hosts.conf
+
+stacks/asking-ng
 
 # LiteLLM proxy model list (generated from litellm_config.yaml.example by prepare-stack.sh)
 stacks/litellm/litellm_config.yaml
@@ -109,3 +115,4 @@ stacks/posthog/posthog.merged.compose.yml
 Thumbs.db
 *.swp
 *~
+node_modules
