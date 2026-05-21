@@ -1,9 +1,9 @@
-#!/bin/bash
-# Copy stack.env from example if missing
-set -e
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
-if [ ! -f stack.env ]; then
-  cp stack.env.example stack.env
-  echo "Created stack.env from stack.env.example"
-fi
+#!/usr/bin/env bash
+set -euo pipefail
+_PREPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
+prepare_stack_begin "$_PREPDIR"
+prepare_stack_copy_env
+prepare_stack_copy_caddy
+prepare_stack_end

@@ -1,10 +1,13 @@
-#!/bin/bash
-# Create data dir and stack.env from example if missing
-set -e
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
-mkdir -p data
-if [ ! -f stack.env ]; then
-  cp stack.env.example stack.env
-  echo "Created stack.env from stack.env.example"
-fi
+#!/usr/bin/env bash
+set -euo pipefail
+_PREPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
+prepare_stack_begin "$_PREPDIR"
+prepare_stack_copy_env
+
+mkdir -p "$_PREPDIR/data"
+prepare_stack_msg "ensured data/ directory exists for casework output."
+
+prepare_stack_copy_caddy
+prepare_stack_end

@@ -1,12 +1,12 @@
-#!/bin/bash
-# Create results dir, copy stack.env from example if missing
-set -e
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
-RESULTS_DIR="${SUBLIST3R_RESULTS_PATH:-$HOME/.config/sublist3r/results}"
-mkdir -p "$RESULTS_DIR"
-if [ ! -f stack.env ]; then
-  cp stack.env.example stack.env
-  echo "Created stack.env from stack.env.example"
-fi
-echo "Results dir: $RESULTS_DIR"
+#!/usr/bin/env bash
+set -euo pipefail
+_PREPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
+prepare_stack_begin "$_PREPDIR"
+prepare_stack_copy_env
+
+prepare_stack_ensure_dir_from_env SUBLIST3R_RESULTS_PATH "${HOME}/.config/sublist3r/results"
+
+prepare_stack_copy_caddy
+prepare_stack_end
