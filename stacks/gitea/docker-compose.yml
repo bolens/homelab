@@ -41,6 +41,13 @@ services:
     networks:
       - default
       - monitor
+    mem_limit: 2g
+    memswap_limit: 4g
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:3000/api/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 networks:
   monitor:
