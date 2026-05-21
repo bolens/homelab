@@ -8,11 +8,10 @@ services:
   vaultwarden:
     container_name: vaultwarden
     image: docker.io/vaultwarden/server:latest
-    environment:
-      - TZ=${TZ:-America/Denver}
-      - DOMAIN=${DOMAIN:-}
-      - SIGNUPS_ALLOWED=${SIGNUPS_ALLOWED:-false}
-      - WEBSOCKET_ENABLED=${WEBSOCKET_ENABLED:-true}
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
     volumes:
       - vw_data:/data
     restart: unless-stopped

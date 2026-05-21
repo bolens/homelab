@@ -13,8 +13,11 @@ services:
     container_name: zap
     restart: unless-stopped
     command: zap.sh -daemon -port 8090 -host 0.0.0.0
-    environment:
-      - TZ=${TZ:-America/Denver}
+    env_file:
+      - path: stack.env
+        required: false
+      - path: ../../shared.env
+        required: false
     # Optional: persist ZAP config/sessions (uncomment if you want data to survive restarts)
     # volumes:
     #   - zap-data:/zap/wrk

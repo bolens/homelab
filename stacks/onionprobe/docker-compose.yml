@@ -12,6 +12,11 @@ services:
     image: quay.io/prometheus/prometheus:v3.9.1
     container_name: onionprobe-prometheus
     restart: unless-stopped
+    env_file:
+      - path: stack.env
+        required: false
+      - path: ../../shared.env
+        required: false
     volumes:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./repo/configs/prometheus/prometheus-rules.yml:/etc/prometheus/prometheus-rules.yml:ro
@@ -49,10 +54,13 @@ services:
     image: postgres:18-alpine
     container_name: onionprobe-postgres
     restart: unless-stopped
+    env_file:
+      - path: stack.env
+        required: false
     environment:
+      # Hardcoded: database name and user are internal to onionprobe
       POSTGRES_USER: grafana
       POSTGRES_DB: grafana
-      POSTGRES_PASSWORD: ${GRAFANA_DATABASE_PASSWORD:-change-me-in-production}
     volumes:
       - op-postgres-data:/var/lib/postgresql/data
     networks:
@@ -62,18 +70,22 @@ services:
     image: grafana/grafana:12.3.2
     container_name: onionprobe-grafana
     restart: unless-stopped
+    env_file:
+      - path: stack.env
+        required: false
+      - path: ../../shared.env
+        required: false
     volumes:
       - ./repo/configs/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./config/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ./repo/configs/grafana/home.json:/etc/grafana/home.json:ro
       - op-grafana-data:/var/lib/grafana
     environment:
+      # Hardcoded: internal database connection (service name + fixed db/user)
       GF_DATABASE_TYPE: postgres
       GF_DATABASE_HOST: op-postgres
       GF_DATABASE_NAME: grafana
       GF_DATABASE_USER: grafana
-      GF_DATABASE_PASSWORD: ${GRAFANA_DATABASE_PASSWORD:-change-me-in-production}
-      GF_SERVER_ROOT_URL: ${GF_SERVER_ROOT_URL:-https://onionprobe.home}
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/home.json
@@ -105,13 +117,15 @@ services:
     container_name: onionprobe-configurator
     tty: true
     stdin_open: true
+    env_file:
+      - path: stack.env
+        required: false
     volumes:
       - ./repo:/srv/onionprobe
     networks:
       - onionprobe
     entrypoint: "/srv/onionprobe/packages/tpo.py"
     command: ["--loop", "--wait", "240", "--config_overrides", "rounds=20,launch_tor=false,tor_address=op-tor", "--config_template", "/srv/onionprobe/configs/tor.yaml", "--output_folder", "/srv/onionprobe/contrib"]
-    user: "${CONTAINER_UID:-1000}:${CONTAINER_GID:-1000}"
     restart: unless-stopped
 
   op-onionprobe:
@@ -122,13 +136,14 @@ services:
     container_name: onionprobe-app
     tty: true
     stdin_open: true
+    env_file:
+      - path: stack.env
+        required: false
     volumes:
       - ./repo:/srv/onionprobe
     networks:
       - onionprobe
       - monitor
-    environment:
-      ONIONPROBE_CONFIG: /srv/onionprobe/${ONIONPROBE_CONFIG:-contrib/tpo.yaml}
     restart: unless-stopped
     depends_on:
       - op-configurator

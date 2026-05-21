@@ -1,5 +1,5 @@
 # Paperless-ngx with PostgreSQL. See https://docs.paperless-ngx.com/setup/
-# Portainer-friendly: named volumes for export/consume, env vars from stack/.env, external monitor network.
+# Portainer-friendly: named volumes for export/consume, env vars from stack.env, external monitor network.
 services:
   broker:
     image: docker.io/library/redis:8
@@ -14,12 +14,10 @@ services:
     image: docker.io/library/postgres:18
     container_name: paperless-ngx-db
     restart: unless-stopped
+    env_file:
+      - stack.env
     volumes:
       - pgdata:/var/lib/postgresql
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-paperless}
-      POSTGRES_USER: ${POSTGRES_USER:-paperless}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-paperless}
     networks:
       - default
     healthcheck:
@@ -38,42 +36,37 @@ services:
         condition: service_healthy
       broker:
         condition: service_started
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
     # No host port: access via Caddy (reverse proxy on monitor network)
     volumes:
       - data:/usr/src/paperless/data
       - media:/usr/src/paperless/media
       - export:/usr/src/paperless/export
       - consume:/usr/src/paperless/consume
-    environment:
-      - TZ=${TZ:-America/Denver}
-      - PAPERLESS_REDIS=redis://paperless-ngx-redis:6379
-      - PAPERLESS_DBHOST=paperless-ngx-db
-      - PAPERLESS_DBNAME=${POSTGRES_DB:-paperless}
-      - PAPERLESS_DBUSER=${POSTGRES_USER:-paperless}
-      - PAPERLESS_DBPASS=${POSTGRES_PASSWORD:-paperless}
-      - PAPERLESS_URL=${PAPERLESS_URL:-https://paperless.yourdomain.com}
-      - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET_KEY:-change-me-use-openssl-rand-hex-32}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - default
       - monitor
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
-      interval: 60s
+      interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 20s
 
 networks:
+  default:
+    driver: bridge
   monitor:
     name: monitor
     external: true
 
 volumes:
-  data: {}
-  media: {}
-  pgdata: {}
-  redisdata: {}
-  export: {}
-  consume: {}
+  redisdata:
+  pgdata:
+  data:
+  media:
+  export:
+  consume:

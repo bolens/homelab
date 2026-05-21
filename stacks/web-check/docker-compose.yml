@@ -11,20 +11,14 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - monitor
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
     environment:
-      - TZ=America/Denver
-      - LANG=en_US.UTF-8
-      - LC_ALL=en_US.UTF-8
-      - LC_CTYPE=en_US.UTF-8
-      # Chromium for tech-stack / Puppeteer (Wappalyzer)
+      # Hardcoded: Puppeteer/Chromium paths (not user-configurable)
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
-      # Optional: Add API keys for enhanced features
-      - GOOGLE_CLOUD_API_KEY=${GOOGLE_CLOUD_API_KEY}
-      - REACT_APP_SHODAN_API_KEY=${REACT_APP_SHODAN_API_KEY}
-      # - REACT_APP_WHO_API_KEY=${REACT_APP_WHO_API_KEY}
-      - URL_SCAN_API_KEY=${URL_SCAN_API_KEY}
-      - BUILT_WITH_API_KEY=${BUILT_WITH_API_KEY}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
       interval: 60s

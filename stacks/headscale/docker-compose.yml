@@ -9,8 +9,10 @@ services:
     image: alpine:3.19
     container_name: headscale-init
     restart: "no"
-    environment:
-      - HEADSCALE_CONFIG_B64=${HEADSCALE_CONFIG_B64}
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
     volumes:
       - headscale_config:/config
     command: >
@@ -30,8 +32,10 @@ services:
     read_only: true
     tmpfs:
       - /var/run/headscale
-    environment:
-      - TZ=${TZ:-America/Denver}
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
     ports:
       - "8080:8080"
       - "9090:9090"

@@ -6,16 +6,13 @@ services:
     image: ${YOURLS_IMAGE:-yourls:1.10.3-apache}
     container_name: yourls
     restart: unless-stopped
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
     environment:
-      - TZ=${TZ:-America/Denver}
+      # Hardcoded: internal DB service hostname
       - YOURLS_DB_HOST=yourls-db
-      - YOURLS_DB_USER=${YOURLS_DB_USER:-yourls}
-      - YOURLS_DB_PASS=${YOURLS_DB_PASSWORD}
-      - YOURLS_DB_NAME=${YOURLS_DB_NAME:-yourls}
-      - YOURLS_SITE=${YOURLS_SITE}
-      - YOURLS_USER=${YOURLS_USER}
-      - YOURLS_PASS=${YOURLS_PASS}
-      - YOURLS_COOKIEKEY=${YOURLS_COOKIEKEY}
     volumes:
       - yourls_data:/var/www/html/user
       # Fix 403 on /: official image lacks DirectoryIndex yourls-loader.php
@@ -39,11 +36,8 @@ services:
     image: mariadb:11
     container_name: yourls-db
     restart: unless-stopped
-    environment:
-      - MARIADB_ROOT_PASSWORD=${YOURLS_DB_ROOT_PASSWORD}
-      - MARIADB_DATABASE=${YOURLS_DB_NAME:-yourls}
-      - MARIADB_USER=${YOURLS_DB_USER:-yourls}
-      - MARIADB_PASSWORD=${YOURLS_DB_PASSWORD}
+    env_file:
+      - stack.env
     volumes:
       - yourls_db_data:/var/lib/mysql
     healthcheck:
