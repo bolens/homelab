@@ -1,0 +1,36 @@
+# Home Assistant — split-horizon + public TLS: home-assistant.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+
+home-assistant.home, home-assistant.local {
+	tls internal
+	reverse_proxy home-assistant:8123 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://home-assistant.example.com {
+	reverse_proxy home-assistant:8123 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+home-assistant.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy home-assistant:8123 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

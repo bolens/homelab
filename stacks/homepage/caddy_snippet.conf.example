@@ -1,0 +1,36 @@
+# Homepage (gethomepage) — split-horizon + public TLS: homepage.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+
+homepage.home, homepage.local {
+	tls internal
+	reverse_proxy homepage:80 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://homepage.example.com {
+	reverse_proxy homepage:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+homepage.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy homepage:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

@@ -1,0 +1,8 @@
+docker-forensics-toolkit.home, docker-forensics-toolkit.local {
+	tls internal
+	reverse_proxy docker-forensics-toolkit:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

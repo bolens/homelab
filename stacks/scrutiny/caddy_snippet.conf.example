@@ -1,0 +1,36 @@
+# Scrutiny — split-horizon + public TLS: scrutiny.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+
+scrutiny.home, scrutiny.local {
+	tls internal
+	reverse_proxy scrutiny:8080 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://scrutiny.example.com {
+	reverse_proxy scrutiny:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+scrutiny.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy scrutiny:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

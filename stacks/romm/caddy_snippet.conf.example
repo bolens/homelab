@@ -1,0 +1,37 @@
+# RomM — split-horizon + public TLS: romm.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Set ROMM_BASE_URL in stack.env to your public URL.
+
+romm.home, romm.local {
+	tls internal
+	reverse_proxy romm:8080 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://romm.example.com {
+	reverse_proxy romm:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+romm.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy romm:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

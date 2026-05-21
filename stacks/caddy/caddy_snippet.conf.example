@@ -1,0 +1,8 @@
+caddy.home, caddy.local {
+	tls internal
+	reverse_proxy host.docker.internal:2019 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

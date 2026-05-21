@@ -1,0 +1,36 @@
+# Resilio Sync — split-horizon + public TLS: resilio.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+
+resilio.home, resilio.local {
+	tls internal
+	reverse_proxy resilio:8888 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://resilio.example.com {
+	reverse_proxy resilio:8888 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+resilio.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy resilio:8888 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

@@ -1,0 +1,71 @@
+# Asking — split-horizon + public TLS: asking.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# API on /api/* → asking-api:3001; frontend on asking-frontend:80.
+
+asking.home, asking.local {
+	tls internal
+	handle_path /api/* {
+		reverse_proxy asking-api:3001 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy asking-frontend:80 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}
+
+http://asking.example.com {
+	handle_path /api/* {
+		reverse_proxy asking-api:3001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy asking-frontend:80 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}
+
+asking.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	handle_path /api/* {
+		reverse_proxy asking-api:3001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy asking-frontend:80 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}

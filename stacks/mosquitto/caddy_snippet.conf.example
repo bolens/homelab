@@ -1,0 +1,8 @@
+mosquitto.home, mosquitto.local {
+	tls internal
+	reverse_proxy mosquitto:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

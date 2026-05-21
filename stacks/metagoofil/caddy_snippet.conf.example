@@ -1,0 +1,8 @@
+metagoofil.home, metagoofil.local {
+	tls internal
+	reverse_proxy metagoofil:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

@@ -1,0 +1,8 @@
+vector.home, vector.local {
+	tls internal
+	reverse_proxy vector:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

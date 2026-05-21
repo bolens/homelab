@@ -1,0 +1,21 @@
+tailscale-exporter.home, tailscale-exporter.local {
+	tls internal
+	reverse_proxy tailscale-exporter:9250 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+# Normally you keep this exporter internal-only (no public Caddy hostname).
+# If you do expose it for debugging, replace example.com with your domain.
+# http://tailscale-exporter.example.com {
+# 	reverse_proxy tailscale-exporter:9250
+# }
+
+# tailscale-exporter.example.com {
+# 	tls {
+# 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+# 	}
+# 	reverse_proxy tailscale-exporter:9250
+# }

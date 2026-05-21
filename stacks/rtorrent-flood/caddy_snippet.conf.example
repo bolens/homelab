@@ -1,0 +1,110 @@
+# rTorrent/Flood — split-horizon + public TLS (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Public: rutorrent.example.com, flood.example.com, rtorrent.example.com (match LAN hostnames).
+
+# ruTorrent Web UI
+rutorrent.home, rutorrent.local {
+	tls internal
+	reverse_proxy rutorrent:80 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://rutorrent.example.com {
+	reverse_proxy rutorrent:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+rutorrent.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy rutorrent:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+# Flood Web UI
+flood.home, flood.local {
+	tls internal
+	reverse_proxy flood:3000 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://flood.example.com {
+	reverse_proxy flood:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+flood.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy flood:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+# rTorrent XMLRPC
+rtorrent.home, rtorrent.local {
+	tls internal
+	reverse_proxy rutorrent:50000 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://rtorrent.example.com {
+	reverse_proxy rutorrent:50000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+rtorrent.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy rutorrent:50000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

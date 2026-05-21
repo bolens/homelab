@@ -1,0 +1,36 @@
+# Bazarr — split-horizon + public TLS: bazarr.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+
+bazarr.home, bazarr.local {
+	tls internal
+	reverse_proxy bazarr:6767 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://bazarr.example.com {
+	reverse_proxy bazarr:6767 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+bazarr.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy bazarr:6767 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

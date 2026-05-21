@@ -1,0 +1,120 @@
+# MinIO — split-horizon + public TLS: minio.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Console on /console; S3 API on / and /api*.
+
+minio.home, minio.local {
+	tls internal
+	@root path /
+	handle @root {
+		redir / /console/ 302
+	}
+	redir /console /console/
+	handle_path /console* {
+		reverse_proxy minio:9001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle /api* {
+		reverse_proxy minio:9001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy minio:9000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}
+
+http://minio.example.com {
+	@root path /
+	handle @root {
+		redir / /console/ 302
+	}
+	redir /console /console/
+	handle_path /console* {
+		reverse_proxy minio:9001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle /api* {
+		reverse_proxy minio:9001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy minio:9000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}
+
+minio.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	@root path /
+	handle @root {
+		redir / /console/ 302
+	}
+	redir /console /console/
+	handle_path /console* {
+		reverse_proxy minio:9001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle /api* {
+		reverse_proxy minio:9001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy minio:9000 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}

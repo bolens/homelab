@@ -1,0 +1,8 @@
+ghunt.home, ghunt.local {
+	tls internal
+	reverse_proxy ghunt:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

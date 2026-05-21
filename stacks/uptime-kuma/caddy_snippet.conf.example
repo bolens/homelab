@@ -1,0 +1,51 @@
+# Uptime Kuma — split-horizon + public TLS: kuma.example.com and status.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+
+kuma.home, kuma.local, status.home, status.local {
+	tls internal
+	reverse_proxy uptime-kuma:3001 {
+		header_up Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://kuma.example.com {
+	reverse_proxy uptime-kuma:3001 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://status.example.com {
+	reverse_proxy uptime-kuma:3001 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+kuma.example.com, status.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy uptime-kuma:3001 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}

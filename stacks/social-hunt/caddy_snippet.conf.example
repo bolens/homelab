@@ -1,0 +1,19 @@
+# Backend serves job status at /sh-api/jobs/{id}; frontend polls /api/jobs/{id}. Rewrite to fix 404 → "connection lost".
+social-hunt.home, social-hunt.local {
+	tls internal
+	handle_path /api/jobs/* {
+		rewrite * /sh-api/jobs{path}
+		reverse_proxy social-hunt:8000 {
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy social-hunt:8000 {
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}

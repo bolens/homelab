@@ -1,0 +1,8 @@
+restic.home, restic.local {
+	tls internal
+	reverse_proxy restic:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

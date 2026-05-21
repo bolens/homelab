@@ -1,0 +1,8 @@
+holehe.home, holehe.local {
+	tls internal
+	reverse_proxy holehe-web:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

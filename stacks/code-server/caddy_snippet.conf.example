@@ -1,0 +1,38 @@
+# code-server — split-horizon + public TLS: code.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Upstream: lscr.io/linuxserver/code-server listens on HTTP :8443 (see docker-compose.yml).
+# Set PROXY_DOMAIN=code.example.com (or your hostname) in stack.env so code-server accepts the forwarded Host.
+
+code-server.home, code-server.local {
+	tls internal
+	reverse_proxy code-server:8443 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://code.example.com {
+	reverse_proxy code-server:8443 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+code.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy code-server:8443 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

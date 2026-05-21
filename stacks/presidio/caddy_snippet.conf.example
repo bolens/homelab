@@ -1,0 +1,126 @@
+# Presidio — path-based routing; split-horizon + public TLS: presidio.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+
+presidio.home, presidio.local {
+	tls internal
+	handle_path /analyzer/* {
+		reverse_proxy presidio-analyzer:5002 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle_path /anonymizer/* {
+		reverse_proxy presidio-anonymizer:5001 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle_path /image-redactor/* {
+		reverse_proxy presidio-image-redactor:5003 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy presidio-analyzer:5002 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}
+
+http://presidio.example.com {
+	handle_path /analyzer/* {
+		reverse_proxy presidio-analyzer:5002 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle_path /anonymizer/* {
+		reverse_proxy presidio-anonymizer:5001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle_path /image-redactor/* {
+		reverse_proxy presidio-image-redactor:5003 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy presidio-analyzer:5002 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}
+
+presidio.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	handle_path /analyzer/* {
+		reverse_proxy presidio-analyzer:5002 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle_path /anonymizer/* {
+		reverse_proxy presidio-anonymizer:5001 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle_path /image-redactor/* {
+		reverse_proxy presidio-image-redactor:5003 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy presidio-analyzer:5002 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}

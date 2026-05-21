@@ -1,6 +1,5 @@
 # asking-ng — single Caddy layer.
-# `/api/*` is routed at the edge directly to asking-ng-api.
-# Replace asking-ng.example.com with your hostname.
+# WebSocket upgrades (e.g. GET /api/ws/poll/:id) are supported by Caddy reverse_proxy.
 
 (asking_ng_edge_policy) {
 	encode zstd gzip
@@ -13,11 +12,19 @@
 }
 
 (asking_ng_api_proxy) {
-	reverse_proxy asking-ng-api:3001
+	reverse_proxy asking-ng-api:3001 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 (asking_ng_frontend_proxy) {
-	reverse_proxy asking-ng-frontend:80
+	reverse_proxy asking-ng-frontend:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 (asking_ng_site_routes) {

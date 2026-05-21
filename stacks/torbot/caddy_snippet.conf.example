@@ -1,0 +1,8 @@
+torbot.home, torbot.local {
+	tls internal
+	reverse_proxy torbot:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

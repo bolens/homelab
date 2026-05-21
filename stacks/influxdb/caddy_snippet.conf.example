@@ -1,0 +1,37 @@
+# InfluxDB UI/API — split-horizon + public TLS: influxdb.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Prefer Cloudflare Access; exposes database HTTP API.
+
+influxdb.home, influxdb.local {
+	tls internal
+	reverse_proxy influxdb:8086 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://influxdb.example.com {
+	reverse_proxy influxdb:8086 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+influxdb.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy influxdb:8086 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

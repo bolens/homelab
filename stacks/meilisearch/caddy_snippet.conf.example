@@ -1,0 +1,37 @@
+# Meilisearch — split-horizon + public TLS: meilisearch.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Exposes search HTTP API; use Cloudflare Access or restrict if possible.
+
+meilisearch.home, meilisearch.local {
+	tls internal
+	reverse_proxy meilisearch:7700 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://meilisearch.example.com {
+	reverse_proxy meilisearch:7700 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+meilisearch.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy meilisearch:7700 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

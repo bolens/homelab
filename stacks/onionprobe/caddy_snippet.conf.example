@@ -1,0 +1,8 @@
+onionprobe.home, onionprobe.local {
+	tls internal
+	reverse_proxy op-grafana:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

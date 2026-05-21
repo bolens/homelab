@@ -1,0 +1,8 @@
+acquire.home, acquire.local {
+	tls internal
+	reverse_proxy acquire:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

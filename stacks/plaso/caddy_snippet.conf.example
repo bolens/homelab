@@ -1,0 +1,8 @@
+plaso.home, plaso.local {
+	tls internal
+	reverse_proxy plaso:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

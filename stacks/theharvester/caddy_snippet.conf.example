@@ -1,0 +1,8 @@
+theharvester.home, theharvester.local {
+	tls internal
+	reverse_proxy theharvester:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

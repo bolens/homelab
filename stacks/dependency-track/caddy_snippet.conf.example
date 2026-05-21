@@ -1,0 +1,71 @@
+# Dependency-Track — split-horizon + public TLS: dtrack.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# LAN uses dtrack.home / dtrack.local.
+
+dtrack.home, dtrack.local {
+	tls internal
+	handle /api* {
+		reverse_proxy dtrack-apiserver:8080 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy dtrack-frontend:8080 {
+			header_up Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}
+
+http://dtrack.example.com {
+	handle /api* {
+		reverse_proxy dtrack-apiserver:8080 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy dtrack-frontend:8080 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}
+
+dtrack.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	handle /api* {
+		reverse_proxy dtrack-apiserver:8080 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+	handle {
+		reverse_proxy dtrack-frontend:8080 {
+			header_up Host {host}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+			transport http {
+				versions 1.1
+			}
+		}
+	}
+}

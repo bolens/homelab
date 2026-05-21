@@ -1,0 +1,40 @@
+# Grafana — split-horizon + public TLS: grafana.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Set GF_SERVER_ROOT_URL in stack.env to the URL you use (see README).
+
+grafana.home, grafana.local {
+	tls internal
+	reverse_proxy grafana:3000 {
+		header_up Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://grafana.example.com {
+	reverse_proxy grafana:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+grafana.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy grafana:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}

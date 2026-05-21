@@ -1,0 +1,37 @@
+# Grafana Alloy UI — split-horizon + public TLS: alloy.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# LAN labels alloy.home / alloy.local. Prefer Cloudflare Access if exposing config reload / debug.
+
+alloy.home, alloy.local {
+	tls internal
+	reverse_proxy alloy:12345 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://alloy.example.com {
+	reverse_proxy alloy:12345 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+alloy.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy alloy:12345 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

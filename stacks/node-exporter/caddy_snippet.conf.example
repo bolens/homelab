@@ -1,0 +1,8 @@
+node-exporter.home, node-exporter.local {
+	tls internal
+	reverse_proxy node-exporter:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

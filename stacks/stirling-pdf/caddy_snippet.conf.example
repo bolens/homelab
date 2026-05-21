@@ -1,0 +1,37 @@
+# Stirling-PDF — split-horizon + public TLS: pdf.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# LAN uses pdf.home / pdf.local (see site labels).
+
+pdf.home, pdf.local {
+	tls internal
+	reverse_proxy stirling-pdf:8080 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://pdf.example.com {
+	reverse_proxy stirling-pdf:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+pdf.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy stirling-pdf:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

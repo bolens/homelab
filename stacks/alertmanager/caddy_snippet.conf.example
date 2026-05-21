@@ -1,0 +1,37 @@
+# Alertmanager — split-horizon + public TLS: alertmanager.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Prefer Cloudflare Access if exposed.
+
+alertmanager.home, alertmanager.local {
+	tls internal
+	reverse_proxy alertmanager:9093 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://alertmanager.example.com {
+	reverse_proxy alertmanager:9093 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+alertmanager.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy alertmanager:9093 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

@@ -1,0 +1,37 @@
+# AdGuard Home — split-horizon + public TLS: adguard.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Strongly recommend Cloudflare Access; exposes DNS/dashboard.
+
+adguard-home.home, adguard-home.local {
+	tls internal
+	reverse_proxy adguard-home:80 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://adguard.example.com {
+	reverse_proxy adguard-home:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+adguard.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy adguard-home:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

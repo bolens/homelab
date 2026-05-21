@@ -1,0 +1,47 @@
+# Dozzle — split-horizon + public TLS: dozzle.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Long-lived log streams: flush_interval + transport timeouts. If the UI is blank after Cloudflare Access,
+# check Cloudflare → Speed: disable Rocket Loader for this hostname; ensure WebSockets are allowed.
+
+dozzle.home, dozzle.local {
+	tls internal
+	reverse_proxy dozzle:8080 {
+		header_up Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}
+
+http://dozzle.example.com {
+	reverse_proxy dozzle:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}
+
+dozzle.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy dozzle:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}

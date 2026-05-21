@@ -1,0 +1,37 @@
+# Prometheus — split-horizon + public TLS: prometheus.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Prefer Cloudflare Access if exposed (documents/ACCESS-SSO.md).
+
+prometheus.home, prometheus.local {
+	tls internal
+	reverse_proxy prometheus:9090 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://prometheus.example.com {
+	reverse_proxy prometheus:9090 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+prometheus.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy prometheus:9090 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

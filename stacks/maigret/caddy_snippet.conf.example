@@ -1,0 +1,8 @@
+maigret.home, maigret.local {
+	tls internal
+	reverse_proxy maigret:5000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

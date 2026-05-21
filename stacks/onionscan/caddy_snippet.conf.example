@@ -1,0 +1,8 @@
+onionscan.home, onionscan.local {
+	tls internal
+	reverse_proxy onionscan:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

@@ -1,0 +1,89 @@
+# Cal.com — reverse_proxy to container `calcom:3000` on Docker network `monitor`.
+# booking.home / .local: LAN TLS internal; booking.example.com: public + ACME DNS-01 (Cloudflare token in Caddy env).
+#
+# Next.js marks /_next/static chunks immutable (1y). If you ever changed NEXT_PUBLIC_* / hostname, browsers can
+# keep old JS while the container’s .next already says booking — onboarding then shows the wrong prefix until
+# cache is bypassed. These headers force revalidation (see README).
+
+# Legacy hostname redirect (prevents old bookmarks/cached URLs from showing stale domain).
+http://calcom.example.com {
+	redir https://booking.example.com{uri} 308
+}
+
+calcom.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	redir https://booking.example.com{uri} 308
+}
+
+booking.home, booking.local {
+	tls internal
+	reverse_proxy calcom:3000 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+	@cal_next_static path /_next/static/*
+	header @cal_next_static {
+		defer
+		-Cache-Control
+		Cache-Control "public, max-age=0, must-revalidate"
+	}
+	@cal_auth path /auth*
+	header @cal_auth {
+		defer
+		-Cache-Control
+		Cache-Control "no-store, no-cache, must-revalidate"
+	}
+}
+
+http://booking.example.com {
+	reverse_proxy calcom:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+	@cal_next_static path /_next/static/*
+	header @cal_next_static {
+		defer
+		-Cache-Control
+		Cache-Control "public, max-age=0, must-revalidate"
+	}
+	@cal_auth path /auth*
+	header @cal_auth {
+		defer
+		-Cache-Control
+		Cache-Control "no-store, no-cache, must-revalidate"
+	}
+}
+
+booking.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy calcom:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+	@cal_next_static path /_next/static/*
+	header @cal_next_static {
+		defer
+		-Cache-Control
+		Cache-Control "public, max-age=0, must-revalidate"
+	}
+	@cal_auth path /auth*
+	header @cal_auth {
+		defer
+		-Cache-Control
+		Cache-Control "no-store, no-cache, must-revalidate"
+	}
+}

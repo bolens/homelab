@@ -1,0 +1,40 @@
+# cAdvisor — split-horizon + public TLS: cadvisor.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Often paired with Cloudflare Access (see documents/ACCESS-SSO.md).
+
+cadvisor.home, cadvisor.local {
+	tls internal
+	reverse_proxy cadvisor:8080 {
+		header_up Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://cadvisor.example.com {
+	reverse_proxy cadvisor:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+cadvisor.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy cadvisor:8080 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		flush_interval -1
+		transport http {
+			versions 1.1
+		}
+	}
+}

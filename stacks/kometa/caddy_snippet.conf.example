@@ -1,0 +1,17 @@
+# Kometa — official image has no HTTP UI (scheduler only). Same notice on LAN and public hostnames.
+
+kometa.home, kometa.local {
+	tls internal
+	respond "Kometa (official image) has no HTTP UI — scheduler only. Use: docker logs kometa." 503
+}
+
+http://kometa.example.com {
+	respond "Kometa (official image) has no HTTP UI — scheduler only. Use: docker logs kometa." 503
+}
+
+kometa.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	respond "Kometa (official image) has no HTTP UI — scheduler only. Use: docker logs kometa." 503
+}

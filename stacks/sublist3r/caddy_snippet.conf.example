@@ -1,0 +1,8 @@
+sublist3r.home, sublist3r.local {
+	tls internal
+	reverse_proxy sublist3r:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

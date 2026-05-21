@@ -1,0 +1,5 @@
+# SMTP relay has no HTTP server; Caddy serves a short message for this host.
+postfix.home, postfix.local {
+	tls internal
+	respond "Postfix SMTP relay (stacks/postfix). Use smtp-relay:587 from Docker; no HTTP here." 200
+}

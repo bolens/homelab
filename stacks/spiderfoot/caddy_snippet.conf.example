@@ -1,0 +1,8 @@
+spiderfoot.home, spiderfoot.local {
+	tls internal
+	reverse_proxy spiderfoot:5001 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

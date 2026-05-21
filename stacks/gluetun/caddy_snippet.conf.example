@@ -1,0 +1,8 @@
+gluetun.home, gluetun.local {
+	tls internal
+	reverse_proxy gluetun:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

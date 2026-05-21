@@ -1,0 +1,8 @@
+reconftw.home, reconftw.local {
+	tls internal
+	reverse_proxy reconftw:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
