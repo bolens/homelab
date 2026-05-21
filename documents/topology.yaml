@@ -95,7 +95,6 @@ app_categories:
     descriptor: "ROMs, Steam, in-browser emulation"
     stacks:
       - archisteamfarm
-      - asf
       - romm
       - twitch-drops-miner
     description: "Steam automation (ArchiSteamFarm), ROM manager and in-browser emulation (RomM), Twitch drops mining"
