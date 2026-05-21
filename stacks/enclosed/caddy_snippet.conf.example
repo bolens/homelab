@@ -1,0 +1,10 @@
+# Split-horizon: use *.home / *.local below. Add public internet names in your main Caddyfile if needed (see documents/SHARED-RESOURCES.md).
+
+enclosed.home, enclosed.local {
+	tls internal
+	reverse_proxy enclosed:8787 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

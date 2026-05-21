@@ -1,0 +1,28 @@
+# NetBird combined server + dashboard (gRPC h2c, WebSockets, OAuth2).
+# Docs: https://docs.netbird.io/selfhosted/external-reverse-proxy#caddy-combined
+# Split-horizon: use *.home / *.local below. Add public internet names in your main Caddyfile if needed (see documents/SHARED-RESOURCES.md).
+
+netbird.home, netbird.local {
+	tls internal
+	@grpc header Content-Type application/grpc*
+	reverse_proxy @grpc h2c://netbird-server:80 {
+		transport http {
+			versions 1.1
+			read_timeout 24h
+			write_timeout 24h
+		}
+	}
+	@backend path /relay* /ws-proxy/* /api/* /oauth2/*
+	reverse_proxy @backend netbird-server:80 {
+		transport http {
+			versions 1.1
+			read_timeout 24h
+			write_timeout 24h
+		}
+	}
+	reverse_proxy /* netbird-dashboard:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

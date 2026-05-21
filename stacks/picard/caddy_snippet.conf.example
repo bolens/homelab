@@ -1,0 +1,27 @@
+picard.home, picard.local {
+	tls internal
+	reverse_proxy picard:5800 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://picard.example.com {
+	reverse_proxy picard:5800 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+picard.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy picard:5800 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

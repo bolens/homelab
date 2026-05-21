@@ -1,0 +1,8 @@
+seerr.home, seerr.local {
+	tls internal
+	reverse_proxy seerr:5055 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

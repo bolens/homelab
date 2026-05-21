@@ -1,0 +1,38 @@
+# TwitchDropsMiner — replace twitchdrops.example.com with your public hostname (DNS-01; CLOUDFLARE_API_TOKEN in Caddy env).
+
+twitchdropsminer.home, twitchdropsminer.local {
+	tls internal
+	reverse_proxy twitch-drops-miner:8080 {
+		flush_interval -1
+		transport http {
+			versions 1.1
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}
+
+http://twitchdrops.example.com {
+	reverse_proxy twitch-drops-miner:8080 {
+		flush_interval -1
+		transport http {
+			versions 1.1
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}
+
+twitchdrops.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy twitch-drops-miner:8080 {
+		flush_interval -1
+		transport http {
+			versions 1.1
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+}

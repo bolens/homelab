@@ -1,0 +1,10 @@
+# Split-horizon: use *.home / *.local below. Add public internet names in your main Caddyfile if needed (see documents/SHARED-RESOURCES.md).
+
+umami.home, umami.local {
+	tls internal
+	reverse_proxy umami:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

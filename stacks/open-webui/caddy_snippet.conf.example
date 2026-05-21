@@ -1,0 +1,29 @@
+# Open WebUI — LAN + typical public chat hostnames (replace example.com).
+
+open-webui.home, open-webui.local {
+	tls internal
+	reverse_proxy open-webui:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://open-webui.example.com, http://chat.example.com {
+	reverse_proxy open-webui:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+open-webui.example.com, chat.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy open-webui:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

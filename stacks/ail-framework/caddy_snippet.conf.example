@@ -1,0 +1,22 @@
+# AIL UI (port 7000, HTTPS with self-signed cert)
+ail.home, ail.local {
+	tls internal
+	reverse_proxy https://ail:7000 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+		# Flask builds ?next= from request.url; default upstream Host is "ail:7000", which breaks login redirects.
+		header_up Host {host}
+	}
+}
+
+# Optional: Lacus crawler UI (only when using an image that includes Lacus, e.g. ail-framework:6.6-lacus-tor). Port 7100 is HTTP.
+# lacus.home, lacus.local {
+# 	tls internal
+# 	reverse_proxy http://ail:7100
+# }
+# lacus.example.com {
+# 	tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }
+# 	reverse_proxy http://ail:7100
+# }
+# Tor SOCKS (port 9050) is inside the container; other services on the monitor network can use socks5://ail:9050. No Caddy block needed.

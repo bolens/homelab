@@ -1,0 +1,12 @@
+# Kokoro TTS — default: LAN / split-horizon (*.home / *.local) only.
+# Add a separate public `site { ... }` in Caddy only if you intentionally want TTS on the Internet
+# (then prefer Access, IP allowlist, or upstream HTTP auth).
+
+kokoro-tts.home, kokoro-tts.local {
+	tls internal
+	reverse_proxy kokoro-tts:8880 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

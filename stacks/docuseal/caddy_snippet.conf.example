@@ -1,0 +1,28 @@
+# DocuSeal — *.home / *.local (internal TLS). Public: docuseal.example.com (DNS-01; CLOUDFLARE_API_TOKEN in Caddy env).
+docuseal.home, docuseal.local {
+	tls internal
+	reverse_proxy docuseal:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://docuseal.example.com {
+	reverse_proxy docuseal:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+docuseal.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy docuseal:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

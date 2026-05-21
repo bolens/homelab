@@ -1,0 +1,8 @@
+cups.home, cups.local {
+	tls internal
+	reverse_proxy cups:631 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

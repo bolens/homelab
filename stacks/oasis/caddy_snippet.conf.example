@@ -1,0 +1,8 @@
+oasis.home, oasis.local {
+	tls internal
+	reverse_proxy oasis:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

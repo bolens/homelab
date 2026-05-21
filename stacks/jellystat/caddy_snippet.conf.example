@@ -1,0 +1,8 @@
+jellystat.home, jellystat.local {
+	tls internal
+	reverse_proxy jellystat:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

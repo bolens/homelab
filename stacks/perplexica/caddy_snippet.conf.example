@@ -1,0 +1,29 @@
+# Perplexica — LAN + typical public UI hostname (replace example.com).
+
+perplexica.home, perplexica.local {
+	tls internal
+	reverse_proxy perplexica:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://perplexica.example.com {
+	reverse_proxy perplexica:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+perplexica.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy perplexica:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

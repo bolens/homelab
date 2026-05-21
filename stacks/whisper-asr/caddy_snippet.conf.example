@@ -1,0 +1,11 @@
+# Whisper STT — default: LAN / split-horizon (*.home / *.local) only.
+# Optional: add public hostname blocks only if you accept exposure and add edge protections.
+
+whisper-asr.home, whisper-asr.local {
+	tls internal
+	reverse_proxy whisper-asr:9000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

@@ -1,0 +1,37 @@
+# PostHog — split-horizon + public TLS: posthog.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Reverse-proxy to PostHog's bundled Caddy (service name: proxy). Copy to caddy_snippet.conf if your workflow uses a template step.
+
+posthog.home, posthog.local {
+	tls internal
+	reverse_proxy proxy:80 {
+		header_up Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://posthog.example.com {
+	reverse_proxy proxy:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+posthog.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy proxy:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+		header_up X-Forwarded-Host {host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

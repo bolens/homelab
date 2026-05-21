@@ -1,0 +1,11 @@
+# Split-horizon: use *.home / *.local below. Add public internet names in your main Caddyfile if needed (see documents/SHARED-RESOURCES.md).
+# HANAMI_PORT in stack.env must match the port used here (default 2300).
+
+terminus.home, terminus.local {
+	tls internal
+	reverse_proxy terminus-web:2300 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

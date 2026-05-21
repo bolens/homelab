@@ -1,0 +1,8 @@
+zap.home, zap.local {
+	tls internal
+	reverse_proxy zap:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

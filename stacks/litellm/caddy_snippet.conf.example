@@ -1,0 +1,136 @@
+# LiteLLM — same path layout as example.com: /api = API, / = UI (see stack caddy_snippet.conf comments).
+
+(litellm_stack_routes) {
+	route {
+		handle /api/* {
+			uri strip_prefix /api
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		handle /api {
+			uri strip_prefix /api
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		handle /litellm-asset-prefix/* {
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		@litellm_prefix expression `{http.request.uri.path} == "/litellm" || {http.request.uri.path}.startsWith("/litellm/")`
+		handle @litellm_prefix {
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		handle /.well-known/litellm-ui-config {
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		@litellm_ui_login_post {
+			method POST
+			path_regexp ui_login ^/ui(?:/v[0-9]+)?/login.*
+		}
+		handle @litellm_ui_login_post {
+			uri strip_prefix /ui
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		handle /ui/*/*/favicon.ico {
+			rewrite * /ui/favicon.ico
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		handle /ui/*/favicon.ico {
+			rewrite * /ui/favicon.ico
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		handle /ui/* {
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		@litellm_upstream_root expression `{http.request.uri.path}.startsWith("/v2/") || {http.request.uri.path} == "/v2" || {http.request.uri.path}.startsWith("/get_image") || {http.request.uri.path}.startsWith("/get/") || {http.request.uri.path} == "/get" || {http.request.uri.path}.startsWith("/organization/") || {http.request.uri.path} == "/organization" || {http.request.uri.path}.startsWith("/project/") || {http.request.uri.path} == "/project" || {http.request.uri.path}.startsWith("/sso/") || {http.request.uri.path} == "/sso" || {http.request.uri.path}.startsWith("/policy/") || {http.request.uri.path} == "/policy" || {http.request.uri.path}.startsWith("/policies/") || {http.request.uri.path} == "/policies" || {http.request.uri.path}.startsWith("/prompts/") || {http.request.uri.path} == "/prompts" || {http.request.uri.path}.startsWith("/guardrails/") || {http.request.uri.path} == "/guardrails" || {http.request.uri.path}.startsWith("/callbacks/") || {http.request.uri.path} == "/callbacks" || {http.request.uri.path}.startsWith("/config/") || {http.request.uri.path} == "/config" || {http.request.uri.path}.startsWith("/config_overrides/") || {http.request.uri.path} == "/config_overrides" || {http.request.uri.path}.startsWith("/credential/") || {http.request.uri.path} == "/credential" || {http.request.uri.path}.startsWith("/credentials/") || {http.request.uri.path} == "/credentials" || {http.request.uri.path}.startsWith("/customer/") || {http.request.uri.path} == "/customer" || {http.request.uri.path}.startsWith("/end_user/") || {http.request.uri.path} == "/end_user" || {http.request.uri.path}.startsWith("/end_users/") || {http.request.uri.path} == "/end_users" || {http.request.uri.path}.startsWith("/budget/") || {http.request.uri.path} == "/budget" || {http.request.uri.path}.startsWith("/cache/") || {http.request.uri.path} == "/cache" || {http.request.uri.path}.startsWith("/global/") || {http.request.uri.path} == "/global" || {http.request.uri.path}.startsWith("/router/") || {http.request.uri.path} == "/router" || {http.request.uri.path}.startsWith("/cloudzero/") || {http.request.uri.path} == "/cloudzero" || {http.request.uri.path}.startsWith("/alerting/") || {http.request.uri.path} == "/alerting" || {http.request.uri.path}.startsWith("/email/") || {http.request.uri.path} == "/email" || {http.request.uri.path}.startsWith("/claude-code/") || {http.request.uri.path} == "/claude-code" || {http.request.uri.path}.startsWith("/schedule/") || {http.request.uri.path} == "/schedule" || {http.request.uri.path}.startsWith("/search_tools/") || {http.request.uri.path} == "/search_tools" || {http.request.uri.path}.startsWith("/tag/") || {http.request.uri.path} == "/tag" || {http.request.uri.path}.startsWith("/vector_store/") || {http.request.uri.path} == "/vector_store" || {http.request.uri.path} == "/in_product_nudges" || {http.request.uri.path} == "/callback" || {http.request.uri.path}.startsWith("/callback/")`
+		handle @litellm_upstream_root {
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		# Omit /login* from legacy → /api (would break auth). Omit /callback* — it matches /callbacks (admin). POST /ui/login is rewritten to upstream /login above.
+		@litellm_legacy_api path /v1* /openapi.json /docs* /swagger* /redoc* /scalar* /health* /key* /spend* /team* /user* /session* /public* /models /models/* /model* /batch* /responses* /realtime*
+		handle @litellm_legacy_api {
+			redir * /api{uri} 308
+		}
+		@litellm_root expression `{http.request.uri.path} == "/"`
+		handle @litellm_root {
+			rewrite * /ui/
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		@litellm_root_login_post {
+			method POST
+			path /login /login/ /login/*
+		}
+		handle @litellm_root_login_post {
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+		handle {
+			rewrite * /ui{http.request.uri.path}
+			reverse_proxy litellm:4000 {
+				transport http {
+					versions 1.1
+				}
+			}
+		}
+	}
+}
+
+litellm.home, litellm.local {
+	tls internal
+	import litellm_stack_routes
+}
+
+http://litellm.example.com {
+	import litellm_stack_routes
+}
+
+litellm.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	import litellm_stack_routes
+}

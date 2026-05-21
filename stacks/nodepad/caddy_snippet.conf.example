@@ -1,0 +1,11 @@
+# nodepad – spatial notes / research canvas (Next.js on :3000)
+# Split-horizon: use *.home / *.local below. Add public internet names in your main Caddyfile if needed (see documents/SHARED-RESOURCES.md).
+
+nodepad.home, nodepad.local {
+	tls internal
+	reverse_proxy nodepad:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

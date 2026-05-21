@@ -1,0 +1,6 @@
+# NUT server is a TCP service (port 3493), not HTTP.
+# This vhost is a small landing page for browsers on .home/.local.
+nut-server.home, nut-server.local {
+	tls internal
+	respond "NUT server (upsd) is running on TCP 3493 via stack nut-server." 200
+}

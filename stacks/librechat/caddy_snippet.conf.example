@@ -1,0 +1,27 @@
+librechat.home, librechat.local {
+	tls internal
+	reverse_proxy librechat:3080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://librechat.example.com {
+	reverse_proxy librechat:3080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+librechat.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy librechat:3080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

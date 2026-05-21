@@ -1,0 +1,8 @@
+glance.home, glance.local {
+	tls internal
+	reverse_proxy glance:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

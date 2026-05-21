@@ -1,0 +1,10 @@
+# Split-horizon: use *.home / *.local below. Add public internet names in your main Caddyfile if needed (see documents/SHARED-RESOURCES.md).
+
+super-productivity.home, super-productivity.local {
+	tls internal
+	reverse_proxy super-productivity:80 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

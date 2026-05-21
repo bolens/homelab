@@ -1,0 +1,9 @@
+paperless-ai.home, paperless-ai.local {
+  tls internal
+  reverse_proxy paperless-ai-next:3000 {
+  	transport http {
+  		versions 1.1
+  	}
+  }
+  encode gzip
+}

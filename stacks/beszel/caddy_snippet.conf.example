@@ -1,0 +1,10 @@
+# Split-horizon: use *.home / *.local below. Add public internet names in your main Caddyfile if needed (see documents/SHARED-RESOURCES.md).
+
+beszel.home, beszel.local {
+	tls internal
+	reverse_proxy beszel:8090 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

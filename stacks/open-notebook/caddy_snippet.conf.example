@@ -1,0 +1,31 @@
+# Open Notebook — LAN (*.home / *.local) + public hostname (TLS on Caddy).
+# Optional: add http:// / https:// blocks for a public hostname if you need remote access,
+# and set API_URL in stack.env to that URL.
+
+open-notebook.home, open-notebook.local {
+	tls internal
+	reverse_proxy open-notebook:8502 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://notebook.example.com {
+	reverse_proxy open-notebook:8502 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+notebook.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy open-notebook:8502 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

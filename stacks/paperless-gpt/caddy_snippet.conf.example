@@ -1,0 +1,9 @@
+paperless-gpt.home, paperless-gpt.local {
+  tls internal
+  reverse_proxy paperless-gpt:8080 {
+  	transport http {
+  		versions 1.1
+  	}
+  }
+  encode gzip
+}

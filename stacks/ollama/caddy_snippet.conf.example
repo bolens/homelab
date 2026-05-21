@@ -1,0 +1,29 @@
+# Optional: HTTPS front for Ollama when you do not want to expose :11434 on the host.
+# Default stack publishes OLLAMA_HOST_PORT on the Docker host for LAN tools and host.docker.internal.
+ollama.home, ollama.local {
+	tls internal
+	reverse_proxy ollama:11434 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://ollama.example.com {
+	reverse_proxy ollama:11434 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+ollama.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy ollama:11434 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

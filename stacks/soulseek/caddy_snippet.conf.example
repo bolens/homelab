@@ -1,0 +1,27 @@
+soulseek.home, soulseek.local {
+	tls internal
+	reverse_proxy soulseek:5030 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://soulseek.example.com {
+	reverse_proxy soulseek:5030 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+soulseek.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy soulseek:5030 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

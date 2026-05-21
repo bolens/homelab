@@ -1,0 +1,8 @@
+ddns-updater.home, ddns-updater.local {
+	tls internal
+	reverse_proxy ddns-updater:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

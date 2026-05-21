@@ -1,0 +1,8 @@
+flaresolverr.home, flaresolverr.local {
+	tls internal
+	reverse_proxy flaresolverr:8191 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

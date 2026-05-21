@@ -1,0 +1,30 @@
+searx-ng.home, searx-ng.local {
+	tls internal
+	reverse_proxy searxng:8080 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://search.example.com {
+	reverse_proxy searxng:8080 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+search.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy searxng:8080 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			versions 1.1
+		}
+	}
+}

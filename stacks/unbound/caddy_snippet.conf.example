@@ -1,0 +1,7 @@
+# Unbound does not expose a web UI by default.
+# If you add a web admin interface, proxy it here.
+# Example (if enabled on port 8080):
+# unbound.home, unbound.local {
+#   tls internal
+#   reverse_proxy unbound:8080
+# }

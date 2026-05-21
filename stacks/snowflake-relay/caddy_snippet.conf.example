@@ -1,0 +1,11 @@
+
+# Caddy UDP proxy for Snowflake Relay
+{
+	# This assumes Caddy is running with the caddy-l4 plugin for UDP proxy support
+	# See: https://caddyserver.com/docs/caddyfile/directives/handle_udp
+}
+
+# Example UDP proxy for port 3478
+handle_udp :3478 {
+	proxy / snowflake-relay:3478
+}

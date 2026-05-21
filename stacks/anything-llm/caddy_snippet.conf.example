@@ -1,0 +1,30 @@
+# AnythingLLM — LAN + optional public hostnames (replace example.com).
+# Recommended: protect the public names with Cloudflare Access (or similar) at the edge.
+
+anything-llm.home, anything-llm.local {
+	tls internal
+	reverse_proxy anything-llm:3001 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+http://anything-llm.example.com {
+	reverse_proxy anything-llm:3001 {
+		transport http {
+			versions 1.1
+		}
+	}
+}
+
+anything-llm.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy anything-llm:3001 {
+		transport http {
+			versions 1.1
+		}
+	}
+}

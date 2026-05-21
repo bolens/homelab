@@ -1,0 +1,8 @@
+pihole.home, pihole.local {
+    tls internal
+    reverse_proxy pihole:80 {
+    	transport http {
+    		versions 1.1
+    	}
+    }
+}
