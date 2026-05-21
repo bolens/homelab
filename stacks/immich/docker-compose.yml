@@ -22,7 +22,7 @@ services:
       - library:/data
       - /etc/localtime:/etc/localtime:ro
     ports:
-      - "2283:2283"
+      - "127.0.0.1:2283:2283"
     depends_on:
       - redis
       - database

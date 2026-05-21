@@ -1,38 +1,40 @@
-# Portainer-friendly: no host bind mounts (except Docker socket), env defaults, external monitor network.
-# Deploy as stack in Portainer or via `docker compose up -d`. Set DOZZLE_HOST_PORT / TZ in stack env if needed.
-# Dozzle v10+ auth: uncomment dozzle_config volume and add users.yaml into that volume (e.g. via Portainer volume browser).
+# Portainer-friendly: Docker socket + optional host config dir for simple auth. External `monitor` network.
+# Config dir (users.yaml): default ~/.config/dozzle — override with DOZZLE_CONFIG_DIR in stack.env (see stack.env.example).
+# Simple auth: set DOZZLE_AUTH_PROVIDER=simple in stack.env and add a valid users.yaml (see README). Do not set simple without users.yaml.
+# Note: stack.env is NOT passed as env_file into the container — only shared.env is. See comment below for why.
 services:
   dozzle:
     image: amir20/dozzle:latest
     container_name: dozzle
     restart: unless-stopped
     stop_grace_period: 30s   # Dozzle needs time to close log streams; default 10s can cause "failed to shut down"
-    ports:
-      - "${DOZZLE_HOST_PORT:-8082}:8080"
+    # No host port: access via Caddy only
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - dozzle_config:/data   # required for auth: put users.yaml in this volume and set DOZZLE_AUTH_PROVIDER=simple
+      - ${DOZZLE_CONFIG_DIR:-${HOME}/.config/dozzle}:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - monitor
+    env_file:
+      - path: ../../shared.env
+        required: false
+    # stack.env is copied to .env by ./prepare-stack.sh for ${DOZZLE_*} / port interpolation only — do not env_file
+    # stack.env into the container or Dozzle logs "Unexpected environment variable" for compose-only keys.
     environment:
       - TZ=${TZ:-America/Denver}
       - LANG=${LANG:-en_US.UTF-8}
       - LC_ALL=${LC_ALL:-en_US.UTF-8}
       - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
-      - DOZZLE_AUTH_PROVIDER=${DOZZLE_AUTH_PROVIDER:-simple}
+      - DOZZLE_AUTH_PROVIDER=${DOZZLE_AUTH_PROVIDER:-}
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      test: ["CMD", "/dozzle", "healthcheck"]
       interval: 30s
-      timeout: 10s
+      timeout: 30s
       retries: 3
-      start_period: 10s
+      start_period: 20s
 
 networks:
   monitor:
     name: monitor
     external: true
-
-volumes:
-  dozzle_config: {}   # used only if you uncomment dozzle_config mount above for auth

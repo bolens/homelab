@@ -1,0 +1,33 @@
+# LinuxServer code-server — config and extensions live in the named volume `/config` (no host bind mount required).
+# All runtime settings come from `stack.env` (and optional `../../shared.env`). Run `./prepare-stack.sh` then `docker compose up -d`.
+services:
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: code-server
+    restart: unless-stopped
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - path: stack.env
+        required: false
+    volumes:
+      - code_server_config:/config
+    # No host port: access via Caddy only
+    networks:
+      - monitor
+    labels:
+      - logging=true
+      - logging_sampling=true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  code_server_config: {}

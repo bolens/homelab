@@ -15,7 +15,7 @@ Self-hosted photo and video backup: upload from phones and the web, face detecti
    - Generate and set `DB_PASSWORD` (see **Generating keys and secrets** below).
    - Set `TZ` to your timezone if different from America/Denver.
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
-3. **First run:** Open Immich via Caddy (or http://host:2283), create the admin user, then configure OAuth and other options in **Administration → Settings**.
+3. **First run:** Open Immich via Caddy (or http://localhost:2283 from the host), create the admin user, then configure OAuth and other options in **Administration → Settings**.
 
 ## Generating keys and secrets
 
@@ -33,7 +33,7 @@ The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it
 
 | Item | Details |
 |------|---------|
-| **Port** | 2283 (proxied via Caddy; host port exposed for direct access if needed) |
+| **Port** | 2283 (proxied via Caddy; also bound to 127.0.0.1:2283 for localhost-only direct access) |
 | **Network** | `monitor` (external) — Caddy can reverse-proxy to `immich-server:2283` |
 | **Images** | immich-server, immich-machine-learning, Valkey (Redis), Postgres with vector extension |
 | **Env** | `DB_PASSWORD` required; `TZ`, `IMMICH_VERSION`, optional `IMMICH_CONFIG_FILE` (see `stack.env.example`) |
