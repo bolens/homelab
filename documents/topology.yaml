@@ -27,19 +27,21 @@ app_categories:
     name: "Media acquisition & *arr"
     descriptor: "torrents, *arr, Usenet"
     stacks:
-      - qbittorrent
-      - rtorrent-flood
-      - nzbget
-      - nzbhydra2
-      - prowlarr
-      - sonarr
-      - radarr
-      - lidarr
-      - readarr
       - bazarr
+      - explo
+      - lidarr
       - metube
       - mylar3
-    description: "download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, MeTube, Mylar3)"
+      - nzbget
+      - nzbhydra2
+      - qbittorrent
+      - prowlarr
+      - radarr
+      - readarr
+      - rtorrent-flood
+      - sonarr
+      - soulseek
+    description: "download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, Explo, MeTube, Mylar3, Soulseek)"
 
   - id: apps_ai
     name: "AI & LLM"
@@ -129,12 +131,13 @@ app_categories:
       - nextcloud
       - outline
       - paperless-ngx
+      - picard
       - plex
       - seafile
       - slink
       - syncthing
       - vikunja
-    description: "consumption and personal content (photos, docs, music, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting)"
+    description: "consumption and personal content (photos, docs, music, tagging/organization, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting)"
 
   - id: apps_osint
     name: "OSINT & recon"
@@ -211,7 +214,7 @@ app_categories:
     descriptor: "n8n, Node-RED"
     stacks:
       - n8n
-      - nodered
+      - node-red
     description: "n8n, Node-RED"
 
 # Infrastructure & monitoring. Order is alphabetical by id.
