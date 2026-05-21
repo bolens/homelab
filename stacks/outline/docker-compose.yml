@@ -3,16 +3,16 @@ services:
     image: postgres:16-alpine
     container_name: outline-postgres
     restart: unless-stopped
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB:-outline}
-      - POSTGRES_USER=${POSTGRES_USER:-outline}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
     volumes:
       - outline_pg_data:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-outline} -d ${POSTGRES_DB:-outline}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 10s
       retries: 10
@@ -23,6 +23,12 @@ services:
     restart: unless-stopped
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   outline:
     image: outlinewiki/outline:latest
@@ -32,21 +38,11 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     env_file:
+      - path: ../../shared.env
+        required: false
       - stack.env
-    environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-outline}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-outline}
-      - REDIS_URL=redis://redis:6379
-      - URL=${URL}
-      - SECRET_KEY=${SECRET_KEY}
-      - UTILS_SECRET=${UTILS_SECRET}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
-      - AWS_S3_UPLOAD_BUCKET_URL=${AWS_S3_UPLOAD_BUCKET_URL}
-      - AWS_S3_UPLOAD_BUCKET_NAME=${AWS_S3_UPLOAD_BUCKET_NAME}
-      - TZ=${TZ:-America/Denver}
     volumes:
       - outline_data:/var/lib/outline
     networks:

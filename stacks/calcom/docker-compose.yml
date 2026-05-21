@@ -1,0 +1,74 @@
+services:
+  calcom-db:
+    image: postgres:16-alpine
+    container_name: calcom-db
+    restart: unless-stopped
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - calcom_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  calcom-redis:
+    image: redis:7-alpine
+    container_name: calcom-redis
+    restart: unless-stopped
+    volumes:
+      - calcom_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  calcom:
+    image: calcom/cal.com:latest
+    container_name: calcom
+    restart: unless-stopped
+    depends_on:
+      calcom-db:
+        condition: service_healthy
+      calcom-redis:
+        condition: service_healthy
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    entrypoint: ["docker-entrypoint.sh"]
+    command: ["/bin/sh", "/calcom/scripts/homelab-entrypoint.sh"]
+    volumes:
+      - ./homelab-entrypoint.sh:/calcom/scripts/homelab-entrypoint.sh
+    networks:
+      - default
+      - monitor
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  calcom_pg_data:
+    name: calcom_calcom_pg_data
+    external: true
+  calcom_redis_data:
+    name: calcom_calcom_redis_data
+    external: true

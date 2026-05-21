@@ -17,7 +17,7 @@ services:
     container_name: stoat-database
     restart: unless-stopped
     volumes:
-      - ./data/db:/data/db
+      - stoat_db_data:/data/db
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 10s
@@ -32,6 +32,12 @@ services:
     image: docker.io/eqalpha/keydb
     container_name: stoat-redis
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - stoat
 
@@ -44,7 +50,7 @@ services:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER:-rabbituser}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS:-rabbitpass}
     volumes:
-      - ./data/rabbit:/var/lib/rabbitmq
+      - stoat_rabbit_data:/var/lib/rabbitmq
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       interval: 10s
@@ -60,8 +66,14 @@ services:
     container_name: stoat-minio
     restart: unless-stopped
     command: server /data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     volumes:
-      - ./data/minio:/data
+      - stoat_minio_data:/data
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioautumn}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioautumn}
@@ -84,12 +96,18 @@ services:
     image: docker.io/caddy
     container_name: stoat-caddy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:2019/config/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     env_file:
-      - .env.web
+      - /home/youruser/.config/stoat/.env.web
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./data/caddy-data:/data
-      - ./data/caddy-config:/config
+      - /home/youruser/.config/stoat/Caddyfile:/etc/caddy/Caddyfile:ro
+      - stoat_caddy_data:/data
+      - stoat_caddy_config:/config
     networks:
       - stoat
       - monitor
@@ -99,16 +117,18 @@ services:
     image: ghcr.io/stoatchat/api:v0.11.1
     container_name: stoat-api
     restart: unless-stopped
+    healthcheck:
+      disable: true
     depends_on:
       database:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbit:
         condition: service_healthy
     volumes:
       - type: bind
-        source: ./Revolt.toml
+        source: /home/youruser/.config/stoat/Revolt.toml
         target: /Revolt.toml
     networks:
       - stoat
@@ -118,14 +138,16 @@ services:
     image: ghcr.io/stoatchat/events:v0.11.1
     container_name: stoat-events
     restart: unless-stopped
+    healthcheck:
+      disable: true
     depends_on:
       database:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - type: bind
-        source: ./Revolt.toml
+        source: /home/youruser/.config/stoat/Revolt.toml
         target: /Revolt.toml
     networks:
       - stoat
@@ -135,6 +157,8 @@ services:
     image: ghcr.io/stoatchat/file-server:v0.11.1
     container_name: stoat-autumn
     restart: unless-stopped
+    healthcheck:
+      disable: true
     depends_on:
       database:
         condition: service_healthy
@@ -142,7 +166,7 @@ services:
         condition: service_started
     volumes:
       - type: bind
-        source: ./Revolt.toml
+        source: /home/youruser/.config/stoat/Revolt.toml
         target: /Revolt.toml
     networks:
       - stoat
@@ -152,9 +176,11 @@ services:
     image: ghcr.io/stoatchat/proxy:v0.11.1
     container_name: stoat-january
     restart: unless-stopped
+    healthcheck:
+      disable: true
     volumes:
       - type: bind
-        source: ./Revolt.toml
+        source: /home/youruser/.config/stoat/Revolt.toml
         target: /Revolt.toml
     networks:
       - stoat
@@ -164,9 +190,11 @@ services:
     image: ghcr.io/stoatchat/gifbox:v0.11.1
     container_name: stoat-gifbox
     restart: unless-stopped
+    healthcheck:
+      disable: true
     volumes:
       - type: bind
-        source: ./Revolt.toml
+        source: /home/youruser/.config/stoat/Revolt.toml
         target: /Revolt.toml
     networks:
       - stoat
@@ -176,6 +204,8 @@ services:
     image: ghcr.io/stoatchat/crond:v0.11.1
     container_name: stoat-crond
     restart: unless-stopped
+    healthcheck:
+      disable: true
     depends_on:
       database:
         condition: service_healthy
@@ -183,7 +213,7 @@ services:
         condition: service_started
     volumes:
       - type: bind
-        source: ./Revolt.toml
+        source: /home/youruser/.config/stoat/Revolt.toml
         target: /Revolt.toml
     networks:
       - stoat
@@ -193,16 +223,18 @@ services:
     image: ghcr.io/stoatchat/pushd:v0.11.1
     container_name: stoat-pushd
     restart: unless-stopped
+    healthcheck:
+      disable: true
     depends_on:
       database:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbit:
         condition: service_healthy
     volumes:
       - type: bind
-        source: ./Revolt.toml
+        source: /home/youruser/.config/stoat/Revolt.toml
         target: /Revolt.toml
     networks:
       - stoat
@@ -212,6 +244,8 @@ services:
     image: ghcr.io/stoatchat/voice-ingress:v0.11.1
     container_name: stoat-voice-ingress
     restart: unless-stopped
+    healthcheck:
+      disable: true
     depends_on:
       database:
         condition: service_healthy
@@ -219,7 +253,7 @@ services:
         condition: service_healthy
     volumes:
       - type: bind
-        source: ./Revolt.toml
+        source: /home/youruser/.config/stoat/Revolt.toml
         target: /Revolt.toml
     networks:
       - stoat
@@ -227,13 +261,20 @@ services:
   # LiveKit – voice/video SFU.
   # NOTE: This stack does NOT publish 7881 or UDP 50000-50100 on the host.
   # Voice may require exposing those ports or additional tunnelling; see README.
+  # Config is sourced from the host at /home/youruser/.config/stoat (read-only).
   livekit:
     image: ghcr.io/stoatchat/livekit-server:v1.9.6
     container_name: stoat-livekit
     restart: unless-stopped
-    command: --config /etc/livekit.yml
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7880 >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    command: --config /etc/livekit-config/livekit.yml
     volumes:
-      - ./livekit.yml:/etc/livekit.yml
+      - /home/youruser/.config/stoat/livekit.yml:/etc/livekit-config/livekit.yml:ro
     networks:
       - stoat
 
@@ -241,6 +282,8 @@ services:
   createbuckets:
     image: docker.io/minio/mc
     container_name: stoat-createbuckets
+    healthcheck:
+      disable: true
     depends_on:
       - minio
     entrypoint: >
@@ -260,8 +303,14 @@ services:
     image: ghcr.io/stoatchat/for-web:addb6b7
     container_name: stoat-web
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000 >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     env_file:
-      - .env.web
+      - /home/youruser/.config/stoat/.env.web
     networks:
       - stoat
 
@@ -271,4 +320,11 @@ networks:
   monitor:
     name: monitor
     external: true
+
+volumes:
+  stoat_db_data:
+  stoat_rabbit_data:
+  stoat_minio_data:
+  stoat_caddy_data:
+  stoat_caddy_config:
 

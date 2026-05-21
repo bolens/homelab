@@ -10,6 +10,12 @@ services:
         required: false
       - path: stack.env
         required: false
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fso /dev/null http://localhost:8443/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     volumes:
       - code_server_config:/config
     # No host port: access via Caddy only

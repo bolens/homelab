@@ -1,0 +1,28 @@
+services:
+  kometa:
+    image: kometateam/kometa:latest
+    container_name: kometa
+    restart: unless-stopped
+    # Batch runner — runs daily at 05:00, not a long-lived server
+    healthcheck:
+      disable: true
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - KOMETA_CONFIG_PATH=/home/youruser/.config/kometa
+      - KOMETA_DATA_PATH=/home/youruser/.config/kometa/data
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - path: stack.env
+        required: false
+    volumes:
+      - /home/youruser/.config/kometa:/config
+      - /home/youruser/.config/kometa/data:/data
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
