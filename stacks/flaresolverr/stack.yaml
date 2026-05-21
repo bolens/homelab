@@ -1,0 +1,55 @@
+name: flaresolverr
+default_port: 8191
+databases: []
+health:
+  endpoint: /health
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: documents
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: flaresolverr.yourdomain.com
+data_profile:
+  contains_pii: false
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: null
+  docs: null
+  repo: https://github.com/FlareSolverr/FlareSolverr
+backup:
+  priority: medium
+  schedule_hint: weekly
+volumes:
+- name: flaresolverr_config
+  role: app_data
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: small
+  memory_profile: small
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

@@ -1,0 +1,67 @@
+name: cryptpad
+default_port: 3000
+databases: []
+health:
+  endpoint: /
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: utility
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: cryptpad.yourdomain.com
+data_profile:
+  contains_pii: false
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://cryptpad.org/
+  docs: https://docs.cryptpad.org/
+  repo: https://github.com/cryptpad/cryptpad
+backup:
+  priority: medium
+  schedule_hint: weekly
+volumes:
+- name: cryptpad_config
+  role: app_data
+  critical: true
+- name: cryptpad_data
+  role: app_data
+  critical: true
+- name: cryptpad_blob
+  role: app_data
+  critical: true
+- name: cryptpad_block
+  role: app_data
+  critical: true
+- name: cryptpad_customize
+  role: app_data
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: small
+  memory_profile: small
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

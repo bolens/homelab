@@ -1,0 +1,61 @@
+name: lanraragi
+default_port: 3000
+databases: []
+health:
+  endpoint: /
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: dashboard
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: lanraragi.yourdomain.com
+data_profile:
+  contains_pii: false
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: null
+  docs: https://sugoi.gitbook.io/lanraragi
+  repo: null
+backup:
+  priority: medium
+  schedule_hint: weekly
+volumes:
+- name: lanraragi_content
+  role: app_data
+  critical: true
+- name: lanraragi_database
+  role: app_data
+  critical: true
+- name: lanraragi_thumb
+  role: app_data
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: small
+  memory_profile: small
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

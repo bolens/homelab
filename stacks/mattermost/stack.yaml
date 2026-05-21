@@ -1,0 +1,74 @@
+name: mattermost
+default_port: 8065
+databases:
+- postgres
+health:
+  endpoint: /api/v4/system/ping
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: homeautomation
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: mattermost.yourdomain.com
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://mattermost.com/
+  docs: https://docs.mattermost.com/deployment-guide/server/deploy-containers.html
+  repo: https://github.com/mattermost/mattermost
+backup:
+  priority: high
+  schedule_hint: weekly
+volumes:
+- name: mattermost_db_data
+  role: app_data
+  critical: true
+- name: mattermost_config
+  role: app_data
+  critical: true
+- name: mattermost_data
+  role: app_data
+  critical: true
+- name: mattermost_logs
+  role: app_data
+  critical: true
+- name: mattermost_plugins
+  role: app_data
+  critical: true
+- name: mattermost_client_plugins
+  role: app_data
+  critical: true
+- name: mattermost_bleve_indexes
+  role: app_data
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: medium
+  memory_profile: medium
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: homeautomation
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

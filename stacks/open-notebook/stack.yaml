@@ -1,0 +1,58 @@
+name: open-notebook
+default_port: 5055
+databases: []
+health:
+  endpoint: /health
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: ai
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: open-notebook.yourdomain.com
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://www.open-notebook.ai
+  docs: https://github.com/lfnovo/open-notebook#readme
+  repo: https://github.com/lfnovo/open-notebook
+backup:
+  priority: high
+  schedule_hint: weekly
+volumes:
+- name: surrealdb_data
+  role: app_data
+  critical: true
+- name: open_notebook_data
+  role: app_data
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: small
+  memory_profile: small
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: ai
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

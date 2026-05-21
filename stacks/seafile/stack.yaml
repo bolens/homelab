@@ -1,0 +1,59 @@
+name: seafile
+default_port: 80
+databases:
+- mysql
+health:
+  endpoint: /
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: storage
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: seafile.yourdomain.com
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://www.seafile.com/
+  docs: https://manual.seafile.com/
+  repo: null
+backup:
+  priority: high
+  schedule_hint: weekly
+volumes:
+- name: seafile_db
+  role: app_data
+  critical: true
+- name: seafile_data
+  role: app_data
+  critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: medium
+  memory_profile: medium
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

@@ -1,0 +1,52 @@
+name: web-check
+default_port: 3000
+databases: []
+health:
+  endpoint: /
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: osint
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: web-check.yourdomain.com
+data_profile:
+  contains_pii: false
+  contains_logs_only: false
+  recommended_backup: false
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://web-check.xyz
+  docs: https://github.com/Lissy93/web-check#readme
+  repo: https://github.com/Lissy93/web-check
+backup:
+  priority: low
+  schedule_hint: manual
+volumes: []
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: small
+  memory_profile: small
+  storage_profile: small
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: osint
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''
