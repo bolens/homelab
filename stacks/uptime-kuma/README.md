@@ -26,6 +26,18 @@ Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and 
 
 To send downtime alerts via email, add an **Email** notification in Uptime Kuma (Settings → Notifications). Use the shared **postfix** SMTP relay: host `smtp-relay`, port `587`, STARTTLS. No homelab-user/password needed when both stacks are on the `monitor` network. For **internal-only** (no external delivery), deploy the **mailpit** stack and set Postfix `RELAYHOST=mailpit:1025`; all alerts will appear in the Mailpit web UI. See [stacks/postfix/README.md](../postfix/README.md) and [stacks/mailpit/README.md](../mailpit/README.md).
 
+### ntfy push notifications
+
+Uptime Kuma has native ntfy support. To enable:
+
+1. Settings → Notifications → Add Notification → **ntfy**
+2. ntfy Server URL: `http://ntfy:80` (internal, both on `monitor` network)
+3. Topic: `uptime-kuma` (or any topic you subscribe to in the ntfy app)
+4. Priority: High for down alerts, default for recovery
+5. Save and test — you should receive a push notification immediately.
+
+The ntfy stack is at `stacks/ntfy`; the public URL is `https://ntfy.example.com`.
+
 **Monitoring targets:**
 
 - **Containers on `monitor` network (Caddy, self):** Use service names. Examples: Caddy → `http://caddy:80`, self → `http://uptime-kuma:3001`. HTTP, no SSL verify for HTTP targets.
