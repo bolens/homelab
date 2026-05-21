@@ -21,6 +21,7 @@ shared.env
 scripts/local-hosts.conf
 
 stacks/asking-ng
+!stacks/asking-ng/stack.env.example
 
 # LiteLLM proxy model list (generated from litellm_config.yaml.example by prepare-stack.sh)
 stacks/litellm/litellm_config.yaml
