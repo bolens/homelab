@@ -1,5 +1,11 @@
 # Alertmanager config – copy to ~/.config/alertmanager/alertmanager.yml (or path set by ALERTMANAGER_CONFIG_PATH).
 # Routes by severity; inhibit_rules suppress redundant alerts when an instance is down.
+#
+# Interval tiers:
+#   critical  — group_wait=1m  group_interval=5m  repeat=30m
+#   warning   — group_wait=2m  group_interval=10m repeat=2h
+#   default   — group_wait=1m  group_interval=10m repeat=6h
+#   watchdog  — silent, repeat=24h
 global:
   resolve_timeout: 5m
 
@@ -9,7 +15,7 @@ templates:
 route:
   receiver: default-receiver
   group_by: ['alertname', 'severity']
-  group_wait: 45s
+  group_wait: 1m
   group_interval: 10m
   repeat_interval: 6h
   routes:
@@ -26,24 +32,26 @@ route:
         alertname: InstanceDown|NodeMemoryHigh|NodeDiskSpaceLow
       receiver: infra-receiver
       group_by: ['alertname', 'instance']
-      group_wait: 45s
-      group_interval: 10m
-      repeat_interval: 2h
+      group_wait: 1m
+      group_interval: 5m
+      repeat_interval: 30m
 
     # Alloy pipeline + Loki alerts.
     - match_re:
         alertname: Alloy.*|LokiDown|AlloyDown
       receiver: alloy-receiver
       group_by: ['service', 'severity']
-      group_wait: 45s
-      group_interval: 15m
+      group_wait: 1m
+      group_interval: 5m
       routes:
         - match:
             severity: critical
-          repeat_interval: 1h
+          repeat_interval: 30m
         - match:
             severity: warning
-          repeat_interval: 8h
+          group_wait: 2m
+          group_interval: 10m
+          repeat_interval: 2h
 
     # Blackbox: one notification per probed URL.
     - match:
@@ -51,8 +59,8 @@ route:
       receiver: blackbox-critical-receiver
       group_by: ['alertname', 'instance']
       group_wait: 1m
-      group_interval: 10m
-      repeat_interval: 4h
+      group_interval: 5m
+      repeat_interval: 30m
 
     # Blackbox critical tier.
     - match:
@@ -60,9 +68,9 @@ route:
         tier: critical
       receiver: blackbox-critical-receiver
       group_by: ['category', 'alertname', 'instance', 'tier']
-      group_wait: 45s
-      group_interval: 10m
-      repeat_interval: 1h
+      group_wait: 1m
+      group_interval: 5m
+      repeat_interval: 30m
 
     # Blackbox warning tier.
     - match:
@@ -70,9 +78,9 @@ route:
         tier: warning
       receiver: blackbox-warning-receiver
       group_by: ['category', 'alertname', 'instance', 'tier']
-      group_wait: 45s
+      group_wait: 2m
       group_interval: 10m
-      repeat_interval: 6h
+      repeat_interval: 2h
 
 receivers:
   - name: default-receiver
