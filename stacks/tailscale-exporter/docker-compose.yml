@@ -1,0 +1,17 @@
+name: tailscale-exporter
+
+services:
+  tailscale-exporter:
+    image: adinhodovic/tailscale-exporter:latest
+    container_name: tailscale-exporter
+    restart: unless-stopped
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    external: true
