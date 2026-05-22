@@ -1,12 +1,10 @@
-# Prometheus scrape config for homelab: self + cAdvisor + Watchtower metrics + node_exporter.
-# Add more scrape_configs as you add stacks.
-# Copy this file to ~/.config/prometheus/prometheus.yml (or set PROMETHEUS_CONFIG_PATH)
-# and edit as needed; the stack mounts that file read-only.
+# Prometheus scrape config (homelab). Reload: curl -X POST http://prometheus:9090/-/reload
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+  # Performance-tuned defaults: keep responsive alerts while reducing TSDB churn.
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
 
-# Route alerts to Alertmanager (deploy stacks/alertmanager and configure receivers there).
 alerting:
   alertmanagers:
     - static_configs:
@@ -19,62 +17,457 @@ rule_files:
 
 scrape_configs:
   - job_name: prometheus
+    scrape_interval: 15s
     static_configs:
       - targets: ["localhost:9090"]
 
   - job_name: cadvisor
+    scrape_interval: 30s
     static_configs:
       - targets: ["cadvisor:8080"]
 
+  # CrowdSec LAPI metrics (same port as health; see stacks/crowdsec/docker-compose.yml).
   - job_name: crowdsec
+    scrape_interval: 30s
     static_configs:
-      - targets: ["crowdsec:8080"]
+      - targets: ["crowdsec:6060"]
     metrics_path: /metrics
 
   - job_name: node
+    scrape_interval: 30s
     static_configs:
       - targets: ["node-exporter:9100"]
 
-  # Watchtower (stacks/watchtower on `monitor`). Same Bearer as WATCHTOWER_HTTP_API_TOKEN.
-  # Create ~/.config/prometheus/rules/watchtower_bearer_token with the raw token (one line, no quotes).
-  # Copy from stacks/prometheus/watchtower_bearer_token.example and replace the placeholder.
+  # Watchtower (stacks/watchtower on monitor): Bearer matches WATCHTOWER_HTTP_API_TOKEN; secret file in rules dir.
   - job_name: watchtower
-    metrics_path: /v1/metrics
     scrape_interval: 30s
-    bearer_token_file: /etc/prometheus/rules/watchtower_bearer_token
+    scrape_timeout: 10s
     static_configs:
       - targets: ["watchtower:80"]
+    metrics_path: /v1/metrics
+    bearer_token_file: /etc/prometheus/rules/watchtower_bearer_token
 
-  # Blackbox Exporter – HTTP(s) probes. Deploy stacks/blackbox-exporter first.
-  # Add or remove targets to match your Caddy vhosts; these use placeholder yourdomain.com.
-  - job_name: blackbox
+  - job_name: loki
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["loki:3100"]
+    metrics_path: /metrics
+
+  - job_name: promtail
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["promtail:9080"]
+    metrics_path: /metrics
+
+  # Tailscale / Headscale exporter (optional): exposes Headscale/Tailscale metrics for the Headscale Overview Grafana dashboard.
+  # Deploy stacks/tailscale-exporter first, then enable this job.
+  - job_name: tailscale-exporter
+    static_configs:
+      - targets: ["tailscale-exporter:9250"]
+    metrics_path: /metrics
+
+  # Headscale metrics (set metrics_listen_addr: 0.0.0.0:9090 in Headscale config)
+  - job_name: headscale
+    static_configs:
+      - targets: ["headscale:9090"]
+    metrics_path: /metrics
+
+  # Optional: enable API in Vector config (e.g. address = "0.0.0.0:9598") and expose 9598 on monitor network
+  # - job_name: vector
+  #   static_configs:
+  #     - targets: ["vector:9598"]
+  #   metrics_path: /metrics
+
+  # Optional: Grafana Alloy (stacks/grafana-alloy) — service hostname is `alloy` on the monitor network.
+  - job_name: alloy
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["alloy:12345"]
+    metrics_path: /metrics
+    metric_relabel_configs:
+      # Guardrail: drop high-cardinality labels from Alloy self-metrics before storage.
+      - regex: 'container_id|id|pid|uuid|guid|trace_id|span_id|session_id|request_id|instance_id|filename|path|url|pod|namespace'
+        action: labeldrop
+
+  # Optional: InfluxDB OSS — confirm your version exposes Prometheus metrics on /metrics before enabling.
+  - job_name: influxdb
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["influxdb:8086"]
+    metrics_path: /metrics
+
+  - job_name: gitea
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["gitea:3000"]
+    metrics_path: /metrics
+    authorization:
+      credentials_file: /etc/prometheus/rules/gitea_metrics_token
+
+  # Alerting set: stable public endpoints only (kept intentionally small).
+  - job_name: blackbox_public
     metrics_path: /probe
+    scrape_interval: 1m
+    scrape_timeout: 15s
+    sample_limit: 50
     params:
       module: [http_2xx]
     static_configs:
       - targets:
-          - https://yourdomain.com
-          - https://www.yourdomain.com
-          - https://homepage.yourdomain.com
-          - https://status.yourdomain.com
-          - https://grafana.yourdomain.com
-          - https://prometheus.yourdomain.com
-          - https://alertmanager.yourdomain.com
-          - https://ntfy.yourdomain.com
-          - https://dozzle.yourdomain.com
-          - https://portainer.yourdomain.com
-          - https://caddy.yourdomain.com
-          - https://loki.yourdomain.com
-          - https://it-tools.yourdomain.com
-          - https://searx-ng.yourdomain.com
+          - https://alertmanager.example.com
+          - https://authentik.example.com
+          - https://booking.example.com
+          - https://crowdsec.example.com
+          - https://gitea.example.com
+          - https://grafana.example.com
+          - https://keycloak.example.com
+          - https://paperless.example.com
+          - https://portainer.example.com
+          - https://prometheus.example.com
+          - https://vault.example.com
+
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
+        regex: (.+)
+        replacement: ${1}
       - source_labels: [__param_target]
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
       - source_labels: [__param_target]
         target_label: target
-      - target_label: __param_target
-        replacement: $1
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'probe_http_duration_seconds|probe_dns_lookup_time_seconds|probe_http_content_length|probe_http_uncompressed_body_length|probe_ip_protocol|probe_ip_addr_hash'
+        action: drop
+
+  # Alerting set for explicit health paths.
+  - job_name: blackbox_http_paths_public
+    metrics_path: /probe
+    scrape_interval: 1m
+    scrape_timeout: 15s
+    sample_limit: 50
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://immich-machine-learning:3003/ping
+          - https://alertmanager.example.com/-/healthy
+          - https://authentik.example.com/
+          - https://crowdsec.example.com/health
+          - https://gitea.example.com/api/healthz
+          - https://immich.example.com/api/server/ping
+          - https://portainer.example.com/api/status
+          - https://prometheus.example.com/-/healthy
+          - https://vault.example.com/alive
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+        regex: (.+)
+        replacement: ${1}
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - source_labels: [__param_target]
+        target_label: target
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'probe_http_duration_seconds|probe_dns_lookup_time_seconds|probe_http_content_length|probe_http_uncompressed_body_length|probe_ip_protocol|probe_ip_addr_hash'
+        action: drop
+
+  # Non-alerting inventory set (large/noisy list: auth redirects, DNS gaps, etc.).
+  - job_name: blackbox_nonalert
+    metrics_path: /probe
+    scrape_interval: 15m
+    scrape_timeout: 20s
+    sample_limit: 400
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://actual-budget.example.com
+          - https://adguard-home.example.com
+          - https://adminer.example.com
+          - https://ail.example.com
+          - https://archivebox.example.com
+          - https://asf.example.com
+          - https://asking.example.com
+          - https://audiobookshelf.example.com
+          - https://autoredact.example.com
+          - https://baserow.example.com
+          - https://bazarr.example.com
+          - https://beszel.example.com
+          - https://blog.example.com
+          - https://example.com
+          - https://bookstack.example.com
+          - https://cachet.example.com
+          - https://cadvisor.example.com
+          - https://calcom.example.com
+          - https://calibre-web.example.com
+          - https://chat.example.com
+          - https://ci.example.com
+          - https://code.example.com
+          - https://commento.example.com
+          - https://convertx.example.com
+          - https://ddns-updater.example.com
+          - https://defectdojo.example.com
+          - https://diagrams-net.example.com
+          - https://discourse.example.com
+          - https://dozzle.example.com
+          - https://dtrack.example.com
+          - https://emby.example.com
+          - https://enclosed.example.com
+          - https://events.example.com
+          - https://example.com
+          - https://firefly.example.com
+          - https://flaresolverr.example.com
+          - https://forum.example.com
+          - https://freshrss.example.com
+          - https://frigate.example.com
+          - https://funkwhale.example.com
+          - https://glance.example.com
+          - https://gophish.example.com
+          - https://grist.example.com
+          - https://grocy.example.com
+          - https://guac.example.com
+          - https://harbor.example.com
+          - https://headscale.example.com
+          - https://hedgedoc.example.com
+          - https://heyform.example.com
+          - https://holehe.example.com
+          - https://homarr.example.com
+          - https://home-assistant.example.com
+          - https://homebox.example.com
+          - https://immich.example.com
+          - https://infisical.example.com
+          - https://influxdb.example.com
+          - https://invoice.example.com
+          - https://it-tools.example.com
+          - https://jellyfin.example.com
+          - https://jellystat.example.com
+          - https://joplin.example.com
+          - https://judge0.example.com
+          - https://kasm.example.com
+          - https://kavita.example.com
+          - https://keycloak.example.com
+          - https://koillection.example.com
+          - https://komga.example.com
+          - https://lanraragi.example.com
+          - https://learn.example.com
+          - https://lemmy.example.com
+          - https://librechat.example.com
+          - https://lidarr.example.com
+          - https://linkding.example.com
+          - https://links.example.com
+          - https://listmonk.example.com
+          - https://livekit.example.com
+          - https://logseq-sync.example.com
+          - https://logseq.example.com
+          - https://maigret.example.com
+          - https://mail.example.com
+          - https://mailpit.example.com
+          - https://maloja.example.com
+          - https://mastodon.example.com
+          - https://matomo.example.com
+          - https://matrix.example.com
+          - https://me.example.com
+          - https://mealie.example.com
+          - https://mediatracker.example.com
+          - https://meet.example.com
+          - https://meilisearch.example.com
+          - https://metabase.example.com
+          - https://metube.example.com
+          - https://minio-console.example.com
+          - https://mongo.example.com
+          - https://monica.example.com
+          - https://music.example.com
+          - https://mylar3.example.com
+          - https://n8n.example.com
+          - https://naisho.example.com
+          - https://netbird.example.com
+          - https://nextcloud.example.com
+          - https://nodepad.example.com
+          - https://nodered.example.com
+          - https://ntfy.example.com
+          - https://ntopng.example.com
+          - https://nzbget.example.com
+          - https://nzbhydra.example.com
+          - https://oasis.example.com
+          - https://office.example.com
+          - https://onionprobe.example.com
+          - https://open-notebook.example.com
+          - https://opengist.example.com
+          - https://outline.example.com
+          - https://paperless-ai.example.com
+          - https://paperless-gpt.example.com
+          - https://pwpush.example.com
+          - https://paste.example.com
+          - https://pdf.example.com
+          - https://perplexica.example.com
+          - https://pgadmin.example.com
+          - https://philter.example.com
+          - https://phoneinfoga.example.com
+          - https://phpmyadmin.example.com
+          - https://pixelfed.example.com
+          - https://planka.example.com
+          - https://plex.example.com
+          - https://pocketbase.example.com
+          - https://presidio.example.com
+          - https://prowlarr.example.com
+          - https://pwpush.example.com
+          - https://qbittorrent.example.com
+          - https://radarr.example.com
+          - https://readarr.example.com
+          - https://resilio.example.com
+          - https://romm.example.com
+          - https://rtorrent.example.com
+          - https://scrutiny.example.com
+          - https://seafile.example.com
+          - https://search.example.com
+          - https://seerr.example.com
+          - https://short.example.com
+          - https://simplelogin.example.com
+          - https://slink.example.com
+          - https://snipe-it.example.com
+          - https://social-hunt.example.com
+          - https://sonarr.example.com
+          - https://spiderfoot.example.com
+          - https://stats-fm.example.com
+          - https://status.example.com
+          - https://step.example.com
+          - https://stoat.example.com
+          - https://support.example.com
+          - https://syncthing.example.com
+          - https://terminus.example.com
+          - https://theharvester.example.com
+          - https://threat-dragon.example.com
+          - https://ticket.example.com
+          - https://tiles.example.com
+          - https://umami.example.com
+          - https://urls.example.com
+          - https://video.example.com
+          - https://vikunja.example.com
+          - https://viseron.example.com
+          - https://vuln-scanning.example.com
+          - https://web-check.example.com
+          - https://whisparr.example.com
+          - https://woodpecker.example.com
+          - https://www.example.com
+          - https://zap.example.com
+          - https://zigbee2mqtt.example.com
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+        regex: (.+)
+        replacement: ${1}
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - source_labels: [__param_target]
+        target_label: target
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'probe_http_duration_seconds|probe_dns_lookup_time_seconds|probe_http_content_length|probe_http_uncompressed_body_length|probe_ip_protocol|probe_ip_addr_hash'
+        action: drop
+
+  # Non-alerting path inventory set.
+  - job_name: blackbox_http_paths_nonalert
+    metrics_path: /probe
+    scrape_interval: 15m
+    scrape_timeout: 20s
+    sample_limit: 120
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://audiobookshelf.example.com/healthcheck
+          - https://baserow.example.com/api/_health/
+          - https://beszel.example.com/api/health
+          - https://cadvisor.example.com/healthz
+          - https://chat.example.com/api/v4/system/ping
+          - https://dtrack.example.com/api/version
+          - https://flaresolverr.example.com/health
+          - https://grafana.example.com/api/health
+          - https://grist.example.com/status
+          - https://headscale.example.com/health
+          - https://influxdb.example.com/health
+          - https://jellystat.example.com/auth/isConfigured
+          - https://judge0.example.com/about
+          - https://matrix.example.com/health
+          - https://mealie.example.com/api/app/about
+          - https://minio-console.example.com/minio/health/live
+          - https://n8n.example.com/healthz
+          - https://naisho.example.com/up
+          - https://office.example.com/hosting/discovery
+          - https://paperless-ai.example.com/health
+          - https://pwpush.example.com/up
+          - https://plex.example.com/identity
+          - https://pocketbase.example.com/api/health
+          - https://presidio.example.com/analyzer/health
+          - https://presidio.example.com/anonymizer/health
+          - https://presidio.example.com/health
+          - https://presidio.example.com/image-redactor/health
+          - https://pwpush.example.com/up
+          - https://resilio.example.com/gui/
+          - https://seerr.example.com/api/v1/settings/public
+          - https://short.example.com/rest/v3/health
+          - https://step.example.com/health
+          - https://syncthing.example.com/rest/noauth/health
+          - https://terminus.example.com/up
+          - https://vikunja.example.com/api/v1/info
+          - https://viseron.example.com/api/v1/health
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+        regex: (.+)
+        replacement: ${1}
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - source_labels: [__param_target]
+        target_label: target
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'probe_http_duration_seconds|probe_dns_lookup_time_seconds|probe_http_content_length|probe_http_uncompressed_body_length|probe_ip_protocol|probe_ip_addr_hash'
+        action: drop
+
+  # ICMP: enable NET_RAW on blackbox-exporter (see docker-compose). Replace with your gateway or DNS IPs.
+  # - job_name: blackbox_icmp
+  #   metrics_path: /probe
+  #   params:
+  #     module: [icmp]
+  #   static_configs:
+  #     - targets:
+  #         - 192.168.1.1
+  #         - 1.1.1.1
+  #   relabel_configs:
+  #     - source_labels: [__address__]
+  #       target_label: __param_target
+  #     - source_labels: [__param_target]
+  #       target_label: instance
+  #     - target_label: __address__
+  #       replacement: blackbox-exporter:9115
+
+  # DNS (UDP): edit blackbox.yml module dns_udp query_name or add a dedicated module for your zone.
+  # - job_name: blackbox_dns
+  #   metrics_path: /probe
+  #   params:
+  #     module: [dns_udp]
+  #   static_configs:
+  #     - targets:
+  #         - 1.1.1.1:53
+  #         - 192.168.1.1:53
+  #   relabel_configs:
+  #     - source_labels: [__address__]
+  #       target_label: __param_target
+  #     - source_labels: [__param_target]
+  #       target_label: instance
+  #     - target_label: __address__
+  #       replacement: blackbox-exporter:9115
