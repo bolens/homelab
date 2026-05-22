@@ -1,8 +1,0 @@
-{
-  "*.{js,cjs,mjs,ts,tsx,json,jsonc,yml,yaml}": [
-    "pnpm exec biome check --write --no-errors-on-unmatched"
-  ],
-  "client/src/**/*.css": [
-    "pnpm --filter client exec stylelint --allow-empty-input"
-  ]
-}

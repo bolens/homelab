@@ -1,6 +1,0 @@
-services:
-  asking-api:
-    # Optional local debug/smoke access from host only.
-    # Use with: docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d
-    ports:
-      - "127.0.0.1:${ASKING_NG_API_HOST_PORT:-8080}:3001"
