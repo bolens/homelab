@@ -31,7 +31,7 @@ services:
       - WATCHTOWER_HTTP_API_PORT=80
       # ntfy push notifications on update/failure (generic+ scheme; topic = watchtower).
       # Set WATCHTOWER_NOTIFICATION_URL in stack.env. Leave blank to disable.
-      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL:-}
+      - WATCHTOWER_NOTIFICATION_URL=${WATCHTOWER_NOTIFICATION_URL:-generic+https://ntfy.example.com/watchtower}
     networks:
       - monitor
     # Optional: use cron instead of interval (e.g. daily at 03:00)
