@@ -3,23 +3,99 @@
 global:
   resolve_timeout: 5m
 
+templates:
+  - /etc/alertmanager/templates/*.tmpl
+
 route:
   receiver: default-receiver
   group_by: ['alertname', 'severity']
-  group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 3h
+  group_wait: 45s
+  group_interval: 10m
+  repeat_interval: 6h
+  routes:
+    # Drop watchdog noise while keeping alert pipeline health checks intact.
+    - match:
+        alertname: Watchdog
+      receiver: null-receiver
+      group_wait: 5m
+      group_interval: 1h
+      repeat_interval: 24h
+
+    # Infrastructure alerts: InstanceDown, NodeMemoryHigh, NodeDiskSpaceLow.
+    - match_re:
+        alertname: InstanceDown|NodeMemoryHigh|NodeDiskSpaceLow
+      receiver: infra-receiver
+      group_by: ['alertname', 'instance']
+      group_wait: 45s
+      group_interval: 10m
+      repeat_interval: 2h
+
+    # Alloy pipeline + Loki alerts.
+    - match_re:
+        alertname: Alloy.*|LokiDown|AlloyDown
+      receiver: alloy-receiver
+      group_by: ['service', 'severity']
+      group_wait: 45s
+      group_interval: 15m
+      routes:
+        - match:
+            severity: critical
+          repeat_interval: 1h
+        - match:
+            severity: warning
+          repeat_interval: 8h
+
+    # Blackbox: one notification per probed URL.
+    - match:
+        alertname: ProbeDown
+      receiver: blackbox-critical-receiver
+      group_by: ['alertname', 'instance']
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 4h
+
+    # Blackbox critical tier.
+    - match:
+        category: blackbox
+        tier: critical
+      receiver: blackbox-critical-receiver
+      group_by: ['category', 'alertname', 'instance', 'tier']
+      group_wait: 45s
+      group_interval: 10m
+      repeat_interval: 1h
+
+    # Blackbox warning tier.
+    - match:
+        category: blackbox
+        tier: warning
+      receiver: blackbox-warning-receiver
+      group_by: ['category', 'alertname', 'instance', 'tier']
+      group_wait: 45s
+      group_interval: 10m
+      repeat_interval: 6h
 
 receivers:
   - name: default-receiver
     webhook_configs:
       - url: http://ntfy:80/alerts
         send_resolved: true
-    # Example: email via SMTP relay (e.g. postfix stack). Uncomment and set to/from/smarthost.
-    # email_configs:
-    #   - to: you@yourdomain.com
-    #     from: alertmanager@yourdomain.com
-    #     smarthost: smtp-relay:587
+  - name: infra-receiver
+    webhook_configs:
+      - url: http://ntfy:80/alerts-infra
+        send_resolved: true
+  - name: blackbox-critical-receiver
+    webhook_configs:
+      - url: http://ntfy:80/alerts-blackbox-critical
+        send_resolved: true
+  - name: blackbox-warning-receiver
+    webhook_configs:
+      - url: http://ntfy:80/alerts-blackbox-warning
+        send_resolved: true
+  - name: alloy-receiver
+    webhook_configs:
+      - url: http://ntfy:80/alerts-alloy
+        send_resolved: true
+  - name: null-receiver
 
 # When an instance is down, suppress other alerts for that same instance (e.g. NodeMemoryHigh, NodeDiskSpaceLow).
 inhibit_rules:
@@ -27,4 +103,26 @@ inhibit_rules:
       alertname: InstanceDown
     target_match_re:
       alertname: NodeMemoryHigh|NodeDiskSpaceLow|ProbeDown
+    equal: ['instance']
+  - source_match:
+      alertname: AlloyDown
+    target_match_re:
+      alertname: AlloyScrapeDegraded|AlloyConfigReloadFailures|AlloyLokiWriteRetriesHigh|AlloyLokiDroppedEntriesWarning|AlloyLokiDroppedEntriesCritical|AlloyPipelineOutputStalled|AlloyPipelineOutputRatioLow|AlloyDockerTargetParsingErrors|AlloyEvaluationQueueHigh|AlloyMemoryHigh|AlloyDependencyWaitHigh|AlloySampledStreamMissing|AlloySampledStreamRatioHigh|AlloyCanaryStreamMissing
+    equal: ['service']
+  - source_match:
+      alertname: LokiDown
+    target_match_re:
+      alertname: AlloyLokiWriteRetriesHigh|AlloyLokiDroppedEntriesWarning|AlloyLokiDroppedEntriesCritical|AlloyPipelineOutputStalled|AlloyPipelineOutputRatioLow
+    equal: ['service']
+  - source_match:
+      category: blackbox
+      tier: critical
+    target_match:
+      category: blackbox
+      tier: warning
+    equal: ['instance']
+  - source_match:
+      alertname: BlackboxAvailabilitySloCritical
+    target_match:
+      alertname: BlackboxAvailabilitySloWarning
     equal: ['instance']
