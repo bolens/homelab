@@ -18,6 +18,7 @@ services:
       - /run/log/journal:/run/log/journal:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${PROMTAIL_CONFIG_PATH:-${HOME}/.config/promtail/promtail-config.yml}:/etc/promtail/config.yml:ro
+      - promtail_positions:/var/lib/promtail
     networks:
       - monitor
     env_file:
@@ -25,8 +26,9 @@ services:
         required: false
       - stack.env
     healthcheck:
-      # Port must match server.http_listen_port in promtail-config.yml (default 9080)
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9080/ready"]
+      # promtail image has no wget or curl; check TCP port via /proc/net/tcp6
+      # 0x2378 = port 9080 in hex (uppercase in kernel output)
+      test: ["CMD-SHELL", "grep -q ':2378 ' /proc/net/tcp6 || grep -q ':2378 ' /proc/net/tcp"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -36,3 +38,6 @@ networks:
   monitor:
     name: monitor
     external: true
+
+volumes:
+  promtail_positions:
