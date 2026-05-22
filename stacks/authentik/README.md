@@ -51,6 +51,10 @@ The `server` and `worker` containers share configuration via environment variabl
   - Use the app’s Caddy URL as the redirect URI.
   - Configure the app with authentik’s discovery URL and client credentials.
 
+## Troubleshooting
+
+**authentik-worker unhealthy:** If `authentik-redis` restarts while `authentik-worker` is up, the worker's Celery consumer can hit `NOAUTH` errors or DNS failures, stall its heartbeat, and never recover on its own. Fix: `docker restart authentik-worker`. The server continues handling requests while the worker is down; background tasks (outpost sync, policy refresh, scheduled cleanup) resume immediately after restart. See [TROUBLESHOOTING.md](../../documents/TROUBLESHOOTING.md#authentik-worker-unhealthy-after-redis-restart).
+
 ## Email / SMTP (optional)
 
 For password reset and verification emails, configure SMTP in authentik: **System** → **Email** (or **Directory** → **Settings**). Use the shared **Postfix** relay:

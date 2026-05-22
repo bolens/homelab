@@ -1,0 +1,80 @@
+# Grafana Alloy
+
+Grafana Alloy collects Docker container logs and ships them to Loki, and exposes self-observability metrics for Prometheus to scrape.
+
+**Website:** https://grafana.com/oss/alloy/
+**Docs:** https://grafana.com/docs/alloy/latest/
+**GitHub:** https://github.com/grafana/alloy
+**Docker image:** https://hub.docker.com/r/grafana/alloy
+
+## Architecture
+
+This stack has two containers:
+
+| Container | Role |
+|-----------|------|
+| `grafana-alloy` | Main Alloy process: discovers Docker containers, collects logs, ships to Loki, exposes metrics on `:12345` |
+| `alloy-log-canary` | Emits a periodic heartbeat log line used by Prometheus alerts to verify the log pipeline is alive |
+
+## Quick start
+
+1. Copy `stack.env.example` → `stack.env` and set `ALLOY_CONFIG_PATH` to the absolute path of your `config.alloy` on the host (e.g. `/home/youruser/.config/grafana-alloy/config.alloy`).
+2. Copy `config.alloy.example` to that path and adjust Loki endpoint if needed (`http://loki:3100`).
+3. Deploy from Portainer or `docker compose up -d` (stack must be deployed via Portainer UI for first deploy; subsequent changes can be applied with `docker compose up -d`).
+
+## Configuration
+
+| Item | Details |
+|------|---------|
+| **Config file** | `~/.config/grafana-alloy/config.alloy` (host path, mounted read-only) |
+| **Config path override** | Set `ALLOY_CONFIG_PATH` in `stack.env` to an absolute path (required for Portainer) |
+| **Loki endpoint** | `http://loki:3100/loki/api/v1/push` (on the `monitor` network) |
+| **Prometheus scrape** | Alloy exposes metrics at `alloy:12345/metrics`; Prometheus scrapes the `alloy` job |
+| **Network** | `monitor` — shared with Loki, Prometheus, Caddy |
+| **Docker socket** | Mounted read-only at `/var/run/docker.sock` for container discovery |
+
+## Log routing
+
+Alloy uses two streams:
+
+- **primary** — all container logs by default
+- **sampled** — containers that emit logs with a `sampled=true` label (used for canary/heartbeat logs)
+
+Opt a container out of log collection by setting label `logging=false` (or `off`, `disabled`, `0`) on it.
+
+## Prometheus alerts
+
+Two alerts in `alerts.yml` watch this stack:
+
+| Alert | Condition | Cause |
+|-------|-----------|-------|
+| `AlloyCanaryStreamMissing` | No `stream_class="sampled"` entries seen in Loki for 15 min | `alloy-log-canary` is stopped or Alloy isn't shipping sampled logs |
+| `AlloySampledStreamMissing` | Same metric over 30 min window | Extended outage of the sampled pipeline |
+
+If either fires, first check that `alloy-log-canary` is running:
+
+```bash
+docker ps --filter name=alloy-log-canary
+docker start alloy-log-canary   # if exited
+```
+
+## Troubleshooting
+
+**alloy-log-canary keeps exiting (exit 137):**
+The canary has `restart: unless-stopped` and will not auto-restart after a host OOM or SIGKILL event. Restart it manually: `docker start alloy-log-canary`. See [TROUBLESHOOTING.md](../../documents/TROUBLESHOOTING.md#unless-stopped-containers-that-wont-self-recover).
+
+**Alloy component health:**
+Alloy exposes component health via its UI. Get the container IP and query:
+
+```bash
+ALLOY_IP=$(docker inspect grafana-alloy --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' | awk '{print $1}')
+curl -s "http://$ALLOY_IP:12345/api/v0/web/components" | python3 -c "
+import sys,json
+comps=json.load(sys.stdin)
+unhealthy=[c for c in comps if c.get('health',{}).get('state','') not in ('healthy','')]
+print(f'{len(comps)} components, {len(unhealthy)} unhealthy')
+for c in unhealthy: print(c['id'], c.get('health',{}).get('message',''))
+"
+```
+
+All 10 components should be healthy. If a `loki.write` component is unhealthy, check Loki is up and reachable on the `monitor` network.

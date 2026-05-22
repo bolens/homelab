@@ -70,7 +70,58 @@ If the stack is not in this repo, ensure its env has the public base URL set and
 
 Promtail’s compose healthcheck must use the same port as `server.http_listen_port` in your Promtail config (default **9080** in `promtail-config.yml.example`). If it was set to 3100, the healthcheck failed and the container could restart or exit; the stack is updated to use 9080.
 
-## Checking what’s exited
+## authentik-worker: unhealthy after Redis restart
+
+If `authentik-worker` goes **unhealthy**, the most common cause is that `authentik-redis` restarted while the worker was up. The worker's Celery consumer hits `NOAUTH Authentication required.` or DNS resolution failures during the reconnect storm, stalls its heartbeat, and never recovers on its own.
+
+**Diagnosis:**
+
+```bash
+docker logs authentik-worker --tail 30 2>&1 | grep -E "NOAUTH|Cannot connect|name resolution"
+docker inspect authentik-worker --format '{{json .State.Health}}' | python3 -m json.tool
+```
+
+**Fix:** Restart the worker — it reconnects cleanly on startup:
+
+```bash
+docker restart authentik-worker
+```
+
+The `authentik-server` continues serving authenticated requests while the worker is down; only background tasks (outpost sync, policy refresh, scheduled cleanup) are affected.
+
+## unless-stopped containers that won't self-recover
+
+Containers with `restart: unless-stopped` do **not** restart after a manual stop or after a Docker daemon crash that kills them with SIGKILL (exit 137). After a host reboot, OOM event, or `docker stop`, they stay in the Exited state until manually started.
+
+Check for these with:
+
+```bash
+docker ps -a --filter status=exited --format '{{.Names}}' | \
+  xargs -I{} sh -c 'POLICY=$(docker inspect {} --format "{{.HostConfig.RestartPolicy.Name}}" 2>/dev/null); [ "$POLICY" = "unless-stopped" ] && echo "{}"'
+```
+
+Restart individually:
+
+```bash
+docker start <container-name>
+```
+
+Or restart the whole stack:
+
+```bash
+cd stacks/<stack-name> && docker compose up -d
+```
+
+Known containers that have needed manual restart after host events:
+
+| Container | Stack | Notes |
+|-----------|-------|-------|
+| `alloy-log-canary` | grafana-alloy | Canary log emitter; if down, `AlloySampledStreamMissing` / `AlloyCanaryStreamMissing` alerts fire. `docker start alloy-log-canary` to recover. |
+| `nextcloud-cron` | nextcloud | Background job runner; if down, Nextcloud file scans, activity, and cleanup tasks don't run. `docker start nextcloud-cron`. |
+| `matomo-cron` | matomo | Scheduled analytics archival. `docker start matomo-cron`. |
+| `jellystat` | jellystat | Jellyfin statistics UI; db stays up but UI needs `docker start jellystat`. |
+
+## Checking what's exited
 
 ```bash
 docker ps -a --format 'table {{.Names}}\t{{.Status}}' | grep -E "Exited|Restarting"
