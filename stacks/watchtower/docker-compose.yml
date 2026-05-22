@@ -29,9 +29,9 @@ services:
       - WATCHTOWER_HTTP_API_METRICS=true
       - WATCHTOWER_HTTP_API_PERIODIC_POLLS=true
       - WATCHTOWER_HTTP_API_PORT=80
-      # ntfy push notifications on update/failure (generic+ scheme; topic = watchtower).
-      # Set WATCHTOWER_NOTIFICATION_URL in stack.env. Leave blank to disable.
-      # (var injected via env_file: stack.env — not listed here to avoid shell-interpolation override)
+      # ntfy push notifications (generic+ scheme via internal monitor network).
+      # Set WATCHTOWER_NOTIFICATION_URL and WATCHTOWER_NOTIFICATION_REPORT in stack.env.
+      # Injected via env_file — not listed here to avoid shell-interpolation overriding with empty values.
     networks:
       - monitor
     # Optional: use cron instead of interval (e.g. daily at 03:00)

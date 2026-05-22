@@ -5,7 +5,7 @@ health:
   endpoint: /
   internal_only: false
 monitoring:
-  prometheus: false
+  prometheus: true
   uptime_kuma:
     external: true
     internal: true
@@ -27,8 +27,8 @@ host_requirements:
   needs_privileged: false
   uses_host_network: false
 links:
-  homepage: https://containrrr.dev/watchtower
-  docs: https://containrrr.dev/watchtower/
+  homepage: https://watchtower.nickfedor.com
+  docs: https://watchtower.nickfedor.com
   repo: https://github.com/nickfedor/watchtower
 backup:
   priority: low
@@ -39,8 +39,8 @@ auth:
   sso_provider: null
   access_policy: access_full_site
 resources:
-  cpu_profile: large
-  memory_profile: large
+  cpu_profile: small
+  memory_profile: small
   storage_profile: small
   gpu_profile: none
 placement:
