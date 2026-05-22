@@ -19,12 +19,11 @@ Self-hosted music streaming server: index your music library and stream it from 
      ```bash
      docker compose up -d
      ```
-   - Or add the stack in Portainer and set the same variables in the stack **Environment**. The named volumes (`navidrome_data`, `navidrome_music`) are created automatically, so the stack works well from Portainer’s web editor.
-3. **First run**
+   - Or add the stack in Portainer and set the same variables in the stack **Environment**. The `navidrome_data` named volume is created automatically. The music library uses a bind mount from `NAVIDROME_MUSIC_PATH` (default `/mnt/media/music`) — make sure that path exists on the host before deploying.
    - Access Navidrome via Caddy (for example, `https://music.home` or `https://music.yourdomain.com`).
    - Complete the initial setup in the web UI and point Navidrome at your music folder (mounted at `/music` in the container).
 
-This stack uses **named volumes** so it works cleanly when deployed from Portainer's web editor.
+This stack uses a **named volume** (`navidrome_data`) for app data and a **bind mount** for music (set `NAVIDROME_MUSIC_PATH` in `stack.env`).
 
 ## Configuration
 
@@ -34,21 +33,17 @@ This stack uses **named volumes** so it works cleanly when deployed from Portain
 | **Network**| `monitor` (external) — Caddy can reverse-proxy to `navidrome:4533`     |
 | **Image**  | `deluan/navidrome:latest`                                              |
 | **Env**    | `TZ` optional; `ND_BASEURL`, `ND_LOGLEVEL`, `ND_SCANSCHEDULE`, etc.    |
-| **Storage**| Named volumes: `navidrome_data` (`/data`), `navidrome_music` (`/music`)|
+| **Storage**| Named volume `navidrome_data` (`/data`); music bind-mounted from `${NAVIDROME_MUSIC_PATH:-/mnt/media/music}` to `/music` |
 
-## Adding your music (bind mounts)
+## Music library path
 
-By default, this stack uses the `navidrome_music` named volume for `/music`. To use a specific host directory instead (for example, `/srv/media/music`), change the `volumes` section of the `navidrome` service:
+The music library defaults to `/mnt/media/music` on the host (bind-mounted read-write to `/music` in the container). Override by setting `NAVIDROME_MUSIC_PATH` in `stack.env`:
 
-```yaml
-services:
-  navidrome:
-    volumes:
-      - navidrome_data:/data
-      - /srv/media/music:/music:ro
+```env
+NAVIDROME_MUSIC_PATH=/srv/media/music
 ```
 
-Then configure the music library in the Navidrome UI to use `/music` as the library path. If you bind-mount a host path for `/music`, ensure it is readable by the container (Navidrome runs as UID 1000); e.g. `chown -R 1000:1000 /srv/media/music` if you need to access files as your host user.
+Ensure the host path is readable by Navidrome (runs as UID 1000). If needed: `chown -R 1000:1000 /srv/media/music`.
 
 ## Uptime Kuma health checks
 
@@ -58,6 +53,23 @@ You can monitor Navidrome in Uptime Kuma in two ways:
 - **Prometheus metrics path:** If you enable metrics with `ND_PROMETHEUS_ENABLED=true` and set a secret `ND_PROMETHEUS_METRICSPATH` (for example, `/metrics_SOME_SECRET_KEY`), you can:
   - Add a Prometheus scrape job pointing at `navidrome:4533` and that metricspath.
   - Optionally create an HTTP monitor in Kuma that hits the same path through Caddy to ensure the metrics endpoint stays reachable.
+
+## Last.fm scrobbling
+
+To enable Last.fm scrobbling in Navidrome:
+
+1. In `stack.env`, set:
+   - `ND_LASTFM_ENABLED=true`
+   - `ND_LASTFM_APIKEY=<your last.fm api key>`
+   - `ND_LASTFM_SECRET=<your last.fm shared secret>`
+2. Restart Navidrome from this directory:
+   ```bash
+   docker compose up -d
+   ```
+3. In Navidrome web UI, each user must open **Personal Settings** and enable **Scrobble to Last.fm**.
+4. Complete the Last.fm authorization page (`Yes, allow access`) and return to Navidrome.
+
+If the scrobble toggle is disabled in Personal Settings, Navidrome is not reading valid `ND_LASTFM_APIKEY`/`ND_LASTFM_SECRET` values yet; check `stack.env` and restart the container.
 
 ## Caddy reverse proxy
 
