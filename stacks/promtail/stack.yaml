@@ -39,8 +39,8 @@ auth:
   sso_provider: null
   access_policy: access_full_site
 resources:
-  cpu_profile: large
-  memory_profile: large
+  cpu_profile: small
+  memory_profile: small
   storage_profile: small
   gpu_profile: none
 placement:

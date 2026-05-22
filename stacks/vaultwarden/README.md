@@ -2,7 +2,7 @@
 
 Lightweight, self-hosted password manager compatible with Bitwarden clients (browser extensions, mobile apps, CLI).
 
-**Website:** https://vaultwarden.github.io  
+**Website:** https://www.vaultwarden.net  
 **Docs:** https://github.com/dani-garcia/vaultwarden/wiki  
 **GitHub:** https://github.com/dani-garcia/vaultwarden  
 **Docker image:** https://hub.docker.com/r/vaultwarden/server  

@@ -2,7 +2,7 @@
 
 OSINT framework for homelab-user discovery across 500+ platforms, breach lookups (Have I Been Pwned, BreachVIP, Snusbase, LeakCheck), face matching, reverse image search, and optional AI demasking. Includes a web dashboard and CLI.
 
-**Website:** https://socialhunt.org  
+**Website:** https://socialhunt.cyou  
 **Docs:** https://github.com/AfterPacket/Social-Hunt#readme  
 **GitHub:** https://github.com/AfterPacket/Social-Hunt  
 **Docker image:** https://hub.docker.com/r/afterpacket/social-hunt  

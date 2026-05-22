@@ -3,7 +3,7 @@
 Container streaming platform for **browser-based access to desktops and applications**. Delivers on-demand, disposable Docker containers (Remote Browser Isolation, DaaS, secure remote access) streamed to the web—no client software or VPN required. Powered by KasmVNC.
 
 **Homepage:** https://www.kasmweb.com/  
-**Docs:** https://docs.kasmweb.com/  
+**Docs:** https://docs.kasm.com/  
 **GitHub:** https://github.com/linuxserver/docker-kasm  
 **Docker image:** lscr.io/linuxserver/kasm  
 

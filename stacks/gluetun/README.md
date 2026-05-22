@@ -2,7 +2,7 @@
 
 Outbound VPN client so **specific containers** can use a commercial VPN without putting the whole host behind it. Other stacks attach with `network_mode: service:gluetun` (e.g. the qbittorrent stack uses its own Gluetun instance; this stack is for a shared or alternate VPN client).
 
-**Docs:** https://gluetun.com/  
+**Docs:** https://github.com/qdm12/gluetun/wiki  
 **GitHub:** https://github.com/qdm12/gluetun  
 **Provider wiki:** https://github.com/qdm12/gluetun-wiki  
 
@@ -15,7 +15,7 @@ Outbound VPN client so **specific containers** can use a commercial VPN without 
 
 1. **Environment**
    - Copy `stack.env.example` to `stack.env`.
-   - Set `TZ`, `VPN_SERVICE_PROVIDER`, `VPN_TYPE`, and provider-specific vars (see [Gluetun configuration](https://gluetun.com/configuration/) and the [provider wiki](https://github.com/qdm12/gluetun-wiki)).
+   - Set `TZ`, `VPN_SERVICE_PROVIDER`, `VPN_TYPE`, and provider-specific vars (see [Gluetun wiki](https://github.com/qdm12/gluetun/wiki) and the [provider wiki](https://github.com/qdm12/gluetun-wiki)).
 
 2. **Deploy**
    From this directory:
