@@ -7,6 +7,9 @@ services:
     container_name: cadvisor
     restart: unless-stopped
     privileged: true
+    command:
+      - -disable_metrics=disk,diskIO
+      - -store_container_labels=false
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -26,7 +29,7 @@ services:
       interval: 60s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 90s
 
 networks:
   default:
