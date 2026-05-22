@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Seerr">
+  <defs>
+    <linearGradient id="seerr-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#seerr-bg)"/>
+  <path fill="#fff" d="M156 352c0-48 36-78 108-90 54-10 72-22 72-48 0-26-22-42-62-42-40 0-66 18-78 46l-64-36c22-52 74-82 146-82 88 0 140 42 140 102 0 54-38 86-112 98-48 8-64 20-64 44 0 24 22 40 58 40 36 0 62-16 76-42l60 34c-20 56-78 88-142 88-84 0-134-38-134-98z"/>
+</svg>
