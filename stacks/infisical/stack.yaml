@@ -30,7 +30,7 @@ host_requirements:
   uses_host_network: false
 links:
   homepage: https://infisical.com
-  docs: https://infisical.com/docs
+  docs: https://infisical.com/docs/documentation/getting-started/overview
   repo: https://github.com/Infisical/infisical
 backup:
   priority: high

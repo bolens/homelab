@@ -5,7 +5,7 @@ health:
   endpoint: /healthz
   internal_only: true
 monitoring:
-  prometheus: false
+  prometheus: true
   uptime_kuma:
     external: true
     internal: true

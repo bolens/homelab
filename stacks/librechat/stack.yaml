@@ -30,7 +30,7 @@ host_requirements:
   uses_host_network: false
 links:
   homepage: https://www.librechat.ai
-  docs: https://docs.librechat.ai
+  docs: https://www.librechat.ai/docs
   repo: https://github.com/LibreChat-AI/LibreChat
 backup:
   priority: high

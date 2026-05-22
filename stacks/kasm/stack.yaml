@@ -28,7 +28,7 @@ host_requirements:
   uses_host_network: false
 links:
   homepage: null
-  docs: https://docs.kasmweb.com/
+  docs: https://docs.kasm.com/
   repo: https://github.com/linuxserver/docker-kasm
 backup:
   priority: medium

@@ -3,7 +3,7 @@
 Self-hosted secrets manager for API keys, environment variables, and config. Sync secrets to apps, CI/CD, and CLI. Open-source alternative to Doppler, Vault (simpler), and env vaults.
 
 **Website:** https://infisical.com  
-**Docs:** https://infisical.com/docs  
+**Docs:** https://infisical.com/docs/documentation/getting-started/overview  
 **GitHub:** https://github.com/Infisical/infisical  
 **Docker image:** https://hub.docker.com/r/infisical/infisical  
 **Releases:** https://github.com/Infisical/infisical/releases  

@@ -3,7 +3,7 @@
 Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code interpreter, and more.
 
 **Website:** https://www.librechat.ai  
-**Docs:** https://docs.librechat.ai  
+**Docs:** https://www.librechat.ai/docs  
 **GitHub:** https://github.com/LibreChat-AI/LibreChat  
 **Docker image:** https://github.com/LibreChat-AI/LibreChat/pkgs/container/librechat  
 **Releases:** https://github.com/LibreChat-AI/LibreChat/releases  
@@ -185,4 +185,4 @@ This stack does not expose host ports; use a reverse proxy (Caddy, Nginx, Traefi
 
 ## Documentation
 
-For more information, visit: https://docs.librechat.ai
+For more information, visit: https://www.librechat.ai/docs

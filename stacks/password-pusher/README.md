@@ -52,7 +52,7 @@ Defaults for new pushes (e.g. default days, max views) are configurable via [env
 
 ## SMTP (optional)
 
-To send signup confirmation emails and password-reset emails, set these in your `stack.env` or Portainer stack Environment (see [docs](https://docs.pwpush.com/docs/enabling-logins/)):
+To send signup confirmation emails and password-reset emails, set these in your `stack.env` or Portainer stack Environment (see [docs](https://docs.pwpush.com)):
 
 - `PWP__MAIL__SMTP_ADDRESS`, `PWP__MAIL__SMTP_PORT`, `PWP__MAIL__SMTP_USER_NAME`, `PWP__MAIL__SMTP_PASSWORD`
 - `PWP__MAIL__SMTP_AUTHENTICATION=plain`, `PWP__MAIL__SMTP_STARTTLS=true`

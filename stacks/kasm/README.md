@@ -2,7 +2,7 @@
 
 Container streaming platform for **browser-based access to desktops and applications**. Delivers on-demand, disposable Docker containers (Remote Browser Isolation, DaaS, secure remote access) streamed to the web—no client software or VPN required. Powered by KasmVNC.
 
-**Homepage:** https://www.kasmweb.com/  
+**Homepage:** https://kasm.com/  
 **Docs:** https://docs.kasm.com/  
 **GitHub:** https://github.com/linuxserver/docker-kasm  
 **Docker image:** lscr.io/linuxserver/kasm  
@@ -117,7 +117,7 @@ After installation, configure Kasm for reverse proxy use:
 
 1. Log in as admin at `https://kasm.yourdomain.com`.
 2. Go to **Admin** → **Zones** → **Default**.
-3. Set **Proxy Port** to `0` so workspace sessions launch correctly behind the proxy. See [Kasm reverse proxy docs](https://www.kasmweb.com/docs/latest/how_to/reverse_proxy.html#update-zones).
+3. Set **Proxy Port** to `0` so workspace sessions launch correctly behind the proxy. See [Kasm reverse proxy docs](https://docs.kasm.com/docs/latest/how_to/reverse_proxy.html#update-zones).
 
 ## Administering workspaces (available apps)
 
@@ -212,7 +212,7 @@ Besides the built-in Kasm Technologies and Kasm AI registries, you can add the *
 
 ## Optional: persistent profiles
 
-The stack mounts `kasm_profiles` to `/profiles`. When configuring a workspace in the admin UI, set **Persistent Profile Path** to e.g. `/profiles/ubuntu-focal/{homelab-user}/` for user-specific persistence. See [Kasm persistent profiles](https://www.kasmweb.com/docs/latest/how_to/persistent_profiles.html).
+The stack mounts `kasm_profiles` to `/profiles`. When configuring a workspace in the admin UI, set **Persistent Profile Path** to e.g. `/profiles/ubuntu-focal/{homelab-user}/` for user-specific persistence. See [Kasm persistent profiles](https://docs.kasm.com/docs/latest/guide/persistent_data/persistent_profiles.html).
 
 ## Optional: MinIO (S3) persistent profiles
 

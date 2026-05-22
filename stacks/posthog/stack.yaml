@@ -28,7 +28,7 @@ host_requirements:
   uses_host_network: false
 links:
   homepage: null
-  docs: https://posthog.com/docs/self-host/deploy/hobby
+  docs: https://posthog.com/docs/self-host
   repo: https://github.com/PostHog/posthog
 backup:
   priority: low

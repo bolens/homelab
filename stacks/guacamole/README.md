@@ -6,7 +6,7 @@ Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible e
 **Docs:** https://guacamole.apache.org/doc/gug/  
 **GitHub:** https://github.com/apache/guacamole-client  
 **Docker image:** https://hub.docker.com/r/guacamole/guacamole  
-**Releases:** https://guacamole.apache.org/release-notes/  
+**Releases:** https://guacamole.apache.org/releases/  
 
 ## Quick start
 

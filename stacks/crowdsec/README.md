@@ -84,7 +84,7 @@ How you wire logs in is up to you and your logging setup. The upstream docs cove
 See:
 
 - Docker installation guide: https://docs.crowdsec.net/u/getting_started/installation/docker/  
-- Docker data source: https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker  
+  - Docker data source: https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker/
 
 In all cases, ensure the user/group CrowdSec runs as can read the relevant log files (use `GID` and volume permissions accordingly).
 
@@ -133,5 +133,5 @@ Stacks → Add stack → **Repository** → Compose path `stacks/crowdsec/docker
 
 - CrowdSec product overview: https://www.crowdsec.net/  
 - CrowdSec Docker install docs: https://docs.crowdsec.net/u/getting_started/installation/docker/  
-- Docker data source docs: https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker  
+  - Docker data source docs: https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker/
 
