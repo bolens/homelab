@@ -10,51 +10,49 @@ Real-time Docker container log viewer. One container, no database; uses the Dock
 
 ## Quick start
 
-1. Ensure the `monitor` network exists (e.g. `docker network create monitor` or deploy Caddy first).
-2. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
-3. Access via Caddy (e.g. https://dozzle.home or https://dozzle.yourdomain.com). Caddy uses `reverse_proxy dozzle:8080` on the shared monitor network (same pattern as yourls, cadvisor, grafana).
-
-## Portainer
-
-The stack is Portainer-friendly: no host bind mounts (except the Docker socket), env defaults for all variables, and an external `monitor` network. To deploy:
-
-1. Create the `monitor` network once (Networks → Add network → name `monitor`) if it does not exist.
-2. Stacks → Add stack → paste or pull this compose. Optionally set **Environment variables** in the stack (e.g. `DOZZLE_HOST_PORT`, `TZ`); defaults work without them.
-3. For Dozzle v10+ auth: in the compose, uncomment the `dozzle_config:/data` volume and the mount line, redeploy, then add `users.yaml` into the `dozzle_config` volume (e.g. Portainer Volumes → dozzle_config → browse / upload, or use a one-off container to copy the file in).
+1. From this directory: **`./prepare-stack.sh`** — creates `stack.env` (if missing), **`DOZZLE_CONFIG_DIR`** on the host (default **`~/.config/dozzle`**), seeds **`users.yaml`** from **[users.yaml.example](users.yaml.example)** when no `users.yaml`/`users.yml` exists yet, copies **`stack.env` → `.env`** for Compose `${HOME}` interpolation, ensures the **`monitor`** network exists.
+2. Ensure the **`monitor`** network exists if you skipped the script (e.g. `docker network create monitor` or deploy Caddy first).
+3. **`docker compose up -d`** (after prepare, Compose reads `.env` for bind-mount paths).
+4. Access via Caddy (e.g. https://dozzle.home or https://dozzle.example.com). This stack’s [caddy_snippet.conf](caddy_snippet.conf) is imported by the main Caddyfile.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Ports** | Optional `8082:8080` for direct host access. Caddy reaches Dozzle by `dozzle:8080` on the monitor network. |
-| **Volumes** | Docker socket (read-only) for container list and logs. |
-| **Network** | `monitor` (external) — same as Caddy and yourls; join the same pre-existing network. |
-| **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. Dozzle v10+ auth: put `users.yaml` in the `dozzle_config` volume (path `/data/users.yaml`). Copy from [users.yaml.example](users.yaml.example) and generate password with `docker run -it --rm amir20/dozzle generate admin --password SECRET --email you@example.com --name Admin`. |
+| **Volumes** | Docker socket (read-only). **Auth data:** host dir **`DOZZLE_CONFIG_DIR`** (default **`~/.config/dozzle`**) → container **`/data`** (`users.yaml` / `users.yml`). |
+| **Network** | `monitor` (external) — same as Caddy. |
+| **Env** | See [stack.env.example](stack.env.example), [ENV-VARS.md](../../documents/ENV-VARS.md), and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md). Set **`DOZZLE_AUTH_PROVIDER=simple`** only with a valid **`users.yaml`** (see below). **`stack.env` → `.env`** is for Compose interpolation only; compose-only keys are **not** passed into the container (avoids Dozzle "Unexpected environment variable" warnings). |
+| **Health** | Uses Dozzle’s built-in **`/dozzle healthcheck`** (see https://dozzle.dev/guide/healthcheck ) — the image has no `wget`/`sh`. |
 
-## Copying users.yaml into the volume
+## Simple auth (file-based)
 
-After enabling the `dozzle_config` volume in the compose and redeploying, put `users.yaml` at `/data/users.yaml` inside that volume. If your stack has a project name (e.g. Portainer stack name `dozzle`), the volume may be `dozzle_dozzle_config`—use that name in the `-v` flag below.
+1. In **`stack.env`**, set **`DOZZLE_AUTH_PROVIDER=simple`** (and **`DOZZLE_CONFIG_DIR`** if not using the default).
+2. Run **`./prepare-stack.sh`** again — if **`users.yaml`** / **`users.yml`** are not present yet, it copies **[users.yaml.example](users.yaml.example)** to **`DOZZLE_CONFIG_DIR/users.yaml`** (existing files are never overwritten).
+3. Replace the placeholder password with a real bcrypt entry:
 
-**From host file** (run from this directory, with `users.yaml` in the current dir):
+   ```bash
+   docker run -it --rm amir20/dozzle generate admin --password YOUR_PASSWORD --email you@example.com --name Admin > /path/to/your/DOZZLE_CONFIG_DIR/users.yaml
+   ```
 
-```bash
-docker run --rm -v dozzle_config:/data -v "$(pwd)/users.yaml:/users.yaml:ro" alpine cp /users.yaml /data/users.yaml
-```
+   Or merge the generated `users:` block into the existing file.
 
-**From stdin** (e.g. pipe generated output straight in):
+4. **`docker compose up -d`** (or restart the Dozzle container).
 
-```bash
-docker run -it --rm amir20/dozzle generate admin --password YOUR_PASSWORD --email you@example.com --name Admin | docker run -i --rm -v dozzle_config:/data alpine sh -c "cat > /data/users.yaml"
-```
+Dozzle reads **`/data/users.yaml`** or **`/data/users.yml`** inside the container (i.e. files in **`DOZZLE_CONFIG_DIR`** on the host). See https://dozzle.dev/guide/authentication
 
-**Portainer:** Volumes → select `dozzle_config` → **Browse** (or **Console** for this stack’s container) and upload or paste `users.yaml` into `/data/`. If the stack has no container with that volume yet, use a one-off container as above from a host that has Docker CLI.
+**Blank UI:** Do **not** set **`simple`** without a valid **`users.yaml`**. Behind **Cloudflare**, turn off **Rocket Loader** for your Dozzle hostname if the SPA stays blank.
 
-Then restart the Dozzle container so it picks up the file.
+## Portainer
+
+1. Create the **`monitor`** network if needed.
+2. Set stack environment variables to match **`stack.env.example`**, especially **`DOZZLE_CONFIG_DIR`** as an **absolute host path** (Compose on the Portainer host does not expand `~`).
+3. On the host (or a job), create **`users.yaml`** under that directory (or run **`./prepare-stack.sh`** from a checkout that has the same **`stack.env`**, then deploy).
 
 ## Caddy
 
-Use `reverse_proxy dozzle:8080` (same as yourls:8080, cadvisor:8080). See [stacks/caddy/Caddyfile](../caddy/Caddyfile) for dozzle.yourdomain.com.
+Use `reverse_proxy dozzle:8080` (same as cadvisor, grafana). See [caddy_snippet.conf](caddy_snippet.conf) and [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example).
 
 ## Start
 
-`docker compose up -d` from this directory.
+`./prepare-stack.sh` then `docker compose up -d` from this directory.

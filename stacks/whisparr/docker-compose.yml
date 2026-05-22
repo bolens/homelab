@@ -1,0 +1,42 @@
+# Bind mounts are driven by WHISPARR_*_PATH in stack.env.
+# Compose reads those for volume paths only if you pass the file to the CLI, e.g.:
+#   docker compose --env-file stack.env up -d
+# (env_file below injects the same vars into the container but does not substitute compose volumes.)
+services:
+  whisparr:
+    image: ghcr.io/thespad/whisparr:latest
+    container_name: whisparr
+    restart: unless-stopped
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+    volumes:
+      - ${WHISPARR_CONFIG_PATH:?Set WHISPARR_CONFIG_PATH in stack.env}:/config
+      - ${WHISPARR_MOVIES_PATH:?Set WHISPARR_MOVIES_PATH in stack.env}:/movies
+      - ${WHISPARR_USENET_DOWNLOADS_PATH:?Set WHISPARR_USENET_DOWNLOADS_PATH in stack.env}:/downloads
+      - ${WHISPARR_TORRENT_DOWNLOADS_PATH:?Set WHISPARR_TORRENT_DOWNLOADS_PATH in stack.env}:/torrents
+    networks:
+      - monitor
+      - usenet
+      - torrents
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6969/ || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  usenet:
+    name: usenet
+    external: true
+  torrents:
+    name: torrents
+    external: true

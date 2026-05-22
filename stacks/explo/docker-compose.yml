@@ -1,0 +1,31 @@
+services:
+  explo:
+    image: ghcr.io/lumepart/explo:latest
+    container_name: explo
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      # Explo expects a dotenv config at /opt/explo/.env.
+      - ./stack.env:/opt/explo/.env:ro
+      # Use the same host music library path Navidrome reads from.
+      - "${MUSIC_LIBRARY_PATH:-/mnt/media/music}:/data"
+      # Source path for completed slskd downloads (to migrate into /data).
+      - "${SLSKD_DOWNLOADS_PATH:-/mnt/media/downloads/soulseek}:/slskd"
+    networks:
+      - monitor
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true

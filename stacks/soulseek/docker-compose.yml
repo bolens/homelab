@@ -1,0 +1,42 @@
+services:
+  soulseek:
+    image: slskd/slskd:latest
+    container_name: soulseek
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - soulseek_app:/app
+      - "${SLSKD_DOWNLOADS_PATH:-./data/downloads}:/downloads"
+      - "${SLSKD_SHARED_MUSIC_PATH:-/mnt/media/music}:/music"
+      - soulseek_incomplete:/incomplete
+    networks:
+      - monitor
+    ports:
+      - "${SLSKD_SLSK_LISTEN_PORT:-50300}:${SLSKD_SLSK_LISTEN_PORT:-50300}"
+      - "${SLSKD_SLSK_LISTEN_PORT:-50300}:${SLSKD_SLSK_LISTEN_PORT:-50300}/udp"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5030/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  soulseek_app:
+  soulseek_incomplete:

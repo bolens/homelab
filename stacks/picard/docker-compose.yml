@@ -1,0 +1,37 @@
+services:
+  picard:
+    image: jlesage/musicbrainz-picard:latest
+    container_name: picard
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - picard_config:/config
+      - "${PICARD_MUSIC_PATH:-/mnt/media/music}:/music"
+      - "${PICARD_IMPORT_PATH:-/mnt/media/downloads/soulseek}:/import"
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5800/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  picard_config:
