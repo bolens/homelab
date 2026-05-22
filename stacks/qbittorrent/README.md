@@ -3,7 +3,7 @@
 Torrent client with **all traffic routed through a VPN** (Gluetun). Intended for **automated torrents** from Sonarr/Radarr/Lidarr/Readarr. The stack uses the shared `torrents` network and `torrents_downloads` volume so *arr apps can send torrents to qBittorrent and read completed files.
 
 **Website (qBittorrent):** https://www.qbittorrent.org/  
-**Docs (Gluetun):** https://gluetun.com/  
+**Docs (Gluetun):** https://github.com/qdm12/gluetun/wiki  
 **Gluetun GitHub:** https://github.com/qdm12/gluetun  
 **Gluetun wiki (providers):** https://github.com/qdm12/gluetun-wiki  
 
@@ -27,7 +27,7 @@ Torrent client with **all traffic routed through a VPN** (Gluetun). Intended for
 
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, `PGID`.
-   - Configure Gluetun VPN: set `VPN_SERVICE_PROVIDER` and provider-specific variables (e.g. custom WireGuard keys, or Mullvad/NordVPN/ProtonVPN env vars). See [Gluetun configuration](https://gluetun.com/configuration/) and the [provider wiki](https://github.com/qdm12/gluetun-wiki).
+   - Configure Gluetun VPN: set `VPN_SERVICE_PROVIDER` and provider-specific variables (e.g. custom WireGuard keys, or Mullvad/NordVPN/ProtonVPN env vars). See [Gluetun wiki](https://github.com/qdm12/gluetun/wiki) and the [provider wiki](https://github.com/qdm12/gluetun-wiki).
 
 3. **Deploy**
 
