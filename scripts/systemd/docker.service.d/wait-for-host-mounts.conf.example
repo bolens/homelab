@@ -1,0 +1,28 @@
+# Install:
+#   sudo install -d /etc/systemd/system/docker.service.d
+#   sudo install -m 644 scripts/systemd/docker.service.d/wait-for-host-mounts.conf.example \
+#     /etc/systemd/system/docker.service.d/wait-for-host-mounts.conf
+#   sudo systemctl daemon-reload
+#   sudo systemctl restart docker
+#
+# systemd.unit(5): RequiresMountsFor= adds After= + Requires= on the mount
+# units needed so these paths exist before dockerd starts. List every host
+# path you bind-mount into stacks (top-level mount points are enough).
+#
+# Paths must be mounts systemd knows about (fstab / .mount units). If a path
+# is not a mount point, omit it or systemd may fail the unit.
+#
+# If Docker data-root is on /mnt/..., include that mount here too.
+#
+# Automount (x-systemd.automount): RequiresMountsFor= still orders after the
+# automount/mount stack; if anything races, prefer a normal fstab mount for
+# that volume or add explicit After=mnt-example.mount lines.
+
+[Unit]
+# Uncomment any other host mounts your stacks bind (see compose / stack.env):
+RequiresMountsFor=/mnt/media
+RequiresMountsFor=/mnt/dev
+RequiresMountsFor=/mnt/backup
+# RequiresMountsFor=/mnt/apps
+RequiresMountsFor=/mnt/games
+

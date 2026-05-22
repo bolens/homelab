@@ -5,6 +5,11 @@ services:
     image: prom/blackbox-exporter:latest
     container_name: blackbox-exporter
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     command:
       - --config.file=/etc/blackbox_exporter/config.yml
       - --log.level=info
@@ -13,6 +18,8 @@ services:
     networks:
       - monitor
     env_file:
+      - path: ../../shared.env
+        required: false
       - stack.env
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9115/health"]
@@ -20,6 +27,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+    mem_limit: 256m
+    cpus: '0.25'
 
 networks:
   monitor:

@@ -1,6 +1,6 @@
 services:
   ntopng:
-    image: ntop/ntopng:stable
+    image: ntop/ntopng:latest
     container_name: ntopng
     restart: unless-stopped
     # ntopng inspects host network traffic; host networking is recommended.
@@ -8,9 +8,11 @@ services:
     volumes:
       - ntopng_data:/var/lib/ntopng
     env_file:
+      - path: ../../shared.env
+        required: false
       - stack.env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
       interval: 60s
       timeout: 10s
       retries: 3

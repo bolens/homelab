@@ -1,38 +1,33 @@
+# Secrets and DB URLs live only in stack.env (env_file). Compose does not
+# interpolate them from the host, so `docker compose up -d` is enough.
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: woodpecker-postgres
     restart: unless-stopped
-    environment:
-      - POSTGRES_DB=${WOODPECKER_DB_NAME:-woodpecker}
-      - POSTGRES_USER=${WOODPECKER_DB_USER:-woodpecker}
-      - POSTGRES_PASSWORD=${WOODPECKER_DB_PASSWORD}
+    env_file:
+      - stack.env
     volumes:
       - woodpecker_pg_data:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${WOODPECKER_DB_USER:-woodpecker} -d ${WOODPECKER_DB_NAME:-woodpecker}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 10s
       retries: 10
 
   server:
-    image: woodpeckerci/woodpecker-server:latest
+    image: woodpeckerci/woodpecker-server:v3
     container_name: woodpecker-server
     restart: unless-stopped
     env_file:
       - stack.env
+    # Non-secret defaults (override stack.env). This stack targets Gitea; without
+    # this, v3 exits with "forge not configured" if stack.env omits WOODPECKER_GITEA.
     environment:
-      - WOODPECKER_DATABASE_DRIVER=postgres
-      - WOODPECKER_DATABASE_DATASOURCE=postgres://${WOODPECKER_DB_USER:-woodpecker}:${WOODPECKER_DB_PASSWORD}@postgres:5432/${WOODPECKER_DB_NAME:-woodpecker}?sslmode=disable
-      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
-      - WOODPECKER_GITEA=${WOODPECKER_GITEA:-true}
-      - WOODPECKER_GITEA_URL=${WOODPECKER_GITEA_URL}
-      - WOODPECKER_GITEA_CLIENT=${WOODPECKER_GITEA_CLIENT}
-      - WOODPECKER_GITEA_SECRET=${WOODPECKER_GITEA_SECRET}
-      - WOODPECKER_OPEN=${WOODPECKER_OPEN:-false}
-      - TZ=${TZ:-America/Denver}
+      WOODPECKER_GITEA: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,15 +36,11 @@ services:
       - monitor
 
   agent:
-    image: woodpeckerci/woodpecker-agent:latest
+    image: woodpeckerci/woodpecker-agent:v3
     container_name: woodpecker-agent
     restart: unless-stopped
     env_file:
       - stack.env
-    environment:
-      - WOODPECKER_SERVER=${WOODPECKER_SERVER:-woodpecker-server:9000}
-      - WOODPECKER_AGENT_SECRET=${WOODPECKER_AGENT_SECRET}
-      - TZ=${TZ:-America/Denver}
     depends_on:
       server:
         condition: service_started
@@ -65,4 +56,3 @@ networks:
 
 volumes:
   woodpecker_pg_data:
-

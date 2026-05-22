@@ -1,32 +1,37 @@
-# Perplexica - Privacy-focused AI-powered answering engine
-# Includes bundled SearxNG search engine. No host ports: access via Caddy (perplexica.home / perplexica.yourdomain.com on monitor network).
+# Perplexica - privacy-focused AI answering engine
+# Uses bundled SearxNG by default. No host ports: access via Caddy (reverse_proxy perplexica:3000).
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   perplexica:
     image: itzcrazykns1337/perplexica:latest
     container_name: perplexica
     restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
     volumes:
       - perplexica_data:/home/perplexica/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - monitor
-    environment:
-      - TZ=${TZ:-America/Denver}
-      - LANG=${LANG:-en_US.UTF-8}
-      - LC_ALL=${LC_ALL:-en_US.UTF-8}
-      - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
-      # SearxNG URL (if using external SearxNG instance)
-      # Leave empty to use bundled SearxNG
-      - SEARXNG_API_URL=${SEARXNG_API_URL:-}
-      # Ollama Configuration
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    mem_limit: 2g
+    cpus: "2.00"
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      test: ["CMD-SHELL", "curl -fsS \"http://$(hostname):3000/\" >/dev/null"]
       interval: 60s
       timeout: 15s
       retries: 3
       start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   monitor:
@@ -35,4 +40,3 @@ networks:
 
 volumes:
   perplexica_data:
-    driver: local

@@ -12,3 +12,109 @@ modules:
     timeout: 10s
     tcp:
       preferred_ip_protocol: "ip4"
+
+  # --- Optional: use with extra Prometheus jobs (see prometheus.yml.example → blackbox_paths). Paths match documents/MONITORING-TARGETS.md where not /. ---
+
+  http_grafana_health:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /api/health
+
+  http_prometheus_ready:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /-/healthy
+
+  http_alertmanager_ready:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /-/healthy
+
+  http_immich_ping:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /api/server/ping
+
+  http_vaultwarden_alive:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /alive
+
+  http_audiobookshelf_health:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /healthcheck
+
+  http_baserow_health:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /api/_health/
+
+  http_minio_live:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /minio/health/live
+
+  http_mattermost_ping:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /api/v4/system/ping
+
+  http_collabora_discovery:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /hosting/discovery
+
+  # step-ca / Smallstep (HTTPS with private CA through Caddy or direct). Prefer probing the public Caddy URL with http_2xx; use this if you must hit the CA container TLS directly.
+  https_stepca_health:
+    prober: http
+    timeout: 15s
+    http:
+      valid_status_codes: []
+      follow_redirects: true
+      preferred_ip_protocol: "ip4"
+      path: /health
+      tls_config:
+        insecure_skip_verify: true
+
+

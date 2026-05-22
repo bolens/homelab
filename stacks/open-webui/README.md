@@ -21,10 +21,7 @@ Extensible, feature-rich, and user-friendly self-hosted AI platform designed to 
 
 ## Setup
 
-1. Copy `stack.env.example` to `stack.env`:
-   ```bash
-   cp stack.env.example stack.env
-   ```
+1. Run `./prepare-stack.sh` (creates `stack.env`, copies `caddy_snippet.conf` from template if missing, and ensures the external `monitor` network exists).
 
 2. Configure Ollama connection:
    - If Ollama is on the same Docker network: `OLLAMA_BASE_URL=http://ollama:11434`
@@ -41,14 +38,16 @@ Extensible, feature-rich, and user-friendly self-hosted AI platform designed to 
    openssl rand -base64 32  # For WEBUI_JWT_SECRET_KEY
    ```
 
-5. Start the stack:
+5. Set your hostname in `caddy_snippet.conf`.
+
+6. Start the stack:
    ```bash
-   docker compose --env-file stack.env up -d
+   docker compose up -d
    ```
 
 ## Usage
 
-Once running, Open WebUI will be available at `http://localhost:3000`.
+Once running, Open WebUI is available via Caddy (for example `open-webui.home`, `open-webui.example.com`, or `chat.example.com`). No host ports are exposed.
 
 ### Initial Setup
 
@@ -111,6 +110,14 @@ If you're running Ollama in another Docker stack:
 
 For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
+### LiteLLM proxy (optional)
+
+To route **OpenAI-compatible** traffic (cloud + Ollama) through the homelab **[litellm](../litellm/README.md)** stack:
+
+1. Deploy **litellm** on `monitor` and set `LITELLM_MASTER_KEY` in `stacks/litellm/stack.env`.
+2. In **Open WebUI** `stack.env`, set `OPENAI_API_BASE_URL=http://litellm:4000/v1` and `OPENAI_API_KEY` to the same value as `LITELLM_MASTER_KEY` (or a LiteLLM virtual key).
+3. In the Open WebUI UI, enable the OpenAI connection and pick models exposed by LiteLLM.
+
 ### Database Options
 
 Open WebUI uses SQLite by default. For production, you can configure:
@@ -134,9 +141,6 @@ See Open WebUI documentation for advanced database configuration.
 - Ensure Ollama is running and models are available
 - Try `http://host.docker.internal:11434` if on same host
 
-### Port Conflicts
-- Change `OPEN_WEBUI_HOST_PORT` in `stack.env` if port 3000 is already in use
-
 ### Permission Issues
 - Ensure data directory has proper permissions
 - Container runs as non-root user
@@ -145,6 +149,12 @@ See Open WebUI documentation for advanced database configuration.
 - Check data directory is writable
 - Verify disk space is available
 - For SQLite issues, check file permissions
+
+## Resource limits and backup
+
+- Compose includes baseline `cpus`/`mem_limit` caps so Open WebUI does not monopolize host resources.
+- Persistent state is stored in Docker volume `open_webui_data`; include it in backups.
+- Recommended cadence: daily for active family usage, and always before image upgrades.
 
 ## Advanced Configuration
 
@@ -165,3 +175,10 @@ image: ghcr.io/open-webui/open-webui:ollama
 ## Documentation
 
 For more information, visit: https://docs.openwebui.com
+
+## Portainer
+
+1. Run `./prepare-stack.sh` on the Docker host before deployment.
+2. In Portainer, use **Stacks** -> **Add stack** -> **Repository** and set compose path to `stacks/open-webui/docker-compose.yml` (preferred).
+3. If you deploy by pasting compose, mirror values from `stack.env` in Portainer environment variables.
+4. Keep this stack behind Caddy/Cloudflare Access and do not publish host ports from this compose file.

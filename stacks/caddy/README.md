@@ -16,6 +16,16 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 2. For Cloudflare DNS-01 challenge (e.g. with Tunnel or wildcards): copy `stack.env.example` → `stack.env` and set `CLOUDFLARE_API_TOKEN` (see [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens); needs Zone:Read + DNS:Edit).
 3. Deploy (see below for Portainer vs host).
 
+Plain-HTTP `reverse_proxy` targets in **`Caddyfile.example`** include `transport http { versions 1.1 }` so cleartext backends work with **Caddy 2.11+** and **Cloudflare Tunnel → `http://caddy:80`**. After you add new one-line proxies, run **`scripts/patch-caddy-h1-transport.py`** from the repo root (it updates this example, per-stack `caddy_snippet*`, and **`stacks/stoat/caddy/Caddyfile`**).
+
+## Split horizon: `.home` / `.local` vs `*.example.com`
+
+Tracked **`caddy_snippet.conf`** files almost always define **LAN** sites (`app.home`, `app.local` with `tls internal`) so Caddy can route by hostname on your network.
+
+**Public** routes are a **second** layer, only where a stack is meant to be reachable from the Internet (Cloudflare Tunnel to `http://caddy:80`, and/or origin TLS on `app.example.com` with `tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }`). Those blocks must repeat the same upstream, **`transport http { versions 1.1 }`**, and (for tunnel) **`header_up`** for `Host`, `X-Forwarded-Proto https`, and `X-Forwarded-Host` — see [CLOUDFLARE.md](./CLOUDFLARE.md).
+
+**Reality check:** that public layer was **never applied to every stack** in one pass. Only stacks whose snippets actually mention **`example.com`** get tunnel + public TLS in the repo; the rest are **internal-only until someone adds** matching `http://…` / `….example.com` blocks (and Cloudflare Tunnel public hostnames) for the hostnames they want. Stacks that should **never** be on a public hostname (e.g. some DB UIs, LAN-only infra, high-risk surfaces) should **omit** `*.example.com` on purpose and note that in a one-line comment at the top of the snippet.
+
 ## Configuration
 
 | Item | Details |

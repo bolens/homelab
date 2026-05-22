@@ -3,6 +3,10 @@ services:
     image: serfriz/caddy-cloudflare:latest
     container_name: caddy
     restart: unless-stopped
+    # Prefer public DNS inside the container (avoids ACME propagation checks via 127.0.0.11 timing out).
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     ports:
       - "80:80"
       - "443:443"
@@ -11,6 +15,9 @@ services:
       # - "3128:3128"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Snippet imports in Caddyfile use /etc/caddy/import/... (paths inside the container).
+      - ../../portainer:/etc/caddy/import/portainer:ro
+      - ../../stacks:/etc/caddy/import/stacks:ro
       - caddy_data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"

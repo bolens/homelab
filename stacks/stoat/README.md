@@ -10,21 +10,23 @@ Self-hosted, user-first chat platform (channels, DMs, threads, media, voice) com
 
 ## Quick start
 
-1. **Generate Stoat config in this folder**
+1. **Generate Stoat config in `/home/youruser/.config/stoat`**
 
-   From `docker/stacks/stoat`:
+   From anywhere:
 
    ```bash
    curl -O https://raw.githubusercontent.com/stoatchat/self-hosted/main/generate_config.sh
    chmod +x generate_config.sh
    ./generate_config.sh stoat.home   # or stoat.yourdomain.com
+   mkdir -p /home/youruser/.config/stoat
+   mv .env.web Revolt.toml livekit.yml /home/youruser/.config/stoat/
    ```
 
    This creates:
 
-   - `.env.web` – host/URL config for Stoat's internal Caddy and web app.
-   - `Revolt.toml` – core Stoat configuration.
-   - `livekit.yml` – LiveKit (voice/video) configuration.
+  - `/home/youruser/.config/stoat/.env.web` – host/URL config for Stoat's internal Caddy and web app.
+  - `/home/youruser/.config/stoat/Revolt.toml` – core Stoat configuration.
+  - `/home/youruser/.config/stoat/livekit.yml` – LiveKit (voice/video) configuration.
 
 2. **(Recommended) Adjust for running behind this Caddy**
 
@@ -38,16 +40,16 @@ Self-hosted, user-first chat platform (channels, DMs, threads, media, voice) com
 
   - Leave `REVOLT_PUBLIC_URL`, `VITE_API_URL`, `VITE_WS_URL`, etc. pointing at your actual public hostname (e.g. `https://stoat.yourdomain.com`).
 
-3. **Data directories**
+3. **Data volumes**
 
-   The compose file uses `./data` for persistent storage:
+   The compose file uses Docker-managed named volumes for persistent storage:
 
-   - `./data/db` – MongoDB data
-   - `./data/rabbit` – RabbitMQ data
-   - `./data/minio` – MinIO object storage
-   - `./data/caddy-data`, `./data/caddy-config` – Stoat Caddy state
+   - `stoat_db_data` – MongoDB data
+   - `stoat_rabbit_data` – RabbitMQ data
+   - `stoat_minio_data` – MinIO object storage
+   - `stoat_caddy_data`, `stoat_caddy_config` – Stoat Caddy state
 
-   These paths live next to `docker-compose.yml` (and are gitignored).
+   These volumes are managed by Docker (not stored under the stack directory).
 
 4. **Deploy**
 

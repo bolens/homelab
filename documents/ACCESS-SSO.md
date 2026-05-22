@@ -187,10 +187,12 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **readarr**                               | Yes            | Protect Readarr hostname; use Access as an outer auth layer in front of app auth. |
 | **romm**                                  | Yes            | Protect RomM hostname; set `ROMM_BASE_URL` to that URL.                            |
 | **bazarr**                                | Yes            | Protect Bazarr hostname; subtitles and media library details stay behind SSO/OTP. |
+| **picard**                                | Yes            | Protect Picard hostname; tagging UI exposes library metadata and should stay behind SSO/OTP. |
 | **prowlarr**                              | Yes            | Protect Prowlarr hostname; indexer API keys and credentials stay behind SSO/OTP. |
 | **plex**                                  | Yes            | Protect Plex web hostname if exposed via tunnel; Plex also has its own account auth. |
 | **jellyfin**                              | Yes            | Protect Jellyfin hostname; app has its own accounts, Access adds an outer SSO/OTP layer. |
 | **rtorrent-flood**                        | Yes            | Protect Flood UI hostname; torrent and tracker details are sensitive and should sit behind SSO/OTP. |
+| **soulseek**                              | Yes            | Protect slskd web UI hostname; transfer queue and search/download activity should stay behind SSO/OTP. |
 | **emby**                                  | Yes            | Protect Emby hostname; app has its own accounts, Access adds an outer SSO/OTP layer. |
 | **firefly-iii**                           | Yes            | Protect hostname; set `APP_URL` to that URL. |
 | **gitea**                                 | Yes            | Protect hostname; set `GITEA_ROOT_URL` to that URL; OAuth apps use it for redirects. |

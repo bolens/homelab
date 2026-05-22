@@ -10,8 +10,8 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
 
 ## Features
 
-- **CPU by default**: Runs without a GPU; no NVIDIA driver required to deploy.
-- **Optional GPU**: Uncomment the `deploy` block in `docker-compose.yml` when NVIDIA Container Toolkit is installed.
+- **NVIDIA GPU**: `docker-compose.yml` includes a `deploy.resources.reservations.devices` block for the NVIDIA runtime (requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)).
+- **CPU-only hosts**: If Docker fails to start the container without a GPU driver, comment out the entire `deploy:` block under `ollama`, then `docker compose up -d --force-recreate`.
 - **Custom Model Storage**: Store models in a directory you define (`OLLAMA_MODELS_PATH`)
 - **Persistent Data**: Models on your path; other data (config, cache) in Docker volume `ollama_data`
 
@@ -22,10 +22,7 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
 
 ## Setup
 
-1. Copy `stack.env.example` to `stack.env`:
-   ```bash
-   cp stack.env.example stack.env
-   ```
+1. Run `./prepare-stack.sh` (creates `stack.env` from `stack.env.example` when missing, optional `caddy_snippet.conf`, ensures `monitor` network).
 
 2. (Optional) Edit `stack.env` and set your model storage path; otherwise models use `./models`:
    ```bash
@@ -37,6 +34,11 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
    ```bash
    docker compose --env-file stack.env up -d
    ```
+
+### Portainer
+
+- **Stacks** → **Add stack** → **Repository**, compose path `stacks/ollama/docker-compose.yml`.
+- Run `./prepare-stack.sh` on the host first, or create `stack.env` with `OLLAMA_HOST_PORT`, `OLLAMA_MODELS_PATH`, and attach the stack to the external `monitor` network so Open WebUI and other AI stacks can reach `ollama:11434`.
 
 ## Usage
 
@@ -68,9 +70,9 @@ Other containers can connect to Ollama at `http://ollama:11434` (on the same Doc
 
 ## GPU Support
 
-The stack runs in **CPU-only mode by default**, so it deploys even when no NVIDIA driver is available.
+The stack **ships with NVIDIA GPU reservations** in `docker-compose.yml`. Install the driver and Container Toolkit (below), configure the Docker NVIDIA runtime, then deploy.
 
-To use an **NVIDIA GPU**:
+If you run **CPU-only** and Compose or the engine errors on the `deploy` device reservation, **comment out the `deploy` block** under the `ollama` service and recreate the container.
 
 ### 1. Install the NVIDIA driver (if not already)
 
@@ -98,15 +100,15 @@ sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 ```
 
-### 4. Enable GPU in the Ollama stack
+### 4. Deploy Ollama
 
-In `stacks/ollama/docker-compose.yml`, uncomment the `deploy` block under the `ollama` service (the `resources.reservations.devices` section with `driver: nvidia`). Then:
+The `deploy` block is already in `docker-compose.yml`. After the toolkit and Docker runtime are configured:
 
 ```bash
 docker compose --env-file stack.env up -d --force-recreate
 ```
 
-To confirm the container sees the GPU: `docker exec ollama nvidia-smi` (or check Ollama’s API/UI).
+Confirm the container sees the GPU: `docker exec ollama nvidia-smi` (or check Ollama’s API/UI).
 
 ## Model Storage
 

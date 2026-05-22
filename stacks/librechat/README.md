@@ -22,10 +22,7 @@ Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code
 
 ## Setup
 
-1. Copy `stack.env.example` to `stack.env`:
-   ```bash
-   cp stack.env.example stack.env
-   ```
+1. Run `./prepare-stack.sh` (creates `stack.env` and `caddy_snippet.conf` when missing, ensures `monitor` network).
 
 2. **IMPORTANT**: Generate secure JWT secrets:
    ```bash

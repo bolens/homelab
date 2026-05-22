@@ -39,28 +39,48 @@ portainer.home, portainer.local {
 
 kuma.home, kuma.local {
 	tls internal
-	reverse_proxy uptime-kuma:3001
+	reverse_proxy uptime-kuma:3001 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 adguard-home.home, adguard-home.local {
 	tls internal
-	reverse_proxy adguard-home:3000
+	reverse_proxy adguard-home:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Tools
 asf.home, asf.local {
 	tls internal
-	reverse_proxy asf:1242
+	reverse_proxy asf:1242 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 it-tools.home, it-tools.local {
 	tls internal
-	reverse_proxy it-tools:80
+	reverse_proxy it-tools:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 convertx.home, convertx.local {
 	tls internal
-	reverse_proxy convertx:3000
+	reverse_proxy convertx:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 crowdsec.home, crowdsec.local {
@@ -70,73 +90,129 @@ crowdsec.home, crowdsec.local {
 		respond "CrowdSec LAPI – use /metrics, /health, /v1/..." 200
 	}
 	handle {
-		reverse_proxy crowdsec:8080
+		reverse_proxy crowdsec:8080 {
+			transport http {
+				versions 1.1
+			}
+		}
 	}
 }
 
 dozzle.home, dozzle.local {
 	tls internal
-	reverse_proxy dozzle:8080
+	reverse_proxy dozzle:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 n8n.home, n8n.local {
 	tls internal
-	reverse_proxy n8n:5678
+	reverse_proxy n8n:5678 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 web-check.home, web-check.local {
 	tls internal
-	reverse_proxy web-check:3000
+	reverse_proxy web-check:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 searx-ng.home, searx-ng.local {
 	tls internal
-	reverse_proxy searxng:8080
+	reverse_proxy searxng:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 social-hunt.home, social-hunt.local {
 	tls internal
-	reverse_proxy social-hunt:8000
+	reverse_proxy social-hunt:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 maigret.home, maigret.local {
 	tls internal
-	reverse_proxy maigret:5000
+	reverse_proxy maigret:5000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 slink.home, slink.local {
 	tls internal
-	reverse_proxy slink:3000
+	reverse_proxy slink:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 actual-budget.home, actual-budget.local {
 	tls internal
-	reverse_proxy actual-budget:5006
+	reverse_proxy actual-budget:5006 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 baserow.home, baserow.local {
 	tls internal
-	reverse_proxy baserow:80
+	reverse_proxy baserow:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 bookstack.home, bookstack.local {
 	tls internal
-	reverse_proxy bookstack:80
+	reverse_proxy bookstack:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 gitea.home, gitea.local {
 	tls internal
-	reverse_proxy gitea:3000
+	reverse_proxy gitea:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 homarr.home, homarr.local {
 	tls internal
-	reverse_proxy homarr:7575
+	reverse_proxy homarr:7575 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 homepage.home, homepage.local {
 	tls internal
-	reverse_proxy homepage:80
+	reverse_proxy homepage:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 kasm.home, kasm.local {
@@ -168,23 +244,38 @@ kasm-setup.home, kasm-setup.local {
 
 snipe-it.home, snipe-it.local {
 	tls internal
-	reverse_proxy snipeit:80
+	reverse_proxy snipeit:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 linkding.home, linkding.local {
 	tls internal
-	reverse_proxy linkding:9090
+	reverse_proxy linkding:9090 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 meilisearch.home, meilisearch.local {
 	tls internal
-	reverse_proxy meilisearch:7700
+	reverse_proxy meilisearch:7700 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 metube.home, metube.local {
 	tls internal
 	reverse_proxy metube:8081 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 
@@ -192,173 +283,305 @@ minio.home, minio.local {
 	tls internal
 	redir /console /console/
 	handle_path /console* {
-		reverse_proxy minio:9001
+		reverse_proxy minio:9001 {
+			transport http {
+				versions 1.1
+			}
+		}
 	}
 	handle {
-		reverse_proxy minio:9000
+		reverse_proxy minio:9000 {
+			transport http {
+				versions 1.1
+			}
+		}
 	}
 }
 
 ntfy.home, ntfy.local {
 	tls internal
-	reverse_proxy ntfy:80
+	reverse_proxy ntfy:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 pdf.home, pdf.local {
 	tls internal
-	reverse_proxy stirling-pdf:8080
+	reverse_proxy stirling-pdf:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 vikunja.home, vikunja.local {
 	tls internal
-	reverse_proxy vikunja:3456
+	reverse_proxy vikunja:3456 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Home automation
 home-assistant.home, home-assistant.local {
 	tls internal
-	reverse_proxy home-assistant:8123
+	reverse_proxy home-assistant:8123 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 zigbee2mqtt.home, zigbee2mqtt.local {
 	tls internal
-	reverse_proxy zigbee2mqtt:8080
+	reverse_proxy zigbee2mqtt:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # ntopng uses network_mode: host; use host.docker.internal
 ntopng.home, ntopng.local {
 	tls internal
-	reverse_proxy host.docker.internal:3000
+	reverse_proxy host.docker.internal:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Documents & media
 paperless-ngx.home, paperless-ngx.local {
 	tls internal
-	reverse_proxy paperless-ngx:8000
+	reverse_proxy paperless-ngx:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 immich.home, immich.local {
 	tls internal
-	reverse_proxy immich-server:2283
+	reverse_proxy immich-server:2283 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 archivebox.home, archivebox.local {
 	tls internal
-	reverse_proxy archivebox:8000
+	reverse_proxy archivebox:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 music.home, music.local {
 	tls internal
-	reverse_proxy navidrome:4533
+	reverse_proxy navidrome:4533 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 calibre-web.home, calibre-web.local {
 	tls internal
-	reverse_proxy calibre-web:8083
+	reverse_proxy calibre-web:8083 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 komga.home, komga.local {
 	tls internal
-	reverse_proxy komga:25600
+	reverse_proxy komga:25600 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 kavita.home, kavita.local {
 	tls internal
-	reverse_proxy kavita:5000
+	reverse_proxy kavita:5000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Media & downloads
 plex.home, plex.local {
 	tls internal
-	reverse_proxy plex:32400
+	reverse_proxy plex:32400 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 jellyfin.home, jellyfin.local {
 	tls internal
-	reverse_proxy jellyfin:8096
+	reverse_proxy jellyfin:8096 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 sonarr.home, sonarr.local {
 	tls internal
-	reverse_proxy sonarr:8989
+	reverse_proxy sonarr:8989 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 radarr.home, radarr.local {
 	tls internal
-	reverse_proxy radarr:7878
+	reverse_proxy radarr:7878 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 lidarr.home, lidarr.local {
 	tls internal
-	reverse_proxy lidarr:8686
+	reverse_proxy lidarr:8686 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 readarr.home, readarr.local {
 	tls internal
-	reverse_proxy readarr:8787
+	reverse_proxy readarr:8787 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 mylar3.home, mylar3.local {
 	tls internal
-	reverse_proxy mylar3:8090
+	reverse_proxy mylar3:8090 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 romm.home, romm.local {
 	tls internal
-	reverse_proxy romm:8080
+	reverse_proxy romm:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 bazarr.home, bazarr.local {
 	tls internal
-	reverse_proxy bazarr:6767
+	reverse_proxy bazarr:6767 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 prowlarr.home, prowlarr.local {
 	tls internal
-	reverse_proxy prowlarr:9696
+	reverse_proxy prowlarr:9696 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 nzbget.home, nzbget.local {
 	tls internal
-	reverse_proxy nzbget:6789
+	reverse_proxy nzbget:6789 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 nzbhydra.home, nzbhydra.local {
 	tls internal
-	reverse_proxy nzbhydra2:5076
+	reverse_proxy nzbhydra2:5076 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 rtorrent.home, rtorrent.local {
 	tls internal
-	reverse_proxy rtorrent-flood:3000
+	reverse_proxy rtorrent-flood:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 emby.home, emby.local {
 	tls internal
-	reverse_proxy emby:8096
+	reverse_proxy emby:8096 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Productivity
 linkwarden.home, linkwarden.local {
 	tls internal
-	reverse_proxy linkwarden:3000
+	reverse_proxy linkwarden:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Security & paste
 vaultwarden.home, vaultwarden.local {
 	tls internal
-	reverse_proxy vaultwarden:80
+	reverse_proxy vaultwarden:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 infisical.home, infisical.local {
 	tls internal
-	reverse_proxy infisical:8080
+	reverse_proxy infisical:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # VPN
 headscale.home, headscale.local {
 	tls internal
-	reverse_proxy headscale:8080
+	reverse_proxy headscale:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Harbor proxy attaches to monitor network via docker-compose.override.yml
@@ -373,6 +596,7 @@ harbor.home, harbor.local {
 		header_up X-Forwarded-Proto https
 		flush_interval -1
 		transport http {
+			versions 1.1
 			write_buffer 0
 			read_buffer 0
 		}
@@ -381,17 +605,29 @@ harbor.home, harbor.local {
 
 privatebin.home, privatebin.local {
 	tls internal
-	reverse_proxy privatebin:8080
+	reverse_proxy privatebin:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 pwpush.home, pwpush.local {
 	tls internal
-	reverse_proxy pwpush:5100
+	reverse_proxy pwpush:5100 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 simplelogin.home, simplelogin.local {
 	tls internal
-	reverse_proxy simplelogin:7777
+	reverse_proxy simplelogin:7777 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 ail.home, ail.local {
@@ -406,24 +642,39 @@ ail.home, ail.local {
 
 naisho.home, naisho.local {
 	tls internal
-	reverse_proxy naisho:3000
+	reverse_proxy naisho:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 nodered.home, nodered.local {
 	tls internal
 	reverse_proxy nodered:1880 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 
 stoat.home, stoat.local {
 	tls internal
-	reverse_proxy stoat-caddy:80
+	reverse_proxy stoat-caddy:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 theharvester.home, theharvester.local {
 	tls internal
-	reverse_proxy theharvester:80
+	reverse_proxy theharvester:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Shorteners: YOURLS at urls.* (set YOURLS_SITE to match), Shlink at short.*
@@ -431,12 +682,18 @@ urls.home, urls.local {
 	tls internal
 	reverse_proxy yourls:8080 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 short.home, short.local {
 	tls internal
 	reverse_proxy shlink:8080 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 
@@ -445,81 +702,140 @@ linkstack.home, linkstack.local {
 	header Content-Security-Policy "upgrade-insecure-requests"
 	reverse_proxy linkstack:80 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 
 # Caddy admin API (host)
 caddy.home, caddy.local {
 	tls internal
-	reverse_proxy host.docker.internal:2019
+	reverse_proxy host.docker.internal:2019 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # MQTT broker (HTTP UI if present, e.g. mosquitto-auth or dashboard)
 mosquitto.home, mosquitto.local {
 	tls internal
-	reverse_proxy mosquitto:8080
+	reverse_proxy mosquitto:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 lanraragi.home, lanraragi.local {
 	tls internal
-	reverse_proxy lanraragi:3000
+	reverse_proxy lanraragi:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # AI / LLM – reverse_proxy to container names on monitor network
 ollama.home, ollama.local {
 	tls internal
-	reverse_proxy ollama:11434
+	reverse_proxy ollama:11434 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 open-notebook.home, open-notebook.local {
 	tls internal
-	reverse_proxy open-notebook:8502
+	reverse_proxy open-notebook:8502 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 perplexica.home, perplexica.local {
 	tls internal
-	reverse_proxy perplexica:3000
+	reverse_proxy perplexica:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 open-webui.home, open-webui.local {
 	tls internal
-	reverse_proxy open-webui:8080
+	reverse_proxy open-webui:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 librechat.home, librechat.local {
 	tls internal
-	reverse_proxy librechat:3080
+	reverse_proxy librechat:3080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Metrics
 alertmanager.home, alertmanager.local {
 	tls internal
-	reverse_proxy alertmanager:9093
+	reverse_proxy alertmanager:9093 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 grafana.home, grafana.local {
 	tls internal
-	reverse_proxy grafana:3000
+	reverse_proxy grafana:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 prometheus.home, prometheus.local {
 	tls internal
-	reverse_proxy prometheus:9090
+	reverse_proxy prometheus:9090 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 cadvisor.home, cadvisor.local {
 	tls internal
-	reverse_proxy cadvisor:8080
+	reverse_proxy cadvisor:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 scrutiny.home, scrutiny.local {
 	tls internal
-	reverse_proxy scrutiny:8080
+	reverse_proxy scrutiny:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 onionprobe.home, onionprobe.local {
 	tls internal
-	reverse_proxy op-grafana:3000
+	reverse_proxy op-grafana:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -547,77 +863,121 @@ actual-budget.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy actual-budget:5006
+	reverse_proxy actual-budget:5006 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 adguard-home.yourdomain.com, dns.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy adguard-home:3000
+	reverse_proxy adguard-home:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 alertmanager.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy alertmanager:9093
+	reverse_proxy alertmanager:9093 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 archivebox.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy archivebox:8000
+	reverse_proxy archivebox:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 asf.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy asf:1242
+	reverse_proxy asf:1242 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 baserow.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy baserow:80
+	reverse_proxy baserow:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 bazarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy bazarr:6767
+	reverse_proxy bazarr:6767 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 bookstack.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy bookstack:80
+	reverse_proxy bookstack:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 cadvisor.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy cadvisor:8080
+	reverse_proxy cadvisor:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 calibre-web.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy calibre-web:8083
+	reverse_proxy calibre-web:8083 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 convertx.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy convertx:3000
+	reverse_proxy convertx:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 crowdsec.yourdomain.com {
@@ -631,6 +991,9 @@ crowdsec.yourdomain.com {
 	handle {
 		reverse_proxy crowdsec:8080 {
 			header_up X-Forwarded-Proto https
+			transport http {
+				versions 1.1
+			}
 		}
 	}
 }
@@ -639,35 +1002,55 @@ dozzle.yourdomain.com, logs.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy dozzle:8080
+	reverse_proxy dozzle:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 emby.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy emby:8096
+	reverse_proxy emby:8096 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 gitea.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy gitea:3000
+	reverse_proxy gitea:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 grafana.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy grafana:3000
+	reverse_proxy grafana:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 headscale.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy headscale:8080
+	reverse_proxy headscale:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Harbor proxy attaches to monitor network via docker-compose.override.yml
@@ -684,6 +1067,7 @@ harbor.yourdomain.com {
 		header_up X-Forwarded-Proto https
 		flush_interval -1
 		transport http {
+			versions 1.1
 			write_buffer 0
 			read_buffer 0
 		}
@@ -694,7 +1078,11 @@ homarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy homarr:7575
+	reverse_proxy homarr:7575 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Root domain and www – static homepage (under construction) stack
@@ -702,49 +1090,77 @@ yourdomain.com, www.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy homepage:80
+	reverse_proxy homepage:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 homepage.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy homepage:80
+	reverse_proxy homepage:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 home-assistant.yourdomain.com, home.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy home-assistant:8123
+	reverse_proxy home-assistant:8123 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 immich.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy immich-server:2283
+	reverse_proxy immich-server:2283 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 infisical.yourdomain.com, secrets.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy infisical:8080
+	reverse_proxy infisical:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 it-tools.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy it-tools:80
+	reverse_proxy it-tools:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 jellyfin.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy jellyfin:8096
+	reverse_proxy jellyfin:8096 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 kasm.yourdomain.com {
@@ -782,49 +1198,77 @@ kavita.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy kavita:5000
+	reverse_proxy kavita:5000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 komga.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy komga:25600
+	reverse_proxy komga:25600 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 lanraragi.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy lanraragi:3000
+	reverse_proxy lanraragi:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 librechat.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy librechat:3080
+	reverse_proxy librechat:3080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 lidarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy lidarr:8686
+	reverse_proxy lidarr:8686 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 links.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy linkwarden:3000
+	reverse_proxy linkwarden:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 linkding.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy linkding:9090
+	reverse_proxy linkding:9090 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 linkstack.yourdomain.com {
@@ -834,6 +1278,9 @@ linkstack.yourdomain.com {
 	header Content-Security-Policy "upgrade-insecure-requests"
 	reverse_proxy linkstack:80 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 
@@ -841,21 +1288,33 @@ maigret.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy maigret:5000
+	reverse_proxy maigret:5000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 mailpit.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy mailpit:8025
+	reverse_proxy mailpit:8025 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 meilisearch.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy meilisearch:7700
+	reverse_proxy meilisearch:7700 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 metube.yourdomain.com {
@@ -864,6 +1323,9 @@ metube.yourdomain.com {
 	}
 	reverse_proxy metube:8081 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 
@@ -871,7 +1333,11 @@ music.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy navidrome:4533
+	reverse_proxy navidrome:4533 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # MinIO: path routing so console (9001) and S3 API (9000) share same host; /console/ for auth
@@ -884,12 +1350,18 @@ minio.yourdomain.com {
 		reverse_proxy minio:9001 {
 			header_up Host {host}
 			header_up X-Forwarded-Proto https
+			transport http {
+				versions 1.1
+			}
 		}
 	}
 	handle {
 		reverse_proxy minio:9000 {
 			header_up Host {host}
 			header_up X-Forwarded-Proto https
+			transport http {
+				versions 1.1
+			}
 		}
 	}
 	request_body {
@@ -901,21 +1373,33 @@ mylar3.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy mylar3:8090
+	reverse_proxy mylar3:8090 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 n8n.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy n8n:5678
+	reverse_proxy n8n:5678 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 naisho.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy naisho:3000
+	reverse_proxy naisho:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 nodered.yourdomain.com {
@@ -924,6 +1408,9 @@ nodered.yourdomain.com {
 	}
 	reverse_proxy nodered:1880 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 
@@ -931,21 +1418,33 @@ nzbget.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy nzbget:6789
+	reverse_proxy nzbget:6789 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 nzbhydra.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy nzbhydra2:5076
+	reverse_proxy nzbhydra2:5076 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 ntfy.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy ntfy:80
+	reverse_proxy ntfy:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # ntopng uses network_mode: host; use host.docker.internal
@@ -953,7 +1452,11 @@ ntopng.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy host.docker.internal:3000
+	reverse_proxy host.docker.internal:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # ollama – internal only (.home/.local); no public block
@@ -962,49 +1465,77 @@ onionprobe.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy op-grafana:3000
+	reverse_proxy op-grafana:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 open-notebook.yourdomain.com, notebook.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy open-notebook:8502
+	reverse_proxy open-notebook:8502 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 open-webui.yourdomain.com, chat.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy open-webui:8080
+	reverse_proxy open-webui:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 paperless-ngx.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy paperless-ngx:8000
+	reverse_proxy paperless-ngx:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 paste.yourdomain.com, privatebin.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy privatebin:8080
+	reverse_proxy privatebin:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 perplexica.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy perplexica:3000
+	reverse_proxy perplexica:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 plex.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy plex:32400
+	reverse_proxy plex:32400 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 # Portainer attaches to monitor network
@@ -1026,56 +1557,88 @@ prometheus.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy prometheus:9090
+	reverse_proxy prometheus:9090 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 prowlarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy prowlarr:9696
+	reverse_proxy prowlarr:9696 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 pwpush.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy pwpush:5100
+	reverse_proxy pwpush:5100 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 radarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy radarr:7878
+	reverse_proxy radarr:7878 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 readarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy readarr:8787
+	reverse_proxy readarr:8787 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 romm.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy romm:8080
+	reverse_proxy romm:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 rtorrent.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy rtorrent-flood:3000
+	reverse_proxy rtorrent-flood:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 searx-ng.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy searxng:8080
+	reverse_proxy searxng:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 urls.yourdomain.com {
@@ -1084,6 +1647,9 @@ urls.yourdomain.com {
 	}
 	reverse_proxy yourls:8080 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 short.yourdomain.com {
@@ -1092,6 +1658,9 @@ short.yourdomain.com {
 	}
 	reverse_proxy shlink:8080 {
 		header_up X-Forwarded-Proto https
+		transport http {
+			versions 1.1
+		}
 	}
 }
 
@@ -1099,96 +1668,152 @@ simplelogin.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy simplelogin:7777
+	reverse_proxy simplelogin:7777 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 scrutiny.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy scrutiny:8080
+	reverse_proxy scrutiny:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 snipe-it.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy snipeit:80
+	reverse_proxy snipeit:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 slink.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy slink:3000
+	reverse_proxy slink:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 social-hunt.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy social-hunt:8000
+	reverse_proxy social-hunt:8000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 sonarr.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy sonarr:8989
+	reverse_proxy sonarr:8989 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 status.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy uptime-kuma:3001
+	reverse_proxy uptime-kuma:3001 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 pdf.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy stirling-pdf:8080
+	reverse_proxy stirling-pdf:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 stoat.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy stoat-caddy:80
+	reverse_proxy stoat-caddy:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 theharvester.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy theharvester:80
+	reverse_proxy theharvester:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 vault.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy vaultwarden:80
+	reverse_proxy vaultwarden:80 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 vikunja.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy vikunja:3456
+	reverse_proxy vikunja:3456 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 web-check.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy web-check:3000
+	reverse_proxy web-check:3000 {
+		transport http {
+			versions 1.1
+		}
+	}
 }
 
 zigbee2mqtt.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy zigbee2mqtt:8080
+	reverse_proxy zigbee2mqtt:8080 {
+		transport http {
+			versions 1.1
+		}
+	}
 }

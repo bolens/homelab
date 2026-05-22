@@ -1,45 +1,77 @@
 # Open Notebook - Open Source Notebook LM alternative
 # Requires SurrealDB for data storage. No host ports: access via Caddy on monitor network.
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   surrealdb:
     image: surrealdb/surrealdb:v2
     container_name: open-notebook-surrealdb
     restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
     user: "0:0"  # required: image runs non-root but needs write access to volume
     command: start --log info --user ${SURREAL_USER:-root} --pass ${SURREAL_PASSWORD:-root} rocksdb:/mydata/mydatabase.db
-    # No host port: internal only (open_notebook connects via Docker network)
+    # Internal only: open_notebook connects over the default stack network.
     volumes:
       - surrealdb_data:/mydata
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - default
-      - monitor
     env_file:
+      - path: ../../shared.env
+        required: false
       - stack.env
+    mem_limit: 1g
+    cpus: "1.00"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      # Image has no curl/wget; bundled /surreal supports readiness against the local listener.
+      test: ["CMD", "/surreal", "is-ready", "-e", "ws://127.0.0.1:8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
 
   open_notebook:
     image: lfnovo/open_notebook:v1-latest
     container_name: open-notebook
     restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
     # No host ports: access via Caddy (open-notebook.home / open-notebook.yourdomain.com on monitor network)
     volumes:
       - open_notebook_data:/app/data
     depends_on:
-      - surrealdb
+      surrealdb:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
       - default
       - monitor
     env_file:
+      - path: ../../shared.env
+        required: false
       - stack.env
+    environment:
+      - SURREAL_URL=${SURREAL_URL:-ws://surrealdb:8000/rpc}
+    mem_limit: 3g
+    cpus: "2.00"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5055/health"]
       interval: 60s
       timeout: 10s
       retries: 3
       start_period: 45s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   monitor:

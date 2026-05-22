@@ -1,6 +1,11 @@
 # Minimal SearXNG config. See https://docs.searxng.org/admin/settings/
 use_default_settings: true
 
+search:
+  formats:
+    - html
+    - json
+
 server:
   # Override at runtime via SEARXNG_SECRET env (docker-compose). Do not commit a real key.
   secret_key: "change-me-use-openssl-rand-hex-32"

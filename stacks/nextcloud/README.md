@@ -49,6 +49,11 @@ For notifications and password reset, configure mail in **Administration** → *
 
 Ensure the Nextcloud stack is on the `monitor` network. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
+## E-signatures (optional)
+
+- **LibreSign** – Install from the Nextcloud **Apps** store ([LibreSign](https://libresign.coop/)); configure trusted domains if you add another hostname in Caddy.
+- **Standalone signing** – [DocuSeal](../docuseal/README.md) if you want PDF signing without Nextcloud.
+
 ## Notes
 
 - Configure additional apps, external storage, and clients using the Nextcloud admin UI.

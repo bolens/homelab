@@ -1,6 +1,6 @@
 # Perplexica Stack
 
-Privacy-focused AI-powered answering engine that combines web search with AI models for accurate, cited answers.
+Privacy-focused AI-powered answering engine that combines web search with AI models for cited answers. This stack runs Perplexica behind Caddy on the shared `monitor` network with no published host ports.
 
 **Website:** https://perplexica.ai  
 **Docs:** https://github.com/ItzCrazyKns/Perplexica#readme  
@@ -8,104 +8,104 @@ Privacy-focused AI-powered answering engine that combines web search with AI mod
 **Docker image:** https://hub.docker.com/r/itzcrazykns1337/perplexica  
 **Releases:** https://github.com/ItzCrazyKns/Perplexica/releases  
 
-## Features
+## Quick start
 
-- **Privacy-First**: Runs entirely on your hardware
-- **Smart Search Modes**: Speed, Balanced, or Quality modes
-- **Multiple Sources**: Web, discussions, academic papers
-- **Widgets**: Weather, calculations, stock prices, and more
-- **File Uploads**: Upload documents and ask questions
-- **Image/Video Search**: Visual content search
-- **Search History**: All searches saved locally
+1. From this directory, run `./prepare-stack.sh` to create `stack.env` from the example, copy the Caddy snippet template if needed, and ensure the shared `monitor` network exists.
+2. Edit `stack.env`:
+   - Leave `SEARXNG_API_URL` empty to use the bundled SearxNG backend.
+   - Set `OLLAMA_BASE_URL=http://ollama:11434` if you want to use the shared Ollama stack on the same Docker network.
+   - Keep `OLLAMA_BASE_URL=http://host.docker.internal:11434` if Ollama runs directly on the same Docker host.
+3. Replace the placeholder hostname in `caddy_snippet.conf` and reload Caddy so `https://perplexica.example.com` (your real hostname locally) proxies to `perplexica:3000`.
+4. Deploy:
 
-## Setup
-
-1. Copy `stack.env.example` to `stack.env`:
    ```bash
-   cp stack.env.example stack.env
+   docker compose up -d
    ```
 
-2. Set your data path (absolute path recommended):
-   ```bash
-   PERPLEXICA_DATA_PATH=/path/to/perplexica/data
-   ```
-
-3. Configure Ollama connection:
-   - If Ollama is on the same Docker network: `OLLAMA_BASE_URL=http://ollama:11434`
-   - If Ollama is on host: `OLLAMA_BASE_URL=http://host.docker.internal:11434`
-
-4. (Optional) If you have an external SearxNG instance:
-   ```bash
-   SEARXNG_API_URL=http://searxng:8080
-   ```
-   Leave empty to use the bundled SearxNG (recommended).
-
-5. Start the stack:
-   ```bash
-   docker compose --env-file stack.env up -d
-   ```
-
-## Usage
-
-Once running, Perplexica will be available at `http://localhost:3000`.
-
-### Initial Setup
-
-1. Open the web UI at `http://localhost:3000`
-2. Configure your AI provider settings (API keys, models, etc.)
-3. Start searching!
-
-### AI Providers
-
-Perplexica supports:
-- **Local LLMs**: Ollama (recommended for privacy)
-- **Cloud Providers**: OpenAI, Anthropic Claude, Google Gemini, Groq, and more
-
-Configure providers in the settings screen after first launch.
-
-### Search Modes
-
-- **Speed Mode**: Quick answers for simple queries
-- **Balanced Mode**: Good balance of speed and quality
-- **Quality Mode**: Deep research with comprehensive results
-
-### Using with External SearxNG
-
-If you have a SearxNG instance running elsewhere:
-
-1. Ensure SearxNG has JSON format enabled
-2. Ensure Wolfram Alpha search engine is enabled in SearxNG
-3. Set `SEARXNG_API_URL` in `stack.env` to your SearxNG instance URL
+5. Open Perplexica via Caddy. The app listens on `3000` inside the container and uses `8080` for the internal health check.
 
 ## Configuration
 
-### Connecting to Ollama
+| Item | Details |
+|------|---------|
+| **Access** | Via Caddy -> `perplexica:3000` |
+| **Network** | `monitor` (external) |
+| **Storage** | Docker-managed volume `perplexica_data` mounted at `/home/perplexica/data` |
+| **Search backend** | Bundled SearxNG by default; override with `SEARXNG_API_URL` |
+| **LLM backend** | Optional Ollama via `OLLAMA_BASE_URL` |
+| **Caddy** | See `caddy_snippet.conf.example` (placeholder `perplexica.example.com`) |
 
-If you're running Ollama in another Docker stack:
-1. Add Ollama to the same Docker network (`monitor` network)
-2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
+## Initial setup
 
-For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+After the container is up:
 
-### Data Storage
+1. Open the web UI through your Caddy hostname.
+2. Go to the Perplexica settings page.
+3. Configure the AI providers you want to use:
+   - Local Ollama models
+   - OpenAI-compatible APIs
+   - Anthropic
+   - Gemini
+   - Other providers supported upstream
 
-Perplexica data (including search history) is stored in `PERPLEXICA_DATA_PATH`.
+Provider API keys are stored in the application, not in `stack.env`.
+
+## Integrations
+
+### Ollama
+
+If you are using the shared Ollama stack, keep both stacks on the `monitor` network and set:
+
+```bash
+OLLAMA_BASE_URL=http://ollama:11434
+```
+
+For shared Ollama backend notes, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
+### External SearxNG
+
+If you prefer an external SearxNG instance instead of the bundled backend:
+
+1. Ensure the instance exposes the JSON API.
+2. Ensure the engines you want are enabled there.
+3. Set `SEARXNG_API_URL` in `stack.env` to the reachable internal URL.
+
+## Health and monitoring
+
+- Health check: container probes port **3000** on the container hostname (Next.js does not bind to loopback; see `docker-compose.yml`).
+- External monitoring: use a normal HTTP check against the public app URL
+- Internal monitoring: use `http://perplexica:3000/` from the `monitor` network if needed
+
+## Resource limits and backup
+
+- Compose includes baseline limits (`cpus` and `mem_limit`) to prevent one AI stack from starving others.
+- Persistent data is in Docker volume `perplexica_data`; include it in regular backups.
+- Recommended cadence: daily snapshots for active usage, plus pre-upgrade backup before image/tag changes.
+
+## Portainer
+
+For a Portainer deployment that matches the rest of this repo:
+
+- Preferred: `Stacks` -> `Add stack` -> `Repository`, then point Portainer at this repo and use compose path `stacks/perplexica/docker-compose.yml`.
+- Run `./prepare-stack.sh` on the Docker host first so `stack.env` and `caddy_snippet.conf` exist.
+- If deploying by pasting compose into Portainer instead of using the repo path, create the same `stack.env` values in Portainer's environment UI and keep the app attached to the external `monitor` network.
+- Do not publish ports from this stack; let Caddy remain the only HTTP entrypoint.
 
 ## Troubleshooting
 
-### SearxNG Connection Issues
-- Verify SearxNG is accessible at the configured URL
-- Check that JSON format is enabled in SearxNG settings
-- Ensure Wolfram Alpha engine is enabled
+### Ollama connection issues
 
-### Ollama Connection Issues
-- Verify Ollama is accessible at the configured URL
-- Check network connectivity between containers
-- Ensure Ollama is running and models are available
+- Verify Ollama is reachable at the configured `OLLAMA_BASE_URL`
+- If using the shared stack, verify both containers are on the `monitor` network
+- Ensure the target Ollama host already has models pulled
 
-### Port Conflicts
-- Change `PERPLEXICA_HOST_PORT` in `stack.env` if port 3000 is already in use
+### Search backend issues
 
-## Documentation
+- If `SEARXNG_API_URL` is set, verify the URL is reachable from the container
+- If using bundled SearxNG, check the Perplexica container logs for startup errors
 
-For more information, visit: https://github.com/ItzCrazyKns/Perplexica
+### Caddy / hostname issues
+
+- Verify `caddy_snippet.conf` uses your real hostname locally
+- Reload Caddy after changing the snippet
+- Confirm DNS / tunnel routing points at your Caddy entrypoint

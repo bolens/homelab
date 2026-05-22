@@ -7,9 +7,10 @@ services:
     container_name: maigret
     restart: unless-stopped
     command: ["--web", "5000"]
-    environment:
-      - TZ=${TZ:-America/Denver}
-      - FLASK_HOST=0.0.0.0
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
     volumes:
       - maigret-reports:/app/reports
     networks:

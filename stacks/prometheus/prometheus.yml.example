@@ -1,5 +1,5 @@
-# Prometheus scrape config for homelab: self + cAdvisor (container metrics).
-# Add more scrape_configs (e.g. node_exporter) as you add stacks.
+# Prometheus scrape config for homelab: self + cAdvisor + Watchtower metrics + node_exporter.
+# Add more scrape_configs as you add stacks.
 # Copy this file to ~/.config/prometheus/prometheus.yml (or set PROMETHEUS_CONFIG_PATH)
 # and edit as needed; the stack mounts that file read-only.
 global:
@@ -34,6 +34,16 @@ scrape_configs:
   - job_name: node
     static_configs:
       - targets: ["node-exporter:9100"]
+
+  # Watchtower (stacks/watchtower on `monitor`). Same Bearer as WATCHTOWER_HTTP_API_TOKEN.
+  # Create ~/.config/prometheus/rules/watchtower_bearer_token with the raw token (one line, no quotes).
+  # Copy from stacks/prometheus/watchtower_bearer_token.example and replace the placeholder.
+  - job_name: watchtower
+    metrics_path: /v1/metrics
+    scrape_interval: 30s
+    bearer_token_file: /etc/prometheus/rules/watchtower_bearer_token
+    static_configs:
+      - targets: ["watchtower:80"]
 
   # Blackbox Exporter – HTTP(s) probes. Deploy stacks/blackbox-exporter first.
   # Add or remove targets to match your Caddy vhosts; these use placeholder yourdomain.com.

@@ -18,10 +18,7 @@ An open source, privacy-focused alternative to Google's Notebook LM with support
 
 ## Setup
 
-1. Copy `stack.env.example` to `stack.env`:
-   ```bash
-   cp stack.env.example stack.env
-   ```
+1. Run `./prepare-stack.sh` (creates `stack.env` and `caddy_snippet.conf` from examples when missing).
 
 2. **IMPORTANT**: Generate secure keys and set them in `stack.env` (see **Generating keys and secrets** below for the full list).
 
@@ -29,9 +26,11 @@ An open source, privacy-focused alternative to Google's Notebook LM with support
    - If Ollama is on the same Docker network: `OLLAMA_BASE_URL=http://ollama:11434`
    - If Ollama is on host: `OLLAMA_BASE_URL=http://host.docker.internal:11434`
 
-4. Start the stack:
+4. Set `API_URL` in `stack.env` to the **exact URL you open in the browser** (default stack Caddy snippet is split-horizon only, e.g. `https://open-notebook.home`). Add a public hostname in Caddy yourself only if you need remote access.
+
+5. Start the stack:
    ```bash
-   docker compose --env-file stack.env up -d
+   docker compose up -d
    ```
 
 ## Generating keys and secrets
@@ -53,7 +52,14 @@ Set each variable to the corresponding output. `OPEN_NOTEBOOK_ENCRYPTION_KEY` an
 
 ## Usage
 
-Once running, Open Notebook is available via Caddy (e.g. `open-notebook.home`, `open-notebook.yourdomain.com`) on the monitor network. No host ports are exposed.
+Once running, Open Notebook is available via Caddy (e.g. `open-notebook.home` / `.local`) on the `monitor` network. No host ports are exposed.
+
+## Portainer
+
+1. Run `./prepare-stack.sh` on the Docker host first (creates `stack.env`, copies `caddy_snippet.conf` from template, and ensures the external `monitor` network exists).
+2. In Portainer, use **Stacks** -> **Add stack** -> **Repository** and set compose path to `stacks/open-notebook/docker-compose.yml` (preferred).
+3. If you deploy by pasting compose instead, mirror the same values from `stack.env` in Portainer's environment section.
+4. Keep this stack private behind Caddy and Cloudflare Access (no published host ports).
 
 ### Initial Setup
 
@@ -68,6 +74,14 @@ If you're running Ollama in another Docker stack, you can connect by:
 2. Setting `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
 For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+
+### SurrealDB connection
+
+This stack expects Open Notebook to connect to SurrealDB over:
+
+`SURREAL_URL=ws://surrealdb:8000/rpc`
+
+Keep that default unless you intentionally run SurrealDB outside this compose stack.
 
 ## Configuration
 
@@ -87,13 +101,20 @@ Configure API keys in the web UI after first login.
 
 - SurrealDB data and Open Notebook app data are stored in Docker-managed named volumes (`surrealdb_data`, `open_notebook_data`).
 
+### Resource limits and backup
+
+- Compose includes baseline `cpus`/`mem_limit` caps for both `open_notebook` and `surrealdb`.
+- Include both `surrealdb_data` and `open_notebook_data` in backups (both are required for full restore).
+- Recommended cadence: daily snapshots plus pre-upgrade backups.
+
 ## Troubleshooting
 
 ### Password prompt after logout
 - The UI login uses **`OPEN_NOTEBOOK_PASSWORD`**. Set it in `stack.env` (e.g. `OPEN_NOTEBOOK_PASSWORD=your-chosen-password`), recreate the container, then use that password when the app asks for it after logout. If you never set it, the app may still show a password field; set it now and restart the stack, then use that value to log in.
 
 ### Unable to Connect to API Server
-- Set `API_URL` in `stack.env` to the public URL you use in the browser (e.g. `https://notebook.yourdomain.com` or `https://open-notebook.home`). Caddy must route both the site and `/api*` to this stack.
+- Set `API_URL` in `stack.env` to the exact URL you use in the browser (e.g. `https://open-notebook.home`, or your own public hostname if you added one in Caddy).
+- Ensure Caddy proxies the hostname to `open-notebook:8502`.
 
 ### Encryption Key Error
 - Ensure `OPEN_NOTEBOOK_ENCRYPTION_KEY` is set and is a secure random string

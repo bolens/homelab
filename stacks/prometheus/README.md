@@ -1,6 +1,6 @@
 # Prometheus
 
-Metrics collection and storage. Scrapes cAdvisor (container metrics) and itself. Grafana uses Prometheus as a datasource for dashboards.
+Metrics collection and storage. Scrapes cAdvisor (container metrics), optional Watchtower `/v1/metrics`, and itself. Grafana uses Prometheus as a datasource for dashboards.
 
 **Website:** https://prometheus.io  
 **Docs:** https://prometheus.io/docs/introduction/overview/  
@@ -10,11 +10,12 @@ Metrics collection and storage. Scrapes cAdvisor (container metrics) and itself.
 
 ## Quick start
 
-1. **Config file:** Copy `prometheus.yml.example` to `~/.config/prometheus/prometheus.yml` (create the directory if needed). The example includes scrape jobs (self, cAdvisor, node-exporter), an `alerting` block to `alertmanager:9093`, and `rule_files` pointing at `alerts.yml`. The stack mounts the file read-only.
+1. **Config file:** Copy `prometheus.yml.example` to `~/.config/prometheus/prometheus.yml` (create the directory if needed). The example includes scrape jobs (self, cAdvisor, node-exporter, Watchtower), an `alerting` block to `alertmanager:9093`, and `rule_files` pointing at `alerts.yml`. The stack mounts the file read-only.
 2. **Alert rules:** Create `~/.config/prometheus/rules` and copy `alerts.yml.example` to `~/.config/prometheus/rules/alerts.yml`. The example rules include InstanceDown, NodeMemoryHigh, NodeDiskSpaceLow, ProbeDown (Blackbox), and PrometheusConfigReloadFailure. If you use a different path, set `PROMETHEUS_RULES_PATH` in `stack.env` to that directory.
-3. Deploy **cAdvisor** first (so Prometheus has a target to scrape). For the full order (network → Caddy → Prometheus → cAdvisor → Grafana), see the main [docker README](../../README.md) section **Step-by-step: Grafana & Prometheus integration**.
-4. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
-5. Open via Caddy (e.g. https://prometheus.yourdomain.com) to run PromQL queries, check targets (Status → Targets), or view firing alerts (Alerts).
+3. **Watchtower metrics:** Deploy `stacks/watchtower` on the shared `monitor` network (compose does this). Put the **same** Bearer value as `WATCHTOWER_HTTP_API_TOKEN` (from `stacks/watchtower/stack.env`) into `~/.config/prometheus/rules/watchtower_bearer_token` with **no trailing newline** (e.g. `printf '%s' 'yourtoken' > ~/.config/prometheus/rules/watchtower_bearer_token`). Copy `watchtower_bearer_token.example` from this directory as a starting point, replace the placeholder, then rename to `watchtower_bearer_token`. Reload Prometheus after creating the file (`curl -X POST http://prometheus:9090/-/reload` from a container on `monitor`, or restart the stack). Metrics: [Watchtower metrics](https://watchtower.nickfedor.com/v1.12.3/advanced-features/metrics/).
+4. Deploy **cAdvisor** first (so Prometheus has a target to scrape). For the full order (network → Caddy → Prometheus → cAdvisor → Grafana), see the main [docker README](../../README.md) section **Step-by-step: Grafana & Prometheus integration**.
+5. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
+6. Open via Caddy (e.g. https://prometheus.yourdomain.com) to run PromQL queries, check targets (Status → Targets), or view firing alerts (Alerts).
 
 ## Configuration
 

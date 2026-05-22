@@ -1,5 +1,6 @@
-# Dozzle simple auth – copy to users.yaml and place in dozzle_config volume (or mount at /data).
-# Dozzle reads /data/users.yaml or /data/users.yml. See https://dozzle.dev/guide/authentication
+# Dozzle simple auth — copy to users.yaml in DOZZLE_CONFIG_DIR (default ~/.config/dozzle), mounted at /data in the container.
+# ./prepare-stack.sh copies this file to users.yaml when neither users.yaml nor users.yml exists yet.
+# See https://dozzle.dev/guide/authentication
 #
 # Generate a bcrypt password and full user entry:
 #   docker run -it --rm amir20/dozzle generate admin --password YOUR_PASSWORD --email you@example.com --name "Your Name" > users.yaml
