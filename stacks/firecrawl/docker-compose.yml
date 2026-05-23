@@ -1,0 +1,83 @@
+# Firecrawl – web scraping & crawling API with LLM-ready output.
+# Self-hosting docs: https://github.com/firecrawl/firecrawl/blob/main/SELF_HOST.md
+# Pre-built images: ghcr.io/mendableai/firecrawl (api + worker)
+#                   mendableai/firecrawl-playwright-service
+# Portainer-friendly: named volumes, env from stack.env, external monitor network for Caddy.
+
+name: firecrawl
+
+x-common-env: &common-env
+  env_file:
+    - stack.env
+    - path: ../../shared.env
+      required: false
+
+services:
+  playwright-service:
+    container_name: firecrawl-playwright
+    image: mendableai/firecrawl-playwright-service:latest
+    environment:
+      - PORT=3000
+      - PROXY_SERVER=${PROXY_SERVER:-}
+      - PROXY_USERNAME=${PROXY_USERNAME:-}
+      - PROXY_PASSWORD=${PROXY_PASSWORD:-}
+      - BLOCK_MEDIA=${BLOCK_MEDIA:-false}
+    restart: unless-stopped
+    networks:
+      - default
+
+  api:
+    container_name: firecrawl-api
+    image: ghcr.io/mendableai/firecrawl:latest
+    <<: *common-env
+    environment:
+      - HOST=0.0.0.0
+      - PORT=${PORT:-3002}
+      - REDIS_URL=redis://firecrawl-redis:6379
+      - REDIS_RATE_LIMIT_URL=redis://firecrawl-redis:6379
+      - PLAYWRIGHT_MICROSERVICE_URL=http://firecrawl-playwright:3000
+    command: ["node", "dist/src/index.js"]
+    ports:
+      - "127.0.0.1:${PORT:-3002}:${PORT:-3002}"
+    depends_on:
+      - redis
+      - playwright-service
+    restart: unless-stopped
+    networks:
+      - default
+      - monitor
+
+  worker:
+    container_name: firecrawl-worker
+    image: ghcr.io/mendableai/firecrawl:latest
+    <<: *common-env
+    environment:
+      - REDIS_URL=redis://firecrawl-redis:6379
+      - REDIS_RATE_LIMIT_URL=redis://firecrawl-redis:6379
+      - PLAYWRIGHT_MICROSERVICE_URL=http://firecrawl-playwright:3000
+    command: ["node", "dist/src/services/queue-worker.js"]
+    depends_on:
+      - redis
+      - playwright-service
+      - api
+    restart: unless-stopped
+    networks:
+      - default
+
+  redis:
+    container_name: firecrawl-redis
+    image: redis:alpine
+    command: redis-server --bind 0.0.0.0
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+    networks:
+      - default
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  redisdata:

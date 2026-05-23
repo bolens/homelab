@@ -1,0 +1,21 @@
+# Firecrawl — reverse proxy snippet for Caddy.
+# Copy to stacks/caddy/ and include from your Caddyfile.
+
+# Internal access only (no public route needed for most homelab use cases).
+# Uncomment the public block below if you want firecrawl.example.com.
+
+firecrawl.home, firecrawl.local {
+	tls internal
+	reverse_proxy firecrawl-api:3002
+}
+
+# http://firecrawl.example.com {
+# 	reverse_proxy firecrawl-api:3002
+# }
+#
+# firecrawl.example.com {
+# 	tls {
+# 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+# 	}
+# 	reverse_proxy firecrawl-api:3002
+# }

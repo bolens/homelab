@@ -1,0 +1,17 @@
+# clark-browser — reverse proxy snippet for Caddy.
+
+clark.home, clark.local {
+	tls internal
+	reverse_proxy clark-browser:9222
+}
+
+# http://clark.example.com {
+# 	reverse_proxy clark-browser:9222
+# }
+#
+# clark.example.com {
+# 	tls {
+# 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+# 	}
+# 	reverse_proxy clark-browser:9222
+# }

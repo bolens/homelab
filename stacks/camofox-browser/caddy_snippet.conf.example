@@ -1,0 +1,17 @@
+# camofox-browser — reverse proxy snippet for Caddy.
+
+camofox.home, camofox.local {
+	tls internal
+	reverse_proxy camofox-browser:9377
+}
+
+# http://camofox.example.com {
+# 	reverse_proxy camofox-browser:9377
+# }
+#
+# camofox.example.com {
+# 	tls {
+# 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+# 	}
+# 	reverse_proxy camofox-browser:9377
+# }

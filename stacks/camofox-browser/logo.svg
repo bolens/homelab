@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Fox face silhouette — camofox-browser -->
+  <circle cx="50" cy="50" r="50" fill="#e85d04"/>
+  <!-- ears -->
+  <polygon points="20,20 10,2 35,22" fill="#e85d04"/>
+  <polygon points="80,20 90,2 65,22" fill="#e85d04"/>
+  <!-- inner ears -->
+  <polygon points="22,18 14,6 34,20" fill="#fff3e0"/>
+  <polygon points="78,18 86,6 66,20" fill="#fff3e0"/>
+  <!-- face -->
+  <ellipse cx="50" cy="55" rx="28" ry="24" fill="#fff3e0"/>
+  <!-- eyes -->
+  <circle cx="38" cy="45" r="5" fill="#1a1a2e"/>
+  <circle cx="62" cy="45" r="5" fill="#1a1a2e"/>
+  <!-- nose -->
+  <ellipse cx="50" cy="58" rx="4" ry="3" fill="#1a1a2e"/>
+</svg>

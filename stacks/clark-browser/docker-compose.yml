@@ -1,0 +1,36 @@
+# clark-browser – stealth Chromium for AI agents (anti-fingerprinting compiled into binary).
+# Repo: https://github.com/clark-labs-inc/clark-browser
+# No public pre-built image. Build context clones and builds from the upstream Dockerfile,
+# which installs the clark-browser Python package and downloads the patched Chromium binary.
+# Exposes CDP on port 9222 for Playwright/CDP clients.
+# Portainer-friendly: named volume for binary cache, env from stack.env, monitor network for Caddy.
+
+name: clark-browser
+
+services:
+  clark:
+    container_name: clark-browser
+    build:
+      context: build
+      dockerfile: Dockerfile
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
+    volumes:
+      - clark-cache:/root/.clarkbrowser
+    ports:
+      - "127.0.0.1:9222:9222"
+    restart: unless-stopped
+    shm_size: 1gb
+    networks:
+      - default
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  clark-cache:
