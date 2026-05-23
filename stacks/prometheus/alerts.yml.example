@@ -6,7 +6,7 @@ groups:
   - name: instance
     rules:
       - alert: InstanceDown
-        expr: up == 0
+        expr: up{job!~"blackbox_nonalert|blackbox_http_paths_nonalert"} == 0
         for: 2m
         labels:
           severity: critical
@@ -26,7 +26,7 @@ groups:
           description: "Memory usage is above 90% (current: {{ $value | humanizePercentage }}) for 5 minutes."
 
       - alert: NodeDiskSpaceLow
-        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1 and node_filesystem_readonly == 0
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) < 0.1 and node_filesystem_readonly{fstype!~"tmpfs|overlay|squashfs"} == 0
         for: 5m
         labels:
           severity: warning
@@ -35,15 +35,375 @@ groups:
           description: "Mount {{ $labels.mountpoint }} on {{ $labels.instance }} has less than 10% free ({{ $value | humanizePercentage }} available)."
 
   - name: blackbox
+    interval: 1m
     rules:
-      - alert: ProbeDown
-        expr: probe_success == 0
-        for: 5m
+      - record: blackbox:availability:ratio_5m
+        expr: avg_over_time(probe_success{job=~"blackbox_public|blackbox_http_paths_public"}[5m])
+
+      - record: blackbox:availability:ratio_30m
+        expr: avg_over_time(probe_success{job=~"blackbox_public|blackbox_http_paths_public"}[30m])
+
+      - record: blackbox:availability:ratio_1h
+        expr: avg_over_time(probe_success{job=~"blackbox_public|blackbox_http_paths_public"}[1h])
+
+      - record: blackbox:availability:ratio_6h
+        expr: avg_over_time(probe_success{job=~"blackbox_public|blackbox_http_paths_public"}[6h])
+
+      - record: blackbox:availability:ratio_24h
+        expr: avg_over_time(probe_success{job=~"blackbox_public|blackbox_http_paths_public"}[24h])
+
+      - alert: BlackboxAvailabilityBurnRateWarning
+        expr: ((1 - blackbox:availability:ratio_30m) / 0.01) > 6 and ((1 - blackbox:availability:ratio_6h) / 0.01) > 3
+        for: 15m
+        labels:
+          severity: warning
+          category: blackbox
+          tier: warning
+        annotations:
+          summary: "Blackbox availability burn rate high"
+          description: "Availability burn rate for {{ $labels.instance }} is consuming a 99% SLO error budget too quickly (30m and 6h windows)."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxAvailabilityBurnRateCritical
+        expr: ((1 - blackbox:availability:ratio_5m) / 0.01) > 14 and ((1 - blackbox:availability:ratio_1h) / 0.01) > 7
+        for: 10m
         labels:
           severity: critical
+          category: blackbox
+          tier: critical
+        annotations:
+          summary: "Blackbox availability burn rate critical"
+          description: "Availability burn rate for {{ $labels.instance }} is critically high against a 99% SLO (5m and 1h windows)."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: ProbeDown
+        expr: probe_success{job=~"blackbox_public|blackbox_http_paths_public"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: blackbox
+          tier: warning
         annotations:
           summary: "Probe failing for {{ $labels.instance }}"
           description: "Blackbox probe to {{ $labels.instance }} has been failing for more than 5 minutes (module: {{ $labels.module }})."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxRootCriticalDown
+        expr: probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|crowdsec|vault|auth)\\.bolens\\.dev"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          category: blackbox
+          tier: critical
+        annotations:
+          summary: "Critical root endpoint is down"
+          description: "Critical root probe failed for {{ $labels.instance }} for more than 5 minutes."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxRootWarningDown
+        expr: probe_success{job="blackbox_public"} == 0 unless on(instance) probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|crowdsec|vault|auth)\\.bolens\\.dev"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: blackbox
+          tier: warning
+        annotations:
+          summary: "Root endpoint is down"
+          description: "Root probe failed for {{ $labels.instance }} for more than 5 minutes."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxPathCriticalDown
+        expr: probe_success{job="blackbox_http_paths_public",instance=~"https://(prometheus\\.bolens\\.dev/-/healthy|gitea\\.bolens\\.dev/api/healthz|portainer\\.bolens\\.dev/api/status|alertmanager\\.bolens\\.dev/-/healthy|immich\\.bolens\\.dev/api/server/ping|authentik\\.bolens\\.dev/|crowdsec\\.bolens\\.dev/health|vault\\.bolens\\.dev/alive)"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          category: blackbox
+          tier: critical
+        annotations:
+          summary: "Critical health endpoint is down"
+          description: "Critical health probe failed for {{ $labels.instance }} for more than 3 minutes."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxPathWarningDown
+        expr: probe_success{job="blackbox_http_paths_public"} == 0 unless on(instance) probe_success{job="blackbox_http_paths_public",instance=~"https://(prometheus\\.bolens\\.dev/-/healthy|gitea\\.bolens\\.dev/api/healthz|portainer\\.bolens\\.dev/api/status|alertmanager\\.bolens\\.dev/-/healthy|immich\\.bolens\\.dev/api/server/ping|authentik\\.bolens\\.dev/|crowdsec\\.bolens\\.dev/health|vault\\.bolens\\.dev/alive)"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          category: blackbox
+          tier: warning
+        annotations:
+          summary: "Health endpoint is down"
+          description: "Health probe failed for {{ $labels.instance }} for more than 3 minutes."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxProbeLatencyHigh
+        expr: probe_duration_seconds{job=~"blackbox_public|blackbox_http_paths_public"} > 5
+        for: 10m
+        labels:
+          severity: warning
+          category: blackbox
+          tier: warning
+        annotations:
+          summary: "Blackbox probe latency high"
+          description: "Probe latency is above 5s for {{ $labels.instance }} for more than 10 minutes."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxSslExpirySoon
+        expr: (probe_ssl_earliest_cert_expiry{job=~"blackbox_public|blackbox_http_paths_public"} - time()) < 14 * 24 * 3600
+        for: 30m
+        labels:
+          severity: warning
+          category: blackbox
+          tier: warning
+        annotations:
+          summary: "Certificate expires soon"
+          description: "Certificate for {{ $labels.instance }} expires in less than 14 days."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxSslExpiryCritical
+        expr: (probe_ssl_earliest_cert_expiry{job=~"blackbox_public|blackbox_http_paths_public"} - time()) < 3 * 24 * 3600
+        for: 15m
+        labels:
+          severity: critical
+          category: blackbox
+          tier: critical
+        annotations:
+          summary: "Certificate expiry imminent"
+          description: "Certificate for {{ $labels.instance }} expires in less than 3 days."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxPublicTargetMissing
+        expr: absent(probe_success{job="blackbox_public"})
+        for: 10m
+        labels:
+          severity: critical
+          category: blackbox
+          tier: critical
+        annotations:
+          summary: "blackbox_public targets missing"
+          description: "Prometheus sees no probe_success series for job=blackbox_public for more than 10 minutes."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxPathTargetMissing
+        expr: absent(probe_success{job="blackbox_http_paths_public"})
+        for: 10m
+        labels:
+          severity: critical
+          category: blackbox
+          tier: critical
+        annotations:
+          summary: "blackbox_http_paths_public targets missing"
+          description: "Prometheus sees no probe_success series for job=blackbox_http_paths_public for more than 10 minutes."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxAvailabilitySloWarning
+        expr: blackbox:availability:ratio_1h < 0.99
+        for: 15m
+        labels:
+          severity: warning
+          category: blackbox
+          tier: warning
+        annotations:
+          summary: "Blackbox availability below SLO (1h)"
+          description: "Probe availability for {{ $labels.instance }} is below 99% over the last 1 hour."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      - alert: BlackboxAvailabilitySloCritical
+        expr: blackbox:availability:ratio_24h < 0.97
+        for: 30m
+        labels:
+          severity: critical
+          category: blackbox
+          tier: critical
+        annotations:
+          summary: "Blackbox availability below SLO (24h)"
+          description: "Probe availability for {{ $labels.instance }} is below 97% over the last 24 hours."
+          runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
+
+      # Optional: noisy on slow links or heavy TLS; raise threshold or disable if needed.
+      # - alert: BlackboxProbeSlow
+      #   expr: probe_duration_seconds > 8
+      #   for: 15m
+      #   labels:
+      #     severity: warning
+      #   annotations:
+      #     summary: "Slow blackbox probe {{ $labels.instance }}"
+      #     description: "probe_duration_seconds is {{ $value }}s (module {{ $labels.module }})."
+
+  - name: cadvisor
+    rules:
+      - alert: ContainerOOMKilled
+        expr: increase(container_oom_events_total{container=~".+",container!="POD",image!=""}[1h]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "OOM kill in container {{ $labels.name }}"
+          description: "container_oom_events_total increased for id={{ $labels.id }} name={{ $labels.name }} in the last hour."
+
+
+  - name: observability-pipeline
+    interval: 1m
+    rules:
+      - alert: AlloyTargetMissing
+        expr: absent(up{job="alloy"})
+        for: 10m
+        labels:
+          severity: critical
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy scrape target missing"
+          description: "Prometheus cannot find any target for job=alloy for more than 10 minutes."
+
+      - alert: AlloyDown
+        expr: up{job="alloy"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          service: grafana-alloy
+        annotations:
+          summary: "Grafana Alloy is down on {{ $labels.instance }}"
+          description: "Prometheus cannot scrape Alloy for more than 3 minutes."
+
+      - alert: LokiDown
+        expr: up{job="loki"} == 0
+        for: 3m
+        labels:
+          severity: critical
+          service: loki
+        annotations:
+          summary: "Loki is down on {{ $labels.instance }}"
+          description: "Prometheus cannot scrape Loki for more than 3 minutes."
+
+      - alert: AlloyScrapeDegraded
+        expr: avg_over_time(scrape_samples_scraped{job="alloy"}[15m]) < 20
+        for: 15m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy scrape sample volume is low"
+          description: "Alloy scrape_samples_scraped average is below 20 for 15 minutes; pipeline may be degraded."
+
+      - alert: AlloyConfigReloadFailures
+        expr: increase(alloy_config_load_failures_total{job="alloy"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy config reload failures detected"
+          description: "alloy_config_load_failures_total increased in the last 10 minutes."
+
+      - alert: AlloyLokiWriteRetriesHigh
+        expr: increase(loki_write_batch_retries_total{job="alloy"}[10m]) > 20
+        for: 10m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "High Loki write retry rate from Alloy"
+          description: "loki_write_batch_retries_total increased by more than 20 in 10 minutes."
+
+      - alert: AlloyLokiDroppedEntriesWarning
+        expr: increase(loki_write_dropped_entries_total{job="alloy"}[10m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy is dropping log entries"
+          description: "loki_write_dropped_entries_total increased by more than 100 in the last 10 minutes."
+
+      - alert: AlloyLokiDroppedEntriesCritical
+        expr: increase(loki_write_dropped_entries_total{job="alloy"}[10m]) > 1000
+        for: 5m
+        labels:
+          severity: critical
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy is dropping many log entries"
+          description: "loki_write_dropped_entries_total increased by more than 1000 in the last 10 minutes."
+
+      - alert: AlloyPipelineOutputStalled
+        expr: sum(rate(loki_source_docker_target_entries_total{job="alloy"}[10m])) > 20 and sum(rate(loki_write_sent_entries_total{job="alloy"}[10m])) < 1
+        for: 10m
+        labels:
+          severity: critical
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy pipeline output is stalled"
+          description: "Alloy is ingesting container logs but almost nothing is being written to Loki for 10 minutes."
+
+      - alert: AlloyPipelineOutputRatioLow
+        expr: (sum(rate(loki_write_sent_entries_total{job="alloy"}[20m])) / clamp_min(sum(rate(loki_source_docker_target_entries_total{job="alloy"}[20m])), 1)) < 0.20 and sum(rate(loki_source_docker_target_entries_total{job="alloy"}[20m])) > 20
+        for: 15m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy pipeline output ratio is low"
+          description: "Write-to-source ratio stayed below 20% for 20 minutes while source volume is non-trivial; check sampling scope, drop filters, and Loki write pressure."
+
+      - alert: AlloyDockerTargetParsingErrors
+        expr: increase(loki_source_docker_target_parsing_errors_total{job="alloy"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy Docker target parsing errors"
+          description: "loki_source_docker_target_parsing_errors_total increased in the last 10 minutes."
+
+      - alert: AlloyEvaluationQueueHigh
+        expr: max_over_time(alloy_component_evaluation_queue_size{job="alloy"}[10m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy component evaluation queue is high"
+          description: "alloy_component_evaluation_queue_size stayed above 100 over the last 10 minutes."
+
+      - alert: AlloyMemoryHigh
+        expr: alloy_resources_process_resident_memory_bytes{job="alloy"} > 1.2e+09
+        for: 15m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy resident memory is high"
+          description: "Alloy RSS is above 1.2 GB for more than 15 minutes."
+
+      - alert: AlloyDependencyWaitHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(alloy_component_dependencies_wait_seconds_bucket{job="alloy"}[10m]))) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy dependency wait latency is high"
+          description: "P95 component dependency wait is above 5 seconds for 10 minutes."
+
+      - alert: AlloySampledStreamRatioHigh
+        expr: (sum(rate(loki_write_sent_entries_total{job="alloy",stream_class="sampled"}[15m])) / clamp_min(sum(rate(loki_write_sent_entries_total{job="alloy"}[15m])), 1)) > 0.60
+        for: 20m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy sampled stream ratio is high"
+          description: "Sampled stream exceeds 60% of total sent entries for 20 minutes; sampling policy may be too broad."
+
+      - alert: AlloyCanaryStreamMissing
+        expr: absent(container_last_seen{job="cadvisor",container_label_com_docker_compose_project="grafana-alloy",container_label_com_docker_compose_service="alloy-log-canary"}) or (time() - max(container_last_seen{job="cadvisor",container_label_com_docker_compose_project="grafana-alloy",container_label_com_docker_compose_service="alloy-log-canary"})) > 240
+        for: 20m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy canary stream is missing or stalled"
+          description: "Canary container is missing from cadvisor or has not been seen for over 4 minutes; check canary container lifecycle and Alloy pipeline."
 
   - name: prometheus
     rules:
