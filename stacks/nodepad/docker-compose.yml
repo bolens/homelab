@@ -1,0 +1,54 @@
+# nodepad – spatial AI-augmented notes canvas (Next.js). No host ports; access via Caddy.
+# Upstream: https://github.com/mskayyali/nodepad
+#
+# Default: build from ./repo (run ./clone-repo.sh first). Runtime env comes only from env_file
+# (`stack.env`); no compose ${VAR} substitution required for Ollama/Umami/site URL.
+#
+# Optional NEXT_PUBLIC_* client defaults: pass at build time, e.g.
+#   docker compose build --build-arg NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER=ollama
+# or: docker compose --env-file stack.env build  (if those keys exist in stack.env for interpolation).
+#
+# Portainer / registry-only: comment out `build` below and set the image in the Portainer UI
+# or change `image:` below to your registry tag.
+#
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
+
+name: nodepad
+
+services:
+  nodepad:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nodepad:latest
+    container_name: nodepad
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+      - com.centurylinklabs.watchtower.enable=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - path: stack.env
+        required: false
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    mem_limit: 1g
+    cpus: 1.0
+
+networks:
+  monitor:
+    name: monitor
+    external: true
