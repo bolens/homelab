@@ -1,0 +1,55 @@
+name: clark-browser
+default_port: 9222
+databases: []
+health:
+  endpoint: /json/version
+  internal_only: true
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: false
+    internal: true
+  blackbox_exporter: false
+  grafana_dashboard: false
+shared_resources: []
+type: service
+category: browser
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: clark.yourdomain.com
+data_profile:
+  contains_pii: false
+  contains_logs_only: false
+  recommended_backup: false
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://github.com/clark-labs-inc/clark-browser
+  docs: https://github.com/clark-labs-inc/clark-browser
+  repo: https://github.com/clark-labs-inc/clark-browser
+backup:
+  priority: low
+  schedule_hint: null
+volumes:
+- name: clark_cache
+  role: cache
+  critical: false
+auth:
+  mode: none
+  sso_provider: null
+  access_policy: internal_only
+resources:
+  cpu_profile: medium
+  memory_profile: medium
+  storage_profile: small
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: browser
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: 'No public image — run docker compose build first. CDP on port 9222. shm_size 1gb required.'
