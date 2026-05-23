@@ -1,0 +1,50 @@
+diff --git a/app/api/health/route.ts b/app/api/health/route.ts
+new file mode 100644
+index 0000000..458ccf5
+--- /dev/null
++++ b/app/api/health/route.ts
+@@ -0,0 +1,8 @@
++import { NextResponse } from "next/server"
++
++export const runtime = "nodejs"
++
++/** Lightweight probe for Uptime Kuma / Prometheus / Docker healthcheck (no upstream calls). */
++export async function GET() {
++  return NextResponse.json({ ok: true, service: "nodepad" }, { status: 200 })
++}
+diff --git a/app/api/ollama/[[...path]]/route.ts b/app/api/ollama/[[...path]]/route.ts
+index d8d1243..e01a40c 100644
+--- a/app/api/ollama/[[...path]]/route.ts
++++ b/app/api/ollama/[[...path]]/route.ts
+@@ -4,7 +4,31 @@ export const runtime = "nodejs"
+ 
+ const OLLAMA = (process.env.OLLAMA_ORIGIN || "http://ollama:11434").replace(/\/$/, "")
+ 
++/** Optional: comma-separated allowed Origin values for mutating Ollama proxy calls. */
++function originNotAllowed(req: NextRequest): boolean {
++  const raw = process.env.NODEPAD_ALLOWED_ORIGINS?.trim()
++  if (!raw) return false
++  const allowed = raw.split(",").map(s => s.trim()).filter(Boolean)
++  if (allowed.length === 0) return false
++  const mutating = req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE"
++  if (!mutating) return false
++  const origin = req.headers.get("origin") || ""
++  return !allowed.some(a => {
++    try {
++      return origin === new URL(a).origin
++    } catch {
++      return origin === a || origin.startsWith(a)
++    }
++  })
++}
++
+ async function proxy(req: NextRequest, pathSegments: string[]) {
++  if (originNotAllowed(req)) {
++    return new Response(JSON.stringify({ error: "Origin not allowed for Ollama proxy" }), {
++      status: 403,
++      headers: { "content-type": "application/json" },
++    })
++  }
+   const path = pathSegments.length ? pathSegments.join("/") : ""
+   const search = new URL(req.url).search
+   const target = `${OLLAMA}/${path}${search}`

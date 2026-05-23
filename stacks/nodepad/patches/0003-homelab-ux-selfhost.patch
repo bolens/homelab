@@ -1,0 +1,131 @@
+diff --git a/app/page.tsx b/app/page.tsx
+index ee8558b..0a5b0ee 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -878,9 +878,9 @@ export default function Page() {
+           <div className="flex items-center justify-center gap-3 px-4 py-2 bg-amber-950/80 border-b border-amber-800/60 text-amber-200 text-xs shrink-0">
+             <span className="opacity-80">
+               {settings.provider === "ollama" ? (
+-                <>⚡ <strong className="text-amber-200">Ollama</strong> is selected — set a <strong className="text-amber-200">model name</strong> (e.g. llama3.2) in the <strong className="text-amber-200">☰ left panel</strong> → Settings. Requests go through this app to your Ollama container.</>
++                <>⚡ <strong className="text-amber-200">Ollama</strong> is selected — set a <strong className="text-amber-200">model name</strong> (e.g. llama3.2) in <strong className="text-amber-200">☰ → Settings</strong>. Traffic goes to your stack via this app&apos;s <code className="text-amber-100/90">/api/ollama</code> proxy (see homelab docs).</>
+               ) : (
+-                <>⚡ AI enrichment needs an <strong className="text-amber-200">API key</strong> (OpenRouter, OpenAI, or Z.ai) or switch to <strong className="text-amber-200">Ollama</strong> for a local model. Configure in the <strong className="text-amber-200">☰ left panel</strong>.</>
++                <>⚡ Add an <strong className="text-amber-200">API key</strong> for OpenRouter, OpenAI, or Z.ai — or choose <strong className="text-amber-200">Ollama (local)</strong> if you self-host models. All in <strong className="text-amber-200">☰ → Settings</strong>.</>
+               )}
+             </span>
+             <div className="flex items-center gap-2 shrink-0">
+diff --git a/components/about-panel.tsx b/components/about-panel.tsx
+index a34a0cd..8fdd39e 100644
+--- a/components/about-panel.tsx
++++ b/components/about-panel.tsx
+@@ -143,7 +143,7 @@ export function AboutPanel({ open, onClose }: AboutPanelProps) {
+             <CopyEmailButton />
+           </p>
+           <p className="mt-1.5 text-xs text-muted-foreground/35">
+-            This app uses anonymous analytics (Umami) to track feature interactions — views switched, exports, synthesis events. No note content, no personal data, no cross-site tracking.
++            Optional anonymous analytics via Umami when <span className="font-mono text-muted-foreground/50">UMAMI_SCRIPT_URL</span> is set on the server — otherwise none. No note content in analytics payloads.
+           </p>
+         </div>
+ 
+@@ -176,8 +176,8 @@ export function AboutPanel({ open, onClose }: AboutPanelProps) {
+           {/* Quick start */}
+           <Section title="Quick start">
+             <div className="space-y-4">
+-              <Step n={1} title="Add your API key">
+-                Open the sidebar (☰ top-left) → Settings. The default provider is OpenRouter — create a free account at openrouter.ai and paste your key. You can use <strong className="text-foreground/80">free models</strong> (Nemotron 30B or 120B) with no credits, or add credits to access GPT-4o, Claude Sonnet, Gemini 2.5 Pro, and DeepSeek. OpenAI and Z.ai are also supported as direct providers.
++              <Step n={1} title="Connect AI (cloud or local)">
++                Open <strong className="text-foreground/80">☰ → Settings</strong>. Choose <strong className="text-foreground/80">Ollama (local)</strong> and enter a model tag pulled on your server (e.g. llama3.2), or pick OpenRouter / OpenAI / Z.ai and paste an API key. Keys stay in the browser; local models are called through this app&apos;s proxy to your Ollama service.
+               </Step>
+               <Step n={2} title="Capture anything">
+                 Type a thought, paste a quote, drop a URL, or write a question into the input bar at the bottom and press Enter. nodepad classifies it automatically.
+@@ -289,7 +289,7 @@ export function AboutPanel({ open, onClose }: AboutPanelProps) {
+                 <FolderInput className="h-4 w-4 flex-shrink-0 text-primary/70 mt-0.5" />
+                 <div>
+                   <p className="text-sm font-semibold text-foreground mb-0.5">Your data, locally</p>
+-                  <p className="text-sm text-muted-foreground">Everything is stored in your browser's localStorage — no account, no cloud sync. Notes are sent to the AI provider of your choice (OpenRouter, OpenAI, or Z.ai) using your own API key. Nothing is stored server-side.</p>
++                  <p className="text-sm text-muted-foreground">Everything is stored in your browser&apos;s localStorage — no account, no cloud sync. AI requests go to OpenRouter, OpenAI, Z.ai, or to Ollama through this deployment&apos;s same-origin proxy; API keys for cloud providers never touch this server.</p>
+                 </div>
+               </div>
+             </div>
+diff --git a/lib/ai-settings.ts b/lib/ai-settings.ts
+index 2b05c16..8b8d227 100644
+--- a/lib/ai-settings.ts
++++ b/lib/ai-settings.ts
+@@ -206,16 +206,41 @@ export interface AISettings {
+ 
+ const STORAGE_KEY = "nodepad-ai-settings"
+ 
++/** Docker build args → client bundle; used when localStorage has no saved settings yet. */
++function envDefaultProvider(): AIProvider {
++  const v = (process.env.NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER || "").trim().toLowerCase()
++  if (v === "ollama" || v === "openrouter" || v === "openai" || v === "zai") return v as AIProvider
++  return DEFAULT_PROVIDER
++}
++
++function envDefaultModelForProvider(p: AIProvider): string {
++  if (p === "ollama") {
++    return (process.env.NEXT_PUBLIC_HOMELAB_DEFAULT_OLLAMA_MODEL || "").trim() || DEFAULT_OLLAMA_MODEL_ID
++  }
++  return DEFAULT_MODEL_ID
++}
++
++function freshDefaults(): AISettings {
++  const p = envDefaultProvider()
++  return {
++    apiKey: "",
++    modelId: envDefaultModelForProvider(p),
++    webGrounding: false,
++    provider: p,
++    customBaseUrl: "",
++  }
++}
++
+ function loadSettings(): AISettings {
+   if (typeof window === "undefined") {
+-    return { apiKey: "", modelId: DEFAULT_MODEL_ID, webGrounding: false, provider: DEFAULT_PROVIDER, customBaseUrl: "" }
++    return freshDefaults()
+   }
+   try {
+     const raw = localStorage.getItem(STORAGE_KEY)
+-    if (!raw) return { apiKey: "", modelId: DEFAULT_MODEL_ID, webGrounding: false, provider: DEFAULT_PROVIDER, customBaseUrl: "" }
+-    return { apiKey: "", modelId: DEFAULT_MODEL_ID, webGrounding: false, provider: DEFAULT_PROVIDER, customBaseUrl: "", ...JSON.parse(raw) }
++    if (!raw) return freshDefaults()
++    return { ...freshDefaults(), ...JSON.parse(raw) }
+   } catch {
+-    return { apiKey: "", modelId: DEFAULT_MODEL_ID, webGrounding: false, provider: DEFAULT_PROVIDER, customBaseUrl: "" }
++    return freshDefaults()
+   }
+ }
+ 
+@@ -277,7 +302,11 @@ export function getProviderHeaders(config: AIConfig): Record<string, string> {
+   }
+   base["Authorization"] = `Bearer ${config.apiKey}`
+   if (config.provider === "openrouter") {
+-    base["HTTP-Referer"] = "https://nodepad.space"
++    const ref =
++      typeof window !== "undefined" && window.location?.origin
++        ? window.location.origin
++        : "https://nodepad.space"
++    base["HTTP-Referer"] = ref
+     base["X-Title"] = "nodepad"
+   }
+   return base
+@@ -306,9 +335,15 @@ export function useAISettings() {
+   // Load the real localStorage value after mount to avoid hydration mismatches
+   // caused by settings.apiKey toggling conditional DOM blocks (API key banner,
+   // modelLabel prop, etc.) between the server render and client hydration.
+-  const [settings, setSettings] = useState<AISettings>({
+-    apiKey: "", modelId: DEFAULT_MODEL_ID, webGrounding: false,
+-    provider: DEFAULT_PROVIDER, customBaseUrl: "",
++  const [settings, setSettings] = useState<AISettings>(() => {
++    const p = envDefaultProvider()
++    return {
++      apiKey: "",
++      modelId: envDefaultModelForProvider(p),
++      webGrounding: false,
++      provider: p,
++      customBaseUrl: "",
++    }
+   })
+   const [isHydrated, setIsHydrated] = useState(false)
+ 

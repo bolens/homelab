@@ -1,0 +1,168 @@
+diff --git a/app/layout.tsx b/app/layout.tsx
+index ff81102..4021f26 100644
+--- a/app/layout.tsx
++++ b/app/layout.tsx
+@@ -12,26 +12,38 @@ const vazirmatn = Vazirmatn({
+   display: "swap",
+ });
+ 
+-export const metadata: Metadata = {
+-  title: 'nodepad',
+-  description: 'A spatial research tool where AI augments your thinking — not replaces it.',
+-  icons: {
+-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+-    apple: '/apple-icon.png',
+-  },
+-  openGraph: {
+-    title: 'nodepad',
+-    description: 'A spatial research tool where AI augments your thinking — not replaces it.',
+-    url: 'https://nodepad.space',
+-    siteName: 'nodepad',
+-    locale: 'en_US',
+-    type: 'website',
+-  },
+-  twitter: {
+-    card: 'summary_large_image',
++const baseDescription = 'A spatial research tool where AI augments your thinking — not replaces it.'
++
++export async function generateMetadata(): Promise<Metadata> {
++  const siteUrl = process.env.NODEPAD_SITE_URL || 'https://nodepad.space'
++  let metadataBase: URL
++  try {
++    metadataBase = new URL(siteUrl)
++  } catch {
++    metadataBase = new URL('https://nodepad.space')
++  }
++  return {
++    metadataBase,
+     title: 'nodepad',
+-    description: 'A spatial research tool where AI augments your thinking — not replaces it.',
+-  },
++    description: baseDescription,
++    icons: {
++      icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
++      apple: '/apple-icon.png',
++    },
++    openGraph: {
++      title: 'nodepad',
++      description: baseDescription,
++      url: siteUrl,
++      siteName: 'nodepad',
++      locale: 'en_US',
++      type: 'website',
++    },
++    twitter: {
++      card: 'summary_large_image',
++      title: 'nodepad',
++      description: baseDescription,
++    },
++  }
+ }
+ 
+ export default function RootLayout({
+@@ -39,18 +51,21 @@ export default function RootLayout({
+ }: Readonly<{
+   children: React.ReactNode
+ }>) {
++  const umamiSrc = process.env.UMAMI_SCRIPT_URL?.trim()
++  const umamiSite = process.env.UMAMI_WEBSITE_ID?.trim()
++
+   return (
+     <html lang="en" suppressHydrationWarning>
+       <body className={`font-sans antialiased ${vazirmatn.variable}`} suppressHydrationWarning>
+         <MobileWall />
+         {children}
+-        {/* Umami analytics — nodepad.space only. Remove or replace with your
+-            own data-website-id if self-hosting. Safe to delete entirely. */}
+-        <Script
+-          src="https://cloud.umami.is/script.js"
+-          data-website-id="334833bb-9911-4ddb-b3f2-6df25795cd0e"
+-          strategy="afterInteractive"
+-        />
++        {umamiSrc && umamiSite ? (
++          <Script
++            src={umamiSrc}
++            data-website-id={umamiSite}
++            strategy="afterInteractive"
++          />
++        ) : null}
+       </body>
+     </html>
+   )
+diff --git a/next.config.mjs b/next.config.mjs
+index 0e3def6..923f16f 100644
+--- a/next.config.mjs
++++ b/next.config.mjs
+@@ -1,4 +1,41 @@
+ /** @type {import('next').NextConfig} */
++
++/** Self-hosted Umami script URL → origin for CSP. If unset, Umami is disabled (no cloud default in homelab). */
++function umamiOrigin() {
++  const u = process.env.UMAMI_SCRIPT_URL || ""
++  if (!u.trim()) return null
++  try {
++    return new URL(u).origin
++  } catch {
++    return null
++  }
++}
++
++function contentSecurityPolicy() {
++  const uo = umamiOrigin()
++  const scriptParts = ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
++  const connectParts = [
++    "'self'",
++    "https://openrouter.ai",
++    "https://api.openai.com",
++    "https://api.z.ai",
++  ]
++  if (uo) {
++    scriptParts.push(uo)
++    connectParts.push(uo)
++  }
++  return [
++    "default-src 'self'",
++    `script-src ${scriptParts.join(" ")}`,
++    "style-src 'self' 'unsafe-inline'",
++    `connect-src ${connectParts.join(" ")}`,
++    "img-src 'self' data: blob: https://i.ytimg.com",
++    "font-src 'self' data:",
++    "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
++    "frame-ancestors 'none'",
++  ].join("; ")
++}
++
+ const nextConfig = {
+   typescript: {
+     // Build errors are intentionally ignored — see CLAUDE.md
+@@ -34,29 +71,8 @@ const nextConfig = {
+             value: "camera=(), microphone=(), geolocation=()",
+           },
+           {
+-            // Content Security Policy
+-            // - default-src self: everything defaults to same-origin
+-            // - script-src: Next.js needs 'unsafe-inline' + 'unsafe-eval' in dev;
+-            //   nonces are the proper fix but require custom server — this is the
+-            //   pragmatic baseline for a static/Vercel deployment.
+-            // - connect-src: https: allows any user-configured custom endpoint
+-            // - img-src: data URIs for inline images, blob for canvas exports
+-            // - style-src unsafe-inline: Tailwind injects inline styles at runtime
+             key: "Content-Security-Policy",
+-            value: [
+-              "default-src 'self'",
+-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cloud.umami.is",
+-              "style-src 'self' 'unsafe-inline'",
+-              // Allow all HTTPS so user-configured custom base URLs (arbitrary
+-              // OpenAI-compatible endpoints) are not blocked by CSP. Enumerating
+-              // specific provider domains is incompatible with a custom-URL feature.
+-              // http://localhost:* covers local providers (Ollama, LM Studio, vLLM).
+-              "connect-src 'self' https: http://localhost:*",
+-              "img-src 'self' data: blob: https://i.ytimg.com",
+-              "font-src 'self' data:",
+-              "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
+-              "frame-ancestors 'none'",
+-            ].join("; "),
++            value: contentSecurityPolicy(),
+           },
+         ],
+       },

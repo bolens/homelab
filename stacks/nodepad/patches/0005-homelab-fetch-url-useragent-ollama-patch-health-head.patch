@@ -1,0 +1,57 @@
+diff --git a/app/api/fetch-url/route.ts b/app/api/fetch-url/route.ts
+index fef3f6b..53bc848 100644
+--- a/app/api/fetch-url/route.ts
++++ b/app/api/fetch-url/route.ts
+@@ -7,6 +7,17 @@ type UrlMeta = {
+   statusCode: number
+ }
+ 
++/** Prefer NODEPAD_SITE_URL for outbound fetch identity when self-hosting. */
++function contactOrigin(): string {
++  const raw = process.env.NODEPAD_SITE_URL?.trim()
++  if (!raw) return "https://nodepad.space"
++  try {
++    return new URL(raw).origin
++  } catch {
++    return "https://nodepad.space"
++  }
++}
++
+ function extractMeta(html: string): Omit<UrlMeta, "statusCode"> {
+   const tag = (pattern: RegExp) => {
+     const m = html.match(pattern)
+@@ -44,7 +55,7 @@ async function fetchUrlMeta(url: string): Promise<UrlMeta | null> {
+       res = await fetch(url, {
+         signal: controller.signal,
+         headers: {
+-          "User-Agent": "nodepad/1.0 (+https://nodepad.space)",
++          "User-Agent": `nodepad/1.0 (+${contactOrigin()})`,
+           "Accept": "text/html,application/xhtml+xml",
+         },
+         redirect: "follow",
+diff --git a/app/api/health/route.ts b/app/api/health/route.ts
+index 458ccf5..6de2def 100644
+--- a/app/api/health/route.ts
++++ b/app/api/health/route.ts
+@@ -6,3 +6,8 @@ export const runtime = "nodejs"
+ export async function GET() {
+   return NextResponse.json({ ok: true, service: "nodepad" }, { status: 200 })
+ }
++
++/** Some HTTP probes use HEAD; keep it cheap (no JSON body). */
++export async function HEAD() {
++  return new NextResponse(null, { status: 200 })
++}
+diff --git a/app/api/ollama/[[...path]]/route.ts b/app/api/ollama/[[...path]]/route.ts
+index e01a40c..005ae99 100644
+--- a/app/api/ollama/[[...path]]/route.ts
++++ b/app/api/ollama/[[...path]]/route.ts
+@@ -79,3 +79,8 @@ export async function DELETE(req: NextRequest, ctx: RouteCtx) {
+   const { path = [] } = await ctx.params
+   return proxy(req, path)
+ }
++
++export async function PATCH(req: NextRequest, ctx: RouteCtx) {
++  const { path = [] } = await ctx.params
++  return proxy(req, path)
++}

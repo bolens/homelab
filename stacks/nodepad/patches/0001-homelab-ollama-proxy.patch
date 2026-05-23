@@ -1,0 +1,376 @@
+diff --git a/app/page.tsx b/app/page.tsx
+index 5223911..13d96d7 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -13,7 +13,7 @@ import { IntroModal } from "@/components/intro-modal"
+ import type { TextBlock } from "@/components/tile-card"
+ import type { ContentType } from "@/lib/content-types"
+ import { INITIAL_PROJECTS } from "@/lib/initial-data"
+-import { useAISettings } from "@/lib/ai-settings"
++import { useAISettings, isAIConfigured } from "@/lib/ai-settings"
+ import { enrichBlockClient } from "@/lib/ai-enrich"
+ import { generateGhostClient } from "@/lib/ai-ghost"
+ import { exportToMarkdown, downloadMarkdown, copyToClipboard } from "@/lib/export"
+@@ -926,7 +926,7 @@ export default function Page() {
+           onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+           onIndexToggle={() => setIsIndexOpen(!isIndexOpen)}
+           onGhostPanelToggle={() => setIsGhostPanelOpen(prev => !prev)}
+-          modelLabel={isHydrated && settings.apiKey ? currentModel.shortLabel : undefined}
++          modelLabel={isHydrated && isAIConfigured(settings) ? currentModel.shortLabel : undefined}
+           showHelpTooltip={showHelpTooltip}
+           onHelpTooltipDismiss={() => {
+             setShowHelpTooltip(false)
+@@ -934,24 +934,32 @@ export default function Page() {
+           }}
+         />
+ 
+-        {isHydrated && !settings.apiKey && (
++        {isHydrated && !isAIConfigured(settings) && (
+           <div className="flex items-center justify-center gap-3 px-4 py-2 bg-amber-950/80 border-b border-amber-800/60 text-amber-200 text-xs shrink-0">
+-            <span className="opacity-80">⚡ AI enrichment requires an <strong className="text-amber-200">OpenRouter API key</strong> — use a free model (no credits needed) or add credits for GPT-4o, Claude, and more. Configure in the <strong className="text-amber-200">☰ left panel</strong>.</span>
++            <span className="opacity-80">
++              {settings.provider === "ollama" ? (
++                <>⚡ <strong className="text-amber-200">Ollama</strong> is selected — set a <strong className="text-amber-200">model name</strong> (e.g. llama3.2) in the <strong className="text-amber-200">☰ left panel</strong> → Settings. Requests go through this app to your Ollama container.</>
++              ) : (
++                <>⚡ AI enrichment needs an <strong className="text-amber-200">API key</strong> (OpenRouter, OpenAI, or Z.ai) or switch to <strong className="text-amber-200">Ollama</strong> for a local model. Configure in the <strong className="text-amber-200">☰ left panel</strong>.</>
++              )}
++            </span>
+             <div className="flex items-center gap-2 shrink-0">
+               <button
+                 onClick={() => { setIsSidebarOpen(true); setJumpToSettings(true) }}
+                 className="px-2.5 py-1 rounded bg-amber-700/60 hover:bg-amber-600/70 text-amber-100 font-medium transition-colors cursor-pointer border border-amber-600/50"
+               >
+-                Add API key →
++                {settings.provider === "ollama" ? "Set model →" : "Add API key →"}
+               </button>
+-              <a
+-                href="https://openrouter.ai/keys"
+-                target="_blank"
+-                rel="noopener noreferrer"
+-                className="opacity-60 hover:opacity-90 transition-opacity underline underline-offset-2"
+-              >
+-                Get a free key ↗
+-              </a>
++              {settings.provider !== "ollama" && (
++                <a
++                  href="https://openrouter.ai/keys"
++                  target="_blank"
++                  rel="noopener noreferrer"
++                  className="opacity-60 hover:opacity-90 transition-opacity underline underline-offset-2"
++                >
++                  Get a free key ↗
++                </a>
++              )}
+             </div>
+           </div>
+         )}
+diff --git a/components/project-sidebar.tsx b/components/project-sidebar.tsx
+index 3e45d89..3744b47 100644
+--- a/components/project-sidebar.tsx
++++ b/components/project-sidebar.tsx
+@@ -22,6 +22,7 @@ import {
+ } from "lucide-react"
+ import {
+   AI_PROVIDER_PRESETS,
++  DEFAULT_OLLAMA_MODEL_ID,
+   getModelsForProvider,
+   getPreset,
+   fetchModelsFromProvider,
+@@ -361,11 +362,18 @@ export function ProjectSidebar({
+                               key={preset.id}
+                               onClick={() => {
+                                 const newModels = getModelsForProvider(preset.id)
++                                const defaultModel =
++                                  preset.id === "ollama"
++                                    ? DEFAULT_OLLAMA_MODEL_ID
++                                    : (newModels[0]?.id ?? "")
+                                 setDraft(d => ({
+                                   ...d,
+                                   provider: preset.id,
+-                                  modelId: newModels[0]?.id ?? d.modelId,
+-                                  webGrounding: d.webGrounding,
++                                  modelId: defaultModel || d.modelId,
++                                  webGrounding:
++                                    preset.id === "openrouter" || preset.id === "openai"
++                                      ? d.webGrounding
++                                      : false,
+                                   customBaseUrl: "",
+                                   // Restore the saved key for this provider if one exists,
+                                   // otherwise clear so the user knows to enter a new one.
+@@ -392,7 +400,7 @@ export function ProjectSidebar({
+                 {/* API Key */}
+                 <div className="flex flex-col gap-2">
+                   <label className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+-                    API Key
++                    {draft.provider === "ollama" ? "API Key (optional)" : "API Key"}
+                   </label>
+                   <div className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-2 focus-within:border-primary/50 transition-colors">
+                     <Key className="h-3 w-3 shrink-0 text-muted-foreground" />
+@@ -453,7 +461,7 @@ export function ProjectSidebar({
+                         type="text"
+                         value={draft.modelId}
+                         onChange={e => setDraft(d => ({ ...d, modelId: e.target.value }))}
+-                        placeholder="e.g. gpt-4o, claude-3-opus-20240229"
++                        placeholder={draft.provider === "ollama" ? "e.g. llama3.2, qwen2.5" : "e.g. gpt-4o, claude-3-opus-20240229"}
+                         className="flex-1 bg-transparent font-mono text-[11px] text-foreground outline-none placeholder:text-muted-foreground/40"
+                         autoComplete="off"
+                         spellCheck={false}
+@@ -637,12 +645,30 @@ export function ProjectSidebar({
+ 
+                 {/* API Status */}
+                 <div className={`flex items-center gap-2 rounded-md px-2.5 py-2 font-mono text-[9px] ${
+-                  draft.apiKey
+-                    ? "bg-primary/10 border border-primary/20 text-primary"
+-                    : "bg-white/5 border border-white/5 text-muted-foreground"
++                  draft.provider === "ollama"
++                    ? draft.modelId.trim()
++                      ? "bg-primary/10 border border-primary/20 text-primary"
++                      : "bg-white/5 border border-white/5 text-muted-foreground"
++                    : draft.apiKey
++                      ? "bg-primary/10 border border-primary/20 text-primary"
++                      : "bg-white/5 border border-white/5 text-muted-foreground"
+                 }`}>
+-                  <span className={`h-1.5 w-1.5 rounded-full ${draft.apiKey ? "bg-primary animate-pulse" : "bg-white/30"}`} />
+-                  {draft.apiKey ? `${currentPreset.label} — API key configured` : "No API key — AI disabled"}
++                  <span className={`h-1.5 w-1.5 rounded-full ${
++                    draft.provider === "ollama"
++                      ? draft.modelId.trim()
++                        ? "bg-primary animate-pulse"
++                        : "bg-white/30"
++                      : draft.apiKey
++                        ? "bg-primary animate-pulse"
++                        : "bg-white/30"
++                  }`} />
++                  {draft.provider === "ollama"
++                    ? (draft.modelId.trim()
++                        ? `${currentPreset.label} — model ${draft.modelId.trim()}`
++                        : "Set a model name — AI disabled")
++                    : (draft.apiKey
++                        ? `${currentPreset.label} — API key configured`
++                        : "No API key — AI disabled")}
+                 </div>
+               </motion.div>
+             )}
+diff --git a/lib/ai-enrich.ts b/lib/ai-enrich.ts
+index cd9a894..64c0f7f 100644
+--- a/lib/ai-enrich.ts
++++ b/lib/ai-enrich.ts
+@@ -265,7 +265,7 @@ export async function enrichBlockClient(
+   category?: string,
+ ): Promise<EnrichResult> {
+   const config = loadAIConfig()
+-  if (!config) throw new Error("No API key configured")
++  if (!config) throw new Error("Configure AI in Settings (API key or Ollama model).")
+ 
+   const detectedType = detectContentType(text)
+   const effectiveType = forcedType || detectedType
+diff --git a/lib/ai-ghost.ts b/lib/ai-ghost.ts
+index 50521de..d917b1d 100644
+--- a/lib/ai-ghost.ts
++++ b/lib/ai-ghost.ts
+@@ -19,10 +19,12 @@ export async function generateGhostClient(
+   previousSyntheses: string[] = [],
+ ): Promise<GhostResult> {
+   const config = loadAIConfig()
+-  if (!config) throw new Error("No API key configured")
++  if (!config) throw new Error("Configure AI in Settings (API key or Ollama model).")
+ 
+-  // Ghost falls back to a lighter model if none is set
+-  const model = config.modelId || "google/gemini-2.0-flash-lite-001"
++  // Ghost falls back to a lighter model if none is set (cloud default; Ollama uses configured tag)
++  const model =
++    config.modelId ||
++    (config.provider === "ollama" ? "llama3.2" : "google/gemini-2.0-flash-lite-001")
+ 
+   const categories = [...new Set(context.map(c => c.category).filter(Boolean))]
+ 
+diff --git a/lib/ai-settings.ts b/lib/ai-settings.ts
+index d215253..7e67861 100644
+--- a/lib/ai-settings.ts
++++ b/lib/ai-settings.ts
+@@ -12,7 +12,7 @@ export interface AIModel {
+   groundingModelId?: string
+ }
+ 
+-export type AIProvider = "openrouter" | "openai" | "zai"
++export type AIProvider = "openrouter" | "openai" | "zai" | "ollama"
+ 
+ export interface AIProviderPreset {
+   id: AIProvider
+@@ -44,6 +44,13 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
+     keyUrl: "https://z.ai/manage-apikey/apikey-list",
+     keyPlaceholder: "Your Z.ai API key",
+   },
++  {
++    id: "ollama",
++    label: "Ollama (local)",
++    baseUrl: "/api/ollama/v1",
++    keyUrl: "",
++    keyPlaceholder: "Optional — leave empty for local Ollama",
++  },
+ ]
+ 
+ export function getPreset(provider: AIProvider): AIProviderPreset {
+@@ -176,13 +183,17 @@ export const ZAI_MODELS: AIModel[] = [
+ 
+ export function getModelsForProvider(provider: AIProvider): AIModel[] {
+   if (provider === "openai") return OPENAI_MODELS
+-  if (provider === "zai")    return ZAI_MODELS
++  if (provider === "zai") return ZAI_MODELS
++  if (provider === "ollama") return []
+   return AI_MODELS // openrouter + safe fallback for any stale localStorage value
+ }
+ 
+ export const DEFAULT_MODEL_ID = "openai/gpt-4o"
+ export const DEFAULT_PROVIDER: AIProvider = "openrouter"
+ 
++/** Default Ollama model tag when switching to Ollama in Settings (override in Model field). */
++export const DEFAULT_OLLAMA_MODEL_ID = "llama3.2"
++
+ // ── Dynamic model fetching ────────────────────────────────────────────────────
+ 
+ export interface FetchedModel {
+@@ -269,7 +280,18 @@ export interface AIConfig {
+ 
+ export function loadAIConfig(): AIConfig | null {
+   const s = loadSettings()
+-  if (!s.apiKey) return null
++  if (s.provider === "ollama") {
++    const modelId = (s.modelId || "").trim()
++    if (!modelId) return null
++    return {
++      apiKey: s.apiKey.trim(),
++      modelId,
++      supportsGrounding: false,
++      provider: "ollama",
++      customBaseUrl: s.customBaseUrl,
++    }
++  }
++  if (!s.apiKey.trim()) return null
+   const models = getModelsForProvider(s.provider)
+   const model = models.find(m => m.id === s.modelId)
+   // Use the matched model's id if found; otherwise fall back to the first model
+@@ -285,6 +307,12 @@ export function loadAIConfig(): AIConfig | null {
+   return { apiKey: s.apiKey, modelId, supportsGrounding, provider: s.provider, customBaseUrl: s.customBaseUrl }
+ }
+ 
++/** True when AI calls can run (cloud providers need an API key; Ollama needs a model name). */
++export function isAIConfigured(s: AISettings): boolean {
++  if (s.provider === "ollama") return !!(s.modelId || "").trim()
++  return !!(s.apiKey || "").trim()
++}
++
+ export function getBaseUrl(config: AIConfig): string {
+   const custom = config.customBaseUrl?.trim()
+   return custom || getPreset(config.provider).baseUrl
+@@ -293,8 +321,12 @@ export function getBaseUrl(config: AIConfig): string {
+ export function getProviderHeaders(config: AIConfig): Record<string, string> {
+   const base: Record<string, string> = {
+     "Content-Type": "application/json",
+-    "Authorization": `Bearer ${config.apiKey}`,
+   }
++  if (config.provider === "ollama") {
++    if (config.apiKey) base["Authorization"] = `Bearer ${config.apiKey}`
++    return base
++  }
++  base["Authorization"] = `Bearer ${config.apiKey}`
+   if (config.provider === "openrouter") {
+     base["HTTP-Referer"] = "https://nodepad.space"
+     base["X-Title"] = "nodepad"
+@@ -308,7 +340,11 @@ export function getAIHeaders(): Record<string, string> {
+   const config = loadAIConfig()
+   if (!config) return {}
+   const models = getModelsForProvider(config.provider)
+-  const model = models.find(m => m.id === config.modelId) || AI_MODELS.find(m => m.id === DEFAULT_MODEL_ID)!
++  const model =
++    models.find(m => m.id === config.modelId) ||
++    (config.provider === "ollama"
++      ? { supportsGrounding: false as const }
++      : AI_MODELS.find(m => m.id === DEFAULT_MODEL_ID)!)
+   return {
+     "x-or-key": config.apiKey,
+     "x-or-model": config.modelId,
+@@ -343,6 +379,7 @@ export function useAISettings() {
+   const models = getModelsForProvider(settings.provider)
+ 
+   const resolvedModelId = (() => {
++    if (settings.provider === "ollama") return (settings.modelId || "").trim()
+     const model = models.find(m => m.id === settings.modelId) || models[0]
+     if (!model) return settings.modelId
+     if (settings.provider === "openrouter" && settings.webGrounding && model.supportsGrounding) {
+@@ -353,9 +390,9 @@ export function useAISettings() {
+ 
+   const currentModel: AIModel = models.find(m => m.id === settings.modelId) || models[0] || {
+     id: settings.modelId,
+-    label: settings.modelId,
+-    shortLabel: settings.modelId.split("/").pop() || settings.modelId,
+-    description: "Custom model",
++    label: settings.modelId || "Model",
++    shortLabel: (settings.modelId || "?").split("/").pop() || settings.modelId || "?",
++    description: settings.provider === "ollama" ? "Ollama model tag" : "Custom model",
+     supportsGrounding: false,
+   }
+ 
+diff --git a/app/api/ollama/[[...path]]/route.ts b/app/api/ollama/[[...path]]/route.ts
+new file mode 100644
+index 0000000..d8d1243
+--- /dev/null
++++ b/app/api/ollama/[[...path]]/route.ts
+@@ -0,0 +1,57 @@
++import type { NextRequest } from "next/server"
++
++export const runtime = "nodejs"
++
++const OLLAMA = (process.env.OLLAMA_ORIGIN || "http://ollama:11434").replace(/\/$/, "")
++
++async function proxy(req: NextRequest, pathSegments: string[]) {
++  const path = pathSegments.length ? pathSegments.join("/") : ""
++  const search = new URL(req.url).search
++  const target = `${OLLAMA}/${path}${search}`
++
++  const headers = new Headers()
++  for (const name of ["accept", "content-type", "authorization"]) {
++    const v = req.headers.get(name)
++    if (v) headers.set(name, v)
++  }
++
++  const init: RequestInit = {
++    method: req.method,
++    headers,
++    signal: req.signal,
++  }
++
++  if (req.method !== "GET" && req.method !== "HEAD") {
++    init.body = req.body
++    Object.assign(init, { duplex: "half" as const })
++  }
++
++  const res = await fetch(target, init)
++  return new Response(res.body, {
++    status: res.status,
++    statusText: res.statusText,
++    headers: res.headers,
++  })
++}
++
++type RouteCtx = { params: Promise<{ path?: string[] }> }
++
++export async function GET(req: NextRequest, ctx: RouteCtx) {
++  const { path = [] } = await ctx.params
++  return proxy(req, path)
++}
++
++export async function POST(req: NextRequest, ctx: RouteCtx) {
++  const { path = [] } = await ctx.params
++  return proxy(req, path)
++}
++
++export async function PUT(req: NextRequest, ctx: RouteCtx) {
++  const { path = [] } = await ctx.params
++  return proxy(req, path)
++}
++
++export async function DELETE(req: NextRequest, ctx: RouteCtx) {
++  const { path = [] } = await ctx.params
++  return proxy(req, path)
++}

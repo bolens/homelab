@@ -1,0 +1,14 @@
+diff --git a/app/api/fetch-url/route.ts b/app/api/fetch-url/route.ts
+--- a/app/api/fetch-url/route.ts
++++ b/app/api/fetch-url/route.ts
+@@ -64,6 +64,11 @@
+       clearTimeout(timer)
+     }
+ 
++    // After redirect:follow, reject final URL if it matches blocked hosts (SSRF).
++    if (typeof res.url === "string" && res.url && isBlockedHost(res.url)) {
++      return { title: "", description: "Redirect to blocked host", excerpt: "", statusCode: 400 }
++    }
++
+     const statusCode = res.status
+     if (!res.ok) return { title: "", description: "", excerpt: "", statusCode }
