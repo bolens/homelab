@@ -39,6 +39,7 @@ services:
       disable: false
     networks:
       - default
+      - monitor
 
   redis:
     container_name: immich-redis
