@@ -54,7 +54,7 @@ services:
       - --port=3000
     volumes:
       - flood_data:/data
-      - rtorrent_data:/rtorrent_data:ro
+      - rtorrent_data:/rtorrent_data
       - torrents_manual:/downloads
     networks:
       - monitor
