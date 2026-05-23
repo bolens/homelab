@@ -117,7 +117,6 @@ scrape_configs:
           - https://alertmanager.example.com
           - https://authentik.example.com
           - https://booking.example.com
-          - https://crowdsec.example.com
           - https://gitea.example.com
           - https://grafana.example.com
           - https://keycloak.example.com
