@@ -323,7 +323,8 @@ scrape_configs:
           - https://readarr.example.com
           - https://resilio.example.com
           - https://romm.example.com
-          - https://rtorrent.example.com
+          - https://flood.example.com
+          - https://rutorrent.example.com
           - https://scrutiny.example.com
           - https://seafile.example.com
           - https://search.example.com

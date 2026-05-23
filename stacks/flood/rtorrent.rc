@@ -1,0 +1,16 @@
+# rTorrent config — imports image defaults then overrides for Docker.
+# The default rc sets: socket at (basedir)/rtorrent.sock, basedir at
+# /home/download/.local/share/rtorrent/ — we just add daemon mode and
+# override port + download dir.
+
+import = /etc/rtorrent/rtorrent.rc
+
+# Peer port
+network.port_range.set = 49160-49160
+network.port_random.set = no
+
+# Download directory
+directory.default.set = /downloads
+
+# Daemon mode (required when no TTY in Docker)
+system.daemon.set = true

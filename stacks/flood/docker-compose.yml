@@ -1,0 +1,82 @@
+services:
+  # Init container: fix volume ownership so rTorrent (uid 1001) can write.
+  rtorrent-init:
+    image: alpine:latest
+    container_name: rtorrent-init
+    restart: "no"
+    user: root
+    command: >
+      sh -c "chown -R 1001:1001 /data /downloads && echo 'Volume ownership fixed.'"
+    volumes:
+      - rtorrent_data:/data
+      - torrents_manual:/downloads
+
+  rtorrent:
+    image: jesec/rtorrent:master
+    container_name: rtorrent
+    restart: unless-stopped
+    user: "1001:1001"
+    depends_on:
+      rtorrent-init:
+        condition: service_completed_successfully
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    command: -n -o import=/home/download/rtorrent.rc
+    volumes:
+      - rtorrent_data:/home/download/.local/share/rtorrent
+      - ./rtorrent.rc:/home/download/rtorrent.rc:ro
+      - torrents_manual:/downloads
+    networks:
+      - torrents
+    ports:
+      - "49160:49160"
+      - "49160:49160/udp"
+
+  flood:
+    image: jesec/flood:master
+    container_name: flood
+    restart: unless-stopped
+    user: "1000:1000"
+    depends_on:
+      - rtorrent
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    # No --rtorrent flag: connect to external rTorrent via socket.
+    # Socket path = rTorrent's basedir default: basedir/rtorrent.sock
+    command:
+      - --auth=none
+      - --rtsocket=/rtorrent_data/rtorrent.sock
+      - --allowedpath=/downloads
+      - --host=0.0.0.0
+      - --port=3000
+    volumes:
+      - flood_data:/data
+      - rtorrent_data:/rtorrent_data:ro
+      - torrents_manual:/downloads
+    networks:
+      - monitor
+      - torrents
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  rtorrent_data:
+  flood_data:
+  torrents_manual:
+    external: true

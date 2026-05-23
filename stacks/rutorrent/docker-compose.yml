@@ -1,0 +1,39 @@
+services:
+  rutorrent:
+    image: lscr.io/linuxserver/rutorrent:latest
+    container_name: rutorrent
+    restart: unless-stopped
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - rutorrent_config:/config
+      - torrents_manual:/downloads
+    networks:
+      - monitor
+      - torrents
+    # Peer port — must hit the host directly for incoming torrent connections.
+    # Web UI (port 80) served via Caddy — no host port binding needed.
+    ports:
+      - "49161:49160"
+      - "49161:49160/udp"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  rutorrent_config:
+  torrents_manual:
+    external: true
