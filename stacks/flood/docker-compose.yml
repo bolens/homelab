@@ -38,7 +38,7 @@ services:
     image: jesec/flood:master
     container_name: flood
     restart: unless-stopped
-    user: "1000:1000"
+    user: "1001:1001"
     depends_on:
       - rtorrent
     env_file:
