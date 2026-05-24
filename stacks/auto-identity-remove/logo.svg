@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Document background -->
+  <rect x="20" y="10" width="60" height="80" rx="4" ry="4" fill="#f0f4f8" stroke="#9ab" stroke-width="2"/>
+  <!-- Document lines -->
+  <rect x="30" y="25" width="40" height="4" rx="2" fill="#aabbcc"/>
+  <rect x="30" y="34" width="35" height="4" rx="2" fill="#aabbcc"/>
+  <!-- Redaction bar (black) -->
+  <rect x="27" y="44" width="46" height="10" rx="2" fill="#1a1a2e"/>
+  <!-- More lines below redaction -->
+  <rect x="30" y="59" width="38" height="4" rx="2" fill="#aabbcc"/>
+  <rect x="30" y="68" width="30" height="4" rx="2" fill="#aabbcc"/>
+  <!-- Small shield / check badge bottom-right -->
+  <circle cx="72" cy="78" r="10" fill="#e74c3c"/>
+  <text x="72" y="82" text-anchor="middle" font-size="12" fill="white" font-family="sans-serif">✕</text>
+</svg>

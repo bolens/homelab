@@ -1,0 +1,11 @@
+# Snippet for internal access via Caddy (paste into your main Caddyfile or import it)
+# Internal only — this service processes sensitive documents and should not be public.
+
+(auto-identity-remove-internal) {
+	reverse_proxy auto-identity-remove:5000
+}
+
+# Import into your Caddyfile:
+# auto-identity-remove.home {
+#     import auto-identity-remove-internal
+# }

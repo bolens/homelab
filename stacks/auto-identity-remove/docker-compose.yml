@@ -1,0 +1,56 @@
+# auto-identity-remove - Local LLM-powered PII redaction service (NVIDIA GPU required)
+# Supports: PDF, DOCX, XLSX, XLS, PPTX, DOC, PPT, ODT, ODS, ODP, RTF, TXT
+# REST API + Swagger UI at /docs
+# Requires: GPU with 8GB+ VRAM; uses Ollama (internal or external)
+# NOTE: The upstream image has Ollama baked in (model runs inside the container).
+# By default OLLAMA_HOST points to the external ollama stack on the monitor network.
+# To use the baked-in Ollama instead, set OLLAMA_HOST=http://localhost:11434 and
+# remove the `extra_hosts` entry below.
+services:
+  auto-identity-remove:
+    image: stephenlthorn/auto-identity-remove:latest
+    container_name: auto-identity-remove
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${AIR_PORT:-5000}:5000"
+    volumes:
+      - air_output:/app/output
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitor
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      - OUTPUT_DIR=/app/output
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/docs"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  air_output: {}
