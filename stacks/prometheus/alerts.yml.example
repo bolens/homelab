@@ -89,7 +89,7 @@ groups:
           runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
 
       - alert: BlackboxRootCriticalDown
-        expr: probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|crowdsec|vault)\\.bolens\\.dev"} == 0
+        expr: probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|vault)\\.bolens\\.dev"} == 0
         for: 5m
         labels:
           severity: critical
@@ -101,7 +101,7 @@ groups:
           runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
 
       - alert: BlackboxRootWarningDown
-        expr: probe_success{job="blackbox_public"} == 0 unless on(instance) probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|crowdsec|vault)\\.bolens\\.dev"} == 0
+        expr: probe_success{job="blackbox_public"} == 0 unless on(instance) probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|vault)\\.bolens\\.dev"} == 0
         for: 5m
         labels:
           severity: warning
