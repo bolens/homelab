@@ -1,6 +1,6 @@
 # Build from spotify/docker-gc source – eeacms/docker-gc uses legacy manifest
 # format unsupported by containerd v2.1+
-FROM alpine:3.19
+FROM alpine:3.24
 
 RUN apk add --no-cache bash coreutils docker-cli patch
 

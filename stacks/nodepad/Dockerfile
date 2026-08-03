@@ -1,12 +1,12 @@
 # nodepad – Next.js app. Build context must include ./repo (run ./clone-repo.sh first).
 # Multi-stage: install deps, build, run with next start (no standalone output in upstream).
 
-FROM node:22-bookworm-slim AS deps
+FROM node:25-bookworm-slim AS deps
 WORKDIR /app
 COPY repo/package.json repo/package-lock.json ./
 RUN npm ci
 
-FROM node:22-bookworm-slim AS builder
+FROM node:25-bookworm-slim AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 # Optional first-run defaults in the client bundle (compose build.args).
@@ -19,7 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY repo/ .
 RUN npm run build
 
-FROM node:22-bookworm-slim AS runner
+FROM node:25-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

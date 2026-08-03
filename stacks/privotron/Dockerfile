@@ -4,7 +4,7 @@
 # https://github.com/kevinl95/Privotron
 
 ARG PRIVOTRON_VERSION=main
-FROM python:3.13-bookworm
+FROM python:3.14-bookworm
 
 WORKDIR /app
 
