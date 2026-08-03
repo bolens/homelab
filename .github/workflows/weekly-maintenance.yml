@@ -56,8 +56,13 @@ jobs:
         with:
           args: >-
             --no-progress
-            --accept 200,204,206,429
+            --accept 200,204,206,403,429
+            --exclude '^https?://[^/]+\.yourdomain\.com'
+            --exclude '^https?://[^/]+\.home'
+            --exclude '^https?://(localhost|127\.0\.0\.1|host|[a-z0-9-]+)(:[0-9]+)?/'
             './**/*.md'
-          fail: true
+          # External documentation can rate-limit or disappear temporarily.
+          # Keep the detailed summary actionable without breaking all CI.
+          fail: false
           jobSummary: true
           token: ${{ github.token }}

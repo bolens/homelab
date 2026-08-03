@@ -12,6 +12,11 @@
   "rangeStrategy": "pin",
   "packageRules": [
     {
+      "description": "Dependabot owns GitHub Actions and container updates",
+      "matchManagers": ["github-actions", "dockerfile", "docker-compose"],
+      "enabled": false
+    },
+    {
       "description": "Keep container changes review-only until digest pinning is adopted deliberately",
       "matchDatasources": ["docker"],
       "pinDigests": false,

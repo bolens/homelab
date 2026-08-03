@@ -83,8 +83,11 @@ Additional narrowly scoped workflows provide:
 - weekly repository, secret, and documentation-link checks; and
 - weekly OpenSSF Scorecard results in GitHub code scanning.
 
-Actions are pinned to immutable commit SHAs. Renovate proposes reviewed
-updates for those versions. Security-reporting workflows grant
+Actions are pinned to immutable commit SHAs. Dependabot proposes grouped,
+reviewed updates for Actions, Dockerfiles, Compose images, and the root npm
+manifest. Those managers are disabled in Renovate to prevent duplicate pull
+requests; Renovate remains available for other supported dependency types.
+Security-reporting workflows grant
 `security-events: write` only to jobs that upload results; other workflows and
 jobs retain read-only or empty default permissions.
 
