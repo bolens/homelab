@@ -395,11 +395,16 @@ All of these (except Cloudflare Access, which is configured via your Cloudflare 
 
 ## 🚀 Getting started
 
+For a new host or first deployment, follow the concise
+**[Getting started guide](documents/GETTING-STARTED.md)** first. It covers
+prerequisites, read-only checks, mounts, secrets, networks, deployment, and
+verification. The catalog below is the per-stack reference.
+
 ### 1. 🔐 Secrets and config
 
 Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. Copy from the `.example` templates in each stack and fill in your values.
 
-**Optional – shared TZ/locale:** From the `docker/` repo root, copy `shared.env.example` → `shared.env` and set your timezone and locale once; use it with CLI (`docker compose --env-file ../shared.env --env-file stack.env`) or add the same four variables in Portainer. See [documents/SHARED-RESOURCES.md](documents/SHARED-RESOURCES.md#1-shared-env-file-tz--locale).
+**Optional – shared TZ/locale:** From the `docker/` repo root, copy `shared.env.example` → `shared.env` and set your timezone and locale once; supported Compose files load it automatically. Add the same values in Portainer when deploying through its editor. See [documents/SHARED-RESOURCES.md](documents/SHARED-RESOURCES.md#1-shared-env-file-tz--locale).
 
 - **stacks/ail** — optional `stack.env` with `TZ`; uses community image cciucd/ail-framework; >6GB RAM recommended; reset password after first login: `docker exec ail bin/LAUNCH.sh -rp`
 - **stacks/anything-llm** — `./prepare-stack.sh`; set `JWT_SECRET` in `stack.env`; pull Ollama chat + embedding models per `stack.env.example`; `docker compose --env-file stack.env up -d`
@@ -543,10 +548,14 @@ To bring up metrics collection and dashboards, bring these stacks online in orde
 | **Optional** | **ntfy** | Push notifications | Deploy `stacks/ntfy` on `monitor`; set `NTFY_BASE_URL` to your Caddy URL. Subscribe to the topic used in Alertmanager (e.g. `alerts`) in the ntfy app to receive alerts. |
 | **Optional** | **Blackbox exporter** | Synthetic probes | For HTTP/TCP/ICMP probes: deploy `stacks/blackbox-exporter`, then add a scrape job in `prometheus.yml` for `blackbox-exporter:9115`. |
 | **Optional** | **Loki** | Log aggregation | Deploy `stacks/loki` (copy `loki-config.yml.example` to `~/.config/loki/loki-config.yml`). Grafana’s provisioned datasources include Loki; use **Explore** → **Loki** to query. |
-| **Optional** | **Promtail** | Log shipper | Deploy `stacks/promtail` after Loki; copy config to `~/.config/promtail/promtail-config.yml`. Ships host and Docker logs to Loki. |
-| **Optional** | **Vector** | Log shipper | Deploy `stacks/vector` to ship logs to Loki; ensure Loki is on `monitor` network. |
+| **Optional** | **Alloy** | Docker log shipper | Deploy `stacks/alloy` after Loki. Alloy owns Docker container discovery and shipping in the current baseline. |
+| **Optional** | **Promtail** | Host log shipper | Deploy `stacks/promtail` after Loki; copy config to `~/.config/promtail/promtail-config.yml`. It handles host files and journald, avoiding duplicate Docker ingestion with Alloy. |
+| **Alternative** | **Vector** | Log shipper | Deploy Vector only when intentionally using it instead of the baseline shippers; avoid collecting the same source twice. |
 
-After step 4, in Grafana go to **Dashboards** → **Import** and use dashboard IDs **893** (cAdvisor), **3662** (Prometheus overview). See [stacks/grafana/README.md](stacks/grafana/README.md) for logs (Loki) and datasources.
+Grafana provisions the repository's datasources and dashboards when its example
+configuration is installed. External dashboards such as IDs **893** (cAdvisor)
+and **3662** (Prometheus overview) remain optional. See
+[stacks/grafana/README.md](stacks/grafana/README.md).
 
 ### 4. ⚙️ Shared settings
 

@@ -15,8 +15,8 @@ prepare_stack__require_prepdir() {
 
 prepare_stack_begin() {
   local dir="${1:?stack directory}"
-  PREPARE_STACK_DIR="$(cd "$dir" && pwd)"
-  cd "$PREPARE_STACK_DIR"
+  PREPARE_STACK_DIR="$(cd "$dir" && pwd)" || return 1
+  cd "$PREPARE_STACK_DIR" || return 1
   PREPARE_STACK_NAME="$(basename "$PREPARE_STACK_DIR")"
   echo "[prepare-stack] ${PREPARE_STACK_NAME}: starting..."
 }

@@ -1,4 +1,25 @@
-.PHONY: monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+
+help:
+	@echo "Homelab repository targets:"
+	@echo "  doctor             Read-only host and repository checks"
+	@echo "  validate           Python, Compose YAML, and shell validation"
+	@echo "  secrets            Scan the full Git history with Gitleaks"
+	@echo "  secrets-files      Scan files on disk, including ignored runtime files"
+	@echo "  monitoring-iterate Validate, reload, and smoke-test monitoring"
+	@echo "  monitoring-quick   Reload and smoke-test monitoring"
+
+doctor:
+	bash scripts/homelab-doctor.sh
+
+validate:
+	bash scripts/validate-repo.sh
+
+secrets:
+	bash scripts/scan-secrets-gitleaks.sh git
+
+secrets-files:
+	bash scripts/scan-secrets-gitleaks.sh dir
 
 monitoring-validate:
 	bash scripts/validate-monitoring-config.sh

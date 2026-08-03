@@ -1,68 +1,56 @@
-# Help, health, and version flags
-if [[ "$1" == "--help" ]]; then
-    echo "Usage: $0 [--help|--health|--version]"
-    echo "  --help     Show this help message."
-    echo "  --health   Print OK if the script is available."
-    echo "  --version  Print script version."
-    exit 0
-elif [[ "$1" == "--health" ]]; then
-    echo "OK"
-    exit 0
-elif [[ "$1" == "--version" ]]; then
-    echo "find_apache2_containers.sh version 1.0 (2026-03-14)"
-    exit 0
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: find_apache2_containers.sh [--help|--health|--version]
+
+List host apache2 processes and identify their Docker container, if any.
+Run this on the Docker host. Reading another user's /proc entries may require
+elevated privileges.
+EOF
+}
+
+case "${1:-}" in
+  --help) usage; exit 0 ;;
+  --health) echo "OK"; exit 0 ;;
+  --version) echo "find_apache2_containers.sh 2.0"; exit 0 ;;
+  "") ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+command -v pgrep >/dev/null 2>&1 || {
+  echo "find_apache2_containers.sh: pgrep is required." >&2
+  exit 127
+}
+
+mapfile -t pids < <(pgrep -x apache2 || true)
+if ((${#pids[@]} == 0)); then
+  echo "No apache2 processes found."
+  exit 0
 fi
-# Health and version flags
-if [[ "$1" == "--health" ]]; then
-    echo "OK"
-    exit 0
-elif [[ "$1" == "--version" ]]; then
-    echo "find_apache2_containers.sh version 1.0 (2026-03-14)"
-    exit 0
+
+docker_available=false
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  docker_available=true
 fi
 
+for pid in "${pids[@]}"; do
+  cgroup="$(grep -Eo '[0-9a-f]{64}' "/proc/${pid}/cgroup" 2>/dev/null | head -n 1 || true)"
+  if [[ -z "$cgroup" ]]; then
+    echo "PID $pid is not in a Docker container (or its cgroup is unreadable)."
+    continue
+  fi
 
-###############################################################################
-#  find_apache2_containers.sh
-#
-#  List all apache2 processes and show which (if any) Docker container they
-#  belong to.
-#
-#  For each apache2 process running on the host, this script checks its cgroup
-#  to determine if it is running inside a Docker container, and if so, attempts
-#  to resolve the container name. Useful for debugging web server deployments
-#  and container isolation.
-#
-#  Usage:
-#      ./find_apache2_containers.sh
-#
-#  Output:
-#      Prints the PID and container name (if any) for each apache2 process.
-#
-#  Requirements:
-#      - Docker must be installed and running.
-#      - Script should be run on the Docker host.
-#
-#  Author:      homelab-user
-#  Date:        2026-03-14
-###############################################################################
+  if [[ "$docker_available" == true ]]; then
+    container_name="$(docker inspect --format '{{.Name}}' "$cgroup" 2>/dev/null | sed 's#^/##' || true)"
+  else
+    container_name=""
+  fi
 
-# Get all apache2 PIDs
-pids=$(pgrep apache2)
-
-
-for pid in $pids; do
-    # Get cgroup info
-    cgroup=$(cat /proc/$pid/cgroup 2>/dev/null | grep -Eo '[0-9a-f]{64}')
-    if [[ -n "$cgroup" ]]; then
-        container_id=$cgroup
-        container_name=$(docker ps --no-trunc --format '{{.ID}} {{.Names}}' | grep "^$container_id" | awk '{print $2}')
-        if [[ -n "$container_name" ]]; then
-            echo "PID $pid is in Docker container: $container_name ($container_id)"
-        else
-            echo "PID $pid is in Docker container: $container_id (name not found)"
-        fi
-    else
-        echo "PID $pid is NOT in a Docker container."
-    fi
+  if [[ -n "$container_name" ]]; then
+    echo "PID $pid is in Docker container: $container_name ($cgroup)"
+  else
+    echo "PID $pid is in Docker container: $cgroup (name unavailable)"
+  fi
 done

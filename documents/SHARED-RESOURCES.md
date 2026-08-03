@@ -148,13 +148,13 @@ From any stack directory, pass both env files (later files override earlier ones
 
 ```bash
 cd stacks/hedgedoc
-docker compose --env-file ../shared.env --env-file stack.env up -d
+docker compose --env-file ../../shared.env --env-file stack.env up -d
 ```
 
 You can use a shell alias or script if you prefer, e.g.:
 
 ```bash
-alias compose-shared='docker compose --env-file ../shared.env --env-file stack.env'
+alias compose-shared='docker compose --env-file ../../shared.env --env-file stack.env'
 compose-shared up -d
 ```
 

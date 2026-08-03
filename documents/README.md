@@ -6,10 +6,12 @@ Shared and cross-stack docs for the homelab Docker setup.
 
 | Doc | Description |
 |-----|-------------|
+| [GETTING-STARTED.md](GETTING-STARTED.md) | New-host prerequisites, safe stack preparation, deployment, verification, and maintenance |
 | [ACCESS-SSO.md](ACCESS-SSO.md) | Cloudflare Access SSO for tunnel subdomains (replace basic auth with Google/GitHub/etc.) |
 | [CROWDSEC-CLOUDFLARE-WORKER.md](CROWDSEC-CLOUDFLARE-WORKER.md) | Use CrowdSec decisions to block or challenge traffic at Cloudflare’s edge via the Cloudflare Workers bouncer |
 | [ENV-VARS.md](ENV-VARS.md) | Common environment variables (TZ, locale, per-app) and which stacks use them |
 | [SHARED-RESOURCES.md](SHARED-RESOURCES.md) | Shared resources (networks, MinIO, Postfix, Ollama), one-time setup, and optional optimizations (Redis, TZ/locale) |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Exited containers, restarts, and common stack issues (Promtail, Linkwarden, Infisical, etc.) |
 
-Other guides (backup, monitoring, security) can live here as they’re added.
+Start with **Getting started**, then use the stack README for application-specific
+configuration.
