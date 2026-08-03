@@ -2,7 +2,7 @@
 # Dependencies: imagemounter, pytsk3 (Sleuth Kit), python-magic, etc.
 # Multi-stage: build with gcc, final image has only runtime deps (smaller for Harbor push).
 # --- Builder stage ---
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -18,7 +18,7 @@ RUN git clone --depth 1 https://github.com/docker-forensics-toolkit/toolkit.git 
     && pipenv install --deploy --system
 
 # --- Runtime stage ---
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic1 \

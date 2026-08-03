@@ -1,4 +1,4 @@
-FROM ruby:3.4-slim
+FROM ruby:4.0-slim
 
 RUN gem install --no-document rackula
 
