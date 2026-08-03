@@ -1,4 +1,4 @@
-# Bind mounts: READARR_*_PATH in stack.env. For compose volume substitution use:
+# Unified media bind mount: READARR_MEDIA_PATH in stack.env.
 #   docker compose --env-file stack.env up -d
 services:
   readarr:
@@ -19,9 +19,7 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - readarr_config:/config
-      - "${READARR_BOOKS_PATH:-/mnt/unraid/media/books}:/books"
-      - "${READARR_USENET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
-      - torrents_downloads:/torrents
+      - "${READARR_MEDIA_PATH:-/mnt/unraid/media}:/data"
     networks:
       - monitor
       - usenet
@@ -46,5 +44,3 @@ networks:
 
 volumes:
   readarr_config:
-  torrents_downloads:
-    external: true

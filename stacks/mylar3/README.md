@@ -1,6 +1,8 @@
 # Mylar3
 
-Automated comic book downloader (CBR/CBZ) for Usenet and torrents. Tracks series, fetches new issues via NZBGet or qBittorrent, and organizes them into a comics folder. Pair with **Komga** by pointing Komga’s library at the same path as Mylar3’s completed comics (e.g. `/comics` or a bind-mounted host path).
+Automated comic book downloader (CBR/CBZ) for Usenet and torrents. Tracks
+series, fetches new issues via NZBGet or qBittorrent, and organizes them into
+`/data/comics`.
 
 **Homepage:** https://mylarcomics.com  
 **GitHub:** https://github.com/mylar3/mylar3  
@@ -11,16 +13,20 @@ Access via Caddy at **https://mylar3.yourdomain.com** (or your configured hostna
 ## Quick start
 
 1. Copy `stack.env.example` → `stack.env` (optional: set `PUID`, `PGID`, `TZ`).
-2. Confirm `MYLAR3_COMICS_PATH` (default `/mnt/unraid/media/comics`) and `MYLAR3_DOWNLOADS_PATH` (default `/mnt/unraid/media/downloads/usenet`).
+2. Confirm `MYLAR3_MEDIA_PATH` (default `/mnt/unraid/media`).
 3. Ensure the **usenet** and **torrents** networks exist (same as Sonarr/Radarr). Create them if needed: `docker network create usenet` and `docker network create torrents`. For external networks/volumes and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 4. From the stack directory: `docker compose --env-file stack.env up -d`.
-5. In the web UI: add download clients (NZBGet at `nzbget:6789`, qBittorrent at `qbittorrent:8080`), add indexers (Prowlarr or NZBHydra2), then add series and set the comics path to `/comics`.
+5. In the web UI: add download clients (NZBGet at `nzbget:6789`,
+   qBittorrent at `qbittorrent:8080`), add indexers, then set Comic Location
+   to `/data/comics`. Set **NZBGet Download Directory** to
+   `/data/downloads/usenet/completed/comics`.
 
 **Portainer:** Add stack → paste `docker-compose.yml` → set env vars → deploy. Ensure usenet and torrents networks exist.
 
 ## Integration with Komga
 
-Point Mylar3’s “Comic location” (or post-processing destination) at `/comics`. To have Komga read the same files, bind-mount the same host path (`MYLAR3_COMICS_PATH`, default `/mnt/unraid/media/comics`) into Komga’s library path.
+Point Mylar3’s Comic Location at `/data/comics`. Komga can continue mounting
+the corresponding host directory independently.
 
 ## Configuration
 
@@ -29,7 +35,7 @@ Point Mylar3’s “Comic location” (or post-processing destination) at `/comi
 | **Access** | Via Caddy only (no host port; reverse-proxy to `mylar3:8090`) |
 | **Networks** | `monitor` (Caddy), `usenet`, `torrents` (download clients) |
 | **Images** | `lscr.io/linuxserver/mylar3:latest` |
-| **Storage** | `mylar3_config` → `/config`, `${MYLAR3_COMICS_PATH}` → `/comics`, `${MYLAR3_DOWNLOADS_PATH}` → `/downloads` |
+| **Storage** | `mylar3_config` → `/config`, `${MYLAR3_MEDIA_PATH}` → `/data` |
 
 ## Caddy reverse proxy
 

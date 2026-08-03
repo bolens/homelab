@@ -14,15 +14,13 @@ Movie collection manager for Usenet and torrents. Radarr monitors your wanted mo
    ```bash
    docker network create usenet
    docker network create torrents
-   docker volume create torrents_downloads
-   mkdir -p /mnt/unraid/media/movies /mnt/unraid/media/downloads/usenet
+   mkdir -p /mnt/unraid/media/movies /mnt/unraid/media/downloads/{usenet,torrents}
    ```
    For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.
-   - Confirm `RADARR_MOVIES_PATH` (default `/mnt/unraid/media/movies`).
-   - Confirm `RADARR_USENET_DOWNLOADS_PATH` (default `/mnt/unraid/media/downloads/usenet`).
+   - Confirm `RADARR_MEDIA_PATH` (default `/mnt/unraid/media`).
 3. **Deploy**
    - From this directory:
      ```bash
@@ -33,7 +31,9 @@ Movie collection manager for Usenet and torrents. Radarr monitors your wanted mo
    - Configure:
      - **Download client**: NZBGet (`http://nzbget:6789`) and/or qBittorrent (`http://qbittorrent:8080`).
      - **Indexers**: from Prowlarr/NZBHydra 2.
-     - **Root folder**: `/movies` (bind-mounted from `RADARR_MOVIES_PATH`).
+     - **Root folder**: `/data/movies`.
+     - **NZBGet remote path mapping**: host `nzbget`, remote
+       `/downloads/`, local `/data/downloads/usenet/`.
 
 ## Configuration
 
@@ -42,8 +42,8 @@ Movie collection manager for Usenet and torrents. Radarr monitors your wanted mo
 | **Access** | Via Caddy only (no host port; reverse-proxy to `radarr:7878`)          |
 | **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
 | **Image**  | `lscr.io/linuxserver/radarr:latest`                                    |
-| **Env**    | `TZ`, `PUID`, `PGID`, `RADARR_MOVIES_PATH`, `RADARR_USENET_DOWNLOADS_PATH`, optional `RADARR__*` |
-| **Storage**| `radarr_config` → `/config`, `${RADARR_MOVIES_PATH}` → `/movies`, `${RADARR_USENET_DOWNLOADS_PATH}` → `/downloads`, `torrents_downloads` → `/torrents` |
+| **Env**    | `TZ`, `PUID`, `PGID`, `RADARR_MEDIA_PATH`, optional `RADARR__*` |
+| **Storage**| `radarr_config` → `/config`, `${RADARR_MEDIA_PATH}` → `/data`; use `/data/movies` and `/data/downloads/*` |
 
 ## Caddy reverse proxy
 
@@ -55,4 +55,3 @@ radarr.home, radarr.local {
   reverse_proxy radarr:7878
 }
 ```
-

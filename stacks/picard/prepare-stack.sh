@@ -9,7 +9,5 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "monitor"
-prepare_stack_ensure_dir_from_env "PICARD_MUSIC_PATH" "/mnt/unraid/media/music"
-prepare_stack_ensure_dir_from_env "PICARD_SOULSEEK_INTAKE_PATH" "/mnt/unraid/media/downloads/soulseek"
-prepare_stack_ensure_dir_from_env "PICARD_LIDARR_INTAKE_PATH" "/mnt/unraid/media/intake/lidarr"
+prepare_stack_ensure_dir_from_env "PICARD_MEDIA_PATH" "/mnt/unraid/media"
 prepare_stack_end

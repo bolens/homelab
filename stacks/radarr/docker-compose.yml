@@ -1,4 +1,4 @@
-# Bind mounts: RADARR_*_PATH in stack.env. For compose volume substitution use:
+# Unified media bind mount: RADARR_MEDIA_PATH in stack.env.
 #   docker compose --env-file stack.env up -d
 services:
   radarr:
@@ -18,9 +18,7 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - radarr_config:/config
-      - "${RADARR_MOVIES_PATH:-/mnt/unraid/media/movies}:/movies"
-      - "${RADARR_USENET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
-      - torrents_downloads:/torrents
+      - "${RADARR_MEDIA_PATH:-/mnt/unraid/media}:/data"
     networks:
       - monitor
       - usenet
@@ -45,5 +43,3 @@ networks:
 
 volumes:
   radarr_config:
-  torrents_downloads:
-    external: true

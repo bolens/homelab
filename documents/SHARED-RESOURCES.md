@@ -63,26 +63,39 @@ Set `OLLAMA_BASE_URL=http://ollama:11434` (or provider-specific vars such as `OL
 
 ### External volumes (downloads) and media bind mounts
 
-Some stacks expect **external** named volumes so multiple stacks can share the same download data:
-
-| Volume(s) | Used by |
-|-----------|---------|
-| `torrents_downloads` | qbittorrent, *arr stacks (Sonarr, Radarr, Lidarr, Readarr) |
-
-Create volumes once if your compose does not create them: e.g. `docker volume create torrents_downloads`. Stacks that use them declare `external: true`. This avoids duplicate download/layout and keeps modularity (each stack still has its own compose and config).
-
-**Media libraries** and **Usenet downloads** are bind-mounted from the host (defaults under `/mnt/unraid/media/`), not Docker named volumes:
+Media libraries and downloads are bind-mounted from one host tree (default
+`/mnt/unraid/media`) to `/data` in download clients and *arr apps:
 
 | Host path | Container path | Used by |
 |-----------|----------------|---------|
-| `/mnt/unraid/media/tv` | `/tv` | Sonarr, Bazarr, Plex/Jellyfin/Emby |
-| `/mnt/unraid/media/movies` | `/movies` | Radarr, Whisparr, Bazarr, Plex/Jellyfin/Emby |
-| `/mnt/unraid/media/music` | `/music` | Lidarr, Navidrome, … |
-| `/mnt/unraid/media/books` | `/books` | Readarr |
-| `/mnt/unraid/media/comics` | `/comics` | Mylar3 |
-| `/mnt/unraid/media/downloads/usenet` | `/downloads` | NZBGet, *arr stacks, Mylar3 |
+| `/mnt/unraid/media/tv` | `/data/tv` | Sonarr |
+| `/mnt/unraid/media/movies` | `/data/movies` | Radarr |
+| `/mnt/unraid/media/adult` | `/data/adult` | Whisparr |
+| `/mnt/unraid/media/music` | `/data/music` | Lidarr |
+| `/mnt/unraid/media/books` | `/data/books` | Readarr |
+| `/mnt/unraid/media/comics` | `/data/comics` | Mylar3 |
+| `/mnt/unraid/media/downloads/usenet` | `/data/downloads/usenet` | *arr apps (NZBGet reports `/downloads`) |
+| `/mnt/unraid/media/downloads/torrents` | `/data/downloads/torrents` | qBittorrent and *arr apps |
 
-Set the stack’s `*_PATH` vars in `stack.env` (e.g. `RADARR_MOVIES_PATH`, `SONARR_TV_PATH`, `NZBGET_DOWNLOADS_PATH`) so download clients and the *arr apps see the same folders. Ensure those host paths exist before deploying.
+Mounting the tree once is important: Usenet imports can use an atomic rename,
+and active torrents can be hardlinked into a library without consuming space
+twice. For NZBGet, add a remote path mapping in each *arr app from remote
+`/downloads/` to local `/data/downloads/usenet/`.
+
+The same rule applies to manual/secondary importers:
+
+- Picard mounts the media tree once at `/data`; use
+  `/data/downloads/{soulseek,usenet/completed/music}` as intake and
+  `/data/music` as output.
+- Mylar3 uses `/data/comics` and the same `/data/downloads` tree.
+- Explo is an exception: its Docker image defines separate `/data` output and
+  `/slskd` source volume roles. Migration may copy across mounts; do not mount
+  the whole media root at Explo's `/data`, because it treats that directory as
+  the music-library destination.
+
+In each *arr app, keep **Use Hardlinks instead of Copy** enabled. Usenet jobs
+that are no longer needed by the downloader can be renamed into the library;
+active torrents are hardlinked so they can continue seeding.
 
 #### Unraid NFS source
 
@@ -245,7 +258,6 @@ To avoid “network/volume does not exist” when bringing up stacks:
    - `docker network create usenet`    (if you use NZBGet / *arr)
 
 2. **External volumes / host paths** (if your stacks declare them as `external: true` and you haven’t created them yet):
-   - e.g. `docker volume create torrents_downloads`
    - Ensure host media paths exist before deploying media stacks, e.g.:
      - `/mnt/unraid/media/{tv,movies,music,books,comics}`
      - `/mnt/unraid/media/downloads/usenet`

@@ -9,4 +9,5 @@ prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "monitor"
 prepare_stack_ensure_docker_network "torrents"
 prepare_stack_ensure_docker_network "usenet"
+prepare_stack_ensure_dir_from_env "WHISPARR_MEDIA_PATH" "/mnt/unraid/media"
 prepare_stack_end

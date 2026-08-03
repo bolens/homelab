@@ -1,4 +1,4 @@
-# Bind mounts: LIDARR_*_PATH in stack.env. For compose volume substitution use:
+# Unified media bind mount: LIDARR_MEDIA_PATH in stack.env.
 #   docker compose --env-file stack.env up -d
 services:
   lidarr:
@@ -18,12 +18,7 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - lidarr_config:/config
-      # Keep Lidarr imports out of the published library until Picard has
-      # tagged and moved them.  /music is retained as the container path so
-      # existing Lidarr root-folder configuration continues to work.
-      - "${LIDARR_INTAKE_PATH:-/mnt/unraid/media/intake/lidarr}:/music"
-      - "${LIDARR_USENET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
-      - torrents_downloads:/torrents
+      - "${LIDARR_MEDIA_PATH:-/mnt/unraid/media}:/data"
     networks:
       - monitor
       - usenet
@@ -48,5 +43,3 @@ networks:
 
 volumes:
   lidarr_config:
-  torrents_downloads:
-    external: true

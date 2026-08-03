@@ -14,8 +14,7 @@ TV series management for Usenet and torrents. Sonarr monitors your library, grab
    ```bash
    docker network create usenet
    docker network create torrents
-   docker volume create torrents_downloads
-   mkdir -p /mnt/unraid/media/tv /mnt/unraid/media/downloads/usenet
+   mkdir -p /mnt/unraid/media/tv /mnt/unraid/media/downloads/{usenet,torrents}
    ```
    For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
@@ -23,8 +22,7 @@ TV series management for Usenet and torrents. Sonarr monitors your library, grab
    - Set:
      - `TZ` to your timezone.
      - `PUID` / `PGID` to the user/group that should own media files.
-     - Confirm `SONARR_TV_PATH` (default `/mnt/unraid/media/tv`).
-     - Confirm `SONARR_USENET_DOWNLOADS_PATH` (default `/mnt/unraid/media/downloads/usenet`).
+     - Confirm `SONARR_MEDIA_PATH` (default `/mnt/unraid/media`).
 3. **Deploy**
    - From this directory:
      ```bash
@@ -35,9 +33,13 @@ TV series management for Usenet and torrents. Sonarr monitors your library, grab
    - Add:
      - **Download client**: NZBGet at `http://nzbget:6789` and/or qBittorrent at `http://qbittorrent:8080`.
      - **Indexers**: from Prowlarr/NZBHydra 2.
-     - **Root folder**: `/tv` (bind-mounted from `SONARR_TV_PATH`).
+     - **Root folder**: `/data/tv`.
+     - **NZBGet remote path mapping**: host `nzbget`, remote
+       `/downloads/`, local `/data/downloads/usenet/`.
 
-This stack uses a **config volume** (`sonarr_config`), a **TV library bind mount** (`SONARR_TV_PATH`), a **Usenet downloads bind mount** (`SONARR_USENET_DOWNLOADS_PATH` → `/downloads`, shared with NZBGet), and the shared **`torrents_downloads`** volume so it can coordinate with qBittorrent.
+This stack mounts the entire media tree once at `/data`. Keeping downloads and
+the TV library below one container mount enables atomic Usenet moves and
+hardlinked torrent imports.
 
 ## Configuration
 
@@ -46,8 +48,8 @@ This stack uses a **config volume** (`sonarr_config`), a **TV library bind mount
 | **Access** | Via Caddy only (no host port; reverse-proxy to `sonarr:8989`)          |
 | **Networks** | `monitor`, `usenet`, `torrents`, plus the stack’s default network     |
 | **Image**  | `lscr.io/linuxserver/sonarr:latest`                                    |
-| **Env**    | `TZ`, `PUID`, `PGID`, `SONARR_TV_PATH`, `SONARR_USENET_DOWNLOADS_PATH`, optional `SONARR__*` |
-| **Storage**| `sonarr_config` → `/config`, `${SONARR_TV_PATH}` → `/tv`, `${SONARR_USENET_DOWNLOADS_PATH}` → `/downloads`, `torrents_downloads` → `/torrents` |
+| **Env**    | `TZ`, `PUID`, `PGID`, `SONARR_MEDIA_PATH`, optional `SONARR__*` |
+| **Storage**| `sonarr_config` → `/config`, `${SONARR_MEDIA_PATH}` → `/data` |
 
 ## Caddy reverse proxy
 
@@ -61,4 +63,3 @@ sonarr.home, sonarr.local {
 ```
 
 For public access via Cloudflare Tunnel, add a `sonarr.yourdomain.com` block in the public HTTPS section of your Caddyfile and optionally protect it with Cloudflare Access.
-

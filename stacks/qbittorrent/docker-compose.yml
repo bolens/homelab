@@ -40,7 +40,7 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - qbittorrent_config:/config
-      - torrents_downloads:/downloads
+      - "${QBITTORRENT_MEDIA_PATH:-/mnt/unraid/media}:/data"
     restart: unless-stopped
     depends_on:
       - gluetun
@@ -55,5 +55,3 @@ networks:
 
 volumes:
   qbittorrent_config:
-  torrents_downloads:
-    external: true

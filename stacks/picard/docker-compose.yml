@@ -17,9 +17,7 @@ services:
       - stack.env
     volumes:
       - picard_config:/config
-      - "${PICARD_MUSIC_PATH:-/mnt/unraid/media/music}:/music"
-      - "${PICARD_SOULSEEK_INTAKE_PATH:-/mnt/unraid/media/downloads/soulseek}:/soulseek-intake"
-      - "${PICARD_LIDARR_INTAKE_PATH:-/mnt/unraid/media/intake/lidarr}:/lidarr-intake"
+      - "${PICARD_MEDIA_PATH:-/mnt/unraid/media}:/data"
     networks:
       - monitor
     healthcheck:

@@ -37,7 +37,7 @@ volumes:
 - name: mylar3_config
   role: app_data
   critical: true
-# Comics library + usenet downloads are host bind mounts (see MYLAR3_*_PATH)
+# Unified media tree is a host bind mount (see MYLAR3_MEDIA_PATH)
 auth:
   mode: app_local
   sso_provider: null

@@ -14,15 +14,13 @@ Book and audiobook collection manager for Usenet and torrents. Readarr monitors 
    ```bash
    docker network create usenet
    docker network create torrents
-   docker volume create torrents_downloads
-   mkdir -p /mnt/unraid/media/books /mnt/unraid/media/downloads/usenet
+   mkdir -p /mnt/unraid/media/books /mnt/unraid/media/downloads/{usenet,torrents}
    ```
    For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.
-   - Confirm `READARR_BOOKS_PATH` (default `/mnt/unraid/media/books`).
-   - Confirm `READARR_USENET_DOWNLOADS_PATH` (default `/mnt/unraid/media/downloads/usenet`).
+   - Confirm `READARR_MEDIA_PATH` (default `/mnt/unraid/media`).
 3. **Deploy**
    - From this directory:
      ```bash
@@ -33,7 +31,9 @@ Book and audiobook collection manager for Usenet and torrents. Readarr monitors 
    - Configure:
      - **Download client**: NZBGet and/or qBittorrent.
      - **Indexers**: from Prowlarr/NZBHydra 2.
-     - **Root folder**: `/books` (bind-mounted from `READARR_BOOKS_PATH`).
+     - **Root folder**: `/data/books`.
+     - **NZBGet remote path mapping**: host `nzbget`, remote
+       `/downloads/`, local `/data/downloads/usenet/`.
 
 ## Configuration
 
@@ -42,8 +42,8 @@ Book and audiobook collection manager for Usenet and torrents. Readarr monitors 
 | **Access** | Via Caddy only (no host port; reverse-proxy to `readarr:8787`)         |
 | **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
 | **Image**  | `lscr.io/linuxserver/readarr:0.4.18-nightly`                            |
-| **Env**    | `TZ`, `PUID`, `PGID`, `READARR_BOOKS_PATH`, `READARR_USENET_DOWNLOADS_PATH`, optional `READARR__*` |
-| **Storage**| `readarr_config` → `/config`, `${READARR_BOOKS_PATH}` → `/books`, `${READARR_USENET_DOWNLOADS_PATH}` → `/downloads`, `torrents_downloads` → `/torrents` |
+| **Env**    | `TZ`, `PUID`, `PGID`, `READARR_MEDIA_PATH`, optional `READARR__*` |
+| **Storage**| `readarr_config` → `/config`, `${READARR_MEDIA_PATH}` → `/data`; use `/data/books` and `/data/downloads/*` |
 
 ## Caddy reverse proxy
 
@@ -55,4 +55,3 @@ readarr.home, readarr.local {
   reverse_proxy readarr:8787
 }
 ```
-

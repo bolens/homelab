@@ -37,11 +37,7 @@ volumes:
 - name: sonarr_config
   role: app_data
   critical: true
-- name: torrents_downloads
-  role: app_data
-  critical: true
-  external: true
-# TV library + usenet downloads are host bind mounts (see SONARR_*_PATH)
+# Unified media tree is a host bind mount (see SONARR_MEDIA_PATH)
 auth:
   mode: app_local
   sso_provider: null

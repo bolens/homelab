@@ -156,7 +156,7 @@ Quick reference — find a stack:
 | komga | SERVER_PORT=25600; optional JAVA_TOOL_OPTIONS for large libraries. |
 | lanraragi | LRR_UID/GID optional; content at /home/koyomi/lanraragi/content. |
 | librechat | MONGO_INITDB_*, REDIS_PASSWORD, DOMAIN_*, JWT_SECRET required. |
-| lidarr | TZ, PUID, PGID; LIDARR_INTAKE_PATH → /music (unpublished staging); LIDARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
+| lidarr | TZ, PUID, PGID; LIDARR_MEDIA_PATH → /data. |
 | linkding | TZ optional; optional LD_DISABLE_BACKGROUND_TASKS. |
 | linkstack | Optional SERVER_ADMIN, HTTP_SERVER_NAME, PHP_MEMORY_LIMIT. |
 | linkwarden | NEXTAUTH_SECRET, POSTGRES_PASSWORD, MEILI_MASTER_KEY required. |
@@ -174,7 +174,7 @@ Quick reference — find a stack:
 | metube | TZ, PUID, PGID, UMASK optional. |
 | minio | MINIO_ROOT_USER, MINIO_ROOT_PASSWORD required. |
 | mosquitto | Config via mosquitto.conf; MQTT on :1883. |
-| mylar3 | TZ, PUID, PGID; MYLAR3_COMICS_PATH → /comics; MYLAR3_DOWNLOADS_PATH → /downloads. |
+| mylar3 | TZ, PUID, PGID; MYLAR3_MEDIA_PATH → /data. |
 | n8n | N8N_HOST, WEBHOOK_URL required behind Caddy; N8N_ENCRYPTION_KEY recommended. |
 | naisho | SECRET_KEY_BASE required (openssl rand -hex 64). |
 | navidrome | ND_BASEURL recommended; ND_SCANSCHEDULE, ND_LOGLEVEL. |
@@ -209,7 +209,7 @@ Quick reference — find a stack:
 | perplexica | SEARXNG_API_URL, OLLAMA_BASE_URL optional; secrets configured in UI. |
 | pgadmin | See stack README and stack.env.example. |
 | phoneinfoga | OSINT; no env required. |
-| picard | PUID, PGID optional; PICARD_MUSIC_PATH, PICARD_SOULSEEK_INTAKE_PATH, PICARD_LIDARR_INTAKE_PATH. |
+| picard | PUID, PGID optional; PICARD_MEDIA_PATH → /data. |
 | pihole | See stack README; DNS port 53 conflict resolution required on host. |
 | plaso | CLI only; digital forensics (log2timeline/psort). |
 | plex | TZ, PUID, PGID, VERSION, PLEX_*_PATH, optional PLEX_CLAIM. |
@@ -226,8 +226,8 @@ Quick reference — find a stack:
 | pwntools-gdb | CLI only; exploit dev toolkit. |
 | qbittorrent | TZ, PUID, PGID; Gluetun VPN_* vars if using VPN. |
 | rackula | See stack README and stack.env.example. |
-| radarr | TZ, PUID, PGID; RADARR_MOVIES_PATH → /movies; RADARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
-| readarr | TZ, PUID, PGID; READARR_BOOKS_PATH → /books; READARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
+| radarr | TZ, PUID, PGID; RADARR_MEDIA_PATH → /data. |
+| readarr | TZ, PUID, PGID; READARR_MEDIA_PATH → /data. |
 | reconftw | CLI only; recon framework. |
 | resilio | See stack README and stack.env.example. |
 | responder-mitm6 | See stack README; network attack toolkit. |
@@ -247,7 +247,7 @@ Quick reference — find a stack:
 | snipe-it | APP_URL, APP_KEY (artisan generate), DB_*, MYSQL_* required. |
 | snowflake-relay | See stack README and stack.env.example. |
 | social-hunt | ADMIN_TOKEN, SOCIAL_HUNT_PUBLIC_URL required. |
-| sonarr | TZ, PUID, PGID; SONARR_TV_PATH → /tv; SONARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
+| sonarr | TZ, PUID, PGID; SONARR_MEDIA_PATH → /data. |
 | soulseek | SLSKD_SLSK_USERNAME/PASSWORD required; SLSKD_SLSK_LISTEN_PORT (50300). |
 | spiderfoot | OSINT scanner; no env required. |
 | stirling-pdf | TZ optional; PDF tools. |

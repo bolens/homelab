@@ -1,6 +1,9 @@
 # qBittorrent + VPN (Gluetun)
 
-Torrent client with **all traffic routed through a VPN** (Gluetun). Intended for **automated torrents** from Sonarr/Radarr/Lidarr/Readarr. The stack uses the shared `torrents` network and `torrents_downloads` volume so *arr apps can send torrents to qBittorrent and read completed files.
+Torrent client with **all traffic routed through a VPN** (Gluetun). Intended
+for automated downloads from the *arr apps. The media tree is mounted once at
+`/data`, allowing hardlinked imports that preserve seeding without duplicating
+file data.
 
 **Website (qBittorrent):** https://www.qbittorrent.org/  
 **Docs (Gluetun):** https://github.com/qdm12/gluetun/wiki  
@@ -18,7 +21,7 @@ Torrent client with **all traffic routed through a VPN** (Gluetun). Intended for
 
    ```bash
    docker network create torrents
-   docker volume create torrents_downloads
+   mkdir -p /mnt/unraid/media/downloads/torrents
    ```
 
    For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
@@ -40,7 +43,10 @@ Torrent client with **all traffic routed through a VPN** (Gluetun). Intended for
 4. **First run**
 
    - Access the qBittorrent Web UI via Caddy (e.g. `https://qbittorrent.yourdomain.com`). Default login is `admin` / `adminadmin`; change it in the UI.
-   - In Sonarr/Radarr/Lidarr/Readarr, add a download client: **qBittorrent**, host `qbittorrent`, port `8080`, and the credentials you set.
+   - Set qBittorrent's default save path to `/data/downloads/torrents`.
+   - In Sonarr/Radarr/Lidarr/Readarr, add a download client:
+     **qBittorrent**, host `qbittorrent`, port `8080`, and the credentials you
+     set.
    - Set the torrent listening port in qBittorrent. For incoming peers, use your VPN provider’s port forwarding (configure in Gluetun; see Gluetun docs). No host port binding is used; Caddy handles all HTTP access to the Web UI.
 
 ## Configuration
@@ -51,7 +57,7 @@ Torrent client with **all traffic routed through a VPN** (Gluetun). Intended for
 | **Networks** | `torrents` (for *arr and peers), `monitor` (for Caddy). |
 | **Ports** | No host port bindings. Torrent listening port 6881 is internal; for incoming peers use your VPN provider’s port forwarding in Gluetun and set that port in qBittorrent’s connection settings. |
 | **Env** | `TZ`, `PUID`, `PGID`; Gluetun: `VPN_SERVICE_PROVIDER`, `VPN_TYPE`, and provider-specific vars (see `stack.env.example` and Gluetun docs). |
-| **Storage** | `qbittorrent_config` → qBittorrent config; `torrents_downloads` (external) → completed downloads for *arr. |
+| **Storage** | `qbittorrent_config` → qBittorrent config; `${QBITTORRENT_MEDIA_PATH}` → `/data` |
 
 ## Caddy reverse proxy
 
@@ -66,5 +72,7 @@ qbittorrent.yourdomain.com {
 
 ## How this fits with rtorrent-flood
 
-- **Automated torrents** (Sonarr/Radarr/Lidarr/Readarr) use this **qBittorrent+VPN** stack on the `torrents` network and the shared volume `torrents_downloads`.
+- Automated torrents use this qBittorrent+VPN stack on the `torrents`
+  network. Downloads and libraries must remain below the same `/data` mount
+  for hardlinks to work.
 - **Manual / private-tracker torrents** can use the **rtorrent-flood** stack with `torrents_manual`, so automated and manual traffic stay separate.

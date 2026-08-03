@@ -21,9 +21,7 @@ services:
       - PGID=${PGID:-1000}
     volumes:
       - ${WHISPARR_CONFIG_PATH:?Set WHISPARR_CONFIG_PATH in stack.env}:/config
-      - ${WHISPARR_MOVIES_PATH:?Set WHISPARR_MOVIES_PATH in stack.env}:/movies
-      - ${WHISPARR_USENET_DOWNLOADS_PATH:?Set WHISPARR_USENET_DOWNLOADS_PATH in stack.env}:/downloads
-      - ${WHISPARR_TORRENT_DOWNLOADS_PATH:?Set WHISPARR_TORRENT_DOWNLOADS_PATH in stack.env}:/torrents
+      - ${WHISPARR_MEDIA_PATH:?Set WHISPARR_MEDIA_PATH in stack.env}:/data
     networks:
       - monitor
       - usenet

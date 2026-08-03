@@ -21,7 +21,7 @@ Adult movie collection manager for Usenet and torrents (Servarr family). Monitor
 2. **Environment and host paths**
    - Run `./prepare-stack.sh` (creates `stack.env` from the example and ensures required networks exist).
    - Set `PUID`, `PGID` (or rely on `shared.env` for TZ/locale).
-   - Set **absolute paths** for all `WHISPARR_*_PATH` variables (config dir, library root, completed Usenet folder, completed torrents folder). This stack uses **bind mounts**, not the shared Docker volumes used by Sonarr/Radarr.
+   - Set `WHISPARR_CONFIG_PATH` and the unified `WHISPARR_MEDIA_PATH`.
 
 3. **Deploy:**
    ```bash
@@ -30,7 +30,11 @@ Adult movie collection manager for Usenet and torrents (Servarr family). Monitor
 
 4. **First run**
    - Open `https://whisparr.home` (or your Caddy hostname).
-   - Add download clients (e.g. `http://nzbget:6789`, `http://qbittorrent:8080`), indexers (Prowlarr), and a root folder **`/movies`** (maps to `WHISPARR_MOVIES_PATH` on the host).
+   - Add download clients (e.g. `http://nzbget:6789`,
+     `http://qbittorrent:8080`), indexers (Prowlarr), and root folder
+     **`/data/adult`**.
+   - For NZBGet, map remote `/downloads/` to local
+     `/data/downloads/usenet/`.
 
 ## Configuration
 
@@ -39,8 +43,8 @@ Adult movie collection manager for Usenet and torrents (Servarr family). Monitor
 | **Access** | Via Caddy only (no published host port); upstream `whisparr:6969` |
 | **Networks** | `monitor`, `usenet`, `torrents` |
 | **Image** | `ghcr.io/thespad/whisparr:latest` |
-| **Env** | `TZ`, `PUID`, `PGID`, plus `WHISPARR_*_PATH` for bind mounts |
-| **Storage** | Host paths → `/config`, `/movies`, `/downloads`, `/torrents` (see `stack.env.example`) |
+| **Env** | `TZ`, `PUID`, `PGID`, `WHISPARR_CONFIG_PATH`, `WHISPARR_MEDIA_PATH` |
+| **Storage** | Config bind → `/config`; `${WHISPARR_MEDIA_PATH}` → `/data`; adult library at `/data/adult` |
 
 ## Caddy reverse proxy
 
