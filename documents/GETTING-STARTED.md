@@ -15,6 +15,7 @@ Clone the repository, then run:
 ```bash
 make doctor
 make validate
+make hooks-install
 ```
 
 `make doctor` is read-only. Warnings about `monitor`, `usenet`, or `torrents`
@@ -105,8 +106,10 @@ make secrets
 ```
 
 Before committing, inspect `git status`, review the complete diff, and run
-`make secrets-files` as a local safety check. That mode scans ignored runtime
-files too, so do not paste its raw findings into issues or chat.
+`make ci-local`. Installed pre-commit hooks run the staged subset
+automatically. Run `make secrets-files` as an additional local safety check;
+that mode scans ignored runtime files too, so do not paste its raw findings
+into issues or chat.
 
 For shared networks, mounts, MinIO, mail, and AI backends, continue with
 [Shared resources](SHARED-RESOURCES.md). For failures, use

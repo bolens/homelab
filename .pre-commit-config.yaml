@@ -1,13 +1,41 @@
 repos:
   - repo: local
     hooks:
+      - id: whitespace-check
+        name: Git whitespace check
+        entry: git diff --check --cached
+        language: system
+        pass_filenames: false
+      - id: staged-secret-scan
+        name: staged secret scan
+        entry: bash scripts/pre-commit-gitleaks.sh
+        language: system
+        pass_filenames: false
+      - id: dependency-config
+        name: dependency update configuration
+        entry: python3 scripts/validate-dependency-config.py
+        language: system
+        pass_filenames: false
+        files: ^(\.github/dependabot\.ya?ml|renovate\.json)$
+      - id: actionlint
+        name: GitHub workflow syntax
+        entry: actionlint
+        language: system
+        pass_filenames: false
+        files: ^\.github/workflows/.*\.ya?ml$
+      - id: zizmor
+        name: GitHub workflow security
+        entry: bash scripts/pre-commit-zizmor.sh
+        language: system
+        pass_filenames: false
+        files: ^\.github/workflows/.*\.ya?ml$
+      - id: hadolint
+        name: Dockerfile lint
+        entry: bash scripts/pre-commit-hadolint.sh
+        language: system
+        types: [dockerfile]
       - id: repository-validation
         name: repository validation
         entry: bash scripts/validate-repo.sh
-        language: system
-        pass_filenames: false
-      - id: whitespace-check
-        name: Git whitespace check
-        entry: git diff --check
         language: system
         pass_filenames: false

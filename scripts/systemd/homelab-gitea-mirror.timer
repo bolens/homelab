@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodically mirror GitHub homelab state to Gitea
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+RandomizedDelaySec=2min
+
+[Install]
+WantedBy=timers.target

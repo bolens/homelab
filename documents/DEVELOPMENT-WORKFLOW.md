@@ -1,57 +1,92 @@
-# Development workflow: Gitea, Woodpecker CI, and GitHub backup
+# Development workflow: GitHub source and Gitea mirror
 
-This repo is designed so you can use **self-hosted Gitea** as the day-to-day remote, **Woodpecker CI** for pipelines, and **GitHub** (or another forge) as a **read-only mirror** for backup and visibility.
+GitHub is the authoritative repository. Self-hosted Gitea is a
+fast-forward-only mirror for redundancy and local visibility. Pull requests,
+Dependabot updates, and normal pushes land on GitHub first.
 
 Use **placeholder** URLs in docs you commit publicly; set real URLs in your local git remotes and in Gitea/Woodpecker settings.
 
 ---
 
-## 1. Remotes: Gitea canonical, GitHub mirror
+## 1. Remotes: GitHub authoritative, Gitea mirror
 
-After creating the repository on **Gitea** (e.g. `https://gitea.example.com/youruser/homelab`) and on **GitHub** (e.g. `https://github.com/youruser/homelab`):
+After creating the repository on GitHub and Gitea:
 
 ```bash
-# Clone from Gitea (or add origin if you already have a local copy)
-git clone https://gitea.example.com/youruser/homelab.git
+git clone https://github.com/youruser/homelab.git
 cd homelab
 
-# Backup / mirror remote (HTTPS or SSH)
-git remote add github https://github.com/youruser/homelab.git
-# or: git remote add github git@github.com:youruser/homelab.git
+# Preserve the repository's established remote names.
+git remote rename origin github
+git remote add origin https://gitea.example.com/youruser/homelab.git
+git branch --set-upstream-to=github/main main
+git config remote.pushDefault github
 
 git remote -v
-# origin    -> Gitea
 # github    -> GitHub
+# origin    -> Gitea
 ```
 
 Daily workflow:
 
 ```bash
-git push -u origin main
+git pull --ff-only
+git push
 ```
 
-To push **both** remotes after each successful change (optional if you use Gitea push mirror below):
+Synchronize Gitea manually:
 
 ```bash
-./scripts/push-github-mirror.sh main
+make mirror-sync
 ```
 
 ---
 
-## 2. Automatic mirror from Gitea (recommended)
+## 2. Automatic GitHub-to-Gitea mirror
 
-So you do not have to remember `git push github`:
+Gitea cannot convert an existing normal repository into a pull mirror. This
+repo therefore includes a user-level systemd timer that provides equivalent
+safe behavior without recreating the Gitea repository:
 
-1. In **Gitea**: open the repo → **Settings** → **Git Hooks** / **Mirroring** (wording varies by Gitea version) → **Add push mirror**.
-2. Set **Mirror URL** to your GitHub repo (`https://github.com/youruser/homelab.git` or SSH).
-3. Use a **GitHub personal access token** (classic: `repo` scope) as the password for HTTPS, or deploy keys for SSH.
-4. Enable **sync on push** (or periodic sync) per Gitea’s options.
+```bash
+mkdir -p ~/.config/systemd/user
+install -m 0644 scripts/systemd/homelab-gitea-mirror.* \
+  ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now homelab-gitea-mirror.timer
+```
 
-Then a single `git push origin` updates Gitea; Gitea pushes to GitHub.
+The timer runs every 15 minutes. It fetches `github/main`, confirms Gitea can
+fast-forward, pushes that exact commit to `origin/main`, and mirrors tags. It
+never force-pushes or deletes refs. Direct commits to Gitea are unsupported;
+if Gitea diverges, synchronization stops for manual resolution.
 
 ---
 
-## 3. Woodpecker CI
+## 3. Local CI before pushing
+
+Install the hooks once:
+
+```bash
+make hooks-install
+```
+
+Each commit checks staged secrets, whitespace, dependency configuration,
+GitHub workflow syntax/security, changed Dockerfiles, Compose rendering,
+metadata, preparation scripts, and generated documentation. Run the full
+all-files and Git-history suite on demand:
+
+```bash
+make ci-local
+```
+
+The hooks require Python with PyYAML, pre-commit, ShellCheck, Gitleaks,
+actionlint, and Hadolint. The zizmor hook uses a native installation when
+available and otherwise uses its pinned Docker image.
+
+---
+
+## 4. Woodpecker CI
 
 1. In **Woodpecker**, enable this repository (it must be linked to your **Gitea** forge).
 2. Ensure the **Woodpecker agent** can run Docker steps (default for a Docker-based agent).
@@ -66,7 +101,7 @@ If **gitleaks** reports findings in **tracked** files, fix or allowlist via [Git
 
 ---
 
-## 4. GitHub Actions
+## 5. GitHub Actions
 
 GitHub runs the same repository validation plus a committed-content Gitleaks
 scan. The primary workflow uses read-only repository permissions and is
@@ -97,7 +132,7 @@ setup, because that would duplicate analysis.
 
 ---
 
-## 5. Related docs
+## 6. Related docs
 
 - [stacks/woodpecker-ci/README.md](../stacks/woodpecker-ci/README.md) — deploy Woodpecker server/agent and Gitea OAuth.
 - [scripts/README.md](../scripts/README.md) — `scan-secrets-gitleaks.sh` for local scans (including `--no-git` for the working tree).

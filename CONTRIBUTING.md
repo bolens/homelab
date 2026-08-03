@@ -6,8 +6,8 @@ portable.
 Before submitting a change:
 
 ```bash
-make validate
-make secrets
+make hooks-install
+make ci-local
 ```
 
 Do not commit `stack.env`, `.env`, private keys, credentials, real hostnames,
@@ -25,8 +25,10 @@ python3 scripts/build-topology.py --in-place
 Use focused commits with Conventional Commit subjects. Explain migrations or
 behavior changes in the commit body.
 
-Optional local hooks can run the same checks before every commit:
+Local hooks run staged secret scanning, workflow checks, Dockerfile linting,
+dependency configuration validation, repository validation, and whitespace
+checks before every commit:
 
 ```bash
-pre-commit install
+make hooks-install
 ```

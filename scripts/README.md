@@ -11,8 +11,10 @@ make help
 
 The doctor and validation commands are read-only. Scripts that change live
 containers or files require an explicit action or clearly describe the change.
-Optional `pre-commit install` enables the repository-local validation and
-whitespace hooks.
+Run `make hooks-install` to enable staged secret scanning, actionlint, zizmor,
+Hadolint, dependency configuration, repository validation, and whitespace
+checks. Run `make ci-local` for the all-files hooks plus a full-history
+Gitleaks scan.
 
 ## Onboarding and validation
 
@@ -20,6 +22,7 @@ whitespace hooks.
 |---|---|
 | `homelab-doctor.sh` | Checks prerequisites, Docker access, shared networks, sensitive-file tracking, Compose YAML, and known media mounts. Does not create or change anything. |
 | `validate-repo.sh` | Compiles Python helpers; parses Compose; audits preparation, metadata, examples, links, and generated docs; and runs ShellCheck when available. |
+| `validate-dependency-config.py` | Parses Dependabot and Renovate configuration and catches unsupported ecosystem options before GitHub parses them. |
 | `ci-parse-composes.py` | PyYAML parser used by local validation and CI. |
 | `validate-compose-config.py` | Runs `docker compose config` against portable example environments and skips explicitly generated include bundles. |
 | `audit-prepare-scripts.py` | Verifies every top-level Compose stack has an executable, verbose wrapper that prepares its examples and literal external networks/volumes. Maintainers may use `--fix`, then review the complete diff. |
@@ -55,7 +58,9 @@ changing `stack.env`.
 | `list-layout.sh` | Summarizes the repository layout. |
 | `migrate-docker-volume-to-path.sh` | Copies a named volume to a bind path. Stop the affected stack first. |
 | `sync-local-hosts.sh` | Maintains explicitly configured local hostname entries. Read its help before use. |
-| `push-github-mirror.sh` | Pushes a branch to `origin` and optional `github` mirror. |
+| `sync-gitea-from-github.sh` | Safely fast-forwards Gitea from authoritative GitHub and mirrors tags; refuses divergent history. |
+| `push-github-mirror.sh` | Compatibility wrapper for `sync-gitea-from-github.sh`. |
+| `pre-commit-*.sh` | Focused wrappers for staged Gitleaks, Hadolint, and zizmor checks. |
 | `sort_caddyfile.py` | Sorts generated Caddy hostname blocks while preserving the file preamble. |
 | `patch-caddy-h1-transport.py` | Maintainer migration for adding HTTP/1.1 transport settings to selected Caddy proxies. |
 

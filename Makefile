@@ -1,9 +1,12 @@
-.PHONY: help doctor validate prepare-audit metadata-audit hygiene-audit docs-generate docs-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 help:
 	@echo "Homelab repository targets:"
 	@echo "  doctor             Read-only host and repository checks"
 	@echo "  validate           Python, Compose YAML, and shell validation"
+	@echo "  ci-local           Run all pre-commit and history secret checks"
+	@echo "  hooks-install      Install repository pre-commit hooks"
+	@echo "  mirror-sync        Fast-forward Gitea from authoritative GitHub"
 	@echo "  prepare-audit      Audit stack preparation scripts and prerequisites"
 	@echo "  metadata-audit     Validate stack.yaml catalog metadata"
 	@echo "  hygiene-audit      Validate examples, docs, and cross-file basics"
@@ -19,6 +22,16 @@ doctor:
 
 validate:
 	bash scripts/validate-repo.sh
+
+ci-local:
+	pre-commit run --all-files
+	bash scripts/scan-secrets-gitleaks.sh git
+
+hooks-install:
+	pre-commit install --install-hooks
+
+mirror-sync:
+	bash scripts/sync-gitea-from-github.sh main
 
 prepare-audit:
 	python3 scripts/audit-prepare-scripts.py

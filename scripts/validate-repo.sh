@@ -22,6 +22,9 @@ python3 scripts/audit-stack-metadata.py
 echo "Auditing repository hygiene..."
 python3 scripts/audit-repo-hygiene.py
 
+echo "Validating dependency update configuration..."
+python3 scripts/validate-dependency-config.py
+
 echo "Checking generated documentation..."
 python3 scripts/build-stack-catalog.py --check
 python3 scripts/build-topology.py --check
