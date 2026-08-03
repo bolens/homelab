@@ -12,9 +12,11 @@ Access via Caddy at **https://picard.yourdomain.com** (or your configured hostna
 1. Run `./prepare-stack.sh`.
 2. Review `stack.env` and set:
    - `PICARD_MUSIC_PATH` (default `/mnt/unraid/media/music`)
-   - `PICARD_IMPORT_PATH` (default `/mnt/unraid/media/downloads/soulseek`)
+   - `PICARD_SOULSEEK_INTAKE_PATH` (default `/mnt/unraid/media/downloads/soulseek`)
+   - `PICARD_LIDARR_INTAKE_PATH` (default `/mnt/unraid/media/intake/lidarr`)
 3. Deploy with `docker compose up -d`.
-4. Open Picard and add files from `/import`, then save organized files to `/music`.
+4. Open Picard and add Soulseek files from `/soulseek-intake` or Lidarr files from
+   `/lidarr-intake`, then save organized files to `/music`.
 
 ## How this fits your flow
 
@@ -29,7 +31,7 @@ Access via Caddy at **https://picard.yourdomain.com** (or your configured hostna
 | **Access** | Via Caddy only (no host port; reverse-proxy to `picard:5800`) |
 | **Network** | `monitor` |
 | **Image** | `jlesage/musicbrainz-picard:latest` |
-| **Storage** | `picard_config` named volume for app state; bind mounts `${PICARD_MUSIC_PATH}:/music` and `${PICARD_IMPORT_PATH}:/import` |
+| **Storage** | `picard_config` named volume for app state; `${PICARD_MUSIC_PATH}:/music`, `${PICARD_SOULSEEK_INTAKE_PATH}:/soulseek-intake`, and `${PICARD_LIDARR_INTAKE_PATH}:/lidarr-intake` |
 | **Auth** | VNC/noVNC session security is app-level; keep hostname behind SSO when exposed publicly |
 
 ## Notes

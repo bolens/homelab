@@ -15,13 +15,13 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
    docker network create usenet
    docker network create torrents
    docker volume create torrents_downloads
-   mkdir -p /mnt/unraid/media/music /mnt/unraid/media/downloads/usenet
+   mkdir -p /mnt/unraid/media/intake/lidarr /mnt/unraid/media/downloads/usenet
    ```
    For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.
-   - Confirm `LIDARR_MUSIC_PATH` (default `/mnt/unraid/media/music`).
+   - Confirm `LIDARR_INTAKE_PATH` (default `/mnt/unraid/media/intake/lidarr`).
    - Confirm `LIDARR_USENET_DOWNLOADS_PATH` (default `/mnt/unraid/media/downloads/usenet`).
 3. **Deploy**
    - From this directory:
@@ -33,7 +33,16 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
    - Configure:
      - **Download client**: NZBGet and/or qBittorrent.
      - **Indexers**: from Prowlarr/NZBHydra 2.
-     - **Root folder**: `/music` (bind-mounted from `LIDARR_MUSIC_PATH`).
+     - **Root folder**: `/music` (the unpublished staging folder bind-mounted
+       from `LIDARR_INTAKE_PATH`).
+   - Lidarr imports completed releases into this staging root. In Picard, load
+     them from `/lidarr-intake`, tag them, and save/move them to `/music`.
+     Navidrome and Soulseek mount only the final host music path, so staged
+     files are not published.
+   - Under **Settings → Media Management**, enable **Unmonitor Previously
+     Downloaded Tracks**. When Picard moves a release out of staging, Lidarr
+     then unmonitors those downloaded tracks instead of searching for them
+     again.
 
 ## Configuration
 
@@ -42,8 +51,8 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
 | **Access** | Via Caddy only (no host port; reverse-proxy to `lidarr:8686`)          |
 | **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
 | **Image**  | `lscr.io/linuxserver/lidarr:latest`                                    |
-| **Env**    | `TZ`, `PUID`, `PGID`, `LIDARR_MUSIC_PATH`, `LIDARR_USENET_DOWNLOADS_PATH`, optional `LIDARR__*` |
-| **Storage**| `lidarr_config` → `/config`, `${LIDARR_MUSIC_PATH}` → `/music`, `${LIDARR_USENET_DOWNLOADS_PATH}` → `/downloads`, `torrents_downloads` → `/torrents` |
+| **Env**    | `TZ`, `PUID`, `PGID`, `LIDARR_INTAKE_PATH`, `LIDARR_USENET_DOWNLOADS_PATH`, optional `LIDARR__*` |
+| **Storage**| `lidarr_config` → `/config`, `${LIDARR_INTAKE_PATH}` → `/music` (staging), `${LIDARR_USENET_DOWNLOADS_PATH}` → `/downloads`, `torrents_downloads` → `/torrents` |
 
 ## Caddy reverse proxy
 
@@ -55,4 +64,3 @@ lidarr.home, lidarr.local {
   reverse_proxy lidarr:8686
 }
 ```
-

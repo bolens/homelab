@@ -18,7 +18,10 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - lidarr_config:/config
-      - "${LIDARR_MUSIC_PATH:-/mnt/unraid/media/music}:/music"
+      # Keep Lidarr imports out of the published library until Picard has
+      # tagged and moved them.  /music is retained as the container path so
+      # existing Lidarr root-folder configuration continues to work.
+      - "${LIDARR_INTAKE_PATH:-/mnt/unraid/media/intake/lidarr}:/music"
       - "${LIDARR_USENET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
       - torrents_downloads:/torrents
     networks:

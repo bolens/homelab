@@ -18,7 +18,8 @@ services:
     volumes:
       - picard_config:/config
       - "${PICARD_MUSIC_PATH:-/mnt/unraid/media/music}:/music"
-      - "${PICARD_IMPORT_PATH:-/mnt/unraid/media/downloads/soulseek}:/import"
+      - "${PICARD_SOULSEEK_INTAKE_PATH:-/mnt/unraid/media/downloads/soulseek}:/soulseek-intake"
+      - "${PICARD_LIDARR_INTAKE_PATH:-/mnt/unraid/media/intake/lidarr}:/lidarr-intake"
     networks:
       - monitor
     healthcheck:

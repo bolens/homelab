@@ -84,6 +84,34 @@ Create volumes once if your compose does not create them: e.g. `docker volume cr
 
 Set the stack’s `*_PATH` vars in `stack.env` (e.g. `RADARR_MOVIES_PATH`, `SONARR_TV_PATH`, `NZBGET_DOWNLOADS_PATH`) so download clients and the *arr apps see the same folders. Ensure those host paths exist before deploying.
 
+#### Unraid NFS source
+
+> [!IMPORTANT]
+> An Unraid share must remain pinned to its configured pool while the Docker
+> host mounts a direct `/mnt/<pool>/<share>` export. Files moved to an array
+> disk or another pool will not appear through that export.
+>
+> Before changing the share's primary/secondary storage or mover policy:
+>
+> 1. Stop Docker on the consuming host.
+> 2. Change the NFS export and `/etc/fstab` mount source to the share's new
+>    backing path, or deliberately switch back to `/mnt/user/<share>`.
+> 3. Remount `/mnt/unraid/media` and verify the expected files are visible.
+> 4. Start Docker only after the mount is verified.
+>
+> Never run mover or change the pool assignment first; doing so can make media
+> appear missing to Lidarr, Navidrome, Soulseek, and the other media stacks.
+
+When the media share is pinned to one pool, export and mount that pool's
+backing path (`/mnt/<pool>/<share>`) instead of its
+`/mnt/user/<share>` path. The latter traverses Unraid's FUSE `shfs` layer and
+can leave `.fuse_hidden*` files and apparently non-empty directories when
+applications move or unlink open media files.
+
+Restrict a direct export to the consuming host and use root squashing. Keep
+the local mount point `/mnt/unraid/media` unchanged so stack bind mounts do
+not need to change.
+
 ### mDNS aliases (`.local` hostnames for any stack)
 
 The Caddyfile serves many stacks as `<name>.home` and `<name>.local` so you can reach them on the LAN without going through Cloudflare (useful for large uploads, e.g. Harbor). To make `<name>.local` resolve via mDNS **without changing the system hostname**, you can either use **one list + script** (easiest) or the template unit below.

@@ -10,4 +10,5 @@ prepare_stack_ensure_docker_network "monitor"
 prepare_stack_ensure_docker_network "torrents"
 prepare_stack_ensure_docker_network "usenet"
 prepare_stack_ensure_docker_volume "torrents_downloads"
+prepare_stack_ensure_dir_from_env "LIDARR_INTAKE_PATH" "/mnt/unraid/media/intake/lidarr"
 prepare_stack_end

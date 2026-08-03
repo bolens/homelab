@@ -156,7 +156,7 @@ Quick reference — find a stack:
 | komga | SERVER_PORT=25600; optional JAVA_TOOL_OPTIONS for large libraries. |
 | lanraragi | LRR_UID/GID optional; content at /home/koyomi/lanraragi/content. |
 | librechat | MONGO_INITDB_*, REDIS_PASSWORD, DOMAIN_*, JWT_SECRET required. |
-| lidarr | TZ, PUID, PGID; LIDARR_MUSIC_PATH → /music; LIDARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
+| lidarr | TZ, PUID, PGID; LIDARR_INTAKE_PATH → /music (unpublished staging); LIDARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
 | linkding | TZ optional; optional LD_DISABLE_BACKGROUND_TASKS. |
 | linkstack | Optional SERVER_ADMIN, HTTP_SERVER_NAME, PHP_MEMORY_LIMIT. |
 | linkwarden | NEXTAUTH_SECRET, POSTGRES_PASSWORD, MEILI_MASTER_KEY required. |
@@ -209,7 +209,7 @@ Quick reference — find a stack:
 | perplexica | SEARXNG_API_URL, OLLAMA_BASE_URL optional; secrets configured in UI. |
 | pgadmin | See stack README and stack.env.example. |
 | phoneinfoga | OSINT; no env required. |
-| picard | PUID, PGID optional; PICARD_MUSIC_PATH, PICARD_IMPORT_PATH. |
+| picard | PUID, PGID optional; PICARD_MUSIC_PATH, PICARD_SOULSEEK_INTAKE_PATH, PICARD_LIDARR_INTAKE_PATH. |
 | pihole | See stack README; DNS port 53 conflict resolution required on host. |
 | plaso | CLI only; digital forensics (log2timeline/psort). |
 | plex | TZ, PUID, PGID, VERSION, PLEX_*_PATH, optional PLEX_CLAIM. |
