@@ -38,6 +38,15 @@ def main() -> int:
             example = directory / "stack.env.example"
             if ignored(directory) or not compose.exists():
                 continue
+            metadata_path = directory / "stack.yaml"
+            metadata = (
+                yaml.safe_load(metadata_path.read_text(encoding="utf-8")) or {}
+                if metadata_path.exists()
+                else {}
+            )
+            if (metadata.get("lifecycle") or {}).get("status") == "external":
+                skipped.append(f"{directory.name} (externally generated bundle)")
+                continue
             document = yaml.safe_load(compose.read_text(encoding="utf-8")) or {}
             includes = document.get("include") or []
             missing_include = False

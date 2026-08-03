@@ -37,6 +37,15 @@ def tracked(pathspec: str) -> list[str]:
     return [line for line in result.stdout.splitlines() if line]
 
 
+def available_in_checkout(path: Path) -> bool:
+    if not path.exists():
+        return False
+    return subprocess.run(
+        ["git", "-C", str(ROOT), "check-ignore", "-q", str(path.relative_to(ROOT))],
+        check=False,
+    ).returncode != 0
+
+
 def audit_markdown(errors: list[str]) -> None:
     docs = [ROOT / "README.md", ROOT / "CONTRIBUTING.md", ROOT / "SECURITY.md"]
     docs.extend((ROOT / "documents").glob("*.md"))
@@ -56,7 +65,7 @@ def audit_markdown(errors: list[str]) -> None:
             local = target.split("#", 1)[0]
             if not local or "://" in local or local.startswith("mailto:"):
                 continue
-            if not (path.parent / local).resolve().exists():
+            if not available_in_checkout((path.parent / local).resolve()):
                 errors.append(f"{path.relative_to(ROOT)}: broken link {target}")
 
 

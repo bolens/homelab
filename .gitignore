@@ -99,8 +99,20 @@ data/
 stacks/harbor/harbor/
 stacks/harbor/*.tgz
 
-# PostHog hobby: upstream clone + generated compose copies (see stacks/posthog/README.md)
+# PostHog hobby: ignore its upstream clone and generated artifacts while
+# retaining the small homelab integration contract.
 stacks/posthog/
+!stacks/posthog/
+stacks/posthog/*
+!stacks/posthog/README.md
+!stacks/posthog/caddy_snippet.conf.example
+!stacks/posthog/clone-repo.sh
+!stacks/posthog/docker-compose.homelab.yml
+!stacks/posthog/docker-compose.yml
+!stacks/posthog/logo.svg
+!stacks/posthog/prepare-stack.sh
+!stacks/posthog/stack.env.example
+!stacks/posthog/stack.yaml
 stacks/posthog/posthog/
 stacks/posthog/docker-compose.base.yml
 stacks/posthog/docker-compose.hobby.yml

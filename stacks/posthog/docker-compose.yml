@@ -1,0 +1,12 @@
+# PostHog hobby stack — upstream compose is vendored next to this file by ./prepare-stack.sh
+# (see README.md). Requires ./posthog git clone and copied docker-compose.hobby.yml + base.yml.
+name: posthog
+
+include:
+  - path: docker-compose.hobby.yml
+  - path: docker-compose.homelab.yml
+
+networks:
+  monitor:
+    name: monitor
+    external: true

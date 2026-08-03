@@ -13,7 +13,7 @@ Real-time Docker container log viewer. One container, no database; uses the Dock
 1. From this directory: **`./prepare-stack.sh`** — creates `stack.env` (if missing), **`DOZZLE_CONFIG_DIR`** on the host (default **`~/.config/dozzle`**), seeds **`users.yaml`** from **[users.yaml.example](users.yaml.example)** when no `users.yaml`/`users.yml` exists yet, copies **`stack.env` → `.env`** for Compose `${HOME}` interpolation, ensures the **`monitor`** network exists.
 2. Ensure the **`monitor`** network exists if you skipped the script (e.g. `docker network create monitor` or deploy Caddy first).
 3. **`docker compose up -d`** (after prepare, Compose reads `.env` for bind-mount paths).
-4. Access via Caddy (e.g. https://dozzle.home or https://dozzle.example.com). This stack’s [caddy_snippet.conf](caddy_snippet.conf) is imported by the main Caddyfile.
+4. Access via Caddy (e.g. https://dozzle.home or https://dozzle.example.com). Start from this stack’s committed [caddy_snippet.conf.example](caddy_snippet.conf.example); the prepared private `caddy_snippet.conf` is imported by the main Caddyfile.
 
 ## Configuration
 
@@ -51,7 +51,7 @@ Dozzle reads **`/data/users.yaml`** or **`/data/users.yml`** inside the containe
 
 ## Caddy
 
-Use `reverse_proxy dozzle:8080` (same as cadvisor, grafana). See [caddy_snippet.conf](caddy_snippet.conf) and [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example).
+Use `reverse_proxy dozzle:8080` (same as cadvisor, grafana). See [caddy_snippet.conf.example](caddy_snippet.conf.example) and [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example).
 
 ## Start
 

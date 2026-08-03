@@ -9,7 +9,7 @@ This stack runs [TwitchDropsMiner](https://github.com/rangermix/TwitchDropsMiner
    ```sh
    docker compose up -d
    ```
-3. Open the UI in your browser (direct: port **8080** if published; via Caddy: set hostname in [caddy_snippet.conf](caddy_snippet.conf), e.g. **twitchdrops.example.com**, then reload Caddy).
+3. Open the UI in your browser (direct: port **8080** if published; via Caddy: copy and customize [caddy_snippet.conf.example](caddy_snippet.conf.example), e.g. **twitchdrops.example.com**, then reload Caddy).
 4. Log in with your Twitch account and configure mining via the web UI.
 
 If the page stays **blank** through **Cloudflare**, disable **Rocket Loader** (and auto JS minify) for `twitchdrops.*`; the UI relies on **Socket.IO** / WebSockets.

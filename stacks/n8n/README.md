@@ -41,7 +41,7 @@ For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) a
 
 ## Caddy
 
-Use `reverse_proxy n8n:5678`. Add blocks for `n8n.home` / `n8n.local` (local TLS) and your public host (e.g. `n8n.yourdomain.com`). See [stacks/caddy/Caddyfile](../caddy/Caddyfile) and Caddyfile.example.
+Use `reverse_proxy n8n:5678`. Add blocks for `n8n.home` / `n8n.local` (local TLS) and your public host (e.g. `n8n.yourdomain.com`). See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example).
 
 ## Optional: local files for workflows
 

@@ -47,6 +47,6 @@ placement:
   preferred_node: null
   colocation_group: null
 lifecycle:
-  status: stable
+  status: external
   replacement_for: null
-  notes: ''
+  notes: 'Compose bundle is generated from the upstream PostHog hobby repository by prepare-stack.sh.'
