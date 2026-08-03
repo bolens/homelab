@@ -1,17 +1,41 @@
 services:
-  rtorrent-flood:
-    image: lscr.io/linuxserver/rtorrent-flood:latest
-    container_name: rtorrent-flood
+  # rTorrent daemon — shared backend for Flood UI
+  rtorrent:
+    image: jesec/rtorrent:latest
+    container_name: rtorrent
     restart: unless-stopped
-    env_file:
-      - stack.env
+    user: "${PUID:-1000}:${PGID:-1000}"
     environment:
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
       - TZ=${TZ:-America/Denver}
+    command: -o network.port_range.set=49160-49160,system.daemon.set=true
     volumes:
       - rtorrent_flood_config:/config
       - torrents_manual:/downloads
+      - rtorrent_sock:/run/rtorrent
+    networks:
+      - torrents
+    ports:
+      - "49160:49160"
+      - "49160:49160/udp"
+
+  # Flood UI — connects to rTorrent via unix socket
+  flood:
+    image: jesec/flood:latest
+    container_name: flood
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    environment:
+      - TZ=${TZ:-America/Denver}
+      - FLOOD_OPTION_auth=none
+      - FLOOD_OPTION_rtorrent=true
+      - FLOOD_OPTION_rtsocket=/run/rtorrent/rtorrent.sock
+      - FLOOD_OPTION_host=0.0.0.0
+      - FLOOD_OPTION_port=3000
+    volumes:
+      - rtorrent_flood_config:/config
+      - rtorrent_sock:/run/rtorrent
+    depends_on:
+      - rtorrent
     networks:
       - monitor
       - torrents
@@ -20,10 +44,33 @@ services:
       interval: 60s
       timeout: 10s
       retries: 3
-      start_period: 45s
+      start_period: 30s
+
+  # ruTorrent — standalone (bundled rTorrent), separate instance
+  rutorrent:
+    image: lscr.io/linuxserver/rutorrent:latest
+    container_name: rutorrent
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Denver}
+      - UMASK=${UMASK:-002}
+    volumes:
+      - rutorrent_config:/config
+      - torrents_manual:/downloads
+    networks:
+      - monitor
+      - torrents
     ports:
-      - "49160:49160"
-      - "49160:49160/udp"
+      - "49161:49160"
+      - "49161:49160/udp"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 networks:
   monitor:
@@ -35,6 +82,7 @@ networks:
 
 volumes:
   rtorrent_flood_config:
+  rtorrent_sock:
+  rutorrent_config:
   torrents_manual:
     external: true
-

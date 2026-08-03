@@ -14,6 +14,11 @@ services:
     image: simplelogin/app:latest
     container_name: simplelogin
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 2g
+    pids_limit: 256
+    cpu_shares: 384
     env_file:
       - stack.env
     depends_on:
@@ -53,6 +58,11 @@ services:
     image: simplelogin/app:latest
     container_name: simplelogin-email
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 2g
+    pids_limit: 256
+    cpu_shares: 384
     env_file:
       - stack.env
     command: python email_handler.py
@@ -84,6 +94,11 @@ services:
     image: simplelogin/app:latest
     container_name: simplelogin-job-runner
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 2g
+    pids_limit: 256
+    cpu_shares: 256
     env_file:
       - stack.env
     command: python job_runner.py
@@ -111,6 +126,11 @@ services:
     image: postgres:14-alpine
     container_name: simplelogin-db
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     env_file:
       - stack.env
     environment:

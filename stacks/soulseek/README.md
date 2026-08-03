@@ -14,7 +14,7 @@ Self-hosted Soulseek client stack using [slskd](https://github.com/slskd/slskd):
    - Set `SLSKD_USERNAME` and `SLSKD_PASSWORD` for the slskd web UI/API login.
    - Optionally change `SLSKD_SLSK_LISTEN_PORT` (default `50300`).
    - Set `SLSKD_DOWNLOADS_PATH` to your preferred host path for completed downloads.
-   - Set `SLSKD_SHARED_MUSIC_PATH` (default `/mnt/media/music/`) and keep `SLSKD_SHARED_DIR=/music` to publish your library as a share.
+   - Set `SLSKD_SHARED_MUSIC_PATH` (default `/mnt/unraid/media/music/`) and keep `SLSKD_SHARED_DIR=/music` to publish your library as a share.
 3. If you expose Soulseek to remote peers, forward the same TCP/UDP listen port (`50300` by default) from your router/firewall to this Docker host.
 4. Replace the placeholder hostname in `caddy_snippet.conf` and reload Caddy.
 5. Deploy:
@@ -34,7 +34,7 @@ Self-hosted Soulseek client stack using [slskd](https://github.com/slskd/slskd):
 | **Image** | `slskd/slskd:latest` |
 | **Peer port** | `SLSKD_SLSK_LISTEN_PORT` published as TCP+UDP (default `50300`) |
 | **Storage** | `soulseek_app` → `/app`, `${SLSKD_DOWNLOADS_PATH}` → `/downloads`, `${SLSKD_SHARED_MUSIC_PATH}` → `/music`, `soulseek_incomplete` → `/incomplete` |
-| **Env** | `SLSKD_SLSK_USERNAME`, `SLSKD_SLSK_PASSWORD`, `SLSKD_USERNAME`, `SLSKD_PASSWORD`, `SLSKD_SLSK_LISTEN_PORT`, `SLSKD_DOWNLOADS_PATH`, `SLSKD_SHARED_MUSIC_PATH`, `SLSKD_SHARED_DIR`, `SLSKD_FORCE_SHARE_SCAN`, optional `PUID`/`PGID` |
+| **Env** | `SLSKD_SLSK_USERNAME`, `SLSKD_SLSK_PASSWORD`, `SLSKD_USERNAME`, `SLSKD_PASSWORD`, `SLSKD_SLSK_LISTEN_PORT`, `SLSKD_DOWNLOADS_PATH`, `SLSKD_SHARED_MUSIC_PATH`, `SLSKD_SHARED_DIR`, `SLSKD_FORCE_SHARE_SCAN`, `SLSKD_HEADLESS`, `SLSKD_REMOTE_CONFIGURATION`, `SLSKD_REMOTE_FILE_MANAGEMENT`, optional `PUID`/`PGID` |
 
 ## Caddy reverse proxy
 

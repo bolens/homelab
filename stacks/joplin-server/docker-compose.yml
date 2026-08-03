@@ -3,6 +3,11 @@ services:
     image: postgres:16-alpine
     container_name: joplin-postgres
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-joplin}
       - POSTGRES_USER=${POSTGRES_USER:-joplin}
@@ -47,4 +52,3 @@ networks:
 
 volumes:
   joplin_pg_data:
-

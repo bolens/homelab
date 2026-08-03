@@ -1,8 +1,39 @@
 services:
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:latest
+    container_name: presidio-analyzer
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 4g
+    memswap_limit: 6g
+    pids_limit: 512
+    cpu_shares: 384
+    environment:
+      - PORT=5002
+      - WORKERS=1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:5002/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - path: stack.env
+        required: false
+    networks:
+      - monitor
+
   presidio-anonymizer:
     image: mcr.microsoft.com/presidio-anonymizer:latest
     container_name: presidio-anonymizer
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
     environment:
       - PORT=5001
       - WORKERS=1
@@ -24,6 +55,11 @@ services:
     image: mcr.microsoft.com/presidio-image-redactor:latest
     container_name: presidio-image-redactor
     restart: unless-stopped
+    cpus: 4.0
+    mem_limit: 6g
+    memswap_limit: 8g
+    pids_limit: 1024
+    cpu_shares: 256
     environment:
       - PORT=5003
       - WORKERS=1

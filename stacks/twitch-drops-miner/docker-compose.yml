@@ -1,0 +1,43 @@
+services:
+  twitch-drops-miner:
+    image: rangermix/twitch-drops-miner:latest
+    # No host port: expose only via Caddy reverse proxy
+    container_name: twitch-drops-miner
+    volumes:
+      - twitchdropsminer_data:/app/data
+      - twitchdropsminer_logs:/app/logs
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 512m
+    cpus: '0.50'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8080/"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - monitor
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  twitchdropsminer_data: {}
+  twitchdropsminer_logs: {}

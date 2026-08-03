@@ -89,7 +89,7 @@ groups:
           runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
 
       - alert: BlackboxRootCriticalDown
-        expr: probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|vault)\\.bolens\\.dev"} == 0
+        expr: probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|vault)\\.example\\.com"} == 0
         for: 5m
         labels:
           severity: critical
@@ -101,7 +101,7 @@ groups:
           runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
 
       - alert: BlackboxRootWarningDown
-        expr: probe_success{job="blackbox_public"} == 0 unless on(instance) probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|vault)\\.bolens\\.dev"} == 0
+        expr: probe_success{job="blackbox_public"} == 0 unless on(instance) probe_success{job="blackbox_public",instance=~"https://(prometheus|grafana|booking|gitea|paperless|portainer|authentik|vault)\\.example\\.com"} == 0
         for: 5m
         labels:
           severity: warning
@@ -113,7 +113,7 @@ groups:
           runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
 
       - alert: BlackboxPathCriticalDown
-        expr: probe_success{job="blackbox_http_paths_public",instance=~"https://(prometheus\\.bolens\\.dev/-/healthy|gitea\\.bolens\\.dev/api/healthz|portainer\\.bolens\\.dev/api/status|alertmanager\\.bolens\\.dev/-/healthy|immich\\.bolens\\.dev/api/server/ping|authentik\\.bolens\\.dev/|crowdsec\\.bolens\\.dev/health|vault\\.bolens\\.dev/alive)"} == 0
+        expr: probe_success{job="blackbox_http_paths_public",instance=~"https://(prometheus\\.example\\.com/-/healthy|gitea\\.example\\.com/api/healthz|portainer\\.example\\.com/api/status|alertmanager\\.example\\.com/-/healthy|immich\\.example\\.com/api/server/ping|authentik\\.example\\.com/|crowdsec\\.example\\.com/health|vault\\.example\\.com/alive)"} == 0
         for: 3m
         labels:
           severity: critical
@@ -125,7 +125,7 @@ groups:
           runbook: "https://github.com/bolens/docker/blob/main/documents/TROUBLESHOOTING.md#prometheus--blackbox"
 
       - alert: BlackboxPathWarningDown
-        expr: probe_success{job="blackbox_http_paths_public"} == 0 unless on(instance) probe_success{job="blackbox_http_paths_public",instance=~"https://(prometheus\\.bolens\\.dev/-/healthy|gitea\\.bolens\\.dev/api/healthz|portainer\\.bolens\\.dev/api/status|alertmanager\\.bolens\\.dev/-/healthy|immich\\.bolens\\.dev/api/server/ping|authentik\\.bolens\\.dev/|crowdsec\\.bolens\\.dev/health|vault\\.bolens\\.dev/alive)"} == 0
+        expr: probe_success{job="blackbox_http_paths_public"} == 0 unless on(instance) probe_success{job="blackbox_http_paths_public",instance=~"https://(prometheus\\.example\\.com/-/healthy|gitea\\.example\\.com/api/healthz|portainer\\.example\\.com/api/status|alertmanager\\.example\\.com/-/healthy|immich\\.example\\.com/api/server/ping|authentik\\.example\\.com/|crowdsec\\.example\\.com/health|vault\\.example\\.com/alive)"} == 0
         for: 3m
         labels:
           severity: warning
@@ -404,6 +404,35 @@ groups:
         annotations:
           summary: "Alloy canary stream is missing or stalled"
           description: "Canary container is missing from cadvisor or has not been seen for over 4 minutes; check canary container lifecycle and Alloy pipeline."
+
+  - name: observability-control-plane
+    rules:
+      - alert: AlertmanagerConfigReloadFailure
+        expr: alertmanager_config_last_reload_successful{job="alertmanager"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Alertmanager configuration reload failed"
+          description: "Alertmanager has been running with a failed configuration reload for more than 5 minutes."
+
+      - alert: AlertmanagerNotificationsFailing
+        expr: sum(increase(alertmanager_notifications_failed_total{job="alertmanager"}[10m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alertmanager notifications are failing"
+          description: "One or more Alertmanager notification deliveries failed during the last 10 minutes."
+
+      - alert: BlackboxExporterConfigReloadFailure
+        expr: blackbox_exporter_config_last_reload_successful{job="blackbox-exporter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Blackbox Exporter configuration reload failed"
+          description: "Blackbox Exporter has been running with a failed configuration reload for more than 5 minutes."
 
   - name: prometheus
     rules:

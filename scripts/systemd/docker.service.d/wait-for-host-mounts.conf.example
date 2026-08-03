@@ -20,7 +20,7 @@
 
 [Unit]
 # Uncomment any other host mounts your stacks bind (see compose / stack.env):
-RequiresMountsFor=/mnt/media
+RequiresMountsFor=/mnt/unraid/media
 RequiresMountsFor=/mnt/dev
 RequiresMountsFor=/mnt/backup
 # RequiresMountsFor=/mnt/apps

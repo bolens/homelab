@@ -7,6 +7,11 @@ services:
     image: crowdsecurity/crowdsec
     container_name: crowdsec
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     env_file:
       - stack.env
     environment:
@@ -52,4 +57,3 @@ networks:
 volumes:
   crowdsec-config:
   crowdsec-data:
-

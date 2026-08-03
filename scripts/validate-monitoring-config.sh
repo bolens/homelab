@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME}/.config}"
 cd "$ROOT_DIR"
 
 echo "==> YAML parse checks"
@@ -32,10 +33,10 @@ docker run --rm \
   prom/prometheus:latest \
   check rules /rules/alerts.yml
 
-if [[ -f "/home/youruser/.config/prometheus/rules/alerts.yml" ]]; then
+if [[ -f "$CONFIG_DIR/prometheus/rules/alerts.yml" ]]; then
   docker run --rm \
     --entrypoint promtool \
-    -v "/home/youruser/.config/prometheus/rules/alerts.yml:/rules/alerts.yml:ro" \
+    -v "$CONFIG_DIR/prometheus/rules/alerts.yml:/rules/alerts.yml:ro" \
     prom/prometheus:latest \
     check rules /rules/alerts.yml
 fi
@@ -48,11 +49,11 @@ docker run --rm \
   prom/alertmanager:latest \
   check-config /etc/alertmanager/alertmanager.yml
 
-if [[ -f "/home/youruser/.config/alertmanager/alertmanager.yml" ]]; then
+if [[ -f "$CONFIG_DIR/alertmanager/alertmanager.yml" ]]; then
   docker run --rm \
     --entrypoint amtool \
-    -v "/home/youruser/.config/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
-    -v "/home/youruser/.config/alertmanager/templates:/etc/alertmanager/templates:ro" \
+    -v "$CONFIG_DIR/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro" \
+    -v "$CONFIG_DIR/alertmanager/templates:/etc/alertmanager/templates:ro" \
     prom/alertmanager:latest \
     check-config /etc/alertmanager/alertmanager.yml
 fi
@@ -63,9 +64,9 @@ docker run --rm \
   grafana/alloy:latest \
   fmt /etc/alloy/config.alloy >/dev/null
 
-if [[ -f "/home/youruser/.config/grafana-alloy/config.alloy" ]]; then
+if [[ -f "$CONFIG_DIR/grafana-alloy/config.alloy" ]]; then
   docker run --rm \
-    -v "/home/youruser/.config/grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro" \
+    -v "$CONFIG_DIR/grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro" \
     grafana/alloy:latest \
     fmt /etc/alloy/config.alloy >/dev/null
 fi

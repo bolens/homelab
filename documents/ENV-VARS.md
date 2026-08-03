@@ -87,7 +87,7 @@ Quick reference — find a stack:
 | audiobookshelf | TZ only; image does not use PUID/PGID. |
 | auth-fuzz | CLI only; auth fuzzing toolkit. |
 | baserow | BASEROW_PUBLIC_URL required behind Caddy. |
-| bazarr | TZ, PUID, PGID; /tv and /movies paths. |
+| bazarr | TZ, PUID, PGID; BAZARR_TV_PATH, BAZARR_MOVIES_PATH → /tv, /movies. |
 | beszel | BESZEL_APP_URL required; BESZEL_DATA_DIR optional. |
 | blackbird | CLI only; OSINT. |
 | blackbox-exporter | Config file-based; Prometheus scrapes :9115. |
@@ -114,7 +114,7 @@ Quick reference — find a stack:
 | docker-gc | DRY_RUN, EXCLUDE_IMAGES, EXCLUDE_CONTAINERS. |
 | docuseal | POSTGRES_PASSWORD, DATABASE_URL, SECRET_KEY_BASE required. |
 | dozzle | DOZZLE_CONFIG_DIR; optional DOZZLE_AUTH_PROVIDER. |
-| emby | TZ, PUID, PGID; media on /data/tv, /data/movies, /data/music. |
+| emby | TZ, PUID, PGID; EMBY_TV_PATH, EMBY_MOVIES_PATH, EMBY_MUSIC_PATH → /data/... |
 | enclosed | PUBLIC_BASE_API_URL behind proxy; optional AUTHENTICATION_JWT_SECRET. |
 | ersatztv | TZ only; IPTV server on :8409. |
 | explo | Scheduled playlist jobs; ListenBrainz; Ollama target system vars. |
@@ -144,7 +144,7 @@ Quick reference — find a stack:
 | infisical | ENCRYPTION_KEY, AUTH_SECRET, POSTGRES_*, REDIS_URL, SITE_URL required. |
 | influxdb | Placeholder; INFLUXDB_ADMIN_USER/PASSWORD per upstream. |
 | it-tools | TZ/locale via shared.env only. |
-| jellyfin | TZ, PUID, PGID; media libraries in UI. |
+| jellyfin | TZ, PUID, PGID; JELLYFIN_TV_PATH, JELLYFIN_MOVIES_PATH, JELLYFIN_MUSIC_PATH. |
 | jellystat | POSTGRES_*, JWT_SECRET required; optional JS_BASE_URL. |
 | joplin-server | POSTGRES_*, APP_BASE_URL required. |
 | kali | KALI_PASSWORD for VNC/RDP; offensive security toolkit. |
@@ -156,7 +156,7 @@ Quick reference — find a stack:
 | komga | SERVER_PORT=25600; optional JAVA_TOOL_OPTIONS for large libraries. |
 | lanraragi | LRR_UID/GID optional; content at /home/koyomi/lanraragi/content. |
 | librechat | MONGO_INITDB_*, REDIS_PASSWORD, DOMAIN_*, JWT_SECRET required. |
-| lidarr | TZ, PUID, PGID; /music, /downloads, /torrents. |
+| lidarr | TZ, PUID, PGID; LIDARR_MUSIC_PATH → /music; LIDARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
 | linkding | TZ optional; optional LD_DISABLE_BACKGROUND_TASKS. |
 | linkstack | Optional SERVER_ADMIN, HTTP_SERVER_NAME, PHP_MEMORY_LIMIT. |
 | linkwarden | NEXTAUTH_SECRET, POSTGRES_PASSWORD, MEILI_MASTER_KEY required. |
@@ -174,7 +174,7 @@ Quick reference — find a stack:
 | metube | TZ, PUID, PGID, UMASK optional. |
 | minio | MINIO_ROOT_USER, MINIO_ROOT_PASSWORD required. |
 | mosquitto | Config via mosquitto.conf; MQTT on :1883. |
-| mylar3 | TZ, PUID, PGID; /config, /comics, /downloads. |
+| mylar3 | TZ, PUID, PGID; MYLAR3_COMICS_PATH → /comics; MYLAR3_DOWNLOADS_PATH → /downloads. |
 | n8n | N8N_HOST, WEBHOOK_URL required behind Caddy; N8N_ENCRYPTION_KEY recommended. |
 | naisho | SECRET_KEY_BASE required (openssl rand -hex 64). |
 | navidrome | ND_BASEURL recommended; ND_SCANSCHEDULE, ND_LOGLEVEL. |
@@ -189,7 +189,7 @@ Quick reference — find a stack:
 | ntfy | NTFY_BASE_URL recommended behind Caddy. |
 | ntopng | TZ/locale via shared.env; host networking; web on :3000. |
 | nut-server | NUT_CONFIG_DIR required (path to ups.conf, upsd.*, upsmon.conf). |
-| nzbget | PUID, PGID optional; servers and categories in UI. |
+| nzbget | PUID, PGID optional; NZBGET_DOWNLOADS_PATH → /downloads; servers and categories in UI. |
 | nzbhydra2 | PUID, PGID optional; config in UI. |
 | oasis | No env required; TZ from shared.env. |
 | ollama | OLLAMA_HOST_PORT, OLLAMA_MODELS_PATH; GPU deploy block optional. |
@@ -212,7 +212,7 @@ Quick reference — find a stack:
 | picard | PUID, PGID optional; PICARD_MUSIC_PATH, PICARD_IMPORT_PATH. |
 | pihole | See stack README; DNS port 53 conflict resolution required on host. |
 | plaso | CLI only; digital forensics (log2timeline/psort). |
-| plex | TZ, PUID, PGID, VERSION, optional PLEX_CLAIM. |
+| plex | TZ, PUID, PGID, VERSION, PLEX_*_PATH, optional PLEX_CLAIM. |
 | pocketbase | See stack README and stack.env.example. |
 | postfix / smtp-relay | ALLOWED_SENDER_DOMAINS, RELAYHOST required; RELAYHOST_USERNAME/PASSWORD. |
 | posthog | DOMAIN, POSTHOG_APP_TAG required; auto-fill secrets via ./prepare-stack.sh. |
@@ -226,8 +226,8 @@ Quick reference — find a stack:
 | pwntools-gdb | CLI only; exploit dev toolkit. |
 | qbittorrent | TZ, PUID, PGID; Gluetun VPN_* vars if using VPN. |
 | rackula | See stack README and stack.env.example. |
-| radarr | TZ, PUID, PGID; /movies, /downloads, /torrents. |
-| readarr | TZ, PUID, PGID; /books, /downloads, /torrents. |
+| radarr | TZ, PUID, PGID; RADARR_MOVIES_PATH → /movies; RADARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
+| readarr | TZ, PUID, PGID; READARR_BOOKS_PATH → /books; READARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
 | reconftw | CLI only; recon framework. |
 | resilio | See stack README and stack.env.example. |
 | responder-mitm6 | See stack README; network attack toolkit. |
@@ -247,7 +247,7 @@ Quick reference — find a stack:
 | snipe-it | APP_URL, APP_KEY (artisan generate), DB_*, MYSQL_* required. |
 | snowflake-relay | See stack README and stack.env.example. |
 | social-hunt | ADMIN_TOKEN, SOCIAL_HUNT_PUBLIC_URL required. |
-| sonarr | TZ, PUID, PGID; /tv, /downloads, /torrents. |
+| sonarr | TZ, PUID, PGID; SONARR_TV_PATH → /tv; SONARR_USENET_DOWNLOADS_PATH → /downloads; torrents_downloads → /torrents. |
 | soulseek | SLSKD_SLSK_USERNAME/PASSWORD required; SLSKD_SLSK_LISTEN_PORT (50300). |
 | spiderfoot | OSINT scanner; no env required. |
 | stirling-pdf | TZ optional; PDF tools. |

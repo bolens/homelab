@@ -1,0 +1,46 @@
+# CUPS – network print server (web admin, IPP). No host ports: use Caddy → cups:631.
+# For USB printers on the Docker host, uncomment the devices block below.
+services:
+  cups:
+    image: docker.io/anujdatar/cups:latest
+    container_name: cups
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - path: stack.env
+        required: false
+    volumes:
+      - cups_config:/etc/cups
+    # devices:
+    #   - /dev/bus/usb:/dev/bus/usb
+    networks:
+      - monitor
+    mem_limit: 512m
+    cpus: "0.50"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -c 'exec 3<>/dev/tcp/127.0.0.1/631' && exec 3<&- && exec 3>&-",
+        ]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  cups_config: {}

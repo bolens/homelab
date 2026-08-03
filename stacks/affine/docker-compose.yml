@@ -1,0 +1,35 @@
+services:
+  affine:
+    image: ghcr.io/toeverything/affine-self-hosted:latest
+    container_name: affine
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - affine_data:/root/.affine
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3010/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  affine_data: {}

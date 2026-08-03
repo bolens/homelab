@@ -1,8 +1,15 @@
+# Bind mounts: NZBGET_DOWNLOADS_PATH in stack.env. For compose volume substitution use:
+#   docker compose --env-file stack.env up -d
 services:
   nzbget:
     image: lscr.io/linuxserver/nzbget:latest
     container_name: nzbget
     restart: unless-stopped
+    cpus: 3.0
+    mem_limit: 4g
+    memswap_limit: 6g
+    pids_limit: 768
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:
@@ -11,7 +18,7 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - nzbget_config:/config
-      - usenet_downloads:/downloads
+      - "${NZBGET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
     networks:
       - monitor
       - usenet
@@ -32,6 +39,3 @@ networks:
 
 volumes:
   nzbget_config:
-  usenet_downloads:
-    external: true
-

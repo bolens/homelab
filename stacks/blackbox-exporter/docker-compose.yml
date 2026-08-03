@@ -5,6 +5,8 @@ services:
     image: prom/blackbox-exporter:latest
     container_name: blackbox-exporter
     restart: unless-stopped
+    cap_add:
+      - NET_RAW
     logging:
       driver: "json-file"
       options:
@@ -12,7 +14,10 @@ services:
         max-file: "3"
     command:
       - --config.file=/etc/blackbox_exporter/config.yml
-      - --log.level=info
+      # Redirect URLs can contain Cloudflare Access signed metadata; metrics
+      # retain probe results, while error-only logs avoid leaking noisy URLs.
+      - --log.level=error
+      - --log.prober=error
     volumes:
       - ${BLACKBOX_CONFIG_PATH:-${HOME}/.config/blackbox-exporter/blackbox.yml}:/etc/blackbox_exporter/config.yml:ro
     networks:
@@ -29,9 +34,11 @@ services:
       start_period: 5s
     mem_limit: 256m
     cpus: '0.25'
+    memswap_limit: 384m
+    pids_limit: 256
+    cpu_shares: 256
 
 networks:
   monitor:
     name: monitor
     external: true
-

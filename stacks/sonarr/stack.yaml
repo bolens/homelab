@@ -37,24 +37,11 @@ volumes:
 - name: sonarr_config
   role: app_data
   critical: true
-- name: media_tv
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
-- name: usenet_downloads
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
 - name: torrents_downloads
   role: app_data
   critical: true
-- name: external
-  role: app_data
-  critical: true
+  external: true
+# TV library + usenet downloads are host bind mounts (see SONARR_*_PATH)
 auth:
   mode: app_local
   sso_provider: null

@@ -3,6 +3,11 @@ services:
     image: lscr.io/linuxserver/plex:latest
     container_name: plex
     restart: unless-stopped
+    cpus: 6.0
+    mem_limit: 8g
+    memswap_limit: 10g
+    pids_limit: 1024
+    cpu_shares: 384
     env_file:
       - stack.env
     environment:
@@ -12,9 +17,13 @@ services:
     volumes:
       - plex_config:/config
       - plex_transcode:/transcode
-      - media_tv:/data/tv
-      - media_movies:/data/movies
-      - media_music:/data/music
+      - "${PLEX_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
+      - "${PLEX_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
+      - "${PLEX_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"
+    # Plex native Remote Access requires a direct TCP path. Keep the web UI
+    # available through Caddy, but do not relay media through Cloudflare.
+    ports:
+      - "${PLEX_REMOTE_PORT:-32400}:32400/tcp"
     networks:
       - monitor
     healthcheck:
@@ -39,10 +48,3 @@ networks:
 volumes:
   plex_config:
   plex_transcode:
-  media_tv:
-    external: true
-  media_movies:
-    external: true
-  media_music:
-    external: true
-

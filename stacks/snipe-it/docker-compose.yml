@@ -3,6 +3,11 @@ services:
     image: snipe/snipe-it:latest
     container_name: snipe-it
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
     depends_on:
       snipeit-db:
         condition: service_healthy
@@ -24,6 +29,11 @@ services:
     image: mariadb:11.5
     container_name: snipe-it-db
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     environment:
       - MYSQL_DATABASE=${MYSQL_DATABASE:-snipeit}
       - MYSQL_USER=${MYSQL_USER:-snipeit}
@@ -43,9 +53,8 @@ services:
 networks:
   monitor:
     name: monitor
-    driver: bridge
+    external: true
 
 volumes:
   snipeit_storage: {}
   snipeit_db: {}
-

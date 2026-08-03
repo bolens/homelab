@@ -1,0 +1,68 @@
+# AIL framework – Analysis Information Leak framework (paste/leak analysis, trackers, MISP/TheHive).
+# No host ports: access via Caddy (reverse proxy to ail:7000). UI uses HTTPS with self-signed cert; Caddy uses tls_insecure_skip_verify.
+# Docs: https://github.com/ail-project/ail-framework | https://www.ail-project.org/
+#
+# Resource-heavy: image ~2GB+, recommend >6GB RAM.
+# Default image is cciucd/ail-framework:latest (5.x). For 6.x, build from official repo and use docker-compose.override.example (see README).
+# For 6.x + Lacus + Tor (MatthisClavijo image), same compose; container also listens on 7100 (Lacus) and 9050 (Tor SOCKS). Caddy can proxy to ail:7100; other services use socks5://ail:9050.
+services:
+  ail:
+    image: ${AIL_IMAGE:-cciucd/ail-framework:latest}
+    container_name: ail-framework
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    # cciucd image lives under /opt/AIL; wipe stale GNU screen sockets on start (otherwise Flask/feeder stay "Dead" after unclean stop).
+    working_dir: /opt/AIL
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["screen -wipe 2>/dev/null || true; exec /bin/bash docker_start.sh"]
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ail-pastes:/opt/AIL/PASTES
+      - ail-screenshots:/opt/AIL/CRAWLED_SCREENSHOT
+      - ail-kvrocks:/opt/AIL/DATA_KVROCKS
+      - ail-indexdir:/opt/AIL/indexdir
+      - ail-hashs:/opt/AIL/HASHS
+      - ail-logs:/opt/AIL/logs
+      # Relaxed login lockout vs stock image (15 tries / 120s); remove if you switch AIL images and see import errors.
+      - ./patches/var/www/blueprints/root.py:/opt/AIL/var/www/blueprints/root.py:ro
+    # Default container /run is on the writable layer; screen sockets persisted as "Dead" and blocked LAUNCH.
+    tmpfs:
+      - /run/screen
+    networks:
+      - monitor
+    # 7100 = Lacus crawler UI, 9050 = Tor SOCKS (when using 6.x+Lacus+Tor image). Reachable via monitor network; no host ports.
+    expose:
+      - "7000"
+      - "7100"
+      - "9050"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://127.0.0.1:7000/"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 6g
+    cpus: 2.0
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  ail-pastes:
+  ail-screenshots:
+  ail-kvrocks:
+  ail-indexdir:
+  ail-hashs:
+  ail-logs:

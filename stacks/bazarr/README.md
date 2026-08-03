@@ -10,25 +10,20 @@ Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatica
 
 ## Quick start
 
-1. **Shared media volumes** (if not already created):
-   ```bash
-   docker volume create media_tv
-   docker volume create media_movies
-   ```
-   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
-2. **Environment**
+1. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.
-3. **Deploy**
+   - Confirm `BAZARR_TV_PATH` / `BAZARR_MOVIES_PATH` (defaults `/mnt/unraid/media/tv` and `/mnt/unraid/media/movies`).
+2. **Deploy**
    - From this directory:
      ```bash
      docker compose up -d
      ```
-4. **First run**
+3. **First run**
    - Access Bazarr via Caddy (for example `https://bazarr.home` or `https://bazarr.yourdomain.com`).
    - Point Bazarr at:
      - The Sonarr and Radarr APIs.
-     - Your TV and movie folders: `/tv` and `/movies`.
+     - Your TV and movie folders: `/tv` and `/movies` (same host paths as Sonarr/Radarr).
    - Configure subtitle languages and providers.
 
 ## Configuration
@@ -38,8 +33,8 @@ Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatica
 | **Access** | Via Caddy only (no host port; reverse-proxy to `bazarr:6767`)          |
 | **Networks** | `monitor` plus default                                                |
 | **Image**  | `lscr.io/linuxserver/bazarr:latest`                                    |
-| **Env**    | `TZ`, `PUID`, `PGID`                                                   |
-| **Storage**| `bazarr_config` → `/config`, `media_tv` → `/tv`, `media_movies` → `/movies` |
+| **Env**    | `TZ`, `PUID`, `PGID`, `BAZARR_TV_PATH`, `BAZARR_MOVIES_PATH`           |
+| **Storage**| `bazarr_config` → `/config`, `${BAZARR_TV_PATH}` → `/tv`, `${BAZARR_MOVIES_PATH}` → `/movies` |
 
 ## Caddy reverse proxy
 

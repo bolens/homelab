@@ -1,8 +1,15 @@
+# Bind mounts: LIDARR_*_PATH in stack.env. For compose volume substitution use:
+#   docker compose --env-file stack.env up -d
 services:
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:
@@ -11,8 +18,8 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - lidarr_config:/config
-      - media_music:/music
-      - usenet_downloads:/downloads
+      - "${LIDARR_MUSIC_PATH:-/mnt/unraid/media/music}:/music"
+      - "${LIDARR_USENET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
       - torrents_downloads:/torrents
     networks:
       - monitor
@@ -38,10 +45,5 @@ networks:
 
 volumes:
   lidarr_config:
-  media_music:
-    external: true
-  usenet_downloads:
-    external: true
   torrents_downloads:
     external: true
-

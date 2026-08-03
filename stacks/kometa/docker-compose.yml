@@ -3,22 +3,27 @@ services:
     image: kometateam/kometa:latest
     container_name: kometa
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     # Batch runner — runs daily at 05:00, not a long-lived server
     healthcheck:
       disable: true
     environment:
       - PUID=1000
       - PGID=1000
-      - KOMETA_CONFIG_PATH=/home/youruser/.config/kometa
-      - KOMETA_DATA_PATH=/home/youruser/.config/kometa/data
+      - KOMETA_CONFIG_PATH=/config
+      - KOMETA_DATA_PATH=/data
     env_file:
       - path: ../../shared.env
         required: false
       - path: stack.env
         required: false
     volumes:
-      - /home/youruser/.config/kometa:/config
-      - /home/youruser/.config/kometa/data:/data
+      - ${KOMETA_HOST_CONFIG_PATH:-/home/youruser/.config/kometa}:/config
+      - ${KOMETA_HOST_DATA_PATH:-/home/youruser/.config/kometa/data}:/data
     networks:
       - monitor
 

@@ -6,6 +6,11 @@ services:
     image: baserow/baserow:latest
     container_name: baserow
     restart: unless-stopped
+    cpus: 3.0
+    mem_limit: 6g
+    memswap_limit: 8g
+    pids_limit: 1024
+    cpu_shares: 384
     env_file:
       - stack.env
     environment:
@@ -16,7 +21,15 @@ services:
     networks:
       - monitor
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:80/api/health/"]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "-H",
+          "Host: ${BASEROW_HEALTHCHECK_HOST:-baserow.example.com}",
+          "http://127.0.0.1:80/api/_health/",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

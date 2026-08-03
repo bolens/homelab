@@ -1,0 +1,45 @@
+services:
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - pihole_etc:/etc/pihole
+      - pihole_dnsmasq:/etc/dnsmasq.d
+    networks:
+      - monitor
+    # Note: If your host is running systemd-resolved (listening on 127.0.0.53:53),
+    # you will need to disable its stub listener or bind AdGuard to your specific LAN IP,
+    # otherwise Docker will fail to bind port 53.
+    # ports:
+    #   - "53:53/tcp"
+    #   - "53:53/udp"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 256m
+    cpus: '0.50'
+    healthcheck:
+      test: ["CMD", "dig", "+short", "pi.hole", "@127.0.0.1"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  pihole_etc: {}
+  pihole_dnsmasq: {}
+
+networks:
+  monitor:
+    name: monitor
+    external: true

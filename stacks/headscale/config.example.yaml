@@ -28,7 +28,9 @@ derp:
   auto_update_enabled: true
   update_frequency: 3h
 
-ephemeral_node_inactivity_timeout: 30m
+node:
+  ephemeral:
+    inactivity_timeout: 30m
 
 database:
   type: sqlite
@@ -59,6 +61,5 @@ unix_socket_permission: "0770"
 logtail:
   enabled: false
 
-randomize_client_port: false
 taildrop:
   enabled: true

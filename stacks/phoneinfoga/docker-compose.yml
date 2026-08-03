@@ -5,6 +5,11 @@ services:
     image: sundowndev/phoneinfoga:latest
     container_name: phoneinfoga
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
     command: ["serve", "-p", "5000"]
     env_file:
       - stack.env
@@ -17,4 +22,3 @@ networks:
   monitor:
     name: monitor
     external: true
-

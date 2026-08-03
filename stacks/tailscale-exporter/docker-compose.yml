@@ -5,6 +5,11 @@ services:
     image: adinhodovic/tailscale-exporter:latest
     container_name: tailscale-exporter
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 256
     env_file:
       - stack.env
       - path: ../../shared.env

@@ -1,0 +1,84 @@
+# Jellystat – statistics and session data for Jellyfin (PostgreSQL backend).
+# No host ports; access via Caddy (e.g. https://jellystat.example.com → jellystat:3000).
+# Point Jellystat at your Jellyfin URL from the setup UI (same host network as Caddy: use internal http://jellyfin:8096 or your public URL).
+services:
+  jellystat-db:
+    image: postgres:18.1
+    container_name: jellystat-db
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    shm_size: "1gb"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - jellystat_postgres:/var/lib/postgresql
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d \"$$POSTGRES_DB\" -U \"$$POSTGRES_USER\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    mem_limit: 512m
+    cpus: "0.50"
+
+  jellystat:
+    image: cyfershepard/jellystat:latest
+    container_name: jellystat
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      jellystat-db:
+        condition: service_healthy
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      POSTGRES_IP: jellystat-db
+      POSTGRES_PORT: "5432"
+    volumes:
+      - jellystat_backup:/app/backend/backup-data
+    networks:
+      - default
+      - monitor
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/auth/isConfigured || exit 1",
+        ]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 45s
+
+    mem_limit: 768m
+    cpus: "1.00"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  jellystat_postgres:
+  jellystat_backup:

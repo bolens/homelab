@@ -1,0 +1,45 @@
+# AnythingLLM — local RAG / knowledge bases with LanceDB and Ollama-friendly defaults.
+# Upstream requires cap_add SYS_ADMIN (see Mintplex Docker docs). No host ports; Caddy → anything-llm:3001.
+# Docs: https://github.com/Mintplex-Labs/anything-llm/blob/master/docker/HOW_TO_USE_DOCKER.md
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
+services:
+  anything-llm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: anything-llm
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - anything_llm_data:/app/server/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitor
+    mem_limit: 3g
+    cpus: "2.00"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  anything_llm_data: {}

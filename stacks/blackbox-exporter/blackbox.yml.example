@@ -1,9 +1,9 @@
 modules:
   http_2xx:
     prober: http
-    timeout: 10s
+    timeout: 15s
     http:
-      valid_status_codes: []  # Defaults to 2xx
+      valid_status_codes: []
       follow_redirects: true
       preferred_ip_protocol: "ip4"
 
@@ -13,99 +13,28 @@ modules:
     tcp:
       preferred_ip_protocol: "ip4"
 
-  # --- Optional: use with extra Prometheus jobs (see prometheus.yml.example → blackbox_paths). Paths match documents/MONITORING-TARGETS.md where not /. ---
-
-  http_grafana_health:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
+  # ICMP (gateway / WAN / LAN host). Requires blackbox container CAP_NET_RAW — see stacks/blackbox-exporter/docker-compose.yml.
+  icmp:
+    prober: icmp
+    timeout: 5s
+    icmp:
       preferred_ip_protocol: "ip4"
-      path: /api/health
 
-  http_prometheus_ready:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
+  # DNS resolution check (UDP). Replace this documentation-safe example with
+  # a stable public or internal record for your deployment.
+  dns_udp:
+    prober: dns
+    timeout: 5s
+    dns:
+      transport_protocol: udp
       preferred_ip_protocol: "ip4"
-      path: /-/healthy
+      query_name: "example.com"
+      query_type: "A"
 
-  http_alertmanager_ready:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
-      preferred_ip_protocol: "ip4"
-      path: /-/healthy
+  # Blackbox exporter v0.28+ removed http.path. Put the full URL (including path) in Prometheus
+  # targets and use module http_2xx — see stacks/prometheus/prometheus.yml.example → blackbox_http_paths.
 
-  http_immich_ping:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
-      preferred_ip_protocol: "ip4"
-      path: /api/server/ping
-
-  http_vaultwarden_alive:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
-      preferred_ip_protocol: "ip4"
-      path: /alive
-
-  http_audiobookshelf_health:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
-      preferred_ip_protocol: "ip4"
-      path: /healthcheck
-
-  http_baserow_health:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
-      preferred_ip_protocol: "ip4"
-      path: /api/_health/
-
-  http_minio_live:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
-      preferred_ip_protocol: "ip4"
-      path: /minio/health/live
-
-  http_mattermost_ping:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
-      preferred_ip_protocol: "ip4"
-      path: /api/v4/system/ping
-
-  http_collabora_discovery:
-    prober: http
-    timeout: 15s
-    http:
-      valid_status_codes: []
-      follow_redirects: true
-      preferred_ip_protocol: "ip4"
-      path: /hosting/discovery
-
-  # step-ca / Smallstep (HTTPS with private CA through Caddy or direct). Prefer probing the public Caddy URL with http_2xx; use this if you must hit the CA container TLS directly.
+  # HTTPS with TLS verify disabled (e.g. step-ca container). Target must include path, e.g. https://ca:9000/health
   https_stepca_health:
     prober: http
     timeout: 15s
@@ -113,8 +42,5 @@ modules:
       valid_status_codes: []
       follow_redirects: true
       preferred_ip_protocol: "ip4"
-      path: /health
       tls_config:
         insecure_skip_verify: true
-
-

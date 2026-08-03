@@ -6,6 +6,11 @@ services:
     image: lscr.io/linuxserver/kavita:latest
     container_name: kavita
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:

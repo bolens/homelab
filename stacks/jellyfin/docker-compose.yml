@@ -3,6 +3,11 @@ services:
     image: lscr.io/linuxserver/jellyfin:latest
     container_name: jellyfin
     restart: unless-stopped
+    cpus: 6.0
+    mem_limit: 8g
+    memswap_limit: 10g
+    pids_limit: 1024
+    cpu_shares: 384
     env_file:
       - stack.env
     environment:
@@ -12,9 +17,9 @@ services:
     volumes:
       - jellyfin_config:/config
       - jellyfin_cache:/cache
-      - media_tv:/data/tv
-      - media_movies:/data/movies
-      - media_music:/data/music
+      - "${JELLYFIN_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
+      - "${JELLYFIN_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
+      - "${JELLYFIN_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"
     networks:
       - monitor
     healthcheck:
@@ -39,10 +44,3 @@ networks:
 volumes:
   jellyfin_config:
   jellyfin_cache:
-  media_tv:
-    external: true
-  media_movies:
-    external: true
-  media_music:
-    external: true
-

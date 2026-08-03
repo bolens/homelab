@@ -1,0 +1,38 @@
+services:
+  enclosed:
+    image: corentinth/enclosed:latest
+    container_name: enclosed
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - enclosed_data:/app/.data
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8787/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    mem_limit: 512m
+    cpus: "0.5"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  enclosed_data: {}

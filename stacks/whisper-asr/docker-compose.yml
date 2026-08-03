@@ -1,0 +1,49 @@
+# Whisper ASR — OpenAI-style HTTP transcription (Whisper / faster-whisper / WhisperX).
+# Docs: https://github.com/ahmetoner/whisper-asr-webservice
+# No host ports; Caddy → whisper-asr:9000 on `monitor`.
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
+services:
+  whisper-asr:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: whisper-asr
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - whisper_asr_cache:/root/.cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitor
+    mem_limit: 4g
+    cpus: "2.00"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:9000/', timeout=10).status==200 else 1)",
+        ]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  whisper_asr_cache: {}

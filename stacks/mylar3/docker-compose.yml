@@ -1,12 +1,19 @@
 # Mylar3 – automated comic downloader (Usenet/torrents). Like Sonarr for comics.
 # Configure NZBGet, qBittorrent, Prowlarr in the UI. Point /comics at a folder Komga can scan.
 # Access via Caddy only (no host port).
+# Bind mounts: MYLAR3_*_PATH in stack.env. For compose volume substitution use:
+#   docker compose --env-file stack.env up -d
 
 services:
   mylar3:
     image: lscr.io/linuxserver/mylar3:latest
     container_name: mylar3
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:
@@ -15,8 +22,8 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - mylar3_config:/config
-      - mylar3_comics:/comics
-      - mylar3_downloads:/downloads
+      - "${MYLAR3_COMICS_PATH:-/mnt/unraid/media/comics}:/comics"
+      - "${MYLAR3_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
     networks:
       - monitor
       - usenet
@@ -41,5 +48,3 @@ networks:
 
 volumes:
   mylar3_config:
-  mylar3_comics:
-  mylar3_downloads:

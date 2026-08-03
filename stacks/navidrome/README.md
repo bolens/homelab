@@ -19,7 +19,7 @@ Self-hosted music streaming server: index your music library and stream it from 
      ```bash
      docker compose up -d
      ```
-   - Or add the stack in Portainer and set the same variables in the stack **Environment**. The `navidrome_data` named volume is created automatically. The music library uses a bind mount from `NAVIDROME_MUSIC_PATH` (default `/mnt/media/music`) — make sure that path exists on the host before deploying.
+   - Or add the stack in Portainer and set the same variables in the stack **Environment**. The `navidrome_data` named volume is created automatically. The music library uses a bind mount from `NAVIDROME_MUSIC_PATH` (default `/mnt/unraid/media/music`) — make sure that path exists on the host before deploying.
    - Access Navidrome via Caddy (for example, `https://music.home` or `https://music.yourdomain.com`).
    - Complete the initial setup in the web UI and point Navidrome at your music folder (mounted at `/music` in the container).
 
@@ -33,11 +33,11 @@ This stack uses a **named volume** (`navidrome_data`) for app data and a **bind 
 | **Network**| `monitor` (external) — Caddy can reverse-proxy to `navidrome:4533`     |
 | **Image**  | `deluan/navidrome:latest`                                              |
 | **Env**    | `TZ` optional; `ND_BASEURL`, `ND_LOGLEVEL`, `ND_SCANSCHEDULE`, etc.    |
-| **Storage**| Named volume `navidrome_data` (`/data`); music bind-mounted from `${NAVIDROME_MUSIC_PATH:-/mnt/media/music}` to `/music` |
+| **Storage**| Named volume `navidrome_data` (`/data`); music bind-mounted from `${NAVIDROME_MUSIC_PATH:-/mnt/unraid/media/music}` to `/music` |
 
 ## Music library path
 
-The music library defaults to `/mnt/media/music` on the host (bind-mounted read-write to `/music` in the container). Override by setting `NAVIDROME_MUSIC_PATH` in `stack.env`:
+The music library defaults to `/mnt/unraid/media/music` on the host (bind-mounted read-write to `/music` in the container). Override by setting `NAVIDROME_MUSIC_PATH` in `stack.env`:
 
 ```env
 NAVIDROME_MUSIC_PATH=/srv/media/music

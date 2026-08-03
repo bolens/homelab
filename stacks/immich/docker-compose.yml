@@ -7,6 +7,11 @@ name: immich
 services:
   immich-server:
     container_name: immich-server
+    cpus: 4.0
+    mem_limit: 6g
+    memswap_limit: 8g
+    pids_limit: 1024
+    cpu_shares: 384
     env_file:
       - stack.env
       - path: ../../shared.env
@@ -29,6 +34,11 @@ services:
 
   immich-machine-learning:
     container_name: immich-machine-learning
+    cpus: 4.0
+    mem_limit: 8g
+    memswap_limit: 10g
+    pids_limit: 1024
+    cpu_shares: 256
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
     environment:
       - TZ=${TZ:-America/Denver}
@@ -43,7 +53,12 @@ services:
 
   redis:
     container_name: immich-redis
-    image: docker.io/valkey/valkey:9@sha256:930b41430fb727f533c5982fe509b6f04233e26d0f7354e04de4b0d5c706e44e
+    image: docker.io/valkey/valkey:9@sha256:3acc0687f2a2e1091fae6450d7842dd658c941338cf0a873ddd9e14b9e4ea4dd
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1536m
+    pids_limit: 256
+    cpu_shares: 256
     volumes:
       - redisdata:/data
     healthcheck:
@@ -55,6 +70,11 @@ services:
   database:
     container_name: immich-postgres
     image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    cpus: 2.0
+    mem_limit: 4g
+    memswap_limit: 6g
+    pids_limit: 512
+    cpu_shares: 384
     env_file:
       - stack.env
       - path: ../../shared.env

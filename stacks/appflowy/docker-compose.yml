@@ -1,0 +1,24 @@
+services:
+  appflowy:
+    image: appflowyinc/appflowy_cloud:latest
+    container_name: appflowy
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    networks:
+      - monitor
+
+networks:
+  monitor:
+    name: monitor
+    external: true

@@ -3,6 +3,11 @@ services:
     image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:
@@ -11,8 +16,8 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - bazarr_config:/config
-      - media_tv:/tv
-      - media_movies:/movies
+      - "${BAZARR_TV_PATH:-/mnt/unraid/media/tv}:/tv"
+      - "${BAZARR_MOVIES_PATH:-/mnt/unraid/media/movies}:/movies"
     networks:
       - monitor
     healthcheck:
@@ -29,8 +34,3 @@ networks:
 
 volumes:
   bazarr_config:
-  media_tv:
-    external: true
-  media_movies:
-    external: true
-

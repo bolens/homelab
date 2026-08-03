@@ -3,6 +3,11 @@ services:
     image: serfriz/caddy-cloudflare:latest
     container_name: caddy
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 1024
+    cpu_shares: 512
     # Prefer public DNS inside the container (avoids ACME propagation checks via 127.0.0.11 timing out).
     dns:
       - 1.1.1.1

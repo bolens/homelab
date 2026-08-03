@@ -29,6 +29,11 @@ services:
   meilisearch:
     container_name: linkwarden-meilisearch
     image: getmeili/meilisearch:v1.12.8
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:
@@ -42,6 +47,11 @@ services:
   linkwarden:
     container_name: linkwarden
     image: ghcr.io/linkwarden/linkwarden:latest
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:

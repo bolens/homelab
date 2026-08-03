@@ -1,0 +1,197 @@
+# TRMNL Terminus – self-hosted API/backend (Hanami, PostgreSQL, Valkey/Sidekiq).
+# Derived from https://github.com/usetrmnl/terminus/blob/main/compose.yml
+# No host ports; access via Caddy (e.g. https://terminus.example.com → terminus-web:${HANAMI_PORT}).
+services:
+  terminus-init-certificates:
+    image: ghcr.io/usetrmnl/terminus:latest
+    container_name: terminus-init-certificates
+    user: root
+    restart: "no"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      CERTIFICATE_URLS: ${CERTIFICATE_URLS:-}
+    volumes:
+      - terminus-certificates:/etc/ssl/certs
+    entrypoint: ["/bin/bash", "-c"]
+    command: scripts/docker/install-certificates
+    networks:
+      - default
+
+  terminus-db:
+    image: postgres:18.3-alpine
+    container_name: terminus-db
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - stack.env
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-terminus}
+      POSTGRES_DB: ${DATABASE_NAME:-terminus}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - terminus_pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DATABASE_USER:-terminus} -d ${DATABASE_NAME:-terminus}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 2g
+    cpus: 1.0
+
+  terminus-keyvalue:
+    image: valkey/valkey:9-alpine
+    container_name: terminus-keyvalue
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - stack.env
+    environment:
+      KEYVALUE_PASSWORD: ${KEYVALUE_PASSWORD}
+    command: >
+      valkey-server
+      --requirepass ${KEYVALUE_PASSWORD}
+      --maxmemory 512mb
+      --maxmemory-policy noeviction
+      --port 6379
+    volumes:
+      - terminus_keyvalue_data:/data
+    networks:
+      - default
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'redis-cli -a "$$KEYVALUE_PASSWORD" -p 6379 ping | grep -q PONG',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    mem_limit: 512m
+    cpus: 0.5
+
+  terminus-web:
+    image: ghcr.io/usetrmnl/terminus:latest
+    container_name: terminus-web
+    init: true
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      HANAMI_PORT: ${HANAMI_PORT:-2300}
+      API_URI: ${API_URI}
+      APP_SECRET: ${APP_SECRET}
+      APP_SETUP: ${APP_SETUP:-true}
+      DATABASE_URL: postgres://${DATABASE_USER:-terminus}:${DATABASE_PASSWORD}@terminus-db:5432/${DATABASE_NAME:-terminus}
+      KEYVALUE_URL: redis://:${KEYVALUE_PASSWORD}@terminus-keyvalue:6379/${KEYVALUE_DATABASE:-0}
+    volumes:
+      - terminus-certificates:/etc/ssl/certs
+      - terminus_web_uploads:/app/public/uploads
+    depends_on:
+      terminus-init-certificates:
+        condition: service_completed_successfully
+      terminus-db:
+        condition: service_healthy
+      terminus-keyvalue:
+        condition: service_healthy
+    networks:
+      - default
+      - monitor
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl --fail --silent http://127.0.0.1:${HANAMI_PORT:-2300}/up",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    mem_limit: 1g
+    cpus: 1.0
+
+  terminus-worker:
+    image: ghcr.io/usetrmnl/terminus:latest
+    container_name: terminus-worker
+    init: true
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      HANAMI_PORT: ${HANAMI_PORT:-2300}
+      API_URI: ${API_URI}
+      APP_SECRET: ${APP_SECRET}
+      DATABASE_URL: postgres://${DATABASE_USER:-terminus}:${DATABASE_PASSWORD}@terminus-db:5432/${DATABASE_NAME:-terminus}
+      KEYVALUE_URL: redis://:${KEYVALUE_PASSWORD}@terminus-keyvalue:6379/${KEYVALUE_DATABASE:-0}
+    command: ["bundle", "exec", "sidekiq", "-r", "./config/sidekiq.rb"]
+    volumes:
+      - terminus-certificates:/etc/ssl/certs
+      - terminus_web_uploads:/app/public/uploads
+    depends_on:
+      terminus-web:
+        condition: service_healthy
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "sidekiq"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    mem_limit: 1g
+    cpus: 1.0
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  terminus_pg_data: {}
+  terminus_keyvalue_data: {}
+  terminus_web_uploads: {}
+  terminus-certificates: {}

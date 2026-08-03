@@ -1,0 +1,51 @@
+# Paperless-GPT stack for Paperless-ngx
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
+services:
+  paperless-gpt:
+    image: icereed/paperless-gpt:latest
+    container_name: paperless-gpt
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - paperless_gpt_prompts:/app/prompts
+      - paperless_gpt_hocr:/app/hocr
+      - paperless_gpt_pdf:/app/pdf
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    mem_limit: 2g
+    cpus: "1.00"
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  paperless_gpt_prompts:
+    name: paperless-gpt_paperless_gpt_prompts
+    external: true
+  paperless_gpt_hocr:
+    name: paperless-gpt_paperless_gpt_hocr
+    external: true
+  paperless_gpt_pdf:
+    name: paperless-gpt_paperless_gpt_pdf
+    external: true

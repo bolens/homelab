@@ -1,0 +1,65 @@
+# NetBird – self-hosted WireGuard mesh control plane (combined server + dashboard).
+# See https://docs.netbird.io/selfhosted/selfhosted-quickstart and external-reverse-proxy (Caddy).
+# STUN uses UDP 3478 on the host; it cannot be proxied through Caddy.
+
+name: netbird
+
+services:
+  dashboard:
+    image: netbirdio/dashboard:latest
+    container_name: netbird-dashboard
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+      - dashboard.env
+    networks:
+      - monitor
+
+    mem_limit: 512m
+    cpus: 0.5
+
+  netbird-server:
+    image: netbirdio/netbird-server:latest
+    container_name: netbird-server
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    ports:
+      - "${NETBIRD_STUN_HOST_PORT:-3478}:3478/udp"
+    volumes:
+      - netbird_data:/var/lib/netbird
+      - ${NETBIRD_CONFIG_PATH:-./config.yaml}:/etc/netbird/config.yaml:ro
+    command: ["--config", "/etc/netbird/config.yaml"]
+    networks:
+      - monitor
+
+    mem_limit: 2g
+    cpus: 2.0
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  netbird_data:

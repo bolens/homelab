@@ -1,0 +1,40 @@
+# NetBird combined server – copy to config.yaml and replace secrets + hostnames.
+# Official reference: https://github.com/netbirdio/netbird/blob/main/combined/config.yaml.example
+#
+# After editing: docker compose up -d
+
+server:
+  listenAddress: ":80"
+  exposedAddress: "https://netbird.example.com:443"
+  stunPorts:
+    - 3478
+  metricsPort: 9090
+  healthcheckAddress: ":9000"
+  logLevel: "info"
+  logFile: "console"
+
+  # openssl rand -base64 32  (relay authentication)
+  authSecret: "REPLACE_WITH_RELAY_AUTH_SECRET"
+
+  dataDir: "/var/lib/netbird/"
+
+  auth:
+    issuer: "https://netbird.example.com/oauth2"
+    signKeyRefreshEnabled: true
+    localAuthDisabled: false
+    dashboardRedirectURIs:
+      - "https://netbird.example.com/nb-auth"
+      - "https://netbird.example.com/nb-silent-auth"
+    cliRedirectURIs:
+      - "http://localhost:53000/"
+
+  store:
+    engine: "sqlite"
+    # openssl rand -base64 32  (keep padding = if present)
+    encryptionKey: "REPLACE_WITH_DATASTORE_ENCRYPTION_KEY"
+
+  # If OAuth redirects or client URLs are wrong behind Caddy, set the Caddy
+  # container IPv4 on the monitor network (/32) or the Docker bridge subnet.
+  # reverseProxy:
+  #   trustedHTTPProxies:
+  #     - "172.20.0.2/32"

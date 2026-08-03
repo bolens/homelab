@@ -6,17 +6,22 @@ services:
     image: grafana/promtail:2.9.8
     container_name: promtail
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1536m
+    pids_limit: 512
+    cpu_shares: 256
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    command: -config.file=/etc/promtail/config.yml
+    command:
+      - -config.file=/etc/promtail/config.yml
+      - -config.expand-env=true
     volumes:
       - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /run/log/journal:/run/log/journal:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${PROMTAIL_CONFIG_PATH:-${HOME}/.config/promtail/promtail-config.yml}:/etc/promtail/config.yml:ro
       - promtail_positions:/var/lib/promtail
     networks:

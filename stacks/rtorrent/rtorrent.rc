@@ -1,0 +1,14 @@
+# Minimal rTorrent config for Docker — imports the image default then overrides.
+# The image default rc is at /etc/rtorrent/rtorrent.rc.
+
+import = /etc/rtorrent/rtorrent.rc
+
+# Peer port
+network.port_range.set = 49160-49160
+network.port_random.set = no
+
+# Download directory
+directory.default.set = /downloads
+
+# Stay in foreground so Docker tracks the real PID.
+# (system.daemon.set = true makes rTorrent fork then exit → "quickly shutting down")

@@ -3,6 +3,11 @@ services:
     image: corentinth/it-tools:latest
     container_name: it-tools
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 256
     # No host port: access via Caddy (reverse proxy on monitor network)
     extra_hosts:
       - "host.docker.internal:host-gateway"

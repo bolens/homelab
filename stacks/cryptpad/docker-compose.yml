@@ -1,0 +1,43 @@
+services:
+  cryptpad:
+    image: cryptpad/cryptpad:latest
+    container_name: cryptpad
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - cryptpad_config:/cryptpad/config
+      - cryptpad_data:/cryptpad/data
+      - cryptpad_blob:/cryptpad/blob
+      - cryptpad_block:/cryptpad/block
+      - cryptpad_customize:/cryptpad/customize
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  cryptpad_config: {}
+  cryptpad_data: {}
+  cryptpad_blob: {}
+  cryptpad_block: {}
+  cryptpad_customize: {}

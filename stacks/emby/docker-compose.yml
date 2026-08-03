@@ -11,9 +11,9 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - emby_config:/config
-      - media_tv:/data/tv
-      - media_movies:/data/movies
-      - media_music:/data/music
+      - "${EMBY_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
+      - "${EMBY_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
+      - "${EMBY_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"
     networks:
       - monitor
     healthcheck:
@@ -37,10 +37,3 @@ networks:
 
 volumes:
   emby_config:
-  media_tv:
-    external: true
-  media_movies:
-    external: true
-  media_music:
-    external: true
-

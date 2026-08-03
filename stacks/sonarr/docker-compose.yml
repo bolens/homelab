@@ -1,8 +1,15 @@
+# Bind mounts: SONARR_*_PATH in stack.env. For compose volume substitution use:
+#   docker compose --env-file stack.env up -d
 services:
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:
@@ -11,8 +18,8 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - sonarr_config:/config
-      - media_tv:/tv
-      - usenet_downloads:/downloads
+      - "${SONARR_TV_PATH:-/mnt/unraid/media/tv}:/tv"
+      - "${SONARR_USENET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
       - torrents_downloads:/torrents
     networks:
       - monitor
@@ -38,10 +45,5 @@ networks:
 
 volumes:
   sonarr_config:
-  media_tv:
-    external: true
-  usenet_downloads:
-    external: true
   torrents_downloads:
     external: true
-

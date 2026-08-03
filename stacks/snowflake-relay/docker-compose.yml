@@ -1,0 +1,12 @@
+services:
+  snowflake-relay:
+    image: ghcr.io/keroserene/snowflake-proxy:latest
+    container_name: snowflake-relay
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env

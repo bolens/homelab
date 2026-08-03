@@ -1,0 +1,41 @@
+# FlareSolverr – HTTP API proxy that solves Cloudflare / DDoS-GUARD challenges (Chrome/Selenium).
+# No host ports; access via Caddy (e.g. https://flaresolverr.example.com) or from *arr on `monitor` at http://flaresolverr:8191.
+# Heavy RAM when busy (each request may spawn a browser). See stack README.
+services:
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - flaresolverr_config:/config
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8191/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    mem_limit: 2g
+    cpus: "1.0"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  flaresolverr_config:

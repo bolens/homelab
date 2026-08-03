@@ -7,6 +7,11 @@ services:
     image: amir20/dozzle:latest
     container_name: dozzle
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1536m
+    pids_limit: 512
+    cpu_shares: 256
     stop_grace_period: 30s   # Dozzle needs time to close log streams; default 10s can cause "failed to shut down"
     # No host port: access via Caddy only
     volumes:

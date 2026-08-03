@@ -1,0 +1,43 @@
+# Paperless-AI next stack for Paperless-ngx
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
+services:
+  paperless-ai-next:
+    image: admonstrator/paperless-ai-next:latest-full
+    container_name: paperless-ai-next
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - paperless_ai_next_data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    mem_limit: 2g
+    cpus: "1.00"
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  paperless_ai_next_data:
+    name: paperless-ai-next_paperless_ai_next_data
+    external: true

@@ -8,6 +8,11 @@ services:
     image: boky/postfix:latest
     container_name: smtp-relay
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 384
     env_file:
       - stack.env
     networks:
@@ -19,4 +24,3 @@ networks:
   monitor:
     name: monitor
     external: true
-

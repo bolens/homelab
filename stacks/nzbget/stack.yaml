@@ -37,12 +37,7 @@ volumes:
 - name: nzbget_config
   role: app_data
   critical: true
-- name: usenet_downloads
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
+# Usenet downloads are a host bind mount (see NZBGET_DOWNLOADS_PATH)
 auth:
   mode: app_local
   sso_provider: null

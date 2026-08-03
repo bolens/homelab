@@ -11,15 +11,15 @@ Access via Caddy at **https://picard.yourdomain.com** (or your configured hostna
 
 1. Run `./prepare-stack.sh`.
 2. Review `stack.env` and set:
-   - `PICARD_MUSIC_PATH` (default `/mnt/media/music`)
-   - `PICARD_IMPORT_PATH` (default `/mnt/media/downloads/soulseek`)
+   - `PICARD_MUSIC_PATH` (default `/mnt/unraid/media/music`)
+   - `PICARD_IMPORT_PATH` (default `/mnt/unraid/media/downloads/soulseek`)
 3. Deploy with `docker compose up -d`.
 4. Open Picard and add files from `/import`, then save organized files to `/music`.
 
 ## How this fits your flow
 
-- Soulseek writes completed downloads to `/mnt/media/downloads/soulseek`.
-- Explo can continue doing frequent automated migrations into `/mnt/media/music`.
+- Soulseek writes completed downloads to `/mnt/unraid/media/downloads/soulseek`.
+- Explo can continue doing frequent automated migrations into `/mnt/unraid/media/music`.
 - Picard gives you a manual quality pass for metadata and naming normalization on anything that still needs cleanup.
 
 ## Configuration

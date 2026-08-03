@@ -1,5 +1,4 @@
-# Auto-provision Prometheus and Loki as datasources (requires Prometheus on monitor network;
-# Loki is optional – deploy stacks/loki for logs, then use Explore → Loki).
+# Auto-provision Prometheus as default datasource (requires Prometheus stack on monitor network).
 # Copy this file to ~/.config/grafana/datasources.yml (or another path) and point
 # GRAFANA_DATASOURCES_PATH at it (full file path) when deploying the Grafana stack.
 apiVersion: 1
@@ -10,10 +9,27 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+    jsonData:
+      # Keep dashboard queries from overfetching by default.
+      timeInterval: 30s
+      queryTimeout: 60s
+      httpMethod: POST
     editable: false
   - name: Loki
     type: loki
     uid: loki
     access: proxy
     url: http://loki:3100
+    jsonData:
+      maxLines: 2000
+      timeout: 60
+    editable: false
+  # Alerting → Alertmanager UI (silences, active alerts). Same monitor network as Prometheus.
+  - name: Alertmanager
+    type: alertmanager
+    uid: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    jsonData:
+      implementation: prometheus
     editable: false

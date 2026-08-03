@@ -1,0 +1,58 @@
+# NUT server (upsd) for network UPS monitoring.
+# Publishes TCP 3493 on the host so upsc/upsmon on the host or LAN can reach the UPS.
+# The hostname "nut-server" only resolves inside Docker networks; from the host use
+# ups@127.0.0.1:3493 or add nut-server to /etc/hosts (see README).
+services:
+  nut-server:
+    image: instantlinux/nut-upsd:latest
+    container_name: nut-server
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    security_opt:
+      - no-new-privileges:true
+    privileged: true
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        chgrp ${GROUP:-nut} /etc/nut/* || true
+        chmod 640 /etc/nut/* || true
+        mkdir -p -m 2750 /dev/shm/nut
+        chown nut:${GROUP:-nut} /dev/shm/nut
+        [ -e /var/run/nut ] || ln -s /dev/shm/nut /var/run
+        echo 0 > /var/run/nut/upsd.pid && chown nut:${GROUP:-nut} /var/run/nut/upsd.pid
+        echo 0 > /var/run/upsmon.pid
+        ulimit -n ${ULIMIT:-2048}
+        /usr/sbin/upsdrvctl -u root start &
+        i=0
+        while [ "$$i" -lt 90 ]; do
+          [ -S /var/run/nut/usbhid-ups-ups ] && break
+          i=$$((i + 1))
+          sleep 1
+        done
+        /usr/sbin/upsd -u nut
+        exec /usr/sbin/upsmon -F
+    ports:
+      - "3493:3493"
+    volumes:
+      - ${NUT_CONFIG_DIR:-/home/youruser/.config/nut-server}:/etc/nut
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    networks:
+      - monitor
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true

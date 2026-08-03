@@ -7,6 +7,11 @@ services:
     image: ${SHLINK_IMAGE:-shlinkio/shlink:stable}
     container_name: shlink
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     volumes:

@@ -6,6 +6,11 @@ services:
     image: afterpacket/social-hunt:latest
     container_name: social-hunt
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
       - path: ../../shared.env
@@ -27,6 +32,46 @@ services:
       timeout: 10s
       retries: 3
       start_period: 45s
+
+  proxy:
+    image: ajoergensen/tinyproxy:latest
+    container_name: social-hunt-proxy
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 256
+    environment:
+      - PORT=8888
+      - ALLOWED=0.0.0.0/0
+      - LISTEN=0.0.0.0
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8888 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  tor:
+    image: peterdavehello/tor-socks-proxy:latest
+    container_name: social-hunt-tor
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 256
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9150 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
 
 networks:
   monitor:

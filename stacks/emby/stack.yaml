@@ -37,24 +37,6 @@ volumes:
 - name: emby_config
   role: app_data
   critical: true
-- name: media_tv
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
-- name: media_movies
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
-- name: media_music
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
 auth:
   mode: app_local
   sso_provider: null

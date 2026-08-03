@@ -3,6 +3,11 @@ services:
     image: slskd/slskd:latest
     container_name: soulseek
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     labels:
       - logging=true
       - logging_sampling=true
@@ -13,7 +18,7 @@ services:
     volumes:
       - soulseek_app:/app
       - "${SLSKD_DOWNLOADS_PATH:-./data/downloads}:/downloads"
-      - "${SLSKD_SHARED_MUSIC_PATH:-/mnt/media/music}:/music"
+      - "${SLSKD_SHARED_MUSIC_PATH:-/mnt/unraid/media/music}:/music"
       - soulseek_incomplete:/incomplete
     networks:
       - monitor

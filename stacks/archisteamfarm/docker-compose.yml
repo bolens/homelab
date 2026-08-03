@@ -1,0 +1,42 @@
+# ArchiSteamFarm (ASF) – Steam card idling, optional web IPC.
+# No host ports: access via Caddy (reverse proxy to asf:1242 on monitor network).
+# Config: copy stack.env.example → stack.env; create / populate config dir (ASF.json, bot configs).
+services:
+  asf:
+    image: justarchi/archisteamfarm:released
+    # Explicit container name for easier discovery in Portainer/Dozzle.
+    container_name: archisteamfarm
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      # Force Kestrel to listen on all interfaces so Caddy can reach IPC (otherwise 502)
+      - ASPNETCORE_URLS=http://0.0.0.0:1242
+    volumes:
+      - ${ASF_CONFIG_DIR:-./config}:/app/config
+    networks:
+      - monitor
+    # Image has no curl/wget; use bash /dev/tcp to check IPC on :1242.
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/1242 && echo -e \"GET / HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3 && head -1 <&3 | grep -q HTTP'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    mem_limit: 512m
+    cpus: 0.5
+
+networks:
+  monitor:
+    name: monitor
+    external: true

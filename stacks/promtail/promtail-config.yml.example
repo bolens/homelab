@@ -1,3 +1,8 @@
+# Promtail → Loki. Copy to ~/.config/promtail/promtail-config.yml
+# Requires: -config.expand-env=true (set in stacks/promtail/docker-compose.yml) for ${HOST_HOSTNAME}.
+# Grafana Alloy owns Docker container log ingestion. Promtail is intentionally
+# limited to host files and journald so Loki does not receive duplicate streams.
+
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
@@ -6,7 +11,8 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 positions:
-  filename: /tmp/positions.yaml
+  # Persist read offsets across container restarts to avoid expensive re-scans/replays.
+  filename: /var/lib/promtail/positions.yaml
 
 scrape_configs:
   - job_name: system
@@ -15,14 +21,24 @@ scrape_configs:
           - localhost
         labels:
           job: varlogs
-          host: ${HOSTNAME}
-          __path__: /var/log/*log
+          host: ${HOST_HOSTNAME}
+          __path__: /var/log/*.log
+    pipeline_stages:
+      - static_labels:
+          host: ${HOST_HOSTNAME}
+          source: promtail
+      - drop:
+          expression: '^\s*$'
+          drop_counter_reason: empty_line
 
-  - job_name: docker
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: docker
-          host: ${HOSTNAME}
-          __path__: /var/lib/docker/containers/*/*-json.log
+  - job_name: journal
+    journal:
+      max_age: 12h
+      labels:
+        job: systemd
+        source: promtail
+    relabel_configs:
+      - source_labels: [__journal__systemd_unit]
+        target_label: unit
+      - source_labels: [__journal__hostname]
+        target_label: host

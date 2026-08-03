@@ -1,8 +1,15 @@
+# Bind mounts: RADARR_*_PATH in stack.env. For compose volume substitution use:
+#   docker compose --env-file stack.env up -d
 services:
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:
@@ -11,8 +18,8 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - radarr_config:/config
-      - media_movies:/movies
-      - usenet_downloads:/downloads
+      - "${RADARR_MOVIES_PATH:-/mnt/unraid/media/movies}:/movies"
+      - "${RADARR_USENET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
       - torrents_downloads:/torrents
     networks:
       - monitor
@@ -38,10 +45,5 @@ networks:
 
 volumes:
   radarr_config:
-  media_movies:
-    external: true
-  usenet_downloads:
-    external: true
   torrents_downloads:
     external: true
-

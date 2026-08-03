@@ -7,6 +7,11 @@ services:
     image: mariadb:11
     container_name: romm-db
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     env_file:
       - stack.env
     environment:
@@ -30,6 +35,11 @@ services:
     image: rommapp/romm:latest
     container_name: romm
     restart: unless-stopped
+    cpus: 3.0
+    mem_limit: 4g
+    memswap_limit: 6g
+    pids_limit: 512
+    cpu_shares: 384
     depends_on:
       romm-db:
         condition: service_healthy

@@ -25,7 +25,7 @@ Meta search for Usenet indexers. NZBHydra 2 aggregates results from multiple NZB
      ```
    - Or add the stack in Portainer and set the same variables in the stack **Environment**.
 4. **First run**
-   - Access NZBHydra 2 via Caddy (for example `https://nzbhydra.home` or `https://nzbhydra.yourdomain.com`).
+   - Access NZBHydra 2 via Caddy (for example `https://nzbhydra.home` or `https://nzbhydra.example.com`).
    - Complete the initial wizard:
      - Add your Usenet indexers (Newznab, etc.).
      - Set the base URL and API key.

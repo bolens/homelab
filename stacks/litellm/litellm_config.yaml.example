@@ -1,0 +1,16 @@
+# LiteLLM proxy — https://docs.litellm.ai/docs/proxy/configs
+# prepare-stack.sh seeds ~/.config/litellm/config.yaml from this file when missing.
+# Shared Ollama on Docker network `monitor`: use http://ollama:11434
+# Cloud keys: set in stack.env and reference with api_key: os.environ/OPENAI_API_KEY
+#
+# Optional: set input_cost_per_token / output_cost_per_token under litellm_params so
+# spend is not always 0.0. That avoids the Admin UI Usage page SVG errors (NaN on rect)
+# when charts scale on all-zero spend (common with Ollama-only setups).
+
+model_list:
+  - model_name: gemma4
+    litellm_params:
+      model: ollama/gemma4:latest
+      api_base: http://ollama:11434
+      input_cost_per_token: 0.00000001
+      output_cost_per_token: 0.00000001

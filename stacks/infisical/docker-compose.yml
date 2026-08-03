@@ -3,6 +3,11 @@ services:
     image: infisical/infisical:latest
     container_name: infisical
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 384
     depends_on:
       db:
         condition: service_healthy
@@ -19,6 +24,11 @@ services:
     image: redis:alpine
     container_name: infisical-redis
     restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 256
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
     healthcheck:
@@ -35,6 +45,11 @@ services:
     image: postgres:14-alpine
     container_name: infisical-db
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     env_file:
       - stack.env
     volumes:

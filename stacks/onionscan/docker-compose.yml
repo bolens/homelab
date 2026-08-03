@@ -13,6 +13,11 @@ services:
     image: mpatton/onionscan:latest
     container_name: onionscan
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     # Drop all capabilities; Tor + onionscan don't need extra caps

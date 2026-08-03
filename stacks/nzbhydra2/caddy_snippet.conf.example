@@ -1,6 +1,7 @@
-# NZBHydra 2 — split-horizon + public TLS: nzbhydra2.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# NZBHydra 2 — split-horizon + public TLS: nzbhydra.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Tunnel → Caddy :80 is cleartext: pass original host + https scheme (see stacks/caddy/CLOUDFLARE.md).
 
-nzbhydra2.home, nzbhydra2.local {
+nzbhydra.home, nzbhydra.local {
 	tls internal
 	reverse_proxy nzbhydra2:5076 {
 		header_up Host {host}
@@ -10,7 +11,7 @@ nzbhydra2.home, nzbhydra2.local {
 	}
 }
 
-http://nzbhydra2.example.com {
+http://nzbhydra.example.com {
 	reverse_proxy nzbhydra2:5076 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
@@ -21,7 +22,7 @@ http://nzbhydra2.example.com {
 	}
 }
 
-nzbhydra2.example.com {
+nzbhydra.example.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}

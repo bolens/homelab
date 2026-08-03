@@ -205,6 +205,45 @@ Besides the built-in Kasm Technologies and Kasm AI registries, you can add the *
 3. **Resources** – The agent may report 0 free CPUs/memory. In **Admin** → **Infrastructure** → **Docker Agents**, open the agent and set **Compute overrides** (e.g. override available CPUs and memory to match your host) so Kasm sees capacity. Alternatively, edit the workspace in **Admin** → **Workspaces** and lower its required CPUs/memory.
 4. **Image on agent** – The workspace image must be present on the agent. Run `docker exec kasm docker images` and confirm the image (e.g. Doom) is listed; if not, pull it or install the workspace from the registry and wait for the pull to finish.
 
+**Expired JWT on RDP/guac gateways (crash loop, `register_component` / `refresh_token` 403):** Service tokens for `kasm_rdp_gateway`, `kasm_rdp_https_gateway`, and `kasm_guac` expire after the configured API token lifespan (default ~3 days, plus refresh leeway). If those containers were down or could not refresh for longer, they keep restarting with `Expired JWT` or `Token has been expired beyond the configured refresh period` in `kasm_api` logs. Core workspaces (VNC/browser) still work; only RDP and guacamole recording paths are affected.
+
+1. In **Admin** → **Settings** → **Global**, copy **Component Registration Token**.
+2. On the host, patch inner configs (replace `YOUR_REGISTRATION_TOKEN` with the copied value):
+
+   ```bash
+   docker exec kasm sh -c 'REG="YOUR_REGISTRATION_TOKEN"; NULL="00000000-0000-0000-0000-000000000000"
+   for f in /opt/kasm/current/conf/app/rdp_gateway/passthrough.app.config.yaml \
+            /opt/kasm/current/conf/app/rdp_https_gateway/rdp_https_gateway.app.config.yaml; do
+     sed -i "s/^  auth_token:.*/  auth_token: JWTTOKEN/" "$f"
+     sed -i "s/^    auth_token:.*/    auth_token: JWTTOKEN/" "$f"
+     sed -i "/auth_token_exp/d" "$f"
+     sed -i "s/^  id: .*/  id: $NULL/" "$f"
+     sed -i "s/^    id: .*/    id: $NULL/" "$f"
+     grep -q registration_token "$f" || sed -i "/id: $NULL/a\\  registration_token: $REG" "$f"
+   done
+   sed -i "s/^  id: .*/  id: $NULL/" /opt/kasm/current/conf/app/guac/kasmguac.app.config.yaml
+   sed -i "s/^  auth_token:.*/  auth_token: JWTTOKEN/" /opt/kasm/current/conf/app/guac/kasmguac.app.config.yaml
+   grep -q registration_token /opt/kasm/current/conf/app/guac/kasmguac.app.config.yaml || \
+     sed -i "/id: $NULL/a\\  registration_token: $REG" /opt/kasm/current/conf/app/guac/kasmguac.app.config.yaml
+   docker exec kasm_db psql -U kasmapp -d kasm -c "DELETE FROM connection_proxies;"
+   export KASM_UID=$(id -u kasm) KASM_GID=$(id -g kasm)
+   cd /opt/kasm/current/docker && docker compose up -d --force-recreate rdp_gateway kasm_rdp_https_gateway kasm_guac'
+   ```
+
+3. Confirm in **Admin** → **Infrastructure** → **Connection Proxies** that all three show **running** and **Last Reported** updates every ~30s. See [Kasm manual RDP gateway registration](https://kasmweb.atlassian.net/wiki/spaces/KCS/pages/117112857/Manually+Register+the+RDP+Gateway+and+RDP+HTTPS+Gateway).
+
+**iptables `DOCKER-ISOLATION-STAGE-2` at container start:** Harmless log noise from the kasmlogger plugin when inner Docker uses newer iptables chains (`DOCKER-FORWARD` instead of legacy isolation). Ignore unless workspace networking actually fails.
+
+**Workspace icons 404 (`img/thumbnails/*.png` in browser console):** `kasm_proxy` must mount the real thumbnail directory. A bad default bind uses empty `/kasm_release/www/img/thumbnails` instead of `/opt/kasm/current/www/img/thumbnails`. Fix and recreate the proxy:
+
+```bash
+docker exec kasm sh -c 'sed -i "s|/kasm_release/www/img/thumbnails|/opt/kasm/current/www/img/thumbnails|g" /opt/kasm/current/docker/docker-compose.yaml
+export KASM_UID=$(id -u kasm) KASM_GID=$(id -g kasm)
+cd /opt/kasm/current/docker && docker compose up -d --force-recreate proxy'
+```
+
+Verify: `docker exec kasm curl -sk -o /dev/null -w "%{http_code}\n" https://127.0.0.1:443/img/thumbnails/brave.png` should print `200`. Re-apply after a Kasm in-app upgrade if the compose file is regenerated.
+
 ## Health and monitoring
 
 - No dedicated health endpoint. Use a generic HTTP check to `https://kasm.yourdomain.com` in Uptime Kuma.

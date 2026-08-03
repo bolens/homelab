@@ -19,6 +19,14 @@ services:
       - ${PROMETHEUS_RULES_PATH:-${HOME}/.config/prometheus/rules}:/etc/prometheus/rules:ro
     networks:
       - monitor
+    cpu_shares: 256
+    memswap_limit: 4g
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+          pids: 512
     env_file:
       - stack.env
     healthcheck:

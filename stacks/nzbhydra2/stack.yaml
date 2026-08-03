@@ -17,7 +17,7 @@ category: media
 exposure:
   behind_caddy: true
   public_by_default: false
-  recommended_hostname: nzbhydra2.yourdomain.com
+  recommended_hostname: nzbhydra.example.com
 data_profile:
   contains_pii: false
   contains_logs_only: false

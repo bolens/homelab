@@ -3,6 +3,11 @@ services:
     image: postgres:16-alpine
     container_name: gitea-postgres
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     environment:
       - POSTGRES_DB=${GITEA_DB_NAME:-gitea}
       - POSTGRES_USER=${GITEA_DB_USER:-gitea}
@@ -43,8 +48,11 @@ services:
     networks:
       - default
       - monitor
+    cpus: 2.0
     mem_limit: 2g
     memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 384
     healthcheck:
       test: ["CMD", "curl", "-fs", "http://localhost:3000/api/healthz"]
       interval: 30s
@@ -59,4 +67,3 @@ networks:
 volumes:
   gitea_pg_data:
   gitea_data:
-

@@ -12,10 +12,21 @@ services:
       - torrents_manual:/downloads
 
   rtorrent:
-    image: jesec/rtorrent:master
+    # :latest = release builds; :master is a minimal/debug image (no /bin/ls).
+    image: jesec/rtorrent:latest
     container_name: rtorrent
     restart: unless-stopped
+    cpus: 3.0
+    mem_limit: 4g
+    memswap_limit: 6g
+    pids_limit: 768
+    cpu_shares: 256
     user: "1001:1001"
+    # Foreground ncurses needs a PTY (daemon mode forks → Docker sees exit).
+    tty: true
+    stdin_open: true
+    environment:
+      TERM: xterm
     depends_on:
       rtorrent-init:
         condition: service_completed_successfully
@@ -35,9 +46,16 @@ services:
       - "49160:49160/udp"
 
   flood:
-    image: jesec/flood:master
+    # :master is the upstream *dev* image (Node 24) and currently crashes on
+    # createRequire(undefined). Use release tag for production.
+    image: jesec/flood:latest
     container_name: flood
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1536m
+    pids_limit: 256
+    cpu_shares: 256
     user: "1001:1001"
     depends_on:
       - rtorrent

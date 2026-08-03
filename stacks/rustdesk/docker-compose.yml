@@ -1,0 +1,57 @@
+# RustDesk Server OSS – hbbs (ID / rendezvous) + hbbr (relay). See https://rustdesk.com/docs/en/self-host/rustdesk-server-oss/
+# Uses host networking so peers see real source IPs (recommended upstream). Open firewall ports on this host.
+# Data (keys, SQLite) in named volume rustdesk_data → /root in both containers.
+
+name: rustdesk
+
+services:
+  rustdesk-hbbr:
+    container_name: rustdesk-hbbr
+    image: docker.io/rustdesk/rustdesk-server:latest
+    command: hbbr
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    network_mode: host
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - rustdesk_data:/root
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 512m
+    cpus: 0.5
+
+  rustdesk-hbbs:
+    container_name: rustdesk-hbbs
+    image: docker.io/rustdesk/rustdesk-server:latest
+    command: hbbs
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    network_mode: host
+    depends_on:
+      - rustdesk-hbbr
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - rustdesk_data:/root
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 512m
+    cpus: 0.5
+
+volumes:
+  rustdesk_data: {}

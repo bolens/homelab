@@ -3,6 +3,11 @@ services:
     image: postgres:16-alpine
     container_name: authentik-postgres
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     environment:
       - POSTGRES_DB=${PG_DB:-authentik}
       - POSTGRES_USER=${PG_USER:-authentik}
@@ -21,6 +26,11 @@ services:
     image: redis:alpine
     container_name: authentik-redis
     restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 256
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     networks:
       - authentik
@@ -29,6 +39,11 @@ services:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik-server
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 384
     command: ["server"]
     env_file:
       - stack.env
@@ -53,6 +68,11 @@ services:
     image: ghcr.io/goauthentik/server:latest
     container_name: authentik-worker
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     command: ["worker"]
     env_file:
       - stack.env
@@ -85,4 +105,3 @@ volumes:
   authentik_pg_data:
   authentik_media:
   authentik_templates:
-

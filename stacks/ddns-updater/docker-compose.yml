@@ -1,0 +1,32 @@
+# DDNS Updater (qdm12) – periodic DNS A/AAAA updates for many providers + web UI.
+# Data: ./data → /updater/data (config.json, updates.json). No host ports; UI via Caddy → ddns-updater:8000.
+# Image runs as UID 1000; ensure ./data is owned by 1000:1000 (see README).
+# Upstream: https://github.com/qdm12/ddns-updater
+services:
+  ddns-updater:
+    image: ghcr.io/qdm12/ddns-updater:latest
+    container_name: ddns-updater
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ./data:/updater/data
+    networks:
+      - monitor
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 128m
+    cpus: "0.25"
+
+networks:
+  monitor:
+    name: monitor
+    external: true

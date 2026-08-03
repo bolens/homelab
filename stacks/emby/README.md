@@ -7,22 +7,16 @@ Media server for movies, TV shows, and music. Emby serves your library to web, m
 
 ## Quick start
 
-1. **Media volumes** (if not already created):
-   ```bash
-   docker volume create media_tv
-   docker volume create media_movies
-   docker volume create media_music
-   ```
-   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
-2. **Environment**
+1. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID` to match your host user/group.
-3. **Deploy**
+   - Confirm media paths (defaults `/mnt/unraid/media/{tv,movies,music}`).
+2. **Deploy**
    - From this directory:
      ```bash
      docker compose up -d
      ```
-4. **First run**
+3. **First run**
    - Access Emby via Caddy (see vhost example below).
    - Add libraries pointing to:
      - `/data/tv` for TV shows.
@@ -60,8 +54,8 @@ To use it:
 | **Access** | Via Caddy only (no host ports; reverse-proxy to `emby:8096`)           |
 | **Network**| `monitor` plus default                                                  |
 | **Image**  | `lscr.io/linuxserver/emby:latest`                                      |
-| **Env**    | `TZ`, `PUID`, `PGID`                                                   |
-| **Storage**| `emby_config` → `/config`, `media_*` → `/data/...`                     |
+| **Env**    | `TZ`, `PUID`, `PGID`, `EMBY_TV_PATH`, `EMBY_MOVIES_PATH`, `EMBY_MUSIC_PATH` |
+| **Storage**| `emby_config` → `/config`, host media paths → `/data/{tv,movies,music}` |
 
 ## Caddy reverse proxy
 

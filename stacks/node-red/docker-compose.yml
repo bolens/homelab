@@ -1,0 +1,39 @@
+services:
+  nodered:
+    image: nodered/node-red:latest
+    container_name: node-red
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # No host port: access via Caddy only (reverse_proxy nodered:1880)
+    volumes:
+      - nodered_data:/data
+    networks:
+      - monitor
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:1880/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    mem_limit: 1g
+    cpus: 1.0
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  nodered_data: {}

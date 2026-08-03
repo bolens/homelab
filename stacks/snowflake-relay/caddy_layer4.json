@@ -1,0 +1,56 @@
+{
+  "apps": {
+    "layer4": {
+      "servers": {
+        "snowflake-udp": {
+          "listen": [":3478"],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "proxy",
+                  "upstreams": [
+                    { "dial": "snowflake-relay:3478" }
+                  ],
+                  "transport": { "protocol": "udp" }
+                }
+              ]
+            }
+          ]
+        },
+        "pihole-udp": {
+          "listen": [":53"],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "proxy",
+                  "upstreams": [
+                    { "dial": "pihole:53" }
+                  ],
+                  "transport": { "protocol": "udp" }
+                }
+              ]
+            }
+          ]
+        },
+        "unbound-udp": {
+          "listen": [":5353"],
+          "routes": [
+            {
+              "handle": [
+                {
+                  "handler": "proxy",
+                  "upstreams": [
+                    { "dial": "unbound:5353" }
+                  ],
+                  "transport": { "protocol": "udp" }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

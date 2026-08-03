@@ -9,32 +9,26 @@ Self-hosted media server for movies, TV shows, and music. Plex serves your media
 
 ## Quick start
 
-1. **Media volumes** (if not already created):
-   ```bash
-   docker volume create media_tv
-   docker volume create media_movies
-   docker volume create media_music
-   ```
-   For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
-2. **Environment**
+1. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set:
      - `TZ` to your timezone.
      - `PUID` / `PGID` to the user/group that should own media and metadata.
+     - Confirm media paths (defaults `/mnt/unraid/media/{tv,movies,music}`).
      - Optionally `PLEX_CLAIM` with a claim token from Plex (first run only).
-3. **Deploy**
+2. **Deploy**
    - From this directory:
      ```bash
      docker compose up -d
      ```
-4. **First run**
+3. **First run**
    - Browse to `http://<docker-host>:32400/web` and complete the Plex setup.
    - Add libraries pointing to:
      - `/data/tv` for TV shows.
      - `/data/movies` for movies.
      - `/data/music` for music.
 
-This stack uses **host networking** so Plex can discover clients and expose the standard Plex ports on the Docker host. Media is mounted via shared `media_*` volumes used by Sonarr/Radarr/Lidarr/Readarr.
+Media libraries are bind-mounted from the same host paths used by Sonarr/Radarr/Lidarr (defaults under `/mnt/unraid/media/`).
 
 ## Configuration
 
@@ -43,8 +37,8 @@ This stack uses **host networking** so Plex can discover clients and expose the 
 | **Access** | Direct via `http://host:32400/web`, or via Caddy reverse proxy         |
 | **Network**| `network_mode: host` (no `monitor` network needed)                     |
 | **Image**  | `lscr.io/linuxserver/plex:latest`                                      |
-| **Env**    | `TZ`, `PUID`, `PGID`, `VERSION=docker`, optional `PLEX_CLAIM`          |
-| **Storage**| `plex_config` → `/config`, `plex_transcode` → `/transcode`, `media_tv` → `/data/tv`, `media_movies` → `/data/movies`, `media_music` → `/data/music` |
+| **Env**    | `TZ`, `PUID`, `PGID`, `VERSION=docker`, `PLEX_*_PATH`, optional `PLEX_CLAIM` |
+| **Storage**| `plex_config` → `/config`, `plex_transcode` → `/transcode`, host media paths → `/data/{tv,movies,music}` |
 
 ## Caddy reverse proxy
 

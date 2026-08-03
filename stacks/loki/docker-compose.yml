@@ -16,6 +16,14 @@ services:
       - ${LOKI_CONFIG_PATH:-${HOME}/.config/loki/loki-config.yml}:/etc/loki/config.yml:ro
     networks:
       - monitor
+    cpu_shares: 256
+    memswap_limit: 4g
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
+          pids: 512
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3100/ready"]
       interval: 30s
@@ -30,4 +38,3 @@ networks:
 
 volumes:
   loki_data:
-

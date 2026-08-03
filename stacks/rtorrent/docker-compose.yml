@@ -1,0 +1,57 @@
+services:
+  # Init container: fix volume ownership so rTorrent (uid 1001) can write.
+  rtorrent-init:
+    image: alpine:latest
+    container_name: rtorrent-init
+    restart: "no"
+    user: root
+    command: >
+      sh -c "chown -R 1001:1001 /data /downloads && echo 'Volume ownership fixed.'"
+    volumes:
+      - rtorrent_data:/data
+      - torrents_manual:/downloads
+
+  rtorrent:
+    image: jesec/rtorrent:latest
+    container_name: rtorrent
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    environment:
+      TERM: xterm
+    depends_on:
+      rtorrent-init:
+        condition: service_completed_successfully
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    # Use default rc (socket at basedir/rtorrent.sock). Override peer port and
+    # download dir; Flood connects via the named volume at the known socket path.
+    # Load custom rc (sets peer port, download dir; stay foreground with tty: true).
+    # The custom rc itself imports the image default /etc/rtorrent/rtorrent.rc first.
+    command: -n -o import=/home/download/rtorrent.rc
+    volumes:
+      # Persist rTorrent's default basedir (session, logs, watch dirs, sock, etc.)
+      - rtorrent_data:/home/download/.local/share/rtorrent
+      # Bind-mount the custom rc into the container home dir
+      - ./rtorrent.rc:/home/download/rtorrent.rc:ro
+      - torrents_manual:/downloads
+    networks:
+      - torrents
+    # Peer port — must hit the host directly for incoming torrent connections.
+    # Web UI served by Flood (stacks/flood) via Caddy — no web port binding here.
+    ports:
+      - "49160:49160"
+      - "49160:49160/udp"
+
+networks:
+  torrents:
+    name: torrents
+    external: true
+
+volumes:
+  rtorrent_data:
+    name: rtorrent_data
+  torrents_manual:
+    external: true

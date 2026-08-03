@@ -1,0 +1,45 @@
+# Official image expects /app/config as a host bind mount (not only a named volume), or the UI warns.
+# Defaults: ~/.config/seerr — use docker compose --env-file stack.env when paths are set there.
+services:
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    init: true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      - PORT=5055
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ${SEERR_CONFIG_PATH:-${HOME}/.config/seerr}:/app/config
+    networks:
+      - monitor
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:5055/api/v1/settings/public || exit 1",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+    mem_limit: 1g
+    cpus: "1.00"
+
+networks:
+  monitor:
+    name: monitor
+    external: true

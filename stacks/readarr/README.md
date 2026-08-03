@@ -10,29 +10,30 @@ Book and audiobook collection manager for Usenet and torrents. Readarr monitors 
 
 ## Quick start
 
-1. **Shared networks and volumes** (if not already created):
+1. **Shared networks and torrent download volume** (if not already created):
    ```bash
    docker network create usenet
    docker network create torrents
-   docker volume create usenet_downloads
    docker volume create torrents_downloads
-   docker volume create media_books
+   mkdir -p /mnt/unraid/media/books /mnt/unraid/media/downloads/usenet
    ```
    For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID`.
+   - Confirm `READARR_BOOKS_PATH` (default `/mnt/unraid/media/books`).
+   - Confirm `READARR_USENET_DOWNLOADS_PATH` (default `/mnt/unraid/media/downloads/usenet`).
 3. **Deploy**
    - From this directory:
      ```bash
-     docker compose up -d
+     docker compose --env-file stack.env up -d
      ```
 4. **First run**
    - Access Readarr via Caddy (for example `https://readarr.home` or `https://readarr.yourdomain.com`).
    - Configure:
      - **Download client**: NZBGet and/or qBittorrent.
      - **Indexers**: from Prowlarr/NZBHydra 2.
-     - **Root folder**: `/books` (shared `media_books` volume).
+     - **Root folder**: `/books` (bind-mounted from `READARR_BOOKS_PATH`).
 
 ## Configuration
 
@@ -40,9 +41,9 @@ Book and audiobook collection manager for Usenet and torrents. Readarr monitors 
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `readarr:8787`)         |
 | **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
-| **Image**  | `lscr.io/linuxserver/readarr:nightly`                                  |
-| **Env**    | `TZ`, `PUID`, `PGID`, optional `READARR__*`                             |
-| **Storage**| `readarr_config` → `/config`, `media_books` → `/books`, downloads volumes → `/downloads`, `/torrents` |
+| **Image**  | `lscr.io/linuxserver/readarr:0.4.18-nightly`                            |
+| **Env**    | `TZ`, `PUID`, `PGID`, `READARR_BOOKS_PATH`, `READARR_USENET_DOWNLOADS_PATH`, optional `READARR__*` |
+| **Storage**| `readarr_config` → `/config`, `${READARR_BOOKS_PATH}` → `/books`, `${READARR_USENET_DOWNLOADS_PATH}` → `/downloads`, `torrents_downloads` → `/torrents` |
 
 ## Caddy reverse proxy
 

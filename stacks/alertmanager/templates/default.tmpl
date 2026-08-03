@@ -1,0 +1,70 @@
+{{ define "homelab.title" -}}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}]
+{{- if .CommonLabels.alertname }}
+ {{ .CommonLabels.alertname }}
+{{- else if .CommonLabels.service }}
+ {{ .CommonLabels.service }} alerts
+{{- else if .CommonLabels.category }}
+ {{ .CommonLabels.category }} alerts
+{{- else }}
+ grouped alerts
+{{- end }}
+{{- end }}
+
+{{ define "homelab.text" -}}
+Status: {{ .Status }}
+Alert: {{ if .CommonLabels.alertname }}{{ .CommonLabels.alertname }}{{ else }}grouped{{ end }}
+Severity: {{ .CommonLabels.severity }}
+{{- if .CommonLabels.service }}
+Service: {{ .CommonLabels.service }}
+{{- end }}
+{{- if .CommonLabels.category }}
+Category: {{ .CommonLabels.category }}
+{{- end }}
+{{- if .CommonLabels.tier }}
+Tier: {{ .CommonLabels.tier }}
+{{- end }}
+{{- if .CommonLabels.instance }}
+Instance: {{ .CommonLabels.instance }}
+{{- end }}
+
+{{- if .CommonAnnotations.summary }}
+Summary: {{ .CommonAnnotations.summary }}
+{{- end }}
+{{- if .CommonAnnotations.description }}
+Description: {{ .CommonAnnotations.description }}
+{{- end }}
+{{- if .CommonAnnotations.runbook }}
+Action: {{ .CommonAnnotations.runbook }}
+{{- end }}
+
+Firing: {{ .Alerts.Firing | len }}
+Resolved: {{ .Alerts.Resolved | len }}
+
+{{- if gt (len .Alerts.Firing) 10 }}
+Firing alerts (top 10 of {{ len .Alerts.Firing }}):
+{{- range $i, $a := .Alerts.Firing }}
+{{- if lt $i 10 }}
+- {{ if $a.Labels.alertname }}{{ $a.Labels.alertname }}{{ else }}n/a{{ end }} on {{ if $a.Labels.instance }}{{ $a.Labels.instance }}{{ else }}n/a{{ end }}
+{{- end }}
+{{- end }}
+{{- else }}
+Alerts:
+{{- range .Alerts }}
+- {{ if .Labels.alertname }}{{ .Labels.alertname }}{{ else }}n/a{{ end }} on {{ if .Labels.instance }}{{ .Labels.instance }}{{ else }}n/a{{ end }}{{ if .Labels.service }} (svc={{ .Labels.service }}){{ end }} ({{ .Status }})
+{{- end }}
+{{- end }}
+
+{{- if gt (len .Alerts) 1 }}
+Affected instances (top 3 of {{ len .Alerts }}):
+{{- range $i, $a := .Alerts }}
+{{- if lt $i 3 }}
+- {{ if $a.Labels.instance }}{{ $a.Labels.instance }}{{ else }}n/a{{ end }}
+{{- end }}
+{{- end }}
+{{- if gt (len .Alerts) 3 }}
+... and more
+{{- end }}
+{{- end }}
+
+{{- end }}

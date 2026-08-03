@@ -1,0 +1,73 @@
+name: matomo
+
+services:
+  matomo-db:
+    image: mariadb:11
+    container_name: matomo-db
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
+    env_file:
+      - stack.env
+    environment:
+      MYSQL_DATABASE: ${MATOMO_DB_NAME}
+      MYSQL_USER: ${MATOMO_DB_USER}
+      MYSQL_PASSWORD: ${MATOMO_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MATOMO_DB_ROOT_PASSWORD}
+    command: ["--max_allowed_packet=128M"]
+    volumes:
+      - matomo_db:/var/lib/mysql
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  matomo:
+    image: matomo:latest
+    container_name: matomo
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
+    env_file:
+      - stack.env
+    environment:
+      MATOMO_DATABASE_HOST: matomo-db
+      MATOMO_DATABASE_ADAPTER: mysql
+      MATOMO_DATABASE_DBNAME: ${MATOMO_DB_NAME}
+      MATOMO_DATABASE_USERNAME: ${MATOMO_DB_USER}
+      MATOMO_DATABASE_PASSWORD: ${MATOMO_DB_PASSWORD}
+    depends_on:
+      matomo-db:
+        condition: service_healthy
+    volumes:
+      - matomo_html:/var/www/html
+      - ${MATOMO_CONFIG_PATH:?Set MATOMO_CONFIG_PATH in stack.env}:/var/www/html/config/config.ini.php
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  matomo_db:
+    name: matomo_matomo_db
+  matomo_html:
+    name: matomo_matomo_html

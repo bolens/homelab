@@ -1,0 +1,93 @@
+# LiteLLM — OpenAI-compatible gateway to Ollama, OpenAI, Anthropic, and 100+ backends.
+# Docs: https://docs.litellm.ai/docs/proxy/docker_quick_start
+# No host ports; Caddy → litellm:4000 on `monitor`.
+# Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: litellm-postgres
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-litellm}
+      POSTGRES_USER: ${POSTGRES_USER:-litellm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in stack.env (see stack.env.example)}
+    volumes:
+      - litellm_pgdata:/var/lib/postgresql/data
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-litellm} -d ${POSTGRES_DB:-litellm}"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: litellm
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - logging=true
+      - logging_sampling=true
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    # Admin UI auth/session storage requires Postgres (see README). This URL targets the bundled service.
+    # For an external DB: remove the postgres service, delete this block, and set DATABASE_URL in stack.env.
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-litellm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-litellm}
+    # Secrets and UI login: only stack.env (via env_file). Do not duplicate LITELLM_MASTER_KEY / UI_* in
+    # `environment:` — Compose interpolates ${VAR} from `.env`, not from env_file, so a stale `.env` would
+    # override stack.env and break Admin UI login (wrong username/password vs what you edited in stack.env).
+    volumes:
+      # Host path: default ~/.config/litellm/config.yaml (prepare-stack creates from example).
+      - ${LITELLM_CONFIG_FILE:?Set LITELLM_CONFIG_FILE in stack.env (see stack.env.example)}:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--use_prisma_db_push"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitor
+    mem_limit: 2g
+    memswap_limit: 4g
+    cpus: "1.50"
+    pids_limit: 512
+    cpu_shares: 384
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:4000/health/liveliness', timeout=5).status==200 else 1)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  litellm_pgdata:

@@ -1,0 +1,38 @@
+services:
+  unbound:
+    image: mvance/unbound:latest
+    container_name: unbound
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - unbound_data:/opt/unbound/etc/unbound
+    networks:
+      - monitor
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 128m
+    cpus: '0.25'
+    # unbound-control needs control-enable: yes + remote-control in unbound.conf; this image ships with control disabled.
+    healthcheck:
+      test: ["CMD-SHELL", "drill example.com @127.0.0.1 >/dev/null 2>&1"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  unbound_data: {}
+
+networks:
+  monitor:
+    name: monitor
+    external: true

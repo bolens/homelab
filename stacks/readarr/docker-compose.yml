@@ -1,8 +1,16 @@
+# Bind mounts: READARR_*_PATH in stack.env. For compose volume substitution use:
+#   docker compose --env-file stack.env up -d
 services:
   readarr:
-    image: lscr.io/linuxserver/readarr:nightly
+    # `nightly` currently has no amd64 manifest; pin a tagged nightly that does.
+    image: lscr.io/linuxserver/readarr:0.4.18-nightly
     container_name: readarr
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     env_file:
       - stack.env
     environment:
@@ -11,8 +19,8 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - readarr_config:/config
-      - media_books:/books
-      - usenet_downloads:/downloads
+      - "${READARR_BOOKS_PATH:-/mnt/unraid/media/books}:/books"
+      - "${READARR_USENET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
       - torrents_downloads:/torrents
     networks:
       - monitor
@@ -38,10 +46,5 @@ networks:
 
 volumes:
   readarr_config:
-  media_books:
-    external: true
-  usenet_downloads:
-    external: true
   torrents_downloads:
     external: true
-

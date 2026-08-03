@@ -10,14 +10,11 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
 
 ## Quick start
 
-1. **Shared networks and volumes**
+1. **Shared networks and host paths**
    - Create the shared **usenet** network (once per host, if not already present):
      ```bash
      docker network create usenet
-     ```
-   - Create the shared **usenet_downloads** volume (used by *arr and other apps):
-     ```bash
-     docker volume create usenet_downloads
+     mkdir -p /mnt/unraid/media/downloads/usenet
      ```
    For external volume naming and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 2. **Environment**
@@ -25,11 +22,12 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
    - Set:
      - `TZ` to your timezone.
      - `PUID` / `PGID` to the user/group that should own downloaded files.
+     - Confirm `NZBGET_DOWNLOADS_PATH` (default `/mnt/unraid/media/downloads/usenet`).
      - Optionally `NZBGET_USER` / `NZBGET_PASS` (web UI credentials).
 3. **Deploy**
    - From this directory:
      ```bash
-     docker compose up -d
+     docker compose --env-file stack.env up -d
      ```
    - Or add the stack in Portainer, paste the compose, and set the same variables in the stack **Environment**.
 4. **First run**
@@ -38,7 +36,7 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
      - Download directory (should be `/downloads` inside the container).
      - Optional post-processing scripts.
 
-This stack uses a **named config volume** (`nzbget_config`) and the shared **`usenet_downloads`** volume so it works well when deployed from Portainer and integrates cleanly with Sonarr/Radarr/Lidarr, etc.
+This stack uses a **named config volume** (`nzbget_config`) and a **Usenet downloads bind mount** (`NZBGET_DOWNLOADS_PATH` → `/downloads`, shared with Sonarr/Radarr/Lidarr/Readarr).
 
 ## Configuration
 
@@ -47,8 +45,8 @@ This stack uses a **named config volume** (`nzbget_config`) and the shared **`us
 | **Access** | Via Caddy only (no host port; reverse-proxy to `nzbget:6789`)          |
 | **Networks** | `monitor` (for Caddy/monitoring) and `usenet` (shared usenet network) |
 | **Image**  | `lscr.io/linuxserver/nzbget:latest`                                    |
-| **Env**    | `TZ`, `PUID`, `PGID`, optional `UMASK`, `NZBGET_USER`, `NZBGET_PASS`   |
-| **Storage**| `nzbget_config` → `/config`, `usenet_downloads` → `/downloads`         |
+| **Env**    | `TZ`, `PUID`, `PGID`, `NZBGET_DOWNLOADS_PATH`, optional `UMASK`, `NZBGET_USER`, `NZBGET_PASS` |
+| **Storage**| `nzbget_config` → `/config`, `${NZBGET_DOWNLOADS_PATH}` → `/downloads` |
 
 ## Caddy reverse proxy
 
@@ -70,5 +68,5 @@ For public access via Cloudflare Tunnel, add a corresponding `nzbget.yourdomain.
   - Port: `6789`
   - URL base: (empty, unless you change it in NZBGet)
   - Category: set per-app (e.g. `tv`, `movies`, `music`, `books`) and configure NZBGet categories accordingly.
-- **Path mapping:** Use `/downloads` as the download root in NZBGet and in your *arr apps so they see the same files via the shared `usenet_downloads` volume.
+- **Path mapping:** Use `/downloads` as the download root in NZBGet and in your *arr apps so they see the same files via the shared host bind mount (`/mnt/unraid/media/downloads/usenet` by default).
 

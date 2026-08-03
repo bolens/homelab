@@ -6,10 +6,18 @@ services:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
     restart: unless-stopped
+    cpu_shares: 256
+    memswap_limit: 1g
     privileged: true
     command:
-      - -disable_metrics=disk,diskIO
-      - -store_container_labels=false
+      # Preserve cAdvisor's default disabled collectors while also omitting disk
+      # metrics. Replacing this list with only disk,diskIO accidentally enables
+      # the expensive process collector and causes repeated smaps errors.
+      - -disable_metrics=advtcp,cpu_topology,cpuset,disk,diskIO,hugetlb,memory_numa,process,referenced_memory,resctrl,sched,tcp,udp
+      # This deployment monitors Docker; ignore unrelated host cgroups such as
+      # Waydroid and VPN net_cls trees that cAdvisor cannot read correctly.
+      - -docker_only=true
+      - -housekeeping_interval=30s
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -23,7 +31,9 @@ services:
     deploy:
       resources:
         limits:
+          cpus: "2.0"
           memory: 512M
+          pids: 512
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
       interval: 60s

@@ -61,17 +61,28 @@ Set `OLLAMA_BASE_URL=http://ollama:11434` (or provider-specific vars such as `OL
 
 **Kokoro TTS** ([stacks/kokoro-tts](../stacks/kokoro-tts/README.md)) is an optional **text-to-speech** service (`kokoro-tts:8880`): browser UI at `/web`, OpenAI-compatible API at `/v1`—useful with Open WebUI or scripts; protect the hostname the same way as other AI endpoints.
 
-### External volumes (media / downloads)
+### External volumes (downloads) and media bind mounts
 
-Some stacks expect **external** named volumes so multiple stacks can share the same data:
+Some stacks expect **external** named volumes so multiple stacks can share the same download data:
 
 | Volume(s) | Used by |
 |-----------|---------|
-| `torrents_downloads` | qbittorrent, *arr stacks (Sonarr, Radarr, Lidarr, Readarr), Mylar3 |
-| `usenet_downloads`   | nzbget, *arr stacks |
-| `media_movies`, `media_tv`, `media_music` | Jellyfin, Plex, Emby, *arr (paths may differ per stack) |
+| `torrents_downloads` | qbittorrent, *arr stacks (Sonarr, Radarr, Lidarr, Readarr) |
 
 Create volumes once if your compose does not create them: e.g. `docker volume create torrents_downloads`. Stacks that use them declare `external: true`. This avoids duplicate download/layout and keeps modularity (each stack still has its own compose and config).
+
+**Media libraries** and **Usenet downloads** are bind-mounted from the host (defaults under `/mnt/unraid/media/`), not Docker named volumes:
+
+| Host path | Container path | Used by |
+|-----------|----------------|---------|
+| `/mnt/unraid/media/tv` | `/tv` | Sonarr, Bazarr, Plex/Jellyfin/Emby |
+| `/mnt/unraid/media/movies` | `/movies` | Radarr, Whisparr, Bazarr, Plex/Jellyfin/Emby |
+| `/mnt/unraid/media/music` | `/music` | Lidarr, Navidrome, … |
+| `/mnt/unraid/media/books` | `/books` | Readarr |
+| `/mnt/unraid/media/comics` | `/comics` | Mylar3 |
+| `/mnt/unraid/media/downloads/usenet` | `/downloads` | NZBGet, *arr stacks, Mylar3 |
+
+Set the stack’s `*_PATH` vars in `stack.env` (e.g. `RADARR_MOVIES_PATH`, `SONARR_TV_PATH`, `NZBGET_DOWNLOADS_PATH`) so download clients and the *arr apps see the same folders. Ensure those host paths exist before deploying.
 
 ### mDNS aliases (`.local` hostnames for any stack)
 
@@ -205,10 +216,11 @@ To avoid “network/volume does not exist” when bringing up stacks:
    - `docker network create torrents`   (if you use qbittorrent / *arr)
    - `docker network create usenet`    (if you use NZBGet / *arr)
 
-2. **External volumes** (if your stacks declare them as `external: true` and you haven’t created them yet):
+2. **External volumes / host paths** (if your stacks declare them as `external: true` and you haven’t created them yet):
    - e.g. `docker volume create torrents_downloads`
-   - e.g. `docker volume create usenet_downloads`
-   - Media volumes (`media_movies`, etc.) as needed by your media stacks.
+   - Ensure host media paths exist before deploying media stacks, e.g.:
+     - `/mnt/unraid/media/{tv,movies,music,books,comics}`
+     - `/mnt/unraid/media/downloads/usenet`
 
 3. **MinIO:** Deploy the minio stack and create buckets (e.g. `outline`, `restic`) and access keys; set the corresponding env in Outline, Restic, etc.
 

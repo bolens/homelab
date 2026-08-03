@@ -34,10 +34,7 @@ backup:
   priority: medium
   schedule_hint: weekly
 volumes:
-- name: homarr_config
-  role: app_data
-  critical: true
-- name: homarr_data
+- name: homarr_appdata
   role: app_data
   critical: true
 auth:

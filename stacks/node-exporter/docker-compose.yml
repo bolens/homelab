@@ -6,10 +6,19 @@ services:
     image: prom/node-exporter:latest
     container_name: node-exporter
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 256
     command:
       - --path.rootfs=/host
+      # This host exposes NVMe namespace attributes that intermittently return
+      # EIO; Scrutiny handles disk health, so avoid a failed collector per scrape.
+      - --no-collector.nvme
     volumes:
       - /:/host:ro,rslave
+      - /run/udev/data:/run/udev/data:ro
     networks:
       - monitor
     env_file:

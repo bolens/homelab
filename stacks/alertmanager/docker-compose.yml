@@ -11,8 +11,17 @@ services:
     volumes:
       - alertmanager_data:/alertmanager
       - ${ALERTMANAGER_CONFIG_PATH:-${HOME}/.config/alertmanager/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
+      - ${ALERTMANAGER_TEMPLATES_PATH:-${HOME}/.config/alertmanager/templates}:/etc/alertmanager/templates:ro
     networks:
       - monitor
+    cpu_shares: 128
+    memswap_limit: 512m
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+          pids: 256
     env_file:
       - stack.env
     healthcheck:
@@ -29,4 +38,3 @@ networks:
 
 volumes:
   alertmanager_data: {}
-

@@ -1,0 +1,342 @@
+// Grafana Alloy config for this homelab deployment.
+// - Prometheus scrapes Alloy at alloy:12345/metrics.
+// - Docker container logs are shipped to Loki.
+
+logging {
+	level  = "warn"
+	format = "logfmt"
+}
+
+// Expose Alloy self-observability metrics for Prometheus job "alloy".
+prometheus.exporter.self "alloy" { }
+
+// Discover local Docker containers.
+discovery.docker "local" {
+	host = "unix:///var/run/docker.sock"
+}
+
+// Normalize Docker metadata and keep only running containers.
+discovery.relabel "docker_logs" {
+	targets = discovery.docker.local.targets
+
+	// Only keep running containers.
+	rule {
+		source_labels = ["__meta_docker_container_state"]
+		regex         = "running"
+		action        = "keep"
+	}
+
+	// Opt-out control: set container label "logging=false|off|disabled|0" to exclude it.
+	rule {
+		source_labels = ["__meta_docker_container_label_logging"]
+		regex         = "^(false|off|disabled|0)$"
+		action        = "drop"
+	}
+
+	// Opt-in/allow control: blank (default) or "true|on|enabled|1" is allowed.
+	rule {
+		source_labels = ["__meta_docker_container_label_logging"]
+		regex         = "^(|true|on|enabled|1)$"
+		action        = "keep"
+	}
+
+	// Trim the leading "/" from container names.
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "container"
+		replacement   = "$1"
+	}
+
+	// Compose metadata is useful for grouping dashboards and alerts.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		target_label  = "compose_project"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "compose_service"
+	}
+
+	// Optional per-container sampling toggle via Docker label logging_sampling=true|on|enabled|1.
+	rule {
+		source_labels = ["__meta_docker_container_label_logging_sampling"]
+		target_label  = "logging_sampling"
+	}
+
+	// Normalize to a single service label for easier queries in Grafana/Loki.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+
+	rule {
+		source_labels = ["service", "container"]
+		regex         = "^$;(.*)"
+		target_label  = "service"
+		replacement   = "$1"
+	}
+
+	// Drop common noisy operational containers (edit to match your environment).
+	rule {
+		source_labels = ["compose_service", "container"]
+		separator     = ";"
+		regex         = ".*(watchtower|ofelia|backup|restic|duplicati|borgmatic).*"
+		action        = "drop"
+	}
+
+	// Keep original stream label from Docker if present.
+	rule {
+		source_labels = ["__meta_docker_container_log_stream"]
+		target_label  = "stream"
+	}
+
+	// Add static environment marker for easier multi-environment queries later.
+	rule {
+		target_label = "environment"
+		replacement  = "homelab"
+	}
+}
+
+// Read container stdout/stderr logs from Docker API.
+loki.source.docker "containers" {
+	host       = "unix:///var/run/docker.sock"
+	targets    = discovery.relabel.docker_logs.output
+	forward_to = [loki.process.enrich.receiver]
+}
+
+// Add static labels and drop empty lines before writing to Loki.
+loki.process "enrich" {
+	forward_to = [loki.relabel.guardrails.receiver]
+
+	stage.drop {
+		expression = "^\\s*$"
+	}
+
+	// Drop common health/metrics probe access logs.
+	stage.drop {
+		expression = ".*\\\"(GET|HEAD) /(health|healthz|ready|readyz|live|livez|metrics|ping|api/health)\\\" (200|204).*"
+	}
+
+	// Drop low-value static asset access logs.
+	stage.drop {
+		expression = ".*\\\"(GET|HEAD) /.*\\.(css|js|map|ico|png|jpe?g|gif|svg|woff2?|ttf)(\\?.*)? HTTP/.*\\\" 200 .*"
+	}
+
+	// Guardrail: drop extremely long lines that are usually stack dump/blob noise.
+	stage.drop {
+		expression = "^.{1000}.{1000}.{1000}.*$"
+	}
+
+	// Collapse stack traces and multiline application logs into single entries.
+	stage.multiline {
+		firstline     = "^(\\d{4}-\\d{2}-\\d{2}[T ]|\\{|[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2}|INFO|WARN|ERROR|DEBUG|TRACE)"
+		max_wait_time = "3s"
+	}
+
+	// Add explicit marker for JSON-like lines before parsing.
+	stage.match {
+		selector = "{container=~\".+\"} |~ \"^\\\\{\""
+
+		stage.static_labels {
+			values = {
+				parse_path = "json_candidate",
+			}
+		}
+	}
+
+	// Redact common secrets before logs leave the host and mark redaction hits.
+	stage.match {
+		selector = "{container=~\".+\"} |~ \"(?i)(authorization|x-api-key|private-token|api_key|api-key|access_token|refresh_token|token=|secret=|password=|eyJ)\""
+
+		stage.static_labels {
+			values = {
+				redacted = "true",
+			}
+		}
+
+		stage.replace {
+			expression = "(?i)(authorization\\s*:\\s*bearer\\s+)[A-Za-z0-9._-]+"
+			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(?i)(x[-_]?api[-_]?key\\s*:\\s*)[^\\s,;\\\"]+"
+			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(?i)(private[-_]?token\\s*:\\s*)[^\\s,;\\\"]+"
+			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(?i)((api[-_]?key|access[-_]?token|refresh[-_]?token|token|secret|password)\\s*[=:]\\s*)[^\\s,;\\\"]+"
+			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(?i)([?&](token|key|secret|password)=)[^&\\s]+"
+			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+)"
+			replace    = "[REDACTED_JWT]"
+		}
+
+		stage.replace {
+			expression = "(?i)(cf[-_]?api[-_]?token\\s*[:=]\\s*)[^\\s,;\\\"]+"
+			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(?i)(ghp_[A-Za-z0-9]{20,})"
+			replace    = "[REDACTED_GITHUB_TOKEN]"
+		}
+
+		stage.replace {
+			expression = "(?i)(grafana_[A-Za-z0-9]{16,})"
+			replace    = "[REDACTED_GRAFANA_TOKEN]"
+		}
+
+		stage.replace {
+			expression = "(-----BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----)[\\s\\S]*?(-----END (RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----)"
+			replace    = "$1[REDACTED]$3"
+		}
+	}
+
+	// Parse JSON logs when present; non-JSON lines continue untouched.
+	stage.json {
+		expressions = {
+			level     = "level",
+			severity  = "severity",
+			lvl       = "lvl",
+			msg       = "msg",
+			message   = "message",
+			log       = "log",
+			logger    = "logger",
+			component = "component",
+			ts        = "time",
+			timestamp = "timestamp",
+		}
+	}
+
+	// If a parsed "log" field itself contains JSON, parse it as a second pass.
+	stage.match {
+		selector = "{container=~\".+\"} |~ \"^\\\\{.*\\\\}$\""
+
+		stage.json {
+			source      = "log"
+			expressions = {
+				nested_level  = "level",
+				nested_msg    = "msg",
+				nested_logger = "logger",
+			}
+		}
+	}
+
+	// Promote selected parsed fields to labels for faster filtering.
+	stage.labels {
+		values = {
+			level   = "",
+			logger  = "",
+			service = "",
+		}
+	}
+
+	// Sample chatty info/debug/trace logs for selected services.
+	stage.match {
+		selector = "{service=~\"n8n|immich|immich-machine-learning\",logging_sampling=~\"^(|true|on|enabled|1)$\"} |~ \"(?i)(INFO|DEBUG|TRACE)\""
+
+		stage.static_labels {
+			values = {
+				sampled = "true",
+			}
+		}
+
+		stage.sampling {
+			rate = 0.25
+		}
+	}
+
+	stage.static_labels {
+		values = {
+			job       = "docker",
+			source    = "alloy",
+			cluster   = "homelab",
+			collector = "grafana-alloy",
+		}
+	}
+}
+
+// Keep a stable, low-cardinality label set for reliable Loki performance.
+loki.relabel "guardrails" {
+	forward_to = [loki.relabel.primary_stream.receiver, loki.relabel.sampled_stream.receiver]
+
+	rule {
+		action = "labelkeep"
+		regex  = "^(job|source|container|service|compose_project|compose_service|stream|environment|cluster|collector|level|logger|parse_path|redacted|sampled|logging_sampling)$"
+	}
+
+	// Drop potentially high-cardinality request and trace labels if they appear.
+	rule {
+		action = "labeldrop"
+		regex  = "^(trace_id|span_id|request_id|req_id|session_id|user_id|client_ip)$"
+	}
+}
+
+// Route non-sampled logs to primary stream.
+loki.relabel "primary_stream" {
+	forward_to = [loki.write.loki_primary.receiver]
+
+	rule {
+		source_labels = ["sampled"]
+		regex         = "^true$"
+		action        = "drop"
+	}
+
+	rule {
+		target_label = "stream_class"
+		replacement  = "primary"
+	}
+}
+
+// Route sampled logs to a separate stream class.
+loki.relabel "sampled_stream" {
+	forward_to = [loki.write.loki_sampled.receiver]
+
+	rule {
+		source_labels = ["sampled"]
+		regex         = "^true$"
+		action        = "keep"
+	}
+
+	rule {
+		target_label = "stream_class"
+		replacement  = "sampled"
+	}
+}
+
+// Ship primary logs to Loki on the monitor network.
+loki.write "loki_primary" {
+	endpoint {
+		url                 = "http://loki:3100/loki/api/v1/push"
+		remote_timeout      = "10s"
+		min_backoff_period  = "500ms"
+		max_backoff_period  = "5m"
+		max_backoff_retries = 20
+	}
+}
+
+// Ship sampled logs to Loki (same endpoint, different stream_class label).
+loki.write "loki_sampled" {
+	endpoint {
+		url                 = "http://loki:3100/loki/api/v1/push"
+		remote_timeout      = "10s"
+		min_backoff_period  = "500ms"
+		max_backoff_period  = "5m"
+		max_backoff_retries = 20
+	}
+}

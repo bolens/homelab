@@ -23,6 +23,14 @@ services:
       - ${GRAFANA_DASHBOARDS_PATH:-${HOME}/.config/grafana/provisioning_dashboards}:/etc/grafana/provisioning/dashboards:ro
     networks:
       - monitor
+    cpu_shares: 256
+    memswap_limit: 2g
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+          pids: 512
     env_file:
       - stack.env
     environment:

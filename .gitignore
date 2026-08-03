@@ -103,6 +103,7 @@ stacks/harbor/harbor/
 stacks/harbor/*.tgz
 
 # PostHog hobby: upstream clone + generated compose copies (see stacks/posthog/README.md)
+stacks/posthog/
 stacks/posthog/posthog/
 stacks/posthog/docker-compose.base.yml
 stacks/posthog/docker-compose.hobby.yml
@@ -117,4 +118,22 @@ Thumbs.db
 *.swp
 *~
 node_modules
+.cursor/
+.fallow/
+
+# Local operational output and downloaded datasets
+.push-gitea-log.txt
+geolite/
+
+# Upstream working clones used to build or patch stacks; commit only the
+# surrounding integration files, patches, and examples.
+**/repo/
+stacks/ail-framework/ail-framework-docker/
+
+# pnpm (local store + virtual store; lockfile is committed)
+.pnpm-store/
+.pnpm-home/
+**/.pnpm/
+.pnpm-debug.log*
+
 stacks/asking-ng/

@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/kometa-team/kometa/nightly/json-schema/config-schema.json
+# Copy to config.yml on the host (prepare-stack creates it from this file). Full template:
+# https://github.com/kometa-team/kometa/blob/master/config/config.yml.template
+
+plex:
+  url: http://plex:32400
+  token: REPLACE_WITH_PLEX_TOKEN
+  verify_ssl: false
+
+tmdb:
+  apikey: REPLACE_WITH_TMDB_API_KEY
+
+libraries:
+  Movies:
+    collection_files:
+      - default: basic

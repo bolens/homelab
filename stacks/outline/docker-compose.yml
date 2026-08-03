@@ -3,6 +3,11 @@ services:
     image: postgres:16-alpine
     container_name: outline-postgres
     restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 384
     env_file:
       - path: ../../shared.env
         required: false
@@ -21,6 +26,11 @@ services:
     image: redis:alpine
     container_name: outline-redis
     restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 256
+    cpu_shares: 256
     networks:
       - default
     healthcheck:
@@ -34,6 +44,11 @@ services:
     image: outlinewiki/outline:latest
     container_name: outline
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,4 +72,3 @@ networks:
 volumes:
   outline_pg_data:
   outline_data:
-

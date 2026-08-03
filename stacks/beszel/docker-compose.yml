@@ -1,0 +1,38 @@
+services:
+  beszel:
+    image: henrygd/beszel:latest
+    container_name: beszel
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # No host port: access via Caddy (beszel.home / beszel.example.com on monitor network)
+    environment:
+      APP_URL: ${BESZEL_APP_URL}
+    volumes:
+      - ${BESZEL_DATA_DIR:-${HOME}/.local/share/beszel}:/beszel_data
+    networks:
+      - monitor
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    healthcheck:
+      test: ["CMD", "/beszel", "health", "--url", "http://127.0.0.1:8090"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    mem_limit: 512m
+    cpus: "0.50"
+
+networks:
+  monitor:
+    name: monitor
+    external: true

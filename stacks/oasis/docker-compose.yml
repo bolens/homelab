@@ -1,0 +1,42 @@
+# OASIS – self-hosted file server (browse, upload, download, preview, media playlists).
+# No host ports: access only via Caddy (reverse_proxy oasis:8000 on monitor network).
+# Upstream: https://github.com/machengim/oasis — Docker Hub: machengim/oasis
+services:
+  oasis:
+    image: machengim/oasis:latest
+    container_name: oasis
+    restart: unless-stopped
+    labels:
+      - logging=true
+      - logging_sampling=false
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - oasis-data:/opt/oasis/data
+      - oasis-storage:/home/storage
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+    mem_limit: 512m
+    cpus: "0.5"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  oasis-data:
+  oasis-storage:

@@ -37,24 +37,11 @@ volumes:
 - name: radarr_config
   role: app_data
   critical: true
-- name: media_movies
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
-- name: usenet_downloads
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
 - name: torrents_downloads
   role: app_data
   critical: true
-- name: external
-  role: app_data
-  critical: true
+  external: true
+# Movies library + usenet downloads are host bind mounts (see RADARR_*_PATH)
 auth:
   mode: app_local
   sso_provider: null

@@ -3,6 +3,11 @@ services:
     image: jlesage/musicbrainz-picard:latest
     container_name: picard
     restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
     labels:
       - logging=true
       - logging_sampling=true
@@ -12,8 +17,8 @@ services:
       - stack.env
     volumes:
       - picard_config:/config
-      - "${PICARD_MUSIC_PATH:-/mnt/media/music}:/music"
-      - "${PICARD_IMPORT_PATH:-/mnt/media/downloads/soulseek}:/import"
+      - "${PICARD_MUSIC_PATH:-/mnt/unraid/media/music}:/music"
+      - "${PICARD_IMPORT_PATH:-/mnt/unraid/media/downloads/soulseek}:/import"
     networks:
       - monitor
     healthcheck:

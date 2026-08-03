@@ -37,12 +37,7 @@ volumes:
 - name: mylar3_config
   role: app_data
   critical: true
-- name: mylar3_comics
-  role: app_data
-  critical: true
-- name: mylar3_downloads
-  role: app_data
-  critical: true
+# Comics library + usenet downloads are host bind mounts (see MYLAR3_*_PATH)
 auth:
   mode: app_local
   sso_provider: null

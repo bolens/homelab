@@ -1,0 +1,4 @@
+This stack conflicts with the active stack: stacks/flood
+Active:  stacks/flood
+Do not:  docker compose up  in this directory.
+Written by triage 2026-07-18T14:54:22-06:00

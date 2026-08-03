@@ -1,0 +1,80 @@
+# DocuSeal – PDF forms and e-signatures (Rails + Postgres).
+# No host ports; access via Caddy on the monitor network (reverse_proxy docuseal:3000).
+#
+# Variables: set in Portainer (Stack → Environment) or in a `.env` file next to this compose
+# (see stack.env.example). Optional ../../shared.env is loaded when present (git checkout).
+name: docuseal
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: docuseal-postgres
+    restart: unless-stopped
+    env_file:
+      - path: ../../shared.env
+        required: false
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-docuseal}
+      POSTGRES_DB: ${POSTGRES_DB:-docuseal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in stack Environment or .env}
+    volumes:
+      - docuseal_pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  docuseal:
+    image: docker.io/docuseal/docuseal:latest
+    container_name: docuseal
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - logging=true
+      - logging_sampling=true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    env_file:
+      - path: ../../shared.env
+        required: false
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in stack Environment or .env}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?set SECRET_KEY_BASE in stack Environment or .env}
+      HOST: ${HOST:?set HOST in stack Environment or .env}
+      FORCE_SSL: ${FORCE_SSL:-${HOST}}
+    volumes:
+      - docuseal_data:/data/docuseal
+    networks:
+      - default
+      - monitor
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "ruby",
+          "-e",
+          "require 'net/http'; c=Net::HTTP.get_response(URI('http://127.0.0.1:3000/up')).code; exit(c=='200'?0:1)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    mem_limit: 1g
+    cpus: "1.00"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  docuseal_pg_data: {}
+  docuseal_data: {}
