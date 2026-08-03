@@ -22,7 +22,7 @@ services:
       - default
 
   terminus-db:
-    image: postgres:18.3-alpine
+    image: postgres:18.4-alpine
     container_name: terminus-db
     restart: unless-stopped
     labels:

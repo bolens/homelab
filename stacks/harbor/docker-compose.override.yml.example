@@ -10,7 +10,7 @@ version: "3.9"
 
 services:
   proxy:
-    image: goharbor/nginx-photon:v2.15.0
+    image: goharbor/nginx-photon:v2.15.2
     restart: unless-stopped
     ports:
       - 8880:8080

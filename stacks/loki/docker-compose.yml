@@ -3,7 +3,7 @@
 # For log shipping, deploy the promtail stack (stacks/promtail) separately.
 services:
   loki:
-    image: grafana/loki:2.9.8
+    image: grafana/loki:3.7.4
     container_name: loki
     restart: unless-stopped
     command: -config.file=/etc/loki/config.yml

@@ -9,7 +9,7 @@ name: onionprobe
 
 services:
   op-prometheus:
-    image: quay.io/prometheus/prometheus:v3.9.1
+    image: quay.io/prometheus/prometheus:v3.13.1
     container_name: onionprobe-prometheus
     restart: unless-stopped
     env_file:
@@ -37,7 +37,7 @@ services:
       retries: 5
 
   op-alertmanager:
-    image: quay.io/prometheus/alertmanager:v0.30.1
+    image: quay.io/prometheus/alertmanager:v0.33.1
     container_name: onionprobe-alertmanager
     restart: unless-stopped
     volumes:
@@ -67,7 +67,7 @@ services:
       - onionprobe
 
   op-grafana:
-    image: grafana/grafana:12.3.2
+    image: grafana/grafana:13.1.1
     container_name: onionprobe-grafana
     restart: unless-stopped
     env_file:
