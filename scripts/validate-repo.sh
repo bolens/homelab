@@ -16,6 +16,13 @@ python3 scripts/audit-prepare-scripts.py
 echo "Auditing stack metadata..."
 python3 scripts/audit-stack-metadata.py
 
+echo "Auditing repository hygiene..."
+python3 scripts/audit-repo-hygiene.py
+
+echo "Checking generated documentation..."
+python3 scripts/build-stack-catalog.py --check
+python3 scripts/build-topology.py --check
+
 if command -v shellcheck >/dev/null 2>&1; then
   echo "Checking repository shell helpers..."
   mapfile -t shell_files < <(find scripts -maxdepth 1 -type f -name '*.sh' -print | sort)

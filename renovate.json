@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard"
+  ],
+  "dependencyDashboardApproval": true,
+  "automerge": false,
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 1,
+  "rangeStrategy": "pin",
+  "packageRules": [
+    {
+      "description": "Keep container changes review-only until digest pinning is adopted deliberately",
+      "matchDatasources": ["docker"],
+      "pinDigests": false,
+      "groupName": "container images"
+    },
+    {
+      "description": "Group CI workflow dependency updates",
+      "matchManagers": ["github-actions", "woodpecker"],
+      "groupName": "CI dependencies"
+    }
+  ]
+}

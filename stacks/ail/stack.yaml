@@ -67,4 +67,4 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Primary AIL deployment; ail-framework is retained as an alternate upstream-layout integration.'

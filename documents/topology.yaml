@@ -67,7 +67,6 @@ app_categories:
     name: "Developer & IT utilities"
     descriptor: "it-tools, ConvertX, CUPS, Dozzle, Gitea, Kasm, CI, dashboard, PDF, NetBox, PostHog, Snipe-IT"
     stacks:
-      - asking-ng
       - baserow
       - beszel
       - code-server

@@ -62,4 +62,4 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Bundled rTorrent/Flood image; flood provides a split-service alternative.'

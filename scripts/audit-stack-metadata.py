@@ -264,7 +264,14 @@ def main() -> int:
     failures: list[str] = []
     warnings: list[str] = []
     changed: list[str] = []
-    directories = sorted(path for path in STACKS.iterdir() if path.is_dir())
+    directories = [
+        path
+        for path in sorted(path for path in STACKS.iterdir() if path.is_dir())
+        if subprocess.run(
+            ["git", "-C", str(REPO), "check-ignore", "-q", str(path.relative_to(REPO))],
+            check=False,
+        ).returncode != 0
+    ]
     for directory in directories:
         yaml_path = directory / "stack.yaml"
         yml_path = directory / "stack.yml"

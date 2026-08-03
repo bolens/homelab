@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Regenerate the top-level README stack catalog from stack READMEs."""
+"""Regenerate documents/STACK-CATALOG.md from stack READMEs."""
 
+import argparse
 from pathlib import Path
 import re
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-README = ROOT / "README.md"
+OUTPUT = ROOT / "documents" / "STACK-CATALOG.md"
 STACKS = ROOT / "stacks"
-START = "<!-- STACK_CATALOG_GENERATED_START -->"
-END = "<!-- STACK_CATALOG_GENERATED_END -->"
 
 
 def description(readme: Path) -> str:
@@ -41,32 +41,48 @@ def build() -> str:
         "| Stack | What it does |",
         "|---|---|",
     ]
-    for directory in sorted(path for path in STACKS.iterdir() if path.is_dir()):
+    directories = sorted(path for path in STACKS.iterdir() if path.is_dir())
+    for directory in directories:
+        ignored = subprocess.run(
+            ["git", "-C", str(ROOT), "check-ignore", "-q", str(directory.relative_to(ROOT))],
+            check=False,
+        ).returncode == 0
+        if ignored:
+            continue
         readme = directory / "README.md"
         if not readme.exists():
             raise SystemExit(f"missing stack README: {readme.relative_to(ROOT)}")
-        relative = readme.relative_to(ROOT)
+        relative = Path("..") / readme.relative_to(ROOT)
         rows.append(
             f"| [**{directory.name}**]({relative.as_posix()}) | {description(readme)} |"
         )
     return "\n".join(rows)
 
 
+def render() -> str:
+    return (
+        "# Stack catalog\n\n"
+        "Generated from every `stacks/<name>/README.md`. Do not edit the table "
+        "directly; run `python3 scripts/build-stack-catalog.py`.\n\n"
+        "<!-- STACK_CATALOG_GENERATED_START -->\n"
+        f"{build()}\n"
+        "<!-- STACK_CATALOG_GENERATED_END -->\n"
+    )
+
+
 def main() -> None:
-    text = README.read_text(encoding="utf-8")
-    generated = f"{START}\n{build()}\n{END}"
-    if START in text and END in text:
-        text = re.sub(
-            rf"{re.escape(START)}.*?{re.escape(END)}",
-            generated,
-            text,
-            flags=re.DOTALL,
-        )
-    else:
-        table_start = text.index("| Stack | What it does |", text.index("## 📦 What’s inside"))
-        table_end = text.index("\n\nEach stack has", table_start)
-        text = text[:table_start] + generated + text[table_end:]
-    README.write_text(text, encoding="utf-8")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check", action="store_true", help="fail if generated output is stale")
+    args = parser.parse_args()
+    generated = render()
+    if args.check:
+        current = OUTPUT.read_text(encoding="utf-8") if OUTPUT.exists() else ""
+        if current != generated:
+            raise SystemExit("documents/STACK-CATALOG.md is stale; regenerate it")
+        print("Stack catalog is current.")
+        return
+    OUTPUT.write_text(generated, encoding="utf-8")
+    print(f"Updated {OUTPUT.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

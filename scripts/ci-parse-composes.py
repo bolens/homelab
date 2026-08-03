@@ -9,6 +9,7 @@ Run from repo root:
 from __future__ import annotations
 
 import sys
+import subprocess
 from pathlib import Path
 
 try:
@@ -26,6 +27,11 @@ def iter_compose_files() -> list[Path]:
     if stacks_root.is_dir():
         for child in sorted(stacks_root.iterdir()):
             if not child.is_dir():
+                continue
+            if subprocess.run(
+                ["git", "-C", str(REPO), "check-ignore", "-q", str(child.relative_to(REPO))],
+                check=False,
+            ).returncode == 0:
                 continue
             top = child / "docker-compose.yml"
             if top.is_file():

@@ -20,9 +20,6 @@ shared.env
 # Local .local hostnames list – copy from scripts/local-hosts.conf.example
 scripts/local-hosts.conf
 
-stacks/asking-ng
-!stacks/asking-ng/stack.env.example
-
 # LiteLLM proxy model list (generated from litellm_config.yaml.example by prepare-stack.sh)
 stacks/litellm/litellm_config.yaml
 
@@ -82,7 +79,7 @@ backups/
 **/backups/
 
 # ASF config (ASF.json and bot configs may contain IPC password and Steam credentials)
-stacks/asf/config/
+stacks/archisteamfarm/config/
 
 # VPN / WireGuard (configs contain private keys)
 **/wireguard/**/*.conf
@@ -136,4 +133,5 @@ stacks/ail-framework/ail-framework-docker/
 **/.pnpm/
 .pnpm-debug.log*
 
+# Asking-NG is maintained as a separate nested repository.
 stacks/asking-ng/

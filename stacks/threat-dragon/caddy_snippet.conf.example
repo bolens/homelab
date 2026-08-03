@@ -2,7 +2,7 @@
 
 threat-dragon.home, threat-dragon.local {
 	tls internal
-	reverse_proxy threat-dragon:80 {
+	reverse_proxy threatdragon:3000 {
 		header_up Host {host}
 		transport http {
 			versions 1.1
@@ -11,7 +11,7 @@ threat-dragon.home, threat-dragon.local {
 }
 
 http://threat-dragon.example.com {
-	reverse_proxy threat-dragon:80 {
+	reverse_proxy threatdragon:3000 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
@@ -25,7 +25,7 @@ threat-dragon.example.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy threat-dragon:80 {
+	reverse_proxy threatdragon:3000 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}

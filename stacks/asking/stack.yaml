@@ -49,4 +49,4 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Original Asking deployment; asking-ng is a separate next-generation implementation.'

@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: repository-validation
+        name: repository validation
+        entry: bash scripts/validate-repo.sh
+        language: system
+        pass_filenames: false
+      - id: whitespace-check
+        name: Git whitespace check
+        entry: git diff --check
+        language: system
+        pass_filenames: false

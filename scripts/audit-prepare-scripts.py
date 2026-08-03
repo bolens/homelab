@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import os
 import stat
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +81,14 @@ def main() -> int:
     errors: list[str] = []
     warnings: list[str] = []
     changed: list[str] = []
-    stack_dirs = sorted(path for path in STACKS.iterdir() if path.is_dir())
+    stack_dirs = [
+        path
+        for path in sorted(path for path in STACKS.iterdir() if path.is_dir())
+        if subprocess.run(
+            ["git", "-C", str(REPO), "check-ignore", "-q", str(path.relative_to(REPO))],
+            check=False,
+        ).returncode != 0
+    ]
     compose_count = 0
 
     for stack_dir in stack_dirs:

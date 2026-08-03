@@ -67,4 +67,4 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Alternate upstream-layout AIL integration; ail is the simpler primary deployment.'

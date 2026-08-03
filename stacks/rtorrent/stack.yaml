@@ -57,4 +57,4 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Daemon-only deployment for users who want to choose a separate web frontend.'

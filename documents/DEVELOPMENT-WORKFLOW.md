@@ -57,7 +57,8 @@ Then a single `git push origin` updates Gitea; Gitea pushes to GitHub.
 2. Ensure the **Woodpecker agent** can run Docker steps (default for a Docker-based agent).
 3. Pipelines are defined in **`.woodpecker.yml`** at the repo root:
    - **gitleaks** — secret scan on the git checkout (history included).
-   - **compose-yaml-parse** — parses each top-level stack `docker-compose.yml` (and `portainer/`) as YAML so broken compose syntax fails CI.
+   - **repository-validation** — runs the complete Compose, preparation,
+     metadata, environment-example, documentation, and generated-file checks.
 
 To skip a run for a commit message, use `[CI SKIP]` or `[SKIP CI]` (Woodpecker convention).
 
@@ -67,7 +68,9 @@ If **gitleaks** reports findings in **tracked** files, fix or allowlist via [Git
 
 ## 4. GitHub Actions (optional)
 
-This repo does **not** require GitHub Actions if Woodpecker is your primary CI. You can add a minimal workflow on GitHub later for fork-specific checks, or leave GitHub as mirror-only.
+GitHub runs the same repository validation plus a committed-content Gitleaks
+scan. The workflow uses read-only repository permissions and is suitable for a
+backup mirror or pull-request checks.
 
 ---
 

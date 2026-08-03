@@ -11,16 +11,19 @@ make help
 
 The doctor and validation commands are read-only. Scripts that change live
 containers or files require an explicit action or clearly describe the change.
+Optional `pre-commit install` enables the repository-local validation and
+whitespace hooks.
 
 ## Onboarding and validation
 
 | Helper | Purpose |
 |---|---|
 | `homelab-doctor.sh` | Checks prerequisites, Docker access, shared networks, sensitive-file tracking, Compose YAML, and known media mounts. Does not create or change anything. |
-| `validate-repo.sh` | Compiles Python helpers, parses every top-level Compose file, and runs ShellCheck when available. |
+| `validate-repo.sh` | Compiles Python helpers; parses Compose; audits preparation, metadata, examples, links, and generated docs; and runs ShellCheck when available. |
 | `ci-parse-composes.py` | PyYAML parser used by local validation and CI. |
 | `audit-prepare-scripts.py` | Verifies every top-level Compose stack has an executable, verbose wrapper that prepares its examples and literal external networks/volumes. Maintainers may use `--fix`, then review the complete diff. |
 | `audit-stack-metadata.py` | Validates `stack.yaml` coverage, schema shape, names, profile enums, and ports. Maintainers may use `--fix-missing`, then review inferred catalog fields. |
+| `audit-repo-hygiene.py` | Checks README/example/metadata coverage, ignored runtime env files, portable examples, documentation links, and Caddy upstream basics. |
 | `build-stack-catalog.py` | Regenerates the complete top-level README stack catalog from stack READMEs. |
 | `build-topology.py` | Regenerates the top-level topology diagrams from `documents/topology.yaml`. Requires PyYAML. |
 | `scan-secrets-gitleaks.sh [git\|dir]` | Scans full Git history (default) or files on disk. The `dir` mode includes ignored runtime secrets, so output must be handled carefully. |

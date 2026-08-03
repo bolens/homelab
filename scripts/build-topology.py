@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Generate the topology Mermaid diagram and prose from documents/topology.yaml.
+Generate the topology document from documents/topology.yaml.
 Run from the docker/ repo root.
 
   python3 scripts/build-topology.py           # print generated section to stdout
-  python3 scripts/build-topology.py --in-place   # update README.md between markers
+  python3 scripts/build-topology.py --in-place   # update documents/TOPOLOGY.md
+  python3 scripts/build-topology.py --check      # fail if generated output is stale
 
 Requires: PyYAML (pip install pyyaml)
 """
@@ -20,7 +21,7 @@ except ImportError:
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TOPOLOGY_YAML = REPO_ROOT / "documents" / "topology.yaml"
-README_PATH = REPO_ROOT / "README.md"
+OUTPUT_PATH = REPO_ROOT / "documents" / "TOPOLOGY.md"
 MARKER_START = "<!-- TOPOLOGY_GENERATED_START -->"
 MARKER_END = "<!-- TOPOLOGY_GENERATED_END -->"
 
@@ -205,30 +206,30 @@ def generated_section(mermaid_main: str, mermaid_infra: str, prose: str) -> str:
 
 def main():
     in_place = "--in-place" in sys.argv
+    check = "--check" in sys.argv
     data = load_topology()
     mermaid_main = build_mermaid_main(data)
     mermaid_infra = build_mermaid_infra(data)
     prose = build_prose(data)
     section = generated_section(mermaid_main, mermaid_infra, prose)
 
-    if in_place:
-        readme = README_PATH.read_text(encoding="utf-8")
-        i = readme.find(MARKER_START)
-        j = readme.find(MARKER_END)
-        if i == -1 or j == -1 or j < i:
-            sys.stderr.write("README.md must contain TOPOLOGY_GENERATED_START and TOPOLOGY_GENERATED_END markers.\n")
+    document = (
+        "# Homelab topology\n\n"
+        "Generated from `documents/topology.yaml`. Do not edit the generated "
+        "section directly.\n\n"
+        f"{section.rstrip()}\n"
+    )
+    if check:
+        current = OUTPUT_PATH.read_text(encoding="utf-8") if OUTPUT_PATH.exists() else ""
+        if current != document:
+            sys.stderr.write("documents/TOPOLOGY.md is stale; regenerate it.\n")
             sys.exit(1)
-        j = j + len(MARKER_END)
-        if j < len(readme) and readme[j] == "\n":
-            j += 1
-        new_readme = readme[:i] + section.rstrip() + "\n" + readme[j:]
-        if new_readme == readme:
-            sys.stderr.write("No change.\n")
-        else:
-            README_PATH.write_text(new_readme, encoding="utf-8")
-            sys.stderr.write("Updated README.md\n")
+        print("Topology document is current.")
+    elif in_place:
+        OUTPUT_PATH.write_text(document, encoding="utf-8")
+        sys.stderr.write("Updated documents/TOPOLOGY.md\n")
     else:
-        print(section)
+        print(document, end="")
 
 
 if __name__ == "__main__":

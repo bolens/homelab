@@ -7,12 +7,12 @@ when:
 
 steps:
   - name: gitleaks
-    image: docker.io/zricethezav/gitleaks:v8.24.0
+    image: docker.io/zricethezav/gitleaks:v8.30.1
     commands:
       - gitleaks detect --source . --redact --verbose
 
-  - name: compose-yaml-parse
-    image: docker.io/library/alpine:3.21
+  - name: repository-validation
+    image: docker.io/library/alpine:3.24.1
     commands:
-      - apk add --no-cache python3 py3-pyyaml
-      - python3 scripts/ci-parse-composes.py
+      - apk add --no-cache bash git make python3 py3-pyyaml shellcheck
+      - make validate
