@@ -1,0 +1,8 @@
+failure-threshold: error
+ignored:
+  # Image pinning is managed through review-only Renovate updates.
+  - DL3006
+  - DL3008
+  - DL3013
+  - DL3016
+  - DL3018

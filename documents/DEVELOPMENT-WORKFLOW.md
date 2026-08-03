@@ -66,11 +66,31 @@ If **gitleaks** reports findings in **tracked** files, fix or allowlist via [Git
 
 ---
 
-## 4. GitHub Actions (optional)
+## 4. GitHub Actions
 
 GitHub runs the same repository validation plus a committed-content Gitleaks
-scan. The workflow uses read-only repository permissions and is suitable for a
-backup mirror or pull-request checks.
+scan. The primary workflow uses read-only repository permissions and is
+suitable for a backup mirror or pull-request checks.
+
+Additional narrowly scoped workflows provide:
+
+- advanced CodeQL analysis for Python and GitHub Actions with the
+  `security-extended` query suite;
+- pull-request dependency review for newly introduced high or critical
+  vulnerabilities;
+- actionlint and zizmor checks for workflow correctness and security;
+- Hadolint checks for maintained Dockerfiles;
+- weekly repository, secret, and documentation-link checks; and
+- weekly OpenSSF Scorecard results in GitHub code scanning.
+
+Actions are pinned to immutable commit SHAs. Renovate proposes reviewed
+updates for those versions. Security-reporting workflows grant
+`security-events: write` only to jobs that upload results; other workflows and
+jobs retain read-only or empty default permissions.
+
+CodeQL uses the committed advanced workflow in
+`.github/workflows/codeql.yml`. Do not also enable GitHub's default CodeQL
+setup, because that would duplicate analysis.
 
 ---
 
