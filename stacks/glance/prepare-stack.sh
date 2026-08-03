@@ -24,4 +24,5 @@ if [[ ! -f "$_PREPDIR/assets/user.css" ]]; then
   prepare_stack_msg "created empty assets/user.css (optional custom CSS)."
 fi
 
+prepare_stack_ensure_docker_network "monitor"
 prepare_stack_end

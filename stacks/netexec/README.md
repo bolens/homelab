@@ -12,15 +12,15 @@ in a pentest or homelab AD environment. Run interactively via `docker compose ru
 
 ## Setup
 
-1. Copy `stack.env.example` to `stack.env` — no required variables at this time.
-2. No persistent service needed; run on demand.
-3. Run: `docker compose run --rm netexec <nxc args>`
+1. Run `./prepare-stack.sh` and review `NETEXEC_WORKSPACE_PATH`.
+2. Build once with `docker compose build netexec`.
+3. Run: `docker compose run --rm netexec <nxc args>`.
 
 No required environment variables.
 
 ## Notes
 
 - TZ and locale come from shared.env.
-- Requires network access to target hosts; use host networking or a dedicated pentest network.
+- Uses ordinary bridge networking and a writable local workspace.
 - No persistent service — use `docker compose run --rm` for each invocation.
 - Tool is under active development; pin image tags if reproducibility matters.

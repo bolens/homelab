@@ -1,0 +1,45 @@
+services:
+  dispatcharr:
+    image: ghcr.io/dispatcharr/dispatcharr:latest
+    container_name: dispatcharr
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      DISPATCHARR_ENV: aio
+      REDIS_HOST: localhost
+      CELERY_BROKER_URL: redis://localhost:6379/0
+    volumes:
+      - dispatcharr_data:/data
+    networks:
+      - monitor
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9191/', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  dispatcharr_data:

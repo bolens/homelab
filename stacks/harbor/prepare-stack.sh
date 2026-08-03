@@ -4,6 +4,7 @@ _PREPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 prepare_stack_begin "$_PREPDIR"
+prepare_stack_copy_env
 
 if [[ ! -f "$_PREPDIR/docker-compose.override.yml" ]]; then
   cp "$_PREPDIR/docker-compose.override.yml.example" "$_PREPDIR/docker-compose.override.yml"

@@ -9,9 +9,7 @@ source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 
 prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
-
-prepare_stack_msg "stack-specific steps..."
-echo "Stack prepared."
-
 prepare_stack_copy_caddy
+prepare_stack_msg "review every published honeypot port before deployment; defaults use high host ports to avoid impersonating real local services."
+prepare_stack_msg "isolate captured payload volumes and never execute samples on the Docker host."
 prepare_stack_end

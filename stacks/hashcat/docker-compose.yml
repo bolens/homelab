@@ -1,0 +1,28 @@
+services:
+  hashcat:
+    build:
+      context: .
+    image: homelab/hashcat:local
+    profiles: ["tools"]
+    stdin_open: true
+    tty: true
+    cpus: 8.0
+    mem_limit: 12g
+    memswap_limit: 16g
+    pids_limit: 2048
+    cpu_shares: 512
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ${HASHCAT_WORK_PATH:-${HOME}/security-lab/hashcat/work}:/work
+      - ${HASHCAT_WORDLIST_DIR:-${HOME}/security-lab/wordlists}:/wordlists:ro
+    working_dir: /work
+    command: ["--help"]
+    network_mode: none
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "2"

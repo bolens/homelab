@@ -1,0 +1,24 @@
+services:
+  auth-fuzz:
+    build:
+      context: .
+    image: homelab/auth-fuzz:local
+    profiles: ["tools"]
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 128
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ${AUTH_FUZZ_WORDLIST_PATH:-${HOME}/security-lab/wordlists}:/wordlists:ro
+      - ${AUTH_FUZZ_OUTPUT_PATH:-${HOME}/security-lab/auth-fuzz-output}:/output
+    command: ["-h"]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "2"

@@ -13,18 +13,19 @@ Useful for auditing captured hashes in a pentest lab. Wordlists are mounted read
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. No required variables — optionally set HASHCAT_WORDLIST_DIR to your host wordlist path.
-3. For GPU acceleration ensure the NVIDIA/AMD container runtime is installed on the host.
-4. Run: `docker compose run --rm hashcat <hashcat args>`
+2. Review `HASHCAT_WORK_PATH` and `HASHCAT_WORDLIST_DIR`.
+3. Build once with `docker compose build hashcat`.
+4. Run: `docker compose run --rm hashcat <hashcat args>`.
 
 ## Environment variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | HASHCAT_WORDLIST_DIR | No | — | Host path to wordlist directory (mounted read-only) |
+| HASHCAT_WORK_PATH | No | ~/security-lab/hashcat/work | Writable job directory |
 
 ## Notes
 
 - TZ and locale come from shared.env.
-- GPU passthrough requires nvidia-container-toolkit or equivalent AMD runtime on the host.
+- The base definition is CPU-compatible; add a host-specific Compose override for GPU passthrough.
 - No persistent service — use `docker compose run --rm` for each job.

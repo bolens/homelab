@@ -6,4 +6,7 @@ source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
+prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "torrents"
+prepare_stack_ensure_docker_volume "torrents_manual"
 prepare_stack_end

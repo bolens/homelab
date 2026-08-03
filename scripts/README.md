@@ -19,6 +19,10 @@ containers or files require an explicit action or clearly describe the change.
 | `homelab-doctor.sh` | Checks prerequisites, Docker access, shared networks, sensitive-file tracking, Compose YAML, and known media mounts. Does not create or change anything. |
 | `validate-repo.sh` | Compiles Python helpers, parses every top-level Compose file, and runs ShellCheck when available. |
 | `ci-parse-composes.py` | PyYAML parser used by local validation and CI. |
+| `audit-prepare-scripts.py` | Verifies every top-level Compose stack has an executable, verbose wrapper that prepares its examples and literal external networks/volumes. Maintainers may use `--fix`, then review the complete diff. |
+| `audit-stack-metadata.py` | Validates `stack.yaml` coverage, schema shape, names, profile enums, and ports. Maintainers may use `--fix-missing`, then review inferred catalog fields. |
+| `build-stack-catalog.py` | Regenerates the complete top-level README stack catalog from stack READMEs. |
+| `build-topology.py` | Regenerates the top-level topology diagrams from `documents/topology.yaml`. Requires PyYAML. |
 | `scan-secrets-gitleaks.sh [git\|dir]` | Scans full Git history (default) or files on disk. The `dir` mode includes ignored runtime secrets, so output must be handled carefully. |
 
 ## Stack preparation
@@ -26,13 +30,15 @@ containers or files require an explicit action or clearly describe the change.
 Most stacks provide `stacks/<name>/prepare-stack.sh`. Run it before editing
 `stack.env`: it copies examples without overwriting existing runtime config,
 creates required directories/networks where supported, and synchronizes
-`stack.env` to Compose's `.env`. Re-run it after changing `stack.env`.
+`stack.env` to Compose's `.env`. It reports variable names and Caddy hostnames
+that still look unfinished, but never prints secret values. Re-run it after
+changing `stack.env`.
 
 | Helper | Purpose |
 |---|---|
 | `prepare-stack-lib.sh` | Shared implementation used by stack preparation wrappers. Source it; do not execute it directly. |
 | `prepare-stack.examples/` | Maintainer patterns for new preparation wrappers. |
-| `upgrade-prepare-stack-verbose.py` | Maintainer utility that regenerates compatible wrappers after library changes. Review its diff before committing. |
+| `upgrade-prepare-stack-verbose.py` | Maintainer utility that regenerates compatible wrappers after library changes, then applies the preparation audit fixer. Review its diff before committing. |
 | `sync-compose-shared-env.py` | Maintainer migration for adding optional root `shared.env` references to Compose files. Review its diff before committing. |
 
 ## Operations and troubleshooting
@@ -45,6 +51,8 @@ creates required directories/networks where supported, and synchronizes
 | `migrate-docker-volume-to-path.sh` | Copies a named volume to a bind path. Stop the affected stack first. |
 | `sync-local-hosts.sh` | Maintains explicitly configured local hostname entries. Read its help before use. |
 | `push-github-mirror.sh` | Pushes a branch to `origin` and optional `github` mirror. |
+| `sort_caddyfile.py` | Sorts generated Caddy hostname blocks while preserving the file preamble. |
+| `patch-caddy-h1-transport.py` | Maintainer migration for adding HTTP/1.1 transport settings to selected Caddy proxies. |
 
 ## Monitoring
 

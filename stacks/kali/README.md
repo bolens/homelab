@@ -7,25 +7,22 @@ Kali Linux is a Debian-based distribution packed with offensive security and pen
 
 ## Usage
 
-CLI (and optionally GUI via VNC/RDP) container used for pentesting, CTFs, and security research in an
-isolated homelab environment. Run interactively with `docker compose run` or keep running for VNC access.
+CLI container run interactively with `docker compose run`. It has no web, VNC, or RDP service.
 
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. Set KALI_PASSWORD to a strong password (generate: `openssl rand -base64 16`).
-3. If using a GUI image, access via VNC or RDP on the configured port.
-4. Run interactively: `docker compose run --rm kali bash`
+2. Review `KALI_WORKSPACE_PATH`.
+3. Run interactively: `docker compose run --rm kali bash`.
 
 ## Environment variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| KALI_PASSWORD | Yes | — | VNC/RDP password for GUI image access |
+| KALI_WORKSPACE_PATH | No | ~/security-lab/kali | Writable local workspace |
 
 ## Notes
 
 - TZ and locale come from shared.env.
-- The default kali-rolling image is CLI only; pull a kali-desktop-* image for GUI access.
-- Run with --privileged or specific capabilities if tools require raw socket/network access.
+- The definition grants only `NET_RAW`, drops all other capabilities, and enables no privileged mode.
 - No persistent service — use `docker compose run --rm` for interactive sessions.

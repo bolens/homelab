@@ -12,8 +12,8 @@ from any device without installing software. Useful for benchmarking network seg
 
 ## Setup
 
-1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. Set TZ to your local timezone.
+1. Run `./prepare-stack.sh`.
+2. Replace the hostname in `caddy_snippet.conf`.
 3. Deploy: `docker compose up -d`
 
 ## Environment variables
@@ -24,6 +24,9 @@ from any device without installing software. Useful for benchmarking network seg
 
 ## Notes
 
-- The speed test UI is served on port 3000 (HTTP) and 3001 (HTTPS) by default.
+- Caddy uses the container's port 3000 HTTP endpoint; the image's separate
+  port 3001 TLS listener is intentionally not exposed.
+- Large uploads require the reverse proxy to accept request bodies of at least
+  35 MB and use a timeout longer than 60 seconds.
 - No authentication — restrict access via reverse proxy or firewall rules if needed.
 - Results are not stored; this is a stateless, ephemeral test tool.

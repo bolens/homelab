@@ -14,4 +14,5 @@ prepare_stack_msg "stack-specific steps..."
 echo "[prepare-stack] Running in $(pwd)"
 
 prepare_stack_copy_caddy
+prepare_stack_ensure_docker_network "monitor"
 prepare_stack_end

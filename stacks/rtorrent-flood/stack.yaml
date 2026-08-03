@@ -37,12 +37,16 @@ volumes:
 - name: rtorrent_flood_config
   role: app_data
   critical: true
+- name: rtorrent_sock
+  role: app_data
+  critical: true
+- name: rutorrent_config
+  role: app_data
+  critical: true
 - name: torrents_manual
   role: app_data
   critical: true
-- name: external
-  role: app_data
-  critical: true
+  external: true
 auth:
   mode: app_local
   sso_provider: null

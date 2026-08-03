@@ -12,7 +12,7 @@ Runs both honeypots as separate containers, each listening on a range of emulate
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. No required environment variables — TZ and locale come from shared.env.
+2. Review the high host-port mappings in `docker-compose.yml` and change them only if needed.
 3. Deploy: `docker compose up -d`
 
 ## Environment variables
@@ -23,5 +23,5 @@ No required environment variables. TZ and locale are inherited from shared.env.
 
 - Dionaea captures malware binaries in the configured bistreams volume — review and isolate regularly.
 - ConPot emulates Siemens S7, Modbus, SNMP, and HTTP SCADA interfaces.
-- Expose honeypot ports via firewall rules rather than binding directly to 0.0.0.0 in production.
+- Defaults use high host ports to avoid conflicts with ordinary local services.
 - Do not run on the same host as production services sharing the same ports.

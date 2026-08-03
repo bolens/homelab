@@ -1,0 +1,31 @@
+services:
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    restart: unless-stopped
+    cpus: 4.0
+    mem_limit: 6g
+    memswap_limit: 8g
+    pids_limit: 2048
+    cpu_shares: 512
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - gitlab_runner_config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD-SHELL", "kill -0 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  gitlab_runner_config:

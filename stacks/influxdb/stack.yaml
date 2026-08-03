@@ -1,0 +1,58 @@
+name: influxdb
+default_port: 8086
+databases: []
+health:
+  endpoint: /health
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: monitoring
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: influxdb.yourdomain.com
+data_profile:
+  contains_pii: false
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://www.influxdata.com
+  docs: https://docs.influxdata.com/influxdb/v2/install/use-docker-compose/
+  repo: https://github.com/influxdata/influxdb
+backup:
+  priority: high
+  schedule_hint: daily
+volumes:
+  - name: influxdb_data
+    role: database
+    critical: true
+  - name: influxdb_config
+    role: config
+    critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: medium
+  memory_profile: medium
+  storage_profile: large
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

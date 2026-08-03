@@ -1,0 +1,5 @@
+# GitLab web UI and HTTP Git endpoint. SSH is published separately.
+gitlab.yourdomain.com {
+    import common
+    reverse_proxy gitlab:80
+}

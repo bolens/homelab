@@ -1,0 +1,42 @@
+services:
+  opengist:
+    image: ghcr.io/thomiceli/opengist:1
+    container_name: opengist
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 1536m
+    memswap_limit: 2g
+    pids_limit: 256
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      UID: "${PUID:-1000}"
+      GID: "${PGID:-1000}"
+    volumes:
+      - opengist_data:/opengist
+    ports:
+      - "${OPENGIST_SSH_PORT:-2222}:2222"
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6157/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  opengist_data:

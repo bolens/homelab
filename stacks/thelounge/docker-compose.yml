@@ -1,0 +1,41 @@
+services:
+  thelounge:
+    image: ghcr.io/thelounge/thelounge:latest
+    container_name: thelounge
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1536m
+    pids_limit: 256
+    cpu_shares: 128
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - thelounge_data:/var/opt/thelounge
+    networks:
+      - monitor
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:9000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  thelounge_data:

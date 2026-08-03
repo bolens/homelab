@@ -36,4 +36,5 @@ else
 	prepare_stack_msg "users.yaml or users.yml already present under $_doz_dir (left unchanged)."
 fi
 
+prepare_stack_copy_caddy
 prepare_stack_end

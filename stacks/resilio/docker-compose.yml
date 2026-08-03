@@ -1,0 +1,41 @@
+services:
+  resilio:
+    image: lscr.io/linuxserver/resilio-sync:latest
+    container_name: resilio
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - resilio_config:/config
+      - ${RESILIO_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/resilio}:/downloads
+      - ${RESILIO_SYNC_PATH:-/mnt/unraid/media/resilio-sync}:/sync
+    ports:
+      - "55555:55555"
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8888/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  resilio_config:

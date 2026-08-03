@@ -12,12 +12,13 @@ Run tests interactively via `docker compose run` inside the container. No web UI
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. No required environment variables — TZ and locale come from shared.env.
-3. Deploy: `docker compose run --rm atomic-red-team bash`
+2. Review `ATOMIC_WORKSPACE_PATH`.
+3. Build once with `docker compose build atomic-red-team`.
+4. Run with `docker compose run --rm atomic-red-team pwsh`.
 
 ## Environment variables
 
-No required environment variables. TZ and locale are inherited from shared.env.
+`ATOMIC_WORKSPACE_PATH` holds local working files; the test library is included in the locally built image.
 
 ## Notes
 

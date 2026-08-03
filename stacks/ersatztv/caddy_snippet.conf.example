@@ -1,0 +1,5 @@
+# Copy to caddy_snippet.conf and adjust the hostname if needed.
+ersatztv.yourdomain.com {
+    import common
+    reverse_proxy ersatztv:8409
+}

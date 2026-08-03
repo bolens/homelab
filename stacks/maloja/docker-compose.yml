@@ -1,0 +1,43 @@
+services:
+  maloja:
+    image: krateng/maloja:latest
+    container_name: maloja
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 256
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      MALOJA_DATA_DIRECTORY: /mljdata
+    volumes:
+      - maloja_data:/mljdata
+    networks:
+      - monitor
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:42010/', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  maloja_data:

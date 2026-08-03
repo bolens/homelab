@@ -18,4 +18,5 @@ if [[ -f stack.env ]] && [[ ! -e .env ]]; then
   prepare_stack_msg "created .env → stack.env (docker compose reads .env for bind-mount path interpolation)"
 fi
 
+prepare_stack_ensure_docker_network "monitor"
 prepare_stack_end

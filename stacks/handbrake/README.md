@@ -14,7 +14,7 @@ the watch folder and HandBrake auto-encodes them to the output folder. Access th
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
 2. Set USER_ID/GROUP_ID to match your host user (`id -u && id -g`) so bind-mount paths are writable.
-3. Optionally override HANDBRAKE_CONFIG_PATH, HANDBRAKE_WATCH_PATH, HANDBRAKE_OUTPUT_PATH.
+3. Verify the configured storage, watch, and output directories are on mounted storage.
 4. Deploy: `docker compose up -d`
 
 ## Environment variables
@@ -25,11 +25,13 @@ the watch folder and HandBrake auto-encodes them to the output folder. Access th
 | GROUP_ID | Yes | 1000 | Host GID for file ownership on bind mounts |
 | UMASK | No | 002 | Umask applied to created files |
 | HANDBRAKE_CONFIG_PATH | No | compose default | Host path for HandBrake config directory |
+| HANDBRAKE_STORAGE_PATH | No | /mnt/unraid/media | Read-only source media library |
 | HANDBRAKE_WATCH_PATH | No | compose default | Host path for auto-watch input folder |
 | HANDBRAKE_OUTPUT_PATH | No | compose default | Host path for encoded output files |
 
 ## Notes
 
 - TZ and locale come from shared.env; do not duplicate them here.
+- Preparation creates the local config directory only; it never creates media paths that could mask a missing mount.
 - The watch folder enables automatic encoding — files placed there are processed and moved to output.
 - Web UI is served on port 5800 (VNC-in-browser); no auth by default, restrict via reverse proxy.

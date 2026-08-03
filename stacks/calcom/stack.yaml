@@ -36,24 +36,14 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: calcom_pg_data
-  role: app_data
+- name: calcom_calcom_pg_data
+  role: database
   critical: true
-- name: name
-  role: app_data
+  external: true
+- name: calcom_calcom_redis_data
+  role: cache
   critical: true
-- name: external
-  role: app_data
-  critical: true
-- name: calcom_redis_data
-  role: app_data
-  critical: true
-- name: name
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
+  external: true
 auth:
   mode: app_local
   sso_provider: null

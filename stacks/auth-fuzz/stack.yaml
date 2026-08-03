@@ -1,0 +1,52 @@
+name: auth-fuzz
+default_port: null
+databases: []
+health:
+  endpoint: /
+  internal_only: true
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: false
+    internal: false
+  blackbox_exporter: false
+  grafana_dashboard: false
+shared_resources: []
+type: cli_tool
+category: security
+exposure:
+  behind_caddy: false
+  public_by_default: false
+  recommended_hostname: null
+data_profile:
+  contains_pii: false
+  contains_logs_only: false
+  recommended_backup: false
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: null
+  docs: null
+  repo: null
+backup:
+  priority: low
+  schedule_hint: manual
+volumes: []
+auth:
+  mode: none
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: medium
+  memory_profile: medium
+  storage_profile: medium
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

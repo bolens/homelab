@@ -34,15 +34,10 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: paperless_ai_next_data
+- name: paperless-ai-next_paperless_ai_next_data
   role: app_data
   critical: true
-- name: name
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
+  external: true
 auth:
   mode: app_local
   sso_provider: null

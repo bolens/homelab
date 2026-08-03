@@ -4,17 +4,18 @@ HTTP authentication fuzzer for testing login endpoints against wordlists and bru
 
 ## Usage
 
-CLI-only tool. Run via `docker compose run` pointing at a target URL. Used in homelab penetration testing to audit login forms, HTTP Basic Auth, and API key endpoints.
+CLI-only FFUF workspace. The default command prints FFUF help and the configured wordlist directory is mounted read-only.
 
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. No required environment variables — TZ and locale come from shared.env.
-3. Deploy: `docker compose run --rm auth-fuzz <target-url>`
+2. Review the wordlist and output paths.
+3. Build once with `docker compose build auth-fuzz`.
+4. Run: `docker compose run --rm auth-fuzz <ffuf arguments>`.
 
 ## Environment variables
 
-No required environment variables. TZ and locale are inherited from shared.env.
+`AUTH_FUZZ_WORDLIST_PATH` and `AUTH_FUZZ_OUTPUT_PATH` default under `${HOME}/security-lab`.
 
 ## Notes
 

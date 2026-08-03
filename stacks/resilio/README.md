@@ -26,9 +26,13 @@ Add sync folders through the UI and share keys/links with other devices.
 | PUID | Yes | 1000 | Host user ID for file ownership |
 | PGID | Yes | 1000 | Host group ID for file ownership |
 | UMASK | No | 022 | File permission umask |
+| RESILIO_DOWNLOADS_PATH | No | /mnt/unraid/media/downloads/resilio | Existing host download directory |
+| RESILIO_SYNC_PATH | No | /mnt/unraid/media/resilio-sync | Existing host synchronization directory |
 
 ## Notes
 
 - TZ/locale are provided by `shared.env`.
+- Preparation does not create the NAS paths, preventing a missing mount from being hidden by local directories.
+- The web UI stays internal to Caddy; TCP port 55555 is published for peer synchronization.
 - Resilio Free tier limits folder count; a Business/Pro license unlocks more features.
 - Ensure sync ports (default 55555) are open in firewall for LAN/WAN peer discovery.

@@ -1,0 +1,40 @@
+services:
+  ersatztv:
+    image: ghcr.io/ersatztv/legacy:latest
+    container_name: ersatztv
+    restart: unless-stopped
+    cpus: 4.0
+    mem_limit: 6g
+    memswap_limit: 8g
+    pids_limit: 1024
+    cpu_shares: 512
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ersatztv_config:/config
+      - ${ERSATZTV_MEDIA_PATH:-/mnt/unraid/media}:/media:ro
+    tmpfs:
+      - /transcode:size=2g
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8409/ >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  ersatztv_config:

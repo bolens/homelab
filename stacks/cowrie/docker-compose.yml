@@ -1,0 +1,39 @@
+services:
+  cowrie:
+    image: cowrie/cowrie:latest
+    container_name: cowrie
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 1536m
+    memswap_limit: 2g
+    pids_limit: 512
+    cpu_shares: 128
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - cowrie_config:/cowrie/cowrie-git/etc
+      - cowrie_data:/cowrie/cowrie-git/var
+    ports:
+      - "${COWRIE_SSH_PORT:-2222}:2222"
+      - "${COWRIE_TELNET_PORT:-2223}:2223"
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import socket; s=socket.create_connection(('127.0.0.1',2222),5); s.close()"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  cowrie_config:
+  cowrie_data:

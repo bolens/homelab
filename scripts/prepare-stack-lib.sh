@@ -75,6 +75,39 @@ prepare_stack_ensure_dir_from_env() {
   prepare_stack_msg "ensured $var_name → $dir"
 }
 
+# Copy an example to a path configured in stack.env. Existing files are never
+# overwritten. Useful for stacks that bind-mount application config outside the
+# repository (normally under ${XDG_CONFIG_HOME:-$HOME/.config}).
+prepare_stack_copy_example_to_env_path() {
+  prepare_stack__require_prepdir || return 1
+  local var_name="${1:?variable name}"
+  local default_path="${2:?default path}"
+  local example="${3:?example file}"
+  local destination="$default_path"
+  if [[ -f stack.env ]]; then
+    local line val
+    line=$(grep -E "^${var_name}=" stack.env 2>/dev/null | tail -1) || true
+    if [[ -n "$line" ]]; then
+      val="${line#*=}"
+      val="${val%$'\r'}"
+      val="${val#\"}"; val="${val%\"}"
+      val="${val#\'}"; val="${val%\'}"
+      [[ -n "$val" ]] && destination="$val"
+    fi
+  fi
+  destination="$(prepare_stack__expand_home_in_path "$destination")"
+  mkdir -p "$(dirname "$destination")"
+  if [[ -f "$destination" ]]; then
+    prepare_stack_msg "$var_name target $destination already exists (left unchanged)."
+  elif [[ -f "$example" ]]; then
+    cp "$example" "$destination"
+    prepare_stack_msg "created $destination from $(basename "$example") — review before deployment."
+  else
+    prepare_stack_msg "example $example is missing; could not prepare $var_name."
+    return 1
+  fi
+}
+
 prepare_stack_copy_caddy() {
   prepare_stack__require_prepdir || return 1
   if [[ -f caddy_snippet.conf.example ]]; then
@@ -126,8 +159,61 @@ prepare_stack_ensure_docker_network() {
   fi
 }
 
+prepare_stack_ensure_docker_volume() {
+  prepare_stack__require_prepdir || return 1
+  local volume="${1:?volume name}"
+  if ! command -v docker >/dev/null 2>&1; then
+    prepare_stack_msg "docker not in PATH; skipped creating volume '$volume'."
+    return 0
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    prepare_stack_msg "Docker daemon not reachable; skipped creating volume '$volume'."
+    return 0
+  fi
+  if docker volume inspect "$volume" >/dev/null 2>&1; then
+    prepare_stack_msg "docker volume '$volume' already exists."
+  else
+    docker volume create "$volume" >/dev/null
+    prepare_stack_msg "created docker volume '$volume'."
+  fi
+}
+
+prepare_stack_report_review_items() {
+  prepare_stack__require_prepdir || return 1
+  if [[ -f stack.env ]]; then
+    local review_names
+    review_names="$(
+      awk -F= '
+        /^[[:space:]]*#/ || !/^[A-Za-z_][A-Za-z0-9_]*=/ { next }
+        {
+          value=substr($0, index($0, "=") + 1)
+          gsub(/^[[:space:]"\047]+|[[:space:]"\047]+$/, "", value)
+          lower=tolower(value)
+          if (value == "" || lower ~ /^(change[-_]?me|replace[-_]?me|your[-_])/) {
+            print $1
+          }
+        }
+      ' stack.env | paste -sd, -
+    )"
+    if [[ -n "$review_names" ]]; then
+      prepare_stack_msg "review unset or placeholder variables in stack.env: $review_names"
+    else
+      prepare_stack_msg "stack.env contains no obvious empty or placeholder assignments."
+    fi
+  fi
+
+  if [[ -f caddy_snippet.conf ]]; then
+    if grep -Eqi 'example\.com|yourdomain|change[-_]?me|replace[-_]?me' caddy_snippet.conf; then
+      prepare_stack_msg "review placeholder hostname(s) in caddy_snippet.conf."
+    else
+      prepare_stack_msg "caddy_snippet.conf contains no obvious placeholder hostname."
+    fi
+  fi
+}
+
 prepare_stack_end() {
   prepare_stack__require_prepdir || return 1
   prepare_stack_sync_dotenv_from_stack_env
+  prepare_stack_report_review_items
   prepare_stack_msg "done. Next: edit stack.env if needed, re-run ./prepare-stack.sh to refresh .env, then: docker compose up -d"
 }

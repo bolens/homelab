@@ -17,4 +17,5 @@ if [[ -f stack.env ]] && [[ ! -e .env ]]; then
   prepare_stack_msg "created .env → stack.env (compose interpolates HANAMI_PORT, passwords, etc.)"
 fi
 
+prepare_stack_ensure_docker_network "monitor"
 prepare_stack_end

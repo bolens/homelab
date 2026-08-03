@@ -45,7 +45,7 @@ resources:
   cpu_profile: large
   memory_profile: large
   storage_profile: medium
-  gpu_profile: none
+  gpu_profile: required
 placement:
   preferred_node: null
   colocation_group: ai

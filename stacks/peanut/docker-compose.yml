@@ -1,0 +1,41 @@
+services:
+  peanut:
+    image: brandawg93/peanut:latest
+    container_name: peanut
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    cpus: 1.0
+    mem_limit: 768m
+    memswap_limit: 1g
+    pids_limit: 256
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      WEB_PORT: "8080"
+    volumes:
+      - "${PEANUT_CONFIG_PATH:-${HOME}/.config/peanut}:/config"
+    networks:
+      - monitor
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/api/ping').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true

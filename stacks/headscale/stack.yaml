@@ -34,9 +34,6 @@ backup:
   priority: medium
   schedule_hint: weekly
 volumes:
-- name: headscale_config
-  role: app_data
-  critical: true
 - name: headscale_data
   role: app_data
   critical: true

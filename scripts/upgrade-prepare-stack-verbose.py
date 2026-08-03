@@ -221,6 +221,10 @@ def main() -> None:
             write_executable(ex, ex.read_text(encoding="utf-8"))
 
     subprocess.run(["bash", "-n", str(REPO / "scripts" / "prepare-stack-lib.sh")], check=True)
+    subprocess.run(
+        ["python3", str(REPO / "scripts" / "audit-prepare-scripts.py"), "--fix"],
+        check=True,
+    )
 
 
 if __name__ == "__main__":

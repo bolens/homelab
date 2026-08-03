@@ -1,9 +1,8 @@
-# Headscale config – copy to config.yaml, edit, then load into headscale_config volume.
+# Headscale config – prepare-stack.sh copies this to HEADSCALE_CONFIG_PATH.
 # See https://headscale.net/stable/ref/configuration/
 #
-# Load into volume (after first deploy):
-#   docker run --rm -v headscale_config:/etc/headscale -v $(pwd)/config.yaml:/src/config.yaml:ro alpine cp /src/config.yaml /etc/headscale/config.yaml
-# Then: docker restart headscale
+# Edit the generated host file, then recreate Headscale after later changes:
+#   docker compose up -d --force-recreate headscale
 
 server_url: https://headscale.yourdomain.com
 listen_addr: 0.0.0.0:8080

@@ -1,0 +1,37 @@
+services:
+  databasus:
+    image: databasus/databasus:latest
+    container_name: databasus
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - databasus_data:/databasus-data
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "databasus", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  databasus_data:

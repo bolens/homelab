@@ -1,0 +1,15 @@
+openspeedtest.home, openspeedtest.local {
+	tls internal
+	reverse_proxy openspeedtest:3000
+}
+
+http://openspeedtest.example.com {
+	reverse_proxy openspeedtest:3000
+}
+
+openspeedtest.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy openspeedtest:3000
+}

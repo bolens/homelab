@@ -33,7 +33,10 @@ links:
 backup:
   priority: low
   schedule_hint: manual
-volumes: []
+volumes:
+- name: promtail_positions
+  role: app_data
+  critical: false
 auth:
   mode: app_local
   sso_provider: null

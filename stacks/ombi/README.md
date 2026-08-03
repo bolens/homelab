@@ -14,11 +14,12 @@ stacks over an internal Docker network.
 
 ## Setup
 
-1. Copy `stack.env.example` to `stack.env` — no required variables beyond shared.env defaults.
-2. On first start, complete the web setup wizard to connect Plex/Jellyfin and Radarr/Sonarr.
-3. Deploy: `docker compose up -d`
+1. Run `./prepare-stack.sh`, then review `stack.env` and `caddy_snippet.conf`.
+2. Set `PUID`/`PGID` to the account that should own Ombi's files.
+3. On first start, complete the web setup wizard to connect Plex/Jellyfin and Radarr/Sonarr.
+4. Deploy: `docker compose up -d`
 
-No required environment variables (TZ/locale come from shared.env).
+TZ/locale come from `shared.env`; application state persists in `ombi_config`.
 
 ## Notes
 

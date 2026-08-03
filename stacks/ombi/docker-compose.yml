@@ -1,0 +1,37 @@
+services:
+  ombi:
+    image: lscr.io/linuxserver/ombi:latest
+    container_name: ombi
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 1536m
+    memswap_limit: 2g
+    pids_limit: 256
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ombi_config:/config
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3579/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  ombi_config:

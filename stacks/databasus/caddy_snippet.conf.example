@@ -1,0 +1,5 @@
+# Databasus backup administration UI. Prefer an identity-aware access policy.
+databasus.yourdomain.com {
+    import common
+    reverse_proxy databasus:4005
+}

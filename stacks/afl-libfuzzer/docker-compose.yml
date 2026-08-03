@@ -1,0 +1,30 @@
+services:
+  afl-libfuzzer:
+    image: aflplusplus/aflplusplus:dev
+    profiles: ["tools"]
+    stdin_open: true
+    tty: true
+    cpus: 6.0
+    mem_limit: 8g
+    memswap_limit: 10g
+    pids_limit: 2048
+    cpu_shares: 512
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      AFL_TMPDIR: /ramdisk
+    volumes:
+      - ${AFL_SOURCE_PATH:-${HOME}/security-lab/afl/source}:/src
+      - ${AFL_OUTPUT_PATH:-${HOME}/security-lab/afl/output}:/out
+    tmpfs:
+      - /ramdisk:size=2g
+    working_dir: /src
+    command: ["bash"]
+    network_mode: none
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "2"

@@ -34,7 +34,7 @@ backup:
   priority: low
   schedule_hint: null
 volumes:
-- name: clark_cache
+- name: clark-cache
   role: cache
   critical: false
 auth:

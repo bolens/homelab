@@ -25,11 +25,12 @@ Point Tautulli at your Plex server during initial setup to connect the two stack
 |----------|----------|---------|-------------|
 | PUID | Yes | 1000 | Host user ID for file ownership |
 | PGID | Yes | 1000 | Host group ID for file ownership |
-| TAUTULLI_CONFIG_PATH | Yes | /home/youruser/.config/tautulli | Host path for Tautulli config |
-| TAUTULLI_DATA_PATH | Yes | /home/youruser/.config/tautulli/data | Host path for Tautulli data |
+| TAUTULLI_CONFIG_PATH | Yes | `${HOME}/.config/tautulli` | Host path for Tautulli config |
 
 ## Notes
 
 - TZ/locale are provided by `shared.env`.
 - On first launch, complete the setup wizard and provide your Plex URL and token.
 - Tautulli must be able to reach your Plex server; ensure they share a Docker network or use host IP.
+- The `/config` bind mount contains the database and settings and should be
+  included in backups.

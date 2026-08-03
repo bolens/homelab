@@ -34,13 +34,13 @@ backup:
   priority: low
   schedule_hint: null
 volumes:
-- name: camofox_cookies
+- name: cookies
   role: app_data
   critical: false
-- name: camofox_profiles
+- name: profiles
   role: app_data
   critical: false
-- name: camofox_traces
+- name: traces
   role: app_data
   critical: false
 auth:

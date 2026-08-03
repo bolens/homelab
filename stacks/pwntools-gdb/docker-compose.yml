@@ -1,0 +1,32 @@
+services:
+  pwntools-gdb:
+    image: pwntools/pwntools:stable
+    profiles: ["tools"]
+    stdin_open: true
+    tty: true
+    cpus: 4.0
+    mem_limit: 6g
+    memswap_limit: 8g
+    pids_limit: 1024
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ${PWNTOOLS_WORKSPACE_PATH:-${HOME}/security-lab/pwntools}:/workspace
+    working_dir: /workspace
+    command: ["bash"]
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+      - no-new-privileges:true
+    network_mode: none
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "2"

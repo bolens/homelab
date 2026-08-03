@@ -1,0 +1,45 @@
+services:
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs
+    restart: unless-stopped
+    cpus: 4.0
+    mem_limit: 6g
+    memswap_limit: 8g
+    pids_limit: 1024
+    cpu_shares: 512
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    command: /data
+    volumes:
+      - rustfs_data:/data
+      - rustfs_logs:/logs
+    environment:
+      RUSTFS_OBS_LOG_DIRECTORY: /logs
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: "${RUSTFS_ACCESS_KEY:?set in stack.env}"
+      RUSTFS_SECRET_KEY: "${RUSTFS_SECRET_KEY:?set in stack.env}"
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/health >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  rustfs_data:
+  rustfs_logs:

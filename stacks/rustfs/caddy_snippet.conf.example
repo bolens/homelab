@@ -1,0 +1,11 @@
+# RustFS console. Protect this administrative endpoint with strong access controls.
+rustfs.yourdomain.com {
+    import common
+    reverse_proxy rustfs:9001
+}
+
+# S3-compatible API endpoint.
+s3.yourdomain.com {
+    import common
+    reverse_proxy rustfs:9000
+}

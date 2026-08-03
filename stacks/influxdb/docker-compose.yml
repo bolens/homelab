@@ -1,0 +1,46 @@
+services:
+  influxdb:
+    image: influxdb:2.9
+    container_name: influxdb
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 3g
+    memswap_limit: 4g
+    pids_limit: 512
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: "${DOCKER_INFLUXDB_INIT_MODE:-setup}"
+      DOCKER_INFLUXDB_INIT_USERNAME: "${DOCKER_INFLUXDB_INIT_USERNAME:?set in stack.env}"
+      DOCKER_INFLUXDB_INIT_PASSWORD: "${DOCKER_INFLUXDB_INIT_PASSWORD:?set in stack.env}"
+      DOCKER_INFLUXDB_INIT_ORG: "${DOCKER_INFLUXDB_INIT_ORG:-homelab}"
+      DOCKER_INFLUXDB_INIT_BUCKET: "${DOCKER_INFLUXDB_INIT_BUCKET:-metrics}"
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: "${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN:?set in stack.env}"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "influx", "ping", "--host", "http://127.0.0.1:8086"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  influxdb_config:
+  influxdb_data:

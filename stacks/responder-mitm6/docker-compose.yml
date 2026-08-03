@@ -1,0 +1,34 @@
+services:
+  responder-mitm6:
+    build:
+      context: .
+    image: homelab/responder-mitm6:local
+    profiles: ["tools"]
+    stdin_open: true
+    tty: true
+    network_mode: host
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 128
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ${RESPONDER_OUTPUT_PATH:-${HOME}/security-lab/responder-mitm6}:/workspace
+    working_dir: /workspace
+    command: ["bash"]
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "2"

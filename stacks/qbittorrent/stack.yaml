@@ -40,9 +40,7 @@ volumes:
 - name: torrents_downloads
   role: app_data
   critical: true
-- name: external
-  role: app_data
-  critical: true
+  external: true
 auth:
   mode: app_local
   sso_provider: null

@@ -1,0 +1,51 @@
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    hostname: "${GITLAB_HOSTNAME:-gitlab.yourdomain.com}"
+    restart: unless-stopped
+    cpus: 8.0
+    mem_limit: 16g
+    memswap_limit: 20g
+    pids_limit: 4096
+    cpu_shares: 768
+    shm_size: 256m
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url '${GITLAB_EXTERNAL_URL:?set in stack.env}';
+        nginx['listen_port'] = 80;
+        nginx['listen_https'] = false;
+        gitlab_rails['gitlab_shell_ssh_port'] = ${GITLAB_SSH_PORT:-2224};
+    volumes:
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+    ports:
+      - "${GITLAB_SSH_PORT:-2224}:22"
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/-/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10m
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+
+volumes:
+  gitlab_config:
+  gitlab_data:
+  gitlab_logs:

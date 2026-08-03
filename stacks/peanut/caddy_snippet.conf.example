@@ -1,0 +1,15 @@
+peanut.home, peanut.local {
+	tls internal
+	reverse_proxy peanut:8080
+}
+
+http://peanut.example.com {
+	reverse_proxy peanut:8080
+}
+
+peanut.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy peanut:8080
+}

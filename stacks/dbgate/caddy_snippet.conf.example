@@ -1,0 +1,17 @@
+# DbGate has no built-in authentication. Keep public access behind Cloudflare
+# Access or another authentication layer.
+dbgate.home, dbgate.local {
+	tls internal
+	reverse_proxy dbgate:3000
+}
+
+http://dbgate.example.com {
+	reverse_proxy dbgate:3000
+}
+
+dbgate.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy dbgate:3000
+}

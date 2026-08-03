@@ -9,9 +9,7 @@ source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 
 prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
-
-prepare_stack_msg "stack-specific steps..."
-echo "Stack prepared."
-
 prepare_stack_copy_caddy
+prepare_stack_msg "verify COWRIE_SSH_PORT and COWRIE_TELNET_PORT do not conflict with real administration services before deployment."
+prepare_stack_msg "restrict management access separately; Cowrie's published ports are intentionally unauthenticated decoys."
 prepare_stack_end

@@ -32,6 +32,7 @@ and optionally integrated with Last.fm/Spotify for metadata.
 ## Notes
 
 - TZ and locale come from shared.env.
+- Application state and the scrobble database persist in `maloja_data`; include it in backups.
 - API keys can also be configured in the Maloja admin UI after first start.
 - Spotify credentials: https://developer.spotify.com/dashboard
 - Last.fm credentials: https://www.last.fm/api/account/create

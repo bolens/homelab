@@ -40,6 +40,8 @@ Mesh VPN (Tailscale)`"]
 Remote access VPN`"]
         gluetun["`gluetun
 Container egress VPN`"]
+        netbird["`netbird
+WireGuard mesh VPN`"]
     end
 
     internet ~~~ ingress ~~~ vpn
@@ -127,6 +129,8 @@ Probes`"]
 Container metrics`"]
         crowdsec["`crowdsec
 Security engine`"]
+        ddns_updater["`ddns-updater
+Dynamic DNS`"]
         diun["`diun
 Image update notifier`"]
         dockergc["`docker-gc
@@ -141,8 +145,14 @@ Log aggregation`"]
 SMTP catcher`"]
         minio["`minio
 S3 object storage`"]
+        node_exporter["`node-exporter
+Host metrics`"]
+        nut_server["`nut-server
+UPS monitor`"]
         ntopng["`ntopng
 Traffic analytics`"]
+        pihole["`pihole
+DNS sinkhole`"]
         portainer["`portainer
 Docker UI`"]
         postfix["`postfix
@@ -153,12 +163,18 @@ Metrics`"]
 Backups (cron)`"]
         scrutiny["`scrutiny
 SMART disk health`"]
+        snowflake_relay["`snowflake-relay
+Tor bridge relay`"]
+        umami["`umami
+Web analytics`"]
+        unbound["`unbound
+DNS resolver`"]
         vector["`vector
 Log shipper`"]
         watchtower["`watchtower
 Auto-updates`"]
     end
-    adguard_home ~~~ alertmanager ~~~ blackbox_exporter ~~~ cadvisor ~~~ crowdsec ~~~ diun ~~~ dockergc ~~~ grafana ~~~ kuma ~~~ loki ~~~ mailpit ~~~ minio ~~~ ntopng ~~~ portainer ~~~ postfix ~~~ prometheus ~~~ restic ~~~ scrutiny ~~~ vector ~~~ watchtower
+    adguard_home ~~~ alertmanager ~~~ blackbox_exporter ~~~ cadvisor ~~~ crowdsec ~~~ ddns_updater ~~~ diun ~~~ dockergc ~~~ grafana ~~~ kuma ~~~ loki ~~~ mailpit ~~~ minio ~~~ node_exporter ~~~ nut_server ~~~ ntopng ~~~ pihole ~~~ portainer ~~~ postfix ~~~ prometheus ~~~ restic ~~~ scrutiny ~~~ snowflake_relay ~~~ umami ~~~ unbound ~~~ vector ~~~ watchtower
 
     caddy["caddy"]
     apps["apps"]
@@ -176,22 +192,22 @@ Auto-updates`"]
 
 - **Traffic:** All HTTP(S) to apps and to web UIs (e.g. Uptime Kuma, Grafana) goes through Caddy. Clients reach Caddy directly (local DNS) or via Cloudflare Tunnel; Caddy routes by hostname.
 - **VPN & remote access:** **Headscale** – mesh VPN (Tailscale); mesh clients reach Caddy and apps. **WireGuard** – remote-access VPN (UDP 51820); VPN clients connect from outside. **Gluetun** – outbound VPN for containers; media acquisition stacks (e.g. qbittorrent) send traffic through Gluetun to a VPN provider.
-- **Application categories:** **Media acquisition & *arr** – download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, Explo, MeTube, Mylar3, Soulseek). **AI & LLM** – local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica). **Developer & IT utilities** – it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT. **Gaming** – Steam automation (ASF), ROM manager and in-browser emulation (RomM). **Home automation & IoT** – Home Assistant, Mosquitto (MQTT), Zigbee2MQTT. **Links, shorteners & presence** – YOURLS, Shlink, Linkstack, Stoat, static homepage/landing. **Media & personal data** – consumption and personal content (photos, docs, music, tagging/organization, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting). **OSINT & recon** – homelab-user/email/phone recon, breach lookups, subdomain enumeration, AIL. **Privacy & opt-out** – data broker deletion (Naisho, Privotron). **Search** – SearXNG, Meilisearch. **Security & compliance tooling** – SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP), digital forensics (Acquire, Plaso, Docker Forensics Toolkit). **Security & identity** – passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik). **Tor / dark web** – OnionScan, OnionProbe, TorBot. **Workflow automation** – n8n, Node-RED
+- **Application categories:** **Media acquisition & *arr** – download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, Explo, MeTube, Mylar3, Soulseek). **AI & LLM** – local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica, Anything LLM, LiteLLM, Kokoro TTS, Whisper ASR). **Developer & IT utilities** – it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT, code-server, Beszel, Mattermost, Terminus, NodePad, Asking-NG. **Gaming** – Steam automation (ArchiSteamFarm), ROM manager and in-browser emulation (RomM), Twitch drops mining. **Home automation & IoT** – Home Assistant, Mosquitto (MQTT), Zigbee2MQTT. **Links, shorteners & presence** – YOURLS, Shlink, Linkstack, Stoat, Glance, static homepage/landing. **Media & personal data** – consumption and personal content (photos, docs, music, tagging/organization, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting, Affine, Appflowy, CryptPad, Trilium, Oasis, Paperless AI). **OSINT & recon** – homelab-user/email/phone recon, breach lookups, subdomain enumeration, AIL. **Privacy & opt-out** – data broker deletion (Naisho, Privotron). **Search** – SearXNG, Meilisearch. **Security & compliance tooling** – SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP/ZAP GUI), digital forensics (Acquire, Plaso, Docker Forensics Toolkit). **Security & identity** – passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik, Enclosed, RustDesk). **Tor / dark web** – OnionScan, OnionProbe, TorBot. **Workflow automation** – n8n, Node-RED, Cal.com
 - **Application stacks (detail):** Each category and what it does:
-- **Media acquisition & *arr:** download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, Explo, MeTube, Mylar3, Soulseek) Stacks: bazarr, explo, lidarr, metube, mylar3, nzbget, nzbhydra2, qbittorrent, prowlarr, radarr, readarr, rtorrent-flood, sonarr, soulseek.
-- **AI & LLM:** local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica) Stacks: ollama, open-webui, librechat, open-notebook, perplexica.
-- **Developer & IT utilities:** it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT Stacks: baserow, convertx, cups, dozzle, gitea, harbor, homarr, it-tools, kasm, netbox, ntfy, posthog, snipe-it, stirling-pdf, woodpecker-ci.
-- **Gaming:** Steam automation (ASF), ROM manager and in-browser emulation (RomM) Stacks: asf, romm.
+- **Media acquisition & *arr:** download clients and *arr automation (torrents, Usenet, Sonarr/Radarr/Lidarr/Readarr, Bazarr, Explo, MeTube, Mylar3, Soulseek) Stacks: bazarr, explo, flaresolverr, lidarr, metube, mylar3, nzbget, nzbhydra2, qbittorrent, prowlarr, radarr, readarr, rtorrent-flood, seerr, sonarr, soulseek, whisparr.
+- **AI & LLM:** local models and chat UIs (Ollama, Open WebUI, LibreChat, Open Notebook, Perplexica, Anything LLM, LiteLLM, Kokoro TTS, Whisper ASR) Stacks: anything-llm, kokoro-tts, litellm, ollama, open-webui, librechat, open-notebook, perplexica, whisper-asr.
+- **Developer & IT utilities:** it-tools, ConvertX, CUPS print server, Dozzle, Gitea, Harbor, Woodpecker CI, Homarr dashboard, Baserow, Stirling-PDF, ntfy, NetBox, PostHog, Snipe-IT, code-server, Beszel, Mattermost, Terminus, NodePad, Asking-NG Stacks: asking-ng, baserow, beszel, code-server, convertx, cups, dozzle, gitea, harbor, homarr, it-tools, kasm, mattermost, netbox, nodepad, ntfy, posthog, snipe-it, stirling-pdf, terminus, woodpecker-ci.
+- **Gaming:** Steam automation (ArchiSteamFarm), ROM manager and in-browser emulation (RomM), Twitch drops mining Stacks: archisteamfarm, romm, twitch-drops-miner.
 - **Home automation & IoT:** Home Assistant, Mosquitto (MQTT), Zigbee2MQTT Stacks: home-assistant, mosquitto, zigbee2mqtt.
-- **Links, shorteners & presence:** YOURLS, Shlink, Linkstack, Stoat, static homepage/landing Stacks: homepage, linkstack, shlink, stoat, yourls.
-- **Media & personal data:** consumption and personal content (photos, docs, music, tagging/organization, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting) Stacks: actual-budget, archivebox, audiobookshelf, bookstack, calibre-web, docuseal, emby, firefly-iii, freshrss, hedgedoc, immich, jellyfin, joplin-server, logseq-sync, kavita, komga, lanraragi, linkding, linkwarden, mealie, navidrome, nextcloud, outline, paperless-ngx, picard, plex, seafile, slink, syncthing, vikunja.
+- **Links, shorteners & presence:** YOURLS, Shlink, Linkstack, Stoat, Glance, static homepage/landing Stacks: glance, homepage, linkstack, shlink, stoat, yourls.
+- **Media & personal data:** consumption and personal content (photos, docs, music, tagging/organization, recipes, bookmarks, RSS, comics, eBooks, tasks, wiki, notes, budgeting, Affine, Appflowy, CryptPad, Trilium, Oasis, Paperless AI) Stacks: affine, appflowy, actual-budget, archivebox, audiobookshelf, bookstack, calibre-web, cryptpad, docuseal, emby, firefly-iii, freshrss, hedgedoc, immich, jellyfin, jellystat, joplin-server, logseq-sync, kavita, komga, lanraragi, linkding, linkwarden, mealie, navidrome, nextcloud, oasis, outline, paperless-ai-next, paperless-gpt, paperless-ngx, picard, plex, seafile, slink, super-productivity, syncthing, trilium, vikunja.
 - **OSINT & recon:** homelab-user/email/phone recon, breach lookups, subdomain enumeration, AIL Stacks: social-hunt, maigret, spiderfoot, phoneinfoga, theharvester, holehe, blackbird, ghunt, metagoofil, reconftw, sublist3r, ail, web-check.
 - **Privacy & opt-out:** data broker deletion (Naisho, Privotron) Stacks: naisho, privotron.
 - **Search:** SearXNG, Meilisearch Stacks: meilisearch, searx-ng.
-- **Security & compliance tooling:** SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP), digital forensics (Acquire, Plaso, Docker Forensics Toolkit) Stacks: acquire, dependency-track, docker-forensics-toolkit, plaso, threat-dragon, zap.
-- **Security & identity:** passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik) Stacks: authentik, guacamole, infisical, keycloak, password-pusher, privatebin, simplelogin, vaultwarden.
+- **Security & compliance tooling:** SBOM/vuln tracking (Dependency-Track), threat modeling (Threat Dragon), web scanner (ZAP/ZAP GUI), digital forensics (Acquire, Plaso, Docker Forensics Toolkit) Stacks: acquire, dependency-track, docker-forensics-toolkit, plaso, threat-dragon, zap, zed-attack-proxy.
+- **Security & identity:** passwords, secrets, aliases, remote desktop, secure sharing, IdP (Keycloak, authentik, Enclosed, RustDesk) Stacks: authentik, enclosed, guacamole, infisical, keycloak, password-pusher, privatebin, rustdesk, simplelogin, vaultwarden.
 - **Tor / dark web:** OnionScan, OnionProbe, TorBot Stacks: onionprobe, onionscan, torbot.
-- **Workflow automation:** n8n, Node-RED Stacks: n8n, nodered.
+- **Workflow automation:** n8n, Node-RED, Cal.com Stacks: calcom, n8n, node-red.
 - **Infrastructure:** Portainer manages stacks; Watchtower updates images; Docker GC cleans up; Diun notifies on image changes; Uptime Kuma monitors Caddy and app health; Grafana/Prometheus/cAdvisor provide metrics; CrowdSec consumes Caddy logs. **MinIO** provides S3-compatible object storage, often used as a backend for apps and backups; **Restic** handles scheduled backups to object storage; **Scrutiny** monitors disk SMART health. **Postfix** – SMTP relay for outbound mail from apps (e.g. Naisho, n8n). Dozzle (behind Caddy) is a log viewer.
 - **Relations:**
   - **users → tunnel**: Clients use optional Cloudflare Tunnel to reach Caddy.
@@ -224,153 +240,236 @@ Auto-updates`"]
 
 ## 📦 What’s inside
 
+The catalog below is generated from every `stacks/<name>/README.md`. Regenerate
+it after adding or renaming a stack:
+
+```bash
+python3 scripts/build-stack-catalog.py
+```
+
+<!-- STACK_CATALOG_GENERATED_START -->
 | Stack | What it does |
-|-------|----------------|
-| [**stacks/ail**](stacks/ail/README.md) | AIL framework – analyse information leaks (pastes, trackers, MISP/TheHive, credentials/cards/keys detection) |
-| [**stacks/archivebox**](stacks/archivebox/README.md) | Self-hosted web archive (ArchiveBox) – saves full snapshots (HTML, screenshots, PDFs, WARCs) from URLs and feeds |
-| [**stacks/acquire**](stacks/acquire/README.md) | Digital forensics artifact collection (Acquire/Dissect) – gather artifacts from disk images or dirs into an archive; CLI only |
-| [**stacks/adguard-home**](stacks/adguard-home/README.md) | Network-wide DNS ad/tracker blocking and web UI; DNS on host 53/853, UI via Caddy |
-| [**stacks/actual-budget**](stacks/actual-budget/README.md) | Envelope-style budgeting (Actual Budget sync server); use with desktop/mobile app |
-| [**stacks/affine**](stacks/affine/README.md) | Self-hosted AFFiNE workspace (docs, whiteboards, and knowledge graph) |
-| [**stacks/alertmanager**](stacks/alertmanager/README.md) | Prometheus Alertmanager – route alerts to email, webhooks, chat (use with Prometheus) |
-| [**stacks/appflowy**](stacks/appflowy/README.md) | AppFlowy collaboration/productivity workspace scaffold for homelab deployment |
-| [**stacks/authentik**](stacks/authentik/README.md) | Identity provider / SSO (OIDC, OAuth2, SAML); use as IdP for other apps or Cloudflare Access |
-| [**stacks/asf**](stacks/asf/README.md) | ArchiSteamFarm – Steam card idling and automation; web IPC (ASF-ui, API) behind Caddy |
-| [**stacks/anything-llm**](stacks/anything-llm/README.md) | Local RAG workspaces (documents + LanceDB + Ollama; Mintplex AnythingLLM) |
-| [**stacks/audiobookshelf**](stacks/audiobookshelf/README.md) | Audiobook and podcast server |
-| [**stacks/bazarr**](stacks/bazarr/README.md) | Subtitle manager and downloader for Sonarr/Radarr libraries |
-| [**stacks/blackbird**](stacks/blackbird/README.md) | OSINT: homelab-user/email search across many sites with optional PDF/CSV reports |
-| [**stacks/blackbox-exporter**](stacks/blackbox-exporter/README.md) | Prometheus Blackbox Exporter – HTTP/TCP/ICMP probes for synthetic monitoring |
-| [**stacks/baserow**](stacks/baserow/README.md) | Self-hosted Airtable alternative – tables, views, API (no-code database) |
-| [**stacks/bookstack**](stacks/bookstack/README.md) | Wiki and documentation (books, chapters, pages); MariaDB |
-| [**stacks/calibre-web**](stacks/calibre-web/README.md) | Web UI for Calibre library – browse, read, and download eBooks (OPDS, optional conversion) |
-| [**stacks/caddy**](stacks/caddy/README.md) | Reverse proxy with automatic HTTPS (Let’s Encrypt, optional Cloudflare DNS-01) |
-| [**stacks/cadvisor**](stacks/cadvisor/README.md) | Container resource metrics (CPU, memory, etc.) |
-| [**stacks/cloudflare-tunnel**](stacks/cloudflare-tunnel/README.md) | Expose services via Cloudflare without port forwarding (cloudflared) |
-| [**stacks/convertx**](stacks/convertx/README.md) | Self-hosted online file converter (1000+ formats: documents, images, video, e-books) |
-| [**stacks/crowdsec**](stacks/crowdsec/README.md) | CrowdSec Security Engine – collaborative intrusion prevention and curated blocklists for malicious IPs |
-| [**stacks/cryptpad**](stacks/cryptpad/README.md) | End-to-end encrypted collaborative docs, sheets, forms, and drive (CryptPad) |
-| [**stacks/dependency-track**](stacks/dependency-track/README.md) | OWASP Dependency-Track – SBOM/dependency vulnerability tracking (upload CycloneDX/SPDX, CVE alerts) |
-| [**stacks/diun**](stacks/diun/README.md) | Docker image update notifier (Telegram, Discord, etc.) |
-| [**stacks/docker-gc**](stacks/docker-gc/README.md) | Garbage collector for Docker containers and images (removes old stopped containers and unused images) |
-| [**stacks/docker-forensics-toolkit**](stacks/docker-forensics-toolkit/README.md) | Post-mortem analysis of Docker host disk images (containers, images, configs, logs, timelines); CLI only |
-| [**stacks/dozzle**](stacks/dozzle/README.md) | Real-time container log viewer |
-| [**stacks/emby**](stacks/emby/README.md) | Media server for movies, TV, and music (Emby) |
-| [**stacks/explo**](stacks/explo/README.md) | Discover Weekly-style music discovery worker for self-hosted music systems |
-| [**stacks/firefly-iii**](stacks/firefly-iii/README.md) | Personal finance manager – accounts, transactions, budgets, reports |
-| [**stacks/freshrss**](stacks/freshrss/README.md) | RSS feed aggregator (Feedly-like) |
-| [**stacks/ghunt**](stacks/ghunt/README.md) | OSINT: investigate Google accounts (email, Gaia, Drive, BSSID) via CLI with JSON export |
-| [**stacks/gitea**](stacks/gitea/README.md) | Self-hosted Git service (repos, issues); pairs with Woodpecker CI |
-| [**stacks/gluetun**](stacks/gluetun/README.md) | Outbound VPN client for other containers (use via `network_mode: service:gluetun`) |
-| [**stacks/grafana**](stacks/grafana/README.md) | Metrics dashboards (use with Prometheus + cAdvisor) |
-| [**stacks/guacamole**](stacks/guacamole/README.md) | Clientless remote desktop gateway (RDP, VNC, SSH) with HTML5 web UI (Apache Guacamole) |
-| [**stacks/harbor**](stacks/harbor/README.md) | Container registry (pointer stack – use official Harbor installer; see README) |
-| [**stacks/headscale**](stacks/headscale/README.md) | Self-hosted Tailscale control server (mesh VPN) |
-| [**stacks/homepage**](stacks/homepage/README.md) | Static landing / under-construction page for your root domain or homepage.yourdomain.com |
-| [**stacks/homarr**](stacks/homarr/README.md) | Homelab dashboard – links, widgets, optional Docker/Uptime Kuma integrations |
-| [**stacks/home-assistant**](stacks/home-assistant/README.md) | Home automation hub – lights, sensors, devices; optional Zigbee2MQTT + Mosquitto |
-| [**stacks/hedgedoc**](stacks/hedgedoc/README.md) | Collaborative markdown editor (HackMD-like); real-time notes and docs |
-| [**stacks/holehe**](stacks/holehe/README.md) | OSINT: check where an email address has accounts via a FastAPI web UI (holehe-web) |
-| [**stacks/immich**](stacks/immich/README.md) | Photo and video backup (OAuth-ready) |
-| [**stacks/infisical**](stacks/infisical/README.md) | Self-hosted secrets manager (API keys, env vars, config) |
-| [**stacks/it-tools**](stacks/it-tools/README.md) | Developer and IT utilities (converters, hashes, QR, etc.) |
-| [**stacks/jellyfin**](stacks/jellyfin/README.md) | Open-source media server for movies, TV, and music |
-| [**stacks/joplin-server**](stacks/joplin-server/README.md) | Sync backend for Joplin note-taking clients |
-| [**stacks/kasm**](stacks/kasm/README.md) | Container streaming platform – browser-based desktops and apps (Kasm Workspaces) |
-| [**stacks/kavita**](stacks/kavita/README.md) | Comics, manga, and eBook server – web reader, OPDS, reading progress |
-| [**stacks/keycloak**](stacks/keycloak/README.md) | Identity provider / SSO (OIDC, OAuth2, SAML); use as IdP for other apps |
-| [**stacks/kokoro-tts**](stacks/kokoro-tts/README.md) | Kokoro-82M TTS — web UI (`/web`) + OpenAI-compatible speech API (CPU/GPU images) |
-| [**stacks/komga**](stacks/komga/README.md) | Comics and manga server – web reader, OPDS (Tachiyomi), reading progress |
-| [**stacks/librechat**](stacks/librechat/README.md) | ChatGPT-style UI with agents, MCP, code interpreter (MongoDB + Redis) |
-| [**stacks/litellm**](stacks/litellm/README.md) | OpenAI-compatible LLM proxy (Ollama + cloud providers; virtual keys optional with Postgres) |
-| [**stacks/lanraragi**](stacks/lanraragi/README.md) | Tag-based comic/manga archive manager (CBR, CBZ, PDF; plugins) |
-| [**stacks/lidarr**](stacks/lidarr/README.md) | Music collection manager for Usenet and torrents (Lidarr) |
-| [**stacks/linkstack**](stacks/linkstack/README.md) | Self-hosted link-in-bio page (Linktree-style: one URL with your links) |
-| [**stacks/linkwarden**](stacks/linkwarden/README.md) | Bookmark manager and link aggregator |
-| [**stacks/linkding**](stacks/linkding/README.md) | Lightweight bookmark manager (tags, import, API) |
-| [**stacks/loki**](stacks/loki/README.md) | Log aggregation (Loki); add as Grafana data source |
-| [**stacks/logseq-sync**](stacks/logseq-sync/README.md) | Community Logseq sync backend (experimental; see README) |
-| [**stacks/maigret**](stacks/maigret/README.md) | OSINT: collect a dossier by homelab-user from thousands of sites (web UI, HTML/PDF/XMind reports) |
-| [**stacks/mailpit**](stacks/mailpit/README.md) | Local SMTP catcher for dev/testing – catches all mail, no external delivery (use with Postfix for internal-only) |
-| [**stacks/mattermost**](stacks/mattermost/README.md) | Team chat and collaboration platform with PostgreSQL backend |
-| [**stacks/mealie**](stacks/mealie/README.md) | Recipe manager and meal planner |
-| [**stacks/meilisearch**](stacks/meilisearch/README.md) | Fast search engine (API, typo tolerance, faceting) |
-| [**stacks/minio**](stacks/minio/README.md) | S3-compatible object storage (backups, app uploads, Outline/Firefly backend) |
-| [**stacks/metagoofil**](stacks/metagoofil/README.md) | OSINT: download documents and extract metadata (users, paths, versions) via search engines |
-| [**stacks/metube**](stacks/metube/README.md) | Self-hosted yt-dlp web GUI with playlist support and download queue (MeTube) |
-| [**stacks/mylar3**](stacks/mylar3/README.md) | Automated comic downloader (Usenet/torrents); pair with Komga for library |
-| [**stacks/mosquitto**](stacks/mosquitto/README.md) | MQTT broker for Home Assistant, Zigbee2MQTT, Node-RED (port 1883) |
-| [**stacks/n8n**](stacks/n8n/README.md) | Workflow automation (Zapier/Make-style, self-hosted) |
-| [**stacks/naisho**](stacks/naisho/README.md) | Send data deletion request emails to data brokers at once (Rails app; SMTP in UI) |
-| [**stacks/navidrome**](stacks/navidrome/README.md) | Personal music streaming server (Navidrome) – web UI and Subsonic-compatible apps |
-| [**stacks/nextcloud**](stacks/nextcloud/README.md) | Personal cloud storage, sync, calendar, contacts |
-| [**stacks/netbox**](stacks/netbox/README.md) | IPAM/DCIM (pointer stack – use netbox-docker upstream; document networks, devices) |
-| [**stacks/nodered**](stacks/nodered/README.md) | Low-code flow editor for automations (Node-RED) |
-| [**stacks/ntfy**](stacks/ntfy/README.md) | Push notifications (HTTP pub/sub; Android/iOS app, optional auth) |
-| [**stacks/ntopng**](stacks/ntopng/README.md) | Network traffic analytics (host networking; optional Caddy proxy to :3000) |
-| [**stacks/nzbget**](stacks/nzbget/README.md) | High-performance Usenet downloader (NZBGet) |
-| [**stacks/nzbhydra2**](stacks/nzbhydra2/README.md) | Meta search for Usenet indexers (Newznab-compatible API) |
-| [**stacks/ollama**](stacks/ollama/README.md) | Local LLM runtime (Ollama) with GPU support and configurable model storage |
-| [**stacks/onionprobe**](stacks/onionprobe/README.md) | Tor Onion Services monitoring (probe endpoints, Prometheus + Grafana + Alertmanager) |
-| [**stacks/onionscan**](stacks/onionscan/README.md) | CLI to investigate Tor hidden services (OnionScan; scans for opsec/misconfig, runs over Tor in container) |
-| [**stacks/open-notebook**](stacks/open-notebook/README.md) | Open-source Notebook LM alternative (SurrealDB + multi-provider AI) |
-| [**stacks/open-webui**](stacks/open-webui/README.md) | Self-hosted AI chat UI; Ollama model management and multi-provider support |
-| [**stacks/outline**](stacks/outline/README.md) | Team knowledge base / wiki; S3 (e.g. MinIO), optional IdP (Keycloak/authentik) |
-| [**stacks/paperless-ngx**](stacks/paperless-ngx/README.md) | Document management with OCR and search |
-| [**stacks/password-pusher**](stacks/password-pusher/README.md) | Password/secret sharing with view limits and expiration (Password Pusher) |
-| [**stacks/perplexica**](stacks/perplexica/README.md) | Privacy-focused AI answering engine (bundled SearxNG, optional Ollama) |
-| [**stacks/phoneinfoga**](stacks/phoneinfoga/README.md) | OSINT: phone number reconnaissance (country, carrier, line type, web footprints) with web UI/API |
-| [**stacks/picard**](stacks/picard/README.md) | MusicBrainz Picard metadata tagging and file organization UI for your music library |
-| [**stacks/plex**](stacks/plex/README.md) | Media server for movies, TV, and music (Plex) |
-| [**stacks/plaso**](stacks/plaso/README.md) | Digital forensics timeline (Plaso / log2timeline) – extract timestamps from evidence to CSV/timeline; CLI only |
-| [**portainer**](portainer/README.md) | Docker management UI (Portainer CE) |
-| [**stacks/postfix**](stacks/postfix/README.md) | SMTP relay for outbound mail from apps (Postfix) |
-| [**stacks/privatebin**](stacks/privatebin/README.md) | Encrypted pastebin (share text with expiration, no account) |
-| [**stacks/prometheus**](stacks/prometheus/README.md) | Metrics collection and storage |
-| [**stacks/promtail**](stacks/promtail/README.md) | Log shipper for Loki (host and Docker logs) |
-| [**stacks/privotron**](stacks/privotron/README.md) | CLI to automate data broker opt-outs (Playwright; profiles, skip list, parallel runs) |
-| [**stacks/prowlarr**](stacks/prowlarr/README.md) | Indexer manager/proxy for *arr apps (Usenet and torrent indexers) |
-| [**stacks/qbittorrent**](stacks/qbittorrent/README.md) | Torrent client behind VPN (Gluetun) for *arr automation; shared `torrents` network and `torrents_downloads` |
-| [**stacks/radarr**](stacks/radarr/README.md) | Movie collection manager for Usenet and torrents (Radarr) |
-| [**stacks/readarr**](stacks/readarr/README.md) | Book and audiobook collection manager for Usenet and torrents (Readarr) |
-| [**stacks/reconftw**](stacks/reconftw/README.md) | Automated recon framework orchestrating many tools (subdomains, ports, screenshots, Nuclei, etc.) |
-| [**stacks/restic**](stacks/restic/README.md) | Scheduled backups with restic (cron); target S3 e.g. MinIO; CLI-only stack |
-| [**stacks/romm**](stacks/romm/README.md) | ROM manager – scan, enrich, browse and play ROMs in-browser (EmulatorJS); metadata from IGDB, Screenscraper, etc. |
-| [**stacks/rtorrent-flood**](stacks/rtorrent-flood/README.md) | Manual torrent client (rTorrent) with Flood web UI |
-| [**stacks/searx-ng**](stacks/searx-ng/README.md) | Privacy-respecting metasearch engine |
-| [**stacks/scrutiny**](stacks/scrutiny/README.md) | SMART disk health dashboard – monitor drive health and alerts |
-| [**stacks/seafile**](stacks/seafile/README.md) | File sync and sharing (desktop/mobile clients); MariaDB + Memcached |
-| [**stacks/simplelogin**](stacks/simplelogin/README.md) | Email alias service (unlimited aliases, forward & reply anonymously, Bitwarden/1Password) |
-| [**stacks/shlink**](stacks/shlink/README.md) | Self-hosted URL shortener (API, redirects, analytics); manage via app.shlink.io or API |
-| [**stacks/slink**](stacks/slink/README.md) | Self-hosted image sharing (upload, collections, ShareX, S3/SMB) |
-| [**stacks/snipe-it**](stacks/snipe-it/README.md) | IT asset management – hardware, licenses, accessories (MariaDB; SMTP via Postfix) |
-| [**stacks/syncthing**](stacks/syncthing/README.md) | Continuous file sync across devices (no central server) |
-| [**stacks/social-hunt**](stacks/social-hunt/README.md) | OSINT framework: homelab-user search, breach lookups (HIBP/Snusbase), face match, reverse image |
-| [**stacks/sonarr**](stacks/sonarr/README.md) | TV series management for Usenet and torrents |
-| [**stacks/soulseek**](stacks/soulseek/README.md) | Soulseek client (slskd) with web UI and peer listening port |
-| [**stacks/spiderfoot**](stacks/spiderfoot/README.md) | Automated multi-source OSINT scanner with 180+ modules and a web UI |
-| [**stacks/stirling-pdf**](stacks/stirling-pdf/README.md) | PDF tools – merge, split, OCR, convert, watermark (web UI) |
-| [**stacks/stoat**](stacks/stoat/README.md) | Self-hosted Stoat chat platform (API, web, media, notifications, optional voice) |
-| [**stacks/sublist3r**](stacks/sublist3r/README.md) | Subdomain enumeration tool using multiple search engines and output to files |
-| [**stacks/super-productivity**](stacks/super-productivity/README.md) | Task/timeboxing productivity app served as a web UI |
-| [**stacks/theharvester**](stacks/theharvester/README.md) | OSINT: emails, hosts, and subdomains via multi-source recon (REST API variant) |
-| [**stacks/threat-dragon**](stacks/threat-dragon/README.md) | OWASP Threat Dragon – threat modeling (diagrams, STRIDE; save to GitHub/Bitbucket/GitLab) |
-| [**stacks/trilium**](stacks/trilium/README.md) | Hierarchical self-hosted notes and knowledge base (TriliumNext) |
-| [**stacks/torbot**](stacks/torbot/README.md) | OWASP TorBot – Dark Web OSINT crawler (.onion crawl, email extraction, link tree, JSON export; Tor in separate container) |
-| [**stacks/umami**](stacks/umami/README.md) | Privacy-focused web analytics (dashboard + lightweight tracker) |
-| [**stacks/uptime-kuma**](stacks/uptime-kuma/README.md) | Status page and monitoring |
-| [**stacks/vaultwarden**](stacks/vaultwarden/README.md) | Lightweight Bitwarden-compatible password manager |
-| [**stacks/vector**](stacks/vector/README.md) | Log shipper – host and container logs to Loki for Grafana |
-| [**stacks/vikunja**](stacks/vikunja/README.md) | Tasks, lists, and projects (optional CalDAV) |
-| [**stacks/wireguard**](stacks/wireguard/README.md) | Remote access VPN server (LinuxServer WireGuard; UDP 51820) |
-| [**stacks/woodpecker-ci**](stacks/woodpecker-ci/README.md) | Lightweight CI/CD (server + agent); integrate with Gitea |
-| [**stacks/watchtower**](stacks/watchtower/README.md) | Automatic container image updates (nickfedor fork, Docker 29+) |
-| [**stacks/web-check**](stacks/web-check/README.md) | OSINT and website analysis tool |
-| [**stacks/whisparr**](stacks/whisparr/README.md) | Adult movie collection manager for Usenet and torrents (Whisparr; thespad image) |
-| [**stacks/whisper-asr**](stacks/whisper-asr/README.md) | Whisper / faster-whisper HTTP transcription API (OpenAI-style ASR) |
-| [**stacks/yourls**](stacks/yourls/README.md) | Self-hosted URL shortener (YOURLS): short links, web UI, optional API |
-| [**stacks/zap**](stacks/zap/README.md) | OWASP ZAP – web/API security scanner (daemon + web UI; baseline/active scans; access via Caddy) |
-| [**stacks/zigbee2mqtt**](stacks/zigbee2mqtt/README.md) | Zigbee-to-MQTT bridge for Home Assistant and other automation (web UI via Caddy) |
+|---|---|
+| [**acquire**](stacks/acquire/README.md) | Gather forensic artifacts from disk images or a live system into a single archive. [Acquire](https://docs.dissect.tools/en/stable/projects/acquire/index.html) uses the [Dissect](https://dissect.tools/) framework: it collects modules (paths/globs) by profile (`full`, `default`, `minimal`, `none`) and outputs a lightweight container for triage. Supports VMDK, E01, and other formats via Dissect; optional volatile (memory) collection. |
+| [**actual-budget**](stacks/actual-budget/README.md) | [Actual Budget](https://actualbudget.org/) is a local-first, open-source budgeting app with envelope-style budgeting and optional sync. This stack runs the **Actual sync server** so you can use the desktop/mobile app with cloud sync. No host ports; put it behind Caddy. |
+| [**adguard-home**](stacks/adguard-home/README.md) | Network-wide DNS-level ad and tracker blocking. Run AdGuard Home on your Docker host as the primary DNS server for your LAN and expose the web UI via Caddy. |
+| [**affine**](stacks/affine/README.md) | AFFiNE is a self-hosted collaborative knowledge workspace combining docs, whiteboards, and a knowledge graph in one app. |
+| [**afl-libfuzzer**](stacks/afl-libfuzzer/README.md) | Coverage-guided fuzzing toolbox (AFL++ and libFuzzer) for discovering crashes and vulnerabilities in binaries and libraries. |
+| [**ail**](stacks/ail/README.md) | `docker exec ail bin/LAUNCH.sh -rp` (If the image uses a different path, use the path to `LAUNCH.sh` inside the container.) |
+| [**ail-framework**](stacks/ail-framework/README.md) | `docker exec ail-framework bin/LAUNCH.sh -rp` (If the container name or path differs, adjust accordingly.) Then read the new password: `docker exec ail-framework cat /opt/AIL/DEFAULT_PASSWORD` This resets **`admin@admin.test`** (creates it if missing, or sets a new password if it already exists). It also writes a **new API key** for that user. If you had renamed the admin email, log in as **`admin@admin.test`** with the new password, then clean up duplicate users in the UI if needed. |
+| [**alertmanager**](stacks/alertmanager/README.md) | Prometheus Alertmanager for routing alerts (email, webhooks, chat, etc.) based on labels. Use it together with the Prometheus stack in this repo to turn metrics into actionable notifications. |
+| [**anything-llm**](stacks/anything-llm/README.md) | All-in-one **RAG workspace**: upload documents, build vector workspaces, and chat with **Ollama** (or other providers) using built-in **LanceDB**. |
+| [**appflowy**](stacks/appflowy/README.md) | AppFlowy self-hosting stack scaffold for Caddy/Portainer deployment. |
+| [**archisteamfarm**](stacks/archisteamfarm/README.md) | Steam card idling and automation. ASF runs in the background, optionally exposing a web IPC (API + ASF-ui) for management. Access via Caddy at **https://asf.yourdomain.com** (or your configured hostname). |
+| [**archivebox**](stacks/archivebox/README.md) | Self-hosted web archive: save full copies of web pages (HTML, screenshots, PDFs, and WARCs) from URLs, bookmarks, and feeds. |
+| [**asking**](stacks/asking/README.md) | Lightweight self-hosted strawpoll-style polling app with a Next.js frontend and Node.js API backed by PostgreSQL. |
+| [**asking-ng**](stacks/asking-ng/README.md) | Lightweight poll application (frontend + API + PostgreSQL) for homelab deployment. |
+| [**atomic-red-team**](stacks/atomic-red-team/README.md) | Atomic Red Team is a library of small, portable adversary-simulation tests mapped to MITRE ATT&CK techniques. |
+| [**audiobookshelf**](stacks/audiobookshelf/README.md) | Self-hosted podcast (and audiobook) server: subscribe to podcasts, stream or download episodes, sync progress across web and mobile apps. |
+| [**auth-fuzz**](stacks/auth-fuzz/README.md) | HTTP authentication fuzzer for testing login endpoints against wordlists and brute-force attack patterns. |
+| [**authentik**](stacks/authentik/README.md) | [authentik](https://goauthentik.io/) is an open-source identity provider and access management platform. It can act as an OIDC/OAuth2/SAML IdP for your other stacks (e.g. Outline, Grafana, Immich, Linkwarden) and integrates well with reverse proxies and Kubernetes/containers. |
+| [**auto-identity-remove**](stacks/auto-identity-remove/README.md) | Local LLM-powered PII redaction service. Accepts document uploads and returns redacted PDFs with personal information blacked out. Runs entirely on-prem — no data leaves the host. |
+| [**baserow**](stacks/baserow/README.md) | [Baserow](https://baserow.io/) is an open-source no-code database and spreadsheet (tables, views, API). This stack runs Baserow with embedded SQLite; for production or heavy use you can switch to Postgres (see [Baserow Docker docs](https://baserow.io/docs/installation/install-with-docker-compose)). No host ports; put it behind Caddy. |
+| [**bazarr**](stacks/bazarr/README.md) | Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatically searches for subtitles in your preferred languages and keeps them up to date for your TV and movie library. |
+| [**beszel**](stacks/beszel/README.md) | Lightweight server monitoring with Docker/Podman stats, historical metrics, and alerts. The **hub** is the web UI and API; **agents** run on each host you want to monitor ([Beszel](https://beszel.dev/), [GitHub](https://github.com/henrygd/beszel)). |
+| [**blackbird**](stacks/blackbird/README.md) | OSINT tool to search for accounts by homelab-user or email across many sites (Sherlock-like, with extended coverage and report export). Supports PDF/CSV reports and optional AI-based profiling. |
+| [**blackbox-exporter**](stacks/blackbox-exporter/README.md) | Prometheus Blackbox Exporter for probing endpoints over HTTP, TCP, and other protocols. Use it with Prometheus and Alertmanager to create synthetic checks (e.g. “can I reach my tunnel hostname from inside the homelab?”). |
+| [**bookstack**](stacks/bookstack/README.md) | [BookStack](https://www.bookstackapp.com/) is a simple, self-hosted wiki for storing documentation in books, chapters, and pages. This stack runs BookStack with MariaDB behind Caddy. No host ports; access via Caddy. |
+| [**caddy**](stacks/caddy/README.md) | Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.docker.internal`. Supports local DNS (e.g. AdGuard Home) and public access (Cloudflare Tunnel or port forwarding). |
+| [**cadvisor**](stacks/cadvisor/README.md) | Container resource metrics (CPU, memory, network, filesystem) for all containers on the host. Prometheus scrapes cAdvisor; Grafana displays the data (e.g. dashboard 893). |
+| [**calcom**](stacks/calcom/README.md) | Self-hosted open-source scheduling platform. Lets users share booking links, configure availability, and manage appointments without relying on Calendly or similar SaaS tools. Backed by PostgreSQL and Redis. |
+| [**calibre-web**](stacks/calibre-web/README.md) | Web UI for an existing Calibre library: browse, read, and download eBooks. Uses your Calibre database (`metadata.db`) and book files. Supports OPDS, optional ebook conversion (Docker mod), and Google OAuth. |
+| [**camofox-browser**](stacks/camofox-browser/README.md) | Anti-detection browser server for AI agents. Wraps Camoufox (a Firefox fork with C++-level fingerprint spoofing) in a REST API. Accessibility snapshots, stable element refs, session isolation, proxy support. |
+| [**clark-browser**](stacks/clark-browser/README.md) | Stealth Chromium for browser automation. Anti-fingerprinting patches compiled directly into Chromium source — not fragile JS shims. Exposes a CDP endpoint that Playwright connects to via connect_over_cdp(). |
+| [**cloudflare-tunnel**](stacks/cloudflare-tunnel/README.md) | Exposes services on your Docker host via Cloudflare—no port forwarding or dynamic IP. Traffic goes outbound from host → Cloudflare → your services. |
+| [**code-server**](stacks/code-server/README.md) | LinuxServer image **`lscr.io/linuxserver/code-server`**. No host config directory is required: settings and extensions persist in the Docker volume **`code_server_config`** mounted at **`/config`**. |
+| [**convertx**](stacks/convertx/README.md) | Self-hosted online file converter supporting **1000+ formats**: documents (LibreOffice, Pandoc), images (ImageMagick, Vips, HEIF, JPEG XL), video (FFmpeg), e-books (Calibre), 3D (Assimp), and more. Written with TypeScript, Bun and Elysia. |
+| [**cowrie**](stacks/cowrie/README.md) | Cowrie is a medium-to-high interaction SSH and Telnet honeypot that logs brute-force attacks and shell interaction. |
+| [**crowdsec**](stacks/crowdsec/README.md) | CrowdSec is a collaborative, open-source intrusion prevention system. It analyzes logs from your services, detects aggressive IPs and known attack patterns, and uses curated blocklists and community telemetry to help you block malicious traffic before it reaches your apps. |
+| [**cryptpad**](stacks/cryptpad/README.md) | End-to-end encrypted collaborative office tools (docs, sheets, kanban, forms, drive) behind Caddy. |
+| [**cups**](stacks/cups/README.md) | Self-hosted **CUPS** print server with a web admin UI, **IPP** sharing, and common Debian printer drivers. Suitable as a homelab “cloud print” hub: add printers in the UI, then point clients at `ipp://…` or install the queue via your OS print settings. |
+| [**databasus**](stacks/databasus/README.md) | Databasus is a lightweight self-hosted database management UI for browsing and querying SQL databases via a web interface. |
+| [**dbgate**](stacks/dbgate/README.md) | DbGate is an open-source database manager supporting MySQL, PostgreSQL, SQLite, MongoDB, and more via a web or desktop UI. |
+| [**ddns-updater**](stacks/ddns-updater/README.md) | Lightweight DDNS client that keeps **A** and **AAAA** records updated across [many DNS providers](https://github.com/qdm12/ddns-updater/blob/master/README.md). Includes a small **web UI** on port 8000, optional [Shoutrrr](https://github.com/nicholas-fedor/shoutrrr) notifications, and a built-in Docker healthcheck (DNS verification of your records). |
+| [**dependency-track**](stacks/dependency-track/README.md) | Software Composition Analysis (SCA) platform: upload SBOMs (CycloneDX, SPDX), track components, and get vulnerability alerts from NVD, OSS Index, GitHub Advisories, and more. [Dependency-Track](https://dependencytrack.org/) provides a web UI and REST API—no host ports; access via Caddy. |
+| [**dionaea-conpot**](stacks/dionaea-conpot/README.md) | Dionaea and ConPot are multi-protocol malware and industrial-control honeypots that capture exploits, payloads, and ICS/SCADA probe traffic. |
+| [**dispatcharr**](stacks/dispatcharr/README.md) | Dispatcharr is a self-hosted stream routing and EPG management tool for organizing IPTV channels and playlist sources. |
+| [**diun**](stacks/diun/README.md) | Docker image update notifier. Watches your running containers’ images and sends a notification when new tags are available (e.g. Telegram, Discord, webhook). Complements Watchtower: you see what changed before or after Watchtower pulls. No web UI; no Caddy reverse proxy needed. |
+| [**docker-forensics-toolkit**](stacks/docker-forensics-toolkit/README.md) | Post-mortem analysis of Docker runtime environments from forensic copies of a Docker host’s disk. [Docker Forensics Toolkit](https://github.com/docker-forensics-toolkit/toolkit) can mount host disk images, list containers/images, show configs and logs, mount container filesystems, and extract metadata for timeline analysis (e.g. with Sleuth Kit’s `mactime`). |
+| [**docker-gc**](stacks/docker-gc/README.md) | Garbage collector for Docker containers and images. Runs a one-shot cleanup against the Docker daemon on the host using the Docker socket. |
+| [**docuseal**](stacks/docuseal/README.md) | [DocuSeal](https://www.docuseal.co/) is an open-source platform for building PDF forms, collecting signatures, and sending signing links. This stack runs the official **DocuSeal** image with **PostgreSQL** behind Caddy (no published ports on the host). |
+| [**dozzle**](stacks/dozzle/README.md) | Real-time Docker container log viewer. One container, no database; uses the Docker socket to list containers and stream logs. Handy when debugging which service is failing without jumping between Portainer log tabs or `docker logs`. |
+| [**emby**](stacks/emby/README.md) | Media server for movies, TV shows, and music. Emby serves your library to web, mobile, and TV apps and supports hardware-accelerated transcoding. |
+| [**enclosed**](stacks/enclosed/README.md) | Minimal web app for sharing **end-to-end encrypted** notes and files: the server only stores ciphertext (similar idea to PrivateBin / Bitwarden Send). |
+| [**ersatztv**](stacks/ersatztv/README.md) | ErsatzTV is a self-hosted virtual cable TV server that creates linear TV channels from your media library. |
+| [**explo**](stacks/explo/README.md) | [Explo](https://github.com/LumePart/Explo) is a scheduled discovery worker for self-hosted music systems. It fetches personalized recommendations (ListenBrainz) and requests tracks from YouTube and/or Soulseek into your library. |
+| [**firecrawl**](stacks/firecrawl/README.md) | Web scraping and crawling API that converts any website into LLM-ready markdown or structured data. |
+| [**firefly-iii**](stacks/firefly-iii/README.md) | [Firefly III](https://www.firefly-iii.org/) is a self-hosted personal finance manager for tracking accounts, transactions, budgets, and reports. |
+| [**flaresolverr**](stacks/flaresolverr/README.md) | Proxy server that solves Cloudflare and DDoS-GUARD browser challenges and returns HTML, cookies, and user-agent for use with other HTTP clients (for example *arr indexers or Jackett). |
+| [**flood**](stacks/flood/README.md) | Flood provides a web interface for the bundled rTorrent service. Both services share the `torrents_manual` download volume and rTorrent socket volume. |
+| [**freshrss**](stacks/freshrss/README.md) | Self-hosted RSS feed aggregator: subscribe to feeds, categories, star articles, and use extensions. Feedly-like experience with no account limits. |
+| [**ghunt**](stacks/ghunt/README.md) | OSINT framework for investigating Google accounts and assets: emails, Gaia IDs, Drive files, BSSIDs, and Digital Asset Links. Provides CLI modules with JSON export and requires a one-time login using the GHunt Companion browser extension. |
+| [**gitea**](stacks/gitea/README.md) | [Gitea](https://about.gitea.com/) is a lightweight, self-hosted Git service with a web UI, issue tracking, and basic CI integrations. |
+| [**gitlab**](stacks/gitlab/README.md) | GitLab is a self-hosted DevSecOps platform providing Git repositories, CI/CD pipelines, issue tracking, and a container registry. |
+| [**gitlab-runners**](stacks/gitlab-runners/README.md) | GitLab Runners are CI/CD job execution agents that connect to a GitLab instance and run pipeline jobs in isolated containers. |
+| [**glance**](stacks/glance/README.md) | [Glance](https://github.com/glanceapp/glance) is a lightweight dashboard for RSS, weather, markets, Docker status, custom widgets, and more. Configuration is YAML (`config/glance.yml`). This stack runs Glance behind Caddy on the shared `monitor` network; there are no host port bindings. |
+| [**gluetun**](stacks/gluetun/README.md) | Outbound VPN client so **specific containers** can use a commercial VPN without putting the whole host behind it. Other stacks attach with `network_mode: service:gluetun` (e.g. the qbittorrent stack uses its own Gluetun instance; this stack is for a shared or alternate VPN client). |
+| [**gotenberg**](stacks/gotenberg/README.md) | Gotenberg is a stateless API microservice for converting HTML, Markdown, Office documents, and URLs to PDF using headless Chrome and LibreOffice. |
+| [**grafana**](stacks/grafana/README.md) | Dashboard and visualization for Prometheus (and other datasources). Use with the Prometheus and cAdvisor stacks for host and container metrics. |
+| [**grafana-alloy**](stacks/grafana-alloy/README.md) | Grafana Alloy collects Docker container logs and ships them to Loki, and exposes self-observability metrics for Prometheus to scrape. |
+| [**guacamole**](stacks/guacamole/README.md) | Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible entirely through a modern HTML5 web browser—no client software required. Once deployed, you reach all your configured desktops and servers via a single Guacamole web UI. |
+| [**handbrake**](stacks/handbrake/README.md) | HandBrake is an open-source video transcoder that converts video files between formats and compresses media. |
+| [**harbor**](stacks/harbor/README.md) | [Harbor](https://goharbor.io/) is a cloud-native container registry providing policies, RBAC, replication, scanning, and a web UI. Harbor is normally installed using its own installer, which generates a dedicated `docker-compose.yml` and `harbor.yml` config. |
+| [**hashcat**](stacks/hashcat/README.md) | Hashcat is the world's fastest and most advanced password recovery utility supporting hundreds of hash types. |
+| [**headscale**](stacks/headscale/README.md) | Self-hosted implementation of the Tailscale control server. Lets you run your own Tailscale-style mesh VPN and use Tailscale clients (or headscale-specific options) to connect. |
+| [**hedgedoc**](stacks/hedgedoc/README.md) | [HedgeDoc](https://hedgedoc.org/) is a collaborative markdown editor for real-time note taking and documentation, similar to HackMD. This stack runs HedgeDoc with Postgres behind Caddy. |
+| [**holehe**](stacks/holehe/README.md) | Holehe checks if an email address is registered on many websites using their “forgot password” flows, without sending emails to the target. This stack wraps the **holehe-web** FastAPI app to provide a simple web UI and CSV export. |
+| [**homarr**](stacks/homarr/README.md) | [Homarr](https://homarr.dev/) is a dashboard for your homelab: add links to your services, widgets (Docker, Uptime Kuma, etc.), and optional integrations. This stack runs Homarr behind Caddy. No host ports; access via Caddy. |
+| [**home-assistant**](stacks/home-assistant/README.md) | Home automation hub for integrating lights, sensors, switches, and other devices. This stack runs Home Assistant in Docker with persistent config and exposes the web UI via Caddy. |
+| [**homepage**](stacks/homepage/README.md) | Static **landing page** (e.g. “under construction”) for your root domain or a dedicated hostname. One nginx container serves files from `./www`; no database or app logic. Replace the default `www/index.html` with your own content when you are ready. |
+| [**immich**](stacks/immich/README.md) | Self-hosted photo and video backup: upload from phones and the web, face detection, search, and albums. |
+| [**infisical**](stacks/infisical/README.md) | Self-hosted secrets manager for API keys, environment variables, and config. Sync secrets to apps, CI/CD, and CLI. Open-source alternative to Doppler, Vault (simpler), and env vaults. |
+| [**influxdb**](stacks/influxdb/README.md) | InfluxDB is an open-source time-series database optimized for storing metrics, events, and analytics data. |
+| [**it-tools**](stacks/it-tools/README.md) | Collection of handy online tools for developers, with great UX. A comprehensive set of utilities for developers and IT professionals. |
+| [**jellyfin**](stacks/jellyfin/README.md) | Open-source media server for movies, TV shows, and music. Jellyfin serves your media library to web, mobile, and TV apps with no proprietary cloud dependency. |
+| [**jellystat**](stacks/jellystat/README.md) | [Jellystat](https://github.com/CyferShepard/Jellystat) is a free, open-source statistics app for [Jellyfin](https://jellyfin.org/) (session monitoring, libraries, watch history, and related metrics). This stack runs the official [Docker image](https://hub.docker.com/r/cyfershepard/jellystat) with a dedicated PostgreSQL instance. |
+| [**joplin-server**](stacks/joplin-server/README.md) | [Joplin Server](https://joplinapp.org/help/server/) is the official synchronization backend for Joplin note-taking clients. This stack runs Joplin Server with Postgres behind Caddy. |
+| [**kali**](stacks/kali/README.md) | Kali Linux is a Debian-based distribution packed with offensive security and penetration testing tools. |
+| [**kasm**](stacks/kasm/README.md) | Container streaming platform for **browser-based access to desktops and applications**. Delivers on-demand, disposable Docker containers (Remote Browser Isolation, DaaS, secure remote access) streamed to the web—no client software or VPN required. Powered by KasmVNC. |
+| [**kavita**](stacks/kavita/README.md) | Comics, manga, and eBook server with a built-in web reader, OPDS support, and reading progress. Single app for mixed libraries (CBZ, CBR, EPUB, etc.). Can run alongside Komga and Calibre-Web or replace one of them depending on preference. |
+| [**keycloak**](stacks/keycloak/README.md) | [Keycloak](https://www.keycloak.org/) is an open-source identity and access management solution. It provides SSO, identity brokering, and user management, and can act as an OpenID Connect / OAuth 2.0 / SAML IdP for your other stacks (e.g. Outline, Grafana, Immich, Linkwarden). |
+| [**kokoro-tts**](stacks/kokoro-tts/README.md) | Open **https://kokoro-tts.home/web** (or your internal hostname) to try voices. API base on Docker: **`http://kokoro-tts:8880/v1`** with a dummy API key (e.g. `not-needed`). Add your own public `site` in Caddy only if you intentionally expose TTS on the Internet. |
+| [**kometa**](stacks/kometa/README.md) | Kometa (formerly Plex Meta Manager) is a tool that automatically manages Plex library metadata, overlays, and collections. |
+| [**komga**](stacks/komga/README.md) | Self-hosted comics and manga server: organize, browse, and read CBZ, CBR, PDF, and EPUB in the browser. OPDS support for apps like Tachiyomi; multi-user with reading progress and library-level permissions. |
+| [**lanraragi**](stacks/lanraragi/README.md) | Tag-based comic and manga archive manager. Upload or drop CBR, CBZ, PDF, and other archives; organize with namespaced tags and plugins for metadata. Good for large, tag-heavy libraries (e.g. doujinshi, manga). Reads from archives without extracting. |
+| [**librechat**](stacks/librechat/README.md) | Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code interpreter, and more. |
+| [**lidarr**](stacks/lidarr/README.md) | Music collection manager for Usenet and torrents. Lidarr tracks artists and albums, grabs them from NZB/torrent indexers, and keeps your library organized. |
+| [**linkding**](stacks/linkding/README.md) | [Linkding](https://linkding.link/) is a simple, self-hosted bookmark manager with tags, full-text search, and import (Netscape bookmarks, etc.). This stack runs Linkding behind Caddy. No host ports; access via Caddy. |
+| [**linkstack**](stacks/linkstack/README.md) | Self-hosted **link-in-bio** page (Linktree-style): one URL that shows your profile and a list of links (social, projects, etc.). Customizable themes, optional multi-user, no database required—data lives in the container volume. |
+| [**linkwarden**](stacks/linkwarden/README.md) | Self-hosted bookmark manager and link aggregator: save links, archive pages, organize with collections, full-text search. |
+| [**litellm**](stacks/litellm/README.md) | OpenAI-compatible **LLM proxy** for Ollama, OpenAI, Anthropic, Azure, and [many other providers](https://docs.litellm.ai/docs/providers). |
+| [**logseq-sync**](stacks/logseq-sync/README.md) | This stack is a thin wrapper around the community [logseq-sync](https://github.com/bcspragu/logseq-sync) backend implementation. It is **experimental** and not an official Logseq product. Integration with the Logseq clients may require code modifications or custom builds; see the upstream repository for current status and instructions. |
+| [**loki**](stacks/loki/README.md) | [Loki](https://grafana.com/oss/loki/) is a log aggregation system from Grafana, optimized for storing and querying logs with Prometheus-style labels. This stack runs a single-node Loki instance. Deploy **Promtail** (`stacks/promtail`) separately to ship host and container logs to Loki. |
+| [**maigret**](stacks/maigret/README.md) | OSINT tool: collect a dossier on a person **by homelab-user only**, checking thousands of sites and gathering available info from profile pages. No API keys. Fork of Sherlock with profile parsing, recursive search, and report export (HTML, PDF, XMind). |
+| [**mailpit**](stacks/mailpit/README.md) | Local **SMTP catcher** for development and testing. Receives all mail on port 1025 and displays it in a web UI (port 8025). No external delivery—ideal for internal-only mailing when combined with the Postfix relay. |
+| [**maloja**](stacks/maloja/README.md) | Maloja is a self-hosted music scrobble server that tracks your listening history and provides statistics. |
+| [**matomo**](stacks/matomo/README.md) | Matomo is a self-hosted, privacy-respecting web analytics platform that gives you full ownership of your data. |
+| [**mattermost**](stacks/mattermost/README.md) | Self-hosted team chat and collaboration with PostgreSQL backend, proxied by Caddy. |
+| [**mealie**](stacks/mealie/README.md) | Self-hosted recipe manager and meal planner: import recipes from URLs, plan meals, generate shopping lists, and organize cookbooks. |
+| [**meilisearch**](stacks/meilisearch/README.md) | [Meilisearch](https://www.meilisearch.com/) is a fast, typo-tolerant search engine with an HTTP API. Use it as a search backend for your apps or custom UIs. This stack runs Meilisearch behind Caddy. No host ports; access via Caddy. |
+| [**metagoofil**](stacks/metagoofil/README.md) | OSINT tool for extracting metadata from publicly available documents (PDF, DOC, XLS, PPT, etc.) discovered via Google. Downloads files for a given domain and can reveal homelab-users, software versions, paths, and other metadata. No upstream Docker image; built from source. |
+| [**metube**](stacks/metube/README.md) | Self-hosted web GUI for `yt-dlp`/`youtube-dl` with playlist support and a download queue. Lets you send video URLs from your browser and download them as video or audio to your homelab storage. |
+| [**minio**](stacks/minio/README.md) | [MinIO](https://min.io/) is a high-performance, S3-compatible object store. Use it as a backend for backups (e.g. the `restic` stack), application uploads, logs, and other large objects. |
+| [**mosquitto**](stacks/mosquitto/README.md) | Lightweight MQTT broker for Home Assistant, Zigbee2MQTT, Node-RED, and other IoT/automation clients. |
+| [**mylar3**](stacks/mylar3/README.md) | Automated comic book downloader (CBR/CBZ) for Usenet and torrents. Tracks series, fetches new issues via NZBGet or qBittorrent, and organizes them into a comics folder. Pair with **Komga** by pointing Komga’s library at the same path as Mylar3’s completed comics (e.g. `/comics` or a bind-mounted host path). |
+| [**n8n**](stacks/n8n/README.md) | Workflow automation: connect apps, APIs, and services with a visual editor. Self-hosted alternative to Zapier/Make. Uses SQLite by default (data in Docker volume); optional Postgres for scaling. |
+| [**naisho**](stacks/naisho/README.md) | Send personal data deletion request emails to hundreds of data brokers at once. Free, open-source Rails app: you compose your request, pick which companies to contact, and Naisho sends the emails via SMTP. |
+| [**navidrome**](stacks/navidrome/README.md) | Self-hosted music streaming server: index your music library and stream it from anywhere with a modern web UI and Subsonic-compatible mobile apps (Android/iOS, desktop players, etc.). Navidrome is lightweight, fast, and handles very large libraries. |
+| [**netbird**](stacks/netbird/README.md) | Self-hosted [NetBird](https://netbird.io/) control plane: WireGuard-based mesh VPN with a web dashboard, embedded identity (Dex), and combined management/signal/relay in one server image ([NetBird Docs](https://docs.netbird.io/selfhosted/selfhosted-quickstart)). |
+| [**netboot.xyz**](stacks/netboot.xyz/README.md) | netboot.xyz is a network boot utility that lets you PXE-boot into dozens of OS installers and live environments from a single menu. |
+| [**netbox**](stacks/netbox/README.md) | NetBox is an IPAM (IP address management) and DCIM (data center infrastructure management) tool for documenting networks, devices, racks, and circuits. The recommended Docker deployment is maintained in the **netbox-docker** project. |
+| [**netexec**](stacks/netexec/README.md) | NetExec (formerly CrackMapExec) is a network pentesting framework for enumerating and attacking Active Directory and network services. |
+| [**nextcloud**](stacks/nextcloud/README.md) | [Nextcloud](https://nextcloud.com/) is a self-hosted file sync and sharing platform with support for calendar, contacts, tasks, and many apps. This stack runs Nextcloud behind Caddy with Postgres and Redis. |
+| [**node-exporter**](stacks/node-exporter/README.md) | Prometheus Node Exporter for host-level metrics (CPU, memory, disk, network). Use with Prometheus and Grafana (e.g. dashboard **1860** – Node Exporter Full). |
+| [**node-red**](stacks/node-red/README.md) | Node-RED is a **flow-based, low-code programming tool** for wiring together hardware devices, APIs, and online services. It lets you build automations as drag‑and‑drop flows that react to events, timers, webhooks, MQTT messages, and more. |
+| [**nodepad**](stacks/nodepad/README.md) | Spatial, AI-augmented thinking canvas ([nodepad](https://github.com/mskayyali/nodepad)) — notes on a canvas with automatic classification and connections. **API keys are stored only in the browser** (per upstream); the container just serves the Next.js UI. |
+| [**ntfy**](stacks/ntfy/README.md) | [ntfy](https://ntfy.sh/) is a simple HTTP-based pub-sub notification service. Send push notifications via PUT/POST; use the Android/iOS app or curl to subscribe. This stack runs ntfy behind Caddy. No host ports; access via Caddy. |
+| [**ntopng**](stacks/ntopng/README.md) | Network traffic analytics and flow monitoring. This stack runs ntopng with host networking so it can observe traffic on the Docker host’s interfaces. |
+| [**nut-server**](stacks/nut-server/README.md) | Self-hosted NUT server (`upsd`) for exposing UPS status to LAN clients and monitoring tools. |
+| [**nzbget**](stacks/nzbget/README.md) | High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet providers and integrates with automation tools like Sonarr, Radarr, Lidarr, and Prowlarr. |
+| [**nzbhydra2**](stacks/nzbhydra2/README.md) | Meta search for Usenet indexers. NZBHydra 2 aggregates results from multiple NZB indexers, normalizes them, and exposes a Newznab-compatible API for apps like Sonarr, Radarr, Lidarr, and Prowlarr. |
+| [**oasis**](stacks/oasis/README.md) | Self-hosted **file server** with user authentication, upload/download, search, previews (text, images, audio, video, PDF), media playlists, and shareable external links. Stack: Svelte frontend, Rust (Rocket) backend. |
+| [**ollama**](stacks/ollama/README.md) | Self-hosted Ollama instance with GPU support for running local LLMs. |
+| [**ombi**](stacks/ombi/README.md) | Ombi is a self-hosted media request and user management tool for Plex, Jellyfin, and Emby. |
+| [**onionprobe**](stacks/onionprobe/README.md) | Tor Onion Services monitoring: continuously probes a set of onion endpoints, exports metrics to Prometheus, and provides Grafana dashboards and Alertmanager alerts. Uses the [official Tor Project Onionprobe](https://onionservices.torproject.org/apps/web/onionprobe/) stack with service names prefixed so it does not clash with your existing Prometheus/Grafana. |
+| [**onionscan**](stacks/onionscan/README.md) | CLI tool for investigating Tor hidden services (onion sites). Scans for operational security issues and misconfigurations (e.g. mod_status, directory listings, EXIF, server fingerprinting). Useful for hidden-service operators and researchers. |
+| [**open-notebook**](stacks/open-notebook/README.md) | An open source, privacy-focused alternative to Google's Notebook LM with support for multiple AI providers. |
+| [**open-webui**](stacks/open-webui/README.md) | Extensible, feature-rich, and user-friendly self-hosted AI platform designed to operate entirely offline. Supports Ollama and OpenAI-compatible APIs. |
+| [**opengist**](stacks/opengist/README.md) | OpenGist is a self-hosted Gist service backed by Git, providing paste/snippet sharing with syntax highlighting. |
+| [**openspeedtest**](stacks/openspeedtest/README.md) | OpenSpeedTest is a self-hosted HTML5 network speed test tool that runs entirely in the browser. |
+| [**outline**](stacks/outline/README.md) | [Outline](https://www.getoutline.com/) is a modern, collaborative knowledge base and wiki. This stack runs Outline with Postgres, Redis, and S3-compatible storage (e.g. the `minio` stack) behind Caddy, and is designed to integrate with an external IdP such as Keycloak or authentik. |
+| [**paperless-ai-next**](stacks/paperless-ai-next/README.md) | AI-assisted classification and OCR rescue workflows for `paperless-ngx`. |
+| [**paperless-gpt**](stacks/paperless-gpt/README.md) | LLM and OCR augmentation service for `paperless-ngx`. |
+| [**paperless-ngx**](stacks/paperless-ngx/README.md) | Document management: scan, OCR, and search your paperwork. |
+| [**password-pusher**](stacks/password-pusher/README.md) | Secure password and secret sharing: create shareable links with **view limits** and **expiration**. Recipients see the secret once (or a set number of times), then the link expires. Optional passphrase for extra protection. |
+| [**peanut**](stacks/peanut/README.md) | PeaNUT is a self-hosted web dashboard for monitoring UPS devices via Network UPS Tools (NUT). |
+| [**perplexica**](stacks/perplexica/README.md) | Privacy-focused AI-powered answering engine that combines web search with AI models for cited answers. This stack runs Perplexica behind Caddy on the shared `monitor` network with no published host ports. |
+| [**pgadmin**](stacks/pgadmin/README.md) | pgAdmin 4 is the leading open-source web-based administration and development platform for PostgreSQL. |
+| [**phoneinfoga**](stacks/phoneinfoga/README.md) | Phone number OSINT tool: looks up basic information about a phone number (country, carrier, line type, VOIP or mobile) and searches for web footprints using multiple search engines and sources. Exposes a web UI and REST API. |
+| [**picard**](stacks/picard/README.md) | MusicBrainz Picard is an advanced music tagger and organizer. This stack provides a browser-accessible Picard UI and mounts both your main library and a staging import directory so you can review, tag, and move files into your canonical music tree. |
+| [**pihole**](stacks/pihole/README.md) | This stack runs Pi-hole for network-wide ad blocking and DNS filtering in Docker. |
+| [**plaso**](stacks/plaso/README.md) | Digital forensics timeline tool. [Plaso](https://plaso.readthedocs.io/) (log2timeline) extracts timestamps from disk images, directories, and evidence files into a single timeline; `psort` writes that to CSV, JSON, or other formats. Use for incident response, artifact analysis, and timeline reconstruction. |
+| [**plex**](stacks/plex/README.md) | Self-hosted media server for movies, TV shows, and music. Plex serves your media library to web, mobile, TV apps, and other clients. |
+| [**pocketbase**](stacks/pocketbase/README.md) | PocketBase is an open-source backend-as-a-service with a built-in SQLite database, auth, and admin UI. |
+| [**postfix**](stacks/postfix/README.md) | Central **SMTP relay ("null client")** for your Docker stacks, based on [`boky/postfix`](https://github.com/bokysan/docker-postfix). Apps send mail to this container; it then relays via your real mail provider (SES, Mailgun, SMTP relay from your ISP, etc.). |
+| [**posthog**](stacks/posthog/README.md) | [PostHog](https://posthog.com/) is product analytics, session replay, feature flags, and experimentation. The **hobby** deployment is PostHog’s supported Docker Compose layout (Postgres, ClickHouse, Kafka, Temporal, MinIO, SeaweedFS, workers, and an **internal Caddy** `proxy` service that routes traffic to `web`, capture, livestream, etc.). |
+| [**postiz**](stacks/postiz/README.md) | Postiz is an open-source social media scheduling and management platform supporting multiple networks. |
+| [**presidio**](stacks/presidio/README.md) | Microsoft Presidio is a data protection and PII detection/anonymization API for text and images. |
+| [**privatebin**](stacks/privatebin/README.md) | Encrypted pastebin: share text snippets with optional expiration and password. No account required; pastes are encrypted in the browser before upload. |
+| [**privotron**](stacks/privotron/README.md) | CLI tool to automate opting out of data brokers. Uses Playwright to fill opt-out forms so you don't have to do it by hand. Tracks which brokers you've already opted out from via profiles. No upstream Docker image; built from source. |
+| [**prometheus**](stacks/prometheus/README.md) | Metrics collection and storage. Scrapes cAdvisor (container metrics), optional Watchtower `/v1/metrics`, and itself. Grafana uses Prometheus as a datasource for dashboards. |
+| [**promtail**](stacks/promtail/README.md) | [Promtail](https://grafana.com/docs/loki/latest/clients/promtail/) is the log-shipping agent for Loki. It tails log files on the host and pushes them to a Loki instance. Deploy this stack **after** the Loki stack so logs are available in Grafana (Explore → Loki). |
+| [**prowlarr**](stacks/prowlarr/README.md) | Indexer manager and proxy for Usenet and torrents. Prowlarr manages indexers centrally and syncs them to Sonarr, Radarr, Lidarr, Readarr, and other *arr apps. |
+| [**pwntools-gdb**](stacks/pwntools-gdb/README.md) | pwntools + GDB/pwndbg is a containerized CTF and exploit-development environment with Python pwntools and a patched GDB. |
+| [**qbittorrent**](stacks/qbittorrent/README.md) | Torrent client with **all traffic routed through a VPN** (Gluetun). Intended for **automated torrents** from Sonarr/Radarr/Lidarr/Readarr. The stack uses the shared `torrents` network and `torrents_downloads` volume so *arr apps can send torrents to qBittorrent and read completed files. |
+| [**rackula**](stacks/rackula/README.md) | Rackula is a static site generator that turns a Rack-compatible Ruby app into a static website. |
+| [**radarr**](stacks/radarr/README.md) | Movie collection manager for Usenet and torrents. Radarr monitors your wanted movies, grabs releases from NZB/torrent indexers, sends them to download clients, and organizes the resulting files. |
+| [**readarr**](stacks/readarr/README.md) | Book and audiobook collection manager for Usenet and torrents. Readarr monitors authors and series, grabs releases from indexers, and organizes your book library. |
+| [**reconftw**](stacks/reconftw/README.md) | Automated recon framework that orchestrates many tools (subdomain enumeration, port scanning, screenshots, Nuclei, directory fuzzing, OSINT, etc.) into a single workflow. Designed for offensive recon and bug bounty style asset discovery. |
+| [**resilio**](stacks/resilio/README.md) | Resilio Sync (formerly BitTorrent Sync) is a peer-to-peer file synchronization tool for homelab and private file sharing. |
+| [**responder-mitm6**](stacks/responder-mitm6/README.md) | Responder and mitm6 are network penetration testing tools for LLMNR/NBT-NS/WPAD poisoning and IPv6 MitM attacks. |
+| [**restic**](stacks/restic/README.md) | Automated backups using [restic](https://restic.readthedocs.io/) running on a schedule, typically targeting an S3-compatible object store such as the `minio` stack in this repo. |
+| [**romm**](stacks/romm/README.md) | Self-hosted ROM manager: scan, enrich with metadata, browse, and play games in the browser via EmulatorJS. Supports 400+ platforms, multi-disk games, mods, and optional metadata from IGDB, Screenscraper, MobyGames, SteamGridDB, and RetroAchievements. |
+| [**rtorrent**](stacks/rtorrent/README.md) | Standalone rTorrent service for manual torrent downloads. It stores session state in `rtorrent_data` and downloads in the shared external `torrents_manual` volume. |
+| [**rtorrent-flood**](stacks/rtorrent-flood/README.md) | Manual torrent stack for **hand‑curated torrents from private trackers**. Uses the LinuxServer.io `rtorrent-flood` image, which bundles the rTorrent daemon with the Flood web UI. |
+| [**rustdesk**](stacks/rustdesk/README.md) | Self-hosted **ID / rendezvous** (`hbbs`) and **relay** (`hbbr`) for [RustDesk](https://rustdesk.com) remote desktop. Traffic stays on infrastructure you control; clients use your public hostname or IP with the ports below. |
+| [**rustfs**](stacks/rustfs/README.md) | RustFS is a high-performance, S3-compatible object storage server written in Rust. |
+| [**rutorrent**](stacks/rutorrent/README.md) | LinuxServer.io ruTorrent deployment with persistent configuration and the shared `torrents_manual` download volume. |
+| [**scrutiny**](stacks/scrutiny/README.md) | [Scrutiny](https://github.com/AnalogJ/scrutiny) provides a web UI and alerting for disk SMART metrics. It helps you monitor drive health and catch failing disks early. |
+| [**scrypted**](stacks/scrypted/README.md) | Scrypted is a home automation and camera management platform with AI-powered plugins for smart home integration. |
+| [**seafile**](stacks/seafile/README.md) | [Seafile](https://www.seafile.com/) is a self-hosted file sync and sharing platform with desktop and mobile clients. This stack runs Seafile with MariaDB and Memcached behind Caddy. |
+| [**searx-ng**](stacks/searx-ng/README.md) | Privacy-respecting metasearch engine. Aggregates results from multiple search engines. |
+| [**seerr**](stacks/seerr/README.md) | [Seerr](https://seerr.dev/) is an open-source media discovery and request manager. It works with **Jellyfin**, **Plex**, or **Emby**, and forwards approved requests to **Radarr** and **Sonarr**. |
+| [**shlink**](stacks/shlink/README.md) | Self-hosted **URL shortener**: short links, redirects, REST API, visit analytics, and optional geolocation. Use the web UI at [app.shlink.io](https://app.shlink.io) (add your server URL and API key) or self-host the web client. Separate from YOURLS (which lives at `urls.yourdomain.com` in this repo); Shlink is at `short.yourdomain.com`. |
+| [**simplelogin**](stacks/simplelogin/README.md) | Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that forward to your real inbox. Reply anonymously, block spam per alias, integrate with Bitwarden/1Password. Self-hosted fork of the Proton-owned SimpleLogin app. |
+| [**slink**](stacks/slink/README.md) | Self-hosted **image sharing** platform: upload images (PNG, JPG, WEBP, SVG, AVIF, HEIC, etc.), create collections, share links, ShareX integration, optional guest uploads. Built with Symfony and SvelteKit. |
+| [**snipe-it**](stacks/snipe-it/README.md) | IT asset management (hardware, software licenses, accessories, consumables). This stack runs Snipe-IT with a MariaDB backend and exposes the web UI via Caddy. |
+| [**snowflake-relay**](stacks/snowflake-relay/README.md) | Snowflake is a Tor pluggable transport proxy that helps censored users reach the Tor network via WebRTC. |
+| [**social-hunt**](stacks/social-hunt/README.md) | OSINT framework for homelab-user discovery across 500+ platforms, breach lookups (Have I Been Pwned, BreachVIP, Snusbase, LeakCheck), face matching, reverse image search, and optional AI demasking. Includes a web dashboard and CLI. |
+| [**sonarr**](stacks/sonarr/README.md) | TV series management for Usenet and torrents. Sonarr monitors your library, grabs new episodes from NZB/torrent indexers, sends them to your download clients, and organizes the resulting files. |
+| [**soulseek**](stacks/soulseek/README.md) | Self-hosted Soulseek client stack using [slskd](https://github.com/slskd/slskd): web UI, API, and background Soulseek connectivity in one container. |
+| [**spiderfoot**](stacks/spiderfoot/README.md) | Automated OSINT tool with 180+ modules for domains, IPs, emails, BTC addresses, homelab-users and more. Aggregates data from many sources (DNS, breaches, Shodan, GreyNoise, cloud buckets, social media, etc.) into a single web UI. |
+| [**stirling-pdf**](stacks/stirling-pdf/README.md) | [Stirling-PDF](https://www.stirlingpdf.com/) is a web-based PDF toolkit: merge, split, rotate, watermark, OCR, convert to/from images, and more. This stack runs Stirling-PDF behind Caddy. No host ports; access via Caddy. |
+| [**stoat**](stacks/stoat/README.md) | Self-hosted, user-first chat platform (channels, DMs, threads, media, voice) compatible with the official Stoat clients. This stack embeds the upstream `stoatchat/self-hosted` services but **does not expose any host ports** – all access goes through the main `caddy` reverse proxy in this homelab. |
+| [**sublist3r**](stacks/sublist3r/README.md) | Subdomain enumeration tool that discovers subdomains for a given domain using multiple search engines and techniques. Often used as a first step in recon workflows. |
+| [**super-productivity**](stacks/super-productivity/README.md) | Self-hosted productivity app (tasks, timeboxing, focus, and planning UI) served as a web app behind Caddy. |
+| [**syncthing**](stacks/syncthing/README.md) | [Syncthing](https://syncthing.net/) is a continuous file synchronization tool that keeps folders in sync across devices without a central server. |
+| [**tailscale-exporter**](stacks/tailscale-exporter/README.md) | tailscale-exporter is a Prometheus exporter that exposes Headscale node and network metrics. |
+| [**tautulli**](stacks/tautulli/README.md) | Tautulli is a monitoring and statistics tracker for Plex Media Server. |
+| [**terminus**](stacks/terminus/README.md) | [Terminus](https://github.com/usetrmnl/terminus) is the self-hosted API and web backend for [TRMNL](https://usetrmnl.com/) e-paper devices. This stack runs the official image with PostgreSQL, Valkey (Redis-compatible), and a Sidekiq worker, matching the upstream [compose.yml](https://github.com/usetrmnl/terminus/blob/main/compose.yml) layout adapted for Caddy (no published host ports on the app or data stores). |
+| [**theharvester**](stacks/theharvester/README.md) | Classic OSINT tool to collect emails, subdomains, hosts, open ports, and banners from multiple public sources (search engines, PGP servers, Shodan, etc.). This stack runs the **REST API** variant (`restfulharvest`) so you can query theHarvester over HTTP from other tools and scripts. |
+| [**thelounge**](stacks/thelounge/README.md) | The Lounge is a self-hosted, always-on IRC web client with persistent connection and multi-user support. |
+| [**threat-dragon**](stacks/threat-dragon/README.md) | Threat modeling tool: create diagrams, document threats (STRIDE, etc.), and optionally save models to GitHub, Bitbucket, or GitLab. [OWASP Threat Dragon](https://owasp.org/www-project-threat-dragon/) runs as a web app—no host ports; access via Caddy. |
+| [**tika**](stacks/tika/README.md) | Apache Tika is a content detection and extraction toolkit that parses text and metadata from hundreds of file types. |
+| [**torbot**](stacks/torbot/README.md) | Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. [OWASP TorBot](https://owasp.org/www-project-torbot/) project; upstream [DedSecInside/TorBot](https://github.com/DedSecInside/TorBot). **No official Docker image** — you must build from upstream once and set `TORBOT_IMAGE`, or use an image from your registry. |
+| [**trilium**](stacks/trilium/README.md) | TriliumNext Notes is a self-hosted hierarchical note-taking application with rich text, code blocks, and relation maps. |
+| [**twitch-drops-miner**](stacks/twitch-drops-miner/README.md) | This stack runs [TwitchDropsMiner](https://github.com/rangermix/TwitchDropsMiner) using Docker Compose. |
+| [**umami**](stacks/umami/README.md) | [Umami](https://umami.is/) is a self-hosted, privacy-focused web analytics dashboard. You add websites in the UI, embed a small `script.js` on pages you want to measure, and view traffic in Umami. |
+| [**unbound**](stacks/unbound/README.md) | Unbound is a validating, recursive, caching DNS resolver for private DNS resolution in your homelab. |
+| [**uptime-kuma**](stacks/uptime-kuma/README.md) | Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and more; supports many notification channels (Telegram, email, Discord, etc.). |
+| [**vaultwarden**](stacks/vaultwarden/README.md) | Lightweight, self-hosted password manager compatible with Bitwarden clients (browser extensions, mobile apps, CLI). |
+| [**vector**](stacks/vector/README.md) | Vector is a log collection and routing agent. This stack ships host and container logs to the existing Loki stack for centralized search and dashboards in Grafana. |
+| [**vikunja**](stacks/vikunja/README.md) | [Vikunja](https://vikunja.io/) is a self-hosted task and project manager (lists, kanban, Gantt, CalDAV). This stack runs Vikunja with SQLite behind Caddy. No host ports; access via Caddy. |
+| [**watchtower**](stacks/watchtower/README.md) | Automatically updates running containers when new images are available. Uses the Docker socket on the host. |
+| [**web-check**](stacks/web-check/README.md) | 🕵️‍♂️ All-in-one OSINT tool for analysing any website. Comprehensive, on-demand open source intelligence for any website. |
+| [**whisparr**](stacks/whisparr/README.md) | Adult movie collection manager for Usenet and torrents (Servarr family). Monitors indexers, sends grabs to download clients, and organizes files—same workflow as Radarr, separate library and metadata. |
+| [**whisper-asr**](stacks/whisper-asr/README.md) | For faster inference, switch the image to **`onerahmet/openai-whisper-asr-webservice:latest-gpu`**, set **`ASR_DEVICE=cuda`**, install the **NVIDIA Container Toolkit**, and add the same **`deploy.resources.reservations.devices`** NVIDIA block used in `stacks/ollama/docker-compose.yml`. |
+| [**wireguard**](stacks/wireguard/README.md) | Remote access VPN server so you can connect laptops and phones into your homelab over WireGuard. This stack runs the LinuxServer.io WireGuard image and exposes **UDP 51820** on the host. No HTTP UI; peer configs and QR codes are generated under the `wireguard_config` volume. |
+| [**woodpecker-ci**](stacks/woodpecker-ci/README.md) | [Woodpecker CI](https://woodpecker-ci.org/) is a lightweight, Docker-native CI/CD system. This stack runs a Woodpecker server and agent with Postgres, designed to integrate with your `gitea` stack as the Git provider. |
+| [**yourls**](stacks/yourls/README.md) | Self-hosted URL shortener: one app with web UI, API, and redirects. No path routing—Caddy just reverse-proxies the host to the container. |
+| [**zed-attack-proxy**](stacks/zed-attack-proxy/README.md) | Web application and API security scanner. This stack runs ZAP with the **Webswing UI and proxy**; access it through your browser or via ZAP desktop/scripts pointing at the proxy port via Caddy. |
+| [**zigbee2mqtt**](stacks/zigbee2mqtt/README.md) | Bridge Zigbee devices to MQTT so they can be used by Home Assistant, Node-RED, and other automation tools. |
+<!-- STACK_CATALOG_GENERATED_END -->
 
 Each stack has its own **README** with setup and usage; see also `portainer/README.md`.
 
@@ -414,7 +513,7 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/actual-budget** — optional `stack.env.example` → `stack.env` (e.g. `TZ`). No host ports; access via Caddy to actual-budget:5006. Set server URL in Actual desktop/mobile app to your Caddy hostname.
 - **stacks/alertmanager** — optional `stack.env.example` → `stack.env`. Copy `alertmanager.yml.example` to `~/.config/alertmanager/alertmanager.yml` and edit for receivers (email, webhooks). No host ports; access via Caddy to alertmanager:9093. Wire Prometheus to `alertmanager:9093`. From Portainer set `ALERTMANAGER_CONFIG_PATH` to the absolute path of that file.
 - **stacks/authentik** — `stack.env.example` → `stack.env`; set `AUTHENTIK_SECRET_KEY` (e.g. `openssl rand -base64 50`), `PG_PASS`, `AUTHENTIK_HOST` (e.g. https://authentik.yourdomain.com). Access via Caddy to authentik-server:9000.
-- **stacks/asf** — create `config/`, copy `ASF.json.example` → `config/ASF.json` and set `IPCPassword` (e.g. `openssl rand -base64 32`); optional `stack.env.example` → `stack.env` for `TZ`, `ASF_UID`. No host ports; access via Caddy (e.g. https://asf.yourdomain.com).
+- **stacks/archisteamfarm** — create `config/`, copy `ASF.json.example` → `config/ASF.json` and set `IPCPassword` (e.g. `openssl rand -base64 32`); optional `stack.env.example` → `stack.env` for `TZ`, `ASF_UID`. No host ports; access via Caddy (e.g. https://asf.yourdomain.com).
 - **stacks/blackbox-exporter** — optional `stack.env.example` → `stack.env`. Copy `blackbox.yml.example` to `~/.config/blackbox-exporter/blackbox.yml` and edit for probe modules. From Portainer set `BLACKBOX_CONFIG_PATH` to the absolute path of that file. No Caddy; Prometheus scrapes blackbox-exporter:9115 on `monitor` network. Add scrape job in Prometheus.
 - **stacks/baserow** — `stack.env.example` → `stack.env`; set `BASEROW_PUBLIC_URL` (e.g. https://baserow.yourdomain.com). No host ports; access via Caddy to baserow:80.
 - **stacks/bookstack** — `stack.env.example` → `stack.env`; set `APP_URL` (e.g. https://bookstack.yourdomain.com), `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`. Default login admin@admin.com / password — change immediately. Access via Caddy to bookstack:80.
@@ -512,7 +611,7 @@ Sensitive files (`stack.env`, `config.yml`, `Caddyfile`, etc.) are gitignored. C
 - **stacks/whisper-asr** — `./prepare-stack.sh`; tune `ASR_MODEL` / `ASR_ENGINE` in `stack.env`; `docker compose --env-file stack.env up -d` (GPU: see stack README)
 - **stacks/watchtower** — TZ, LANG, LC_ALL, LC_CTYPE in `stack.env` if you choose to override defaults
 - **stacks/yourls** — `stack.env.example` → `stack.env`; set `YOURLS_SITE` (e.g. https://short.home or https://short.yourdomain.com) to match Caddy hostname; set `YOURLS_USER`, `YOURLS_PASS`, `YOURLS_COOKIEKEY`, `YOURLS_DB_PASSWORD`, `YOURLS_DB_ROOT_PASSWORD`
-- **stacks/zap** — Optional: `stack.env` with TZ. No host ports; access via Caddy (e.g. https://zap.home). See stack README.
+- **stacks/zed-attack-proxy** — Optional: `stack.env` with TZ. No host ports; access via Caddy (e.g. https://zap.home). See stack README.
 - **stacks/zigbee2mqtt** — `stack.env.example` → `stack.env`; set `ZIGBEE2MQTT_CONFIG_MQTT_SERVER` (e.g. mqtt://mosquitto:1883). Adjust device path in compose if needed. Access via Caddy to zigbee2mqtt:8080.
 - **stacks/bazarr** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`. Wire to Sonarr and Radarr in the Bazarr UI and configure subtitle providers.
 - **stacks/jellyfin** — `stack.env.example` → `stack.env`; set `TZ`, `PUID`, `PGID`. Configure libraries for `/data/tv`, `/data/movies`, `/data/music` in the Jellyfin UI.

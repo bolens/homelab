@@ -1,0 +1,37 @@
+services:
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 1g
+    memswap_limit: 1536m
+    pids_limit: 256
+    cpu_shares: 256
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      PUID: "${PUID:-1000}"
+      PGID: "${PGID:-1000}"
+    volumes:
+      - "${TAUTULLI_CONFIG_PATH:-${HOME}/.config/tautulli}:/config"
+    networks:
+      - monitor
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8181/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  monitor:
+    name: monitor
+    external: true

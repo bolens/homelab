@@ -9,9 +9,7 @@ source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 
 prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
-
-prepare_stack_msg "stack-specific steps..."
-echo "Stack prepared."
-
 prepare_stack_copy_caddy
+prepare_stack_ensure_dir_from_env "HASHCAT_WORK_PATH" "${HOME}/security-lab/hashcat/work"
+prepare_stack_ensure_dir_from_env "HASHCAT_WORDLIST_DIR" "${HOME}/security-lab/wordlists"
 prepare_stack_end

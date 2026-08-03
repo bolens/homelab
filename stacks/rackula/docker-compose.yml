@@ -1,0 +1,26 @@
+services:
+  rackula:
+    build:
+      context: .
+    image: homelab/rackula:local
+    profiles: ["tools"]
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 128
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - ${RACKULA_SOURCE_PATH:-${HOME}/dev/rackula-source}:/source:ro
+      - ${RACKULA_OUTPUT_PATH:-${HOME}/dev/rackula-output}:/output
+    working_dir: /source
+    command: ["--help"]
+    network_mode: none
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "2"

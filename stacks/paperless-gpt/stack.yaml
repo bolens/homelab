@@ -34,33 +34,18 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: paperless_gpt_prompts
+- name: paperless-gpt_paperless_gpt_prompts
   role: app_data
   critical: true
-- name: name
+  external: true
+- name: paperless-gpt_paperless_gpt_hocr
   role: app_data
   critical: true
-- name: external
+  external: true
+- name: paperless-gpt_paperless_gpt_pdf
   role: app_data
   critical: true
-- name: paperless_gpt_hocr
-  role: app_data
-  critical: true
-- name: name
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
-- name: paperless_gpt_pdf
-  role: app_data
-  critical: true
-- name: name
-  role: app_data
-  critical: true
-- name: external
-  role: app_data
-  critical: true
+  external: true
 auth:
   mode: app_local
   sso_provider: null

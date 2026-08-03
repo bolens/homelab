@@ -1,0 +1,69 @@
+name: postiz
+default_port: 5000
+databases:
+  - postgresql
+  - redis
+health:
+  endpoint: /
+  internal_only: false
+monitoring:
+  prometheus: false
+  uptime_kuma:
+    external: true
+    internal: true
+  blackbox_exporter: true
+  grafana_dashboard: false
+shared_resources: []
+type: web_app
+category: productivity
+exposure:
+  behind_caddy: true
+  public_by_default: false
+  recommended_hostname: postiz.yourdomain.com
+data_profile:
+  contains_pii: true
+  contains_logs_only: false
+  recommended_backup: true
+host_requirements:
+  needs_gpu: false
+  needs_privileged: false
+  uses_host_network: false
+links:
+  homepage: https://postiz.com
+  docs: https://docs.postiz.com/installation/docker-compose
+  repo: https://github.com/gitroomhq/postiz-app
+backup:
+  priority: high
+  schedule_hint: daily
+volumes:
+  - name: postiz_config
+    role: config
+    critical: true
+  - name: postiz_postgres
+    role: database
+    critical: true
+  - name: postiz_redis
+    role: database
+    critical: false
+  - name: postiz_temporal_postgres
+    role: database
+    critical: true
+  - name: postiz_uploads
+    role: media
+    critical: true
+auth:
+  mode: app_local
+  sso_provider: null
+  access_policy: access_full_site
+resources:
+  cpu_profile: large
+  memory_profile: large
+  storage_profile: large
+  gpu_profile: none
+placement:
+  preferred_node: null
+  colocation_group: null
+lifecycle:
+  status: stable
+  replacement_for: null
+  notes: ''

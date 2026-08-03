@@ -1,0 +1,175 @@
+services:
+  postiz:
+    image: ghcr.io/gitroomhq/postiz-app:latest
+    container_name: postiz
+    restart: unless-stopped
+    cpus: 4.0
+    mem_limit: 6g
+    memswap_limit: 8g
+    pids_limit: 1024
+    cpu_shares: 512
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    environment:
+      MAIN_URL: "${POSTIZ_URL:?set in stack.env}"
+      FRONTEND_URL: "${POSTIZ_URL:?set in stack.env}"
+      NEXT_PUBLIC_BACKEND_URL: "${POSTIZ_URL:?set in stack.env}/api"
+      BACKEND_INTERNAL_URL: http://127.0.0.1:3000
+      JWT_SECRET: "${POSTIZ_JWT_SECRET:?set in stack.env}"
+      DATABASE_URL: "postgresql://postiz:${POSTIZ_DB_PASSWORD:?set in stack.env}@postiz-postgres:5432/postiz"
+      REDIS_URL: redis://postiz-redis:6379
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+      IS_GENERAL: "true"
+      DISABLE_REGISTRATION: "${POSTIZ_DISABLE_REGISTRATION:-false}"
+      RUN_CRON: "true"
+    volumes:
+      - postiz_config:/config
+      - postiz_uploads:/uploads
+    networks:
+      - postiz
+      - temporal
+      - monitor
+    depends_on:
+      postiz-postgres:
+        condition: service_healthy
+      postiz-redis:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const r=require('http').get('http://127.0.0.1:5000/',x=>process.exit(x.statusCode<500?0:1));r.on('error',()=>process.exit(1));r.setTimeout(4000,()=>{r.destroy();process.exit(1)})"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  postiz-postgres:
+    image: postgres:17-alpine
+    container_name: postiz-postgres
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 256
+    environment:
+      POSTGRES_USER: postiz
+      POSTGRES_PASSWORD: "${POSTIZ_DB_PASSWORD:?set in stack.env}"
+      POSTGRES_DB: postiz
+    volumes:
+      - postiz_postgres:/var/lib/postgresql/data
+    networks:
+      - postiz
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postiz -d postiz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging: *logging
+
+  postiz-redis:
+    image: redis:7.2-alpine
+    container_name: postiz-redis
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1536m
+    pids_limit: 256
+    cpu_shares: 128
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - postiz_redis:/data
+    networks:
+      - postiz
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  temporal-postgres:
+    image: postgres:16-alpine
+    container_name: postiz-temporal-postgres
+    restart: unless-stopped
+    cpus: 1.5
+    mem_limit: 1536m
+    memswap_limit: 2g
+    pids_limit: 512
+    cpu_shares: 128
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: "${TEMPORAL_DB_PASSWORD:?set in stack.env}"
+      POSTGRES_DB: temporal
+    volumes:
+      - postiz_temporal_postgres:/var/lib/postgresql/data
+    networks:
+      - temporal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging: *logging
+
+  temporal:
+    image: temporalio/auto-setup:1.28.1
+    container_name: postiz-temporal
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 1024
+    cpu_shares: 256
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: "${TEMPORAL_DB_PASSWORD:?set in stack.env}"
+      POSTGRES_SEEDS: temporal-postgres
+      TEMPORAL_NAMESPACE: default
+    networks:
+      - temporal
+    depends_on:
+      temporal-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "127.0.0.1:7233"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+    logging: *logging
+
+networks:
+  monitor:
+    name: monitor
+    external: true
+  postiz:
+    internal: true
+  temporal:
+    internal: true
+
+volumes:
+  postiz_config:
+  postiz_postgres:
+  postiz_redis:
+  postiz_temporal_postgres:
+  postiz_uploads:

@@ -1,9 +1,11 @@
-.PHONY: help doctor validate secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate prepare-audit metadata-audit secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 help:
 	@echo "Homelab repository targets:"
 	@echo "  doctor             Read-only host and repository checks"
 	@echo "  validate           Python, Compose YAML, and shell validation"
+	@echo "  prepare-audit      Audit stack preparation scripts and prerequisites"
+	@echo "  metadata-audit     Validate stack.yaml catalog metadata"
 	@echo "  secrets            Scan the full Git history with Gitleaks"
 	@echo "  secrets-files      Scan files on disk, including ignored runtime files"
 	@echo "  monitoring-iterate Validate, reload, and smoke-test monitoring"
@@ -14,6 +16,12 @@ doctor:
 
 validate:
 	bash scripts/validate-repo.sh
+
+prepare-audit:
+	python3 scripts/audit-prepare-scripts.py
+
+metadata-audit:
+	python3 scripts/audit-stack-metadata.py
 
 secrets:
 	bash scripts/scan-secrets-gitleaks.sh git

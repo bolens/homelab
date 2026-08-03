@@ -1,0 +1,5 @@
+# Configuration UI only. PXE clients use the separately published TFTP/assets ports.
+netboot.yourdomain.com {
+    import common
+    reverse_proxy netbootxyz:3000
+}

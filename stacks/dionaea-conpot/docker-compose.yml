@@ -1,0 +1,89 @@
+services:
+  dionaea:
+    image: dinotools/dionaea:latest
+    container_name: dionaea
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 128
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - dionaea_config:/opt/dionaea/etc
+      - dionaea_data:/opt/dionaea/var/lib
+      - dionaea_logs:/opt/dionaea/var/log
+    ports:
+      - "2121:21"
+      - "8042:42"
+      - "6969:69/udp"
+      - "8081:80"
+      - "1135:135"
+      - "8443:443"
+      - "1445:445"
+      - "14330:1433"
+      - "17230:1723"
+      - "18830:1883"
+      - "19000:1900/udp"
+      - "13306:3306"
+      - "15060:5060"
+      - "15060:5060/udp"
+      - "15061:5061"
+      - "11211:11211"
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import socket; s=socket.create_connection(('127.0.0.1',80),5); s.close()"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+  conpot:
+    image: honeynet/conpot:latest
+    container_name: conpot
+    restart: unless-stopped
+    cpus: 2.0
+    mem_limit: 2g
+    memswap_limit: 3g
+    pids_limit: 512
+    cpu_shares: 128
+    command: ["conpot", "-f", "--template", "default"]
+    env_file:
+      - path: ../../shared.env
+        required: false
+      - stack.env
+    volumes:
+      - conpot_logs:/var/log/conpot
+    ports:
+      - "10080:80"
+      - "10102:102"
+      - "10502:502"
+      - "10161:161/udp"
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import socket; s=socket.create_connection(('127.0.0.1',80),5); s.close()"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging: *logging
+
+volumes:
+  conpot_logs:
+  dionaea_config:
+  dionaea_data:
+  dionaea_logs:

@@ -1,0 +1,4 @@
+postiz.yourdomain.com {
+    import common
+    reverse_proxy postiz:5000
+}

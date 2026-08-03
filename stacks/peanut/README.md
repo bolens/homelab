@@ -12,19 +12,23 @@ level, load, and runtime estimates in a web UI. Useful for monitoring power heal
 
 ## Setup
 
-1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. Set TZ to your local timezone.
-3. Ensure a NUT server (upsd) is accessible from the container; configure the NUT host in the UI.
-4. Deploy: `docker compose up -d`
+1. Run `./prepare-stack.sh`.
+2. Set `PUID`, `PGID`, and `PEANUT_CONFIG_PATH`; ensure the directory is
+   writable by that UID/GID.
+3. Replace the hostname in `caddy_snippet.conf`.
+4. Ensure a NUT server is reachable and deploy with `docker compose up -d`.
 
 ## Environment variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| TZ | Yes | America/New_York | Timezone for the container |
+| PUID / PGID | Yes | 1000 | UID/GID that owns the config directory |
+| PEANUT_CONFIG_PATH | Yes | `${HOME}/.config/peanut` | Persistent settings path |
+| WEB_USERNAME / WEB_PASSWORD | No | unset | Optional initial account |
 
 ## Notes
 
 - PeaNUT does not run a NUT server itself — a separate NUT upsd instance is required.
-- The web UI is served on port 3000 by default.
+- Current PeaNUT releases serve the web UI on port 8080.
 - NUT host, port, and credentials are configured in the PeaNUT web UI on first run.
+- `/api/ping` is used for the container healthcheck.
