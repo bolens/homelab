@@ -37,7 +37,7 @@ To send emails from workflows (e.g. **Send Email** node), configure SMTP in n8n:
 - **Secure:** off (STARTTLS is negotiated)
 - **User / Password:** leave empty when using the internal relay (no auth)
 
-For **internal-only** (Mailpit): deploy [stacks/postfix](postfix/README.md) and [stacks/mailpit](mailpit/README.md) with `RELAYHOST=mailpit:1025`. All emails appear in the Mailpit web UI at `https://mailpit.yourdomain.com`; none are delivered externally. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. All emails appear in the Mailpit web UI at `https://mailpit.yourdomain.com`; none are delivered externally. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Caddy
 

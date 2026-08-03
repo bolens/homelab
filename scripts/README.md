@@ -21,9 +21,10 @@ whitespace hooks.
 | `homelab-doctor.sh` | Checks prerequisites, Docker access, shared networks, sensitive-file tracking, Compose YAML, and known media mounts. Does not create or change anything. |
 | `validate-repo.sh` | Compiles Python helpers; parses Compose; audits preparation, metadata, examples, links, and generated docs; and runs ShellCheck when available. |
 | `ci-parse-composes.py` | PyYAML parser used by local validation and CI. |
+| `validate-compose-config.py` | Runs `docker compose config` against portable example environments and skips explicitly generated include bundles. |
 | `audit-prepare-scripts.py` | Verifies every top-level Compose stack has an executable, verbose wrapper that prepares its examples and literal external networks/volumes. Maintainers may use `--fix`, then review the complete diff. |
 | `audit-stack-metadata.py` | Validates `stack.yaml` coverage, schema shape, names, profile enums, and ports. Maintainers may use `--fix-missing`, then review inferred catalog fields. |
-| `audit-repo-hygiene.py` | Checks README/example/metadata coverage, ignored runtime env files, portable examples, documentation links, and Caddy upstream basics. |
+| `audit-repo-hygiene.py` | Checks README/example/metadata coverage, ignored runtime env files, portable examples, all documentation links, root CI/config syntax, and Caddy upstream basics. |
 | `build-stack-catalog.py` | Regenerates the complete top-level README stack catalog from stack READMEs. |
 | `build-topology.py` | Regenerates the top-level topology diagrams from `documents/topology.yaml`. Requires PyYAML. |
 | `scan-secrets-gitleaks.sh [git\|dir]` | Scans full Git history (default) or files on disk. The `dir` mode includes ignored runtime secrets, so output must be handled carefully. |
@@ -43,6 +44,7 @@ changing `stack.env`.
 | `prepare-stack.examples/` | Maintainer patterns for new preparation wrappers. |
 | `upgrade-prepare-stack-verbose.py` | Maintainer utility that regenerates compatible wrappers after library changes, then applies the preparation audit fixer. Review its diff before committing. |
 | `sync-compose-shared-env.py` | Maintainer migration for adding optional root `shared.env` references to Compose files. Review its diff before committing. |
+| `sync-stack-env.py` | Previews or appends keys missing from private `stack.env`; preserves existing values and generates placeholder secrets without printing them. |
 
 ## Operations and troubleshooting
 

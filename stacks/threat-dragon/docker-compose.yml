@@ -14,11 +14,13 @@ services:
     container_name: threatdragon
     restart: unless-stopped
     env_file:
-      - .env
+      - path: ../../shared.env
+        required: false
+      - stack.env
     environment:
-      - TZ=${TZ:-America/Denver}
+      - TZ=${TZ:-Etc/UTC}
     volumes:
-      - ./.env:/app/.env:ro
+      - ./stack.env:/app/.env:ro
     networks:
       - monitor
     healthcheck:

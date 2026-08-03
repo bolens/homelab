@@ -10,6 +10,9 @@ python3 -m compileall -q scripts
 echo "Parsing Compose YAML..."
 python3 scripts/ci-parse-composes.py
 
+echo "Rendering Compose configurations..."
+python3 scripts/validate-compose-config.py
+
 echo "Auditing stack preparation scripts..."
 python3 scripts/audit-prepare-scripts.py
 

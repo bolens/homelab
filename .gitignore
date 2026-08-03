@@ -118,6 +118,13 @@ node_modules
 .cursor/
 .fallow/
 
+# Python tooling caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
 # Local operational output and downloaded datasets
 .push-gitea-log.txt
 geolite/

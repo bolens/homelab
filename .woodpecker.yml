@@ -14,5 +14,5 @@ steps:
   - name: repository-validation
     image: docker.io/library/alpine:3.24.1
     commands:
-      - apk add --no-cache bash git make python3 py3-pyyaml shellcheck
+      - apk add --no-cache bash docker-cli-compose git make python3 py3-pyyaml shellcheck
       - make validate

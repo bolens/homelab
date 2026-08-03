@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 import subprocess
 from pathlib import Path
+import json
 
 import yaml
 
@@ -41,6 +42,13 @@ def audit_markdown(errors: list[str]) -> None:
     docs.extend((ROOT / "documents").glob("*.md"))
     docs.extend((ROOT / "scripts").glob("*.md"))
     docs.append(ROOT / "portainer" / "README.md")
+    for directory in sorted(path for path in STACKS.iterdir() if path.is_dir()):
+        ignored = subprocess.run(
+            ["git", "-C", str(ROOT), "check-ignore", "-q", str(directory.relative_to(ROOT))],
+            check=False,
+        ).returncode == 0
+        if not ignored:
+            docs.append(directory / "README.md")
     for path in docs:
         if not path.exists():
             continue
@@ -104,6 +112,23 @@ def main() -> int:
     for directory in directories:
         audit_stack(directory, errors, warnings)
     audit_markdown(errors)
+    config_files = [
+        ROOT / ".woodpecker.yml",
+        ROOT / ".pre-commit-config.yaml",
+        ROOT / ".yamllint.yml",
+        *sorted((ROOT / ".github" / "workflows").glob("*.yml")),
+        *sorted((ROOT / ".github" / "workflows").glob("*.yaml")),
+    ]
+    for path in config_files:
+        try:
+            yaml.safe_load(path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError) as exc:
+            errors.append(f"{path.relative_to(ROOT)}: invalid YAML: {exc}")
+    renovate = ROOT / "renovate.json"
+    try:
+        json.loads(renovate.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        errors.append(f"renovate.json: invalid JSON: {exc}")
     for warning in warnings:
         print(f"WARN  {warning}")
     for error in errors:

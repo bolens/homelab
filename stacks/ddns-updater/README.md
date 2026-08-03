@@ -37,4 +37,4 @@ Outbound: the container needs **HTTPS (443)** and **DNS (UDP 53)** to providers 
 ## Health and monitoring
 
 - The image defines a **HEALTHCHECK** that runs `ddns-updater healthcheck` (validates records via DNS).
-- For Uptime Kuma / Blackbox, use an HTTP GET to the app URL or internally `http://ddns-updater:8000/` (see [HEALTH-CHECKS.md](../../documents/HEALTH-CHECKS.md) and [MONITORING-TARGETS.md](../../documents/MONITORING-TARGETS.md)).
+- For Uptime Kuma / Blackbox, use an HTTP GET to the app URL or internally `http://ddns-updater:8000/`; see the [Prometheus stack](../prometheus/README.md) and [troubleshooting guide](../../documents/TROUBLESHOOTING.md).

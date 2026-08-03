@@ -166,7 +166,7 @@ Use the shared template so one unit file works for Harbor and every other stack.
    sudo systemctl enable --now avahi-alias@harbor.service
    # e.g. also: avahi-alias@gitea.service, avahi-alias@nextcloud.service, …
    ```
-   See [documents/SHARED-RESOURCES.md](../documents/SHARED-RESOURCES.md) (mDNS aliases) for the full list. For a **Harbor-only** unit, you can instead use `stacks/harbor/avahi-harbor-alias.service` as before.
+   See [documents/SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) (mDNS aliases) for the full list. For a **Harbor-only** unit, you can instead use `stacks/harbor/avahi-harbor-alias.service` as before.
    Check: from another machine on the LAN, `ping harbor.local` or `avahi-resolve -n harbor.local` should resolve to the Caddy host’s IP.
 
 3. **Harbor and Caddy**: In Harbor’s `harbor.yml`, set `hostname` to the hostname you use in the browser. You can keep the public hostname (e.g. `harbor.yourdomain.com`) there; Caddy serves both that and `harbor.local` (see `Caddyfile.example`). Run `./prepare` and restart Harbor if you change it; ensure Caddy is configured for `harbor.local` (and `harbor.home`) with the same block and `request_body { max_size 0 }`.
@@ -176,7 +176,7 @@ Use the shared template so one unit file works for Harbor and every other stack.
 **Alternative (without the unit file):** If you prefer not to use the service, you can run once (and keep running) on the Caddy host:  
 `avahi-publish -a -R harbor $(hostname -I | awk '{print $1}')`. Or set the machine’s hostname to `harbor` (not recommended if you want to keep your current hostname).
 
-**If `avahi-alias@harbor` fails** with `Failed to resolve host name 'harbor.local': Timeout reached`, use the **static Avahi hosts file** instead (see [SHARED-RESOURCES.md](../documents/SHARED-RESOURCES.md) → mDNS aliases): add `LAN_IP  harbor.local` to `/etc/avahi/hosts`, restart avahi-daemon, disable the alias unit. **Note:** many systems do not resolve `/etc/avahi/hosts` on the *same* machine that runs Avahi; other LAN devices should resolve `harbor.local`. On the Caddy host itself, add `LAN_IP  harbor.local` to **`/etc/hosts`** if you need to resolve it there.
+**If `avahi-alias@harbor` fails** with `Failed to resolve host name 'harbor.local': Timeout reached`, use the **static Avahi hosts file** instead (see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) → mDNS aliases): add `LAN_IP  harbor.local` to `/etc/avahi/hosts`, restart avahi-daemon, disable the alias unit. **Note:** many systems do not resolve `/etc/avahi/hosts` on the *same* machine that runs Avahi; other LAN devices should resolve `harbor.local`. On the Caddy host itself, add `LAN_IP  harbor.local` to **`/etc/hosts`** if you need to resolve it there.
 
 ### Troubleshooting: https://harbor.local doesn’t work
 
