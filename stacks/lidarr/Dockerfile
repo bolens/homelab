@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0.405@sha256:20767713e03a4a0d1bcd09d8a8606e8b6cfb815ddf96e1a0cf2cc059b57d55c0 AS patch-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.301@sha256:ea8bde36c11b6e7eec2656d0e59101d4462f6bd630730f2c8201ed0572b295d5 AS patch-build
 
 ARG LIDARR_VERSION=3.1.0.4875
 ARG LIDARR_COMMIT=350860e524029b7fb4165ed14fbcabb11217ada2
