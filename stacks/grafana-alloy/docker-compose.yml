@@ -78,7 +78,7 @@ services:
       start_period: 20s
 
   alloy-log-canary:
-    image: busybox:1.37
+    image: busybox:1.38
     container_name: alloy-log-canary
     restart: unless-stopped
     command:

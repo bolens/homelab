@@ -11,7 +11,7 @@ name: dependency-track
 
 services:
   dtrack-postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     container_name: dtrack-postgres
     env_file:
       - stack.env

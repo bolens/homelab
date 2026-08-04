@@ -26,7 +26,7 @@ services:
       start_period: 90s
 
   snipeit-db:
-    image: mariadb:11.5
+    image: mariadb:12.3
     container_name: snipe-it-db
     restart: unless-stopped
     cpus: 1.5

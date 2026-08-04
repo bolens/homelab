@@ -3,7 +3,7 @@
 # Requires Loki on the monitor network (e.g. stacks/loki) at http://loki:3100.
 services:
   promtail:
-    image: grafana/promtail:2.9.8
+    image: grafana/promtail:3.6.8
     container_name: promtail
     restart: unless-stopped
     cpus: 1.0
