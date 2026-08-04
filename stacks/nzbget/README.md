@@ -34,7 +34,20 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
    - Access NZBGet via Caddy (for example `https://nzbget.home` or `https://nzbget.yourdomain.com`) and configure:
      - Your Usenet server(s).
      - Download directory (should be `/downloads` inside the container).
-     - Optional post-processing scripts.
+     - Under **Settings → Categories → music**, set **Extensions** to
+       `UnpackMusicTar`. Keep the category's built-in **Unpack** option enabled
+       for RAR and 7-Zip releases.
+
+The bundled `UnpackMusicTar` post-processing extension extracts tar-family
+music releases that NZBGet's built-in unpacker reports as “Nothing to unpack.”
+It validates paths and file types before extraction, refuses to overwrite
+existing files, and removes each archive only after a successful extraction.
+Other categories are ignored.
+
+The built-in unpacker reads additional RAR and 7-Zip passwords from the
+read-only `/etc/nzbget/unpack-passwords.txt` file. Keep
+`config/unpack-passwords.txt` limited to non-sensitive release passwords; do
+not commit private credentials.
 
 This stack uses a **named config volume** (`nzbget_config`) and a **Usenet downloads bind mount** (`NZBGET_DOWNLOADS_PATH` → `/downloads`, shared with Sonarr/Radarr/Lidarr/Readarr).
 
@@ -69,4 +82,3 @@ For public access via Cloudflare Tunnel, add a corresponding `nzbget.yourdomain.
   - URL base: (empty, unless you change it in NZBGet)
   - Category: set per-app (e.g. `tv`, `movies`, `music`, `books`) and configure NZBGet categories accordingly.
 - **Path mapping:** Use `/downloads` as the download root in NZBGet and in your *arr apps so they see the same files via the shared host bind mount (`/mnt/unraid/media/downloads/usenet` by default).
-

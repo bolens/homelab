@@ -12,7 +12,7 @@ services:
       - PORT=5002
       - WORKERS=1
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:5002/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS --max-time 4 http://127.0.0.1:5002/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -38,7 +38,7 @@ services:
       - PORT=5001
       - WORKERS=1
     healthcheck:
-      test: ["CMD-SHELL", "curl -f -s http://127.0.0.1:5001/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS --max-time 4 http://127.0.0.1:5001/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -64,7 +64,7 @@ services:
       - PORT=5003
       - WORKERS=1
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:5003/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS --max-time 4 http://127.0.0.1:5003/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

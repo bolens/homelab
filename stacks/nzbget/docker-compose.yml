@@ -20,6 +20,8 @@ services:
     volumes:
       - nzbget_config:/config
       - "${NZBGET_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/usenet}:/downloads"
+      - ./config/unpack-passwords.txt:/etc/nzbget/unpack-passwords.txt:ro
+      - ./scripts/UnpackMusicTar:/config/scripts/UnpackMusicTar:ro
     networks:
       - monitor
       - usenet
