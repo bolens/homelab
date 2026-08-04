@@ -9,13 +9,22 @@ services:
     volumes:
       - ./vector.toml:/etc/vector/vector.toml:ro
       - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /run/log/journal:/run/log/journal:ro
     networks:
       - monitor
+    healthcheck:
+      test: ["CMD", "vector", "validate", "--no-environment", "/etc/vector/vector.toml"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   monitor:
     name: monitor
     external: true
-

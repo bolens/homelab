@@ -13,7 +13,7 @@ services:
     networks:
       - monitor
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8025/"]
+      test: ["CMD", "/mailpit", "readyz"]
       interval: 30s
       timeout: 10s
       retries: 3

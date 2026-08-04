@@ -22,7 +22,7 @@ services:
     networks:
       - monitor
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:6157/"]
+      test: ["CMD-SHELL", "curl -f http://localhost:6157/healthcheck || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -22,7 +22,7 @@ services:
     networks:
       - monitor
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/health"]
+      test: ["CMD-SHELL", "curl -fs --max-time 10 http://localhost:8080$${SYSTEM_ROOTURIPATH:-}/api/v1/info/status || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

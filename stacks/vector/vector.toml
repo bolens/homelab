@@ -9,6 +9,7 @@ include_units = []
 
 [sources.docker_containers]
 type = "docker_logs"
+docker_host = "http://alloy-docker-socket-proxy:2375"
 include_containers = []
 
 [transforms.enrich]
@@ -27,4 +28,3 @@ encoding.codec = "json"
 [sinks.loki.labels]
 host = "{{ labels.host }}"
 source = "{{ source_type }}"
-

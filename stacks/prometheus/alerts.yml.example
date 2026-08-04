@@ -355,6 +355,76 @@ groups:
           summary: "Alloy Docker target parsing errors"
           description: "loki_source_docker_target_parsing_errors_total increased in the last 10 minutes."
 
+      - alert: AlloyDockerTargetsMissing
+        expr: absent(loki_source_docker_target_entries_total{job="alloy"})
+        for: 10m
+        labels:
+          severity: critical
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy has no Docker log targets"
+          description: "No Docker source entry counters have been exposed for 10 minutes; check socket-proxy permissions and discovery."
+
+      - alert: AlloyLokiWriteRequestsFailing
+        expr: sum(increase(loki_write_request_duration_seconds_count{job="alloy",status_code!~"2.."}[10m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: grafana-alloy
+        annotations:
+          summary: "Alloy writes to Loki are failing"
+          description: "Alloy received one or more non-2xx responses from Loki during the last 10 minutes."
+
+      - alert: PromtailConfigReloadFailures
+        expr: increase(promtail_config_reload_fail_total{job="promtail"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail config reload failed"
+          description: "promtail_config_reload_fail_total increased during the last 10 minutes."
+
+      - alert: PromtailLokiWriteRetries
+        expr: increase(promtail_batch_retries_total{job="promtail"}[10m]) > 10
+        for: 10m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail is retrying Loki writes"
+          description: "Promtail retried more than 10 write batches during the last 10 minutes."
+
+      - alert: PromtailDroppedEntries
+        expr: increase(promtail_dropped_entries_total{job="promtail"}[10m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: promtail
+        annotations:
+          summary: "Promtail is dropping log entries"
+          description: "Promtail dropped more than 100 entries during the last 10 minutes."
+
+      - alert: LokiDiscardingSamples
+        expr: sum by (reason) (increase(loki_discarded_samples_total{job="loki"}[10m])) > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: loki
+        annotations:
+          summary: "Loki is discarding log samples"
+          description: "Loki discarded more than 100 samples for reason={{ $labels.reason }} during the last 10 minutes."
+
+      - alert: LokiWalDiskFull
+        expr: increase(loki_ingester_wal_disk_full_failures_total{job="loki"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: loki
+        annotations:
+          summary: "Loki WAL disk-full failure"
+          description: "Loki reported a WAL disk-full failure during the last 5 minutes."
+
       - alert: AlloyEvaluationQueueHigh
         expr: max_over_time(alloy_component_evaluation_queue_size{job="alloy"}[10m]) > 100
         for: 10m

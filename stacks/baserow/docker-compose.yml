@@ -21,15 +21,7 @@ services:
     networks:
       - monitor
     healthcheck:
-      test:
-        [
-          "CMD",
-          "curl",
-          "-f",
-          "-H",
-          "Host: ${BASEROW_HEALTHCHECK_HOST:-baserow.example.com}",
-          "http://127.0.0.1:80/api/_health/",
-        ]
+      test: ["CMD", "/bin/bash", "/baserow/backend/docker/docker-entrypoint.sh", "backend-healthcheck"]
       interval: 30s
       timeout: 10s
       retries: 3

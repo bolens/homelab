@@ -1,4 +1,40 @@
 services:
+  docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.4.2
+    container_name: alloy-docker-socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      INFO: "1"
+      NETWORKS: "1"
+      PING: "1"
+      VERSION: "1"
+      POST: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - monitor
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   alloy:
     image: grafana/alloy:latest
     container_name: grafana-alloy
@@ -13,12 +49,19 @@ services:
     volumes:
       - alloy_data:/var/lib/alloy
       - ${ALLOY_CONFIG_PATH}:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      docker-socket-proxy:
+        condition: service_healthy
     networks:
       - monitor
     labels:
       logging: "true"
       logging_sampling: "false"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
     deploy:
       resources:
         limits:
@@ -49,6 +92,11 @@ services:
     labels:
       logging: "true"
       logging_sampling: "true"
+    logging:
+      driver: local
+      options:
+        max-size: "5m"
+        max-file: "2"
     deploy:
       resources:
         limits:

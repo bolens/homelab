@@ -12,19 +12,12 @@ prometheus.exporter.self "alloy" { }
 
 // Discover local Docker containers.
 discovery.docker "local" {
-	host = "unix:///var/run/docker.sock"
+	host = "tcp://docker-socket-proxy:2375"
 }
 
-// Normalize Docker metadata and keep only running containers.
+// Normalize Docker metadata. Docker discovery returns running containers.
 discovery.relabel "docker_logs" {
 	targets = discovery.docker.local.targets
-
-	// Only keep running containers.
-	rule {
-		source_labels = ["__meta_docker_container_state"]
-		regex         = "running"
-		action        = "keep"
-	}
 
 	// Opt-out control: set container label "logging=false|off|disabled|0" to exclude it.
 	rule {
@@ -101,7 +94,7 @@ discovery.relabel "docker_logs" {
 
 // Read container stdout/stderr logs from Docker API.
 loki.source.docker "containers" {
-	host       = "unix:///var/run/docker.sock"
+	host       = "tcp://docker-socket-proxy:2375"
 	targets    = discovery.relabel.docker_logs.output
 	forward_to = [loki.process.enrich.receiver]
 }
@@ -109,6 +102,13 @@ loki.source.docker "containers" {
 // Add static labels and drop empty lines before writing to Loki.
 loki.process "enrich" {
 	forward_to = [loki.relabel.guardrails.receiver]
+
+	// Match Loki's per-stream out-of-order window so Docker backlog replay
+	// cannot poison otherwise-valid batches after daemon/collector restarts.
+	stage.drop {
+		older_than          = "30m"
+		drop_counter_reason = "outside_loki_ordering_window"
+	}
 
 	stage.drop {
 		expression = "^\\s*$"
@@ -148,7 +148,7 @@ loki.process "enrich" {
 
 	// Redact common secrets before logs leave the host and mark redaction hits.
 	stage.match {
-		selector = "{container=~\".+\"} |~ \"(?i)(authorization|x-api-key|private-token|api_key|api-key|access_token|refresh_token|token=|secret=|password=|eyJ)\""
+		selector = "{container=~\".+\"} |~ \"(?i)(authorization|cookie|set-cookie|x-api-key|private-token|api_key|api-key|access_token|refresh_token|token=|secret=|password=|database_url|dsn=|smtp.*pass|aws_access_key|aws_secret|eyJ)\""
 
 		stage.static_labels {
 			values = {
@@ -179,6 +179,26 @@ loki.process "enrich" {
 		stage.replace {
 			expression = "(?i)([?&](token|key|secret|password)=)[^&\\s]+"
 			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(?i)((cookie|set-cookie)\\s*:\\s*)[^\\r\\n]+"
+			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(?i)((database_url|dsn|smtp_password|smtp_pass|aws_access_key_id|aws_secret_access_key)\\s*[=:]\\s*)[^\\s,;\\\"]+"
+			replace    = "$1[REDACTED]"
+		}
+
+		stage.replace {
+			expression = "(?i)([a-z][a-z0-9+.-]*://[^:/@\\s]+:)[^@/\\s]+(@)"
+			replace    = "$1[REDACTED]$2"
+		}
+
+		stage.replace {
+			expression = "(AKIA|ASIA)[A-Z0-9]{16}"
+			replace    = "[REDACTED_AWS_ACCESS_KEY]"
 		}
 
 		stage.replace {
@@ -216,7 +236,6 @@ loki.process "enrich" {
 			msg       = "msg",
 			message   = "message",
 			log       = "log",
-			logger    = "logger",
 			component = "component",
 			ts        = "time",
 			timestamp = "timestamp",
@@ -237,11 +256,10 @@ loki.process "enrich" {
 		}
 	}
 
-	// Promote selected parsed fields to labels for faster filtering.
+	// Promote only bounded fields to labels. Logger names stay in log content.
 	stage.labels {
 		values = {
 			level   = "",
-			logger  = "",
 			service = "",
 		}
 	}
@@ -277,7 +295,7 @@ loki.relabel "guardrails" {
 
 	rule {
 		action = "labelkeep"
-		regex  = "^(job|source|container|service|compose_project|compose_service|stream|environment|cluster|collector|level|logger|parse_path|redacted|sampled|logging_sampling)$"
+		regex  = "^(job|source|container|service|compose_project|compose_service|stream|environment|cluster|collector|level|parse_path|redacted|sampled|logging_sampling)$"
 	}
 
 	// Drop potentially high-cardinality request and trace labels if they appear.

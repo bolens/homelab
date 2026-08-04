@@ -6,11 +6,16 @@ services:
     image: grafana/loki:2.9.8
     container_name: loki
     restart: unless-stopped
-    command: -config.file=/etc/loki/config.yml
+    command:
+      - -config.file=/etc/loki/config.yml
+      - -config.expand-env=true
     env_file:
       - stack.env
     environment:
       - TZ=${TZ:-America/Denver}
+      - LOKI_PRIMARY_RETENTION=${LOKI_PRIMARY_RETENTION:-720h}
+      - LOKI_SAMPLED_RETENTION=${LOKI_SAMPLED_RETENTION:-168h}
+      - LOKI_INGESTION_MAX_AGE=${LOKI_INGESTION_MAX_AGE:-168h}
     volumes:
       - loki_data:/loki
       - ${LOKI_CONFIG_PATH:-${HOME}/.config/loki/loki-config.yml}:/etc/loki/config.yml:ro

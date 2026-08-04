@@ -21,7 +21,7 @@ services:
         required: false
       - stack.env
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:1880/"]
+      test: ["CMD-SHELL", "node /healthcheck.js"]
       interval: 30s
       timeout: 10s
       retries: 3

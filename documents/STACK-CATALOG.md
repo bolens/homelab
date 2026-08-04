@@ -212,7 +212,7 @@ Generated from every `stacks/<name>/README.md`. Do not edit the table directly; 
 | [**unbound**](../stacks/unbound/README.md) | Unbound is a validating, recursive, caching DNS resolver for private DNS resolution in your homelab. |
 | [**uptime-kuma**](../stacks/uptime-kuma/README.md) | Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and more; supports many notification channels (Telegram, email, Discord, etc.). |
 | [**vaultwarden**](../stacks/vaultwarden/README.md) | Lightweight, self-hosted password manager compatible with Bitwarden clients (browser extensions, mobile apps, CLI). |
-| [**vector**](../stacks/vector/README.md) | Vector is a log collection and routing agent. This stack ships host and container logs to the existing Loki stack for centralized search and dashboards in Grafana. |
+| [**vector**](../stacks/vector/README.md) | Vector is a log collection and routing agent. This stack ships host and container logs to the existing Loki stack for centralized search and dashboards in Grafana. It is an alternative to Grafana Alloy; do not enable both Docker collectors at the same time or Loki will receive duplicate container logs. |
 | [**vikunja**](../stacks/vikunja/README.md) | [Vikunja](https://vikunja.io/) is a self-hosted task and project manager (lists, kanban, Gantt, CalDAV). This stack runs Vikunja with SQLite behind Caddy. No host ports; access via Caddy. |
 | [**watchtower**](../stacks/watchtower/README.md) | Automatically updates running containers when new images are available. Uses the Docker socket on the host. |
 | [**web-check**](../stacks/web-check/README.md) | 🕵️‍♂️ All-in-one OSINT tool for analysing any website. Comprehensive, on-demand open source intelligence for any website. |
