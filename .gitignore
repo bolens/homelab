@@ -57,6 +57,7 @@ docker-compose.override.yml
 docker-compose.*.local.yml
 docker-compose.override.*.yml
 /stacks/alicorn/
+/stacks/nzbget/config/unpack-passwords.txt
 
 # Auth and OAuth
 .htpasswd
