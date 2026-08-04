@@ -9,7 +9,9 @@ Network-wide DNS-level ad and tracker blocking. Run AdGuard Home on your Docker 
 
 ## Quick start
 
-1. From this directory, copy `stack.env.example` → `stack.env` and adjust `TZ` / locale if needed.
+1. From this directory, copy `stack.env.example` → `stack.env`. Set
+   `ADGUARD_BIND_IP` to the Docker host's LAN address; DNS ports bind only to
+   that address. Adjust `TZ` / locale if needed.
 2. Start the stack:
 
    ```bash
@@ -23,10 +25,10 @@ Network-wide DNS-level ad and tracker blocking. Run AdGuard Home on your Docker 
 
 | Item        | Details                                                                                                     |
 | ----------- | ----------------------------------------------------------------------------------------------------------- |
-| **Access**  | DNS on host ports `53/tcp+udp` and `853/tcp`; HTTPS UI via Caddy (reverse-proxy to `adguard-home:3000/80`) |
+| **Access**  | DNS on `${ADGUARD_BIND_IP}:53/tcp+udp` and `${ADGUARD_BIND_IP}:853/tcp`; HTTPS UI via Caddy |
 | **Volumes** | `adguard_conf` (YAML config, filters, settings), `adguard_work` (runtime data, stats)                      |
 | **Network** | `monitor` — shared with Caddy and other app stacks                                                         |
-| **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.                                         |
+| **Env**     | Required `ADGUARD_BIND_IP`; see `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.             |
 
 ### Caddy
 
@@ -48,4 +50,3 @@ adguard.yourdomain.com {
 ```
 
 Then protect that hostname with Cloudflare Access as desired.
-

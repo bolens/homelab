@@ -73,7 +73,7 @@ Quick reference — find a stack:
 |-------|-------|
 | acquire | CLI only; forensic artifact collection. |
 | actual-budget | TZ only; sync server for Actual Budget desktop/mobile app. |
-| adguard-home | DNS on host 53/853; no stack-specific env required. |
+| adguard-home | `ADGUARD_BIND_IP` binds DNS ports 53/853 to the Docker host's LAN address. |
 | affine | Optional AFFINE_SERVER_EXTERNAL_URL; no host ports. |
 | afl-libfuzzer | CLI only; fuzzing toolkit. |
 | ail / ail-framework | TZ only; Analysis Information Leak framework. Resource-heavy (>6 GB RAM). |

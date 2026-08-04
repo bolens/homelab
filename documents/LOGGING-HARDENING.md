@@ -4,6 +4,10 @@
 
 The repository baseline is `config/docker/daemon.json`. It uses Docker's
 `local` driver with a 10 MiB × 3 compressed-file ceiling per container.
+Compose services with explicit rotation settings also use the `local` driver,
+so they retain bounded, Docker API-readable logs even when deployed to a host
+whose daemon default differs. Per-service size and file-count limits override
+the daemon defaults.
 
 Changing the daemon default requires a Docker daemon restart. Existing
 containers retain their old logging driver until each container is recreated,
