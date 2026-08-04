@@ -12,8 +12,9 @@ services:
       - POSTGRES_DB=${GITEA_DB_NAME:-gitea}
       - POSTGRES_USER=${GITEA_DB_USER:-gitea}
       - POSTGRES_PASSWORD=${GITEA_DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data
     volumes:
-      - gitea_pg_data:/var/lib/postgresql/data
+      - gitea_pg18_data:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
@@ -65,5 +66,5 @@ networks:
     external: true
 
 volumes:
-  gitea_pg_data:
+  gitea_pg18_data:
   gitea_data:

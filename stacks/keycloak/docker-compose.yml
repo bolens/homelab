@@ -7,8 +7,9 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-keycloak}
       - POSTGRES_USER=${POSTGRES_USER:-keycloak}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data
     volumes:
-      - keycloak_pg_data:/var/lib/postgresql/data
+      - keycloak_pg18_data:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
@@ -51,4 +52,4 @@ networks:
     external: true
 
 volumes:
-  keycloak_pg_data:
+  keycloak_pg18_data:

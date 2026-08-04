@@ -10,7 +10,7 @@ services:
       - MYSQL_USER=${SEAFILE_DB_USER:-seafile}
       - MYSQL_PASSWORD=${SEAFILE_DB_PASSWORD}
     volumes:
-      - seafile_db:/var/lib/mysql
+      - seafile_db12:/var/lib/mysql
     networks:
       - default
     healthcheck:
@@ -64,6 +64,5 @@ networks:
     external: true
 
 volumes:
-  seafile_db:
+  seafile_db12:
   seafile_data:
-

@@ -7,8 +7,9 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-hedgedoc}
       - POSTGRES_USER=${POSTGRES_USER:-hedgedoc}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data
     volumes:
-      - hedgedoc_pg_data:/var/lib/postgresql/data
+      - hedgedoc_pg18_data:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
@@ -44,6 +45,5 @@ networks:
     external: true
 
 volumes:
-  hedgedoc_pg_data:
+  hedgedoc_pg18_data:
   hedgedoc_uploads:
-

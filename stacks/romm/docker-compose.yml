@@ -20,7 +20,7 @@ services:
       - MARIADB_USER=${MARIADB_USER:-romm}
       - MARIADB_PASSWORD=${MARIADB_PASSWORD}
     volumes:
-      - romm_mysql_data:/var/lib/mysql
+      - romm_mysql12_data:/var/lib/mysql
     networks:
       - romm
     healthcheck:
@@ -73,7 +73,7 @@ networks:
     external: true
 
 volumes:
-  romm_mysql_data:
+  romm_mysql12_data:
   romm_resources:
   romm_data:
   romm_config:

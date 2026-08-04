@@ -16,8 +16,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-litellm}
       POSTGRES_USER: ${POSTGRES_USER:-litellm}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in stack.env (see stack.env.example)}
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - litellm_pgdata:/var/lib/postgresql/data
+      - litellm_pg18data:/var/lib/postgresql/data
     networks:
       - monitor
     healthcheck:
@@ -90,4 +91,4 @@ networks:
     external: true
 
 volumes:
-  litellm_pgdata:
+  litellm_pg18data:

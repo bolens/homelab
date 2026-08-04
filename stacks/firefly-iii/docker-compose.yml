@@ -7,8 +7,9 @@ services:
       - POSTGRES_DB=${DB_DATABASE:-firefly}
       - POSTGRES_USER=${DB_USERNAME:-firefly}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data
     volumes:
-      - firefly_pg_data:/var/lib/postgresql/data
+      - firefly_pg18_data:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
@@ -48,6 +49,5 @@ networks:
     external: true
 
 volumes:
-  firefly_pg_data:
+  firefly_pg18_data:
   firefly_upload:
-

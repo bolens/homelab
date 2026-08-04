@@ -40,7 +40,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD:-REPLACE_WITH_GENERATED_PASSWORD}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-REPLACE_WITH_GENERATED_PASSWORD}
     volumes:
-      - snipeit_db:/var/lib/mysql
+      - snipeit_db12:/var/lib/mysql
     networks:
       - default
     healthcheck:
@@ -57,4 +57,4 @@ networks:
 
 volumes:
   snipeit_storage: {}
-  snipeit_db: {}
+  snipeit_db12: {}

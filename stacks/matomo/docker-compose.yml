@@ -19,7 +19,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MATOMO_DB_ROOT_PASSWORD}
     command: ["--max_allowed_packet=128M"]
     volumes:
-      - matomo_db:/var/lib/mysql
+      - matomo_db12:/var/lib/mysql
     networks:
       - monitor
     healthcheck:
@@ -67,7 +67,7 @@ networks:
     external: true
 
 volumes:
-  matomo_db:
-    name: matomo_matomo_db
+  matomo_db12:
+    name: matomo_matomo_db12
   matomo_html:
     name: matomo_matomo_html

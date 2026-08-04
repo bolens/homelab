@@ -45,21 +45,22 @@ schema_config:
 compactor:
   working_directory: /loki/compactor
   retention_enabled: true
+  delete_request_store: filesystem
   retention_delete_delay: 2h
 
 storage_config:
   boltdb_shipper:
     active_index_directory: /loki/index
     cache_location: /loki/index_cache
-    shared_store: filesystem
   tsdb_shipper:
     active_index_directory: /loki/tsdb-index
     cache_location: /loki/tsdb-cache
-    shared_store: filesystem
   filesystem:
     directory: /loki/chunks
 
 limits_config:
+  # Remove after the v13 schema period below becomes active.
+  allow_structured_metadata: false
   retention_period: ${LOKI_PRIMARY_RETENTION}  # default: 30 days
   retention_stream:
     - selector: '{stream_class="sampled"}'

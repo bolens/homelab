@@ -137,8 +137,9 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-simplelogin}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB:-simplelogin}
+      - PGDATA=/var/lib/postgresql/data
     volumes:
-      - simplelogin-pg-data:/var/lib/postgresql/data
+      - simplelogin-pg18-data:/var/lib/postgresql/data
     networks:
       - simplelogin
     healthcheck:
@@ -157,4 +158,4 @@ networks:
 volumes:
   simplelogin-data:
   simplelogin-upload:
-  simplelogin-pg-data:
+  simplelogin-pg18-data:

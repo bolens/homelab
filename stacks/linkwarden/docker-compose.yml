@@ -14,8 +14,9 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=postgres
+      - PGDATA=/var/lib/postgresql/data
     volumes:
-      - lw_pgdata:/var/lib/postgresql/data
+      - lw_pg18data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
@@ -39,7 +40,7 @@ services:
     environment:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
     volumes:
-      - lw_meili_data:/meili_data
+      - lw_meili_151_data:/meili_data
     restart: unless-stopped
     networks:
       - internal
@@ -83,6 +84,6 @@ networks:
     external: true
 
 volumes:
-  lw_pgdata:
+  lw_pg18data:
   lw_data:
-  lw_meili_data:
+  lw_meili_151_data:

@@ -48,7 +48,7 @@ services:
       - MARIADB_USER=${YOURLS_DB_USER:-yourls}
       - MARIADB_PASSWORD=${YOURLS_DB_PASSWORD}
     volumes:
-      - yourls_db_data:/var/lib/mysql
+      - yourls_db12_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -65,4 +65,4 @@ networks:
 
 volumes:
   yourls_data:
-  yourls_db_data:
+  yourls_db12_data:

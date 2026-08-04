@@ -12,8 +12,10 @@ services:
       - path: ../../shared.env
         required: false
       - stack.env
+    environment:
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - calcom_pg_data:/var/lib/postgresql/data
+      - calcom_pg18_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -q -d \"$${DATABASE_URL}\""]
       interval: 30s
@@ -77,8 +79,8 @@ networks:
     external: true
 
 volumes:
-  calcom_pg_data:
-    name: calcom_calcom_pg_data
+  calcom_pg18_data:
+    name: calcom_calcom_pg18_data
     external: true
   calcom_redis_data:
     name: calcom_calcom_redis_data

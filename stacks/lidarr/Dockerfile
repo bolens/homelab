@@ -6,7 +6,8 @@ ARG LIDARR_COMMIT=350860e524029b7fb4165ed14fbcabb11217ada2
 WORKDIR /src
 RUN git clone --filter=blob:none https://github.com/Lidarr/Lidarr.git . \
     && git checkout "${LIDARR_COMMIT}" \
-    && test "$(git rev-parse HEAD)" = "${LIDARR_COMMIT}"
+    && test "$(git rev-parse HEAD)" = "${LIDARR_COMMIT}" \
+    && sed -i 's/"version": "8.0.405"/"version": "10.0.301"/' global.json
 
 COPY patches/0001-guard-missing-artist-metadata.patch /tmp/lidarr.patch
 RUN git apply --check /tmp/lidarr.patch \

@@ -17,8 +17,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-docuseal}
       POSTGRES_DB: ${POSTGRES_DB:-docuseal}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in stack Environment or .env}
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - docuseal_pg_data:/var/lib/postgresql/data
+      - docuseal_pg18_data:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
@@ -76,5 +77,5 @@ networks:
     external: true
 
 volumes:
-  docuseal_pg_data: {}
+  docuseal_pg18_data: {}
   docuseal_data: {}

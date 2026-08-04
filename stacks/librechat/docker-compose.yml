@@ -15,7 +15,7 @@ services:
         max-size: "10m"
         max-file: "3"
     volumes:
-      - mongodb_data:/data/db
+      - mongodb8_data:/data/db
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -136,6 +136,6 @@ networks:
     external: true
 
 volumes:
-  mongodb_data:
+  mongodb8_data:
   redis_data:
   librechat_data:

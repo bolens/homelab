@@ -81,8 +81,9 @@ services:
         required: false
     environment:
       POSTGRES_INITDB_ARGS: "--data-checksums"
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pg16data:/var/lib/postgresql/data
     shm_size: 128mb
     restart: unless-stopped
     healthcheck:
@@ -98,5 +99,5 @@ networks:
 volumes:
   library:
   model-cache:
-  pgdata:
+  pg16data:
   redisdata:

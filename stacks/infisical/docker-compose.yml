@@ -52,8 +52,10 @@ services:
     cpu_shares: 384
     env_file:
       - stack.env
+    environment:
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - infisical_pg_data:/var/lib/postgresql/data
+      - infisical_pg18_data:/var/lib/postgresql/data
     networks:
       - infisical
     healthcheck:
@@ -70,5 +72,5 @@ networks:
     external: true
 
 volumes:
-  infisical_pg_data:
+  infisical_pg18_data:
   infisical_redis_data:

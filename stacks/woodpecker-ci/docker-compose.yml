@@ -13,8 +13,10 @@ services:
     cpu_shares: 384
     env_file:
       - stack.env
+    environment:
+      PGDATA: /var/lib/postgresql/data
     volumes:
-      - woodpecker_pg_data:/var/lib/postgresql/data
+      - woodpecker_pg18_data:/var/lib/postgresql/data
     networks:
       - default
     healthcheck:
@@ -70,4 +72,4 @@ networks:
     external: true
 
 volumes:
-  woodpecker_pg_data:
+  woodpecker_pg18_data:
