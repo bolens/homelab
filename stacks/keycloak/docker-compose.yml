@@ -33,7 +33,8 @@ services:
       - KC_DB_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-keycloak}
       - KC_DB_USERNAME=${POSTGRES_USER:-keycloak}
       - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
-      - KC_PROXY=edge
+      - KC_PROXY_HEADERS=xforwarded
+      - KC_HTTP_ENABLED=true
       - KC_HOSTNAME=${KC_HOSTNAME}
       - TZ=${TZ:-America/Denver}
     command:
@@ -51,4 +52,3 @@ networks:
 
 volumes:
   keycloak_pg_data:
-

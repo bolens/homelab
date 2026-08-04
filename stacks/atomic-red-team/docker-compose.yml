@@ -25,7 +25,7 @@ services:
       - no-new-privileges:true
     network_mode: none
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: 10m
         max-file: "2"

@@ -8,7 +8,7 @@ services:
     cap_add:
       - NET_RAW
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"

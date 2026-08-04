@@ -27,7 +27,7 @@ services:
     mem_limit: 512m
     cpus: "0.5"
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"

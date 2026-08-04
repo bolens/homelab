@@ -10,7 +10,7 @@ services:
       - logging=true
       - logging_sampling=true
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"
@@ -48,7 +48,7 @@ services:
       - logging=true
       - logging_sampling=true
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"
@@ -95,7 +95,7 @@ services:
       - logging=true
       - logging_sampling=true
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"

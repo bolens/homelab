@@ -21,7 +21,7 @@ services:
     networks:
       - monitor
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/"]
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8081/"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -34,4 +34,3 @@ networks:
 
 volumes:
   metube-downloads:
-

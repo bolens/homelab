@@ -6,9 +6,9 @@ services:
     # DNS ports must be exposed on the host so LAN clients/routers can use this
     # host as their DNS server. HTTPS UI is reached via Caddy on the monitor network.
     ports:
-      - "53:53/tcp"
-      - "53:53/udp"
-      - "853:853/tcp"
+      - "${ADGUARD_BIND_IP}:53:53/tcp"
+      - "${ADGUARD_BIND_IP}:53:53/udp"
+      - "${ADGUARD_BIND_IP}:853:853/tcp"
     volumes:
       - adguard_conf:/opt/adguardhome/conf
       - adguard_work:/opt/adguardhome/work
@@ -17,7 +17,7 @@ services:
     env_file:
       - stack.env
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/control/health"]
+      test: ["CMD", "nc", "-z", "127.0.0.1", "53"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -31,4 +31,3 @@ networks:
 volumes:
   adguard_conf: {}
   adguard_work: {}
-

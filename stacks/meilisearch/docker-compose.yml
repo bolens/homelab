@@ -3,7 +3,7 @@
 # Set MEILI_MASTER_KEY when exposing; optional MEILI_ENV=production.
 services:
   meilisearch:
-    image: getmeili/meilisearch:latest
+    image: getmeili/meilisearch:v1.52.0
     container_name: meilisearch
     restart: unless-stopped
     cpus: 2.0

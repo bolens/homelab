@@ -22,7 +22,7 @@ services:
     #   - "53:53/tcp"
     #   - "53:53/udp"
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"

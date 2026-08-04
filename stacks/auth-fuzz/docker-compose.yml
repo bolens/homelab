@@ -18,7 +18,7 @@ services:
       - ${AUTH_FUZZ_OUTPUT_PATH:-${HOME}/security-lab/auth-fuzz-output}:/output
     command: ["-h"]
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: 10m
         max-file: "2"

@@ -12,7 +12,7 @@ services:
     pids_limit: 512
     cpu_shares: 256
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"

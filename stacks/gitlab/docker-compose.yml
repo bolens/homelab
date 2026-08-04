@@ -35,7 +35,7 @@ services:
       retries: 5
       start_period: 10m
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: 20m
         max-file: "5"

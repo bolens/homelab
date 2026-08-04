@@ -23,7 +23,7 @@ services:
     mem_limit: 1g
     cpus: "1.00"
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"
@@ -68,7 +68,7 @@ services:
       retries: 3
       start_period: 45s
     logging:
-      driver: "json-file"
+      driver: local
       options:
         max-size: "10m"
         max-file: "3"
