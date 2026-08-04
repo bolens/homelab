@@ -18,10 +18,10 @@ if [[ ! -d "$_PREPDIR/posthog/docker" ]]; then
   exit 1
 fi
 
-prepare_stack_msg "copying docker-compose.base.yml, docker-compose.hobby.yml, dev-services.env from posthog/"
+prepare_stack_msg "copying docker-compose.base.yml, docker-compose.hobby.yml, .env.services from posthog/"
 cp "$_PREPDIR/posthog/docker-compose.base.yml" "$_PREPDIR/docker-compose.base.yml"
 cp "$_PREPDIR/posthog/docker-compose.hobby.yml" "$_PREPDIR/docker-compose.hobby.yml"
-cp "$_PREPDIR/posthog/dev-services.env" "$_PREPDIR/dev-services.env"
+cp "$_PREPDIR/posthog/.env.services" "$_PREPDIR/.env.services"
 
 prepare_stack_msg "writing compose/ entrypoints (same layout as upstream deploy-hobby)"
 rm -rf "$_PREPDIR/compose"
