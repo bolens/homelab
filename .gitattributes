@@ -4,6 +4,7 @@
 *.env.example text eol=lf
 *.json text eol=lf
 *.md text eol=lf
+stacks/lidarr/patches/*.patch text eol=lf whitespace=-blank-at-eol
 *.py text eol=lf
 *.sh text eol=lf
 *.yaml text eol=lf

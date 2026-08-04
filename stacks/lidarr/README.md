@@ -5,7 +5,7 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
 **Website:** https://lidarr.audio/  
 **Docs:** https://wiki.servarr.com/lidarr  
 **GitHub:** https://github.com/Lidarr/Lidarr  
-**Docker image:** https://hub.docker.com/r/linuxserver/lidarr  
+**Base Docker image:** https://hub.docker.com/r/linuxserver/lidarr
 **Releases:** https://github.com/Lidarr/Lidarr/releases  
 
 ## Quick start
@@ -24,7 +24,7 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
 3. **Deploy**
    - From this directory:
      ```bash
-     docker compose --env-file stack.env up -d
+      docker compose --env-file stack.env up -d --build
      ```
 4. **First run**
    - Access Lidarr via Caddy (for example `https://lidarr.home` or `https://lidarr.yourdomain.com`).
@@ -47,9 +47,26 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `lidarr:8686`)          |
 | **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
-| **Image**  | `lscr.io/linuxserver/lidarr:latest`                                    |
+| **Image**  | Locally built `homelab/lidarr:3.1.0.4875-null-metadata-guards.4`     |
 | **Env**    | `TZ`, `PUID`, `PGID`, `LIDARR_MEDIA_PATH`, optional `LIDARR__*` |
 | **Storage**| `lidarr_config` → `/config`, `${LIDARR_MEDIA_PATH}` → `/data`; use `/data/music` and `/data/downloads/*` |
+
+## Temporary identification patch
+
+The local image pins Lidarr `3.1.0.4875` and LinuxServer's corresponding
+image digest, then replaces only `Lidarr.Core.dll`. The patch prevents a
+candidate release with missing artist metadata from aborting the entire
+library scan. It also ignores orphaned track-file relations during upgrade
+comparison and skips profile initialization when an album has no loaded
+artist. Root-folder validation explicitly rejects albums whose artist
+relation is absent, preventing incomplete metadata from reaching the import
+writer. Valid metadata continues through the normal comparison and import
+paths.
+
+The build runs the upstream album-distance tests plus regressions for missing
+artist metadata and orphaned track-file relations. Remove `build:` from
+`docker-compose.yml`, restore the official image, and delete `Dockerfile` and
+`patches/` after an official Lidarr release contains equivalent guards.
 
 ## Caddy reverse proxy
 

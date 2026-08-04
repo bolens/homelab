@@ -53,4 +53,4 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Temporary local image patch guards incomplete album metadata during identification and import decisions; remove after an official Lidarr fix.'

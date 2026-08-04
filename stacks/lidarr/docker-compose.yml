@@ -2,7 +2,10 @@
 #   docker compose --env-file stack.env up -d
 services:
   lidarr:
-    image: lscr.io/linuxserver/lidarr:latest
+    image: homelab/lidarr:3.1.0.4875-null-metadata-guards.4
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: lidarr
     restart: unless-stopped
     cpus: 2.0

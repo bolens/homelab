@@ -1,0 +1,186 @@
+diff --git a/src/NzbDrone.Core.Test/MediaFiles/TrackImport/Identification/AlbumDistanceFixture.cs b/src/NzbDrone.Core.Test/MediaFiles/TrackImport/Identification/AlbumDistanceFixture.cs
+index 687b849..28e37ce 100644
+--- a/src/NzbDrone.Core.Test/MediaFiles/TrackImport/Identification/AlbumDistanceFixture.cs
++++ b/src/NzbDrone.Core.Test/MediaFiles/TrackImport/Identification/AlbumDistanceFixture.cs
+@@ -4,6 +4,7 @@ using System.Linq;
+ using FizzWare.NBuilder;
+ using FluentAssertions;
+ using NUnit.Framework;
++using NzbDrone.Core.Datastore;
+ using NzbDrone.Core.MediaFiles.TrackImport.Identification;
+ using NzbDrone.Core.Music;
+ using NzbDrone.Core.Parser;
+@@ -151,6 +152,21 @@ namespace NzbDrone.Core.Test.MediaFiles.TrackImport.Identification
+             DistanceCalculator.AlbumReleaseDistance(localTracks, release, mapping).NormalizedDistance().Should().NotBe(0.0);
+         }
+ 
++        [Test]
++        public void test_missing_artist_metadata_does_not_abort_identification()
++        {
++            var tracks = GivenTracks(3);
++            var release = GivenAlbumRelease("album", tracks);
++            var localTracks = GivenLocalTracks(tracks, release);
++            var mapping = GivenMapping(localTracks, tracks);
++
++            release.Album.Value.ArtistMetadata = new LazyLoaded<ArtistMetadata>();
++
++            Action identify = () => DistanceCalculator.AlbumReleaseDistance(localTracks, release, mapping);
++
++            identify.Should().NotThrow();
++        }
++
+         [Test]
+         public void test_comp_track_artists_match()
+         {
+diff --git a/src/NzbDrone.Core/MediaFiles/TrackImport/Identification/DistanceCalculator.cs b/src/NzbDrone.Core/MediaFiles/TrackImport/Identification/DistanceCalculator.cs
+index 833ccb1..7528ac0 100644
+--- a/src/NzbDrone.Core/MediaFiles/TrackImport/Identification/DistanceCalculator.cs
++++ b/src/NzbDrone.Core/MediaFiles/TrackImport/Identification/DistanceCalculator.cs
+@@ -82,12 +82,13 @@ namespace NzbDrone.Core.MediaFiles.TrackImport.Identification
+         public static Distance AlbumReleaseDistance(List<LocalTrack> localTracks, AlbumRelease release, TrackMapping mapping)
+         {
+             var dist = new Distance();
++            var artistMetadata = release.Album?.Value?.ArtistMetadata?.Value;
+ 
+-            if (!VariousArtistIds.Contains(release.Album.Value.ArtistMetadata.Value.ForeignArtistId))
++            if (artistMetadata != null && !VariousArtistIds.Contains(artistMetadata.ForeignArtistId))
+             {
+                 var artist = localTracks.MostCommon(x => x.FileTrackInfo.ArtistTitle) ?? "";
+-                dist.AddString("artist", artist, release.Album.Value.ArtistMetadata.Value.Name);
+-                Logger.Trace("artist: {0} vs {1}; {2}", artist, release.Album.Value.ArtistMetadata.Value.Name, dist.NormalizedDistance());
++                dist.AddString("artist", artist, artistMetadata.Name);
++                Logger.Trace("artist: {0} vs {1}; {2}", artist, artistMetadata.Name, dist.NormalizedDistance());
+             }
+ 
+             var title = localTracks.MostCommon(x => x.FileTrackInfo.AlbumTitle) ?? "";
+diff --git a/src/NzbDrone.Core/MediaFiles/TrackImport/Specifications/ArtistPathInRootFolderSpecification.cs b/src/NzbDrone.Core/MediaFiles/TrackImport/Specifications/ArtistPathInRootFolderSpecification.cs
+index 7214ae8..771ed4a 100644
+--- a/src/NzbDrone.Core/MediaFiles/TrackImport/Specifications/ArtistPathInRootFolderSpecification.cs
++++ b/src/NzbDrone.Core/MediaFiles/TrackImport/Specifications/ArtistPathInRootFolderSpecification.cs
+@@ -24,10 +24,16 @@ namespace NzbDrone.Core.MediaFiles.TrackImport.Specifications
+         public Decision IsSatisfiedBy(LocalAlbumRelease item, DownloadClientItem downloadClientItem)
+         {
+             // Prevent imports to artists that are no longer inside a root folder Lidarr manages
+-            var artist = item.AlbumRelease.Album.Value.Artist.Value;
++            var artist = item.AlbumRelease?.Album?.Value?.Artist?.Value;
++
++            if (artist == null)
++            {
++                _logger.Warn("Album has no associated artist metadata, skipping import");
++                return Decision.Reject("Album has no associated artist metadata");
++            }
+ 
+             // a new artist will have empty path, and will end up having path assigned based on file location
+             var pathToCheck = artist.Path.IsNotNullOrWhiteSpace() ? artist.Path : item.LocalTracks.First().Path.GetParentPath();
+ 
+             if (_rootFolderService.GetBestRootFolder(pathToCheck) == null)
+             {
+diff --git a/src/NzbDrone.Core.Test/MediaFiles/TrackImport/Specifications/AlbumUpgradeSpecificationFixture.cs b/src/NzbDrone.Core.Test/MediaFiles/TrackImport/Specifications/AlbumUpgradeSpecificationFixture.cs
+new file mode 100644
+index 0000000..30c654b
+--- /dev/null
++++ b/src/NzbDrone.Core.Test/MediaFiles/TrackImport/Specifications/AlbumUpgradeSpecificationFixture.cs
+@@ -0,0 +1,68 @@
++using System.Collections.Generic;
++using FizzWare.NBuilder;
++using FluentAssertions;
++using NLog;
++using NUnit.Framework;
++using NzbDrone.Core.Datastore;
++using NzbDrone.Core.MediaFiles;
++using NzbDrone.Core.MediaFiles.TrackImport.Specifications;
++using NzbDrone.Core.Music;
++using NzbDrone.Core.Parser.Model;
++using NzbDrone.Core.Profiles.Qualities;
++using NzbDrone.Core.Qualities;
++using NzbDrone.Core.Test.Framework;
++
++namespace NzbDrone.Core.Test.MediaFiles.TrackImport.Specifications
++{
++    [TestFixture]
++    public class AlbumUpgradeSpecificationFixture : CoreTest
++    {
++        [Test]
++        public void should_ignore_orphaned_existing_track_file_relation()
++        {
++            var artist = Builder<Artist>.CreateNew()
++                .With(x => x.QualityProfile = new QualityProfile
++                {
++                    Items = Qualities.QualityFixture.GetDefaultQualities()
++                })
++                .Build();
++
++            var currentRelease = Builder<AlbumRelease>.CreateNew()
++                .With(x => x.Monitored = true)
++                .With(x => x.Tracks = new List<Track>
++                {
++                    new Track
++                    {
++                        TrackFileId = 1,
++                        TrackFile = new LazyLoaded<TrackFile>()
++                    }
++                })
++                .Build();
++
++            var album = Builder<Album>.CreateNew()
++                .With(x => x.Artist = artist)
++                .With(x => x.AlbumReleases = new List<AlbumRelease> { currentRelease })
++                .Build();
++
++            currentRelease.Album = album;
++
++            var newRelease = Builder<AlbumRelease>.CreateNew()
++                .With(x => x.Id = currentRelease.Id + 1)
++                .With(x => x.Album = album)
++                .Build();
++
++            var localRelease = new LocalAlbumRelease(new List<LocalTrack>
++            {
++                new LocalTrack { Quality = new QualityModel(Quality.FLAC) }
++            })
++            {
++                AlbumRelease = newRelease
++            };
++
++            var subject = new AlbumUpgradeSpecification(LogManager.GetLogger("AlbumUpgradeSpecificationFixture"));
++            var decision = subject.IsSatisfiedBy(localRelease, null);
++
++            decision.Accepted.Should().BeTrue();
++        }
++    }
++}
+diff --git a/src/NzbDrone.Core/MediaFiles/TrackImport/ImportDecisionMaker.cs b/src/NzbDrone.Core/MediaFiles/TrackImport/ImportDecisionMaker.cs
+index aae1a9e..0bd0014 100644
+--- a/src/NzbDrone.Core/MediaFiles/TrackImport/ImportDecisionMaker.cs
++++ b/src/NzbDrone.Core/MediaFiles/TrackImport/ImportDecisionMaker.cs
+@@ -199,12 +199,13 @@ namespace NzbDrone.Core.MediaFiles.TrackImport
+ 
+         private void EnsureData(LocalAlbumRelease release)
+         {
+-            if (release.AlbumRelease != null && release.AlbumRelease.Album.Value.Artist.Value.QualityProfileId == 0)
++            var artist = release.AlbumRelease?.Album?.Value?.Artist?.Value;
++
++            if (artist != null && artist.QualityProfileId == 0)
+             {
+                 var rootFolder = _rootFolderService.GetBestRootFolder(release.LocalTracks.First().Path);
+                 var qualityProfile = _qualityProfileService.Get(rootFolder.DefaultQualityProfileId);
+ 
+-                var artist = release.AlbumRelease.Album.Value.Artist.Value;
+                 artist.QualityProfileId = qualityProfile.Id;
+                 artist.QualityProfile = qualityProfile;
+             }
+diff --git a/src/NzbDrone.Core/MediaFiles/TrackImport/Specifications/AlbumUpgradeSpecification.cs b/src/NzbDrone.Core/MediaFiles/TrackImport/Specifications/AlbumUpgradeSpecification.cs
+index f6deffb..d6d14e8 100644
+--- a/src/NzbDrone.Core/MediaFiles/TrackImport/Specifications/AlbumUpgradeSpecification.cs
++++ b/src/NzbDrone.Core/MediaFiles/TrackImport/Specifications/AlbumUpgradeSpecification.cs
+@@ -32,7 +32,9 @@ namespace NzbDrone.Core.MediaFiles.TrackImport.Specifications
+                 _logger.Debug("Min quality of new files: {0}", newMinQuality);
+ 
+                 // get minimum quality of existing release
+-                var existingQualities = currentRelease.Tracks.Value.Where(x => x.TrackFileId != 0).Select(x => x.TrackFile.Value.Quality);
++                var existingQualities = currentRelease.Tracks.Value
++                    .Where(x => x.TrackFileId != 0 && x.TrackFile?.Value != null)
++                    .Select(x => x.TrackFile.Value.Quality);
+                 if (existingQualities.Any())
+                 {
+                     var existingMinQuality = existingQualities.OrderBy(x => x, qualityComparer).First();
