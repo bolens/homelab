@@ -9,8 +9,11 @@ RUN apk add --no-cache build-base git libexif-dev
 WORKDIR /src
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    git clone "${ONIONSCAN_REPOSITORY}" . \
-    && git checkout --detach "${ONIONSCAN_COMMIT}" \
+    git init . \
+    && git remote add origin "${ONIONSCAN_REPOSITORY}" \
+    && git fetch --depth 1 origin "${ONIONSCAN_COMMIT}" \
+    && git checkout --detach FETCH_HEAD \
+    && test "$(git rev-parse HEAD)" = "${ONIONSCAN_COMMIT}" \
     && go mod init github.com/s-rah/onionscan \
     && go mod tidy \
     && CGO_ENABLED=1 go build \

@@ -1,0 +1,4 @@
+**
+!Dockerfile
+!docker-gc.patch
+!entrypoint.sh

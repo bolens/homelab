@@ -11,8 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 
 # renovate: datasource=git-refs packageName=https://github.com/DedSecInside/TorBot.git currentValue=dev
 ARG TORBOT_COMMIT=9a829a593cd2a5b8e01487962e29cb47d26e001b
-RUN git clone --filter=blob:none https://github.com/DedSecInside/TorBot.git /app \
-    && git checkout --detach "${TORBOT_COMMIT}" \
+RUN git init /app \
+    && git -C /app remote add origin https://github.com/DedSecInside/TorBot.git \
+    && git -C /app fetch --depth 1 origin "${TORBOT_COMMIT}" \
+    && git -C /app checkout --detach FETCH_HEAD \
     && test "$(git rev-parse HEAD)" = "${TORBOT_COMMIT}"
 
 COPY requirements.txt /tmp/requirements.txt
@@ -20,7 +22,8 @@ RUN python -m venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --require-hashes -r /tmp/requirements.txt \
-    && pip install --no-deps .
+    && pip install --no-deps . \
+    && rm -rf /app/.git
 
 FROM python:3.12-slim@sha256:646fb0bca3dd3ea1bcc6feb72c17ed16eed6e10cffc732fcc1478bd3e7f02d7b
 
