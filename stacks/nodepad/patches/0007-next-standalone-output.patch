@@ -1,0 +1,12 @@
+diff --git a/next.config.mjs b/next.config.mjs
+index 90ecc4e..4f386e1 100644
+--- a/next.config.mjs
++++ b/next.config.mjs
+@@ -38,6 +38,7 @@ function contentSecurityPolicy() {
+ }
+
+ const nextConfig = {
++  output: "standalone",
+   typescript: {
+     // Build errors are intentionally ignored — see CLAUDE.md
+     ignoreBuildErrors: true,
