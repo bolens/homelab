@@ -1,0 +1,4 @@
+torch==2.13.0+cpu \
+    --hash=sha256:f5cbb61180a9793d9e12fe115a2310d2600bd449dfb9a01ec5640e21359fa5ea
+torchvision==0.28.0+cpu \
+    --hash=sha256:fc38699d69d11e563a5b1c02f621f639c4caa9e2ffe6b1ddd4aceedffc0d0578

@@ -36,13 +36,17 @@ RUN sed -i \
     installing_deps.sh
 
 RUN sed -i \
-    's|git clone https://github.com/cvandeplas/pystemon.git /opt/pystemon|git clone --depth 1 https://github.com/cvandeplas/pystemon.git /opt/pystemon|' \
+    -e 's|git clone https://github.com/cvandeplas/pystemon.git /opt/pystemon|git init /opt/pystemon \&\& git -C /opt/pystemon remote add origin https://github.com/cvandeplas/pystemon.git \&\& git -C /opt/pystemon fetch --depth 1 origin 7e3665674f60250c198b23ad4b87d4393e8e65bb \&\& git -C /opt/pystemon checkout --detach FETCH_HEAD \&\& test "$(git -C /opt/pystemon rev-parse HEAD)" = 7e3665674f60250c198b23ad4b87d4393e8e65bb|' \
+    -e '/pip3 install beautifulsoup4/d' \
     other_installers/docker/pystemon/install.sh
 
 RUN ./installing_deps.sh
 
+COPY requirements-pystemon.txt /tmp/requirements-pystemon.txt
 RUN ./other_installers/docker/pystemon/install.sh \
-    && pip3 install --no-cache-dir -r /opt/pystemon/requirements.txt \
+    && pip3 install --no-cache-dir --require-hashes \
+        -r /tmp/requirements-pystemon.txt \
+    && rm /tmp/requirements-pystemon.txt \
     # qreader pulls the GUI OpenCV wheel while EasyOCR pulls the headless wheel.
     # Retain one working cv2 installation without the duplicate GUI libraries.
     && /opt/AIL/AILENV/bin/pip uninstall -y opencv-python coverage nose2 \

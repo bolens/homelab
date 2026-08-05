@@ -3,14 +3,16 @@ FROM ${GPU_IMAGE} AS cpu_builder
 
 # EasyOCR installs CUDA-enabled PyTorch by default. Replace it and all bundled
 # NVIDIA runtime wheels with the official CPU builds.
+COPY requirements-cpu.txt /tmp/requirements-cpu.txt
 RUN /opt/AIL/AILENV/bin/pip freeze \
         | sed -nE '/^(torch|torchvision|triton|cuda-|nvidia-)/Ip' \
         | grep -vi '^nvidia-ml-py==' \
         | cut -d= -f1 \
         | xargs -r /opt/AIL/AILENV/bin/pip uninstall -y \
     && /opt/AIL/AILENV/bin/pip install --no-cache-dir \
+        --require-hashes --no-deps \
         --index-url https://download.pytorch.org/whl/cpu \
-        "torch==2.13.0" "torchvision==0.28.0" \
+        -r /tmp/requirements-cpu.txt \
     && rm -rf /root/.cache /tmp/* /var/tmp/*
 
 # Repack from scratch so the removed CUDA files do not survive in a lower layer.
