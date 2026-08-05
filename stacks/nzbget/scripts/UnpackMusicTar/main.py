@@ -43,11 +43,64 @@ UNWANTED_SUFFIXES = {
     ".txt",
     ".url",
 }
+MEDIA_SIGNATURES = (
+    (b"fLaC", ".flac"),
+    (b"\xff\xd8\xff", ".jpg"),
+    (b"\x89PNG\r\n\x1a\n", ".png"),
+    (b"ID3", ".mp3"),
+    (b"OggS", ".ogg"),
+)
+KNOWN_MEDIA_SUFFIXES = {
+    ".aac", ".aiff", ".alac", ".ape", ".avi", ".flac", ".jpeg", ".m4a",
+    ".m4v", ".mka", ".mkv", ".mov", ".mp3", ".mp4", ".ogg", ".opus",
+    ".wav", ".webm", ".wma", ".wmv",
+}
 
 
 def is_archive(path: Path) -> bool:
     name = path.name.lower()
     return any(name.endswith(suffix) for suffix in ARCHIVE_SUFFIXES)
+
+
+def detected_suffix(path: Path) -> str | None:
+    with path.open("rb") as stream:
+        header = stream.read(4096)
+    for signature, suffix in MEDIA_SIGNATURES:
+        if header.startswith(signature):
+            return suffix
+    if header.startswith(b"RIFF") and header[8:12] == b"WAVE":
+        return ".wav"
+    if len(header) >= 12 and header[4:8] == b"ftyp":
+        return ".m4a"
+    if header.startswith(b"\x1aE\xdf\xa3"):
+        return ".mka"
+    # Obfuscated text files are release sidecars such as playlists, checksum
+    # lists, logs, and posting markers. The cleanup pass removes .txt files.
+    if header and b"\x00" not in header:
+        try:
+            header.decode("utf-8")
+        except UnicodeDecodeError:
+            pass
+        else:
+            return ".txt"
+    return None
+
+
+def add_missing_extensions(directory: Path) -> None:
+    known_suffixes = KNOWN_MEDIA_SUFFIXES | UNWANTED_SUFFIXES
+    for path in list(directory.rglob("*")):
+        if not path.is_file() or path.is_symlink() or is_archive(path):
+            continue
+        if path.suffix.casefold() in known_suffixes:
+            continue
+        suffix = detected_suffix(path)
+        if not suffix:
+            continue
+        target = path.with_name(path.name + suffix)
+        if target.exists():
+            raise FileExistsError(f"refusing to overwrite existing path: {target}")
+        path.rename(target)
+        print(f"[INFO] Added {suffix} extension to {path.relative_to(directory)}")
 
 
 def validate_members(archive: tarfile.TarFile, destination: Path) -> None:
@@ -146,6 +199,7 @@ def unpack(path: Path) -> None:
                 validate_members(archive, staging)
                 archive.extractall(staging, filter="data")
         merge_flattened(staging, path.parent)
+    add_missing_extensions(path.parent)
     remove_unwanted_files(path.parent)
     path.unlink()
     print(f"[INFO] Unpacked and removed {path.name}")
@@ -167,6 +221,7 @@ def main() -> int:
     try:
         if not archives:
             print("[INFO] No supported music archives found")
+            add_missing_extensions(directory)
             remove_unwanted_files(directory)
             flatten_existing_tree(directory)
             return SUCCESS
@@ -175,6 +230,7 @@ def main() -> int:
             unpack(archive)
         # Also clean sidecars left behind by NZBGet's built-in unpacker or found
         # elsewhere under the completed release directory.
+        add_missing_extensions(directory)
         remove_unwanted_files(directory)
         flatten_existing_tree(directory)
     except (OSError, tarfile.TarError, zipfile.BadZipFile, ValueError) as error:

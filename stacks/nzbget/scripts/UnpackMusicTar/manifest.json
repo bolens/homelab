@@ -4,7 +4,7 @@
   "homepage": "https://nzbget.com/documentation/post-processing-scripts/",
   "kind": "POST-PROCESSING",
   "displayName": "Unpack Music Tar",
-  "version": "1.8",
+  "version": "1.9",
   "author": "homelab",
   "license": "MIT",
   "about": "Safely extracts ZIP and tar-family archives for the music category.",
@@ -15,6 +15,7 @@
   "description": [
     "Extracts zip, tar, tar.gz, tgz, tar.bz2, tbz2, tar.xz, and txz files.",
     "Flattens archive and existing release folders while retaining CD, Disc, and Disk directories.",
+    "Restores missing extensions for recognizable media and text sidecars.",
     "Removes accurip, cue, jpg, log, m3u, m3u8, md5, nfo, nzb, pls, png, sfv, srr, toc, txt, and url files after successful extraction.",
     "Runs only for the music category and removes archives after successful extraction."
   ],

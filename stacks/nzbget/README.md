@@ -49,6 +49,9 @@ After successful extraction, `.accurip`, `.cue`, `.jpg`, `.log`, `.m3u`,
 `.txt` sidecar files are removed, along with `.url` shortcuts, while audio and
 music-video files are retained. Cleanup also runs when NZBGet's built-in
 unpacker has already removed the archive before this extension starts.
+Files left with obfuscated or missing extensions are identified from their
+content first. Recognized media receives an extension, while extensionless
+images and readable text sidecars flow through the normal cleanup rules.
 It validates paths and file types before extraction, refuses to overwrite
 existing files, and removes each archive only after a successful extraction.
 Other categories are ignored.

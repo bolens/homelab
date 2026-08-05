@@ -11,6 +11,34 @@ import main
 
 
 class UnpackMusicArchiveTest(unittest.TestCase):
+    def test_extensionless_media_is_identified_and_text_is_removed(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            flac = root / "obfuscated-download"
+            jpeg = root / "obfuscated-cover"
+            sidecar = root / "obfuscated-sidecar"
+            flac.write_bytes(b"fLaC" + b"\x00" * 32)
+            jpeg.write_bytes(b"\xff\xd8\xff\xe0" + b"\x00" * 32)
+            sidecar.write_text("01-track.flac\n02-track.flac\n")
+            environment = {"NZBPP_CATEGORY": "music", "NZBPP_FINALDIR": str(root)}
+
+            with mock.patch.dict(os.environ, environment, clear=True):
+                self.assertEqual(main.main(), main.SUCCESS)
+
+            self.assertTrue((root / "obfuscated-download.flac").exists())
+            self.assertFalse(flac.exists())
+            self.assertFalse(jpeg.exists())
+            self.assertFalse(sidecar.exists())
+
+    def test_extension_detection_refuses_to_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "track").write_bytes(b"fLaC" + b"\x00" * 8)
+            (root / "track.flac").write_bytes(b"existing")
+
+            with self.assertRaises(FileExistsError):
+                main.add_missing_extensions(root)
+
     def test_zip_is_flattened_but_disc_directories_are_retained(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
