@@ -466,9 +466,9 @@ platformdirs==4.11.0 \
     # via
     #   poetry
     #   virtualenv
-poetry==1.8.4 \
-    --hash=sha256:1223bb6dfdbdfbebc6790796b9b7a88ea1f1f4679e709594f698499010ffb129 \
-    --hash=sha256:5490f8da66d17eecd660e091281f8aaa5554381644540291817c249872c99202
+poetry==2.3.4 \
+    --hash=sha256:2755806ed8a9f31340ea1b5f0e507da54c96437647ebf2873b6ca349be04e231 \
+    --hash=sha256:b293572d366569360c79d7caa6980c9b404d2b89530ed451a5b4570d248de3af
     # via poetry-plugin-export
 poetry-core==1.9.1 \
     --hash=sha256:6f45dd3598e0de8d9b0367360253d4c5d4d0110c8f5c71120a14f0e0f116c1a0 \
