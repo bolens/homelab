@@ -66,6 +66,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     ./installing_deps.sh
 
 COPY requirements-pystemon.txt /tmp/requirements-pystemon.txt
+COPY requirements-opencv.txt /tmp/requirements-opencv.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
     ./other_installers/docker/pystemon/install.sh \
     && pip3 install --require-hashes -r /tmp/requirements-pystemon.txt \
@@ -73,17 +74,16 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     # qreader pulls both GUI and headless OpenCV wheels. Keep one cv2 runtime.
     && /opt/AIL/AILENV/bin/pip uninstall -y opencv-python coverage nose2 \
     && /opt/AIL/AILENV/bin/pip install --force-reinstall --no-deps \
-        --require-hashes \
-        "opencv-python-headless==4.12.0.88 \
-        --hash=sha256:236c8df54a90f4d02076e6f9c1cc763d794542e886c576a6fee46ec8ff75a7a9"
+        --require-hashes -r /tmp/requirements-opencv.txt \
+    && rm /tmp/requirements-opencv.txt
 
 COPY ail-framework-docker/ail-framework/other_installers/docker/docker_start.sh /opt/AIL/docker_start.sh
 
 # Preserve application runtime packages before autoremove, then discard
 # compilers, headers, package tests, sources, docs, and transient caches.
-RUN apt-mark manual \
-        graphviz libadns1 libev4 libfuzzy2 libgmp10 libsnappy1v5 \
-        libssl3 libzbar0 p7zip-full screen sudo wget \
+    RUN apt-mark manual \
+        file graphviz libadns1 libev4 libfuzzy2 libgmp10 libmagic-mgc \
+        libmagic1 libsnappy1v5 libssl3 libzbar0 p7zip-full screen sudo wget \
     && strip --strip-unneeded /opt/AIL/kvrocks/build/kvrocks \
     && find /opt/AIL/kvrocks/build -mindepth 1 -maxdepth 1 \
         ! -name kvrocks -exec rm -rf {} + \
@@ -92,6 +92,11 @@ RUN apt-mark manual \
     && find /opt/AIL -type f -name '*.pyc' -delete \
     && find /opt/AIL/AILENV/lib/python3.10/site-packages -type d \
         \( -name test -o -name tests \) -prune -exec rm -rf {} + \
+    # Upstream downloads corpora below the TLSH source tree; preserve them
+    # before deleting that build-only checkout.
+    && mkdir -p /opt/AIL/nltk_data \
+    && cp -a /opt/AIL/tlsh/py_ext/nltk_data/. /opt/AIL/nltk_data/ \
+    && cp -a /root/nltk_data/. /opt/AIL/nltk_data/ \
     && rm -rf \
         /opt/AIL/tests /opt/AIL/tlsh /opt/AIL/pgpdump /opt/AIL/doc \
         /opt/AIL/redis/deps /opt/AIL/redis/tests \
@@ -108,7 +113,6 @@ RUN apt-mark manual \
         git libadns1-dev libffi-dev libfreetype6-dev libfuzzy-dev \
         libgmp-dev libprotobuf-dev libsnappy-dev libssl-dev libtool \
         linux-libc-dev make pkg-config protobuf-compiler python3-dev \
-        python3-numpy python3-opencv \
     && apt-get autoremove -y \
     && apt-get clean \
     && rm -rf /root/.cache /tmp/* /var/tmp/* /var/lib/apt/lists/*
@@ -117,6 +121,7 @@ FROM scratch
 COPY --from=variant_builder / /
 
 ENV LANG=C.UTF-8 \
+    NLTK_DATA=/opt/AIL/nltk_data \
     AIL_HOME=/opt/AIL \
     AIL_BIN=/opt/AIL/bin \
     AIL_FLASK=/opt/AIL/var/www \
