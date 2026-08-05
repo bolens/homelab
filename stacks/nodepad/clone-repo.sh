@@ -14,7 +14,7 @@ apply_patches() {
   fi
   for f in "${files[@]}"; do
     echo "[clone-repo] applying $(basename "$f")..."
-    (cd "$ROOT/repo" && patch -p1 <"$f") || {
+    (cd "$ROOT/repo" && patch --no-backup-if-mismatch -p1 <"$f") || {
       echo "[clone-repo] patch failed: $f (upstream may have changed — refresh the patch or fix hunks)" >&2
       exit 1
     }

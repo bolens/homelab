@@ -60,7 +60,7 @@ index ff81102..4021f26 100644
  }
  
  export default function RootLayout({
-@@ -39,18 +51,21 @@ export default function RootLayout({
+@@ -40,20 +52,23 @@ export default function RootLayout({
  }: Readonly<{
    children: React.ReactNode
  }>) {
@@ -70,8 +70,10 @@ index ff81102..4021f26 100644
    return (
      <html lang="en" suppressHydrationWarning>
        <body className={`font-sans antialiased ${vazirmatn.variable}`} suppressHydrationWarning>
-         <MobileWall />
-         {children}
+         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+           <MobileWall />
+           {children}
+         </ThemeProvider>
 -        {/* Umami analytics — nodepad.space only. Remove or replace with your
 -            own data-website-id if self-hosting. Safe to delete entirely. */}
 -        <Script

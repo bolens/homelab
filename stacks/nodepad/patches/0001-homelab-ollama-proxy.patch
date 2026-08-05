@@ -121,25 +121,25 @@ index 3e45d89..3744b47 100644
                  <div className={`flex items-center gap-2 rounded-md px-2.5 py-2 font-mono text-[9px] ${
 -                  draft.apiKey
 -                    ? "bg-primary/10 border border-primary/20 text-primary"
--                    : "bg-white/5 border border-white/5 text-muted-foreground"
+-                    : "bg-muted/20 border border-border text-muted-foreground"
 +                  draft.provider === "ollama"
 +                    ? draft.modelId.trim()
 +                      ? "bg-primary/10 border border-primary/20 text-primary"
-+                      : "bg-white/5 border border-white/5 text-muted-foreground"
++                      : "bg-muted/20 border border-border text-muted-foreground"
 +                    : draft.apiKey
 +                      ? "bg-primary/10 border border-primary/20 text-primary"
-+                      : "bg-white/5 border border-white/5 text-muted-foreground"
++                      : "bg-muted/20 border border-border text-muted-foreground"
                  }`}>
--                  <span className={`h-1.5 w-1.5 rounded-full ${draft.apiKey ? "bg-primary animate-pulse" : "bg-white/30"}`} />
+-                  <span className={`h-1.5 w-1.5 rounded-full ${draft.apiKey ? "bg-primary animate-pulse" : "bg-muted-foreground/40"}`} />
 -                  {draft.apiKey ? `${currentPreset.label} — API key configured` : "No API key — AI disabled"}
 +                  <span className={`h-1.5 w-1.5 rounded-full ${
 +                    draft.provider === "ollama"
 +                      ? draft.modelId.trim()
 +                        ? "bg-primary animate-pulse"
-+                        : "bg-white/30"
++                        : "bg-muted-foreground/40"
 +                      : draft.apiKey
 +                        ? "bg-primary animate-pulse"
-+                        : "bg-white/30"
++                        : "bg-muted-foreground/40"
 +                  }`} />
 +                  {draft.provider === "ollama"
 +                    ? (draft.modelId.trim()
