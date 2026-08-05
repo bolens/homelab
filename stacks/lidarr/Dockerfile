@@ -5,8 +5,10 @@ ARG LIDARR_VERSION=3.1.0.4875
 ARG LIDARR_COMMIT=350860e524029b7fb4165ed14fbcabb11217ada2
 
 WORKDIR /src
-RUN git clone --filter=blob:none https://github.com/Lidarr/Lidarr.git . \
-    && git checkout "${LIDARR_COMMIT}" \
+RUN git init . \
+    && git remote add origin https://github.com/Lidarr/Lidarr.git \
+    && git fetch --depth 1 origin "${LIDARR_COMMIT}" \
+    && git checkout --detach FETCH_HEAD \
     && test "$(git rev-parse HEAD)" = "${LIDARR_COMMIT}" \
     && sed -i 's/"version": "8.0.405"/"version": "10.0.301"/' global.json
 
