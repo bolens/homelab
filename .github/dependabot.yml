@@ -23,7 +23,7 @@ updates:
 
   - package-ecosystem: "docker"
     directories:
-      - "/stacks/*"
+      - "/stacks/**"
     schedule:
       interval: "weekly"
       day: "tuesday"
@@ -85,3 +85,36 @@ updates:
       root-javascript:
         patterns:
           - "*"
+
+  - package-ecosystem: "pip"
+    directories:
+      - "/.github"
+      - "/stacks/acquire"
+      - "/stacks/blackbird"
+      - "/stacks/clark-browser/build"
+      - "/stacks/docker-forensics-toolkit"
+      - "/stacks/ghunt"
+      - "/stacks/metagoofil"
+      - "/stacks/privotron"
+      - "/stacks/torbot"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "05:29"
+      timezone: "America/Denver"
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      python:
+        patterns:
+          - "*"
+        group-by: "dependency-name"

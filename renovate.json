@@ -10,6 +10,21 @@
   "prConcurrentLimit": 3,
   "prHourlyLimit": 1,
   "rangeStrategy": "pin",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Refresh commit digests tracking an annotated Git branch",
+      "managerFilePatterns": [
+        "/(^|/|\\.)Dockerfile$/",
+        "/(^|/)Dockerfile\\.[^/]*$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=git-refs packageName=(?<packageName>\\S+) currentValue=(?<currentValue>\\S+)\\s+ARG [A-Z0-9_]+=(?<currentDigest>[a-f0-9]{40})",
+        "# renovate: datasource=git-refs packageName=(?<packageName>\\S+) currentValue=(?<currentValue>\\S+)\\s+RUN[^\\n]*\\n\\s*[^\\n]*@(?<currentDigest>[a-f0-9]{40})"
+      ],
+      "datasourceTemplate": "git-refs"
+    }
+  ],
   "packageRules": [
     {
       "description": "Dependabot owns GitHub Actions and container updates",
@@ -17,10 +32,9 @@
       "enabled": false
     },
     {
-      "description": "Keep container changes review-only until digest pinning is adopted deliberately",
-      "matchDatasources": ["docker"],
-      "pinDigests": false,
-      "groupName": "container images"
+      "description": "Group tracked Git branch digest refreshes",
+      "matchDatasources": ["git-refs"],
+      "groupName": "upstream source commits"
     },
     {
       "description": "Group CI workflow dependency updates",
