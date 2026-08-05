@@ -7,11 +7,20 @@ name: torbot
 
 services:
   tor:
-    image: dperson/torproxy:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.tor
+    image: torbot-tor:alpine-3.24
     container_name: torbot-tor
     restart: unless-stopped
     networks:
       - torbot
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9050"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   torbot:
     # No official image; set TORBOT_IMAGE to your registry image (build from upstream once if needed)
@@ -19,7 +28,8 @@ services:
     container_name: torbot
     restart: unless-stopped
     depends_on:
-      - tor
+      tor:
+        condition: service_healthy
     env_file:
       - stack.env
     # Use Tor in this stack: --host tor --port 9050 when running torbot CLI

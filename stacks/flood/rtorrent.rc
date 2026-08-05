@@ -1,15 +1,14 @@
-# rTorrent config — imports image defaults then overrides for Docker.
-# The default rc sets: socket at (basedir)/rtorrent.sock, basedir at
-# /home/download/.local/share/rtorrent/ — we override port + download dir.
+# Keep the existing session directory and socket path so upgrades preserve
+# state and Flood remains compatible.
 
-import = /etc/rtorrent/rtorrent.rc
+directory.default.set = /downloads
+session.path.set = /home/download/.local/share/rtorrent/session
+network.scgi.open_local = /home/download/.local/share/rtorrent/rtorrent.sock
 
 # Peer port
 network.port_range.set = 49160-49160
 network.port_random.set = no
 
-# Download directory
-directory.default.set = /downloads
-
-# Stay in foreground so Docker tracks the real PID.
-# (system.daemon.set = true makes rTorrent fork then exit → "quickly shutting down")
+protocol.pex.set = yes
+trackers.use_udp.set = yes
+system.umask.set = 0002

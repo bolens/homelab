@@ -6,14 +6,18 @@ services:
     restart: "no"
     user: root
     command: >
-      sh -c "chown -R 1001:1001 /data /downloads && echo 'Volume ownership fixed.'"
+      sh -c "mkdir -p /data/session &&
+      chown -R 1001:1001 /data /downloads &&
+      echo 'Volume layout and ownership ready.'"
     volumes:
       - rtorrent_data:/data
       - torrents_manual:/downloads
 
   rtorrent:
-    # :latest = release builds; :master is a minimal/debug image (no /bin/ls).
-    image: jesec/rtorrent:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.rtorrent
+    image: flood-rtorrent:alpine-3.24
     container_name: rtorrent
     restart: unless-stopped
     cpus: 3.0
@@ -22,7 +26,7 @@ services:
     pids_limit: 768
     cpu_shares: 256
     user: "1001:1001"
-    # Foreground ncurses needs a PTY (daemon mode forks → Docker sees exit).
+    # Foreground ncurses needs a PTY.
     tty: true
     stdin_open: true
     environment:
@@ -75,7 +79,7 @@ services:
       - rtorrent_data:/rtorrent_data
       - torrents_manual:/downloads
     networks:
-      - proxy-ingress
+      - ingress-admin
       - torrents
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
@@ -85,8 +89,8 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
   torrents:
     name: torrents

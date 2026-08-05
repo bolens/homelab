@@ -61,7 +61,7 @@ If the `torbot` binary is not found: `docker compose exec torbot python -m torbo
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose exec torbot torbot ...`. |
-| **Tor** | `dperson/torproxy` on internal network; SOCKS at `tor:9050`. |
+| **Tor** | Locally built Alpine 3.24 image with the current Tor package; SOCKS at `tor:9050`. |
 | **Image** | No official image. Set `TORBOT_IMAGE` to an image you built from upstream (or from the Dockerfile in this stack) and pushed to your registry. |
 | **Network** | `torbot` (internal); Tor and TorBot share it — always use `--host tor --port 9050`. |
 

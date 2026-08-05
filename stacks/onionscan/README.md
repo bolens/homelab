@@ -4,8 +4,9 @@ CLI tool for investigating Tor hidden services (onion sites). Scans for operatio
 
 **Website:** https://onionscan.org  
 **Docs:** https://github.com/s-rah/onionscan#readme  
-**GitHub:** https://github.com/s-rah/onionscan  
-**Docker image:** https://hub.docker.com/r/mpatton/onionscan  
+**Original project:** https://github.com/s-rah/onionscan
+**Current source:** https://github.com/abhinav7903/onionscan
+**Docker image:** `harbor.bolens.dev/homelab/onionscan:latest`
 **Releases:** https://github.com/s-rah/onionscan/releases  
 
 ## Quick start
@@ -78,14 +79,16 @@ Then: `onionscan --verbose example.onion`
 
 ## Portainer
 
-Stacks → Add stack → **Repository** → set your repo URL and Compose path (e.g. `stacks/onionscan/docker-compose.yml`). No build required; uses `mpatton/onionscan:latest` from Docker Hub.
+Stacks → Add stack → **Repository** → set your repo URL and Compose path (e.g.
+`stacks/onionscan/docker-compose.yml`). The stack pulls the current homelab
+image from Harbor.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no ports. Run via `docker compose exec onionscan onionscan [options] <addr>`. |
-| **Image** | `mpatton/onionscan:latest` (Docker Hub). |
+| **Image** | `harbor.bolens.dev/homelab/onionscan:latest`, built from the pinned source revision in `Dockerfile`. |
 | **Security** | `cap_drop: ALL`; container only runs Tor + onionscan binary. |
 
 ## Start

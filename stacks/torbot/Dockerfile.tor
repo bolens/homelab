@@ -1,0 +1,12 @@
+FROM alpine:3.24.1
+
+LABEL org.opencontainers.image.title="TorBot Tor proxy" \
+      org.opencontainers.image.description="Current Tor SOCKS proxy for the TorBot stack" \
+      org.opencontainers.image.source="https://gitlab.torproject.org/tpo/core/tor"
+
+RUN apk add --no-cache ca-certificates tor tzdata
+
+COPY torrc /etc/tor/torrc
+
+USER tor
+CMD ["/usr/bin/tor", "-f", "/etc/tor/torrc"]
