@@ -13,14 +13,14 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 STACKS = ROOT / "stacks"
-PERSONAL_MARKERS = (
-    re.compile(r"bolens\.dev", re.I),
-    re.compile(r"/home/panda(?:/|$)", re.I),
-    re.compile(r"/mnt/unraid(?:/|$)", re.I),
-    re.compile(r"taild8bba", re.I),
-    re.compile(r"America/Denver", re.I),
-)
 ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+ABSOLUTE_HOME = re.compile(r"/home/([^/$\s]+)/")
+CONCRETE_MNT = re.compile(r"(?:^|[=:])(/mnt/[^,\s]+)")
+TAILSCALE_HOST = re.compile(r"\b[a-z0-9-]+\.tail[a-z0-9]+\.ts\.net\b", re.I)
+DOMAIN_VALUE = re.compile(r"(?<!@)\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b", re.I)
+HOST_VARIABLE = re.compile(r"(?:URL|URI|DOMAIN|HOST|HOSTNAME|ORIGIN)$", re.I)
+PLACEHOLDER_DOMAINS = ("example.com", "yourdomain.com", "host.docker.internal")
+PLACEHOLDER_USERS = {"user", "you", "youruser", "example"}
 MARKDOWN_LINK = re.compile(r"\[[^]]*]\(([^)]+)\)")
 MARKDOWN_HEADING = re.compile(r"^ {0,3}#{1,6}\s+(.+?)\s*#*\s*$")
 MARKDOWN_EXPLICIT_ANCHOR = re.compile(
@@ -140,6 +140,29 @@ def audit_tracked_files(errors: list[str]) -> None:
             errors.append(f"{relative}: is executable but has no shebang")
 
 
+def local_assignment_reason(line: str) -> str | None:
+    """Return why a dotenv assignment is machine-specific, if it is."""
+    if not ENV_ASSIGNMENT.match(line):
+        return None
+    name, value = line.split("=", 1)
+    value = value.strip().strip("\"'")
+    home = ABSOLUTE_HOME.search(value)
+    if home and home.group(1).lower() not in PLACEHOLDER_USERS:
+        return "contains a concrete /home user path"
+    if CONCRETE_MNT.search(value):
+        return "contains a concrete /mnt path; use a root variable or /srv placeholder"
+    if name == "TZ" and value and value not in {"UTC", "Etc/UTC"} and "${" not in value:
+        return "uses a machine-specific timezone; examples should default to UTC"
+    if TAILSCALE_HOST.search(value):
+        return "contains a concrete Tailscale hostname"
+    if HOST_VARIABLE.search(name) and DOMAIN_VALUE.search(value):
+        lowered = value.lower()
+        local_hostname = re.search(r"\b[a-z0-9-]+\.home(?::\d+)?(?:/|$)", lowered)
+        if not local_hostname and not any(placeholder in lowered for placeholder in PLACEHOLDER_DOMAINS):
+            return "contains a non-placeholder public domain"
+    return None
+
+
 def audit_stack(directory: Path, errors: list[str], warnings: list[str]) -> None:
     name = directory.name
     readme = directory / "README.md"
@@ -154,9 +177,9 @@ def audit_stack(directory: Path, errors: list[str], warnings: list[str]) -> None
                 errors.append(f"{name}: stack.env.example:{number} is not a dotenv assignment")
             if ENV_ASSIGNMENT.match(line) and re.search(r"\s+#", line):
                 errors.append(f"{name}: stack.env.example:{number} has an inline comment in its value")
-            for marker in PERSONAL_MARKERS:
-                if marker.search(line):
-                    errors.append(f"{name}: stack.env.example:{number} contains a local marker")
+            reason = local_assignment_reason(line)
+            if reason:
+                errors.append(f"{name}: stack.env.example:{number} {reason}")
     compose = directory / "docker-compose.yml"
     caddy = directory / "caddy_snippet.conf.example"
     if compose.exists() and caddy.exists():
