@@ -39,16 +39,6 @@ _LOGIN_MAX_ATTEMPTS = 15
 _LOGIN_LOCKOUT_SEC = 120
 
 
-# ============ FUNCTIONS ============
-def _is_safe_redirect_target(target):
-    """Allow local absolute paths, never schemes, hosts, or browser backslashes."""
-    if not target or '\\' in target or not target.startswith('/') or target.startswith('//'):
-        return False
-    parsed = urlsplit(target)
-    return not parsed.scheme and not parsed.netloc
-
-
-
 # ============= ROUTES ==============
 @root.route('/login', methods=['POST', 'GET'])
 def login():
@@ -88,7 +78,16 @@ def login():
                 else:
                     # update note
                     # next page
-                    if next_page != '/' and _is_safe_redirect_target(next_page):
+                    parsed_next_page = urlsplit(next_page or '')
+                    if (
+                        next_page != '/'
+                        and next_page is not None
+                        and '\\' not in next_page
+                        and next_page.startswith('/')
+                        and not next_page.startswith('//')
+                        and not parsed_next_page.scheme
+                        and not parsed_next_page.netloc
+                    ):
                         return redirect(next_page)
                     # dashboard
                     else:
