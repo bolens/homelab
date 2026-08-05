@@ -20,7 +20,7 @@ Access via Caddy only (no host port). Internal service: `http://enclosed:8787`.
 
 | Item | Details |
 |------|---------|
-| **Access** | Caddy → `enclosed:8787` on the `monitor` network |
+| **Access** | Caddy → `enclosed:8787` on the `ingress-sensitive` network |
 | **Data** | Named volume `enclosed_data` → `/app/.data` (encrypted note blobs) |
 | **Auth** | Optional: set `PUBLIC_IS_AUTHENTICATION_REQUIRED`, `AUTHENTICATION_JWT_SECRET`, and `AUTHENTICATION_USERS` per [upstream configuration](https://docs.enclosed.cc/self-hosting/configuration) |
 
@@ -34,4 +34,4 @@ enclosed config set instance-url https://enclosed.example.com
 
 ## Portainer
 
-**Stacks → Add stack** → paste `docker-compose.yml`, set **Environment variables** from `stack.env.example`, or upload a prepared `stack.env`. Ensure the `monitor` network exists and Caddy can reach `enclosed:8787`.
+**Stacks → Add stack** → paste `docker-compose.yml`, set **Environment variables** from `stack.env.example`, or upload a prepared `stack.env`. Ensure the `ingress-sensitive` network exists and Caddy can reach `enclosed:8787`.

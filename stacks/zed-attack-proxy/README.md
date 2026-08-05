@@ -23,14 +23,14 @@ Web application and API security scanner. This stack runs ZAP with the **Webswin
 
 3. **Scanning internal hosts**
 
-   From inside the ZAP container, other stacks on the `monitor` network are reachable by service name (e.g. `http://simplelogin:7777`, `http://paperless-ngx:8000`). Use those URLs in ZAP when scanning apps that are not exposed by hostname.
+   From inside the ZAP container, other stacks on the `ingress-admin` network are reachable by service name (e.g. `http://simplelogin:7777`, `http://paperless-ngx:8000`). Use those URLs in ZAP when scanning apps that are not exposed by hostname.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (reverse proxy to `zap:8080`). No host ports. |
-| **Network** | `monitor` (external). Caddy must be on the same network. |
+| **Networks** | `security-research` for research targets; `ingress-admin` for Caddy access. |
 | **Image** | `ghcr.io/zaproxy/zaproxy:stable` (official). |
 | **Persistence** | By default none; ZAP config/sessions are lost on restart. To persist, uncomment the `volumes` block in `docker-compose.yml` and create volume `zap-data`. |
 

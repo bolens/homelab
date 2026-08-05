@@ -26,8 +26,9 @@ services:
     mem_limit: 2g
     cpus: "1.00"
     networks:
-      - ai-services
-      - proxy-ingress
+      - ai-backend
+      - document-services
+      - ingress-sensitive
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
       interval: 60s
@@ -36,11 +37,14 @@ services:
       start_period: 60s
 
 networks:
-  ai-services:
-    name: ai-services
+  ai-backend:
+    name: ai-backend
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  document-services:
+    name: document-services
+    external: true
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
 
 volumes:

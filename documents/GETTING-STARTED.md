@@ -18,7 +18,7 @@ make validate
 make hooks-install
 ```
 
-`make doctor` is read-only. Warnings about `monitor`, `usenet`, or `torrents`
+`make doctor` is read-only. Warnings about an `ingress-*` zone, `telemetry`, `usenet`, or `torrents`
 are expected until you select a stack that needs those networks.
 
 ## 2. Set host-wide values
@@ -64,14 +64,21 @@ The stack README and Compose file declare any external networks or volumes.
 Common one-time networks are:
 
 ```bash
-docker network create monitor
+docker network create ingress-public
+docker network create ingress-admin
+docker network create ingress-sensitive
+docker network create --internal telemetry
+docker network create --internal mail-clients
+docker network create mail-egress
+docker network create --internal ai-backend
 docker network create usenet
 docker network create torrents
 ```
 
-Create only what your selected stacks require. The `monitor` network connects
-Caddy and internal HTTP services. The download networks connect compatible
-download clients and *arr applications.
+Create only what your selected stacks require. The three `ingress-*` networks are
+limited to Caddy and HTTP backends in the corresponding trust zone; other shared
+dependencies use their dedicated internal network.
+The download networks connect compatible clients and *arr applications.
 
 ## 5. Validate and deploy
 

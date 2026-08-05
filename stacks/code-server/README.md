@@ -4,7 +4,7 @@ LinuxServer image **`lscr.io/linuxserver/code-server`**. No host config director
 
 ## Quick start
 
-1. **`./prepare-stack.sh`** — creates local config and ensures the **`proxy-ingress`** network exists.
+1. **`./prepare-stack.sh`** — creates local config and ensures the **`ingress-admin`** network exists.
 2. Edit **`stack.env`**: set **`PASSWORD`**, **`PROXY_DOMAIN`** (your public hostname, e.g. `code.example.com`), **`PUID`/`PGID`** if needed.
 3. **`docker compose up -d`**
 4. Open **`https://<PROXY_DOMAIN>`** via Caddy (start from [caddy_snippet.conf.example](caddy_snippet.conf.example)).

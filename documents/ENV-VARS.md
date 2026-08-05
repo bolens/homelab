@@ -279,4 +279,4 @@ Quick reference — find a stack:
 | woodpecker-ci | POSTGRES_*, WOODPECKER_AGENT_SECRET, Gitea OAuth vars required. |
 | yourls | YOURLS_SITE, YOURLS_USER, YOURLS_PASS, YOURLS_COOKIEKEY, DB vars required. |
 | zed-attack-proxy | TZ optional; Webswing UI on :8080; proxy on :8080 for browser/tool config. |
-| zigbee2mqtt | ZIGBEE2MQTT_CONFIG_MQTT_SERVER required; Mosquitto on monitor network. |
+| zigbee2mqtt | ZIGBEE2MQTT_CONFIG_MQTT_SERVER required; Mosquitto on telemetry network. |

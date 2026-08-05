@@ -15,7 +15,7 @@ services:
     environment:
       API_DISABLE_HEALTH_CHECK_ROUTE_TELEMETRY: "true"
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/health"]
       interval: 30s
@@ -29,6 +29,6 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true

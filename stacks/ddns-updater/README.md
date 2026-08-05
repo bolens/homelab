@@ -20,7 +20,7 @@ Lightweight DDNS client that keeps **A** and **AAAA** records updated across [ma
 
 ## Networking and Caddy
 
-- No published host ports. The service joins the external **`monitor`** network as `ddns-updater` on **8000**.
+- No published host ports. The service joins the external **`ingress-admin`** network as `ddns-updater` on **8000**.
 - Copy `caddy_snippet.conf.example` → `caddy_snippet.conf`, replace `example.com` with your domain, and ensure the main Caddy stack imports `stacks/*/caddy_snippet.conf`.
 - The web UI has **no built-in login**. If the hostname is on the public internet, protect it with **Cloudflare Access** or similar; see [ACCESS-SSO.md](../../documents/ACCESS-SSO.md).
 

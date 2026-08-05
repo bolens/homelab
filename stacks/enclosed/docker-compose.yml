@@ -18,7 +18,7 @@ services:
     volumes:
       - enclosed_data:/app/.data
     networks:
-      - monitor
+      - ingress-sensitive
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8787/"]
       interval: 30s
@@ -30,8 +30,8 @@ services:
     cpus: "0.5"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
 
 volumes:

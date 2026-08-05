@@ -42,7 +42,7 @@ Set `BLACKBIRD_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-st
    # HTTPS_PROXY=http://caddy:3128
    ```
 
-   To route traffic through Caddy: enable the optional forward proxy block in `stacks/caddy/Caddyfile.example` (requires Caddy built with the `forwardproxy` plugin), expose port 3128 in the Caddy stack, then set the proxy vars above. Blackbird attaches to the `monitor` network so it can reach Caddy.
+   To route traffic through Caddy: enable the optional forward proxy block in `stacks/caddy/Caddyfile.example` (requires Caddy built with the `forwardproxy` plugin), expose port 3128 in the Caddy stack, then set the proxy vars above. Blackbird reaches Caddy over `security-research`.
 
 4. **Run homelab-user/email searches** (SANITIZED examples):
 
@@ -64,7 +64,7 @@ Set `BLACKBIRD_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-st
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm blackbird ...`. |
 | **Image** | Built from Dockerfile; push to Harbor and set `BLACKBIRD_IMAGE` in `stack.env`. |
 | **Storage** | Local `results/` directory bind‑mounted into `/results` for exported reports. |
-| **Network** | Attached to `monitor` so it can reach Caddy when using the forward proxy. |
+| **Network** | `security-research`; it can reach Caddy's optional forward proxy without joining ingress. |
 
 ## Routing through Caddy
 
@@ -95,10 +95,9 @@ To route Blackbird traffic through Caddy’s HTTP forward proxy:
    HTTPS_PROXY=http://caddy:3128
    ```
 
-Blackbird is already on the `monitor` network, so it can reach Caddy at `caddy:3128`.
+Blackbird is already on `security-research`, so it can reach Caddy at `caddy:3128`.
 
 ## Notes
 
 - Blackbird may rely on third‑party sites and APIs which can change behavior over time; check upstream docs for current flags and output formats.
 - Use only for **authorized** OSINT investigations and respect each site’s terms of service.
-

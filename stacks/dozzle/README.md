@@ -11,8 +11,8 @@ list containers and stream logs without mounting the Docker socket into the UI.
 
 ## Quick start
 
-1. From this directory: **`./prepare-stack.sh`** — creates `stack.env` (if missing), **`DOZZLE_CONFIG_DIR`** on the host (default **`~/.config/dozzle`**), seeds **`users.yaml`** from **[users.yaml.example](users.yaml.example)** when no `users.yaml`/`users.yml` exists yet, copies **`stack.env` → `.env`** for Compose `${HOME}` interpolation, and ensures the **`proxy-ingress`** network exists.
-2. Ensure the **`proxy-ingress`** network exists if you skipped the script (e.g. `docker network create proxy-ingress` or deploy Caddy first).
+1. From this directory: **`./prepare-stack.sh`** — creates `stack.env` (if missing), **`DOZZLE_CONFIG_DIR`** on the host (default **`~/.config/dozzle`**), seeds **`users.yaml`** from **[users.yaml.example](users.yaml.example)** when no `users.yaml`/`users.yml` exists yet, copies **`stack.env` → `.env`** for Compose `${HOME}` interpolation, and ensures the **`ingress-admin`** network exists.
+2. Ensure the **`ingress-admin`** network exists if you skipped the script (e.g. `docker network create ingress-admin` or deploy Caddy first).
 3. **`docker compose up -d`** (after prepare, Compose reads `.env` for bind-mount paths).
 4. Access via Caddy (e.g. https://dozzle.home or https://dozzle.example.com). Start from this stack’s committed [caddy_snippet.conf.example](caddy_snippet.conf.example); the prepared private `caddy_snippet.conf` is imported by the main Caddyfile.
 
@@ -20,9 +20,9 @@ list containers and stream logs without mounting the Docker socket into the UI.
 
 | Item | Details |
 |------|---------|
-| **Ports** | Optional `8082:8080` for direct host access. Caddy reaches Dozzle by `dozzle:8080` on `proxy-ingress`. |
+| **Ports** | Optional `8082:8080` for direct host access. Caddy reaches Dozzle by `dozzle:8080` on `ingress-admin`. |
 | **Volumes** | **Auth data:** host dir **`DOZZLE_CONFIG_DIR`** (default **`~/.config/dozzle`**) → container **`/data`** (`users.yaml` / `users.yml`). |
-| **Network** | `proxy-ingress` (external) for Caddy; private `docker-api` for the scoped Docker API proxy. |
+| **Network** | `ingress-admin` (external) for Caddy; private `docker-api` for the scoped Docker API proxy. |
 | **Env** | See [stack.env.example](stack.env.example), [ENV-VARS.md](../../documents/ENV-VARS.md), and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md). Set **`DOZZLE_AUTH_PROVIDER=simple`** only with a valid **`users.yaml`** (see below). **`stack.env` → `.env`** is for Compose interpolation only; compose-only keys are **not** passed into the container (avoids Dozzle "Unexpected environment variable" warnings). |
 | **Health** | Uses Dozzle’s built-in **`/dozzle healthcheck`** (see https://dozzle.dev/guide/healthcheck ) — the image has no `wget`/`sh`. |
 
@@ -46,14 +46,14 @@ Dozzle reads **`/data/users.yaml`** or **`/data/users.yml`** inside the containe
 
 ## Portainer
 
-1. Create the **`monitor`** network if needed.
+1. Create the **`ingress-admin`** network if needed.
 2. Set stack environment variables to match **`stack.env.example`**, especially **`DOZZLE_CONFIG_DIR`** as an **absolute host path** (Compose on the Portainer host does not expand `~`).
 3. On the host (or a job), create **`users.yaml`** under that directory (or run **`./prepare-stack.sh`** from a checkout that has the same **`stack.env`**, then deploy).
 
 ## Caddy
 
 Use `reverse_proxy dozzle:8080`. Caddy and Dozzle share only the dedicated
-`proxy-ingress` network. See [caddy_snippet.conf.example](caddy_snippet.conf.example)
+`ingress-admin` network. See [caddy_snippet.conf.example](caddy_snippet.conf.example)
 and [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example).
 
 ## Start

@@ -15,7 +15,7 @@ services:
       - SEARCH_BACKEND_HOST_NAME=sonic
     networks:
       - internal
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
       interval: 60s
@@ -55,8 +55,8 @@ services:
 networks:
   internal:
     driver: bridge
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

@@ -13,6 +13,6 @@ prepare_stack_copy_env
 
 prepare_stack_copy_caddy
 # Add the literal external prerequisites declared by this stack's Compose file:
-# prepare_stack_ensure_docker_network "monitor"
+# prepare_stack_ensure_docker_network "proxy-ingress"
 # prepare_stack_ensure_docker_volume "shared_data"
 prepare_stack_end

@@ -22,7 +22,7 @@ services:
       - lanraragi_database:/home/koyomi/lanraragi/database
       - lanraragi_thumb:/home/koyomi/lanraragi/thumb
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
       interval: 60s
@@ -31,8 +31,8 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

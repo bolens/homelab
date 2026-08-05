@@ -45,7 +45,7 @@ services:
       - bookstack_data:/config
     networks:
       - default
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80/"]
       interval: 30s
@@ -54,8 +54,8 @@ services:
       start_period: 45s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

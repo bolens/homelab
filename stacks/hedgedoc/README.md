@@ -21,7 +21,7 @@
 
 3. **Access**
    - HedgeDoc listens on port `3000` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-public` network, e.g.:
      - `https://hedgedoc.yourdomain.com` → `hedgedoc:3000`
 
 ## Configuration
@@ -29,7 +29,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `hedgedoc:3000`)                                |
-| **Network** | `proxy-ingress` (for Caddy) + default internal network for Postgres         |
+| **Network** | `ingress-public` (for Caddy) + default internal network for Postgres         |
 | **Images**  | `quay.io/hedgedoc/hedgedoc:1.9.9`, `postgres:16-alpine`                     |
 | **Storage** | `hedgedoc_pg_data` (DB), `hedgedoc_uploads` (uploaded attachments)          |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `hedgedoc.yourdomain.com` → `hedgedoc:3000` |

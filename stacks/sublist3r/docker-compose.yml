@@ -1,6 +1,6 @@
 name: sublist3r
 
-# Sublist3r needs monitor network when using Caddy as HTTP proxy (HTTP_PROXY=http://caddy:3128).
+# Sublist3r reaches Caddy's optional HTTP forward proxy over security-research.
 # Results: default ~/.config/sublist3r/results. Override with SUBLIST3R_RESULTS_PATH (e.g. in Portainer).
 
 services:
@@ -15,12 +15,11 @@ services:
     volumes:
       - ${SUBLIST3R_RESULTS_PATH:-${HOME}/.config/sublist3r/results}:/results
     networks:
-      - monitor
+      - security-research
     stdin_open: true
     tty: true
 
 networks:
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
     external: true
-

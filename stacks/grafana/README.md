@@ -29,7 +29,7 @@ Dashboard and visualization for Prometheus (and other datasources). Use with the
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `grafana:3000`) |
 | **Volume** | `grafana_data` (dashboards, users, settings) |
-| **Network** | `monitor` — shared with Caddy, Prometheus, cAdvisor |
+| **Network** | `ingress-admin` — shared with Caddy, Prometheus, cAdvisor |
 | **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. Optional: `GF_SERVER_ROOT_URL`, `GF_SECURITY_*`, `GRAFANA_DATASOURCES_PATH` |
 
 **Portainer:** Use “Git repository” or paste the compose; when deploying from Portainer you **must** set `GRAFANA_DATASOURCES_PATH` in the stack’s Environment to the **absolute path** of your `datasources.yml` on the host (e.g. `/home/youruser/.config/grafana/datasources.yml` or `/opt/grafana/datasources.yml`), otherwise the default becomes `/.config/grafana/datasources.yml` and the stack will fail. Put the file on the host first (copy from `datasources.yml.example`).
@@ -42,7 +42,7 @@ Dashboard and visualization for Prometheus (and other datasources). Use with the
 
 ## Logs (Loki)
 
-If you deploy **stacks/loki**, the provisioned `datasources.yml` already includes Loki at `http://loki:3100`. In Grafana go to **Explore** → choose **Loki** to run LogQL queries. Deploy **stacks/promtail** (and optionally **stacks/vector**) to ship logs to Loki; all must use the `monitor` network.
+If you deploy **stacks/loki**, the provisioned `datasources.yml` already includes Loki at `http://loki:3100`. In Grafana go to **Explore** → choose **Loki** to run LogQL queries. Deploy **stacks/promtail** (and optionally **stacks/vector**) to ship logs to Loki; all must use the `ingress-admin` network.
 
 ## Dashboards
 

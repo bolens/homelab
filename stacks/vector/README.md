@@ -8,7 +8,7 @@ Vector is a log collection and routing agent. This stack ships host and containe
 
 ## Quick start
 
-1. Ensure the **Loki** and **Grafana Alloy** stacks are running on the `monitor` network. Vector reuses Alloy's read-only Docker socket proxy at `http://alloy-docker-socket-proxy:2375`.
+1. Ensure the **Loki** and **Grafana Alloy** stacks are running on the `ingress-admin` network. Vector reuses Alloy's read-only Docker socket proxy at `http://alloy-docker-socket-proxy:2375`.
 2. From this directory, copy `stack.env.example` → `stack.env`.
 3. Review `vector.toml` and adjust sources and labels if needed.
 4. Start the stack:
@@ -25,7 +25,7 @@ Vector is a log collection and routing agent. This stack ships host and containe
 | ----------- | --------------------------------------------------------------------------------------- |
 | **Access**  | Internal only; Vector reads Docker logs through Alloy's read-only socket proxy and sends to `loki:3100` |
 | **Config**  | `vector.toml` (sources, transforms, sinks; safe to commit)                             |
-| **Network** | `monitor` — shared with Loki and other observability stacks                            |
+| **Network** | `ingress-admin` — shared with Loki and other observability stacks                            |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale via `shared.env`.    |
 
 The example `vector.toml` includes:

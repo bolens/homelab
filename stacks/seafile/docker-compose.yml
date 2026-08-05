@@ -28,7 +28,7 @@ services:
       - default
 
   seafile:
-    image: seafileltd/seafile-mc:latest
+    image: seafileltd/seafile-mc:13.0-latest
     container_name: seafile
     restart: unless-stopped
     depends_on:
@@ -44,13 +44,26 @@ services:
       - SEAFILE_DB_NAME=${SEAFILE_DB_NAME:-seafile}
       - SEAFILE_DB_USER=${SEAFILE_DB_USER:-seafile}
       - SEAFILE_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      # Seafile 12+ environment names.
+      - SEAFILE_MYSQL_DB_HOST=db
+      - SEAFILE_MYSQL_DB_PORT=3306
+      - SEAFILE_MYSQL_DB_USER=${SEAFILE_DB_USER:-seafile}
+      - SEAFILE_MYSQL_DB_PASSWORD=${SEAFILE_DB_PASSWORD}
+      - SEAFILE_MYSQL_DB_CCNET_DB_NAME=ccnet_db
+      - SEAFILE_MYSQL_DB_SEAFILE_DB_NAME=seafile_db
+      - SEAFILE_MYSQL_DB_SEAHUB_DB_NAME=seahub_db
+      - INIT_SEAFILE_MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - SEAFILE_SERVER_HOSTNAME=${SEAFILE_SERVER_HOSTNAME}
       - TIME_ZONE=${TIME_ZONE:-America/Denver}
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
+      - CACHE_PROVIDER=memcached
+      - MEMCACHED_HOST=memcached
+      - MEMCACHED_PORT=11211
     volumes:
       - seafile_data:/shared
     networks:
       - default
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80/"]
       interval: 60s
@@ -59,8 +72,8 @@ services:
       start_period: 90s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

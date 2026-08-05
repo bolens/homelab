@@ -8,13 +8,14 @@ TriliumNext Notes is a self-hosted hierarchical note-taking application with ric
 
 ## Usage
 
-Personal knowledge base accessible via web UI on port 8080, proxied through Caddy on the monitor
-network. Notes are stored in a named Docker volume. Supports desktop sync clients for offline access.
+Personal knowledge base accessible via web UI on port 8080, proxied through Caddy
+on `ingress-public`. Notes are stored in a named Docker volume. Supports desktop
+sync clients for offline access.
 
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. Ensure the `monitor` external Docker network exists before deploying.
+2. Ensure the `ingress-public` external Docker network exists before deploying.
 3. Optionally set TRILIUM_PORT if you need a port other than 8080.
 4. Deploy: `docker compose up -d`
 
@@ -28,5 +29,5 @@ network. Notes are stored in a named Docker volume. Supports desktop sync client
 
 - TZ and locale come from shared.env.
 - Data is stored in the `trilium_data` named volume — back it up regularly.
-- No host ports are exposed by default; Caddy proxies to `trilium:8080` over the monitor network.
+- No host ports are exposed by default; Caddy proxies to `trilium:8080` over the ingress-public network.
 - Desktop sync clients connect to your Caddy hostname using a sync password set in the UI.

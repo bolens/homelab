@@ -3,17 +3,17 @@
 # Docs: https://github.com/ail-project/ail-framework | https://www.ail-project.org/
 #
 # Resource-heavy: image ~2GB+, recommend >6GB RAM.
-# Default image is cciucd/ail-framework:latest (5.x). For 6.x, build from official repo and use docker-compose.override.example (see README).
+# Default image is the locally built official AIL 6.7 release (see README).
 # For 6.x + Lacus + Tor (MatthisClavijo image), same compose; container also listens on 7100 (Lacus) and 9050 (Tor SOCKS). Caddy can proxy to ail:7100; other services use socks5://ail:9050.
 services:
   ail:
-    image: ${AIL_IMAGE:-cciucd/ail-framework:latest}
+    image: ${AIL_IMAGE:-ail-framework:6.7}
     container_name: ail-framework
     restart: unless-stopped
     labels:
       - logging=true
       - logging_sampling=false
-    # cciucd image lives under /opt/AIL; wipe stale GNU screen sockets on start (otherwise Flask/feeder stay "Dead" after unclean stop).
+    # Wipe stale GNU screen sockets on start (otherwise Flask/feeder stay "Dead" after unclean stop).
     working_dir: /opt/AIL
     entrypoint: ["/bin/bash", "-c"]
     command: ["screen -wipe 2>/dev/null || true; exec /bin/bash docker_start.sh"]
@@ -28,14 +28,13 @@ services:
       - ail-indexdir:/opt/AIL/indexdir
       - ail-hashs:/opt/AIL/HASHS
       - ail-logs:/opt/AIL/logs
-      # Relaxed login lockout vs stock image (15 tries / 120s); remove if you switch AIL images and see import errors.
-      - ./patches/var/www/blueprints/root.py:/opt/AIL/var/www/blueprints/root.py:ro
     # Default container /run is on the writable layer; screen sockets persisted as "Dead" and blocked LAUNCH.
     tmpfs:
       - /run/screen
     networks:
-      - monitor
-    # 7100 = Lacus crawler UI, 9050 = Tor SOCKS (when using 6.x+Lacus+Tor image). Reachable via monitor network; no host ports.
+      - security-research
+      - ingress-admin
+    # 7100 = Lacus crawler UI, 9050 = Tor SOCKS for trusted security-research peers.
     expose:
       - "7000"
       - "7100"
@@ -55,8 +54,11 @@ services:
     cpus: 2.0
 
 networks:
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

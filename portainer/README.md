@@ -5,16 +5,16 @@ Docker management UI: manage containers, images, volumes, and stacks from a web 
 ## Quick start
 
 1. If you access Portainer through Caddy or another reverse proxy (e.g. `https://portainer.yourdomain.com`), copy `stack.env.example` → `stack.env` and set `TRUSTED_ORIGINS` to the **hostname only** (e.g. `portainer.yourdomain.com` — no `https://` or port). Otherwise you may get **"Forbidden - Invalid origin"** when deploying or logging in.
-2. Ensure the shared ingress network exists: `docker network create proxy-ingress` (safe to skip if Caddy preparation already created it).
+2. Ensure the shared ingress network exists: `docker network create ingress-admin` (safe to skip if Caddy preparation already created it).
 3. `docker compose up -d` from this directory (or deploy as a stack). Open your Caddy URL and complete the initial admin setup.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
-| **Port** | 9443 internally on `proxy-ingress`; no host publication |
+| **Port** | 9443 internally on `ingress-admin`; no host publication |
 | **Volumes** | Docker socket (required), `portainer_data` (persistent) |
-| **Network** | `proxy-ingress` (dedicated Caddy-to-service ingress) plus the stack-local default network |
+| **Network** | `ingress-admin` (dedicated Caddy-to-service ingress) plus the stack-local default network |
 | **Security** | `no-new-privileges:true` |
 | **Behind proxy** | Set `TRUSTED_ORIGINS` to the hostname only, e.g. `portainer.yourdomain.com` (see `stack.env.example`) |
 

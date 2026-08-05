@@ -1,6 +1,6 @@
 # cAdvisor – container resource metrics (CPU, memory, network, filesystem).
 # Prometheus scrapes this for container dashboards in Grafana. Access via Caddy (cadvisor.home).
-# No host port: attaches to monitor network. Requires privileged for full host/container visibility.
+# No host port: attaches to ingress-admin network. Requires privileged for full host/container visibility.
 services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -25,7 +25,8 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     networks:
-      - default
+      - telemetry
+      - ingress-admin
     env_file:
       - stack.env
     deploy:
@@ -42,8 +43,11 @@ services:
       start_period: 90s
 
 networks:
-  default:
-    name: monitor
+  telemetry:
+    name: telemetry
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes: {}

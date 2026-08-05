@@ -43,8 +43,8 @@ Phone number OSINT tool: looks up basic information about a phone number (countr
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `phoneinfoga:5000`) |
-| **Network** | `proxy-ingress` (external) for dedicated Caddy-to-service ingress |
-| **Image** | `sundowndev/phoneinfoga:latest` |
+| **Networks** | `security-research` for research-tool communication; `ingress-admin` for Caddy |
+| **Image** | `sundowndev/phoneinfoga:v2.11.0` (current upstream release) |
 | **Storage** | Stateless by default; results are generated per query in the UI/API |
 
 ## Caddy reverse proxy
@@ -58,7 +58,7 @@ phoneinfoga.home, phoneinfoga.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `phoneinfoga.yourdomain.com`) and keep the container on `proxy-ingress` so Caddy can resolve `phoneinfoga`.
+In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `phoneinfoga.yourdomain.com`) and keep the container on `ingress-admin` so Caddy can resolve `phoneinfoga`.
 
 ## Start
 

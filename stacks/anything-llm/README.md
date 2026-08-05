@@ -15,7 +15,7 @@ All-in-one **RAG workspace**: upload documents, build vector workspaces, and cha
 
 ## Ollama
 
-Use **`http://ollama:11434`** when this stack and **ollama** share the **`monitor`** network (defaults in `stack.env.example`). For Ollama on the Docker host only, use `http://host.docker.internal:11434`.
+Use **`http://ollama:11434`** when this stack and **ollama** share the **`ingress-public`** network (defaults in `stack.env.example`). For Ollama on the Docker host only, use `http://host.docker.internal:11434`.
 
 ## Whisper (optional)
 
@@ -27,4 +27,4 @@ Compose includes **`cap_add: [SYS_ADMIN]`** as required by the upstream image fo
 
 ## Portainer
 
-Repository path `stacks/anything-llm/docker-compose.yml`; attach **`monitor`**; set the same env vars as `stack.env.example`.
+Repository path `stacks/anything-llm/docker-compose.yml`; attach **`ingress-public`**; set the same env vars as `stack.env.example`.

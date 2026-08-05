@@ -21,7 +21,7 @@ Access via Caddy at **https://kavita.yourdomain.com** (or your configured hostna
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `kavita:5000`) |
-| **Network** | `proxy-ingress` for dedicated Caddy-to-service traffic |
+| **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
 | **Images** | `lscr.io/linuxserver/kavita:latest` |
 | **Storage** | `kavita_config`, `${KAVITA_BOOKS_PATH}` → `/data/books`, `${KAVITA_COMICS_PATH}` → `/data/comics` |
 

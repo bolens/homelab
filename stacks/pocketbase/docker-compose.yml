@@ -16,7 +16,7 @@ services:
     volumes:
       - pocketbase-data:/pb/pb_data
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test:
         [
@@ -29,8 +29,8 @@ services:
       start_period: 15s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

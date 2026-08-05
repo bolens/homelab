@@ -16,7 +16,7 @@ services:
         required: false
       - stack.env
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
       interval: 30s
@@ -25,6 +25,6 @@ services:
       start_period: 20s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true

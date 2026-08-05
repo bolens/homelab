@@ -26,7 +26,8 @@ services:
       - social-hunt-temp-uploads:/app/web/temp_uploads
     networks:
       - internal
-      - proxy-ingress
+      - security-research
+      - ingress-admin
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=4).read(1)"]
       interval: 60s
@@ -77,8 +78,11 @@ services:
 networks:
   internal:
     driver: bridge
-  proxy-ingress:
-    name: proxy-ingress
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

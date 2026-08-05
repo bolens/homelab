@@ -1,5 +1,5 @@
 # Immich – self-hosted photo and video backup. See https://immich.app/docs/install/docker-compose
-# Portainer-friendly: named volumes, env from stack.env, external monitor network for Caddy.
+# Portainer-friendly: named volumes, env from stack.env, external ingress-public network for Caddy.
 # For the latest compose from upstream: https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
 
 name: immich
@@ -30,7 +30,7 @@ services:
       disable: false
     networks:
       - default
-      - monitor
+      - ingress-public
 
   immich-machine-learning:
     container_name: immich-machine-learning
@@ -49,7 +49,6 @@ services:
       disable: false
     networks:
       - default
-      - monitor
 
   redis:
     container_name: immich-redis
@@ -92,8 +91,8 @@ services:
       - default
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

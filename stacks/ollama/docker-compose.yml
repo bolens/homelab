@@ -17,8 +17,8 @@ services:
       - path: stack.env
         required: true
     networks:
-      - ai-services
-      - proxy-ingress
+      - ai-backend
+      - ingress-admin
     labels:
       - logging=true
       - logging_sampling=true
@@ -38,11 +38,11 @@ services:
     gpus: all
 
 networks:
-  ai-services:
-    name: ai-services
+  ai-backend:
+    name: ai-backend
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

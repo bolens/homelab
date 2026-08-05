@@ -19,7 +19,7 @@ Container resource metrics (CPU, memory, network, filesystem) for all containers
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `cadvisor:8080`) |
-| **Network** | `monitor` — shared with Caddy, Prometheus, Grafana |
+| **Network** | `ingress-admin` — shared with Caddy, Prometheus, Grafana |
 | **Privileged** | Required for full container and host visibility |
 
 **Portainer:** Deploy as usual; no config files or volumes. The container runs privileged; ensure you’re comfortable with that on the host.

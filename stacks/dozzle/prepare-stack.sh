@@ -8,7 +8,7 @@ source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_ensure_dir_from_env "DOZZLE_CONFIG_DIR" "${HOME}/.config/dozzle"
-prepare_stack_ensure_docker_network "proxy-ingress"
+prepare_stack_ensure_docker_network "ingress-admin"
 
 _doz_dir="${HOME}/.config/dozzle"
 if [[ -f "$_PREPDIR/stack.env" ]]; then

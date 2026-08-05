@@ -14,7 +14,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - monitor
+      - docker-api
     read_only: true
     tmpfs:
       - /run
@@ -53,7 +53,8 @@ services:
       alloy-docker-socket-proxy:
         condition: service_healthy
     networks:
-      - monitor
+      - docker-api
+      - telemetry
     labels:
       logging: "true"
       logging_sampling: "false"
@@ -88,7 +89,7 @@ services:
     env_file:
       - stack.env
     networks:
-      - monitor
+      - telemetry
     labels:
       logging: "true"
       logging_sampling: "true"
@@ -113,8 +114,10 @@ services:
       start_period: 10s
 
 networks:
-  monitor:
-    name: monitor
+  docker-api:
+    internal: true
+  telemetry:
+    name: telemetry
     external: true
 
 volumes:

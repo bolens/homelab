@@ -48,7 +48,7 @@ scrape_configs:
     static_configs:
       - targets: ["node-exporter:9100"]
 
-  # Watchtower (stacks/watchtower on monitor): Bearer matches WATCHTOWER_HTTP_API_TOKEN; secret file in rules dir.
+  # Watchtower (stacks/watchtower on telemetry): Bearer matches WATCHTOWER_HTTP_API_TOKEN; secret file in rules dir.
   - job_name: watchtower
     scrape_interval: 30s
     scrape_timeout: 10s
@@ -82,13 +82,13 @@ scrape_configs:
       - targets: ["headscale:9090"]
     metrics_path: /metrics
 
-  # Optional: enable API in Vector config (e.g. address = "0.0.0.0:9598") and expose 9598 on monitor network
+  # Optional: enable API in Vector config (e.g. address = "0.0.0.0:9598") and expose 9598 on telemetry network
   # - job_name: vector
   #   static_configs:
   #     - targets: ["vector:9598"]
   #   metrics_path: /metrics
 
-  # Optional: Grafana Alloy (stacks/grafana-alloy) — service hostname is `alloy` on the monitor network.
+  # Optional: Grafana Alloy (stacks/grafana-alloy) — service hostname is `alloy` on the telemetry network.
   - job_name: alloy
     scrape_interval: 30s
     static_configs:

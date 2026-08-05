@@ -10,13 +10,13 @@ Kometa (formerly Plex Meta Manager) is a tool that automatically manages Plex li
 
 Batch runner that connects to your Plex server and applies metadata config (collections, overlays, ratings)
 on a schedule. Runs daily at 05:00 by default, then exits — not a persistent web service. Sits on the
-monitor network alongside Plex and related stacks.
+dedicated `media-services` network alongside Plex and related stacks.
 
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
 2. Create your Kometa config at the path specified by KOMETA_CONFIG_PATH (see Kometa docs for format).
-3. Ensure the `monitor` external Docker network exists before deploying.
+3. Ensure the `media-services` external Docker network exists before deploying.
 4. Deploy: `docker compose up -d`
 
 ## Environment variables

@@ -36,7 +36,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    # No host port: access via Caddy on proxy-ingress.
+    # No host port: access via Caddy on ingress-public.
     volumes:
       # Require explicit host path (set in stack.env; prepare copies stack.env -> .env for compose).
       - ${SEARXNG_SETTINGS_PATH:?Set SEARXNG_SETTINGS_PATH in stack.env (see stack.env.example)}:/etc/searxng/settings.yml:ro
@@ -50,7 +50,8 @@ services:
       - 8.8.4.4
     networks:
       - default
-      - proxy-ingress
+      - ingress-public
+      - ai-backend
     labels:
       - logging=true
       - logging_sampling=true
@@ -85,8 +86,11 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
+    external: true
+  ai-backend:
+    name: ai-backend
     external: true
 
 volumes:

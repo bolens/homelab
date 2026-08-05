@@ -1,5 +1,5 @@
 # Grafana – dashboards and visualization. Access via Caddy (grafana.home / grafana.yourdomain.com).
-# No host port: attaches to monitor network for reverse proxy. Uses external monitor network
+# No host port: attaches to ingress-admin network for reverse proxy. Uses external ingress-admin network
 # only (no default network) to avoid creating new subnets when Docker address pools are full.
 # Prometheus datasource is auto-provisioned via provisioning/datasources/datasources.yml.
 # To keep config local, copy datasources.yml.example to a host path and point
@@ -22,7 +22,8 @@ services:
       # Dashboard provisioning: dir must contain default.yaml and json/ with dashboard JSONs (see README).
       - ${GRAFANA_DASHBOARDS_PATH:-${HOME}/.config/grafana/provisioning_dashboards}:/etc/grafana/provisioning/dashboards:ro
     networks:
-      - monitor
+      - telemetry
+      - ingress-admin
     cpu_shares: 256
     memswap_limit: 2g
     deploy:
@@ -45,8 +46,11 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

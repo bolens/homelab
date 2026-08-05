@@ -1,5 +1,5 @@
 # Paperless-ngx with PostgreSQL. See https://docs.paperless-ngx.com/setup/
-# Portainer-friendly: named volumes for export/consume, env vars from stack.env, external monitor network.
+# Portainer-friendly: named volumes, private backend network, and proxy-only ingress.
 services:
   broker:
     image: docker.io/library/redis:8
@@ -40,7 +40,7 @@ services:
       - stack.env
       - path: ../../shared.env
         required: false
-    # No host port: access via Caddy (reverse proxy on monitor network)
+    # No host port: access via Caddy on ingress-sensitive.
     volumes:
       - data:/usr/src/paperless/data
       - media:/usr/src/paperless/media
@@ -48,7 +48,8 @@ services:
       - consume:/usr/src/paperless/consume
     networks:
       - default
-      - monitor
+      - document-services
+      - ingress-sensitive
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
       interval: 30s
@@ -59,8 +60,11 @@ services:
 networks:
   default:
     driver: bridge
-  monitor:
-    name: monitor
+  document-services:
+    name: document-services
+    external: true
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
 
 volumes:

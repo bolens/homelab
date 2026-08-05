@@ -22,7 +22,7 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
 
 ## Setup
 
-1. Run `./prepare-stack.sh` (creates local config and ensures `ai-services` plus `proxy-ingress`).
+1. Run `./prepare-stack.sh` (creates local config and ensures `ai-backend` plus `ingress-admin`).
 
 2. (Optional) Edit `stack.env` and set your model storage path; otherwise models use `./models`:
    ```bash
@@ -39,12 +39,12 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
 
 - **Stacks** → **Add stack** → **Repository**, compose path `stacks/ollama/docker-compose.yml`.
 - Run `./prepare-stack.sh` on the host first, or create `stack.env` with
-  `OLLAMA_MODELS_PATH` and attach the stack to `ai-services` and `proxy-ingress`
+  `OLLAMA_MODELS_PATH` and attach the stack to `ai-backend` and `ingress-admin`
   so Open WebUI and other AI stacks can reach `ollama:11434`.
 
 ## Usage
 
-Once running, Ollama is available to containers on `ai-services` at
+Once running, Ollama is available to containers on `ai-backend` at
 `http://ollama:11434` and through the configured Caddy hostname. The API is
 not published directly on the host.
 
@@ -52,7 +52,7 @@ not published directly on the host.
 
 Use **Open WebUI** (in `docker/stacks/open-webui`) as a web UI to install and manage Ollama models:
 
-1. Start the **ollama** and **open-webui** stacks and set `OLLAMA_BASE_URL` to `http://ollama:11434` on `ai-services`.
+1. Start the **ollama** and **open-webui** stacks and set `OLLAMA_BASE_URL` to `http://ollama:11434` on `ai-backend`.
 2. In Open WebUI, go to **Settings (gear) → Connections → Ollama** and click the **Manage** (wrench) button.
 3. From there you can **pull/install models**, see installed models, and manage the connection.
 4. In chat you can also select a model by name; if it’s not installed, Open WebUI can prompt you to download it.
@@ -141,4 +141,4 @@ This allows you to:
 
 ### Connection issues from other containers
 - Use `http://ollama:11434` when connecting from containers on the same network
-- Attach consuming containers to `ai-services`; the host port is intentionally unpublished
+- Attach consuming containers to `ai-backend`; the host port is intentionally unpublished

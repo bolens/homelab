@@ -7,5 +7,6 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_dir_from_env "TAUTULLI_CONFIG_PATH" "${HOME}/.config/tautulli"
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "media-services"
+prepare_stack_ensure_docker_network "ingress-public"
 prepare_stack_end

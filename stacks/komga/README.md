@@ -33,7 +33,7 @@ Create libraries in the Komga UI; choose a directory under `/data` (e.g. `/data/
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `komga:25600`) |
-| **Network** | `proxy-ingress` for dedicated Caddy-to-service traffic |
+| **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
 | **Images** | `gotson/komga:latest` |
 | **Storage** | Named volumes: `komga_config` (DB and settings), `komga_data` (books); or bind-mount `/data` |
 

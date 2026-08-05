@@ -14,5 +14,5 @@ prepare_stack_msg "stack-specific steps..."
 echo "[prepare-stack] Running in $(pwd)"
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "proxy-ingress"
+prepare_stack_ensure_docker_network "ingress-public"
 prepare_stack_end

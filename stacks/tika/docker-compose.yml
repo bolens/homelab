@@ -13,7 +13,7 @@ services:
         required: false
       - stack.env
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9998/"]
       interval: 30s
@@ -27,6 +27,6 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true

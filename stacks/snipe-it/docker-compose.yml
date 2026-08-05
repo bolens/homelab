@@ -17,8 +17,8 @@ services:
       - snipeit_storage:/var/lib/snipeit
     networks:
       - default
-      - proxy-ingress
-      - mail-services
+      - ingress-sensitive
+      - mail-clients
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80/login"]
       interval: 60s
@@ -52,11 +52,11 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

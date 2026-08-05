@@ -16,14 +16,14 @@ Static **landing page** (e.g. “under construction”) for your root domain or 
    From this directory: `docker compose up -d` (or add the stack in Portainer).
 
 4. **Caddy**  
-   Add the Caddy site block(s) from [Caddy](#caddy) below to your Caddyfile (copy from `stacks/caddy/Caddyfile.example`). Use your real hostname in the Caddyfile (e.g. `yourdomain.com, www.yourdomain.com` or `homepage.yourdomain.com`). No host ports; access only via Caddy at `homepage:80` on the `monitor` network.
+   Add the Caddy site block(s) from [Caddy](#caddy) below to your Caddyfile (copy from `stacks/caddy/Caddyfile.example`). Use your real hostname in the Caddyfile (e.g. `yourdomain.com, www.yourdomain.com` or `homepage.yourdomain.com`). No host ports; access only via Caddy at `homepage:80` on the `ingress-admin` network.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `homepage:80`) |
-| **Network** | `monitor` (external) |
+| **Network** | `ingress-admin` (external) |
 | **Image** | `nginx:alpine` |
 | **Storage** | Bind mount `./www` → `/usr/share/nginx/html` (read-only). Edit files in `www/` on the host. |
 | **Env** | Optional `TZ`; see [ENV-VARS.md](../../documents/ENV-VARS.md). TZ/locale can come from shared.env. |
@@ -71,7 +71,7 @@ This stack serves a public static page. It is typically **not** protected by Clo
 
 ## Portainer
 
-1. Ensure the `monitor` network exists (e.g. create it from Networks or deploy Caddy first).
+1. Ensure the `ingress-admin` network exists (e.g. create it from Networks or deploy Caddy first).
 2. Stacks → Add stack → paste this compose (or pull from repo). Set **Web editor** path to this stack’s `docker-compose.yml`.
 3. Optionally set environment variables (e.g. `TZ`); defaults work.
 4. Add the Caddy site block(s) above to your Caddyfile and reload Caddy.

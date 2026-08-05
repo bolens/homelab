@@ -22,7 +22,7 @@
 
 3. **Access**
    - Seafile serves HTTP on port `80` inside the container.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `ingress-public` network, e.g.:
      - `https://seafile.yourdomain.com` → `seafile:80`
    - On first visit, follow the Seafile setup wizard to create the admin account.
 
@@ -31,10 +31,9 @@
 | Item        | Details                                                                    |
 | ----------- | -------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `seafile:80`)                                  |
-| **Network** | `monitor` (for Caddy) + default internal network for DB/Memcached          |
-| **Images**  | `seafileltd/seafile-mc:latest`, `mariadb:10.11`, `memcached:alpine`        |
+| **Network** | `ingress-public` for Caddy + default internal network for DB/Memcached      |
+| **Images**  | `seafileltd/seafile-mc:13.0-latest`, `mariadb:12.3`, `memcached:alpine`   |
 | **Storage** | `seafile_db` (MariaDB), `seafile_data` (`/shared` – config/data/logs)      |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `seafile.yourdomain.com` → `seafile:80` |
 
 For advanced configuration (SSL offload details, client settings, email, etc.), refer to the official Seafile Docker documentation.
-

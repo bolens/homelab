@@ -2,7 +2,7 @@
 # Repo: https://github.com/jo-inc/camofox-browser
 # Image: ghcr.io/jo-inc/camofox-browser:latest (public GHCR)
 # REST API on port 9377. Element refs, accessibility snapshots, session isolation.
-# Portainer-friendly: named volumes, env from stack.env, external monitor network for Caddy.
+# Portainer-friendly: named volumes, env from stack.env, external ingress-admin network for Caddy.
 
 name: camofox-browser
 
@@ -24,11 +24,11 @@ services:
     shm_size: 512mb
     networks:
       - default
-      - monitor
+      - ingress-admin
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

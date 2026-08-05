@@ -40,7 +40,7 @@ Set `YOURLS_COOKIEKEY` to the first output; set `YOURLS_DB_PASSWORD` and `YOURLS
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `yourls:8080`) |
-| **Network** | `proxy-ingress` for Caddy; private default network for MariaDB |
+| **Network** | `ingress-public` for Caddy; private default network for MariaDB |
 | **Images** | `yourls:1.10.3-apache`, `mariadb:11` (override `YOURLS_IMAGE` if you use your own) |
 | **Env** | `YOURLS_SITE`, `YOURLS_USER`, `YOURLS_PASS`, `YOURLS_COOKIEKEY`, `YOURLS_DB_*` (see `stack.env.example`) |
 | **Storage** | `yourls_data` (user config/plugins), `yourls_db_data` (MariaDB) |
@@ -58,7 +58,7 @@ urls.yourdomain.com, short.yourdomain.com, s.yourdomain.com {
 }
 ```
 
-Ensure YOURLS is on `proxy-ingress` so Caddy can reach `yourls:8080`.
+Ensure YOURLS is on `ingress-public` so Caddy can reach `yourls:8080`.
 
 ## Start
 

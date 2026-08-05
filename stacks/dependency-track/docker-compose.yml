@@ -61,7 +61,7 @@ services:
       - dtrack-data:/data
     networks:
       - dtrack
-      - proxy-ingress
+      - ingress-admin
 
   dtrack-frontend:
     image: dependencytrack/frontend:latest
@@ -77,13 +77,13 @@ services:
       - API_BASE_URL=${API_BASE_URL}
     networks:
       - dtrack
-      - proxy-ingress
+      - ingress-admin
 
 networks:
   dtrack:
     driver: bridge
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

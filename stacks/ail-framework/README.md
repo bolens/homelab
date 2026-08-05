@@ -31,10 +31,10 @@
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `ail:7000`). The AIL UI serves HTTPS with a self-signed cert; Caddy is configured with `tls_insecure_skip_verify` for the backend. |
-| **Network** | `monitor` (external) — Caddy can reach `ail:7000`. |
-| **Image** | Default: `cciucd/ail-framework:latest` (5.x, community image). Override with `AIL_IMAGE` in `stack.env` to use official 6.x or your own build (see **Using AIL 6.x** below). |
+| **Networks** | `security-research` for trusted research peers; `ingress-admin` for Caddy. |
+| **Image** | Default: locally built official `ail-framework:6.7`. Override with `AIL_IMAGE` in `stack.env` for a registry-hosted copy. |
 | **Storage** | Named volumes for PASTES, CRAWLED_SCREENSHOT, DATA_KVROCKS, indexdir, HASHS, logs. |
-| **Login patch** | Optional bind mount: `patches/.../root.py` (see **Login lockout** above). Drop the mount when switching to an AIL image whose `root.py` no longer matches. |
+| **Login behavior** | Uses upstream AIL 6.7 behavior; the old 5.x `root.py` override is no longer mounted. |
 
 ## Resources
 
@@ -42,7 +42,7 @@ AIL is resource-intensive: the image is large (~2GB+) and the app typically need
 
 ## Using AIL 6.x (official build)
 
-The default image ([cciucd/ail-framework](https://hub.docker.com/r/cciucd/ail-framework)) is 5.x. Official releases (e.g. **v6.7**) are not published as images; you build from the [official repo](https://github.com/ail-project/ail-framework). The official image uses **/opt/AIL** for data paths (not /opt/ail-framework), so you must use the provided override.
+Official releases (e.g. **v6.7**) are not published as images; this stack builds from the [official repo](https://github.com/ail-project/ail-framework). The official image and this compose file use **/opt/AIL** for data paths.
 
 **This repo** vendors a pinned checkout under `ail-framework-docker/ail-framework` (tag **v6.7**) with small build fixes for Ubuntu 22.04 / current pip (Dockerfile paths, `install_virtualenv.sh`, pystemon installer). Prefer building from there so you do not have to re-apply patches after a fresh clone.
 
@@ -88,7 +88,7 @@ AIL 6.x images are **large** (often **many GB** compressed). A public Harbor hos
 
 For AIL 6.x **plus** the [Lacus](https://github.com/ail-project/lacus) crawler and a Tor SOCKS proxy in one image, use [MatthisClavijo/ail-framework-docker](https://github.com/MatthisClavijo/ail-framework-docker). That image uses **/opt/ail-framework** (same as the default 5.x image), so you use the **default** compose—**no** `docker-compose.override.yml`. Pin to the AIL release tag you want (e.g. v6.7) by checking out that tag before building.
 
-**Tor:** Port 9050 is SOCKS, not HTTP. Caddy does not proxy it. Other containers on the `monitor` network use `socks5://ail:9050` directly. No Caddy block needed.
+**Tor:** Port 9050 is SOCKS, not HTTP. Caddy does not proxy it. Trusted containers on `security-research` use `socks5://ail:9050` directly. No Caddy block needed.
 
 ---
 
@@ -170,7 +170,7 @@ docker compose --env-file stack.env up -d
 
 - **AIL:** https://ail.home (or your configured AIL hostname)
 - **Lacus:** https://lacus.home (or your configured Lacus hostname)
-- **Tor (other containers only):** `socks5://ail:9050` on the `monitor` network
+- **Tor (trusted research containers only):** `socks5://ail:9050` on `security-research`
 
 **7. (Optional) Other hosts**
 
@@ -178,7 +178,7 @@ On another host that should run AIL from Harbor: ensure Docker trusts `harbor.lo
 
 ## Caddy reverse proxy
 
-The stack is on the `monitor` network so Caddy can reach `ail:7000`. The AIL Flask app uses HTTPS with a self-signed certificate; the Caddyfile uses:
+The stack uses `security-research` for research-tool communication and `ingress-admin` so Caddy can reach `ail:7000`. The AIL Flask app uses HTTPS with a self-signed certificate; the Caddyfile uses:
 
 - `reverse_proxy https://ail:7000` with `transport http { tls_insecure_skip_verify }`.
 - **`header_up Host {host}`** and **`X-Forwarded-Host`** so Flask sees your public hostname (not `ail:7000`). Without this, login and `?next=` redirects can loop or send the browser to the wrong host.

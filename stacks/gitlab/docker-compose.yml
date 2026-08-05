@@ -27,7 +27,7 @@ services:
     ports:
       - "${GITLAB_SSH_PORT:-2224}:22"
     networks:
-      - monitor
+      - ingress-admin
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1/-/health"]
       interval: 30s
@@ -41,8 +41,8 @@ services:
         max-file: "5"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

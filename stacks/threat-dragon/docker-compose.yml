@@ -1,5 +1,5 @@
 # OWASP Threat Dragon – threat modeling (diagrams, STRIDE, save to GitHub/Bitbucket/GitLab).
-# No host ports: access via Caddy (reverse_proxy threatdragon:3000 on monitor network).
+# No host ports: access via Caddy (reverse_proxy threatdragon:3000 on ingress-admin network).
 # Requires .env with SESSION_SIGNING_KEY; add GITHUB_* (or Bitbucket/GitLab) for repo storage.
 # Docs: https://www.threatdragon.com/  |  https://owasp.org/www-project-threat-dragon/
 #
@@ -22,7 +22,7 @@ services:
     volumes:
       - ./stack.env:/app/.env:ro
     networks:
-      - monitor
+      - ingress-admin
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
       interval: 60s
@@ -31,6 +31,6 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true

@@ -11,13 +11,13 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    # No host port: access via Caddy (beszel.home / beszel.example.com on monitor network)
+    # No host port: access via Caddy (beszel.home / beszel.example.com on ingress-admin network)
     environment:
       APP_URL: ${BESZEL_APP_URL}
     volumes:
       - ${BESZEL_DATA_DIR:-${HOME}/.local/share/beszel}:/beszel_data
     networks:
-      - monitor
+      - ingress-admin
     env_file:
       - path: ../../shared.env
         required: false
@@ -33,6 +33,6 @@ services:
     cpus: "0.50"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true

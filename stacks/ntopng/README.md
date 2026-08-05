@@ -24,8 +24,7 @@ Network traffic analytics and flow monitoring. This stack runs ntopng with host 
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Host networking; web UI on `http://<host-ip>:3000` by default          |
 | **Volume**  | `ntopng_data` (ntopng state, flows, preferences)                       |
-| **Network** | `network_mode: host` to see real interfaces (no `monitor` network)     |
+| **Network** | `network_mode: host` to see real interfaces                                  |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.     |
 
 Consult the ntopng docs for configuring interfaces, flows, and data retention. Be mindful of privacy when exposing ntopng externally; if you put it behind Caddy and Cloudflare Tunnel, protect the hostname with Cloudflare Access.
-

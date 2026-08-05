@@ -10,6 +10,6 @@ prepare_stack_copy_example_to_env_path \
   "${XDG_CONFIG_HOME:-${HOME}/.config}/headscale/config.yaml" \
   "$_PREPDIR/config.example.yaml"
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "proxy-ingress"
-prepare_stack_ensure_docker_network "observability"
+prepare_stack_ensure_docker_network "ingress-admin"
+prepare_stack_ensure_docker_network "telemetry" "true"
 prepare_stack_end

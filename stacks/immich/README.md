@@ -34,7 +34,7 @@ The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it
 | Item | Details |
 |------|---------|
 | **Port** | 2283 (proxied via Caddy; also bound to 127.0.0.1:2283 for localhost-only direct access) |
-| **Network** | `monitor` (external) — Caddy can reverse-proxy to `immich-server:2283` |
+| **Network** | `ingress-public` (external) — Caddy can reverse-proxy to `immich-server:2283` |
 | **Images** | immich-server, immich-machine-learning, Valkey (Redis), Postgres with vector extension |
 | **Env** | `DB_PASSWORD` required; `TZ`, `IMMICH_VERSION`, optional `IMMICH_CONFIG_FILE` (see `stack.env.example`) |
 | **Storage** | Named volumes: `library` (uploads), `pgdata`, `model-cache`, `redisdata` |
@@ -162,7 +162,7 @@ immich.yourdomain.com {
 }
 ```
 
-Ensure the Immich stack is on the `monitor` network so Caddy can reach `immich-server:2283`.
+Ensure the Immich stack is on the `ingress-public` network so Caddy can reach `immich-server:2283`.
 
 ## Start
 

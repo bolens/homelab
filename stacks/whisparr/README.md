@@ -41,7 +41,7 @@ Adult movie collection manager for Usenet and torrents (Servarr family). Monitor
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no published host port); upstream `whisparr:6969` |
-| **Networks** | `monitor`, `usenet`, `torrents` |
+| **Networks** | `ingress-admin`, `usenet`, `torrents` |
 | **Image** | `ghcr.io/thespad/whisparr:latest` |
 | **Env** | `TZ`, `PUID`, `PGID`, `WHISPARR_CONFIG_PATH`, `WHISPARR_MEDIA_PATH` |
 | **Storage** | Config bind → `/config`; `${WHISPARR_MEDIA_PATH}` → `/data`; adult library at `/data/adult` |

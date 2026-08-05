@@ -63,8 +63,8 @@ services:
       - authentik_templates:/templates
     networks:
       - authentik
-      - proxy-ingress
-      - mail-services
+      - ingress-sensitive
+      - mail-clients
 
   worker:
     image: ghcr.io/goauthentik/server:latest
@@ -94,16 +94,16 @@ services:
       - authentik_templates:/templates
     networks:
       - authentik
-      - mail-services
+      - mail-clients
 
 networks:
   authentik:
     driver: bridge
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

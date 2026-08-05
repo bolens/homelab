@@ -36,7 +36,7 @@ The config is bind-mounted read-only. Headscale state remains in the
 | Item | Details |
 |------|---------|
 | **Ports** | 8080 (API/HTTP), 9090 (metrics). Proxied via Caddy; host ports for direct access if needed. |
-| **Network** | `proxy-ingress` for Caddy; `observability` for Prometheus metrics |
+| **Network** | `ingress-admin` for Caddy; internal `telemetry` for Prometheus metrics |
 | **Image** | headscale/headscale (Docker Hub) |
 | **Config** | Bind-mounted from `HEADSCALE_CONFIG_PATH` to `/etc/headscale/config.yaml` (read-only). |
 | **Storage** | Config bind mount plus `headscale_data` named volume for DB and keys |

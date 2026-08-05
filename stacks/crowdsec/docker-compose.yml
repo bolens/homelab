@@ -67,9 +67,10 @@ services:
       crowdsec-docker-socket-proxy:
         condition: service_healthy
     # LAPI on 8080; no host port – Caddy is the single entrypoint (crowdsec.home / crowdsec.yourdomain.com).
-    # Other containers (e.g. Prometheus, bouncers) on monitor use http://crowdsec:8080.
+    # Prometheus uses telemetry; Caddy and bouncers use ingress-admin.
     networks:
-      - monitor
+      - telemetry
+      - ingress-admin
       - docker-api
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
@@ -81,8 +82,11 @@ services:
 networks:
   docker-api:
     internal: true
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

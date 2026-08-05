@@ -31,7 +31,7 @@ Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatica
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `bazarr:6767`)          |
-| **Networks** | `monitor` plus default                                                |
+| **Networks** | `ingress-admin` plus default                                                |
 | **Image**  | `lscr.io/linuxserver/bazarr:latest`                                    |
 | **Env**    | `TZ`, `PUID`, `PGID`, `BAZARR_TV_PATH`, `BAZARR_MOVIES_PATH`           |
 | **Storage**| `bazarr_config` → `/config`, `${BAZARR_TV_PATH}` → `/data/tv`, `${BAZARR_MOVIES_PATH}` → `/data/movies` |

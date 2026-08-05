@@ -37,7 +37,7 @@ writable by the configured `PUID`/`PGID`.
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Direct via `http://host:32400/web`, or via Caddy reverse proxy         |
-| **Network**| `network_mode: host` (no `monitor` network needed)                     |
+| **Network**| `ingress-public` plus `media-services`; TCP 32400 published for direct clients |
 | **Image**  | `lscr.io/linuxserver/plex:latest`                                      |
 | **Env**    | `TZ`, `PUID`, `PGID`, `VERSION=docker`, `PLEX_*_PATH`, optional `PLEX_CLAIM` |
 | **Storage**| `plex_config` → `/config`, `plex_transcode` → `/transcode`, host media paths → `/data/{tv,movies,music}` |

@@ -24,7 +24,7 @@
 # Local (.home / .local) – internal TLS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Infrastructure (Portainer attaches to monitor network)
+# Infrastructure (Portainer attaches to ingress-admin network)
 portainer.home, portainer.local {
 	tls internal
 	reverse_proxy https://portainer:9443 {
@@ -67,7 +67,7 @@ asf.home, asf.local {
 
 it-tools.home, it-tools.local {
 	tls internal
-	reverse_proxy it-tools:80 {
+	reverse_proxy it-tools:8080 {
 		transport http {
 			versions 1.1
 		}
@@ -584,7 +584,7 @@ headscale.home, headscale.local {
 	}
 }
 
-# Harbor proxy attaches to monitor network via docker-compose.override.yml
+# Harbor proxy attaches to ingress-admin network via docker-compose.override.yml
 # Required for docker push/pull: X-Forwarded headers + disable buffering
 # Allow large image pushes (no request body limit)
 harbor.home, harbor.local {
@@ -737,7 +737,7 @@ lanraragi.home, lanraragi.local {
 	}
 }
 
-# AI / LLM – reverse_proxy to container names on monitor network
+# AI / LLM – reverse_proxy to container names on ingress-admin network
 ollama.home, ollama.local {
 	tls internal
 	reverse_proxy ollama:11434 {
@@ -1053,7 +1053,7 @@ headscale.yourdomain.com {
 	}
 }
 
-# Harbor proxy attaches to monitor network via docker-compose.override.yml
+# Harbor proxy attaches to ingress-admin network via docker-compose.override.yml
 # Required for docker push/pull: X-Forwarded headers + disable buffering
 # Allow large image pushes (no request body limit)
 harbor.yourdomain.com {
@@ -1145,7 +1145,7 @@ it-tools.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy it-tools:80 {
+	reverse_proxy it-tools:8080 {
 		transport http {
 			versions 1.1
 		}
@@ -1538,7 +1538,7 @@ plex.yourdomain.com {
 	}
 }
 
-# Portainer attaches to monitor network
+# Portainer attaches to ingress-admin network
 portainer.yourdomain.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}

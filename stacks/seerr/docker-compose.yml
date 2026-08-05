@@ -24,8 +24,8 @@ services:
     volumes:
       - ${SEERR_CONFIG_PATH:-${HOME}/.config/seerr}:/app/config
     networks:
-      - proxy-ingress
-      - mail-services
+      - ingress-public
+      - mail-clients
     healthcheck:
       test:
         [
@@ -41,9 +41,9 @@ services:
     cpus: "1.00"
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true

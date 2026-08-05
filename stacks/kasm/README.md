@@ -62,7 +62,7 @@ Use `Ctrl+C` to stop following. If the wizard is still running, return to `https
 | Item        | Details |
 |------------|---------|
 | **Access** | Via Caddy only (no host ports; reverse proxy to `kasm:443` for main UI, `kasm:3000` for setup wizard) |
-| **Network** | Internal `kasm`, isolated `backup` for optional MinIO, and `proxy-ingress` for Caddy |
+| **Network** | Internal `kasm`, isolated `backup` for optional MinIO, and `ingress-admin` for Caddy |
 | **Image**   | `lscr.io/linuxserver/kasm:latest` |
 | **Storage** | Named volumes `kasm_data` (Docker/install data) and `kasm_profiles` (persistent workspace profiles) |
 | **Auth**    | Users and passwords set during the setup wizard; default `admin@kasm.local` and `user@kasm.local` |

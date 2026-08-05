@@ -17,7 +17,7 @@
 
 ## URLs and Caddy
 
-- No host ports are published. The app listens on **3000** inside Docker; [stacks/caddy](../caddy/) reverse-proxies to `umami:3000` on the external **`monitor`** network.
+- No host ports are published. The app listens on **3000** inside Docker; [stacks/caddy](../caddy/) reverse-proxies to `umami:3000` on the external **`ingress-public`** network.
 - After `prepare-stack.sh`, edit `caddy_snippet.conf` and reload Caddy.
 
 ## First login

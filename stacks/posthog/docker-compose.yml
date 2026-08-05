@@ -7,6 +7,6 @@ include:
   - path: docker-compose.homelab.yml
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true

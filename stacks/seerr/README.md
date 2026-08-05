@@ -42,14 +42,14 @@ docker compose --env-file stack.env restart seerr
    - Radarr: `http://radarr:7878`
    - Sonarr: `http://sonarr:8989`
 
-**Portainer:** Stacks → Add stack → paste `docker-compose.yml`, set env from `stack.env.example` (use **absolute** `SEERR_CONFIG_PATH`), attach to `proxy-ingress` and `mail-services`, deploy.
+**Portainer:** Stacks → Add stack → paste `docker-compose.yml`, set env from `stack.env.example` (use **absolute** `SEERR_CONFIG_PATH`), attach to `ingress-public` and `mail-clients`, deploy.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host ports; reverse-proxy to `seerr:5055`) |
-| **Network** | `proxy-ingress` for Caddy; `mail-services` for SMTP |
+| **Network** | `ingress-public` for Caddy; `mail-clients` for SMTP |
 | **Image** | `ghcr.io/seerr-team/seerr:latest` (pin a `vX.Y.Z` tag for reproducible deploys) |
 | **Storage** | `SEERR_CONFIG_PATH` (default `${HOME}/.config/seerr`) → `/app/config` (SQLite by default; see [database options](https://docs.seerr.dev/extending-seerr/database-config)) |
 | **Process user** | Runs as UID **1000** (`node`). If you bind-mount config instead of the named volume, `chown -R 1000:1000` that path. |
@@ -65,4 +65,4 @@ See `caddy_snippet.conf.example` (placeholder `seerr.example.com`). The main Cad
 - **Caddy** stack for HTTPS and hostname routing.
 - Optional but typical: **Jellyfin**, **Plex**, or **Emby**; **Radarr** / **Sonarr** via public HTTPS, Tailscale, or an explicitly shared media-service network.
 
-For outbound email notifications, point Seerr at Postfix `smtp-relay:587` on `mail-services` from the Seerr UI.
+For outbound email notifications, point Seerr at Postfix `smtp-relay:587` on `mail-clients` from the Seerr UI.

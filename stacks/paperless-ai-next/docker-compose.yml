@@ -24,7 +24,9 @@ services:
     mem_limit: 2g
     cpus: "1.00"
     networks:
-      - monitor
+      - ai-backend
+      - document-services
+      - ingress-sensitive
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
       interval: 60s
@@ -33,8 +35,14 @@ services:
       start_period: 60s
 
 networks:
-  monitor:
-    name: monitor
+  ai-backend:
+    name: ai-backend
+    external: true
+  document-services:
+    name: document-services
+    external: true
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
 
 volumes:

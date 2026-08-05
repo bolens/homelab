@@ -22,7 +22,7 @@
 
 3. **Access**
    - Nextcloud listens on port `80` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-sensitive` network, e.g.:
      - `https://nextcloud.yourdomain.com` → `nextcloud:80`
    - Open the URL and log in with `NEXTCLOUD_ADMIN_USER` / `NEXTCLOUD_ADMIN_PASSWORD`.
 
@@ -31,7 +31,7 @@
 | Item        | Details                                                                      |
 | ----------- | ---------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `nextcloud:80`)                                  |
-| **Network** | `proxy-ingress` for Caddy + `mail-services` for SMTP + default internal network for DB/Redis |
+| **Network** | `ingress-sensitive` for Caddy + `mail-clients` for SMTP + default internal network for DB/Redis |
 | **Images**  | `nextcloud:apache`, `postgres:16-alpine`, `redis:alpine`                     |
 | **Storage** | `nextcloud_html` (app files/config), `nextcloud_data` (user data), `nextcloud_pg_data` (DB) |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `nextcloud.yourdomain.com` → `nextcloud:80` |
@@ -47,7 +47,7 @@ For notifications and password reset, configure mail in **Administration** → *
 - **Authentication:** none (leave user/password empty for the shared relay)
 - **Sender address:** `nextcloud@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
 
-Ensure Nextcloud and Postfix are on `mail-services`. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+Ensure Nextcloud and Postfix are on `mail-clients`. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## E-signatures (optional)
 

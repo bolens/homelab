@@ -14,7 +14,7 @@ Self-hosted NUT server (`upsd`) for exposing UPS status to LAN clients and monit
    ./prepare-stack.sh
    ```
 
-   This creates `stack.env` (if missing), `caddy_snippet.conf` (if missing), ensures your config directory exists, and ensures Docker network `monitor` exists.
+   This creates `stack.env` (if missing), `caddy_snippet.conf` (if missing), ensures your config directory exists, and ensures Docker network `ingress-admin` exists.
 
 2. Ensure `NUT_CONFIG_DIR` points to your existing host config directory (default already matches your current setup):
 
@@ -38,14 +38,14 @@ Self-hosted NUT server (`upsd`) for exposing UPS status to LAN clients and monit
 
 | Item | Details |
 |------|---------|
-| **NUT port** | `3493` — published on the host as `3493:3493` and reachable on `monitor` as `nut-server:3493` |
+| **NUT port** | `3493` — published on the host as `3493:3493` and reachable on `ingress-admin` as `nut-server:3493` |
 | **Config mount** | `${NUT_CONFIG_DIR}:/etc/nut` |
-| **Network** | `monitor` external Docker network |
+| **Network** | `ingress-admin` external Docker network |
 | **Runtime env** | `../../shared.env` (optional) + `stack.env` |
 
 ## Hostname `nut-server` vs running `upsc` on the host
 
-`nut-server` is a **Docker service name**. It resolves for other containers on the `monitor` network (for example `upsc ups@nut-server:3493` **inside** another stack container). It does **not** resolve from your normal host shell unless you add it yourself.
+`nut-server` is a **Docker service name**. It resolves for other containers on the `ingress-admin` network (for example `upsc ups@nut-server:3493` **inside** another stack container). It does **not** resolve from your normal host shell unless you add it yourself.
 
 From the **same machine** as Docker, after `docker compose up -d`:
 

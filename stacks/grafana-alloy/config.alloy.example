@@ -337,7 +337,7 @@ loki.relabel "sampled_stream" {
 	}
 }
 
-// Ship primary logs to Loki on the monitor network.
+// Ship primary logs to Loki on the telemetry network.
 loki.write "loki_primary" {
 	endpoint {
 		url                 = "http://loki:3100/loki/api/v1/push"

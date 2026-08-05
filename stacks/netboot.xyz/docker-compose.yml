@@ -26,7 +26,7 @@ services:
       - "${NETBOOTXYZ_ASSET_PORT:-8080}:80"
       - "30000-30010:30000-30010/udp"
     networks:
-      - monitor
+      - ingress-admin
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/"]
       interval: 30s
@@ -40,8 +40,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

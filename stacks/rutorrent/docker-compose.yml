@@ -11,7 +11,7 @@ services:
       - rutorrent_config:/config
       - torrents_manual:/downloads
     networks:
-      - monitor
+      - ingress-admin
       - torrents
     # Peer port — must hit the host directly for incoming torrent connections.
     # Web UI (port 80) served via Caddy — no host port binding needed.
@@ -26,8 +26,8 @@ services:
       start_period: 60s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
   torrents:
     name: torrents

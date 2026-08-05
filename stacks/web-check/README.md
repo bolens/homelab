@@ -11,14 +11,14 @@
 ## Quick start
 
 1. Deploy: `docker compose up -d`
-2. Access via Caddy (e.g. https://webcheck.yourdomain.com). No host port is exposed; the stack is on the dedicated `proxy-ingress` network.
+2. Access via Caddy (e.g. https://webcheck.yourdomain.com). No host port is exposed; the stack is on the dedicated `ingress-admin` network.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `web-check:3000`) |
-| **Network** | `proxy-ingress` — dedicated Caddy-to-service ingress |
+| **Networks** | `security-research` for research-tool communication; `ingress-admin` for Caddy |
 | **Image** | `lissy93/web-check:latest` |
 | **DNS** | 8.8.8.8, 1.1.1.1 (so TLS Observatory and other external APIs resolve) |
 

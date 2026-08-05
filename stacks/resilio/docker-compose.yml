@@ -23,7 +23,7 @@ services:
     ports:
       - "55555:55555"
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8888/"]
       interval: 30s
@@ -37,8 +37,8 @@ services:
         max-file: "3"
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

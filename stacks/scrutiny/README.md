@@ -20,14 +20,14 @@
 
 4. **Access**
    - Scrutiny listens on port `8080` inside the container.
-   - Put it behind Caddy on `proxy-ingress` (e.g. `https://scrutiny.yourdomain.com` → `scrutiny:8080`).
+   - Put it behind Caddy on `ingress-admin` (e.g. `https://scrutiny.yourdomain.com` → `scrutiny:8080`).
 
 ## Configuration
 
 | Item        | Details                                                      |
 | ----------- | ------------------------------------------------------------ |
 | **Access**  | Via Caddy (reverse-proxy to `scrutiny:8080`)                 |
-| **Network** | `proxy-ingress`; monitoring checks the HTTPS route through Caddy |
+| **Network** | `ingress-admin`; monitoring checks the HTTPS route through Caddy |
 | **Image**   | `ghcr.io/analogj/scrutiny:master-omnibus`                    |
 | **Storage** | `scrutiny_config` (config), `scrutiny_influx` (metrics DB)   |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `scrutiny.yourdomain.com` → `scrutiny:8080` |
@@ -38,7 +38,7 @@ Scrutiny's configuration (alerts, notifications, thresholds) is stored in its co
 
 1. **Stacks** → **Add stack** → paste the contents of `docker-compose.yml`.
 2. **Environment variables**: Add `TZ` (e.g. `America/Denver`) if not using shared.env.
-3. Ensure the **proxy-ingress** network exists.
+3. Ensure the **ingress-admin** network exists.
 4. Deploy. Scrutiny uses `privileged: true` for `/dev` access; ensure your Portainer host allows privileged containers.
 
 ## Notes

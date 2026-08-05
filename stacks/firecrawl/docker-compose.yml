@@ -2,7 +2,7 @@
 # Self-hosting docs: https://github.com/firecrawl/firecrawl/blob/main/SELF_HOST.md
 # Pre-built images: ghcr.io/mendableai/firecrawl (api + worker)
 #                   mendableai/firecrawl-playwright-service
-# Portainer-friendly: named volumes, env from stack.env, external monitor network for Caddy.
+# Portainer-friendly: named volumes, env from stack.env, external ingress-public network for Caddy.
 
 name: firecrawl
 
@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
     networks:
       - default
-      - monitor
+      - ingress-public
 
   worker:
     container_name: firecrawl-worker
@@ -75,8 +75,8 @@ services:
       - default
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

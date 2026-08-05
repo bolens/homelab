@@ -44,15 +44,15 @@ services:
       - TZ=${TZ:-America/Denver}
     networks:
       - default
-      - proxy-ingress
-      - mail-services
+      - ingress-public
+      - mail-clients
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

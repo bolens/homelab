@@ -19,7 +19,7 @@ This stack uses **nickfedor/watchtower** (maintained fork). The original contain
 | Item | Details |
 |------|---------|
 | **Volume** | `/var/run/docker.sock` (required) |
-| **Network** | `monitor` (external) — so Prometheus can scrape `watchtower:80` |
+| **Network** | `telemetry` (external) — so Prometheus can scrape `watchtower:80` |
 | **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. |
 
 **Key env vars (in `docker-compose.yml`):**
@@ -29,7 +29,7 @@ This stack uses **nickfedor/watchtower** (maintained fork). The original contain
 - `WATCHTOWER_LABEL_ENABLE=false` — if `true`, only containers with label `com.centurylinklabs.watchtower.enable=true` are updated.
 - **HTTP API (manual updates)** — Compose enables `WATCHTOWER_HTTP_API_UPDATE`, `WATCHTOWER_HTTP_API_PERIODIC_POLLS`, and `WATCHTOWER_HTTP_API_PORT=80` so Caddy can reach the API on port 80. Set `WATCHTOWER_HTTP_API_TOKEN` in `stack.env` (required; copy from `stack.env.example` if needed). Example: `curl -X POST -H "Authorization: Bearer <token>" https://watchtower.example.com/v1/update`. Docs: [HTTP API](https://watchtower.nickfedor.com/advanced-features/http-api/).
 - **Prometheus metrics** — `WATCHTOWER_HTTP_API_METRICS=true` exposes `GET /v1/metrics` (same port and Bearer token). Wire-up: `stacks/prometheus/prometheus.yml.example` includes a `watchtower` scrape job; create `~/.config/prometheus/rules/watchtower_bearer_token` with the same token (see `stacks/prometheus/watchtower_bearer_token.example` and [Prometheus README](../prometheus/README.md)). Docs: [Metrics](https://watchtower.nickfedor.com/advanced-features/metrics/).
-- **ntfy notifications** — Set `WATCHTOWER_NOTIFICATION_URL=generic+http://ntfy:80/watchtower` and `WATCHTOWER_NOTIFICATION_REPORT=true` in `stack.env`. Uses the internal `monitor` network to reach ntfy directly, bypassing Cloudflare Access on the public hostname. `WATCHTOWER_NOTIFICATION_REPORT=true` forces a summary on every run, not just when containers are updated. Both vars are injected via `env_file: stack.env` — do not add them to the `environment:` block or shell interpolation will override them with empty values.
+- **ntfy notifications** — Set `WATCHTOWER_NOTIFICATION_URL=generic+http://ntfy:80/watchtower` and `WATCHTOWER_NOTIFICATION_REPORT=true` in `stack.env`. Uses the internal `telemetry` network to reach ntfy directly, bypassing Cloudflare Access on the public hostname. `WATCHTOWER_NOTIFICATION_REPORT=true` forces a summary on every run, not just when containers are updated. Both vars are injected via `env_file: stack.env` — do not add them to the `environment:` block or shell interpolation will override them with empty values.
 
 **Update only selected containers:** Set `WATCHTOWER_LABEL_ENABLE=true` in this stack, and add to each service you want updated:
 

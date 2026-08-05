@@ -44,7 +44,7 @@ openssl rand -base64 24
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `romm:8080`) |
-| **Network** | `romm` internal DB; `proxy-ingress` for Caddy; `mail-services` for SMTP |
+| **Network** | `romm` internal DB; `ingress-public` for Caddy; `mail-clients` for SMTP |
 | **Images** | `rommapp/romm:latest`, `mariadb:11` |
 | **Env (required)** | `ROMM_AUTH_SECRET_KEY`, `MARIADB_ROOT_PASSWORD`, `MARIADB_PASSWORD`, `ROMM_BASE_URL` |
 | **Env (optional)** | `TZ`; metadata API keys (IGDB, Screenscraper, etc.) – see [RomM env docs](https://docs.romm.app/latest/Getting-Started/Environment-Variables/) |
@@ -70,7 +70,7 @@ RomM does not expose a dedicated health endpoint. Use a generic HTTP check to th
 
 RomM can send email notifications (e.g. when scans complete). Configure SMTP in `config.yml` (see [RomM config docs](https://docs.romm.app/latest/Getting-Started/Configuration/)). For the shared Postfix relay:
 
-- **Host:** `smtp-relay` (ensure RomM is on `mail-services`)
+- **Host:** `smtp-relay` (ensure RomM is on `mail-clients`)
 - **Port:** `587`
 - **From:** `romm@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
 

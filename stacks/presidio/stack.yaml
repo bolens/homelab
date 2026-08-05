@@ -12,7 +12,7 @@ monitoring:
   blackbox_exporter: true
   grafana_dashboard: false
 shared_resources:
-- monitor
+- ingress-admin
 type: web_app
 category: security
 exposure:

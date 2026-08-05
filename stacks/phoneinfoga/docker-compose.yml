@@ -2,7 +2,7 @@ name: phoneinfoga
 
 services:
   phoneinfoga:
-    image: sundowndev/phoneinfoga:latest
+    image: sundowndev/phoneinfoga:v2.11.0
     container_name: phoneinfoga
     restart: unless-stopped
     cpus: 2.0
@@ -16,9 +16,13 @@ services:
     environment:
       - TZ=${TZ:-America/Denver}
     networks:
-      - proxy-ingress
+      - security-research
+      - ingress-admin
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true

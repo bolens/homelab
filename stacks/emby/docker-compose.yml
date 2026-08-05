@@ -15,7 +15,8 @@ services:
       - "${EMBY_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
       - "${EMBY_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"
     networks:
-      - monitor
+      - media-services
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8096/"]
       interval: 60s
@@ -31,8 +32,11 @@ services:
               capabilities: [gpu]
 
 networks:
-  monitor:
-    name: monitor
+  media-services:
+    name: media-services
+    external: true
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

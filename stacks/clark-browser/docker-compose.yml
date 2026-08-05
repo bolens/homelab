@@ -3,7 +3,7 @@
 # No public pre-built image. Build context clones and builds from the upstream Dockerfile,
 # which installs the clark-browser Python package and downloads the patched Chromium binary.
 # Exposes CDP on port 9222 for Playwright/CDP clients.
-# Portainer-friendly: named volume for binary cache, env from stack.env, monitor network for Caddy.
+# Portainer-friendly: named volume for binary cache, env from stack.env, ingress-admin network for Caddy.
 
 name: clark-browser
 
@@ -25,11 +25,11 @@ services:
     shm_size: 1gb
     networks:
       - default
-      - monitor
+      - ingress-admin
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

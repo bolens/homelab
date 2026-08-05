@@ -1,5 +1,5 @@
 # Prometheus – metrics storage and scraping. Access via Caddy (prometheus.home).
-# Scrapes cAdvisor (and itself). No host port: attaches to monitor network.
+# Scrapes cAdvisor (and itself). No host port: attaches to telemetry network.
 # Config: copy prometheus.yml.example to ~/.config/prometheus/prometheus.yml
 # (create the directory if needed). Override path with PROMETHEUS_CONFIG_PATH if desired.
 # Rules: copy alerts.yml.example to ~/.config/prometheus/rules/alerts.yml; set PROMETHEUS_RULES_PATH to that dir if different.
@@ -18,8 +18,7 @@ services:
       - ${PROMETHEUS_CONFIG_PATH:-${HOME}/.config/prometheus/prometheus.yml}:/etc/prometheus/prometheus.yml:ro
       - ${PROMETHEUS_RULES_PATH:-${HOME}/.config/prometheus/rules}:/etc/prometheus/rules:ro
     networks:
-      - monitor
-      - observability
+      - telemetry
     cpu_shares: 256
     memswap_limit: 4g
     deploy:
@@ -38,11 +37,8 @@ services:
       start_period: 15s
 
 networks:
-  monitor:
-    name: monitor
-    external: true
-  observability:
-    name: observability
+  telemetry:
+    name: telemetry
     external: true
 
 volumes:

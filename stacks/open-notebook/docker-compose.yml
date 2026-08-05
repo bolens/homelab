@@ -1,5 +1,5 @@
 # Open Notebook - Open Source Notebook LM alternative
-# Requires SurrealDB for data storage. No host ports: access via Caddy on proxy-ingress.
+# Requires SurrealDB for data storage. No host ports: access via Caddy on ingress-public.
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   surrealdb:
@@ -42,7 +42,7 @@ services:
     labels:
       - logging=true
       - logging_sampling=true
-    # No host ports: access via Caddy (open-notebook.home / open-notebook.yourdomain.com on monitor network)
+    # No host ports: access via Caddy (open-notebook.home / open-notebook.yourdomain.com on ingress-public network)
     volumes:
       - open_notebook_data:/app/data
     depends_on:
@@ -52,8 +52,8 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - default
-      - ai-services
-      - proxy-ingress
+      - ai-backend
+      - ingress-public
     env_file:
       - path: ../../shared.env
         required: false
@@ -75,11 +75,11 @@ services:
         max-file: "3"
 
 networks:
-  ai-services:
-    name: ai-services
+  ai-backend:
+    name: ai-backend
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

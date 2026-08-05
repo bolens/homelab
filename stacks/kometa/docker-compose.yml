@@ -25,9 +25,9 @@ services:
       - ${KOMETA_HOST_CONFIG_PATH:-/home/youruser/.config/kometa}:/config
       - ${KOMETA_HOST_DATA_PATH:-/home/youruser/.config/kometa/data}:/data
     networks:
-      - monitor
+      - media-services
 
 networks:
-  monitor:
-    name: monitor
+  media-services:
+    name: media-services
     external: true

@@ -17,7 +17,8 @@ services:
     volumes:
       - nzbhydra2_config:/config
     networks:
-      - monitor
+      - media-automation
+      - ingress-admin
       - usenet
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5076/"]
@@ -27,8 +28,11 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  media-automation:
+    name: media-automation
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
   usenet:
     name: usenet

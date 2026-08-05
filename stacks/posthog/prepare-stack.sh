@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copy upstream PostHog hobby compose files, seed compose/ + GeoIP, env, Caddy, monitor network.
+# Copy upstream PostHog hobby compose files, seed compose/ + GeoIP, env, Caddy, ingress-public network.
 # Optional: ./prepare-stack.sh --clone  (or PREPARE_STACK_CLONE=1) runs ./clone-repo.sh first.
 set -euo pipefail
 
@@ -94,7 +94,7 @@ if [[ -f "$_PREPDIR/stack.env" ]]; then
 fi
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "ingress-public"
 prepare_stack_msg "done. Set DOMAIN in stack.env if still a placeholder, then: docker compose up -d --pull always"
 prepare_stack_msg "first boot often needs 10+ minutes; check: curl -sS -o /dev/null -w '%{http_code}\\n' https://YOUR_DOMAIN/_health"
 prepare_stack_end

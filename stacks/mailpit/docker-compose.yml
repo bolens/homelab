@@ -11,8 +11,8 @@ services:
     env_file:
       - stack.env
     networks:
-      - mail-services
-      - proxy-ingress
+      - mail-clients
+      - ingress-admin
     healthcheck:
       test: ["CMD", "/mailpit", "readyz"]
       interval: 30s
@@ -21,9 +21,9 @@ services:
       start_period: 5s
 
 networks:
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true

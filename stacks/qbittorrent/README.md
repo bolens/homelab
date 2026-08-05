@@ -54,7 +54,7 @@ file data.
 | Item | Details |
 |------|---------|
 | **Access** | Web UI and API on port 8080 inside the stack; **only via Caddy** (no host ports). |
-| **Networks** | `torrents` (for *arr and peers), `monitor` (for Caddy). |
+| **Networks** | `torrents` (for *arr and peers), `ingress-admin` (for Caddy). |
 | **Ports** | No host port bindings. Torrent listening port 6881 is internal; for incoming peers use your VPN provider’s port forwarding in Gluetun and set that port in qBittorrent’s connection settings. |
 | **Env** | `TZ`, `PUID`, `PGID`; Gluetun: `VPN_SERVICE_PROVIDER`, `VPN_TYPE`, and provider-specific vars (see `stack.env.example` and Gluetun docs). |
 | **Storage** | `qbittorrent_config` → qBittorrent config; `${QBITTORRENT_MEDIA_PATH}` → `/data` |

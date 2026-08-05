@@ -20,7 +20,7 @@
 
 3. **Access**
    - Linkding listens on port `9090` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-public` network, e.g.:
      - `https://linkding.yourdomain.com` → `linkding:9090`
    - Create your user on first visit (no public signup by default; set via env if needed).
 
@@ -29,7 +29,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `linkding:9090`)                                 |
-| **Network** | `proxy-ingress` (dedicated Caddy-to-service ingress)                        |
+| **Network** | `ingress-public` (dedicated Caddy-to-service ingress)                        |
 | **Images**  | `sissbruecker/linkding:latest`                                              |
 | **Storage** | `linkding_data` (SQLite and uploads)                                        |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `linkding.yourdomain.com` → `linkding:9090` |

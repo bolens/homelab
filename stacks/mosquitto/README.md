@@ -17,7 +17,7 @@ Lightweight MQTT broker for Home Assistant, Zigbee2MQTT, Node-RED, and other IoT
 
 3. Create a `mosquitto.conf` in the `mosquitto_config` volume (see docs) to define listeners, authentication, and persistence.
 4. Point clients (Home Assistant, Zigbee2MQTT, etc.) at:
-   - Host: Docker host IP (for LAN devices) or `mosquitto` (for other stacks on `monitor`)
+   - Host: Docker host IP (for LAN devices) or `mosquitto` (for other stacks on `ingress-admin`)
    - Port: `1883`
 
 ## Configuration
@@ -26,7 +26,7 @@ Lightweight MQTT broker for Home Assistant, Zigbee2MQTT, Node-RED, and other IoT
 | ----------- | --------------------------------------------------------------------------------------- |
 | **Access**  | MQTT on host port `1883` for LAN devices; `mosquitto:1883` for other Docker stacks     |
 | **Volumes** | `mosquitto_config` (config including `mosquitto.conf`), `mosquitto_data`, `mosquitto_log` |
-| **Network** | `monitor` — shared with Home Assistant, Zigbee2MQTT, Node-RED, etc.                    |
+| **Network** | `ingress-admin` — shared with Home Assistant, Zigbee2MQTT, Node-RED, etc.                    |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.                     |
 
 See the official Mosquitto docs for example `mosquitto.conf` files including password files and TLS.

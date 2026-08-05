@@ -1,5 +1,5 @@
 # OASIS – self-hosted file server (browse, upload, download, preview, media playlists).
-# No host ports: access only via Caddy (reverse_proxy oasis:8000 on monitor network).
+# No host ports: access only via Caddy (reverse_proxy oasis:8000 on ingress-public network).
 # Upstream: https://github.com/machengim/oasis — Docker Hub: machengim/oasis
 services:
   oasis:
@@ -17,7 +17,7 @@ services:
       - oasis-data:/opt/oasis/data
       - oasis-storage:/home/storage
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/"]
       interval: 30s
@@ -33,8 +33,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

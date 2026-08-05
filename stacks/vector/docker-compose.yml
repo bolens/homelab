@@ -11,7 +11,7 @@ services:
       - /var/log:/var/log:ro
       - /run/log/journal:/run/log/journal:ro
     networks:
-      - monitor
+      - ingress-admin
     healthcheck:
       test: ["CMD", "vector", "validate", "--no-environment", "/etc/vector/vector.toml"]
       interval: 60s
@@ -25,6 +25,6 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true

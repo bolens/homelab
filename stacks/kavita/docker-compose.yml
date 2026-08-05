@@ -22,7 +22,7 @@ services:
       - "${KAVITA_BOOKS_PATH:-/mnt/unraid/media/books}:/data/books"
       - "${KAVITA_COMICS_PATH:-/mnt/unraid/media/comics}:/data/comics"
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/"]
       interval: 60s
@@ -31,8 +31,8 @@ services:
       start_period: 45s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

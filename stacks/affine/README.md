@@ -8,13 +8,13 @@ AFFiNE is a self-hosted collaborative knowledge workspace combining docs, whiteb
 
 ## Usage
 
-Accessed via browser through a Caddy reverse proxy on the monitor network. Serves as an all-in-one Notion/Miro alternative for personal or team knowledge management. No port is exposed directly; Caddy proxies to affine:3010.
+Accessed via browser through a Caddy reverse proxy on the ingress-public network. Serves as an all-in-one Notion/Miro alternative for personal or team knowledge management. No port is exposed directly; Caddy proxies to affine:3010.
 
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
 2. Set AFFINE_SERVER_EXTERNAL_URL to your public hostname in stack.env.
-3. Ensure the external Docker network `monitor` exists before deploying.
+3. Ensure the external Docker network `ingress-public` exists before deploying.
 4. Deploy: `docker compose up -d`
 
 ## Environment variables
@@ -25,6 +25,6 @@ Accessed via browser through a Caddy reverse proxy on the monitor network. Serve
 
 ## Notes
 
-- The monitor network must be created externally: `docker network create monitor`.
+- The ingress-public network must be created externally: `docker network create ingress-public`.
 - Data is persisted in the affine_data named volume at /root/.affine inside the container.
 - First-run setup happens in the browser on initial visit.

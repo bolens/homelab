@@ -34,7 +34,7 @@ server:
     encryptionKey: "REPLACE_WITH_DATASTORE_ENCRYPTION_KEY"
 
   # If OAuth redirects or client URLs are wrong behind Caddy, set the Caddy
-  # container IPv4 on the monitor network (/32) or the Docker bridge subnet.
+  # container IPv4 on the ingress-admin network (/32) or the Docker bridge subnet.
   # reverseProxy:
   #   trustedHTTPProxies:
   #     - "172.20.0.2/32"

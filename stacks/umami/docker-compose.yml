@@ -1,6 +1,6 @@
 # Umami – privacy-focused web analytics (dashboard + tracker API).
 # No host ports; access via Caddy (https://umami.example.com → umami:3000).
-# Postgres is internal-only; only the app joins `monitor` for Caddy.
+# Postgres is internal-only; only the app joins `ingress-public` for Caddy.
 services:
   db:
     image: postgres:18-alpine
@@ -36,7 +36,7 @@ services:
         required: false
     networks:
       - default
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/api/heartbeat >/dev/null || exit 1"]
       interval: 30s
@@ -45,8 +45,8 @@ services:
       start_period: 40s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

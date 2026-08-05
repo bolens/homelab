@@ -13,7 +13,7 @@ services:
     volumes:
       - convertx-data:/app/data
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/"]
       interval: 30s
@@ -23,8 +23,8 @@ services:
 
 networks:
   # Use only the shared ingress network; no stack default network is created.
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

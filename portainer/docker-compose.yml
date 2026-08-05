@@ -27,11 +27,11 @@ services:
       - stack.env
     networks:
       - default
-      - proxy-ingress
+      - ingress-admin
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

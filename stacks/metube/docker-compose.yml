@@ -19,7 +19,7 @@ services:
       # Main download directory (videos, audio, state, temp files).
       - metube-downloads:/downloads
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8081/"]
       interval: 60s
@@ -28,8 +28,8 @@ services:
       start_period: 20s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

@@ -67,7 +67,7 @@ Caddy serves API at e.g. `https://api.dtrack.home`:
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only. No host ports. |
-| **Network** | `dtrack` private backend; API server and frontend also on `proxy-ingress` for Caddy. |
+| **Network** | `dtrack` private backend; API server and frontend also on `ingress-admin` for Caddy. |
 | **Images** | `dependencytrack/apiserver`, `dependencytrack/frontend`, `postgres:17-alpine`. |
 | **Resources** | API server is limited to 4GB RAM; minimum recommended 2GB. See [Dependency-Track docs](https://docs.dependencytrack.org/getting-started/deploy-docker/) for tuning. |
 

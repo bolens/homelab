@@ -33,12 +33,12 @@ Tracked **`caddy_snippet.conf`** files almost always define **LAN** sites (`app.
 | **Ports** | 80, 443 (HTTP/HTTPS) |
 | **Volumes** | `./Caddyfile` (ro), `caddy_data` (certs/data) |
 | **Env** | Optional: `CLOUDFLARE_API_TOKEN` for DNS-01 (see `stack.env.example`) |
-| **Network** | `monitor` for observability/tunnel compatibility; `proxy-ingress` for isolated Caddy-to-service traffic |
+| **Network** | `ingress-admin` for observability/tunnel compatibility; `ingress-admin` for isolated Caddy-to-service traffic |
 
-New web services should join `proxy-ingress` when their only shared-network
-dependency is Caddy. This limits lateral reach into the broad `monitor` network
+New web services should join `ingress-admin` when their only shared-network
+dependency is Caddy. This limits lateral reach into the broad `ingress-admin` network
 without changing public routes. Services that genuinely exchange monitoring or
-tunnel traffic may retain `monitor`.
+tunnel traffic may retain `ingress-admin`.
 
 - **Local DNS:** Add A records (e.g. `portainer.home`, `kuma.home`) to your resolver so hostnames point at this host. Use `https://portainer.home` etc.
 - **Public (your domain):** Use Cloudflare Tunnel (see `stacks/cloudflare-tunnel`) or port forwarding + Let's Encrypt. Set hostnames and email in `Caddyfile`.

@@ -43,7 +43,7 @@
 
 5. **Access**
    - Woodpecker server listens on port `8000` (HTTP API/UI) and `9000` (gRPC) inside the container by default.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-admin` network, e.g.:
      - `https://ci.yourdomain.com` → `woodpecker-server:8000`
 
 ## Configuration
@@ -51,7 +51,7 @@
 | Item        | Details                                                                              |
 | ----------- | ------------------------------------------------------------------------------------ |
 | **Access**  | Via Caddy (reverse-proxy to `woodpecker-server:8000`)                                |
-| **Network** | `proxy-ingress` for Caddy + default internal network for Postgres and agent          |
+| **Network** | `ingress-admin` for Caddy + default internal network for Postgres and agent          |
 | **Images**  | `woodpeckerci/woodpecker-server:v3`, `woodpeckerci/woodpecker-agent:v3`, `postgres:16-alpine` (`:latest` was removed upstream; pin `v3.x.y` if you want a fixed patch) |
 | **Storage** | `woodpecker_pg_data` (DB)                                                            |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `woodpecker-ci.yourdomain.com` or `ci.yourdomain.com` → `woodpecker-server:8000` |

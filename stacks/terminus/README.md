@@ -26,11 +26,11 @@
 | Item        | Details                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Via Caddy to `terminus-web` on `HANAMI_PORT`                            |
-| **Network** | Web on `monitor`; Postgres and Valkey internal only                     |
+| **Network** | Web on `ingress-admin`; Postgres and Valkey internal only                     |
 | **Storage** | `terminus_pg_data`, `terminus_keyvalue_data`, `terminus_web_uploads`, `terminus-certificates` |
 
 An `terminus-init-certificates` one-shot container runs before the web service (same as upstream) to populate `/etc/ssl/certs` in the shared volume. Optional `CERTIFICATE_URLS` in `stack.env` adds extra CA PEMs.
 
 ## Portainer
 
-Add stack from this directory; paste compose and set env vars from `stack.env.example`. No host ports; attach the external `monitor` network and use Caddy to expose the app.
+Add stack from this directory; paste compose and set env vars from `stack.env.example`. No host ports; attach the external `ingress-admin` network and use Caddy to expose the app.

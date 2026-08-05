@@ -26,7 +26,8 @@ services:
     ports:
       - "${PLEX_REMOTE_PORT:-32400}:32400/tcp"
     networks:
-      - monitor
+      - media-services
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:32400/identity"]
       interval: 60s
@@ -42,8 +43,11 @@ services:
               capabilities: [gpu]
 
 networks:
-  monitor:
-    name: monitor
+  media-services:
+    name: media-services
+    external: true
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

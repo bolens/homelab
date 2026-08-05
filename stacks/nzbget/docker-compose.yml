@@ -24,7 +24,8 @@ services:
       - ./config/10-fix-volume-ownership.sh:/custom-cont-init.d/10-fix-volume-ownership.sh:ro
       - ./scripts/UnpackMusicTar:/config/scripts/UnpackMusicTar:ro
     networks:
-      - monitor
+      - media-automation
+      - ingress-admin
       - usenet
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:6789/"]
@@ -34,8 +35,11 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  media-automation:
+    name: media-automation
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
   usenet:
     name: usenet

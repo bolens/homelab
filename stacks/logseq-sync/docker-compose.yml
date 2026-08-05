@@ -12,11 +12,11 @@ services:
     volumes:
       - logseq_sync_data:/data
     networks:
-      - monitor
+      - ingress-public
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

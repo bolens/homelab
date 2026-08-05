@@ -1,4 +1,4 @@
-# Cal.com — reverse_proxy to container `calcom:3000` on Docker network `monitor`.
+# Cal.com — reverse_proxy to container `calcom:3000` on Docker network `ingress-public`.
 # booking.home / .local: LAN TLS internal; booking.example.com: public + ACME DNS-01 (Cloudflare token in Caddy env).
 #
 # Next.js marks /_next/static chunks immutable (1y). If you ever changed NEXT_PUBLIC_* / hostname, browsers can

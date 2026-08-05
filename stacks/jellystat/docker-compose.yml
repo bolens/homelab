@@ -59,7 +59,8 @@ services:
       - jellystat_backup:/app/backend/backup-data
     networks:
       - default
-      - monitor
+      - media-services
+      - ingress-admin
     healthcheck:
       test:
         [
@@ -75,8 +76,11 @@ services:
     cpus: "1.00"
 
 networks:
-  monitor:
-    name: monitor
+  media-services:
+    name: media-services
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

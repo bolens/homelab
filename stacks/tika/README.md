@@ -27,7 +27,7 @@ No web UI; interact via HTTP API calls to the Tika server port.
 
 - Tika can be memory-intensive when parsing large or complex documents; set a memory limit in compose.
 - The default Tika server port is 9998.
-- The API is internal-only on the shared `monitor` network; no host port or
+- The API is internal-only on the shared `ingress-public` network; no host port or
   public Caddy route is created.
 - The `latest-full` image includes OCR and additional parsers. Change to
   `apache/tika:latest` when the smaller core image is sufficient.

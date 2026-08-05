@@ -1,6 +1,6 @@
 # ntfy – push notifications (HTTP pub/sub, Android/iOS app, optional auth).
 # No host ports; access via Caddy (e.g. https://ntfy.yourdomain.com → ntfy:80).
-# Uses only external monitor network to avoid Docker address pool exhaustion.
+# Uses only external ingress-admin network to avoid Docker address pool exhaustion.
 services:
   ntfy:
     image: binwiederhier/ntfy:latest
@@ -17,8 +17,8 @@ services:
       - ntfy_cache:/var/cache/ntfy
       - ntfy_config:/etc/ntfy
     networks:
-      - monitor
-      - observability
+      - telemetry
+      - ingress-admin
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/v1/health"]
       interval: 30s
@@ -27,11 +27,11 @@ services:
       start_period: 10s
 
 networks:
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
     external: true
-  observability:
-    name: observability
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

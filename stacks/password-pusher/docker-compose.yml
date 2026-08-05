@@ -18,15 +18,15 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - proxy-ingress
-      - mail-services
+      - ingress-sensitive
+      - mail-clients
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

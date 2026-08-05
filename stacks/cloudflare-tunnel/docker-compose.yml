@@ -14,15 +14,15 @@ services:
       - path: ../../shared.env
         required: false
     networks:
-      - monitor
+      - edge-services
     # Alternative: use config file instead of token (uncomment if preferred)
     # volumes:
     #   - ./config.yml:/etc/cloudflared/config.yml
     # command: tunnel --config /etc/cloudflared/config.yml run
 
 networks:
-  monitor:
-    name: monitor
+  edge-services:
+    name: edge-services
     external: true
 
 volumes: {}

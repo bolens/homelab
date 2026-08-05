@@ -1,7 +1,7 @@
 # Stoat – self-hosted chat platform (API, web app, media, voice).
 # This stack follows the upstream `stoatchat/self-hosted` compose.yml but:
 # - Does NOT publish any host ports (Caddy handles ingress).
-# - Attaches Stoat's Caddy to the shared `monitor` network so the main Caddy can reverse-proxy to it.
+# - Attaches Stoat's Caddy to `ingress-public` so the main Caddy can reverse-proxy to it.
 #
 # Upstream repo: https://github.com/stoatchat/self-hosted
 # Docs: https://docs.stoat.dev/docs/installation
@@ -32,9 +32,9 @@ services:
     networks:
       - stoat
 
-  # KeyDB: Redis-compatible KV and message broker
+  # Valkey: maintained Redis-compatible KV and message broker
   redis:
-    image: docker.io/eqalpha/keydb
+    image: docker.io/valkey/valkey:9-alpine
     container_name: stoat-redis
     restart: unless-stopped
     cpus: 0.5
@@ -43,7 +43,7 @@ services:
     pids_limit: 256
     cpu_shares: 256
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -111,7 +111,7 @@ services:
           - emojis.minio
 
   # Stoat Caddy: internal web router (API, websockets, media, livekit).
-  # No host ports; main Caddy reverse-proxies to this on `monitor`.
+  # No host ports; main Caddy reverse-proxies to this on `ingress-public`.
   stoat-caddy:
     image: docker.io/caddy
     container_name: stoat-caddy
@@ -135,7 +135,7 @@ services:
       - stoat_caddy_config:/config
     networks:
       - stoat
-      - monitor
+      - ingress-public
 
   # API server
   api:
@@ -397,8 +397,8 @@ services:
 networks:
   stoat:
     driver: bridge
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

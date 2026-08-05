@@ -17,7 +17,8 @@ services:
     volumes:
       - prowlarr_config:/config
     networks:
-      - monitor
+      - media-automation
+      - ingress-admin
       - usenet
       - torrents
     healthcheck:
@@ -28,8 +29,11 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  media-automation:
+    name: media-automation
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
   usenet:
     name: usenet

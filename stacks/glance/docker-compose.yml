@@ -17,7 +17,7 @@ services:
       - ./config:/app/config
       - ./assets:/app/assets
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
       interval: 30s
@@ -31,6 +31,6 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true

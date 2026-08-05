@@ -7,7 +7,7 @@ tailscale-exporter is a Prometheus exporter that exposes Headscale node and netw
 ## Usage
 
 This exporter scrapes your Headscale server over gRPC and exposes metrics on port 9250 for Prometheus.
-It runs on the `monitor` network alongside Prometheus and Headscale stacks.
+It runs on the `telemetry` network alongside Prometheus and Headscale stacks.
 The Caddy snippet exposes the metrics endpoint at tailscale-exporter.home / tailscale-exporter.local for internal access only.
 
 ## Setup

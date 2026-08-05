@@ -14,6 +14,6 @@ elif [[ -f .env ]]; then
   prepare_stack_msg ".env already exists (left unchanged; not linking to stack.env)."
 fi
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "proxy-ingress"
-prepare_stack_ensure_docker_network "mail-services"
+prepare_stack_ensure_docker_network "ingress-sensitive"
+prepare_stack_ensure_docker_network "mail-clients" "true"
 prepare_stack_end

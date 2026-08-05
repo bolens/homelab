@@ -20,7 +20,7 @@
 
 3. **Access**
    - Meilisearch listens on port `7700` inside the container (HTTP API).
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `ingress-public` network, e.g.:
      - `https://meilisearch.yourdomain.com` → `meilisearch:7700`
    - Use the API to create indexes and search; see [Meilisearch docs](https://www.meilisearch.com/docs/learn/getting_started/quick_start).
 
@@ -29,7 +29,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `meilisearch:7700`)                             |
-| **Network** | `monitor` (for Caddy) + default                                             |
+| **Network** | `ingress-public` for Caddy/API clients                                      |
 | **Images**  | `getmeili/meilisearch:latest`                                               |
 | **Storage** | `meilisearch_data` (index data)                                             |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `meilisearch.yourdomain.com` → `meilisearch:7700` |

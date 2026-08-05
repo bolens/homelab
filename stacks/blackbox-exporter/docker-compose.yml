@@ -21,7 +21,7 @@ services:
     volumes:
       - ${BLACKBOX_CONFIG_PATH:-${HOME}/.config/blackbox-exporter/blackbox.yml}:/etc/blackbox_exporter/config.yml:ro
     networks:
-      - monitor
+      - telemetry
     env_file:
       - path: ../../shared.env
         required: false
@@ -39,6 +39,6 @@ services:
     cpu_shares: 256
 
 networks:
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
     external: true

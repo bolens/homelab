@@ -18,7 +18,7 @@ services:
     tmpfs:
       - /transcode:size=2g
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8409/ >/dev/null"]
       interval: 30s
@@ -32,8 +32,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

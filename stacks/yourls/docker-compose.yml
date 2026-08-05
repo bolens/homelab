@@ -26,7 +26,7 @@ services:
         condition: service_healthy
     networks:
       - default
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       # Official image listens on 8080 (see vhost.conf.example / Apache ports.conf)
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/"]
@@ -59,8 +59,8 @@ services:
       - default
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

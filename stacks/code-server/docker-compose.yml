@@ -25,7 +25,7 @@ services:
       - code_server_config:/config
     # No host port: access via Caddy only
     networks:
-      - proxy-ingress
+      - ingress-admin
     labels:
       - logging=true
       - logging_sampling=true
@@ -36,8 +36,8 @@ services:
         max-file: "3"
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

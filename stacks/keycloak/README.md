@@ -22,7 +22,7 @@
 
 3. **Access**
    - Keycloak listens on port `8080` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-sensitive` network, e.g.:
      - `https://keycloak.yourdomain.com` → `keycloak:8080`
    - Then open the URL and log in with `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD`.
 
@@ -31,7 +31,7 @@
 | Item        | Details                                                                        |
 | ----------- | ------------------------------------------------------------------------------ |
 | **Access**  | Via Caddy (reverse-proxy to `keycloak:8080`)                                  |
-| **Network** | `proxy-ingress` for Caddy + `mail-services` for SMTP + default internal network for DB |
+| **Network** | `ingress-sensitive` for Caddy + `mail-clients` for SMTP + default internal network for DB |
 | **Images**  | `quay.io/keycloak/keycloak:latest`, `postgres:16-alpine`                      |
 | **Storage** | `keycloak_pg_data` volume for Postgres data                                   |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `keycloak.yourdomain.com` → `keycloak:8080` |
@@ -50,7 +50,7 @@
 
 For password reset and verification emails, configure mail in **Realm** → **Realm settings** → **Email**:
 
-- **Host:** `smtp-relay` (ensure Keycloak is on `mail-services`)
+- **Host:** `smtp-relay` (ensure Keycloak is on `mail-clients`)
 - **Port:** `587`
 - **From:** `keycloak@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
 - **Enable StartTLS:** yes (or no for internal-only Mailpit)

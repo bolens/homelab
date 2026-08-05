@@ -20,7 +20,7 @@ services:
       - loki_data:/loki
       - ${LOKI_CONFIG_PATH:-${HOME}/.config/loki/loki-config.yml}:/etc/loki/config.yml:ro
     networks:
-      - monitor
+      - telemetry
     cpu_shares: 256
     memswap_limit: 4g
     deploy:
@@ -37,8 +37,8 @@ services:
       start_period: 15s
 
 networks:
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
     external: true
 
 volumes:

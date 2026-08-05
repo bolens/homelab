@@ -18,7 +18,7 @@ services:
     volumes:
       - affine_data:/root/.affine
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3010/"]
       interval: 30s
@@ -27,8 +27,8 @@ services:
       start_period: 60s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

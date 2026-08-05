@@ -18,7 +18,8 @@ services:
       # Persistent scan data, config, API keys, etc.
       - spiderfoot-data:/data
     networks:
-      - proxy-ingress
+      - security-research
+      - ingress-admin
     healthcheck:
       test: ["CMD", "python3", "-c", "import socket; s = socket.create_connection(('127.0.0.1', 5001), 2); s.close()"]
       interval: 60s
@@ -27,8 +28,11 @@ services:
       start_period: 60s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

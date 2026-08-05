@@ -26,5 +26,6 @@ else
 fi
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "telemetry" "true"
+prepare_stack_ensure_docker_network "ingress-admin"
 prepare_stack_end

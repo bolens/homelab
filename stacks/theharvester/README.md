@@ -29,14 +29,14 @@ Classic OSINT tool to collect emails, subdomains, hosts, open ports, and banners
 
 ## Portainer
 
-Stacks → Add stack → **Repository** → Compose path `stacks/theharvester/docker-compose.yml`. Ensure the shared `proxy-ingress` network exists. Add env vars from `stack.env.example` if needed.
+Stacks → Add stack → **Repository** → Compose path `stacks/theharvester/docker-compose.yml`. Ensure the shared `ingress-admin` network exists. Add env vars from `stack.env.example` if needed.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `theharvester:80`) |
-| **Network** | `proxy-ingress` (external) for dedicated Caddy-to-service ingress |
+| **Networks** | `security-research` for research-tool communication; `ingress-admin` for Caddy |
 | **Image** | `secsi/restfulharvest:latest` (RAUDI-updated image for theHarvester REST API) |
 | **Storage** | theHarvester runs stateless; results are returned in the HTTP response (JSON) |
 
@@ -74,7 +74,7 @@ theharvester.yourdomain.com {
 }
 ```
 
-Keep the container on `proxy-ingress` so Caddy can resolve `theharvester`. For internal-only access use `tls internal` and your internal hostname (e.g. `theharvester.home`).
+Keep the container on `ingress-admin` so Caddy can resolve `theharvester`. For internal-only access use `tls internal` and your internal hostname (e.g. `theharvester.home`).
 
 ## CLI usage
 

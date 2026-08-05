@@ -18,7 +18,7 @@ services:
     volumes:
       - "${PEANUT_CONFIG_PATH:-${HOME}/.config/peanut}:/config"
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test:
         - CMD
@@ -36,6 +36,6 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true

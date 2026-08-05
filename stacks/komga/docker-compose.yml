@@ -15,7 +15,7 @@ services:
       - komga_config:/config
       - komga_data:/data
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:25600/"]
       interval: 60s
@@ -24,8 +24,8 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

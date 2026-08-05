@@ -1,5 +1,5 @@
 # LibreChat - Enhanced ChatGPT Clone with multi-provider support
-# Requires MongoDB and Redis. No host ports; access via Caddy on `proxy-ingress`.
+# Requires MongoDB and Redis. No host ports; access via Caddy on `ingress-public`.
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   mongodb:
@@ -91,8 +91,8 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - backend
-      - ai-services
-      - proxy-ingress
+      - ai-backend
+      - ingress-public
     labels:
       - logging=true
       - logging_sampling=true
@@ -135,11 +135,11 @@ services:
 networks:
   backend:
     internal: true
-  ai-services:
-    name: ai-services
+  ai-backend:
+    name: ai-backend
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

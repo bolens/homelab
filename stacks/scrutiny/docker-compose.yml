@@ -19,8 +19,8 @@ services:
       # Example: expose all disks; you may want to restrict this list
       - /dev:/dev
     networks:
-      - proxy-ingress
-      - mail-services
+      - ingress-admin
+      - mail-clients
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/"]
       interval: 60s
@@ -29,11 +29,11 @@ services:
       start_period: 45s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

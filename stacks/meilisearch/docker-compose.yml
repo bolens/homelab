@@ -20,7 +20,7 @@ services:
     volumes:
       - meilisearch_data:/meili_data
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:7700/health"]
       interval: 30s
@@ -29,8 +29,8 @@ services:
       start_period: 10s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

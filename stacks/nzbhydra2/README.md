@@ -37,7 +37,7 @@ Config is stored in the `nzbhydra2_config` named volume so it survives container
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `nzbhydra2:5076`)       |
-| **Networks** | `monitor` (for Caddy/monitoring) and `usenet` (shared usenet network) |
+| **Networks** | `ingress-admin` (for Caddy/monitoring) and `usenet` (shared usenet network) |
 | **Image**  | `lscr.io/linuxserver/nzbhydra2:latest`                                 |
 | **Env**    | `TZ`, `PUID`, `PGID`, optional `UMASK`                                 |
 | **Storage**| `nzbhydra2_config` → `/config`                                         |

@@ -130,7 +130,7 @@ services:
         condition: service_healthy
     networks:
       - default
-      - monitor
+      - ingress-admin
     healthcheck:
       test:
         [
@@ -186,8 +186,8 @@ services:
     cpus: 1.0
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

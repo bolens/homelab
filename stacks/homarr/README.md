@@ -20,7 +20,7 @@
 
 3. **Access**
    - Homarr listens on port `7575` inside the container.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `ingress-admin` network, e.g.:
      - `https://homarr.yourdomain.com` → `homarr:7575`
    - Add your apps and widgets in the UI (drag-and-drop).
 
@@ -29,7 +29,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `homarr:7575`)                                   |
-| **Network** | `monitor` (for Caddy) + default                                             |
+| **Networks** | `ingress-admin` for Caddy, `media-automation` and `media-services` for dashboard integrations, plus private `docker-api` |
 | **Images**  | `ghcr.io/ajnart/homarr:latest`                                               |
 | **Storage** | `homarr_appdata`; Docker integration uses a scoped private proxy |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `homarr.yourdomain.com` → `homarr:7575` |

@@ -18,7 +18,8 @@ services:
     volumes:
       - "${TAUTULLI_CONFIG_PATH:-${HOME}/.config/tautulli}:/config"
     networks:
-      - monitor
+      - media-services
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8181/"]
       interval: 30s
@@ -32,6 +33,9 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  media-services:
+    name: media-services
+    external: true
+  ingress-public:
+    name: ingress-public
     external: true

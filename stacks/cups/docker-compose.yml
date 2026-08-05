@@ -18,7 +18,7 @@ services:
     # devices:
     #   - /dev/bus/usb:/dev/bus/usb
     networks:
-      - monitor
+      - ingress-admin
     mem_limit: 512m
     cpus: "0.50"
     healthcheck:
@@ -38,8 +38,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

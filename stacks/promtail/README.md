@@ -7,7 +7,7 @@
 
 ## Dependencies
 
-- **Loki** must be running and reachable at `http://loki:3100` on the `monitor` network (e.g. deploy `stacks/loki` first).
+- **Loki** must be running and reachable at `http://loki:3100` on the `telemetry` network (e.g. deploy `stacks/loki` first).
 
 ## Quick start
 
@@ -36,9 +36,9 @@
 
 | Item        | Details                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
-| **Access**  | Internal only; pushes to `loki:3100` on `monitor`                       |
+| **Access**  | Internal only; pushes to `loki:3100` on `telemetry`                       |
 | **Config**  | Copy `promtail-config.yml.example` → `~/.config/promtail/promtail-config.yml`; override with `PROMTAIL_CONFIG_PATH` (e.g. in Portainer) |
-| **Network** | `monitor` — same as Loki and Grafana                                   |
+| **Network** | `telemetry` — same as Loki and Grafana                                   |
 
 Default scrape config:
 

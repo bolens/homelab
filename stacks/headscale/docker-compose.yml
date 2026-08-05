@@ -1,5 +1,5 @@
 # Headscale – self-hosted Tailscale control server. See https://headscale.net
-# Config is bind-mounted from HEADSCALE_CONFIG_PATH; dedicated ingress and observability networks.
+# Config is bind-mounted from HEADSCALE_CONFIG_PATH; dedicated ingress and telemetry networks.
 # Official docs: https://headscale.net/stable/setup/install/container/
 
 name: headscale
@@ -31,15 +31,15 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - proxy-ingress
-      - observability
+      - ingress-admin
+      - telemetry
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
-  observability:
-    name: observability
+  telemetry:
+    name: telemetry
     external: true
 
 volumes:

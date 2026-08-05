@@ -98,7 +98,7 @@ Set these in `stack.env`:
 - `REMOVE_VOLUMES` – Remove dangling volumes (default: false). Use `VOLUME_DELETE_ONLY_DRIVER=local` to limit scope.
 - `FORCE_CONTAINER_REMOVAL`, `FORCE_IMAGE_REMOVAL` – Use `-f` on docker rm/rmi (default: false).
 - `EXCLUDE_DEAD` – Exclude dead containers from removal (default: false).
-- `REMOVE_NETWORKS` – Remove unused networks older than grace period (default: false). Use `EXCLUDE_NETWORKS` to protect shared networks (e.g. `monitor`).
+- `REMOVE_NETWORKS` – Remove unused networks older than grace period (default: false). Use `EXCLUDE_NETWORKS` to protect shared networks (for example the three `ingress-*` networks, `telemetry`, and `ai-backend`).
 - `DRY_RUN_NETWORKS` – Dry-run for networks only (defaults to `DRY_RUN`).
 - `REMOVE_BUILD_CACHE` – Remove build cache older than grace period (default: false).
 - `DRY_RUN_BUILD_CACHE` – Dry-run for build cache only (defaults to `DRY_RUN`).
@@ -133,5 +133,4 @@ Adjust the path and schedule for your environment. Do not commit real cron paths
 2. **Before first deploy:** Ensure `stack.env` exists. On the host, in the stack directory, run `./prepare-stack.sh` or `cp stack.env.example stack.env`. If using **Git**: set the compose path to `stacks/docker-gc/docker-compose.yml`.
 3. **Environment variables** (optional): add `DRY_RUN`, `EXCLUDE_CONTAINERS`, `EXCLUDE_IMAGES` to override defaults. Example: `DRY_RUN=false` to actually remove resources (after testing with `true`).
 4. **Deploy.** The container will run once and exit (restart: no). For periodic cleanup, create a cron job or systemd timer on the host that runs `docker compose run --rm docker-gc` from this stack’s directory.
-
 

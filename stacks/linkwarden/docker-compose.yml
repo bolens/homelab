@@ -1,5 +1,5 @@
 # Linkwarden – self-hosted bookmark manager / link aggregator. See https://linkwarden.app/
-# Portainer-friendly: named volumes, external proxy-ingress network for Caddy.
+# Portainer-friendly: named volumes, external ingress-public network for Caddy.
 # Official example: https://github.com/linkwarden/linkwarden/blob/main/docker-compose.yml
 
 name: linkwarden
@@ -73,18 +73,18 @@ services:
     restart: unless-stopped
     networks:
       - internal
-      - proxy-ingress
-      - mail-services
+      - ingress-public
+      - mail-clients
 
 networks:
   internal:
     name: linkwarden_internal
     driver: bridge
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

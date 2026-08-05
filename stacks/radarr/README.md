@@ -40,7 +40,7 @@ Movie collection manager for Usenet and torrents. Radarr monitors your wanted mo
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `radarr:7878`)          |
-| **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
+| **Networks** | `ingress-admin`, `usenet`, `torrents`, plus default                         |
 | **Image**  | `lscr.io/linuxserver/radarr:latest`                                    |
 | **Env**    | `TZ`, `PUID`, `PGID`, `RADARR_MEDIA_PATH`, optional `RADARR__*` |
 | **Storage**| `radarr_config` → `/config`, `${RADARR_MEDIA_PATH}` → `/data`; use `/data/movies` and `/data/downloads/*` |

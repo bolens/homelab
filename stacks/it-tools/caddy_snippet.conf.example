@@ -2,7 +2,7 @@
 
 it-tools.home, it-tools.local {
 	tls internal
-	reverse_proxy it-tools:80 {
+	reverse_proxy it-tools:8080 {
 		header_up Host {host}
 		transport http {
 			versions 1.1
@@ -11,7 +11,7 @@ it-tools.home, it-tools.local {
 }
 
 http://it-tools.example.com {
-	reverse_proxy it-tools:80 {
+	reverse_proxy it-tools:8080 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
@@ -25,7 +25,7 @@ it-tools.example.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy it-tools:80 {
+	reverse_proxy it-tools:8080 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}

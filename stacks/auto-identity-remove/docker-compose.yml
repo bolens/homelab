@@ -3,7 +3,7 @@
 # REST API + Swagger UI at /docs
 # Requires: GPU with 8GB+ VRAM; uses Ollama (internal or external)
 # NOTE: The upstream image has Ollama baked in (model runs inside the container).
-# By default OLLAMA_HOST points to the external ollama stack on the monitor network.
+# By default OLLAMA_HOST points to the external ollama stack on the ingress-admin network.
 # To use the baked-in Ollama instead, set OLLAMA_HOST=http://localhost:11434 and
 # remove the `extra_hosts` entry below.
 services:
@@ -18,7 +18,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitor
+      - ingress-admin
     labels:
       - logging=true
       - logging_sampling=true
@@ -48,8 +48,8 @@ services:
               capabilities: [gpu]
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

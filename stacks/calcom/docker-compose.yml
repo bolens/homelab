@@ -65,8 +65,8 @@ services:
       - ./homelab-entrypoint.sh:/calcom/scripts/homelab-entrypoint.sh
     networks:
       - default
-      - proxy-ingress
-      - mail-services
+      - ingress-public
+      - mail-clients
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000 || exit 1"]
       interval: 30s
@@ -75,11 +75,11 @@ services:
       start_period: 60s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

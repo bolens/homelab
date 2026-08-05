@@ -11,7 +11,7 @@
 1. **Network** – Create the shared external network once on the same Docker endpoint (if you do not already have it):
 
    ```bash
-   docker network create proxy-ingress
+   docker network create ingress-sensitive
    ```
 
 2. **Stack** – **Stacks** → **Add stack** → **Web editor**. Paste the contents of `docker-compose.yml` from this directory.
@@ -28,7 +28,7 @@
    | `HOST` | Public hostname only (no `https://`), same as your Caddy site |
    | `FORCE_SSL` | Optional; omit to default to `HOST` (recommended behind Caddy) |
 
-4. **Deploy** – Deploy the stack. DocuSeal listens on **3000** inside the stack; Caddy must reverse-proxy to container **`docuseal`** on network **`proxy-ingress`**.
+4. **Deploy** – Deploy the stack. DocuSeal listens on **3000** inside the stack; Caddy must reverse-proxy to container **`docuseal`** on network **`ingress-sensitive`**.
 
 5. **Caddy** – On the host where Caddy runs, add or import the snippet from `caddy_snippet.conf.example` (replace placeholder hostnames), reload Caddy.
 
@@ -38,7 +38,7 @@
 
 ## Quick start (CLI, from this repo)
 
-1. `./prepare-stack.sh` — creates `stack.env`, copies `stack.env` → `.env` for compose interpolation, copies the Caddy example, and ensures `proxy-ingress` plus `mail-services`.
+1. `./prepare-stack.sh` — creates `stack.env`, copies `stack.env` → `.env` for compose interpolation, copies the Caddy example, and ensures `ingress-sensitive` plus `mail-clients`.
 2. Edit `stack.env` (passwords, `HOST`, `SECRET_KEY_BASE`, `DATABASE_URL`).
 3. Edit `caddy_snippet.conf` and reload Caddy.
 4. `docker compose up -d`
@@ -47,8 +47,8 @@
 
 | Item        | Details |
 | ----------- | ------- |
-| **Access**  | Caddy → `docuseal:3000` on `proxy-ingress`. |
-| **Network** | App on `default` + `proxy-ingress` + `mail-services`; Postgres on `default` only. |
+| **Access**  | Caddy → `docuseal:3000` on `ingress-sensitive`. |
+| **Network** | App on `default` + `ingress-sensitive` + `mail-clients`; Postgres on `default` only. |
 | **Headers** | Caddy snippet sets `X-Forwarded-For`, `X-Forwarded-Proto`, and `X-Forwarded-Host` ([reverse proxy](https://www.docuseal.com/docs/configuring-docuseal-behind-an-existing-reverse-proxy-nginx)). |
 | **Storage** | Named volumes `docuseal_data` and `docuseal_pg_data`. |
 

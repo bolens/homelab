@@ -15,8 +15,9 @@ services:
       - path: ../../shared.env
         required: false
     networks:
-      - monitor
+      - telemetry
 
 networks:
-  monitor:
+  telemetry:
+    name: telemetry
     external: true

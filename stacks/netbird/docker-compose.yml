@@ -23,7 +23,7 @@ services:
       - stack.env
       - dashboard.env
     networks:
-      - monitor
+      - ingress-admin
 
     mem_limit: 512m
     cpus: 0.5
@@ -51,14 +51,14 @@ services:
       - ${NETBIRD_CONFIG_PATH:-./config.yaml}:/etc/netbird/config.yaml:ro
     command: ["--config", "/etc/netbird/config.yaml"]
     networks:
-      - monitor
+      - ingress-admin
 
     mem_limit: 2g
     cpus: 2.0
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

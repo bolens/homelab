@@ -9,7 +9,8 @@ LLM and OCR augmentation service for `paperless-ngx`.
 
 - `paperless-ngx` stack (API token required)
 - `ollama` stack (for local LLM/vision models)
-- Shared `ai-services` network plus Caddy-only `proxy-ingress`
+- Shared `document-services` network for the Paperless API
+- Shared `ai-backend` network for Ollama plus Caddy-only `ingress-sensitive`
 
 ## Quick start
 
@@ -17,7 +18,8 @@ LLM and OCR augmentation service for `paperless-ngx`.
    - `./prepare-stack.sh`
 2. Edit `stack.env`:
    - Set `PAPERLESS_API_TOKEN`
-   - Confirm `PAPERLESS_BASE_URL`
+   - Keep `PAPERLESS_BASE_URL` on `http://paperless-ngx:8000`
+   - Set `PAPERLESS_PUBLIC_URL` to the browser-facing HTTPS URL
    - Set `OLLAMA_HOST`, `LLM_MODEL`, and `VISION_LLM_MODEL`
 3. Start:
    - `docker compose --env-file stack.env up -d`
@@ -26,7 +28,10 @@ LLM and OCR augmentation service for `paperless-ngx`.
 
 ## Portainer
 
-Repository compose path `stacks/paperless-gpt/docker-compose.yml`; ensure **`ai-services`** and **`proxy-ingress`** exist; create the three **external** volumes first (see compose). Run `./prepare-stack.sh` on the host before deploy.
+Repository compose path `stacks/paperless-gpt/docker-compose.yml`; ensure
+**`document-services`**, **`ai-backend`**, and **`ingress-sensitive`** exist; create
+the three **external** volumes first (see compose). Run `./prepare-stack.sh` on
+the host before deploy.
 
 ## Notes
 

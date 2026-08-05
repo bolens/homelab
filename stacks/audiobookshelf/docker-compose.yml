@@ -14,7 +14,7 @@ services:
       - abs_podcasts:/podcasts
     restart: unless-stopped
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:80/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
       interval: 60s
@@ -23,8 +23,8 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

@@ -8,7 +8,7 @@ All Docker stacks (Caddy, Portainer, Uptime Kuma, Cloudflare Tunnel) run on your
 
 1. Set up the tunnel (see `../cloudflare-tunnel/README.md`)
 2. In Cloudflare Zero Trust → Tunnels → Your Tunnel → Public Hostnames:
-   - Route each hostname → **`http://caddy:80`** when `cloudflared` runs in Docker on the **`monitor`** network (same as Caddy). Do **not** use `localhost:80` there—that is the tunnel container’s loopback, not Caddy.
+   - Route each hostname → **`http://caddy:80`** when `cloudflared` runs in Docker on the **`ingress-admin`** network (same as Caddy). Do **not** use `localhost:80` there—that is the tunnel container’s loopback, not Caddy.
    - Plain-HTTP `reverse_proxy` blocks in stack snippets should use **`transport http { versions 1.1 }`** to the upstream so Caddy 2.11 does not negotiate h2c with apps that only speak HTTP/1.1 (symptom: **HTTP 200, empty body** via the tunnel). Regenerate or run `scripts/patch-caddy-h1-transport.py` after editing snippets.
 3. Caddy handles routing based on Host headers (copy `Caddyfile.example` to `Caddyfile` and set your domain). Each app’s **`stacks/<name>/caddy_snippet.conf`** must define **`http://<name>.example.com`** (and usually **`…example.com { tls { dns cloudflare … } }`**) if that hostname should work; snippets that only list **`.home` / `.local`** do not create public routes — see **Split horizon** in [stacks/caddy/README.md](./README.md).
 

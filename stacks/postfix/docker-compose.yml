@@ -1,5 +1,5 @@
 # SMTP relay – central outbound SMTP for Docker stacks.
-# No host ports: apps use smtp-relay:587 on the mail-services network; public access can use
+# No host ports: apps use smtp-relay:587 on the mail-clients network; public access can use
 # Cloudflare Tunnel with hostname smtp.yourdomain.com → tcp://smtp-relay:587 (or host:587).
 # Image docs: https://github.com/bokysan/docker-postfix
 
@@ -16,9 +16,13 @@ services:
     env_file:
       - stack.env
     networks:
-      - mail-services
+      - mail-clients
+      - mail-egress
 
 networks:
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
+    external: true
+  mail-egress:
+    name: mail-egress
     external: true

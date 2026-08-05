@@ -21,7 +21,8 @@ services:
       - ail-hashs:/opt/ail-framework/HASHS
       - ail-logs:/opt/ail-framework/logs
     networks:
-      - monitor
+      - security-research
+      - ingress-admin
     healthcheck:
       test: ["CMD", "curl", "-fsk", "https://127.0.0.1:7000/"]
       interval: 60s
@@ -30,8 +31,11 @@ services:
       start_period: 120s
 
 networks:
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

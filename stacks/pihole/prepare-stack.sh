@@ -15,5 +15,6 @@ prepare_stack_msg "stack-specific steps..."
 # caddy_snippet.conf
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "dns-services"
+prepare_stack_ensure_docker_network "ingress-admin"
 prepare_stack_end

@@ -10,7 +10,8 @@ This stack is a **worker/CLI-style service** (cron inside the container), not a 
 
 ## Quick start
 
-1. Run `./prepare-stack.sh` from this directory (creates `stack.env`, ensures `monitor` network, and ensures shared storage resources).
+1. Run `./prepare-stack.sh` from this directory (creates `stack.env`, ensures
+   the private `media-services` network, and ensures shared storage resources).
 2. Edit `stack.env` and set at least:
    - `LISTENBRAINZ_USER`
    - `EXPLO_SYSTEM`
@@ -34,7 +35,7 @@ This stack is a **worker/CLI-style service** (cron inside the container), not a 
 | Item | Details |
 | ---- | ------- |
 | **Type** | Scheduled worker (no web UI) |
-| **Network** | `monitor` (external), so it can reach peer stacks like Navidrome / Soulseek |
+| **Network** | Private `media-services` for Navidrome and Soulseek plus a default network for outbound APIs |
 | **Image** | `ghcr.io/lumepart/explo:latest` |
 | **Config** | `./stack.env` is both loaded as env and mounted as `/opt/explo/.env` |
 | **Storage** | Shared host music path `${MUSIC_LIBRARY_PATH}` mounted at `/data`; slskd source path `${SLSKD_DOWNLOADS_PATH}` mounted at `/slskd` |

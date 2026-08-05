@@ -15,7 +15,7 @@ services:
       - freshrss_config:/config
     restart: unless-stopped
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80/"]
       interval: 60s
@@ -24,8 +24,8 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

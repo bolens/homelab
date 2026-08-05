@@ -24,7 +24,7 @@
    - MinIO serves:
      - S3 API on port `9000`,
      - Web console on port `9001`.
-   - Put it behind Caddy on `proxy-ingress`. Use path routing: `/console/` → `minio:9001`, `/` → `minio:9000`.
+   - Put it behind Caddy on `ingress-admin`. Use path routing: `/console/` → `minio:9001`, `/` → `minio:9000`.
 
 ## Deploying via Portainer
 
@@ -33,7 +33,7 @@
    - `MINIO_ROOT_USER` – access key (e.g. `openssl rand -hex 16`)
    - `MINIO_ROOT_PASSWORD` – secret key (e.g. `openssl rand -base64 32`)
    - `MINIO_BROWSER_REDIRECT_URL` – required when behind Caddy (e.g. `https://minio.yourdomain.com/console/`)
-3. Ensure the **proxy-ingress** and **backup** networks exist.
+3. Ensure the **ingress-admin** and **backup** networks exist.
 4. Deploy.
 
 ## Configuration
@@ -41,7 +41,7 @@
 | Item        | Details                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Via Caddy: `/console/` → `minio:9001`, `/` → `minio:9000` (path routing) |
-| **Network** | `proxy-ingress` for Caddy; isolated `backup` for Restic/Kasm          |
+| **Network** | `ingress-admin` for Caddy; isolated `backup` for Restic/Kasm          |
 | **Image**   | `minio/minio:latest`                                                   |
 | **Storage** | `minio_data` volume for object data and metadata                       |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example): path routing with `handle_path /console*` and `request_body max_size 0` |

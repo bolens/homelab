@@ -19,7 +19,7 @@ The upstream image listens on **port 8000** inside the container (`/opt/oasis/da
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; `reverse_proxy oasis:8000`) |
-| **Network** | External `monitor` — same network as Caddy |
+| **Network** | External `ingress-public` — same network as Caddy |
 | **Image** | `machengim/oasis:latest` |
 | **Env** | Optional TZ/locale via `../../shared.env`; no required vars in `stack.env` for defaults |
 | **Volumes** | `oasis-data` → `/opt/oasis/data`; `oasis-storage` → `/home/storage` |
@@ -32,4 +32,4 @@ This stack ships `caddy_snippet.conf.example` (placeholder `oasis.example.com`).
 
 ## Portainer
 
-Stacks → Add stack → paste `docker-compose.yml`, set **env file** or duplicate `stack.env.example` into the stack environment, deploy. Ensure the stack attaches to the external network `monitor`.
+Stacks → Add stack → paste `docker-compose.yml`, set **env file** or duplicate `stack.env.example` into the stack environment, deploy. Ensure the stack attaches to the external network `ingress-public`.

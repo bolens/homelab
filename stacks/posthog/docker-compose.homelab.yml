@@ -1,11 +1,11 @@
-# Homelab: join PostHog's Caddy proxy to the shared `monitor` network for central Caddy,
+# Homelab: join PostHog's Caddy proxy to the shared `ingress-public` network for central Caddy,
 # and run the internal proxy without binding host ports or issuing its own ACME certs.
 services:
   proxy:
     ports: []
     networks:
       - default
-      - monitor
+      - ingress-public
     environment:
       CADDY_TLS_BLOCK: ""
       CADDY_HOST: "http://:80"

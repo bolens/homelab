@@ -39,7 +39,7 @@ openssl rand -base64 32
 | `/relay*`, `/ws-proxy/*`, `/api/*`, `/oauth2/*` | `netbird-server:80` |
 | Everything else | `netbird-dashboard:80` |
 
-- **TCP:** No host ports; HTTPS is terminated at Caddy on the shared `monitor` network.
+- **TCP:** No host ports; HTTPS is terminated at Caddy on the shared `ingress-admin` network.
 - **UDP:** STUN is published on the host as `${NETBIRD_STUN_HOST_PORT:-3478}` → container `3478/udp`. This port must be reachable from the internet for NAT traversal; it cannot go through an HTTP reverse proxy.
 
 ## First login

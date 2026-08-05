@@ -11,7 +11,7 @@ NetBox is an IPAM (IP address management) and DCIM (data center infrastructure m
 This repository does **not** duplicate the full `netbox-docker` compose file. Instead, treat this directory as a pointer:
 
 - Use the upstream `netbox-docker` repo (clone it under a path you control).
-- Expose NetBox on the `monitor` network and add a Caddy site block (e.g. `https://netbox.yourdomain.com`) that reverse-proxies to the NetBox HTTP port.
+- Expose NetBox on `ingress-admin` and add a Caddy site block (e.g. `https://netbox.yourdomain.com`) that reverse-proxies to the NetBox HTTP port.
 
 ### Suggested layout (example)
 
@@ -28,7 +28,7 @@ docker compose up -d
 
 Then:
 
-- Attach the NetBox container to the same Docker network as Caddy (e.g. `monitor`), or expose a host port and let Caddy proxy to `host.docker.internal:<port>`.
+- Attach the NetBox container to Caddy's `ingress-admin` network, or expose a host port and let Caddy proxy to `host.docker.internal:<port>`.
 - Add a Caddy site block for `netbox.yourdomain.com` that reverse-proxies to the NetBox HTTP service.
 
 ## Why pointer-only?
@@ -37,4 +37,3 @@ NetBox’s official Docker deployment is multi-service (PostgreSQL, Redis, worke
 
 - Remind you that NetBox is a good fit for documenting your homelab.
 - Provide a name and placeholder for Caddy, ENV, and topology docs.
-

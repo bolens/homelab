@@ -34,7 +34,7 @@ services:
     networks:
       - postiz
       - temporal
-      - monitor
+      - ingress-public
     depends_on:
       postiz-postgres:
         condition: service_healthy
@@ -159,8 +159,8 @@ services:
     logging: *logging
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
   postiz:
     internal: true

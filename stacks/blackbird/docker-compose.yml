@@ -1,6 +1,6 @@
 name: blackbird
 
-# Blackbird needs monitor network when using Caddy as HTTP proxy (HTTP_PROXY=http://caddy:3128).
+# Blackbird reaches Caddy's optional HTTP forward proxy over security-research.
 
 services:
   blackbird:
@@ -15,12 +15,11 @@ services:
       # Optional: store exported reports (PDF, CSV, JSON)
       - ./results:/results
     networks:
-      - monitor
+      - security-research
     stdin_open: true
     tty: true
 
 networks:
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
     external: true
-

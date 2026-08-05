@@ -8,7 +8,7 @@ OpenAI-compatible **LLM proxy** for Ollama, OpenAI, Anthropic, Azure, and [many 
 
 ## Quick start
 
-1. `./prepare-stack.sh` — creates local config and ensures `ai-services` plus `proxy-ingress`.
+1. `./prepare-stack.sh` — creates local config and ensures `ai-backend` plus `ingress-public`.
 2. Set **`LITELLM_MASTER_KEY`**, **`UI_USERNAME`**, **`UI_PASSWORD`**, and **`POSTGRES_PASSWORD`** (plus optional **`POSTGRES_USER`** / **`POSTGRES_DB`**) in `stack.env` (see `stack.env.example`). **`UI_PASSWORD` = `LITELLM_MASTER_KEY`** is a common choice. Compose injects **`DATABASE_URL`** into the proxy container from those Postgres variables (bundled **`litellm-postgres`**); without a DB the Admin UI reports **“Not connected to DB!”**. The container reads **`UI_*`** from **`stack.env`** only (not from Compose `environment:` interpolation for those vars). Re-run **`./prepare-stack.sh`** after editing `stack.env` so **`.env`** stays aligned for bind-mount path interpolation (`LITELLM_CONFIG_FILE`).
 3. Edit **`~/.config/litellm/config.yaml`** (or the path in **`LITELLM_CONFIG_FILE`**) — default includes one Ollama model at `http://ollama:11434`; add models and `os.environ/...` API keys as needed.
 4. `docker compose up -d` (after prepare, `.env` is a copy of `stack.env` with paths expanded for bind mounts)
@@ -35,7 +35,7 @@ OpenAI-compatible **LLM proxy** for Ollama, OpenAI, Anthropic, Azure, and [many 
 
 | Client | Setting |
 |--------|---------|
-| **Open WebUI** | Through Caddy: API base **`https://<host>/api/v1`** (not `/v1` at host root). On **`ai-services`**: **`http://litellm:4000/v1`**. API key = `LITELLM_MASTER_KEY` or a LiteLLM virtual key. |
+| **Open WebUI** | Through Caddy: API base **`https://<host>/api/v1`** (not `/v1` at host root). On **`ai-backend`**: **`http://litellm:4000/v1`**. API key = `LITELLM_MASTER_KEY` or a LiteLLM virtual key. |
 | **LibreChat / n8n** | Any field expecting an OpenAI-compatible base URL + API key |
 | **Ollama** | Keep `http://ollama:11434` for direct pulls; LiteLLM adds routing, keys, and extra backends |
 
@@ -43,7 +43,7 @@ OpenAI-compatible **LLM proxy** for Ollama, OpenAI, Anthropic, Azure, and [many 
 
 - Repository compose path: `stacks/litellm/docker-compose.yml`.
 - Run `./prepare-stack.sh` on the host so `~/.config/litellm/config.yaml` and `stack.env` exist (or paste their contents / bind-mount paths in Portainer).
-- Attach the app to **`ai-services`** and **`proxy-ingress`**; PostgreSQL stays private.
+- Attach the app to **`ai-backend`** and **`ingress-public`**; PostgreSQL stays private.
 
 ## Health
 

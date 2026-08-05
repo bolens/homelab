@@ -10,9 +10,13 @@ services:
     environment:
       - TZ=${TZ:-America/Denver}
     networks:
-      - proxy-ingress
+      - security-research
+      - ingress-admin
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true

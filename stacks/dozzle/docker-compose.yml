@@ -49,7 +49,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - proxy-ingress
+      - ingress-admin
       - docker-api
     env_file:
       - path: ../../shared.env
@@ -76,6 +76,6 @@ services:
 networks:
   docker-api:
     internal: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true

@@ -2,7 +2,7 @@
 
 [PostHog](https://posthog.com/) is product analytics, session replay, feature flags, and experimentation. The **hobby** deployment is PostHog’s supported Docker Compose layout (Postgres, ClickHouse, Kafka, Temporal, MinIO, SeaweedFS, workers, and an **internal Caddy** `proxy` service that routes traffic to `web`, capture, livestream, etc.).
 
-This stack **vendors the upstream compose files** next to this README and adds a small **homelab override**: the `proxy` service joins the shared **`monitor`** network, drops host port bindings, and runs **HTTP-only** so your homelab **Caddy** can terminate TLS and forward to `proxy:80`.
+This stack **vendors the upstream compose files** next to this README and adds a small **homelab override**: the `proxy` service joins the shared **`ingress-public`** network, drops host port bindings, and runs **HTTP-only** so your homelab **Caddy** can terminate TLS and forward to `proxy:80`.
 
 **Docs:** https://posthog.com/docs/self-host  
 **Repo:** https://github.com/PostHog/posthog  
@@ -12,7 +12,7 @@ This stack **vendors the upstream compose files** next to this README and adds a
 - **RAM:** PostHog documents **8 GB minimum** (16 GB recommended) for hobby.
 - **Disk:** tens of GB for ClickHouse/Kafka/Postgres growth.
 - **Docker Compose v2.33+** (per upstream installer).
-- External Docker network **`monitor`** (same as other stacks in this repo).
+- External Docker network **`ingress-public`** (same as other stacks in this repo).
 - **Host tools for prepare:** `git`, `openssl`, `curl` (optional `brotli` for GeoIP download).
 
 ## Quick start
@@ -25,7 +25,7 @@ This stack **vendors the upstream compose files** next to this README and adds a
 
    For a **full** git history (uncommon): `POSTHOG_FULL_CLONE=1 ./clone-repo.sh`
 
-2. **Prepare** — copies compose files from `posthog/`, writes `compose/`, GeoIP, `stack.env` from the example if missing, **auto-generates** `POSTHOG_SECRET` / `ENCRYPTION_SALT_KEYS` when they are still the `REPLACE_*` placeholders, copies `stack.env` → `.env`, copies the Caddy snippet template, ensures `monitor`:
+2. **Prepare** — copies compose files from `posthog/`, writes `compose/`, GeoIP, `stack.env` from the example if missing, **auto-generates** `POSTHOG_SECRET` / `ENCRYPTION_SALT_KEYS` when they are still the `REPLACE_*` placeholders, copies `stack.env` → `.env`, copies the Caddy snippet template, ensures `ingress-public`:
 
    ```bash
    ./prepare-stack.sh
@@ -82,7 +82,7 @@ This stack **vendors the upstream compose files** next to this README and adds a
 
    Portainer’s editor has size limits; prefer **“Upload”** / **stack path on host** pointing at this prepared directory so Portainer runs `docker compose` from disk.
 3. **Environment:** mirror every variable from your `.env` into Portainer’s stack **Environment** UI (same names as `stack.env.example`). PostHog’s hobby file interpolates **`$DOMAIN`**, **`$POSTHOG_SECRET`**, etc., from the project environment.
-4. Ensure the **`monitor`** network exists on the same Docker endpoint before deploy.
+4. Ensure the **`ingress-public`** network exists on the same Docker endpoint before deploy.
 
 ## Upgrades
 
@@ -91,7 +91,7 @@ Refresh the `posthog/` clone (`./clone-repo.sh`), re-run `./prepare-stack.sh` to
 ## Monitoring
 
 - Health path: `/_health` on the public UI URL (through Caddy → `proxy`).
-- Internal: `http://proxy/_health` from another container on `monitor` (same path).
+- Internal: `http://proxy/_health` from another container on `ingress-public` (same path).
 
 ## Notes
 

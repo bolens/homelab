@@ -20,7 +20,7 @@
 
 3. **Access**
    - Stirling-PDF listens on port `8080` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-public` network, e.g.:
      - `https://pdf.yourdomain.com` → `stirling-pdf:8080`
 
 ## Configuration
@@ -28,7 +28,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `stirling-pdf:8080`)                             |
-| **Network** | `proxy-ingress` (dedicated Caddy-to-service ingress)                        |
+| **Network** | `ingress-public` (dedicated Caddy-to-service ingress)                        |
 | **Images**  | `stirlingtools/stirling-pdf:latest`                                         |
 | **Storage** | Optional OCR tessdata volume                                                |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `pdf.yourdomain.com` → `stirling-pdf:8080` |

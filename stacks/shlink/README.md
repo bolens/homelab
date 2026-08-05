@@ -25,14 +25,14 @@ The stack uses an internal SQLite DB by default (volume `shlink_data`). For prod
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `shlink:8080`) |
-| **Network** | `proxy-ingress` (external) — Caddy can reach `shlink:8080` |
+| **Network** | `ingress-public` (external) — Caddy can reach `shlink:8080` |
 | **Image** | `shlinkio/shlink:stable` (override with `SHLINK_IMAGE` in `stack.env`) |
 | **Env** | `DEFAULT_DOMAIN`, `IS_HTTPS_ENABLED`, `GEOLITE_LICENSE_KEY` (required); optional `INITIAL_API_KEY`, `TRUSTED_PROXIES` (use `2` when behind Caddy + Cloudflare Tunnel; see `stack.env.example`) |
 | **Storage** | `shlink_data` (SQLite DB and data). For external DB, see commented block in `docker-compose.yml`. |
 
 ## Caddy reverse proxy
 
-The repo’s `Caddyfile.example` already includes a block for `short.yourdomain.com` (and `short.home`, `short.local`) proxying to `shlink:8080` with `header_up X-Forwarded-Proto https`. Ensure the stack is on `proxy-ingress`.
+The repo’s `Caddyfile.example` already includes a block for `short.yourdomain.com` (and `short.home`, `short.local`) proxying to `shlink:8080` with `header_up X-Forwarded-Proto https`. Ensure the stack is on `ingress-public`.
 
 Example (hostnames must match `DEFAULT_DOMAIN`):
 

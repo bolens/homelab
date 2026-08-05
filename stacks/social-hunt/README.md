@@ -23,7 +23,7 @@ OSINT framework for homelab-user discovery across 500+ platforms, breach lookups
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `social-hunt:8000`) |
-| **Network** | `proxy-ingress` for Caddy; private `internal` network for proxy and Tor sidecars |
+| **Networks** | `security-research` for the app, `ingress-admin` for Caddy, and private `internal` for proxy/Tor sidecars |
 | **Image** | `afterpacket/social-hunt:latest` |
 | **Storage** | Named volumes: `social-hunt-data` (settings, history, jobs), `social-hunt-plugins`, `social-hunt-temp-uploads` |
 
@@ -49,7 +49,7 @@ social-hunt.home, social-hunt.local {
 }
 ```
 
-Ensure Social-Hunt is on `proxy-ingress` so Caddy can reach `social-hunt:8000`.
+Ensure Social-Hunt is on `ingress-admin` so Caddy can reach `social-hunt:8000`.
 
 ## Start
 

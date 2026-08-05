@@ -9,5 +9,5 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_dir_from_env "NUT_CONFIG_DIR" "${HOME}/.config/nut-server"
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "ingress-admin"
 prepare_stack_end

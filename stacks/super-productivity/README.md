@@ -17,4 +17,4 @@ No host ports are exposed; route via Caddy to `super-productivity:80`.
 
 ## Portainer
 
-In Portainer, create a new stack with this `docker-compose.yml`, ensure `stack.env` values are set, and confirm the external `monitor` network exists.
+In Portainer, create a new stack with this `docker-compose.yml`, ensure `stack.env` values are set, and confirm the external `ingress-public` network exists.

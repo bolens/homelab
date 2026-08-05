@@ -31,8 +31,8 @@ Prometheus Node Exporter for host-level metrics (CPU, memory, disk, network). Us
 
 | Item        | Details                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
-| **Access**  | Internal only; Prometheus scrapes `node-exporter:9100` on `monitor`    |
-| **Network** | `monitor` — shared with Prometheus, Grafana, cAdvisor                 |
+| **Access**  | Internal only; Prometheus scrapes `node-exporter:9100` on `telemetry`    |
+| **Network** | `telemetry` — shared with Prometheus, Grafana, cAdvisor                 |
 | **Host data** | Mounts host root (`/:/host:ro,rslave`) so metrics reflect the Docker host |
 
 ## Start

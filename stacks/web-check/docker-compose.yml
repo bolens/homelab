@@ -10,7 +10,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - proxy-ingress
+      - security-research
+      - ingress-admin
     env_file:
       - stack.env
       - path: ../../shared.env
@@ -27,6 +28,9 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true

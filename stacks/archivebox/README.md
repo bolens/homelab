@@ -47,7 +47,7 @@ Set the outputs in `stack.env` or in the Portainer stack Environment.
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `archivebox:8000`) |
-| **Network** | `proxy-ingress` for Caddy; private `internal` network for scheduler and Sonic |
+| **Network** | `ingress-public` for Caddy; private `internal` network for scheduler and Sonic |
 | **Images** | `archivebox/archivebox:latest`, `archivebox/sonic:latest` |
 | **Env (required)** | `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `SEARCH_BACKEND_PASSWORD` |
 | **Env (recommended)** | `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` when exposed via Caddy |
@@ -72,7 +72,7 @@ archivebox.yourdomain.com {
 }
 ```
 
-Ensure ArchiveBox is on `proxy-ingress` so Caddy can reach `archivebox:8000`.
+Ensure ArchiveBox is on `ingress-public` so Caddy can reach `archivebox:8000`.
 
 ## Start
 

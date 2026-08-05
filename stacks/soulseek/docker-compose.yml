@@ -21,7 +21,9 @@ services:
       - "${SLSKD_SHARED_MUSIC_PATH:-/mnt/unraid/media/music}:/music"
       - soulseek_incomplete:/incomplete
     networks:
-      - proxy-ingress
+      - media-automation
+      - media-services
+      - ingress-public
     ports:
       - "${SLSKD_SLSK_LISTEN_PORT:-50300}:${SLSKD_SLSK_LISTEN_PORT:-50300}"
       - "${SLSKD_SLSK_LISTEN_PORT:-50300}:${SLSKD_SLSK_LISTEN_PORT:-50300}/udp"
@@ -38,8 +40,14 @@ services:
         max-file: "3"
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  media-automation:
+    name: media-automation
+    external: true
+  media-services:
+    name: media-services
+    external: true
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

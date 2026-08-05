@@ -14,11 +14,15 @@ services:
     volumes:
       - maigret-reports:/app/reports
     networks:
-      - monitor
+      - security-research
+      - ingress-admin
 
 networks:
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

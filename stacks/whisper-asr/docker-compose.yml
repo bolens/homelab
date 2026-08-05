@@ -1,6 +1,6 @@
 # Whisper ASR — OpenAI-style HTTP transcription (Whisper / faster-whisper / WhisperX).
 # Docs: https://github.com/ahmetoner/whisper-asr-webservice
-# No host ports; Caddy uses `proxy-ingress`, while AI clients use `ai-services`.
+# No host ports; Caddy uses `ingress-admin`, while AI clients use `ai-backend`.
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   whisper-asr:
@@ -19,8 +19,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - ai-services
-      - proxy-ingress
+      - ai-backend
+      - ingress-admin
     mem_limit: 4g
     cpus: "2.00"
     healthcheck:
@@ -42,11 +42,11 @@ services:
         max-file: "3"
 
 networks:
-  ai-services:
-    name: ai-services
+  ai-backend:
+    name: ai-backend
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

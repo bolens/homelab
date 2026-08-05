@@ -52,7 +52,7 @@ To use it:
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host ports; reverse-proxy to `emby:8096`)           |
-| **Network**| `monitor` plus default                                                  |
+| **Network**| `ingress-public` plus `media-services`                                  |
 | **Image**  | `lscr.io/linuxserver/emby:latest`                                      |
 | **Env**    | `TZ`, `PUID`, `PGID`, `EMBY_TV_PATH`, `EMBY_MOVIES_PATH`, `EMBY_MUSIC_PATH` |
 | **Storage**| `emby_config` → `/config`, host media paths → `/data/{tv,movies,music}` |
@@ -69,4 +69,3 @@ emby.home, emby.local {
 ```
 
 For public access via Cloudflare Tunnel, add e.g. `emby.yourdomain.com` in the public HTTPS section of your Caddyfile and protect it with Cloudflare Access if desired.
-

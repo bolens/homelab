@@ -21,17 +21,17 @@ Apps send mail to this container; it then relays via your real mail provider (SE
      - Optionally `RELAYHOST_USERNAME` / `RELAYHOST_PASSWORD` if your provider requires auth.
 2. **Deploy:** `docker compose up -d` (from this directory), or add as a stack in Portainer and set the same vars in the stack **Environment**.
 3. **Use from apps:**
-   - Inside Docker (same `mail-services` network): `smtp-relay:587`.
+   - Inside Docker (same `mail-clients` network): `smtp-relay:587`.
    - From outside / other hosts: `smtp.yourdomain.com:587` (see **Public access** below).
 
-The stack uses the dedicated `mail-services` network so explicitly attached applications can reach the relay by container name. For one-time setup and how other stacks use this relay, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+The stack uses the dedicated `mail-clients` network so explicitly attached applications can reach the relay by container name. For one-time setup and how other stacks use this relay, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
-| **Access** | Internal only by default (no host port). Mail clients use `smtp-relay:587` on `mail-services`. |
-| **Network** | `mail-services` (external) — limited to the relay and configured mail clients. |
+| **Access** | Internal only by default (no host port). Mail clients use `smtp-relay:587` on `mail-clients`. |
+| **Network** | `mail-clients` (external) — limited to the relay and configured mail clients. |
 | **Image** | `boky/postfix:latest` |
 | **Env** | `ALLOWED_SENDER_DOMAINS` (recommended), `RELAYHOST` (required), optional `RELAYHOST_USERNAME`, `RELAYHOST_PASSWORD`, `POSTFIX_myhostname`, `POSTFIX_message_size_limit`, `TZ`. See `stack.env.example` and upstream docs. |
 

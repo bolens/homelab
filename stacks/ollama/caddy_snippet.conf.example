@@ -1,4 +1,4 @@
-# HTTPS front for Ollama; the API is private to the shared monitor network.
+# HTTPS front for Ollama; the API is private to the shared ingress-admin network.
 ollama.home, ollama.local {
 	tls internal
 	reverse_proxy ollama:11434 {

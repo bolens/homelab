@@ -33,7 +33,7 @@ Config uses **named volumes** for export and consume (no bind-mounted `./export`
 | Item | Details |
 |------|---------|
 | **Port** | 8000 (proxied via Caddy only; no host port) |
-| **Network** | `monitor` (external) — Caddy reverse-proxies to `paperless-ngx:8000` |
+| **Network** | `ingress-sensitive` for Caddy; `document-services` for API clients; private default network for PostgreSQL and Redis |
 | **Image** | `ghcr.io/paperless-ngx/paperless-ngx:latest` |
 | **Env** | `PAPERLESS_URL`, `PAPERLESS_SECRET_KEY` (set in stack or .env) |
 | **Consume** | Named volume `consume` — add files via container/volume or bind mount override |

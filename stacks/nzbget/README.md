@@ -70,7 +70,7 @@ This stack uses a **named config volume** (`nzbget_config`) and a **Usenet downl
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `nzbget:6789`)          |
-| **Networks** | `monitor` (for Caddy/monitoring) and `usenet` (shared usenet network) |
+| **Networks** | `ingress-admin` (for Caddy/monitoring) and `usenet` (shared usenet network) |
 | **Image**  | `lscr.io/linuxserver/nzbget:latest`                                    |
 | **Env**    | `TZ`, `PUID`, `PGID`, `NZBGET_DOWNLOADS_PATH`, optional `UMASK`, `NZBGET_USER`, `NZBGET_PASS` |
 | **Storage**| `nzbget_config` → `/config`, `${NZBGET_DOWNLOADS_PATH}` → `/downloads` |

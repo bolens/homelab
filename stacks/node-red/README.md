@@ -8,7 +8,7 @@ Node-RED is a **flow-based, low-code programming tool** for wiring together hard
 **Docker image:** https://hub.docker.com/r/nodered/node-red  
 **Releases:** https://github.com/node-red/node-red/releases  
 
-This stack runs a single Node-RED instance with persistent storage on a Docker volume, attached to the shared `monitor` network so Caddy can reverse proxy it.
+This stack runs a single Node-RED instance with persistent storage on a Docker volume, attached to the shared `ingress-admin` network so Caddy can reverse proxy it.
 
 ## Hostname and access
 

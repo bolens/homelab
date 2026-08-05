@@ -24,7 +24,8 @@ services:
       - op-prometheus-data:/prometheus
     networks:
       - onionprobe
-      - monitor
+      - security-research
+      - ingress-admin
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -45,7 +46,8 @@ services:
       - op-alertmanager-data:/alertmanager
     networks:
       - onionprobe
-      - monitor
+      - security-research
+      - ingress-admin
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --storage.path=/alertmanager
@@ -91,7 +93,8 @@ services:
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/home.json
     networks:
       - onionprobe
-      - monitor
+      - security-research
+      - ingress-admin
     depends_on:
       - op-prometheus
       - op-postgres
@@ -143,7 +146,8 @@ services:
       - ./repo:/srv/onionprobe
     networks:
       - onionprobe
-      - monitor
+      - security-research
+      - ingress-admin
     restart: unless-stopped
     depends_on:
       - op-configurator
@@ -152,8 +156,11 @@ services:
 networks:
   onionprobe:
     driver: bridge
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

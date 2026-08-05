@@ -40,7 +40,7 @@ Book and audiobook collection manager for Usenet and torrents. Readarr monitors 
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `readarr:8787`)         |
-| **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
+| **Networks** | `ingress-admin`, `usenet`, `torrents`, plus default                         |
 | **Image**  | `lscr.io/linuxserver/readarr:0.4.18-nightly`                            |
 | **Env**    | `TZ`, `PUID`, `PGID`, `READARR_MEDIA_PATH`, optional `READARR__*` |
 | **Storage**| `readarr_config` → `/config`, `${READARR_MEDIA_PATH}` → `/data`; use `/data/books` and `/data/downloads/*` |

@@ -22,7 +22,7 @@ Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code
 
 ## Setup
 
-1. Run `./prepare-stack.sh` (creates local config and ensures `ai-services` plus `proxy-ingress`).
+1. Run `./prepare-stack.sh` (creates local config and ensures `ai-backend` plus `ingress-public`).
 
 2. **IMPORTANT**: Generate secure JWT secrets:
    ```bash
@@ -123,7 +123,7 @@ Configure providers in Settings → Endpoints after login.
 ### Connecting to Ollama
 
 If you're running Ollama in another Docker stack:
-1. Add Ollama to the shared `ai-services` network
+1. Add Ollama to the shared `ai-backend` network
 2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
 For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).

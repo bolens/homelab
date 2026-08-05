@@ -23,7 +23,7 @@ The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; use audiobookshelf.home, audiobookshelf.yourdomain.com, etc.) |
-| **Network** | `proxy-ingress` (external) — dedicated Caddy-to-service ingress |
+| **Network** | `ingress-public` (external) — dedicated Caddy-to-service ingress |
 | **Image** | ghcr.io/advplyr/audiobookshelf:latest |
 | **Env** | `TZ` (optional, default America/Denver) |
 | **Storage** | Named volumes: `abs_config`, `abs_metadata`, `abs_audiobooks`, `abs_podcasts` |
@@ -59,7 +59,7 @@ podcast.yourdomain.com {
 }
 ```
 
-Ensure the podcast stack is on `proxy-ingress` so Caddy can reach `audiobookshelf:80`.
+Ensure the podcast stack is on `ingress-public` so Caddy can reach `audiobookshelf:80`.
 
 ## Start
 

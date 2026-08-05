@@ -18,7 +18,7 @@ services:
       - ${HANDBRAKE_WATCH_PATH:-/mnt/unraid/media/downloads/handbrake/watch}:/watch
       - ${HANDBRAKE_OUTPUT_PATH:-/mnt/unraid/media/downloads/handbrake/output}:/output
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5800/"]
       interval: 30s
@@ -32,6 +32,6 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true

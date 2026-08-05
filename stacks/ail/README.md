@@ -22,7 +22,7 @@
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `ail:7000`). The AIL UI serves HTTPS with a self-signed cert; Caddy is configured with `tls_insecure_skip_verify` for the backend. |
-| **Network** | `monitor` (external) — Caddy can reach `ail:7000`. |
+| **Networks** | `security-research` for research-tool communication; `ingress-admin` for Caddy. |
 | **Image** | `cciucd/ail-framework:latest` (community image; not officially maintained by ail-project). |
 | **Storage** | Named volumes for PASTES, CRAWLED_SCREENSHOT, DATA_KVROCKS, indexdir, HASHS, logs. |
 
@@ -36,7 +36,7 @@ The official repo does not publish a Docker image. This stack uses the community
 
 ## Caddy reverse proxy
 
-The stack is on the `monitor` network so Caddy can reach `ail:7000`. The AIL Flask app uses HTTPS with a self-signed certificate; the Caddyfile uses:
+The stack uses `security-research` for research-tool communication and `ingress-admin` so Caddy can reach `ail:7000`. The AIL Flask app uses HTTPS with a self-signed certificate; the Caddyfile uses:
 
 - `reverse_proxy https://ail:7000` with `transport http { tls_insecure_skip_verify }` and `header_up X-Forwarded-Proto https`.
 

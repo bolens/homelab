@@ -32,9 +32,9 @@
 
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
-| **Access**  | Loki HTTP API is internal on `monitor`; typically not exposed via Caddy   |
+| **Access**  | Loki HTTP API is internal on `telemetry`; typically not exposed via Caddy   |
 | **Config**  | Copy `loki-config.yml.example` → `~/.config/loki/loki-config.yml`; override with `LOKI_CONFIG_PATH` (e.g. in Portainer) |
-| **Network** | `monitor` (so Grafana and Promtail can reach Loki)                         |
+| **Network** | `telemetry` (so Grafana and Promtail can reach Loki)                         |
 | **Storage** | `loki_data` volume (indexes, chunks, WAL)                                  |
 
 ## Notes

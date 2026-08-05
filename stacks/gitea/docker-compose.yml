@@ -48,8 +48,9 @@ services:
       - gitea_data:/data
     networks:
       - default
-      - proxy-ingress
-      - mail-services
+      - ingress-admin
+      - mail-clients
+      - telemetry
     cpus: 2.0
     mem_limit: 2g
     memswap_limit: 4g
@@ -62,11 +63,14 @@ services:
       retries: 3
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
+    external: true
+  telemetry:
+    name: telemetry
     external: true
 
 volumes:

@@ -1,6 +1,6 @@
 # Config: copy promtail-config.yml.example to ~/.config/promtail/promtail-config.yml
 # (create the directory if needed). Override with PROMTAIL_CONFIG_PATH if desired (e.g. in Portainer).
-# Requires Loki on the monitor network (e.g. stacks/loki) at http://loki:3100.
+# Requires Loki on the telemetry network (e.g. stacks/loki) at http://loki:3100.
 services:
   promtail:
     image: grafana/promtail:3.6.8
@@ -25,7 +25,7 @@ services:
       - ${PROMTAIL_CONFIG_PATH:-${HOME}/.config/promtail/promtail-config.yml}:/etc/promtail/config.yml:ro
       - promtail_positions:/var/lib/promtail
     networks:
-      - monitor
+      - telemetry
     env_file:
       - path: ../../shared.env
         required: false
@@ -40,8 +40,8 @@ services:
       start_period: 15s
 
 networks:
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
     external: true
 
 volumes:

@@ -1,6 +1,6 @@
 name: metagoofil
 
-# Metagoofil needs monitor network when using Caddy as HTTP proxy (HTTP_PROXY=http://caddy:3128).
+# Metagoofil reaches Caddy's optional HTTP forward proxy over security-research.
 # No upstream image; build from Dockerfile. Data: default ~/.config/metagoofil/data.
 # Override with METAGOOFIL_DATA_PATH (e.g. in Portainer).
 
@@ -18,12 +18,11 @@ services:
     volumes:
       - ${METAGOOFIL_DATA_PATH:-${HOME}/.config/metagoofil/data}:/data
     networks:
-      - monitor
+      - security-research
     stdin_open: true
     tty: true
 
 networks:
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
     external: true
-

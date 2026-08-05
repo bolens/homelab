@@ -1,5 +1,5 @@
 # Mealie – self-hosted recipe manager and meal planner. See https://mealie.io
-# Portainer-friendly: named volumes, external proxy-ingress network for Caddy.
+# Portainer-friendly: named volumes, external ingress-public network for Caddy.
 # Image: https://github.com/mealie-recipes/mealie/pkgs/container/mealie
 
 name: mealie
@@ -16,7 +16,7 @@ services:
     volumes:
       - mealie_data:/app/data
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test: ["CMD-SHELL", "$$MEALIE_HOME/healthcheck.sh"]
       interval: 30s
@@ -25,8 +25,8 @@ services:
       start_period: 40s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

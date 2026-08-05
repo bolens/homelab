@@ -58,7 +58,8 @@ services:
         condition: service_healthy
     networks:
       - docker-api
-      - mail-services
+      - mail-clients
+      - telemetry
     healthcheck:
       test: ["CMD", "diun", "healthcheck"]
       interval: 60s
@@ -69,8 +70,11 @@ services:
 networks:
   docker-api:
     internal: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
+    external: true
+  telemetry:
+    name: telemetry
     external: true
 
 volumes:

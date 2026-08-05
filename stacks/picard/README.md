@@ -29,7 +29,7 @@ Access via Caddy at **https://picard.yourdomain.com** (or your configured hostna
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `picard:5800`) |
-| **Network** | `proxy-ingress` for dedicated Caddy-to-service traffic |
+| **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
 | **Image** | `jlesage/musicbrainz-picard:latest` |
 | **Storage** | `picard_config` named volume for app state; `${PICARD_MEDIA_PATH}:/data` |
 | **Auth** | VNC/noVNC session security is app-level; keep hostname behind SSO when exposed publicly |

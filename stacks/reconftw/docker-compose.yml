@@ -1,6 +1,6 @@
 name: reconftw
 
-# ReconFTW needs monitor network when using Caddy as HTTP proxy (HTTP_PROXY=http://caddy:3128).
+# ReconFTW reaches Caddy's optional HTTP forward proxy over security-research.
 # Config: copy reconftw.cfg to ~/.config/reconftw/reconftw.cfg (create dir if needed).
 # Override with RECONFTW_CONFIG_PATH and RECONFTW_RECON_PATH if desired (e.g. in Portainer).
 
@@ -19,12 +19,11 @@ services:
       # Output directory (default: ~/.config/reconftw/Recon)
       - ${RECONFTW_RECON_PATH:-${HOME}/.config/reconftw/Recon}:/root/Tools/reconftw/Recon
     networks:
-      - monitor
+      - security-research
     stdin_open: true
     tty: true
 
 networks:
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
     external: true
-

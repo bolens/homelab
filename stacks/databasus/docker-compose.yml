@@ -15,7 +15,7 @@ services:
     volumes:
       - databasus_data:/databasus-data
     networks:
-      - monitor
+      - ingress-admin
     healthcheck:
       test: ["CMD", "databasus", "healthcheck"]
       interval: 30s
@@ -29,8 +29,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

@@ -18,8 +18,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - ai-services
-      - proxy-ingress
+      - ai-backend
+      - ingress-public
     mem_limit: 4g
     cpus: "3.00"
     healthcheck:
@@ -35,11 +35,11 @@ services:
         max-file: "3"
 
 networks:
-  ai-services:
-    name: ai-services
+  ai-backend:
+    name: ai-backend
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

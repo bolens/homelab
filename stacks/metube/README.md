@@ -38,7 +38,7 @@ Self-hosted web GUI for `yt-dlp`/`youtube-dl` with playlist support and a downlo
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `metube:8081`)          |
-| **Network**| `proxy-ingress` (external) for dedicated Caddy ingress                 |
+| **Network**| `ingress-public` (external) for dedicated Caddy ingress                 |
 | **Image**  | `ghcr.io/alexta69/metube:latest`                                        |
 | **Env**    | Optional `TZ`, `PUID`, `PGID`, `UMASK`; download knobs like `MAX_CONCURRENT_DOWNLOADS`, `DELETE_FILE_ON_TRASHCAN`, playlist limits; advanced `YTDL_OPTIONS` / `YTDL_OPTIONS_FILE`; UI/logging via `DEFAULT_THEME`, `LOGLEVEL`, `ENABLE_ACCESSLOG` |
 | **Storage**| Named volume `metube-downloads` mounted at `/downloads` (videos, audio, state, temp files) |

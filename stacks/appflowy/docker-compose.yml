@@ -16,9 +16,9 @@ services:
         required: false
       - stack.env
     networks:
-      - monitor
+      - ingress-public
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true

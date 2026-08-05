@@ -44,15 +44,15 @@ services:
       - --hostname-strict=false
     networks:
       - default
-      - proxy-ingress
-      - mail-services
+      - ingress-sensitive
+      - mail-clients
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

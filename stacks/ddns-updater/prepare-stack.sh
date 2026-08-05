@@ -21,5 +21,5 @@ fi
 prepare_stack_msg "If the container cannot write updates.json, run: chown -R 1000:1000 \"$_PREPDIR/data\""
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "ingress-admin"
 prepare_stack_end

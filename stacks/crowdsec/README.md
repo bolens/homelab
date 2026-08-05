@@ -38,7 +38,7 @@ This stack runs the **CrowdSec Security Engine** in a container with persistent 
 5. **LAPI** – no host port; Caddy is the single entrypoint. Reach it at:
 
    - **From browser / host:** `https://crowdsec.home` or `https://crowdsec.yourdomain.com` (ensure the host resolves the name, e.g. via AdGuard or `/etc/hosts`).
-   - **From containers on `monitor`:** `http://crowdsec:8080` (Prometheus, bouncers, cscli in Docker).
+   - **From containers on `ingress-admin`:** `http://crowdsec:8080` (Prometheus, bouncers, cscli in Docker).
 
    Example (from host, if crowdsec.home resolves): `curl https://crowdsec.home/metrics`
 
@@ -48,8 +48,8 @@ This stack runs the **CrowdSec Security Engine** in a container with persistent 
 
 | Item        | Details |
 |------------|---------|
-| **Access** | Via Caddy only (no host port). Internal: `https://crowdsec.home`; public: `https://crowdsec.yourdomain.com`. Other containers on `monitor`: `http://crowdsec:8080`. |
-| **Network** | `monitor` (external) so Caddy and Prometheus reach `crowdsec:8080`. |
+| **Access** | Via Caddy only (no host port). Internal: `https://crowdsec.home`; public: `https://crowdsec.yourdomain.com`. Other containers on `ingress-admin`: `http://crowdsec:8080`. |
+| **Network** | `ingress-admin` (external) so Caddy and Prometheus reach `crowdsec:8080`. |
 | **Storage** | Named volumes: `crowdsec-config` for `/etc/crowdsec` (hub, parsers, scenarios, profiles) and `crowdsec-data` for `/var/lib/crowdsec/data`. The data volume is **required** for CrowdSec 1.7+ to start. |
 | **Logs**   | This stack does **not** hardcode any log mounts. You decide which logs to feed to CrowdSec (Docker containers, Caddy logs, system logs, etc.) and configure acquisitions accordingly. |
 
@@ -117,7 +117,7 @@ This stack only runs the **engine** and Local API. To actually block malicious I
 - **Reverse proxy bouncer** (for Caddy, NGINX, etc.).  
 - **CDN / WAF integration** using CrowdSec blocklists and curated threat intelligence (for example, feeding CrowdSec blocklists into an edge firewall or CDN).
 
-Bouncers on the Docker host use the Caddy URL (e.g. `https://crowdsec.home`); bouncers in Docker on the `monitor` network use `http://crowdsec:8080`. Refer to CrowdSec official bouncer documentation for setup details.
+Bouncers on the Docker host use the Caddy URL (e.g. `https://crowdsec.home`); bouncers in Docker on the `ingress-admin` network use `http://crowdsec:8080`. Refer to CrowdSec official bouncer documentation for setup details.
 
 For **Cloudflare edge protection**, use the **Cloudflare Workers bouncer** so CrowdSec decisions are enforced as Cloudflare firewall actions. See `documents/CROWDSEC-CLOUDFLARE-WORKER.md` in this repo for a step‑by‑step setup guide (daemon mode on the host, tokens and keys stored only under `/etc/crowdsec/bouncers/`).
 
@@ -125,7 +125,7 @@ For **Cloudflare edge protection**, use the **Cloudflare Workers bouncer** so Cr
 
 - LAPI is exposed **only via Caddy** (no host port): `https://crowdsec.home` / `https://crowdsec.yourdomain.com`.
 - Protect the public hostname with **Cloudflare Access** or keep it internal-only; LAPI has no built-in auth.
-- Containers on the `monitor` network (e.g. Prometheus, bouncers) use `http://crowdsec:8080` directly.
+- Containers on the `ingress-admin` network (e.g. Prometheus, bouncers) use `http://crowdsec:8080` directly.
 
 ## Portainer
 

@@ -19,7 +19,7 @@ OSINT tool: collect a dossier on a person **by homelab-user only**, checking tho
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `maigret:5000`) |
-| **Network** | `monitor` (external) — Caddy reaches `maigret:5000` |
+| **Networks** | `security-research` for research-tool communication; `ingress-admin` for Caddy |
 | **Image** | `soxoj/maigret:latest` (pin a tag for production) |
 | **Storage** | Named volume `maigret-reports` for generated reports |
 
@@ -40,7 +40,7 @@ maigret.home, maigret.local {
 }
 ```
 
-Ensure the stack is on the `monitor` network.
+Ensure the stack is on the `ingress-admin` network.
 
 ## Disclaimer
 

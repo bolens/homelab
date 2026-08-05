@@ -3,7 +3,7 @@
 # Docs: https://github.com/simple-login/app | https://simplelogin.io/docs/
 #
 # First-time: run migration and init, then start:
-#   docker compose run --rm simplelogin flask db upgrade
+#   docker compose run --rm simplelogin alembic upgrade head
 #   docker compose run --rm simplelogin python init_app.py
 #   docker compose up -d
 
@@ -11,7 +11,8 @@ name: simplelogin
 
 services:
   simplelogin:
-    image: simplelogin/app:latest
+    # Current upstream source build; Docker Hub's :latest has not moved since 2020.
+    image: ${SIMPLELOGIN_IMAGE:-simplelogin/app:dbc45fc}
     container_name: simplelogin
     restart: unless-stopped
     cpus: 1.0
@@ -52,11 +53,11 @@ services:
       - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
-      - proxy-ingress
-      - mail-services
+      - ingress-sensitive
+      - mail-clients
 
   simplelogin-email:
-    image: simplelogin/app:latest
+    image: ${SIMPLELOGIN_IMAGE:-simplelogin/app:dbc45fc}
     container_name: simplelogin-email
     restart: unless-stopped
     cpus: 1.0
@@ -90,10 +91,10 @@ services:
       - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
-      - mail-services
+      - mail-clients
 
   simplelogin-job-runner:
-    image: simplelogin/app:latest
+    image: ${SIMPLELOGIN_IMAGE:-simplelogin/app:dbc45fc}
     container_name: simplelogin-job-runner
     restart: unless-stopped
     cpus: 1.0
@@ -123,7 +124,7 @@ services:
       - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
-      - mail-services
+      - mail-clients
 
   db:
     image: postgres:18-alpine
@@ -154,11 +155,11 @@ services:
 networks:
   simplelogin:
     driver: bridge
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

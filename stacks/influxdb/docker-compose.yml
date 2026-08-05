@@ -23,7 +23,8 @@ services:
       - influxdb_data:/var/lib/influxdb2
       - influxdb_config:/etc/influxdb2
     networks:
-      - monitor
+      - telemetry
+      - ingress-admin
     healthcheck:
       test: ["CMD", "influx", "ping", "--host", "http://127.0.0.1:8086"]
       interval: 30s
@@ -37,8 +38,11 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

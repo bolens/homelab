@@ -13,8 +13,8 @@ services:
     env_file:
       - stack.env
     networks:
-      - proxy-ingress
-      - mail-services
+      - ingress-public
+      - mail-clients
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5678/healthz"]
       interval: 30s
@@ -23,11 +23,11 @@ services:
       start_period: 30s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

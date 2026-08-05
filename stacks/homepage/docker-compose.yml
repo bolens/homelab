@@ -11,7 +11,7 @@ services:
     volumes:
       - ./www:/usr/share/nginx/html:ro
     networks:
-      - monitor
+      - ingress-admin
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/"]
       interval: 30s
@@ -20,6 +20,6 @@ services:
       start_period: 5s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true

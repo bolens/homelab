@@ -17,4 +17,4 @@ No host ports are exposed; Caddy proxies to `mattermost:8065`.
 
 ## Portainer
 
-Use this compose in Portainer Stacks, define env from `stack.env`, and ensure the external `monitor` network exists.
+Use this compose in Portainer Stacks, define env from `stack.env`, and ensure the external `ingress-public` network exists.

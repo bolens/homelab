@@ -48,7 +48,7 @@ This stack is intended for **manual use only**. Keep your *arr automation stacks
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Flood web UI on port 3000 inside the container; proxied via Caddy      |
-| **Networks** | `torrents` (for torrent traffic) and `monitor` (for Caddy/Flood UI)   |
+| **Networks** | `torrents` (for torrent traffic) and `ingress-admin` (for Caddy/Flood UI)   |
 | **Ports**  | `49160/tcp` and `49160/udp` forwarded from host for incoming peers     |
 | **Env**    | `TZ`, `PUID`, `PGID`, optional `UMASK`                                 |
 | **Storage**| `rtorrent_flood_config` → `/config`, `torrents_manual` → `/downloads`  |

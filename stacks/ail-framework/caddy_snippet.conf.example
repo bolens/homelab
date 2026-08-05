@@ -19,4 +19,4 @@ ail.home, ail.local {
 # 	tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }
 # 	reverse_proxy http://ail:7100
 # }
-# Tor SOCKS (port 9050) is inside the container; other services on the monitor network can use socks5://ail:9050. No Caddy block needed.
+# Tor SOCKS (port 9050) is inside the container; other services on the ingress-admin network can use socks5://ail:9050. No Caddy block needed.

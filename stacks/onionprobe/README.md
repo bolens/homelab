@@ -34,7 +34,7 @@ Tor Onion Services monitoring: continuously probes a set of onion endpoints, exp
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host ports; reverse proxy to `op-grafana:3000`) |
-| **Network** | `onionprobe` (internal); `monitor` (op-grafana, op-prometheus, op-alertmanager, op-onionprobe for Caddy) |
+| **Networks** | `onionprobe` (internal), `security-research` for research-tool communication, and `ingress-admin` for Caddy |
 | **Services** | op-grafana (3000), op-prometheus (9090), op-alertmanager (9093), op-onionprobe (exporter 9935); op-tor, op-configurator, op-postgres |
 | **Build** | Images built from `./repo` (Onionprobe + Tor); clone repo before first up |
 
@@ -55,9 +55,9 @@ onionprobe.home, onionprobe.local {
 }
 ```
 
-Ensure the stack is on the `monitor` network so Caddy can reach `op-grafana`.
+Ensure the stack is on the `ingress-admin` network so Caddy can reach `op-grafana`.
 
 ## Start
 
 From this directory: `./clone-repo.sh` once, then `docker compose up -d`.  
-In Portainer: clone the repo into the stack folder (or mount it), add the stack, ensure `monitor` network exists, deploy.
+In Portainer: clone the repo into the stack folder (or mount it), add the stack, ensure `ingress-admin` network exists, deploy.

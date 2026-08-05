@@ -15,7 +15,7 @@ services:
     volumes:
       - nodered_data:/data
     networks:
-      - monitor
+      - ingress-admin
     env_file:
       - path: ../../shared.env
         required: false
@@ -31,8 +31,8 @@ services:
     cpus: 1.0
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

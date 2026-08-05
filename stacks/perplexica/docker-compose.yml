@@ -13,12 +13,16 @@ services:
       - path: ../../shared.env
         required: false
       - stack.env
+    environment:
+      # Next.js otherwise binds to the container IP on only its first attached network.
+      - HOSTNAME=0.0.0.0
     volumes:
       - perplexica_data:/home/perplexica/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitor
+      - ai-backend
+      - ingress-public
     mem_limit: 2g
     cpus: "2.00"
     healthcheck:
@@ -34,8 +38,11 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ai-backend:
+    name: ai-backend
+    external: true
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

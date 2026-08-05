@@ -15,7 +15,7 @@ services:
     volumes:
       - ombi_config:/config
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3579/"]
       interval: 30s
@@ -29,8 +29,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

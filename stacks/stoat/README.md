@@ -57,7 +57,7 @@ Self-hosted, user-first chat platform (channels, DMs, threads, media, voice) com
    docker compose up -d
    ```
 
-   Or add the stack in Portainer (Git or Web editor), ensure the `monitor` network exists, and deploy.
+   Or add the stack in Portainer, ensure `ingress-public` exists, and deploy.
 
 5. **Access**
 
@@ -69,8 +69,8 @@ Self-hosted, user-first chat platform (channels, DMs, threads, media, voice) com
 | Item | Details |
 |------|---------|
 | **Access** | Via main Caddy only (no host ports in this stack) |
-| **Network** | `stoat` (internal for all Stoat services); `monitor` (Stoat Caddy only, for main Caddy) |
-| **Images** | From `ghcr.io/stoatchat/*`, `mongo`, `eqalpha/keydb`, `rabbitmq`, `minio` |
+| **Network** | `stoat` private for all services; `ingress-public` only for Stoat Caddy |
+| **Images** | From `ghcr.io/stoatchat/*`, `mongo`, `valkey/valkey`, `rabbitmq`, `minio` |
 | **Env** | `.env.web` (generated) and `Revolt.toml` control URLs and features; compose uses `${RABBITMQ_DEFAULT_*}` and `${MINIO_ROOT_*}` overrides if set |
 | **Storage** | Host-mapped `./data/*` directories (see above) |
 
@@ -111,9 +111,8 @@ stoat.yourdomain.com {
 }
 ```
 
-Ensure the stack is on the `monitor` network (already configured in `docker-compose.yml`) so Caddy can resolve `stoat-caddy`.
+Ensure Stoat Caddy is on `ingress-public` so the main Caddy can resolve `stoat-caddy`.
 
 ## Voice / LiveKit notes
 
 This stack **does not** publish LiveKit ports (`7881`, `50000-50100/udp`) on the host. For full voice/video support from the public internet you will need additional routing (e.g. publishing those ports, using a VPN, or Cloudflare-compatible UDP tunnelling). For local/LAN-only testing, you can selectively expose them in a `compose.override.yml` based on the upstream docs.
-

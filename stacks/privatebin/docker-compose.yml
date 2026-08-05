@@ -12,7 +12,7 @@ services:
     volumes:
       - privatebin_data:/srv/data
     networks:
-      - proxy-ingress
+      - ingress-sensitive
     env_file:
       - stack.env
     healthcheck:
@@ -23,8 +23,8 @@ services:
       start_period: 10s
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-sensitive:
+    name: ingress-sensitive
     external: true
 
 volumes:

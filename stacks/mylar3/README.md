@@ -33,7 +33,7 @@ the corresponding host directory independently.
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `mylar3:8090`) |
-| **Networks** | `monitor` (Caddy), `usenet`, `torrents` (download clients) |
+| **Networks** | `ingress-admin` (Caddy), `usenet`, `torrents` (download clients) |
 | **Images** | `lscr.io/linuxserver/mylar3:latest` |
 | **Storage** | `mylar3_config` → `/config`, `${MYLAR3_MEDIA_PATH}` → `/data` |
 

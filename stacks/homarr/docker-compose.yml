@@ -56,7 +56,9 @@ services:
       homarr-docker-socket-proxy:
         condition: service_healthy
     networks:
-      - monitor
+      - media-automation
+      - media-services
+      - ingress-admin
       - docker-api
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7575/"]
@@ -68,8 +70,14 @@ services:
 networks:
   docker-api:
     internal: true
-  monitor:
-    name: monitor
+  media-automation:
+    name: media-automation
+    external: true
+  media-services:
+    name: media-services
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

@@ -19,7 +19,7 @@ services:
     volumes:
       - dispatcharr_data:/data
     networks:
-      - monitor
+      - ingress-admin
     healthcheck:
       test:
         - CMD
@@ -37,8 +37,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

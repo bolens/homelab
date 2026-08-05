@@ -1,4 +1,4 @@
-# Auto-provision Prometheus as default datasource (requires Prometheus stack on monitor network).
+# Auto-provision Prometheus as default datasource (requires Prometheus stack on ingress-admin network).
 # Copy this file to ~/.config/grafana/datasources.yml (or another path) and point
 # GRAFANA_DATASOURCES_PATH at it (full file path) when deploying the Grafana stack.
 apiVersion: 1
@@ -24,7 +24,7 @@ datasources:
       maxLines: 2000
       timeout: 60
     editable: false
-  # Alerting → Alertmanager UI (silences, active alerts). Same monitor network as Prometheus.
+  # Alerting → Alertmanager UI (silences, active alerts). Same ingress-admin network as Prometheus.
   - name: Alertmanager
     type: alertmanager
     uid: alertmanager

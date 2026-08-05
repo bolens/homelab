@@ -22,11 +22,11 @@ services:
       - "22000:22000/udp"
       - "21027:21027/udp"
     networks:
-      - proxy-ingress
+      - ingress-admin
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

@@ -46,7 +46,7 @@ Music collection manager for Usenet and torrents. Lidarr tracks artists and albu
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `lidarr:8686`)          |
-| **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
+| **Networks** | `ingress-admin`, `usenet`, `torrents`, plus default                         |
 | **Image**  | Locally built `homelab/lidarr:3.1.0.4875-null-metadata-guards.4`     |
 | **Env**    | `TZ`, `PUID`, `PGID`, `LIDARR_MEDIA_PATH`, optional `LIDARR__*` |
 | **Storage**| `lidarr_config` → `/config`, `${LIDARR_MEDIA_PATH}` → `/data`; use `/data/music` and `/data/downloads/*` |

@@ -17,7 +17,7 @@ services:
     volumes:
       - ./data:/updater/data
     networks:
-      - monitor
+      - ingress-admin
     logging:
       driver: local
       options:
@@ -27,6 +27,6 @@ services:
     cpus: "0.25"
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true

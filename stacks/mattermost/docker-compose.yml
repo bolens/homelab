@@ -59,7 +59,7 @@ services:
         condition: service_healthy
     networks:
       - default
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8065/api/v4/system/ping"]
       interval: 30s
@@ -68,8 +68,8 @@ services:
       start_period: 60s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

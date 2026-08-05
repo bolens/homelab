@@ -13,9 +13,9 @@ services:
       - ${ALERTMANAGER_CONFIG_PATH:-${HOME}/.config/alertmanager/alertmanager.yml}:/etc/alertmanager/alertmanager.yml:ro
       - ${ALERTMANAGER_TEMPLATES_PATH:-${HOME}/.config/alertmanager/templates}:/etc/alertmanager/templates:ro
     networks:
-      - observability
-      - proxy-ingress
-      - mail-services
+      - telemetry
+      - ingress-admin
+      - mail-clients
     cpu_shares: 128
     memswap_limit: 512m
     deploy:
@@ -34,14 +34,14 @@ services:
       start_period: 10s
 
 networks:
-  observability:
-    name: observability
+  telemetry:
+    name: telemetry
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
     external: true
 
 volumes:

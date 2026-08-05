@@ -17,4 +17,4 @@ This scaffold is ready for Portainer flow. If you need the full upstream multi-s
 
 ## Portainer
 
-Use Stacks -> Add stack with this compose, set environment values from `stack.env`, and ensure network `monitor` exists.
+Use Stacks -> Add stack with this compose, set environment values from `stack.env`, and ensure network `ingress-public` exists.

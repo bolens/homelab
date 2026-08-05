@@ -26,4 +26,4 @@ For faster inference, switch the image to **`onerahmet/openai-whisper-asr-webser
 
 ## Portainer
 
-Compose path `stacks/whisper-asr/docker-compose.yml`; attach **`ai-services`** and **`proxy-ingress`**; no secrets required beyond optional tuning in `stack.env`.
+Compose path `stacks/whisper-asr/docker-compose.yml`; attach **`ai-backend`** and **`ingress-admin`**; no secrets required beyond optional tuning in `stack.env`.

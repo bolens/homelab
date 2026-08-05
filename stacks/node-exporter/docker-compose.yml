@@ -1,5 +1,5 @@
 # Node Exporter – host metrics (CPU, memory, disk, etc.) for Prometheus.
-# No host port; Prometheus scrapes node-exporter:9100 on the monitor network.
+# No host port; Prometheus scrapes node-exporter:9100 on the telemetry network.
 # Reads host filesystem via mounted root; add a scrape job in prometheus.yml.
 services:
   node-exporter:
@@ -20,7 +20,7 @@ services:
       - /:/host:ro,rslave
       - /run/udev/data:/run/udev/data:ro
     networks:
-      - monitor
+      - telemetry
     env_file:
       - stack.env
     healthcheck:
@@ -31,6 +31,6 @@ services:
       start_period: 5s
 
 networks:
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
     external: true

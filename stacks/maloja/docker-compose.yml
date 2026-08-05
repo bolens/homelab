@@ -17,7 +17,7 @@ services:
     volumes:
       - maloja_data:/mljdata
     networks:
-      - proxy-ingress
+      - ingress-public
     healthcheck:
       test:
         - CMD
@@ -35,8 +35,8 @@ services:
         max-file: "3"
 
 networks:
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

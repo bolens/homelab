@@ -22,7 +22,7 @@
 
 3. **Access**
    - Gitea listens on port `3000` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-admin` network, e.g.:
      - `https://gitea.yourdomain.com` → `gitea:3000`
    - Complete the initial web-based setup, pointing the database to `postgres:5432` with the credentials above.
 
@@ -34,7 +34,7 @@
    - `GITEA_ROOT_URL` – public URL behind Caddy, e.g. `https://gitea.yourdomain.com`
    - `GITEA_DB_NAME`, `GITEA_DB_USER` (optional; default `gitea`)
    - `USER_UID`, `USER_GID` (optional; default 1000)
-3. Ensure the **proxy-ingress** and **mail-services** networks exist.
+3. Ensure the **ingress-admin** and **mail-clients** networks exist.
 4. Deploy. On first access, complete the web setup wizard; the database is pre-configured via env vars.
 
 ## Create initial admin user (CLI)
@@ -56,7 +56,7 @@ Generate a password with `openssl rand -base64 24`. Use `--random-password` to h
 | Item        | Details                                                                  |
 | ----------- | ------------------------------------------------------------------------ |
 | **Access**  | Via Caddy (reverse-proxy to `gitea:3000`)                                |
-| **Network** | `proxy-ingress` for Caddy + `mail-services` for SMTP + default internal network for Postgres |
+| **Network** | `ingress-admin` for Caddy + `mail-clients` for SMTP + default internal network for Postgres |
 | **Images**  | `gitea/gitea:latest`, `postgres:16-alpine`                               |
 | **Storage** | `gitea_pg_data` (Postgres), `gitea_data` (`/data` – repos, configs, etc.) |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `gitea.yourdomain.com` → `gitea:3000` |
@@ -66,7 +66,7 @@ Generate a password with `openssl rand -base64 24`. Use `--random-password` to h
 
 For notifications (password reset, issue mentions, etc.), configure mail in **Site administration** → **Configuration** → **Mailer**. Use the shared Postfix relay:
 
-- **SMTP Host:** `smtp-relay` (container name on `mail-services`)
+- **SMTP Host:** `smtp-relay` (container name on `mail-clients`)
 - **SMTP Port:** `587`
 - **SMTP User / Password:** leave empty for the relay (no auth)
 - **From email:** e.g. `gitea@yourdomain.com`

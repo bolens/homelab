@@ -34,17 +34,17 @@ services:
       - WATCHTOWER_HTTP_API_METRICS=true
       - WATCHTOWER_HTTP_API_PERIODIC_POLLS=true
       - WATCHTOWER_HTTP_API_PORT=80
-      # ntfy push notifications (generic+ scheme via internal monitor network).
+      # ntfy push notifications over telemetry.
       # Set WATCHTOWER_NOTIFICATION_URL and WATCHTOWER_NOTIFICATION_REPORT in stack.env.
       # Injected via env_file — not listed here to avoid shell-interpolation overriding with empty values.
     networks:
-      - monitor
+      - telemetry
     # Optional: use cron instead of interval (e.g. daily at 03:00)
     # command: --schedule "0 0 3 * * *" --cleanup
 
 networks:
-  monitor:
-    name: monitor
+  telemetry:
+    name: telemetry
     external: true
 
 volumes: {}

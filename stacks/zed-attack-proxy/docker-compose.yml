@@ -1,5 +1,5 @@
 # OWASP ZAP (Zed Attack Proxy) – web/API security scanner (Webswing UI + proxy/API).
-# No host ports: access via Caddy (reverse_proxy zap:8080 on monitor network).
+# No host ports: access via Caddy (reverse_proxy zap:8080 on ingress-admin network).
 # Docs: https://www.zaproxy.org/docs/  |  Docker: https://github.com/zaproxy/zaproxy/blob/main/docker/README.md
 #
 # Start:  docker compose up -d
@@ -25,7 +25,8 @@ services:
     command: zap-webswing.sh
     environment: []
     networks:
-      - monitor
+      - security-research
+      - ingress-admin
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/"]
       interval: 60s
@@ -40,6 +41,9 @@ services:
 #   zap-data:
 
 networks:
-  monitor:
-    name: monitor
+  security-research:
+    name: security-research
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true

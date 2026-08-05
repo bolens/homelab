@@ -10,7 +10,9 @@ AI-assisted classification and OCR rescue workflows for `paperless-ngx`.
 
 - `paperless-ngx` stack (API token required)
 - `ollama` stack (for local LLM inference)
-- Shared `monitor` network
+- Shared `document-services` network for the Paperless API
+- Shared `ai-backend` network for Ollama
+- `ingress-sensitive` for Caddy
 
 ## Quick start
 
@@ -18,7 +20,9 @@ AI-assisted classification and OCR rescue workflows for `paperless-ngx`.
    - `./prepare-stack.sh`
 2. Edit `stack.env`:
    - Set `PAPERLESS_API_TOKEN`
-   - Confirm `PAPERLESS_API_URL` / `PAPERLESS_PUBLIC_URL`
+   - Keep `PAPERLESS_API_URL` and `PAPERLESS_BASE_URL` on
+     `http://paperless-ngx:8000`
+   - Set `PAPERLESS_PUBLIC_URL` to the browser-facing HTTPS URL
    - Set `OLLAMA_API_URL` and `OLLAMA_MODEL`
 3. Start:
    - `docker compose --env-file stack.env up -d`
@@ -27,7 +31,10 @@ AI-assisted classification and OCR rescue workflows for `paperless-ngx`.
 
 ## Portainer
 
-Repository compose path `stacks/paperless-ai-next/docker-compose.yml`; attach **`monitor`**; ensure external volume `paperless-ai-next_paperless_ai_next_data` exists. Run `./prepare-stack.sh` on the host before deploy.
+Repository compose path `stacks/paperless-ai-next/docker-compose.yml`; ensure
+**`document-services`**, **`ai-backend`**, and **`ingress-sensitive`** exist; ensure
+external volume `paperless-ai-next_paperless_ai_next_data` exists. Run
+`./prepare-stack.sh` on the host before deploy.
 
 ## Notes
 

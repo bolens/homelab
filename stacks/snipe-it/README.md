@@ -36,14 +36,14 @@ IT asset management (hardware, software licenses, accessories, consumables). Thi
 | ----------- | ---------------------------------------------------------------------------------------- |
 | **Access**  | Via Caddy only (no host port; reverse-proxy to `snipeit:80`)                            |
 | **Volumes** | `snipeit_storage` (uploads, storage), `snipeit_db` (MariaDB data)                        |
-| **Network** | `proxy-ingress` for Caddy; `mail-services` for SMTP; default network for MariaDB         |
+| **Network** | `ingress-sensitive` for Caddy; `mail-clients` for SMTP; default network for MariaDB         |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale and Snipe-IT settings |
 
 ### SMTP
 
 For outbound email (password resets, notifications), use the shared Postfix relay. In `stack.env`:
 
-- `MAIL_HOST=smtp-relay` (container name on `mail-services`)
+- `MAIL_HOST=smtp-relay` (container name on `mail-clients`)
 - `MAIL_PORT=587`
 - `MAIL_ENCRYPTION=tls`
 - `MAIL_USERNAME` / `MAIL_PASSWORD` — leave empty for the internal relay (no auth)

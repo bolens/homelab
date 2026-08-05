@@ -17,4 +17,4 @@ No host ports are exposed; Caddy proxies to `cryptpad:3000`.
 
 ## Portainer
 
-Create stack from `docker-compose.yml`, set environment from `stack.env`, and verify the external `monitor` network is present.
+Create stack from `docker-compose.yml`, set environment from `stack.env`, and verify the external `ingress-public` network is present.

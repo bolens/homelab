@@ -36,7 +36,7 @@ Threat modeling tool: create diagrams, document threats (STRIDE, etc.), and opti
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (reverse proxy to `threatdragon:3000`). No host ports. |
-| **Network** | `monitor` (external). |
+| **Network** | `ingress-admin` (external). |
 | **Image** | `owasp/threat-dragon:stable` (OWASP Docker Hub). |
 | **Env** | `.env` is mounted read-only; change values on host and restart container. |
 

@@ -14,13 +14,13 @@
 ## Access
 
 - **Public URL (example):** `https://jellystat.example.com` — replace with your real hostname in local Caddy config only.
-- **Internal:** `http://jellystat:3000` on the `monitor` network (e.g. from Caddy).
+- **Internal:** `http://jellystat:3000` on `ingress-admin` from Caddy.
 
 ## Jellyfin connection
 
 After the web UI loads, complete setup and add your Jellyfin server:
 
-- If the **Jellyfin** stack runs on the same Docker host and `monitor` network, you can use `http://jellyfin:8096` as the server URL from Jellystat (no host ports required).
+- If Jellyfin runs on the same host and `media-services`, use `http://jellyfin:8096` as the server URL.
 - If Jellystat must use the same URL as browsers (cookies/HTTPS), use your public Jellyfin URL instead.
 
 Optional env (see upstream README): `IS_EMBY_API`, `JF_USE_WEBSOCKETS`, `REJECT_SELF_SIGNED_CERTIFICATES`, MaxMind keys for IP geolocation.

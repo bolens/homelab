@@ -18,7 +18,7 @@ services:
       - stack.env
     networks:
       - torrents
-      - monitor
+      - ingress-admin
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
@@ -49,8 +49,8 @@ networks:
   torrents:
     name: torrents
     external: true
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

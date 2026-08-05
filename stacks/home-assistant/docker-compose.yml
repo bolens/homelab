@@ -7,7 +7,7 @@ services:
       - home_assistant_config:/config
       - /etc/localtime:/etc/localtime:ro
     networks:
-      - monitor
+      - ingress-public
     env_file:
       - stack.env
     healthcheck:
@@ -18,8 +18,8 @@ services:
       start_period: 90s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

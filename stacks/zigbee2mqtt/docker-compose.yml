@@ -9,7 +9,7 @@ services:
       # Adjust device path for your Zigbee adapter (e.g. /dev/ttyUSB0, /dev/ttyACM0)
       - /dev/ttyUSB0:/dev/ttyUSB0
     networks:
-      - monitor
+      - ingress-admin
     env_file:
       - stack.env
     healthcheck:
@@ -20,8 +20,8 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:

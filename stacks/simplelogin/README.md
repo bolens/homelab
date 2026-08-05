@@ -5,7 +5,7 @@ Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that 
 **Website:** https://simplelogin.io  
 **Docs:** https://simplelogin.io/docs  
 **GitHub:** https://github.com/simple-login/app  
-**Docker image:** https://hub.docker.com/r/simplelogin/app  
+**Source:** https://github.com/simple-login/app
 **Releases:** https://github.com/simple-login/app/releases  
 
 ## Quick start
@@ -19,22 +19,31 @@ Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that 
    ```
    Add the public key to DNS as `dkim._domainkey.${EMAIL_DOMAIN}` (see [SimpleLogin docs](https://github.com/simple-login/app#dkim)).
 
-2. **Environment**
+2. **Build the current image**
+   ```bash
+   git clone https://github.com/simple-login/app.git
+   docker build --provenance=false -t simplelogin/app:dbc45fc app
+   ```
+   The stack pins upstream commit `dbc45fc` (2026-07-31). The published
+   `simplelogin/app:latest` image is obsolete, so this stack deliberately uses
+   a local source build.
+
+3. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `URL` (e.g. `https://simplelogin.home` or `https://simplelogin.yourdomain.com`).
    - Set `EMAIL_DOMAIN`, `EMAIL_SERVERS_WITH_PRIORITY`, `SUPPORT_EMAIL`.
    - Set `FLASK_SECRET`: `openssl rand -hex 32`
    - Set `POSTGRES_PASSWORD`.
 
-3. **First-time: migration and init**
+4. **First-time: migration and init**
    ```bash
-   docker compose run --rm simplelogin flask db upgrade
+   docker compose run --rm simplelogin alembic upgrade head
    docker compose run --rm simplelogin python init_app.py
    ```
 
-4. **Deploy:** `docker compose --env-file stack.env up -d` (env vars must be available at compose parse time). In Portainer: add the stack and set env vars in **Environment**.
+5. **Deploy:** `docker compose --env-file stack.env up -d` (env vars must be available at compose parse time). In Portainer: add the stack and set env vars in **Environment**.
 
-5. **Access:** Open via Caddy (e.g. https://simplelogin.home). Create your first account. To grant premium (unlimited aliases):  
+6. **Access:** Open via Caddy (e.g. https://simplelogin.home). Create your first account. To grant premium (unlimited aliases):
    `docker exec -it simplelogin-db psql -U simplelogin simplelogin -c "UPDATE users SET lifetime = TRUE;"`
 
 ## Configuration
@@ -42,8 +51,8 @@ Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `simplelogin:7777`) |
-| **Network** | `simplelogin` internal; `proxy-ingress` for Caddy; `mail-services` for the app and mail workers |
-| **Image** | `simplelogin/app:latest` (pin a tag for production) |
+| **Network** | `simplelogin` internal; `ingress-sensitive` for Caddy; `mail-clients` for the app and mail workers |
+| **Image** | Local `simplelogin/app:dbc45fc`, built from upstream commit `dbc45fc` |
 | **Env** | `env_file: stack.env` + `environment:` with `${VAR}` substitution. Run with `--env-file stack.env` so vars are available at parse time. |
 | **Storage** | Named volumes: `simplelogin-data` (/sl), `simplelogin-upload`, `simplelogin-pg-data`. DKIM: `./data/dkim.key`, `./data/dkim.pub` (bind mounts) |
 
@@ -51,7 +60,7 @@ Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that 
 
 To send transactional and forwarding emails via the shared relay, set:
 
-- `POSTFIX_SERVER=smtp-relay` (container name on `mail-services`)
+- `POSTFIX_SERVER=smtp-relay` (container name on `mail-clients`)
 - `POSTFIX_PORT=587`
 
 Ensure the relay allows the `EMAIL_DOMAIN` / `SUPPORT_EMAIL` domain in `ALLOWED_SENDER_DOMAINS` (see [stacks/postfix/README.md](../postfix/README.md)).
@@ -88,7 +97,7 @@ simplelogin.home, simplelogin.local {
 }
 ```
 
-Ensure the web app is on `proxy-ingress` so Caddy can reach `simplelogin:7777`.
+Ensure the web app is on `ingress-sensitive` so Caddy can reach `simplelogin:7777`.
 
 ## Start
 

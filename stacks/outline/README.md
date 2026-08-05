@@ -36,7 +36,7 @@
 
 4. **Access**
    - Outline listens on port `3000` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-sensitive` network, e.g.:
      - `https://outline.yourdomain.com` → `outline:3000`
 
 ## Configuration
@@ -44,7 +44,7 @@
 | Item        | Details                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `outline:3000`)                             |
-| **Network** | `proxy-ingress` for Caddy + `mail-services` for SMTP + default internal network for DB/Redis |
+| **Network** | `ingress-sensitive` for Caddy + `mail-clients` for SMTP + default internal network for DB/Redis |
 | **Images**  | `outlinewiki/outline:latest`, `postgres:16-alpine`, `redis:alpine`      |
 | **Storage** | `outline_pg_data` (Postgres), `outline_data` (local app data/cache)     |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `outline.yourdomain.com` → `outline:3000` |
@@ -70,7 +70,7 @@ For invites, document notifications, and magic-link sign-in, add SMTP env vars t
 | `SMTP_FROM_EMAIL` | `outline@yourdomain.com` |
 | `SMTP_REPLY_EMAIL` | (optional) |
 
-Ensure both Outline and Postfix are on `mail-services`. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all emails appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+Ensure both Outline and Postfix are on `mail-clients`. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all emails appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Notes
 

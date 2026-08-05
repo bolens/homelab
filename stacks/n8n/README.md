@@ -10,22 +10,22 @@ Workflow automation: connect apps, APIs, and services with a visual editor. Self
 
 ## Quick start
 
-1. Ensure `proxy-ingress` and `mail-services` exist (or run `./prepare-stack.sh`).
+1. Ensure `ingress-public` and `mail-clients` exist (or run `./prepare-stack.sh`).
 2. Copy `stack.env.example` to `stack.env` and set **N8N_HOST** and **WEBHOOK_URL** to the URL where you’ll reach n8n behind Caddy (e.g. `https://n8n.home` or `https://n8n.yourdomain.com`). Both must match your Caddy hostname.
 3. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
 4. Open the URL above; create the owner account on first visit.
 
 ## Portainer
 
-The stack is Portainer-friendly with env defaults for TZ/locale, `proxy-ingress` for Caddy, and `mail-services` for SMTP. Set **N8N_HOST** and **WEBHOOK_URL** in the stack Environment (e.g. `https://n8n.yourdomain.com`).
+The stack is Portainer-friendly with env defaults for TZ/locale, `ingress-public` for Caddy, and `mail-clients` for SMTP. Set **N8N_HOST** and **WEBHOOK_URL** in the stack Environment (e.g. `https://n8n.yourdomain.com`).
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
-| **Ports** | None; access only via Caddy (`reverse_proxy n8n:5678` on `proxy-ingress`). |
+| **Ports** | None; access only via Caddy (`reverse_proxy n8n:5678` on `ingress-public`). |
 | **Volumes** | `n8n_data` → `/home/node/.n8n` (SQLite DB, encryption key, workflows). Back this up. |
-| **Network** | `proxy-ingress` for Caddy; `mail-services` for SMTP. |
+| **Network** | `ingress-public` for Caddy; `mail-clients` for SMTP. |
 | **Env** | **N8N_HOST** and **WEBHOOK_URL** required when behind Caddy. Optional: `N8N_ENCRYPTION_KEY` (e.g. `openssl rand -hex 32`) so credentials survive volume recreation. For TZ/locale and shared resources (e.g. SMTP relay), see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) and [ENV-VARS.md](../../documents/ENV-VARS.md). |
 
 ## Email (SMTP)

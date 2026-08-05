@@ -9,7 +9,7 @@ Self-hosted **CUPS** print server with a web admin UI, **IPP** sharing, and comm
 
 ## Quick start
 
-1. Run `./prepare-stack.sh` (creates `stack.env`, `caddy_snippet.conf`, ensures `monitor` network).
+1. Run `./prepare-stack.sh` (creates `stack.env`, `caddy_snippet.conf`, ensures `ingress-admin` network).
 2. Set `CUPSPASSWORD` (and optionally `CUPSADMIN`) in `stack.env`. Generate a password, for example:
 
    ```bash
@@ -30,7 +30,7 @@ Self-hosted **CUPS** print server with a web admin UI, **IPP** sharing, and comm
 | Item | Details |
 |------|---------|
 | **Port** | 631 (HTTP inside the container; proxied by Caddy) |
-| **Network** | `monitor` only — no published host ports |
+| **Network** | `ingress-admin` only — no published host ports |
 | **Image** | `anujdatar/cups:latest` |
 | **Data** | Docker volume `cups_config` → `/etc/cups` (queues, drivers, `cupsd.conf`) |
 | **Auth** | Web admin uses `CUPSADMIN` / `CUPSPASSWORD` from `stack.env` |
@@ -45,7 +45,7 @@ Self-hosted **CUPS** print server with a web admin UI, **IPP** sharing, and comm
 ## Portainer
 
 - **Stacks** → add stack from repo path `stacks/cups/docker-compose.yml`.
-- Ensure the stack attaches to external network **`monitor`** so Caddy can reach `cups:631`.
+- Ensure the stack attaches to external network **`ingress-admin`** so Caddy can reach `cups:631`.
 - Set `CUPSPASSWORD` (and optional `CUPSADMIN`) in the stack environment; do not publish `631` on the host if Caddy is the entrypoint.
 
 ## Backup

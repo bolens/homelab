@@ -30,7 +30,7 @@
 
 4. **Access**
    - Firefly III listens on port `8080` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-sensitive` network, e.g.:
      - `https://firefly.yourdomain.com` → `firefly-iii:8080`
 
 ## Configuration
@@ -38,7 +38,7 @@
 | Item        | Details                                                                      |
 | ----------- | ---------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `firefly-iii:8080`)                              |
-| **Network** | `proxy-ingress` (for Caddy) + default internal network for Postgres          |
+| **Network** | `ingress-sensitive` (for Caddy) + default internal network for Postgres          |
 | **Images**  | `fireflyiii/core:latest`, `postgres:16-alpine`                               |
 | **Storage** | `firefly_pg_data` (DB), `firefly_upload` (uploaded attachments/exports)      |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `firefly-iii.yourdomain.com` → `firefly-iii:8080` |

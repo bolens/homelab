@@ -7,5 +7,5 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_msg "verify ERSATZTV_MEDIA_PATH exists and is mounted before deployment; it is intentionally not created here."
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "ingress-public"
 prepare_stack_end

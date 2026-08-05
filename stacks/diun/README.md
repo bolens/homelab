@@ -38,10 +38,10 @@ ping, and version endpoints; mutating API requests are disabled.
   - `DIUN_NOTIF_MAIL_TO=you@yourdomain.com`
   - Leave `DIUN_NOTIF_MAIL_USERNAME` and `DIUN_NOTIF_MAIL_PASSWORD` empty for the relay (no auth).
   - For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all alerts appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
-- **ntfy (internal):** Use the webhook notifier pointed at ntfy on the shared `monitor` network:
+- **ntfy (internal):** Use the webhook notifier pointed at ntfy on the internal `telemetry` network:
   - `DIUN_NOTIF_WEBHOOK_ENDPOINT=http://ntfy:80/diun`
   - `DIUN_NOTIF_WEBHOOK_METHOD=POST`
-  - Both diun and ntfy share the `monitor` network — no Cloudflare auth required.
+  - Both DIUN and ntfy share `telemetry` — no Cloudflare auth required.
 - **Webhook / Slack / Gotify / etc.:** See [Diun config](https://crazymax.dev/diun/config/) and [notifiers](https://crazymax.dev/diun/config/notif/).
 
 ### Watch only selected containers

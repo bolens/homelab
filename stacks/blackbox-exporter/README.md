@@ -17,15 +17,15 @@ Prometheus Blackbox Exporter for probing endpoints over HTTP, TCP, and other pro
    docker compose up -d
    ```
 
-4. Point Prometheus at the exporter (e.g. target `blackbox-exporter:9115` on the `monitor` network) and use `module=` query params for probes.
+4. Point Prometheus at the exporter (e.g. target `blackbox-exporter:9115` on the `telemetry` network) and use `module=` query params for probes.
 
 ## Configuration
 
 | Item        | Details                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
-| **Access**  | Internal only; Prometheus scrapes `blackbox-exporter:9115` on `monitor` |
+| **Access**  | Internal only; Prometheus scrapes `blackbox-exporter:9115` on `telemetry` |
 | **Config**  | Copy `blackbox.yml.example` to `~/.config/blackbox-exporter/blackbox.yml`; override with `BLACKBOX_CONFIG_PATH` (e.g. in Portainer) |
-| **Network** | `monitor` — shared with Caddy, Prometheus, Grafana, Uptime Kuma        |
+| **Network** | `telemetry` — shared with Caddy, Prometheus, Grafana, Uptime Kuma        |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.     |
 
 ### Example Prometheus scrape config

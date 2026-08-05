@@ -23,7 +23,7 @@ Self-hosted open-source scheduling platform. Lets users share booking links, con
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (reverse proxy to `calcom:3000`) |
-| **Network** | `proxy-ingress` for Caddy; `mail-services` for Mailpit; private default network for DB/Redis |
+| **Network** | `ingress-public` for Caddy; `mail-clients` for Mailpit; private default network for DB/Redis |
 | **Database** | PostgreSQL 16 (`calcom-db`) – data in `calcom_calcom_pg_data` volume |
 | **Cache** | Redis 7 (`calcom-redis`) – data in `calcom_calcom_redis_data` volume |
 | **Image** | `calcom/cal.com:latest` – updated by Watchtower |
@@ -43,7 +43,7 @@ Self-hosted open-source scheduling platform. Lets users share booking links, con
 
 - **PostgreSQL 16** – bundled as `calcom-db`
 - **Redis 7** – bundled as `calcom-redis`
-- **Caddy** – reverse proxy (external `proxy-ingress` network)
+- **Caddy** – reverse proxy (external `ingress-public` network)
 
 ## Health / monitoring
 

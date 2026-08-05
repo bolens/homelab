@@ -12,5 +12,6 @@ prepare_stack_copy_env
 
 prepare_stack_msg "optional docker-compose.override.example is only for a locally built official AIL 6.x image; copy it manually after reading the README."
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "security-research"
+prepare_stack_ensure_docker_network "ingress-admin"
 prepare_stack_end

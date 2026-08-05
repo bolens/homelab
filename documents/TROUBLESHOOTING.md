@@ -57,12 +57,12 @@ The web client (browser) calls the Shlink API at the **public URL** you configur
 
 **Check:**
 
-1. **Shlink container** is running and on the **monitor** network so Caddy can reach `shlink:8080`.
+1. **Shlink container** is running and on **ingress-public** so Caddy can reach `shlink:8080`.
 2. **Shlink’s public URL** (e.g. `PUBLIC_URL` or `BASE_URL` in the Shlink stack env) is exactly your public base URL (e.g. `https://short.yourdomain.com`, no trailing slash). The API and the UI must use this base URL.
 3. **Web client server URL:** When adding the server in the Shlink web UI, use that same URL (e.g. `https://short.yourdomain.com`). Not an internal hostname like `http://shlink:8080`.
 4. **Caddy:** The block for your Shlink hostname must `reverse_proxy shlink:8080` and send `header_up X-Forwarded-Proto https` if the app checks for HTTPS.
 
-If the stack is not in this repo, ensure its env has the public base URL set and the container is on the same Docker network as Caddy (`monitor`).
+If the stack is not in this repo, ensure its env has the public base URL set and attach its HTTP service to the appropriate Caddy zone (`ingress-public`, `ingress-admin`, or `ingress-sensitive`).
 
 **Web client “Edit server” form:** Set **Name** (e.g. Shlink), **URL** to your public base URL (e.g. `https://short.yourdomain.com`), and **API key** from your Shlink server (generate via the server CLI if needed). Leave **Forward credentials to this server on every request** unchecked unless you use Shlink v4.5.0+ and need cookies/TLS client certs or auth headers sent with every request; enabling it can make requests fail on Shlink older than v4.5.0.
 
@@ -129,14 +129,16 @@ docker ps -a --format 'table {{.Names}}\t{{.Status}}' | grep -E "Exited|Restarti
 
 Then restart the relevant stack from `stacks/<name>` with `docker compose up -d`.
 
-## Docker Compose: external `monitor` network
+## Docker Compose: external ingress networks
 
-Stacks that attach to Caddy declare an **external** network named `monitor` in `docker-compose.yml`. Compose will fail on `up` with an error like **network monitor declared as external, but could not be found** if that network does not exist.
+Stacks that attach to Caddy declare one external trust-zone network: `ingress-public`, `ingress-admin`, or `ingress-sensitive`. Compose fails with “network … declared as external, but could not be found” when the selected network has not been created.
 
 **Fix (once per host):**
 
 ```bash
-docker network create monitor
+docker network create ingress-public
+docker network create ingress-admin
+docker network create ingress-sensitive
 ```
 
 Many stacks’ `./prepare-stack.sh` call a shared helper that creates this network when Docker is available (see `prepare_stack_ensure_docker_network` in `scripts/prepare-stack-lib.sh`). Homelab context: [SHARED-RESOURCES.md](SHARED-RESOURCES.md).

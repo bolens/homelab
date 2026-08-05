@@ -26,7 +26,7 @@ Open-source media server for movies, TV shows, and music. Jellyfin serves your m
      - `/data/movies` for movies.
      - `/data/music` for music.
 
-The stack keeps the HTTP UI internal (no host port binding) and relies on Caddy on the shared `monitor` network for access.
+The stack keeps the HTTP UI internal and uses `ingress-public` for Caddy plus `media-services` for trusted media integrations.
 An idempotent startup hook ensures the named `/cache` volume remains writable
 by the configured `PUID`/`PGID`.
 
@@ -35,7 +35,7 @@ by the configured `PUID`/`PGID`.
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host ports; reverse-proxy to `jellyfin:8096`)       |
-| **Network**| `monitor` plus default                                                  |
+| **Network**| `ingress-public` plus `media-services`                                  |
 | **Image**  | `lscr.io/linuxserver/jellyfin:latest`                                  |
 | **Env**    | `TZ`, `PUID`, `PGID`, `JELLYFIN_TV_PATH`, `JELLYFIN_MOVIES_PATH`, `JELLYFIN_MUSIC_PATH` |
 | **Storage**| `jellyfin_config` → `/config`, `jellyfin_cache` → `/cache`, host media paths → `/data/{tv,movies,music}` |

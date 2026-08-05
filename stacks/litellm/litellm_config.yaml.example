@@ -1,6 +1,6 @@
 # LiteLLM proxy — https://docs.litellm.ai/docs/proxy/configs
 # prepare-stack.sh seeds ~/.config/litellm/config.yaml from this file when missing.
-# Shared Ollama on Docker network `monitor`: use http://ollama:11434
+# Shared Ollama on Docker network `ingress-public`: use http://ollama:11434
 # Cloud keys: set in stack.env and reference with api_key: os.environ/OPENAI_API_KEY
 #
 # Optional: set input_cost_per_token / output_cost_per_token under litellm_params so

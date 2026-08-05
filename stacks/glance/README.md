@@ -1,6 +1,6 @@
 # Glance – self-hosted dashboard
 
-[Glance](https://github.com/glanceapp/glance) is a lightweight dashboard for RSS, weather, markets, Docker status, custom widgets, and more. Configuration is YAML (`config/glance.yml`). This stack runs Glance behind Caddy on the shared `monitor` network; there are no host port bindings.
+[Glance](https://github.com/glanceapp/glance) is a lightweight dashboard for RSS, weather, markets, Docker status, custom widgets, and more. Configuration is YAML (`config/glance.yml`). This stack runs Glance behind Caddy on the shared `ingress-public` network; there are no host port bindings.
 
 **Website / repo:** https://github.com/glanceapp/glance  
 **Configuration docs:** https://github.com/glanceapp/glance/blob/main/docs/configuration.md  
@@ -24,7 +24,7 @@
 | Item        | Details |
 | ----------- | ------- |
 | **Access**  | Via Caddy → `glance:8080` |
-| **Network** | `monitor` (external) |
+| **Network** | `ingress-public` (external) |
 | **Image**   | `glanceapp/glance:latest` |
 | **Config**  | `./config` → `/app/config` (`glance.yml` required; entrypoint uses `/app/config/glance.yml`) |
 | **Assets**  | `./assets` → `/app/assets` (e.g. `user.css` for custom CSS) |

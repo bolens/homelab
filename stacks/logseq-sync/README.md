@@ -34,8 +34,8 @@ This stack is a thin wrapper around the community [logseq-sync](https://github.c
 
 | Item        | Details                                                      |
 | ----------- | ------------------------------------------------------------ |
-| **Access**  | Typically via Caddy on `monitor` (e.g. `logseq-sync.yourdomain.com`) |
-| **Network** | `monitor`                                                    |
+| **Access**  | Typically via Caddy on `ingress-public` (e.g. `logseq-sync.yourdomain.com`) |
+| **Network** | `ingress-public`                                                    |
 | **Storage** | `logseq_sync_data` (backend data, depending on upstream impl) |
 
 Because this backend is community-driven and evolving, keep a close eye on its documentation and issues for breaking changes.

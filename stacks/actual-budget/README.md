@@ -20,7 +20,7 @@
 
 3. **Access**
    - Server listens on port `5006` inside the container.
-   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
+   - Put it behind Caddy on the `ingress-sensitive` network, e.g.:
      - `https://actual-budget.yourdomain.com` → `actual-budget:5006`
    - In the Actual desktop/mobile app, set the server URL to your Caddy URL (e.g. `https://actual-budget.yourdomain.com`).
 
@@ -29,7 +29,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `actual-budget:5006`)                            |
-| **Network** | `proxy-ingress` (dedicated Caddy-to-service ingress)                        |
+| **Network** | `ingress-sensitive` (dedicated Caddy-to-service ingress)                        |
 | **Images**  | `actualbudget/actual-server:latest`                                         |
 | **Storage** | `actual_budget_data` (sync data)                                            |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `actual-budget.yourdomain.com` → `actual-budget:5006` |

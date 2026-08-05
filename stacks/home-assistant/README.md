@@ -24,7 +24,7 @@ Home automation hub for integrating lights, sensors, switches, and other devices
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Via Caddy only (no host port; reverse-proxy to `home-assistant:8123`)  |
 | **Volume**  | `home_assistant_config` (YAML config, automations, history, add-ons)   |
-| **Network** | `monitor` — shared with Caddy and related automation stacks            |
+| **Network** | `ingress-public` — shared with Caddy and related automation stacks            |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.     |
 
 ### Hardware and integrations

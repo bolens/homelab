@@ -34,7 +34,7 @@ Indexer manager and proxy for Usenet and torrents. Prowlarr manages indexers cen
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `prowlarr:9696`)        |
-| **Networks** | `monitor`, `usenet`, `torrents`, plus default                         |
+| **Networks** | `ingress-admin`, `usenet`, `torrents`, plus default                         |
 | **Image**  | `lscr.io/linuxserver/prowlarr:latest`                                  |
 | **Env**    | `TZ`, `PUID`, `PGID`                                                   |
 | **Storage**| `prowlarr_config` → `/config`                                          |

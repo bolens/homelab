@@ -28,9 +28,9 @@ This stack has two containers:
 |------|---------|
 | **Config file** | `~/.config/grafana-alloy/config.alloy` (host path, mounted read-only) |
 | **Config path override** | Set `ALLOY_CONFIG_PATH` in `stack.env` to an absolute path (required for Portainer) |
-| **Loki endpoint** | `http://loki:3100/loki/api/v1/push` (on the `monitor` network) |
+| **Loki endpoint** | `http://loki:3100/loki/api/v1/push` (on the `telemetry` network) |
 | **Prometheus scrape** | Alloy exposes metrics at `alloy:12345/metrics`; Prometheus scrapes the `alloy` job |
-| **Network** | `monitor` — shared with Loki, Prometheus, Caddy |
+| **Network** | `telemetry` — shared with Loki, Prometheus, Caddy |
 | **Docker socket** | Mounted read-only at `/var/run/docker.sock` for container discovery |
 
 ## Log routing
@@ -77,4 +77,4 @@ for c in unhealthy: print(c['id'], c.get('health',{}).get('message',''))
 "
 ```
 
-All 10 components should be healthy. If a `loki.write` component is unhealthy, check Loki is up and reachable on the `monitor` network.
+All 10 components should be healthy. If a `loki.write` component is unhealthy, check Loki is up and reachable on the `telemetry` network.

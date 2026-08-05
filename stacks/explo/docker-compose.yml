@@ -18,7 +18,8 @@ services:
       # Source path for completed slskd downloads (to migrate into /data).
       - "${SLSKD_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/soulseek}:/slskd"
     networks:
-      - monitor
+      - default
+      - media-services
     logging:
       driver: local
       options:
@@ -26,6 +27,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  default:
+    driver: bridge
+  media-services:
+    name: media-services
     external: true

@@ -9,5 +9,5 @@ prepare_stack_sync_dotenv_from_stack_env
 prepare_stack_copy_caddy
 prepare_stack_msg "GitLab may take ten minutes or more to become healthy on first boot."
 prepare_stack_msg "verify GITLAB_SSH_PORT is unused and matches the public clone URL configuration."
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "ingress-admin"
 prepare_stack_end

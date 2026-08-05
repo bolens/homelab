@@ -23,7 +23,8 @@ services:
       - ${WHISPARR_CONFIG_PATH:?Set WHISPARR_CONFIG_PATH in stack.env}:/config
       - ${WHISPARR_MEDIA_PATH:?Set WHISPARR_MEDIA_PATH in stack.env}:/data
     networks:
-      - monitor
+      - media-automation
+      - ingress-admin
       - usenet
       - torrents
     healthcheck:
@@ -34,8 +35,11 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  media-automation:
+    name: media-automation
+    external: true
+  ingress-admin:
+    name: ingress-admin
     external: true
   usenet:
     name: usenet

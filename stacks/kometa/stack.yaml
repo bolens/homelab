@@ -12,7 +12,7 @@ monitoring:
   blackbox_exporter: false
   grafana_dashboard: false
 shared_resources:
-- monitor
+- media-services
 type: service
 category: media
 exposure:

@@ -10,9 +10,9 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - minio_data:/data
-    # No host ports; Caddy uses proxy-ingress and Restic uses backup.
+    # No host ports; Caddy uses ingress-admin and Restic uses backup.
     networks:
-      - proxy-ingress
+      - ingress-admin
       - backup
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
@@ -25,8 +25,8 @@ networks:
   backup:
     name: backup
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
 
 volumes:
