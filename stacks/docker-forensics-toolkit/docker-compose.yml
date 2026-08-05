@@ -6,6 +6,10 @@ name: docker-forensics-toolkit
 
 services:
   docker-forensics-toolkit:
+    build:
+      context: .
+      args:
+        TOOLKIT_COMMIT: ${TOOLKIT_COMMIT:-f1fbb43e74ebf3b78233049e47a8a22637deeff8}
     image: ${DOCKER_FORENSICS_TOOLKIT_IMAGE:-harbor.yourdomain.com/homelab/docker-forensics-toolkit:latest}
     container_name: docker-forensics-toolkit
     restart: "no"

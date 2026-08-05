@@ -4,6 +4,10 @@ name: blackbird
 
 services:
   blackbird:
+    build:
+      context: .
+      args:
+        BLACKBIRD_COMMIT: ${BLACKBIRD_COMMIT:-b45505080ef51bb3ef52dc29879ee6bef31e5b94}
     image: ${BLACKBIRD_IMAGE:-harbor.yourdomain.com/homelab/blackbird:latest}
     container_name: blackbird
     restart: "no"

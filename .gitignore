@@ -156,3 +156,6 @@ stacks/ail-framework/ail-framework-docker/
 
 # Asking-NG is maintained as a separate nested repository.
 stacks/asking-ng/
+# The Clark image build context intentionally includes its generated hash lock.
+!stacks/clark-browser/build/
+!stacks/clark-browser/build/requirements.txt

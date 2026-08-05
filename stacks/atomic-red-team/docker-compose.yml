@@ -2,6 +2,8 @@ services:
   atomic-red-team:
     build:
       context: .
+      args:
+        ATOMIC_RED_TEAM_COMMIT: ${ATOMIC_RED_TEAM_COMMIT:-1ba1dd8d9ce6f74700f7aec2e60de5632f667f03}
     image: homelab/atomic-red-team:local
     profiles: ["tools"]
     stdin_open: true

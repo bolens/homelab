@@ -3,26 +3,43 @@
 # No host ports; run one-off: docker compose run --rm privotron --profile myprofile
 # https://github.com/kevinl95/Privotron
 
-ARG PRIVOTRON_VERSION=main
-FROM python:3.14-bookworm
+# syntax=docker/dockerfile:1
+FROM python:3.13-slim-bookworm@sha256:67a1e1f215ccda113cfc024e8639049257e88f273898f595b61476d128d387e8 AS builder
 
 WORKDIR /app
 
-# Install Poetry, clone app, install Python deps
 ENV POETRY_VERSION=1.8.4
-RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}" \
-    && apt-get update && apt-get install -y --no-install-recommends git \
-    && BRANCH="${PRIVOTRON_VERSION:-main}" && git clone --depth 1 "https://github.com/kevinl95/Privotron.git" . -b "${BRANCH}" \
-    && poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-dev \
-    && apt-get purge -y git && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright Chromium and system deps (uses app's playwright from poetry)
-RUN python -m playwright install chromium \
-    && python -m playwright install-deps chromium
+# renovate: datasource=git-refs packageName=https://github.com/kevinl95/Privotron.git currentValue=main
+ARG PRIVOTRON_VERSION=1609be98b03f4b3dce3a5a150c01e8abf12c9ab6
+RUN git clone --filter=blob:none https://github.com/kevinl95/Privotron.git . \
+    && git checkout --detach "${PRIVOTRON_VERSION}" \
+    && test "$(git rev-parse HEAD)" = "$(git rev-parse "${PRIVOTRON_VERSION}^{commit}")"
 
-# Run headless in container (upstream defaults to headless=False)
+COPY requirements.txt /tmp/requirements.txt
+RUN python -m venv /opt/venv
+ENV PATH=/opt/venv/bin:$PATH
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --require-hashes -r /tmp/requirements.txt \
+    && poetry export --only main --without-hashes --output /tmp/requirements.txt \
+    && pip install -r /tmp/requirements.txt
+
 RUN sed -i 's/headless=False/headless=True/g' main.py
+
+FROM python:3.13-slim-bookworm@sha256:67a1e1f215ccda113cfc024e8639049257e88f273898f595b61476d128d387e8
+
+ENV PATH=/opt/venv/bin:$PATH
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /app /app
+
+# Keep browser binaries and their OS libraries in stable, independently cached layers.
+RUN python -m playwright install-deps chromium
+RUN python -m playwright install chromium \
+    && chmod -R a+rX /ms-playwright
 
 WORKDIR /app
 ENTRYPOINT ["python", "main.py"]

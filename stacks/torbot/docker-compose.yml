@@ -23,7 +23,11 @@ services:
       start_period: 15s
 
   torbot:
-    # No official image; set TORBOT_IMAGE to your registry image (build from upstream once if needed)
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        TORBOT_COMMIT: ${TORBOT_COMMIT:-9a829a593cd2a5b8e01487962e29cb47d26e001b}
     image: ${TORBOT_IMAGE:-torbot:latest}
     container_name: torbot
     restart: unless-stopped
