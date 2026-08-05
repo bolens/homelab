@@ -35,7 +35,7 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: litellm_pgdata
+- name: litellm_pg18data
   role: app_data
   critical: true
 auth:

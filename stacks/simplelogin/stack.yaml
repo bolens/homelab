@@ -41,7 +41,7 @@ volumes:
 - name: simplelogin-upload
   role: app_data
   critical: true
-- name: simplelogin-pg-data
+- name: simplelogin-pg18-data
   role: app_data
   critical: true
 auth:

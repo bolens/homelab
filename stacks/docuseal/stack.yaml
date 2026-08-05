@@ -35,7 +35,7 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: docuseal_pg_data
+- name: docuseal_pg18_data
   role: app_data
   critical: true
 - name: docuseal_data

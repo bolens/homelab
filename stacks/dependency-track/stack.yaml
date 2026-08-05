@@ -38,7 +38,7 @@ volumes:
 - name: dtrack-data
   role: app_data
   critical: true
-- name: dtrack-pg-data
+- name: dtrack-pg18-data
   role: app_data
   critical: true
 auth:

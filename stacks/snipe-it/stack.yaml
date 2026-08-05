@@ -38,7 +38,7 @@ volumes:
 - name: snipeit_storage
   role: app_data
   critical: true
-- name: snipeit_db
+- name: snipeit_db12
   role: app_data
   critical: true
 auth:

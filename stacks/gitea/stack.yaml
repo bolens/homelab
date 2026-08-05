@@ -35,7 +35,7 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: gitea_pg_data
+- name: gitea_pg18_data
   role: app_data
   critical: true
 - name: gitea_data

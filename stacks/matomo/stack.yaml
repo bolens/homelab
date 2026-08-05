@@ -35,7 +35,7 @@ backup:
   priority: medium
   schedule_hint: weekly
 volumes:
-- name: matomo_matomo_db
+- name: matomo_matomo_db12
   role: app_data
   critical: true
 - name: matomo_matomo_html

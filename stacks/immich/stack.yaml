@@ -42,7 +42,7 @@ volumes:
 - name: model-cache
   role: app_data
   critical: true
-- name: pgdata
+- name: pg16data
   role: app_data
   critical: true
 - name: redisdata

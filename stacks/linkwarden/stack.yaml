@@ -35,13 +35,13 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: lw_pgdata
+- name: lw_pg18data
   role: app_data
   critical: true
 - name: lw_data
   role: app_data
   critical: true
-- name: lw_meili_data
+- name: lw_meili_151_data
   role: app_data
   critical: true
 auth:

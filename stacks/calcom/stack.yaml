@@ -36,7 +36,7 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: calcom_calcom_pg_data
+- name: calcom_calcom_pg18_data
   role: database
   critical: true
   external: true

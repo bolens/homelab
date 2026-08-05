@@ -35,7 +35,7 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: joplin_pg_data
+- name: joplin_pg18_data
   role: app_data
   critical: true
 auth:
