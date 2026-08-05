@@ -1,0 +1,97 @@
+FROM ubuntu:22.04@sha256:3b06811b2afd352be909dd088a004166d665dc76d38b13eada33522a9d915c6f AS builder
+
+ARG tz_buildtime=Europe/Rome
+ENV TZ=$tz_buildtime
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo "$TZ" > /etc/timezone
+
+RUN apt-get clean \
+    && apt-get update -y \
+    && apt-get upgrade -y \
+    && apt-get dist-upgrade -y \
+    && apt-get autoremove -y
+
+RUN apt-get install -y \
+    git python3-dev build-essential libffi-dev libssl-dev libfuzzy-dev wget sudo
+
+RUN useradd -m docker \
+    && echo "docker:docker" | chpasswd \
+    && adduser docker sudo \
+    && echo "root ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+RUN mkdir /opt/AIL
+COPY . /opt/AIL
+WORKDIR /opt/AIL
+
+# Upstream's installer performs full-history clones even though the image only
+# needs one checkout. Rewrite those clone commands in the builder copy.
+RUN sed -i \
+    -e 's|git submodule update --init --recursive|git submodule update --init --recursive --depth 1|' \
+    -e 's|git clone https://github.com/redis/redis.git|git clone --depth 1 --branch 5.0 https://github.com/redis/redis.git|' \
+    -e 's|git clone https://github.com/trendmicro/tlsh.git|git clone --depth 1 https://github.com/trendmicro/tlsh.git|' \
+    -e 's|git clone https://github.com/kazu-yamamoto/pgpdump.git|git clone --depth 1 https://github.com/kazu-yamamoto/pgpdump.git|' \
+    -e 's|git clone https://github.com/apache/incubator-kvrocks.git kvrocks|git clone --depth 1 https://github.com/apache/incubator-kvrocks.git kvrocks|' \
+    -e 's|git fetch --depth=500 --tags --prune|git fetch --depth=1 --tags --prune|' \
+    installing_deps.sh
+
+RUN sed -i \
+    's|git clone https://github.com/cvandeplas/pystemon.git /opt/pystemon|git clone --depth 1 https://github.com/cvandeplas/pystemon.git /opt/pystemon|' \
+    other_installers/docker/pystemon/install.sh
+
+RUN ./installing_deps.sh
+
+RUN ./other_installers/docker/pystemon/install.sh \
+    && pip3 install --no-cache-dir -r /opt/pystemon/requirements.txt \
+    # qreader pulls the GUI OpenCV wheel while EasyOCR pulls the headless wheel.
+    # Retain one working cv2 installation without the duplicate GUI libraries.
+    && /opt/AIL/AILENV/bin/pip uninstall -y opencv-python coverage nose2 \
+    && /opt/AIL/AILENV/bin/pip install --no-cache-dir --force-reinstall --no-deps \
+        --require-hashes \
+        "opencv-python-headless==4.12.0.88 \
+        --hash=sha256:236c8df54a90f4d02076e6f9c1cc763d794542e886c576a6fee46ec8ff75a7a9"
+
+COPY other_installers/docker/docker_start.sh /opt/AIL/docker_start.sh
+
+# Keep the Kvrocks executable, but discard its multi-gigabyte CMake dependency
+# tree. Clear download/build caches before the filesystem is copied into the
+# runtime stage.
+RUN strip --strip-unneeded /opt/AIL/kvrocks/build/kvrocks \
+    && find /opt/AIL/kvrocks/build -mindepth 1 -maxdepth 1 \
+        ! -name kvrocks -exec rm -rf {} + \
+    && find /opt/AIL -type d -name .git -prune -exec rm -rf {} + \
+    && find /opt/AIL -type d -name __pycache__ -prune -exec rm -rf {} + \
+    && find /opt/AIL -type f -name '*.pyc' -delete \
+    # Installed binaries/modules are sufficient at runtime; discard their
+    # source, tests, compiler output, and the large AIL developer documentation.
+    && rm -rf /opt/AIL/tlsh /opt/AIL/pgpdump /opt/AIL/doc \
+        /opt/AIL/redis/deps /opt/AIL/redis/tests \
+    && mkdir -p /opt/AIL/doc \
+    && find /opt/AIL/redis/src -type f ! -perm /111 -delete \
+    && strip --strip-unneeded \
+        /opt/AIL/redis/src/redis-server \
+        /opt/AIL/redis/src/redis-cli \
+        /opt/AIL/redis/src/redis-benchmark \
+    && apt-get purge -y \
+        build-essential git python3-dev libffi-dev libssl-dev \
+        python3-opencv python3-numpy \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /root/.cache /tmp/* /var/tmp/* /var/lib/apt/lists/*
+
+# Squash the builder filesystem into a clean runtime layer. This prevents files
+# deleted above from remaining in lower image layers.
+FROM scratch
+COPY --from=builder / /
+
+ENV LANG=C.UTF-8 \
+    AIL_HOME=/opt/AIL \
+    AIL_BIN=/opt/AIL/bin \
+    AIL_FLASK=/opt/AIL/var/www \
+    AIL_REDIS=/opt/AIL/redis/src \
+    AIL_ARDB=/opt/AIL/ardb/src \
+    AIL_VENV=/opt/AIL/AILENV \
+    PATH=/opt/AIL/AILENV/bin:/opt/AIL:/opt/AIL/redis/src:/opt/AIL/ardb/src:/opt/AIL/bin:/opt/AIL/var/www:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+WORKDIR /opt/AIL
+ENTRYPOINT ["/bin/bash", "/opt/AIL/docker_start.sh"]

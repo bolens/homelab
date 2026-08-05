@@ -16,8 +16,10 @@ WORKDIR /app
 
 # renovate: datasource=git-refs packageName=https://github.com/docker-forensics-toolkit/toolkit.git currentValue=master
 ARG TOOLKIT_COMMIT=f1fbb43e74ebf3b78233049e47a8a22637deeff8
-RUN git clone --filter=blob:none https://github.com/docker-forensics-toolkit/toolkit.git . \
-    && git checkout --detach "${TOOLKIT_COMMIT}" \
+RUN git init . \
+    && git remote add origin https://github.com/docker-forensics-toolkit/toolkit.git \
+    && git fetch --depth 1 origin "${TOOLKIT_COMMIT}" \
+    && git checkout --detach FETCH_HEAD \
     && test "$(git rev-parse HEAD)" = "${TOOLKIT_COMMIT}"
 
 COPY requirements.txt /tmp/requirements.txt
@@ -25,7 +27,8 @@ RUN python -m venv /opt/venv
 ENV PATH=/opt/venv/bin:$PATH
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --require-hashes -r /tmp/requirements.txt \
-    && pipenv install --deploy --system
+    && pipenv install --deploy --system \
+    && rm -rf /app/.git
 
 # --- Runtime stage ---
 FROM python:3.14-slim@sha256:7bec7ddcddeff7975d6ba9b4be7dd6f6b2f55e7491539145e2978f7f97ce9144
