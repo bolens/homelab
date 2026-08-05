@@ -31,9 +31,13 @@
 | **Access**  | Via Caddy (reverse-proxy to `homarr:7575`)                                   |
 | **Network** | `monitor` (for Caddy) + default                                             |
 | **Images**  | `ghcr.io/ajnart/homarr:latest`                                               |
-| **Storage** | `homarr_config` (configs), `homarr_data`; Docker socket for optional integrations |
+| **Storage** | `homarr_appdata`; Docker integration uses a scoped private proxy |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `homarr.yourdomain.com` → `homarr:7575` |
 
 ## Portainer
 
 Add stack from this directory; ensure `stack.env` exists. No host ports; use Caddy to expose the service.
+
+The Docker widget connects to `homarr-docker-socket-proxy`. Container
+start/stop/restart operations remain enabled, while container creation,
+deletion, exec, volume, secret, and host-management APIs remain blocked.

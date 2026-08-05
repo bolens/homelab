@@ -1,5 +1,5 @@
 services:
-  docker-socket-proxy:
+  alloy-docker-socket-proxy:
     image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
     container_name: alloy-docker-socket-proxy
     restart: unless-stopped
@@ -50,7 +50,7 @@ services:
       - alloy_data:/var/lib/alloy
       - ${ALLOY_CONFIG_PATH}:/etc/alloy/config.alloy:ro
     depends_on:
-      docker-socket-proxy:
+      alloy-docker-socket-proxy:
         condition: service_healthy
     networks:
       - monitor

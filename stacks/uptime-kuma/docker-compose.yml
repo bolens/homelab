@@ -1,16 +1,49 @@
 services:
+  uptime-kuma-docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
+    container_name: uptime-kuma-docker-socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      INFO: "1"
+      PING: "1"
+      VERSION: "1"
+      POST: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-api
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   uptime-kuma:
     image: louislam/uptime-kuma:1
     container_name: uptime-kuma
     restart: unless-stopped
-    # No host port: access via Caddy (kuma.home / status.yourdomain.com on monitor network)
+    # No host port: access via Caddy on proxy-ingress.
     volumes:
       - uptime_kuma_data:/app/data
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitor
+      - proxy-ingress
+      - docker-api
+      - mail-services
+    depends_on:
+      uptime-kuma-docker-socket-proxy:
+        condition: service_healthy
     # Optional: run as specific user (Uptime Kuma defaults to node in image)
     # user: "1000:1000"
     env_file:
@@ -23,8 +56,13 @@ services:
       start_period: 60s
 
 networks:
-  monitor:
-    name: monitor
+  docker-api:
+    internal: true
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

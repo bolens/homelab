@@ -53,7 +53,9 @@ This stack runs the **CrowdSec Security Engine** in a container with persistent 
 | **Storage** | Named volumes: `crowdsec-config` for `/etc/crowdsec` (hub, parsers, scenarios, profiles) and `crowdsec-data` for `/var/lib/crowdsec/data`. The data volume is **required** for CrowdSec 1.7+ to start. |
 | **Logs**   | This stack does **not** hardcode any log mounts. You decide which logs to feed to CrowdSec (Docker containers, Caddy logs, system logs, etc.) and configure acquisitions accordingly. |
 
-The compose file also mounts `/var/run/docker.sock` read-only into the container so you can use the **Docker data source** if desired. You still need to configure acquisitions for Docker in CrowdSec (`acquis.yaml` or `cscli`), as described in the official docs.
+The stack uses `crowdsec-docker-socket-proxy` on a private internal network for
+the **Docker data source**. CrowdSec does not receive the Docker socket itself.
+Mutating API requests are blocked.
 
 ## Config file (acquis)
 
@@ -134,4 +136,3 @@ Stacks → Add stack → **Repository** → Compose path `stacks/crowdsec/docker
 - CrowdSec product overview: https://www.crowdsec.net/  
 - CrowdSec Docker install docs: https://docs.crowdsec.net/u/getting_started/installation/docker/  
   - Docker data source docs: https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker/
-

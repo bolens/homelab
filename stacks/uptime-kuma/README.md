@@ -11,7 +11,7 @@ Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and 
 ## Quick start
 
 1. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
-2. Open via Caddy (e.g. https://kuma.home or https://status.yourdomain.com) and create the admin account. No host port is exposed; the stack attaches to the `monitor` network for Caddy to reverse-proxy to `uptime-kuma:3001`.
+2. Open via Caddy (e.g. https://kuma.home or https://status.yourdomain.com) and create the admin account. No host port is exposed; Caddy reaches `uptime-kuma:3001` through `proxy-ingress`.
 
 ## Configuration
 
@@ -19,40 +19,38 @@ Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and 
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `uptime-kuma:3001`) |
 | **Volume** | `uptime_kuma_data` (persistent data) |
-| **Network** | `monitor` — shared with Caddy for internal checks |
+| **Network** | `proxy-ingress` for Caddy; `mail-services` for SMTP; private `docker-api` for container metadata |
 | **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. |
+
+Docker container monitors connect to
+`tcp://uptime-kuma-docker-socket-proxy:2375` over a private internal network.
+The proxy permits container inspection but blocks Docker API mutations.
 
 ### Email notifications
 
-To send downtime alerts via email, add an **Email** notification in Uptime Kuma (Settings → Notifications). Use the shared **postfix** SMTP relay: host `smtp-relay`, port `587`, STARTTLS. No homelab-user/password needed when both stacks are on the `monitor` network. For **internal-only** (no external delivery), deploy the **mailpit** stack and set Postfix `RELAYHOST=mailpit:1025`; all alerts will appear in the Mailpit web UI. See [stacks/postfix/README.md](../postfix/README.md) and [stacks/mailpit/README.md](../mailpit/README.md).
+To send downtime alerts via email, add an **Email** notification in Uptime Kuma (Settings → Notifications). Use the shared **postfix** SMTP relay: host `smtp-relay`, port `587`, STARTTLS over `mail-services`. For **internal-only** (no external delivery), deploy the **mailpit** stack and set Postfix `RELAYHOST=mailpit:1025`; all alerts will appear in the Mailpit web UI. See [stacks/postfix/README.md](../postfix/README.md) and [stacks/mailpit/README.md](../mailpit/README.md).
 
 ### ntfy push notifications
 
 Uptime Kuma has native ntfy support. To enable:
 
 1. Settings → Notifications → Add Notification → **ntfy**
-2. ntfy Server URL: `http://ntfy:80` (internal, both on `monitor` network)
+2. ntfy Server URL: use the public HTTPS ntfy endpoint.
 3. Topic: `uptime-kuma` (or any topic you subscribe to in the ntfy app)
 4. Priority: High for down alerts, default for recovery
 5. Save and test — you should receive a push notification immediately.
 
 The ntfy stack is at `stacks/ntfy`; the public URL is `https://ntfy.example.com`.
 
-**Monitoring targets:**
-
-- **Containers on `monitor` network (Caddy, self):** Use service names. Examples: Caddy → `http://caddy:80`, self → `http://uptime-kuma:3001`. HTTP, no SSL verify for HTTP targets.
-- **Loki / Promtail (no Caddy):** Add HTTP monitors with **URL** `http://loki:3100/ready` and `http://promtail:9080/ready`. Leave “Verify SSL” off. Both are internal-only; Uptime Kuma reaches them over the `monitor` network.
-- **Host services (e.g. Portainer):** Use `https://host.docker.internal:9443` (disable “Verify SSL” if using self-signed).
-
-The `monitor` network is created when you deploy Caddy or Uptime Kuma; the other stack attaches to it. No manual `docker network create` needed.
+**Monitoring targets:** use public or Tailscale HTTPS endpoints. Internal Docker-name checks are intentionally handled by Prometheus and the observability stack.
 
 ## Troubleshooting
 
-**Caddy heartbeat fails:**
+**Caddy access fails:**
 
-1. Confirm both on `monitor`: `docker network inspect monitor --format '{{range .Containers}}{{.Name}} {{end}}'` → should list `caddy` and `uptime-kuma`.
-2. From container: `docker exec uptime-kuma wget -qO- --timeout=2 http://caddy:80 | head -1` → should return Caddy’s response.
-3. In Uptime Kuma: URL = `http://caddy:80`, no keyword, “Verify SSL” off.
+1. Confirm Caddy and Uptime Kuma share `proxy-ingress`.
+2. From Caddy, verify `http://uptime-kuma:3001` responds.
+3. Configure monitors with their HTTPS URLs.
 
 ## Start
 

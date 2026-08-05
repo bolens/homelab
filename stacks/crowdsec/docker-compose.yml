@@ -3,6 +3,36 @@
 name: crowdsec
 
 services:
+  crowdsec-docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
+    container_name: crowdsec-docker-socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      INFO: "1"
+      PING: "1"
+      VERSION: "1"
+      POST: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-api
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   crowdsec:
     image: crowdsecurity/crowdsec
     container_name: crowdsec
@@ -33,15 +63,14 @@ services:
       # Copy acquis.yaml.example to that path; override with CROWDSEC_ACQUIS_PATH in stack.env.
       # Required when deploying from Portainer: set CROWDSEC_ACQUIS_PATH to the absolute path to the file.
       - ${CROWDSEC_ACQUIS_PATH:-${HOME}/.config/crowdsec/acquis.yaml}:/etc/crowdsec/acquis.yaml:ro
-      # Optional: allow CrowdSec to inspect Docker container logs via the
-      # Docker API. You still need to configure acquisitions for Docker sources;
-      # see the official docs for examples.
-      # https://docs.crowdsec.net/docs/next/log_processor/data_sources/docker
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      crowdsec-docker-socket-proxy:
+        condition: service_healthy
     # LAPI on 8080; no host port – Caddy is the single entrypoint (crowdsec.home / crowdsec.yourdomain.com).
     # Other containers (e.g. Prometheus, bouncers) on monitor use http://crowdsec:8080.
     networks:
       - monitor
+      - docker-api
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
       interval: 60s
@@ -50,6 +79,8 @@ services:
       start_period: 30s
 
 networks:
+  docker-api:
+    internal: true
   monitor:
     name: monitor
     external: true

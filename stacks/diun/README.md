@@ -18,7 +18,11 @@ Docker image update notifier. Watches your running containers’ images and send
 
 | Item | Details |
 |------|---------|
-| **Volumes** | `diun_data` (bbolt DB for image manifests), Docker socket (read-only). |
+| **Volumes** | `diun_data` (bbolt DB for image manifests). |
+
+Diun reaches Docker through a dedicated read-only socket proxy on an internal
+stack network. The proxy exposes only container, image, daemon information,
+ping, and version endpoints; mutating API requests are disabled.
 | **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. Diun-specific: schedule, notifiers (see below). |
 | **Schedule** | Default `0 */6 * * *` (every 6 hours). Override `DIUN_WATCH_SCHEDULE` (cron). |
 

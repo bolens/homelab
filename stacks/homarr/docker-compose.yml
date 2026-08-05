@@ -1,6 +1,40 @@
 # Homarr 1.x – homelab dashboard (links, widgets, optional integrations).
 # No host ports; access via Caddy (https://homarr.example.com → homarr:7575).
 services:
+  homarr-docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
+    container_name: homarr-docker-socket-proxy
+    restart: unless-stopped
+    environment:
+      ALLOW_RESTARTS: "1"
+      ALLOW_START: "1"
+      ALLOW_STOP: "1"
+      CONTAINERS: "1"
+      EVENTS: "1"
+      IMAGES: "1"
+      INFO: "1"
+      PING: "1"
+      POST: "1"
+      VERSION: "1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-api
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   homarr:
     image: ghcr.io/homarr-labs/homarr:latest
     container_name: homarr
@@ -14,11 +48,16 @@ services:
       - stack.env
     environment:
       - TZ=${TZ:-America/Denver}
+      - DOCKER_HOSTNAMES=homarr-docker-socket-proxy
+      - DOCKER_PORTS=2375
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - homarr_appdata:/appdata
+    depends_on:
+      homarr-docker-socket-proxy:
+        condition: service_healthy
     networks:
       - monitor
+      - docker-api
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7575/"]
       interval: 30s
@@ -27,6 +66,8 @@ services:
       start_period: 30s
 
 networks:
+  docker-api:
+    internal: true
   monitor:
     name: monitor
     external: true

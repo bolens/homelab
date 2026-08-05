@@ -1,6 +1,7 @@
 # Dozzle
 
-Real-time Docker container log viewer. One container, no database; uses the Docker socket to list containers and stream logs. Handy when debugging which service is failing without jumping between Portainer log tabs or `docker logs`.
+Real-time Docker container log viewer. It uses a scoped Docker API proxy to
+list containers and stream logs without mounting the Docker socket into the UI.
 
 **Website:** https://dozzle.dev  
 **Docs:** https://dozzle.dev/guide/  
@@ -10,8 +11,8 @@ Real-time Docker container log viewer. One container, no database; uses the Dock
 
 ## Quick start
 
-1. From this directory: **`./prepare-stack.sh`** — creates `stack.env` (if missing), **`DOZZLE_CONFIG_DIR`** on the host (default **`~/.config/dozzle`**), seeds **`users.yaml`** from **[users.yaml.example](users.yaml.example)** when no `users.yaml`/`users.yml` exists yet, copies **`stack.env` → `.env`** for Compose `${HOME}` interpolation, ensures the **`monitor`** network exists.
-2. Ensure the **`monitor`** network exists if you skipped the script (e.g. `docker network create monitor` or deploy Caddy first).
+1. From this directory: **`./prepare-stack.sh`** — creates `stack.env` (if missing), **`DOZZLE_CONFIG_DIR`** on the host (default **`~/.config/dozzle`**), seeds **`users.yaml`** from **[users.yaml.example](users.yaml.example)** when no `users.yaml`/`users.yml` exists yet, copies **`stack.env` → `.env`** for Compose `${HOME}` interpolation, and ensures the **`proxy-ingress`** network exists.
+2. Ensure the **`proxy-ingress`** network exists if you skipped the script (e.g. `docker network create proxy-ingress` or deploy Caddy first).
 3. **`docker compose up -d`** (after prepare, Compose reads `.env` for bind-mount paths).
 4. Access via Caddy (e.g. https://dozzle.home or https://dozzle.example.com). Start from this stack’s committed [caddy_snippet.conf.example](caddy_snippet.conf.example); the prepared private `caddy_snippet.conf` is imported by the main Caddyfile.
 
@@ -19,9 +20,9 @@ Real-time Docker container log viewer. One container, no database; uses the Dock
 
 | Item | Details |
 |------|---------|
-| **Ports** | Optional `8082:8080` for direct host access. Caddy reaches Dozzle by `dozzle:8080` on the monitor network. |
-| **Volumes** | Docker socket (read-only). **Auth data:** host dir **`DOZZLE_CONFIG_DIR`** (default **`~/.config/dozzle`**) → container **`/data`** (`users.yaml` / `users.yml`). |
-| **Network** | `monitor` (external) — same as Caddy. |
+| **Ports** | Optional `8082:8080` for direct host access. Caddy reaches Dozzle by `dozzle:8080` on `proxy-ingress`. |
+| **Volumes** | **Auth data:** host dir **`DOZZLE_CONFIG_DIR`** (default **`~/.config/dozzle`**) → container **`/data`** (`users.yaml` / `users.yml`). |
+| **Network** | `proxy-ingress` (external) for Caddy; private `docker-api` for the scoped Docker API proxy. |
 | **Env** | See [stack.env.example](stack.env.example), [ENV-VARS.md](../../documents/ENV-VARS.md), and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md). Set **`DOZZLE_AUTH_PROVIDER=simple`** only with a valid **`users.yaml`** (see below). **`stack.env` → `.env`** is for Compose interpolation only; compose-only keys are **not** passed into the container (avoids Dozzle "Unexpected environment variable" warnings). |
 | **Health** | Uses Dozzle’s built-in **`/dozzle healthcheck`** (see https://dozzle.dev/guide/healthcheck ) — the image has no `wget`/`sh`. |
 
@@ -51,7 +52,9 @@ Dozzle reads **`/data/users.yaml`** or **`/data/users.yml`** inside the containe
 
 ## Caddy
 
-Use `reverse_proxy dozzle:8080` (same as cadvisor, grafana). See [caddy_snippet.conf.example](caddy_snippet.conf.example) and [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example).
+Use `reverse_proxy dozzle:8080`. Caddy and Dozzle share only the dedicated
+`proxy-ingress` network. See [caddy_snippet.conf.example](caddy_snippet.conf.example)
+and [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example).
 
 ## Start
 

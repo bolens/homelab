@@ -1,6 +1,36 @@
 # Diun – Docker image update notifier. No web UI; notifications via Telegram, Discord, etc.
 # Portainer-friendly: named volume; env from stack.env (see stack.env.example).
 services:
+  diun-docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
+    container_name: diun-docker-socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      IMAGES: "1"
+      INFO: "1"
+      PING: "1"
+      VERSION: "1"
+      POST: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-api
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   diun:
     image: crazymax/diun:latest
     container_name: diun
@@ -10,7 +40,6 @@ services:
     restart: unless-stopped
     volumes:
       - diun_data:/data
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=America/Denver
       - LANG=en_US.UTF-8
@@ -21,10 +50,15 @@ services:
       - DIUN_WATCH_JITTER=30s
       - DIUN_WATCH_RUNONSTARTUP=true
       - DIUN_PROVIDERS_DOCKER=true
+      - DIUN_PROVIDERS_DOCKER_ENDPOINT=tcp://diun-docker-socket-proxy:2375
       # Notifiers are enabled only when their variables are present in stack.env.
 
+    depends_on:
+      diun-docker-socket-proxy:
+        condition: service_healthy
     networks:
-      - monitor
+      - docker-api
+      - mail-services
     healthcheck:
       test: ["CMD", "diun", "healthcheck"]
       interval: 60s
@@ -33,9 +67,10 @@ services:
       start_period: 15s
 
 networks:
-  # Use external monitor only – do not create a stack default network (avoids subnet exhaustion)
-  monitor:
-    name: monitor
+  docker-api:
+    internal: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

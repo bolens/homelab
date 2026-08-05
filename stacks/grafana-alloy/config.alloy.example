@@ -12,7 +12,7 @@ prometheus.exporter.self "alloy" { }
 
 // Discover local Docker containers.
 discovery.docker "local" {
-	host = "tcp://docker-socket-proxy:2375"
+	host = "tcp://alloy-docker-socket-proxy:2375"
 }
 
 // Normalize Docker metadata. Docker discovery returns running containers.
@@ -94,7 +94,7 @@ discovery.relabel "docker_logs" {
 
 // Read container stdout/stderr logs from Docker API.
 loki.source.docker "containers" {
-	host       = "tcp://docker-socket-proxy:2375"
+	host       = "tcp://alloy-docker-socket-proxy:2375"
 	targets    = discovery.relabel.docker_logs.output
 	forward_to = [loki.process.enrich.receiver]
 }
