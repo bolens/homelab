@@ -5,7 +5,6 @@
 **Website:** https://www.ail-project.org  
 **Docs:** https://github.com/ail-project/ail-framework/tree/master/doc  
 **GitHub:** https://github.com/ail-project/ail-framework  
-**Docker image:** https://hub.docker.com/r/cciucd/ail-framework  
 **Releases:** https://github.com/ail-project/ail-framework/releases  
 
 ## Quick start
@@ -40,7 +39,9 @@
 
 ## Resources
 
-AIL is resource-intensive: the image is large (~2GB+) and the app typically needs **>6GB RAM**. Ensure the host has enough memory.
+AIL is resource-intensive. The CUDA-enabled image is still expected to be large because
+Torch, NVIDIA CUDA libraries, and Triton account for several GB, and the app typically
+needs **>6GB RAM**.
 
 ## Using AIL 6.x (official build)
 
@@ -51,7 +52,7 @@ Official releases (e.g. **v6.7**) are not published as images; this stack builds
 1. **Build the image** (takes a long time, several GB disk/RAM and network):
    ```bash
    cd stacks/ail-framework/ail-framework-docker/ail-framework
-   docker build -f other_installers/docker/Dockerfile -t ail-framework:6.7-build .
+   docker build -f ../../Dockerfile.build -t ail-framework:6.7-build .
    cd ../..
    docker build -f Dockerfile.runtime -t ail-framework:6.7 .
    ```
@@ -87,98 +88,6 @@ AIL 6.x images are **large** (often **many GB** compressed). A public Harbor hos
    ```
 
 4. **Use on other hosts:** Set `AIL_IMAGE=harbor.local/PROJECT/ail-framework:6.7` in `stack.env`, keep `docker-compose.override.yml` (same `/opt/AIL` paths). Ensure Docker trusts Harbor’s TLS cert where needed (see e.g. [social-hunt README](../social-hunt/README.md) → “harbor.local: certificate signed by unknown authority” if applicable).
-
-## AIL 6.x with Lacus crawler and Tor
-
-For AIL 6.x **plus** the [Lacus](https://github.com/ail-project/lacus) crawler and a Tor SOCKS proxy in one image, use [MatthisClavijo/ail-framework-docker](https://github.com/MatthisClavijo/ail-framework-docker). That image uses **/opt/ail-framework** (same as the default 5.x image), so you use the **default** compose—**no** `docker-compose.override.yml`. Pin to the AIL release tag you want (e.g. v6.7) by checking out that tag before building.
-
-**Tor:** Port 9050 is SOCKS, not HTTP. Caddy does not proxy it. Trusted containers on `security-research` use `socks5://ail:9050` directly. No Caddy block needed.
-
----
-
-### Step-by-step: Build, push to harbor.local, deploy (Caddy handles AIL + Lacus)
-
-All access is via Caddy; no host ports. Caddy proxies **AIL UI** (7000) and **Lacus UI** (7100). Replace `PROJECT` with your Harbor project (e.g. `homelab`) and your domain (e.g. `example.com`) where shown.
-
-**1. Build the image (on a machine with Docker, network, and enough disk; image ~20 GB)**
-
-```bash
-git clone https://github.com/MatthisClavijo/ail-framework-docker.git
-cd ail-framework-docker
-git clone https://github.com/ail-project/ail-framework.git
-cd ail-framework && git checkout v6.6 && cd ..
-
-docker compose build
-docker tag ubuntu:ail ail-framework:6.6-lacus-tor
-```
-
-**2. Trust Harbor’s TLS cert (only when using harbor.local)**
-
-If `docker login harbor.local` or push will fail with “certificate signed by unknown authority”, trust the cert on the machine where you run `docker push`:
-
-```bash
-# Fetch full chain
-echo | openssl s_client -connect harbor.local:443 -servername harbor.local -showcerts 2>/dev/null \
-  | awk '/-----BEGIN CERTIFICATE-----/,/-----END CERTIFICATE-----/ { print }' > /tmp/harbor.local-chain.crt
-
-# Arch / CachyOS (recommended)
-sudo trust anchor --store /tmp/harbor.local-chain.crt
-sudo systemctl restart docker
-
-# Or: Debian/Ubuntu – copy to ca-certificates and update
-# sudo cp /tmp/harbor.local-chain.crt /usr/local/share/ca-certificates/harbor.local.crt
-# sudo update-ca-certificates
-# sudo systemctl restart docker
-```
-
-**3. Push the image to harbor.local** (use harbor.local for large images to avoid Cloudflare limits)
-
-```bash
-docker login harbor.local
-docker tag ail-framework:6.6-lacus-tor harbor.local/PROJECT/ail-framework:6.6-lacus-tor
-docker push harbor.local/PROJECT/ail-framework:6.6-lacus-tor
-```
-
-**4. Caddy: include the AIL snippet (AIL + Lacus)**
-
-Ensure the stack’s Caddy snippet is included in your Caddyfile so Caddy handles both internal ports:
-
-- **AIL UI** → `https://ail.home` / `https://ail.yourdomain` → `https://ail:7000` (with `tls_insecure_skip_verify`)
-- **Lacus UI** → `https://lacus.home` / `https://lacus.yourdomain` → `http://ail:7100`
-
-Copy from `stacks/ail/caddy_snippet.conf` (or the example and uncomment the Lacus block). Reload Caddy after changes:
-
-```bash
-caddy reload --config /path/to/Caddyfile
-```
-
-**5. Deploy the stack (on the host where AIL will run)**
-
-```bash
-cd /path/to/docker/stacks/ail
-```
-
-In `stack.env` set:
-
-```bash
-AIL_IMAGE=harbor.local/PROJECT/ail-framework:6.6-lacus-tor
-```
-
-Do **not** use `docker-compose.override.yml` (that’s for the official 6.x image with `/opt/AIL`; this image uses `/opt/ail-framework`).
-
-```bash
-docker compose --env-file stack.env up -d
-```
-
-**6. Access**
-
-- **AIL:** https://ail.home (or your configured AIL hostname)
-- **Lacus:** https://lacus.home (or your configured Lacus hostname)
-- **Tor (trusted research containers only):** `socks5://ail:9050` on `security-research`
-
-**7. (Optional) Other hosts**
-
-On another host that should run AIL from Harbor: ensure Docker trusts `harbor.local` (step 2 if needed), then set `AIL_IMAGE=harbor.local/PROJECT/ail-framework:6.6-lacus-tor` in that host’s `stack.env` and run `docker compose --env-file stack.env up -d` there. Caddy on that network must proxy to the AIL container’s 7000 and 7100 as in step 4.
 
 ## Caddy reverse proxy
 

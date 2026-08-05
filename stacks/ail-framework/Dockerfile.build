@@ -1,0 +1,80 @@
+FROM ubuntu:22.04 AS builder
+
+ARG tz_buildtime=Europe/Rome
+ENV TZ=$tz_buildtime
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo "$TZ" > /etc/timezone
+
+RUN apt-get clean \
+    && apt-get update -y \
+    && apt-get upgrade -y \
+    && apt-get dist-upgrade -y \
+    && apt-get autoremove -y
+
+RUN apt-get install -y \
+    git python3-dev build-essential libffi-dev libssl-dev libfuzzy-dev wget sudo
+
+RUN useradd -m docker \
+    && echo "docker:docker" | chpasswd \
+    && adduser docker sudo \
+    && echo "root ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+RUN mkdir /opt/AIL
+COPY . /opt/AIL
+WORKDIR /opt/AIL
+
+RUN ./installing_deps.sh
+
+RUN ./other_installers/docker/pystemon/install.sh \
+    && pip3 install --no-cache-dir -r /opt/pystemon/requirements.txt \
+    # qreader pulls the GUI OpenCV wheel while EasyOCR pulls the headless wheel.
+    # Retain one working cv2 installation without the duplicate GUI libraries.
+    && /opt/AIL/AILENV/bin/pip uninstall -y opencv-python coverage nose2 \
+    && /opt/AIL/AILENV/bin/pip install --no-cache-dir --force-reinstall --no-deps \
+        opencv-python-headless
+
+COPY other_installers/docker/docker_start.sh /opt/AIL/docker_start.sh
+
+# Keep the Kvrocks executable, but discard its multi-gigabyte CMake dependency
+# tree. Clear download/build caches before the filesystem is copied into the
+# runtime stage.
+RUN strip --strip-unneeded /opt/AIL/kvrocks/build/kvrocks \
+    && find /opt/AIL/kvrocks/build -mindepth 1 -maxdepth 1 \
+        ! -name kvrocks -exec rm -rf {} + \
+    && find /opt/AIL -type d -name .git -prune -exec rm -rf {} + \
+    && find /opt/AIL -type d -name __pycache__ -prune -exec rm -rf {} + \
+    && find /opt/AIL -type f -name '*.pyc' -delete \
+    # Installed binaries/modules are sufficient at runtime; discard their
+    # source, tests, compiler output, and the large AIL developer documentation.
+    && rm -rf /opt/AIL/tlsh /opt/AIL/pgpdump /opt/AIL/doc \
+        /opt/AIL/redis/deps /opt/AIL/redis/tests \
+    && mkdir -p /opt/AIL/doc \
+    && find /opt/AIL/redis/src -type f ! -perm /111 -delete \
+    && strip --strip-unneeded \
+        /opt/AIL/redis/src/redis-server \
+        /opt/AIL/redis/src/redis-cli \
+        /opt/AIL/redis/src/redis-benchmark \
+    && apt-get purge -y \
+        build-essential git python3-dev libffi-dev libssl-dev \
+        python3-opencv python3-numpy \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /root/.cache /tmp/* /var/tmp/* /var/lib/apt/lists/*
+
+# Squash the builder filesystem into a clean runtime layer. This prevents files
+# deleted above from remaining in lower image layers.
+FROM scratch
+COPY --from=builder / /
+
+ENV LANG=C.UTF-8 \
+    AIL_HOME=/opt/AIL \
+    AIL_BIN=/opt/AIL/bin \
+    AIL_FLASK=/opt/AIL/var/www \
+    AIL_REDIS=/opt/AIL/redis/src \
+    AIL_ARDB=/opt/AIL/ardb/src \
+    AIL_VENV=/opt/AIL/AILENV \
+    PATH=/opt/AIL/AILENV/bin:/opt/AIL:/opt/AIL/redis/src:/opt/AIL/ardb/src:/opt/AIL/bin:/opt/AIL/var/www:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+WORKDIR /opt/AIL
+ENTRYPOINT ["/bin/bash", "/opt/AIL/docker_start.sh"]
