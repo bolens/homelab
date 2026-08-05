@@ -1,6 +1,9 @@
 services:
   caddy:
-    image: serfriz/caddy-cloudflare:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: homelab/caddy:2.11.4-custom
     container_name: caddy
     restart: unless-stopped
     cpus: 2.0
