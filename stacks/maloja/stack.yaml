@@ -34,7 +34,7 @@ backup:
   priority: medium
   schedule_hint: daily
 volumes:
-  - name: maloja_data
+  - name: maloja_maloja-data
     role: app_data
     critical: true
 auth:

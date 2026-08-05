@@ -37,10 +37,10 @@ volumes:
   - name: resilio_config
     role: config
     critical: true
-  - name: downloads
+  - name: resilio_downloads
     role: media
     critical: false
-  - name: sync
+  - name: resilio_sync
     role: media
     critical: false
 auth:

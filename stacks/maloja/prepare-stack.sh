@@ -7,4 +7,5 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_volume "maloja_maloja-data"
 prepare_stack_end

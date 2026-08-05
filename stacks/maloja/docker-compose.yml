@@ -41,3 +41,5 @@ networks:
 
 volumes:
   maloja_data:
+    external: true
+    name: maloja_maloja-data
