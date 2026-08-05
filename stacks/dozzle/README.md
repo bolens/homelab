@@ -23,8 +23,29 @@ list containers and stream logs without mounting the Docker socket into the UI.
 | **Ports** | Optional `8082:8080` for direct host access. Caddy reaches Dozzle by `dozzle:8080` on `ingress-admin`. |
 | **Volumes** | **Auth data:** host dir **`DOZZLE_CONFIG_DIR`** (default **`~/.config/dozzle`**) → container **`/data`** (`users.yaml` / `users.yml`). |
 | **Network** | `ingress-admin` (external) for Caddy; private `docker-api` for the scoped Docker API proxy. |
-| **Env** | See [stack.env.example](stack.env.example), [ENV-VARS.md](../../documents/ENV-VARS.md), and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md). Set **`DOZZLE_AUTH_PROVIDER=simple`** only with a valid **`users.yaml`** (see below). **`stack.env` → `.env`** is for Compose interpolation only; compose-only keys are **not** passed into the container (avoids Dozzle "Unexpected environment variable" warnings). |
+| **Env** | See [stack.env.example](stack.env.example), [ENV-VARS.md](../../documents/ENV-VARS.md), and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md). `DOZZLE_LOCAL_HOST_LABEL` names the local engine in the host selector; `DOZZLE_REMOTE_AGENT` adds remote engines. Set **`DOZZLE_AUTH_PROVIDER=simple`** only with a valid **`users.yaml`** (see below). **`stack.env` → `.env`** is for Compose interpolation only; only selected values are passed into Dozzle. |
 | **Health** | Uses Dozzle’s built-in **`/dozzle healthcheck`** (see https://dozzle.dev/guide/healthcheck ) — the image has no `wget`/`sh`. |
+
+## Host views
+
+The local socket proxy exposes every container on this Docker engine regardless
+of the container's segmented application networks. Keep Dozzle on
+`ingress-admin`; joining `ingress-public`, `ingress-sensitive`, or application
+networks does not add container visibility.
+
+Set `DOZZLE_LOCAL_HOST_LABEL` to give the local engine a useful name. To add
+other Docker engines, deploy a Dozzle agent on each remote host and set a
+comma-separated `DOZZLE_REMOTE_AGENT` value:
+
+```dotenv
+DOZZLE_LOCAL_HOST_LABEL=docker-host
+DOZZLE_REMOTE_AGENT=host-a:7007|host-a|Production,host-b:7007|host-b|Lab
+```
+
+The `endpoint|name|group` form creates named, collapsible host groups and merged
+group log views. Agent endpoints should be reachable only over a trusted private
+network or VPN. A remote Dozzle agent mounts that host's Docker socket directly;
+do not place this stack's Docker socket proxy in front of an agent.
 
 ## Simple auth (file-based)
 

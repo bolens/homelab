@@ -7,6 +7,7 @@
 
 import os
 import sys
+from urllib.parse import urlsplit
 
 from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for, Response
 from flask_login import login_required, current_user, login_user, logout_user
@@ -39,6 +40,12 @@ _LOGIN_LOCKOUT_SEC = 120
 
 
 # ============ FUNCTIONS ============
+def _is_safe_redirect_target(target):
+    """Allow local absolute paths, never schemes, hosts, or browser backslashes."""
+    if not target or '\\' in target or not target.startswith('/') or target.startswith('//'):
+        return False
+    parsed = urlsplit(target)
+    return not parsed.scheme and not parsed.netloc
 
 
 
@@ -81,7 +88,7 @@ def login():
                 else:
                     # update note
                     # next page
-                    if next_page and next_page!='None' and next_page!='/':
+                    if next_page != '/' and _is_safe_redirect_target(next_page):
                         return redirect(next_page)
                     # dashboard
                     else:
