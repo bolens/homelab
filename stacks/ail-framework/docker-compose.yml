@@ -52,6 +52,8 @@ services:
         max-file: "3"
     mem_limit: 6g
     cpus: 2.0
+    # Expose the host NVIDIA GPU so CUDA-enabled Torch workloads can accelerate.
+    gpus: all
 
 networks:
   security-research:

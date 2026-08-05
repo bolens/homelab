@@ -35,6 +35,7 @@
 | **Image** | Default: locally built official `ail-framework:6.7`. Override with `AIL_IMAGE` in `stack.env` for a registry-hosted copy. |
 | **Storage** | Named volumes for PASTES, CRAWLED_SCREENSHOT, DATA_KVROCKS, indexdir, HASHS, logs. |
 | **Login behavior** | Uses upstream AIL 6.7 behavior; the old 5.x `root.py` override is no longer mounted. |
+| **GPU** | All NVIDIA GPUs are exposed through Docker (`gpus: all`) so CUDA-enabled Torch workloads can accelerate. Requires the NVIDIA Container Toolkit on the host. |
 
 ## Resources
 
