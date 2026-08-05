@@ -17,6 +17,7 @@ services:
     volumes:
       - plex_config:/config
       - plex_transcode:/transcode
+      - ./config/10-fix-volume-ownership.sh:/custom-cont-init.d/10-fix-volume-ownership.sh:ro
       - "${PLEX_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
       - "${PLEX_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
       - "${PLEX_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"

@@ -29,6 +29,8 @@ Self-hosted media server for movies, TV shows, and music. Plex serves your media
      - `/data/music` for music.
 
 Media libraries are bind-mounted from the same host paths used by Sonarr/Radarr/Lidarr (defaults under `/mnt/unraid/media/`).
+An idempotent startup hook ensures the named `/transcode` volume remains
+writable by the configured `PUID`/`PGID`.
 
 ## Configuration
 
@@ -52,4 +54,3 @@ plex.home, plex.local {
 ```
 
 For public access, add `plex.yourdomain.com` to your Caddyfile and Cloudflare Tunnel, then protect it with Cloudflare Access.
-

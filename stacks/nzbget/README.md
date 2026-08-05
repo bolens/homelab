@@ -53,6 +53,11 @@ It validates paths and file types before extraction, refuses to overwrite
 existing files, and removes each archive only after a successful extraction.
 Other categories are ignored.
 
+The stack also runs an idempotent LinuxServer initialization hook before
+NZBGet starts. It restores the configured `PUID`/`PGID` on NZBGet's writable
+config subdirectories, preventing Docker's nested read-only script mount from
+leaving their parent directory owned by root after a container rebuild.
+
 The built-in unpacker reads additional RAR and 7-Zip passwords from the
 read-only `/etc/nzbget/unpack-passwords.txt` file. Keep
 `config/unpack-passwords.txt` limited to non-sensitive release passwords; do

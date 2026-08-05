@@ -15,7 +15,7 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - calibre_web_config:/config
-      - calibre_web_books:/books
+      - "${CALIBRE_BOOKS_PATH:-/mnt/unraid/media/books}:/books"
     networks:
       - monitor
     healthcheck:
@@ -32,4 +32,3 @@ networks:
 
 volumes:
   calibre_web_config:
-  calibre_web_books:

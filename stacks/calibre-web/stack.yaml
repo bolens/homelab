@@ -37,9 +37,7 @@ volumes:
 - name: calibre_web_config
   role: app_data
   critical: true
-- name: calibre_web_books
-  role: app_data
-  critical: true
+# The Calibre library is a host bind mount (see CALIBRE_BOOKS_PATH).
 auth:
   mode: app_local
   sso_provider: null

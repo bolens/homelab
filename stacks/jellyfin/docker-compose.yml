@@ -17,6 +17,7 @@ services:
     volumes:
       - jellyfin_config:/config
       - jellyfin_cache:/cache
+      - ./config/10-fix-volume-ownership.sh:/custom-cont-init.d/10-fix-volume-ownership.sh:ro
       - "${JELLYFIN_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
       - "${JELLYFIN_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
       - "${JELLYFIN_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"

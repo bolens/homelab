@@ -19,7 +19,8 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - kavita_config:/config
-      - kavita_data:/data
+      - "${KAVITA_BOOKS_PATH:-/mnt/unraid/media/books}:/data/books"
+      - "${KAVITA_COMICS_PATH:-/mnt/unraid/media/comics}:/data/comics"
     networks:
       - monitor
     healthcheck:
@@ -36,4 +37,3 @@ networks:
 
 volumes:
   kavita_config:
-  kavita_data:

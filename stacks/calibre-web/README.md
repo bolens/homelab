@@ -9,25 +9,18 @@ Access via Caddy at **https://calibre-web.yourdomain.com** (or your configured h
 
 ## Quick start
 
-1. Copy `stack.env.example` → `stack.env` (optional: set `PUID`/`PGID` if you bind-mount a library).
+1. Copy `stack.env.example` → `stack.env`, set `CALIBRE_BOOKS_PATH`, and optionally set `PUID`/`PGID`.
 2. From the stack directory: `docker compose up -d`.
 3. Open the web UI. On first run you’ll be asked for the Calibre database path: set **/books** (or the path where your `metadata.db` lives inside the container).
 4. Default login: **admin** with the image’s default password — change immediately in Admin → Edit user.
-
-If you already have a Calibre library on the host, bind-mount it in `docker-compose.yml` (see **Library** below).
 
 **Portainer:** Add stack → paste `docker-compose.yml` → set env vars from `stack.env` if needed → deploy.
 
 ## Library
 
-By default the stack uses a named volume `calibre_web_books` for `/books`. To use an existing Calibre library, replace it with a bind mount:
-
-```yaml
-volumes:
-  - /path/to/your/calibre/library:/books
-```
-
-The directory must contain `metadata.db` and your book files. On first setup in the UI, set the database path to **/books**.
+`CALIBRE_BOOKS_PATH` is bind-mounted at `/books` and defaults to
+`/mnt/unraid/media/books`. The directory must contain `metadata.db` and your
+book files. On first setup in the UI, set the database path to **/books**.
 
 ## Configuration
 
@@ -36,7 +29,7 @@ The directory must contain `metadata.db` and your book files. On first setup in 
 | **Access** | Via Caddy only (no host port; reverse-proxy to `calibre-web:8083`) |
 | **Network** | `monitor` |
 | **Images** | `lscr.io/linuxserver/calibre-web:latest` |
-| **Storage** | Named volumes: `calibre_web_config` (app DB, settings), `calibre_web_books` (Calibre library); or bind-mount `/books` |
+| **Storage** | `calibre_web_config` (app DB and settings), `${CALIBRE_BOOKS_PATH}` → `/books` |
 
 ## Caddy reverse proxy
 

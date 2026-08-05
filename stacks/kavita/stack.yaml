@@ -37,9 +37,7 @@ volumes:
 - name: kavita_config
   role: app_data
   critical: true
-- name: kavita_data
-  role: app_data
-  critical: true
+# Book and comic libraries are host bind mounts (see KAVITA_*_PATH).
 auth:
   mode: app_local
   sso_provider: null

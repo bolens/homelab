@@ -27,6 +27,8 @@ Open-source media server for movies, TV shows, and music. Jellyfin serves your m
      - `/data/music` for music.
 
 The stack keeps the HTTP UI internal (no host port binding) and relies on Caddy on the shared `monitor` network for access.
+An idempotent startup hook ensures the named `/cache` volume remains writable
+by the configured `PUID`/`PGID`.
 
 ## Configuration
 
@@ -50,4 +52,3 @@ jellyfin.home, jellyfin.local {
 ```
 
 For public access via Cloudflare Tunnel, add e.g. `jellyfin.yourdomain.com` in the public HTTPS section of your Caddyfile and protect it with Cloudflare Access if desired.
-

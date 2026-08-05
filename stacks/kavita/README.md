@@ -10,9 +10,9 @@ Access via Caddy at **https://kavita.yourdomain.com** (or your configured hostna
 
 ## Quick start
 
-1. Copy `stack.env.example` → `stack.env` (optional: set `PUID`, `PGID`, `TZ`).
+1. Copy `stack.env.example` → `stack.env`; set the library paths and optionally `PUID`, `PGID`, and `TZ`.
 2. From the stack directory: `docker compose up -d`.
-3. Open the web UI and complete the setup wizard; add libraries pointing at `/data` or bind-mount your folders to `/data` (or multiple paths like `/manga`, `/comics`, `/books` if you extend the compose).
+3. Open the web UI and add libraries pointing at `/data/books` and `/data/comics`.
 
 **Portainer:** Add stack → paste `docker-compose.yml` → set env vars → deploy.
 
@@ -23,7 +23,7 @@ Access via Caddy at **https://kavita.yourdomain.com** (or your configured hostna
 | **Access** | Via Caddy only (no host port; reverse-proxy to `kavita:5000`) |
 | **Network** | `monitor` |
 | **Images** | `lscr.io/linuxserver/kavita:latest` |
-| **Storage** | Named volumes: `kavita_config`, `kavita_data`; or bind-mount libraries |
+| **Storage** | `kavita_config`, `${KAVITA_BOOKS_PATH}` → `/data/books`, `${KAVITA_COMICS_PATH}` → `/data/comics` |
 
 ## Caddy reverse proxy
 
