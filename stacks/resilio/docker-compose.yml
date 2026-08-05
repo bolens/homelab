@@ -14,7 +14,11 @@ services:
       - stack.env
     volumes:
       - resilio_config:/config
-      - resilio_downloads:/downloads
+      - type: bind
+        source: ${RESILIO_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/resilio}
+        target: /downloads
+        bind:
+          create_host_path: false
       - resilio_sync:/sync
     ports:
       - "55555:55555"
@@ -41,9 +45,6 @@ volumes:
   resilio_config:
     external: true
     name: resilio_config
-  resilio_downloads:
-    external: true
-    name: resilio_downloads
   resilio_sync:
     external: true
     name: resilio_sync

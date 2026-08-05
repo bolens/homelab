@@ -26,10 +26,10 @@ Add sync folders through the UI and share keys/links with other devices.
 | PUID | Yes | 1000 | Host user ID for file ownership |
 | PGID | Yes | 1000 | Host group ID for file ownership |
 | UMASK | No | 022 | File permission umask |
+| RESILIO_DOWNLOADS_PATH | No | /mnt/unraid/media/downloads/resilio | Existing writable download directory |
 
-Resilio uses the existing `resilio_config`, `resilio_downloads`, and
-`resilio_sync` Docker volumes. This keeps its writable state off read-only
-media mounts.
+Resilio uses the existing `resilio_config` and `resilio_sync` Docker volumes.
+Downloads are stored directly in `RESILIO_DOWNLOADS_PATH`.
 
 ## Notes
 

@@ -37,7 +37,7 @@ volumes:
   - name: resilio_config
     role: config
     critical: true
-  - name: resilio_downloads
+  - name: /mnt/unraid/media/downloads/resilio
     role: media
     critical: false
   - name: resilio_sync
