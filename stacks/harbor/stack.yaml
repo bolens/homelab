@@ -1,9 +1,9 @@
 name: harbor
-default_port: 8880
+default_port: 8080
 databases: []
 health:
   endpoint: /
-  internal_only: false
+  internal_only: true
 monitoring:
   prometheus: false
   uptime_kuma:

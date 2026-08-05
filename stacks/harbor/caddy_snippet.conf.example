@@ -2,7 +2,7 @@
 # - LAN: use https://harbor.local (or .home). Plain http:// redirects to HTTPS below.
 # - Public: harbor.example.com (DNS-01). Tunnel: route http://harbor.example.com → caddy:80.
 # - Do not test TLS with curl https://127.0.0.1/ — SNI must match (use curl -vk https://harbor.local/).
-# - host.docker.internal:8880 must match Harbor HTTP on the Docker host (harbor.yml http.port / published port).
+# - Caddy reaches Harbor's proxy directly on the shared monitor network.
 
 # Explicit HTTP so http://harbor.local works even when global Caddy has auto_https disable_redirects (Cloudflare tunnel).
 http://harbor.home, http://harbor.local {
@@ -14,7 +14,7 @@ harbor.home, harbor.local {
 	request_body {
 		max_size 0
 	}
-	reverse_proxy host.docker.internal:8880 {
+	reverse_proxy proxy:8080 {
 		header_up Host {host}
 		flush_interval -1
 		transport http {
@@ -26,7 +26,7 @@ harbor.home, harbor.local {
 }
 
 http://harbor.example.com {
-	reverse_proxy host.docker.internal:8880 {
+	reverse_proxy proxy:8080 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
@@ -46,7 +46,7 @@ harbor.example.com {
 	request_body {
 		max_size 0
 	}
-	reverse_proxy host.docker.internal:8880 {
+	reverse_proxy proxy:8080 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}

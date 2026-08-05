@@ -3,7 +3,7 @@
 # Harbor install directory as docker-compose.override.yml if you install elsewhere.
 #
 # Customizations:
-# - Proxy on 8880 (so Caddy can use 80) and on monitor network for Caddy reverse-proxy.
+# - No host publication; Caddy reaches proxy:8080 on the monitor network.
 # - restart: unless-stopped for all services (come back after host reboot).
 
 version: "3.9"
@@ -12,8 +12,7 @@ services:
   proxy:
     image: goharbor/nginx-photon:v2.15.2
     restart: unless-stopped
-    ports:
-      - 8880:8080
+    ports: !reset []
     networks:
       - harbor
       - monitor

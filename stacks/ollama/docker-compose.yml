@@ -3,8 +3,9 @@ services:
     image: ollama/ollama:latest
     container_name: ollama
     restart: unless-stopped
-    ports:
-      - "${OLLAMA_HOST_PORT:-11434}:11434"
+    # API is private to monitor; Caddy and peer AI stacks use ollama:11434.
+    expose:
+      - "11434"
     volumes:
       - ollama_data:/root/.ollama
       - "/mnt/dev/ai/ollama-models:/root/.ollama/models:rw"
@@ -15,8 +16,6 @@ services:
         required: false
       - path: stack.env
         required: true
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - monitor
     labels:

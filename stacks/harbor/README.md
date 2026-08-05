@@ -43,7 +43,8 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
    - **For Caddy reverse proxy**: comment out the `https:` block and use HTTP only. Harbor will listen on port 80; Caddy terminates TLS and forwards to it.
 
 4. **Prepare** (generates final `harbor.yml` and `docker-compose.yml`):
-   - Ensure the port in `harbor.yml` matches what Caddy proxies to (default HTTP is 80; some installs use 8080 or 8880).
+   - Harbor's generated proxy listens on container port 8080. The override
+     attaches it to `monitor` without publishing a host port.
    ```bash
    sudo ./prepare
    ```
@@ -54,7 +55,9 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
    ```
    Optional: add `--with-trivy` for vulnerability scanning.
 
-6. **Caddy**: Add a site block for `harbor.yourdomain.com` → `host.docker.internal:80` (or the host IP/port where Harbor listens). Harbor runs its own Docker Compose stack, so it is not on the `monitor` network; use `host.docker.internal` or the host’s IP.
+6. **Caddy**: Attach Harbor's proxy to `monitor` and route
+   `harbor.yourdomain.com` to `proxy:8080`. Do not publish the proxy on the
+   host.
 
 7. **First login**: Default admin user is `admin`; use the password you set in `harbor_admin_password`. Change it after first login.
 
@@ -74,7 +77,8 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
    - Use the installer’s scripts (`./install.sh`, `docker compose up -d`, etc.) as documented upstream.
 
 4. **Integrate with Caddy**
-   - If you terminate TLS at Caddy, configure Caddy to reverse-proxy `harbor.yourdomain.com` to Harbor’s HTTP endpoint on the Docker host.
+   - If you terminate TLS at Caddy, attach Harbor's proxy to `monitor` and
+     reverse-proxy `harbor.yourdomain.com` to `proxy:8080`.
 
 ## Harbor behind Caddy
 
@@ -90,7 +94,7 @@ Use this pattern in your Caddyfile (see `stacks/caddy/Caddyfile.example`):
 ```caddyfile
 harbor.yourdomain.com {
     tls { ... }
-    reverse_proxy host.docker.internal:8880 {
+    reverse_proxy proxy:8080 {
         header_up X-Forwarded-Proto https
         header_up X-Forwarded-Host {host}
         flush_interval -1
@@ -102,7 +106,8 @@ harbor.yourdomain.com {
 }
 ```
 
-Replace `host.docker.internal:8880` with your Harbor HTTP endpoint (host IP and port). Harbor’s default HTTP port is 80; use 8880 if your installer configured it that way.
+The `proxy:8080` target uses Harbor's service name on the shared `monitor`
+network and is not directly reachable through a host port.
 
 ### Harbor `harbor.yml` settings
 
@@ -110,7 +115,8 @@ When Caddy terminates TLS:
 
 - **`hostname`**: Your external hostname (e.g. `harbor.yourdomain.com`). Must match the Caddy host.
 - **`https`**: Comment out or remove the `https:` block. Harbor listens on HTTP only; Caddy handles TLS.
-- **Port**: Harbor typically listens on 80 for HTTP. Ensure Caddy’s `reverse_proxy` target matches (e.g. `host.docker.internal:80` or `:8880`).
+- **Port**: Caddy reaches Harbor's generated proxy at `proxy:8080` on
+  `monitor`; no host port is required.
 
 After changing `harbor.yml`, run `./prepare` and restart Harbor. Reload Caddy after Caddyfile changes.
 
@@ -136,7 +142,8 @@ The `Caddyfile.example` includes a Harbor block with the required settings. It u
 
 - `hostname`: must match your Caddy hostname (e.g. `harbor.yourdomain.com`).
 - **Comment out** the `https:` block – Caddy terminates TLS; Harbor listens on HTTP.
-- `http.port`: typically `80` (or `8880` if you changed it). The Caddy `reverse_proxy` target port must match.
+- `http.port`: controls Harbor's generated host-facing configuration, but the
+  local override removes that publication. Caddy targets `proxy:8080`.
 
 After changing Caddy config, reload: `caddy reload --config /path/to/Caddyfile` or restart the Caddy container.
 
@@ -242,9 +249,11 @@ Keep using your public hostname (e.g. `harbor.yourdomain.com`) in Harbor and Cad
 
 Then, when devices on the LAN resolve `harbor.yourdomain.com`, they get the local IP and traffic stays on the LAN. Off-LAN devices still resolve via public DNS (e.g. Cloudflare) if you use that for the domain.
 
-### Option 3: Direct by IP or `localhost`
+### Option 3: Local Caddy hostname
 
-From a machine on the same host as Harbor, use `localhost` or the host’s LAN IP as the registry (e.g. `docker login localhost:8880` or `https://192.168.x.x`). If Harbor listens on HTTP only internally, add that address to Docker’s `insecure-registries` in `/etc/docker/daemon.json`. This avoids Cloudflare but only works from that host or when you use the IP explicitly.
+Use `harbor.local` (or another split-DNS hostname) through Caddy. Direct
+host-IP and `localhost` access are intentionally unavailable because Harbor's
+proxy has no published host port.
 
 ## Notes
 

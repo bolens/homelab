@@ -38,17 +38,21 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
 ### Portainer
 
 - **Stacks** → **Add stack** → **Repository**, compose path `stacks/ollama/docker-compose.yml`.
-- Run `./prepare-stack.sh` on the host first, or create `stack.env` with `OLLAMA_HOST_PORT`, `OLLAMA_MODELS_PATH`, and attach the stack to the external `monitor` network so Open WebUI and other AI stacks can reach `ollama:11434`.
+- Run `./prepare-stack.sh` on the host first, or create `stack.env` with
+  `OLLAMA_MODELS_PATH` and attach the stack to the external `monitor` network
+  so Open WebUI and other AI stacks can reach `ollama:11434`.
 
 ## Usage
 
-Once running, Ollama will be available at `http://localhost:11434` (or your configured port).
+Once running, Ollama is available to containers on `monitor` at
+`http://ollama:11434` and through the configured Caddy hostname. The API is
+not published directly on the host.
 
 ### Managing models via web UI (no `docker exec`)
 
 Use **Open WebUI** (in `docker/stacks/open-webui`) as a web UI to install and manage Ollama models:
 
-1. Start the **ollama** and **open-webui** stacks and set `OLLAMA_BASE_URL` in Open WebUI to point at Ollama (e.g. `http://host.docker.internal:11434` or `http://ollama:11434` if on the same network).
+1. Start the **ollama** and **open-webui** stacks and set `OLLAMA_BASE_URL` in Open WebUI to `http://ollama:11434` on the shared `monitor` network.
 2. In Open WebUI, go to **Settings (gear) → Connections → Ollama** and click the **Manage** (wrench) button.
 3. From there you can **pull/install models**, see installed models, and manage the connection.
 4. In chat you can also select a model by name; if it’s not installed, Open WebUI can prompt you to download it.
@@ -66,7 +70,9 @@ docker exec -it ollama ollama run llama2
 ```
 
 ### From other containers:
-Other containers can connect to Ollama at `http://ollama:11434` (on the same Docker network) or `http://host.docker.internal:11434` (from host gateway). For one-time setup and how other stacks (Open WebUI, LibreChat, etc.) use this backend, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+Other containers connect to Ollama at `http://ollama:11434` on the shared
+Docker network. For one-time setup and how other stacks use this backend, see
+[SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## GPU Support
 
@@ -135,4 +141,4 @@ This allows you to:
 
 ### Connection issues from other containers
 - Use `http://ollama:11434` when connecting from containers on the same network
-- Use `http://host.docker.internal:11434` when connecting from containers using host gateway
+- Attach consuming containers to `monitor`; the host port is intentionally unpublished

@@ -14,8 +14,9 @@ services:
     cpu_shares: 384
     security_opt:
       - no-new-privileges:true
-    ports:
-      - "9443:9443" # HTTPS UI
+    # UI is private to monitor and served through Caddy.
+    expose:
+      - "9443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
