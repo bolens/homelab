@@ -54,6 +54,9 @@ services:
     cpus: 2.0
     # Expose the host NVIDIA GPU so CUDA-enabled Torch workloads can accelerate.
     gpus: all
+    # The NVIDIA CDI request exposes this node but does not grant its device-cgroup access.
+    devices:
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
 
 networks:
   security-research:

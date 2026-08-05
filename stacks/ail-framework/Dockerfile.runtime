@@ -1,0 +1,10 @@
+FROM ail-framework:6.7-build
+
+# Redis 5 bundled by AIL does not implement RESP3's HELLO command.
+# redis-py 8 defaults to RESP3, so retain the compatible RESP2-era client.
+RUN /opt/AIL/AILENV/bin/pip install --no-cache-dir \
+    "redis>4.4.4,<6" \
+    "lexilang==1.0.7" \
+    && sed -i 's/^host = 127[.]0[.]0[.]1$/host = 0.0.0.0/' \
+        /opt/AIL/configs/core.cfg \
+        /opt/AIL/configs/core.cfg.sample

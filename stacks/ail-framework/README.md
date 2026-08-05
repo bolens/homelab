@@ -36,6 +36,7 @@
 | **Storage** | Named volumes for PASTES, CRAWLED_SCREENSHOT, DATA_KVROCKS, indexdir, HASHS, logs. |
 | **Login behavior** | Uses upstream AIL 6.7 behavior; the old 5.x `root.py` override is no longer mounted. |
 | **GPU** | All NVIDIA GPUs are exposed through Docker (`gpus: all`) so CUDA-enabled Torch workloads can accelerate. Requires the NVIDIA Container Toolkit on the host. |
+| **Flask bind** | The runtime layer changes AIL's loopback-only default to `0.0.0.0:7000` so Caddy can reach the container over `ingress-admin`. |
 
 ## Resources
 
@@ -50,7 +51,9 @@ Official releases (e.g. **v6.7**) are not published as images; this stack builds
 1. **Build the image** (takes a long time, several GB disk/RAM and network):
    ```bash
    cd stacks/ail-framework/ail-framework-docker/ail-framework
-   docker build -f other_installers/docker/Dockerfile -t ail-framework:6.7 .
+   docker build -f other_installers/docker/Dockerfile -t ail-framework:6.7-build .
+   cd ../..
+   docker build -f Dockerfile.runtime -t ail-framework:6.7 .
    ```
    Or clone upstream at `v6.7` and copy the patched files from `ail-framework-docker/ail-framework` if you maintain a separate tree (see `ail-framework-docker/README.md`).
 
