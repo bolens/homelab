@@ -1,6 +1,6 @@
 services:
   pgadmin:
-    image: dpage/pgadmin4:2026-06-18-3
+    image: dpage/pgadmin4:2026-07-29-2
     container_name: pgadmin
     restart: unless-stopped
     cpus: 1.5
