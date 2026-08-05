@@ -10,6 +10,29 @@ ail.home, ail.local {
 	}
 }
 
+http://ail.example.com {
+	reverse_proxy https://ail:7000 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+ail.example.com {
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
+	reverse_proxy https://ail:7000 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+		header_up Host {host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
 # Optional: Lacus crawler UI (only when using an image that includes Lacus, e.g. ail-framework:6.6-lacus-tor). Port 7100 is HTTP.
 # lacus.home, lacus.local {
 # 	tls internal
