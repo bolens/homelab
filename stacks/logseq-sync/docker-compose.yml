@@ -21,4 +21,3 @@ networks:
 
 volumes:
   logseq_sync_data:
-

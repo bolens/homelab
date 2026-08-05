@@ -7,8 +7,8 @@ Tier-1 alerting jobs (blackbox_public / blackbox_http_paths_public) are left unc
 sample_limit sanity; inventory lists are replaced.
 
 Usage (from repo root):
-  python3 scripts/sync_blackbox_targets_from_monitoring.py stacks/prometheus/prometheus.yml.example
-  python3 scripts/sync_blackbox_targets_from_monitoring.py /home/you/.config/prometheus/prometheus.yml --domain example.com
+  python3 scripts/sync-blackbox-targets-from-monitoring.py stacks/prometheus/prometheus.yml.example
+  python3 scripts/sync-blackbox-targets-from-monitoring.py /home/you/.config/prometheus/prometheus.yml --domain example.com
 """
 from __future__ import annotations
 

@@ -21,7 +21,7 @@ Gitleaks scan.
 | Helper | Purpose |
 |---|---|
 | `homelab-doctor.sh` | Checks prerequisites, Docker access, shared networks, sensitive-file tracking, Compose YAML, and known media mounts. Does not create or change anything. |
-| `validate-repo.sh` | Compiles Python helpers; parses Compose; audits preparation, metadata, examples, links, and generated docs; and runs ShellCheck when available. |
+| `validate-repo.sh` | Compiles Python helpers; parses Compose; audits preparation, metadata, examples, links and anchors, generated docs, and tracked-file integrity; then runs YAML, Markdown, and shell lint when available. Pass `--strict` to require every lint tool. |
 | `validate-dependency-config.py` | Parses Dependabot and Renovate configuration and catches unsupported ecosystem options before GitHub parses them. |
 | `ci-parse-composes.py` | PyYAML parser used by local validation and CI. |
 | `validate-compose-config.py` | Runs `docker compose config` against portable example environments and skips explicitly generated include bundles. |
@@ -54,14 +54,14 @@ changing `stack.env`.
 | Helper | Purpose |
 |---|---|
 | `apply-running-resource-limits.sh` | Previews fallback runtime limits. Applying requires both `--container NAME` and `--apply`; prefer persistent per-stack Compose limits. |
-| `find_apache2_containers.sh` | Maps running host Apache processes to Docker containers. |
+| `find-apache2-containers.sh` | Maps running host Apache processes to Docker containers. |
 | `list-layout.sh` | Summarizes the repository layout. |
 | `migrate-docker-volume-to-path.sh` | Copies a named volume to a bind path. Stop the affected stack first. |
 | `sync-local-hosts.sh` | Maintains explicitly configured local hostname entries. Read its help before use. |
 | `sync-gitea-from-github.sh` | Safely fast-forwards Gitea from authoritative GitHub and mirrors tags; refuses divergent history. |
 | `push-github-mirror.sh` | Compatibility wrapper for `sync-gitea-from-github.sh`. |
 | `pre-commit-*.sh` | Focused wrappers for staged Gitleaks, Hadolint, and zizmor checks. |
-| `sort_caddyfile.py` | Sorts generated Caddy hostname blocks while preserving the file preamble. |
+| `sort-caddyfile.py` | Sorts generated Caddy hostname blocks while preserving the file preamble. |
 | `patch-caddy-h1-transport.py` | Maintainer migration for adding HTTP/1.1 transport settings to selected Caddy proxies. |
 
 ## Monitoring
@@ -70,7 +70,7 @@ changing `stack.env`.
 |---|---|
 | `validate-monitoring-config.sh` | Validates Prometheus, Alertmanager, Loki, Promtail, Alloy, Blackbox Exporter, and related configuration. |
 | `monitoring-smoke-check.sh` | Checks Prometheus jobs/rules, Alertmanager readiness, and important Loki queries. |
-| `sync_blackbox_targets_from_monitoring.py` | Rebuilds non-alerting Blackbox target groups from the monitoring target inventory. |
+| `sync-blackbox-targets-from-monitoring.py` | Rebuilds non-alerting Blackbox target groups from the monitoring target inventory. |
 
 Use `make help` for the supported validation and monitoring workflows. For the
 end-to-end setup sequence, see

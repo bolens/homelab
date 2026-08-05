@@ -148,7 +148,7 @@ geolite/
 **/repo/
 stacks/ail-framework/ail-framework-docker/
 
-# pnpm (local store + virtual store; lockfile is committed)
+# pnpm local stores and virtual stores
 .pnpm-store/
 .pnpm-home/
 **/.pnpm/

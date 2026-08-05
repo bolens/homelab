@@ -14,5 +14,6 @@ steps:
   - name: repository-validation
     image: docker.io/library/alpine:3.24.1
     commands:
-      - apk add --no-cache bash docker-cli-compose git make python3 py3-pyyaml shellcheck
-      - make validate
+      - apk add --no-cache bash docker-cli-compose git make nodejs npm py3-yamllint python3 py3-pyyaml shellcheck
+      - npm install --global markdownlint-cli2@0.22.0
+      - make validate-strict

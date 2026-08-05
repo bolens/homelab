@@ -7,6 +7,7 @@ import re
 import subprocess
 from pathlib import Path
 import json
+from urllib.parse import unquote
 
 import yaml
 
@@ -21,13 +22,25 @@ PERSONAL_MARKERS = (
 )
 ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 MARKDOWN_LINK = re.compile(r"\[[^]]*]\(([^)]+)\)")
+MARKDOWN_HEADING = re.compile(r"^ {0,3}#{1,6}\s+(.+?)\s*#*\s*$")
+MARKDOWN_EXPLICIT_ANCHOR = re.compile(
+    r"""<(?:a|[A-Za-z][A-Za-z0-9-]*)\b[^>]*\b(?:id|name)=["']([^"']+)["']""",
+    re.I,
+)
 REVERSE_PROXY = re.compile(
     r"^\s*reverse_proxy\s+(?:https?://)?([A-Za-z0-9_.-]+)(?::\d+)?",
     re.MULTILINE,
 )
+MAX_TRACKED_FILE_SIZE = 1024 * 1024
+INTENTIONALLY_EMPTY = {
+    "stacks/archisteamfarm/caddy_snippet.conf.example",
+    "stacks/glance/assets/user.css",
+    "stacks/grafana/provisioning_dashboards.example/json/.gitkeep",
+    "stacks/node-red/caddy_snippet.conf.example",
+}
 
 
-def tracked(pathspec: str) -> list[str]:
+def tracked(pathspec: str = ".") -> list[str]:
     result = subprocess.run(
         ["git", "-C", str(ROOT), "ls-files", pathspec],
         check=True,
@@ -46,6 +59,30 @@ def available_in_checkout(path: Path) -> bool:
     ).returncode != 0
 
 
+def markdown_anchors(path: Path) -> set[str]:
+    anchors: set[str] = set()
+    occurrences: dict[str, int] = {}
+    text = path.read_text(encoding="utf-8", errors="replace")
+    anchors.update(MARKDOWN_EXPLICIT_ANCHOR.findall(text))
+    in_fence = False
+    for line in text.splitlines():
+        if re.match(r"^ {0,3}(```|~~~)", line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        match = MARKDOWN_HEADING.match(line)
+        if not match:
+            continue
+        heading = re.sub(r"<[^>]+>", "", match.group(1))
+        heading = re.sub(r"[^\w\s-]", "", heading.lower(), flags=re.UNICODE)
+        slug = re.sub(r"\s", "-", heading.strip())
+        count = occurrences.get(slug, 0)
+        occurrences[slug] = count + 1
+        anchors.add(slug if count == 0 else f"{slug}-{count}")
+    return anchors
+
+
 def audit_markdown(errors: list[str]) -> None:
     docs = [ROOT / "README.md", ROOT / "CONTRIBUTING.md", ROOT / "SECURITY.md"]
     docs.extend((ROOT / "documents").glob("*.md"))
@@ -62,11 +99,45 @@ def audit_markdown(errors: list[str]) -> None:
         if not path.exists():
             continue
         for target in MARKDOWN_LINK.findall(path.read_text(encoding="utf-8", errors="replace")):
-            local = target.split("#", 1)[0]
+            local, separator, fragment = target.partition("#")
             if not local or "://" in local or local.startswith("mailto:"):
+                target_path = path if not local and separator else None
+            else:
+                target_path = (path.parent / unquote(local)).resolve()
+            if target_path is None:
                 continue
-            if not available_in_checkout((path.parent / local).resolve()):
+            if not available_in_checkout(target_path):
                 errors.append(f"{path.relative_to(ROOT)}: broken link {target}")
+                continue
+            if fragment and target_path.suffix.lower() == ".md":
+                anchor = unquote(fragment)
+                if anchor not in markdown_anchors(target_path):
+                    errors.append(f"{path.relative_to(ROOT)}: broken anchor {target}")
+
+
+def audit_tracked_files(errors: list[str]) -> None:
+    paths = tracked()
+    case_paths: dict[str, str] = {}
+    for relative in paths:
+        path = ROOT / relative
+        folded = relative.casefold()
+        if folded in case_paths and case_paths[folded] != relative:
+            errors.append(f"case-colliding paths: {case_paths[folded]} and {relative}")
+        case_paths[folded] = relative
+        if not path.is_file():
+            continue
+        size = path.stat().st_size
+        if size > MAX_TRACKED_FILE_SIZE:
+            errors.append(f"{relative}: tracked file exceeds 1 MiB ({size} bytes)")
+        if size == 0 and relative not in INTENTIONALLY_EMPTY:
+            errors.append(f"{relative}: unexpected empty tracked file")
+        first_line = path.open("rb").readline(4096)
+        executable = bool(path.stat().st_mode & 0o111)
+        has_shebang = first_line.startswith(b"#!/")
+        if has_shebang and not executable:
+            errors.append(f"{relative}: has a shebang but is not executable")
+        if executable and not has_shebang:
+            errors.append(f"{relative}: is executable but has no shebang")
 
 
 def audit_stack(directory: Path, errors: list[str], warnings: list[str]) -> None:
@@ -110,6 +181,7 @@ def main() -> int:
     private = tracked("**/stack.env") + tracked("**/.env")
     if private:
         errors.extend(f"tracked private environment file: {path}" for path in private)
+    audit_tracked_files(errors)
     directories = []
     for path in sorted(path for path in STACKS.iterdir() if path.is_dir()):
         ignored = subprocess.run(

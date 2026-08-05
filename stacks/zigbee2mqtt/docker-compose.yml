@@ -26,4 +26,3 @@ networks:
 
 volumes:
   zigbee2mqtt_data: {}
-

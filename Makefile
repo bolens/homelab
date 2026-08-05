@@ -1,9 +1,10 @@
-.PHONY: help doctor validate ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate validate-strict ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 help:
 	@echo "Homelab repository targets:"
 	@echo "  doctor             Read-only host and repository checks"
 	@echo "  validate           Python, Compose YAML, and shell validation"
+	@echo "  validate-strict    Validate and require every lint dependency"
 	@echo "  ci-local           Run all pre-commit and history secret checks"
 	@echo "  hooks-install      Install repository pre-commit hooks"
 	@echo "  mirror-sync        Fast-forward Gitea from authoritative GitHub"
@@ -22,6 +23,9 @@ doctor:
 
 validate:
 	bash scripts/validate-repo.sh
+
+validate-strict:
+	bash scripts/validate-repo.sh --strict
 
 ci-local:
 	pre-commit run --all-files
@@ -74,4 +78,4 @@ monitoring-quick: monitoring-reload monitoring-smoke-check
 
 # Rebuild blackbox_nonalert + blackbox_http_paths_nonalert from documents/MONITORING-TARGETS.md (example.com only).
 monitoring-sync-blackbox:
-	python3 scripts/sync_blackbox_targets_from_monitoring.py stacks/prometheus/prometheus.yml.example
+	python3 scripts/sync-blackbox-targets-from-monitoring.py stacks/prometheus/prometheus.yml.example

@@ -24,4 +24,3 @@ networks:
 
 volumes:
   home_assistant_config: {}
-

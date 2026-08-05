@@ -4,7 +4,7 @@ Sort only the Public HTTPS section of a Caddyfile A–Z by hostname.
 Local and :80 blocks are left unchanged.
 
 Run from the docker/ repo root, e.g.:
-  python3 scripts/sort_caddyfile.py [--dry-run|-n] [stacks/caddy/Caddyfile]
+  python3 scripts/sort-caddyfile.py [--dry-run|-n] [stacks/caddy/Caddyfile]
 
 With --dry-run, prints the result to stdout and does not modify the file.
 """

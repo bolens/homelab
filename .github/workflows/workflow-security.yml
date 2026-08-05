@@ -48,4 +48,3 @@ jobs:
         with:
           min-severity: medium
           min-confidence: medium
-

@@ -3,6 +3,26 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
+STRICT=0
+if [[ "${1:-}" == "--strict" ]]; then
+  STRICT=1
+elif [[ $# -gt 0 ]]; then
+  echo "Usage: $0 [--strict]" >&2
+  exit 2
+fi
+
+run_optional_check() {
+  local tool="$1"
+  shift
+  if command -v "$tool" >/dev/null 2>&1; then
+    "$@"
+  elif (( STRICT )); then
+    echo "FAIL: $tool is unavailable." >&2
+    return 1
+  else
+    echo "WARN: $tool is unavailable; check skipped." >&2
+  fi
+}
 
 echo "Compiling Python helpers..."
 python3 -m compileall -q scripts
@@ -29,12 +49,21 @@ echo "Checking generated documentation..."
 python3 scripts/build-stack-catalog.py --check
 python3 scripts/build-topology.py --check
 
-if command -v shellcheck >/dev/null 2>&1; then
-  echo "Checking repository shell helpers..."
-  mapfile -t shell_files < <(find scripts -maxdepth 1 -type f -name '*.sh' -print | sort)
-  shellcheck -S warning "${shell_files[@]}"
-else
-  echo "WARN: shellcheck is unavailable; shell lint skipped." >&2
-fi
+echo "Checking YAML style..."
+mapfile -t yaml_files < <(git ls-files '*.yaml' '*.yml' | while read -r file; do
+  [[ -f "$file" ]] && printf '%s\n' "$file"
+done)
+run_optional_check yamllint yamllint -c .yamllint.yml "${yaml_files[@]}"
+
+echo "Checking Markdown style..."
+mapfile -t markdown_files < <(git ls-files '*.md' | while read -r file; do
+  [[ -f "$file" ]] && printf '%s\n' "$file"
+done)
+run_optional_check markdownlint-cli2 markdownlint-cli2 --config .markdownlint.json \
+  "${markdown_files[@]}"
+
+echo "Checking repository shell helpers..."
+mapfile -t shell_files < <(find scripts -maxdepth 1 -type f -name '*.sh' -print | sort)
+run_optional_check shellcheck shellcheck -S warning "${shell_files[@]}"
 
 echo "Repository validation passed."

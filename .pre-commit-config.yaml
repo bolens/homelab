@@ -36,6 +36,6 @@ repos:
         types: [dockerfile]
       - id: repository-validation
         name: repository validation
-        entry: bash scripts/validate-repo.sh
+        entry: bash scripts/validate-repo.sh --strict
         language: system
         pass_filenames: false

@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: find_apache2_containers.sh [--help|--health|--version]
+Usage: find-apache2-containers.sh [--help|--health|--version]
 
 List host apache2 processes and identify their Docker container, if any.
 Run this on the Docker host. Reading another user's /proc entries may require
@@ -14,13 +14,13 @@ EOF
 case "${1:-}" in
   --help) usage; exit 0 ;;
   --health) echo "OK"; exit 0 ;;
-  --version) echo "find_apache2_containers.sh 2.0"; exit 0 ;;
+  --version) echo "find-apache2-containers.sh 2.0"; exit 0 ;;
   "") ;;
   *) usage >&2; exit 2 ;;
 esac
 
 command -v pgrep >/dev/null 2>&1 || {
-  echo "find_apache2_containers.sh: pgrep is required." >&2
+  echo "find-apache2-containers.sh: pgrep is required." >&2
   exit 127
 }
 
