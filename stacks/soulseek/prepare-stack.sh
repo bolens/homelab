@@ -11,6 +11,6 @@ prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "media-services" "true"
 prepare_stack_ensure_docker_network "media-automation"
 prepare_stack_ensure_docker_network "ingress-public"
-prepare_stack_ensure_dir_from_env "SLSKD_DOWNLOADS_PATH" "/mnt/unraid/media/downloads/soulseek"
-prepare_stack_ensure_dir_from_env "SLSKD_SHARED_MUSIC_PATH" "/mnt/unraid/media/music"
+prepare_stack_ensure_dir_from_env "SLSKD_DOWNLOADS_PATH" "${MEDIA_ROOT:-/srv/media}/downloads/soulseek"
+prepare_stack_ensure_dir_from_env "SLSKD_SHARED_MUSIC_PATH" "${MEDIA_ROOT:-/srv/media}/music"
 prepare_stack_end

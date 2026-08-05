@@ -144,45 +144,74 @@ Restrict a direct export to the consuming host and use root squashing. Keep
 the local mount point `/mnt/unraid/media` unchanged so stack bind mounts do
 not need to change.
 
-### mDNS aliases (`.local` hostnames for any stack)
+### Local DNS and automatically reconciled mDNS
 
-The Caddyfile serves many stacks as `<name>.home` and `<name>.local` so you can reach them on the LAN without going through Cloudflare (useful for large uploads, e.g. Harbor). To make `<name>.local` resolve via mDNS **without changing the system hostname**, you can either use **one list + script** (easiest) or the template unit below.
+Use local DNS as the normal path. Configure one wildcard rewrite in AdGuard
+Home, Pi-hole, or the network resolver:
 
-**Easiest: one list for Avahi and /etc/hosts**
+```text
+*.home.arpa → CADDY_LAN_IP
+```
 
-1. From the `docker/` repo root: `cp scripts/local-hosts.conf.example scripts/local-hosts.conf`
-2. Edit `scripts/local-hosts.conf`: one hostname per line (e.g. `harbor`, `gitea`, `nextcloud`). No `.local` suffix.
-3. Run `./scripts/sync-local-hosts.sh --print` to see what would be written, then `sudo ./scripts/sync-local-hosts.sh --apply`. The script writes `/etc/avahi/hosts` always; if **hblock** is installed it writes only `/etc/hblock/footer` (no direct `/etc/hosts` edit), otherwise it writes the .local block to `/etc/hosts`. So entries live in one place: footer when you use hblock, `/etc/hosts` when you don’t.
-4. Restart Avahi: `sudo systemctl restart avahi-daemon`
-5. **If you use hblock:** after `--apply`, the script writes **`~/.config/hblock/footer.list`** (same place as your other hblock lists). Run your usual hblock command with **`-F ~/.config/hblock/footer.list`** (e.g. `sudo hblock -S ~/.config/hblock/sources.list -A ~/.config/hblock/allow.list -O /etc/hosts -F ~/.config/hblock/footer.list`). If the footer is not applied, run `sudo sh -c 'cat ~/.config/hblock/footer.list >> /etc/hosts'` as a fallback.
+Add matching `app.home.arpa` site labels to Caddy snippets as they are migrated.
+Unlike mDNS, normal DNS works across routed VLANs and the wildcard means new
+stacks require no resolver update. The existing `.local` names can remain as a
+compatibility layer.
 
-Other machines on the LAN will resolve `<name>.local` via Avahi; on the Caddy host itself, `/etc/hosts` is used (ensure `files` is before `mdns_minimal` in `/etc/nsswitch.conf` — see below). If your host IP changes (e.g. DHCP), run the script again with `--apply` and, if you use hblock, run `sudo hblock` again.
+`scripts/sync-local-hosts.py` discovers running Compose projects from Docker's
+standard `com.docker.compose.project.working_dir` label, extracts `.local` site
+labels from each active stack's runtime `caddy_snippet.conf`, and reconciles a
+marked block in both `/etc/avahi/hosts` and `/etc/hosts`. It preserves all
+unmanaged content, writes atomically, and reloads Avahi only after a change.
 
-**Alternative: template unit per alias**
+Preview or manually apply:
 
-- **File:** `scripts/avahi-alias@.service` (from the `docker/` repo root).
-- **Install once:** `sudo cp scripts/avahi-alias@.service /etc/systemd/system/` then `sudo systemctl daemon-reload`.
-- **Enable per stack:** `sudo systemctl enable --now avahi-alias@<name>.service` where `<name>` matches the Caddy host (e.g. `harbor`, `gitea`, `nextcloud`). Each advertises `<name>.local` pointing at the Caddy host.
+```bash
+./scripts/sync-local-hosts.sh --print
+sudo ./scripts/sync-local-hosts.sh --apply
+./scripts/sync-local-hosts.sh --check
+```
 
-Requires `avahi-daemon` and `avahi-utils` on the host where Caddy runs. Example: `avahi-alias@harbor.service` → `harbor.local`, `avahi-alias@gitea.service` → `gitea.local`.
+Use `--all-configured` to preview every runtime snippet regardless of container
+state. Set a stable address with `--interface eno1`, `--ip 192.168.1.10`,
+`MDNS_INTERFACE`, or `MDNS_IP`. Without one, the address used by the default
+IPv4 route is selected.
 
-**If the unit fails** with `Failed to resolve host name '<name>.local': Timeout reached`, use the **static hosts file** instead (no resolve step, works everywhere):
+For exceptional aliases, copy `scripts/local-hosts.overrides.example` to the
+gitignored `scripts/local-hosts.overrides`. A `+name` line forces an alias into
+the result and `-name` excludes one.
 
-1. On the Caddy host, get the LAN IP (e.g. `hostname -I | awk '{print $1}'` or `ip -4 route get 1 | awk '{print $7}'`).
-2. Add one line to `/etc/avahi/hosts` (create the file if needed):  
-   `LAN_IP  name.local`  
-   Example: `192.168.1.10  harbor.local`
-3. Restart Avahi: `sudo systemctl restart avahi-daemon.service`
-4. Disable the alias unit so it doesn’t conflict: `sudo systemctl disable --now avahi-alias@name.service`
+Install the two-minute systemd reconciliation timer:
 
-Avahi will serve `name.local` to **other machines on the LAN**. Many setups do **not** resolve `/etc/avahi/hosts` on the **same machine** that runs Avahi (known limitation). So:
+```bash
+sudo install -m 0755 scripts/sync-local-hosts.py /usr/local/libexec/sync-local-hosts
+sudo install -m 0644 scripts/sync-local-hosts.service scripts/sync-local-hosts.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now sync-local-hosts.timer
+```
 
-- **From another device** (phone, laptop, etc.): `ping name.local` or open `https://name.local` — should work.
-- **From the Caddy host itself**: add the same line to **`/etc/hosts`** (system hosts), e.g. `192.168.1.10  harbor.local`. If `ping harbor.local` still fails, your `hosts` line in **`/etc/nsswitch.conf`** may have `mdns_minimal [NOTFOUND=return]` (or similar) **before** `files`, so `.local` is answered by mDNS only and `/etc/hosts` is never used. Put `files` first, e.g.  
-  `hosts: files mymachines mdns_minimal [NOTFOUND=return] resolve [!UNAVAIL=return] myhostname dns`  
-  then `/etc/hosts` is consulted for `harbor.local`.
+The installed script discovers active stacks from Compose's standard working
+directory labels, so the unit contains no repository or username-specific
+paths. If discovery must be constrained, put `MDNS_REPO_ROOT=/path/to/repo` in
+`/etc/default/sync-local-hosts`. To pin the LAN interface, set
+`MDNS_INTERFACE=eno1` there instead.
 
-If the host’s IP changes (e.g. DHCP), update both files and restart avahi-daemon (or re-run `sync-local-hosts.sh --apply` if you use the one-list method).
+When exactly one complete `~/.config/hblock` directory exists under `/home`,
+the reconciler automatically manages its `footer.list` and regenerates
+`/etc/hosts` only when the footer changed. Ambiguous systems must set
+`HBLOCK_CONFIG_DIR=/path/to/.config/hblock`. The generated command is
+equivalent to:
+
+```bash
+sudo hblock -S "$HBLOCK_CONFIG_DIR/sources.list" \
+  -A "$HBLOCK_CONFIG_DIR/allow.list" \
+  -O /etc/hosts \
+  -F "$HBLOCK_CONFIG_DIR/footer.list"
+```
+
+Without hblock, the default target is `/etc/hosts`; `--no-hblock` disables
+automatic detection explicitly. Other LAN devices resolve aliases from Avahi.
+Crossing VLANs still requires an mDNS reflector; prefer `home.arpa` DNS instead.
 
 ---
 
@@ -190,13 +219,17 @@ If the host’s IP changes (e.g. DHCP), update both files and restart avahi-daem
 
 ### 1. Shared env file (TZ & locale)
 
-Many stacks use the same `TZ`, `LANG`, `LC_ALL`, `LC_CTYPE`. You can set them in one place so you don’t repeat values in every `stack.env`.
+Many stacks use the same `TZ`, locale, and host storage roots. You can set
+`TZ`, `LANG`, `LC_ALL`, `LC_CTYPE`, `MEDIA_ROOT`, and `LAB_ROOT` in one place
+instead of repeating them. Preparation scripts read `MEDIA_ROOT` and
+`LAB_ROOT` from their process environment; per-stack path variables still take
+precedence.
 
 **Setup:** From the `docker/` repo root, copy the template and edit:
 
 ```bash
 cp shared.env.example shared.env
-# Edit shared.env with your TZ and locale (e.g. Europe/London, en_GB.UTF-8). Do NOT commit shared.env.
+# Edit timezone, locale, and optional roots. Do NOT commit shared.env.
 ```
 
 **Do not commit real values** — `shared.env` is gitignored; only `shared.env.example` is in the repo.
@@ -228,7 +261,7 @@ Portainer does not load a host path like `shared.env` when deploying from Git or
   - `LANG` = `en_US.UTF-8` (or your locale)
   - `LC_ALL` = `en_US.UTF-8`
   - `LC_CTYPE` = `en_US.UTF-8`
-  You can copy them from your local `shared.env` (or from `shared.env.example`) and paste name/value pairs into Portainer. Stacks that already define these in their compose will use the values you set in Portainer (compose typically uses `${TZ:-default}` so the Portainer env wins when provided).
+  You can copy them from your local `shared.env` (or from `shared.env.example`) and paste name/value pairs into Portainer. Add `MEDIA_ROOT` and `LAB_ROOT` only to stacks that reference them. Stacks that already define these in their compose will use the values you set in Portainer (compose typically uses `${TZ:-default}` so the Portainer env wins when provided).
 
 - **If you deploy from the host (e.g. Portainer with a bind-mounted compose path):** Some setups let you specify an env file path for the stack. If your Portainer has access to the host filesystem and supports an env file path, you can point it at `shared.env` in the `docker/` directory; otherwise use the manual variables above.
 

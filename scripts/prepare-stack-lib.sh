@@ -18,12 +18,36 @@ prepare_stack_begin() {
   PREPARE_STACK_DIR="$(cd "$dir" && pwd)" || return 1
   cd "$PREPARE_STACK_DIR" || return 1
   PREPARE_STACK_NAME="$(basename "$PREPARE_STACK_DIR")"
+  prepare_stack_load_shared_roots
   echo "[prepare-stack] ${PREPARE_STACK_NAME}: starting..."
 }
 
 prepare_stack_msg() {
   prepare_stack__require_prepdir || return 1
   echo "[prepare-stack] ${PREPARE_STACK_NAME}: $*"
+}
+
+# Read only portable host-root values from the repository's optional shared.env.
+# This deliberately does not source the file, so arbitrary shell content is
+# never executed. Already-exported values take precedence.
+prepare_stack_load_shared_roots() {
+  local shared_file="$PREPARE_STACK_DIR/../../shared.env"
+  [[ -f "$shared_file" ]] || return 0
+  local var_name current line value
+  for var_name in MEDIA_ROOT LAB_ROOT; do
+    current="${!var_name:-}"
+    [[ -z "$current" ]] || continue
+    line=$(grep -E "^${var_name}=" "$shared_file" 2>/dev/null | tail -1) || true
+    [[ -n "$line" ]] || continue
+    value="${line#*=}"
+    value="${value%$'\r'}"
+    value="${value#\"}"; value="${value%\"}"
+    value="${value#\'}"; value="${value%\'}"
+    value="$(prepare_stack__expand_home_in_path "$value")"
+    [[ -n "$value" ]] || continue
+    printf -v "$var_name" '%s' "$value"
+    export "${var_name?}"
+  done
 }
 
 prepare_stack_copy_env() {

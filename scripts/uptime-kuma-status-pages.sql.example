@@ -74,11 +74,11 @@ UPDATE monitor
 SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'Apps & Utilities')
 WHERE type != 'group'
   AND type != 'docker'
-  AND parent = (SELECT id FROM monitor WHERE type = 'group' AND name = 'External [*.bolens.dev]');
+  AND parent = (SELECT id FROM monitor WHERE type = 'group' AND name = 'External [*.example.com]');
 
 DELETE FROM monitor
 WHERE type = 'group'
-  AND name = 'External [*.bolens.dev]'
+  AND name = 'External [*.example.com]'
   AND NOT EXISTS (SELECT 1 FROM monitor child WHERE child.parent = monitor.id);
 
 -- Rebuild only the managed status pages and their display groups.
@@ -101,19 +101,19 @@ INSERT INTO status_page (
   show_only_last_heartbeat, footer_text
 ) VALUES
   (
-    'services', 'Bolens Services',
-    'Current availability of user-facing Bolens services.',
+    'services', 'Homelab Services',
+    'Current availability of user-facing homelab services.',
     '/icon.svg', 'dark', 1, 0, 0, 1, 1, 60, 0,
     'Availability is measured from the homelab monitoring service.'
   ),
   (
-    'media', 'Bolens Media',
+    'media', 'Homelab Media',
     'Streaming, library, and media automation service availability.',
     '/icon.svg', 'dark', 1, 0, 0, 1, 1, 60, 0,
     'Availability is measured from the homelab monitoring service.'
   ),
   (
-    'infrastructure', 'Bolens Infrastructure',
+    'infrastructure', 'Homelab Infrastructure',
     'Edge, identity, observability, and developer-platform availability.',
     '/icon.svg', 'dark', 1, 0, 0, 1, 1, 60, 0,
     'No private container or database details are published here.'
@@ -260,9 +260,9 @@ WHERE NOT EXISTS (
 
 UPDATE status_page
 SET rss_title = CASE slug
-  WHEN 'services' THEN 'Bolens Services Status'
-  WHEN 'media' THEN 'Bolens Media Status'
-  WHEN 'infrastructure' THEN 'Bolens Infrastructure Status'
+  WHEN 'services' THEN 'Homelab Services Status'
+  WHEN 'media' THEN 'Homelab Media Status'
+  WHEN 'infrastructure' THEN 'Homelab Infrastructure Status'
 END
 WHERE slug IN ('services', 'media', 'infrastructure');
 

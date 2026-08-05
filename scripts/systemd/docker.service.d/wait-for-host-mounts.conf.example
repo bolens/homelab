@@ -12,17 +12,14 @@
 # Paths must be mounts systemd knows about (fstab / .mount units). If a path
 # is not a mount point, omit it or systemd may fail the unit.
 #
-# If Docker data-root is on /mnt/..., include that mount here too.
+# If Docker data-root is on a separate filesystem, include that mount too.
 #
 # Automount (x-systemd.automount): RequiresMountsFor= still orders after the
 # automount/mount stack; if anything races, prefer a normal fstab mount for
 # that volume or add explicit After=mnt-example.mount lines.
 
 [Unit]
-# Uncomment any other host mounts your stacks bind (see compose / stack.env):
-RequiresMountsFor=/mnt/unraid/media
-RequiresMountsFor=/mnt/dev
-RequiresMountsFor=/mnt/backup
-# RequiresMountsFor=/mnt/apps
-RequiresMountsFor=/mnt/games
-
+# Replace these examples with top-level mounts used by your stack bind paths.
+RequiresMountsFor=/srv/media
+# RequiresMountsFor=/srv/appdata
+# RequiresMountsFor=/srv/backups

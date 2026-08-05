@@ -43,7 +43,7 @@ VALUES (
     'type', 'ntfy',
     'name', 'Homelab ntfy',
     'ntfytopic', 'uptime-kuma',
-    'ntfyserverurl', 'https://ntfy.bolens.dev',
+    'ntfyserverurl', 'https://ntfy.example.com',
     'ntfyPriority', 4,
     'ntfyPriorityDown', 5,
     'ntfyAuthenticationMethod', 'none',
@@ -57,14 +57,16 @@ INSERT INTO monitor (
 )
 SELECT
   column1, 1, 1, 60, column2, 'http', column3, 2,
-  30, 30, 15, 420, 1
+  30, 30, 15,
+  (SELECT id FROM monitor WHERE name = 'External [*.example.com]' AND type = 'group' LIMIT 1),
+  1
 FROM (
   VALUES
-    ('AdGuard Home', 'https://adguard.bolens.dev/', 900),
-    ('Jellystat', 'https://jellystat.bolens.dev/', 910),
-    ('Tautulli', 'https://tautulli.bolens.dev/', 920),
-    ('LiteLLM', 'https://litellm.bolens.dev/health/liveliness', 930),
-    ('Soulseek', 'https://soulseek.bolens.dev/', 940)
+    ('AdGuard Home', 'https://adguard.example.com/', 900),
+    ('Jellystat', 'https://jellystat.example.com/', 910),
+    ('Tautulli', 'https://tautulli.example.com/', 920),
+    ('LiteLLM', 'https://litellm.example.com/health/liveliness', 930),
+    ('Soulseek', 'https://soulseek.example.com/', 940)
 )
 WHERE NOT EXISTS (
   SELECT 1 FROM monitor WHERE monitor.name = column1
@@ -79,22 +81,22 @@ INSERT INTO monitor (
 SELECT
   column1, 1, 1, 60, column2, 'http', column3, 2,
   30, 30, 15,
-  (SELECT id FROM monitor WHERE name = 'External [*.bolens.dev]' AND type = 'group' LIMIT 1),
+  (SELECT id FROM monitor WHERE name = 'External [*.example.com]' AND type = 'group' LIMIT 1),
   1, 10, '["200-299"]'
 FROM (
   VALUES
-    ('Cal.com', 'https://booking.bolens.dev/', 950),
-    ('DocuSeal', 'https://docuseal.bolens.dev/', 960),
-    ('Flood', 'https://flood.bolens.dev/', 970),
-    ('InfluxDB', 'https://influxdb.bolens.dev/health', 980),
-    ('Nodepad', 'https://nodepad.bolens.dev/', 990),
-    ('Paperless AI', 'https://paperless-ai.bolens.dev/', 1000),
-    ('Paperless GPT', 'https://paperless-gpt.bolens.dev/', 1010),
-    ('pgAdmin', 'https://pgadmin.bolens.dev/misc/ping', 1020),
-    ('Picard', 'https://picard.bolens.dev/', 1030),
-    ('Seerr', 'https://seerr.bolens.dev/api/v1/status', 1040),
-    ('The Lounge', 'https://thelounge.bolens.dev/', 1050),
-    ('Twitch Drops Miner', 'https://twitchdrops.bolens.dev/', 1060)
+    ('Cal.com', 'https://booking.example.com/', 950),
+    ('DocuSeal', 'https://docuseal.example.com/', 960),
+    ('Flood', 'https://flood.example.com/', 970),
+    ('InfluxDB', 'https://influxdb.example.com/health', 980),
+    ('Nodepad', 'https://nodepad.example.com/', 990),
+    ('Paperless AI', 'https://paperless-ai.example.com/', 1000),
+    ('Paperless GPT', 'https://paperless-gpt.example.com/', 1010),
+    ('pgAdmin', 'https://pgadmin.example.com/misc/ping', 1020),
+    ('Picard', 'https://picard.example.com/', 1030),
+    ('Seerr', 'https://seerr.example.com/api/v1/status', 1040),
+    ('The Lounge', 'https://thelounge.example.com/', 1050),
+    ('Twitch Drops Miner', 'https://twitchdrops.example.com/', 1060)
 )
 WHERE NOT EXISTS (
   SELECT 1 FROM monitor WHERE monitor.name = column1
@@ -107,14 +109,14 @@ UPDATE monitor SET name = 'SearxNG' WHERE name = 'Searx-ng';
 UPDATE monitor SET name = 'Uptime Kuma' WHERE name = 'Uptime-Kuma';
 
 -- Prefer application health endpoints over login or landing pages.
-UPDATE monitor SET url = 'https://authentik.bolens.dev/-/health/live/' WHERE name = 'Authentik';
-UPDATE monitor SET url = 'https://gitea.bolens.dev/api/healthz' WHERE name = 'Gitea';
-UPDATE monitor SET url = 'https://harbor.bolens.dev/api/v2.0/health' WHERE name = 'Harbor';
-UPDATE monitor SET url = 'https://jellyfin.bolens.dev/health' WHERE name = 'Jellyfin';
-UPDATE monitor SET url = 'https://music.bolens.dev/ping' WHERE name = 'Navidrome';
-UPDATE monitor SET url = 'https://nextcloud.bolens.dev/status.php' WHERE name = 'Nextcloud';
-UPDATE monitor SET url = 'https://seafile.bolens.dev/api2/ping/' WHERE name = 'Seafile';
-UPDATE monitor SET url = 'https://minio-console.bolens.dev/minio/health/live' WHERE name = 'MinIO';
+UPDATE monitor SET url = 'https://authentik.example.com/-/health/live/' WHERE name = 'Authentik';
+UPDATE monitor SET url = 'https://gitea.example.com/api/healthz' WHERE name = 'Gitea';
+UPDATE monitor SET url = 'https://harbor.example.com/api/v2.0/health' WHERE name = 'Harbor';
+UPDATE monitor SET url = 'https://jellyfin.example.com/health' WHERE name = 'Jellyfin';
+UPDATE monitor SET url = 'https://music.example.com/ping' WHERE name = 'Navidrome';
+UPDATE monitor SET url = 'https://nextcloud.example.com/status.php' WHERE name = 'Nextcloud';
+UPDATE monitor SET url = 'https://seafile.example.com/api2/ping/' WHERE name = 'Seafile';
+UPDATE monitor SET url = 'https://minio-console.example.com/minio/health/live' WHERE name = 'MinIO';
 
 INSERT INTO monitor (
   name, active, user_id, interval, type, hostname, port, weight, maxretries,

@@ -8,5 +8,5 @@ prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "ingress-admin"
 prepare_stack_ensure_docker_network "torrents"
-prepare_stack_ensure_dir_from_env "QBITTORRENT_MEDIA_PATH" "/mnt/unraid/media"
+prepare_stack_ensure_dir_from_env "QBITTORRENT_MEDIA_PATH" "${MEDIA_ROOT:-/srv/media}"
 prepare_stack_end

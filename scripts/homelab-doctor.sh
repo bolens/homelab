@@ -9,13 +9,41 @@ ok() { printf 'OK    %s\n' "$*"; }
 warn() { printf 'WARN  %s\n' "$*"; warnings=$((warnings + 1)); }
 fail() { printf 'FAIL  %s\n' "$*"; errors=$((errors + 1)); }
 
-if [[ "${1:-}" == "--help" ]]; then
-  echo "Usage: $0"
-  echo "Read-only checks for prerequisites, repository safety, Compose files, Docker, networks, and mounts."
-  exit 0
-elif (($#)); then
-  echo "Usage: $0" >&2
-  exit 2
+expected_networks=()
+mount_paths=()
+
+while (($#)); do
+  case "$1" in
+    --network)
+      [[ $# -ge 2 ]] || { echo "--network requires a name" >&2; exit 2; }
+      expected_networks+=("$2")
+      shift 2
+      ;;
+    --mount)
+      [[ $# -ge 2 ]] || { echo "--mount requires a path" >&2; exit 2; }
+      mount_paths+=("$2")
+      shift 2
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--network NAME]... [--mount PATH]..."
+      echo "Read-only checks for prerequisites, repository safety, Compose files, Docker, networks, and mounts."
+      echo "Environment: HOMELAB_EXPECTED_NETWORKS (space-separated), HOMELAB_MOUNT_PATHS (colon-separated)."
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -n "${HOMELAB_EXPECTED_NETWORKS:-}" ]]; then
+  read -r -a env_networks <<< "$HOMELAB_EXPECTED_NETWORKS"
+  expected_networks+=("${env_networks[@]}")
+fi
+if [[ -n "${HOMELAB_MOUNT_PATHS:-}" ]]; then
+  IFS=: read -r -a env_mounts <<< "$HOMELAB_MOUNT_PATHS"
+  mount_paths+=("${env_mounts[@]}")
 fi
 
 echo "Homelab repository doctor"
@@ -37,7 +65,7 @@ if command -v docker >/dev/null 2>&1; then
   fi
   if docker info >/dev/null 2>&1; then
     ok "Docker daemon is reachable"
-    for network in monitor torrents usenet; do
+    for network in "${expected_networks[@]}"; do
       if docker network inspect "$network" >/dev/null 2>&1; then
         ok "Docker network '$network' exists"
       else
@@ -81,7 +109,7 @@ compose_count="$(find "$REPO/stacks" -mindepth 2 -maxdepth 2 -name docker-compos
 example_count="$(find "$REPO/stacks" -mindepth 2 -maxdepth 2 -name stack.env.example | wc -l)"
 printf 'INFO  stacks=%s compose_files=%s env_examples=%s\n' "$stack_count" "$compose_count" "$example_count"
 
-for mount_path in /mnt/unraid /mnt/unraid/media; do
+for mount_path in "${mount_paths[@]}"; do
   if [[ -e "$mount_path" ]]; then
     if mountpoint -q "$mount_path"; then
       ok "$mount_path is a mount point"

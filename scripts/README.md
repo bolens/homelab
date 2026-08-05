@@ -20,7 +20,7 @@ Gitleaks scan.
 
 | Helper | Purpose |
 |---|---|
-| `homelab-doctor.sh` | Checks prerequisites, Docker access, shared networks, sensitive-file tracking, Compose YAML, and known media mounts. Does not create or change anything. |
+| `homelab-doctor.sh` | Checks prerequisites, Docker access, sensitive-file tracking, and Compose YAML. Add repeatable `--network NAME` / `--mount PATH` checks, or set `HOMELAB_EXPECTED_NETWORKS` / `HOMELAB_MOUNT_PATHS`. Does not create or change anything. |
 | `validate-repo.sh` | Compiles Python helpers; parses Compose; audits preparation, metadata, examples, links and anchors, generated docs, and tracked-file integrity; then runs YAML, Markdown, and shell lint when available. Pass `--strict` to require every lint tool. |
 | `validate-dependency-config.py` | Parses Dependabot and Renovate configuration and catches unsupported ecosystem options before GitHub parses them. |
 | `ci-parse-composes.py` | PyYAML parser used by local validation and CI. |

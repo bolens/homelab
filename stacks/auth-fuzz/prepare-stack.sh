@@ -10,6 +10,6 @@ source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
-prepare_stack_ensure_dir_from_env "AUTH_FUZZ_WORDLIST_PATH" "${HOME}/security-lab/wordlists"
-prepare_stack_ensure_dir_from_env "AUTH_FUZZ_OUTPUT_PATH" "${HOME}/security-lab/auth-fuzz-output"
+prepare_stack_ensure_dir_from_env "AUTH_FUZZ_WORDLIST_PATH" "${LAB_ROOT:-${HOME}/security-lab}/wordlists"
+prepare_stack_ensure_dir_from_env "AUTH_FUZZ_OUTPUT_PATH" "${LAB_ROOT:-${HOME}/security-lab}/auth-fuzz-output"
 prepare_stack_end

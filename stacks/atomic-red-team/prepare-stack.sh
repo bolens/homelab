@@ -10,5 +10,5 @@ source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
-prepare_stack_ensure_dir_from_env "ATOMIC_WORKSPACE_PATH" "${HOME}/security-lab/atomic-red-team"
+prepare_stack_ensure_dir_from_env "ATOMIC_WORKSPACE_PATH" "${LAB_ROOT:-${HOME}/security-lab}/atomic-red-team"
 prepare_stack_end

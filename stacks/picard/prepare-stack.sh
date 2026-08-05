@@ -9,5 +9,5 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "ingress-public"
-prepare_stack_ensure_dir_from_env "PICARD_MEDIA_PATH" "/mnt/unraid/media"
+prepare_stack_ensure_dir_from_env "PICARD_MEDIA_PATH" "${MEDIA_ROOT:-/srv/media}"
 prepare_stack_end
