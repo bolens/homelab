@@ -1,0 +1,10 @@
+[Unit]
+Description=Reconcile active Docker Caddy aliases with Avahi
+After=docker.service avahi-daemon.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Optional: MDNS_INTERFACE, MDNS_IP, MDNS_REPO_ROOT, or HBLOCK_CONFIG_DIR.
+EnvironmentFile=-/etc/default/sync-local-hosts
+ExecStart=/usr/local/libexec/sync-local-hosts --apply

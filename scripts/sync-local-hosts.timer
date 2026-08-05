@@ -1,0 +1,12 @@
+[Unit]
+Description=Periodically reconcile active Docker Caddy aliases
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+RandomizedDelaySec=15s
+Persistent=true
+Unit=sync-local-hosts.service
+
+[Install]
+WantedBy=timers.target

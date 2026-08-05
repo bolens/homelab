@@ -18,9 +18,15 @@ Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.do
 
 Plain-HTTP `reverse_proxy` targets in **`Caddyfile.example`** include `transport http { versions 1.1 }` so cleartext backends work with **Caddy 2.11+** and **Cloudflare Tunnel → `http://caddy:80`**. After you add new one-line proxies, run **`scripts/patch-caddy-h1-transport.py`** from the repo root (it updates this example, per-stack `caddy_snippet*`, and **`stacks/stoat/caddy/Caddyfile`**).
 
-## Split horizon: `.home` / `.local` vs `*.example.com`
+## Split horizon: `home.arpa` / `.local` vs `*.example.com`
 
 Tracked **`caddy_snippet.conf`** files almost always define **LAN** sites (`app.home`, `app.local` with `tls internal`) so Caddy can route by hostname on your network.
+
+Prefer migrating the private DNS name to `app.home.arpa` and configure a single
+`*.home.arpa` rewrite to the Caddy host in the LAN resolver. Keep `app.local`
+where mDNS compatibility is useful. The reconciler documented in
+[SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) automatically
+advertises `.local` site labels for running Compose stacks.
 
 **Public** routes are a **second** layer, only where a stack is meant to be reachable from the Internet (Cloudflare Tunnel to `http://caddy:80`, and/or origin TLS on `app.example.com` with `tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }`). Those blocks must repeat the same upstream, **`transport http { versions 1.1 }`**, and (for tunnel) **`header_up`** for `Host`, `X-Forwarded-Proto https`, and `X-Forwarded-Host` — see [CLOUDFLARE.md](./CLOUDFLARE.md).
 
