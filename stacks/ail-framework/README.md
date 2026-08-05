@@ -49,18 +49,22 @@ Official releases (e.g. **v6.7**) are not published as images; this stack builds
 
 **This repo** vendors a pinned checkout under `ail-framework-docker/ail-framework` (tag **v6.7**) with small build fixes for Ubuntu 22.04 / current pip (Dockerfile paths, `install_virtualenv.sh`, pystemon installer). Prefer building from there so you do not have to re-apply patches after a fresh clone.
 
-1. **Build both variants** (the initial GPU-capable build takes a long time):
+1. **Build both variants.** Native compilation is shared by BuildKit; build the
+   CPU image first so the primary image does not wait for CUDA downloads:
    ```bash
-   cd stacks/ail-framework/ail-framework-docker/ail-framework
-   docker build -f ../../Dockerfile.build -t ail-framework:6.7-build .
-   cd ../..
-   docker build -f Dockerfile.runtime \
-     --build-arg BASE_IMAGE=ail-framework:6.7-build \
-     -t ail-framework:6.7-gpu .
-   docker build -f Dockerfile.cpu -t ail-framework:6.7-cpu-build .
+   cd stacks/ail-framework
+   docker build -f Dockerfile.build \
+     --build-arg AIL_TORCH_VARIANT=cpu \
+     -t ail-framework:6.7-cpu-build .
    docker build -f Dockerfile.runtime \
      --build-arg BASE_IMAGE=ail-framework:6.7-cpu-build \
      -t ail-framework:6.7 .
+   docker build -f Dockerfile.build \
+     --build-arg AIL_TORCH_VARIANT=gpu \
+     -t ail-framework:6.7-gpu-build .
+   docker build -f Dockerfile.runtime \
+     --build-arg BASE_IMAGE=ail-framework:6.7-gpu-build \
+     -t ail-framework:6.7-gpu .
    ```
 
 2. **Optional GPU deployment:**

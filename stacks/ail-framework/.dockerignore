@@ -1,0 +1,14 @@
+*
+!requirements-cpu.txt
+!requirements-pystemon.txt
+!requirements-runtime.txt
+!ail-framework-docker/
+!ail-framework-docker/ail-framework/
+!ail-framework-docker/ail-framework/**
+
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/*.egg-info
+**/.eggs

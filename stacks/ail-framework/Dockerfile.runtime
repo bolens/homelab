@@ -1,10 +1,13 @@
+# syntax=docker/dockerfile:1
+
 ARG BASE_IMAGE=ail-framework:6.7-cpu-build
 FROM ${BASE_IMAGE}
 
 # Redis 5 bundled by AIL does not implement RESP3's HELLO command.
 # redis-py 8 defaults to RESP3, so retain the compatible RESP2-era client.
 COPY requirements-runtime.txt /tmp/requirements-runtime.txt
-RUN /opt/AIL/AILENV/bin/pip install --no-cache-dir --require-hashes \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    /opt/AIL/AILENV/bin/pip install --require-hashes \
         -r /tmp/requirements-runtime.txt \
     && rm /tmp/requirements-runtime.txt \
     && sed -i 's/^host = 127[.]0[.]0[.]1$/host = 0.0.0.0/' \
