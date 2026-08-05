@@ -75,7 +75,7 @@ services:
       - rtorrent_data:/rtorrent_data
       - torrents_manual:/downloads
     networks:
-      - monitor
+      - proxy-ingress
       - torrents
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
@@ -85,8 +85,8 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
   torrents:
     name: torrents

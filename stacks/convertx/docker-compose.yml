@@ -1,5 +1,5 @@
 # ConvertX – self-hosted online file converter (1000+ formats).
-# No host ports: access only via Caddy (reverse_proxy convertx:3000 on monitor network).
+# No host ports: access only via Caddy on the dedicated ingress network.
 # Docs: https://github.com/C4illin/ConvertX
 services:
   convertx:
@@ -13,7 +13,7 @@ services:
     volumes:
       - convertx-data:/app/data
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/"]
       interval: 30s
@@ -22,9 +22,9 @@ services:
       start_period: 30s
 
 networks:
-  # Use external monitor only – do not create a stack default network (avoids subnet exhaustion)
-  monitor:
-    name: monitor
+  # Use only the shared ingress network; no stack default network is created.
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

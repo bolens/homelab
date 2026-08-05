@@ -43,7 +43,7 @@ Phone number OSINT tool: looks up basic information about a phone number (countr
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `phoneinfoga:5000`) |
-| **Network** | `monitor` (external) so Caddy can reach the container |
+| **Network** | `proxy-ingress` (external) for dedicated Caddy-to-service ingress |
 | **Image** | `sundowndev/phoneinfoga:latest` |
 | **Storage** | Stateless by default; results are generated per query in the UI/API |
 
@@ -58,7 +58,7 @@ phoneinfoga.home, phoneinfoga.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `phoneinfoga.yourdomain.com`) and keep the container on the `monitor` network so Caddy can resolve `phoneinfoga`.
+In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `phoneinfoga.yourdomain.com`) and keep the container on `proxy-ingress` so Caddy can resolve `phoneinfoga`.
 
 ## Start
 
@@ -66,4 +66,3 @@ From this directory:
 
 - **With env file:** `docker compose --env-file stack.env up -d`  
 - **Without env file:** `docker compose up -d` (uses default timezone)
-

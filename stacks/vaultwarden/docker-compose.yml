@@ -1,5 +1,5 @@
 # Vaultwarden – lightweight, Bitwarden-compatible password manager. See https://github.com/dani-garcia/vaultwarden
-# Portainer-friendly: named volumes, external monitor network for Caddy.
+# Portainer-friendly: named volume and dedicated Caddy ingress network.
 # Official wiki: https://github.com/dani-garcia/vaultwarden/wiki/Using-Docker-Compose
 
 name: vaultwarden
@@ -16,7 +16,7 @@ services:
       - vw_data:/data
     restart: unless-stopped
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "/healthcheck.sh"]
       interval: 30s
@@ -25,8 +25,8 @@ services:
       start_period: 15s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

@@ -1,7 +1,8 @@
 # When accessing Portainer through Caddy or another reverse proxy, set TRUSTED_ORIGINS
 # to the URL you use in the browser (e.g. https://portainer.yourdomain.com) to avoid
 # "Forbidden - Invalid origin" when deploying stacks. Optional: stack.env.example → stack.env.
-# Attach to monitor network so Caddy can reverse-proxy to portainer:9443.
+# Attach to the dedicated ingress network so Caddy can reach portainer:9443
+# without granting Portainer access to the broader monitoring network.
 services:
   portainer:
     image: portainer/portainer-ce:latest
@@ -14,7 +15,7 @@ services:
     cpu_shares: 384
     security_opt:
       - no-new-privileges:true
-    # UI is private to monitor and served through Caddy.
+    # UI is private to the Caddy ingress network.
     expose:
       - "9443"
     volumes:
@@ -26,11 +27,11 @@ services:
       - stack.env
     networks:
       - default
-      - monitor
+      - proxy-ingress
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

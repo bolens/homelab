@@ -25,7 +25,7 @@ The stack uses a **named volume** `mealie_data` so it works when deployed from P
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `mealie:9000`) |
-| **Network** | `monitor` (external) — Caddy can reverse-proxy to `mealie:9000` |
+| **Network** | `proxy-ingress` — Caddy can reverse-proxy to `mealie:9000` |
 | **Image** | ghcr.io/mealie-recipes/mealie:latest |
 | **Env** | `BASE_URL` recommended when behind HTTPS; `ALLOW_SIGNUP`; optional `DB_ENGINE` (sqlite/postgres) |
 | **Storage** | Named volume: `mealie_data` (SQLite DB, uploads, backups) |

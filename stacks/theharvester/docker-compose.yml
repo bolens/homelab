@@ -10,10 +10,9 @@ services:
     environment:
       - TZ=${TZ:-America/Denver}
     networks:
-      - monitor
+      - proxy-ingress
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
-

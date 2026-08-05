@@ -21,7 +21,7 @@
 
 3. **Access**
    - The server listens on port `9000` inside the container by default.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
      - `https://authentik.yourdomain.com` → `authentik-server:9000`
    - On first login, use the setup flow to create the initial admin user.
 
@@ -30,7 +30,7 @@
 | Item        | Details                                                                         |
 | ----------- | ------------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `authentik-server:9000`)                            |
-| **Network** | `monitor` (for Caddy and apps) + `authentik` internal network for DB/Redis      |
+| **Network** | `proxy-ingress` for Caddy + `mail-services` for SMTP + `authentik` internal for DB/Redis |
 | **Images**  | `ghcr.io/goauthentik/server:latest`, `postgres:16-alpine`, `redis:alpine`       |
 | **Storage** | `authentik_pg_data` (Postgres), `authentik_media` (media/uploads), `authentik_templates` |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `authentik.yourdomain.com` → `authentik-server:9000` |
@@ -64,10 +64,9 @@ For password reset and verification emails, configure SMTP in authentik: **Syste
 - **Username / Password:** leave empty for the relay (no auth)
 - **From:** `authentik@yourdomain.com` (must match Postfix `ALLOWED_SENDER_DOMAINS`)
 
-Ensure both authentik and Postfix are on the `monitor` network. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all emails appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+Ensure Authentik and Postfix are on `mail-services`. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all emails appear in the Mailpit web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Notes
 
 - This stack mirrors the official docker-compose layout in a simplified form. For advanced configuration (outposts, providers, etc.), refer to the authentik docs.
 - Consider pinning a specific image tag instead of `latest` for production deployments.
-

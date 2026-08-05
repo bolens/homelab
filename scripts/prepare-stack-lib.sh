@@ -143,6 +143,7 @@ prepare_stack_sync_dotenv_from_stack_env() {
 prepare_stack_ensure_docker_network() {
   prepare_stack__require_prepdir || return 1
   local net="${1:?network name}"
+  local internal="${2:-false}"
   if ! command -v docker >/dev/null 2>&1; then
     prepare_stack_msg "docker not in PATH; skipped creating network '$net'."
     return 0
@@ -153,6 +154,9 @@ prepare_stack_ensure_docker_network() {
   fi
   if docker network inspect "$net" >/dev/null 2>&1; then
     prepare_stack_msg "docker network '$net' already exists."
+  elif [[ "$internal" == "true" ]]; then
+    docker network create --internal "$net"
+    prepare_stack_msg "created internal docker network '$net'."
   else
     docker network create "$net"
     prepare_stack_msg "created docker network '$net'."

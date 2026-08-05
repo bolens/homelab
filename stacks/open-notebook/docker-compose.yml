@@ -1,5 +1,5 @@
 # Open Notebook - Open Source Notebook LM alternative
-# Requires SurrealDB for data storage. No host ports: access via Caddy on monitor network.
+# Requires SurrealDB for data storage. No host ports: access via Caddy on proxy-ingress.
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   surrealdb:
@@ -52,7 +52,8 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - default
-      - monitor
+      - ai-services
+      - proxy-ingress
     env_file:
       - path: ../../shared.env
         required: false
@@ -74,8 +75,11 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ai-services:
+    name: ai-services
+    external: true
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

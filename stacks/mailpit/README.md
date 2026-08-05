@@ -13,7 +13,7 @@ Local **SMTP catcher** for development and testing. Receives all mail on port 10
 2. **Use with Postfix:** In `stacks/postfix/stack.env`, set `RELAYHOST=mailpit:1025` for internal-only mode. Restart the postfix stack.
 3. **View mail:** Open `https://mailpit.yourdomain.com` (via Caddy; replace with your hostname).
 
-Both Mailpit and Postfix must be on the `monitor` network. Apps send to `smtp-relay:587`; Postfix relays to Mailpit; Mailpit catches everything.
+Mailpit and Postfix share `mail-services`. Mailpit also joins `proxy-ingress` for its web UI. Apps send to `smtp-relay:587`; Postfix relays to Mailpit; Mailpit catches everything.
 
 ## Configuration
 
@@ -21,7 +21,7 @@ Both Mailpit and Postfix must be on the `monitor` network. Apps send to `smtp-re
 |------|---------|
 | **SMTP** | Port 1025 (no auth, no TLS) |
 | **Web UI** | Port 8025 (behind Caddy at `mailpit.yourdomain.com`) |
-| **Network** | `monitor` (external) |
+| **Network** | `mail-services` for SMTP; `proxy-ingress` for the web UI |
 | **Image** | `axllent/mailpit:latest` |
 
 No host ports by default; access via Caddy for the web UI and via Docker network for SMTP.

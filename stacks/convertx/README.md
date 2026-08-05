@@ -23,7 +23,7 @@ The stack uses a **named volume** for app data (SQLite, converted files), so it 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `convertx:3000`) |
-| **Network** | `monitor` (external) — Caddy can reverse-proxy to `convertx:3000` |
+| **Network** | `proxy-ingress` (external) — dedicated Caddy-to-service ingress |
 | **Image** | `ghcr.io/c4illin/convertx:latest` |
 | **Env** | `JWT_SECRET` (recommended); optional `TZ`, `ACCOUNT_REGISTRATION`, `HTTP_ALLOWED`, `LANGUAGE`, `AUTO_DELETE_EVERY_N_HOURS`, etc. |
 | **Storage** | Named volume `convertx-data` (database + converted files) |
@@ -47,7 +47,7 @@ convertx.home, convertx.yourdomain.com {
 }
 ```
 
-Ensure the stack is on the `monitor` network so Caddy can reach `convertx:3000`.
+Ensure the stack is on `proxy-ingress` so Caddy can reach `convertx:3000`.
 
 ## Start
 

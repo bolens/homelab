@@ -24,7 +24,7 @@ The stack uses a **named volume** (`freshrss_config`) so it works when deployed 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; use freshrss.home, freshrss.yourdomain.com, etc.) |
-| **Network** | `monitor` (external) — Caddy can reverse-proxy to `freshrss:80` |
+| **Network** | `proxy-ingress` (external) — dedicated Caddy-to-service ingress |
 | **Image** | LinuxServer FreshRSS (Alpine + nginx + PHP) |
 | **Env** | `PUID`, `PGID`, `TZ` (all optional with defaults) |
 | **Storage** | Named volume: `freshrss_config` (config, SQLite DB, extensions) |
@@ -47,7 +47,7 @@ rss.yourdomain.com {
 }
 ```
 
-Ensure the RSS stack is on the `monitor` network so Caddy can reach `freshrss:80`.
+Ensure the RSS stack is on `proxy-ingress` so Caddy can reach `freshrss:80`.
 
 ## Start
 

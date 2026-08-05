@@ -63,13 +63,17 @@ services:
       - romm_assets:/romm/assets
     networks:
       - romm
-      - monitor
+      - proxy-ingress
+      - mail-services
 
 networks:
   romm:
     driver: bridge
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

@@ -1,6 +1,6 @@
 # Kasm Workspaces – container streaming platform (browser-based desktops and apps).
 # Access via Caddy only (reverse_proxy to kasm:443 and kasm:3000 for setup wizard).
-# Requires privileged mode and DinD; no host ports – Caddy proxies on monitor network.
+# Requires privileged mode and DinD; no host ports – Caddy uses proxy-ingress.
 #
 # First run: complete the setup wizard at https://kasm-setup.yourdomain.com (or your hostname).
 # Then use the main UI at https://kasm.yourdomain.com. After setup, you can remove the
@@ -19,7 +19,8 @@ services:
       - kasm_profiles:/profiles
     networks:
       - kasm
-      - monitor
+      - backup
+      - proxy-ingress
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsk", "https://127.0.0.1:443/"]
@@ -46,8 +47,11 @@ services:
 networks:
   kasm:
     driver: bridge
-  monitor:
-    name: monitor
+  backup:
+    name: backup
+    external: true
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

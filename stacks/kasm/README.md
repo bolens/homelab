@@ -62,7 +62,7 @@ Use `Ctrl+C` to stop following. If the wizard is still running, return to `https
 | Item        | Details |
 |------------|---------|
 | **Access** | Via Caddy only (no host ports; reverse proxy to `kasm:443` for main UI, `kasm:3000` for setup wizard) |
-| **Network** | Internal `kasm` network plus external `monitor` so Caddy can reach the web UI |
+| **Network** | Internal `kasm`, isolated `backup` for optional MinIO, and `proxy-ingress` for Caddy |
 | **Image**   | `lscr.io/linuxserver/kasm:latest` |
 | **Storage** | Named volumes `kasm_data` (Docker/install data) and `kasm_profiles` (persistent workspace profiles) |
 | **Auth**    | Users and passwords set during the setup wizard; default `admin@kasm.local` and `user@kasm.local` |
@@ -255,7 +255,7 @@ The stack mounts `kasm_profiles` to `/profiles`. When configuring a workspace in
 
 ## Optional: MinIO (S3) persistent profiles
 
-If you use the **minio** stack and have created a bucket named `kasm`, you can store persistent profiles in MinIO instead of (or in addition to) the local `/profiles` volume. Kasm and MinIO must both be on the `monitor` network so Kasm can reach `http://minio:9000`.
+If you use the **minio** stack and have created a bucket named `kasm`, Kasm and MinIO share the isolated `backup` network so Kasm can reach `http://minio:9000`.
 
 1. **Bucket:** Create bucket `kasm` in the MinIO console (e.g. `https://minio.yourdomain.com/console/`) if you have not already.
 2. **Kasm Server Settings:** In the Kasm UI go to **Settings** → **Storage** (or **Server** settings). Set:

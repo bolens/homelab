@@ -21,7 +21,7 @@
 
 3. **Access**
    - BookStack listens on port `80` inside the container.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
      - `https://bookstack.yourdomain.com` → `bookstack:80`
    - Default login: `admin@admin.com` / `password` — **change immediately** in Settings.
 
@@ -30,7 +30,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `bookstack:80`)                                 |
-| **Network** | `monitor` (for Caddy) + default (MariaDB)                                   |
+| **Network** | `proxy-ingress` (for Caddy) + default (MariaDB)                             |
 | **Images**  | `lscr.io/linuxserver/bookstack:latest`, `lscr.io/linuxserver/mariadb:latest` |
 | **Storage** | `bookstack_data`, `bookstack_mariadb`                                       |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `bookstack.yourdomain.com` → `bookstack:80` |

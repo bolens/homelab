@@ -43,7 +43,7 @@ Automated OSINT tool with 180+ modules for domains, IPs, emails, BTC addresses, 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `spiderfoot:5001`) |
-| **Network** | `monitor` (external) so Caddy can reach the container |
+| **Network** | `proxy-ingress` (external) for dedicated Caddy ingress |
 | **Image** | `spiderfoot/spiderfoot:latest` (pin a tag if you prefer) |
 | **Storage** | Named volume `spiderfoot-data` at `/var/lib/spiderfoot` for scans, config and API keys |
 
@@ -60,7 +60,7 @@ spiderfoot.home, spiderfoot.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `spiderfoot.yourdomain.com`) and keep the container on the `monitor` network so Caddy can resolve `spiderfoot`.
+In your real setup, use the hostname you expose via Cloudflare/Tunnel (for example `spiderfoot.yourdomain.com`) and keep the container on `proxy-ingress` so Caddy can resolve `spiderfoot`.
 
 ## Start
 
@@ -68,4 +68,3 @@ From this directory:
 
 - **With env file:** `docker compose --env-file stack.env up -d`  
 - **Without env file:** `docker compose up -d` (uses default timezone)
-

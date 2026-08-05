@@ -36,20 +36,20 @@ docker compose --env-file stack.env restart seerr
    ```bash
    docker compose --env-file stack.env up -d
    ```
-5. Open the app via Caddy, complete the setup wizard, and add your media server and *arr instances. Use internal URLs on the shared `monitor` network, for example:
+5. Open the app via Caddy and complete the setup wizard. Prefer public HTTPS or Tailscale URLs for media and *arr integrations; attach a dedicated media-service network if internal Docker names are required.
    - Jellyfin: `http://jellyfin:8096`
    - Plex: `http://plex:32400` (see Plex stack docs for token/claim)
    - Radarr: `http://radarr:7878`
    - Sonarr: `http://sonarr:8989`
 
-**Portainer:** Stacks → Add stack → paste `docker-compose.yml`, set env from `stack.env.example` (use **absolute** `SEERR_CONFIG_PATH`), attach to external network `monitor`, deploy.
+**Portainer:** Stacks → Add stack → paste `docker-compose.yml`, set env from `stack.env.example` (use **absolute** `SEERR_CONFIG_PATH`), attach to `proxy-ingress` and `mail-services`, deploy.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host ports; reverse-proxy to `seerr:5055`) |
-| **Network** | `monitor` (required so Caddy and other stacks can reach Seerr) |
+| **Network** | `proxy-ingress` for Caddy; `mail-services` for SMTP |
 | **Image** | `ghcr.io/seerr-team/seerr:latest` (pin a `vX.Y.Z` tag for reproducible deploys) |
 | **Storage** | `SEERR_CONFIG_PATH` (default `${HOME}/.config/seerr`) → `/app/config` (SQLite by default; see [database options](https://docs.seerr.dev/extending-seerr/database-config)) |
 | **Process user** | Runs as UID **1000** (`node`). If you bind-mount config instead of the named volume, `chown -R 1000:1000` that path. |
@@ -63,6 +63,6 @@ See `caddy_snippet.conf.example` (placeholder `seerr.example.com`). The main Cad
 ## Dependencies
 
 - **Caddy** stack for HTTPS and hostname routing.
-- Optional but typical: **Jellyfin**, **Plex**, or **Emby**; **Radarr** / **Sonarr** on the same Docker host and `monitor` network.
+- Optional but typical: **Jellyfin**, **Plex**, or **Emby**; **Radarr** / **Sonarr** via public HTTPS, Tailscale, or an explicitly shared media-service network.
 
-For outbound email notifications, point Seerr at your SMTP relay (e.g. Postfix `smtp-relay` on `monitor`) from the Seerr UI.
+For outbound email notifications, point Seerr at Postfix `smtp-relay:587` on `mail-services` from the Seerr UI.

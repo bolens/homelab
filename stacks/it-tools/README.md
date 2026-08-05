@@ -11,14 +11,14 @@ Collection of handy online tools for developers, with great UX. A comprehensive 
 ## Quick start
 
 1. Deploy: `docker compose up -d`
-2. Access via Caddy (e.g. https://it-tools.yourdomain.com). No host port is exposed; the stack is on the `monitor` network for reverse-proxy.
+2. Access via Caddy (e.g. https://it-tools.yourdomain.com). No host port is exposed; the stack is on the dedicated `proxy-ingress` network.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `it-tools:80`) |
-| **Network** | `monitor` — so monitoring tools can reach it |
+| **Network** | `proxy-ingress` — dedicated Caddy-to-service ingress |
 | **Image** | `corentinth/it-tools:latest` |
 
 ## Features

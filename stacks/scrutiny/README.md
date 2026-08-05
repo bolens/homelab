@@ -20,14 +20,14 @@
 
 4. **Access**
    - Scrutiny listens on port `8080` inside the container.
-   - Put it behind Caddy on the `monitor` network (e.g. `https://scrutiny.yourdomain.com` → `scrutiny:8080`).
+   - Put it behind Caddy on `proxy-ingress` (e.g. `https://scrutiny.yourdomain.com` → `scrutiny:8080`).
 
 ## Configuration
 
 | Item        | Details                                                      |
 | ----------- | ------------------------------------------------------------ |
 | **Access**  | Via Caddy (reverse-proxy to `scrutiny:8080`)                 |
-| **Network** | `monitor` (so Caddy and monitoring/metrics stacks can reach it) |
+| **Network** | `proxy-ingress`; monitoring checks the HTTPS route through Caddy |
 | **Image**   | `ghcr.io/analogj/scrutiny:master-omnibus`                    |
 | **Storage** | `scrutiny_config` (config), `scrutiny_influx` (metrics DB)   |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `scrutiny.yourdomain.com` → `scrutiny:8080` |
@@ -38,11 +38,10 @@ Scrutiny's configuration (alerts, notifications, thresholds) is stored in its co
 
 1. **Stacks** → **Add stack** → paste the contents of `docker-compose.yml`.
 2. **Environment variables**: Add `TZ` (e.g. `America/Denver`) if not using shared.env.
-3. Ensure the **monitor** network exists (create it if needed: Networks → Add network → name `monitor`, external).
+3. Ensure the **proxy-ingress** network exists.
 4. Deploy. Scrutiny uses `privileged: true` for `/dev` access; ensure your Portainer host allows privileged containers.
 
 ## Notes
 
 - This stack mounts `/run/udev` and `/dev` so Scrutiny can read SMART data from your disks. Review and restrict these mounts if needed for your environment.
 - For email alerts and advanced options, see the upstream Scrutiny documentation. To use the shared **Postfix** relay, configure your SMTP host as `smtp-relay` and port `587` in Scrutiny's config. With **Mailpit** (internal-only), all alert emails appear in the Mailpit web UI.
-

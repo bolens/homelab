@@ -78,13 +78,13 @@ services:
       start_period: 60s
     networks:
       - guacamole
-      - monitor
+      - proxy-ingress
 
 networks:
   guacamole:
     driver: bridge
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

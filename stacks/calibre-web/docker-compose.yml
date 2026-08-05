@@ -17,7 +17,7 @@ services:
       - calibre_web_config:/config
       - "${CALIBRE_BOOKS_PATH:-/mnt/unraid/media/books}:/books"
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8083/"]
       interval: 60s
@@ -26,8 +26,8 @@ services:
       start_period: 45s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

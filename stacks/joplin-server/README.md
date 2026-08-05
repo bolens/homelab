@@ -21,7 +21,7 @@
 
 3. **Access**
    - Joplin Server listens on port `22300` inside the container.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
      - `https://joplin.yourdomain.com` → `joplin-server:22300`
    - Log into the web UI to create or manage users, then configure Joplin clients with the same URL and credentials.
 
@@ -30,7 +30,7 @@
 | Item        | Details                                                                    |
 | ----------- | -------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `joplin-server:22300`)                         |
-| **Network** | `monitor` (for Caddy) + default internal network for Postgres              |
+| **Network** | `proxy-ingress` (for Caddy) + default internal network for Postgres        |
 | **Images**  | `joplin/server:latest`, `postgres:16-alpine`                               |
 | **Storage** | `joplin_pg_data` (Postgres)                                                |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `joplin.yourdomain.com` or `joplin-server.yourdomain.com` → `joplin-server:22300` |
@@ -45,4 +45,3 @@ For user invites and notifications, configure SMTP via env vars or the Joplin Se
 - Leave `MAILER_USERNAME` and `MAILER_PASSWORD` empty for the relay without auth
 
 For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) and the [Joplin Server docs](https://joplinapp.org/help/server/).
-

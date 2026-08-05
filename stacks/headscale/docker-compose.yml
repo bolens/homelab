@@ -1,5 +1,5 @@
 # Headscale – self-hosted Tailscale control server. See https://headscale.net
-# Config is bind-mounted from HEADSCALE_CONFIG_PATH; external monitor network for Caddy.
+# Config is bind-mounted from HEADSCALE_CONFIG_PATH; dedicated ingress and observability networks.
 # Official docs: https://headscale.net/stable/setup/install/container/
 
 name: headscale
@@ -31,11 +31,15 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - monitor
+      - proxy-ingress
+      - observability
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  observability:
+    name: observability
     external: true
 
 volumes:

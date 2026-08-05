@@ -20,7 +20,7 @@ services:
     ports:
       - "${OPENGIST_SSH_PORT:-2222}:2222"
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:6157/healthcheck || exit 1"]
       interval: 30s
@@ -34,8 +34,8 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

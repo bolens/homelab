@@ -1,5 +1,5 @@
 # Shlink – self-hosted URL shortener (API, redirects, web client at app.shlink.io or self-hosted).
-# No host ports: access only via Caddy (reverse_proxy shlink:8080 on monitor network).
+# No host ports: access only via Caddy (reverse_proxy shlink:8080 on proxy-ingress).
 # Docs: https://shlink.io/documentation  GitHub: https://github.com/shlinkio/shlink
 # Hostname: short.yourdomain.com (set DEFAULT_DOMAIN to match; Caddy block in Caddyfile.example).
 services:
@@ -17,7 +17,7 @@ services:
     volumes:
       - shlink_data:/data
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/rest/v3/health"]
       interval: 30s
@@ -47,8 +47,8 @@ services:
   #     - default
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

@@ -28,6 +28,7 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - monitor
+      - proxy-ingress
     env_file:
       - stack.env
     healthcheck:
@@ -40,6 +41,9 @@ services:
 networks:
   monitor:
     name: monitor
+    external: true
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

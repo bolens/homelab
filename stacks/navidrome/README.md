@@ -30,7 +30,7 @@ This stack uses a **named volume** (`navidrome_data`) for app data and a **bind 
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `navidrome:4533`)       |
-| **Network**| `monitor` (external) — Caddy can reverse-proxy to `navidrome:4533`     |
+| **Network**| `proxy-ingress` (external) — dedicated Caddy-to-service ingress       |
 | **Image**  | `deluan/navidrome:latest`                                              |
 | **Env**    | `TZ` optional; `ND_BASEURL`, `ND_LOGLEVEL`, `ND_SCANSCHEDULE`, etc.    |
 | **Storage**| Named volume `navidrome_data` (`/data`); music bind-mounted from `${NAVIDROME_MUSIC_PATH:-/mnt/unraid/media/music}` to `/music` |
@@ -82,5 +82,4 @@ music.home, music.local {
 }
 ```
 
-In your real setup, use the hostname you expose via Caddy and (optionally) Cloudflare Tunnel (for example, `music.yourdomain.com`) and keep the container on the `monitor` network so Caddy can resolve `navidrome`.
-
+In your real setup, use the hostname you expose via Caddy and (optionally) Cloudflare Tunnel (for example, `music.yourdomain.com`) and keep the container on `proxy-ingress` so Caddy can resolve `navidrome`.

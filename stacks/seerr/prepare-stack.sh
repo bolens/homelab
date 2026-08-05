@@ -14,5 +14,6 @@ prepare_stack_msg "Seerr host config directory (bind mount for /app/config)..."
 prepare_stack_ensure_dir_from_env "SEERR_CONFIG_PATH" "${HOME}/.config/seerr"
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "proxy-ingress"
+prepare_stack_ensure_docker_network "mail-services"
 prepare_stack_end

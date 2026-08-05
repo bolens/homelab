@@ -20,7 +20,8 @@ Stacks use **external** Docker networks so Caddy and apps can talk without bindi
 
 | Network   | Purpose | Created once |
 |----------|---------|----------------|
-| `monitor` | Caddy ↔ app backends, infra (MinIO, Postfix, Ollama, etc.) | `docker network create monitor` |
+| `monitor` | Legacy shared application and monitoring connectivity | `docker network create monitor` |
+| `mail-services` | Postfix, Mailpit, and explicitly configured mail clients | `docker network create mail-services` |
 | `torrents` | qBittorrent / rtorrent-flood ↔ *arr stacks (Sonarr, Radarr, etc.) | `docker network create torrents` |
 | `usenet`  | NZBGet ↔ *arr and NZBHydra2 | `docker network create usenet` |
 
@@ -41,7 +42,7 @@ All run on the `monitor` network and use `http://minio:9000` (S3 API) or `minio:
 
 ### Postfix (SMTP relay)
 
-The **postfix** stack (folder `stacks/postfix`) is the shared outbound mail relay. Stacks that send email point to `smtp-relay:587` on the `monitor` network. Configure `RELAYHOST`, `ALLOWED_SENDER_DOMAINS`, etc. in the postfix stack; see [stacks/postfix/README.md](../stacks/postfix/README.md).
+The **postfix** stack (folder `stacks/postfix`) is the shared outbound mail relay. Stacks that send email explicitly join `mail-services` and point to `smtp-relay:587`. Configure `RELAYHOST`, `ALLOWED_SENDER_DOMAINS`, etc. in the postfix stack; see [stacks/postfix/README.md](../stacks/postfix/README.md).
 
 **Stacks with SMTP relay support:** Alertmanager, Authentik, Diun, Firefly III, Gitea, Hedgedoc, Infisical, Joplin Server, Keycloak, Linkwarden, n8n, Naisho, Nextcloud, Outline, Password Pusher, Romm, Scrutiny, SimpleLogin, Snipe-IT, Uptime Kuma. See each stack’s README for configuration (env vars or admin UI).
 
@@ -254,6 +255,7 @@ To avoid “network/volume does not exist” when bringing up stacks:
 
 1. **Networks** (if not already created):
    - `docker network create monitor`
+   - `docker network create mail-services`
    - `docker network create torrents`   (if you use qbittorrent / *arr)
    - `docker network create usenet`    (if you use NZBGet / *arr)
 
@@ -264,7 +266,7 @@ To avoid “network/volume does not exist” when bringing up stacks:
 
 3. **MinIO:** Deploy the minio stack and create buckets (e.g. `outline`, `restic`) and access keys; set the corresponding env in Outline, Restic, etc.
 
-4. **Postfix:** Deploy once; configure relay and allowed domains; then set SMTP host to `smtp-relay` (and port `587`) in any stack that sends mail.
+4. **Postfix:** Deploy once on `mail-services`; configure relay and allowed domains; then attach each mail client to `mail-services` and set SMTP host to `smtp-relay` (port `587`).
 
 5. **Ollama:** Deploy once on `monitor`; set `OLLAMA_BASE_URL=http://ollama:11434` in Open WebUI, LibreChat, etc.
 

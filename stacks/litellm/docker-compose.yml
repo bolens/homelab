@@ -1,6 +1,6 @@
 # LiteLLM — OpenAI-compatible gateway to Ollama, OpenAI, Anthropic, and 100+ backends.
 # Docs: https://docs.litellm.ai/docs/proxy/docker_quick_start
-# No host ports; Caddy → litellm:4000 on `monitor`.
+# No host ports; Caddy → litellm:4000 on `proxy-ingress`.
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   postgres:
@@ -20,7 +20,7 @@ services:
     volumes:
       - litellm_pg18data:/var/lib/postgresql/data
     networks:
-      - monitor
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-litellm} -d ${POSTGRES_DB:-litellm}"]
       interval: 5s
@@ -61,7 +61,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitor
+      - backend
+      - ai-services
+      - proxy-ingress
     mem_limit: 2g
     memswap_limit: 4g
     cpus: "1.50"
@@ -86,8 +88,13 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  backend:
+    internal: true
+  ai-services:
+    name: ai-services
+    external: true
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

@@ -20,7 +20,7 @@ services:
     volumes:
       - stirling_pdf_data:/usr/share/tesseract-ocr/4.05/tessdata
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test: ["CMD-SHELL", "curl -fs --max-time 10 http://localhost:8080$${SYSTEM_ROOTURIPATH:-}/api/v1/info/status || exit 1"]
       interval: 30s
@@ -29,8 +29,8 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

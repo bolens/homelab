@@ -3,7 +3,7 @@ services:
     image: ollama/ollama:latest
     container_name: ollama
     restart: unless-stopped
-    # API is private to monitor; Caddy and peer AI stacks use ollama:11434.
+    # Caddy and peer AI stacks reach the API over dedicated networks.
     expose:
       - "11434"
     volumes:
@@ -17,7 +17,8 @@ services:
       - path: stack.env
         required: true
     networks:
-      - monitor
+      - ai-services
+      - proxy-ingress
     labels:
       - logging=true
       - logging_sampling=true
@@ -37,8 +38,11 @@ services:
     gpus: all
 
 networks:
-  monitor:
-    name: monitor
+  ai-services:
+    name: ai-services
+    external: true
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

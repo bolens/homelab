@@ -1,4 +1,4 @@
-# n8n – workflow automation. Portainer-friendly: env defaults, external monitor network.
+# n8n – workflow automation. Portainer-friendly with dedicated ingress and mail networks.
 # Access via Caddy only (reverse_proxy n8n:5678). No host ports exposed.
 # Set N8N_HOST and WEBHOOK_URL in stack.env to your Caddy hostname (e.g. https://n8n.home or https://n8n.yourdomain.com).
 services:
@@ -13,7 +13,8 @@ services:
     env_file:
       - stack.env
     networks:
-      - monitor
+      - proxy-ingress
+      - mail-services
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5678/healthz"]
       interval: 30s
@@ -22,8 +23,11 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

@@ -23,7 +23,7 @@ services:
       - path: stack.env
         required: false
     networks:
-      - monitor
+      - proxy-ingress
 
   presidio-anonymizer:
     image: mcr.microsoft.com/presidio-anonymizer:latest
@@ -49,7 +49,7 @@ services:
       - path: stack.env
         required: false
     networks:
-      - monitor
+      - proxy-ingress
 
   presidio-image-redactor:
     image: mcr.microsoft.com/presidio-image-redactor:latest
@@ -75,9 +75,9 @@ services:
       - path: stack.env
         required: false
     networks:
-      - monitor
+      - proxy-ingress
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true

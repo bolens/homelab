@@ -11,14 +11,14 @@ Encrypted pastebin: share text snippets with optional expiration and password. N
 ## Quick start
 
 1. Deploy: `docker compose up -d`
-2. Access via Caddy (e.g. https://paste.yourdomain.com or https://privatebin.home). No host port is exposed; the stack is on the `monitor` network for reverse-proxy.
+2. Access via Caddy (e.g. https://paste.yourdomain.com or https://privatebin.home). No host port is exposed; the stack is on the dedicated `proxy-ingress` network.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `privatebin:8080`) |
-| **Network** | `monitor` — so Caddy can reach it |
+| **Network** | `proxy-ingress` — dedicated Caddy-to-service ingress |
 | **Image** | `privatebin/nginx-fpm-alpine:latest` |
 | **Data** | Volume `privatebin_data` at `/srv/data` (paste storage) |
 

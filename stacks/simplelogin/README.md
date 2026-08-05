@@ -42,7 +42,7 @@ Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `simplelogin:7777`) |
-| **Network** | `simplelogin` (internal: app, db, email-handler, job-runner); `monitor` (Caddy → web app) |
+| **Network** | `simplelogin` internal; `proxy-ingress` for Caddy; `mail-services` for the app and mail workers |
 | **Image** | `simplelogin/app:latest` (pin a tag for production) |
 | **Env** | `env_file: stack.env` + `environment:` with `${VAR}` substitution. Run with `--env-file stack.env` so vars are available at parse time. |
 | **Storage** | Named volumes: `simplelogin-data` (/sl), `simplelogin-upload`, `simplelogin-pg-data`. DKIM: `./data/dkim.key`, `./data/dkim.pub` (bind mounts) |
@@ -51,7 +51,7 @@ Email alias service: create unlimited aliases (e.g. `shop@yourdomain.com`) that 
 
 To send transactional and forwarding emails via the shared relay, set:
 
-- `POSTFIX_SERVER=smtp-relay` (container name on `monitor` network)
+- `POSTFIX_SERVER=smtp-relay` (container name on `mail-services`)
 - `POSTFIX_PORT=587`
 
 Ensure the relay allows the `EMAIL_DOMAIN` / `SUPPORT_EMAIL` domain in `ALLOWED_SENDER_DOMAINS` (see [stacks/postfix/README.md](../postfix/README.md)).
@@ -88,7 +88,7 @@ simplelogin.home, simplelogin.local {
 }
 ```
 
-Ensure the stack is on the `monitor` network so Caddy can reach `simplelogin:7777`.
+Ensure the web app is on `proxy-ingress` so Caddy can reach `simplelogin:7777`.
 
 ## Start
 

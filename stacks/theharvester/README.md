@@ -29,14 +29,14 @@ Classic OSINT tool to collect emails, subdomains, hosts, open ports, and banners
 
 ## Portainer
 
-Stacks → Add stack → **Repository** → Compose path `stacks/theharvester/docker-compose.yml`. Ensure the stack has access to the `monitor` network. Add env vars from `stack.env.example` if needed.
+Stacks → Add stack → **Repository** → Compose path `stacks/theharvester/docker-compose.yml`. Ensure the shared `proxy-ingress` network exists. Add env vars from `stack.env.example` if needed.
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `theharvester:80`) |
-| **Network** | `monitor` (external) so Caddy can reach the API |
+| **Network** | `proxy-ingress` (external) for dedicated Caddy-to-service ingress |
 | **Image** | `secsi/restfulharvest:latest` (RAUDI-updated image for theHarvester REST API) |
 | **Storage** | theHarvester runs stateless; results are returned in the HTTP response (JSON) |
 
@@ -74,7 +74,7 @@ theharvester.yourdomain.com {
 }
 ```
 
-Keep the container on the `monitor` network so Caddy can resolve `theharvester`. For internal-only access use `tls internal` and your internal hostname (e.g. `theharvester.home`).
+Keep the container on `proxy-ingress` so Caddy can resolve `theharvester`. For internal-only access use `tls internal` and your internal hostname (e.g. `theharvester.home`).
 
 ## CLI usage
 
@@ -82,4 +82,3 @@ This stack focuses on the **REST API**. If you prefer pure CLI usage, you can:
 
 - Use the upstream `theharvester` Docker images directly, or  
 - Install theHarvester on your host and call it with `theHarvester -d example.com -b bing,shodan -l 500`.
-

@@ -2,6 +2,10 @@
 
 Automated backups using [restic](https://restic.readthedocs.io/) running on a schedule, typically targeting an S3-compatible object store such as the `minio` stack in this repo.
 
+The container uses the dedicated external `backup` network instead of the
+shared application network. Attach the backup target, such as MinIO, to the
+same network.
+
 **Website (restic):** https://restic.net  
 **Docs (restic):** https://restic.readthedocs.io/  
 **Image (mazzolino/restic):** https://github.com/mazzolino/docker-restic  
@@ -53,7 +57,7 @@ Stacks → Add stack → **Repository** → set your repo URL and Compose path (
 | ----------- | ----------------------------------------------------------------------- |
 | **Type**    | CLI / cron-only stack (no web UI, no Caddy, no host ports)             |
 | **Image**   | `mazzolino/restic:latest`                                              |
-| **Network** | `monitor` (so it can reach `minio` or other S3 endpoints on that net)  |
+| **Network** | Isolated external `backup` network for the backup target              |
 | **Storage** | `restic_cache` (restic cache); data is stored in the remote repository |
 
 ## Key environment variables
@@ -69,7 +73,7 @@ Set these in `stack.env` (see `stack.env.example` for comments and examples):
 
 ## Notes
 
-- This stack assumes you have an S3-compatible backend (e.g. the `minio` stack) reachable on the `monitor` network. For shared MinIO setup and one-time checklist, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+- This stack assumes you have an S3-compatible backend (e.g. the `minio` stack) reachable on the `backup` network. For shared MinIO setup and one-time checklist, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 - Restores are performed via the CLI inside the container, e.g.:
 
   ```bash
@@ -77,4 +81,3 @@ Set these in `stack.env` (see `stack.env.example` for comments and examples):
   ```
 
   Adjust target and paths to match your use case.
-

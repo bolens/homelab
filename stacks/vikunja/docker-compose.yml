@@ -16,11 +16,11 @@ services:
     volumes:
       - vikunja_data:/app/vikunja
     networks:
-      - monitor
+      - proxy-ingress
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

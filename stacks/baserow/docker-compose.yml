@@ -19,7 +19,7 @@ services:
     volumes:
       - baserow_data:/baserow/data
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "/bin/bash", "/baserow/backend/docker/docker-entrypoint.sh", "backend-healthcheck"]
       interval: 30s
@@ -28,8 +28,8 @@ services:
       start_period: 60s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

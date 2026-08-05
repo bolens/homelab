@@ -33,7 +33,12 @@ Tracked **`caddy_snippet.conf`** files almost always define **LAN** sites (`app.
 | **Ports** | 80, 443 (HTTP/HTTPS) |
 | **Volumes** | `./Caddyfile` (ro), `caddy_data` (certs/data) |
 | **Env** | Optional: `CLOUDFLARE_API_TOKEN` for DNS-01 (see `stack.env.example`) |
-| **Network** | `monitor` — so Uptime Kuma and the metrics stack (Grafana, Prometheus, cAdvisor) can reach Caddy and each other |
+| **Network** | `monitor` for observability/tunnel compatibility; `proxy-ingress` for isolated Caddy-to-service traffic |
+
+New web services should join `proxy-ingress` when their only shared-network
+dependency is Caddy. This limits lateral reach into the broad `monitor` network
+without changing public routes. Services that genuinely exchange monitoring or
+tunnel traffic may retain `monitor`.
 
 - **Local DNS:** Add A records (e.g. `portainer.home`, `kuma.home`) to your resolver so hostnames point at this host. Use `https://portainer.home` etc.
 - **Public (your domain):** Use Cloudflare Tunnel (see `stacks/cloudflare-tunnel`) or port forwarding + Let's Encrypt. Set hostnames and email in `Caddyfile`.

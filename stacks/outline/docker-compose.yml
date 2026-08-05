@@ -64,11 +64,15 @@ services:
       - outline_data:/var/lib/outline
     networks:
       - default
-      - monitor
+      - proxy-ingress
+      - mail-services
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

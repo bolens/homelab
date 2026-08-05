@@ -21,7 +21,7 @@ services:
     volumes:
       - matomo_db12:/var/lib/mysql
     networks:
-      - monitor
+      - internal
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 30s
@@ -53,7 +53,8 @@ services:
       - matomo_html:/var/www/html
       - ${MATOMO_CONFIG_PATH:?Set MATOMO_CONFIG_PATH in stack.env}:/var/www/html/config/config.ini.php
     networks:
-      - monitor
+      - internal
+      - proxy-ingress
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/ >/dev/null || exit 1"]
       interval: 30s
@@ -62,8 +63,10 @@ services:
       start_period: 60s
 
 networks:
-  monitor:
-    name: monitor
+  internal:
+    driver: bridge
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

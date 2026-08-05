@@ -33,7 +33,7 @@ The stack uses a **named volume** for the SQLite database and file uploads, so i
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `pwpush:5100`) |
-| **Network** | `monitor` (external) — Caddy can reverse-proxy to `pwpush:5100` |
+| **Network** | `proxy-ingress` (external) — dedicated Caddy-to-service ingress |
 | **Image** | `pglombardo/pwpush:stable` |
 | **Env** | `PWPUSH_MASTER_KEY` (required); optional `TZ`, `PWP__HOST_DOMAIN`, `PWP__HOST_PROTOCOL`, `PWP__ENABLE_LOGINS`, `PWP__PURGE_AFTER` |
 | **Storage** | Named volume `pwpush-storage` (SQLite + file pushes) |
@@ -65,7 +65,7 @@ For the shared **Postfix** relay and one-time setup, see [SHARED-RESOURCES.md](.
 
 **Example (using the `smtp-relay` stack):**
 
-- Inside Docker on the same host / `monitor` network:
+- Inside Docker on the same host / `mail-services` network:
   - `PWP__MAIL__SMTP_ADDRESS=smtp-relay`
   - `PWP__MAIL__SMTP_PORT=587`
   - `PWP__MAIL__SMTP_STARTTLS=true` (or `false` if relay uses plain TCP, e.g. internal-only Mailpit)
@@ -86,7 +86,7 @@ pwpush.home, pwpush.yourdomain.com {
 }
 ```
 
-Ensure the stack is on the `monitor` network so Caddy can reach `pwpush:5100`.
+Ensure the stack is on `proxy-ingress` so Caddy can reach `pwpush:5100`.
 
 ## Start
 

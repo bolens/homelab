@@ -16,13 +16,17 @@ services:
       - syncthing_config:/var/syncthing/config
       # Bind-mount or named volumes for folders you want to sync; adjust as needed.
       - syncthing_data:/var/syncthing/data
-    # No host ports; access the web UI via Caddy on the monitor network.
+    # The web UI is exposed through Caddy; peer and discovery traffic is direct.
+    ports:
+      - "22000:22000/tcp"
+      - "22000:22000/udp"
+      - "21027:21027/udp"
     networks:
-      - monitor
+      - proxy-ingress
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

@@ -48,7 +48,8 @@ if [[ -f stack.env ]] && ! grep -qE '^LITELLM_CONFIG_FILE=' stack.env; then
 fi
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "ai-services"
+prepare_stack_ensure_docker_network "proxy-ingress"
 
 # Compose volume interpolation does not always expand ${HOME} from .env; rewrite that line to an absolute path in .env only.
 litellm_prepare__expand_config_path_in_dotenv() {

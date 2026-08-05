@@ -45,7 +45,7 @@ services:
         condition: service_healthy
     networks:
       - default
-      - monitor
+      - proxy-ingress
 
   agent:
     image: woodpeckerci/woodpecker-agent:v3
@@ -67,8 +67,8 @@ services:
       - default
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

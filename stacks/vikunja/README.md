@@ -20,7 +20,7 @@
 
 3. **Access**
    - Vikunja listens on port `3456` inside the container.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
      - `https://vikunja.yourdomain.com` → `vikunja:3456`
    - Register the first user on first visit.
 
@@ -29,7 +29,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `vikunja:3456`)                                 |
-| **Network** | `monitor` (for Caddy) + default                                             |
+| **Network** | `proxy-ingress` (for Caddy)                                                |
 | **Images**  | `vikunja/vikunja:latest`                                                    |
 | **Storage** | `vikunja_data` (SQLite DB and uploads)                                       |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `vikunja.yourdomain.com` → `vikunja:3456` |

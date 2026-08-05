@@ -3,14 +3,14 @@ services:
     image: lissy93/web-check:latest
     container_name: web-check
     restart: unless-stopped
-    # No host port: access via Caddy (reverse proxy on monitor network)
+    # No host port: access via Caddy on the dedicated ingress network.
     dns:
       - 8.8.8.8
       - 1.1.1.1
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitor
+      - proxy-ingress
     env_file:
       - stack.env
       - path: ../../shared.env
@@ -27,6 +27,6 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true

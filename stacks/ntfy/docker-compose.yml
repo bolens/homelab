@@ -18,6 +18,7 @@ services:
       - ntfy_config:/etc/ntfy
     networks:
       - monitor
+      - observability
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/v1/health"]
       interval: 30s
@@ -28,6 +29,9 @@ services:
 networks:
   monitor:
     name: monitor
+    external: true
+  observability:
+    name: observability
     external: true
 
 volumes:

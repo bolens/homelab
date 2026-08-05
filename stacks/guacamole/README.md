@@ -59,7 +59,7 @@ Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible e
 | Item        | Details |
 |------------|---------|
 | **Access** | Via Caddy only (no host ports; reverse proxy to `guacamole:8080`) |
-| **Network** | Internal `guacamole` network for app + Postgres + guacd, plus external `monitor` network so Caddy can reach the web UI |
+| **Network** | Internal `guacamole` network for app + Postgres + guacd, plus external `proxy-ingress` so Caddy can reach the web UI |
 | **Images** | `guacamole/guacd:1.6.0`, `guacamole/guacamole:1.6.0`, and `postgres:16-alpine` |
 | **Storage** | Named volume `guacamole_pg_data` for the Postgres database (users, connections, permissions) |
 | **Auth** | By default, users and connections are stored in the Guacamole database; you can add LDAP/OIDC/etc. later via Guacamole extensions if desired (see upstream docs) |
@@ -97,4 +97,3 @@ SQL
 ```
 
 Then try logging in again with **guacadmin** / **guacadmin** and change the password in the UI.
-

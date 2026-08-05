@@ -1,5 +1,5 @@
 # DocuSeal – PDF forms and e-signatures (Rails + Postgres).
-# No host ports; access via Caddy on the monitor network (reverse_proxy docuseal:3000).
+# No host ports; access via Caddy on proxy-ingress (reverse_proxy docuseal:3000).
 #
 # Variables: set in Portainer (Stack → Environment) or in a `.env` file next to this compose
 # (see stack.env.example). Optional ../../shared.env is loaded when present (git checkout).
@@ -55,7 +55,8 @@ services:
       - docuseal_data:/data/docuseal
     networks:
       - default
-      - monitor
+      - proxy-ingress
+      - mail-services
     healthcheck:
       test:
         [
@@ -72,8 +73,11 @@ services:
     cpus: "1.00"
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

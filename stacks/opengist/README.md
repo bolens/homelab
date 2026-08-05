@@ -8,7 +8,7 @@ OpenGist is a self-hosted Gist service backed by Git, providing paste/snippet sh
 ## Usage
 
 Provides a GitHub Gist-compatible web UI for creating and sharing code snippets stored as real Git
-repositories. Typically proxied through Caddy on the monitor network. Supports public and private
+repositories. Typically proxied through Caddy on the dedicated `proxy-ingress` network. Supports public and private
 snippets with OAuth login.
 
 ## Setup

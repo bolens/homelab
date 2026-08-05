@@ -18,7 +18,7 @@ Open **https://kokoro-tts.home/web** (or your internal hostname) to try voices. 
 
 | Client | Hint |
 |--------|------|
-| **Open WebUI** | Admin → Audio: OpenAI-compatible TTS base URL → **`http://kokoro-tts:8880/v1`** on the `monitor` network (preferred), or a public `https://…/v1` only if you add that in Caddy yourself. See the upstream [Open WebUI integration wiki](https://github.com/remsky/Kokoro-FastAPI/wiki/Integrations-OpenWebUi). |
+| **Open WebUI** | Admin → Audio: OpenAI-compatible TTS base URL → **`http://kokoro-tts:8880/v1`** on `ai-services` (preferred), or a public `https://…/v1` only if you add that in Caddy yourself. See the upstream [Open WebUI integration wiki](https://github.com/remsky/Kokoro-FastAPI/wiki/Integrations-OpenWebUi). |
 | **Scripts / n8n** | `GET /v1/audio/voices`, `POST /v1/audio/speech` with `model: kokoro`, `voice` (e.g. `af_bella`), `input`, `response_format` (`mp3`, `wav`, …). |
 
 ## GPU
@@ -27,4 +27,4 @@ For faster inference on NVIDIA hosts, switch the image to **`ghcr.io/remsky/koko
 
 ## Portainer
 
-Compose path `stacks/kokoro-tts/docker-compose.yml`; attach **`monitor`**; env from `stack.env` (optional tuning only).
+Compose path `stacks/kokoro-tts/docker-compose.yml`; attach **`ai-services`** and **`proxy-ingress`**; env from `stack.env` (optional tuning only).

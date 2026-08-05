@@ -20,7 +20,7 @@
 
 3. **Access**
    - Baserow listens on port `80` inside the container.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
      - `https://baserow.yourdomain.com` → `baserow:80`
    - Create the first user on first visit.
 
@@ -29,7 +29,7 @@
 | Item        | Details                                                                     |
 | ----------- | --------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `baserow:80`)                                   |
-| **Network** | `monitor` (for Caddy) + default                                             |
+| **Network** | `proxy-ingress` (for Caddy)                                                |
 | **Images**  | `baserow/baserow:latest`                                                    |
 | **Storage** | `baserow_data` (database and uploads)                                       |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `baserow.yourdomain.com` → `baserow:80` |

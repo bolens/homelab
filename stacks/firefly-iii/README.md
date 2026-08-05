@@ -30,7 +30,7 @@
 
 4. **Access**
    - Firefly III listens on port `8080` inside the container.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
      - `https://firefly.yourdomain.com` → `firefly-iii:8080`
 
 ## Configuration
@@ -38,7 +38,7 @@
 | Item        | Details                                                                      |
 | ----------- | ---------------------------------------------------------------------------- |
 | **Access**  | Via Caddy (reverse-proxy to `firefly-iii:8080`)                              |
-| **Network** | `monitor` (for Caddy) + default internal network for Postgres                |
+| **Network** | `proxy-ingress` (for Caddy) + default internal network for Postgres          |
 | **Images**  | `fireflyiii/core:latest`, `postgres:16-alpine`                               |
 | **Storage** | `firefly_pg_data` (DB), `firefly_upload` (uploaded attachments/exports)      |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `firefly-iii.yourdomain.com` → `firefly-iii:8080` |
@@ -57,4 +57,3 @@ For transaction notifications and reports, configure mail in the Firefly III UI 
 For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 For advanced configuration (multi-currency, cron jobs, importers), see the official Firefly III documentation. For optional S3 storage (e.g. shared MinIO), see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
-

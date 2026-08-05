@@ -34,7 +34,7 @@ Config is loaded from a host file path (`SEARXNG_SETTINGS_PATH`, default: `~/.co
 | Item | Details |
 |------|---------|
 | **Port** | 8080 (proxied via Caddy) |
-| **Network** | `monitor` — Caddy reverse-proxies to `searxng:8080` |
+| **Network** | `proxy-ingress` for Caddy; private default network for Valkey |
 | **Image** | `searxng/searxng:latest` |
 | **Config** | Bind mount `${SEARXNG_SETTINGS_PATH}` -> `/etc/searxng/settings.yml`; override secret/base URL/redis via env vars |
 
@@ -47,7 +47,7 @@ From this directory: `./prepare-stack.sh && docker compose --env-file stack.env 
 - Preferred: **Stacks** → **Add stack** → **Repository**, compose path `stacks/searx-ng/docker-compose.yml`.
 - On the Docker host, run `./prepare-stack.sh` first so `stack.env`, `caddy_snippet.conf`, and the host `settings.yml` exist.
 - In Portainer’s stack environment, set at least `SEARXNG_SECRET`, `SEARXNG_BASE_URL` (public HTTPS URL), and `SEARXNG_SETTINGS_PATH` (absolute path on the host to `settings.yml`).
-- Attach the stack to the external `monitor` network so Caddy can reach `searxng:8080`.
+- Attach SearXNG to `proxy-ingress` so Caddy can reach `searxng:8080`.
 - Do not publish HTTP ports from this stack if Caddy is the front door.
 
 ## Backup

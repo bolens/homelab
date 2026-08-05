@@ -8,7 +8,7 @@ Self-hosted Soulseek client stack using [slskd](https://github.com/slskd/slskd):
 
 ## Quick start
 
-1. Run `./prepare-stack.sh` from this directory (creates `stack.env` and `caddy_snippet.conf` from examples, and ensures the `monitor` network exists).
+1. Run `./prepare-stack.sh` from this directory (creates local config and ensures `proxy-ingress`).
 2. Edit `stack.env`:
    - Set `SLSKD_SLSK_USERNAME` and `SLSKD_SLSK_PASSWORD`.
    - Set `SLSKD_USERNAME` and `SLSKD_PASSWORD` for the slskd web UI/API login.
@@ -30,7 +30,7 @@ Self-hosted Soulseek client stack using [slskd](https://github.com/slskd/slskd):
 | Item | Details |
 | ---- | ------- |
 | **Access** | Web UI/API via Caddy to `soulseek:5030` |
-| **Network** | `monitor` (external) |
+| **Network** | `proxy-ingress` (external) |
 | **Image** | `slskd/slskd:latest` |
 | **Peer port** | `SLSKD_SLSK_LISTEN_PORT` published as TCP+UDP (default `50300`) |
 | **Storage** | `soulseek_app` → `/app`, `${SLSKD_DOWNLOADS_PATH}` → `/downloads`, `${SLSKD_SHARED_MUSIC_PATH}` → `/music`, `soulseek_incomplete` → `/incomplete` |

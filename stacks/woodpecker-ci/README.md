@@ -26,7 +26,7 @@
    - `POSTGRES_DB` and `POSTGRES_USER` (usually `woodpecker` / `woodpecker`),
    - `POSTGRES_PASSWORD` — same value as the old `WOODPECKER_DB_PASSWORD`,
    - `WOODPECKER_DATABASE_DRIVER=postgres`,
-   - `WOODPECKER_DATABASE_DATASOURCE=postgres://woodpecker:YOUR_PASSWORD@woodpecker-postgres:5432/woodpecker?sslmode=disable` (use hostname `woodpecker-postgres`, not `postgres`, because the server joins the `monitor` network where another `postgres` name may resolve).
+   - `WOODPECKER_DATABASE_DATASOURCE=postgres://woodpecker:YOUR_PASSWORD@woodpecker-postgres:5432/woodpecker?sslmode=disable`.
 
    Then remove the obsolete `WOODPECKER_DB_*` lines if you like, and recreate the stack (`docker compose up -d --force-recreate`).
 
@@ -43,7 +43,7 @@
 
 5. **Access**
    - Woodpecker server listens on port `8000` (HTTP API/UI) and `9000` (gRPC) inside the container by default.
-   - Put it behind Caddy on the `monitor` network, e.g.:
+   - Put it behind Caddy on the `proxy-ingress` network, e.g.:
      - `https://ci.yourdomain.com` → `woodpecker-server:8000`
 
 ## Configuration
@@ -51,7 +51,7 @@
 | Item        | Details                                                                              |
 | ----------- | ------------------------------------------------------------------------------------ |
 | **Access**  | Via Caddy (reverse-proxy to `woodpecker-server:8000`)                                |
-| **Network** | `monitor` (for Caddy) + default internal network for Postgres and agent              |
+| **Network** | `proxy-ingress` for Caddy + default internal network for Postgres and agent          |
 | **Images**  | `woodpeckerci/woodpecker-server:v3`, `woodpeckerci/woodpecker-agent:v3`, `postgres:16-alpine` (`:latest` was removed upstream; pin `v3.x.y` if you want a fixed patch) |
 | **Storage** | `woodpecker_pg_data` (DB)                                                            |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `woodpecker-ci.yourdomain.com` or `ci.yourdomain.com` → `woodpecker-server:8000` |

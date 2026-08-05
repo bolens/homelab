@@ -63,7 +63,8 @@ services:
       - authentik_templates:/templates
     networks:
       - authentik
-      - monitor
+      - proxy-ingress
+      - mail-services
 
   worker:
     image: ghcr.io/goauthentik/server:latest
@@ -93,13 +94,16 @@ services:
       - authentik_templates:/templates
     networks:
       - authentik
-      - monitor
+      - mail-services
 
 networks:
   authentik:
     driver: bridge
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

@@ -48,7 +48,8 @@ services:
       - gitea_data:/data
     networks:
       - default
-      - monitor
+      - proxy-ingress
+      - mail-services
     cpus: 2.0
     mem_limit: 2g
     memswap_limit: 4g
@@ -61,8 +62,11 @@ services:
       retries: 3
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

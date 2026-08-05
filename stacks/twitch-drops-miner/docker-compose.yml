@@ -28,14 +28,14 @@ services:
       retries: 5
       start_period: 90s
     networks:
-      - monitor
+      - proxy-ingress
     dns:
       - 1.1.1.1
       - 8.8.8.8
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

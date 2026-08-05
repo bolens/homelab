@@ -22,13 +22,12 @@ services:
       # Cache to speed up subsequent backups
       - restic_cache:/cache
     networks:
-      - monitor
+      - backup
 
 networks:
-  monitor:
-    name: monitor
+  backup:
+    name: backup
     external: true
 
 volumes:
   restic_cache:
-

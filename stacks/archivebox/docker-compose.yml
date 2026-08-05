@@ -14,7 +14,8 @@ services:
       - LISTEN_HOST=0.0.0.0:8000
       - SEARCH_BACKEND_HOST_NAME=sonic
     networks:
-      - monitor
+      - internal
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
       interval: 60s
@@ -36,7 +37,7 @@ services:
     environment:
       - SEARCH_BACKEND_HOST_NAME=sonic
     networks:
-      - monitor
+      - internal
 
   sonic:
     image: archivebox/sonic:latest
@@ -49,12 +50,13 @@ services:
     volumes:
       - archivebox-sonic-data:/var/lib/sonic/store
     networks:
-      - monitor
+      - internal
 
 networks:
-  # Use external monitor only – do not create a stack default network (avoids subnet exhaustion)
-  monitor:
-    name: monitor
+  internal:
+    driver: bridge
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

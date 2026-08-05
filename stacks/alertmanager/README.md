@@ -27,7 +27,7 @@ Prometheus Alertmanager for routing alerts (email, webhooks, chat, etc.) based o
 | **Access**  | Via Caddy only (no host port; reverse-proxy to `alertmanager:9093`)    |
 | **Config**  | Copy `alertmanager.yml.example` to `~/.config/alertmanager/alertmanager.yml` (or set `ALERTMANAGER_CONFIG_PATH` to the absolute path). Edit that file for receivers and routes. |
 | **Volume**  | `alertmanager_data` (Alertmanager state: silences, notification log)   |
-| **Network** | `monitor` — shared with Caddy, Prometheus, Grafana, cAdvisor, etc.     |
+| **Network** | `observability` for Prometheus/ntfy; `proxy-ingress` for Caddy; `mail-services` for SMTP |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.     |
 
 **Portainer:** Set `ALERTMANAGER_CONFIG_PATH` in the stack's Environment to the **absolute path** of your `alertmanager.yml` on the host (e.g. `/home/youruser/.config/alertmanager/alertmanager.yml`), since `HOME` may be unset.
@@ -35,11 +35,11 @@ Prometheus Alertmanager for routing alerts (email, webhooks, chat, etc.) based o
 ### Integrating with Prometheus
 
 - Add an `alerting` block in your Prometheus config so it knows where to send alerts. The main repo’s `stacks/prometheus/prometheus.yml.example` includes this; if you use that file, Prometheus already points at `alertmanager:9093`. Add alert rules (e.g. `rule_files` or recording rules) as needed.
-- Ensure the **Alertmanager** and **Prometheus** stacks are on the same Docker network (`monitor`).
+- Ensure the **Alertmanager** and **Prometheus** stacks are on `observability`.
 
 ### Receivers
 
-The example config enables a **ntfy** webhook by default: alerts are sent to `http://ntfy:80/alerts`. Deploy **stacks/ntfy** on the `monitor` network and subscribe to the topic `alerts` in the ntfy app (or set `NTFY_BASE_URL` and use `https://ntfy.yourdomain.com/alerts`). To use a different topic, change the path (e.g. `/homelab-alerts`).
+The example config enables a **ntfy** webhook by default: alerts are sent to `http://ntfy:80/alerts`. Deploy **stacks/ntfy** on `observability` and subscribe to the topic `alerts` in the ntfy app (or set `NTFY_BASE_URL` and use `https://ntfy.yourdomain.com/alerts`). To use a different topic, change the path (e.g. `/homelab-alerts`).
 
 Other options (edit your copy at `~/.config/alertmanager/alertmanager.yml`):
 
@@ -47,4 +47,3 @@ Other options (edit your copy at `~/.config/alertmanager/alertmanager.yml`):
 - **Other webhooks**: Chatbots, PagerDuty, Opsgenie, etc.
 
 For advanced routing (inhibition, grouping by environment, etc.) see the official Alertmanager documentation.
-

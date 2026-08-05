@@ -12,7 +12,6 @@ services:
       - searxng_valkey9_data:/data
     networks:
       - default
-      - monitor
     env_file:
       - path: ../../shared.env
         required: false
@@ -37,7 +36,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    # No host port: access via Caddy (reverse proxy on monitor network)
+    # No host port: access via Caddy on proxy-ingress.
     volumes:
       # Require explicit host path (set in stack.env; prepare copies stack.env -> .env for compose).
       - ${SEARXNG_SETTINGS_PATH:?Set SEARXNG_SETTINGS_PATH in stack.env (see stack.env.example)}:/etc/searxng/settings.yml:ro
@@ -51,7 +50,7 @@ services:
       - 8.8.4.4
     networks:
       - default
-      - monitor
+      - proxy-ingress
     labels:
       - logging=true
       - logging_sampling=true
@@ -86,8 +85,8 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

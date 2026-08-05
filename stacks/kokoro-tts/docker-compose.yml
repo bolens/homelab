@@ -1,7 +1,7 @@
 # Kokoro FastAPI — Kokoro-82M TTS with web UI + OpenAI-compatible speech API.
 # Docs: https://github.com/remsky/Kokoro-FastAPI
 # Web UI: http://kokoro-tts:8880/web — API: /v1, docs: /docs
-# No host ports; Caddy → kokoro-tts:8880 on `monitor`.
+# No host ports; Caddy uses `proxy-ingress`, while AI clients use `ai-services`.
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   kokoro-tts:
@@ -20,7 +20,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitor
+      - ai-services
+      - proxy-ingress
     mem_limit: 6g
     cpus: "2.00"
     healthcheck:
@@ -42,8 +43,11 @@ services:
         max-file: "3"
 
 networks:
-  monitor:
-    name: monitor
+  ai-services:
+    name: ai-services
+    external: true
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

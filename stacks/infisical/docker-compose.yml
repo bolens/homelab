@@ -13,12 +13,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # No host port: access via Caddy (infisical.home / secrets.yourdomain.com on monitor network)
+    # No host port: access via Caddy on proxy-ingress.
     env_file:
       - stack.env
     networks:
       - infisical
-      - monitor
+      - proxy-ingress
+      - mail-services
 
   redis:
     image: redis:alpine
@@ -67,8 +68,11 @@ services:
 networks:
   infisical:
     driver: bridge
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

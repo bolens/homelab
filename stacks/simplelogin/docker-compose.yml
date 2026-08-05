@@ -52,7 +52,8 @@ services:
       - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
-      - monitor
+      - proxy-ingress
+      - mail-services
 
   simplelogin-email:
     image: simplelogin/app:latest
@@ -89,6 +90,7 @@ services:
       - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
+      - mail-services
 
   simplelogin-job-runner:
     image: simplelogin/app:latest
@@ -121,6 +123,7 @@ services:
       - ${DKIM_DATA_DIR:-./data}/dkim.pub:/dkim.pub:ro
     networks:
       - simplelogin
+      - mail-services
 
   db:
     image: postgres:18-alpine
@@ -151,8 +154,11 @@ services:
 networks:
   simplelogin:
     driver: bridge
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
+    external: true
+  mail-services:
+    name: mail-services
     external: true
 
 volumes:

@@ -52,11 +52,11 @@ Set each variable to the corresponding output. `OPEN_NOTEBOOK_ENCRYPTION_KEY` an
 
 ## Usage
 
-Once running, Open Notebook is available via Caddy (e.g. `open-notebook.home` / `.local`) on the `monitor` network. No host ports are exposed.
+Once running, Open Notebook is available through Caddy on `proxy-ingress`. No host ports are exposed.
 
 ## Portainer
 
-1. Run `./prepare-stack.sh` on the Docker host first (creates `stack.env`, copies `caddy_snippet.conf` from template, and ensures the external `monitor` network exists).
+1. Run `./prepare-stack.sh` on the Docker host first; it prepares config and ensures `ai-services` plus `proxy-ingress`.
 2. In Portainer, use **Stacks** -> **Add stack** -> **Repository** and set compose path to `stacks/open-notebook/docker-compose.yml` (preferred).
 3. If you deploy by pasting compose instead, mirror the same values from `stack.env` in Portainer's environment section.
 4. Keep this stack private behind Caddy and Cloudflare Access (no published host ports).
@@ -70,7 +70,7 @@ Once running, Open Notebook is available via Caddy (e.g. `open-notebook.home` / 
 ### Connecting to Ollama
 
 If you're running Ollama in another Docker stack, you can connect by:
-1. Adding Ollama to the same Docker network (`monitor` network)
+1. Adding Ollama to the shared `ai-services` network
 2. Setting `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
 For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).

@@ -21,7 +21,7 @@ Access via Caddy at **https://lanraragi.yourdomain.com** (or your configured hos
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `lanraragi:3000`) |
-| **Network** | `monitor` |
+| **Network** | `proxy-ingress` for dedicated Caddy-to-service traffic |
 | **Images** | `difegue/lanraragi:latest` |
 | **Storage** | Named volumes: `lanraragi_content`, `lanraragi_database`, `lanraragi_thumb`; or bind-mount content |
 

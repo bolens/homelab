@@ -19,14 +19,14 @@ Send personal data deletion request emails to hundreds of data brokers at once. 
 3. **Access:** Open via Caddy (e.g. https://naisho.home or https://naisho.yourdomain.com).  
    On first request the entrypoint runs `db:prepare` and `Company.sync_all` (data broker list).
 
-4. **SMTP:** Configure SMTP in the Naisho UI when sending deletion requests (per-request or default). Use the shared relay: host `smtp-relay`, port `587` (both stacks on `monitor`). For **internal-only** (Mailpit), deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all emails appear in Mailpit’s web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+4. **SMTP:** Configure SMTP in the Naisho UI when sending deletion requests (per-request or default). Use the shared relay: host `smtp-relay`, port `587` on `mail-services`. For **internal-only** (Mailpit), deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; all emails appear in Mailpit’s web UI. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `naisho:3000`) |
-| **Network** | `monitor` (Caddy → naisho) |
+| **Network** | `proxy-ingress` for Caddy; `mail-services` for SMTP |
 | **Image** | Built from https://github.com/nshki/naisho (Dockerfile in repo) |
 | **Env** | `SECRET_KEY_BASE` (required); optional `TZ`, `RAILS_LOG_LEVEL` |
 | **Storage** | Named volume `naisho-data` (SQLite at `/data`) |
@@ -42,7 +42,7 @@ naisho.home, naisho.local {
 }
 ```
 
-Ensure the stack is on the `monitor` network so Caddy can reach `naisho:3000`.
+Ensure the stack is on `proxy-ingress` so Caddy can reach `naisho:3000`.
 
 ## Start
 

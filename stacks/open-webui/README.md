@@ -21,7 +21,7 @@ Extensible, feature-rich, and user-friendly self-hosted AI platform designed to 
 
 ## Setup
 
-1. Run `./prepare-stack.sh` (creates `stack.env`, copies `caddy_snippet.conf` from template if missing, and ensures the external `monitor` network exists).
+1. Run `./prepare-stack.sh` (prepares config and ensures `ai-services` plus `proxy-ingress`).
 
 2. Configure Ollama connection:
    - If Ollama is on the same Docker network: `OLLAMA_BASE_URL=http://ollama:11434`
@@ -105,7 +105,7 @@ Use this as your web UI for installing and maintaining Ollama models.
 ### Connecting to Ollama
 
 If you're running Ollama in another Docker stack:
-1. Add Ollama to the same Docker network (`monitor` network)
+1. Add Ollama to the shared `ai-services` network
 2. Set `OLLAMA_BASE_URL=http://ollama:11434` in `stack.env`
 
 For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
@@ -114,7 +114,7 @@ For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../do
 
 To route **OpenAI-compatible** traffic (cloud + Ollama) through the homelab **[litellm](../litellm/README.md)** stack:
 
-1. Deploy **litellm** on `monitor` and set `LITELLM_MASTER_KEY` in `stacks/litellm/stack.env`.
+1. Deploy **litellm** on `ai-services` and set `LITELLM_MASTER_KEY` in `stacks/litellm/stack.env`.
 2. In **Open WebUI** `stack.env`, set `OPENAI_API_BASE_URL=http://litellm:4000/v1` and `OPENAI_API_KEY` to the same value as `LITELLM_MASTER_KEY` (or a LiteLLM virtual key).
 3. In the Open WebUI UI, enable the OpenAI connection and pick models exposed by LiteLLM.
 

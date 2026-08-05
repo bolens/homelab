@@ -17,7 +17,7 @@ services:
     volumes:
       - actual_budget_data:/data
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test:
         [
@@ -32,8 +32,8 @@ services:
       start_period: 20s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

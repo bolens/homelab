@@ -27,7 +27,7 @@ book files. On first setup in the UI, set the database path to **/books**.
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `calibre-web:8083`) |
-| **Network** | `monitor` |
+| **Network** | `proxy-ingress` for dedicated Caddy-to-service traffic |
 | **Images** | `lscr.io/linuxserver/calibre-web:latest` |
 | **Storage** | `calibre_web_config` (app DB and settings), `${CALIBRE_BOOKS_PATH}` → `/books` |
 

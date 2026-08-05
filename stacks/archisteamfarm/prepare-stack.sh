@@ -45,5 +45,5 @@ echo "ASF_CONFIG_DIR=$ASF_CONFIG_DIR" > .env
 echo "Wrote ASF_CONFIG_DIR to .env for docker-compose"
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "proxy-ingress"
 prepare_stack_end

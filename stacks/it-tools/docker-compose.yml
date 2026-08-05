@@ -8,11 +8,11 @@ services:
     memswap_limit: 768m
     pids_limit: 256
     cpu_shares: 256
-    # No host port: access via Caddy (reverse proxy on monitor network)
+    # No host port: access via Caddy on the dedicated ingress network.
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - monitor
+      - proxy-ingress
     env_file:
       - stack.env
     healthcheck:
@@ -23,6 +23,6 @@ services:
       start_period: 5s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true

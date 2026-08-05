@@ -42,7 +42,7 @@ The stack uses **named volumes** (`lw_pgdata`, `lw_data`, `lw_meili_data`) so it
 | Item | Details |
 |------|---------|
 | **Port** | 3000 (proxied via Caddy; host port exposed for direct access if needed) |
-| **Network** | `monitor` (external) — Caddy can reverse-proxy to `linkwarden:3000` |
+| **Network** | `proxy-ingress` for Caddy; `mail-services` for SMTP; private `internal` for Postgres/Meilisearch |
 | **Images** | linkwarden, postgres:16-alpine, getmeili/meilisearch |
 | **Env** | `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, `MEILI_MASTER_KEY` required; `NEXTAUTH_URL`, `TZ` optional |
 | **Storage** | Named volumes: `lw_data` (screenshots, PDFs, profile photos), `lw_pgdata`, `lw_meili_data` |

@@ -38,7 +38,8 @@ services:
       - path: stack.env
         required: false
     networks:
-      - monitor
+      - ai-services
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
       interval: 30s
@@ -49,6 +50,9 @@ services:
     cpus: 1.0
 
 networks:
-  monitor:
-    name: monitor
+  ai-services:
+    name: ai-services
+    external: true
+  proxy-ingress:
+    name: proxy-ingress
     external: true

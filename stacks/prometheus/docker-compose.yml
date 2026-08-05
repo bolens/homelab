@@ -19,6 +19,7 @@ services:
       - ${PROMETHEUS_RULES_PATH:-${HOME}/.config/prometheus/rules}:/etc/prometheus/rules:ro
     networks:
       - monitor
+      - observability
     cpu_shares: 256
     memswap_limit: 4g
     deploy:
@@ -39,6 +40,9 @@ services:
 networks:
   monitor:
     name: monitor
+    external: true
+  observability:
+    name: observability
     external: true
 
 volumes:

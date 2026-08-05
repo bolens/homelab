@@ -59,7 +59,7 @@ Then edit `stack.env` to remove any old placeholder lines and set `SITE_URL`.
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (reverse-proxy to `infisical:8080`) |
-| **Network** | `monitor` (backend); `infisical` internal for db/redis |
+| **Network** | `proxy-ingress` for Caddy; `mail-services` for SMTP; `infisical` internal for DB/Redis |
 | **Image** | `infisical/infisical:latest` (pin a tag for production) |
 | **Env** | Uses `environment:` with `${VAR}` substitution (Portainer-compatible; no `env_file`) |
 | **Health** | No dedicated endpoint; use HTTP check to app URL if needed |

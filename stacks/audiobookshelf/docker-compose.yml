@@ -1,5 +1,5 @@
 # Audiobookshelf – self-hosted podcasts (and audiobooks). See https://www.audiobookshelf.org/
-# Portainer-friendly: named volumes, external monitor network for Caddy.
+# Portainer-friendly: named volumes and dedicated Caddy ingress network.
 # Official example: https://github.com/advplyr/audiobookshelf/blob/master/docker-compose.yml
 services:
   audiobookshelf:
@@ -14,7 +14,7 @@ services:
       - abs_podcasts:/podcasts
     restart: unless-stopped
     networks:
-      - monitor
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:80/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
       interval: 60s
@@ -23,8 +23,8 @@ services:
       start_period: 30s
 
 networks:
-  monitor:
-    name: monitor
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

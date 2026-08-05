@@ -25,7 +25,8 @@ services:
       - social-hunt-plugins:/app/plugins
       - social-hunt-temp-uploads:/app/web/temp_uploads
     networks:
-      - monitor
+      - internal
+      - proxy-ingress
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=4).read(1)"]
       interval: 60s
@@ -47,7 +48,7 @@ services:
       - ALLOWED=0.0.0.0/0
       - LISTEN=0.0.0.0
     networks:
-      - monitor
+      - internal
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8888 || exit 1"]
       interval: 15s
@@ -65,7 +66,7 @@ services:
     pids_limit: 256
     cpu_shares: 256
     networks:
-      - monitor
+      - internal
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 9150 || exit 1"]
       interval: 15s
@@ -74,8 +75,10 @@ services:
       start_period: 90s
 
 networks:
-  monitor:
-    name: monitor
+  internal:
+    driver: bridge
+  proxy-ingress:
+    name: proxy-ingress
     external: true
 
 volumes:

@@ -21,17 +21,17 @@ Apps send mail to this container; it then relays via your real mail provider (SE
      - Optionally `RELAYHOST_USERNAME` / `RELAYHOST_PASSWORD` if your provider requires auth.
 2. **Deploy:** `docker compose up -d` (from this directory), or add as a stack in Portainer and set the same vars in the stack **Environment**.
 3. **Use from apps:**
-   - Inside Docker (same `monitor` network): `smtp-relay:587`.
+   - Inside Docker (same `mail-services` network): `smtp-relay:587`.
    - From outside / other hosts: `smtp.yourdomain.com:587` (see **Public access** below).
 
-The stack uses the shared `monitor` network so other stacks (Infisical, Password Pusher, Linkwarden, etc.) can reach the relay by container name. For one-time setup and how other stacks use this relay, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+The stack uses the dedicated `mail-services` network so explicitly attached applications can reach the relay by container name. For one-time setup and how other stacks use this relay, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Configuration
 
 | Item | Details |
 |------|---------|
-| **Access** | Internal only by default (no host port). Other stacks use `smtp-relay:587` on the `monitor` network. |
-| **Network** | `monitor` (external) — shared with Caddy and app stacks. |
+| **Access** | Internal only by default (no host port). Mail clients use `smtp-relay:587` on `mail-services`. |
+| **Network** | `mail-services` (external) — limited to the relay and configured mail clients. |
 | **Image** | `boky/postfix:latest` |
 | **Env** | `ALLOWED_SENDER_DOMAINS` (recommended), `RELAYHOST` (required), optional `RELAYHOST_USERNAME`, `RELAYHOST_PASSWORD`, `POSTFIX_myhostname`, `POSTFIX_message_size_limit`, `TZ`. See `stack.env.example` and upstream docs. |
 
@@ -98,4 +98,3 @@ When you hit `https://smtp.yourdomain.com` in a browser, Caddy will just return 
   - HTTPS certificates are issued via Cloudflare DNS for `smtp.yourdomain.com`.
 
 There is no HTTP reverse proxy for the relay itself; apps talk SMTP directly to port `587`.
-

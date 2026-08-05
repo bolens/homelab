@@ -9,7 +9,7 @@ LLM and OCR augmentation service for `paperless-ngx`.
 
 - `paperless-ngx` stack (API token required)
 - `ollama` stack (for local LLM/vision models)
-- Shared `monitor` network
+- Shared `ai-services` network plus Caddy-only `proxy-ingress`
 
 ## Quick start
 
@@ -26,7 +26,7 @@ LLM and OCR augmentation service for `paperless-ngx`.
 
 ## Portainer
 
-Repository compose path `stacks/paperless-gpt/docker-compose.yml`; attach **`monitor`**; create the three **external** volumes first (see compose). Run `./prepare-stack.sh` on the host before deploy.
+Repository compose path `stacks/paperless-gpt/docker-compose.yml`; ensure **`ai-services`** and **`proxy-ingress`** exist; create the three **external** volumes first (see compose). Run `./prepare-stack.sh` on the host before deploy.
 
 ## Notes
 
