@@ -62,7 +62,10 @@ services:
       - LC_ALL=${LC_ALL:-en_US.UTF-8}
       - LC_CTYPE=${LC_CTYPE:-en_US.UTF-8}
       - DOZZLE_AUTH_PROVIDER=${DOZZLE_AUTH_PROVIDER:-}
-      - DOZZLE_REMOTE_HOST=tcp://dozzle-docker-socket-proxy:2375
+      # The label after "|" names this Docker engine in Dozzle's host selector.
+      - DOZZLE_REMOTE_HOST=tcp://dozzle-docker-socket-proxy:2375|${DOZZLE_LOCAL_HOST_LABEL:-docker-host}
+      # Optional comma-separated Dozzle agents: endpoint|name|group.
+      - DOZZLE_REMOTE_AGENT=${DOZZLE_REMOTE_AGENT:-}
     depends_on:
       dozzle-docker-socket-proxy:
         condition: service_healthy
