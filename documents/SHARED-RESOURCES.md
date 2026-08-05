@@ -20,14 +20,30 @@ Stacks use **external** Docker networks so Caddy and apps can talk without bindi
 
 | Network   | Purpose | Created once |
 |----------|---------|----------------|
-| `monitor` | Legacy shared application and monitoring connectivity | `docker network create monitor` |
-| `mail-services` | Postfix, Mailpit, and explicitly configured mail clients | `docker network create mail-services` |
+| `ingress-public` | Caddy ingress for ordinary user-facing applications | `docker network create ingress-public` |
+| `ingress-admin` | Caddy ingress for infrastructure and administrative interfaces | `docker network create ingress-admin` |
+| `ingress-sensitive` | Caddy ingress for identity, secrets, finance, and other sensitive applications | `docker network create ingress-sensitive` |
+| `edge-services` | Cloudflare Tunnel to Caddy | `docker network create edge-services` |
+| `telemetry` | Prometheus, exporters, Grafana, Loki, and alerting | `docker network create --internal telemetry` |
+| `mail-clients` | Internal SMTP plane for Postfix, Mailpit, and explicitly configured mail clients | `docker network create --internal mail-clients` |
+| `mail-egress` | Outbound-capable network used only by the SMTP relay | `docker network create mail-egress` |
+| `ai-backend` | Internal plane for Ollama and trusted AI/search clients | `docker network create --internal ai-backend` |
+| `document-services` | Paperless-ngx and trusted API clients | `docker network create --internal document-services` |
+| `media-services` | Playback/library plane: media servers and trusted playback, metadata, and statistics clients | `docker network create media-services` |
+| `media-automation` | Control/download plane: *arr apps, indexers, downloaders, subtitle tools, and related dashboards | `docker network create media-automation` |
+| `dns-services` | Pi-hole and AdGuard Home to Unbound | `docker network create dns-services` |
+| `backup` | MinIO and trusted backup clients | `docker network create --internal backup` |
+| `monitoring-push` | Dead-man callbacks from scheduled jobs to Uptime Kuma | `docker network create --internal monitoring-push` |
+| `security-research` | OSINT, recon, scanning, and trusted research-tool APIs | `docker network create security-research` |
 | `torrents` | qBittorrent / rtorrent-flood ↔ *arr stacks (Sonarr, Radarr, etc.) | `docker network create torrents` |
 | `usenet`  | NZBGet ↔ *arr and NZBHydra2 | `docker network create usenet` |
 
 Create these once (e.g. from the docker repo root or any host where you run stacks). Stacks that need them declare `external: true` and attach the relevant service(s).
 
-**Address pool exhaustion:** Single-service stacks (Caddy, Grafana, ntfy, Uptime Kuma, etc.) use only the external `monitor` network (no per-stack default network), so Docker does not create a new subnet per stack and you avoid “all predefined address pools have been fully subnetted”. Multi-service stacks (app + database) still create one internal network for service-to-service communication. If you hit pool limits with many multi-service stacks, create external networks in advance or adjust Docker’s default address pools in `daemon.json`.
+**Address pool exhaustion:** shared external networks are created once and reused by
+services with the same role. Multi-service stacks still use a private per-stack
+network for databases and caches. If pool limits are reached, adjust Docker’s
+default address pools in `daemon.json`.
 
 ### MinIO (S3-compatible storage)
 
@@ -38,11 +54,12 @@ The **minio** stack is the single object store for:
 - **Kasm** – S3-based persistent profiles (bucket e.g. `kasm`; see [stacks/kasm/README.md](../stacks/kasm/README.md#optional-minio-s3-persistent-profiles))
 - Other apps that support S3 (e.g. optional Firefly III file storage)
 
-All run on the `monitor` network and use `http://minio:9000` (S3 API) or `minio:9001` (console). Create buckets per app in the MinIO console. See each stack’s README for `AWS_*` / `RESTIC_*` placeholders.
+Trusted S3 clients reach `http://minio:9000` on `backup`; Caddy reaches the
+console through `ingress-admin`. Create buckets per app in the MinIO console.
 
 ### Postfix (SMTP relay)
 
-The **postfix** stack (folder `stacks/postfix`) is the shared outbound mail relay. Stacks that send email explicitly join `mail-services` and point to `smtp-relay:587`. Configure `RELAYHOST`, `ALLOWED_SENDER_DOMAINS`, etc. in the postfix stack; see [stacks/postfix/README.md](../stacks/postfix/README.md).
+The **postfix** stack (folder `stacks/postfix`) is the shared outbound mail relay. Stacks that send email explicitly join `mail-clients` and point to `smtp-relay:587`. Configure `RELAYHOST`, `ALLOWED_SENDER_DOMAINS`, etc. in the postfix stack; see [stacks/postfix/README.md](../stacks/postfix/README.md).
 
 **Stacks with SMTP relay support:** Alertmanager, Authentik, Diun, Firefly III, Gitea, Hedgedoc, Infisical, Joplin Server, Keycloak, Linkwarden, n8n, Naisho, Nextcloud, Outline, Password Pusher, Romm, Scrutiny, SimpleLogin, Snipe-IT, Uptime Kuma. See each stack’s README for configuration (env vars or admin UI).
 
@@ -54,7 +71,8 @@ The **ollama** stack is the shared backend for:
 
 - Open WebUI, LibreChat, Open Notebook, Perplexica, AnythingLLM, Paperless-GPT, Paperless-AI-Next, Nodepad (and optional backends behind **LiteLLM**)
 
-Set `OLLAMA_BASE_URL=http://ollama:11434` (or provider-specific vars such as `OLLAMA_BASE_PATH`, `OLLAMA_HOST`, `OLLAMA_API_URL`) in each app’s `stack.env` when both stacks are on the `monitor` network. See [stacks/ollama/README.md](../stacks/ollama/README.md) and each AI stack’s README.
+Set `OLLAMA_BASE_URL=http://ollama:11434` (or the provider-specific equivalent)
+when both services join `ai-backend`. Web UIs separately use their assigned `ingress-*` zone.
 
 **LiteLLM** ([stacks/litellm](../stacks/litellm/README.md)) is an optional **OpenAI-compatible proxy** in front of Ollama and cloud APIs. Point clients at `http://litellm:4000/v1` with `LITELLM_MASTER_KEY` (or virtual keys) instead of calling Ollama directly when you want unified keys and routing.
 
@@ -227,7 +245,7 @@ Several stacks run their own Redis (Outline, Nextcloud, Immich, LibreChat, SearX
 
 **If you want a shared Redis:**
 
-1. Add a small **redis** stack (or reuse an existing one that you’re comfortable sharing), on the `monitor` network, with a single Redis container and a volume for persistence.
+1. Add a small **redis** stack (or reuse an existing one that you’re comfortable sharing) on a dedicated internal dependency network, with a single Redis container and a volume for persistence.
 2. In each app stack that currently has its own Redis:
    - Remove the Redis service and its volume from that stack’s compose.
    - Point the app to the shared Redis host (e.g. `redis-shared:6379`) and set the **DB index** (e.g. `redis://redis-shared:6379/0` for app A, `/1` for app B). Use different DB numbers per app to avoid key collisions.
@@ -254,8 +272,20 @@ Recommendation: only consider this if you explicitly want to centralize DB manag
 To avoid “network/volume does not exist” when bringing up stacks:
 
 1. **Networks** (if not already created):
-   - `docker network create monitor`
-   - `docker network create mail-services`
+   - `docker network create ingress-public`
+   - `docker network create ingress-admin`
+   - `docker network create ingress-sensitive`
+   - `docker network create edge-services`
+   - `docker network create --internal telemetry`
+   - `docker network create --internal mail-clients`
+   - `docker network create mail-egress`
+   - `docker network create --internal ai-backend`
+   - `docker network create media-automation`
+   - `docker network create media-services`
+   - `docker network create dns-services`
+   - `docker network create security-research`
+   - `docker network create --internal document-services`
+   - `docker network create --internal backup`
    - `docker network create torrents`   (if you use qbittorrent / *arr)
    - `docker network create usenet`    (if you use NZBGet / *arr)
 
@@ -266,9 +296,9 @@ To avoid “network/volume does not exist” when bringing up stacks:
 
 3. **MinIO:** Deploy the minio stack and create buckets (e.g. `outline`, `restic`) and access keys; set the corresponding env in Outline, Restic, etc.
 
-4. **Postfix:** Deploy once on `mail-services`; configure relay and allowed domains; then attach each mail client to `mail-services` and set SMTP host to `smtp-relay` (port `587`).
+4. **Postfix:** Deploy once on internal `mail-clients` plus relay-only `mail-egress`; configure relay and allowed domains, then attach each mail client only to `mail-clients` and set SMTP host to `smtp-relay` (port `587`).
 
-5. **Ollama:** Deploy once on `monitor`; set `OLLAMA_BASE_URL=http://ollama:11434` in Open WebUI, LibreChat, etc.
+5. **Ollama:** Deploy once on internal `ai-backend`; set `OLLAMA_BASE_URL=http://ollama:11434` in Open WebUI, LibreChat, etc.
 
 ---
 
@@ -276,7 +306,7 @@ To avoid “network/volume does not exist” when bringing up stacks:
 
 | Resource      | Status        | Action |
 |---------------|---------------|--------|
-| Networks      | Shared        | Create once (`monitor`, `torrents`, `usenet`) |
+| Networks      | Shared        | Create the three `ingress-*` zones and each required internal service plane once |
 | MinIO         | Shared        | Deploy minio stack; create buckets; set env in Outline, Restic, etc. |
 | Postfix       | Shared        | Deploy postfix stack; set SMTP in apps that send mail |
 | Ollama        | Shared        | Deploy ollama stack; set `OLLAMA_BASE_URL` in AI UIs |

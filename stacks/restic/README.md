@@ -4,7 +4,8 @@ Automated backups using [restic](https://restic.readthedocs.io/) running on a sc
 
 The container uses the dedicated external `backup` network instead of the
 shared application network. Attach the backup target, such as MinIO, to the
-same network.
+same network. A second internal `monitoring-push` network provides only the
+dead-man callback path to Uptime Kuma.
 
 **Website (restic):** https://restic.net  
 **Docs (restic):** https://restic.readthedocs.io/  
@@ -24,6 +25,7 @@ same network.
    - `RESTIC_PASSWORD` (encryption password; generate with `openssl rand -base64 32`),
    - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (S3 credentials),
    - `RESTIC_PATH_DOCKER` / `RESTIC_PATH_MEDIA` (host paths to back up; defaults `/srv/docker`, `/srv/media`),
+   - `UPTIME_KUMA_RESTIC_PUSH_TOKEN`, matching the Restic push monitor token,
    - and adjust `BACKUP_CRON` if needed.
 
 2. **Initialize the repo (first run)**:
@@ -47,6 +49,10 @@ same network.
      docker compose logs -f restic
      ```
 
+   Successful, incomplete, and failed backup runs update the `Restic Backup`
+   push monitor in Uptime Kuma. The default daily schedule uses a 26-hour
+   heartbeat grace period.
+
 ## Portainer
 
 Stacks → Add stack → **Repository** → set your repo URL and Compose path (e.g. `stacks/restic/docker-compose.yml`). In **Environment**, set all required vars including `RESTIC_PATH_DOCKER` and `RESTIC_PATH_MEDIA` to absolute host paths (e.g. `/srv/docker`, `/srv/media`). Ensure MinIO is deployed and the `restic` bucket exists.
@@ -57,7 +63,7 @@ Stacks → Add stack → **Repository** → set your repo URL and Compose path (
 | ----------- | ----------------------------------------------------------------------- |
 | **Type**    | CLI / cron-only stack (no web UI, no Caddy, no host ports)             |
 | **Image**   | `mazzolino/restic:latest`                                              |
-| **Network** | Isolated external `backup` network for the backup target              |
+| **Network** | Isolated `backup` network plus internal `monitoring-push` callbacks   |
 | **Storage** | `restic_cache` (restic cache); data is stored in the remote repository |
 
 ## Key environment variables
@@ -69,6 +75,7 @@ Set these in `stack.env` (see `stack.env.example` for comments and examples):
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` – S3 credentials for the backup target (e.g. MinIO).
 - `RESTIC_PATH_DOCKER`, `RESTIC_PATH_MEDIA` – Host paths to back up (defaults `/srv/docker`, `/srv/media`). Set in Portainer to absolute paths.
 - `BACKUP_CRON` – Cron schedule, default `0 3 * * *` (daily at 03:00).
+- `UPTIME_KUMA_RESTIC_PUSH_TOKEN` – Dead-man token shared with Uptime Kuma.
 - `TZ` – Optional timezone for logs and cron.
 
 ## Notes

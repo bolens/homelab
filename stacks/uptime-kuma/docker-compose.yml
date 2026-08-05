@@ -29,18 +29,19 @@ services:
       start_period: 10s
 
   uptime-kuma:
-    image: louislam/uptime-kuma:1
+    image: louislam/uptime-kuma:2
     container_name: uptime-kuma
     restart: unless-stopped
-    # No host port: access via Caddy on proxy-ingress.
+    # No host port: access via Caddy on ingress-admin.
     volumes:
       - uptime_kuma_data:/app/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - proxy-ingress
+      - ingress-admin
       - docker-api
-      - mail-services
+      - mail-clients
+      - monitoring-push
     depends_on:
       uptime-kuma-docker-socket-proxy:
         condition: service_healthy
@@ -58,11 +59,14 @@ services:
 networks:
   docker-api:
     internal: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-admin:
+    name: ingress-admin
     external: true
-  mail-services:
-    name: mail-services
+  mail-clients:
+    name: mail-clients
+    external: true
+  monitoring-push:
+    name: monitoring-push
     external: true
 
 volumes:

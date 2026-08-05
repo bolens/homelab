@@ -1,0 +1,269 @@
+-- Uptime Kuma dashboard groups and public status pages.
+BEGIN IMMEDIATE;
+
+-- Replace the original catch-all external group with functional dashboard groups.
+WITH desired_group(name) AS (
+  SELECT 'Core & Identity' AS name UNION ALL
+  SELECT 'Media & Libraries' UNION ALL
+  SELECT 'Media Automation' UNION ALL
+  SELECT 'Productivity & Data' UNION ALL
+  SELECT 'AI & Search' UNION ALL
+  SELECT 'Admin & Observability' UNION ALL
+  SELECT 'Apps & Utilities'
+)
+INSERT INTO monitor (name, type, active, user_id, interval, retry_interval, maxretries, timeout, resend_interval)
+SELECT desired_group.name, 'group', 1, 1, 60, 60, 0, 48, 0
+FROM desired_group
+WHERE NOT EXISTS (
+  SELECT 1 FROM monitor
+  WHERE monitor.type = 'group' AND monitor.name = desired_group.name
+);
+
+UPDATE monitor
+SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'Core & Identity')
+WHERE type != 'group' AND name IN (
+  'Authentik', 'Headscale', 'Infisical', 'Keycloak', 'Ntfy', 'SimpleLogin',
+  'Uptime Kuma', 'Vaultwarden'
+);
+
+UPDATE monitor
+SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'Media & Libraries')
+WHERE type != 'group' AND name IN (
+  'ArchiSteamFarm', 'Audiobookshelf', 'Calibre-Web', 'Emby', 'Immich',
+  'Jellyfin', 'Jellystat', 'Kavita', 'Komga', 'Lanraragi', 'Maloja',
+  'Navidrome', 'Plex', 'RomM', 'Tautulli', 'Twitch Drops Miner'
+);
+
+UPDATE monitor
+SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'Media Automation')
+WHERE type != 'group' AND name IN (
+  'Bazarr', 'Flood', 'Lidarr', 'MeTube', 'Mylar3', 'NZBGet', 'NZBhydra2',
+  'Picard', 'Prowlarr', 'Radarr', 'Readarr', 'Seerr', 'Sonarr', 'Soulseek',
+  'Whisparr'
+);
+
+UPDATE monitor
+SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'Productivity & Data')
+WHERE type != 'group' AND name IN (
+  'Actual Budget', 'ArchiveBox', 'Baserow', 'BookStack', 'Cal.com', 'DocuSeal',
+  'Firefly-III', 'FreshRSS', 'Gitea', 'Hedgedoc', 'Joplin Server', 'Linkding',
+  'LinkStack', 'Linkwarden', 'Mealie', 'Nextcloud', 'Nodepad', 'Open-Notebook',
+  'Outline', 'Paperless AI', 'Paperless GPT', 'Paperless-ngx',
+  'Pocketbase', 'Resilio', 'Seafile', 'Snipe-IT', 'Syncthing', 'The Lounge',
+  'Vikunja', 'Woodpecker-CI'
+);
+
+UPDATE monitor
+SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'AI & Search')
+WHERE type != 'group' AND name IN (
+  'LibreChat', 'LiteLLM', 'Meilisearch', 'Open-WebUI', 'Perplexica',
+  'Presidio Analyzer', 'Presidio Anonymizer', 'Presidio Image Redactor',
+  'Searx-ng'
+);
+
+UPDATE monitor
+SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'Admin & Observability')
+WHERE type != 'group' AND name IN (
+  'AdGuard Home', 'Alertmanager', 'cAdvisor', 'Crowdsec', 'Dependency-Track',
+  'Dozzle', 'Grafana', 'Guacamole', 'Harbor', 'Homarr', 'InfluxDB', 'Kasm',
+  'Mailpit', 'Matomo', 'MinIO', 'Node-RED', 'pgAdmin', 'Portainer',
+  'Prometheus', 'Restic Backup', 'Scrutiny', 'SMTP Relay: Submission'
+);
+
+UPDATE monitor
+SET parent = (SELECT id FROM monitor g WHERE g.type = 'group' AND g.name = 'Apps & Utilities')
+WHERE type != 'group'
+  AND type != 'docker'
+  AND parent = (SELECT id FROM monitor WHERE type = 'group' AND name = 'External [*.bolens.dev]');
+
+DELETE FROM monitor
+WHERE type = 'group'
+  AND name = 'External [*.bolens.dev]'
+  AND NOT EXISTS (SELECT 1 FROM monitor child WHERE child.parent = monitor.id);
+
+-- Rebuild only the managed status pages and their display groups.
+DELETE FROM monitor_group
+WHERE group_id IN (
+  SELECT id FROM "group"
+  WHERE status_page_id IN (
+    SELECT id FROM status_page WHERE slug IN ('services', 'media', 'infrastructure')
+  )
+);
+DELETE FROM "group"
+WHERE status_page_id IN (
+  SELECT id FROM status_page WHERE slug IN ('services', 'media', 'infrastructure')
+);
+DELETE FROM status_page WHERE slug IN ('services', 'media', 'infrastructure');
+
+INSERT INTO status_page (
+  slug, title, description, icon, theme, published, search_engine_index,
+  show_tags, show_powered_by, show_certificate_expiry, auto_refresh_interval,
+  show_only_last_heartbeat, footer_text
+) VALUES
+  (
+    'services', 'Bolens Services',
+    'Current availability of user-facing Bolens services.',
+    '/icon.svg', 'dark', 1, 0, 0, 1, 1, 60, 0,
+    'Availability is measured from the homelab monitoring service.'
+  ),
+  (
+    'media', 'Bolens Media',
+    'Streaming, library, and media automation service availability.',
+    '/icon.svg', 'dark', 1, 0, 0, 1, 1, 60, 0,
+    'Availability is measured from the homelab monitoring service.'
+  ),
+  (
+    'infrastructure', 'Bolens Infrastructure',
+    'Edge, identity, observability, and developer-platform availability.',
+    '/icon.svg', 'dark', 1, 0, 0, 1, 1, 60, 0,
+    'No private container or database details are published here.'
+  );
+
+INSERT INTO "group" (name, public, active, weight, status_page_id)
+SELECT group_name, 1, 1, group_weight, status_page.id
+FROM status_page
+JOIN (
+  SELECT 'services' slug, 'Core Services' group_name, 10 group_weight UNION ALL
+  SELECT 'services', 'Productivity', 20 UNION ALL
+  SELECT 'services', 'Utilities', 30 UNION ALL
+  SELECT 'media', 'Streaming & Libraries', 10 UNION ALL
+  SELECT 'media', 'Media Automation', 20 UNION ALL
+  SELECT 'infrastructure', 'Edge & Identity', 10 UNION ALL
+  SELECT 'infrastructure', 'Observability', 20 UNION ALL
+  SELECT 'infrastructure', 'Developer Infrastructure', 30
+) definition ON definition.slug = status_page.slug;
+
+INSERT INTO monitor_group (monitor_id, group_id, weight, send_url)
+SELECT monitor.id, "group".id,
+  row_number() OVER (PARTITION BY "group".id ORDER BY monitor.name) * 10, 0
+FROM "group"
+JOIN status_page ON status_page.id = "group".status_page_id
+JOIN monitor ON (
+  ("group".name = 'Core Services' AND monitor.name IN (
+    'Authentik', 'Nextcloud', 'Ntfy', 'Paperless-ngx', 'Uptime Kuma', 'Vaultwarden'
+  ))
+  OR ("group".name = 'Productivity' AND monitor.name IN (
+    'Actual Budget', 'BookStack', 'Cal.com', 'DocuSeal', 'FreshRSS', 'Gitea',
+    'Joplin Server', 'Linkding', 'Linkwarden', 'Mealie', 'Seafile', 'Vikunja'
+  ))
+  OR ("group".name = 'Utilities' AND monitor.name IN (
+    'ConvertX', 'IT-Tools', 'Password-Pusher', 'PrivateBin', 'Slink',
+    'Stirling-PDF', 'Web-Check'
+  ))
+  OR ("group".name = 'Streaming & Libraries' AND monitor.name IN (
+    'Audiobookshelf', 'Emby', 'Immich', 'Jellyfin', 'Kavita', 'Komga',
+    'Navidrome', 'Plex', 'RomM', 'Twitch Drops Miner'
+  ))
+  OR ("group".name = 'Media Automation' AND monitor.name IN (
+    'Bazarr', 'Lidarr', 'NZBGet', 'NZBhydra2', 'Prowlarr', 'Radarr', 'Readarr',
+    'Seerr', 'Sonarr', 'Tautulli'
+  ))
+  OR ("group".name = 'Edge & Identity' AND monitor.name IN (
+    'Authentik', 'Headscale', 'Infisical', 'Keycloak', 'Ntfy', 'Uptime Kuma',
+    'Vaultwarden'
+  ))
+  OR ("group".name = 'Observability' AND monitor.name IN (
+    'Alertmanager', 'Grafana', 'Prometheus'
+  ))
+  OR ("group".name = 'Developer Infrastructure' AND monitor.name IN (
+    'Gitea', 'Harbor', 'Woodpecker-CI'
+  ))
+)
+WHERE monitor.type != 'group';
+
+-- Maintain useful filter tags without removing hand-managed tags.
+INSERT INTO tag (name, color)
+SELECT column1, column2
+FROM (
+  VALUES
+    ('Public-Status', '#16A34A'),
+    ('Critical', '#DC2626')
+)
+WHERE NOT EXISTS (SELECT 1 FROM tag WHERE tag.name = column1);
+
+INSERT INTO monitor_tag (monitor_id, tag_id, value)
+SELECT monitor.id, tag.id, ''
+FROM monitor
+CROSS JOIN tag
+WHERE monitor.active = 1
+  AND monitor.type = 'http'
+  AND tag.name = 'External'
+  AND NOT EXISTS (
+    SELECT 1 FROM monitor_tag
+    WHERE monitor_tag.monitor_id = monitor.id AND monitor_tag.tag_id = tag.id
+  );
+
+INSERT INTO monitor_tag (monitor_id, tag_id, value)
+SELECT monitor.id, tag.id, ''
+FROM monitor
+CROSS JOIN tag
+WHERE monitor.active = 1
+  AND monitor.type = 'docker'
+  AND tag.name IN ('Internal', 'Infrastructure')
+  AND NOT EXISTS (
+    SELECT 1 FROM monitor_tag
+    WHERE monitor_tag.monitor_id = monitor.id AND monitor_tag.tag_id = tag.id
+  );
+
+INSERT INTO monitor_tag (monitor_id, tag_id, value)
+SELECT DISTINCT monitor_group.monitor_id, tag.id, ''
+FROM monitor_group
+JOIN "group" ON "group".id = monitor_group.group_id
+JOIN tag ON tag.name = 'Public-Status'
+WHERE "group".status_page_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM monitor_tag
+    WHERE monitor_tag.monitor_id = monitor_group.monitor_id
+      AND monitor_tag.tag_id = tag.id
+  );
+
+INSERT INTO monitor_tag (monitor_id, tag_id, value)
+SELECT monitor.id, tag.id, ''
+FROM monitor
+CROSS JOIN tag
+WHERE tag.name = 'Critical'
+  AND (
+    monitor.type = 'docker'
+    OR monitor.name IN (
+      'Authentik', 'Harbor', 'Infisical', 'Nextcloud', 'Ntfy', 'Paperless-ngx',
+      'Prometheus', 'Restic Backup', 'SMTP Relay: Submission', 'Uptime Kuma',
+      'Vaultwarden'
+    )
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM monitor_tag
+    WHERE monitor_tag.monitor_id = monitor.id AND monitor_tag.tag_id = tag.id
+  );
+
+-- Fill functional tags for monitors introduced after the original tag migration.
+INSERT INTO monitor_tag (monitor_id, tag_id, value)
+SELECT monitor.id, tag.id, ''
+FROM monitor
+JOIN tag ON (
+  (tag.name = 'Media' AND monitor.name IN ('Jellystat', 'Picard', 'Seerr', 'Soulseek', 'Tautulli', 'Twitch Drops Miner'))
+  OR (tag.name = 'Media-Consumption' AND monitor.name = 'Twitch Drops Miner')
+  OR (tag.name = 'Media-Acquisition' AND monitor.name IN ('Flood', 'Picard', 'Seerr', 'Soulseek'))
+  OR (tag.name = 'Monitoring' AND monitor.name IN ('InfluxDB', 'Jellystat', 'Tautulli'))
+  OR (tag.name = 'AI' AND monitor.name IN ('LiteLLM', 'Paperless AI', 'Paperless GPT'))
+  OR (tag.name = 'Productivity' AND monitor.name IN ('Cal.com', 'DocuSeal', 'Nodepad', 'Paperless AI', 'Paperless GPT'))
+  OR (tag.name = 'Communication' AND monitor.name IN ('Cal.com', 'The Lounge'))
+  OR (tag.name = 'Email' AND monitor.name = 'SMTP Relay: Submission')
+  OR (tag.name = 'Archive' AND monitor.name = 'Restic Backup')
+  OR (tag.name = 'Infrastructure' AND monitor.name IN ('AdGuard Home', 'InfluxDB', 'pgAdmin', 'Restic Backup', 'SMTP Relay: Submission'))
+  OR (tag.name = 'Networking' AND monitor.name = 'AdGuard Home')
+  OR (tag.name = 'Security' AND monitor.name = 'AdGuard Home')
+)
+WHERE NOT EXISTS (
+  SELECT 1 FROM monitor_tag
+  WHERE monitor_tag.monitor_id = monitor.id AND monitor_tag.tag_id = tag.id
+);
+
+UPDATE status_page
+SET rss_title = CASE slug
+  WHEN 'services' THEN 'Bolens Services Status'
+  WHEN 'media' THEN 'Bolens Media Status'
+  WHEN 'infrastructure' THEN 'Bolens Infrastructure Status'
+END
+WHERE slug IN ('services', 'media', 'infrastructure');
+
+COMMIT;

@@ -8,13 +8,16 @@ services:
     env_file:
       - stack.env
     environment:
-      # Example: S3 over MinIO on the monitor network
+      # Example: S3 over MinIO on the internal backup network
       - RESTIC_REPOSITORY=${RESTIC_REPOSITORY}
       - RESTIC_PASSWORD=${RESTIC_PASSWORD}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - BACKUP_CRON=${BACKUP_CRON:-0 3 * * *}
       - TZ=${TZ:-America/Denver}
+      - POST_COMMANDS_SUCCESS=curl -fsS "http://uptime-kuma:3001/api/push/${UPTIME_KUMA_RESTIC_PUSH_TOKEN}?status=up&msg=Backup%20completed"
+      - POST_COMMANDS_FAILURE=curl -fsS "http://uptime-kuma:3001/api/push/${UPTIME_KUMA_RESTIC_PUSH_TOKEN}?status=down&msg=Backup%20failed"
+      - POST_COMMANDS_INCOMPLETE=curl -fsS "http://uptime-kuma:3001/api/push/${UPTIME_KUMA_RESTIC_PUSH_TOKEN}?status=down&msg=Backup%20incomplete"
     volumes:
       # Host paths to back up (override via env for Portainer)
       - ${RESTIC_PATH_DOCKER:-/srv/docker}:/data/docker:ro
@@ -23,10 +26,14 @@ services:
       - restic_cache:/cache
     networks:
       - backup
+      - monitoring-push
 
 networks:
   backup:
     name: backup
+    external: true
+  monitoring-push:
+    name: monitoring-push
     external: true
 
 volumes:

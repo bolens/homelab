@@ -1,0 +1,193 @@
+-- Uptime Kuma homelab monitoring baseline.
+BEGIN IMMEDIATE;
+
+UPDATE setting
+SET value = '90'
+WHERE key = 'keepDataPeriodDays';
+
+UPDATE monitor
+SET interval = 60,
+    retry_interval = 30,
+    maxretries = 2,
+    timeout = 15,
+    resend_interval = 30
+WHERE active = 1
+  AND type != 'group';
+
+UPDATE monitor
+SET interval = 30
+WHERE active = 1
+  AND name IN (
+    'Authentik',
+    'Harbor',
+    'Infisical',
+    'Prometheus',
+    'Uptime Kuma',
+    'Vaultwarden'
+  );
+
+DELETE FROM monitor_notification
+WHERE notification_id IN (
+  SELECT id FROM notification WHERE name = 'Homelab ntfy'
+);
+DELETE FROM notification
+WHERE name = 'Homelab ntfy';
+
+INSERT INTO notification (name, active, user_id, is_default, config)
+VALUES (
+  'Homelab ntfy',
+  1,
+  1,
+  1,
+  json_object(
+    'type', 'ntfy',
+    'name', 'Homelab ntfy',
+    'ntfytopic', 'uptime-kuma',
+    'ntfyserverurl', 'https://ntfy.bolens.dev',
+    'ntfyPriority', 4,
+    'ntfyPriorityDown', 5,
+    'ntfyAuthenticationMethod', 'none',
+    'ntfyUseTemplate', json('false')
+  )
+);
+
+INSERT INTO monitor (
+  name, active, user_id, interval, url, type, weight, maxretries,
+  retry_interval, resend_interval, timeout, parent, expiry_notification
+)
+SELECT
+  column1, 1, 1, 60, column2, 'http', column3, 2,
+  30, 30, 15, 420, 1
+FROM (
+  VALUES
+    ('AdGuard Home', 'https://adguard.bolens.dev/', 900),
+    ('Jellystat', 'https://jellystat.bolens.dev/', 910),
+    ('Tautulli', 'https://tautulli.bolens.dev/', 920),
+    ('LiteLLM', 'https://litellm.bolens.dev/health/liveliness', 930),
+    ('Soulseek', 'https://soulseek.bolens.dev/', 940)
+)
+WHERE NOT EXISTS (
+  SELECT 1 FROM monitor WHERE monitor.name = column1
+);
+
+-- Public services added after the original monitor inventory.
+INSERT INTO monitor (
+  name, active, user_id, interval, url, type, weight, maxretries,
+  retry_interval, resend_interval, timeout, parent, expiry_notification,
+  maxredirects, accepted_statuscodes_json
+)
+SELECT
+  column1, 1, 1, 60, column2, 'http', column3, 2,
+  30, 30, 15,
+  (SELECT id FROM monitor WHERE name = 'External [*.bolens.dev]' AND type = 'group' LIMIT 1),
+  1, 10, '["200-299"]'
+FROM (
+  VALUES
+    ('Cal.com', 'https://booking.bolens.dev/', 950),
+    ('DocuSeal', 'https://docuseal.bolens.dev/', 960),
+    ('Flood', 'https://flood.bolens.dev/', 970),
+    ('InfluxDB', 'https://influxdb.bolens.dev/health', 980),
+    ('Nodepad', 'https://nodepad.bolens.dev/', 990),
+    ('Paperless AI', 'https://paperless-ai.bolens.dev/', 1000),
+    ('Paperless GPT', 'https://paperless-gpt.bolens.dev/', 1010),
+    ('pgAdmin', 'https://pgadmin.bolens.dev/misc/ping', 1020),
+    ('Picard', 'https://picard.bolens.dev/', 1030),
+    ('Seerr', 'https://seerr.bolens.dev/api/v1/status', 1040),
+    ('The Lounge', 'https://thelounge.bolens.dev/', 1050),
+    ('Twitch Drops Miner', 'https://twitchdrops.bolens.dev/', 1060)
+)
+WHERE NOT EXISTS (
+  SELECT 1 FROM monitor WHERE monitor.name = column1
+);
+
+-- Normalize legacy display names without changing their history.
+UPDATE monitor SET name = 'NZBGet' WHERE name = 'NZBget';
+UPDATE monitor SET name = 'PhoneInfoga' WHERE name = 'PhoneInfogra';
+UPDATE monitor SET name = 'SearxNG' WHERE name = 'Searx-ng';
+UPDATE monitor SET name = 'Uptime Kuma' WHERE name = 'Uptime-Kuma';
+
+-- Prefer application health endpoints over login or landing pages.
+UPDATE monitor SET url = 'https://authentik.bolens.dev/-/health/live/' WHERE name = 'Authentik';
+UPDATE monitor SET url = 'https://gitea.bolens.dev/api/healthz' WHERE name = 'Gitea';
+UPDATE monitor SET url = 'https://harbor.bolens.dev/api/v2.0/health' WHERE name = 'Harbor';
+UPDATE monitor SET url = 'https://jellyfin.bolens.dev/health' WHERE name = 'Jellyfin';
+UPDATE monitor SET url = 'https://music.bolens.dev/ping' WHERE name = 'Navidrome';
+UPDATE monitor SET url = 'https://nextcloud.bolens.dev/status.php' WHERE name = 'Nextcloud';
+UPDATE monitor SET url = 'https://seafile.bolens.dev/api2/ping/' WHERE name = 'Seafile';
+UPDATE monitor SET url = 'https://minio-console.bolens.dev/minio/health/live' WHERE name = 'MinIO';
+
+INSERT INTO monitor (
+  name, active, user_id, interval, type, hostname, port, weight, maxretries,
+  retry_interval, resend_interval, timeout, expiry_notification
+)
+SELECT
+  'SMTP Relay: Submission', 1, 1, 60, 'port', 'smtp-relay', 587, 1080, 2,
+  30, 30, 10, 0
+WHERE NOT EXISTS (
+  SELECT 1 FROM monitor WHERE name = 'SMTP Relay: Submission'
+);
+
+INSERT INTO monitor (name, active, user_id, interval, type, weight)
+SELECT 'Critical Containers', 1, 1, 60, 'group', 3000
+WHERE NOT EXISTS (
+  SELECT 1 FROM monitor WHERE name = 'Critical Containers' AND type = 'group'
+);
+
+INSERT INTO monitor (
+  name, active, user_id, interval, type, weight, maxretries,
+  retry_interval, resend_interval, timeout, docker_host, docker_container,
+  parent, expiry_notification
+)
+SELECT
+  column1, 1, 1, 60, 'docker', column3, 2,
+  30, 30, 15, 1, column2,
+  (SELECT id FROM monitor WHERE name = 'Critical Containers' AND type = 'group' LIMIT 1),
+  0
+FROM (
+  VALUES
+    ('Container: Caddy', 'caddy', 2000),
+    ('Container: Cloudflare Tunnel', 'cloudflare-tunnel', 2010),
+    ('Container: SMTP Relay', 'smtp-relay', 2020),
+    ('Container: Unbound', 'unbound', 2030),
+    ('Container: Prometheus', 'prometheus', 2040),
+    ('Container: Loki', 'loki', 2050),
+    ('Container: Grafana Alloy', 'grafana-alloy', 2060),
+    ('Container: Harbor Proxy', 'nginx', 2070),
+    ('Container: Harbor Core', 'harbor-core', 2080),
+    ('Container: Harbor Registry', 'registry', 2090),
+    ('Container: Harbor Database', 'harbor-db', 2100),
+    ('Container: Ollama', 'ollama', 2110),
+    ('Container: Whisper ASR', 'whisper-asr', 2120),
+    ('Container: NZBGet', 'nzbget', 2130),
+    ('Container: Authentik Database', 'authentik-postgres', 2140),
+    ('Container: Immich Database', 'immich-postgres', 2150),
+    ('Container: Paperless Database', 'paperless-ngx-db', 2160),
+    ('Container: AdGuard Home', 'adguard-home', 2170),
+    ('Container: Pi-hole', 'pihole', 2180)
+)
+WHERE NOT EXISTS (
+  SELECT 1 FROM monitor WHERE monitor.name = column1
+);
+
+DELETE FROM monitor_notification
+WHERE id NOT IN (
+  SELECT min(id)
+  FROM monitor_notification
+  GROUP BY monitor_id, notification_id
+);
+
+INSERT INTO monitor_notification (monitor_id, notification_id)
+SELECT monitor.id, notification.id
+FROM monitor
+CROSS JOIN notification
+WHERE monitor.active = 1
+  AND monitor.type != 'group'
+  AND notification.active = 1
+  AND NOT EXISTS (
+    SELECT 1
+    FROM monitor_notification
+    WHERE monitor_notification.monitor_id = monitor.id
+      AND monitor_notification.notification_id = notification.id
+  );
+
+COMMIT;

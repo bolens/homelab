@@ -11,5 +11,6 @@ prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 
 prepare_stack_copy_caddy
-prepare_stack_ensure_docker_network "monitor"
+prepare_stack_ensure_docker_network "media-automation"
+prepare_stack_ensure_docker_network "ingress-sensitive"
 prepare_stack_end

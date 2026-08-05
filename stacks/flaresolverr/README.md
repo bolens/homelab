@@ -8,13 +8,13 @@ Proxy server that solves Cloudflare and DDoS-GUARD browser challenges and return
 
 ## Quick start
 
-1. **Networks:** Ensure the external `monitor` network exists (see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md)).
+1. **Networks:** Ensure the external `media-automation` network exists (see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md)).
 2. **Prepare files:** From this directory run `./prepare-stack.sh` (copies `stack.env.example` → `stack.env` and `caddy_snippet.conf.example` → `caddy_snippet.conf` when missing).
 3. **Deploy**
    ```bash
    docker compose up -d
    ```
-4. **Check:** `curl -sf http://flaresolverr:8191/health` from a container on `monitor`, or open `https://flaresolverr.example.com` (via Caddy) for the JSON status on `/`.
+4. **Check:** `curl -sf http://flaresolverr:8191/health` from a container on `media-automation`.
 
 **Portainer:** Stacks → Add stack → paste `docker-compose.yml`, set env from `stack.env.example`, deploy.
 
@@ -22,7 +22,7 @@ Proxy server that solves Cloudflare and DDoS-GUARD browser challenges and return
 
 | Item | Details |
 |------|---------|
-| **Access** | Via Caddy for humans; *arr/Jackett use `http://flaresolverr:8191` on the `monitor` network (no host port). |
+| **Access** | *arr/Jackett use `http://flaresolverr:8191` on `media-automation` (no host port). |
 | **API** | `POST /v1` with JSON body (`cmd`, `url`, `maxTimeout`, etc.). See upstream README. |
 | **Health** | `GET /health` (JSON). |
 | **Image** | `ghcr.io/flaresolverr/flaresolverr:latest` |
