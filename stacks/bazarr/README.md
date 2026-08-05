@@ -23,7 +23,7 @@ Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatica
    - Access Bazarr via Caddy (for example `https://bazarr.home` or `https://bazarr.yourdomain.com`).
    - Point Bazarr at:
      - The Sonarr and Radarr APIs.
-     - Your TV and movie folders: `/tv` and `/movies` (same host paths as Sonarr/Radarr).
+     - Your TV and movie folders: `/data/tv` and `/data/movies` (the same container paths Sonarr and Radarr report).
    - Configure subtitle languages and providers.
 
 ## Configuration
@@ -34,7 +34,7 @@ Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatica
 | **Networks** | `monitor` plus default                                                |
 | **Image**  | `lscr.io/linuxserver/bazarr:latest`                                    |
 | **Env**    | `TZ`, `PUID`, `PGID`, `BAZARR_TV_PATH`, `BAZARR_MOVIES_PATH`           |
-| **Storage**| `bazarr_config` → `/config`, `${BAZARR_TV_PATH}` → `/tv`, `${BAZARR_MOVIES_PATH}` → `/movies` |
+| **Storage**| `bazarr_config` → `/config`, `${BAZARR_TV_PATH}` → `/data/tv`, `${BAZARR_MOVIES_PATH}` → `/data/movies` |
 
 ## Caddy reverse proxy
 
@@ -46,4 +46,3 @@ bazarr.home, bazarr.local {
   reverse_proxy bazarr:6767
 }
 ```
-

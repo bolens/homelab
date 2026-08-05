@@ -38,8 +38,17 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
        `UnpackMusicTar`. Keep the category's built-in **Unpack** option enabled
        for RAR and 7-Zip releases.
 
-The bundled `UnpackMusicTar` post-processing extension extracts tar-family
-music releases that NZBGet's built-in unpacker reports as “Nothing to unpack.”
+The bundled `UnpackMusicTar` post-processing extension extracts ZIP and
+tar-family music releases that NZBGet's built-in unpacker reports as “Nothing
+to unpack.” Extracted folder trees are flattened into the release directory,
+except for numbered `CD`, `Disc`, and `Disk` folders used by multi-disc releases.
+This flattening pass also handles release folders created earlier by NZBGet's
+built-in unpacker and removes directories left empty afterward.
+After successful extraction, `.accurip`, `.cue`, `.jpg`, `.log`, `.m3u`,
+`.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`, and
+`.txt` sidecar files are removed, along with `.url` shortcuts, while audio and
+music-video files are retained. Cleanup also runs when NZBGet's built-in
+unpacker has already removed the archive before this extension starts.
 It validates paths and file types before extraction, refuses to overwrite
 existing files, and removes each archive only after a successful extraction.
 Other categories are ignored.

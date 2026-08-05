@@ -16,8 +16,8 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - bazarr_config:/config
-      - "${BAZARR_TV_PATH:-/mnt/unraid/media/tv}:/tv"
-      - "${BAZARR_MOVIES_PATH:-/mnt/unraid/media/movies}:/movies"
+      - "${BAZARR_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
+      - "${BAZARR_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
     networks:
       - monitor
     healthcheck:
