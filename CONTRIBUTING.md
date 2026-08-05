@@ -22,6 +22,12 @@ python3 scripts/build-stack-catalog.py
 python3 scripts/build-topology.py --in-place
 ```
 
+Keep application-specific setup, environment variables, health checks, and
+troubleshooting in `stacks/<name>/README.md`. Cross-stack concepts belong in
+`documents/`; the root README should remain a short navigation and orientation
+page. Update generated documents through their scripts rather than editing
+generated sections by hand.
+
 Use focused commits with Conventional Commit subjects. Explain migrations or
 behavior changes in the commit body.
 

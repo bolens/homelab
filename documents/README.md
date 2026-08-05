@@ -1,22 +1,52 @@
-# Stacks documentation
+# Documentation
 
-Shared and cross-stack docs for the homelab Docker setup.
+Cross-stack guides for operating and maintaining this Docker homelab.
+Application-specific setup belongs in each stack's README; find one through the
+[stack catalog](STACK-CATALOG.md).
 
-**Stack README convention:** Each stack under `stacks/<name>/` should include a standardized **upstream links** block near the top of its `README.md` (after the one-line description), with real URLs where applicable: **Website:**, **Docs:** (omit if no separate docs site), **GitHub:** (or other source host), **Docker image:** (Docker Hub / GHCR / registry for the image used in that stack), **Releases:** (project releases or changelog page). Omit any row that does not apply (e.g. no **Docs** if the project has no separate docs site).
+## New deployment
 
-| Doc | Description |
-|-----|-------------|
-| [GETTING-STARTED.md](GETTING-STARTED.md) | New-host prerequisites, safe stack preparation, deployment, verification, and maintenance |
-| [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md) | Repository editing, validation, secret scanning, commits, and mirror pushes |
-| [PREPARATION-STANDARDS.md](PREPARATION-STANDARDS.md) | Maintainer contract and audit workflow for safe, verbose stack preparation scripts |
-| [STACK-METADATA.md](STACK-METADATA.md) | `stack.yaml` catalog schema, validation, and reviewed inference workflow |
-| [STACK-CATALOG.md](STACK-CATALOG.md) | Generated catalog of every stack and its purpose |
-| [TOPOLOGY.md](TOPOLOGY.md) | Generated ingress, VPN, application, and monitoring topology |
-| [ACCESS-SSO.md](ACCESS-SSO.md) | Cloudflare Access SSO for tunnel subdomains (replace basic auth with Google/GitHub/etc.) |
-| [CROWDSEC-CLOUDFLARE-WORKER.md](CROWDSEC-CLOUDFLARE-WORKER.md) | Use CrowdSec decisions to block or challenge traffic at Cloudflare’s edge via the Cloudflare Workers bouncer |
-| [ENV-VARS.md](ENV-VARS.md) | Common environment variables (TZ, locale, per-app) and which stacks use them |
-| [SHARED-RESOURCES.md](SHARED-RESOURCES.md) | Shared resources (networks, MinIO, Postfix, Ollama), one-time setup, and optional optimizations (Redis, TZ/locale) |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Exited containers, restarts, and common stack issues (Promtail, Linkwarden, Infisical, etc.) |
+1. Follow [Getting started](GETTING-STARTED.md) for prerequisites, preparation,
+   deployment, and verification.
+2. Use the [stack catalog](STACK-CATALOG.md) to choose a service.
+3. Read that stack's linked README before copying examples or starting
+   containers.
+4. Refer to [Shared resources](SHARED-RESOURCES.md) only for the networks,
+   storage, and shared services your selected stack needs.
 
-Start with **Getting started**, then use the stack README for application-specific
-configuration.
+## Architecture and shared configuration
+
+| Guide | Use it for |
+|---|---|
+| [Topology](TOPOLOGY.md) | Generated overview of ingress, VPN, application, and monitoring relationships |
+| [Shared resources](SHARED-RESOURCES.md) | Networks, storage, MinIO, Postfix, Ollama, DNS, and host-wide settings |
+| [Environment variables](ENV-VARS.md) | Shared variable conventions, secret generation, and the per-stack variable index |
+| [Cloudflare Access SSO](ACCESS-SSO.md) | Protecting tunnel hostnames with an identity provider or one-time PIN |
+| [CrowdSec Cloudflare Worker](CROWDSEC-CLOUDFLARE-WORKER.md) | Enforcing CrowdSec decisions at Cloudflare's edge |
+| [Monitoring and observability](MONITORING.md) | Choosing and connecting metrics, logs, probes, dashboards, and alerts |
+| [Logging hardening](LOGGING-HARDENING.md) | Docker log rotation, Alloy access, and Loki migration |
+
+## Operations
+
+| Guide | Use it for |
+|---|---|
+| [Troubleshooting](TROUBLESHOOTING.md) | Health checks, exited containers, restart behavior, and common failures |
+| [Portainer](../portainer/README.md) | Deploying and proxying the Portainer management UI |
+| [Scripts reference](../scripts/README.md) | Validation, preparation, maintenance, and monitoring helpers |
+
+For an application-specific failure, start with its stack README before using
+the cross-stack troubleshooting guide.
+
+## Maintainer reference
+
+| Guide | Use it for |
+|---|---|
+| [Development workflow](DEVELOPMENT-WORKFLOW.md) | Local validation, secret scanning, CI, commits, and mirror pushes |
+| [Preparation standards](PREPARATION-STANDARDS.md) | Contract and audit workflow for stack preparation scripts |
+| [Stack metadata](STACK-METADATA.md) | `stack.yaml` schema, validation, and reviewed inference |
+| [Stack catalog](STACK-CATALOG.md) | Generated index of every stack and its purpose |
+
+Each `stacks/<name>/README.md` should describe the application, link to its
+upstream project and image, and document its own prerequisites, configuration,
+deployment, verification, upgrade, and troubleshooting details. Omit upstream
+link fields that do not apply.
