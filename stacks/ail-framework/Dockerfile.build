@@ -24,6 +24,21 @@ RUN mkdir /opt/AIL
 COPY . /opt/AIL
 WORKDIR /opt/AIL
 
+# Upstream's installer performs full-history clones even though the image only
+# needs one checkout. Rewrite those clone commands in the builder copy.
+RUN sed -i \
+    -e 's|git submodule update --init --recursive|git submodule update --init --recursive --depth 1|' \
+    -e 's|git clone https://github.com/redis/redis.git|git clone --depth 1 --branch 5.0 https://github.com/redis/redis.git|' \
+    -e 's|git clone https://github.com/trendmicro/tlsh.git|git clone --depth 1 https://github.com/trendmicro/tlsh.git|' \
+    -e 's|git clone https://github.com/kazu-yamamoto/pgpdump.git|git clone --depth 1 https://github.com/kazu-yamamoto/pgpdump.git|' \
+    -e 's|git clone https://github.com/apache/incubator-kvrocks.git kvrocks|git clone --depth 1 https://github.com/apache/incubator-kvrocks.git kvrocks|' \
+    -e 's|git fetch --depth=500 --tags --prune|git fetch --depth=1 --tags --prune|' \
+    installing_deps.sh
+
+RUN sed -i \
+    's|git clone https://github.com/cvandeplas/pystemon.git /opt/pystemon|git clone --depth 1 https://github.com/cvandeplas/pystemon.git /opt/pystemon|' \
+    other_installers/docker/pystemon/install.sh
+
 RUN ./installing_deps.sh
 
 RUN ./other_installers/docker/pystemon/install.sh \
