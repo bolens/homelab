@@ -8,7 +8,7 @@ FROM python:3.13-slim-bookworm@sha256:67a1e1f215ccda113cfc024e8639049257e88f2738
 
 WORKDIR /app
 
-ENV POETRY_VERSION=1.8.4
+ENV POETRY_VERSION=2.3.4
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
