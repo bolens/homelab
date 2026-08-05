@@ -4,7 +4,7 @@
 
 This stack acts as a **documentation pointer** in this repo so Harbor appears alongside other stacks, but it does **not** attempt to reimplement the full Harbor compose file.
 
-**Restart after reboot:** When Harbor is installed in this repo at `stacks/harbor/harbor/`, `harbor/docker-compose.override.yml` already sets `restart: unless-stopped` for all services (and the proxy port/monitor network). If you install Harbor elsewhere, copy `docker-compose.override.yml.example` to that install directory as `docker-compose.override.yml`.
+**Restart after reboot:** When Harbor is installed in this repo at `stacks/harbor/harbor/`, `harbor/docker-compose.override.yml` already sets `restart: unless-stopped` for all services (and the proxy port/ingress-admin network). If you install Harbor elsewhere, copy `docker-compose.override.yml.example` to that install directory as `docker-compose.override.yml`.
 
 ## How to deploy Harbor
 
@@ -44,7 +44,7 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
 
 4. **Prepare** (generates final `harbor.yml` and `docker-compose.yml`):
    - Harbor's generated proxy listens on container port 8080. The override
-     attaches it to `monitor` without publishing a host port.
+     attaches it to `ingress-admin` without publishing a host port.
    ```bash
    sudo ./prepare
    ```
@@ -55,7 +55,7 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
    ```
    Optional: add `--with-trivy` for vulnerability scanning.
 
-6. **Caddy**: Attach Harbor's proxy to `monitor` and route
+6. **Caddy**: Attach Harbor's proxy to `ingress-admin` and route
    `harbor.yourdomain.com` to `proxy:8080`. Do not publish the proxy on the
    host.
 
@@ -77,7 +77,7 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
    - Use the installer’s scripts (`./install.sh`, `docker compose up -d`, etc.) as documented upstream.
 
 4. **Integrate with Caddy**
-   - If you terminate TLS at Caddy, attach Harbor's proxy to `monitor` and
+   - If you terminate TLS at Caddy, attach Harbor's proxy to `ingress-admin` and
      reverse-proxy `harbor.yourdomain.com` to `proxy:8080`.
 
 ## Harbor behind Caddy
@@ -106,7 +106,7 @@ harbor.yourdomain.com {
 }
 ```
 
-The `proxy:8080` target uses Harbor's service name on the shared `monitor`
+The `proxy:8080` target uses Harbor's service name on the shared `ingress-admin`
 network and is not directly reachable through a host port.
 
 ### Harbor `harbor.yml` settings
@@ -116,9 +116,13 @@ When Caddy terminates TLS:
 - **`hostname`**: Your external hostname (e.g. `harbor.yourdomain.com`). Must match the Caddy host.
 - **`https`**: Comment out or remove the `https:` block. Harbor listens on HTTP only; Caddy handles TLS.
 - **Port**: Caddy reaches Harbor's generated proxy at `proxy:8080` on
-  `monitor`; no host port is required.
+  `ingress-admin`; no host port is required.
 
 After changing `harbor.yml`, run `./prepare` and restart Harbor. Reload Caddy after Caddyfile changes.
+
+Run this repository's `./prepare-stack.sh` after upstream `./prepare`; it ensures
+`ingress-admin` exists and restores the narrow read ACL required by Harbor's
+nginx UID 10000 without making the generated configuration world-readable.
 
 ### Verify
 
@@ -136,7 +140,7 @@ For `docker push` and `docker pull` to work when Harbor is behind Caddy, the pro
 1. **Forward X-Forwarded headers** – Harbor needs `X-Forwarded-Proto: https` and `X-Forwarded-Host` to handle auth correctly.
 2. **Disable buffering** – Large image layers must stream; buffering causes "authorize header needed" or EOF errors.
 
-The `Caddyfile.example` includes a Harbor block with the required settings. It uses `proxy:8080` when Harbor's `docker-compose.override.yml` attaches the proxy to the `monitor` network.
+The `Caddyfile.example` includes a Harbor block with the required settings. It uses `proxy:8080` when Harbor's `docker-compose.override.yml` attaches the proxy to the `ingress-admin` network.
 
 **Harbor `harbor.yml` settings when behind Caddy:**
 
@@ -189,7 +193,7 @@ Use the shared template so one unit file works for Harbor and every other stack.
 
 1. **Resolution** – From a LAN client (or the Caddy host): `avahi-resolve -n harbor.local` and `ping harbor.local`. If this fails, mDNS isn’t advertising `harbor` (unit not running, or use `/etc/avahi/hosts` as above).
 2. **Caddy** – Your **live** Caddyfile (not only the example) must have a server block for `harbor.local` (and optionally `harbor.home`) with `reverse_proxy` to Harbor and `request_body { max_size 0 }`. Reload after edits: `caddy reload --config /path/to/Caddyfile`.
-3. **Harbor proxy** – Caddy’s block uses `proxy:8080` when Harbor is on the `monitor` network as service `proxy`. If Harbor runs elsewhere (e.g. host installer), point Caddy at that (e.g. `host.docker.internal:80`).
+3. **Harbor proxy** – Caddy’s block uses `proxy:8080` when Harbor is on the `ingress-admin` network as service `proxy`. If Harbor runs elsewhere (e.g. host installer), point Caddy at that (e.g. `host.docker.internal:80`).
 4. **TLS / `tlsv1 alert internal error`** – If resolution and ping work but `curl -k https://harbor.local` fails with a TLS error:
    - Your **live** Caddyfile must include a block for `harbor.local` (and optionally `harbor.home`) with `tls internal` and the same `reverse_proxy` as in `Caddyfile.example`. If that block is missing, Caddy may be serving a different vhost and the handshake can fail.
    - Reload or restart Caddy so it issues the internal cert for `harbor.local`: from the Caddy stack dir run `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile` or `docker compose restart caddy`. Then try again.

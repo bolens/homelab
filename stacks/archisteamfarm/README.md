@@ -22,7 +22,7 @@ Steam card idling and automation. ASF runs in the background, optionally exposin
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (reverse proxy to `asf:1242`) |
-| **Network** | `proxy-ingress` – dedicated Caddy-to-IPC traffic |
+| **Network** | `ingress-public` – dedicated Caddy-to-IPC traffic |
 | **Image** | `justarchi/archisteamfarm:released` (use `latest` for in-container auto-updates, or a fixed `A.B.C.D` tag) |
 | **Config** | `./config` → `/app/config` (ASF.json, bot configs, plugins) |
 

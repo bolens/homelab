@@ -42,7 +42,7 @@ Current patches (apply in lexical order; do not rename):
 
 ## Ollama (local models)
 
-1. Run the **Ollama** stack on **`ai-services`** so `http://ollama:11434` resolves from Nodepad.
+1. Run the **Ollama** stack on **`ai-backend`** so `http://ollama:11434` resolves from Nodepad.
 2. Rebuild/restart nodepad after changing patches or compose.
 3. In the app: **☰ → Settings → Provider → Ollama (local)**. Set **Model** to a pulled tag (e.g. `llama3.2`). API key is optional (Ollama ignores it unless you enable auth upstream).
 
@@ -69,14 +69,14 @@ Until a registry (for example Harbor) is reachable, **this path is the simplest*
 ### Portainer
 
 1. **Image:** On any host that has this stack directory (or a copy of `Dockerfile` + `clone-repo.sh`), run `./clone-repo.sh` then `docker build -t <your-registry>/homelab/nodepad:latest .` and push that tag. The Git repo does not include `./repo` (it is gitignored), so Portainer cannot build from a bare git checkout unless you run `clone-repo.sh` on the server first or use a CI job that embeds the upstream sources. In `docker-compose.yml`, **comment out the `build:` block** and set **`image:`** to your pushed tag (or override the image in the Portainer stack UI).
-2. **Networks:** Ensure external **`ai-services`** and **`proxy-ingress`** exist.
+2. **Networks:** Ensure external **`ai-backend`** and **`ingress-public`** exist.
 3. **Stack:** In Portainer → **Stacks** → **Add stack** → use **Repository** (recommended) with this monorepo’s URL and **Compose path** `stacks/nodepad/docker-compose.yml`, or paste the contents of that file in the web editor.
 4. **Environment:** Paste the same variables as `stack.env.example` into Portainer’s stack environment (or attach an env file). Runtime keys match **`env_file`** usage in compose.
 5. **Caddy:** Add or enable the snippet from `caddy_snippet.conf.example` (via `prepare-stack.sh` or manual copy) on your Caddy host and reload Caddy.
 
 ## Networking
 
-- **Internal AI/Caddy:** `http://nodepad:3000` on `ai-services` and `proxy-ingress`.
+- **Internal AI/Caddy:** `http://nodepad:3000` on `ai-backend` and `ingress-public`.
 - **No host ports** — use Caddy only.
 
 ## Updating

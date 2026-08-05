@@ -23,7 +23,7 @@ services:
 
 networks:
   default:
-    name: monitor
+    name: ingress-public
     external: true
 
 volumes:

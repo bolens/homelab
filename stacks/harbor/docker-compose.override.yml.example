@@ -3,7 +3,7 @@
 # Harbor install directory as docker-compose.override.yml if you install elsewhere.
 #
 # Customizations:
-# - No host publication; Caddy reaches proxy:8080 on the monitor network.
+# - No host publication; Caddy reaches proxy:8080 on ingress-admin.
 # - restart: unless-stopped for all services (come back after host reboot).
 
 version: "3.9"
@@ -15,7 +15,7 @@ services:
     ports: !reset []
     networks:
       - harbor
-      - monitor
+      - ingress-admin
   core:
     restart: unless-stopped
   jobservice:
@@ -34,5 +34,6 @@ services:
     restart: unless-stopped
 
 networks:
-  monitor:
+  ingress-admin:
+    name: ingress-admin
     external: true

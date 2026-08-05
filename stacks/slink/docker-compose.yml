@@ -1,5 +1,5 @@
 # Slink – self-hosted image sharing (upload, collections, ShareX, S3/SMB).
-# No host ports: access only via Caddy (reverse_proxy slink:3000 on monitor network).
+# No host ports: access only via Caddy (reverse_proxy slink:3000 on ingress-public network).
 # Docs: https://docs.slinkapp.io  GitHub: https://github.com/andrii-kryvoviaz/slink
 services:
   slink:
@@ -19,7 +19,7 @@ services:
     #   - ADMIN_EMAIL=admin@example.com
     #   - ADMIN_PASSWORD=changeme
     networks:
-      - monitor
+      - ingress-public
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
       interval: 30s
@@ -28,9 +28,9 @@ services:
       start_period: 20s
 
 networks:
-  # Use external monitor only – do not create a stack default network (avoids subnet exhaustion)
-  monitor:
-    name: monitor
+  # Use external ingress-public only – do not create a stack default network (avoids subnet exhaustion)
+  ingress-public:
+    name: ingress-public
     external: true
 
 volumes:

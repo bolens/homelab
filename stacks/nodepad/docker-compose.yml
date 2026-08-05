@@ -38,8 +38,8 @@ services:
       - path: stack.env
         required: false
     networks:
-      - ai-services
-      - proxy-ingress
+      - ai-backend
+      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
       interval: 30s
@@ -50,9 +50,9 @@ services:
     cpus: 1.0
 
 networks:
-  ai-services:
-    name: ai-services
+  ai-backend:
+    name: ai-backend
     external: true
-  proxy-ingress:
-    name: proxy-ingress
+  ingress-public:
+    name: ingress-public
     external: true

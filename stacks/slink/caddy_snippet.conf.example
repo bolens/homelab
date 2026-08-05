@@ -1,4 +1,4 @@
-# slink — split-horizon + public TLS: slink.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Slink — split-horizon + public TLS: img.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
 
 slink.home, slink.local {
 	tls internal
@@ -10,7 +10,7 @@ slink.home, slink.local {
 	}
 }
 
-http://slink.example.com {
+http://img.example.com {
 	reverse_proxy slink:3000 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
@@ -21,7 +21,7 @@ http://slink.example.com {
 	}
 }
 
-slink.example.com {
+img.example.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}

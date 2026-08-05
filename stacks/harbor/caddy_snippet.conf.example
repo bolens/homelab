@@ -2,7 +2,7 @@
 # - LAN: use https://harbor.local (or .home). Plain http:// redirects to HTTPS below.
 # - Public: harbor.example.com (DNS-01). Tunnel: route http://harbor.example.com → caddy:80.
 # - Do not test TLS with curl https://127.0.0.1/ — SNI must match (use curl -vk https://harbor.local/).
-# - Caddy reaches Harbor's proxy directly on the shared monitor network.
+# - Caddy reaches Harbor's proxy directly on the shared ingress-admin network.
 
 # Explicit HTTP so http://harbor.local works even when global Caddy has auto_https disable_redirects (Cloudflare tunnel).
 http://harbor.home, http://harbor.local {

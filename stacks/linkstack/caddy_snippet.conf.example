@@ -1,4 +1,4 @@
-# LinkStack — split-horizon + public TLS: linkstack.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# LinkStack — split-horizon + public TLS: me.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
 
 linkstack.home, linkstack.local {
 	tls internal
@@ -11,7 +11,7 @@ linkstack.home, linkstack.local {
 	}
 }
 
-http://linkstack.example.com {
+http://me.example.com {
 	header Content-Security-Policy "upgrade-insecure-requests"
 	reverse_proxy linkstack:80 {
 		header_up Host {host}
@@ -23,7 +23,7 @@ http://linkstack.example.com {
 	}
 }
 
-linkstack.example.com {
+me.example.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}

@@ -23,7 +23,7 @@ The stack uses a **named volume** for app data (`/htdocs`), so it works when dep
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `linkstack:80`) |
-| **Network** | `monitor` (external) — Caddy can reverse-proxy to `linkstack:80` |
+| **Network** | `ingress-public` (external) — Caddy can reverse-proxy to `linkstack:80` |
 | **Image** | `linkstackorg/linkstack:latest` |
 | **Env** | All optional: `TZ`, `SERVER_ADMIN`, `HTTP_SERVER_NAME`, `HTTPS_SERVER_NAME`, `LOG_LEVEL`, `PHP_MEMORY_LIMIT`, `UPLOAD_MAX_FILESIZE` |
 | **Storage** | Named volume `linkstack-data` (profiles, links, themes, uploads) |
@@ -64,7 +64,7 @@ linkstack.yourdomain.com {
 }
 ```
 
-Ensure the stack is on the `monitor` network so Caddy can reach `linkstack:80`.
+Ensure the stack is on the `ingress-public` network so Caddy can reach `linkstack:80`.
 
 ## Start
 
