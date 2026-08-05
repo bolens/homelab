@@ -21,11 +21,12 @@ RUN git clone --filter=blob:none https://github.com/kevinl95/Privotron.git . \
 
 COPY requirements.txt /tmp/requirements.txt
 RUN python -m venv /opt/venv
-ENV PATH=/opt/venv/bin:$PATH
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --require-hashes -r /tmp/requirements.txt \
-    && poetry export --only main --without-hashes --output /tmp/requirements.txt \
-    && pip install -r /tmp/requirements.txt
+    pip install --require-hashes -r /tmp/requirements.txt
+RUN poetry config virtualenvs.create false \
+    && poetry install --only main --no-root --no-interaction
 
 RUN sed -i 's/headless=False/headless=True/g' main.py
 
