@@ -1,0 +1,6 @@
+services:
+  ail:
+    image: ${AIL_GPU_IMAGE:-ail-framework:6.7-gpu}
+    gpus: all
+    devices:
+      - /dev/nvidia-uvm:/dev/nvidia-uvm

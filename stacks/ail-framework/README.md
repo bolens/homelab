@@ -21,7 +21,7 @@
 ### Login lockout (“Please wait …s”) and recovery
 
 - **Stock image:** after **5** failed attempts per IP or per username, AIL blocks further tries for **300 seconds** (Redis_Cache, port **6379**).
-- **This stack:** `docker-compose.yml` bind-mounts `patches/var/www/blueprints/root.py` with **15** attempts and **120** seconds. Adjust `_LOGIN_MAX_ATTEMPTS` / `_LOGIN_LOCKOUT_SEC` in that file, then recreate the container so Flask reloads. Remove the volume line to return to upstream behavior.
+- **This stack:** uses the upstream lockout behavior; no application source files are bind-mounted.
 - **Clear lockout without waiting:** from this directory, `./clear-login-lockout.sh` (or `bash clear-login-lockout.sh`).
 - **Username is your email** (case-sensitive in this image). After changing the admin email, use the **new** address to sign in—not `admin@admin.test`—unless you ran **`-rp`**, which resets **`admin@admin.test`** again.
 
@@ -31,17 +31,17 @@
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse proxy to `ail:7000`). The AIL UI serves HTTPS with a self-signed cert; Caddy is configured with `tls_insecure_skip_verify` for the backend. |
 | **Networks** | `security-research` for trusted research peers; `ingress-admin` for Caddy. |
-| **Image** | Default: locally built official `ail-framework:6.7`. Override with `AIL_IMAGE` in `stack.env` for a registry-hosted copy. |
+| **Image** | Default: CPU-only `ail-framework:6.7`. Override with `AIL_IMAGE`, or use `docker-compose.gpu.yml` for `ail-framework:6.7-gpu`. |
 | **Storage** | Named volumes for PASTES, CRAWLED_SCREENSHOT, DATA_KVROCKS, indexdir, HASHS, logs. |
 | **Login behavior** | Uses upstream AIL 6.7 behavior; the old 5.x `root.py` override is no longer mounted. |
-| **GPU** | All NVIDIA GPUs are exposed through Docker (`gpus: all`) so CUDA-enabled Torch workloads can accelerate. Requires the NVIDIA Container Toolkit on the host. |
+| **GPU** | Disabled by default. Add `-f docker-compose.gpu.yml` to use the CUDA image and expose the host NVIDIA GPU. |
 | **Flask bind** | The runtime layer changes AIL's loopback-only default to `0.0.0.0:7000` so Caddy can reach the container over `ingress-admin`. |
 
 ## Resources
 
-AIL is resource-intensive. The CUDA-enabled image is still expected to be large because
-Torch, NVIDIA CUDA libraries, and Triton account for several GB, and the app typically
-needs **>6GB RAM**.
+AIL is resource-intensive and typically needs **>6GB RAM**. The default CPU image omits
+the several-GB CUDA/NVIDIA/Triton runtime. The optional GPU image retains it for
+accelerated OCR.
 
 ## Using AIL 6.x (official build)
 
@@ -49,23 +49,27 @@ Official releases (e.g. **v6.7**) are not published as images; this stack builds
 
 **This repo** vendors a pinned checkout under `ail-framework-docker/ail-framework` (tag **v6.7**) with small build fixes for Ubuntu 22.04 / current pip (Dockerfile paths, `install_virtualenv.sh`, pystemon installer). Prefer building from there so you do not have to re-apply patches after a fresh clone.
 
-1. **Build the image** (takes a long time, several GB disk/RAM and network):
+1. **Build both variants** (the initial GPU-capable build takes a long time):
    ```bash
    cd stacks/ail-framework/ail-framework-docker/ail-framework
    docker build -f ../../Dockerfile.build -t ail-framework:6.7-build .
    cd ../..
-   docker build -f Dockerfile.runtime -t ail-framework:6.7 .
+   docker build -f Dockerfile.runtime \
+     --build-arg BASE_IMAGE=ail-framework:6.7-build \
+     -t ail-framework:6.7-gpu .
+   docker build -f Dockerfile.cpu -t ail-framework:6.7-cpu-build .
+   docker build -f Dockerfile.runtime \
+     --build-arg BASE_IMAGE=ail-framework:6.7-cpu-build \
+     -t ail-framework:6.7 .
    ```
-   Or clone upstream at `v6.7` and copy the patched files from `ail-framework-docker/ail-framework` if you maintain a separate tree (see `ail-framework-docker/README.md`).
 
-2. **Enable the override** so the stack uses the 6.x image and `/opt/AIL` volume paths:
+2. **Optional GPU deployment:**
    ```bash
-   cd /path/to/docker/stacks/ail-framework
-   cp docker-compose.override.example docker-compose.override.yml
+   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
    ```
-   Optionally set `AIL_IMAGE=ail-framework:6.7` in `stack.env` (the override defaults to that local tag).
+   This uses `ail-framework:6.7-gpu`; set `AIL_GPU_IMAGE` to override it.
 
-3. **Deploy:** `docker compose --env-file stack.env up -d`. Access and Caddy config are unchanged.
+3. **Default CPU deployment:** `docker compose --env-file stack.env up -d`.
 
 ### Pushing the AIL 6.x image to Harbor
 
