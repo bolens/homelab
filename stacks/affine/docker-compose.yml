@@ -1,6 +1,8 @@
+name: affine
+
 services:
   affine:
-    image: ghcr.io/toeverything/affine-self-hosted:latest
+    image: ghcr.io/toeverything/affine:stable@sha256:d9d145f9f47b862d1fa96e2a887052b5762846237f75fbb077be990ef646e05c
     container_name: affine
     restart: unless-stopped
     labels:
@@ -11,25 +13,106 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    depends_on:
+      affine-migration:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
+      - stack.env
       - path: ../../shared.env
         required: false
-      - stack.env
+    environment:
+      REDIS_SERVER_HOST: redis
+      DATABASE_URL: postgresql://${DB_USERNAME:?set DB_USERNAME}:${DB_PASSWORD:?set DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      AFFINE_INDEXER_ENABLED: "false"
     volumes:
-      - affine_data:/root/.affine
+      - affine_storage:/root/.affine/storage
+      - affine_config:/root/.affine/config
     networks:
+      - backend
       - ingress-public
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3010/"]
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3010/').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
 
+  affine-migration:
+    image: ghcr.io/toeverything/affine:stable@sha256:d9d145f9f47b862d1fa96e2a887052b5762846237f75fbb077be990ef646e05c
+    container_name: affine-migration
+    command: ["sh", "-c", "node ./scripts/self-host-predeploy.js"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - stack.env
+      - path: ../../shared.env
+        required: false
+    environment:
+      REDIS_SERVER_HOST: redis
+      DATABASE_URL: postgresql://${DB_USERNAME:?set DB_USERNAME}:${DB_PASSWORD:?set DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      AFFINE_INDEXER_ENABLED: "false"
+    volumes:
+      - affine_storage:/root/.affine/storage
+      - affine_config:/root/.affine/config
+    networks:
+      - backend
+
+  postgres:
+    image: pgvector/pgvector:pg16@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b
+    container_name: affine-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:?set DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-affine}
+      POSTGRES_INITDB_ARGS: --data-checksums
+    volumes:
+      - affine_postgres:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:?set DB_USERNAME} -d ${DB_DATABASE:-affine}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
+    container_name: affine-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - affine_redis:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
+  backend:
+    internal: true
   ingress-public:
     name: ingress-public
     external: true
 
 volumes:
-  affine_data: {}
+  affine_storage:
+  affine_config:
+  affine_postgres:
+  affine_redis:
