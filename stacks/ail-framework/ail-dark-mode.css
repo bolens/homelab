@@ -1,0 +1,880 @@
+/* AIL 7 dark theme. Appended to the shared Bootstrap stylesheet at build time. */
+:root {
+  color-scheme: dark;
+  --ail-bg: #0d1117;
+  --ail-surface: #161b22;
+  --ail-raised: #21262d;
+  --ail-border: #30363d;
+  --ail-text: #e6edf3;
+  --ail-muted: #9da7b3;
+  --ail-link: #58a6ff;
+}
+
+html,
+body {
+  background: var(--ail-bg) !important;
+  color: var(--ail-text) !important;
+}
+
+a { color: var(--ail-link); }
+a:hover, a:focus { color: #79c0ff; }
+hr, .border, .border-top, .border-right, .border-bottom, .border-left {
+  border-color: var(--ail-border) !important;
+}
+
+.bg-white, .bg-light, .jumbotron, .list-group-item, .card, .modal-content,
+.dropdown-menu, .popover, .toast {
+  background-color: var(--ail-surface) !important;
+  color: var(--ail-text);
+  border-color: var(--ail-border);
+}
+
+.card-header, .card-footer, .modal-header, .modal-footer, .dropdown-divider,
+.popover-header {
+  background-color: var(--ail-raised) !important;
+  border-color: var(--ail-border) !important;
+}
+
+.navbar-light, .navbar-light.bg-light, .breadcrumb {
+  background-color: var(--ail-surface) !important;
+}
+
+.navbar-light .navbar-brand, .navbar-light .navbar-nav .nav-link,
+.navbar-light .navbar-text, .breadcrumb-item.active {
+  color: var(--ail-text) !important;
+}
+
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .nav-link:focus {
+  color: #79c0ff !important;
+}
+
+.navbar-light .navbar-toggler { border-color: var(--ail-border); }
+.navbar-light .navbar-toggler-icon { filter: invert(1) grayscale(1); }
+.dropdown-item, .list-group-item-action { color: var(--ail-text); }
+.dropdown-item:hover, .dropdown-item:focus, .dropdown-item.active,
+.list-group-item-action:hover, .list-group-item-action:focus,
+.list-group-item.active {
+  background-color: #1f6feb !important;
+  color: #fff !important;
+}
+
+.table { color: var(--ail-text); }
+.table th, .table td, .table thead th, .table-bordered,
+.table-bordered th, .table-bordered td { border-color: var(--ail-border); }
+.table-striped tbody tr:nth-of-type(odd), .table-hover tbody tr:hover,
+.table-active, .table-active > th, .table-active > td {
+  background-color: rgba(177, 186, 196, 0.08);
+  color: var(--ail-text);
+}
+
+.form-control, .custom-select, .custom-file-label, .input-group-text,
+select, textarea, input {
+  background-color: var(--ail-bg) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-text) !important;
+}
+
+.form-control:focus, .custom-select:focus, select:focus, textarea:focus,
+input:focus {
+  background-color: var(--ail-bg) !important;
+  border-color: var(--ail-link) !important;
+  color: var(--ail-text) !important;
+  box-shadow: 0 0 0 0.2rem rgba(88, 166, 255, 0.2);
+}
+
+.form-control:disabled, .form-control[readonly], input:disabled,
+select:disabled, textarea:disabled {
+  background-color: var(--ail-raised) !important;
+  color: var(--ail-muted) !important;
+}
+
+::placeholder { color: #7d8590 !important; opacity: 1; }
+.text-dark, .text-body, .text-secondary, .text-muted {
+  color: var(--ail-muted) !important;
+}
+
+.page-link {
+  background-color: var(--ail-surface);
+  border-color: var(--ail-border);
+  color: var(--ail-link);
+}
+
+.page-link:hover, .page-item.active .page-link {
+  background-color: #1f6feb;
+  border-color: #388bfd;
+  color: #fff;
+}
+
+.page-item.disabled .page-link {
+  background-color: var(--ail-raised);
+  border-color: var(--ail-border);
+  color: #6e7681;
+}
+
+.close { color: var(--ail-text); text-shadow: none; }
+.close:hover { color: #fff; }
+pre, code, kbd, .alert-secondary {
+  background-color: var(--ail-raised);
+  color: #c9d1d9;
+}
+
+.dataTables_wrapper, .dataTables_info, .dataTables_length,
+.dataTables_filter, .dataTables_paginate { color: var(--ail-text) !important; }
+svg text { fill: var(--ail-text); }
+.alert { border-color: var(--ail-border); }
+.alert-primary, .alert-info { background-color: #0c2d4a; color: #a5d6ff; }
+.alert-success { background-color: #123820; color: #aff5b4; }
+.alert-warning { background-color: #4d3900; color: #eac54f; }
+.alert-danger { background-color: #4c171a; color: #ffb3b8; }
+
+/* Override the login template's inline light background. */
+body.text-center { background-color: var(--ail-bg) !important; }
+body.text-center .form-signin {
+  background: var(--ail-surface);
+  border: 1px solid var(--ail-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.35);
+  padding: 2rem;
+}
+
+body.text-center .form-signin img {
+  background: #fff;
+  border-radius: 0.35rem;
+  padding: 0.35rem;
+}
+
+/*
+ * Dashboard and hunting pages declare light component colors in page-local
+ * style blocks loaded after Bootstrap. These targeted rules intentionally use
+ * !important so the image-level theme wins without forking upstream templates.
+ */
+.dashboard-main,
+.dashboard-heading,
+.icon-button {
+  color: var(--ail-text) !important;
+}
+
+.search-panel,
+.chart-panel {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28) !important;
+}
+
+.crawler-panel-label {
+  color: var(--ail-muted) !important;
+}
+
+.icon-button:hover {
+  background: var(--ail-raised) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-link-hover) !important;
+}
+
+.tracker-stat-card {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.tracker-stat-card:hover,
+.tracker-stat-card:focus {
+  background: var(--ail-raised) !important;
+  border-color: var(--ail-link) !important;
+  color: var(--ail-text) !important;
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.3) !important;
+}
+
+.tracker-stat-icon {
+  background: rgba(88, 166, 255, 0.14) !important;
+  color: var(--ail-link) !important;
+}
+
+.tracker-table thead th {
+  color: var(--ail-muted) !important;
+}
+
+.tracker-empty-state {
+  background: var(--ail-bg) !important;
+  border-color: #484f58 !important;
+}
+
+.badge-light {
+  background-color: var(--ail-raised) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-text) !important;
+}
+
+/* PasteSubmit and tag routes use a legacy picker loaded after Bootstrap. */
+.tag-ctn,
+.tag-res-ctn,
+.tag-sel-ctn .tag-sel-text,
+.tag-sel-ctn .tag-sel-text:hover,
+.tag-ctn input,
+.tag-ctn input:focus {
+  background: var(--ail-bg) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-text) !important;
+}
+
+.tag-ctn-disabled,
+.tag-ctn-disabled input,
+.tag-ctn-disabled .tag-trigger {
+  background: var(--ail-raised) !important;
+  color: var(--ail-muted) !important;
+}
+
+.tag-ctn .tag-trigger {
+  background: var(--ail-raised) !important;
+  border-color: #484f58 !important;
+}
+
+.tag-ctn .tag-trigger:hover {
+  background: #30363d !important;
+}
+
+.tag-res-ctn .tag-res-group {
+  background: var(--ail-raised) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-text) !important;
+}
+
+.tag-res-ctn .tag-res-item {
+  color: var(--ail-text) !important;
+}
+
+.tag-res-ctn .tag-res-odd {
+  background: var(--ail-surface) !important;
+}
+
+.tag-res-ctn .tag-res-item-active {
+  background: #1f6feb !important;
+  color: #fff !important;
+}
+
+.tag-sel-ctn .tag-sel-item {
+  background: #30363d !important;
+  color: var(--ail-text) !important;
+}
+
+.dropdown-header {
+  color: var(--ail-muted);
+}
+
+/* Date-range popups used throughout crawler history pages. */
+.daterangepicker,
+.daterangepicker .calendar-table,
+.daterangepicker td.off,
+.daterangepicker td.off.in-range,
+.daterangepicker td.off.start-date,
+.daterangepicker td.off.end-date {
+  background-color: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.daterangepicker td.available:hover,
+.daterangepicker th.available:hover,
+.daterangepicker td.in-range {
+  background-color: var(--ail-raised) !important;
+  color: var(--ail-text) !important;
+}
+
+.daterangepicker td.active,
+.daterangepicker td.active:hover {
+  background-color: #1f6feb !important;
+  color: #fff !important;
+}
+
+/* Crawler route page-local panels. */
+.domain-explorer-header,
+.control-panel,
+.result-section {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+}
+
+.domain-explorer-title,
+.result-title {
+  color: var(--ail-text) !important;
+}
+
+.domain-explorer-subtitle,
+.result-meta,
+.metric-label {
+  color: var(--ail-muted) !important;
+}
+
+.result-card {
+  border-color: var(--ail-border) !important;
+}
+
+.status-chip-success {
+  background: rgba(46, 160, 67, 0.18) !important;
+  color: #56d364 !important;
+}
+
+.status-chip-danger {
+  background: rgba(248, 81, 73, 0.18) !important;
+  color: #ff7b72 !important;
+}
+
+.metric-card,
+.network-result-card,
+.test-output,
+.crawler-logs-output {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+/* /investigations and investigation editor. */
+.summary-card,
+.investigation-section,
+.investigation-section .card-header,
+.investigation-form-card,
+.investigation-form-header {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+}
+
+.summary-value {
+  color: var(--ail-text) !important;
+}
+
+.summary-label,
+.summary-help,
+.section-kicker,
+.section-description,
+.meta-label,
+.form-hint {
+  color: var(--ail-muted) !important;
+}
+
+.investigation-link {
+  color: var(--ail-link) !important;
+}
+
+.investigation-link:hover,
+.investigation-link:focus {
+  background: var(--ail-raised) !important;
+  border-color: var(--ail-link) !important;
+  color: var(--ail-link-hover) !important;
+}
+
+.investigation-link-hint {
+  color: var(--ail-link) !important;
+}
+
+.investigation-empty,
+.quick-tip-card,
+.status-grid .status-chip {
+  background: var(--ail-bg) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-muted) !important;
+}
+
+/* /settings landing page and related account/organisation components. */
+.status-grid-card,
+.quick-action-card,
+.profile-card,
+.status-card,
+.rulezet-card,
+.users-summary-card,
+.users-table-wrap,
+.users-table-toolbar,
+.orgs-summary-card,
+.orgs-table-wrap,
+.orgs-map-card,
+.org-stat-card,
+.org-meta-card,
+.org-users-card,
+.org-meta-grid-card,
+.section-card,
+.form-tip {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.quick-action-card:hover {
+  background: var(--ail-raised) !important;
+  border-color: var(--ail-link) !important;
+  color: var(--ail-text) !important;
+}
+
+.status-label,
+.status-helper,
+.quick-action-desc,
+.profile-subtitle,
+.profile-label,
+.status-title,
+.users-subtitle,
+.users-summary-label,
+.users-toolbar-text,
+.users-identity small,
+.orgs-subtitle,
+.orgs-summary-label,
+.orgs-description,
+.orgs-map-subtitle,
+.orgs-special-regions,
+.org-stat-label,
+.org-meta-grid-label,
+.org-meta-key,
+.soft-muted {
+  color: var(--ail-muted) !important;
+}
+
+.quick-action-card,
+.quick-action-card:hover,
+.org-stat-value,
+.org-meta-grid-value,
+.org-meta-value {
+  color: var(--ail-text) !important;
+}
+
+.misp-empty-state,
+.rulezet-note,
+.rulezet-pill {
+  background: var(--ail-bg) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-muted) !important;
+}
+
+.org-form-card .card-footer {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+}
+
+/* Tracker creation, management, and retro-hunt workflows. */
+.tracker-page,
+.retro-page {
+  background: var(--ail-bg) !important;
+}
+
+.tracker-card,
+.retro-card,
+.tracker-section,
+.tracker-section .card-header,
+.retro-section,
+.retro-section .card-header {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+}
+
+.object-option,
+.filter-card,
+.tracker-type-card,
+.yara-workbench,
+.yara-workbench-header,
+.yara-builder-launch {
+  background: var(--ail-bg) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-text) !important;
+}
+
+.tracker-type-card:hover,
+.tracker-type-input:focus + .tracker-type-card,
+.tracker-type-input:checked + .tracker-type-card,
+.yara-workbench.active {
+  background: var(--ail-raised) !important;
+  border-color: var(--ail-link) !important;
+}
+
+.tracker-type-icon {
+  background: rgba(88, 166, 255, 0.14) !important;
+  color: var(--ail-link) !important;
+}
+
+.section-label,
+.tracker-description,
+.progress-note {
+  color: var(--ail-muted) !important;
+}
+
+.tracker-link,
+.retro-link {
+  color: var(--ail-link) !important;
+}
+
+.tracker-main-text {
+  color: var(--ail-text) !important;
+}
+
+.match-count {
+  background: rgba(88, 166, 255, 0.14) !important;
+  color: var(--ail-link) !important;
+}
+
+.retro-empty-state {
+  background: var(--ail-bg) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-muted) !important;
+}
+
+/* Chat explorer cards, statistics, metadata, and compact timelines. */
+.chat-object-card,
+.chat-object-header,
+.chat-object-stat,
+.chat-object-info,
+.chat-object-timeline-compact,
+.chat-object-stat-action {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.chat-object-avatar {
+  background: var(--ail-raised) !important;
+}
+
+.chat-object-stat-action:hover,
+.chat-object-stat-action:focus,
+.chat-object-stat-link:hover {
+  background: var(--ail-raised) !important;
+  border-color: var(--ail-link) !important;
+}
+
+.chat-object-stat-label,
+.chat-object-stat-hint,
+.chat-object-section-title,
+.chat-object-timeline-compact-label {
+  color: var(--ail-muted) !important;
+}
+
+.chat-object-stat-value,
+.chat-object-timeline-compact-value,
+.chat-object-info pre {
+  color: var(--ail-text) !important;
+}
+
+.chat-object-timeline-compact::before {
+  background: #484f58 !important;
+}
+
+.chat-object-timeline-compact-icon,
+.chat-object-stat-arrow {
+  background: rgba(88, 166, 255, 0.14) !important;
+  border-color: rgba(88, 166, 255, 0.35) !important;
+  color: var(--ail-link) !important;
+}
+
+/* Object detail, search-result cards, previews, and extracted metadata. */
+.popover-body,
+.card-clean .card-header,
+.summary-chip,
+block-obj,
+.image-preview-wrap,
+.obj-avatar,
+.domain-chip {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.section-title,
+.summary-chip .value,
+.domain-title {
+  color: var(--ail-text) !important;
+}
+
+.meta-table th,
+.summary-chip .label,
+.block-obj-meta,
+.obj-type-label,
+.domain-type,
+.domain-chip {
+  color: var(--ail-muted) !important;
+}
+
+.domain-type,
+.id-inline {
+  background: var(--ail-raised) !important;
+  color: var(--ail-muted) !important;
+}
+
+.extracted-table tbody tr:hover,
+.extracted-card-header:hover {
+  background: var(--ail-raised) !important;
+}
+
+.img-thumbnail {
+  background-color: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+}
+
+/* SVG graph labels and decoded-object hover text. */
+.svgText,
+.node text,
+.graph_text_node {
+  background: var(--ail-raised) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-text) !important;
+}
+
+.icon_legend {
+  background: rgba(88, 166, 255, 0.14) !important;
+  border-color: rgba(88, 166, 255, 0.35) !important;
+  color: var(--ail-link) !important;
+}
+
+.graph_panel,
+#graph {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+}
+
+/* Native and Bootstrap custom controls not covered by input backgrounds. */
+.custom-control-label::before,
+.custom-file-label::after {
+  background-color: var(--ail-raised) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-text) !important;
+}
+
+.custom-control-input:checked ~ .custom-control-label::before {
+  background-color: #1f6feb !important;
+  border-color: #388bfd !important;
+}
+
+.progress {
+  background-color: var(--ail-raised) !important;
+}
+
+.switch-label {
+  background: var(--ail-raised) !important;
+  box-shadow: inset 0 0 0 1px #484f58 !important;
+}
+
+.switch-input:checked ~ .switch-label {
+  background: #1f6feb !important;
+}
+
+.switch-handle {
+  background: #c9d1d9 !important;
+  border: 1px solid #6e7681 !important;
+}
+
+/* Settings > AIL Status, including dynamic update and warning states. */
+.status-grid-card .card-body,
+.status-table,
+.status-table tbody,
+.status-table tr,
+.status-table td {
+  background-color: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.status-table .table-warning,
+.status-table .table-warning > th,
+.status-table .table-warning > td {
+  background-color: #3d320f !important;
+  color: #f0d670 !important;
+}
+
+.status-table .table-danger,
+.status-table .table-danger > th,
+.status-table .table-danger > td {
+  background-color: #431c1f !important;
+  color: #ffb3b8 !important;
+}
+
+.status-table .status-label {
+  color: var(--ail-muted) !important;
+}
+
+.status-table .status-value {
+  color: var(--ail-text) !important;
+}
+
+#card_progress.border-success {
+  border-color: #2ea043 !important;
+}
+
+#card_progress.border-danger {
+  border-color: #f85149 !important;
+}
+
+#update_error_div {
+  background-color: #431c1f !important;
+  border-color: #f85149 !important;
+  color: #ffb3b8 !important;
+}
+
+#update_error_div .card-title,
+#update_error_div p {
+  color: #ffb3b8 !important;
+}
+
+.status-hero .badge-light {
+  background: var(--ail-raised) !important;
+  border: 1px solid #6e7681 !important;
+  color: var(--ail-text) !important;
+}
+
+/* Remaining semantic table/list variants used by admin and status pages. */
+.table-light,
+.table-light > th,
+.table-light > td,
+.table-secondary,
+.table-secondary > th,
+.table-secondary > td,
+.thead-light th,
+.list-group-item-light {
+  background-color: var(--ail-raised) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.table-success,
+.table-success > th,
+.table-success > td {
+  background-color: #123820 !important;
+  color: #aff5b4 !important;
+}
+
+.table-info,
+.table-info > th,
+.table-info > td {
+  background-color: #0c2d4a !important;
+  color: #a5d6ff !important;
+}
+
+.table-warning,
+.table-warning > th,
+.table-warning > td {
+  background-color: #3d320f !important;
+  color: #f0d670 !important;
+}
+
+.table-danger,
+.table-danger > th,
+.table-danger > td {
+  background-color: #431c1f !important;
+  color: #ffb3b8 !important;
+}
+
+/* Forum explorer boards, rows, threads, and post bodies. */
+.forum-board,
+.forum-post {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.forum-row {
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.forum-row:hover {
+  background: var(--ail-raised) !important;
+  color: var(--ail-text) !important;
+}
+
+.forum-icon {
+  background: rgba(88, 166, 255, 0.14) !important;
+  color: var(--ail-link) !important;
+}
+
+.thread-row .forum-icon {
+  background: rgba(210, 153, 34, 0.18) !important;
+  color: #e3b341 !important;
+}
+
+.forum-stats,
+.date-divider {
+  color: var(--ail-muted) !important;
+}
+
+.forum-post-user,
+.forum-post-header {
+  background: var(--ail-raised) !important;
+  border-color: var(--ail-border) !important;
+}
+
+.forum-post-content {
+  color: var(--ail-text) !important;
+}
+
+.date-divider::before,
+.date-divider::after {
+  background: #484f58 !important;
+}
+
+/* Tracker and retro-hunt detail pages. */
+.tracker-meta-section,
+.retro-meta-section {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+  color: var(--ail-text) !important;
+}
+
+.tracker-detail-row,
+.retro-detail-row {
+  border-color: var(--ail-border) !important;
+}
+
+.tracker-detail-label,
+.retro-detail-label {
+  color: var(--ail-muted) !important;
+}
+
+/* Domain result cards and the repeated object date-range side panel. */
+.domain-card {
+  background: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+}
+
+.domain-card-media {
+  background: var(--ail-bg) !important;
+}
+
+[style*="background-color:#d9edf7"] {
+  background-color: var(--ail-surface) !important;
+  border-color: var(--ail-border) !important;
+}
+
+[style*="color:#286090"] {
+  color: var(--ail-link) !important;
+}
+
+/* D3 date-range charts and their generated hover labels. */
+.line {
+  stroke: #8b949e !important;
+}
+
+div.tooltip {
+  background: var(--ail-raised) !important;
+  border-color: #484f58 !important;
+  color: var(--ail-text) !important;
+}
+
+/* /settings/modules embeds a standalone Graphviz document via <object>. */
+object[type="image/svg+xml"][data*="ail_queues.svg"] {
+  background: var(--ail-surface);
+  border: 1px solid var(--ail-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  filter: invert(0.88) hue-rotate(180deg);
+  padding: 0.5rem;
+}
+
+object[type="image/svg+xml"][data*="ail_queues.svg"] + h3 {
+  color: var(--ail-text);
+}
+
+object[type="image/svg+xml"][data*="ail_queues.svg"] + h3 + .table {
+  background: var(--ail-surface);
+  border: 1px solid var(--ail-border);
+  border-collapse: separate;
+  border-radius: 0.5rem;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+object[type="image/svg+xml"][data*="ail_queues.svg"] + h3 + .table tbody tr:hover {
+  background: var(--ail-raised);
+}

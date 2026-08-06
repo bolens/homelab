@@ -6,10 +6,14 @@ FROM ${BASE_IMAGE}
 # Redis 5 bundled by AIL does not implement RESP3's HELLO command.
 # redis-py 8 defaults to RESP3, so retain the compatible RESP2-era client.
 COPY requirements-runtime.txt /tmp/requirements-runtime.txt
+COPY ail-dark-mode.css /tmp/ail-dark-mode.css
+COPY ail-dark-mode.js /tmp/ail-dark-mode.js
 RUN --mount=type=cache,target=/root/.cache/pip \
     /opt/AIL/AILENV/bin/pip install --require-hashes \
         -r /tmp/requirements-runtime.txt \
-    && rm /tmp/requirements-runtime.txt \
+    && cat /tmp/ail-dark-mode.css >> /opt/AIL/var/www/static/css/bootstrap4.min.css \
+    && cat /tmp/ail-dark-mode.js >> /opt/AIL/var/www/static/js/echarts.min.js \
+    && rm /tmp/requirements-runtime.txt /tmp/ail-dark-mode.css /tmp/ail-dark-mode.js \
     && sed -i 's/^host = 127[.]0[.]0[.]1$/host = 0.0.0.0/' \
         /opt/AIL/configs/core.cfg \
         /opt/AIL/configs/core.cfg.sample \

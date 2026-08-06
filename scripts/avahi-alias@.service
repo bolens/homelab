@@ -24,8 +24,8 @@ Requires=avahi-daemon.service
 
 [Service]
 Type=simple
-# Portable IP: hostname -I (GNU) or ip route (Busybox/Alpine). -R can trigger resolve timeouts on some setups.
-ExecStart=/bin/bash -c 'IP=$$(hostname -I 2>/dev/null | awk "{print \$$1}" || ip -4 route get 1 2>/dev/null | awk "{print \$$7}"); [ -n "$$IP" ] && exec /usr/bin/avahi-publish -a -R %i $$IP || exit 1'
+# Publish the LAN address without adding a conflicting reverse record.
+ExecStart=/usr/local/libexec/avahi-alias-publish %i.local bond0
 Restart=on-failure
 RestartSec=5
 

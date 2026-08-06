@@ -3,6 +3,8 @@
 !requirements-opencv.txt
 !requirements-pystemon.txt
 !requirements-runtime.txt
+!ail-dark-mode.css
+!ail-dark-mode.js
 !lacus-entrypoint.sh
 !lacus-generic.json
 !lacus-supervisord.conf

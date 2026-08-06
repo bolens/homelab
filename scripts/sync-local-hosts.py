@@ -164,9 +164,37 @@ def desired_files(ip: str, aliases: set[str], avahi: Path, hosts: Path) -> dict[
     if hosts_original.startswith(legacy_footer_header):
         hosts_original = ""
     return {
-        avahi: managed_content(avahi_original, entries),
+        # Multiple host-address records for one IP create conflicting reverse
+        # records in Avahi. Publish these through avahi-alias@ instances with
+        # avahi-publish -R instead, and keep this legacy block empty.
+        avahi: managed_content(avahi_original, []),
         hosts: managed_content(hosts_original, entries),
     }
+
+
+def alias_units(aliases: set[str]) -> set[str]:
+    return {f"avahi-alias@{alias.removesuffix('.local')}.service" for alias in aliases}
+
+
+def enabled_alias_units() -> set[str]:
+    wants = Path("/etc/systemd/system/multi-user.target.wants")
+    return {path.name for path in wants.glob("avahi-alias@*.service")}
+
+
+def reconcile_alias_units(aliases: set[str]) -> int:
+    desired = alias_units(aliases)
+    enabled = enabled_alias_units()
+    stale = sorted(enabled - desired)
+    missing = sorted(desired - enabled)
+    if stale:
+        result = subprocess.run(["systemctl", "disable", "--now", *stale])
+        if result.returncode:
+            return result.returncode
+    if missing:
+        result = subprocess.run(["systemctl", "enable", "--now", *missing])
+        if result.returncode:
+            return result.returncode
+    return 0
 
 
 def parser() -> argparse.ArgumentParser:
@@ -273,10 +301,13 @@ def main() -> int:
         return 0
 
     different = [path for path, content in files.items() if not path.exists() or path.read_text() != content]
+    units_different = enabled_alias_units() != alias_units(aliases)
     if args.check:
         for path in different:
             print(f"needs update: {path}")
-        return 1 if different else 0
+        if units_different:
+            print("needs update: avahi-alias@ units")
+        return 1 if different or units_different else 0
 
     try:
         changed = [path for path, content in files.items() if atomic_write(path, content)]
@@ -289,6 +320,10 @@ def main() -> int:
         result = subprocess.run(["systemctl", "reload-or-restart", "avahi-daemon.service"])
         if result.returncode:
             return result.returncode
+    if shutil.which("systemctl"):
+        result = reconcile_alias_units(aliases)
+        if result:
+            return result
     if system_hosts in changed and hblock_config:
         hblock = shutil.which("hblock")
         if not hblock:
@@ -309,7 +344,7 @@ def main() -> int:
         )
         if result.returncode:
             return result.returncode
-    if not changed:
+    if not changed and not units_different:
         print("already current")
     return 0
 

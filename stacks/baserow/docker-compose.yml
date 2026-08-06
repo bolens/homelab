@@ -1,11 +1,13 @@
 # Baserow – self-hosted Airtable/Notion-like database (tables, views, API).
 # No host ports; access via Caddy (e.g. https://baserow.yourdomain.com → baserow:80).
-# Uses embedded database (SQLite) for simplicity; for production consider Postgres (see upstream docs).
+# Uses Baserow's embedded PostgreSQL database.
 services:
   baserow:
     image: baserow/baserow:latest@sha256:41adb3493379403946a493f30873f743bb65b19b5f387d630ec75f41e25d5b5b
     container_name: baserow
     restart: unless-stopped
+    # Allow Celery and the embedded PostgreSQL server to shut down cleanly.
+    stop_grace_period: 2m
     cpus: 3.0
     mem_limit: 6g
     memswap_limit: 8g

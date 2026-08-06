@@ -1,5 +1,12 @@
 # AIL framework
 
+The locally built AIL 7 image includes a dark interface theme. The runtime
+image appends `ail-dark-mode.css` to AIL's shared Bootstrap stylesheet so the
+theme covers the login, settings, dashboard, table, form, and modal templates
+without maintaining forks of upstream HTML. It also appends
+`ail-dark-mode.js` to ECharts so canvas-rendered charts use the bundled dark
+theme.
+
 **AIL** (Analysis Information Leak framework) analyses potential information leaks from unstructured data: pastes (Pastebin-style), streams, and crawled content. It detects credentials, credit cards, API keys, PGP data, and more; supports trackers (YARA, regex, terms), correlation, MISP/TheHive export, and optional Tor hidden-service crawling.
 
 **Website:** https://www.ail-project.org  
