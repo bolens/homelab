@@ -4,7 +4,7 @@
 services:
   freshrss:
     container_name: freshrss
-    image: lscr.io/linuxserver/freshrss:latest
+    image: lscr.io/linuxserver/freshrss:latest@sha256:926526335b869ea4bef79275fb6151dd8a3fc95ce19de3f0cc32a45a5dc22e36
     env_file:
       - stack.env
     environment:

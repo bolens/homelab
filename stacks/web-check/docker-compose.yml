@@ -1,6 +1,6 @@
 services:
   web-check:
-    image: lissy93/web-check:latest
+    image: lissy93/web-check:latest@sha256:9095e9a81223e329785a6255cca449ec61d274890ccaa02b5b82a85043ace29b
     container_name: web-check
     restart: unless-stopped
     # No host port: access via Caddy on the dedicated ingress network.

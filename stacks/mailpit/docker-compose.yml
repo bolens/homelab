@@ -5,7 +5,7 @@
 
 services:
   mailpit:
-    image: axllent/mailpit:latest
+    image: axllent/mailpit:latest@sha256:7f33095f80e901f6ad08028f06ca284aa58fe84942be5496008d041d3b9f4d4d
     container_name: mailpit
     restart: unless-stopped
     env_file:

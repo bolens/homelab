@@ -1,7 +1,7 @@
 services:
   # Init container: fix volume ownership so rTorrent (uid 1001) can write.
   rtorrent-init:
-    image: alpine:latest
+    image: alpine:latest@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
     container_name: rtorrent-init
     restart: "no"
     user: root
@@ -12,7 +12,7 @@ services:
       - torrents_manual:/downloads
 
   rtorrent:
-    image: jesec/rtorrent:latest
+    image: jesec/rtorrent:latest@sha256:f366138bda04e09761d5147dea293cbceec6514ee4e9c8f22c43d2f61ad9eb64
     container_name: rtorrent
     restart: unless-stopped
     tty: true

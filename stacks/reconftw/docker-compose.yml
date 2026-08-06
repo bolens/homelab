@@ -6,7 +6,7 @@ name: reconftw
 
 services:
   reconftw:
-    image: six2dez/reconftw:main
+    image: six2dez/reconftw:main@sha256:3b8bb0d458856f70534311083e2c7dbdb4c4fce1b9947c9ad12fd5eb83d7eb27
     container_name: reconftw
     restart: "no"
     env_file:

@@ -1,6 +1,6 @@
 services:
   kometa:
-    image: kometateam/kometa:latest
+    image: kometateam/kometa:latest@sha256:a3d5637a58ea1a826824d996738430c76cd16db1d5677665901a80ad3b82b35c
     container_name: kometa
     restart: unless-stopped
     cpus: 2.0

@@ -1,6 +1,6 @@
 services:
   dionaea:
-    image: dinotools/dionaea:latest
+    image: dinotools/dionaea:latest@sha256:6f06d0a6035c865cb60ef51bd96ff3b1f25ee4bfcd852dad3f551bc2d93464ca
     container_name: dionaea
     restart: unless-stopped
     cpus: 2.0
@@ -50,7 +50,7 @@ services:
         max-file: "5"
 
   conpot:
-    image: honeynet/conpot:latest
+    image: honeynet/conpot:latest@sha256:cd93e88d9e44b020db691fc4c75cb29e76b5e90ddbc408aca26e6c78c5646976
     container_name: conpot
     restart: unless-stopped
     cpus: 2.0

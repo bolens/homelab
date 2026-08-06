@@ -1,6 +1,6 @@
 services:
   privatebin:
-    image: privatebin/nginx-fpm-alpine:latest
+    image: privatebin/nginx-fpm-alpine:latest@sha256:c9a251c924bb3f80be419bdfa2e4b87f110976252b6b1952bc7cb27b90b76bea
     container_name: privatebin
     restart: unless-stopped
     cpus: 1.0

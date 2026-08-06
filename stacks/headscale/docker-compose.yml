@@ -7,7 +7,7 @@ name: headscale
 services:
   headscale:
     container_name: headscale
-    image: docker.io/headscale/headscale:latest
+    image: docker.io/headscale/headscale:latest@sha256:0e7f1c6e4ce6c2a2a001103ecd3fa645a045adf30ac8a5234fe037b43000cd72
     restart: unless-stopped
     cpus: 1.0
     mem_limit: 1g

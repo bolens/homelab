@@ -1,6 +1,6 @@
 services:
   cryptpad:
-    image: cryptpad/cryptpad:latest
+    image: cryptpad/cryptpad:latest@sha256:1f89dcdd28c1375f675e47b1d0cf07a51f3e9a07a79dc93c8cddb3295b98a34d
     container_name: cryptpad
     restart: unless-stopped
     labels:

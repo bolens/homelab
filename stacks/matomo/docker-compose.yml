@@ -30,7 +30,7 @@ services:
       start_period: 30s
 
   matomo:
-    image: matomo:latest
+    image: matomo:latest@sha256:85d27206a4acdd43259909aa00cab1913dec88cfba53e1ce66a51e6caa430a55
     container_name: matomo
     restart: unless-stopped
     cpus: 2.0

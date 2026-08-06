@@ -3,7 +3,7 @@
 # Upstream: https://github.com/machengim/oasis — Docker Hub: machengim/oasis
 services:
   oasis:
-    image: machengim/oasis:latest
+    image: machengim/oasis:latest@sha256:38545d36a5329e9a221fa1a804f91c178d83e7b345cdc5d9313f6caee4d3b237
     container_name: oasis
     restart: unless-stopped
     labels:

@@ -24,7 +24,7 @@ services:
       retries: 10
 
   gitea:
-    image: gitea/gitea:latest
+    image: gitea/gitea:latest@sha256:34e3f6b75f5cbb6aebce588037fc5a53c84213e4d4b00da0a8d73e031a558e52
     container_name: gitea
     restart: unless-stopped
     env_file:

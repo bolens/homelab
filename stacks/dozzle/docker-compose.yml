@@ -34,7 +34,7 @@ services:
       start_period: 10s
 
   dozzle:
-    image: amir20/dozzle:latest
+    image: amir20/dozzle:latest@sha256:1c1060cfb5402093c4e0f03f3534d7deaffeb0a6f6dd034e7c5f244603f35fb3
     container_name: dozzle
     restart: unless-stopped
     cpus: 1.0

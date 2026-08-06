@@ -1,6 +1,6 @@
 services:
   archivebox:
-    image: archivebox/archivebox:latest
+    image: archivebox/archivebox:latest@sha256:1a5a37331091d9df865ead2b9c231aa5a892fc26fe0422ce6140d9e2d9532327
     container_name: archivebox
     restart: unless-stopped
     env_file:
@@ -24,7 +24,7 @@ services:
       start_period: 45s
 
   archivebox_scheduler:
-    image: archivebox/archivebox:latest
+    image: archivebox/archivebox:latest@sha256:1a5a37331091d9df865ead2b9c231aa5a892fc26fe0422ce6140d9e2d9532327
     container_name: archivebox_scheduler
     restart: unless-stopped
     command: schedule --foreground --update --every=day
@@ -40,7 +40,7 @@ services:
       - internal
 
   sonic:
-    image: archivebox/sonic:latest
+    image: archivebox/sonic:latest@sha256:452064bfdab535fb8a6019937f1d753e0dfb2c94d2a87ebd166e2d556de78692
     container_name: archivebox-sonic
     restart: unless-stopped
     expose:

@@ -1,6 +1,6 @@
 services:
   openspeedtest:
-    image: openspeedtest/latest:latest
+    image: openspeedtest/latest:latest@sha256:1745e913f596fe98882b286a67751efdae74774e9caa742a4934bb056e8748d2
     container_name: openspeedtest
     restart: unless-stopped
     cpus: 2.0

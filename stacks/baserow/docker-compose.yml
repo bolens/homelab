@@ -3,7 +3,7 @@
 # Uses embedded database (SQLite) for simplicity; for production consider Postgres (see upstream docs).
 services:
   baserow:
-    image: baserow/baserow:latest
+    image: baserow/baserow:latest@sha256:41adb3493379403946a493f30873f743bb65b19b5f387d630ec75f41e25d5b5b
     container_name: baserow
     restart: unless-stopped
     cpus: 3.0

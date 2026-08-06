@@ -1,6 +1,6 @@
 services:
   ersatztv:
-    image: ghcr.io/ersatztv/legacy:latest
+    image: ghcr.io/ersatztv/legacy:latest@sha256:2923be34ff5f4df8fe4eac4e2ec4c873d6a6a875529a9a5b8745dab8be354983
     container_name: ersatztv
     restart: unless-stopped
     cpus: 4.0

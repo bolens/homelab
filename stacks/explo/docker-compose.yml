@@ -1,6 +1,6 @@
 services:
   explo:
-    image: ghcr.io/lumepart/explo:latest
+    image: ghcr.io/lumepart/explo:latest@sha256:5f7bc5a8266fe71a4991d79670bf35506aca5d01e6f08016c717197c09d1cf83
     container_name: explo
     restart: unless-stopped
     labels:

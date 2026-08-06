@@ -1,6 +1,6 @@
 services:
   snipeit:
-    image: snipe/snipe-it:latest
+    image: snipe/snipe-it:latest@sha256:248ce44efac237f02e36cd55d234e0578641c403a660826332e4d6f1cecc6972
     container_name: snipe-it
     restart: unless-stopped
     cpus: 2.0

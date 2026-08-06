@@ -1,6 +1,6 @@
 services:
   dbgate:
-    image: dbgate/dbgate:latest
+    image: dbgate/dbgate:latest@sha256:38f4af9ab85d4aa112acc2e24d3e12c07c38e1e9727022e4387567cd3ec718a1
     container_name: dbgate
     restart: unless-stopped
     cpus: 1.5

@@ -1,6 +1,6 @@
 services:
   soulseek:
-    image: slskd/slskd:latest
+    image: slskd/slskd:latest@sha256:ecd4026d4f8fb504e2cc55323efa2c1f5b56d20d3686b018249cc36b48ea17a6
     container_name: soulseek
     restart: unless-stopped
     cpus: 2.0

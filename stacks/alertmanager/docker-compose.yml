@@ -2,7 +2,7 @@
 # (create the directory if needed). Override path with ALERTMANAGER_CONFIG_PATH if desired.
 services:
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:latest@sha256:9e082985f56f4c8c9f724e18f2288c6708f472e56a5286b8863d080434ea065d
     container_name: alertmanager
     restart: unless-stopped
     command:

@@ -2,7 +2,7 @@
 # and fails on Docker 29+ with "client version 1.25 is too old" (API 1.44+).
 services:
   watchtower:
-    image: nickfedor/watchtower:latest
+    image: nickfedor/watchtower:latest@sha256:bee77696862e09521c49e5ab4904a4179accece6d561a2ef334c7589b84a2438
     container_name: watchtower
     restart: unless-stopped
     cpus: 1.0

@@ -3,7 +3,7 @@
 
 services:
   kavita:
-    image: lscr.io/linuxserver/kavita:latest
+    image: lscr.io/linuxserver/kavita:latest@sha256:08bc0679401c5370e32373a9a7fa43ed4aa800388e04dcb2015500c09ead8ddb
     container_name: kavita
     restart: unless-stopped
     cpus: 2.0

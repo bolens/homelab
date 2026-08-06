@@ -2,7 +2,7 @@ name: tailscale-exporter
 
 services:
   tailscale-exporter:
-    image: adinhodovic/tailscale-exporter:latest
+    image: adinhodovic/tailscale-exporter:latest@sha256:1c4f381babe8d4e0c4fa03b9954a56079f06bfe046e63442820fe03216a11fe9
     container_name: tailscale-exporter
     restart: unless-stopped
     cpus: 1.0

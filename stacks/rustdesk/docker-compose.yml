@@ -7,7 +7,7 @@ name: rustdesk
 services:
   rustdesk-hbbr:
     container_name: rustdesk-hbbr
-    image: docker.io/rustdesk/rustdesk-server:latest
+    image: docker.io/rustdesk/rustdesk-server:latest@sha256:8ecdab65deb7c84652a626380e31d11a8f1fbafd97916d57f95c20628f943c00
     command: hbbr
     restart: unless-stopped
     labels:
@@ -30,7 +30,7 @@ services:
 
   rustdesk-hbbs:
     container_name: rustdesk-hbbs
-    image: docker.io/rustdesk/rustdesk-server:latest
+    image: docker.io/rustdesk/rustdesk-server:latest@sha256:8ecdab65deb7c84652a626380e31d11a8f1fbafd97916d57f95c20628f943c00
     command: hbbs
     restart: unless-stopped
     labels:

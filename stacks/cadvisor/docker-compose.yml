@@ -3,7 +3,7 @@
 # No host port: attaches to ingress-admin network. Requires privileged for full host/container visibility.
 services:
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:latest@sha256:3de2bd5203120b866d74a9b283b2ffb8ec382fbf9dc321814700c6ea6f44ec57
     container_name: cadvisor
     restart: unless-stopped
     cpu_shares: 256

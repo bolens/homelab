@@ -7,7 +7,7 @@
 # kasm-setup Caddy block if desired.
 services:
   kasm:
-    image: lscr.io/linuxserver/kasm:latest
+    image: lscr.io/linuxserver/kasm:latest@sha256:178f291bababc90b6d4ec03db32b0f74a38d80232eafedcb7f5cb564a19ce1a1
     container_name: kasm
     privileged: true
     env_file:

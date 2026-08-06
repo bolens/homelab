@@ -4,7 +4,7 @@
 # (env_file below injects the same vars into the container but does not substitute compose volumes.)
 services:
   whisparr:
-    image: ghcr.io/thespad/whisparr:latest
+    image: ghcr.io/thespad/whisparr:latest@sha256:5b25ef072d9e186a2307146a2585268495188546c1fe282bd795ce38eaf5cc77
     container_name: whisparr
     restart: unless-stopped
     cpus: 2.0

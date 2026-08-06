@@ -75,7 +75,7 @@ services:
     cpus: "0.50"
 
   librechat:
-    image: ghcr.io/danny-avila/librechat:latest
+    image: ghcr.io/danny-avila/librechat:latest@sha256:c5db3331b845e1f289f8d04c0c77936c4bbe372f76730a804abc1c37e44d23a9
     container_name: librechat
     restart: unless-stopped
     volumes:

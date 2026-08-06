@@ -1,6 +1,6 @@
 services:
   emby:
-    image: lscr.io/linuxserver/emby:latest
+    image: lscr.io/linuxserver/emby:latest@sha256:708872b1339ce0c3cac12ad697e2c4eb10afaafb4123d991a6a2412a8022f49b
     container_name: emby
     restart: unless-stopped
     env_file:

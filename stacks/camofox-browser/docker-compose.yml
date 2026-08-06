@@ -9,7 +9,7 @@ name: camofox-browser
 services:
   camofox:
     container_name: camofox-browser
-    image: ghcr.io/jo-inc/camofox-browser:latest
+    image: ghcr.io/jo-inc/camofox-browser:latest@sha256:64b30ffdbbc4ae0e28200a66dfbd6f55ac4188229eb34ef769afcf7be40faa6e
     env_file:
       - stack.env
       - path: ../../shared.env

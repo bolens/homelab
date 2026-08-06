@@ -3,7 +3,7 @@
 # Docs: https://docs.linkstack.org/docker/setup
 services:
   linkstack:
-    image: linkstackorg/linkstack:latest
+    image: linkstackorg/linkstack:latest@sha256:1c8b05399ee459ac601bac3eede7fbe765d1b6b7be725663b57f3220610958bf
     container_name: linkstack
     restart: unless-stopped
     env_file:

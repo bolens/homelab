@@ -1,6 +1,6 @@
 services:
   rutorrent:
-    image: lscr.io/linuxserver/rutorrent:latest
+    image: lscr.io/linuxserver/rutorrent:latest@sha256:b3a878b9a1da2c3b29066f6c39949fc4b2a10c530668457d462b2692e5b73a04
     container_name: rutorrent
     restart: unless-stopped
     env_file:

@@ -6,7 +6,7 @@ name: plaso
 
 services:
   plaso:
-    image: log2timeline/plaso:latest
+    image: log2timeline/plaso:latest@sha256:a8d42e64dcd3af2dffed8ddb25d34f34def69b672eec97ea9af62885c9332950
     container_name: plaso
     restart: "no"
     env_file:

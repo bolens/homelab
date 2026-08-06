@@ -6,7 +6,7 @@ name: wireguard
 
 services:
   wireguard:
-    image: lscr.io/linuxserver/wireguard:latest
+    image: lscr.io/linuxserver/wireguard:latest@sha256:ac43e1226878d2611315172d6ea357a95cb326ee73124b91108118efc8666889
     container_name: wireguard
     cap_add:
       - NET_ADMIN

@@ -47,7 +47,7 @@ services:
 
   linkwarden:
     container_name: linkwarden
-    image: ghcr.io/linkwarden/linkwarden:latest
+    image: ghcr.io/linkwarden/linkwarden:latest@sha256:d805877fb707d160b809027c302f84cfba11a248d7fdc12de90b4791f98e6b55
     cpus: 2.0
     mem_limit: 3g
     memswap_limit: 4g

@@ -3,7 +3,7 @@
 # Uses only external ingress-admin network to avoid Docker address pool exhaustion.
 services:
   ntfy:
-    image: binwiederhier/ntfy:latest
+    image: binwiederhier/ntfy:latest@sha256:f2419f405127afa868f10985c1a41449e673477cee1eb19994339a5ae8b592e7
     container_name: ntfy
     restart: unless-stopped
     env_file:

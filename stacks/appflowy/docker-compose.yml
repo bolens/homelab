@@ -1,6 +1,6 @@
 services:
   appflowy:
-    image: appflowyinc/appflowy_cloud:latest
+    image: appflowyinc/appflowy_cloud:latest@sha256:92821ef7b9057c5a0c4878df21ed550be38a389b2cd16ad9ac1a349f352274dd
     container_name: appflowy
     restart: unless-stopped
     labels:

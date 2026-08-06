@@ -4,7 +4,7 @@
 # ups@127.0.0.1:3493 or add nut-server to /etc/hosts (see README).
 services:
   nut-server:
-    image: instantlinux/nut-upsd:latest
+    image: instantlinux/nut-upsd:latest@sha256:ab2f9988309ee8a47934e03eb836fa5313cc34234f50ea5400ec65c71dd4e0b2
     container_name: nut-server
     restart: unless-stopped
     labels:

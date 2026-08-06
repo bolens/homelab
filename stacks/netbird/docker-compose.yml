@@ -6,7 +6,7 @@ name: netbird
 
 services:
   dashboard:
-    image: netbirdio/dashboard:latest
+    image: netbirdio/dashboard:latest@sha256:d559f76456df2f06f57108d5271059e085f6d8b510ccdce3c3eac4df15c65121
     container_name: netbird-dashboard
     restart: unless-stopped
     labels:
@@ -29,7 +29,7 @@ services:
     cpus: 0.5
 
   netbird-server:
-    image: netbirdio/netbird-server:latest
+    image: netbirdio/netbird-server:latest@sha256:71a9d94dd0118d361a70d5705c0144289a31cf3f8f15b0744dade23786da47d2
     container_name: netbird-server
     restart: unless-stopped
     labels:

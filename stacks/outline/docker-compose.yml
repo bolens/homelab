@@ -43,7 +43,7 @@ services:
       start_period: 10s
 
   outline:
-    image: outlinewiki/outline:latest
+    image: outlinewiki/outline:latest@sha256:32d76719c378931dd65d93945930ca380d8376a0337d98a991fcc12b266f33cf
     container_name: outline
     restart: unless-stopped
     cpus: 2.0

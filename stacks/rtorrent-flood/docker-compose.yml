@@ -1,7 +1,7 @@
 services:
   # rTorrent daemon — shared backend for Flood UI
   rtorrent:
-    image: jesec/rtorrent:latest
+    image: jesec/rtorrent:latest@sha256:f366138bda04e09761d5147dea293cbceec6514ee4e9c8f22c43d2f61ad9eb64
     container_name: rtorrent
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
@@ -20,7 +20,7 @@ services:
 
   # Flood UI — connects to rTorrent via unix socket
   flood:
-    image: jesec/flood:latest
+    image: jesec/flood:latest@sha256:2e18f1fa2578082da70f8917bb733b1ee6593aaf9a79ded91f2890d82daca3c1
     container_name: flood
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
@@ -48,7 +48,7 @@ services:
 
   # ruTorrent — standalone (bundled rTorrent), separate instance
   rutorrent:
-    image: lscr.io/linuxserver/rutorrent:latest
+    image: lscr.io/linuxserver/rutorrent:latest@sha256:b3a878b9a1da2c3b29066f6c39949fc4b2a10c530668457d462b2692e5b73a04
     container_name: rutorrent
     restart: unless-stopped
     environment:

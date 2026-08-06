@@ -2,7 +2,7 @@
 # No host ports; access via Caddy (e.g. https://actual-budget.yourdomain.com → actual-budget:5006).
 services:
   actual-budget:
-    image: actualbudget/actual-server:latest
+    image: actualbudget/actual-server:latest@sha256:0b300f370dba85a74998a953736a831bd931cc8cb76c0d8ceac3d3fd288dfd4d
     container_name: actual-budget
     restart: unless-stopped
     cpus: 1.0

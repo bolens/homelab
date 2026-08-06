@@ -1,6 +1,6 @@
 services:
   gitlab-runner:
-    image: gitlab/gitlab-runner:latest
+    image: gitlab/gitlab-runner:latest@sha256:ef3fe28f71a5f3aae1a9dcd6e2494e6e42ada004f1e12ca04202d82a2afa9877
     container_name: gitlab-runner
     restart: unless-stopped
     cpus: 4.0

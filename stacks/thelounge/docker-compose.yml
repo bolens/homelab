@@ -1,6 +1,6 @@
 services:
   thelounge:
-    image: thelounge/thelounge:latest
+    image: thelounge/thelounge:latest@sha256:8806dd11965c8c07ef209ba884423cc611a37e8d6ee0e128dd55f427486122e0
     container_name: thelounge
     restart: unless-stopped
     cpus: 1.0

@@ -1,6 +1,6 @@
 services:
   ombi:
-    image: lscr.io/linuxserver/ombi:latest
+    image: lscr.io/linuxserver/ombi:latest@sha256:beed6941903e69d897d2a224cae8d6a8366ac7f0bedbfb57b10439d8fc51f913
     container_name: ombi
     restart: unless-stopped
     cpus: 1.5

@@ -1,6 +1,6 @@
 services:
   nodered:
-    image: nodered/node-red:latest
+    image: nodered/node-red:latest@sha256:10f40d0a83e7e5852b13d4d472b2006b05b1cca6d55e2f29a55a12c25a630cb6
     container_name: node-red
     restart: unless-stopped
     labels:

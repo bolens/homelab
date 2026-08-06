@@ -32,7 +32,7 @@ services:
       retries: 5
 
   dtrack-apiserver:
-    image: dependencytrack/apiserver:latest
+    image: dependencytrack/apiserver:latest@sha256:f1da63ed610a076eebb3e324e6d4669be9e13302a887f4884b5f8b3c8767cf46
     container_name: dtrack-apiserver
     env_file:
       - stack.env
@@ -64,7 +64,7 @@ services:
       - ingress-admin
 
   dtrack-frontend:
-    image: dependencytrack/frontend:latest
+    image: dependencytrack/frontend:latest@sha256:8854a8320475b9992cd5b30c42b937b48f19c9b914ec6b9a22ffd079c4247279
     container_name: dtrack-frontend
     env_file:
       - stack.env

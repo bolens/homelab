@@ -3,7 +3,7 @@
 # Reads host filesystem via mounted root; add a scrape job in prometheus.yml.
 services:
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:latest@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0
     container_name: node-exporter
     restart: unless-stopped
     cpus: 1.0

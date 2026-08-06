@@ -1,6 +1,6 @@
 services:
   resilio:
-    image: lscr.io/linuxserver/resilio-sync:latest
+    image: lscr.io/linuxserver/resilio-sync:latest@sha256:bc04a3fea189463ff9024260e984935f6f18e7b4e951ada77b0ffc362236a612
     container_name: resilio
     restart: unless-stopped
     cpus: 2.0

@@ -2,7 +2,7 @@
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   paperless-gpt:
-    image: icereed/paperless-gpt:latest
+    image: icereed/paperless-gpt:latest@sha256:855d9df5bacb2bed60bd520f1ffe0d118695aef9f77d37466ae85823001f547d
     container_name: paperless-gpt
     restart: unless-stopped
     labels:

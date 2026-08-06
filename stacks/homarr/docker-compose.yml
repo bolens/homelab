@@ -36,7 +36,7 @@ services:
       start_period: 10s
 
   homarr:
-    image: ghcr.io/homarr-labs/homarr:latest
+    image: ghcr.io/homarr-labs/homarr:latest@sha256:72f98c87dbd556736a3f25f7d19fefa77a7e48eb76c4d7929e5535f7e3c0fdd0
     container_name: homarr
     restart: unless-stopped
     cpus: 2.0

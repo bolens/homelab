@@ -10,7 +10,7 @@
 # TZ/locale: use shared.env or set in stack.env (see documents/SHARED-RESOURCES.md).
 services:
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:latest@sha256:d177053ab62253815f130d81504f77063baf5fd4ca93299d6048453bd31e047a
     container_name: grafana
     restart: unless-stopped
     dns:

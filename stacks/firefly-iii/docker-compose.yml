@@ -19,7 +19,7 @@ services:
       retries: 10
 
   firefly:
-    image: fireflyiii/core:latest
+    image: fireflyiii/core:latest@sha256:ae69fdd95cdef9038cd7a460a5aec731f14813973e4f096511d5a4ea9ff0e972
     container_name: firefly-iii
     restart: unless-stopped
     depends_on:

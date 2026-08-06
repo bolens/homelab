@@ -32,7 +32,7 @@ services:
       start_period: 10s
 
   diun:
-    image: crazymax/diun:latest
+    image: crazymax/diun:latest@sha256:e324b793eb32dfb7f74d3a39421ebf090141caaadee69b8f78da63112408ee25
     container_name: diun
     env_file:
       - stack.env

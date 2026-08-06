@@ -1,6 +1,6 @@
 services:
   plex:
-    image: lscr.io/linuxserver/plex:latest
+    image: lscr.io/linuxserver/plex:latest@sha256:d8b3417b9173bab8bb79b167119b6b69a85558f2127e7fa810a045654e3dbe7f
     container_name: plex
     restart: unless-stopped
     cpus: 6.0

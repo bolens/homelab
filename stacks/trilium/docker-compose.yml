@@ -1,6 +1,6 @@
 services:
   trilium:
-    image: triliumnext/notes:latest
+    image: triliumnext/notes:latest@sha256:611a430016585d35b170eb9a0fa300ce76318f04a8ec0067549c4c52561b0c36
     container_name: trilium
     restart: unless-stopped
     labels:

@@ -1,6 +1,6 @@
 services:
   kali:
-    image: kalilinux/kali-rolling:latest
+    image: kalilinux/kali-rolling:latest@sha256:3093a0bd1f1196f4b10ab8e4a671929a6cd0153768642e6aa20dfced5e4132c5
     profiles: ["tools"]
     stdin_open: true
     tty: true

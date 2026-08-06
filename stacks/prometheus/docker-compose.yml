@@ -5,7 +5,7 @@
 # Rules: copy alerts.yml.example to ~/.config/prometheus/rules/alerts.yml; set PROMETHEUS_RULES_PATH to that dir if different.
 services:
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:latest@sha256:508729e0e2d18e11fd742a5a5ca70e557b940a93948c3c95fd0123a6fd538b69
     container_name: prometheus
     restart: unless-stopped
     command:
