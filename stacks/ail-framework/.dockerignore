@@ -3,6 +3,10 @@
 !requirements-opencv.txt
 !requirements-pystemon.txt
 !requirements-runtime.txt
+!lacus-entrypoint.sh
+!lacus-generic.json
+!lacus-supervisord.conf
+!torrc
 !ail-framework-docker/
 !ail-framework-docker/ail-framework/
 !ail-framework-docker/ail-framework/**

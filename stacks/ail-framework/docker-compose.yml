@@ -3,7 +3,7 @@
 # Docs: https://github.com/ail-project/ail-framework | https://www.ail-project.org/
 #
 # Default image is the smaller CPU-only AIL 7.0 release (see README).
-# For AIL + Lacus + Tor images, the same compose applies; the container also listens on 7100 (Lacus) and 9050 (Tor SOCKS). Caddy can proxy to ail:7100; other services use socks5://ail:9050.
+# Lacus and Tor run as isolated companion services for clear-web and .onion captures.
 services:
   ail:
     image: ${AIL_IMAGE:-ail-framework:7.0}
@@ -15,7 +15,12 @@ services:
     # Wipe stale GNU screen sockets on start (otherwise Flask/feeder stay "Dead" after unclean stop).
     working_dir: /opt/AIL
     entrypoint: ["/bin/bash", "-c"]
-    command: ["screen -wipe 2>/dev/null || true; exec /bin/bash docker_start.sh"]
+    command:
+      - >-
+        sed -i 's/^activate_crawler = False$/activate_crawler = True/'
+        /opt/AIL/configs/core.cfg;
+        screen -wipe 2>/dev/null || true;
+        exec /bin/bash docker_start.sh
     env_file:
       - path: ../../shared.env
         required: false
@@ -52,6 +57,67 @@ services:
     mem_limit: 6g
     cpus: 2.0
 
+  lacus:
+    build:
+      context: .
+      dockerfile: Dockerfile.lacus
+      args:
+        LACUS_REVISION: ${LACUS_REVISION:-e3be12569431234dfc08cffd4a5000cd86011545}
+        VALSTORE_REVISION: ${VALSTORE_REVISION:-23b3f6bb66c19502225a40e7aeec9e1be76456c1}
+    image: ${LACUS_IMAGE:-ail-lacus:1.25.1}
+    container_name: ail-lacus
+    restart: unless-stopped
+    depends_on:
+      tor:
+        condition: service_healthy
+    volumes:
+      - lacus-cache:/app/lacus/cache
+      - lacus-captures:/app/lacus/captures
+      - ./lacus-generic.json:/app/lacus/config/generic.json:ro
+      - lacus-logs:/app/lacus/logs
+    networks:
+      - security-research
+    expose:
+      - "7100"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:7100/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 5g
+    cpus: 3.0
+
+  tor:
+    build:
+      context: .
+      dockerfile: Dockerfile.tor
+    image: ail-tor:alpine-3.24
+    container_name: ail-tor
+    restart: unless-stopped
+    volumes:
+      - tor-data:/var/lib/tor
+    networks:
+      - security-research
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9050"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 512m
+    cpus: 1.0
+
 networks:
   security-research:
     name: security-research
@@ -67,3 +133,7 @@ volumes:
   ail-indexdir:
   ail-hashs:
   ail-logs:
+  lacus-cache:
+  lacus-captures:
+  lacus-logs:
+  tor-data:

@@ -1,0 +1,59 @@
+# syntax=docker/dockerfile:1
+
+FROM ubuntu:24.04
+
+ARG LACUS_REVISION=e3be12569431234dfc08cffd4a5000cd86011545
+ARG VALSTORE_REVISION=23b3f6bb66c19502225a40e7aeec9e1be76456c1
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PATH=/root/.local/bin:$PATH \
+    POETRY_VIRTUALENVS_IN_PROJECT=true
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential ca-certificates curl git python3 supervisor
+
+WORKDIR /app
+
+RUN git init valkey \
+    && git -C valkey remote add origin https://github.com/valkey-io/valkey.git \
+    && git -C valkey fetch --depth 1 origin "${VALSTORE_REVISION}" \
+    && git -C valkey checkout --detach FETCH_HEAD \
+    && test "$(git -C valkey rev-parse HEAD)" = "${VALSTORE_REVISION}" \
+    && make -C valkey -j"$(nproc)"
+
+RUN git init lacus \
+    && git -C lacus remote add origin https://github.com/ail-project/lacus.git \
+    && git -C lacus fetch --depth 1 origin "${LACUS_REVISION}" \
+    && git -C lacus checkout --detach FETCH_HEAD \
+    && test "$(git -C lacus rev-parse HEAD)" = "${LACUS_REVISION}"
+
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
+WORKDIR /app/lacus
+
+RUN poetry install \
+    && poetry run playwright install-deps chromium \
+    && printf 'LACUS_HOME=/app/lacus\n' > .env \
+    && poetry run update --init \
+    && cp config/docker.generic.json.sample config/generic.json \
+    && rm -rf /app/lacus/.git /app/valkey/.git \
+    && apt-get purge -y build-essential git \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN poetry run playwright install chromium
+
+COPY lacus-supervisord.conf /etc/supervisor/supervisord.conf
+COPY lacus-entrypoint.sh /usr/local/bin/lacus-entrypoint
+
+RUN chmod 0755 /usr/local/bin/lacus-entrypoint
+
+EXPOSE 7100
+HEALTHCHECK --interval=30s --timeout=10s --retries=5 --start-period=90s \
+    CMD curl -fsS http://127.0.0.1:7100/ >/dev/null || exit 1
+
+ENTRYPOINT ["/usr/local/bin/lacus-entrypoint"]

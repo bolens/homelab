@@ -84,11 +84,13 @@ COPY ail-framework-docker/ail-framework/other_installers/docker/docker_start.sh 
     RUN apt-mark manual \
         file graphviz libadns1 libev4 libfuzzy2 libgmp10 libmagic-mgc \
         libmagic1 libprotobuf23 libsnappy1v5 libssl3 libzbar0 p7zip-full \
-        screen sudo wget \
+        git screen sudo wget \
     && strip --strip-unneeded /opt/AIL/kvrocks/build/kvrocks \
     && find /opt/AIL/kvrocks/build -mindepth 1 -maxdepth 1 \
         ! -name kvrocks -exec rm -rf {} + \
-    && find /opt/AIL -type d -name .git -prune -exec rm -rf {} + \
+    # AIL 7.0's settings page reads release metadata from the root checkout.
+    # Keep that checkout while removing nested dependency repositories.
+    && find /opt/AIL -mindepth 2 -type d -name .git -prune -exec rm -rf {} + \
     && find /opt/AIL -type d -name __pycache__ -prune -exec rm -rf {} + \
     && find /opt/AIL -type f -name '*.pyc' -delete \
     && find /opt/AIL/AILENV/lib/python3.10/site-packages -type d \
@@ -111,7 +113,7 @@ COPY ail-framework-docker/ail-framework/other_installers/docker/docker_start.sh 
     && apt-get purge -y \
         autoconf automake binutils binutils-x86-64-linux-gnu \
         build-essential cmake cmake-data cpp cpp-11 g++ g++-11 gcc gcc-11 \
-        git libadns1-dev libffi-dev libfreetype6-dev libfuzzy-dev \
+        libadns1-dev libffi-dev libfreetype6-dev libfuzzy-dev \
         libgmp-dev libprotobuf-dev libsnappy-dev libssl-dev libtool \
         linux-libc-dev make pkg-config protobuf-compiler python3-dev \
     && apt-get autoremove -y \

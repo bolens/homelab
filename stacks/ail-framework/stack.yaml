@@ -52,6 +52,18 @@ volumes:
 - name: ail-logs
   role: app_data
   critical: true
+- name: lacus-cache
+  role: app_data
+  critical: true
+- name: lacus-captures
+  role: app_data
+  critical: true
+- name: lacus-logs
+  role: app_data
+  critical: false
+- name: tor-data
+  role: app_data
+  critical: false
 auth:
   mode: app_local
   sso_provider: null

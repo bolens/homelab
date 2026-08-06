@@ -33,6 +33,7 @@
 | **Networks** | `security-research` for trusted research peers; `ingress-admin` for Caddy. |
 | **Image** | Default: CPU-only `ail-framework:7.0`. Override with `AIL_IMAGE`, or use `docker-compose.gpu.yml` for `ail-framework:7.0-gpu`. |
 | **Storage** | Named volumes for PASTES, CRAWLED_SCREENSHOT, DATA_KVROCKS, indexdir, HASHS, logs. |
+| **Crawlers** | Lacus 1.25.1 provides Playwright/Chromium captures; a separate Tor service provides `.onion` SOCKS routing. AIL starts its Crawler and CrawlerImporter workers with a two-capture limit. |
 | **Login behavior** | Uses upstream AIL 7.0 behavior; the old 5.x `root.py` override is no longer mounted. |
 | **GPU** | Disabled by default. Add `-f docker-compose.gpu.yml` to use the CUDA image and expose the host NVIDIA GPU. |
 | **Flask bind** | The runtime layer changes AIL's loopback-only default to `0.0.0.0:7000` so Caddy can reach the container over `ingress-admin`. |
@@ -121,7 +122,26 @@ The stack uses `security-research` for research-tool communication and `ingress-
 - **Brute-force timer:** run `./clear-login-lockout.sh` from this stack directory (or wait for TTL).
 - Flask also picks a **new random `SECRET_KEY` and session cookie name on each process start**, so expect to sign in again after container restarts; that is upstream AIL behavior, not the stack tmpfs change.
 
-**Lacus (when using an AIL+Lacus+Tor image):** The Lacus crawler UI listens on HTTP port 7100. Optional Caddy blocks are in `caddy_snippet.conf.example` (e.g. `lacus.ail.home` → `ail:7100`). Uncomment and adjust hostnames if you use that image.
+## Crawlers
+
+The default compose deployment includes:
+
+- `ail-lacus`, pinned to Lacus 1.25.1 with Chromium, for clear-web captures.
+- `ail-tor`, an internal SOCKS5 proxy used automatically for `.onion` captures.
+- AIL's `Crawler` and `CrawlerImporter` workers, enabled at container startup.
+
+AIL stores the Lacus endpoint in its Kvrocks volume. For a new deployment, set it
+once under **Crawlers → Settings** to `http://lacus:7100`, or run:
+
+```bash
+docker exec -w /opt/AIL/bin ail-framework /opt/AIL/AILENV/bin/python -c \
+  'from lib import crawlers; crawlers.save_lacus_url_api("http://lacus:7100", None)'
+```
+
+The crawler services are internal-only. `only_global_lookups` prevents Lacus
+from being used to scan private addresses. I2P and interactive headed captures
+remain disabled because this stack does not include an I2P router or Tactus/xpra
+sidecar.
 
 ## Start
 

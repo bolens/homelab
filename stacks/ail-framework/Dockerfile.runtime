@@ -13,5 +13,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && sed -i 's/^host = 127[.]0[.]0[.]1$/host = 0.0.0.0/' \
         /opt/AIL/configs/core.cfg \
         /opt/AIL/configs/core.cfg.sample \
-    # Release images are immutable and intentionally omit Git at runtime.
+    # Release images are immutable; keep Git metadata read-only for /settings,
+    # but disable AIL's launch-time self-update.
     && sed -i '/^    update;$/d' /opt/AIL/bin/LAUNCH.sh

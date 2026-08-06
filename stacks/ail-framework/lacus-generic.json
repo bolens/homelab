@@ -1,0 +1,37 @@
+{
+  "loglevel": "INFO",
+  "website_listen_ip": "0.0.0.0",
+  "website_listen_port": 7100,
+  "systemd_service_name": "lacus",
+  "concurrent_captures": 2,
+  "max_capture_time": 3600,
+  "expire_results": 36000,
+  "max_retries": 3,
+  "only_global_lookups": true,
+  "tor_proxy": {
+    "server": "socks5://tor:9050"
+  },
+  "i2p_proxy": {
+    "server": ""
+  },
+  "trusted_timestamp_settings": {
+    "url": "https://zeitstempel.dfn.de/",
+    "hashname": "sha512",
+    "enable_default": false
+  },
+  "global_proxy": {
+    "enable": false,
+    "server": "",
+    "username": "",
+    "password": ""
+  },
+  "allow_headed": false,
+  "wireproxy_path": "",
+  "remote_headed_settings": {
+    "allow_remote_headed": false,
+    "tactus_listen_ip": "127.0.0.1",
+    "tactus_listen_port": 7101,
+    "backend_type": "xpra",
+    "public_base_url": ""
+  }
+}
