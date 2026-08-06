@@ -34,18 +34,18 @@ backup:
   priority: medium
   schedule_hint: daily
 volumes:
-  - name: dionaea_config
-    role: config
-    critical: true
-  - name: dionaea_data
-    role: app_data
-    critical: false
-  - name: dionaea_logs
-    role: logs
-    critical: false
-  - name: conpot_logs
-    role: logs
-    critical: false
+- name: dionaea_config
+  role: config
+  critical: true
+- name: dionaea_data
+  role: app_data
+  critical: false
+- name: dionaea_logs
+  role: logs
+  critical: false
+- name: conpot_logs
+  role: logs
+  critical: false
 auth:
   mode: none
   sso_provider: null
@@ -62,3 +62,8 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

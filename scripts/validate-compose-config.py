@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Render every public Compose stack with its portable example environment."""
+"""Render public Compose stacks with their portable example environments."""
 
 from __future__ import annotations
 
+import argparse
 import shutil
 import subprocess
 import tempfile
@@ -21,7 +22,42 @@ def ignored(path: Path) -> bool:
     ).returncode == 0
 
 
+def compose_directories(changed_base: str | None) -> list[Path]:
+    directories = [
+        path
+        for path in sorted(STACKS.iterdir())
+        if path.is_dir() and (path / "docker-compose.yml").exists() and not ignored(path)
+    ]
+    portainer = ROOT / "portainer"
+    if (portainer / "docker-compose.yml").exists():
+        directories.append(portainer)
+    if not changed_base:
+        return directories
+    result = subprocess.run(
+        ["git", "-C", str(ROOT), "diff", "--name-only", f"{changed_base}...HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    changed = [Path(line) for line in result.stdout.splitlines() if line]
+    if any(path.parts[0] not in {"stacks", "portainer"} for path in changed):
+        return directories
+    selected = set()
+    for path in changed:
+        if len(path.parts) >= 2 and path.parts[0] == "stacks":
+            selected.add(ROOT / path.parts[0] / path.parts[1])
+        elif path.parts and path.parts[0] == "portainer":
+            selected.add(ROOT / "portainer")
+    return [path for path in directories if path in selected]
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--changed-base",
+        help="render only stacks changed since this Git revision; global changes render all",
+    )
+    args = parser.parse_args()
     if shutil.which("docker") is None:
         print("validate-compose-config.py: Docker CLI unavailable; skipped")
         return 0
@@ -33,7 +69,7 @@ def main() -> int:
         shared = ROOT / "shared.env.example"
         if shared.exists():
             shutil.copy2(shared, temporary / "shared.env")
-        for directory in sorted(path for path in STACKS.iterdir() if path.is_dir()):
+        for directory in compose_directories(args.changed_base):
             compose = directory / "docker-compose.yml"
             example = directory / "stack.env.example"
             if ignored(directory) or not compose.exists():
@@ -57,7 +93,7 @@ def main() -> int:
             if missing_include:
                 skipped.append(f"{directory.name} (generated include bundle)")
                 continue
-            target = temporary / "stacks" / directory.name
+            target = temporary / directory.relative_to(ROOT)
             target.mkdir(parents=True)
             for service in (document.get("services") or {}).values():
                 if not isinstance(service, dict) or not service.get("env_file"):

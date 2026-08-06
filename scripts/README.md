@@ -27,7 +27,7 @@ Gitleaks scan.
 | `validate-compose-config.py` | Runs `docker compose config` against portable example environments and skips explicitly generated include bundles. |
 | `audit-prepare-scripts.py` | Verifies every top-level Compose stack has an executable, verbose wrapper that prepares its examples and literal external networks/volumes. Maintainers may use `--fix`, then review the complete diff. |
 | `audit-stack-metadata.py` | Validates `stack.yaml` coverage, schema shape, names, profile enums, and ports. Maintainers may use `--fix-missing`, then review inferred catalog fields. |
-| `audit-repo-hygiene.py` | Checks README/example/metadata coverage, ignored runtime env files, portable examples, all documentation links, root CI/config syntax, and Caddy upstream basics. |
+| `audit-repo-hygiene.py` | Checks README/example/metadata coverage, ignored runtime env files, portable examples, every tracked Markdown link, root CI/config syntax, and Caddy upstream basics. |
 | `build-stack-catalog.py` | Regenerates `documents/STACK-CATALOG.md` from stack READMEs. |
 | `build-topology.py` | Regenerates `documents/TOPOLOGY.md` from `documents/topology.yaml`. Requires PyYAML. |
 | `scan-secrets-gitleaks.sh [git\|dir]` | Scans full Git history (default) or files on disk. The `dir` mode includes ignored runtime secrets, so output must be handled carefully. |

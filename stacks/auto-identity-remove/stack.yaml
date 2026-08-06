@@ -52,4 +52,12 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: 'Requires NVIDIA GPU + Container Toolkit. Uses Ollama for PII detection (default: shared ollama stack). contains_pii=true because uploaded documents may contain sensitive data.'
+  notes: 'Requires NVIDIA GPU + Container Toolkit. Uses Ollama for PII detection (default:
+    shared ollama stack). contains_pii=true because uploaded documents may contain
+    sensitive data.'
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services:
+  - auto-identity-remove

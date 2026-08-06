@@ -56,3 +56,9 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services:
+  - kasm
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

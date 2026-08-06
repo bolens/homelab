@@ -49,4 +49,10 @@ placement:
 lifecycle:
   status: external
   replacement_for: null
-  notes: 'Compose bundle is generated from the upstream PostHog hobby repository by prepare-stack.sh.'
+  notes: Compose bundle is generated from the upstream PostHog hobby repository by
+    prepare-stack.sh.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

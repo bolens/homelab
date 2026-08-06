@@ -1,6 +1,8 @@
 name: affine
 default_port: 3010
-databases: []
+databases:
+- postgres
+- redis
 health:
   endpoint: /
   internal_only: false
@@ -34,16 +36,25 @@ backup:
   priority: medium
   schedule_hint: weekly
 volumes:
-- name: affine_data
+- name: affine_storage
   role: app_data
   critical: true
+- name: affine_config
+  role: config
+  critical: true
+- name: affine_postgres
+  role: database
+  critical: true
+- name: affine_redis
+  role: cache
+  critical: false
 auth:
   mode: app_local
   sso_provider: null
   access_policy: access_full_site
 resources:
-  cpu_profile: small
-  memory_profile: small
+  cpu_profile: medium
+  memory_profile: medium
   storage_profile: medium
   gpu_profile: none
 placement:
@@ -51,5 +62,11 @@ placement:
   colocation_group: null
 lifecycle:
   status: stable
-  replacement_for: null
-  notes: ''
+  replacement_for: affine-self-hosted
+  notes: Replaced the retired single-container image with the current AFFiNE, migration-job,
+    PostgreSQL/pgvector, and Redis architecture.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

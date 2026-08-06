@@ -37,7 +37,14 @@ jobs:
             --require-hashes -r .github/requirements-validation.txt
 
       - name: Validate repository
+        if: github.event_name != 'pull_request'
         run: make validate-strict
+
+      - name: Validate changed stacks and global invariants
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: make validate-changed BASE="$BASE_REF"
 
       - name: Scan committed content
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0

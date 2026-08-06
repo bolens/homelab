@@ -62,4 +62,9 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: 'Bundled rTorrent/Flood image; flood provides a split-service alternative.'
+  notes: Bundled rTorrent/Flood image; flood provides a split-service alternative.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

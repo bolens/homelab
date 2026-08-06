@@ -84,17 +84,7 @@ def markdown_anchors(path: Path) -> set[str]:
 
 
 def audit_markdown(errors: list[str]) -> None:
-    docs = [ROOT / "README.md", ROOT / "CONTRIBUTING.md", ROOT / "SECURITY.md"]
-    docs.extend((ROOT / "documents").glob("*.md"))
-    docs.extend((ROOT / "scripts").glob("*.md"))
-    docs.append(ROOT / "portainer" / "README.md")
-    for directory in sorted(path for path in STACKS.iterdir() if path.is_dir()):
-        ignored = subprocess.run(
-            ["git", "-C", str(ROOT), "check-ignore", "-q", str(directory.relative_to(ROOT))],
-            check=False,
-        ).returncode == 0
-        if not ignored:
-            docs.append(directory / "README.md")
+    docs = [ROOT / relative for relative in tracked("*.md")]
     for path in docs:
         if not path.exists():
             continue

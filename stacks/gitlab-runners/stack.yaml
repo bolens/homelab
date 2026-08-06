@@ -34,9 +34,9 @@ backup:
   priority: low
   schedule_hint: manual
 volumes:
-  - name: gitlab_runner_config
-    role: config
-    critical: true
+- name: gitlab_runner_config
+  role: config
+  critical: true
 auth:
   mode: none
   sso_provider: null
@@ -53,3 +53,9 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services:
+  - gitlab-runner
+  floating_image_services: []

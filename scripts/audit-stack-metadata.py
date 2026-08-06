@@ -33,6 +33,7 @@ REQUIRED = {
     "resources",
     "placement",
     "lifecycle",
+    "runtime_security",
 }
 TYPES = {"api", "cli_tool", "service", "web_app"}
 PROFILES = {"small", "medium", "large"}
@@ -49,6 +50,12 @@ NESTED_REQUIRED = {
     "resources": {"cpu_profile", "memory_profile", "storage_profile", "gpu_profile"},
     "placement": {"preferred_node", "colocation_group"},
     "lifecycle": {"status", "replacement_for", "notes"},
+    "runtime_security": {
+        "privileged_services",
+        "host_network_services",
+        "docker_socket_services",
+        "floating_image_services",
+    },
 }
 TYPE_OVERRIDES = {
     "cowrie": "service", "databasus": "web_app", "dbgate": "web_app",
@@ -96,6 +103,41 @@ def compose_for(directory: Path) -> dict[str, Any]:
 def services(compose: dict[str, Any]) -> list[dict[str, Any]]:
     value = compose.get("services") or {}
     return [item for item in value.values() if isinstance(item, dict)]
+
+
+def runtime_security(compose: dict[str, Any]) -> dict[str, list[str]]:
+    """Return security-sensitive Compose features, keyed by service name."""
+    result = {
+        "privileged_services": [],
+        "host_network_services": [],
+        "docker_socket_services": [],
+        "floating_image_services": [],
+    }
+    floating = {"latest", "main", "master", "edge", "develop", "nightly", "rolling"}
+    for name, service in (compose.get("services") or {}).items():
+        if not isinstance(service, dict):
+            continue
+        if service.get("privileged") is True:
+            result["privileged_services"].append(str(name))
+        if service.get("network_mode") == "host":
+            result["host_network_services"].append(str(name))
+        volumes = service.get("volumes") or []
+        if any(
+            "/var/run/docker.sock" in (
+                value if isinstance(value, str) else str(value.get("source", ""))
+            )
+            for value in volumes
+            if isinstance(value, (str, dict))
+        ):
+            result["docker_socket_services"].append(str(name))
+        raw_image = str(service.get("image", ""))
+        image = raw_image.split("@", 1)[0]
+        tag = image.rsplit(":", 1)[-1] if ":" in image.rsplit("/", 1)[-1] else ""
+        digest_pinned = "@sha256:" in raw_image
+        registry_pull = not bool(service.get("build"))
+        if tag in floating and not digest_pinned and registry_pull:
+            result["floating_image_services"].append(str(name))
+    return {key: sorted(value) for key, value in result.items()}
 
 
 def infer_port(directory: Path, compose: dict[str, Any]) -> int | None:
@@ -200,6 +242,7 @@ def infer_metadata(directory: Path) -> dict[str, Any]:
         },
         "placement": {"preferred_node": None, "colocation_group": None},
         "lifecycle": {"status": "stable", "replacement_for": None, "notes": ""},
+        "runtime_security": runtime_security(compose),
     }
 
 
@@ -249,6 +292,22 @@ def validate(directory: Path, metadata: Any) -> list[str]:
         missing_nested = sorted(expected - value.keys())
         if missing_nested:
             problems.append(f"{group} missing keys: {', '.join(missing_nested)}")
+    declared_security = metadata.get("runtime_security")
+    if isinstance(declared_security, dict):
+        for key in NESTED_REQUIRED["runtime_security"]:
+            if not isinstance(declared_security.get(key), list):
+                problems.append(f"runtime_security.{key} must be a list")
+        actual_security = runtime_security(compose_for(directory))
+        if all(isinstance(declared_security.get(key), list) for key in actual_security):
+            normalized = {
+                key: sorted(str(item) for item in declared_security[key])
+                for key in actual_security
+            }
+            if normalized != actual_security:
+                problems.append(
+                    "runtime_security does not match docker-compose.yml; "
+                    "run with --sync-runtime-security"
+                )
     return problems
 
 
@@ -259,6 +318,11 @@ def main() -> int:
         "--refresh-inferred",
         action="store_true",
         help="refresh untracked inferred records for stacks in the reviewed category map",
+    )
+    parser.add_argument(
+        "--sync-runtime-security",
+        action="store_true",
+        help="synchronize reviewed runtime-security facts from Compose files",
     )
     args = parser.parse_args()
     failures: list[str] = []
@@ -311,6 +375,15 @@ def main() -> int:
         except yaml.YAMLError as exc:
             failures.append(f"{directory.name}: invalid YAML: {exc}")
             continue
+        if args.sync_runtime_security and isinstance(metadata, dict):
+            expected_security = runtime_security(compose_for(directory))
+            if metadata.get("runtime_security") != expected_security:
+                metadata["runtime_security"] = expected_security
+                yaml_path.write_text(
+                    yaml.safe_dump(metadata, sort_keys=False, allow_unicode=True),
+                    encoding="utf-8",
+                )
+                changed.append(directory.name)
         failures.extend(f"{directory.name}: {problem}" for problem in validate(directory, metadata))
         compose_path = directory / "docker-compose.yml"
         has_managed_bundle = any(directory.glob("*/docker-compose*.yml")) or any(

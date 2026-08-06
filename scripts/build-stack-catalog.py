@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 import re
 import subprocess
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "documents" / "STACK-CATALOG.md"
@@ -38,8 +39,8 @@ def description(readme: Path) -> str:
 
 def build() -> str:
     rows = [
-        "| Stack | What it does |",
-        "|---|---|",
+        "| Stack | What it does | Runtime flags |",
+        "|---|---|---|",
     ]
     directories = sorted(path for path in STACKS.iterdir() if path.is_dir())
     for directory in directories:
@@ -53,8 +54,21 @@ def build() -> str:
         if not readme.exists():
             raise SystemExit(f"missing stack README: {readme.relative_to(ROOT)}")
         relative = Path("..") / readme.relative_to(ROOT)
+        metadata = yaml.safe_load((directory / "stack.yaml").read_text(encoding="utf-8")) or {}
+        security = metadata.get("runtime_security") or {}
+        labels = []
+        for key, label in (
+            ("privileged_services", "privileged"),
+            ("host_network_services", "host network"),
+            ("docker_socket_services", "Docker socket"),
+            ("floating_image_services", "floating image"),
+        ):
+            if security.get(key):
+                labels.append(f"{label}: {', '.join(security[key])}")
+        flags = "; ".join(labels) if labels else "None"
         rows.append(
-            f"| [**{directory.name}**]({relative.as_posix()}) | {description(readme)} |"
+            f"| [**{directory.name}**]({relative.as_posix()}) | "
+            f"{description(readme)} | {flags} |"
         )
     return "\n".join(rows)
 

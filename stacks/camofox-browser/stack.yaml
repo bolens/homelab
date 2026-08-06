@@ -58,4 +58,9 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: 'Stealth browser automation with fingerprint camouflage. shm_size 512mb required.'
+  notes: Stealth browser automation with fingerprint camouflage. shm_size 512mb required.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

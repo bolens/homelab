@@ -34,12 +34,12 @@ backup:
   priority: medium
   schedule_hint: daily
 volumes:
-  - name: ersatztv_config
-    role: app_data
-    critical: true
-  - name: media
-    role: media
-    critical: false
+- name: ersatztv_config
+  role: app_data
+  critical: true
+- name: media
+  role: media
+  critical: false
 auth:
   mode: app_local
   sso_provider: null
@@ -56,3 +56,8 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

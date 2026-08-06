@@ -80,6 +80,16 @@ all-files and Git-history suite on demand:
 make ci-local
 ```
 
+Repository validation ShellChecks every tracked `*.sh` file, including
+stack-local entrypoints and preparation helpers. GitHub pull requests render
+only changed stacks when all changes are under `stacks/` or `portainer/`;
+global configuration or tooling changes automatically trigger rendering of
+every stack. The equivalent local command is:
+
+```bash
+make validate-changed BASE=origin/main
+```
+
 The hooks require Python with PyYAML, pre-commit, ShellCheck, Gitleaks,
 actionlint, and Hadolint. The zizmor hook uses a native installation when
 available and otherwise uses its pinned Docker image.

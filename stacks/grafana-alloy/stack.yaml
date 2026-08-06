@@ -54,3 +54,9 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services:
+  - alloy-docker-socket-proxy
+  floating_image_services: []

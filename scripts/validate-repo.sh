@@ -4,10 +4,17 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 STRICT=0
+CHANGED_BASE=""
 if [[ "${1:-}" == "--strict" ]]; then
   STRICT=1
-elif [[ $# -gt 0 ]]; then
-  echo "Usage: $0 [--strict]" >&2
+  shift
+fi
+if [[ "${1:-}" == "--changed-base" && -n "${2:-}" ]]; then
+  CHANGED_BASE="$2"
+  shift 2
+fi
+if [[ $# -gt 0 ]]; then
+  echo "Usage: $0 [--strict] [--changed-base GIT_REVISION]" >&2
   exit 2
 fi
 
@@ -31,7 +38,11 @@ echo "Parsing Compose YAML..."
 python3 scripts/ci-parse-composes.py
 
 echo "Rendering Compose configurations..."
-python3 scripts/validate-compose-config.py
+compose_args=()
+if [[ -n "$CHANGED_BASE" ]]; then
+  compose_args+=(--changed-base "$CHANGED_BASE")
+fi
+python3 scripts/validate-compose-config.py "${compose_args[@]}"
 
 echo "Auditing stack preparation scripts..."
 python3 scripts/audit-prepare-scripts.py
@@ -63,7 +74,9 @@ run_optional_check markdownlint-cli2 markdownlint-cli2 --config .markdownlint.js
   "${markdown_files[@]}"
 
 echo "Checking repository shell helpers..."
-mapfile -t shell_files < <(find scripts -maxdepth 1 -type f -name '*.sh' -print | sort)
+mapfile -t shell_files < <(git ls-files '*.sh' | while read -r file; do
+  [[ -f "$file" ]] && printf '%s\n' "$file"
+done)
 run_optional_check shellcheck shellcheck -S warning "${shell_files[@]}"
 
 echo "Repository validation passed."

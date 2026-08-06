@@ -34,9 +34,9 @@ backup:
   priority: high
   schedule_hint: daily
 volumes:
-  - name: scrypted_data
-    role: app_data
-    critical: true
+- name: scrypted_data
+  role: app_data
+  critical: true
 auth:
   mode: app_local
   sso_provider: null
@@ -53,3 +53,9 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services:
+  - scrypted
+  docker_socket_services: []
+  floating_image_services: []

@@ -52,4 +52,10 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: 'No public image — run docker compose build first. CDP on port 9222. shm_size 1gb required.'
+  notes: No public image — run docker compose build first. CDP on port 9222. shm_size
+    1gb required.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

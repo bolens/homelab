@@ -34,15 +34,15 @@ backup:
   priority: critical
   schedule_hint: daily
 volumes:
-  - name: gitlab_config
-    role: config
-    critical: true
-  - name: gitlab_data
-    role: app_data
-    critical: true
-  - name: gitlab_logs
-    role: logs
-    critical: false
+- name: gitlab_config
+  role: config
+  critical: true
+- name: gitlab_data
+  role: app_data
+  critical: true
+- name: gitlab_logs
+  role: logs
+  critical: false
 auth:
   mode: app_local
   sso_provider: null
@@ -59,3 +59,8 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

@@ -61,4 +61,10 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: 'Combined rTorrent and Flood deployment; rtorrent is daemon-only and rtorrent-flood uses a bundled image.'
+  notes: Combined rTorrent and Flood deployment; rtorrent is daemon-only and rtorrent-flood
+    uses a bundled image.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

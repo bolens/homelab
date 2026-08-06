@@ -67,4 +67,9 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: 'Alternate upstream-layout AIL integration; ail is the simpler primary deployment.'
+  notes: Alternate upstream-layout AIL integration; ail is the simpler primary deployment.
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

@@ -1,10 +1,11 @@
-.PHONY: help doctor validate validate-strict ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate validate-strict validate-changed ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 help:
 	@echo "Homelab repository targets:"
 	@echo "  doctor             Read-only host and repository checks"
 	@echo "  validate           Python, Compose YAML, and shell validation"
 	@echo "  validate-strict    Validate and require every lint dependency"
+	@echo "  validate-changed   Validate changed stacks; requires BASE=<git revision>"
 	@echo "  ci-local           Run all pre-commit and history secret checks"
 	@echo "  hooks-install      Install repository pre-commit hooks"
 	@echo "  mirror-sync        Fast-forward Gitea from authoritative GitHub"
@@ -26,6 +27,10 @@ validate:
 
 validate-strict:
 	bash scripts/validate-repo.sh --strict
+
+validate-changed:
+	@test -n "$(BASE)" || (echo "Usage: make validate-changed BASE=<git revision>" >&2; exit 2)
+	bash scripts/validate-repo.sh --strict --changed-base "$(BASE)"
 
 ci-local:
 	pre-commit run --all-files

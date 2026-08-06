@@ -34,18 +34,18 @@ backup:
   priority: low
   schedule_hint: weekly
 volumes:
-  - name: config
-    role: config
-    critical: true
-  - name: storage
-    role: media
-    critical: false
-  - name: watch
-    role: media
-    critical: false
-  - name: output
-    role: media
-    critical: false
+- name: config
+  role: config
+  critical: true
+- name: storage
+  role: media
+  critical: false
+- name: watch
+  role: media
+  critical: false
+- name: output
+  role: media
+  critical: false
 auth:
   mode: app_local
   sso_provider: null
@@ -62,3 +62,8 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

@@ -34,15 +34,15 @@ backup:
   priority: medium
   schedule_hint: daily
 volumes:
-  - name: resilio_config
-    role: config
-    critical: true
-  - name: /mnt/unraid/media/downloads/resilio
-    role: media
-    critical: false
-  - name: resilio_sync
-    role: media
-    critical: false
+- name: resilio_config
+  role: config
+  critical: true
+- name: /mnt/unraid/media/downloads/resilio
+  role: media
+  critical: false
+- name: resilio_sync
+  role: media
+  critical: false
 auth:
   mode: app_local
   sso_provider: null
@@ -59,3 +59,8 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

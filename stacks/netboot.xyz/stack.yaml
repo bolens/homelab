@@ -34,12 +34,12 @@ backup:
   priority: low
   schedule_hint: manual
 volumes:
-  - name: netbootxyz_config
-    role: config
-    critical: true
-  - name: netbootxyz_assets
-    role: media
-    critical: false
+- name: netbootxyz_config
+  role: config
+  critical: true
+- name: netbootxyz_assets
+  role: media
+  critical: false
 auth:
   mode: app_local
   sso_provider: null
@@ -56,3 +56,8 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []

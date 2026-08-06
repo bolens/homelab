@@ -1,8 +1,8 @@
 name: postiz
 default_port: 5000
 databases:
-  - postgresql
-  - redis
+- postgresql
+- redis
 health:
   endpoint: /
   internal_only: false
@@ -36,21 +36,21 @@ backup:
   priority: high
   schedule_hint: daily
 volumes:
-  - name: postiz_config
-    role: config
-    critical: true
-  - name: postiz_postgres
-    role: database
-    critical: true
-  - name: postiz_redis
-    role: database
-    critical: false
-  - name: postiz_temporal_postgres
-    role: database
-    critical: true
-  - name: postiz_uploads
-    role: media
-    critical: true
+- name: postiz_config
+  role: config
+  critical: true
+- name: postiz_postgres
+  role: database
+  critical: true
+- name: postiz_redis
+  role: database
+  critical: false
+- name: postiz_temporal_postgres
+  role: database
+  critical: true
+- name: postiz_uploads
+  role: media
+  critical: true
 auth:
   mode: app_local
   sso_provider: null
@@ -67,3 +67,8 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: ''
+runtime_security:
+  privileged_services: []
+  host_network_services: []
+  docker_socket_services: []
+  floating_image_services: []
