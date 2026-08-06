@@ -13,7 +13,8 @@ Send personal data deletion request emails to hundreds of data brokers at once. 
    - Copy `stack.env.example` to `stack.env`.
    - Set `SECRET_KEY_BASE`: `openssl rand -hex 64`
 
-2. **Deploy:** `docker compose --env-file stack.env up -d` (first run builds from GitHub and may take a few minutes).  
+2. **Deploy:** `docker compose --env-file stack.env up -d` (first run builds
+   the pinned upstream revision from GitHub and may take a few minutes).
    Or add the stack in Portainer and set `SECRET_KEY_BASE` in the stack Environment.
 
 3. **Access:** Open via Caddy (e.g. https://naisho.home or https://naisho.yourdomain.com).  

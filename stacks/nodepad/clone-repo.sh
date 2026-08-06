@@ -4,6 +4,7 @@ set -euo pipefail
 # After update, applies numbered patches from ./patches/*.patch (homelab overlays).
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
+UPSTREAM_REVISION=5a6bad286c7cd2d57ccc5a1011991f8795f5dc80
 
 apply_patches() {
   shopt -s nullglob
@@ -25,9 +26,12 @@ if [ -d "repo/.git" ]; then
   # Reset tracked files; remove untracked patch outputs but keep ignored build deps (node_modules, .next).
   git -C repo checkout -- .
   git -C repo clean -fd --exclude=node_modules --exclude=.next
-  git -C repo pull --rebase
+  git -C repo fetch --depth 1 origin "$UPSTREAM_REVISION"
 else
-  git clone --depth 1 https://github.com/mskayyali/nodepad.git repo
+  git init repo
+  git -C repo remote add origin https://github.com/mskayyali/nodepad.git
+  git -C repo fetch --depth 1 origin "$UPSTREAM_REVISION"
 fi
+git -C repo checkout --detach "$UPSTREAM_REVISION"
 
 apply_patches

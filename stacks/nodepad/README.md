@@ -7,10 +7,16 @@ Spatial, AI-augmented thinking canvas ([nodepad](https://github.com/mskayyali/no
 
 ## Homelab patches (`patches/*.patch`)
 
-Upstream sources live in `./repo` (gitignored). **`clone-repo.sh`** clones or pulls [mskayyali/nodepad](https://github.com/mskayyali/nodepad), resets the tree to a clean upstream checkout, then applies **`patches/*.patch` in sorted order** so overlays survive upstream updates.
+Upstream sources live in `./repo` (gitignored). **`clone-repo.sh`** fetches
+the pinned [mskayyali/nodepad](https://github.com/mskayyali/nodepad) revision,
+resets the tree to that clean checkout, then applies **`patches/*.patch` in
+sorted order** so overlays survive deliberate upstream updates.
 
 - **`docker compose build`** copies `./repo` as-is; it must already be patched. Run **`./clone-repo.sh` before every build** (or after editing patches) so `repo/` matches upstream + `patches/*.patch`. Patches are not re-applied inside the Dockerfile (that would double-apply when `repo/` is already patched).
-- If a patch **fails** after `git pull`, upstream changed overlapping lines. Refresh the affected patch(es): apply `0001…000N-1` in order, commit a baseline (`git commit -am baseline`), make edits, then `git diff HEAD~1 HEAD --no-color > ../patches/000N-….patch`, and `git reset --hard origin/main` when done.
+- If a patch **fails** after updating `UPSTREAM_REVISION` in `clone-repo.sh`,
+  upstream changed overlapping lines. Refresh the affected patch(es): apply
+  `0001…000N-1` in order, commit a baseline (`git commit -am baseline`), make
+  edits, then save the resulting patch and restore the pinned checkout.
 - **`./verify-patches.sh`** — runs `clone-repo.sh` then `npm ci` + `npm run build` in `./repo` (optional CI check).
 
 Current patches (apply in lexical order; do not rename):
