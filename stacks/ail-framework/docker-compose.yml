@@ -2,11 +2,11 @@
 # No host ports: access via Caddy (reverse proxy to ail:7000). UI uses HTTPS with self-signed cert; Caddy uses tls_insecure_skip_verify.
 # Docs: https://github.com/ail-project/ail-framework | https://www.ail-project.org/
 #
-# Default image is the smaller CPU-only AIL 6.7 release (see README).
-# For 6.x + Lacus + Tor (MatthisClavijo image), same compose; container also listens on 7100 (Lacus) and 9050 (Tor SOCKS). Caddy can proxy to ail:7100; other services use socks5://ail:9050.
+# Default image is the smaller CPU-only AIL 7.0 release (see README).
+# For AIL + Lacus + Tor images, the same compose applies; the container also listens on 7100 (Lacus) and 9050 (Tor SOCKS). Caddy can proxy to ail:7100; other services use socks5://ail:9050.
 services:
   ail:
-    image: ${AIL_IMAGE:-ail-framework:6.7}
+    image: ${AIL_IMAGE:-ail-framework:7.0}
     container_name: ail-framework
     restart: unless-stopped
     labels:

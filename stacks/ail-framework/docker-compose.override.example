@@ -1,13 +1,13 @@
-# Use this override when running an AIL 6.x image built from the official repo.
+# Use this override when running an AIL 7.x image built from the official repo.
 # Official images use AIL_HOME=/opt/AIL (not /opt/ail-framework). Copy to docker-compose.override.yml
-# and build the image first (see README "Using AIL 6.x").
+# and build the image first (see README "Using AIL 7.x").
 #
 # cp docker-compose.override.example docker-compose.override.yml
-# Then build: see README (v6.7). Then docker compose --env-file stack.env up -d
+# Then build: see README (v7.0). Then docker compose --env-file stack.env up -d
 
 services:
   ail:
-    image: ${AIL_IMAGE:-ail-framework:6.7}
+    image: ${AIL_IMAGE:-ail-framework:7.0}
     volumes:
       - ail-pastes:/opt/AIL/PASTES
       - ail-screenshots:/opt/AIL/CRAWLED_SCREENSHOT

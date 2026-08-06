@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG BASE_IMAGE=ail-framework:6.7-cpu-build
+ARG BASE_IMAGE=ail-framework:7.0-cpu-build
 FROM ${BASE_IMAGE}
 
 # Redis 5 bundled by AIL does not implement RESP3's HELLO command.
@@ -12,4 +12,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && rm /tmp/requirements-runtime.txt \
     && sed -i 's/^host = 127[.]0[.]0[.]1$/host = 0.0.0.0/' \
         /opt/AIL/configs/core.cfg \
-        /opt/AIL/configs/core.cfg.sample
+        /opt/AIL/configs/core.cfg.sample \
+    # Release images are immutable and intentionally omit Git at runtime.
+    && sed -i '/^    update;$/d' /opt/AIL/bin/LAUNCH.sh

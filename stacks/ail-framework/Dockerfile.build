@@ -83,7 +83,8 @@ COPY ail-framework-docker/ail-framework/other_installers/docker/docker_start.sh 
 # compilers, headers, package tests, sources, docs, and transient caches.
     RUN apt-mark manual \
         file graphviz libadns1 libev4 libfuzzy2 libgmp10 libmagic-mgc \
-        libmagic1 libsnappy1v5 libssl3 libzbar0 p7zip-full screen sudo wget \
+        libmagic1 libprotobuf23 libsnappy1v5 libssl3 libzbar0 p7zip-full \
+        screen sudo wget \
     && strip --strip-unneeded /opt/AIL/kvrocks/build/kvrocks \
     && find /opt/AIL/kvrocks/build -mindepth 1 -maxdepth 1 \
         ! -name kvrocks -exec rm -rf {} + \
