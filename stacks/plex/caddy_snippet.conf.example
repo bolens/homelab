@@ -1,4 +1,7 @@
-# Plex — split-horizon + public TLS: plex.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Plex browser UI. Native Plex clients should use direct TCP Remote Access on
+# port 32400 (or the configured public port), not this reverse-proxy route.
+# Public TLS below uses DNS-01; CLOUDFLARE_API_TOKEN belongs in the Caddy stack's
+# ignored runtime environment, never in this file.
 
 plex.home, plex.local {
 	tls internal

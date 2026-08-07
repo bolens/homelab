@@ -25,7 +25,7 @@ data_profile:
 host_requirements:
   needs_gpu: true
   needs_privileged: false
-  uses_host_network: false
+  uses_host_network: true
 links:
   homepage: https://www.plex.tv/
   docs: https://support.plex.tv/
@@ -58,6 +58,7 @@ lifecycle:
   notes: ''
 runtime_security:
   privileged_services: []
-  host_network_services: []
+  host_network_services:
+  - plex
   docker_socket_services: []
   floating_image_services: []

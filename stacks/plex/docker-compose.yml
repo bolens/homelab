@@ -14,6 +14,9 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-America/Denver}
+    # Plex needs the host's LAN interface for correct discovery and Remote
+    # Access advertisement. Bridge mode makes Plex publish a container-only IP.
+    network_mode: host
     volumes:
       - plex_config:/config
       - plex_transcode:/transcode
@@ -21,13 +24,6 @@ services:
       - "${PLEX_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
       - "${PLEX_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
       - "${PLEX_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"
-    # Plex native Remote Access requires a direct TCP path. Keep the web UI
-    # available through Caddy, but do not relay media through Cloudflare.
-    ports:
-      - "${PLEX_REMOTE_PORT:-32400}:32400/tcp"
-    networks:
-      - media-services
-      - ingress-public
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:32400/identity"]
       interval: 60s
@@ -41,6 +37,32 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  plex-network-proxy:
+    image: caddy:2.11.4-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    container_name: plex-network-proxy
+    restart: unless-stopped
+    command: ["caddy", "reverse-proxy", "--from", ":32400", "--to", "host.docker.internal:32400"]
+    cpus: 0.25
+    mem_limit: 128m
+    memswap_limit: 192m
+    pids_limit: 128
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      ingress-public:
+        aliases: [plex]
+      media-services:
+        aliases: [plex]
+    depends_on:
+      plex:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:32400/identity"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   media-services:
