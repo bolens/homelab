@@ -9,7 +9,7 @@ name: onionprobe
 
 services:
   op-prometheus:
-    image: quay.io/prometheus/prometheus:v3.13.1
+    image: quay.io/prometheus/prometheus:v3.13.2
     container_name: onionprobe-prometheus
     restart: unless-stopped
     env_file:
@@ -69,7 +69,7 @@ services:
       - onionprobe
 
   op-grafana:
-    image: grafana/grafana:13.1.1
+    image: grafana/grafana:13.1.2
     container_name: onionprobe-grafana
     restart: unless-stopped
     env_file:

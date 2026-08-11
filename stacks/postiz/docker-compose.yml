@@ -84,7 +84,7 @@ services:
     logging: *logging
 
   postiz-redis:
-    image: redis:8.8-alpine
+    image: redis:8.10-alpine
     container_name: postiz-redis
     restart: unless-stopped
     cpus: 1.0
