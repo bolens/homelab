@@ -26,10 +26,10 @@ discovery.relabel "docker_logs" {
 		action        = "drop"
 	}
 
-	// Opt-in/allow control: blank (default) or "true|on|enabled|1" is allowed.
+	// Explicit opt-in: unlabeled containers are not collected.
 	rule {
 		source_labels = ["__meta_docker_container_label_logging"]
-		regex         = "^(|true|on|enabled|1)$"
+		regex         = "^(true|on|enabled|1)$"
 		action        = "keep"
 	}
 

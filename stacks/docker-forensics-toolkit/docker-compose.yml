@@ -6,6 +6,8 @@ name: docker-forensics-toolkit
 
 services:
   docker-forensics-toolkit:
+    labels:
+      logging: "true"
     build:
       context: .
       args:

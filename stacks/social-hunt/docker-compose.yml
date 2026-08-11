@@ -3,6 +3,8 @@
 # Docs: https://github.com/AfterPacket/Social-Hunt | https://socialhunt.org
 services:
   social-hunt:
+    labels:
+      logging: "true"
     image: harbor.bolens.dev/homelab/social-hunt:latest@sha256:0fab1ba5fe403898070e86233753f8f3bc4e746a214063ecb4a362e78f4d626f
     container_name: social-hunt
     restart: unless-stopped
@@ -36,6 +38,8 @@ services:
       start_period: 45s
 
   social-hunt-proxy:
+    labels:
+      logging: "true"
     image: ajoergensen/tinyproxy:latest@sha256:ab5be3120573a3bb6b1d238b6f43940a587cbbc3ea83c3d18f0900e60461a5c4
     container_name: social-hunt-proxy
     restart: unless-stopped
@@ -58,6 +62,8 @@ services:
       start_period: 10s
 
   social-hunt-tor:
+    labels:
+      logging: "true"
     image: peterdavehello/tor-socks-proxy:latest@sha256:0cc12d36d31265ce828c8422a7e163a0bf46755e90531f4c7d38a6149f071729
     container_name: social-hunt-tor
     restart: unless-stopped

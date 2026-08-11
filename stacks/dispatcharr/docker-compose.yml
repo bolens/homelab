@@ -1,5 +1,7 @@
 services:
   dispatcharr:
+    labels:
+      logging: "true"
     image: ghcr.io/dispatcharr/dispatcharr:latest@sha256:3eb0ec779f3437ec64c08a9b3f545a355a8f512f3740cdeaac42b80f1021637d
     container_name: dispatcharr
     restart: unless-stopped

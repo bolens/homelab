@@ -1,5 +1,7 @@
 services:
   postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: joplin-postgres
     restart: unless-stopped
@@ -24,6 +26,8 @@ services:
       retries: 10
 
   joplin-server:
+    labels:
+      logging: "true"
     image: joplin/server:latest@sha256:0877bfba41a943017c42c58e90db9d8d548bfe699b5e410248b5b879371734f9
     container_name: joplin-server
     restart: unless-stopped

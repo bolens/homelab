@@ -3,6 +3,8 @@
 # Requires MariaDB; set APP_URL to your Caddy hostname.
 services:
   mariadb:
+    labels:
+      logging: "true"
     image: lscr.io/linuxserver/mariadb:latest@sha256:2497453facccec79cd5e3bb3c1bd304a9def22af2f48a8d6b2fc8377904ce2d5
     container_name: bookstack-mariadb
     restart: unless-stopped
@@ -25,6 +27,8 @@ services:
       start_period: 30s
 
   bookstack:
+    labels:
+      logging: "true"
     image: lscr.io/linuxserver/bookstack:latest@sha256:7f0af07baa41fd6265f5ec57887564d85be03a326f79cb32f926fe735e5313ff
     container_name: bookstack
     restart: unless-stopped

@@ -6,6 +6,8 @@ name: metagoofil
 
 services:
   metagoofil:
+    labels:
+      logging: "true"
     build:
       context: .
       args:

@@ -1,5 +1,7 @@
 services:
   ntopng:
+    labels:
+      logging: "true"
     image: ntop/ntopng:latest@sha256:4f3e78ae42559bbc3972bb7cd08aecf1bcd9118085cbf2bda79805e99b907ddd
     container_name: ntopng
     restart: unless-stopped

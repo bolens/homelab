@@ -1,5 +1,7 @@
 services:
   postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: hedgedoc-postgres
     restart: unless-stopped
@@ -19,6 +21,8 @@ services:
       retries: 10
 
   hedgedoc:
+    labels:
+      logging: "true"
     image: quay.io/hedgedoc/hedgedoc:1.11.1
     container_name: hedgedoc
     restart: unless-stopped

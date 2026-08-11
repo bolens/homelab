@@ -1,5 +1,7 @@
 services:
   scrutiny:
+    labels:
+      logging: "true"
     image: ghcr.io/analogj/scrutiny:master-omnibus
     container_name: scrutiny
     restart: unless-stopped

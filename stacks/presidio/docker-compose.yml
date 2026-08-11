@@ -1,5 +1,7 @@
 services:
   presidio-analyzer:
+    labels:
+      logging: "true"
     image: mcr.microsoft.com/presidio-analyzer:latest@sha256:286e3fa7f3a7426e775e8564fe1870f1ba8f999d3ab8bbb8cc46a44355d9d6e9
     container_name: presidio-analyzer
     restart: unless-stopped
@@ -27,6 +29,8 @@ services:
       - ingress-admin
 
   presidio-anonymizer:
+    labels:
+      logging: "true"
     image: mcr.microsoft.com/presidio-anonymizer:latest@sha256:a10a12a2a613d13cf29d3ad3641e3258444dd8c90403dd644a0a114c472c2483
     container_name: presidio-anonymizer
     restart: unless-stopped
@@ -54,6 +58,8 @@ services:
       - ingress-admin
 
   presidio-image-redactor:
+    labels:
+      logging: "true"
     image: mcr.microsoft.com/presidio-image-redactor:latest@sha256:e49fd47bfc38d834f0856063b9f00cfb3c19866e8d61b061849baf6275139612
     container_name: presidio-image-redactor
     restart: unless-stopped

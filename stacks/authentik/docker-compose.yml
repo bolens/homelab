@@ -1,5 +1,7 @@
 services:
   postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: authentik-postgres
     restart: unless-stopped
@@ -24,6 +26,8 @@ services:
       retries: 10
 
   redis:
+    labels:
+      logging: "true"
     image: redis:alpine
     container_name: authentik-redis
     restart: unless-stopped
@@ -37,6 +41,8 @@ services:
       - authentik
 
   server:
+    labels:
+      logging: "true"
     image: ghcr.io/goauthentik/server:latest@sha256:36233579415aa2e2e52a6b0c45736cb871fe71460bfe0cf95d83f67528fb1182
     container_name: authentik-server
     restart: unless-stopped
@@ -67,6 +73,8 @@ services:
       - mail-clients
 
   worker:
+    labels:
+      logging: "true"
     image: ghcr.io/goauthentik/server:latest@sha256:36233579415aa2e2e52a6b0c45736cb871fe71460bfe0cf95d83f67528fb1182
     container_name: authentik-worker
     restart: unless-stopped

@@ -1,5 +1,7 @@
 services:
   infisical:
+    labels:
+      logging: "true"
     image: infisical/infisical:latest@sha256:344a56c4063bdc7366eca0fe6651f5b783c41db193e98af685482669be97e98f
     container_name: infisical
     restart: unless-stopped
@@ -22,6 +24,8 @@ services:
       - mail-clients
 
   redis:
+    labels:
+      logging: "true"
     image: redis:alpine
     container_name: infisical-redis
     restart: unless-stopped
@@ -43,6 +47,8 @@ services:
       - infisical_redis_data:/data
 
   db:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: infisical-db
     restart: unless-stopped

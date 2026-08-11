@@ -1,5 +1,7 @@
 services:
   responder-mitm6:
+    labels:
+      logging: "true"
     build:
       context: .
     image: homelab/responder-mitm6:local

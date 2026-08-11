@@ -1,5 +1,7 @@
 services:
   postiz:
+    labels:
+      logging: "true"
     image: ghcr.io/gitroomhq/postiz-app:latest@sha256:785f97312f66a347fb96cdccc4ded5a33ced69a672c89a9adc8054e7d6a21dc5
     container_name: postiz
     restart: unless-stopped
@@ -59,6 +61,8 @@ services:
         max-file: "3"
 
   postiz-postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: postiz-postgres
     restart: unless-stopped
@@ -84,6 +88,8 @@ services:
     logging: *logging
 
   postiz-redis:
+    labels:
+      logging: "true"
     image: redis:8.8-alpine
     container_name: postiz-redis
     restart: unless-stopped
@@ -105,6 +111,8 @@ services:
     logging: *logging
 
   temporal-postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: postiz-temporal-postgres
     restart: unless-stopped
@@ -130,6 +138,8 @@ services:
     logging: *logging
 
   temporal:
+    labels:
+      logging: "true"
     image: temporalio/auto-setup:1.29.3
     container_name: postiz-temporal
     restart: unless-stopped

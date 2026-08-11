@@ -1,5 +1,7 @@
 services:
   databasus:
+    labels:
+      logging: "true"
     image: databasus/databasus:latest@sha256:7fcac1ccca59fb8bc4e213a00bedde54b4cc323e636f00c573232a9d8a8b216a
     container_name: databasus
     restart: unless-stopped

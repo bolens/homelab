@@ -2,6 +2,8 @@ name: theharvester
 
 services:
   theharvester:
+    labels:
+      logging: "true"
     image: secsi/restfulharvest:latest@sha256:9ffadcb9dabdb802122b3f2b8f627b256bba3dd1dbe04247959a71357f801d04
     container_name: theharvester
     restart: unless-stopped

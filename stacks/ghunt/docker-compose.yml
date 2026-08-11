@@ -4,6 +4,8 @@ name: ghunt
 
 services:
   ghunt:
+    labels:
+      logging: "true"
     image: ${GHUNT_IMAGE:-harbor.yourdomain.com/homelab/ghunt:latest}
     container_name: ghunt
     restart: "no"

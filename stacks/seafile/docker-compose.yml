@@ -1,5 +1,7 @@
 services:
   db:
+    labels:
+      logging: "true"
     image: mariadb:12.3
     container_name: seafile-mariadb
     restart: unless-stopped
@@ -21,6 +23,8 @@ services:
       start_period: 30s
 
   memcached:
+    labels:
+      logging: "true"
     image: memcached:alpine
     container_name: seafile-memcached
     restart: unless-stopped
@@ -28,6 +32,8 @@ services:
       - default
 
   seafile:
+    labels:
+      logging: "true"
     image: seafileltd/seafile-mc:13.0-latest
     container_name: seafile
     restart: unless-stopped

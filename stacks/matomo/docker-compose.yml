@@ -2,6 +2,8 @@ name: matomo
 
 services:
   matomo-db:
+    labels:
+      logging: "true"
     image: mariadb:12
     container_name: matomo-db
     restart: unless-stopped
@@ -30,6 +32,8 @@ services:
       start_period: 30s
 
   matomo:
+    labels:
+      logging: "true"
     image: matomo:latest@sha256:85d27206a4acdd43259909aa00cab1913dec88cfba53e1ce66a51e6caa430a55
     container_name: matomo
     restart: unless-stopped

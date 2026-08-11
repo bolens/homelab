@@ -1,5 +1,7 @@
 services:
   uptime-kuma-docker-socket-proxy:
+    labels:
+      logging: "false"
     image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
     container_name: uptime-kuma-docker-socket-proxy
     restart: unless-stopped
@@ -29,6 +31,8 @@ services:
       start_period: 10s
 
   uptime-kuma:
+    labels:
+      logging: "false"
     image: louislam/uptime-kuma:2
     container_name: uptime-kuma
     restart: unless-stopped

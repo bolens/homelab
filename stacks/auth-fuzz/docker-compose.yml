@@ -1,5 +1,7 @@
 services:
   auth-fuzz:
+    labels:
+      logging: "true"
     build:
       context: .
     image: homelab/auth-fuzz:local

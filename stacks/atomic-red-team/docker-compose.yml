@@ -1,5 +1,7 @@
 services:
   atomic-red-team:
+    labels:
+      logging: "true"
     build:
       context: .
       args:

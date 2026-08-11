@@ -2,6 +2,8 @@
 # Portainer-friendly: named volumes, private backend network, and proxy-only ingress.
 services:
   broker:
+    labels:
+      logging: "true"
     image: docker.io/library/redis:8
     container_name: paperless-ngx-redis
     restart: unless-stopped
@@ -11,6 +13,8 @@ services:
       - default
 
   db:
+    labels:
+      logging: "true"
     image: docker.io/library/postgres:18
     container_name: paperless-ngx-db
     restart: unless-stopped
@@ -28,6 +32,8 @@ services:
       start_period: 15s
 
   webserver:
+    labels:
+      logging: "true"
     image: ghcr.io/paperless-ngx/paperless-ngx:latest@sha256:65a4cabf0169ea7fbd90ab7bb28ba3f8b5909613635acda1a03ad606f34b456b
     container_name: paperless-ngx
     restart: unless-stopped

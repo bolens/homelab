@@ -1,5 +1,7 @@
 services:
   gitlab:
+    labels:
+      logging: "true"
     image: gitlab/gitlab-ce:latest@sha256:2777b4a990a05a40947437d3c8e0e03347974d8998663d266064cebaff00ba87
     container_name: gitlab
     hostname: "${GITLAB_HOSTNAME:-gitlab.yourdomain.com}"

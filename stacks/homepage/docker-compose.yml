@@ -3,6 +3,8 @@
 # Edit www/index.html to change content; optional stack.env for TZ.
 services:
   homepage:
+    labels:
+      logging: "true"
     image: nginx:alpine
     container_name: homepage
     restart: unless-stopped

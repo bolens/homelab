@@ -1,5 +1,7 @@
 services:
   caddy:
+    labels:
+      logging: "true"
     build:
       context: .
       dockerfile: Dockerfile

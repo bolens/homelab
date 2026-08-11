@@ -13,6 +13,8 @@ name: stoat
 services:
   # MongoDB: database
   database:
+    labels:
+      logging: "true"
     image: docker.io/mongo
     container_name: stoat-database
     restart: unless-stopped
@@ -34,6 +36,8 @@ services:
 
   # Valkey: maintained Redis-compatible KV and message broker
   redis:
+    labels:
+      logging: "true"
     image: docker.io/valkey/valkey:9-alpine
     container_name: stoat-redis
     restart: unless-stopped
@@ -53,6 +57,8 @@ services:
 
   # RabbitMQ: internal message broker
   rabbit:
+    labels:
+      logging: "true"
     image: docker.io/rabbitmq:4
     container_name: stoat-rabbit
     restart: unless-stopped
@@ -77,6 +83,8 @@ services:
 
   # MinIO: S3-compatible storage (attachments, avatars, etc.)
   minio:
+    labels:
+      logging: "true"
     image: docker.io/minio/minio
     container_name: stoat-minio
     restart: unless-stopped
@@ -113,6 +121,8 @@ services:
   # Stoat Caddy: internal web router (API, websockets, media, livekit).
   # No host ports; main Caddy reverse-proxies to this on `ingress-public`.
   stoat-caddy:
+    labels:
+      logging: "true"
     image: docker.io/caddy
     container_name: stoat-caddy
     restart: unless-stopped
@@ -139,6 +149,8 @@ services:
 
   # API server
   api:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/api:v0.14.3
     container_name: stoat-api
     restart: unless-stopped
@@ -165,6 +177,8 @@ services:
 
   # Events service (websocket)
   events:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/events:v0.14.3
     container_name: stoat-events
     restart: unless-stopped
@@ -189,6 +203,8 @@ services:
 
   # File server (Autumn)
   autumn:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/file-server:v0.14.3
     container_name: stoat-autumn
     restart: unless-stopped
@@ -213,6 +229,8 @@ services:
 
   # Metadata and image proxy (January)
   january:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/proxy:v0.14.3
     container_name: stoat-january
     restart: unless-stopped
@@ -232,6 +250,8 @@ services:
 
   # Tenor proxy
   gifbox:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/gifbox:v0.14.3
     container_name: stoat-gifbox
     restart: unless-stopped
@@ -251,6 +271,8 @@ services:
 
   # Regular task daemon
   crond:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/crond:v0.14.3
     container_name: stoat-crond
     restart: unless-stopped
@@ -275,6 +297,8 @@ services:
 
   # Push notification daemon
   pushd:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/pushd:v0.14.3
     container_name: stoat-pushd
     restart: unless-stopped
@@ -301,6 +325,8 @@ services:
 
   # Voice ingress daemon
   voice-ingress:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/voice-ingress:v0.14.3
     container_name: stoat-voice-ingress
     restart: unless-stopped
@@ -328,6 +354,8 @@ services:
   # Voice may require exposing those ports or additional tunnelling; see README.
   # Config is sourced from STOAT_CONFIG_DIR on the host (read-only).
   livekit:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/livekit-server:v1.9.13
     container_name: stoat-livekit
     restart: unless-stopped
@@ -350,6 +378,8 @@ services:
 
   # MinIO client: create buckets
   createbuckets:
+    labels:
+      logging: "true"
     image: docker.io/minio/mc
     container_name: stoat-createbuckets
     cpus: 0.5
@@ -375,6 +405,8 @@ services:
 
   # Web App (frontend)
   web:
+    labels:
+      logging: "true"
     image: ghcr.io/stoatchat/for-web:addb6b7
     container_name: stoat-web
     restart: unless-stopped

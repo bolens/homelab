@@ -10,6 +10,8 @@ name: onionscan
 
 services:
   onionscan:
+    labels:
+      logging: "true"
     image: ${ONIONSCAN_IMAGE:-mpatton/onionscan:latest}
     container_name: onionscan
     restart: unless-stopped

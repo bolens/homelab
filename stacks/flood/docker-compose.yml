@@ -1,6 +1,8 @@
 services:
   # Init container: fix volume ownership so rTorrent (uid 1001) can write.
   rtorrent-init:
+    labels:
+      logging: "true"
     image: alpine:latest@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
     container_name: rtorrent-init
     restart: "no"
@@ -14,6 +16,8 @@ services:
       - torrents_manual:/downloads
 
   rtorrent:
+    labels:
+      logging: "true"
     build:
       context: .
       dockerfile: Dockerfile.rtorrent
@@ -50,6 +54,8 @@ services:
       - "49160:49160/udp"
 
   flood:
+    labels:
+      logging: "true"
     # :master is the upstream *dev* image (Node 24) and currently crashes on
     # createRequire(undefined). Use release tag for production.
     image: jesec/flood:latest@sha256:2e18f1fa2578082da70f8917bb733b1ee6593aaf9a79ded91f2890d82daca3c1

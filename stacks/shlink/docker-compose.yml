@@ -4,6 +4,8 @@
 # Hostname: short.yourdomain.com (set DEFAULT_DOMAIN to match; Caddy block in Caddyfile.example).
 services:
   shlink:
+    labels:
+      logging: "true"
     image: ${SHLINK_IMAGE:-shlinkio/shlink:stable}
     container_name: shlink
     restart: unless-stopped

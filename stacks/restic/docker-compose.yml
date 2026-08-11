@@ -1,5 +1,7 @@
 services:
   restic:
+    labels:
+      logging: "true"
     image: mazzolino/restic:latest@sha256:84a18b739c15216b07dcb9e14985437d49b7a3a68ef8ce48c1323b9f59bf794e
     container_name: restic
     restart: unless-stopped

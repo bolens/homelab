@@ -1,5 +1,7 @@
 services:
   syncthing:
+    labels:
+      logging: "true"
     image: syncthing/syncthing:latest@sha256:8c8ff37ab6aa8be23b700648a90fa9412e214852e9fd6ea8477c8334792daec0
     container_name: syncthing
     restart: unless-stopped

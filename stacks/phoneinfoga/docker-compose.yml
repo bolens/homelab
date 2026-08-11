@@ -2,6 +2,8 @@ name: phoneinfoga
 
 services:
   phoneinfoga:
+    labels:
+      logging: "true"
     image: sundowndev/phoneinfoga:v2.11.0
     container_name: phoneinfoga
     restart: unless-stopped

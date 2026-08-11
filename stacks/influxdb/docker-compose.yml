@@ -1,5 +1,7 @@
 services:
   influxdb:
+    labels:
+      logging: "true"
     image: influxdb:2.9
     container_name: influxdb
     restart: unless-stopped

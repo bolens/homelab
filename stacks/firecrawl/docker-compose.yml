@@ -14,6 +14,8 @@ x-common-env: &common-env
 
 services:
   playwright-service:
+    labels:
+      logging: "true"
     container_name: firecrawl-playwright
     image: ghcr.io/firecrawl/playwright-service:latest@sha256:468009bae00911d40d7120d58489a1d529362c22c45585cb9076094fe61b0025
     environment:
@@ -27,6 +29,8 @@ services:
       - default
 
   api:
+    labels:
+      logging: "true"
     container_name: firecrawl-api
     image: ghcr.io/mendableai/firecrawl:latest@sha256:bc86b1f7c68a7ec89dcecdf9f288d3df78152aae029e66a8244a5613807a397f
     <<: *common-env
@@ -48,6 +52,8 @@ services:
       - ingress-public
 
   worker:
+    labels:
+      logging: "true"
     container_name: firecrawl-worker
     image: ghcr.io/mendableai/firecrawl:latest@sha256:bc86b1f7c68a7ec89dcecdf9f288d3df78152aae029e66a8244a5613807a397f
     <<: *common-env
@@ -65,6 +71,8 @@ services:
       - default
 
   redis:
+    labels:
+      logging: "true"
     container_name: firecrawl-redis
     image: redis:alpine
     command: redis-server --bind 0.0.0.0

@@ -1,5 +1,7 @@
 services:
   pocketbase:
+    labels:
+      logging: "true"
     image: coollabsio/pocketbase:latest@sha256:e0b5a1326f17fdcfba3d5534763a9ca801e32a621f3144b6194082837d10eb52
     container_name: pocketbase
     restart: unless-stopped

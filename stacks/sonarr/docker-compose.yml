@@ -2,6 +2,8 @@
 #   docker compose --env-file stack.env up -d
 services:
   sonarr:
+    labels:
+      logging: "true"
     image: lscr.io/linuxserver/sonarr:latest@sha256:24acea2956a0ccb11f103877d9f4f8576600fb34bff34820ed749c2256dab89f
     container_name: sonarr
     restart: unless-stopped

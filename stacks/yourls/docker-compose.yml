@@ -3,6 +3,8 @@
 # Config dir: vhost.conf and proxy-https-fix.php (default: ~/.config/yourls). Set YOURLS_CONFIG_DIR in stack.env.
 services:
   yourls:
+    labels:
+      logging: "true"
     image: ${YOURLS_IMAGE:-yourls:1.10.3-apache}
     container_name: yourls
     restart: unless-stopped
@@ -36,6 +38,8 @@ services:
       start_period: 20s
 
   yourls-db:
+    labels:
+      logging: "true"
     image: mariadb:12
     container_name: yourls-db
     restart: unless-stopped

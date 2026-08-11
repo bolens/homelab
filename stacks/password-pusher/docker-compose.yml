@@ -3,6 +3,8 @@
 # Docs: https://docs.pwpush.com/docs/installation/
 services:
   pwpush:
+    labels:
+      logging: "true"
     image: pglombardo/pwpush:stable
     container_name: pwpush
     restart: unless-stopped

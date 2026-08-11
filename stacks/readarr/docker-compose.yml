@@ -2,6 +2,8 @@
 #   docker compose --env-file stack.env up -d
 services:
   readarr:
+    labels:
+      logging: "true"
     # Hardcover metadata is incompatible with existing Readarr databases.
     image: ghcr.io/pennydreadful/bookshelf:hardcover-v0.4.20.129
     container_name: readarr
@@ -34,6 +36,8 @@ services:
       start_period: 30s
 
   rreading-glasses:
+    labels:
+      logging: "true"
     image: readarr-rreading-glasses:hardcover-compatible
     build:
       context: .
@@ -58,6 +62,8 @@ services:
       - media-automation
 
   rreading-glasses-db:
+    labels:
+      logging: "true"
     image: postgres:17
     container_name: rreading-glasses-db
     restart: unless-stopped

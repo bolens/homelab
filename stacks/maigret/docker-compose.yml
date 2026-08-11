@@ -3,6 +3,8 @@
 # Docs: https://github.com/soxoj/maigret  |  Web: maigret --web 5000
 services:
   maigret:
+    labels:
+      logging: "true"
     image: soxoj/maigret:latest@sha256:315521221c09b34eccc9f8baaf6f801ae2a839f807baf9ec7a0420d13412abcb
     container_name: maigret
     restart: unless-stopped

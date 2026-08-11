@@ -11,6 +11,8 @@ name: simplelogin
 
 services:
   simplelogin:
+    labels:
+      logging: "true"
     # Current upstream source build; Docker Hub's :latest has not moved since 2020.
     image: ${SIMPLELOGIN_IMAGE:-simplelogin/app:dbc45fc}
     container_name: simplelogin
@@ -57,6 +59,8 @@ services:
       - mail-clients
 
   simplelogin-email:
+    labels:
+      logging: "true"
     image: ${SIMPLELOGIN_IMAGE:-simplelogin/app:dbc45fc}
     container_name: simplelogin-email
     restart: unless-stopped
@@ -94,6 +98,8 @@ services:
       - mail-clients
 
   simplelogin-job-runner:
+    labels:
+      logging: "true"
     image: ${SIMPLELOGIN_IMAGE:-simplelogin/app:dbc45fc}
     container_name: simplelogin-job-runner
     restart: unless-stopped
@@ -127,6 +133,8 @@ services:
       - mail-clients
 
   db:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: simplelogin-db
     restart: unless-stopped

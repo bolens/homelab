@@ -3,6 +3,8 @@
 
 services:
   lanraragi:
+    labels:
+      logging: "true"
     image: difegue/lanraragi:latest@sha256:6376a3de75c8a4045aadeb252eee9661ee9baf27965cec7a405a2b246d2937b3
     container_name: lanraragi
     restart: unless-stopped

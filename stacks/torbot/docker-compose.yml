@@ -7,6 +7,8 @@ name: torbot
 
 services:
   tor:
+    labels:
+      logging: "true"
     build:
       context: .
       dockerfile: Dockerfile.tor
@@ -23,6 +25,8 @@ services:
       start_period: 15s
 
   torbot:
+    labels:
+      logging: "true"
     build:
       context: .
       dockerfile: Dockerfile

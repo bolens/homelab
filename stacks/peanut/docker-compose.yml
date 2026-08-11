@@ -1,5 +1,7 @@
 services:
   peanut:
+    labels:
+      logging: "true"
     image: brandawg93/peanut:latest@sha256:6629dce915da8b313f08b2e73dd2e54b60e7c0f642c21a8ebc37fe0a820bf41e
     container_name: peanut
     restart: unless-stopped

@@ -4,6 +4,8 @@ name: blackbird
 
 services:
   blackbird:
+    labels:
+      logging: "true"
     build:
       context: .
       args:

@@ -6,6 +6,8 @@ name: linkwarden
 
 services:
   postgres:
+    labels:
+      logging: "true"
     container_name: linkwarden-postgres
     image: postgres:18-alpine
     env_file:
@@ -28,6 +30,8 @@ services:
       - internal
 
   meilisearch:
+    labels:
+      logging: "true"
     container_name: linkwarden-meilisearch
     image: getmeili/meilisearch:v1.51.0
     cpus: 2.0
@@ -46,6 +50,8 @@ services:
       - internal
 
   linkwarden:
+    labels:
+      logging: "true"
     container_name: linkwarden
     image: ghcr.io/linkwarden/linkwarden:latest@sha256:d805877fb707d160b809027c302f84cfba11a248d7fdc12de90b4791f98e6b55
     cpus: 2.0

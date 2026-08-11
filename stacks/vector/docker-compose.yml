@@ -1,5 +1,7 @@
 services:
   vector:
+    labels:
+      logging: "true"
     image: timberio/vector:latest-debian
     container_name: vector
     restart: unless-stopped

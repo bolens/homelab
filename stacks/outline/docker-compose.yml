@@ -1,5 +1,7 @@
 services:
   postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: outline-postgres
     restart: unless-stopped
@@ -25,6 +27,8 @@ services:
       retries: 10
 
   redis:
+    labels:
+      logging: "true"
     image: redis:alpine
     container_name: outline-redis
     restart: unless-stopped
@@ -43,6 +47,8 @@ services:
       start_period: 10s
 
   outline:
+    labels:
+      logging: "true"
     image: outlinewiki/outline:latest@sha256:32d76719c378931dd65d93945930ca380d8376a0337d98a991fcc12b266f33cf
     container_name: outline
     restart: unless-stopped

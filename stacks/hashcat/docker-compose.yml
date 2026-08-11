@@ -1,5 +1,7 @@
 services:
   hashcat:
+    labels:
+      logging: "true"
     build:
       context: .
     image: homelab/hashcat:local

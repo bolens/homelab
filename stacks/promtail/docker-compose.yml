@@ -3,6 +3,8 @@
 # Requires Loki on the telemetry network (e.g. stacks/loki) at http://loki:3100.
 services:
   promtail:
+    labels:
+      logging: "true"
     image: grafana/promtail:3.6.8
     container_name: promtail
     restart: unless-stopped

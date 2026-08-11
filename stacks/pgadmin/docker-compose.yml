@@ -1,5 +1,7 @@
 services:
   pgadmin:
+    labels:
+      logging: "true"
     image: dpage/pgadmin4:2026-07-29-2
     container_name: pgadmin
     restart: unless-stopped

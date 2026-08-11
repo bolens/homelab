@@ -1,5 +1,7 @@
 services:
   cowrie:
+    labels:
+      logging: "true"
     image: cowrie/cowrie:latest@sha256:3e4ce75576e4dffc3397ae3ad8dbb00afa00fe826b1531fea50d4fd9728326e1
     container_name: cowrie
     restart: unless-stopped

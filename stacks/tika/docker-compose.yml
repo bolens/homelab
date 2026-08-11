@@ -1,5 +1,7 @@
 services:
   tika:
+    labels:
+      logging: "true"
     image: apache/tika:latest-full
     container_name: tika
     restart: unless-stopped

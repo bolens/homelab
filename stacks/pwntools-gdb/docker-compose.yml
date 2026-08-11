@@ -1,5 +1,7 @@
 services:
   pwntools-gdb:
+    labels:
+      logging: "true"
     image: pwntools/pwntools:stable
     profiles: ["tools"]
     stdin_open: true

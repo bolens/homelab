@@ -6,6 +6,8 @@ name: vaultwarden
 
 services:
   vaultwarden:
+    labels:
+      logging: "true"
     container_name: vaultwarden
     image: docker.io/vaultwarden/server:latest@sha256:ebdfe70701c60ac0c28c697e787cea767d7972940b786037b29fe0d507f821e8
     env_file:

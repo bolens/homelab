@@ -1,5 +1,7 @@
 services:
   rackula:
+    labels:
+      logging: "true"
     build:
       context: .
     image: homelab/rackula:local

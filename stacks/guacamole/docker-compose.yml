@@ -6,6 +6,8 @@ name: guacamole
 
 services:
   guacd:
+    labels:
+      logging: "true"
     image: guacamole/guacd:1.6.0
     container_name: guacd
     restart: unless-stopped
@@ -19,6 +21,8 @@ services:
       - guacamole
 
   postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: guacamole-postgres
     restart: unless-stopped
@@ -41,6 +45,8 @@ services:
       retries: 10
 
   guacamole:
+    labels:
+      logging: "true"
     image: guacamole/guacamole:1.6.0
     container_name: guacamole
     restart: unless-stopped

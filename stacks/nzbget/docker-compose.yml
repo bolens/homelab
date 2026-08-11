@@ -2,6 +2,8 @@
 #   docker compose --env-file stack.env up -d
 services:
   nzbget:
+    labels:
+      logging: "true"
     image: lscr.io/linuxserver/nzbget:latest@sha256:b22a2b8b366d1e68e6341435bdabd9ff859642cc2ff4a04243d0723521d69d2e
     container_name: nzbget
     restart: unless-stopped

@@ -4,6 +4,8 @@
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   postgres:
+    labels:
+      logging: "true"
     image: docker.io/library/postgres:18-alpine
     container_name: litellm-postgres
     restart: unless-stopped

@@ -2,6 +2,8 @@
 #   docker compose --env-file stack.env up -d
 services:
   lidarr:
+    labels:
+      logging: "true"
     image: homelab/lidarr:3.1.0.4875-null-metadata-guards.4
     build:
       context: .

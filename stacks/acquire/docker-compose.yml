@@ -6,6 +6,8 @@ name: acquire
 
 services:
   acquire:
+    labels:
+      logging: "true"
     image: ${ACQUIRE_IMAGE:-harbor.yourdomain.com/homelab/acquire:latest}
     container_name: acquire
     restart: "no"

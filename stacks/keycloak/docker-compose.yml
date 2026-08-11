@@ -1,5 +1,7 @@
 services:
   postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: keycloak-postgres
     restart: unless-stopped
@@ -19,6 +21,8 @@ services:
       retries: 10
 
   keycloak:
+    labels:
+      logging: "true"
     image: quay.io/keycloak/keycloak:latest@sha256:f1f1f01e472c8a78df40d8f2a49a925274eda4d3d80d5f6edbb5c880ee3c01c6
     container_name: keycloak
     restart: unless-stopped

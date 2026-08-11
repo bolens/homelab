@@ -1,5 +1,7 @@
 services:
   archivebox:
+    labels:
+      logging: "true"
     image: archivebox/archivebox:latest@sha256:1a5a37331091d9df865ead2b9c231aa5a892fc26fe0422ce6140d9e2d9532327
     container_name: archivebox
     restart: unless-stopped
@@ -24,6 +26,8 @@ services:
       start_period: 45s
 
   archivebox_scheduler:
+    labels:
+      logging: "true"
     image: archivebox/archivebox:latest@sha256:1a5a37331091d9df865ead2b9c231aa5a892fc26fe0422ce6140d9e2d9532327
     container_name: archivebox_scheduler
     restart: unless-stopped
@@ -40,6 +44,8 @@ services:
       - internal
 
   sonic:
+    labels:
+      logging: "true"
     image: archivebox/sonic:latest@sha256:452064bfdab535fb8a6019937f1d753e0dfb2c94d2a87ebd166e2d556de78692
     container_name: archivebox-sonic
     restart: unless-stopped

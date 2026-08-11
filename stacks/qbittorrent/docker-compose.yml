@@ -8,6 +8,8 @@ name: qbittorrent
 
 services:
   gluetun:
+    labels:
+      logging: "true"
     image: qmcgaw/gluetun:latest@sha256:c36f188a01d1486feccef8200dd589c7d4085102e9e85d352170e5cb7ea52b34
     container_name: qbittorrent
     cap_add:
@@ -30,6 +32,8 @@ services:
     # for incoming peers use your VPN provider's port forwarding (Gluetun) and set that port in qBittorrent.
 
   qbittorrent:
+    labels:
+      logging: "true"
     image: lscr.io/linuxserver/qbittorrent:latest@sha256:b024436f8ca665d16d9a997d26fd27fdf867ee5566ba09f32764e7b2976d3e02
     network_mode: service:gluetun
     env_file:

@@ -2,6 +2,8 @@
 # Portainer-friendly: named volume; env from stack.env (see stack.env.example).
 services:
   diun-docker-socket-proxy:
+    labels:
+      logging: "false"
     image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
     container_name: diun-docker-socket-proxy
     restart: unless-stopped
@@ -32,6 +34,8 @@ services:
       start_period: 10s
 
   diun:
+    labels:
+      logging: "false"
     image: crazymax/diun:latest@sha256:e324b793eb32dfb7f74d3a39421ebf090141caaadee69b8f78da63112408ee25
     container_name: diun
     env_file:

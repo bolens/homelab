@@ -3,6 +3,8 @@
 # No host ports; access via Caddy (e.g. https://terminus.example.com → terminus-web:${HANAMI_PORT}).
 services:
   terminus-init-certificates:
+    labels:
+      logging: "true"
     image: ghcr.io/usetrmnl/terminus:latest@sha256:5e5fe4ff058f50ca8cee06d864126d62caa87e51952b3751f8d180ba659f60c4
     container_name: terminus-init-certificates
     user: root

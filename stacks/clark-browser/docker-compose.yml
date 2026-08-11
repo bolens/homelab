@@ -9,6 +9,8 @@ name: clark-browser
 
 services:
   clark:
+    labels:
+      logging: "true"
     container_name: clark-browser
     build:
       context: build

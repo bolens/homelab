@@ -1,5 +1,7 @@
 services:
   netexec:
+    labels:
+      logging: "true"
     build:
       context: .
     image: homelab/netexec:local

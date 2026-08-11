@@ -2,6 +2,8 @@ name: spiderfoot
 
 services:
   spiderfoot:
+    labels:
+      logging: "true"
     image: joshuapfritz/spiderfoot:latest@sha256:b7bf0e68d2d46a3976eeb2d9ce6a3d280dcc9d44417b37bbd2f739d2ea44ad9a
     container_name: spiderfoot
     restart: unless-stopped

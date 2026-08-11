@@ -3,6 +3,8 @@
 # Docs: https://github.com/C4illin/ConvertX
 services:
   convertx:
+    labels:
+      logging: "true"
     image: ghcr.io/c4illin/convertx:latest@sha256:b515b04bfd25298a5cdc775b2fcd48b9399bab658ce13e2598b65df1b16098c8
     container_name: convertx
     restart: unless-stopped

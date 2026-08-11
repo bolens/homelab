@@ -37,10 +37,14 @@ This stack has two containers:
 
 Alloy uses two streams:
 
-- **primary** — all container logs by default
+- **primary** — logs from containers explicitly labeled `logging=true`
 - **sampled** — containers that emit logs with a `sampled=true` label (used for canary/heartbeat logs)
 
-Opt a container out of log collection by setting label `logging=false` (or `off`, `disabled`, `0`) on it.
+Every repository service declares an explicit `logging` label. Set
+`logging=true` (or `on`, `enabled`, `1`) to collect a service, or
+`logging=false` (or `off`, `disabled`, `0`) to exclude it. Unlabeled containers
+are not collected, preventing newly deployed workloads from entering Loki
+without an operator decision.
 
 Multiline assembly is opt-in. Set `logging_multiline=true` on a service whose
 stack traces should be combined into single Loki entries. Without that label,

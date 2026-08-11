@@ -10,6 +10,8 @@ name: threat-dragon
 
 services:
   threatdragon:
+    labels:
+      logging: "true"
     image: owasp/threat-dragon:stable
     container_name: threatdragon
     restart: unless-stopped

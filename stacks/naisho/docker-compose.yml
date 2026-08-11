@@ -8,6 +8,8 @@ name: naisho
 
 services:
   naisho:
+    labels:
+      logging: "true"
     build:
       context: https://github.com/nshki/naisho.git#3611214b70cef8ee00a5f7166f4e1d4703a9fb26
       dockerfile: Dockerfile

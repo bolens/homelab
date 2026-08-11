@@ -2,6 +2,8 @@
 # No host ports; access via Caddy (https://homarr.example.com → homarr:7575).
 services:
   homarr-docker-socket-proxy:
+    labels:
+      logging: "false"
     image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
     container_name: homarr-docker-socket-proxy
     restart: unless-stopped
@@ -36,6 +38,8 @@ services:
       start_period: 10s
 
   homarr:
+    labels:
+      logging: "false"
     image: ghcr.io/homarr-labs/homarr:latest@sha256:72f98c87dbd556736a3f25f7d19fefa77a7e48eb76c4d7929e5535f7e3c0fdd0
     container_name: homarr
     restart: unless-stopped

@@ -4,6 +4,8 @@
 # Note: stack.env is NOT passed as env_file into the container — only shared.env is. See comment below for why.
 services:
   dozzle-docker-socket-proxy:
+    labels:
+      logging: "false"
     image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
     container_name: dozzle-docker-socket-proxy
     restart: unless-stopped
@@ -34,6 +36,8 @@ services:
       start_period: 10s
 
   dozzle:
+    labels:
+      logging: "false"
     image: amir20/dozzle:latest@sha256:1c1060cfb5402093c4e0f03f3534d7deaffeb0a6f6dd034e7c5f244603f35fb3
     container_name: dozzle
     restart: unless-stopped

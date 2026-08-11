@@ -2,6 +2,8 @@ name: holehe
 
 services:
   holehe-web:
+    labels:
+      logging: "true"
     build:
       context: ./repo
       dockerfile: Dockerfile

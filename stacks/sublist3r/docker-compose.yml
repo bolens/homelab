@@ -5,6 +5,8 @@ name: sublist3r
 
 services:
   sublist3r:
+    labels:
+      logging: "true"
     image: opendevsecops/sublist3r:latest@sha256:080535e98a4acf07ddee24c25c0f4705e0e10c7eeceb2a25d94a30eaf6256f06
     container_name: sublist3r
     restart: "no"

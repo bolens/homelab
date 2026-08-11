@@ -3,6 +3,8 @@
 # Postgres is internal-only; only the app joins `ingress-public` for Caddy.
 services:
   db:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: umami-db
     restart: unless-stopped
@@ -22,6 +24,8 @@ services:
       retries: 10
 
   umami:
+    labels:
+      logging: "true"
     image: ghcr.io/umami-software/umami:latest@sha256:8edfe4beaef13f9d1300619fa264ef250a3688df9cc54d24ca830ca31cb475ec
     container_name: umami
     restart: unless-stopped

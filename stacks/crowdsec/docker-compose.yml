@@ -4,6 +4,8 @@ name: crowdsec
 
 services:
   crowdsec-docker-socket-proxy:
+    labels:
+      logging: "false"
     image: ghcr.io/tecnativa/docker-socket-proxy:v0.5.0
     container_name: crowdsec-docker-socket-proxy
     restart: unless-stopped
@@ -34,6 +36,8 @@ services:
       start_period: 10s
 
   crowdsec:
+    labels:
+      logging: "false"
     image: crowdsecurity/crowdsec
     container_name: crowdsec
     restart: unless-stopped

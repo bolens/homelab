@@ -3,6 +3,8 @@
 # Docs: https://docs.slinkapp.io  GitHub: https://github.com/andrii-kryvoviaz/slink
 services:
   slink:
+    labels:
+      logging: "true"
     image: anirdev/slink:latest@sha256:344c9772bf43190bf91e386b1642429dd0a202b9703aa6cc28f3c459f1d7ac57
     container_name: slink
     restart: unless-stopped

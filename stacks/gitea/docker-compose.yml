@@ -1,5 +1,7 @@
 services:
   postgres:
+    labels:
+      logging: "true"
     image: postgres:18-alpine
     container_name: gitea-postgres
     restart: unless-stopped
@@ -24,6 +26,8 @@ services:
       retries: 10
 
   gitea:
+    labels:
+      logging: "true"
     image: gitea/gitea:latest@sha256:34e3f6b75f5cbb6aebce588037fc5a53c84213e4d4b00da0a8d73e031a558e52
     container_name: gitea
     restart: unless-stopped

@@ -3,6 +3,8 @@
 # Set N8N_HOST and WEBHOOK_URL in stack.env to your Caddy hostname (e.g. https://n8n.home or https://n8n.yourdomain.com).
 services:
   restart-gateway:
+    labels:
+      logging: "true"
     build:
       context: ./restart-gateway
     container_name: n8n-restart-gateway
@@ -33,6 +35,8 @@ services:
       start_period: 10s
 
   n8n:
+    labels:
+      logging: "true"
     image: docker.n8n.io/n8nio/n8n:latest@sha256:f9a15cc65378e4e5b6c3b1445c83985131938db8d8b5b1ab891d7d50196b2162
     container_name: n8n
     restart: unless-stopped

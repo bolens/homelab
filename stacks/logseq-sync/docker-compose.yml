@@ -1,5 +1,7 @@
 services:
   logseq-sync:
+    labels:
+      logging: "true"
     build:
       context: ./repo
       dockerfile: Dockerfile

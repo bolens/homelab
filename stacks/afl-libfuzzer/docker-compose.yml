@@ -1,5 +1,7 @@
 services:
   afl-libfuzzer:
+    labels:
+      logging: "true"
     image: aflplusplus/aflplusplus:dev
     profiles: ["tools"]
     stdin_open: true

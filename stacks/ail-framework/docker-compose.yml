@@ -58,6 +58,8 @@ services:
     cpus: 2.0
 
   lacus:
+    labels:
+      logging: "true"
     build:
       context: .
       dockerfile: Dockerfile.lacus
@@ -94,6 +96,8 @@ services:
     cpus: 3.0
 
   tor:
+    labels:
+      logging: "true"
     build:
       context: .
       dockerfile: Dockerfile.tor
