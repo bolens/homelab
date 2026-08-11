@@ -9,6 +9,9 @@ Network traffic analytics and flow monitoring. This stack runs ntopng with host 
 ## Quick start
 
 1. From this directory, copy `stack.env.example` → `stack.env` and adjust `TZ` / locale if needed.
+   Set `NTOP_CONFIG=-i pcap:<interface> --community`, replacing `<interface>`
+   with the host's default-route interface (for example `bond0`). This avoids
+   analyzing every Docker bridge and veth interface.
 2. Start the stack:
 
    ```bash
@@ -30,5 +33,9 @@ Network traffic analytics and flow monitoring. This stack runs ntopng with host 
 The stack overrides `LANG` and `LC_ALL` with `C.utf8`, which is the UTF-8
 locale provided by the image. This keeps the bundled Redis service running
 even when the shared environment requests a locale absent from the image.
+
+The one-CPU and 512 MiB limits are safety ceilings. Normal packet analysis can
+use less; sustained saturation may indicate that capture volume exceeds what
+the configured interface and enabled ntopng features can process.
 
 Consult the ntopng docs for configuring interfaces, flows, and data retention. Be mindful of privacy when exposing ntopng externally; if you put it behind Caddy and Cloudflare Tunnel, protect the hostname with Cloudflare Access.

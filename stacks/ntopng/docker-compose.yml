@@ -5,6 +5,11 @@ services:
     image: ntop/ntopng:latest@sha256:4f3e78ae42559bbc3972bb7cd08aecf1bcd9118085cbf2bda79805e99b907ddd
     container_name: ntopng
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 768m
+    pids_limit: 128
+    cpu_shares: 256
     # ntopng inspects host network traffic; host networking is recommended.
     network_mode: host
     volumes:
