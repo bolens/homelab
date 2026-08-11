@@ -194,6 +194,12 @@ def reconcile_alias_units(aliases: set[str]) -> int:
         result = subprocess.run(["systemctl", "enable", "--now", *missing])
         if result.returncode:
             return result.returncode
+    if desired:
+        # Enabled instances can still be inactive after a template update or a
+        # manual stop. Starting an already-active unit is harmless.
+        result = subprocess.run(["systemctl", "start", *sorted(desired)])
+        if result.returncode:
+            return result.returncode
     return 0
 
 
