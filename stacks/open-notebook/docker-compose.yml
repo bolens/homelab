@@ -84,4 +84,5 @@ networks:
 
 volumes:
   surrealdb_data:
+    name: open-notebook_surrealdb_data_v3
   open_notebook_data:

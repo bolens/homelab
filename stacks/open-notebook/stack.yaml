@@ -34,7 +34,7 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
-- name: surrealdb_data
+- name: open-notebook_surrealdb_data_v3
   role: app_data
   critical: true
 - name: open_notebook_data

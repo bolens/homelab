@@ -83,6 +83,12 @@ This stack expects Open Notebook to connect to SurrealDB over:
 
 Keep that default unless you intentionally run SurrealDB outside this compose stack.
 
+The bundled database uses SurrealDB v3 and stores data in the explicitly named
+`open-notebook_surrealdb_data_v3` volume. SurrealDB v3 cannot open a v2 RocksDB
+datastore in place. Existing v2 installations must create a v3-compatible
+export, import it into this fresh v3 volume, and retain the old volume until the
+migrated application has been verified.
+
 ## Configuration
 
 ### AI Providers
