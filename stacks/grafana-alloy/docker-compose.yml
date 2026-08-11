@@ -15,6 +15,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - docker-api
+    # Alloy's Docker API polling makes the proxy emit high-volume access logs.
+    # Collecting those logs creates useless self-generated pipeline load.
+    labels:
+      logging: "false"
     read_only: true
     tmpfs:
       - /run
