@@ -28,7 +28,7 @@ services:
   calcom-redis:
     labels:
       logging: "true"
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: calcom-redis
     restart: unless-stopped
     cpus: 0.5

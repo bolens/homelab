@@ -3,7 +3,7 @@
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   surrealdb:
-    image: surrealdb/surrealdb:v2
+    image: surrealdb/surrealdb:v3
     container_name: open-notebook-surrealdb
     restart: unless-stopped
     labels:

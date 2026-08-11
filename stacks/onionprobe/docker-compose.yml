@@ -11,7 +11,7 @@ services:
   op-prometheus:
     labels:
       logging: "true"
-    image: quay.io/prometheus/prometheus:v3.13.1
+    image: quay.io/prometheus/prometheus:v3.13.2
     container_name: onionprobe-prometheus
     restart: unless-stopped
     env_file:
@@ -77,7 +77,7 @@ services:
   op-grafana:
     labels:
       logging: "true"
-    image: grafana/grafana:13.1.1
+    image: grafana/grafana:13.1.2
     container_name: onionprobe-grafana
     restart: unless-stopped
     env_file:

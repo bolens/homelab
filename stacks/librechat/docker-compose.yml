@@ -41,7 +41,7 @@ services:
     cpus: "1.00"
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: librechat-redis
     restart: unless-stopped
     labels:
