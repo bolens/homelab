@@ -53,6 +53,15 @@ high-volume proxy noise back into the same pipeline without adding useful
 application diagnostics. Docker discovery and application log collection are
 unchanged.
 
+Discovery also excludes containers whose names contain `docker-socket-proxy`.
+Those proxies expose Docker API access for another application, and their
+request logs duplicate the consuming application's activity without providing
+application diagnostics. Alloy continues collecting the applications' logs.
+
+Caddy TLS warnings and errors remain available, but successful informational
+certificate-renewal lifecycle messages are dropped. A renewal sweep otherwise
+emits several nearly identical entries for every internally managed hostname.
+
 ## Prometheus alerts
 
 Two alerts in `alerts.yml` watch this stack:

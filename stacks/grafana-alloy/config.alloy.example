@@ -81,7 +81,7 @@ discovery.relabel "docker_logs" {
 	rule {
 		source_labels = ["compose_service", "container"]
 		separator     = ";"
-		regex         = ".*(watchtower|ofelia|backup|restic|duplicati|borgmatic).*"
+		regex         = ".*(docker-socket-proxy|watchtower|ofelia|backup|restic|duplicati|borgmatic).*"
 		action        = "drop"
 	}
 
@@ -118,6 +118,17 @@ loki.process "enrich" {
 
 	stage.drop {
 		expression = "^\\s*$"
+	}
+
+	// Successful internal-certificate renewal sweeps emit several lifecycle
+	// messages per hostname. Preserve TLS warnings/errors, but discard this
+	// high-volume informational bookkeeping before expensive processing.
+	stage.match {
+		selector = "{container=\"caddy\"} |~ \"\\\"level\\\":\\\"info\\\"\" |~ \"\\\"logger\\\":\\\"tls\""
+
+		stage.drop {
+			expression = ".*"
+		}
 	}
 
 	// Drop common health/metrics probe access logs.
