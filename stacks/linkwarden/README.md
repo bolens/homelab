@@ -47,6 +47,10 @@ The stack uses **named volumes** (`lw_pgdata`, `lw_data`, `lw_meili_data`) so it
 | **Env** | `NEXTAUTH_SECRET`, `POSTGRES_PASSWORD`, `MEILI_MASTER_KEY` required; `NEXTAUTH_URL`, `TZ` optional |
 | **Storage** | Named volumes: `lw_data` (screenshots, PDFs, profile photos), `lw_pgdata`, `lw_meili_data` |
 
+Linkwarden connects to its private search service at
+`http://linkwarden-meilisearch:7700`. Keep this unique hostname when other
+Meilisearch instances share an external network with Linkwarden.
+
 ## Notes
 
 - After changing `stack.env`, run `docker compose --env-file stack.env down && docker compose --env-file stack.env up -d` (restart is not enough for env changes).
