@@ -3,7 +3,9 @@ services:
     image: lscr.io/linuxserver/bazarr:latest@sha256:e464484e7e6cff8ee189036c9ba96977ab054104ea18067ecf6171d0f3f3f8f2
     container_name: bazarr
     restart: unless-stopped
-    cpus: 2.0
+    # Audio extraction for subtitle synchronization invokes ffmpeg with
+    # automatic threading. Keep background work from consuming multiple cores.
+    cpus: 1.0
     mem_limit: 3g
     memswap_limit: 4g
     pids_limit: 512
@@ -21,6 +23,9 @@ services:
     networks:
       - media-automation
       - ingress-admin
+    extra_hosts:
+      # Plex uses host networking in this repository.
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:6767/"]
       interval: 60s

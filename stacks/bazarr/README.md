@@ -36,6 +36,27 @@ Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatica
 | **Env**    | `TZ`, `PUID`, `PGID`, `BAZARR_TV_PATH`, `BAZARR_MOVIES_PATH`           |
 | **Storage**| `bazarr_config` → `/config`, `${BAZARR_TV_PATH}` → `/data/tv`, `${BAZARR_MOVIES_PATH}` → `/data/movies` |
 
+The container is limited to one CPU. Automatic subtitle synchronization can
+still extract and resample audio with ffmpeg, but that background work cannot
+consume multiple host cores. If synchronization throughput is more important
+than host responsiveness, raise `cpus` deliberately.
+
+## Performance and provider troubleshooting
+
+- Repeated `tvsubtitles.net` name-resolution warnings indicate that the
+  TVSubtitles provider is unavailable. Remove **TVSubtitles** under
+  **Settings → Providers** so Bazarr does not retry it every ten minutes.
+- This repository runs Plex with host networking. Configure Bazarr's Plex
+  integration with `http://host.docker.internal:32400`; the Compose stack maps
+  that name to the Docker host. Avoid a discovered `plex.direct` address when
+  it is unreachable from Docker bridge networks.
+- Automatic subtitle synchronization reads and resamples media audio. Disable
+  or narrow it under **Settings → Subtitles → Automatic Subtitles
+  Synchronization** if the one-core background cost is still undesirable.
+- Embedded-subtitle discovery also reads media containers. On slower or remote
+  storage, consider disabling **Use Embedded Subtitles** under **Settings →
+  Subtitles → Performance / Optimization**.
+
 ## Caddy reverse proxy
 
 Example Caddy vhost (SANITIZED hostnames):
