@@ -12,7 +12,8 @@ Self-hosted web GUI for `yt-dlp`/`youtube-dl` with playlist support and a downlo
 
 1. **Environment**
    - Copy `stack.env.example` to `stack.env`.
-   - Adjust `TZ` if needed, and optionally set `PUID`, `PGID`, and `UMASK` so files in the downloads volume match your host user/group.
+   - Ensure `/mnt/unraid/media/downloads/metube` exists, or set `METUBE_DOWNLOADS_PATH` to an existing host directory.
+   - Adjust `TZ` if needed, and optionally set `PUID`, `PGID`, and `UMASK` so downloaded files match your host user/group.
    - Optionally tune behaviour with `MAX_CONCURRENT_DOWNLOADS`, `DELETE_FILE_ON_TRASHCAN`, or `DEFAULT_OPTION_PLAYLIST_ITEM_LIMIT`, and set advanced options via `YTDL_OPTIONS` / `YTDL_OPTIONS_FILE` (see upstream README).
 
 2. **Deploy**
@@ -41,7 +42,13 @@ Self-hosted web GUI for `yt-dlp`/`youtube-dl` with playlist support and a downlo
 | **Network**| `ingress-public` (external) for dedicated Caddy ingress                 |
 | **Image**  | `ghcr.io/alexta69/metube:latest`                                        |
 | **Env**    | Optional `TZ`, `PUID`, `PGID`, `UMASK`; download knobs like `MAX_CONCURRENT_DOWNLOADS`, `DELETE_FILE_ON_TRASHCAN`, playlist limits; advanced `YTDL_OPTIONS` / `YTDL_OPTIONS_FILE`; UI/logging via `DEFAULT_THEME`, `LOGLEVEL`, `ENABLE_ACCESSLOG` |
-| **Storage**| Named volume `metube-downloads` mounted at `/downloads` (videos, audio, state, temp files) |
+| **Storage**| `${METUBE_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/metube}` bind-mounted at `/downloads` (videos, audio, state, temp files). Compose refuses to create a missing host path. |
+
+The one-shot `metube-init` service creates the `audio`, `.metube`, and `tmp`
+subdirectories as the configured `PUID`/`PGID` before MeTube starts. This is
+compatible with NFS root-squash and recreates those subdirectories if they are
+removed. The parent host directory must still exist so a missing remote mount
+cannot silently redirect downloads onto the Docker host.
 
 See the upstream README for the full list of supported environment variables and examples.
 

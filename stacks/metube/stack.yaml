@@ -34,7 +34,7 @@ backup:
   priority: medium
   schedule_hint: weekly
 volumes:
-- name: metube-downloads
+- name: /mnt/unraid/media/downloads/metube
   role: app_data
   critical: true
 auth:

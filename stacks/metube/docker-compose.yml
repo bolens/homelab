@@ -4,10 +4,30 @@
 name: metube
 
 services:
+  metube-init:
+    image: ghcr.io/alexta69/metube:latest@sha256:9c23af6491bea0761400d7f80f25cfe001847c55b66d20e32ceb17f9527afd29
+    container_name: metube-init
+    user: "${PUID:-1000}:${PGID:-1000}"
+    network_mode: none
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mkdir -p /downloads/audio /downloads/.metube /downloads/tmp"]
+    restart: "no"
+    healthcheck:
+      disable: true
+    volumes:
+      - type: bind
+        source: ${METUBE_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/metube}
+        target: /downloads
+        bind:
+          create_host_path: false
+
   metube:
     image: ghcr.io/alexta69/metube:latest@sha256:9c23af6491bea0761400d7f80f25cfe001847c55b66d20e32ceb17f9527afd29
     container_name: metube
     restart: unless-stopped
+    depends_on:
+      metube-init:
+        condition: service_completed_successfully
     env_file:
       - stack.env
     environment:
@@ -17,7 +37,11 @@ services:
       - UMASK=${UMASK:-022}
     volumes:
       # Main download directory (videos, audio, state, temp files).
-      - metube-downloads:/downloads
+      - type: bind
+        source: ${METUBE_DOWNLOADS_PATH:-/mnt/unraid/media/downloads/metube}
+        target: /downloads
+        bind:
+          create_host_path: false
     networks:
       - ingress-public
     healthcheck:
@@ -31,6 +55,3 @@ networks:
   ingress-public:
     name: ingress-public
     external: true
-
-volumes:
-  metube-downloads:
