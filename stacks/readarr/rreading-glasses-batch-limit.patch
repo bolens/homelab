@@ -1,0 +1,57 @@
+diff --git a/cmd/rghc/main.go b/cmd/rghc/main.go
+index 37b61a3..5241acc 100644
+--- a/cmd/rghc/main.go
++++ b/cmd/rghc/main.go
+@@ -68,7 +68,9 @@ func (s *server) Run() error {
+ 
+ 	hcClient := &http.Client{Transport: hcTransport}
+ 
+-	gql, err := internal.NewBatchedGraphQLClient("https://api.hardcover.app/v1/graphql", hcClient, time.Second, 25 /* Not sure about this */, reg)
++	// Hardcover rejects larger combined requests with top_level_limit_exceeded.
++	// Keep batches below the current hosted API limit.
++	gql, err := internal.NewBatchedGraphQLClient("https://api.hardcover.app/v1/graphql", hcClient, time.Second, 1, reg)
+ 	if err != nil {
+ 		return err
+ 	}
+diff --git a/internal/graphql.go b/internal/graphql.go
+index fa3a870..ced07d8 100644
+--- a/internal/graphql.go
++++ b/internal/graphql.go
+@@ -119,10 +119,35 @@ func (c *batchedgqlclient) flush(ctx context.Context) {
+ 	// Issue the request in a separate goroutine so we can continue to
+ 	// accumulate queries without needing to wait for the network call.
+ 	go func(batch batchedQuery) {
+-		ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
++		ctx, cancel := context.WithTimeout(ctx, 150*time.Second)
+ 		defer cancel()
+ 
+-		err := c.wrapped.MakeRequest(ctx, req, resp)
++		var err error
++		for attempt := 0; attempt < 8; attempt++ {
++			err = c.wrapped.MakeRequest(ctx, req, resp)
++			if err == nil {
++				break
++			}
++
++			errText := err.Error()
++			rateLimited := strings.Contains(errText, "returned error 429") ||
++				(strings.Contains(errText, "returned error 403") && strings.Contains(errText, "top_level_") && strings.Contains(errText, "limit_exceeded"))
++			if !rateLimited || attempt == 7 {
++				break
++			}
++
++			delay := 15 * time.Second
++			Log(ctx).Warn("Hardcover rate limited batch; retrying", "count", len(batch.subscribers), "attempt", attempt+1, "delay", delay)
++			select {
++			case <-ctx.Done():
++				err = ctx.Err()
++				break
++			case <-time.After(delay):
++			}
++
++			data = map[string]any{}
++			resp = &graphql.Response{Data: &data}
++		}
+ 
+ 		// Extract any field-level errors, and return them to their
+ 		// subscribers. We can ignore the top-level err in this case, because

@@ -1,6 +1,7 @@
 name: readarr
 default_port: 8787
-databases: []
+databases:
+- postgres
 health:
   endpoint: /
   internal_only: false
@@ -27,15 +28,18 @@ host_requirements:
   needs_privileged: false
   uses_host_network: false
 links:
-  homepage: https://readarr.com/
-  docs: https://wiki.servarr.com/readarr
-  repo: https://github.com/Readarr/Readarr
+  homepage: https://github.com/pennydreadful/bookshelf
+  docs: https://github.com/pennydreadful/bookshelf#readme
+  repo: https://github.com/pennydreadful/bookshelf
 backup:
   priority: medium
   schedule_hint: weekly
 volumes:
-- name: readarr_config
+- name: bookshelf_config
   role: app_data
+  critical: true
+- name: rreading_glasses_data
+  role: database
   critical: true
 auth:
   mode: app_local

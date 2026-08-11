@@ -2,8 +2,8 @@
 #   docker compose --env-file stack.env up -d
 services:
   readarr:
-    # `nightly` currently has no amd64 manifest; pin a tagged nightly that does.
-    image: lscr.io/linuxserver/readarr:0.4.19-nightly
+    # Hardcover metadata is incompatible with existing Readarr databases.
+    image: ghcr.io/pennydreadful/bookshelf:hardcover-v0.4.20.129
     container_name: readarr
     restart: unless-stopped
     cpus: 2.0
@@ -17,8 +17,9 @@ services:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-America/Denver}
+      - METADATA_URL=http://rreading-glasses:8788
     volumes:
-      - readarr_config:/config
+      - bookshelf_config:/config
       - "${READARR_MEDIA_PATH:-/mnt/unraid/media}:/data"
     networks:
       - media-automation
@@ -31,6 +32,53 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  rreading-glasses:
+    image: readarr-rreading-glasses:hardcover-compatible
+    build:
+      context: .
+      dockerfile: rreading-glasses.Dockerfile
+    container_name: rreading-glasses
+    restart: unless-stopped
+    depends_on:
+      rreading-glasses-db:
+        condition: service_healthy
+    entrypoint: ["/main", "serve"]
+    cpus: 1.0
+    mem_limit: 256m
+    memswap_limit: 512m
+    pids_limit: 256
+    environment:
+      HARDCOVER_AUTH: ${HARDCOVER_AUTH:?Set HARDCOVER_AUTH in stack.env}
+      POSTGRES_HOST: rreading-glasses-db
+      POSTGRES_DATABASE: rreading-glasses
+      POSTGRES_USER: rreading-glasses
+      POSTGRES_PASSWORD: ${RREADING_GLASSES_POSTGRES_PASSWORD:?Set RREADING_GLASSES_POSTGRES_PASSWORD in stack.env}
+    networks:
+      - media-automation
+
+  rreading-glasses-db:
+    image: postgres:17
+    container_name: rreading-glasses-db
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 1g
+    pids_limit: 256
+    environment:
+      POSTGRES_DB: rreading-glasses
+      POSTGRES_USER: rreading-glasses
+      POSTGRES_PASSWORD: ${RREADING_GLASSES_POSTGRES_PASSWORD:?Set RREADING_GLASSES_POSTGRES_PASSWORD in stack.env}
+    volumes:
+      - rreading_glasses_data:/var/lib/postgresql/data
+    networks:
+      - media-automation
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rreading-glasses -d rreading-glasses"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
 networks:
   media-automation:
@@ -47,4 +95,5 @@ networks:
     external: true
 
 volumes:
-  readarr_config:
+  bookshelf_config:
+  rreading_glasses_data:
