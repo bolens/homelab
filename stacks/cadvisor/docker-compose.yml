@@ -18,6 +18,11 @@ services:
       # Waydroid and VPN net_cls trees that cAdvisor cannot read correctly.
       - -docker_only=true
       - -housekeeping_interval=30s
+      # Export only labels used by repository dashboards and alerts. Repeating
+      # every Docker label on every metric makes scrapes disproportionately
+      # large on hosts with many Compose stacks.
+      - -store_container_labels=false
+      - -whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro

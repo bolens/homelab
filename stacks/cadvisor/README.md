@@ -24,6 +24,13 @@ Container resource metrics (CPU, memory, network, filesystem) for all containers
 
 **Portainer:** Deploy as usual; no config files or volumes. The container runs privileged; ensure you’re comfortable with that on the host.
 
+To limit Prometheus scrape size on hosts with many containers, cAdvisor exports
+only the `com.docker.compose.project` and `com.docker.compose.service` Docker
+labels. Container resource metrics, names, images, and the Compose labels used
+by the repository's dashboards and alerts remain available. Add another label
+to `-whitelisted_container_labels` only when a query explicitly depends on it;
+each exported label is repeated across many time series.
+
 ## Start
 
 `docker compose up -d` from this directory.
