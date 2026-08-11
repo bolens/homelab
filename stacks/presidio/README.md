@@ -30,3 +30,4 @@ and are consumed by other stacks (e.g. document pipelines, AI integrations) rath
 - Research tools reach the APIs through `security-research`; Caddy reaches them through `ingress-admin`.
 - TZ and locale are provided by `shared.env`, not `stack.env`.
 - Worker count is pinned to 1 by default; increase `WORKERS` in compose environment for throughput.
+- The analyzer health check allows up to two minutes for spaCy and the recognizer registry to load during startup.
