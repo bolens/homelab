@@ -35,6 +35,10 @@ Prometheus Node Exporter for host-level metrics (CPU, memory, disk, network). Us
 | **Network** | `telemetry` — shared with Prometheus, Grafana, cAdvisor                 |
 | **Host data** | Mounts host root (`/:/host:ro,rslave`) so metrics reflect the Docker host |
 
+The container health check uses the lightweight `/` landing page. Prometheus
+continues scraping `/metrics`; using `/metrics` for health would redundantly run
+every enabled collector once per health interval.
+
 ## Start
 
 `docker compose up -d` from this directory.
