@@ -28,6 +28,9 @@ Self-hosted NUT server (`upsd`) for exposing UPS status to LAN clients and monit
    - `upsd.users`
    - `upsmon.conf`
 
+   Deployment now fails immediately with a named-file error when any required
+   file is missing or empty, instead of entering a misleading restart loop.
+
 4. Deploy from this directory:
 
    ```bash
@@ -42,6 +45,9 @@ Self-hosted NUT server (`upsd`) for exposing UPS status to LAN clients and monit
 | **Config mount** | `${NUT_CONFIG_DIR}:/etc/nut` |
 | **Network** | `ingress-admin` external Docker network |
 | **Runtime env** | `../../shared.env` (optional) + `stack.env` |
+
+Container health requires `upsd` to return at least one configured UPS name;
+a running shell with missing configuration is not considered healthy.
 
 ## Hostname `nut-server` vs running `upsc` on the host
 

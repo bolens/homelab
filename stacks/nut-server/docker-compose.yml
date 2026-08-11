@@ -21,6 +21,12 @@ services:
       - /bin/sh
       - -ec
       - |
+        for file in ups.conf upsd.conf upsd.users upsmon.conf; do
+          if [ ! -s "/etc/nut/$$file" ]; then
+            echo "Required NUT configuration missing or empty: /etc/nut/$$file" >&2
+            exit 1
+          fi
+        done
         chgrp ${GROUP:-nut} /etc/nut/* || true
         chmod 640 /etc/nut/* || true
         mkdir -p -m 2750 /dev/shm/nut
@@ -44,6 +50,12 @@ services:
       - ${NUT_CONFIG_DIR:-/home/youruser/.config/nut-server}:/etc/nut
     devices:
       - /dev/bus/usb:/dev/bus/usb
+    healthcheck:
+      test: ["CMD-SHELL", "test -n \"$$(upsc -l 127.0.0.1:3493 2>/dev/null)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
     networks:
       - ingress-admin
     logging:
