@@ -1,0 +1,182 @@
+{
+  "name": "Homelab - Uptime Kuma restart approval",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "homelab-health-alert",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "b5cb03cf-4fb7-443a-9642-46c65de65a48",
+      "name": "Uptime Kuma webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-960, 0],
+      "webhookId": "78b0913f-fbb5-4cce-9835-a17b32df88a3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// EDIT THIS NODE when adding monitors. Keys are lowercase Uptime Kuma monitor names.\nconst config = {\n  ntfyBaseUrl: 'http://ntfy:80',\n  ntfyTopic: 'homelab-approvals',\n  approvalMinutes: 15,\n  cooldownMinutes: 30,\n  recoveryDelaySeconds: 45,\n  monitors: {\n    sonarr: { container: 'sonarr', healthUrl: 'http://sonarr:8989/' },\n    radarr: { container: 'radarr', healthUrl: 'http://radarr:7878/' },\n    prowlarr: { container: 'prowlarr', healthUrl: 'http://prowlarr:9696/' },\n    bazarr: { container: 'bazarr', healthUrl: 'http://bazarr:6767/' },\n  },\n};\n\nconst payload = $json.body ?? $json;\nconst monitorName = String(payload.monitor?.name ?? payload.monitorName ?? payload.name ?? '').trim();\nconst key = monitorName.toLowerCase();\nconst heartbeatStatus = payload.heartbeat?.status ?? payload.status;\nconst message = String(payload.msg ?? payload.message ?? 'Uptime Kuma reported a failure');\nconst target = config.monitors[key];\nconst isDown = heartbeatStatus === 0 || heartbeatStatus === '0' || heartbeatStatus === 'down' || heartbeatStatus === 'DOWN';\n\nlet accepted = Boolean(target && isDown);\nlet reason = !target ? 'monitor is not mapped' : (!isDown ? 'event is not DOWN' : 'accepted');\nif (accepted) {\n  const state = $getWorkflowStaticData('global');\n  state.lastRequestedAt ??= {};\n  const now = Date.now();\n  const last = Number(state.lastRequestedAt[target.container] ?? 0);\n  if (now - last < config.cooldownMinutes * 60 * 1000) {\n    accepted = false;\n    reason = `cooldown active (${config.cooldownMinutes} minutes)`;\n  } else {\n    state.lastRequestedAt[target.container] = now;\n  }\n}\n\nreturn [{ json: { accepted, reason, monitorName, message, ...target, config } }];"
+      },
+      "id": "b029ec32-c4f2-4d7d-b91b-ab1d226ab70b",
+      "name": "Configure and validate event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-736, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2},
+          "conditions": [{"id": "5abb555c-30a9-49d8-a20b-00d821222338", "leftValue": "={{ $json.accepted }}", "rightValue": true, "operator": {"type": "boolean", "operation": "true", "singleValue": true}}],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "568ec4bb-8cce-4348-a447-17593c5d26c8",
+      "name": "Mapped DOWN event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-512, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.config.ntfyBaseUrl }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ topic: $json.config.ntfyTopic, title: `Restart approval: ${$json.monitorName}`, message: `${$json.message}\\nContainer: ${$json.container}\\nApproval expires in ${$json.config.approvalMinutes} minutes.`, priority: 5, tags: ['warning','computer'], actions: [{ action: 'http', label: 'Approve restart', url: `${$execution.resumeUrl}?decision=approve`, method: 'GET', clear: true }, { action: 'http', label: 'Dismiss', url: `${$execution.resumeUrl}?decision=dismiss`, method: 'GET', clear: true }] }) }}",
+        "options": {}
+      },
+      "id": "392fb67f-fbd8-45e5-870a-afcaf02bd50a",
+      "name": "Request approval in ntfy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-288, -96]
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "GET",
+        "limitWaitTime": true,
+        "resumeAmount": "={{ $('Configure and validate event').item.json.config.approvalMinutes }}",
+        "resumeUnit": "minutes",
+        "options": {}
+      },
+      "id": "a3e77523-f659-4f27-8401-aea8f58181f2",
+      "name": "Wait for approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-64, -96],
+      "webhookId": "0e0f6aef-c1ba-43a4-846a-906136ab8fb4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2},
+          "conditions": [{"id": "91ec15cb-bbdc-4c13-a68e-831f4d4c0510", "leftValue": "={{ $json.query?.decision }}", "rightValue": "approve", "operator": {"type": "string", "operation": "equals"}}],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "88692196-9911-4b9d-a862-5a26d5e86d14",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [160, -96]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://restart-gateway:8080/v1/restart",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { container: $('Configure and validate event').item.json.container } }}",
+        "options": {}
+      },
+      "id": "e0e0e6af-ed2e-4c56-93e6-76de0bb51c9a",
+      "name": "Restart allowlisted container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [384, -192],
+      "credentials": {"httpHeaderAuth": {"id": "CONFIGURE_AFTER_IMPORT", "name": "Restart Gateway Bearer"}}
+    },
+    {
+      "parameters": {
+        "amount": "={{ $('Configure and validate event').item.json.config.recoveryDelaySeconds }}",
+        "unit": "seconds"
+      },
+      "id": "7c63eb37-13e9-4d9c-b047-dd7af0cae3a1",
+      "name": "Wait before recovery check",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [608, -192],
+      "webhookId": "06d5f706-6640-47df-97ec-12d4f0a2679b"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Configure and validate event').item.json.healthUrl }}",
+        "options": {"response": {"response": {"neverError": true, "responseFormat": "text"}}}
+      },
+      "id": "d9f2c4ab-af19-459c-969f-a42f38045d7e",
+      "name": "Check service recovery",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [832, -192],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configure and validate event').item.json.config.ntfyBaseUrl }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ topic: $('Configure and validate event').item.json.config.ntfyTopic, title: `Restart completed: ${$('Configure and validate event').item.json.monitorName}`, message: `Restart request completed and the recovery check ran for ${$('Configure and validate event').item.json.container}. Verify current status in Uptime Kuma.`, priority: 3, tags: ['white_check_mark','computer'] }) }}",
+        "options": {}
+      },
+      "id": "d3bd663b-61c0-4d42-89db-b88a846f9bc9",
+      "name": "Notify restart result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1056, -192]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configure and validate event').item.json.config.ntfyBaseUrl }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ topic: $('Configure and validate event').item.json.config.ntfyTopic, title: `Restart not approved: ${$('Configure and validate event').item.json.monitorName}`, message: `No restart was performed for ${$('Configure and validate event').item.json.container}. The request was dismissed or expired.`, priority: 2, tags: ['no_entry'] }) }}",
+        "options": {}
+      },
+      "id": "c71bf1ae-2886-4771-a3f7-37a18530af42",
+      "name": "Notify dismissal or expiry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [384, 32]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Uptime Kuma webhook": {"main": [[{"node": "Configure and validate event", "type": "main", "index": 0}]]},
+    "Configure and validate event": {"main": [[{"node": "Mapped DOWN event?", "type": "main", "index": 0}]]},
+    "Mapped DOWN event?": {"main": [[{"node": "Request approval in ntfy", "type": "main", "index": 0}], []]},
+    "Request approval in ntfy": {"main": [[{"node": "Wait for approval", "type": "main", "index": 0}]]},
+    "Wait for approval": {"main": [[{"node": "Approved?", "type": "main", "index": 0}]]},
+    "Approved?": {"main": [[{"node": "Restart allowlisted container", "type": "main", "index": 0}], [{"node": "Notify dismissal or expiry", "type": "main", "index": 0}]]},
+    "Restart allowlisted container": {"main": [[{"node": "Wait before recovery check", "type": "main", "index": 0}]]},
+    "Wait before recovery check": {"main": [[{"node": "Check service recovery", "type": "main", "index": 0}]]},
+    "Check service recovery": {"main": [[{"node": "Notify restart result", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "5c2330d4-8e33-43d4-aa85-b1c796c8d5b6",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}

@@ -2,6 +2,36 @@
 # Access via Caddy only (reverse_proxy n8n:5678). No host ports exposed.
 # Set N8N_HOST and WEBHOOK_URL in stack.env to your Caddy hostname (e.g. https://n8n.home or https://n8n.yourdomain.com).
 services:
+  restart-gateway:
+    build:
+      context: ./restart-gateway
+    container_name: n8n-restart-gateway
+    restart: unless-stopped
+    environment:
+      RESTART_ALLOWLIST: ${N8N_RESTART_ALLOWLIST:-sonarr,radarr,prowlarr,bazarr}
+      RESTART_GATEWAY_TOKEN: ${N8N_RESTART_GATEWAY_TOKEN:?set N8N_RESTART_GATEWAY_TOKEN in stack.env}
+      RESTART_TIMEOUT_SECONDS: ${N8N_RESTART_TIMEOUT_SECONDS:-30}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-control
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: 0.25
+    mem_limit: 64m
+    pids_limit: 32
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest@sha256:f9a15cc65378e4e5b6c3b1445c83985131938db8d8b5b1ab891d7d50196b2162
     container_name: n8n
@@ -15,6 +45,9 @@ services:
     networks:
       - ingress-public
       - mail-clients
+      - telemetry
+      - media-automation
+      - docker-control
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5678/healthz"]
       interval: 30s
@@ -23,11 +56,19 @@ services:
       start_period: 30s
 
 networks:
+  docker-control:
+    internal: true
   ingress-public:
     name: ingress-public
     external: true
   mail-clients:
     name: mail-clients
+    external: true
+  telemetry:
+    name: telemetry
+    external: true
+  media-automation:
+    name: media-automation
     external: true
 
 volumes:

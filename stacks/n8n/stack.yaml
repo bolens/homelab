@@ -11,7 +11,9 @@ monitoring:
     internal: true
   blackbox_exporter: true
   grafana_dashboard: false
-shared_resources: []
+shared_resources:
+- telemetry
+- media-automation
 type: web_app
 category: utility
 exposure:
@@ -56,5 +58,6 @@ lifecycle:
 runtime_security:
   privileged_services: []
   host_network_services: []
-  docker_socket_services: []
+  docker_socket_services:
+  - restart-gateway
   floating_image_services: []
