@@ -11,6 +11,11 @@ services:
       - path: ../../shared.env
         required: false
       - stack.env
+    environment:
+      # The image ships C.utf8 only. Redis 8 exits when shared.env requests an
+      # unavailable locale such as en_US.UTF-8.
+      LANG: C.utf8
+      LC_ALL: C.utf8
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
       interval: 60s

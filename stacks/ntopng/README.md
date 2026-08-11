@@ -27,4 +27,8 @@ Network traffic analytics and flow monitoring. This stack runs ntopng with host 
 | **Network** | `network_mode: host` to see real interfaces                                  |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.     |
 
+The stack overrides `LANG` and `LC_ALL` with `C.utf8`, which is the UTF-8
+locale provided by the image. This keeps the bundled Redis service running
+even when the shared environment requests a locale absent from the image.
+
 Consult the ntopng docs for configuring interfaces, flows, and data retention. Be mindful of privacy when exposing ntopng externally; if you put it behind Caddy and Cloudflare Tunnel, protect the hostname with Cloudflare Access.
