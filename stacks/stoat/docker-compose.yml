@@ -382,6 +382,7 @@ services:
       logging: "true"
     image: docker.io/minio/mc
     container_name: stoat-createbuckets
+    restart: "no"
     cpus: 0.5
     mem_limit: 256m
     memswap_limit: 384m

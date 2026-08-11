@@ -15,6 +15,7 @@ services:
         PRIVOTRON_VERSION: ${PRIVOTRON_VERSION:-1609be98b03f4b3dce3a5a150c01e8abf12c9ab6}
     image: ${PRIVOTRON_IMAGE:-privotron:latest}
     container_name: privotron
+    restart: "no"
     # Not a long-running service; use: docker compose run --rm privotron [args]
     volumes:
       # Persist profiles (saved with --save-profile)
