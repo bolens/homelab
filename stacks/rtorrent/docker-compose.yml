@@ -12,7 +12,7 @@ services:
       - torrents_manual:/downloads
 
   rtorrent:
-    image: jesec/rtorrent:latest@sha256:f366138bda04e09761d5147dea293cbceec6514ee4e9c8f22c43d2f61ad9eb64
+    image: jesec/rtorrent:latest@sha256:994728c59953e5f19c643827024dd06e9ffaf62b8d903a3f1468794415e72e03
     container_name: rtorrent
     restart: unless-stopped
     tty: true
