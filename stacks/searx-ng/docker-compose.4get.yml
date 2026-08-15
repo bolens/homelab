@@ -1,0 +1,56 @@
+# Optional overlay. Read README.md before enabling this experimental integration.
+services:
+  fourget-hijacked:
+    build:
+      context: .
+      dockerfile: Dockerfile.4get-sidecar
+      additional_contexts:
+        hijacker: ${FOURGET_HIJACKED_SOURCE_PATH:?Set FOURGET_HIJACKED_SOURCE_PATH to a verified checkout}
+        fourget: ${FOURGET_SOURCE_PATH:?Set FOURGET_SOURCE_PATH to a verified checkout}
+    image: local/4get-hijacked:${FOURGET_HIJACKED_REVISION:-unverified}-${FOURGET_REVISION:-unverified}
+    container_name: searxng-4get-hijacked
+    restart: unless-stopped
+    environment:
+      FOURGET_SIDECAR_SECRET: ${FOURGET_SIDECAR_SECRET:?Set FOURGET_SIDECAR_SECRET to a generated secret}
+    networks:
+      - default
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+      - /var/lock/apache2:rw,noexec,nosuid,nodev,mode=1777
+      - /var/run/apache2:rw,noexec,nosuid,nodev,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: "1.00"
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/health.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  searxng:
+    image: local/searxng-4get:${FOURGET_HIJACKED_REVISION:-operator-managed}
+    build:
+      context: .
+      dockerfile: Dockerfile.4get
+      additional_contexts:
+        fourget: ${FOURGET_HIJACKED_SOURCE_PATH:?Set FOURGET_HIJACKED_SOURCE_PATH to a pinned 4get-hijacked checkout}
+    depends_on:
+      fourget-hijacked:
+        condition: service_healthy
+    environment:
+      # Required for custom engines to call the private HTTP sidecar.
+      - SEARXNG_OUTGOING_HTTP_PROTOCOL_DISABLED=false
+      - SEARXNG_OUTGOING_ALLOW_PRIVATE_NETWORKS=true
+      - FOURGET_SIDECAR_SECRET=${FOURGET_SIDECAR_SECRET:?Set FOURGET_SIDECAR_SECRET to a generated secret}

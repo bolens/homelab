@@ -1,0 +1,81 @@
+# Merge these entries into the top-level `engines:` list in settings.yml only
+# when deploying with docker-compose.4get.yml. Keep engine names distinct from
+# native SearXNG engines so failures and result provenance remain visible.
+engines:
+  - name: brave4
+    engine: brave-4get
+    shortcut: br4g
+    timeout: 6.0
+    enable_http: true
+    disabled: false
+
+  - name: duckduckgo4
+    engine: duckduckgo-4get
+    shortcut: d4g
+    timeout: 4.0
+    enable_http: true
+    disabled: false
+    fg_extendedsearch: "yes"
+
+  - name: marginalia4
+    engine: marginalia-4get
+    shortcut: mg4g
+    timeout: 4.0
+    enable_http: true
+    disabled: false
+    fg_intitle: "no"
+
+  - name: mojeek4
+    engine: mojeek-4get
+    shortcut: mj4g
+    timeout: 6.0
+    enable_http: true
+    disabled: false
+
+  - name: mwmbl4
+    engine: mwmbl-4get
+    shortcut: mw4g
+    timeout: 6.0
+    enable_http: true
+    disabled: false
+
+  - name: wiby4
+    engine: wiby-4get
+    shortcut: wb4g
+    timeout: 4.0
+    enable_http: true
+    disabled: false
+
+  - name: yep4
+    engine: yep-4get
+    shortcut: yp4g
+    timeout: 6.0
+    enable_http: true
+    disabled: false
+
+  - name: yt4
+    engine: yt-4get
+    shortcut: yt4g
+    categories:
+      - videos
+    timeout: 6.0
+    enable_http: true
+    disabled: false
+
+  # Available as Google-backed redundancy, but native Google CSE is enabled
+  # in settings.yml.example and avoids an extra wrapper layer.
+  - name: google-cse4
+    engine: google-cse-4get
+    shortcut: gc4g
+    timeout: 6.0
+    enable_http: true
+    disabled: true
+
+  # Upstream reports that Google generally needs residential proxy egress.
+  # Keep it available for explicit `!g4g` testing without using it by default.
+  - name: google4
+    engine: google-4get
+    shortcut: g4g
+    timeout: 6.0
+    enable_http: true
+    disabled: true

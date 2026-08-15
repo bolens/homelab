@@ -1,0 +1,76 @@
+ARG PHP_IMAGE=docker.io/library/php:8.2-apache@sha256:e71d4502e5569f46b638c81c420d552d8776e4703c06a90775792497ab982230
+FROM ${PHP_IMAGE} AS php-ext-builder
+
+RUN pecl install apcu-5.1.28
+
+# Patch fails closed if the reviewed upstream revision no longer matches.
+# hadolint ignore=DL3022
+COPY --from=hijacker / /tmp/4get-hijacked/
+COPY patches/4get-hijacked-sidecar-hardening.patch /tmp/sidecar-hardening.patch
+WORKDIR /tmp/4get-hijacked
+RUN patch -N -p1 < /tmp/sidecar-hardening.patch
+
+FROM ${PHP_IMAGE}
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      libnss3 \
+      nss-plugin-pem \
+      tini \
+    && docker-php-ext-enable opcache \
+    && printf '%s\n' \
+      'opcache.memory_consumption=128' \
+      'opcache.max_accelerated_files=10000' \
+      'opcache.validate_timestamps=0' \
+      > /usr/local/etc/php/conf.d/4get-opcache.ini \
+    && a2enmod rewrite \
+    && sed -i -E 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf \
+    && sed -i -E 's/<VirtualHost \*:80>/<VirtualHost *:8080>/' /etc/apache2/sites-available/000-default.conf \
+    && printf '%s\n' 'ServerName localhost' 'HostnameLookups Off' >> /etc/apache2/apache2.conf \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=php-ext-builder \
+  /usr/local/lib/php/extensions/no-debug-non-zts-20220829/apcu.so \
+  /usr/local/lib/php/extensions/no-debug-non-zts-20220829/apcu.so
+
+RUN printf '%s\n' \
+      'extension=apcu.so' \
+      'apc.enable_cli=1' \
+      'apc.shm_size=128M' \
+      > /usr/local/etc/php/conf.d/4get-apcu.ini
+
+ADD --checksum=sha256:cf68ce8d4fd5a848cb62fd782c6eb6c8a17d473adba658198e2528ce48923c12 \
+  https://github.com/lwthiker/curl-impersonate/releases/download/v0.6.1/libcurl-impersonate-v0.6.1.x86_64-linux-gnu.tar.gz \
+  /tmp/curl-impersonate.tar.gz
+
+RUN tar -xzf /tmp/curl-impersonate.tar.gz -C /usr/local/lib \
+    && rm /tmp/curl-impersonate.tar.gz
+
+ENV LD_PRELOAD=/usr/local/lib/libcurl-impersonate-ff.so
+ENV CURL_IMPERSONATE=ff117
+
+WORKDIR /var/www/html
+
+# These names are BuildKit additional contexts supplied by Compose.
+# hadolint ignore=DL3022
+COPY --from=fourget --chown=www-data:www-data / /var/www/html/4get-repo/
+# hadolint ignore=DL3022
+COPY --from=php-ext-builder --chown=www-data:www-data /tmp/4get-hijacked/sidecar/src/ /var/www/html/
+
+# Dollar expressions in this sed program must remain literal PHP variables.
+# hadolint ignore=SC2016
+RUN sed -i -E \
+      's|const\s+USER_AGENT\s*=\s*".*";|const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0";|' \
+      /var/www/html/4get-repo/data/config.php \
+    && sed -i -E \
+      's/return\s+\$this->web_full\(\$get\)\s*;/return $this->web_html($get);/' \
+      /var/www/html/4get-repo/scraper/ddg.php \
+    && php /var/www/html/generate_manifest.php \
+    && chown -R www-data:www-data /var/www/html
+
+USER www-data
+EXPOSE 8080
+ENTRYPOINT ["/usr/bin/tini", "--", "docker-php-entrypoint"]
+CMD ["apache2-foreground"]
