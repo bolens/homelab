@@ -4,7 +4,7 @@ services:
   actual-budget:
     labels:
       logging: "true"
-    image: actualbudget/actual-server:latest@sha256:0b300f370dba85a74998a953736a831bd931cc8cb76c0d8ceac3d3fd288dfd4d
+    image: actualbudget/actual-server:latest@sha256:6478d9ddfc0924479c09e6699c205e354c6f2216dfe7de3c0fb7b590d6edcdc5
     container_name: actual-budget
     restart: unless-stopped
     cpus: 1.0

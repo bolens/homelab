@@ -5,7 +5,7 @@ services:
   maigret:
     labels:
       logging: "true"
-    image: soxoj/maigret:latest@sha256:315521221c09b34eccc9f8baaf6f801ae2a839f807baf9ec7a0420d13412abcb
+    image: soxoj/maigret:latest@sha256:f2a8da62c2bc6c4a69be22aa2768119704d0c5c4fc37147ce322c21a13167e38
     container_name: maigret
     restart: unless-stopped
     command: ["--web", "5000"]
