@@ -11,5 +11,34 @@ server:
   secret_key: "change-me-use-openssl-rand-hex-32"
   bind_address: "0.0.0.0:8080"
 
-redis:
+valkey:
   url: "redis://searxng-redis:6379/0"
+
+# Use a small, diverse set of general web engines. Public search engines can
+# temporarily rate-limit or CAPTCHA a server IP, so keep several independent
+# providers while disabling defaults that commonly reject server traffic.
+engines:
+  - name: bing
+    engine: bing
+    shortcut: bi
+    disabled: false
+  - name: duckduckgo
+    disabled: false
+  - name: brave
+    disabled: false
+  - name: yahoo
+    disabled: false
+  - name: google
+    # The direct HTML scraper is currently broken upstream.
+    disabled: true
+  - name: google cse
+    # Google-backed Custom Search works without a local API key.
+    disabled: false
+  - name: startpage
+    disabled: true
+  - name: qwant
+    disabled: true
+  - name: yep
+    disabled: true
+  - name: mojeek
+    disabled: true
