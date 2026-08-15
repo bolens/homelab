@@ -1,0 +1,223 @@
+diff --git a/sidecar/src/filters.php b/sidecar/src/filters.php
+index e423373..b371eb2 100644
+--- a/sidecar/src/filters.php
++++ b/sidecar/src/filters.php
+@@ -6,14 +6,29 @@ ini_set('log_errors', 1);
+ header('Content-Type: application/json');
+
+ try {
++    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
++        throw new Exception('method_not_allowed');
++    }
++    $expected_secret = getenv('FOURGET_SIDECAR_SECRET');
++    $provided_secret = $_SERVER['HTTP_X_FOURGET_SECRET'] ?? '';
++    if (!$expected_secret || !hash_equals($expected_secret, $provided_secret)) {
++        http_response_code(401);
++        throw new Exception('unauthorized');
++    }
++
+     require_once 'mock.php';
+
+     set_include_path(__DIR__ . '/dummy_lib' . PATH_SEPARATOR . __DIR__ . '/4get-repo' . PATH_SEPARATOR . get_include_path());
+
+-    $raw_input = file_get_contents('php://input');
++    $content_length = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
++    if ($content_length <= 0 || $content_length > 65536) {
++        http_response_code(413);
++        throw new Exception('invalid_request_size');
++    }
++    $raw_input = file_get_contents('php://input', false, null, 0, 65537);
+     $input = json_decode($raw_input, true);
+
+-    if (!$input) {
++    if (!is_array($input) || strlen($raw_input) > 65536) {
+         throw new Exception('Invalid JSON payload');
+     }
+
+@@ -76,6 +91,6 @@ try {
+     while (ob_get_level() > 0) {
+         ob_end_clean();
+     }
+-    error_log("Filters.php Error for engine '$engine': " . $e->getMessage());
++    error_log("Filters.php Error for engine '" . ($engine ?? 'unknown') . "': " . substr(str_replace(["\r", "\n"], ' ', $e->getMessage()), 0, 500));
+     echo json_encode([]);
+-}
+\ No newline at end of file
++}
+diff --git a/sidecar/src/generate_manifest.php b/sidecar/src/generate_manifest.php
+index 411a366..1df978f 100644
+--- a/sidecar/src/generate_manifest.php
++++ b/sidecar/src/generate_manifest.php
+@@ -19,7 +19,7 @@ if (!is_dir($scraperDir)) {
+
+ $scrapers = [];
+ foreach (glob("$scraperDir/*.php") as $path) {
+-    if (basename($path) === 'sc.php' && !strpos(file_get_contents($path), 'class sc')) {
++    if (basename($path) === 'sc.php' && strpos(file_get_contents($path), 'class sc') === false) {
+         continue;
+     }
+
+diff --git a/sidecar/src/harness.php b/sidecar/src/harness.php
+index c6ad29f..51aefd8 100644
+--- a/sidecar/src/harness.php
++++ b/sidecar/src/harness.php
+@@ -11,17 +11,51 @@ require_once 'mock.php';
+
+ set_include_path(__DIR__ . '/dummy_lib' . PATH_SEPARATOR . __DIR__ . '/4get-repo' . PATH_SEPARATOR . get_include_path());
+
+-$raw_input = file_get_contents('php://input');
+-$input = json_decode($raw_input, true);
++const MAX_REQUEST_BYTES = 65536;
++const MAX_RESPONSE_BYTES = 4194304;
++const MAX_WARNINGS = 10;
++const ALLOWED_METHODS = ['web', 'image', 'video', 'news', 'music'];
+
+-if (!$input) {
+-    ob_end_clean();
+-    echo json_encode(['status' => 'error', 'message' => 'Invalid JSON payload received by sidecar']);
++function fail_request(int $status, string $code): never {
++    while (ob_get_level() > 0) {
++        ob_end_clean();
++    }
++    http_response_code($status);
++    echo json_encode(['status' => 'error', 'message' => $code]);
+     exit;
+ }
+
++if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
++    fail_request(405, 'method_not_allowed');
++}
++
++$expected_secret = getenv('FOURGET_SIDECAR_SECRET');
++$provided_secret = $_SERVER['HTTP_X_FOURGET_SECRET'] ?? '';
++if (!$expected_secret || !hash_equals($expected_secret, $provided_secret)) {
++    fail_request(401, 'unauthorized');
++}
++
++$content_length = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
++if ($content_length <= 0 || $content_length > MAX_REQUEST_BYTES) {
++    fail_request(413, 'invalid_request_size');
++}
++
++$raw_input = file_get_contents('php://input', false, null, 0, MAX_REQUEST_BYTES + 1);
++if ($raw_input === false || strlen($raw_input) > MAX_REQUEST_BYTES) {
++    fail_request(413, 'request_too_large');
++}
++
++$input = json_decode($raw_input, true);
++if (!is_array($input) || !is_array($input['params'] ?? null)) {
++    fail_request(400, 'invalid_json_payload');
++}
++
+ $engine_input = str_replace('-', '_', $input['engine'] ?? '');
+ $engine = preg_replace('/[^a-z0-9_]/', '', $engine_input);
++$method = $input['category'] ?? 'web';
++if (!is_string($method) || !in_array($method, ALLOWED_METHODS, true)) {
++    fail_request(400, 'unsupported_category');
++}
+
+ $manifest = apcu_fetch('hijacker_manifest');
+ if ($manifest === false) {
+@@ -54,8 +88,6 @@ if (!class_exists($className)) {
+     exit;
+ }
+
+-$instance = new $className();
+-
+ $defaults = [
+     's' => '',
+     'country' => 'us',
+@@ -81,7 +113,7 @@ $defaults = [
+     'recent' => 'no'
+ ];
+
+-$input_params = $input['params'] ?? [];
++$input_params = $input['params'];
+ $params = $input_params + $defaults;
+
+ backend::$context = [
+@@ -105,13 +137,14 @@ if (($params['offset'] ?? 0) > 0 && empty($params['npt'])) {
+ // don't let 4get scraper warnings leak into the json response — kills all 4get engines if they do
+ $scraper_warnings = [];
+ $prev_handler = set_error_handler(function ($severity, $msg, $file, $line) use (&$scraper_warnings) {
+-    $scraper_warnings[] = ['severity' => $severity, 'msg' => $msg, 'file' => basename($file), 'line' => $line];
++    if (count($scraper_warnings) < MAX_WARNINGS) {
++        $scraper_warnings[] = ['severity' => $severity, 'file' => basename($file), 'line' => $line];
++    }
+     return true;
+ });
+
+ try {
+-    $method = $input['category'] ?? 'web';
+-
++    $instance = new $className();
+     if (!method_exists($instance, $method)) {
+         throw new Exception("Method '$method' not supported by engine '$engine'");
+     }
+@@ -141,16 +174,20 @@ try {
+         $result['npt'] = $instance->npt;
+     }
+
+-    echo json_encode($result) ?: '{"web":[]}';
++    $encoded_result = json_encode($result);
++    if ($encoded_result === false || strlen($encoded_result) > MAX_RESPONSE_BYTES) {
++        throw new RuntimeException('response_too_large');
++    }
++    echo $encoded_result;
+ } catch (Throwable $e) {
+     // drain before writing error json
+     while (ob_get_level() > 0) {
+         ob_end_clean();
+     }
+     $msg = $e->getMessage();
+-    error_log("Hijacker Error [{$engine}]: {$msg}");
++    error_log("Hijacker Error [{$engine}]: " . substr(str_replace(["\r", "\n"], ' ', $msg), 0, 500));
+
+-    $response = ['status' => 'error', 'message' => $msg];
++    $response = ['status' => 'error', 'message' => 'upstream_error'];
+     $msg_l = strtolower($msg);
+
+     if (str_contains($msg_l, 'captcha') || str_contains($msg_l, 'pow')) {
+@@ -168,4 +205,4 @@ try {
+     echo json_encode($response);
+ } finally {
+     restore_error_handler();
+-}
+\ No newline at end of file
++}
+diff --git a/sidecar/src/mock.php b/sidecar/src/mock.php
+index ade5278..0e7b533 100644
+--- a/sidecar/src/mock.php
++++ b/sidecar/src/mock.php
+@@ -31,13 +31,20 @@ class backend {
+             return;
+         }
+
+-        $parts = explode(':', $proxy);
+-        $url = $parts[0] . ':' . $parts[1];
++        $parts = parse_url($proxy);
++        if ($parts === false || !isset($parts['scheme'], $parts['host'], $parts['port'])) {
++            throw new InvalidArgumentException('Proxy must be an http:// or https:// URL with an explicit port');
++        }
++        if (!in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
++            throw new InvalidArgumentException('Unsupported proxy scheme');
++        }
++        $url = $parts['scheme'] . '://' . $parts['host'] . ':' . $parts['port'];
+
+         curl_setopt($curl, CURLOPT_PROXY, $url);
+
+-        if (isset($parts[2]) && isset($parts[3])) {
+-            curl_setopt($curl, CURLOPT_PROXYUSERPWD, $parts[2] . ':' . $parts[3]);
++        if (isset($parts['user'])) {
++            $password = $parts['pass'] ?? '';
++            curl_setopt($curl, CURLOPT_PROXYUSERPWD, rawurldecode($parts['user']) . ':' . rawurldecode($password));
+         }
+
+         curl_setopt($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+@@ -78,4 +85,4 @@ if (!defined('USER_AGENT')) {
+     } else {
+         define('USER_AGENT', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36');
+     }
+-}
+\ No newline at end of file
++}

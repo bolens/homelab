@@ -1,0 +1,185 @@
+diff --git a/searx/engines/fourget_hijacker_client.py b/searx/engines/fourget_hijacker_client.py
+index 716126c..d176a4e 100644
+--- a/searx/engines/fourget_hijacker_client.py
++++ b/searx/engines/fourget_hijacker_client.py
+@@ -1,9 +1,13 @@
+ import re
++import ipaddress
++import os
++import socket
+ from typing import Dict, Any, Optional
+ from datetime import datetime
+ import time
+ from urllib.parse import urlparse, unquote_plus
+-from html import unescape
++from functools import lru_cache
++from html import escape, unescape
+ from searx.result_types import Answer
+ from searx.exceptions import (
+     SearxEngineCaptchaException,
+@@ -39,6 +43,8 @@ _WHITESPACE_RE = re.compile(r'\s+')
+
+ class FourgetHijackerClient:
+     MAX_CONTENT_LENGTH = 5000
++    MAX_RESULTS = 100
++    MAX_SUGGESTIONS = 20
+     DEFAULT_PAGE_SIZE = 10  # 4get engines return ~10 results per page
+
+     # --- Constants ---
+@@ -73,9 +79,14 @@ class FourgetHijackerClient:
+             category = 'video'
+
+
++        sidecar_secret = os.environ.get('FOURGET_SIDECAR_SECRET')
++        if not sidecar_secret:
++            raise SearxEngineResponseException('FOURGET_SIDECAR_SECRET is not configured')
++
+         params.update({
+             'url': 'http://4get-hijacked:80/harness.php',
+             'method': 'POST',
++            'headers': {'X-Fourget-Secret': sidecar_secret},
+             'json': {
+                 'engine': engine_id,
+                 'category': category,
+@@ -95,8 +106,7 @@ class FourgetHijackerClient:
+             # INVARIANT: Escalate SearXNG-specific exceptions so engine supervisors accurately block/suspend engines.
+             raise
+         except Exception as e:
+-            logger.debug(f'4get {engine_id} response error: {e}')
+-            return []
++            raise SearxEngineResponseException(f'4get {engine_id} returned an invalid response') from e
+
+     @staticmethod
+     def get_4get_params(query: str, params: Dict[str, Any], engine_name: str = None) -> Dict[str, Any]:
+@@ -174,9 +184,33 @@ class FourgetHijackerClient:
+     def _is_valid_url(url: Any) -> bool:
+         if not url or not isinstance(url, str):
+             return False
+-        if len(url) >= 5 and url.startswith(("http://", "https://", "magnet:", "ftp://", "ipfs://", "ipns://", "git://")):
+-             return True
+-        return False
++        if url.startswith("magnet:"):
++            return len(url) <= 8192
++        return FourgetHijackerClient._is_safe_http_url(url)
++
++    @staticmethod
++    @lru_cache(maxsize=1024)
++    def _host_is_global(hostname: str) -> bool:
++        try:
++            addresses = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)
++            return bool(addresses) and all(ipaddress.ip_address(item[4][0]).is_global for item in addresses)
++        except (OSError, ValueError):
++            return False
++
++    @staticmethod
++    def _is_safe_http_url(url: Any) -> bool:
++        if not isinstance(url, str) or len(url) > 8192 or any(c in url for c in ('\x00', '\r', '\n')):
++            return False
++        try:
++            parsed = urlparse(url)
++            if parsed.scheme not in ('http', 'https') or not parsed.hostname:
++                return False
++            if parsed.username is not None or parsed.password is not None:
++                return False
++            _ = parsed.port
++            return FourgetHijackerClient._host_is_global(parsed.hostname)
++        except ValueError:
++            return False
+
+     @staticmethod
+     def _is_root_path_url(url: str) -> bool:
+@@ -285,7 +319,7 @@ class FourgetHijackerClient:
+
+         related_list = response_data.get("related")
+         if isinstance(related_list, list):
+-            for related in related_list:
++            for related in related_list[:FourgetHijackerClient.MAX_SUGGESTIONS]:
+                 if related and isinstance(related, str) and related.strip():
+                     results.append({"suggestion": related.strip()})
+
+@@ -317,10 +351,14 @@ class FourgetHijackerClient:
+         current_ts = time.time()
+
+         for result_type, normalizer in FourgetHijackerClient._NORMALIZERS.items():
++            if len(results) >= FourgetHijackerClient.MAX_RESULTS:
++                break
+             items = response_data.get(result_type)
+             if not items:
+                 continue
+-            for item in items:
++            if not isinstance(items, list):
++                continue
++            for item in items[:FourgetHijackerClient.MAX_RESULTS]:
+                 try:
+                     if not isinstance(item, dict) or FourgetHijackerClient._has_invalid_date(item, current_ts):
+                         continue
+@@ -329,6 +367,8 @@ class FourgetHijackerClient:
+                         if result_type in FourgetHijackerClient._TEMPLATES:
+                             result["template"] = FourgetHijackerClient._TEMPLATES[result_type]
+                         results.append(result)
++                        if len(results) >= FourgetHijackerClient.MAX_RESULTS:
++                            break
+                 except Exception as e:
+                     logger.debug(f'Failed to normalize {result_type} result: {e}')
+                     continue
+@@ -490,30 +530,26 @@ class FourgetHijackerClient:
+
+         sublinks = item.get("sublink")
+         if sublinks and isinstance(sublinks, dict):
+-            sitelink_anchors = []
+-            for sl_title, sl_url in sublinks.items():
++            sitelink_titles = []
++            for sl_title, sl_url in list(sublinks.items())[:10]:
+                 if not sl_title or not sl_url: continue
+
+                 if not isinstance(sl_url, str) or not FourgetHijackerClient._is_valid_url(sl_url): continue
+
+                 # HAZARD: Sitelink inject vectors. Raw strings dumped directly into anchors.
+-                safe_title = sl_title.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+-                safe_url = sl_url.replace('"', '&quot;')
+-
+-                sitelink_anchors.append(f'<a href="{safe_url}">{safe_title}</a>')
++                sitelink_titles.append(str(sl_title))
+
+-            if sitelink_anchors:
+-                # Minimal format: ...description. <br>Link • Link
+-                links_html = " • ".join(sitelink_anchors)
++            if sitelink_titles:
++                links_text = " • ".join(sitelink_titles)
+                 if content:
+-                    content = f"{content}<br>{links_html}"
++                    content = f"{content} — {links_text}"
+                 else:
+-                    content = links_html
++                    content = links_text
+
+         result = {
+             "title": FourgetHijackerClient._truncate_content(title),
+             "url": url,
+-            "content": content
++            "content": escape(FourgetHijackerClient._truncate_content(content), quote=True)
+         }
+
+         raw_thumb = item.get("thumb") or item.get("thumbnail")
+@@ -612,9 +648,13 @@ class FourgetHijackerClient:
+         title = item.get("title") or "Image"
+         if '\x00' in title: return None
+
++        page_url = FourgetHijackerClient._sanitize_url(item.get("url"))
++        if not FourgetHijackerClient._is_safe_http_url(page_url):
++            page_url = img_url
++
+         result = {
+             "title": FourgetHijackerClient._truncate_content(title),
+-            "url": item.get("url") or img_url,
++            "url": page_url,
+             "img_src": img_url,
+         }
+         thumb_url = FourgetHijackerClient._normalize_thumbnail_url(
+@@ -730,4 +770,4 @@ class FourgetHijackerClient:
+         if author and isinstance(author, str):
+             result["author"] = author
+
+-        return result
+\ No newline at end of file
++        return result

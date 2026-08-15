@@ -1,0 +1,24 @@
+ARG SEARXNG_IMAGE=docker.io/searxng/searxng:latest@sha256:37baac8380e1a31e022b8dda0c58dbd6ba0630e3fdaf2c522bda3d140f5ef111
+ARG PATCH_IMAGE=docker.io/library/php:8.2-apache@sha256:e71d4502e5569f46b638c81c420d552d8776e4703c06a90775792497ab982230
+FROM ${PATCH_IMAGE} AS hijacker-patcher
+
+# Patch fails closed if the reviewed upstream revision no longer matches.
+# hadolint ignore=DL3022
+COPY --from=fourget / /tmp/4get-hijacked/
+COPY patches/4get-hijacked-client-hardening.patch /tmp/client-hardening.patch
+WORKDIR /tmp/4get-hijacked
+RUN patch --batch --forward -p1 < /tmp/client-hardening.patch
+
+FROM ${SEARXNG_IMAGE}
+
+# The named build context is supplied by docker-compose.4get.yml from an
+# operator-managed checkout because 4get-hijacked does not publish a license.
+# hadolint ignore=DL3022
+COPY --from=hijacker-patcher --chown=searxng:searxng /tmp/4get-hijacked/searx/engines/ /usr/local/searxng/searx/engines/
+
+# The hardened sidecar listens as non-root on 8080 instead of upstream's 80.
+RUN sed -i 's|http://4get-hijacked:80/|http://fourget-hijacked:8080/|' \
+      /usr/local/searxng/searx/engines/fourget_hijacker_client.py \
+    && sed -i \
+      's/^from fourget_hijacker_client import/from searx.engines.fourget_hijacker_client import/' \
+      /usr/local/searxng/searx/engines/*-4get.py
