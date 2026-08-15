@@ -62,6 +62,11 @@ affect the host. Keep the allowlist small, do not place other containers on
 `docker-control`, and do not add infrastructure or stateful services without a
 specific recovery runbook.
 
+The private `docker-control` network uses `10.250.5.0/28` explicitly so it can
+be created even when Docker's automatic bridge address pools are exhausted.
+Keep that subnet aligned with the host's Docker network plan and do not reuse
+it for another network.
+
 ### Install the workflow
 
 1. Generate a gateway token and put it only in the uncommitted `stack.env`:
