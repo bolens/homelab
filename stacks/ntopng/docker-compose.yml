@@ -2,7 +2,7 @@ services:
   ntopng:
     labels:
       logging: "true"
-    image: ntop/ntopng:latest@sha256:4f3e78ae42559bbc3972bb7cd08aecf1bcd9118085cbf2bda79805e99b907ddd
+    image: ntop/ntopng:latest@sha256:98a737e20df5f3404a2647bc8e3eafbb4361f8d5ef65b0471447170d324eabe5
     container_name: ntopng
     restart: unless-stopped
     cpus: 1.0

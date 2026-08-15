@@ -36,4 +36,6 @@ else
   prepare_stack_msg "settings file already exists at $_settings_path (left unchanged)."
 fi
 
+prepare_stack_msg "optional 4get-hijacked settings in settings-4get-additions.yml.example and source verifier are available (not enabled automatically)."
+
 prepare_stack_end

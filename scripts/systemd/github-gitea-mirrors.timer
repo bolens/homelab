@@ -1,5 +1,5 @@
 [Unit]
-Description=Periodically mirror GitHub homelab state to Gitea
+Description=Periodically mirror GitHub repositories to Gitea
 
 [Timer]
 OnBootSec=5min
