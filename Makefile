@@ -40,7 +40,7 @@ hooks-install:
 	pre-commit install --install-hooks
 
 mirror-sync:
-	bash scripts/sync-gitea-mirrors.sh
+	bash scripts/sync-gitea-mirrors.local.sh
 
 prepare-audit:
 	python3 scripts/audit-prepare-scripts.py

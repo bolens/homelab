@@ -37,6 +37,8 @@ git push
 Synchronize Gitea manually:
 
 ```bash
+cp scripts/sync-gitea-mirrors.sh scripts/sync-gitea-mirrors.local.sh
+# Edit the ignored script with this host's repositories and remotes.
 make mirror-sync
 ```
 
@@ -56,8 +58,9 @@ systemctl --user daemon-reload
 systemctl --user enable --now github-gitea-mirrors.timer
 ```
 
-The timer runs every 15 minutes. It synchronizes Homelab plus the configured
-application repositories in `scripts/sync-gitea-mirrors.sh`. For each one, it
+The timer runs every 15 minutes. It synchronizes the repositories configured in
+the ignored, host-specific `scripts/sync-gitea-mirrors.local.sh`; start from
+`scripts/sync-gitea-mirrors.sh`. For each repository, it
 fetches GitHub `main`, confirms Gitea can fast-forward, pushes that exact commit
 to the Gitea backup, and mirrors tags. It never force-pushes or deletes refs.
 Direct commits to Gitea are unsupported; if a backup diverges, synchronization

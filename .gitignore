@@ -20,6 +20,7 @@ shared.env
 # Local .local hostnames list – copy from scripts/local-hosts.conf.example
 scripts/local-hosts.conf
 scripts/local-hosts.overrides
+scripts/sync-gitea-mirrors.local.sh
 
 # LiteLLM proxy model list (generated from litellm_config.yaml.example by prepare-stack.sh)
 stacks/litellm/litellm_config.yaml
