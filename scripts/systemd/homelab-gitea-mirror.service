@@ -1,9 +1,0 @@
-[Unit]
-Description=Mirror authoritative GitHub homelab branch to Gitea
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-WorkingDirectory=%h/dev/docker
-ExecStart=/usr/bin/bash scripts/sync-gitea-from-github.sh main
