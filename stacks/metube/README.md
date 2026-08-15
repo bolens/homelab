@@ -24,7 +24,10 @@ Self-hosted web GUI for `yt-dlp`/`youtube-dl` with playlist support and a downlo
    docker compose up -d
    ```
 
-   The compose file already uses `env_file: [stack.env]`, so `docker compose up -d` is sufficient. You can also run:
+   `prepare-stack.sh` synchronizes the private `stack.env` to the ignored
+   Compose `.env` file, so `docker compose up -d` is sufficient after
+   preparation. Re-run `./prepare-stack.sh` after changing `stack.env`.
+   You can also bypass the synchronized `.env` file explicitly:
 
    ```bash
    docker compose --env-file stack.env up -d
