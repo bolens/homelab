@@ -6,4 +6,4 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=%h/dev/docker
-ExecStart=/usr/bin/bash scripts/sync-gitea-mirrors.sh
+ExecStart=/usr/bin/bash scripts/sync-gitea-mirrors.local.sh

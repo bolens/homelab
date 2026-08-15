@@ -1,22 +1,14 @@
 #!/usr/bin/env bash
-# Synchronize authoritative GitHub repositories to their Gitea backups.
+# Example: synchronize authoritative GitHub repositories to Gitea backups.
+# Copy to sync-gitea-mirrors.local.sh and configure the ignored local copy.
 set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH="" cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SYNC_HELPER="$SCRIPT_DIR/sync-gitea-from-github.sh"
 
 repositories=(
-  "homelab|$HOME/dev/docker|github|origin"
-  "uddns|$HOME/dev/uddns|origin|backup"
-  "audio-utils|$HOME/dev/audio-utils|origin|backup"
-  "millennium-helpers|$HOME/dev/millennium-helpers|origin|backup"
-  "aur-response-toolkit|$HOME/dev/aur-response-toolkit|origin|backup"
-  "appicon|$HOME/dev/appicon|origin|backup"
-  "launch-layer|/mnt/games/launch-layer|origin|backup"
-  "bolens-profile|$HOME/dev/bolens-profile|origin|backup"
-  "ps-profile|$HOME/dev/ps-profile|origin|backup"
-  "ufw|$HOME/dev/ufw|origin|backup"
-  "waybar-config|$HOME/dev/waybar-config|origin|backup"
+  "example-app|$HOME/dev/example-app|origin|backup"
+  "example-infrastructure|$HOME/dev/example-infrastructure|github|gitea"
 )
 
 failures=0
