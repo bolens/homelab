@@ -74,7 +74,7 @@ services:
   postgres:
     labels:
       logging: "true"
-    image: pgvector/pgvector:pg16@sha256:a36250871de0833b8757561c72f2477ef1ddd1101afa4e617fb552e0de514c6b
+    image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
     container_name: affine-postgres
     restart: unless-stopped
     environment:

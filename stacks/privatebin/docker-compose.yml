@@ -2,7 +2,7 @@ services:
   privatebin:
     labels:
       logging: "true"
-    image: privatebin/nginx-fpm-alpine:latest@sha256:c9a251c924bb3f80be419bdfa2e4b87f110976252b6b1952bc7cb27b90b76bea
+    image: privatebin/nginx-fpm-alpine:latest@sha256:7b10825eb4cdcbb0bb5afb82af5a7f30e83af990480e3da9351ad88a9985d96f
     container_name: privatebin
     restart: unless-stopped
     cpus: 1.0

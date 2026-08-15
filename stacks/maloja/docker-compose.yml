@@ -2,7 +2,7 @@ services:
   maloja:
     labels:
       logging: "true"
-    image: krateng/maloja:latest@sha256:4ecea26058d2ca5168a8d53820279942d28f0606664cea6425f42371d5d88f95
+    image: krateng/maloja:latest@sha256:1ccc7f4f78256242ada110efffe255617c974714455199c59a1fb0696ab23734
     container_name: maloja
     restart: unless-stopped
     cpus: 1.5
