@@ -21,6 +21,7 @@
 | **Networks** | `security-research` for research-tool communication; `ingress-admin` for Caddy |
 | **Image** | `lissy93/web-check:latest` |
 | **DNS** | 8.8.8.8, 1.1.1.1 (so TLS Observatory and other external APIs resolve) |
+| **Health check** | Uses the image's Node.js runtime to request `http://127.0.0.1:3000/` |
 
 ## Features
 

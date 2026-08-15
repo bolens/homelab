@@ -4,7 +4,7 @@ services:
   linkding:
     labels:
       logging: "true"
-    image: sissbruecker/linkding:latest@sha256:61b2eb9eed8e5772a473fb7f1f8923e046cb8cbbeb50e88150afd5ff287d4060
+    image: sissbruecker/linkding:latest@sha256:45ab921bb772ea24cb05f36d35853f78c7141d932cdc5b30a39b626830908e27
     container_name: linkding
     restart: unless-stopped
     cpus: 1.0

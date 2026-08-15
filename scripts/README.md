@@ -59,6 +59,7 @@ changing `stack.env`.
 | `migrate-docker-volume-to-path.sh` | Copies a named volume to a bind path. Stop the affected stack first. |
 | `sync-local-hosts.sh` | Maintains explicitly configured local hostname entries. Read its help before use. |
 | `sync-gitea-from-github.sh` | Safely fast-forwards Gitea from authoritative GitHub and mirrors tags; refuses divergent history. |
+| `sync-gitea-mirrors.sh` | Runs the safe GitHub-to-Gitea synchronization across all configured repositories. |
 | `push-github-mirror.sh` | Compatibility wrapper for `sync-gitea-from-github.sh`. |
 | `pre-commit-*.sh` | Focused wrappers for staged Gitleaks, Hadolint, and zizmor checks. |
 | `sort-caddyfile.py` | Sorts generated Caddy hostname blocks while preserving the file preamble. |

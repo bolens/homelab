@@ -37,7 +37,7 @@ services:
   n8n:
     labels:
       logging: "true"
-    image: docker.n8n.io/n8nio/n8n:latest@sha256:f9a15cc65378e4e5b6c3b1445c83985131938db8d8b5b1ab891d7d50196b2162
+    image: docker.n8n.io/n8nio/n8n:latest@sha256:f5140088385af2d4e681e177d8264bcb41e8fe126062030c5c65cd8f3e1605e1
     container_name: n8n
     restart: unless-stopped
     volumes:
@@ -62,6 +62,9 @@ services:
 networks:
   docker-control:
     internal: true
+    ipam:
+      config:
+        - subnet: 10.250.5.0/28
   ingress-public:
     name: ingress-public
     external: true

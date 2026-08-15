@@ -50,16 +50,18 @@ safe behavior without recreating the Gitea repository:
 
 ```bash
 mkdir -p ~/.config/systemd/user
-install -m 0644 scripts/systemd/homelab-gitea-mirror.* \
+install -m 0644 scripts/systemd/github-gitea-mirrors.* \
   ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now homelab-gitea-mirror.timer
+systemctl --user enable --now github-gitea-mirrors.timer
 ```
 
-The timer runs every 15 minutes. It fetches `github/main`, confirms Gitea can
-fast-forward, pushes that exact commit to `origin/main`, and mirrors tags. It
-never force-pushes or deletes refs. Direct commits to Gitea are unsupported;
-if Gitea diverges, synchronization stops for manual resolution.
+The timer runs every 15 minutes. It synchronizes Homelab plus the configured
+application repositories in `scripts/sync-gitea-mirrors.sh`. For each one, it
+fetches GitHub `main`, confirms Gitea can fast-forward, pushes that exact commit
+to the Gitea backup, and mirrors tags. It never force-pushes or deletes refs.
+Direct commits to Gitea are unsupported; if a backup diverges, synchronization
+fails for that repository while the remaining repositories are still checked.
 
 ---
 
