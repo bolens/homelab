@@ -2,7 +2,7 @@
 # OWASP TorBot – Dark Web OSINT crawler. Uses Tor from separate container (tor:9050).
 # Build: docker compose build  (or build in stack dir)
 # Source: https://github.com/DedSecInside/TorBot
-FROM python:3.12-slim@sha256:646fb0bca3dd3ea1bcc6feb72c17ed16eed6e10cffc732fcc1478bd3e7f02d7b AS builder
+FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && pip install --no-deps . \
     && rm -rf /app/.git
 
-FROM python:3.12-slim@sha256:646fb0bca3dd3ea1bcc6feb72c17ed16eed6e10cffc732fcc1478bd3e7f02d7b
+FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4
 
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /app /app
