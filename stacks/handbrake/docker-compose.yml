@@ -2,7 +2,7 @@ services:
   handbrake:
     labels:
       logging: "true"
-    image: jlesage/handbrake:latest@sha256:f4e93f8d8ec679740379871ff7bf3af64991f8b8727739c50bb2751ce684a4ea
+    image: jlesage/handbrake:latest@sha256:2c41a74338ab6aaca020024a19cce051263471f18aa2cc7214ff552122a7b8ec
     container_name: handbrake
     restart: unless-stopped
     cpus: 6.0

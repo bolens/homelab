@@ -2,7 +2,7 @@ services:
   dbgate:
     labels:
       logging: "true"
-    image: dbgate/dbgate:latest@sha256:38f4af9ab85d4aa112acc2e24d3e12c07c38e1e9727022e4387567cd3ec718a1
+    image: dbgate/dbgate:latest@sha256:232dd7cb37706ef96bc41aae9ac8564cde2ebe4dc63ea72f70ebeb47383ee450
     container_name: dbgate
     restart: unless-stopped
     cpus: 1.5
