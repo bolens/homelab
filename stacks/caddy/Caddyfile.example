@@ -24,6 +24,17 @@
 # Local (.home / .local) – internal TLS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# LAN router UI. Add +router to scripts/local-hosts.overrides so the host's
+# mDNS reconciler advertises router.local at the Caddy LAN address.
+router.local {
+	tls internal
+	reverse_proxy https://192.168.50.1:8443 {
+		transport http {
+			tls_insecure_skip_verify
+		}
+	}
+}
+
 # Infrastructure (Portainer attaches to ingress-admin network)
 portainer.home, portainer.local {
 	tls internal

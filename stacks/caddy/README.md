@@ -28,6 +28,11 @@ where mDNS compatibility is useful. The reconciler documented in
 [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) automatically
 advertises `.local` site labels for running Compose stacks.
 
+Aliases defined directly in the main Caddyfile, such as the example
+`router.local` reverse proxy, are not discovered from stack snippets. Add them
+to `scripts/local-hosts.overrides` (for example, `+router`) before running the
+reconciler.
+
 **Public** routes are a **second** layer, only where a stack is meant to be reachable from the Internet (Cloudflare Tunnel to `http://caddy:80`, and/or origin TLS on `app.example.com` with `tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }`). Those blocks must repeat the same upstream, **`transport http { versions 1.1 }`**, and (for tunnel) **`header_up`** for `Host`, `X-Forwarded-Proto https`, and `X-Forwarded-Host` — see [CLOUDFLARE.md](./CLOUDFLARE.md).
 
 **Reality check:** that public layer was **never applied to every stack** in one pass. Only stacks whose snippets actually mention **`example.com`** get tunnel + public TLS in the repo; the rest are **internal-only until someone adds** matching `http://…` / `….example.com` blocks (and Cloudflare Tunnel public hostnames) for the hostnames they want. Stacks that should **never** be on a public hostname (e.g. some DB UIs, LAN-only infra, high-risk surfaces) should **omit** `*.example.com` on purpose and note that in a one-line comment at the top of the snippet.
