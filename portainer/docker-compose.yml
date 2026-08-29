@@ -25,6 +25,10 @@ services:
       disable: true
     env_file:
       - stack.env
+    environment:
+      # Portainer requires an absolute origin URL. Keep stack.env portable by
+      # accepting the documented hostname-only operator input.
+      - TRUSTED_ORIGINS=https://${TRUSTED_ORIGINS}
     networks:
       - default
       - ingress-admin
