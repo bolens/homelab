@@ -13,7 +13,7 @@ the watch folder and HandBrake auto-encodes them to the output folder. Access th
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. Set USER_ID/GROUP_ID to match your host user (`id -u && id -g`) so bind-mount paths are writable.
+2. Confirm `HANDBRAKE_USER_ID`/`HANDBRAKE_GROUP_ID` match the existing media-tree owner. The defaults are Unraid's `nobody:users` (`99:100`).
 3. Verify the configured storage, watch, and output directories are on mounted storage.
 4. Deploy: `docker compose up -d`
 
@@ -21,8 +21,8 @@ the watch folder and HandBrake auto-encodes them to the output folder. Access th
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| USER_ID | Yes | 1000 | Host UID for file ownership on bind mounts |
-| GROUP_ID | Yes | 1000 | Host GID for file ownership on bind mounts |
+| HANDBRAKE_USER_ID | Yes | 99 | Host UID for file ownership on bind mounts; Unraid `nobody` by default |
+| HANDBRAKE_GROUP_ID | Yes | 100 | Host GID for file ownership on bind mounts; Unraid `users` by default |
 | UMASK | No | 002 | Umask applied to created files |
 | HANDBRAKE_CONFIG_PATH | No | compose default | Host path for HandBrake config directory |
 | HANDBRAKE_STORAGE_PATH | No | /mnt/unraid/media | Read-only source media library |
