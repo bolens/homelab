@@ -17,6 +17,19 @@ The Caddy snippet exposes the metrics endpoint at tailscale-exporter.home / tail
 3. Generate a Headscale API key: `headscale apikeys create` and set `HEADSCALE_API_KEY`.
 4. Deploy: `docker compose up -d`
 
+## Rotate the API key
+
+Run `./rotate-api-key.sh` from any directory. The script creates a one-year
+Headscale API key, atomically updates the ignored `stack.env`, recreates only
+the exporter, checks its logs for authentication failures, and then expires
+the prior exporter key. Credential values are never printed.
+
+The host needs Docker Compose and `jq`, plus permission to access Docker. The
+defaults assume containers named `headscale` and `tailscale-exporter`. Override
+`HEADSCALE_CONTAINER`, `TAILSCALE_EXPORTER_CONTAINER`, or
+`HEADSCALE_API_KEY_EXPIRATION` when another machine uses different names or a
+different lifetime.
+
 ## Environment variables
 
 | Variable | Required | Default | Description |
