@@ -3,6 +3,7 @@
 #
 # Include an alias even when its stack is not running or it is not a Caddy site:
 # +status
+# +router
 #
 # Exclude an alias discovered in an active stack's runtime caddy_snippet.conf:
 # -admin.local

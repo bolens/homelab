@@ -41,12 +41,12 @@ def active_stack_dirs(repo: Path | None) -> set[Path]:
         ]
     )
     directories: set[Path] = set()
-    stacks = (repo / "stacks").resolve() if repo else None
+    root = repo.resolve() if repo else None
     for value in output.splitlines():
         if not value.strip():
             continue
         path = Path(value.strip()).resolve()
-        if stacks is None or path == stacks or stacks in path.parents:
+        if root is None or path == root or root in path.parents:
             directories.add(path)
     return directories
 

@@ -16,6 +16,22 @@ SPEC.loader.exec_module(MODULE)
 
 
 class SyncLocalHostsTests(unittest.TestCase):
+    def test_repo_filter_includes_top_level_and_nested_compose_projects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory).resolve()
+            output = "\n".join(
+                [
+                    str(repo / "portainer"),
+                    str(repo / "stacks" / "caddy"),
+                    str(repo.parent / "unrelated"),
+                ]
+            )
+            with mock.patch.object(MODULE, "run", return_value=output):
+                self.assertEqual(
+                    MODULE.active_stack_dirs(repo),
+                    {repo / "portainer", repo / "stacks" / "caddy"},
+                )
+
     def test_extracts_only_caddy_site_labels(self):
         with tempfile.TemporaryDirectory() as directory:
             snippet = Path(directory) / "caddy_snippet.conf"
