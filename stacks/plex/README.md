@@ -15,6 +15,8 @@ Self-hosted media server for movies, TV shows, and music. Plex serves your media
      - `TZ` to your timezone.
      - `PUID` / `PGID` to the user/group that should own media and metadata.
      - Confirm media paths (defaults `/mnt/unraid/media/{tv,movies,music}`).
+     - Keep `PLEX_VERSION=latest` to install the newest release available to
+       the signed-in account, or use `public` to avoid Plex Pass beta releases.
      - Optionally `PLEX_CLAIM` with a claim token from Plex (first run only).
 2. **Deploy**
    - From this directory:
@@ -39,7 +41,7 @@ writable by the configured `PUID`/`PGID`.
 | **Access** | Direct via `http://host:32400/web`, or via Caddy reverse proxy         |
 | **Network**| Plex uses host networking for direct clients and LAN discovery; a port-32400-only proxy preserves segmented `ingress-public` and `media-services` access |
 | **Image**  | `lscr.io/linuxserver/plex:latest`                                      |
-| **Env**    | `TZ`, `PUID`, `PGID`, `VERSION=docker`, `PLEX_*_PATH`, optional `PLEX_CLAIM` |
+| **Env**    | `TZ`, `PUID`, `PGID`, `PLEX_VERSION`, `PLEX_*_PATH`, optional `PLEX_CLAIM` |
 | **Storage**| `plex_config` → `/config`, `plex_transcode` → `/transcode`, host media paths → `/data/{tv,movies,music}` |
 
 ## Direct connections and Remote Access
