@@ -8,7 +8,9 @@ RUN pecl install apcu-5.1.28
 COPY --from=hijacker / /tmp/4get-hijacked/
 COPY patches/4get-hijacked-sidecar-hardening.patch /tmp/sidecar-hardening.patch
 WORKDIR /tmp/4get-hijacked
-RUN patch -N -p1 < /tmp/sidecar-hardening.patch
+# Upstream contains whitespace-only lines in mock.php; ignore whitespace while
+# still failing closed when any reviewed code context changes.
+RUN patch -N -l -p1 < /tmp/sidecar-hardening.patch
 
 FROM ${PHP_IMAGE}
 
