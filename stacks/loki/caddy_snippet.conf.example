@@ -1,9 +1,9 @@
-# Loki (query / ready UI on :80) — split-horizon + public TLS: loki.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Loki (query / ready API on :3100) — split-horizon + public TLS: loki.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
 # Prefer Cloudflare Access; exposes log ingestion/query paths.
 
 loki.home, loki.local {
 	tls internal
-	reverse_proxy loki:80 {
+	reverse_proxy loki:3100 {
 		header_up Host {host}
 		transport http {
 			versions 1.1
@@ -12,7 +12,7 @@ loki.home, loki.local {
 }
 
 http://loki.example.com {
-	reverse_proxy loki:80 {
+	reverse_proxy loki:3100 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}
@@ -26,7 +26,7 @@ loki.example.com {
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 	}
-	reverse_proxy loki:80 {
+	reverse_proxy loki:3100 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 		header_up X-Forwarded-Host {host}

@@ -1,6 +1,6 @@
 promtail.home, promtail.local {
 	tls internal
-	reverse_proxy promtail:80 {
+	reverse_proxy promtail:9080 {
 		transport http {
 			versions 1.1
 		}
