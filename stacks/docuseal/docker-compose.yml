@@ -31,7 +31,7 @@ services:
       retries: 10
 
   docuseal:
-    image: docker.io/docuseal/docuseal:latest@sha256:a8ce45fc96cb0b8670021ba781966591a1d09efb70882c920a465e87e4fea800
+    image: docker.io/docuseal/docuseal:latest@sha256:32433e4cb80ded38ac4125760c452009bd14a433cf0776767ea6ce48f8c3afb1
     container_name: docuseal
     restart: unless-stopped
     depends_on:

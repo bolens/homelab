@@ -33,7 +33,7 @@ services:
     labels:
       logging: "true"
     container_name: linkwarden-meilisearch
-    image: getmeili/meilisearch:v1.53.0
+    image: getmeili/meilisearch:v1.53.1
     cpus: 2.0
     mem_limit: 2g
     memswap_limit: 3g
@@ -53,7 +53,7 @@ services:
     labels:
       logging: "true"
     container_name: linkwarden
-    image: ghcr.io/linkwarden/linkwarden:latest@sha256:d805877fb707d160b809027c302f84cfba11a248d7fdc12de90b4791f98e6b55
+    image: ghcr.io/linkwarden/linkwarden:latest@sha256:6902e62a6d68e1906045310dbf9b2df7f3d784a7b2e9d0f02c23666023791634
     cpus: 2.0
     mem_limit: 3g
     memswap_limit: 4g

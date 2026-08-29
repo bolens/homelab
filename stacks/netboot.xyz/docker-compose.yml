@@ -2,7 +2,7 @@ services:
   netbootxyz:
     labels:
       logging: "true"
-    image: ghcr.io/netbootxyz/netbootxyz:latest@sha256:39bb40c85d1f6e500b3df1871460f88609215735c224b234b9e6e4e849faf92b
+    image: ghcr.io/netbootxyz/netbootxyz:latest@sha256:7bd0964fd3648cd3323772ad6ad8b0a507afe797385e4c0f587a8c23972ee4e3
     container_name: netbootxyz
     restart: unless-stopped
     cpus: 2.0

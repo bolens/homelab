@@ -28,7 +28,7 @@ services:
   gitea:
     labels:
       logging: "true"
-    image: gitea/gitea:latest@sha256:34e3f6b75f5cbb6aebce588037fc5a53c84213e4d4b00da0a8d73e031a558e52
+    image: gitea/gitea:latest@sha256:d20286ca2b2e170fdf628e7231b8a31a3220ade39ff462b55041d43d1fc757dd
     container_name: gitea
     restart: unless-stopped
     env_file:
