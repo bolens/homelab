@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050914">
+  <meta name="description" content="Explore the Docker homelab topology and its portable stack model.">
+  <title>Homelab Atlas</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#topology">Skip to topology</a>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="Homelab Atlas home">
+      <span class="brand-mark" aria-hidden="true"></span> Homelab Atlas
+    </a>
+    <nav aria-label="Primary navigation">
+      <a href="#topology">Topology</a>
+      <a href="#stack-model">Stack model</a>
+      <a href="https://github.com/bolens/homelab">Repository</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="home" aria-labelledby="hero-title">
+      <span class="eyebrow">Portable Docker infrastructure</span>
+      <h1 id="hero-title">See the homelab before you deploy it.</h1>
+      <p>Explore the ingress paths, shared services, observability layer, and isolated application stacks that make up this self-hosted system.</p>
+      <div class="hero-actions">
+        <a class="button primary" href="#topology">Explore the live topology</a>
+        <a class="button secondary" href="https://github.com/bolens/homelab/tree/main/stacks">Browse stack examples</a>
+      </div>
+      <dl class="stats" aria-label="Repository summary">
+        <div><dt>documented stacks</dt><dd>217</dd></div>
+        <div><dt>Compose projects validated</dt><dd>214</dd></div>
+        <div><dt>ingress trust zones</dt><dd>3</dd></div>
+      </dl>
+    </section>
+
+    <section class="topology-section" id="topology" aria-labelledby="topology-title">
+      <div class="section-heading">
+        <div><span class="eyebrow">Interactive architecture</span><h2 id="topology-title">Trace how traffic moves</h2></div>
+        <a class="text-link" href="topology.html">Open full screen <span aria-hidden="true">↗</span></a>
+      </div>
+      <p class="section-intro" id="topology-description">Follow public ingress, private access, service dependencies, VPN egress, telemetry, and operational control paths. The diagram supports keyboard navigation, search, zoom, relationship tracing, and export.</p>
+      <div class="topology-frame">
+        <iframe src="topology.html" title="Interactive Docker homelab architecture" aria-describedby="topology-description" loading="eager"></iframe>
+      </div>
+    </section>
+
+    <section class="stack-model" id="stack-model" aria-labelledby="stack-model-title">
+      <span class="eyebrow">Operating model</span>
+      <h2 id="stack-model-title">Independent stacks, explicit contracts</h2>
+      <p>Every service remains a portable Compose example with its own setup, storage, networking, security choices, and verification steps.</p>
+    </section>
+  </main>
+</body>
+</html>
