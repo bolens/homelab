@@ -3,7 +3,7 @@
 Generated from `documents/topology.yaml`. Do not edit the generated section directly.
 
 <!-- TOPOLOGY_GENERATED_START -->
-[![Docker homelab architecture](topology.png)](topology.html)
+[![Docker homelab architecture](topology-dark.png)](topology.html)
 
 [Open the interactive architecture diagram](topology.html). Its controls support
 theme switching, pan and zoom, relationship tracing, and export. The checked

@@ -23,7 +23,7 @@ repos:
         language: system
         pass_filenames: false
         files: >-
-          ^(documents/(TOPOLOGY\.md|topology\.(architecture\.json|html|png|yaml))|scripts/(build-topology|validate-topology-artifacts)\.py)$
+          ^(documents/(TOPOLOGY\.md|topology-dark\.png|topology\.(architecture\.json|html|yaml))|scripts/(build-topology|validate-topology-artifacts)\.py)$
       - id: actionlint
         name: GitHub workflow syntax
         entry: actionlint

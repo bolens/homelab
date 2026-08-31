@@ -25,7 +25,7 @@ python3 scripts/build-topology.py --in-place
 The topology inventory comes from `documents/topology.yaml`. The architecture
 diagram has a separate checked source at
 `documents/topology.architecture.json`; update and validate that source before
-replacing `documents/topology.html` and its `topology.png` preview.
+replacing `documents/topology.html` and its `topology-dark.png` preview.
 
 Keep application-specific setup, environment variables, health checks, and
 troubleshooting in `stacks/<name>/README.md`. Cross-stack concepts belong in

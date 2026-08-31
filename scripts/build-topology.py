@@ -68,7 +68,7 @@ def build_prose(data: dict) -> str:
 
 def generated_section(prose: str) -> str:
     return f"""{MARKER_START}
-[![Docker homelab architecture](topology.png)](topology.html)
+[![Docker homelab architecture](topology-dark.png)](topology.html)
 
 [Open the interactive architecture diagram](topology.html). Its controls support
 theme switching, pan and zoom, relationship tracing, and export. The checked

@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCUMENTS = REPO_ROOT / "documents"
 SOURCE = DOCUMENTS / "topology.architecture.json"
 ARTIFACT = DOCUMENTS / "topology.html"
-PREVIEW = DOCUMENTS / "topology.png"
+PREVIEW = DOCUMENTS / "topology-dark.png"
 INDEX = DOCUMENTS / "TOPOLOGY.md"
 
 
@@ -93,9 +93,11 @@ def validate_index() -> None:
         index = INDEX.read_text(encoding="utf-8")
     except OSError as error:
         fail(f"cannot read {INDEX.relative_to(REPO_ROOT)}: {error}")
-    for target in ("topology.html", "topology.png", "topology.architecture.json"):
+    for target in ("topology.html", "topology-dark.png", "topology.architecture.json"):
         if target not in index:
             fail(f"topology index does not link {target}")
+    if "topology.png" in index:
+        fail("topology index must use the dark preview")
     if "```mermaid" in index:
         fail("topology index must not contain a Mermaid diagram")
 
