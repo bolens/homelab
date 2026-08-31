@@ -4,6 +4,10 @@ A modular collection of Docker Compose stacks for a self-hosted homelab. Each
 stack is independently deployable and documents its own configuration,
 dependencies, storage, networking, and upgrade notes.
 
+Looking for an application rather than deployment files? Start with the
+[Homelab Atlas](https://bolens.github.io/homelab/). The site explains what each
+service does, how it fits into the homelab, and which safety choices need review.
+
 > [!IMPORTANT]
 > This repository contains examples, not a ready-made production environment.
 > Review a stack's README and example files before deploying it. Never commit
@@ -13,6 +17,7 @@ dependencies, storage, networking, and upgrade notes.
 
 | I want to… | Go to |
 |---|---|
+| Find a service without reading deployment files | [Homelab Atlas](https://bolens.github.io/homelab/) |
 | Set up a new host and deploy a first stack | [Getting started](documents/GETTING-STARTED.md) |
 | Find an application or service | [Stack catalog](documents/STACK-CATALOG.md) |
 | Configure a particular stack | Its linked README in the [stack catalog](documents/STACK-CATALOG.md) |

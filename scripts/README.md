@@ -30,7 +30,9 @@ Gitleaks scan.
 | `audit-repo-hygiene.py` | Checks README/example/metadata coverage, ignored runtime env files, portable examples, every tracked Markdown link, root CI/config syntax, and Caddy upstream basics. |
 | `build-stack-catalog.py` | Regenerates `documents/STACK-CATALOG.md` from stack READMEs. |
 | `build-topology.py` | Regenerates the topology inventory and architecture links in `documents/TOPOLOGY.md` from `documents/topology.yaml`. Requires PyYAML. The diagram source is `documents/topology.architecture.json`. |
+| `build-pages-site.py` | Generates the GitHub Pages catalog and application guides from stack metadata, READMEs, and topology artifacts. Requires PyYAML. |
 | `validate-topology-artifacts.py` | Checks the Archify source graph, rendered HTML, dark PNG preview, topology links, and Mermaid removal. |
+| `validate-pages-site.py` | Checks generated Pages landmarks, page counts, local links, fragments, and accessibility-critical CSS. |
 | `scan-secrets-gitleaks.sh [git\|dir]` | Scans full Git history (default) or files on disk. The `dir` mode includes ignored runtime secrets, so output must be handled carefully. |
 
 ## Stack preparation

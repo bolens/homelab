@@ -4,6 +4,10 @@ Cross-stack guides for operating and maintaining this Docker homelab.
 Application-specific setup belongs in each stack's README; find one through the
 [stack catalog](STACK-CATALOG.md).
 
+For plain-language service discovery and architecture guidance, use the
+[Homelab Atlas](https://bolens.github.io/homelab/). This directory remains the
+technical reference for deployment and operation.
+
 ## New deployment
 
 1. Follow [Getting started](GETTING-STARTED.md) for prerequisites, preparation,
