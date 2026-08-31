@@ -69,7 +69,7 @@ def page(title: str, description: str, body: str, active: str = "") -> str:
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#050914"><meta name="description" content="{html.escape(description, quote=True)}">
 <title>{html.escape(title)} | Homelab Atlas</title><link rel="stylesheet" href="/homelab/styles.css"></head>
-<body>{header(active)}<main id="main">{body}</main>{footer()}</body></html>
+<body>{header(active)}<main id="main" tabindex="-1">{body}</main>{footer()}</body></html>
 '''
 
 

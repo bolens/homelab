@@ -33,6 +33,7 @@ Gitleaks scan.
 | `build-pages-site.py` | Generates the GitHub Pages catalog and application guides from stack metadata, READMEs, and topology artifacts. Requires PyYAML. |
 | `validate-topology-artifacts.py` | Checks the Archify source graph, rendered HTML, dark PNG preview, topology links, and Mermaid removal. |
 | `validate-pages-site.py` | Checks generated Pages landmarks, page counts, local links, fragments, and accessibility-critical CSS. |
+| `serve-pages-site.py` | Serves the static site at `/homelab/` for the Playwright and Axe test suite. |
 | `scan-secrets-gitleaks.sh [git\|dir]` | Scans full Git history (default) or files on disk. The `dir` mode includes ignored runtime secrets, so output must be handled carefully. |
 
 ## Stack preparation

@@ -31,6 +31,13 @@ repos:
         pass_filenames: false
         files: >-
           ^(site/public/|stacks/[^/]+/(README\.md|stack\.yaml)|documents/topology\.(html|architecture\.json)|documents/topology-dark\.png|scripts/(build-pages-site|validate-pages-site)\.py|Makefile)$
+      - id: site-test-syntax
+        name: Site browser-test syntax
+        entry: make site-test-syntax
+        language: system
+        pass_filenames: false
+        files: >-
+          ^(package(-lock)?\.json|playwright\.config\.js|tests/site/|scripts/serve-pages-site\.py|Makefile)$
       - id: actionlint
         name: GitHub workflow syntax
         entry: actionlint
@@ -42,7 +49,7 @@ repos:
         entry: bash scripts/pre-commit-zizmor.sh
         language: system
         pass_filenames: false
-        files: ^\.github/workflows/.*\.ya?ml$
+        files: ^\.github/(workflows/.*\.ya?ml|actions/)
       - id: hadolint
         name: Dockerfile lint
         entry: bash scripts/pre-commit-hadolint.sh

@@ -73,6 +73,7 @@ fails for that repository while the remaining repositories are still checked.
 Install the hooks once:
 
 ```bash
+npm ci
 make hooks-install
 ```
 
@@ -98,6 +99,17 @@ make validate-changed BASE=origin/main
 The hooks require Python with PyYAML, pre-commit, ShellCheck, Gitleaks,
 actionlint, and Hadolint. The zizmor hook uses a native installation when
 available and otherwise uses its pinned Docker image.
+
+Run the Pages browser suite separately because it starts Chrome and is slower
+than the commit-time checks:
+
+```bash
+make site-test
+```
+
+CI runs the same locked Playwright and Axe suite before it publishes GitHub
+Pages. The tests cover serious accessibility violations, catalog search and
+filters, keyboard skip navigation, JavaScript errors, and mobile overflow.
 
 ---
 

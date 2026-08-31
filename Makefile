@@ -1,4 +1,4 @@
-.PHONY: help doctor validate validate-strict validate-changed ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate validate-strict validate-changed ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 help:
 	@echo "Homelab repository targets:"
@@ -16,6 +16,8 @@ help:
 	@echo "  docs-check         Fail when generated documentation is stale"
 	@echo "  pages-generate     Regenerate the public application reference"
 	@echo "  pages-check        Validate generated Pages content and links"
+	@echo "  site-test-syntax   Check browser-test and server syntax"
+	@echo "  site-test          Run browser accessibility and behavior tests"
 	@echo "  secrets            Scan the full Git history with Gitleaks"
 	@echo "  secrets-files      Scan files on disk, including ignored runtime files"
 	@echo "  monitoring-iterate Validate, reload, and smoke-test monitoring"
@@ -68,6 +70,14 @@ pages-check:
 	python3 scripts/build-pages-site.py --check
 	python3 scripts/validate-pages-site.py
 	node --check site/public/search.js
+
+site-test-syntax:
+	node --check playwright.config.js
+	node --check tests/site/site.spec.js
+	python3 -m py_compile scripts/serve-pages-site.py
+
+site-test: site-test-syntax
+	npm run test:site
 
 secrets:
 	bash scripts/scan-secrets-gitleaks.sh git

@@ -1,0 +1,18 @@
+{
+  "name": "homelab-repository-tools",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "lint:markdown": "markdownlint-cli2 --config .markdownlint.json",
+    "test:site": "playwright test",
+    "test:site:ci": "playwright test --reporter=line"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.62.1",
+    "markdownlint-cli2": "0.23.2"
+  }
+}

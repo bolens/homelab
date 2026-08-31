@@ -131,6 +131,8 @@ Thumbs.db
 *.swp
 *~
 node_modules
+playwright-report/
+test-results/
 .cursor/
 .fallow/
 

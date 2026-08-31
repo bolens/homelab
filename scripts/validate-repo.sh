@@ -74,8 +74,12 @@ echo "Checking Markdown style..."
 mapfile -t markdown_files < <(git ls-files '*.md' | while read -r file; do
   [[ -f "$file" ]] && printf '%s\n' "$file"
 done)
-run_optional_check markdownlint-cli2 markdownlint-cli2 --config .markdownlint.json \
-  "${markdown_files[@]}"
+if [[ -x node_modules/.bin/markdownlint-cli2 ]]; then
+  node_modules/.bin/markdownlint-cli2 --config .markdownlint.json "${markdown_files[@]}"
+else
+  run_optional_check markdownlint-cli2 markdownlint-cli2 --config .markdownlint.json \
+    "${markdown_files[@]}"
+fi
 
 echo "Checking repository shell helpers..."
 mapfile -t shell_files < <(git ls-files '*.sh' | while read -r file; do
