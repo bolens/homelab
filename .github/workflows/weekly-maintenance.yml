@@ -23,18 +23,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.13"
-
-      - name: Install validation dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes shellcheck yamllint
-          sudo npm install --global markdownlint-cli2@0.22.0
-          python -m pip install --disable-pip-version-check \
-            --require-hashes -r .github/requirements-validation.txt
+      - name: Set up validation tools
+        uses: ./.github/actions/setup-validation
 
       - name: Validate repository
         run: make validate-strict
@@ -53,7 +43,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check links
+      - name: Check internal documentation links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --no-progress
+            --offline
+            --include-fragments
+            './**/*.md'
+          fail: true
+          failIfEmpty: true
+          jobSummary: true
+          output: internal-links.md
+
+      - name: Check external documentation links
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: >-
@@ -67,4 +70,5 @@ jobs:
           # Keep the detailed summary actionable without breaking all CI.
           fail: false
           jobSummary: true
+          output: external-links.md
           token: ${{ github.token }}

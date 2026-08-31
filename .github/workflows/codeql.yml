@@ -5,6 +5,10 @@ on:
     branches: ["main"]
   push:
     branches: ["main"]
+    paths:
+      - "**/*.py"
+      - ".github/actions/**"
+      - ".github/workflows/**"
   schedule:
     - cron: "23 9 * * 3"
   workflow_dispatch:

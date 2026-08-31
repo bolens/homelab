@@ -23,25 +23,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.13"
-
-      - name: Install validation dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes shellcheck yamllint
-          sudo npm install --global markdownlint-cli2@0.22.0
-          python -m pip install --disable-pip-version-check \
-            --require-hashes -r .github/requirements-validation.txt
+      - name: Set up validation tools
+        uses: ./.github/actions/setup-validation
 
       - name: Validate repository
         if: github.event_name != 'pull_request'
         run: make validate-strict
-
-      - name: Validate Archify topology artifacts
-        run: python scripts/validate-topology-artifacts.py
 
       - name: Validate changed stacks and global invariants
         if: github.event_name == 'pull_request'
@@ -53,3 +40,25 @@ jobs:
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  site-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install locked browser-test dependencies
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: npm ci
+
+      - name: Test accessibility and behavior
+        run: npm run test:site:ci

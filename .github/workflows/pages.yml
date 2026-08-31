@@ -5,6 +5,13 @@ on:
     branches: ["main"]
     paths:
       - ".github/workflows/pages.yml"
+      - ".github/actions/setup-validation/action.yml"
+      - ".github/requirements-validation.txt"
+      - ".gitignore"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.config.js"
+      - "tests/site/**"
       - "site/public/**"
       - "stacks/*/README.md"
       - "stacks/*/stack.yaml"
@@ -12,6 +19,7 @@ on:
       - "documents/topology-dark.png"
       - "scripts/build-pages-site.py"
       - "scripts/validate-pages-site.py"
+      - "scripts/serve-pages-site.py"
   workflow_dispatch:
 
 permissions:
@@ -41,22 +49,20 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-        with:
-          enablement: true
 
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - name: Set up validation tools
+        uses: ./.github/actions/setup-validation
         with:
-          python-version: "3.13"
-
-      - name: Install generator dependency
-        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/requirements-validation.txt
+          system-tools: "false"
 
       - name: Validate generated site
         run: |
           python scripts/build-pages-site.py --check
           python scripts/validate-pages-site.py
           node --check site/public/search.js
+
+      - name: Test accessibility and behavior
+        run: npm run test:site:ci
 
       - name: Upload site
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

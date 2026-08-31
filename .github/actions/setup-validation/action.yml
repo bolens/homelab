@@ -1,0 +1,41 @@
+name: Set up repository validation
+description: Install the locked Python, Node, YAML, Markdown, and shell validation tools.
+
+inputs:
+  system-tools:
+    description: Install ShellCheck and yamllint.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: "3.13"
+        cache: pip
+        cache-dependency-path: .github/requirements-validation.txt
+
+    - name: Set up Node
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+      with:
+        node-version: "24"
+        cache: npm
+
+    - name: Install system validation tools
+      if: inputs.system-tools == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install --yes shellcheck yamllint
+
+    - name: Install locked dependencies
+      shell: bash
+      env:
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      run: |
+        npm ci
+        echo "$GITHUB_WORKSPACE/node_modules/.bin" >> "$GITHUB_PATH"
+        python -m pip install --disable-pip-version-check \
+          --require-hashes -r .github/requirements-validation.txt
