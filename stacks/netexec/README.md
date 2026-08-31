@@ -22,5 +22,5 @@ No required environment variables.
 
 - TZ and locale come from shared.env.
 - Uses ordinary bridge networking and a writable local workspace.
-- No persistent service — use `docker compose run --rm` for each invocation.
+- No persistent service, use `docker compose run --rm` for each invocation.
 - Tool is under active development; pin image tags if reproducibility matters.

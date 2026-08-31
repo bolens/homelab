@@ -2,10 +2,10 @@
 
 Prometheus Node Exporter for host-level metrics (CPU, memory, disk, network). Use with Prometheus and Grafana (e.g. dashboard **1860** – Node Exporter Full).
 
-**Website:** https://prometheus.io/docs/guides/node-exporter/  
-**Docs:** https://prometheus.io/docs/guides/node-exporter/  
-**Docker image:** https://hub.docker.com/r/prom/node-exporter  
-**GitHub:** https://github.com/prometheus/node_exporter  
+**Website:** https://prometheus.io/docs/guides/node-exporter/
+**Docs:** https://prometheus.io/docs/guides/node-exporter/
+**Docker image:** https://hub.docker.com/r/prom/node-exporter
+**GitHub:** https://github.com/prometheus/node_exporter
 
 ## Quick start
 
@@ -32,7 +32,7 @@ Prometheus Node Exporter for host-level metrics (CPU, memory, disk, network). Us
 | Item        | Details                                                                 |
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Internal only; Prometheus scrapes `node-exporter:9100` on `telemetry`    |
-| **Network** | `telemetry` — shared with Prometheus, Grafana, cAdvisor                 |
+| **Network** | `telemetry`, shared with Prometheus, Grafana, cAdvisor                 |
 | **Host data** | Mounts host root (`/:/host:ro,rslave`) so metrics reflect the Docker host |
 
 The container health check uses the lightweight `/` landing page. Prometheus

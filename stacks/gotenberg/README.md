@@ -24,8 +24,8 @@ Used as an internal service called by other stacks (e.g., Paperless-ngx, custom 
 
 ## Notes
 
-- Gotenberg is stateless — no persistent storage needed.
+- Gotenberg is stateless, no persistent storage needed.
 - This stack is internal-only by default and has no Caddy route or host port.
 - Health is checked through Gotenberg's `/health` endpoint.
 - Paperless-ngx can use Gotenberg for document conversion; set PAPERLESS_TIKA_GOTENBERG_ENDPOINT accordingly.
-- Default API port is 3000; no authentication is built in — restrict network access.
+- Default API port is 3000; no authentication is built in, restrict network access.

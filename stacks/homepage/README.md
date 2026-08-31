@@ -1,21 +1,21 @@
 # Homepage
 
-Static **landing page** (e.g. “under construction”) for your root domain or a dedicated hostname. One nginx container serves files from `./www`; no database or app logic. Replace the default `www/index.html` with your own content when you are ready.
+Static **landing page** (e.g. "under construction") for your root domain or a dedicated hostname. One nginx container serves files from `./www`; no database or app logic. Replace the default `www/index.html` with your own content when you are ready.
 
-**Use case:** Serve a simple “under construction” or placeholder page at `https://yourdomain.com` and `https://www.yourdomain.com` (or at `https://homepage.yourdomain.com`) until you deploy a full site.
+**Use case:** Serve a simple "under construction" or placeholder page at `https://yourdomain.com` and `https://www.yourdomain.com` (or at `https://homepage.yourdomain.com`) until you deploy a full site.
 
 ## Quick start
 
-1. **Environment**  
+1. **Environment**
    Copy `stack.env.example` to `stack.env` (all vars optional).
 
-2. **Content**  
-   Edit `www/index.html` if you want to change the default “Under construction” message.
+2. **Content**
+   Edit `www/index.html` if you want to change the default "Under construction" message.
 
-3. **Deploy**  
+3. **Deploy**
    From this directory: `docker compose up -d` (or add the stack in Portainer).
 
-4. **Caddy**  
+4. **Caddy**
    Add the Caddy site block(s) from [Caddy](#caddy) below to your Caddyfile (copy from `stacks/caddy/Caddyfile.example`). Use your real hostname in the Caddyfile (e.g. `yourdomain.com, www.yourdomain.com` or `homepage.yourdomain.com`). No host ports; access only via Caddy at `homepage:80` on the `ingress-admin` network.
 
 ## Configuration

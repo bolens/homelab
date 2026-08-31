@@ -26,5 +26,5 @@ Registers one or more runners against the GitLab stack using a registration toke
 ## Notes
 
 - Runner config is persisted in a volume; re-registration is not needed after restarts.
-- Docker-in-Docker executor requires privileged mode — review security implications.
+- Docker-in-Docker executor requires privileged mode, review security implications.
 - Runners must be able to reach the GitLab instance by hostname or IP.

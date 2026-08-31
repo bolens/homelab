@@ -62,14 +62,14 @@ Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code
 
 Once running, access LibreChat via your Caddy reverse proxy (e.g. `https://librechat.yourdomain.com`).
 
-### Initial Setup
+### Initial setup
 
 1. Open the web UI at your LibreChat URL (e.g. behind Caddy)
 2. Create your first admin account
 3. Configure AI providers in Settings
 4. Start chatting!
 
-### AI Providers
+### AI providers
 
 LibreChat supports:
 - **Ollama** (local models) - Recommended for privacy
@@ -86,7 +86,7 @@ LibreChat supports:
 
 Configure providers in Settings → Endpoints after login.
 
-### Key Features
+### Key features
 
 #### Agents & Tools
 - Build custom AI agents with no-code interface
@@ -94,18 +94,18 @@ Configure providers in Settings → Endpoints after login.
 - Agent marketplace
 - Share agents with users/groups
 
-#### Code Interpreter
+#### Code interpreter
 - Secure sandboxed execution
 - Supports Python, Node.js, Go, C/C++, Java, PHP, Rust, Fortran
 - File upload/download support
 - Fully isolated execution
 
-#### Web Search
+#### Web search
 - Search the internet and inject results into context
 - Multiple search providers
 - Customizable reranking
 
-#### Image Generation
+#### Image generation
 - DALL-E 3/2
 - Stable Diffusion
 - Flux
@@ -143,17 +143,17 @@ For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../do
 
 ## Troubleshooting
 
-### MongoDB Connection Issues
+### MongoDB connection issues
 - Check MongoDB is healthy: `docker ps | grep mongodb`
 - Verify credentials match in `stack.env`
 - Check MongoDB logs: `docker logs librechat-mongodb`
 
-### Redis Connection Issues
+### Redis connection issues
 - Check Redis is healthy: `docker ps | grep redis`
 - Verify password matches in `stack.env`
 - Check Redis logs: `docker logs librechat-redis`
 
-### Ollama Connection Issues
+### Ollama connection issues
 - Verify Ollama is accessible at the configured URL
 - Check network connectivity between containers
 - Ensure Ollama is running and models are available
@@ -161,17 +161,17 @@ For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../do
 ### Config / auth.json errors
 - Ensure `config/librechat.yaml` and `config/auth.json` exist. The stack ships with minimal defaults; edit `config/librechat.yaml` for custom endpoints and see [LibreChat config docs](https://www.librechat.ai/docs/configuration/librechat_yaml).
 
-### Permission Issues
+### Permission issues
 - Ensure data directories have proper permissions
 - Container runs as non-root user
 
-## Advanced Configuration
+## Advanced configuration
 
-### Environment Variables
+### Environment variables
 
 LibreChat supports many environment variables for customization. See the official documentation for a complete list.
 
-### Database Options
+### Database options
 
 While MongoDB is used by default, LibreChat can be configured to use other databases. See documentation for details.
 
@@ -179,7 +179,7 @@ While MongoDB is used by default, LibreChat can be configured to use other datab
 
 The stack mounts a minimal `librechat.yaml` (v1.3.4). To add custom AI endpoints (Groq, Mistral, OpenRouter, etc.), edit `config/librechat.yaml` and restart. See the [config docs](https://www.librechat.ai/docs/configuration/librechat_yaml) and [example](https://www.librechat.ai/docs/configuration/librechat_yaml/example).
 
-### Reverse Proxy
+### Reverse proxy
 
 This stack does not expose host ports; use a reverse proxy (Caddy, Nginx, Traefik) in front of LibreChat.
 

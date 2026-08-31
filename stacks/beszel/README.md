@@ -2,10 +2,10 @@
 
 Lightweight server monitoring with Docker/Podman stats, historical metrics, and alerts. The **hub** is the web UI and API; **agents** run on each host you want to monitor ([Beszel](https://beszel.dev/), [GitHub](https://github.com/henrygd/beszel)).
 
-**Website:** https://beszel.dev/  
-**Docs:** https://beszel.dev/guide/getting-started  
-**GitHub:** https://github.com/henrygd/beszel  
-**Docker Hub:** https://hub.docker.com/r/henrygd/beszel  
+**Website:** https://beszel.dev/
+**Docs:** https://beszel.dev/guide/getting-started
+**GitHub:** https://github.com/henrygd/beszel
+**Docker Hub:** https://hub.docker.com/r/henrygd/beszel
 
 ## Quick start
 
@@ -25,8 +25,8 @@ This stack runs **only the hub**. The upstream docs show a second service, `besz
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `beszel:8090`) |
 | **Data** | `BESZEL_DATA_DIR` (default `~/.local/share/beszel`) → `/beszel_data` |
-| **Public URL** | `BESZEL_APP_URL` — required; must match how users reach the hub (links, OAuth, agents) |
-| **Network** | `ingress-admin` — shared with Caddy |
+| **Public URL** | `BESZEL_APP_URL`, required; must match how users reach the hub (links, OAuth, agents) |
+| **Network** | `ingress-admin`, shared with Caddy |
 | **Health** | `GET /api/health` (see [Healthchecks](https://beszel.dev/guide/healthchecks)) |
 
 Env reference: [ENV-VARS.md](../../documents/ENV-VARS.md). TZ/locale: [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).

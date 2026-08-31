@@ -2,9 +2,9 @@
 
 Home automation hub for integrating lights, sensors, switches, and other devices. This stack runs Home Assistant in Docker with persistent config and exposes the web UI via Caddy.
 
-**Website:** https://www.home-assistant.io/  
-**Docs:** https://www.home-assistant.io/docs/  
-**Docker image:** https://github.com/home-assistant/docker/  
+**Website:** https://www.home-assistant.io/
+**Docs:** https://www.home-assistant.io/docs/
+**Docker image:** https://github.com/home-assistant/docker/
 
 ## Quick start
 
@@ -24,7 +24,7 @@ Home automation hub for integrating lights, sensors, switches, and other devices
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Via Caddy only (no host port; reverse-proxy to `home-assistant:8123`)  |
 | **Volume**  | `home_assistant_config` (YAML config, automations, history, add-ons)   |
-| **Network** | `ingress-public` — shared with Caddy and related automation stacks            |
+| **Network** | `ingress-public`, shared with Caddy and related automation stacks            |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.     |
 
 ### Hardware and integrations

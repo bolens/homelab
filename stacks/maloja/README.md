@@ -14,7 +14,7 @@ and optionally integrated with Last.fm/Spotify for metadata.
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. Set MALOJA_FORCE_PASSWORD (generate: `openssl rand -base64 24`) — used for admin UI on first start.
+2. Set MALOJA_FORCE_PASSWORD (generate: `openssl rand -base64 24`), used for admin UI on first start.
 3. Optionally add Spotify/Last.fm API keys for artwork and metadata enrichment.
 4. Deploy: `docker compose up -d`
 
@@ -22,12 +22,12 @@ and optionally integrated with Last.fm/Spotify for metadata.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| MALOJA_FORCE_PASSWORD | Yes | — | Admin password set on first start |
+| MALOJA_FORCE_PASSWORD | Yes | None | Admin password set on first start |
 | PUID | No | 1000 | Host UID for bind-mount file ownership |
 | PGID | No | 1000 | Host GID for bind-mount file ownership |
-| MALOJA_SPOTIFY_API_ID | No | — | Spotify app client ID for metadata |
-| MALOJA_SPOTIFY_API_SECRET | No | — | Spotify app client secret for metadata |
-| MALOJA_LASTFM_API_KEY | No | — | Last.fm API key for metadata |
+| MALOJA_SPOTIFY_API_ID | No | None | Spotify app client ID for metadata |
+| MALOJA_SPOTIFY_API_SECRET | No | None | Spotify app client secret for metadata |
+| MALOJA_LASTFM_API_KEY | No | None | Last.fm API key for metadata |
 
 ## Notes
 

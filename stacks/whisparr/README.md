@@ -1,11 +1,11 @@
 # Whisparr
 
-Adult movie collection manager for Usenet and torrents (Servarr family). Monitors indexers, sends grabs to download clients, and organizes files—same workflow as Radarr, separate library and metadata.
+Adult movie collection manager for Usenet and torrents (Servarr family). Monitors indexers, sends grabs to download clients, and organizes files, same workflow as Radarr, separate library and metadata.
 
-**Website:** https://whisparr.com/  
-**Docs:** https://wiki.servarr.com/whisparr  
-**GitHub:** https://github.com/Whisparr/Whisparr  
-**Docker image:** https://github.com/thespad/docker-whisparr (multi-arch `ghcr.io/thespad/whisparr`)  
+**Website:** https://whisparr.com/
+**Docs:** https://wiki.servarr.com/whisparr
+**GitHub:** https://github.com/Whisparr/Whisparr
+**Docker image:** https://github.com/thespad/docker-whisparr (multi-arch `ghcr.io/thespad/whisparr`)
 
 > There is no LinuxServer.io Whisparr image; this stack uses **thespad**’s image (Alpine-based, port **6969**).
 

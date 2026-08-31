@@ -33,9 +33,9 @@ starts. It is expected to remain in the exited state after a successful run.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `AFFINE_SERVER_EXTERNAL_URL` | Yes | — | Public URL for callbacks and generated links |
+| `AFFINE_SERVER_EXTERNAL_URL` | Yes | None | Public URL for callbacks and generated links |
 | `DB_USERNAME` | Yes | `affine` | Dedicated PostgreSQL role |
-| `DB_PASSWORD` | Yes | — | Unique PostgreSQL password |
+| `DB_PASSWORD` | Yes | None | Unique PostgreSQL password |
 | `DB_DATABASE` | No | `affine` | Dedicated PostgreSQL database |
 
 ## Migration from `affine-self-hosted`

@@ -28,5 +28,5 @@ Typically deployed on the same network segment as your lab DHCP server.
 ## Notes
 
 - The web UI is typically on port 3000; TFTP on UDP 69; HTTP assets on port 80.
-- DHCP integration is required on the host network for PXE to work — host networking mode may be needed.
+- DHCP integration is required on the host network for PXE to work, host networking mode may be needed.
 - Local asset caching avoids re-downloading large ISOs on every boot.

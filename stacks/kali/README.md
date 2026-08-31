@@ -25,4 +25,4 @@ CLI container run interactively with `docker compose run`. It has no web, VNC, o
 
 - TZ and locale come from shared.env.
 - The definition grants only `NET_RAW`, drops all other capabilities, and enables no privileged mode.
-- No persistent service — use `docker compose run --rm` for interactive sessions.
+- No persistent service, use `docker compose run --rm` for interactive sessions.

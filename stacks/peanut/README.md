@@ -28,7 +28,7 @@ level, load, and runtime estimates in a web UI. Useful for monitoring power heal
 
 ## Notes
 
-- PeaNUT does not run a NUT server itself — a separate NUT upsd instance is required.
+- PeaNUT does not run a NUT server itself, a separate NUT upsd instance is required.
 - Current PeaNUT releases serve the web UI on port 8080.
 - NUT host, port, and credentials are configured in the PeaNUT web UI on first run.
 - `/api/ping` is used for the container healthcheck.

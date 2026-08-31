@@ -2,10 +2,10 @@
 
 [BookStack](https://www.bookstackapp.com/) is a simple, self-hosted wiki for storing documentation in books, chapters, and pages. This stack runs BookStack with MariaDB behind Caddy. No host ports; access via Caddy.
 
-**Website:** https://www.bookstackapp.com/  
-**Docs:** https://www.bookstackapp.com/docs/  
-**GitHub:** https://github.com/BookStackApp/BookStack  
-**Docker image:** https://docs.linuxserver.io/images/docker-bookstack  
+**Website:** https://www.bookstackapp.com/
+**Docs:** https://www.bookstackapp.com/docs/
+**GitHub:** https://github.com/BookStackApp/BookStack
+**Docker image:** https://docs.linuxserver.io/images/docker-bookstack
 
 ## Quick start
 
@@ -23,7 +23,7 @@
    - BookStack listens on port `80` inside the container.
    - Put it behind Caddy on the `ingress-public` network, e.g.:
      - `https://bookstack.yourdomain.com` → `bookstack:80`
-   - Default login: `admin@admin.com` / `password` — **change immediately** in Settings.
+   - Default login: `admin@admin.com` / `password`, **change immediately** in Settings.
 
 ## Configuration
 
@@ -35,7 +35,7 @@
 | **Storage** | `bookstack_data`, `bookstack_mariadb`                                       |
 | **Caddy**   | See [stacks/caddy/Caddyfile.example](../caddy/Caddyfile.example) for `bookstack.yourdomain.com` → `bookstack:80` |
 
-To change `APP_URL` after install:  
+To change `APP_URL` after install:
 `docker exec -it bookstack php /app/www/artisan bookstack:update-url OLD_URL NEW_URL`
 
 ## Portainer

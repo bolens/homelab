@@ -2,11 +2,11 @@
 
 Lightweight, self-hosted password manager compatible with Bitwarden clients (browser extensions, mobile apps, CLI).
 
-**Website:** https://www.vaultwarden.net  
-**Docs:** https://github.com/dani-garcia/vaultwarden/wiki  
-**GitHub:** https://github.com/dani-garcia/vaultwarden  
-**Docker image:** https://hub.docker.com/r/vaultwarden/server  
-**Releases:** https://github.com/dani-garcia/vaultwarden/releases  
+**Website:** https://www.vaultwarden.net
+**Docs:** https://github.com/dani-garcia/vaultwarden/wiki
+**GitHub:** https://github.com/dani-garcia/vaultwarden
+**Docker image:** https://hub.docker.com/r/vaultwarden/server
+**Releases:** https://github.com/dani-garcia/vaultwarden/releases
 
 ## Quick start
 
@@ -26,7 +26,7 @@ The stack uses a **named volume** `vw_data` so it works when deployed from Porta
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `vaultwarden:80`) |
-| **Network** | `ingress-sensitive` (external) — dedicated Caddy-to-service ingress |
+| **Network** | `ingress-sensitive` (external), dedicated Caddy-to-service ingress |
 | **Image** | vaultwarden/server (Docker Hub) |
 | **Env** | `DOMAIN` recommended when behind HTTPS; `SIGNUPS_ALLOWED`; optional `ADMIN_TOKEN`, `WEBSOCKET_ENABLED` |
 | **Storage** | Named volume: `vw_data` (SQLite DB and attachments) |

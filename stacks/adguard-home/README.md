@@ -2,10 +2,10 @@
 
 Network-wide DNS-level ad and tracker blocking. Run AdGuard Home on your Docker host as the primary DNS server for your LAN and expose the web UI via Caddy.
 
-**Website:** https://adguard.com/adguard-home/overview.html  
-**Docs:** https://adguard-dns.io/kb/adguard-home/  
-**Docker image:** https://hub.docker.com/r/adguard/adguardhome  
-**GitHub:** https://github.com/AdguardTeam/AdGuardHome  
+**Website:** https://adguard.com/adguard-home/overview.html
+**Docs:** https://adguard-dns.io/kb/adguard-home/
+**Docker image:** https://hub.docker.com/r/adguard/adguardhome
+**GitHub:** https://github.com/AdguardTeam/AdGuardHome
 
 ## Quick start
 
@@ -27,7 +27,7 @@ Network-wide DNS-level ad and tracker blocking. Run AdGuard Home on your Docker 
 | ----------- | ----------------------------------------------------------------------------------------------------------- |
 | **Access**  | DNS on `${ADGUARD_BIND_IP}:53/tcp+udp` and `${ADGUARD_BIND_IP}:853/tcp`; HTTPS UI via Caddy |
 | **Volumes** | `adguard_conf` (YAML config, filters, settings), `adguard_work` (runtime data, stats)                      |
-| **Network** | `ingress-admin` — shared with Caddy and other app stacks                                                         |
+| **Network** | `ingress-admin`, shared with Caddy and other app stacks                                                         |
 | **Env**     | Required `ADGUARD_BIND_IP`; see `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.             |
 
 ### Caddy

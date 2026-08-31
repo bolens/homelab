@@ -1,7 +1,7 @@
 # auto-identity-remove
 
 Local LLM-powered PII redaction service. Accepts document uploads and returns
-redacted PDFs with personal information blacked out. Runs entirely on-prem — no
+redacted PDFs with personal information blacked out. Runs entirely on-prem, no
 data leaves the host.
 
 Upstream: https://github.com/stephenlthorn/auto-identity-remove
@@ -22,10 +22,10 @@ PDF, DOCX, XLSX, XLS, PPTX, DOC, PPT, ODT, ODS, ODP, RTF, TXT
 ## Setup
 
     cp stack.env.example stack.env
-    # Edit stack.env — set OLLAMA_MODEL and confirm OLLAMA_HOST
+    # Edit stack.env, set OLLAMA_MODEL and confirm OLLAMA_HOST
     docker compose up -d
 
-First start pulls the image (large — CUDA base + baked-in Ollama model).
+First start pulls the image (large, CUDA base + baked-in Ollama model).
 
 ## API
 
@@ -39,7 +39,7 @@ Redact a doc: POST /redact   (multipart/form-data, field: file)
 ## Ollama integration
 
 By default OLLAMA_HOST points to the shared ollama stack (http://ollama:11434).
-The upstream image also has Ollama baked in — to use it instead set:
+The upstream image also has Ollama baked in, to use it instead set:
 
     OLLAMA_HOST=http://localhost:11434
 
@@ -47,7 +47,7 @@ and remove the extra_hosts block from docker-compose.yml.
 
 ## Volumes
 
-  air_output — redacted PDFs written here; mounted at /app/output inside the container
+  air_output, redacted PDFs written here; mounted at /app/output inside the container
 
 ## Notes
 

@@ -1,18 +1,18 @@
 # Cloudflare Tunnel (cloudflared)
 
-Exposes services on your Docker host via Cloudflare—no port forwarding or dynamic IP. Traffic goes outbound from host → Cloudflare → your services.
+Exposes services on your Docker host via Cloudflare, no port forwarding or dynamic IP. Traffic goes outbound from host → Cloudflare → your services.
 
-**Website:** https://www.cloudflare.com/products/tunnel/  
-**Docs:** https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/  
-**GitHub:** https://github.com/cloudflare/cloudflared  
-**Docker image:** https://hub.docker.com/r/cloudflare/cloudflared  
-**Releases:** https://github.com/cloudflare/cloudflared/releases  
+**Website:** https://www.cloudflare.com/products/tunnel/
+**Docs:** https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/
+**GitHub:** https://github.com/cloudflare/cloudflared
+**Docker image:** https://hub.docker.com/r/cloudflare/cloudflared
+**Releases:** https://github.com/cloudflare/cloudflared/releases
 
 ## Quick start (token method)
 
 1. **Cloudflare:** Zero Trust → **Networks → Tunnels → Create tunnel** (Cloudflared). Copy the **tunnel token**.
 2. Copy `stack.env.example` → `stack.env` and set `TUNNEL_TOKEN=...`.
-3. In the tunnel’s **Public Hostnames**, add routes (e.g. `portainer.yourdomain.com` → HTTP → `localhost:9443`; `status.yourdomain.com` → `localhost:3001`). To route via Caddy, use **`http://caddy:80`** from the `cloudflared` container on **`edge-services`** (not `localhost:80`, which points at the tunnel container itself). Caddy routes by `Host`. Plain-HTTP upstream blocks should include `transport http { versions 1.1 }` so backends that only speak HTTP/1.1 do not return empty responses through Caddy 2.11+; see `scripts/patch-caddy-h1-transport.py` and stack `caddy_snippet.conf` / `.example` files. (Headscale MagicDNS names like `mylaptop.ts.yourdomain.com` resolve on the tailnet only—no tunnel route needed.)
+3. In the tunnel’s **Public Hostnames**, add routes (e.g. `portainer.yourdomain.com` → HTTP → `localhost:9443`; `status.yourdomain.com` → `localhost:3001`). To route via Caddy, use **`http://caddy:80`** from the `cloudflared` container on **`edge-services`** (not `localhost:80`, which points at the tunnel container itself). Caddy routes by `Host`. Plain-HTTP upstream blocks should include `transport http { versions 1.1 }` so backends that only speak HTTP/1.1 do not return empty responses through Caddy 2.11+; see `scripts/patch-caddy-h1-transport.py` and stack `caddy_snippet.conf` / `.example` files. (Headscale MagicDNS names like `mylaptop.ts.yourdomain.com` resolve on the tailnet only, no tunnel route needed.)
 4. Start: `docker compose up -d`.
 
 ## Config file (alternative)

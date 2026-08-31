@@ -2,9 +2,9 @@
 
 [Glance](https://github.com/glanceapp/glance) is a lightweight dashboard for RSS, weather, markets, Docker status, custom widgets, and more. Configuration is YAML (`config/glance.yml`). This stack runs Glance behind Caddy on the shared `ingress-public` network; there are no host port bindings.
 
-**Website / repo:** https://github.com/glanceapp/glance  
-**Configuration docs:** https://github.com/glanceapp/glance/blob/main/docs/configuration.md  
-**Docker image:** https://hub.docker.com/r/glanceapp/glance  
+**Website / repo:** https://github.com/glanceapp/glance
+**Configuration docs:** https://github.com/glanceapp/glance/blob/main/docs/configuration.md
+**Docker image:** https://hub.docker.com/r/glanceapp/glance
 
 ## Quick start
 
@@ -32,7 +32,7 @@
 
 ## Notes
 
-- **DNS / ad blockers:** Many widgets trigger outbound lookups; Pi-hole / AdGuard rate limits can cause timeouts. Raise the DNS rate limit or reduce widgets if pages hang (see upstream README “Common issues”).
+- **DNS / ad blockers:** Many widgets trigger outbound lookups; Pi-hole / AdGuard rate limits can cause timeouts. Raise the DNS rate limit or reduce widgets if pages hang (see upstream README "Common issues").
 - **Dark Reader:** Can break some widgets; disable for your Glance hostname if layout looks wrong.
 - **Backups:** Copy `./config` (and optional `./assets`) if you care about your layout and CSS.
 

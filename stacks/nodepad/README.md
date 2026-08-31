@@ -1,6 +1,6 @@
 # nodepad
 
-Spatial, AI-augmented thinking canvas ([nodepad](https://github.com/mskayyali/nodepad)) — notes on a canvas with automatic classification and connections. **API keys are stored only in the browser** (per upstream); the container just serves the Next.js UI.
+Spatial, AI-augmented thinking canvas ([nodepad](https://github.com/mskayyali/nodepad)), notes on a canvas with automatic classification and connections. **API keys are stored only in the browser** (per upstream); the container just serves the Next.js UI.
 
 - **Homepage:** [nodepad.space](https://nodepad.space)
 - **Repo:** [github.com/mskayyali/nodepad](https://github.com/mskayyali/nodepad)
@@ -17,7 +17,7 @@ sorted order** so overlays survive deliberate upstream updates.
   upstream changed overlapping lines. Refresh the affected patch(es): apply
   `0001…000N-1` in order, commit a baseline (`git commit -am baseline`), make
   edits, then save the resulting patch and restore the pinned checkout.
-- **`./verify-patches.sh`** — runs `clone-repo.sh` then `npm ci` + `npm run build` in `./repo` (optional CI check).
+- **`./verify-patches.sh`**, runs `clone-repo.sh` then `npm ci` + `npm run build` in `./repo` (optional CI check).
 
 Current patches (apply in lexical order; do not rename):
 
@@ -39,10 +39,10 @@ Current patches (apply in lexical order; do not rename):
 | `UMAMI_SCRIPT_URL` | runtime | Full URL to your Umami `script.js` (omit to disable analytics). |
 | `UMAMI_WEBSITE_ID` | runtime | Umami website id (required with `UMAMI_SCRIPT_URL`). |
 | `NODEPAD_ALLOWED_ORIGINS` | runtime | Comma-separated allowed `Origin` values for POST/PUT/PATCH/DELETE to `/api/ollama` (omit to allow any origin). |
-| `NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER` | **build** arg (optional) | e.g. `ollama` — first-visit default in the client bundle. Not read from `stack.env` at build unless you pass it explicitly (see below). |
+| `NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER` | **build** arg (optional) | e.g. `ollama`, first-visit default in the client bundle. Not read from `stack.env` at build unless you pass it explicitly (see below). |
 | `NEXT_PUBLIC_HOMELAB_DEFAULT_OLLAMA_MODEL` | **build** arg (optional) | e.g. `llama3.2` when default provider is Ollama. Same as above. |
 
-**Runtime:** Put `OLLAMA_ORIGIN`, `NODEPAD_SITE_URL`, `UMAMI_*`, `NODEPAD_ALLOWED_ORIGINS` in **`stack.env`**. `docker-compose.yml` loads them with **`env_file: stack.env`** only — Compose does **not** need a project `.env` or symlink for those variables.
+**Runtime:** Put `OLLAMA_ORIGIN`, `NODEPAD_SITE_URL`, `UMAMI_*`, `NODEPAD_ALLOWED_ORIGINS` in **`stack.env`**. `docker-compose.yml` loads them with **`env_file: stack.env`** only, Compose does **not** need a project `.env` or symlink for those variables.
 
 **Optional `NEXT_PUBLIC_*` (baked into the JS bundle):** Compose does **not** read `env_file` during `docker compose build`. Pass **`docker compose build --build-arg NEXT_PUBLIC_HOMELAB_DEFAULT_PROVIDER=ollama --build-arg NEXT_PUBLIC_HOMELAB_DEFAULT_OLLAMA_MODEL=llama3.2`** (see Dockerfile `ARG` lines), or add your own `build.args` + project env file if you prefer interpolation-driven builds.
 
@@ -70,7 +70,7 @@ Current patches (apply in lexical order; do not rename):
 
 3. Open `https://nodepad.example.com` (replace with your hostname). In the app: menu → **Settings** → choose provider → API key and/or **Ollama** model (settings stay in browser `localStorage`; Ollama traffic is proxied through this app to `OLLAMA_ORIGIN`).
 
-Until a registry (for example Harbor) is reachable, **this path is the simplest** — compose builds and tags **`nodepad:latest`** by default.
+Until a registry (for example Harbor) is reachable, **this path is the simplest**, compose builds and tags **`nodepad:latest`** by default.
 
 ### Portainer
 
@@ -83,7 +83,7 @@ Until a registry (for example Harbor) is reachable, **this path is the simplest*
 ## Networking
 
 - **Internal AI/Caddy:** `http://nodepad:3000` on `ai-backend` and `ingress-public`.
-- **No host ports** — use Caddy only.
+- **No host ports**, use Caddy only.
 
 ## Updating
 

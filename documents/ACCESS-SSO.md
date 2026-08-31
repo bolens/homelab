@@ -1,6 +1,6 @@
 # Cloudflare Access SSO for tunnel subdomains
 
-Use **Cloudflare Zero Trust Access** to put a login (SSO or one-time PIN) in front of subdomains that are already exposed via your Cloudflare Tunnel. No Caddy or app config changes are required—Access runs at the Cloudflare edge before traffic reaches your tunnel.
+Use **Cloudflare Zero Trust Access** to put a login (SSO or one-time PIN) in front of subdomains that are already exposed via your Cloudflare Tunnel. No Caddy or app config changes are required, Access runs at the Cloudflare edge before traffic reaches your tunnel.
 
 **Typical use:** Replace or supplement basic auth (or app-only login) with Google/GitHub/Okta SSO or email one-time PIN for hostnames like `portainer.yourdomain.com`, `paperless.yourdomain.com`, etc.
 
@@ -26,7 +26,7 @@ Access is part of **Cloudflare Zero Trust**. The free tier includes a limited nu
 6. **Application domain:** use the **exact subdomain** that your tunnel already exposes:
   - **Subdomain:** e.g. `portainer` (or whatever hostname you use).
   - **Domain:** select your zone (e.g. `yourdomain.com`).
-  - So the application domain is `portainer.yourdomain.com`—the same hostname as in your tunnel’s Public Hostnames.
+  - So the application domain is `portainer.yourdomain.com`, the same hostname as in your tunnel’s Public Hostnames.
 7. Click **Save**.
 
 Traffic to that hostname will now be checked by Access before it is sent through the tunnel to Caddy and your app.
@@ -45,7 +45,7 @@ Right after saving the application you’ll be prompted to add a policy. You can
   - **Policy name:** e.g. `Allow team SSO`.
   - **Action:** **Allow**.
   - **Configure rules:**
-    - **Include** → e.g. **Emails ending in** → `@yourdomain.com`,  
+    - **Include** → e.g. **Emails ending in** → `@yourdomain.com`,
     or **Identity provider group** if you use an IdP that sends groups (e.g. Google Workspace, Okta).
   - Add **Require** or **Exclude** rules if needed (e.g. require a specific country or exclude certain emails).
 4. Save.
@@ -80,11 +80,11 @@ To protect only part of a hostname (e.g. `/admin`):
 
 ## 3b. Special case: Headscale (keep domain accessible for Tailscale clients)
 
-**Headscale’s hostname must stay reachable** by Tailscale clients (phones, laptops, servers) for login and registration. Those clients talk to the server over HTTPS but are not browsers—if you put Cloudflare Access on the **entire** hostname, they would get an HTML login page instead of the API response and **client login would break**.
+**Headscale’s hostname must stay reachable** by Tailscale clients (phones, laptops, servers) for login and registration. Those clients talk to the server over HTTPS but are not browsers, if you put Cloudflare Access on the **entire** hostname, they would get an HTML login page instead of the API response and **client login would break**.
 
 **Ways to protect Headscale while keeping the domain usable for clients:**
 
-1. **Don’t put Access on the Headscale hostname.** Rely on Headscale’s own auth (pre-auth keys, OIDC if you use it) and exposure only via your tunnel. The hostname is “protected” by not being widely advertised and by requiring a valid key to join the tailnet.
+1. **Don’t put Access on the Headscale hostname.** Rely on Headscale’s own auth (pre-auth keys, OIDC if you use it) and exposure only via your tunnel. The hostname is "protected" by not being widely advertised and by requiring a valid key to join the tailnet.
 2. **Protect only a path (if you run an admin UI on the same host).** Headscale has no built-in web UI. If you run a separate admin UI (e.g. Headplane, headscale-admin) on the **same** hostname under a path (e.g. `headscale.yourdomain.com/admin`), create an Access application **only for that path** (`headscale.yourdomain.com/admin`). Then only `/admin` requires SSO; Tailscale client traffic to `/register`, `/key`, `/ts`, etc. is unchanged and clients can log in.
 3. **Separate hostname for admin.** Run the admin UI on a different hostname (e.g. `headscale-admin.yourdomain.com`) and put Access on that hostname only. Leave `headscale.yourdomain.com` without an Access application so clients can reach it.
 
@@ -111,7 +111,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 
 ### Cloudflare Access (edge SSO)
 
-**Any service** exposed via your Cloudflare Tunnel can be protected with Cloudflare Access (SSO or one-time PIN). You add an Access application per hostname (e.g. `portainer.yourdomain.com`); no change is required in the app or Caddy. Stacks in this repo that are typically exposed behind the tunnel therefore all “support” SSO in the sense that you can put Access in front of them.
+**Any service** exposed via your Cloudflare Tunnel can be protected with Cloudflare Access (SSO or one-time PIN). You add an Access application per hostname (e.g. `portainer.yourdomain.com`); no change is required in the app or Caddy. Stacks in this repo that are typically exposed behind the tunnel therefore all "support" SSO in the sense that you can put Access in front of them.
 
 **Currently behind Access (this setup):** **cadvisor**, **dozzle**. Other hostnames can be added the same way in Zero Trust → Access → Applications.
 
@@ -208,7 +208,7 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **seafile**                               | Yes            | Protect hostname; set `SEAFILE_SERVER_HOSTNAME` to match. |
 | **syncthing**                             | Yes            | Protect hostname. |
 | **trilium**                               | Yes            | Protect hostname; use Access as outer auth for the web app endpoint. |
-| **umami**                                 | Yes            | Protect dashboard hostname; change default admin password. Tracker `script.js` must be reachable from sites you measure (often same or dedicated hostname—see stack README). |
+| **umami**                                 | Yes            | Protect dashboard hostname; change default admin password. Tracker `script.js` must be reachable from sites you measure (often same or dedicated hostname, see stack README). |
 | **vaultwarden**                           | Yes            | Protect Vaultwarden hostname; optional `ADMIN_TOKEN` for `/admin`. |
 | **vikunja**                               | Yes            | Protect hostname; set `VIKUNJA_SERVICE_PUBLICURL` to that URL (with trailing slash). |
 | **woodpecker-ci**                         | Yes            | Protect hostname (e.g. ci.yourdomain.com); Gitea OAuth redirect must match. |
@@ -259,7 +259,7 @@ These services support **in-app** SSO configuration (Google, GitHub, OIDC, LDAP,
 | 1    | Zero Trust → Access → Applications | Add application → Self-hosted → same subdomain as tunnel hostname |
 | 2    | Same app → Policies                | Add Allow policy: SSO (IdP) or One-time PIN or email list         |
 | 3    | (Optional)                         | Restrict by path; remove Caddy basic auth for that hostname       |
-| 4    | —                                  | Tunnel and Caddy unchanged                                        |
+| 4    | None | Tunnel and Caddy unchanged                                        |
 
 
 **References**

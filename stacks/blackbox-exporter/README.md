@@ -1,11 +1,11 @@
 # Blackbox Exporter
 
-Prometheus Blackbox Exporter for probing endpoints over HTTP, TCP, and other protocols. Use it with Prometheus and Alertmanager to create synthetic checks (e.g. “can I reach my tunnel hostname from inside the homelab?”).
+Prometheus Blackbox Exporter for probing endpoints over HTTP, TCP, and other protocols. Use it with Prometheus and Alertmanager to create synthetic checks (e.g. "can I reach my tunnel hostname from inside the homelab?").
 
-**Website:** https://prometheus.io/docs/blackbox_exporter/latest/  
-**Docs:** https://prometheus.io/docs/blackbox_exporter/configuration/  
-**Docker image:** https://hub.docker.com/r/prom/blackbox-exporter  
-**GitHub:** https://github.com/prometheus/blackbox_exporter  
+**Website:** https://prometheus.io/docs/blackbox_exporter/latest/
+**Docs:** https://prometheus.io/docs/blackbox_exporter/configuration/
+**Docker image:** https://hub.docker.com/r/prom/blackbox-exporter
+**GitHub:** https://github.com/prometheus/blackbox_exporter
 
 ## Quick start
 
@@ -25,7 +25,7 @@ Prometheus Blackbox Exporter for probing endpoints over HTTP, TCP, and other pro
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Internal only; Prometheus scrapes `blackbox-exporter:9115` on `telemetry` |
 | **Config**  | Copy `blackbox.yml.example` to `~/.config/blackbox-exporter/blackbox.yml`; override with `BLACKBOX_CONFIG_PATH` (e.g. in Portainer) |
-| **Network** | `telemetry` — shared with Caddy, Prometheus, Grafana, Uptime Kuma        |
+| **Network** | `telemetry`, shared with Caddy, Prometheus, Grafana, Uptime Kuma        |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.     |
 
 ### Example Prometheus scrape config

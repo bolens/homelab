@@ -2,11 +2,11 @@
 
 Document management: scan, OCR, and search your paperwork.
 
-**Website:** https://docs.paperless-ngx.com  
-**Docs:** https://docs.paperless-ngx.com  
-**GitHub:** https://github.com/paperless-ngx/paperless-ngx  
-**Docker image:** https://github.com/paperless-ngx/paperless-ngx/pkgs/container/paperless-ngx  
-**Releases:** https://github.com/paperless-ngx/paperless-ngx/releases  
+**Website:** https://docs.paperless-ngx.com
+**Docs:** https://docs.paperless-ngx.com
+**GitHub:** https://github.com/paperless-ngx/paperless-ngx
+**Docker image:** https://github.com/paperless-ngx/paperless-ngx/pkgs/container/paperless-ngx
+**Releases:** https://github.com/paperless-ngx/paperless-ngx/releases
 
 ## Quick start
 
@@ -36,7 +36,7 @@ Config uses **named volumes** for export and consume (no bind-mounted `./export`
 | **Network** | `ingress-sensitive` for Caddy; `document-services` for API clients; private default network for PostgreSQL and Redis |
 | **Image** | `ghcr.io/paperless-ngx/paperless-ngx:latest` |
 | **Env** | `PAPERLESS_URL`, `PAPERLESS_SECRET_KEY` (set in stack or .env) |
-| **Consume** | Named volume `consume` — add files via container/volume or bind mount override |
+| **Consume** | Named volume `consume`, add files via container/volume or bind mount override |
 
 ## Adding documents to consume (named volume)
 

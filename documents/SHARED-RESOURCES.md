@@ -76,9 +76,9 @@ when both services join `ai-backend`. Web UIs separately use their assigned `ing
 
 **LiteLLM** ([stacks/litellm](../stacks/litellm/README.md)) is an optional **OpenAI-compatible proxy** in front of Ollama and cloud APIs. Point clients at `http://litellm:4000/v1` with `LITELLM_MASTER_KEY` (or virtual keys) instead of calling Ollama directly when you want unified keys and routing.
 
-**Whisper ASR** ([stacks/whisper-asr](../stacks/whisper-asr/README.md)) is an optional **speech-to-text** HTTP service (`whisper-asr:9000`) for Open WebUI, AnythingLLM, or workflows—protect it with Caddy / Access like any other AI endpoint.
+**Whisper ASR** ([stacks/whisper-asr](../stacks/whisper-asr/README.md)) is an optional **speech-to-text** HTTP service (`whisper-asr:9000`) for Open WebUI, AnythingLLM, or workflows, protect it with Caddy / Access like any other AI endpoint.
 
-**Kokoro TTS** ([stacks/kokoro-tts](../stacks/kokoro-tts/README.md)) is an optional **text-to-speech** service (`kokoro-tts:8880`): browser UI at `/web`, OpenAI-compatible API at `/v1`—useful with Open WebUI or scripts; protect the hostname the same way as other AI endpoints.
+**Kokoro TTS** ([stacks/kokoro-tts](../stacks/kokoro-tts/README.md)) is an optional **text-to-speech** service (`kokoro-tts:8880`): browser UI at `/web`, OpenAI-compatible API at `/v1`, useful with Open WebUI or scripts; protect the hostname the same way as other AI endpoints.
 
 ### External volumes (downloads) and media bind mounts
 
@@ -232,11 +232,11 @@ cp shared.env.example shared.env
 # Edit timezone, locale, and optional roots. Do NOT commit shared.env.
 ```
 
-**Do not commit real values** — `shared.env` is gitignored; only `shared.env.example` is in the repo.
+**Do not commit real values**, `shared.env` is gitignored; only `shared.env.example` is in the repo.
 
 #### Using the shared env file
 
-**Docker Compose (CLI)**  
+**Docker Compose (CLI)**
 From any stack directory, pass both env files (later files override earlier ones for the same key, so `stack.env` overrides `shared.env` for any duplicate keys):
 
 ```bash
@@ -253,7 +253,7 @@ compose-shared up -d
 
 Stacks stay runnable without the shared file: if you use only `stack.env` (e.g. `docker compose up -d` with `env_file: stack.env` in the compose), existing behaviour is unchanged.
 
-**Portainer**  
+**Portainer**
 Portainer does not load a host path like `shared.env` when deploying from Git or the web editor, so use one of these:
 
 - **Recommended:** Add the same four variables to each stack’s **Environment variables** in Portainer. When creating or editing a stack, in the "Environment variables" section add:
@@ -291,10 +291,10 @@ Stacks that don’t opt in keep their bundled Redis; modularity is preserved.
 Many stacks run their own Postgres (Gitea, Firefly III, Hedgedoc, Outline, Nextcloud, Keycloak, etc.). You *can* run a **single Postgres** server with **multiple databases** (one per app) and point each stack at that server with a different `POSTGRES_DB` (or equivalent).
 
 - **Benefits:** One Postgres to backup, patch, and tune.
-- **Tradeoffs:**  
-  - All participating stacks depend on one Postgres version and availability.  
-  - You must create databases and users (and optionally extensions) by hand or via an init script.  
-  - Removing a stack is less “delete this compose” and more “drop this DB and stop the app.”
+- **Tradeoffs:**
+  - All participating stacks depend on one Postgres version and availability.
+  - You must create databases and users (and optionally extensions) by hand or via an init script.
+  - Removing a stack is less "delete this compose" and more "drop this DB and stop the app."
 
 Recommendation: only consider this if you explicitly want to centralize DB management. Otherwise, per-stack Postgres keeps stacks independent and is the default in this repo.
 
@@ -302,7 +302,7 @@ Recommendation: only consider this if you explicitly want to centralize DB manag
 
 ## One-time setup checklist
 
-To avoid “network/volume does not exist” when bringing up stacks:
+To avoid "network/volume does not exist" when bringing up stacks:
 
 1. **Networks** (if not already created):
    - `docker network create ingress-public`

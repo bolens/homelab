@@ -1,6 +1,6 @@
 # Docker Stack Collection Constitution
 
-## Core Principles
+## Core principles
 
 ### I. Portable Public Examples
 Each stack MUST be independently deployable and MUST use explicit, documented operator choices with placeholders for private host values. Runtime secrets and live configuration never enter committed examples.

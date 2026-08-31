@@ -106,13 +106,13 @@ available and otherwise uses its pinned Docker image.
 1. In **Woodpecker**, enable this repository (it must be linked to your **Gitea** forge).
 2. Ensure the **Woodpecker agent** can run Docker steps (default for a Docker-based agent).
 3. Pipelines are defined in **`.woodpecker.yml`** at the repo root:
-   - **gitleaks** — secret scan on the git checkout (history included).
-   - **repository-validation** — runs the complete Compose, preparation,
+   - **gitleaks**, secret scan on the git checkout (history included).
+   - **repository-validation**, runs the complete Compose, preparation,
      metadata, environment-example, documentation, and generated-file checks.
 
 To skip a run for a commit message, use `[CI SKIP]` or `[SKIP CI]` (Woodpecker convention).
 
-If **gitleaks** reports findings in **tracked** files, fix or allowlist via [Gitleaks config](https://github.com/gitleaks/gitleaks) (e.g. repo-root `.gitleaks.toml`). Local-only files such as `stack.env` are not in git and are not part of the default `gitleaks detect` scan of committed history—avoid committing them.
+If **gitleaks** reports findings in **tracked** files, fix or allowlist via [Gitleaks config](https://github.com/gitleaks/gitleaks) (e.g. repo-root `.gitleaks.toml`). Local-only files such as `stack.env` are not in git and are not part of the default `gitleaks detect` scan of committed history, avoid committing them.
 
 ---
 
@@ -149,5 +149,5 @@ setup, because that would duplicate analysis.
 
 ## 6. Related docs
 
-- [stacks/woodpecker-ci/README.md](../stacks/woodpecker-ci/README.md) — deploy Woodpecker server/agent and Gitea OAuth.
-- [scripts/README.md](../scripts/README.md) — `scan-secrets-gitleaks.sh` for local scans (including `--no-git` for the working tree).
+- [stacks/woodpecker-ci/README.md](../stacks/woodpecker-ci/README.md), deploy Woodpecker server/agent and Gitea OAuth.
+- [scripts/README.md](../scripts/README.md), `scan-secrets-gitleaks.sh` for local scans (including `--no-git` for the working tree).

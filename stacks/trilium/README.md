@@ -28,6 +28,6 @@ sync clients for offline access.
 ## Notes
 
 - TZ and locale come from shared.env.
-- Data is stored in the `trilium_data` named volume — back it up regularly.
+- Data is stored in the `trilium_data` named volume, back it up regularly.
 - No host ports are exposed by default; Caddy proxies to `trilium:8080` over the ingress-public network.
 - Desktop sync clients connect to your Caddy hostname using a sync password set in the UI.

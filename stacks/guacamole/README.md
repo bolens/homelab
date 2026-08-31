@@ -1,12 +1,12 @@
 # Apache Guacamole
 
-Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible entirely through a modern HTML5 web browser—no client software required. Once deployed, you reach all your configured desktops and servers via a single Guacamole web UI.
+Clientless remote desktop gateway for **RDP**, **VNC**, and **SSH** accessible entirely through a modern HTML5 web browser, no client software required. Once deployed, you reach all your configured desktops and servers via a single Guacamole web UI.
 
-**Website:** https://guacamole.apache.org/  
-**Docs:** https://guacamole.apache.org/doc/gug/  
-**GitHub:** https://github.com/apache/guacamole-client  
-**Docker image:** https://hub.docker.com/r/guacamole/guacamole  
-**Releases:** https://guacamole.apache.org/releases/  
+**Website:** https://guacamole.apache.org/
+**Docs:** https://guacamole.apache.org/doc/gug/
+**GitHub:** https://github.com/apache/guacamole-client
+**Docker image:** https://hub.docker.com/r/guacamole/guacamole
+**Releases:** https://guacamole.apache.org/releases/
 
 ## Quick start
 

@@ -1,7 +1,7 @@
 # clark-browser
 
 Stealth Chromium for browser automation. Anti-fingerprinting patches compiled
-directly into Chromium source — not fragile JS shims. Exposes a CDP endpoint
+directly into Chromium source, not fragile JS shims. Exposes a CDP endpoint
 that Playwright connects to via connect_over_cdp().
 
 - Repo: https://github.com/clark-labs-inc/clark-browser
@@ -16,7 +16,7 @@ that Playwright connects to via connect_over_cdp().
 
 ## Build & Setup
 
-No public image — builds from the upstream clark-browser PyPI package + downloads
+No public image, builds from the upstream clark-browser PyPI package + downloads
 the patched Chromium binary at build time (~750 MB image).
 
 1. docker compose build   # downloads Chromium binary (~270 MB) into the image

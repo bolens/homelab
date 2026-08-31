@@ -2,11 +2,11 @@
 
 High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet providers and integrates with automation tools like Sonarr, Radarr, Lidarr, and Prowlarr.
 
-**Website:** https://nzbget.com/  
-**Docs:** https://nzbget.com/documentation  
-**GitHub:** https://github.com/nzbgetcom/nzbget  
-**Docker image:** https://hub.docker.com/r/linuxserver/nzbget  
-**Releases:** https://github.com/nzbgetcom/nzbget/releases  
+**Website:** https://nzbget.com/
+**Docs:** https://nzbget.com/documentation
+**GitHub:** https://github.com/nzbgetcom/nzbget
+**Docker image:** https://hub.docker.com/r/linuxserver/nzbget
+**Releases:** https://github.com/nzbgetcom/nzbget/releases
 
 ## Quick start
 
@@ -39,8 +39,8 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
        for RAR and 7-Zip releases.
 
 The bundled `UnpackMusicTar` post-processing extension extracts ZIP and
-tar-family music releases that NZBGet's built-in unpacker reports as “Nothing
-to unpack.” Extracted folder trees are flattened into the release directory,
+tar-family music releases that NZBGet's built-in unpacker reports as "Nothing
+to unpack." Extracted folder trees are flattened into the release directory,
 except for numbered `CD`, `Disc`, and `Disk` folders used by multi-disc releases.
 This flattening pass also handles release folders created earlier by NZBGet's
 built-in unpacker and removes directories left empty afterward.

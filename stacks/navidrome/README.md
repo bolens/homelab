@@ -2,11 +2,11 @@
 
 Self-hosted music streaming server: index your music library and stream it from anywhere with a modern web UI and Subsonic-compatible mobile apps (Android/iOS, desktop players, etc.). Navidrome is lightweight, fast, and handles very large libraries.
 
-**Website:** https://www.navidrome.org/  
-**Docs:** https://www.navidrome.org/docs/  
-**GitHub:** https://github.com/navidrome/navidrome  
-**Docker image:** https://hub.docker.com/r/deluan/navidrome  
-**Releases:** https://github.com/navidrome/navidrome/releases  
+**Website:** https://www.navidrome.org/
+**Docs:** https://www.navidrome.org/docs/
+**GitHub:** https://github.com/navidrome/navidrome
+**Docker image:** https://hub.docker.com/r/deluan/navidrome
+**Releases:** https://github.com/navidrome/navidrome/releases
 
 ## Quick start
 
@@ -19,7 +19,7 @@ Self-hosted music streaming server: index your music library and stream it from 
      ```bash
      docker compose up -d
      ```
-   - Or add the stack in Portainer and set the same variables in the stack **Environment**. The `navidrome_data` named volume is created automatically. The music library uses a bind mount from `NAVIDROME_MUSIC_PATH` (default `/mnt/unraid/media/music`) — make sure that path exists on the host before deploying.
+   - Or add the stack in Portainer and set the same variables in the stack **Environment**. The `navidrome_data` named volume is created automatically. The music library uses a bind mount from `NAVIDROME_MUSIC_PATH` (default `/mnt/unraid/media/music`), make sure that path exists on the host before deploying.
    - Access Navidrome via Caddy (for example, `https://music.home` or `https://music.yourdomain.com`).
    - Complete the initial setup in the web UI and point Navidrome at your music folder (mounted at `/music` in the container).
 
@@ -49,7 +49,7 @@ Ensure the host path is readable by Navidrome (runs as UID 1000). If needed: `ch
 
 You can monitor Navidrome in Uptime Kuma in two ways:
 
-- **Simple HTTP check:** Point a standard HTTP(s) monitor at your Navidrome URL (for example, `https://music.yourdomain.com/`). This is enough for “is it up?” checks.
+- **Simple HTTP check:** Point a standard HTTP(s) monitor at your Navidrome URL (for example, `https://music.yourdomain.com/`). This is enough for "is it up?" checks.
 - **Prometheus metrics path:** If you enable metrics with `ND_PROMETHEUS_ENABLED=true` and set a secret `ND_PROMETHEUS_METRICSPATH` (for example, `/metrics_SOME_SECRET_KEY`), you can:
   - Add a Prometheus scrape job pointing at `navidrome:4533` and that metricspath.
   - Optionally create an HTTP monitor in Kuma that hits the same path through Caddy to ensure the metrics endpoint stays reachable.

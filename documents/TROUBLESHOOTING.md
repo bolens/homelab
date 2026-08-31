@@ -27,7 +27,7 @@ Stacks that are typically long‑running and proxied by Caddy (restart these if 
 | Stack        | Notes |
 |-------------|--------|
 | linkwarden  | Needs postgres + meilisearch up; use same compose so dependencies start first. |
-| infisical   | Needs db + redis; EAI_AGAIN on redis is often transient at boot — restart the stack. |
+| infisical   | Needs db + redis; EAI_AGAIN on redis is often transient at boot, restart the stack. |
 | convertx    | Exit 137 often = OOM or stop; `docker compose up -d` to bring back. |
 | linkstack   | Same as above. |
 | torbot      | Depends on tor; `docker compose up -d` restarts both. |
@@ -35,7 +35,7 @@ Stacks that are typically long‑running and proxied by Caddy (restart these if 
 | cadvisor    | Exit 137: stack now sets a 512M memory limit to reduce OOM. On **cgroup v2** hosts you may see cgroup warnings in logs; cadvisor often still works. Restart with `docker compose up -d` in `stacks/cadvisor`. |
 | promtail    | Exit 2 can be Loki unavailable at startup; healthcheck now uses port 9080 (matches config). Restart after Loki is up. |
 
-One-off / job-style stacks (ghunt, blackbird, acquire, docker-gc, reconftw, sublist3r, etc.) often **exit 0** by design after the task; no need to “fix” unless you want to run them again.
+One-off / job-style stacks (ghunt, blackbird, acquire, docker-gc, reconftw, sublist3r, etc.) often **exit 0** by design after the task; no need to "fix" unless you want to run them again.
 
 ## YOURLS: ERR_TOO_MANY_REDIRECTS
 
@@ -64,7 +64,7 @@ The web client (browser) calls the Shlink API at the **public URL** you configur
 
 If the stack is not in this repo, ensure its env has the public base URL set and attach its HTTP service to the appropriate Caddy zone (`ingress-public`, `ingress-admin`, or `ingress-sensitive`).
 
-**Web client “Edit server” form:** Set **Name** (e.g. Shlink), **URL** to your public base URL (e.g. `https://short.yourdomain.com`), and **API key** from your Shlink server (generate via the server CLI if needed). Leave **Forward credentials to this server on every request** unchecked unless you use Shlink v4.5.0+ and need cookies/TLS client certs or auth headers sent with every request; enabling it can make requests fail on Shlink older than v4.5.0.
+**Web client "Edit server" form:** Set **Name** (e.g. Shlink), **URL** to your public base URL (e.g. `https://short.yourdomain.com`), and **API key** from your Shlink server (generate via the server CLI if needed). Leave **Forward credentials to this server on every request** unchecked unless you use Shlink v4.5.0+ and need cookies/TLS client certs or auth headers sent with every request; enabling it can make requests fail on Shlink older than v4.5.0.
 
 ## Promtail healthcheck
 
@@ -81,7 +81,7 @@ docker logs authentik-worker --tail 30 2>&1 | grep -E "NOAUTH|Cannot connect|nam
 docker inspect authentik-worker --format '{{json .State.Health}}' | python3 -m json.tool
 ```
 
-**Fix:** Restart the worker — it reconnects cleanly on startup:
+**Fix:** Restart the worker, it reconnects cleanly on startup:
 
 ```bash
 docker restart authentik-worker
@@ -131,7 +131,7 @@ Then restart the relevant stack from `stacks/<name>` with `docker compose up -d`
 
 ## Docker Compose: external ingress networks
 
-Stacks that attach to Caddy declare one external trust-zone network: `ingress-public`, `ingress-admin`, or `ingress-sensitive`. Compose fails with “network … declared as external, but could not be found” when the selected network has not been created.
+Stacks that attach to Caddy declare one external trust-zone network: `ingress-public`, `ingress-admin`, or `ingress-sensitive`. Compose fails with "network … declared as external, but could not be found" when the selected network has not been created.
 
 **Fix (once per host):**
 
@@ -143,7 +143,7 @@ docker network create ingress-sensitive
 
 Many stacks’ `./prepare-stack.sh` call a shared helper that creates this network when Docker is available (see `prepare_stack_ensure_docker_network` in `scripts/prepare-stack-lib.sh`). Homelab context: [SHARED-RESOURCES.md](SHARED-RESOURCES.md).
 
-**Compose `${VAR}` in YAML:** interpolation uses the shell and a project **`.env`** file next to the compose file — **not** per-service `env_file`. Prefer **`env_file: stack.env`** plus YAML that does **not** need compose-time substitution (e.g. Postgres healthchecks using `$$VAR` inside `CMD-SHELL`, or app code building a DB URL from `POSTGRES_*`). For values that must stay in `stack.env` but are only used at **image build** time, use **`docker compose --env-file stack.env build`** or **`docker compose build --build-arg …`**.
+**Compose `${VAR}` in YAML:** interpolation uses the shell and a project **`.env`** file next to the compose file, **not** per-service `env_file`. Prefer **`env_file: stack.env`** plus YAML that does **not** need compose-time substitution (e.g. Postgres healthchecks using `$$VAR` inside `CMD-SHELL`, or app code building a DB URL from `POSTGRES_*`). For values that must stay in `stack.env` but are only used at **image build** time, use **`docker compose --env-file stack.env build`** or **`docker compose build --build-arg …`**.
 
 ## Docker Compose: Buildx plugin warning
 

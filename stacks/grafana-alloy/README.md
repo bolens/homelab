@@ -30,15 +30,15 @@ This stack has two containers:
 | **Config path override** | Set `ALLOY_CONFIG_PATH` in `stack.env` to an absolute path (required for Portainer) |
 | **Loki endpoint** | `http://loki:3100/loki/api/v1/push` (on the `telemetry` network) |
 | **Prometheus scrape** | Alloy exposes metrics at `alloy:12345/metrics`; Prometheus scrapes the `alloy` job |
-| **Network** | `telemetry` — shared with Loki, Prometheus, Caddy |
+| **Network** | `telemetry`, shared with Loki, Prometheus, Caddy |
 | **Docker socket** | Mounted read-only at `/var/run/docker.sock` for container discovery |
 
 ## Log routing
 
 Alloy uses two streams:
 
-- **primary** — logs from containers explicitly labeled `logging=true`
-- **sampled** — containers that emit logs with a `sampled=true` label (used for canary/heartbeat logs)
+- **primary**, logs from containers explicitly labeled `logging=true`
+- **sampled**, containers that emit logs with a `sampled=true` label (used for canary/heartbeat logs)
 
 Every repository service declares an explicit `logging` label. Set
 `logging=true` (or `on`, `enabled`, `1`) to collect a service, or

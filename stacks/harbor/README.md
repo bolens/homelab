@@ -184,7 +184,7 @@ Use the shared template so one unit file works for Harbor and every other stack.
 
 4. **On clients**: Use `https://harbor.local` for login and as the registry when on the LAN. Large pushes/pulls bypass Cloudflare.
 
-**Alternative (without the unit file):** If you prefer not to use the service, you can run once (and keep running) on the Caddy host:  
+**Alternative (without the unit file):** If you prefer not to use the service, you can run once (and keep running) on the Caddy host:
 `avahi-publish -a -R harbor $(hostname -I | awk '{print $1}')`. Or set the machine’s hostname to `harbor` (not recommended if you want to keep your current hostname).
 
 **If `avahi-alias@harbor` fails** with `Failed to resolve host name 'harbor.local': Timeout reached`, use the **static Avahi hosts file** instead (see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) → mDNS aliases): add `LAN_IP  harbor.local` to `/etc/avahi/hosts`, restart avahi-daemon, disable the alias unit. **Note:** many systems do not resolve `/etc/avahi/hosts` on the *same* machine that runs Avahi; other LAN devices should resolve `harbor.local`. On the Caddy host itself, add `LAN_IP  harbor.local` to **`/etc/hosts`** if you need to resolve it there.
@@ -205,14 +205,14 @@ Use the shared template so one unit file works for Harbor and every other stack.
 
 If you see `dial tcp <IP>:443: connect: connection refused` when pushing:
 
-1. **Who is &lt;IP&gt;?**  
-   - If &lt;IP&gt; is the **machine where you run `docker push`** (e.g. your laptop), then **harbor.local is resolving to the wrong host**. It must resolve to the **Caddy host** (the server that runs the Caddy container). Fix: On the machine where you push, set `/etc/hosts` or your LAN DNS so `harbor.local` → Caddy host’s IP. Or run `docker push` from the Caddy host and use `harbor.local` there (with `harbor.local` in that host’s `/etc/hosts` pointing to 127.0.0.1 or the host’s LAN IP).  
+1. **Who is &lt;IP&gt;?**
+   - If &lt;IP&gt; is the **machine where you run `docker push`** (e.g. your laptop), then **harbor.local is resolving to the wrong host**. It must resolve to the **Caddy host** (the server that runs the Caddy container). Fix: On the machine where you push, set `/etc/hosts` or your LAN DNS so `harbor.local` → Caddy host’s IP. Or run `docker push` from the Caddy host and use `harbor.local` there (with `harbor.local` in that host’s `/etc/hosts` pointing to 127.0.0.1 or the host’s LAN IP).
    - If &lt;IP&gt; is the **Caddy host**, then nothing is listening on 443 on that box.
 
-2. **Caddy listening on 443 (on the Caddy host):**  
-   - `docker ps | grep caddy` — Caddy container must be running.  
-   - `ss -tlnp | grep 443` or `sudo ss -tlnp | grep 443` — something must be bound to 443 (usually the Docker proxy).  
-   - From the Caddy host: `curl -k -s -o /dev/null -w "%{http_code}" https://127.0.0.1/` — should return 200 or 301/302.  
+2. **Caddy listening on 443 (on the Caddy host):**
+   - `docker ps | grep caddy`, Caddy container must be running.
+   - `ss -tlnp | grep 443` or `sudo ss -tlnp | grep 443`, something must be bound to 443 (usually the Docker proxy).
+   - From the Caddy host: `curl -k -s -o /dev/null -w "%{http_code}" https://127.0.0.1/`, should return 200 or 301/302.
    If Caddy is not running, start it from the Caddy stack dir: `docker compose up -d`. If the host firewall blocks 443, open it (e.g. `sudo ufw allow 443` then `sudo ufw reload`).
 
 3. **Push from the Caddy host** (avoids DNS): On the server that runs Caddy, add to `/etc/hosts`: `127.0.0.1 harbor.local`. Then `docker login harbor.local` and `docker push harbor.local/homelab/torbot:latest`. The Docker client will connect to 127.0.0.1:443 where Caddy is published.

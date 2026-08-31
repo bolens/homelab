@@ -2,11 +2,11 @@
 
 Metrics collection and storage. Scrapes cAdvisor (container metrics), optional Watchtower `/v1/metrics`, and itself. Grafana uses Prometheus as a datasource for dashboards.
 
-**Website:** https://prometheus.io  
-**Docs:** https://prometheus.io/docs/introduction/overview/  
-**GitHub:** https://github.com/prometheus/prometheus  
-**Docker image:** https://hub.docker.com/r/prom/prometheus  
-**Releases:** https://github.com/prometheus/prometheus/releases  
+**Website:** https://prometheus.io
+**Docs:** https://prometheus.io/docs/introduction/overview/
+**GitHub:** https://github.com/prometheus/prometheus
+**Docker image:** https://hub.docker.com/r/prom/prometheus
+**Releases:** https://github.com/prometheus/prometheus/releases
 
 ## Quick start
 
@@ -24,7 +24,7 @@ Metrics collection and storage. Scrapes cAdvisor (container metrics), optional W
 | **Access** | Via Caddy only (no host port; reverse-proxy to `prometheus:9090`) |
 | **Config** | `~/.config/prometheus/prometheus.yml` (copy from `prometheus.yml.example`; edit on the host) |
 | **Volume** | `prometheus_data` (time-series data); retention default **30d** (set `PROMETHEUS_RETENTION_TIME` in `stack.env` to override, e.g. `15d`, `90d`) |
-| **Network** | `telemetry` — shared with Caddy, Grafana, cAdvisor |
+| **Network** | `telemetry`, shared with Caddy, Grafana, cAdvisor |
 
 **Config path override:** Set `PROMETHEUS_CONFIG_PATH` (e.g. in `stack.env` or Portainer env) to an absolute path if you use a different location (e.g. `/opt/prometheus/prometheus.yml`).
 
@@ -32,7 +32,7 @@ Metrics collection and storage. Scrapes cAdvisor (container metrics), optional W
 
 ### Using this stack in Portainer
 
-**You must set `PROMETHEUS_CONFIG_PATH` when deploying from Portainer.** Portainer does not set `$HOME`, so the default path becomes `/.config/prometheus/prometheus.yml`, which does not exist on the host; the stack will then fail with a mount error (“mount a directory onto a file”). Set the variable to the **absolute path** of your config file on the host.
+**You must set `PROMETHEUS_CONFIG_PATH` when deploying from Portainer.** Portainer does not set `$HOME`, so the default path becomes `/.config/prometheus/prometheus.yml`, which does not exist on the host; the stack will then fail with a mount error ("mount a directory onto a file"). Set the variable to the **absolute path** of your config file on the host.
 
 1. **Put the config file on the host** where Docker (and Portainer) run, e.g.:
    - `~/.config/prometheus/prometheus.yml` → absolute path: `/home/youruser/.config/prometheus/prometheus.yml` (replace `youruser` with your homelab-user)

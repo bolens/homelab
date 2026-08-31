@@ -1,12 +1,12 @@
 # LinkStack
 
-Self-hosted **link-in-bio** page (Linktree-style): one URL that shows your profile and a list of links (social, projects, etc.). Customizable themes, optional multi-user, no database required—data lives in the container volume.
+Self-hosted **link-in-bio** page (Linktree-style): one URL that shows your profile and a list of links (social, projects, etc.). Customizable themes, optional multi-user, no database required, data lives in the container volume.
 
-**Website:** https://linkstack.org  
-**Docs:** https://docs.linkstack.org  
-**GitHub:** https://github.com/linkstackorg/linkstack  
-**Docker image:** https://hub.docker.com/r/linkstackorg/linkstack  
-**Releases:** https://github.com/linkstackorg/linkstack/releases  
+**Website:** https://linkstack.org
+**Docs:** https://docs.linkstack.org
+**GitHub:** https://github.com/linkstackorg/linkstack
+**Docker image:** https://hub.docker.com/r/linkstackorg/linkstack
+**Releases:** https://github.com/linkstackorg/linkstack/releases
 
 ## Quick start
 
@@ -23,18 +23,18 @@ The stack uses a **named volume** for app data (`/htdocs`), so it works when dep
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `linkstack:80`) |
-| **Network** | `ingress-public` (external) — Caddy can reverse-proxy to `linkstack:80` |
+| **Network** | `ingress-public` (external), Caddy can reverse-proxy to `linkstack:80` |
 | **Image** | `linkstackorg/linkstack:latest` |
 | **Env** | All optional: `TZ`, `SERVER_ADMIN`, `HTTP_SERVER_NAME`, `HTTPS_SERVER_NAME`, `LOG_LEVEL`, `PHP_MEMORY_LIMIT`, `UPLOAD_MAX_FILESIZE` |
 | **Storage** | Named volume `linkstack-data` (profiles, links, themes, uploads) |
 
 ## Features
 
-- **Single-page links** — One URL with your bio and clickable links.
-- **Themes** — Built-in and community themes; customizable CSS.
-- **Optional multi-user** — Multiple profiles on one instance.
-- **No database** — File-based; data in the volume.
-- **Export/import** — Move data between instances.
+- **Single-page links**, One URL with your bio and clickable links.
+- **Themes**, Built-in and community themes; customizable CSS.
+- **Optional multi-user**, Multiple profiles on one instance.
+- **No database**, File-based; data in the volume.
+- **Export/import**, Move data between instances.
 
 ## Caddy reverse proxy
 
@@ -68,5 +68,5 @@ Ensure the stack is on the `ingress-public` network so Caddy can reach `linkstac
 
 ## Start
 
-From this directory: `docker compose up -d`.  
+From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose and set any optional env vars in **Environment**.

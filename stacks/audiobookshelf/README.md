@@ -2,11 +2,11 @@
 
 Self-hosted podcast (and audiobook) server: subscribe to podcasts, stream or download episodes, sync progress across web and mobile apps.
 
-**Website:** https://www.audiobookshelf.org  
-**Docs:** https://www.audiobookshelf.org/faq/server  
-**GitHub:** https://github.com/advplyr/audiobookshelf  
-**Docker image:** https://github.com/advplyr/audiobookshelf/pkgs/container/audiobookshelf  
-**Releases:** https://github.com/advplyr/audiobookshelf/releases  
+**Website:** https://www.audiobookshelf.org
+**Docs:** https://www.audiobookshelf.org/faq/server
+**GitHub:** https://github.com/advplyr/audiobookshelf
+**Docker image:** https://github.com/advplyr/audiobookshelf/pkgs/container/audiobookshelf
+**Releases:** https://github.com/advplyr/audiobookshelf/releases
 
 ## Quick start
 
@@ -23,7 +23,7 @@ The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; use audiobookshelf.home, audiobookshelf.yourdomain.com, etc.) |
-| **Network** | `ingress-public` (external) — dedicated Caddy-to-service ingress |
+| **Network** | `ingress-public` (external), dedicated Caddy-to-service ingress |
 | **Image** | ghcr.io/advplyr/audiobookshelf:latest |
 | **Env** | `TZ` (optional, default America/Denver) |
 | **Storage** | Named volumes: `abs_config`, `abs_metadata`, `abs_audiobooks`, `abs_podcasts` |
@@ -33,7 +33,7 @@ The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it 
 - **Podcasts** – Subscribe by URL or search (iTunes), stream or download, auto-new-episode downloads.
 - **Audiobooks** – Add folders under `/audiobooks` (e.g. bind-mount extra host paths if you need more than the default volume).
 - **Progress sync** – Web and mobile apps (iOS/Android) sync position and play state.
-- **Libraries** – In the UI, add a “Podcast” library with path `/podcasts`, and optionally an “Audiobook” library with path `/audiobooks`.
+- **Libraries** – In the UI, add a "Podcast" library with path `/podcasts`, and optionally an "Audiobook" library with path `/audiobooks`.
 
 ## Adding more media (bind mounts)
 
@@ -63,5 +63,5 @@ Ensure the podcast stack is on `ingress-public` so Caddy can reach `audiobookshe
 
 ## Start
 
-From this directory: `docker compose up -d`.  
+From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose and optionally set `TZ` in **Environment**.

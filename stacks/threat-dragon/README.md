@@ -1,12 +1,12 @@
 # OWASP Threat Dragon
 
-Threat modeling tool: create diagrams, document threats (STRIDE, etc.), and optionally save models to GitHub, Bitbucket, or GitLab. [OWASP Threat Dragon](https://owasp.org/www-project-threat-dragon/) runs as a web app—no host ports; access via Caddy.
+Threat modeling tool: create diagrams, document threats (STRIDE, etc.), and optionally save models to GitHub, Bitbucket, or GitLab. [OWASP Threat Dragon](https://owasp.org/www-project-threat-dragon/) runs as a web app, no host ports; access via Caddy.
 
-**Website:** https://owasp.org/www-project-threat-dragon/  
-**Docs:** https://www.threatdragon.com/docs/  
-**GitHub:** https://github.com/OWASP/threat-dragon  
-**Docker image:** https://hub.docker.com/r/owasp/threat-dragon  
-**Releases:** https://github.com/OWASP/threat-dragon/releases  
+**Website:** https://owasp.org/www-project-threat-dragon/
+**Docs:** https://www.threatdragon.com/docs/
+**GitHub:** https://github.com/OWASP/threat-dragon
+**Docker image:** https://hub.docker.com/r/owasp/threat-dragon
+**Releases:** https://github.com/OWASP/threat-dragon/releases
 
 ## Quick start
 

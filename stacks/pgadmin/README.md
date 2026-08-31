@@ -22,10 +22,10 @@ Typically proxied through Caddy and used to administer Postgres containers on in
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | PGADMIN_DEFAULT_EMAIL | Yes | admin@example.com | Email address used to log in to pgAdmin |
-| PGADMIN_DEFAULT_PASSWORD | Yes | — | Password for the pgAdmin web UI login |
+| PGADMIN_DEFAULT_PASSWORD | Yes | None | Password for the pgAdmin web UI login |
 
 ## Notes
 
 - TZ and locale come from shared.env.
 - Server connections are added inside the pgAdmin UI; credentials are stored in its internal database.
-- pgAdmin data (saved servers, preferences) persists in a named volume — back it up before upgrades.
+- pgAdmin data (saved servers, preferences) persists in a named volume, back it up before upgrades.

@@ -9,28 +9,28 @@ theme.
 
 **AIL** (Analysis Information Leak framework) analyses potential information leaks from unstructured data: pastes (Pastebin-style), streams, and crawled content. It detects credentials, credit cards, API keys, PGP data, and more; supports trackers (YARA, regex, terms), correlation, MISP/TheHive export, and optional Tor hidden-service crawling.
 
-**Website:** https://www.ail-project.org  
-**Docs:** https://github.com/ail-project/ail-framework/tree/master/doc  
-**GitHub:** https://github.com/ail-project/ail-framework  
-**Releases:** https://github.com/ail-project/ail-framework/releases  
+**Website:** https://www.ail-project.org
+**Docs:** https://github.com/ail-project/ail-framework/tree/master/doc
+**GitHub:** https://github.com/ail-project/ail-framework
+**Releases:** https://github.com/ail-project/ail-framework/releases
 
 ## Quick start
 
 1. **Environment** – Copy `stack.env.example` to `stack.env` if you want to set `TZ` (optional), then run `docker compose --env-file stack.env up -d` or set the same vars in the Portainer stack Environment.
 2. **Deploy:** `docker compose --env-file stack.env up -d` (or add the stack in Portainer).
 3. **Access:** Open via Caddy (e.g. https://ail.home or https://ail.example.com). **Default login:** email `admin@admin.test`. (Some images may write the generated password to a file in the container; if that doesn’t work, run **Reset password** below.) Change the password after first login.
-4. **Reset admin password (recommended):**  
-   `docker exec ail-framework bin/LAUNCH.sh -rp`  
-   (If the container name or path differs, adjust accordingly.)  
-   Then read the new password: `docker exec ail-framework cat /opt/AIL/DEFAULT_PASSWORD`  
+4. **Reset admin password (recommended):**
+   `docker exec ail-framework bin/LAUNCH.sh -rp`
+   (If the container name or path differs, adjust accordingly.)
+   Then read the new password: `docker exec ail-framework cat /opt/AIL/DEFAULT_PASSWORD`
    This resets **`admin@admin.test`** (creates it if missing, or sets a new password if it already exists). It also writes a **new API key** for that user. If you had renamed the admin email, log in as **`admin@admin.test`** with the new password, then clean up duplicate users in the UI if needed.
 
-### Login lockout (“Please wait …s”) and recovery
+### Login lockout ("Please wait …s") and recovery
 
 - **Stock image:** after **5** failed attempts per IP or per username, AIL blocks further tries for **300 seconds** (Redis_Cache, port **6379**).
 - **This stack:** uses the upstream lockout behavior; no application source files are bind-mounted.
 - **Clear lockout without waiting:** from this directory, `./clear-login-lockout.sh` (or `bash clear-login-lockout.sh`).
-- **Username is your email** (case-sensitive in this image). After changing the admin email, use the **new** address to sign in—not `admin@admin.test`—unless you ran **`-rp`**, which resets **`admin@admin.test`** again.
+- **Username is your email** (case-sensitive in this image). After changing the admin email, use the **new** address to sign in, not `admin@admin.test`, unless you ran **`-rp`**, which resets **`admin@admin.test`** again.
 
 ## Configuration
 
@@ -111,7 +111,7 @@ AIL 7.x images are **large** (often **many GB** compressed). A public Harbor hos
    ```
    `7.0` and `7.0-cpu` intentionally reference the same CPU image.
 
-4. **Use on other hosts:** Set `AIL_IMAGE=harbor.local/PROJECT/ail-framework:7.0` in `stack.env`, keep `docker-compose.override.yml` (same `/opt/AIL` paths). Ensure Docker trusts Harbor’s TLS cert where needed (see e.g. [social-hunt README](../social-hunt/README.md) → “harbor.local: certificate signed by unknown authority” if applicable).
+4. **Use on other hosts:** Set `AIL_IMAGE=harbor.local/PROJECT/ail-framework:7.0` in `stack.env`, keep `docker-compose.override.yml` (same `/opt/AIL` paths). Ensure Docker trusts Harbor’s TLS cert where needed (see e.g. [social-hunt README](../social-hunt/README.md) → "harbor.local: certificate signed by unknown authority" if applicable).
 
 ## Caddy reverse proxy
 
@@ -124,7 +124,7 @@ The stack uses `security-research` for research-tool communication and `ingress-
 ### Login problems (after restarts or unrelated to Docker changes)
 
 - **Not caused by** the compose `tmpfs` for `/run/screen` or screen restarts: user accounts live in Kvrocks/Redis volumes.
-- **Redirect loop or “can’t log in” via Caddy:** ensure your live Caddyfile includes the **`Host` / `X-Forwarded-*`** lines from `caddy_snippet.conf.example`, then reload Caddy. Clear site cookies for your AIL hostname and try again.
+- **Redirect loop or "can’t log in" via Caddy:** ensure your live Caddyfile includes the **`Host` / `X-Forwarded-*`** lines from `caddy_snippet.conf.example`, then reload Caddy. Clear site cookies for your AIL hostname and try again.
 - **Wrong or unknown password / lost access after API key change:** `docker exec ail-framework bin/LAUNCH.sh -rp`, then `docker exec ail-framework cat /opt/AIL/DEFAULT_PASSWORD`. Sign in as **`admin@admin.test`**; create a new API key under settings after you are in.
 - **Brute-force timer:** run `./clear-login-lockout.sh` from this stack directory (or wait for TTL).
 - Flask also picks a **new random `SECRET_KEY` and session cookie name on each process start**, so expect to sign in again after container restarts; that is upstream AIL behavior, not the stack tmpfs change.
@@ -152,5 +152,5 @@ sidecar.
 
 ## Start
 
-From this directory: `docker compose up -d`.  
+From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose, deploy.

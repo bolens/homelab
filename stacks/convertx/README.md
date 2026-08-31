@@ -2,11 +2,11 @@
 
 Self-hosted online file converter supporting **1000+ formats**: documents (LibreOffice, Pandoc), images (ImageMagick, Vips, HEIF, JPEG XL), video (FFmpeg), e-books (Calibre), 3D (Assimp), and more. Written with TypeScript, Bun and Elysia.
 
-**Website:** https://github.com/C4illin/ConvertX  
-**Docs:** https://github.com/C4illin/ConvertX#readme  
-**GitHub:** https://github.com/C4illin/ConvertX  
-**Docker image:** https://github.com/C4illin/ConvertX/pkgs/container/convertx  
-**Releases:** https://github.com/C4illin/ConvertX/releases  
+**Website:** https://github.com/C4illin/ConvertX
+**Docs:** https://github.com/C4illin/ConvertX#readme
+**GitHub:** https://github.com/C4illin/ConvertX
+**Docker image:** https://github.com/C4illin/ConvertX/pkgs/container/convertx
+**Releases:** https://github.com/C4illin/ConvertX/releases
 
 ## Quick start
 
@@ -23,7 +23,7 @@ The stack uses a **named volume** for app data (SQLite, converted files), so it 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `convertx:3000`) |
-| **Network** | `ingress-public` (external) — dedicated Caddy-to-service ingress |
+| **Network** | `ingress-public` (external), dedicated Caddy-to-service ingress |
 | **Image** | `ghcr.io/c4illin/convertx:latest` |
 | **Env** | `JWT_SECRET` (recommended); optional `TZ`, `ACCOUNT_REGISTRATION`, `HTTP_ALLOWED`, `LANGUAGE`, `AUTO_DELETE_EVERY_N_HOURS`, etc. |
 | **Storage** | Named volume `convertx-data` (database + converted files) |
@@ -51,5 +51,5 @@ Ensure the stack is on `ingress-public` so Caddy can reach `convertx:3000`.
 
 ## Start
 
-From this directory: `docker compose up -d`.  
+From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose and set `JWT_SECRET` (and optional vars) in **Environment**.

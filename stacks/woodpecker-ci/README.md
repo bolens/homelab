@@ -2,9 +2,9 @@
 
 [Woodpecker CI](https://woodpecker-ci.org/) is a lightweight, Docker-native CI/CD system. This stack runs a Woodpecker server and agent with Postgres, designed to integrate with your `gitea` stack as the Git provider.
 
-**Website:** https://woodpecker-ci.org/  
-**Docs:** https://woodpecker-ci.org/docs/  
-**Docker images:** `woodpeckerci/woodpecker-server`, `woodpeckerci/woodpecker-agent`  
+**Website:** https://woodpecker-ci.org/
+**Docs:** https://woodpecker-ci.org/docs/
+**Docker images:** `woodpeckerci/woodpecker-server`, `woodpeckerci/woodpecker-agent`
 
 ## Quick start
 
@@ -24,7 +24,7 @@
    If your `stack.env` still has `WOODPECKER_DB_NAME` / `WOODPECKER_DB_USER` / `WOODPECKER_DB_PASSWORD` but not the Postgres-native variables, add:
 
    - `POSTGRES_DB` and `POSTGRES_USER` (usually `woodpecker` / `woodpecker`),
-   - `POSTGRES_PASSWORD` — same value as the old `WOODPECKER_DB_PASSWORD`,
+   - `POSTGRES_PASSWORD`, same value as the old `WOODPECKER_DB_PASSWORD`,
    - `WOODPECKER_DATABASE_DRIVER=postgres`,
    - `WOODPECKER_DATABASE_DATASOURCE=postgres://woodpecker:YOUR_PASSWORD@woodpecker-postgres:5432/woodpecker?sslmode=disable`.
 

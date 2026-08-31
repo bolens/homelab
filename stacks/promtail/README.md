@@ -2,8 +2,8 @@
 
 [Promtail](https://grafana.com/docs/loki/latest/clients/promtail/) is the log-shipping agent for Loki. It tails log files on the host and pushes them to a Loki instance. Deploy this stack **after** the Loki stack so logs are available in Grafana (Explore → Loki).
 
-**Docs:** https://grafana.com/docs/loki/latest/clients/promtail/  
-**Docker image:** https://hub.docker.com/r/grafana/promtail  
+**Docs:** https://grafana.com/docs/loki/latest/clients/promtail/
+**Docker image:** https://hub.docker.com/r/grafana/promtail
 
 ## Dependencies
 
@@ -38,7 +38,7 @@
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Internal only; pushes to `loki:3100` on `telemetry`                       |
 | **Config**  | Copy `promtail-config.yml.example` → `~/.config/promtail/promtail-config.yml`; override with `PROMTAIL_CONFIG_PATH` (e.g. in Portainer) |
-| **Network** | `telemetry` — same as Loki and Grafana                                   |
+| **Network** | `telemetry`, same as Loki and Grafana                                   |
 
 Default scrape config:
 

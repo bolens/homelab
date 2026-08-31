@@ -2,9 +2,9 @@
 
 Vector is a log collection and routing agent. This stack ships host and container logs to the existing Loki stack for centralized search and dashboards in Grafana. It is an alternative to Grafana Alloy; do not enable both Docker collectors at the same time or Loki will receive duplicate container logs.
 
-**Website:** https://vector.dev/  
-**Docs:** https://vector.dev/docs/  
-**Docker image:** https://hub.docker.com/r/timberio/vector  
+**Website:** https://vector.dev/
+**Docs:** https://vector.dev/docs/
+**Docker image:** https://hub.docker.com/r/timberio/vector
 
 ## Quick start
 
@@ -25,7 +25,7 @@ Vector is a log collection and routing agent. This stack ships host and containe
 | ----------- | --------------------------------------------------------------------------------------- |
 | **Access**  | Internal only; Vector reads Docker logs through Alloy's read-only socket proxy and sends to `loki:3100` |
 | **Config**  | `vector.toml` (sources, transforms, sinks; safe to commit)                             |
-| **Network** | `ingress-admin` — shared with Loki and other observability stacks                            |
+| **Network** | `ingress-admin`, shared with Loki and other observability stacks                            |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale via `shared.env`.    |
 
 The example `vector.toml` includes:

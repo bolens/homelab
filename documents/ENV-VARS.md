@@ -1,4 +1,4 @@
-# Environment variables — Docker homelab stacks
+# Environment variables for Docker homelab stacks
 
 Use this as a reference when adding new stacks. Per-stack environment variable
 details live in each stack's `README.md` under the **Environment variables**
@@ -12,7 +12,7 @@ To set `TZ` and locale in one place for all stacks, see
 [SHARED-RESOURCES.md – Shared env file](SHARED-RESOURCES.md#1-shared-env-file-tz--locale).
 
 New and updated stacks should **not** duplicate `TZ`, `LANG`, `LC_ALL`, or
-`LC_CTYPE` in their own `stack.env.example` — prefer `../../shared.env` with a
+`LC_CTYPE` in their own `stack.env.example`, prefer `../../shared.env` with a
 short comment pointing to SHARED-RESOURCES.md.
 
 ```env
@@ -67,7 +67,7 @@ Each stack's `README.md` documents its required and optional environment
 variables. See the stack directory for `stack.env.example` as the authoritative
 list of variables to set.
 
-Quick reference — find a stack:
+Quick reference, find a stack:
 
 | Stack | Notes |
 |-------|-------|

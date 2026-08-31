@@ -9,7 +9,7 @@ Kometa (formerly Plex Meta Manager) is a tool that automatically manages Plex li
 ## Usage
 
 Batch runner that connects to your Plex server and applies metadata config (collections, overlays, ratings)
-on a schedule. Runs daily at 05:00 by default, then exits — not a persistent web service. Sits on the
+on a schedule. Runs daily at 05:00 by default, then exits, not a persistent web service. Sits on the
 dedicated `media-services` network alongside Plex and related stacks.
 
 ## Setup
@@ -31,5 +31,5 @@ dedicated `media-services` network alongside Plex and related stacks.
 ## Notes
 
 - TZ and locale come from shared.env.
-- Healthcheck is disabled — Kometa runs and exits; the container will show as exited after each run.
+- Healthcheck is disabled, Kometa runs and exits; the container will show as exited after each run.
 - Plex URL and token must be set inside the Kometa config.yml, not here.

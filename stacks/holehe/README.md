@@ -1,10 +1,10 @@
 # Holehe (web UI)
 
-Holehe checks if an email address is registered on many websites using their “forgot password” flows, without sending emails to the target. This stack wraps the **holehe-web** FastAPI app to provide a simple web UI and CSV export.
+Holehe checks if an email address is registered on many websites using their "forgot password" flows, without sending emails to the target. This stack wraps the **holehe-web** FastAPI app to provide a simple web UI and CSV export.
 
-**Website:** https://github.com/sds-osint/holehe-web  
-**Docs:** https://github.com/sds-osint/holehe-web#readme  
-**GitHub:** https://github.com/sds-osint/holehe-web (web UI); core tool: https://github.com/megadose/holehe  
+**Website:** https://github.com/sds-osint/holehe-web
+**Docs:** https://github.com/sds-osint/holehe-web#readme
+**GitHub:** https://github.com/sds-osint/holehe-web (web UI); core tool: https://github.com/megadose/holehe
 
 ## Quick start
 
@@ -68,7 +68,7 @@ In your real setup, use the hostname you expose via Cloudflare/Tunnel (for examp
 
 ## CLI vs web
 
-- For **web-based checks** and CSV export, use this stack (holehe-web).  
+- For **web-based checks** and CSV export, use this stack (holehe-web).
 - For **pure CLI scripts**, you can also run Holehe directly:
 
   ```bash

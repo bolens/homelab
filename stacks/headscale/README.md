@@ -2,11 +2,11 @@
 
 Self-hosted implementation of the Tailscale control server. Lets you run your own Tailscale-style mesh VPN and use Tailscale clients (or headscale-specific options) to connect.
 
-**Website:** https://headscale.net  
-**Docs:** https://headscale.net/docs/  
-**GitHub:** https://github.com/juanfont/headscale  
-**Docker image:** https://hub.docker.com/r/headscale/headscale  
-**Releases:** https://github.com/juanfont/headscale/releases  
+**Website:** https://headscale.net
+**Docs:** https://headscale.net/docs/
+**GitHub:** https://github.com/juanfont/headscale
+**Docker image:** https://hub.docker.com/r/headscale/headscale
+**Releases:** https://github.com/juanfont/headscale/releases
 
 ## Quick start
 
@@ -14,7 +14,7 @@ Self-hosted implementation of the Tailscale control server. Lets you run your ow
    - Run `./prepare-stack.sh`. It creates `stack.env`, the configured
      `HEADSCALE_CONFIG_PATH`, and the Caddy snippet without overwriting them.
    - Edit the generated config and set at least:
-     - `server_url`: public URL (e.g. `https://headscale.yourdomain.com`) — required for clients.
+     - `server_url`: public URL (e.g. `https://headscale.yourdomain.com`), required for clients.
      - `dns.base_domain`: a domain you control for MagicDNS (e.g. `ts.yourdomain.com`).
 2. **Deploy**
    - **Portainer:** Set `HEADSCALE_CONFIG_PATH` to the absolute host path of the

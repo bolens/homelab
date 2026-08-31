@@ -2,8 +2,8 @@
 
 Self-hosted **file server** with user authentication, upload/download, search, previews (text, images, audio, video, PDF), media playlists, and shareable external links. Stack: Svelte frontend, Rust (Rocket) backend.
 
-**Website / repo:** https://github.com/machengim/oasis  
-**Docker image:** https://hub.docker.com/r/machengim/oasis  
+**Website / repo:** https://github.com/machengim/oasis
+**Docker image:** https://hub.docker.com/r/machengim/oasis
 
 ## Quick start
 
@@ -19,7 +19,7 @@ The upstream image listens on **port 8000** inside the container (`/opt/oasis/da
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; `reverse_proxy oasis:8000`) |
-| **Network** | External `ingress-public` — same network as Caddy |
+| **Network** | External `ingress-public`, same network as Caddy |
 | **Image** | `machengim/oasis:latest` |
 | **Env** | Optional TZ/locale via `../../shared.env`; no required vars in `stack.env` for defaults |
 | **Volumes** | `oasis-data` → `/opt/oasis/data`; `oasis-storage` → `/home/storage` |

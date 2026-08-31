@@ -12,7 +12,7 @@ Runs as a background relay daemon with no web UI. The container connects to the 
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and adjust optional values.
-2. No required environment variables — defaults work out of the box.
+2. No required environment variables, defaults work out of the box.
 3. Deploy: `docker compose up -d`
 
 ## Environment variables
@@ -24,6 +24,6 @@ Runs as a background relay daemon with no web UI. The container connects to the 
 
 ## Notes
 
-- Running a Snowflake proxy helps censored users; it does not route exit traffic — low legal risk.
+- Running a Snowflake proxy helps censored users; it does not route exit traffic, low legal risk.
 - Requires outbound UDP (WebRTC) to be unrestricted on your firewall.
 - No inbound port forwarding is required; the proxy initiates outbound connections.

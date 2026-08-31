@@ -21,11 +21,11 @@ Useful for auditing captured hashes in a pentest lab. Wordlists are mounted read
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| HASHCAT_WORDLIST_DIR | No | — | Host path to wordlist directory (mounted read-only) |
+| HASHCAT_WORDLIST_DIR | No | None | Host path to wordlist directory (mounted read-only) |
 | HASHCAT_WORK_PATH | No | ~/security-lab/hashcat/work | Writable job directory |
 
 ## Notes
 
 - TZ and locale come from shared.env.
 - The base definition is CPU-compatible; add a host-specific Compose override for GPU passthrough.
-- No persistent service — use `docker compose run --rm` for each job.
+- No persistent service, use `docker compose run --rm` for each job.

@@ -1,11 +1,11 @@
 # OWASP TorBot
 
-Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. [OWASP TorBot](https://owasp.org/www-project-torbot/) project; upstream [DedSecInside/TorBot](https://github.com/DedSecInside/TorBot). **No official Docker image** — you must build from upstream once and set `TORBOT_IMAGE`, or use an image from your registry.
+Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. [OWASP TorBot](https://owasp.org/www-project-torbot/) project; upstream [DedSecInside/TorBot](https://github.com/DedSecInside/TorBot). **No official Docker image**, you must build from upstream once and set `TORBOT_IMAGE`, or use an image from your registry.
 
-**Website:** https://owasp.org/www-project-torbot/  
-**Docs:** https://github.com/DedSecInside/TorBot#readme  
-**GitHub:** https://github.com/DedSecInside/TorBot  
-**Releases:** https://github.com/DedSecInside/TorBot/releases  
+**Website:** https://owasp.org/www-project-torbot/
+**Docs:** https://github.com/DedSecInside/TorBot#readme
+**GitHub:** https://github.com/DedSecInside/TorBot
+**Releases:** https://github.com/DedSecInside/TorBot/releases
 
 ## Quick start
 
@@ -53,7 +53,7 @@ Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if link
 | `torbot -u http://xxx.onion --host tor --port 9050 -q` | Quiet (no header) |
 | `torbot -u https://example.com --host tor --port 9050 --disable-socks5` | Crawl clearnet without Tor |
 
-Help: `docker compose exec torbot torbot --help`  
+Help: `docker compose exec torbot torbot --help`
 If the `torbot` binary is not found: `docker compose exec torbot python -m torbot -u http://example.onion --host tor --port 9050`
 
 ## Configuration
@@ -63,7 +63,7 @@ If the `torbot` binary is not found: `docker compose exec torbot python -m torbo
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose exec torbot torbot ...`. |
 | **Tor** | Locally built Alpine 3.24 image with the current Tor package; SOCKS at `tor:9050`. |
 | **Image** | No official image. Set `TORBOT_IMAGE` to an image you built from upstream (or from the Dockerfile in this stack) and pushed to your registry. |
-| **Network** | `torbot` (internal); Tor and TorBot share it — always use `--host tor --port 9050`. |
+| **Network** | `torbot` (internal); Tor and TorBot share it, always use `--host tor --port 9050`. |
 
 ## Portainer
 

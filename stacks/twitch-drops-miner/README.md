@@ -14,11 +14,11 @@ This stack runs [TwitchDropsMiner](https://github.com/rangermix/TwitchDropsMiner
 
 If the page stays **blank** through **Cloudflare**, disable **Rocket Loader** (and auto JS minify) for `twitchdrops.*`; the UI relies on **Socket.IO** / WebSockets.
 
-### Data Persistence
+### Data persistence
 - `./data` is mounted to persist login and settings.
 - (Optional) Uncomment the `logs` volume in `docker-compose.yml` to persist logs.
 
-### Environment Variables
+### Environment variables
 - `TZ`: Set your timezone (e.g., `Europe/Berlin`).
 
 ## Reference

@@ -1,11 +1,11 @@
 #! Mailpit
 
-Local **SMTP catcher** for development and testing. Receives all mail on port 1025 and displays it in a web UI (port 8025). No external delivery—ideal for internal-only mailing when combined with the Postfix relay.
+Local **SMTP catcher** for development and testing. Receives all mail on port 1025 and displays it in a web UI (port 8025). No external delivery, ideal for internal-only mailing when combined with the Postfix relay.
 
-**Website:** https://mailpit.axllent.org  
-**Docs:** https://mailpit.axllent.org/docs/  
-**GitHub:** https://github.com/axllent/mailpit  
-**Docker image:** https://hub.docker.com/r/axllent/mailpit  
+**Website:** https://mailpit.axllent.org
+**Docs:** https://mailpit.axllent.org/docs/
+**GitHub:** https://github.com/axllent/mailpit
+**Docker image:** https://hub.docker.com/r/axllent/mailpit
 
 ## Quick start
 

@@ -19,11 +19,11 @@ Exposes fake SSH (port 2222) and Telnet (port 2223) services to attract attacker
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| COWRIE_OUTPUT_SPLUNK_HOST | No | — | Splunk HEC hostname for log forwarding |
-| COWRIE_OUTPUT_SPLUNK_TOKEN | No | — | Splunk HEC token (openssl rand -hex 16) |
+| COWRIE_OUTPUT_SPLUNK_HOST | No | None | Splunk HEC hostname for log forwarding |
+| COWRIE_OUTPUT_SPLUNK_TOKEN | No | None | Splunk HEC token (openssl rand -hex 16) |
 
 ## Notes
 
 - Bind port 22 on a public interface with caution; use firewall rules to avoid locking yourself out.
-- Cowrie fakes a Linux shell — do not expose on a port where your real SSH runs.
+- Cowrie fakes a Linux shell, do not expose on a port where your real SSH runs.
 - JSON logs land in `./var/log/cowrie/` by default; mount a volume to persist them.

@@ -2,11 +2,11 @@
 
 Self-hosted photo and video backup: upload from phones and the web, face detection, search, and albums.
 
-**Website:** https://immich.app  
-**Docs:** https://immich.app/docs  
-**GitHub:** https://github.com/immich-app/immich  
-**Docker image:** https://github.com/immich-app/immich/pkgs/container/immich-server  
-**Releases:** https://github.com/immich-app/immich/releases  
+**Website:** https://immich.app
+**Docs:** https://immich.app/docs
+**GitHub:** https://github.com/immich-app/immich
+**Docker image:** https://github.com/immich-app/immich/pkgs/container/immich-server
+**Releases:** https://github.com/immich-app/immich/releases
 
 ## Quick start
 
@@ -34,7 +34,7 @@ The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it
 | Item | Details |
 |------|---------|
 | **Port** | 2283 (proxied via Caddy; also bound to 127.0.0.1:2283 for localhost-only direct access) |
-| **Network** | `ingress-public` (external) — Caddy can reverse-proxy to `immich-server:2283` |
+| **Network** | `ingress-public` (external), Caddy can reverse-proxy to `immich-server:2283` |
 | **Images** | immich-server, immich-machine-learning, Valkey (Redis), Postgres with vector extension |
 | **Env** | `DB_PASSWORD` required; `TZ`, `IMMICH_VERSION`, optional `IMMICH_CONFIG_FILE` (see `stack.env.example`) |
 | **Storage** | Named volumes: `library` (uploads), `pgdata`, `model-cache`, `redisdata` |
@@ -48,11 +48,11 @@ To use Google as the login method:
 1. Go to [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials**.
 2. **Create credentials** → **OAuth client ID**.
 3. Application type: **Web application**.
-4. **Authorized redirect URIs** — add **all** of these (replace with your Immich URL and port if not using Caddy):
+4. **Authorized redirect URIs**, add **all** of these (replace with your Immich URL and port if not using Caddy):
    - `https://immich.yourdomain.com/auth/login`
    - `https://immich.yourdomain.com/user-settings`
    - `app.immich:///oauth-callback` (required for mobile app)
-   - If you use the mobile app and your provider doesn’t allow custom schemes, also add:  
+   - If you use the mobile app and your provider doesn’t allow custom schemes, also add:
      `https://immich.yourdomain.com/api/oauth/mobile-redirect`
 5. Copy the **Client ID** and **Client secret**.
 
@@ -60,15 +60,15 @@ To use Google as the login method:
 
 1. Log in as admin → **Administration** → **Settings**.
 2. Find **OAuth** and set:
-   - **Enabled:** true  
-   - **Issuer URL:** `https://accounts.google.com`  
-   - **Client ID:** (from Google)  
-   - **Client secret:** (from Google)  
-   - **Scope:** `openid email profile`  
-   - **Signing algorithm:** RS256  
-   - **Button text:** e.g. “Sign in with Google”  
-   - **Auto register:** optional (create users on first Google sign-in)  
-   - **Auto launch:** optional (skip login page and go straight to Google)  
+   - **Enabled:** true
+   - **Issuer URL:** `https://accounts.google.com`
+   - **Client ID:** (from Google)
+   - **Client secret:** (from Google)
+   - **Scope:** `openid email profile`
+   - **Signing algorithm:** RS256
+   - **Button text:** e.g. "Sign in with Google"
+   - **Auto register:** optional (create users on first Google sign-in)
+   - **Auto launch:** optional (skip login page and go straight to Google)
    - **Mobile redirect:** if your Google client doesn’t allow `app.immich:///oauth-callback`, enable **Mobile Redirect URI Override** and set it to `https://immich.yourdomain.com/api/oauth/mobile-redirect`, and add that URL to Google’s redirect URIs.
 3. Save. Test login on web and, if used, on the mobile app.
 
@@ -101,7 +101,7 @@ If you already use **Cloudflare Zero Trust** with an identity provider (Google, 
 1. In [Cloudflare One](https://one.dash.cloudflare.com/) go to **Access** → **Applications** → **Add an application**.
 2. Choose **OIDC** → **SaaS**.
 3. **Application name:** e.g. `Immich`.
-4. **Redirect URLs** — add **all** of these (use your Immich URL):
+4. **Redirect URLs**, add **all** of these (use your Immich URL):
    - `https://immich.yourdomain.com/auth/login`
    - `https://immich.yourdomain.com/user-settings`
    - `app.immich:///oauth-callback` (for mobile app)
@@ -110,7 +110,7 @@ If you already use **Cloudflare Zero Trust** with an identity provider (Google, 
 6. Create the application, then under **OIDC** copy:
    - **Client ID**
    - **Client secret**
-   - **Issuer** (base URL): `https://<team-name>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<application-id>/`  
+   - **Issuer** (base URL): `https://<team-name>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<application-id>/`
      Your team name is under **Settings** → **Team name and domain**. The application ID is in the URL when you edit the app or in the issuer path.
 7. Configure **Identity providers** and **Access policies** as usual, then save.
 
@@ -118,17 +118,17 @@ If you already use **Cloudflare Zero Trust** with an identity provider (Google, 
 
 1. Log in as admin → **Administration** → **Settings**.
 2. Find **OAuth** and set:
-   - **Enabled:** true  
-   - **Issuer URL:** your Cloudflare OIDC issuer, e.g.  
-     `https://<team-name>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<application-id>/`  
+   - **Enabled:** true
+   - **Issuer URL:** your Cloudflare OIDC issuer, e.g.
+     `https://<team-name>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<application-id>/`
      (Trailing slash is fine; Immich will use discovery.)
-   - **Client ID:** (from Cloudflare)  
-   - **Client secret:** (from Cloudflare)  
-   - **Scope:** `openid email profile`  
-   - **Signing algorithm:** RS256  
-   - **Button text:** e.g. “Sign in with Cloudflare”  
-   - **Auto register:** optional (create users on first sign-in)  
-   - **Auto launch:** optional (skip Immich login page and go straight to Cloudflare)  
+   - **Client ID:** (from Cloudflare)
+   - **Client secret:** (from Cloudflare)
+   - **Scope:** `openid email profile`
+   - **Signing algorithm:** RS256
+   - **Button text:** e.g. "Sign in with Cloudflare"
+   - **Auto register:** optional (create users on first sign-in)
+   - **Auto launch:** optional (skip Immich login page and go straight to Cloudflare)
    - **Mobile redirect:** if you use the mobile app and added the `/api/oauth/mobile-redirect` URL in Cloudflare, enable **Mobile Redirect URI Override** and set it to `https://immich.yourdomain.com/api/oauth/mobile-redirect`.
 3. Save and test login (web and mobile if used).
 
@@ -166,5 +166,5 @@ Ensure the Immich stack is on the `ingress-public` network so Caddy can reach `i
 
 ## Start
 
-From this directory: `docker compose up -d`.  
+From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose and set `DB_PASSWORD` (and optionally `TZ`, `IMMICH_VERSION`) in **Environment**.

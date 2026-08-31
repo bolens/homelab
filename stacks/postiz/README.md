@@ -27,4 +27,4 @@ Connect OAuth credentials for each social network you want to manage.
 ## Notes
 
 - First run will prompt you to create an admin account via the web UI.
-- Postiz requires a database (Postgres) and Redis — check the generated compose for service dependencies.
+- Postiz requires a database (Postgres) and Redis, check the generated compose for service dependencies.

@@ -23,5 +23,5 @@ Run tests interactively via `docker compose run` inside the container. No web UI
 ## Notes
 
 - CLI-only tool; use `docker compose run` rather than `up -d`.
-- Tests can generate real malicious-looking activity — run only in isolated lab environments.
+- Tests can generate real malicious-looking activity, run only in isolated lab environments.
 - Invoke-AtomicRedTeam PowerShell module is the primary interface inside the container.

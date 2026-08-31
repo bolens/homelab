@@ -2,9 +2,9 @@
 
 Bridge Zigbee devices to MQTT so they can be used by Home Assistant, Node-RED, and other automation tools.
 
-**Website:** https://www.zigbee2mqtt.io/  
-**Docs:** https://www.zigbee2mqtt.io/guide/installation/01_docker.html  
-**Docker image:** https://hub.docker.com/r/koenkk/zigbee2mqtt  
+**Website:** https://www.zigbee2mqtt.io/
+**Docs:** https://www.zigbee2mqtt.io/guide/installation/01_docker.html
+**Docker image:** https://hub.docker.com/r/koenkk/zigbee2mqtt
 
 ## Quick start
 
@@ -27,7 +27,7 @@ Bridge Zigbee devices to MQTT so they can be used by Home Assistant, Node-RED, a
 | ----------- | -------------------------------------------------------------------------------------------- |
 | **Access**  | Web UI via Caddy (reverse-proxy to `zigbee2mqtt:8080`); MQTT via your existing Mosquitto broker |
 | **Volume**  | `zigbee2mqtt_data` (configuration, network map, device state)                               |
-| **Network** | `ingress-admin` — shared with Mosquitto and Home Assistant                                        |
+| **Network** | `ingress-admin`, shared with Mosquitto and Home Assistant                                        |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale and MQTT settings.        |
 
 Zigbee2MQTT reads additional configuration from `configuration.yaml` inside the `zigbee2mqtt_data` volume (`/app/data`). Refer to the official docs for configuring adapters, channels, and devices.

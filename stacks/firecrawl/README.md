@@ -11,7 +11,7 @@ Web scraping and crawling API that converts any website into LLM-ready markdown 
 | Container | Role | Port |
 |---|---|---|
 | firecrawl-api | REST API | 127.0.0.1:3002 |
-| firecrawl-worker | Queue worker | — |
+| firecrawl-worker | Queue worker | None |
 | firecrawl-playwright | Headless JS rendering | internal:3000 |
 | firecrawl-redis | Job queue / rate limiting | internal |
 
@@ -25,7 +25,7 @@ Web scraping and crawling API that converts any website into LLM-ready markdown 
 
 ## Authentication
 
-`USE_DB_AUTHENTICATION=false` (default) — any client sending `TEST_API_KEY` as Bearer token is allowed.
+`USE_DB_AUTHENTICATION=false` (default), any client sending `TEST_API_KEY` as Bearer token is allowed.
 For multi-user with per-key rate limiting, set `USE_DB_AUTHENTICATION=true` and configure Supabase.
 
 ## API usage

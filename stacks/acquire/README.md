@@ -2,9 +2,9 @@
 
 Gather forensic artifacts from disk images or a live system into a single archive. [Acquire](https://docs.dissect.tools/en/stable/projects/acquire/index.html) uses the [Dissect](https://dissect.tools/) framework: it collects modules (paths/globs) by profile (`full`, `default`, `minimal`, `none`) and outputs a lightweight container for triage. Supports VMDK, E01, and other formats via Dissect; optional volatile (memory) collection.
 
-**Docs:** https://docs.dissect.tools/en/stable/projects/acquire/  
-**GitHub:** https://github.com/fox-it/acquire  
-**PyPI:** https://pypi.org/project/acquire/  
+**Docs:** https://docs.dissect.tools/en/stable/projects/acquire/
+**GitHub:** https://github.com/fox-it/acquire
+**PyPI:** https://pypi.org/project/acquire/
 
 ## Building the image
 
@@ -35,7 +35,7 @@ Set `ACQUIRE_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-stac
 
 3. **Place a disk image** (e.g. `evidence.vmdk`, `disk.e01`) under `data/`, or use a directory for OS-level fallback.
 
-4. **Run acquire** — see [Usage examples](#usage-examples) below.
+4. **Run acquire**, see [Usage examples](#usage-examples) below.
 
 ## Usage examples
 
@@ -96,4 +96,4 @@ Full options: [acquire tool reference](https://docs.dissect.tools/en/stable/tool
 
 - Use only on **authorized** evidence (your own systems or with explicit permission).
 - **Live acquisition** (default target `local`) needs raw disk access and is typically run on the host or with privileged access; in Docker, prefer disk image paths or `--force-fallback` with a mounted directory.
-- Output is a single archive (the “lightweight container”); analyze it with Dissect or other tools.
+- Output is a single archive (the "lightweight container"); analyze it with Dissect or other tools.

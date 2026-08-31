@@ -2,11 +2,11 @@
 
 Reverse proxy with automatic HTTPS. Proxies to services on the host via `host.docker.internal`. Supports local DNS (e.g. AdGuard Home) and public access (Cloudflare Tunnel or port forwarding).
 
-**Website:** https://caddyserver.com  
-**Docs:** https://caddyserver.com/docs/  
-**GitHub:** https://github.com/caddyserver/caddy  
-**Docker image:** https://hub.docker.com/r/serfriz/caddy-cloudflare  
-**Releases:** https://github.com/caddyserver/caddy/releases  
+**Website:** https://caddyserver.com
+**Docs:** https://caddyserver.com/docs/
+**GitHub:** https://github.com/caddyserver/caddy
+**Docker image:** https://hub.docker.com/r/serfriz/caddy-cloudflare
+**Releases:** https://github.com/caddyserver/caddy/releases
 
 **Sensitive config:** The real `Caddyfile` is gitignored and never committed (domains, email, etc.). Only `Caddyfile.example` lives in the repo.
 
@@ -33,7 +33,7 @@ Aliases defined directly in the main Caddyfile, such as the example
 to `scripts/local-hosts.overrides` (for example, `+router`) before running the
 reconciler.
 
-**Public** routes are a **second** layer, only where a stack is meant to be reachable from the Internet (Cloudflare Tunnel to `http://caddy:80`, and/or origin TLS on `app.example.com` with `tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }`). Those blocks must repeat the same upstream, **`transport http { versions 1.1 }`**, and (for tunnel) **`header_up`** for `Host`, `X-Forwarded-Proto https`, and `X-Forwarded-Host` — see [CLOUDFLARE.md](./CLOUDFLARE.md).
+**Public** routes are a **second** layer, only where a stack is meant to be reachable from the Internet (Cloudflare Tunnel to `http://caddy:80`, and/or origin TLS on `app.example.com` with `tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }`). Those blocks must repeat the same upstream, **`transport http { versions 1.1 }`**, and (for tunnel) **`header_up`** for `Host`, `X-Forwarded-Proto https`, and `X-Forwarded-Host`, see [CLOUDFLARE.md](./CLOUDFLARE.md).
 
 **Reality check:** that public layer was **never applied to every stack** in one pass. Only stacks whose snippets actually mention **`example.com`** get tunnel + public TLS in the repo; the rest are **internal-only until someone adds** matching `http://…` / `….example.com` blocks (and Cloudflare Tunnel public hostnames) for the hostnames they want. Stacks that should **never** be on a public hostname (e.g. some DB UIs, LAN-only infra, high-risk surfaces) should **omit** `*.example.com` on purpose and note that in a one-line comment at the top of the snippet.
 
@@ -66,7 +66,7 @@ The default `serfriz/caddy-cloudflare` image includes the Cloudflare DNS plugin 
 go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 ```
 
-**2. Build Caddy** — forward proxy only, or both Cloudflare DNS and forward proxy:
+**2. Build Caddy**, forward proxy only, or both Cloudflare DNS and forward proxy:
 
 ```bash
 # Forward proxy only (if you don't need Cloudflare DNS)
@@ -78,7 +78,7 @@ xcaddy build \
   --with github.com/caddyserver/forwardproxy
 ```
 
-**3. Create a Docker image** — from `stacks/caddy`, create a `Dockerfile`:
+**3. Create a Docker image**, from `stacks/caddy`, create a `Dockerfile`:
 
 ```dockerfile
 FROM golang:1-alpine AS builder
@@ -100,15 +100,15 @@ docker build -t harbor.yourdomain.com/homelab/caddy:latest .
 docker push harbor.yourdomain.com/homelab/caddy:latest
 ```
 
-**4. Use the custom image** — update the Caddy stack’s `docker-compose.yml` to use your image instead of `serfriz/caddy-cloudflare`, then uncomment the `:3128 { forward_proxy }` block in your Caddyfile and add `3128:3128` to the Caddy `ports`.
+**4. Use the custom image**, update the Caddy stack’s `docker-compose.yml` to use your image instead of `serfriz/caddy-cloudflare`, then uncomment the `:3128 { forward_proxy }` block in your Caddyfile and add `3128:3128` to the Caddy `ports`.
 
 ## Deploy (keeping Caddyfile out of the repo)
 
 - **From the host (recommended if you use this repo):** Clone the repo on the server, then in `stacks/caddy` create `Caddyfile` from the example and run `docker compose up -d`. Your real `Caddyfile` stays only on the host.
-- **Portainer:** Don’t use “Git repository” for this stack — the repo has no `Caddyfile` (it’s gitignored). Instead:
+- **Portainer:** Don’t use "Git repository" for this stack, the repo has no `Caddyfile` (it’s gitignored). Instead:
   1. Put your real `Caddyfile` on the host somewhere only the server can see (e.g. `/opt/caddy/Caddyfile`).
   2. Add stack → **Web editor** (or paste the compose from the repo).
-  3. Change the Caddyfile volume to that path, e.g.  
+  3. Change the Caddyfile volume to that path, e.g.
      `./Caddyfile:/etc/caddy/Caddyfile:ro` → `/opt/caddy/Caddyfile:/etc/caddy/Caddyfile:ro`
   4. Deploy. The public repo never sees your domains or email.
 

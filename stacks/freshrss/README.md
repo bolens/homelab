@@ -2,11 +2,11 @@
 
 Self-hosted RSS feed aggregator: subscribe to feeds, categories, star articles, and use extensions. Feedly-like experience with no account limits.
 
-**Website:** https://freshrss.org  
-**Docs:** https://freshrss.github.io/FreshRSS/  
-**GitHub:** https://github.com/FreshRSS/FreshRSS  
-**Docker image:** https://hub.docker.com/r/linuxserver/freshrss  
-**Releases:** https://github.com/FreshRSS/FreshRSS/releases  
+**Website:** https://freshrss.org
+**Docs:** https://freshrss.github.io/FreshRSS/
+**GitHub:** https://github.com/FreshRSS/FreshRSS
+**Docker image:** https://hub.docker.com/r/linuxserver/freshrss
+**Releases:** https://github.com/FreshRSS/FreshRSS/releases
 
 ## Quick start
 
@@ -24,7 +24,7 @@ The stack uses a **named volume** (`freshrss_config`) so it works when deployed 
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; use freshrss.home, freshrss.yourdomain.com, etc.) |
-| **Network** | `ingress-public` (external) — dedicated Caddy-to-service ingress |
+| **Network** | `ingress-public` (external), dedicated Caddy-to-service ingress |
 | **Image** | LinuxServer FreshRSS (Alpine + nginx + PHP) |
 | **Env** | `PUID`, `PGID`, `TZ` (all optional with defaults) |
 | **Storage** | Named volume: `freshrss_config` (config, SQLite DB, extensions) |
@@ -51,5 +51,5 @@ Ensure the RSS stack is on `ingress-public` so Caddy can reach `freshrss:80`.
 
 ## Start
 
-From this directory: `docker compose up -d`.  
+From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose and optionally set `PUID`, `PGID`, `TZ` in **Environment**.

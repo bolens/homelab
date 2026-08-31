@@ -2,11 +2,11 @@
 
 Self-hosted recipe manager and meal planner: import recipes from URLs, plan meals, generate shopping lists, and organize cookbooks.
 
-**Website:** https://mealie.io  
-**Docs:** https://docs.mealie.io/  
-**GitHub:** https://github.com/mealie-recipes/mealie  
-**Docker image:** https://github.com/mealie-recipes/mealie/pkgs/container/mealie  
-**Releases:** https://github.com/mealie-recipes/mealie/releases  
+**Website:** https://mealie.io
+**Docs:** https://docs.mealie.io/
+**GitHub:** https://github.com/mealie-recipes/mealie
+**Docker image:** https://github.com/mealie-recipes/mealie/pkgs/container/mealie
+**Releases:** https://github.com/mealie-recipes/mealie/releases
 
 ## Quick start
 
@@ -25,7 +25,7 @@ The stack uses a **named volume** `mealie_data` so it works when deployed from P
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `mealie:9000`) |
-| **Network** | `ingress-public` — Caddy can reverse-proxy to `mealie:9000` |
+| **Network** | `ingress-public`, Caddy can reverse-proxy to `mealie:9000` |
 | **Image** | ghcr.io/mealie-recipes/mealie:latest |
 | **Env** | `BASE_URL` recommended when behind HTTPS; `ALLOW_SIGNUP`; optional `DB_ENGINE` (sqlite/postgres) |
 | **Storage** | Named volume: `mealie_data` (SQLite DB, uploads, backups) |

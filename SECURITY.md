@@ -4,8 +4,8 @@ This repository contains deployment configuration, not the upstream
 applications themselves. Report vulnerabilities in an upstream application to
 that project's maintainers.
 
-For repository-specific vulnerabilities—such as an exposed credential, unsafe
-default, or configuration that unexpectedly publishes a service—use
+For repository-specific vulnerabilities, such as an exposed credential, unsafe
+default, or configuration that unexpectedly publishes a service, use
 [GitHub private vulnerability reporting](https://github.com/bolens/homelab/security/advisories/new).
 Do not open a public issue containing credentials, tokens, private addresses,
 or exploit details.

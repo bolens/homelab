@@ -15,7 +15,7 @@ It connects with camera streams, NVRs, and home automation platforms; no Caddy s
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
 2. Run `./prepare-stack.sh` to prepare local files.
-3. Review the generated compose file — hardware acceleration (GPU/USB) may require additional device mounts.
+3. Review the generated compose file, hardware acceleration (GPU/USB) may require additional device mounts.
 4. Deploy: `docker compose up -d`
 
 ## Environment variables

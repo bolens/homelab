@@ -2,10 +2,10 @@
 
 Self-hosted **URL shortener**: short links, redirects, REST API, visit analytics, and optional geolocation. Use the web UI at [app.shlink.io](https://app.shlink.io) (add your server URL and API key) or self-host the web client. Separate from YOURLS (which lives at `urls.yourdomain.com` in this repo); Shlink is at `short.yourdomain.com`.
 
-**Website:** https://shlink.io  
-**Docs:** https://shlink.io/documentation  
-**GitHub:** https://github.com/shlinkio/shlink  
-**Docker image:** https://hub.docker.com/r/shlinkio/shlink  
+**Website:** https://shlink.io
+**Docs:** https://shlink.io/documentation
+**GitHub:** https://github.com/shlinkio/shlink
+**Docker image:** https://hub.docker.com/r/shlinkio/shlink
 
 ## Quick start
 
@@ -25,7 +25,7 @@ The stack uses an internal SQLite DB by default (volume `shlink_data`). For prod
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `shlink:8080`) |
-| **Network** | `ingress-public` (external) — Caddy can reach `shlink:8080` |
+| **Network** | `ingress-public` (external), Caddy can reach `shlink:8080` |
 | **Image** | `shlinkio/shlink:stable` (override with `SHLINK_IMAGE` in `stack.env`) |
 | **Env** | `DEFAULT_DOMAIN`, `IS_HTTPS_ENABLED`, `GEOLITE_LICENSE_KEY` (required); optional `INITIAL_API_KEY`, `TRUSTED_PROXIES` (use `2` when behind Caddy + Cloudflare Tunnel; see `stack.env.example`) |
 | **Storage** | `shlink_data` (SQLite DB and data). For external DB, see commented block in `docker-compose.yml`. |
@@ -56,5 +56,5 @@ Use this key in the [Shlink web client](https://app.shlink.io) when adding your 
 
 ## Start
 
-From this directory: `docker compose up -d`.  
+From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose, set `DEFAULT_DOMAIN`, `GEOLITE_LICENSE_KEY`, and optional `INITIAL_API_KEY` in **Environment**.

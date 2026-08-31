@@ -28,5 +28,5 @@ No required environment variables. TZ/locale are provided by `shared.env`.
   running the current packaged Unbound release. `unbound-control` requires
   `control-enable: yes` in `unbound.conf` to work.
 - Health check uses `drill example.com @127.0.0.1`; ensure `drill` is available in the image.
-- Resource limits: 128 MB RAM, 0.25 CPU — increase in compose for high-traffic environments.
+- Resource limits: 128 MB RAM, 0.25 CPU, increase in compose for high-traffic environments.
 - Container listens on the internal Docker network only; map port 53 explicitly if LAN access needed.

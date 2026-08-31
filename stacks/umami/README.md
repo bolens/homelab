@@ -4,7 +4,7 @@
 
 ## Quick start
 
-1. From this directory: `./prepare-stack.sh` (creates `stack.env` and `caddy_snippet.conf` from the `.example` files when missing). Postgres and the Umami app read **`stack.env` via `env_file`** only — no project `.env` symlink required.
+1. From this directory: `./prepare-stack.sh` (creates `stack.env` and `caddy_snippet.conf` from the `.example` files when missing). Postgres and the Umami app read **`stack.env` via `env_file`** only, no project `.env` symlink required.
 2. Edit `stack.env`: set `POSTGRES_PASSWORD` and `APP_SECRET` (see comments in `stack.env.example`).
 3. Replace hostnames in `caddy_snippet.conf` with yours (the committed `.example` uses placeholders only).
 4. Reload Caddy so it picks up the snippet, then:
@@ -32,7 +32,7 @@ The tracker endpoint must be reachable from visitors’ browsers (same hostname 
 
 ## Health checks
 
-- `GET /api/heartbeat` — returns 200 when the app is up (used by the container healthcheck).
+- `GET /api/heartbeat`, returns 200 when the app is up (used by the container healthcheck).
 
 ## Data and backups
 

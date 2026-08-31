@@ -7,8 +7,8 @@ InfluxDB is an open-source time-series database optimized for storing metrics, e
 
 ## Usage
 
-Central metrics store in a homelab monitoring stack. Receives data from Telegraf, Grafana Agent, or
-direct writes and serves as a data source for Grafana dashboards. Runs on port 8086.
+InfluxDB stores homelab metrics from Telegraf, Grafana Agent, and direct writes.
+Grafana queries it for dashboard data. InfluxDB listens on port 8086.
 
 ## Setup
 
@@ -27,5 +27,5 @@ direct writes and serves as a data source for Grafana dashboards. Runs on port 8
 ## Notes
 
 - TZ and locale come from shared.env.
-- Save the operator token shown on first-run setup — it is not displayed again.
+- Save the operator token shown on first-run setup, it is not displayed again.
 - InfluxDB 2.x uses a token-based auth model; clients need org, bucket, and token configured.

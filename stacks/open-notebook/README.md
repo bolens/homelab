@@ -61,7 +61,7 @@ Once running, Open Notebook is available through Caddy on `ingress-public`. No h
 3. If you deploy by pasting compose instead, mirror the same values from `stack.env` in Portainer's environment section.
 4. Keep this stack private behind Caddy and Cloudflare Access (no published host ports).
 
-### Initial Setup
+### Initial setup
 
 1. Go to **Settings** → **API Keys**
 2. Add your AI provider credentials (OpenAI, Anthropic, etc.)
@@ -91,7 +91,7 @@ migrated application has been verified.
 
 ## Configuration
 
-### AI Providers
+### AI providers
 
 Open Notebook supports:
 - OpenAI
@@ -103,7 +103,7 @@ Open Notebook supports:
 
 Configure API keys in the web UI after first login.
 
-### Data Storage
+### Data storage
 
 - SurrealDB data and Open Notebook app data are stored in Docker-managed named volumes (`surrealdb_data`, `open_notebook_data`).
 
@@ -122,15 +122,15 @@ Configure API keys in the web UI after first login.
 - Set `API_URL` in `stack.env` to the exact URL you use in the browser (e.g. `https://open-notebook.home`, or your own public hostname if you added one in Caddy).
 - Ensure Caddy proxies the hostname to `open-notebook:8502`.
 
-### Encryption Key Error
+### Encryption key error
 - Ensure `OPEN_NOTEBOOK_ENCRYPTION_KEY` is set and is a secure random string
 - Never reuse encryption keys between installations
 
-### SurrealDB Connection Issues
+### SurrealDB connection issues
 - Check that SurrealDB is running: `docker ps | grep surrealdb`
 - Verify credentials match in both services
 
-### Ollama Connection Issues
+### Ollama connection issues
 - Verify Ollama is accessible at the configured URL
 - Check network connectivity between containers
 - Ensure Ollama is running and models are available

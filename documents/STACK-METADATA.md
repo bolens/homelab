@@ -45,5 +45,5 @@ security-sensitive exceptions reviewable and must exactly match Compose:
 python3 scripts/audit-stack-metadata.py --sync-runtime-security
 ```
 
-Review every resulting change. Prefer removing an exception—especially a
-floating image tag—before accepting it in metadata.
+Review every resulting change. Prefer removing an exception, especially a
+floating image tag, before accepting it in metadata.

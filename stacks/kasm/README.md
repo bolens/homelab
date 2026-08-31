@@ -1,11 +1,11 @@
 # Kasm Workspaces
 
-Container streaming platform for **browser-based access to desktops and applications**. Delivers on-demand, disposable Docker containers (Remote Browser Isolation, DaaS, secure remote access) streamed to the web—no client software or VPN required. Powered by KasmVNC.
+Container streaming platform for **browser-based access to desktops and applications**. Delivers on-demand, disposable Docker containers (Remote Browser Isolation, DaaS, secure remote access) streamed to the web, no client software or VPN required. Powered by KasmVNC.
 
-**Homepage:** https://kasm.com/  
-**Docs:** https://docs.kasm.com/  
-**GitHub:** https://github.com/linuxserver/docker-kasm  
-**Docker image:** lscr.io/linuxserver/kasm  
+**Homepage:** https://kasm.com/
+**Docs:** https://docs.kasm.com/
+**GitHub:** https://github.com/linuxserver/docker-kasm
+**Docker image:** lscr.io/linuxserver/kasm
 
 ## Quick start
 
@@ -36,7 +36,7 @@ docker logs -f kasm
 
 Use `Ctrl+C` to stop following. If the wizard is still running, return to `https://kasm-setup.yourdomain.com` once logs indicate setup is ready.
 
-**Monitoring workspace installation:** When you install workspaces from a registry, the UI can show “Installing…” for a long time with no progress bar. To see actual activity:
+**Monitoring workspace installation:** When you install workspaces from a registry, the UI can show "Installing…" for a long time with no progress bar. To see actual activity:
 
 1. **Stream container logs** – Pull and install activity from the inner Docker (DinD) and Kasm agents often appears here:
    ```bash
@@ -68,7 +68,7 @@ Use `Ctrl+C` to stop following. If the wizard is still running, return to `https
 | **Auth**    | Users and passwords set during the setup wizard; default `admin@kasm.local` and `user@kasm.local` |
 | **Privileged** | Required (DinD – Docker in Docker for spawning workspace containers) |
 
-**Resource limits:** The stack sets CPU and memory **limits** on the Kasm container (`deploy.resources.limits` in `docker-compose.yml`). The Kasm agent inside the container sees only this capacity, so you don’t need to set compute overrides in the admin UI—workspaces use whatever is available within those limits. Adjust `limits.cpus` and `limits.memory` (e.g. `"4"` and `8G`) to dedicate the desired share of the host to Kasm. After changing limits, recreate the container: `docker compose up -d`.
+**Resource limits:** The stack sets CPU and memory **limits** on the Kasm container (`deploy.resources.limits` in `docker-compose.yml`). The Kasm agent inside the container sees only this capacity, so you don’t need to set compute overrides in the admin UI, workspaces use whatever is available within those limits. Adjust `limits.cpus` and `limits.memory` (e.g. `"4"` and `8G`) to dedicate the desired share of the host to Kasm. After changing limits, recreate the container: `docker compose up -d`.
 
 **GPU:** The compose file reserves all NVIDIA GPUs when the host has the **nvidia-container-toolkit** installed. Workspace images can then use GPU. If you have no GPU or no toolkit, use the CPU-only override so the container starts: `cp docker-compose.override.yml.example docker-compose.override.yml` (the example omits the GPU reservation). With GPU, do not use that override.
 
@@ -127,7 +127,7 @@ Log in as admin at `https://kasm.yourdomain.com`, then use the admin UI to contr
 |-------|------------|
 | **Admin** → **Workspaces** | List of all workspace images. **Enabled**: turn a workspace on or off; disabled workspaces are not available to anyone. **Hide Workspace on Dashboard**: hide from the user dashboard but keep enabled (e.g. for group-only access). |
 | **Admin** → **Workspaces** → *edit a workspace* | Set **Docker Image** (name and tag), CPU/memory, GPU, registry; set **Persistent Profile Path** (e.g. `/profiles/ubuntu-focal/{homelab-user}/`) if using persistent profiles. |
-| **Admin** → **Groups** | Control which users see which workspaces. Workspaces can be assigned to groups; users only see workspaces for groups they belong to (plus “all users” workspaces). |
+| **Admin** → **Groups** | Control which users see which workspaces. Workspaces can be assigned to groups; users only see workspaces for groups they belong to (plus "all users" workspaces). |
 | **Admin** → **Images** | In some versions, image/registry management is under **Images**; use it to add or fix Docker images used by workspaces. |
 
 **Making certain workspaces not available to the default users group:** By default, new workspaces are often added to the "Default User" / "All Users" group. To restrict a workspace to specific groups only: (1) **Admin** → **Workspaces** → edit the workspace → under **Groups** (or **Allowed Groups**), remove **Default User** / **All Users** and assign only the groups that should see it. (2) Optionally enable **Hide Workspace on Dashboard** so it doesn’t appear on the main dashboard for users who have access via another group. (3) To stop new workspaces from being auto-added to the default group, set the global setting **Add Images to Default Group** (or **Add Workspaces To Default Group**) to **False** in **Admin** → **Settings** or **Server** settings; then assign each new workspace to the desired groups manually.
@@ -146,7 +146,7 @@ Besides the built-in Kasm Technologies and Kasm AI registries, you can add the *
 
 1. In Kasm: **Workspaces** → **Workspace Registry** (or **Registry** in the nav) → **Add new** / **Workspace Registry Link**.
 2. Use the **root URL only**: `https://kasmregistry.linuxserver.io` (do **not** use `.../1.1/`; that path can fail to add in some versions).
-3. Click **Add**. Some setups may only list a subset of workspaces (e.g. two browsers) from that registry; you can install those and add more workspaces manually (Admin → Workspaces → Add, using image names from [LinuxServer’s Kasm registry](https://kasmregistry.linuxserver.io/) or [baseimage-kasmvnc docs](https://docs.linuxserver.io/images/docker-baseimage-kasmvnc/)). Review any workspace that shows an orange “review” warning before installing.
+3. Click **Add**. Some setups may only list a subset of workspaces (e.g. two browsers) from that registry; you can install those and add more workspaces manually (Admin → Workspaces → Add, using image names from [LinuxServer’s Kasm registry](https://kasmregistry.linuxserver.io/) or [baseimage-kasmvnc docs](https://docs.linuxserver.io/images/docker-baseimage-kasmvnc/)). Review any workspace that shows an orange "review" warning before installing.
 
 ## Portainer
 

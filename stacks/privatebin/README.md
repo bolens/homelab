@@ -2,11 +2,11 @@
 
 Encrypted pastebin: share text snippets with optional expiration and password. No account required; pastes are encrypted in the browser before upload.
 
-**Website:** https://privatebin.info  
-**Docs:** https://github.com/PrivateBin/PrivateBin/wiki  
-**GitHub:** https://github.com/PrivateBin/PrivateBin  
-**Docker image:** https://hub.docker.com/r/privatebin/nginx-fpm-alpine  
-**Releases:** https://github.com/PrivateBin/PrivateBin/releases  
+**Website:** https://privatebin.info
+**Docs:** https://github.com/PrivateBin/PrivateBin/wiki
+**GitHub:** https://github.com/PrivateBin/PrivateBin
+**Docker image:** https://hub.docker.com/r/privatebin/nginx-fpm-alpine
+**Releases:** https://github.com/PrivateBin/PrivateBin/releases
 
 ## Quick start
 
@@ -18,17 +18,17 @@ Encrypted pastebin: share text snippets with optional expiration and password. N
 | Item | Details |
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `privatebin:8080`) |
-| **Network** | `ingress-sensitive` — dedicated Caddy-to-service ingress |
+| **Network** | `ingress-sensitive`, dedicated Caddy-to-service ingress |
 | **Image** | `privatebin/nginx-fpm-alpine:latest` |
 | **Data** | Volume `privatebin_data` at `/srv/data` (paste storage) |
 
 ## Features
 
-- **Client-side encryption** — pastes are encrypted in the browser; the server never sees plain text
-- **Expiration** — burn after reading, 1 hour, 1 day, 1 week, 1 month, never
-- **Optional password** — extra passphrase for decryption
-- **Syntax highlighting** — for code snippets
-- **No account** — create and share links immediately
+- **Client-side encryption**, pastes are encrypted in the browser; the server never sees plain text
+- **Expiration**, burn after reading, 1 hour, 1 day, 1 week, 1 month, never
+- **Optional password**, extra passphrase for decryption
+- **Syntax highlighting**, for code snippets
+- **No account**, create and share links immediately
 
 ## Start
 

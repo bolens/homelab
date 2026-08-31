@@ -2,9 +2,9 @@
 
 Lightweight MQTT broker for Home Assistant, Zigbee2MQTT, Node-RED, and other IoT/automation clients.
 
-**Website:** https://mosquitto.org/  
-**Docs:** https://mosquitto.org/documentation/  
-**Docker image:** https://hub.docker.com/_/eclipse-mosquitto  
+**Website:** https://mosquitto.org/
+**Docs:** https://mosquitto.org/documentation/
+**Docker image:** https://hub.docker.com/_/eclipse-mosquitto
 
 ## Quick start
 
@@ -26,7 +26,7 @@ Lightweight MQTT broker for Home Assistant, Zigbee2MQTT, Node-RED, and other IoT
 | ----------- | --------------------------------------------------------------------------------------- |
 | **Access**  | MQTT on host port `1883` for LAN devices; `mosquitto:1883` for other Docker stacks     |
 | **Volumes** | `mosquitto_config` (config including `mosquitto.conf`), `mosquitto_data`, `mosquitto_log` |
-| **Network** | `ingress-admin` — shared with Home Assistant, Zigbee2MQTT, Node-RED, etc.                    |
+| **Network** | `ingress-admin`, shared with Home Assistant, Zigbee2MQTT, Node-RED, etc.                    |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.                     |
 
 See the official Mosquitto docs for example `mosquitto.conf` files including password files and TLS.

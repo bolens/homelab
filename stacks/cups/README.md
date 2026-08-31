@@ -1,11 +1,11 @@
 # CUPS (network print server)
 
-Self-hosted **CUPS** print server with a web admin UI, **IPP** sharing, and common Debian printer drivers. Suitable as a homelab “cloud print” hub: add printers in the UI, then point clients at `ipp://…` or install the queue via your OS print settings.
+Self-hosted **CUPS** print server with a web admin UI, **IPP** sharing, and common Debian printer drivers. Suitable as a homelab "cloud print" hub: add printers in the UI, then point clients at `ipp://…` or install the queue via your OS print settings.
 
-**Website:** https://www.cups.org  
-**Docs:** https://openprinting.github.io/cups/  
-**Container image:** https://github.com/anujdatar/cups-docker  
-**Docker Hub:** https://hub.docker.com/r/anujdatar/cups  
+**Website:** https://www.cups.org
+**Docs:** https://openprinting.github.io/cups/
+**Container image:** https://github.com/anujdatar/cups-docker
+**Docker Hub:** https://hub.docker.com/r/anujdatar/cups
 
 ## Quick start
 
@@ -30,7 +30,7 @@ Self-hosted **CUPS** print server with a web admin UI, **IPP** sharing, and comm
 | Item | Details |
 |------|---------|
 | **Port** | 631 (HTTP inside the container; proxied by Caddy) |
-| **Network** | `ingress-admin` only — no published host ports |
+| **Network** | `ingress-admin` only, no published host ports |
 | **Image** | `anujdatar/cups:latest` |
 | **Data** | Docker volume `cups_config` → `/etc/cups` (queues, drivers, `cupsd.conf`) |
 | **Auth** | Web admin uses `CUPSADMIN` / `CUPSPASSWORD` from `stack.env` |
@@ -38,7 +38,7 @@ Self-hosted **CUPS** print server with a web admin UI, **IPP** sharing, and comm
 ## Clients
 
 - **LAN / VPN:** Add an **IPP** printer using `ipp://cups.home:631/printers/<QueueName>` (adjust host and queue name; use your internal DNS name if different).
-- **Behind Caddy only:** Use the public or internal HTTPS hostname your Caddyfile serves; some clients prefer `https://cups.example.com:443/printers/...` depending on OS—if redirects or TLS confuse the client, add the printer by hostname that matches what CUPS sees (see upstream CUPS reverse-proxy notes).
+- **Behind Caddy only:** Use the public or internal HTTPS hostname your Caddyfile serves; some clients prefer `https://cups.example.com:443/printers/...` depending on OS, if redirects or TLS confuse the client, add the printer by hostname that matches what CUPS sees (see upstream CUPS reverse-proxy notes).
 
 **AirPrint / mDNS:** The image includes Avahi, but discovery through Docker bridges is often unreliable. If phones do not see the printer automatically, use **manual IPP URL** or run mDNS/reflector on the host; see upstream issues in [anujdatar/cups-docker](https://github.com/anujdatar/cups-docker).
 

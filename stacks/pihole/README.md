@@ -18,7 +18,7 @@ This stack runs Pi-hole for network-wide ad blocking and DNS filtering in Docker
    ```
 5. Access the web UI via Caddy reverse proxy (see below).
 
-### Caddy Reverse Proxy
+### Caddy reverse proxy
 
 All internal web access to Pi-hole should be routed through Caddy. The provided `caddy_snippet.conf` handles all HTTP/HTTPS for Pi-hole, including local and public hostnames. Do **not** expose port 80 directly; Caddy will proxy requests to the container on the Docker network.
 

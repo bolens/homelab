@@ -2,11 +2,11 @@
 
 Dashboard and visualization for Prometheus (and other datasources). Use with the Prometheus and cAdvisor stacks for host and container metrics.
 
-**Website:** https://grafana.com  
-**Docs:** https://grafana.com/docs/grafana/latest/  
-**GitHub:** https://github.com/grafana/grafana  
-**Docker image:** https://hub.docker.com/r/grafana/grafana  
-**Releases:** https://github.com/grafana/grafana/releases  
+**Website:** https://grafana.com
+**Docs:** https://grafana.com/docs/grafana/latest/
+**GitHub:** https://github.com/grafana/grafana
+**Docker image:** https://hub.docker.com/r/grafana/grafana
+**Releases:** https://github.com/grafana/grafana/releases
 
 ## Quick start
 
@@ -29,16 +29,16 @@ Dashboard and visualization for Prometheus (and other datasources). Use with the
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `grafana:3000`) |
 | **Volume** | `grafana_data` (dashboards, users, settings) |
-| **Network** | `ingress-admin` — shared with Caddy, Prometheus, cAdvisor |
+| **Network** | `ingress-admin`, shared with Caddy, Prometheus, cAdvisor |
 | **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. Optional: `GF_SERVER_ROOT_URL`, `GF_SECURITY_*`, `GRAFANA_DATASOURCES_PATH` |
 
-**Portainer:** Use “Git repository” or paste the compose; when deploying from Portainer you **must** set `GRAFANA_DATASOURCES_PATH` in the stack’s Environment to the **absolute path** of your `datasources.yml` on the host (e.g. `/home/youruser/.config/grafana/datasources.yml` or `/opt/grafana/datasources.yml`), otherwise the default becomes `/.config/grafana/datasources.yml` and the stack will fail. Put the file on the host first (copy from `datasources.yml.example`).
+**Portainer:** Use "Git repository" or paste the compose; when deploying from Portainer you **must** set `GRAFANA_DATASOURCES_PATH` in the stack’s Environment to the **absolute path** of your `datasources.yml` on the host (e.g. `/home/youruser/.config/grafana/datasources.yml` or `/opt/grafana/datasources.yml`), otherwise the default becomes `/.config/grafana/datasources.yml` and the stack will fail. Put the file on the host first (copy from `datasources.yml.example`).
 
 **Root URL:** If you access Grafana at a different URL (e.g. https://grafana.yourdomain.com), set `GF_SERVER_ROOT_URL` in `stack.env` to that URL so login redirects work. For TZ/locale and shared resources, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 **Default login:** Unless you set `GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true`, Grafana creates an initial admin user. Default credentials are **admin** / **admin**; change the password on first login.
 
-**First-time login (no admin yet):** If you set `GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true`, Grafana does not create a default admin. Either (1) set `GF_USERS_ALLOW_SIGN_UP=true` in `stack.env`, restart Grafana (`docker compose up -d -f ...`), open the login page and use “Sign up” to create your account, then set `GF_USERS_ALLOW_SIGN_UP=false` again and restart; or (2) set `GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false`, remove the `grafana_data` volume and bring the stack up again so Grafana creates the default `admin` / `admin` (you will lose existing dashboards/data).
+**First-time login (no admin yet):** If you set `GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true`, Grafana does not create a default admin. Either (1) set `GF_USERS_ALLOW_SIGN_UP=true` in `stack.env`, restart Grafana (`docker compose up -d -f ...`), open the login page and use "Sign up" to create your account, then set `GF_USERS_ALLOW_SIGN_UP=false` again and restart; or (2) set `GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false`, remove the `grafana_data` volume and bring the stack up again so Grafana creates the default `admin` / `admin` (you will lose existing dashboards/data).
 
 ## Logs (Loki)
 

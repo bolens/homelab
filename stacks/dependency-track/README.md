@@ -1,12 +1,12 @@
 # OWASP Dependency-Track
 
-Software Composition Analysis (SCA) platform: upload SBOMs (CycloneDX, SPDX), track components, and get vulnerability alerts from NVD, OSS Index, GitHub Advisories, and more. [Dependency-Track](https://dependencytrack.org/) provides a web UI and REST API—no host ports; access via Caddy.
+Software Composition Analysis (SCA) platform: upload SBOMs (CycloneDX, SPDX), track components, and get vulnerability alerts from NVD, OSS Index, GitHub Advisories, and more. [Dependency-Track](https://dependencytrack.org/) provides a web UI and REST API, no host ports; access via Caddy.
 
-**Website:** https://dependencytrack.org/  
-**Docs:** https://docs.dependencytrack.org/  
-**GitHub:** https://github.com/DependencyTrack/dependency-track  
-**Docker image:** https://hub.docker.com/r/dependencytrack/apiserver  
-**Releases:** https://github.com/DependencyTrack/dependency-track/releases  
+**Website:** https://dependencytrack.org/
+**Docs:** https://docs.dependencytrack.org/
+**GitHub:** https://github.com/DependencyTrack/dependency-track
+**Docker image:** https://hub.docker.com/r/dependencytrack/apiserver
+**Releases:** https://github.com/DependencyTrack/dependency-track/releases
 
 ## Quick start
 
@@ -45,7 +45,7 @@ Software Composition Analysis (SCA) platform: upload SBOMs (CycloneDX, SPDX), tr
 
 The frontend only serves static files; all API calls are made **from the user’s browser** to `API_BASE_URL`. You must set this to the URL where Caddy exposes the Dependency-Track API.
 
-**Option A – Path-based (one hostname)**  
+**Option A – Path-based (one hostname)**
 Caddy serves frontend at `/` and API at `/api`:
 
 - Frontend: `https://dtrack.home/` → `dtrack-frontend:8080`
@@ -57,7 +57,7 @@ Then set:
 API_BASE_URL=https://dtrack.home/api
 ```
 
-**Option B – Subdomain**  
+**Option B – Subdomain**
 Caddy serves API at e.g. `https://api.dtrack.home`:
 
 - Set `API_BASE_URL=https://api.dtrack.home`

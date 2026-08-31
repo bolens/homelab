@@ -13,7 +13,7 @@
 
 ## Access
 
-- **Public URL (example):** `https://jellystat.example.com` — replace with your real hostname in local Caddy config only.
+- **Public URL (example):** `https://jellystat.example.com`, replace with your real hostname in local Caddy config only.
 - **Internal:** `http://jellystat:3000` on `ingress-admin` from Caddy.
 
 ## Jellyfin connection
@@ -39,5 +39,5 @@ Optional env (see upstream README): `IS_EMBY_API`, `JF_USE_WEBSOCKETS`, `REJECT_
 
 ## Links
 
-- [GitHub — CyferShepard/Jellystat](https://github.com/CyferShepard/Jellystat)
-- [Docker Hub — cyfershepard/jellystat](https://hub.docker.com/r/cyfershepard/jellystat)
+- [GitHub, CyferShepard/Jellystat](https://github.com/CyferShepard/Jellystat)
+- [Docker Hub, cyfershepard/jellystat](https://hub.docker.com/r/cyfershepard/jellystat)

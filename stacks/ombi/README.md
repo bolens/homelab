@@ -23,6 +23,6 @@ TZ/locale come from `shared.env`; application state persists in `ombi_config`.
 
 ## Notes
 
-- Ombi stores its config in a SQLite database inside the config volume — back it up regularly.
+- Ombi stores its config in a SQLite database inside the config volume, back it up regularly.
 - Notification integrations (email, Discord, etc.) are configured entirely within the web UI.
 - Consider Jellyseerr as an alternative if your media server is Jellyfin-only.

@@ -74,7 +74,7 @@ Other containers connect to Ollama at `http://ollama:11434` on the shared
 Docker network. For one-time setup and how other stacks use this backend, see
 [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
-## GPU Support
+## GPU support
 
 The stack **ships with NVIDIA GPU reservations** in `docker-compose.yml`. Install the driver and Container Toolkit (below), configure the Docker NVIDIA runtime, then deploy.
 
@@ -116,7 +116,7 @@ docker compose --env-file stack.env up -d --force-recreate
 
 Confirm the container sees the GPU: `docker exec ollama nvidia-smi` (or check Ollama’s API/UI).
 
-## Model Storage
+## Model storage
 
 Models are stored in the directory specified by `OLLAMA_MODELS_PATH` in your `stack.env` file. This directory is mounted to `/root/.ollama/models` inside the container, which is where Ollama stores all models.
 

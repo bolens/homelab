@@ -2,9 +2,9 @@
 
 Self-hosted NUT server (`upsd`) for exposing UPS status to LAN clients and monitoring tools.
 
-**Website:** https://networkupstools.org  
-**Docs:** https://networkupstools.org/docs/user-manual.chunked/  
-**Container image:** https://github.com/instantlinux/docker-tools/tree/master/images/nut-upsd  
+**Website:** https://networkupstools.org
+**Docs:** https://networkupstools.org/docs/user-manual.chunked/
+**Container image:** https://github.com/instantlinux/docker-tools/tree/master/images/nut-upsd
 
 ## Quick start
 
@@ -41,7 +41,7 @@ Self-hosted NUT server (`upsd`) for exposing UPS status to LAN clients and monit
 
 | Item | Details |
 |------|---------|
-| **NUT port** | `3493` — published on the host as `3493:3493` and reachable on `ingress-admin` as `nut-server:3493` |
+| **NUT port** | `3493`, published on the host as `3493:3493` and reachable on `ingress-admin` as `nut-server:3493` |
 | **Config mount** | `${NUT_CONFIG_DIR}:/etc/nut` |
 | **Network** | `ingress-admin` external Docker network |
 | **Runtime env** | `../../shared.env` (optional) + `stack.env` |
@@ -62,7 +62,7 @@ upsc ups@127.0.0.1:3493
 To use the name `nut-server` from the host, add a hosts entry (one line):
 
 ```bash
-# /etc/hosts — use your Docker host IP if upsc runs on another machine
+# /etc/hosts, use your Docker host IP if upsc runs on another machine
 127.0.0.1 nut-server
 ```
 

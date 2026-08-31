@@ -21,7 +21,7 @@ No required environment variables. TZ and locale are inherited from shared.env.
 
 ## Notes
 
-- Dionaea captures malware binaries in the configured bistreams volume — review and isolate regularly.
+- Dionaea captures malware binaries in the configured bistreams volume, review and isolate regularly.
 - ConPot emulates Siemens S7, Modbus, SNMP, and HTTP SCADA interfaces.
 - Defaults use high host ports to avoid conflicts with ordinary local services.
 - Do not run on the same host as production services sharing the same ports.

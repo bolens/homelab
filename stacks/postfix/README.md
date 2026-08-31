@@ -1,13 +1,13 @@
 #! SMTP relay
 
-Central **SMTP relay ("null client")** for your Docker stacks, based on [`boky/postfix`](https://github.com/bokysan/docker-postfix).  
+Central **SMTP relay ("null client")** for your Docker stacks, based on [`boky/postfix`](https://github.com/bokysan/docker-postfix).
 Apps send mail to this container; it then relays via your real mail provider (SES, Mailgun, SMTP relay from your ISP, etc.).
 
-**Website:** https://github.com/bokysan/docker-postfix  
-**Docs:** https://github.com/bokysan/docker-postfix#readme  
-**GitHub:** https://github.com/bokysan/docker-postfix  
-**Docker image:** https://hub.docker.com/r/boky/postfix  
-**Releases:** https://github.com/bokysan/docker-postfix/releases  
+**Website:** https://github.com/bokysan/docker-postfix
+**Docs:** https://github.com/bokysan/docker-postfix#readme
+**GitHub:** https://github.com/bokysan/docker-postfix
+**Docker image:** https://hub.docker.com/r/boky/postfix
+**Releases:** https://github.com/bokysan/docker-postfix/releases
 
 > This relay is for **outgoing mail from apps only**. It is not a full mailserver for end‑user inboxes.
 
@@ -31,7 +31,7 @@ The stack uses the dedicated `mail-clients` network so explicitly attached appli
 | Item | Details |
 |------|---------|
 | **Access** | Internal only by default (no host port). Mail clients use `smtp-relay:587` on `mail-clients`. |
-| **Network** | `mail-clients` (external) — limited to the relay and configured mail clients. |
+| **Network** | `mail-clients` (external), limited to the relay and configured mail clients. |
 | **Image** | `boky/postfix:latest` |
 | **Env** | `ALLOWED_SENDER_DOMAINS` (recommended), `RELAYHOST` (required), optional `RELAYHOST_USERNAME`, `RELAYHOST_PASSWORD`, `POSTFIX_myhostname`, `POSTFIX_message_size_limit`, `TZ`. See `stack.env.example` and upstream docs. |
 

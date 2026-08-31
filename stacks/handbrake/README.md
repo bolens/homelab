@@ -33,5 +33,5 @@ the watch folder and HandBrake auto-encodes them to the output folder. Access th
 
 - TZ and locale come from shared.env; do not duplicate them here.
 - Preparation creates the local config directory only; it never creates media paths that could mask a missing mount.
-- The watch folder enables automatic encoding — files placed there are processed and moved to output.
+- The watch folder enables automatic encoding, files placed there are processed and moved to output.
 - Web UI is served on port 5800 (VNC-in-browser); no auth by default, restrict via reverse proxy.

@@ -2,11 +2,11 @@
 
 Self-hosted bookmark manager and link aggregator: save links, archive pages, organize with collections, full-text search.
 
-**Website:** https://linkwarden.app  
-**Docs:** https://docs.linkwarden.app  
-**GitHub:** https://github.com/linkwarden/linkwarden  
-**Docker image:** https://github.com/linkwarden/linkwarden/pkgs/container/linkwarden  
-**Releases:** https://github.com/linkwarden/linkwarden/releases  
+**Website:** https://linkwarden.app
+**Docs:** https://docs.linkwarden.app
+**GitHub:** https://github.com/linkwarden/linkwarden
+**Docker image:** https://github.com/linkwarden/linkwarden/pkgs/container/linkwarden
+**Releases:** https://github.com/linkwarden/linkwarden/releases
 
 ## Quick start
 
@@ -55,7 +55,7 @@ Meilisearch instances share an external network with Linkwarden.
 
 - After changing `stack.env`, run `docker compose --env-file stack.env down && docker compose --env-file stack.env up -d` (restart is not enough for env changes).
 - **`NO_SECRET` / MissingSecretError:** NextAuth requires a non-empty `NEXTAUTH_SECRET`. Set it in `stack.env` (e.g. `openssl rand -base64 32`), then recreate the stack with `docker compose --env-file stack.env down && docker compose --env-file stack.env up -d`. If using Portainer, add `NEXTAUTH_SECRET` to the stack’s Environment.
-- Optional: SMTP for email verification, S3/Spaces for storage, and many SSO providers — see [environment variables](https://docs.linkwarden.app/self-hosting/environment-variables) and the full [.env.sample](https://github.com/linkwarden/linkwarden/blob/main/.env.sample).
+- Optional: SMTP for email verification, S3/Spaces for storage, and many SSO providers, see [environment variables](https://docs.linkwarden.app/self-hosting/environment-variables) and the full [.env.sample](https://github.com/linkwarden/linkwarden/blob/main/.env.sample).
 
 ## Email / SMTP (optional)
 

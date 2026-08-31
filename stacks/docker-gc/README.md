@@ -8,8 +8,8 @@ Garbage collector for Docker containers and images. Runs a one-shot cleanup agai
 
 This stack builds from the [Spotify docker-gc](https://github.com/spotify/docker-gc) source (the `eeacms/docker-gc` image uses a legacy manifest format unsupported by containerd v2.1+). It has **no web UI** and does **not** sit behind Caddy or Cloudflare Tunnel.
 
-**Docs:** https://github.com/spotify/docker-gc  
-**GitHub:** https://github.com/spotify/docker-gc  
+**Docs:** https://github.com/spotify/docker-gc
+**GitHub:** https://github.com/spotify/docker-gc
 
 ## Building the image
 
@@ -56,7 +56,7 @@ Set `DOCKER_GC_IMAGE` in `stack.env` to match the tag you use (e.g. `harbor.your
 
 4. Once you are comfortable with the output, set `DRY_RUN=false` in `stack.env` (or adjust the fine-grained `DRY_RUN_CONTAINERS` / `DRY_RUN_IMAGES` flags), then re-run the job.
 
-For scheduled runs, create a cron job or systemd timer on the host that periodically calls one of the commands above from this stack directory. The container is designed to run once and exit (like Watchtower’s one-off mode); **Docker will show it as Exited after each run—that is expected.** Schedule it (e.g. weekly) so it runs periodically.
+For scheduled runs, create a cron job or systemd timer on the host that periodically calls one of the commands above from this stack directory. The container is designed to run once and exit (like Watchtower’s one-off mode); **Docker will show it as Exited after each run, that is expected.** Schedule it (e.g. weekly) so it runs periodically.
 
 ### Scheduling options
 

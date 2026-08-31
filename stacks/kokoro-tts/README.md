@@ -2,15 +2,15 @@
 
 **Kokoro-82M** text-to-speech with a **built-in web UI** (`/web`), **OpenAPI docs** (`/docs`), and an **OpenAI-compatible** speech API (`/v1/audio/speech`).
 
-**GitHub:** https://github.com/remsky/Kokoro-FastAPI  
-**Image (CPU):** `ghcr.io/remsky/kokoro-fastapi-cpu:latest` — **GPU:** `ghcr.io/remsky/kokoro-fastapi-gpu:latest`
+**GitHub:** https://github.com/remsky/Kokoro-FastAPI
+**Image (CPU):** `ghcr.io/remsky/kokoro-fastapi-cpu:latest`, **GPU:** `ghcr.io/remsky/kokoro-fastapi-gpu:latest`
 
 ## Quick start
 
 1. `./prepare-stack.sh`
 2. Optional: set `KOKORO_IMAGE_TAG` and `API_LOG_LEVEL` in `stack.env` (see `stack.env.example`).
 3. `docker compose up -d` (after `./prepare-stack.sh` copies `stack.env` → `.env`)
-4. Merge `caddy_snippet.conf` into Caddy (default is **split-horizon only**: `kokoro-tts.home` / `.local` — no public site in-repo), reload Caddy.
+4. Merge `caddy_snippet.conf` into Caddy (default is **split-horizon only**: `kokoro-tts.home` / `.local`, no public site in-repo), reload Caddy.
 
 Open **https://kokoro-tts.home/web** (or your internal hostname) to try voices. API base on Docker: **`http://kokoro-tts:8880/v1`** with a dummy API key (e.g. `not-needed`). Add your own public `site` in Caddy only if you intentionally expose TTS on the Internet.
 

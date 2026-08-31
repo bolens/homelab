@@ -2,9 +2,9 @@
 
 [DocuSeal](https://www.docuseal.co/) is an open-source platform for building PDF forms, collecting signatures, and sending signing links. This stack runs the official **DocuSeal** image with **PostgreSQL** behind Caddy (no published ports on the host).
 
-**Website:** https://www.docuseal.co/  
-**Docs:** https://www.docuseal.com/docs  
-**Docker image:** https://hub.docker.com/r/docuseal/docuseal  
+**Website:** https://www.docuseal.co/
+**Docs:** https://www.docuseal.com/docs
+**Docker image:** https://hub.docker.com/r/docuseal/docuseal
 
 ## Portainer
 
@@ -23,7 +23,7 @@
    | `POSTGRES_USER` | DB role (default in example: `docuseal`) |
    | `POSTGRES_DB` | DB name (default: `docuseal`) |
    | `POSTGRES_PASSWORD` | Strong DB password |
-   | `DATABASE_URL` | `postgresql://USER:PASSWORD@postgres:5432/DB` — password must match `POSTGRES_PASSWORD` |
+   | `DATABASE_URL` | `postgresql://USER:PASSWORD@postgres:5432/DB`, password must match `POSTGRES_PASSWORD` |
    | `SECRET_KEY_BASE` | `openssl rand -hex 64` |
    | `HOST` | Public hostname only (no `https://`), same as your Caddy site |
    | `FORCE_SSL` | Optional; omit to default to `HOST` (recommended behind Caddy) |
@@ -38,7 +38,7 @@
 
 ## Quick start (CLI, from this repo)
 
-1. `./prepare-stack.sh` — creates `stack.env`, copies `stack.env` → `.env` for compose interpolation, copies the Caddy example, and ensures `ingress-sensitive` plus `mail-clients`.
+1. `./prepare-stack.sh`, creates `stack.env`, copies `stack.env` → `.env` for compose interpolation, copies the Caddy example, and ensures `ingress-sensitive` plus `mail-clients`.
 2. Edit `stack.env` (passwords, `HOST`, `SECRET_KEY_BASE`, `DATABASE_URL`).
 3. Edit `caddy_snippet.conf` and reload Caddy.
 4. `docker compose up -d`

@@ -28,5 +28,5 @@ from any device without installing software. Useful for benchmarking network seg
   port 3001 TLS listener is intentionally not exposed.
 - Large uploads require the reverse proxy to accept request bodies of at least
   35 MB and use a timeout longer than 60 seconds.
-- No authentication — restrict access via reverse proxy or firewall rules if needed.
+- No authentication, restrict access via reverse proxy or firewall rules if needed.
 - Results are not stored; this is a stateless, ephemeral test tool.

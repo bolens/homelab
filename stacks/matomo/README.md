@@ -26,10 +26,10 @@ configure periodic archiving via the built-in cron job.
 |----------|----------|---------|-------------|
 | MATOMO_DB_NAME | Yes | matomo | MariaDB database name |
 | MATOMO_DB_USER | Yes | matomo | MariaDB user for Matomo |
-| MATOMO_DB_PASSWORD | Yes | — | MariaDB password (generate with openssl) |
-| MATOMO_DB_ROOT_PASSWORD | No | — | MariaDB root password for direct DB access |
-| MATOMO_CONFIG_PATH | Yes | — | Host path to matomo config.ini.php |
-| MATOMO_BASE_URL | Yes | — | Base URL used by the archiving cron job |
+| MATOMO_DB_PASSWORD | Yes | None | MariaDB password (generate with openssl) |
+| MATOMO_DB_ROOT_PASSWORD | No | None | MariaDB root password for direct DB access |
+| MATOMO_CONFIG_PATH | Yes | None | Host path to matomo config.ini.php |
+| MATOMO_BASE_URL | Yes | None | Base URL used by the archiving cron job |
 | MATOMO_ARCHIVE_INTERVAL_SECONDS | No | 3600 | How often the archive cron runs (seconds) |
 
 ## Notes

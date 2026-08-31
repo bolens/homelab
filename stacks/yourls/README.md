@@ -1,12 +1,12 @@
 # YOURLS (Your Own URL Shortener)
 
-Self-hosted URL shortener: one app with web UI, API, and redirects. No path routing—Caddy just reverse-proxies the host to the container.
+Self-hosted URL shortener: one app with web UI, API, and redirects. No path routing, Caddy just reverse-proxies the host to the container.
 
-**Website:** https://yourls.org  
-**Docs:** https://docs.yourls.org  
-**GitHub:** https://github.com/YOURLS/YOURLS  
-**Docker image:** https://hub.docker.com/_/yourls  
-**Releases:** https://github.com/YOURLS/YOURLS/releases  
+**Website:** https://yourls.org
+**Docs:** https://docs.yourls.org
+**GitHub:** https://github.com/YOURLS/YOURLS
+**Docker image:** https://hub.docker.com/_/yourls
+**Releases:** https://github.com/YOURLS/YOURLS/releases
 
 The stack uses the official image `yourls:1.10.3-apache` by default. Override `YOURLS_IMAGE` in `stack.env` only if you use your own build (e.g. private registry).
 
@@ -62,5 +62,5 @@ Ensure YOURLS is on `ingress-public` so Caddy can reach `yourls:8080`.
 
 ## Start
 
-From this directory: `docker compose --env-file stack.env up -d` (compose only auto-loads `.env`; `stack.env` has your secrets).  
+From this directory: `docker compose --env-file stack.env up -d` (compose only auto-loads `.env`; `stack.env` has your secrets).
 In Portainer: deploy the stack from Git and set the required env vars (and `YOURLS_CONFIG_DIR` to the absolute path to your config dir containing `vhost.conf` and `proxy-https-fix.php`).

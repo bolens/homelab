@@ -2,14 +2,14 @@
 
 [Seerr](https://seerr.dev/) is an open-source media discovery and request manager. It works with **Jellyfin**, **Plex**, or **Emby**, and forwards approved requests to **Radarr** and **Sonarr**.
 
-**Website:** https://seerr.dev/  
-**Docs:** https://docs.seerr.dev/  
-**GitHub:** https://github.com/seerr-team/seerr  
-**Container image:** https://github.com/seerr-team/seerr/pkgs/container/seerr  
+**Website:** https://seerr.dev/
+**Docs:** https://docs.seerr.dev/
+**GitHub:** https://github.com/seerr-team/seerr
+**Container image:** https://github.com/seerr-team/seerr/pkgs/container/seerr
 
 ## `/app/config` bind mount (required for official image)
 
-The image treats a sentinel file **`config/DOCKER`** (present on the default Docker volume layout) as “not bind-mounted”. A **host directory** mounted at **`/app/config`** avoids:
+The image treats a sentinel file **`config/DOCKER`** (present on the default Docker volume layout) as "not bind-mounted". A **host directory** mounted at **`/app/config`** avoids:
 
 > The /app/config volume mount was not configured properly…
 
