@@ -6,7 +6,11 @@ const pages = ['', 'apps/', 'architecture/', 'safety/', 'apps/immich/'];
 for (const path of pages) {
   test(`${path || 'home'} has no serious accessibility violations`, async ({ page }) => {
     await page.goto(path);
-    const results = await new AxeBuilder({ page }).analyze();
+    const builder = new AxeBuilder({ page });
+    // Archify owns and validates the interactive document inside this iframe.
+    // Keep this scan scoped to the surrounding Pages interface.
+    if (path === '') builder.exclude('.topology-frame iframe');
+    const results = await builder.analyze();
     const violations = results.violations.filter(({ impact }) => ['serious', 'critical'].includes(impact));
     expect(violations).toEqual([]);
   });
