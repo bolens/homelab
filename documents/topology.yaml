@@ -1,6 +1,6 @@
-# Topology data for the homelab diagram in docker/README.md.
+# Topology data for the generated inventory in documents/TOPOLOGY.md.
 # Run from docker/ repo root: python3 scripts/build-topology.py --in-place
-# to regenerate the Mermaid diagram and prose in README.md (requires PyYAML).
+# to regenerate the prose around the Archify diagram (requires PyYAML).
 #
 # When adding a new stack: add it to the appropriate app_categories[].stacks list
 # (or to infra if it is infrastructure/monitoring). Keep stack names in

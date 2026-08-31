@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Docker homelab architecture",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "clients", "type": "external", "label": "Clients", "sublabel": "LAN and Internet", "pos": [40, 300], "size": [130, 64] },
+    { "id": "cloudflare", "type": "cloud", "label": "Cloudflare Tunnel", "sublabel": "Optional public ingress", "pos": [210, 150], "size": [160, 68] },
+    { "id": "remote", "type": "security", "label": "Remote access", "sublabel": "Headscale / WireGuard / NetBird", "pos": [210, 450], "size": [180, 72] },
+    { "id": "caddy", "type": "security", "label": "Caddy", "sublabel": "Reverse proxy :80 / :443", "pos": [450, 300], "size": [180, 72] },
+    { "id": "apps", "type": "backend", "label": "Application stacks", "sublabel": "Isolated Compose projects", "pos": [700, 300], "size": [180, 72] },
+    { "id": "shared", "type": "backend", "label": "Shared services", "sublabel": "DNS / mail / storage / AI", "pos": [700, 120], "size": [180, 68] },
+    { "id": "gluetun", "type": "security", "label": "Gluetun", "sublabel": "Selected container egress", "pos": [930, 120], "size": [160, 68] },
+    { "id": "internet", "type": "external", "label": "Internet", "sublabel": "Outbound providers", "pos": [1160, 120], "size": [150, 64] },
+    { "id": "telemetry", "type": "backend", "label": "Observability", "sublabel": "Prometheus / Loki / Grafana", "pos": [700, 500], "size": [190, 72] },
+    { "id": "operations", "type": "backend", "label": "Operations", "sublabel": "Portainer / updates / backup", "pos": [960, 500], "size": [190, 72] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Docker host", "wraps": ["caddy", "apps", "shared", "gluetun", "telemetry", "operations"], "pad": 28 },
+    { "kind": "security-group", "label": "Ingress networks", "wraps": ["caddy", "apps"], "pad": 16 }
+  ],
+  "connections": [
+    { "id": "public-ingress", "from": "clients", "to": "cloudflare", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "tunnel-to-caddy", "from": "cloudflare", "to": "caddy", "label": "tunnel", "variant": "emphasis" },
+    { "id": "local-ingress", "from": "clients", "to": "caddy", "label": "local HTTP(S)", "variant": "emphasis", "labelAt": [300, 378] },
+    { "id": "remote-access", "from": "clients", "to": "remote", "label": "VPN / mesh", "variant": "security" },
+    { "id": "remote-to-caddy", "from": "remote", "to": "caddy", "label": "private access", "variant": "security" },
+    { "id": "proxy-routing", "from": "caddy", "to": "apps", "label": "hostname routing", "variant": "emphasis", "labelAt": [665, 386] },
+    { "id": "app-dependencies", "from": "apps", "to": "shared", "label": "DNS / SMTP / S3 / models", "variant": "dashed" },
+    { "id": "vpn-egress", "from": "apps", "to": "gluetun", "label": "selected egress", "variant": "security" },
+    { "id": "provider-egress", "from": "gluetun", "to": "internet", "label": "VPN provider", "variant": "security" },
+    { "id": "telemetry-collection", "from": "apps", "to": "telemetry", "label": "metrics / logs / probes", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "stack-management", "from": "operations", "to": "apps", "label": "manage / update / back up", "variant": "dashed", "labelAt": [1020, 405] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Ingress", "items": ["Caddy is the common HTTP(S) entry point", "Public tunnel and private network paths stay distinct"] },
+    { "dot": "violet", "title": "Isolation", "items": ["Each stack remains an independent Compose project", "Shared networks are opt-in contracts"] },
+    { "dot": "emerald", "title": "Operations", "items": ["Telemetry observes workloads", "Management and backup tools act on selected stacks"] }
+  ]
+}

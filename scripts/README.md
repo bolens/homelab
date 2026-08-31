@@ -29,7 +29,8 @@ Gitleaks scan.
 | `audit-stack-metadata.py` | Validates `stack.yaml` coverage, schema shape, names, profile enums, and ports. Maintainers may use `--fix-missing`, then review inferred catalog fields. |
 | `audit-repo-hygiene.py` | Checks README/example/metadata coverage, ignored runtime env files, portable examples, every tracked Markdown link, root CI/config syntax, and Caddy upstream basics. |
 | `build-stack-catalog.py` | Regenerates `documents/STACK-CATALOG.md` from stack READMEs. |
-| `build-topology.py` | Regenerates `documents/TOPOLOGY.md` from `documents/topology.yaml`. Requires PyYAML. |
+| `build-topology.py` | Regenerates the topology inventory and architecture links in `documents/TOPOLOGY.md` from `documents/topology.yaml`. Requires PyYAML. The diagram source is `documents/topology.architecture.json`. |
+| `validate-topology-artifacts.py` | Checks the Archify source graph, rendered HTML, PNG preview, topology links, and Mermaid removal. |
 | `scan-secrets-gitleaks.sh [git\|dir]` | Scans full Git history (default) or files on disk. The `dir` mode includes ignored runtime secrets, so output must be handled carefully. |
 
 ## Stack preparation

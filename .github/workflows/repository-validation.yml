@@ -40,6 +40,9 @@ jobs:
         if: github.event_name != 'pull_request'
         run: make validate-strict
 
+      - name: Validate Archify topology artifacts
+        run: python scripts/validate-topology-artifacts.py
+
       - name: Validate changed stacks and global invariants
         if: github.event_name == 'pull_request'
         env:

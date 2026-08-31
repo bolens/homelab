@@ -59,6 +59,7 @@ python3 scripts/validate-dependency-config.py
 echo "Checking generated documentation..."
 python3 scripts/build-stack-catalog.py --check
 python3 scripts/build-topology.py --check
+python3 scripts/validate-topology-artifacts.py
 
 echo "Checking YAML style..."
 mapfile -t yaml_files < <(git ls-files '*.yaml' '*.yml' | while read -r file; do
