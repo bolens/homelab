@@ -1,0 +1,1304 @@
+[
+  {
+    "name": "Acquire (Dissect)",
+    "category": "Utilities",
+    "summary": "Gather forensic artifacts from disk images or a live system into a single archive. Acquire uses the Dissect framework: it collects modules (paths/globs) by profile (full, default, minimal, none) and outputs a lightweight container for triage. Supports VMDK, E01, and other formats via Dissect; optional volatile (memory) collection.",
+    "url": "apps/acquire/"
+  },
+  {
+    "name": "Actual Budget – envelope-style budgeting",
+    "category": "Finance",
+    "summary": "Actual Budget is a local-first, open-source budgeting app with envelope-style budgeting and optional sync. This stack runs the Actual sync server so you can use the desktop/mobile app with cloud sync. No host ports; put it behind Caddy.",
+    "url": "apps/actual-budget/"
+  },
+  {
+    "name": "AdGuard Home",
+    "category": "Networking",
+    "summary": "Network-wide DNS-level ad and tracker blocking. Run AdGuard Home on your Docker host as the primary DNS server for your LAN and expose the web UI via Caddy.",
+    "url": "apps/adguard-home/"
+  },
+  {
+    "name": "AFFiNE",
+    "category": "Utilities",
+    "summary": "AFFiNE is a self-hosted collaborative knowledge workspace combining docs, whiteboards, and a knowledge graph in one app.",
+    "url": "apps/affine/"
+  },
+  {
+    "name": "AFL++ / libFuzzer",
+    "category": "Security",
+    "summary": "Coverage-guided fuzzing toolbox (AFL++ and libFuzzer) for discovering crashes and vulnerabilities in binaries and libraries.",
+    "url": "apps/afl-libfuzzer/"
+  },
+  {
+    "name": "AIL framework",
+    "category": "Utilities",
+    "summary": "The locally built AIL 7 image includes a dark interface theme. The runtime image appends ail-dark-mode.css to AIL's shared Bootstrap stylesheet so the theme covers the login, settings, dashboard, table, form, and modal templates without maintaining forks of upstream HTML. It also appends ail-dark-mode.js to ECharts so canvas-rendered charts use the bundled dark theme.",
+    "url": "apps/ail-framework/"
+  },
+  {
+    "name": "Alertmanager",
+    "category": "Monitoring",
+    "summary": "Prometheus Alertmanager for routing alerts (email, webhooks, chat, etc.) based on labels. Use it together with the Prometheus stack in this repo to turn metrics into actionable notifications.",
+    "url": "apps/alertmanager/"
+  },
+  {
+    "name": "AnythingLLM",
+    "category": "AI",
+    "summary": "All-in-one RAG workspace: upload documents, build vector workspaces, and chat with Ollama (or other providers) using built-in LanceDB.",
+    "url": "apps/anything-llm/"
+  },
+  {
+    "name": "AppFlowy",
+    "category": "Utilities",
+    "summary": "AppFlowy self-hosting stack scaffold for Caddy/Portainer deployment.",
+    "url": "apps/appflowy/"
+  },
+  {
+    "name": "ArchiSteamFarm (ASF)",
+    "category": "Knowledge",
+    "summary": "Steam card idling and automation. ASF runs in the background, optionally exposing a web IPC (API + ASF-ui) for management. Access via Caddy at https://asf.yourdomain.com (or your configured hostname).",
+    "url": "apps/archisteamfarm/"
+  },
+  {
+    "name": "ArchiveBox",
+    "category": "Archiving",
+    "summary": "Self-hosted web archive: save full copies of web pages (HTML, screenshots, PDFs, and WARCs) from URLs, bookmarks, and feeds.",
+    "url": "apps/archivebox/"
+  },
+  {
+    "name": "Asking",
+    "category": "AI",
+    "summary": "Lightweight self-hosted strawpoll-style polling app with a Next.js frontend and Node.js API backed by PostgreSQL.",
+    "url": "apps/asking/"
+  },
+  {
+    "name": "Atomic Red Team",
+    "category": "Security",
+    "summary": "Atomic Red Team is a library of small, portable adversary-simulation tests mapped to MITRE ATT&CK techniques.",
+    "url": "apps/atomic-red-team/"
+  },
+  {
+    "name": "Podcast (Audiobookshelf)",
+    "category": "Media",
+    "summary": "Self-hosted podcast (and audiobook) server: subscribe to podcasts, stream or download episodes, sync progress across web and mobile apps.",
+    "url": "apps/audiobookshelf/"
+  },
+  {
+    "name": "auth-fuzz",
+    "category": "Security",
+    "summary": "HTTP authentication fuzzer for testing login endpoints against wordlists and brute-force attack patterns.",
+    "url": "apps/auth-fuzz/"
+  },
+  {
+    "name": "authentik – identity provider / SSO",
+    "category": "Monitoring",
+    "summary": "authentik is an open-source identity provider and access management platform. It can act as an OIDC/OAuth2/SAML IdP for your other stacks (e.g. Outline, Grafana, Immich, Linkwarden) and integrates well with reverse proxies and Kubernetes/containers.",
+    "url": "apps/authentik/"
+  },
+  {
+    "name": "auto-identity-remove",
+    "category": "AI",
+    "summary": "Local LLM-powered PII redaction service. Accepts document uploads and returns redacted PDFs with personal information blacked out. Runs entirely on-prem, no data leaves the host.",
+    "url": "apps/auto-identity-remove/"
+  },
+  {
+    "name": "Baserow – self-hosted Airtable alternative",
+    "category": "Utilities",
+    "summary": "Baserow is an open-source no-code database and spreadsheet (tables, views, API). This stack runs Baserow with embedded SQLite; for production or heavy use you can switch to Postgres (see Baserow Docker docs). No host ports; put it behind Caddy.",
+    "url": "apps/baserow/"
+  },
+  {
+    "name": "Bazarr",
+    "category": "Media",
+    "summary": "Bazarr is a subtitle manager and downloader for Sonarr and Radarr. It automatically searches for subtitles in your preferred languages and keeps them up to date for your TV and movie library.",
+    "url": "apps/bazarr/"
+  },
+  {
+    "name": "Beszel",
+    "category": "Monitoring",
+    "summary": "Lightweight server monitoring with Docker/Podman stats, historical metrics, and alerts. The hub is the web UI and API; agents run on each host you want to monitor (Beszel, GitHub).",
+    "url": "apps/beszel/"
+  },
+  {
+    "name": "Blackbird",
+    "category": "Osint",
+    "summary": "OSINT tool to search for accounts by homelab-user or email across many sites (Sherlock-like, with extended coverage and report export). Supports PDF/CSV reports and optional AI-based profiling.",
+    "url": "apps/blackbird/"
+  },
+  {
+    "name": "Blackbox Exporter",
+    "category": "Monitoring",
+    "summary": "Prometheus Blackbox Exporter for probing endpoints over HTTP, TCP, and other protocols. Use it with Prometheus and Alertmanager to create synthetic checks (e.g. \"can I reach my tunnel hostname from inside the homelab?\").",
+    "url": "apps/blackbox-exporter/"
+  },
+  {
+    "name": "BookStack – wiki and documentation",
+    "category": "Knowledge",
+    "summary": "BookStack is a simple, self-hosted wiki for storing documentation in books, chapters, and pages. This stack runs BookStack with MariaDB behind Caddy. No host ports; access via Caddy.",
+    "url": "apps/bookstack/"
+  },
+  {
+    "name": "Caddy",
+    "category": "Networking",
+    "summary": "Reverse proxy with automatic HTTPS. Proxies to services on the host via host.docker.internal. Supports local DNS (e.g. AdGuard Home) and public access (Cloudflare Tunnel or port forwarding).",
+    "url": "apps/caddy/"
+  },
+  {
+    "name": "cAdvisor",
+    "category": "Monitoring",
+    "summary": "Container resource metrics (CPU, memory, network, filesystem) for all containers on the host. Prometheus scrapes cAdvisor; Grafana displays the data (e.g. dashboard 893).",
+    "url": "apps/cadvisor/"
+  },
+  {
+    "name": "Cal.com",
+    "category": "Utilities",
+    "summary": "Self-hosted open-source scheduling platform. Lets users share booking links, configure availability, and manage appointments without relying on Calendly or similar SaaS tools. Backed by PostgreSQL and Redis.",
+    "url": "apps/calcom/"
+  },
+  {
+    "name": "Calibre-Web",
+    "category": "Security",
+    "summary": "Web UI for an existing Calibre library: browse, read, and download eBooks. Uses your Calibre database (metadata.db) and book files. Supports OPDS, optional ebook conversion (Docker mod), and Google OAuth.",
+    "url": "apps/calibre-web/"
+  },
+  {
+    "name": "camofox-browser",
+    "category": "Browser",
+    "summary": "Anti-detection browser server for AI agents. Wraps Camoufox (a Firefox fork with C++-level fingerprint spoofing) in a REST API. Accessibility snapshots, stable element refs, session isolation, proxy support.",
+    "url": "apps/camofox-browser/"
+  },
+  {
+    "name": "clark-browser",
+    "category": "Browser",
+    "summary": "Stealth Chromium for browser automation. Anti-fingerprinting patches compiled directly into Chromium source, not fragile JS shims. Exposes a CDP endpoint that Playwright connects to via connectovercdp().",
+    "url": "apps/clark-browser/"
+  },
+  {
+    "name": "Cloudflare Tunnel (cloudflared)",
+    "category": "Networking",
+    "summary": "Exposes services on your Docker host via Cloudflare, no port forwarding or dynamic IP. Traffic goes outbound from host → Cloudflare → your services.",
+    "url": "apps/cloudflare-tunnel/"
+  },
+  {
+    "name": "code-server (VS Code in the browser)",
+    "category": "Utilities",
+    "summary": "LinuxServer image lscr.io/linuxserver/code-server. No host config directory is required: settings and extensions persist in the Docker volume codeserverconfig mounted at /config.",
+    "url": "apps/code-server/"
+  },
+  {
+    "name": "ConvertX",
+    "category": "Utilities",
+    "summary": "Self-hosted online file converter supporting 1000+ formats: documents (LibreOffice, Pandoc), images (ImageMagick, Vips, HEIF, JPEG XL), video (FFmpeg), e-books (Calibre), 3D (Assimp), and more. Written with TypeScript, Bun and Elysia.",
+    "url": "apps/convertx/"
+  },
+  {
+    "name": "Cowrie",
+    "category": "Security",
+    "summary": "Cowrie is a medium-to-high interaction SSH and Telnet honeypot that logs brute-force attacks and shell interaction.",
+    "url": "apps/cowrie/"
+  },
+  {
+    "name": "CrowdSec (Security Engine)",
+    "category": "Security",
+    "summary": "CrowdSec is a collaborative, open-source intrusion prevention system. It analyzes logs from your services, detects aggressive IPs and known attack patterns, and uses curated blocklists and community telemetry to help you block malicious traffic before it reaches your apps.",
+    "url": "apps/crowdsec/"
+  },
+  {
+    "name": "CryptPad",
+    "category": "Utilities",
+    "summary": "End-to-end encrypted collaborative office tools (docs, sheets, kanban, forms, drive) behind Caddy.",
+    "url": "apps/cryptpad/"
+  },
+  {
+    "name": "CUPS (network print server)",
+    "category": "Infrastructure",
+    "summary": "Self-hosted CUPS print server with a web admin UI, IPP sharing, and common Debian printer drivers. Suitable as a homelab \"cloud print\" hub: add printers in the UI, then point clients at ipp://… or install the queue via your OS print settings.",
+    "url": "apps/cups/"
+  },
+  {
+    "name": "Databasus",
+    "category": "Backup",
+    "summary": "Databasus is a lightweight self-hosted database management UI for browsing and querying SQL databases via a web interface.",
+    "url": "apps/databasus/"
+  },
+  {
+    "name": "DbGate",
+    "category": "Developer tools",
+    "summary": "DbGate is an open-source database manager supporting MySQL, PostgreSQL, SQLite, MongoDB, and more via a web or desktop UI.",
+    "url": "apps/dbgate/"
+  },
+  {
+    "name": "DDNS Updater",
+    "category": "Networking",
+    "summary": "Lightweight DDNS client that keeps A and AAAA records updated across many DNS providers. Includes a small web UI on port 8000, optional Shoutrrr notifications, and a built-in Docker healthcheck (DNS verification of your records).",
+    "url": "apps/ddns-updater/"
+  },
+  {
+    "name": "OWASP Dependency-Track",
+    "category": "Utilities",
+    "summary": "Software Composition Analysis (SCA) platform: upload SBOMs (CycloneDX, SPDX), track components, and get vulnerability alerts from NVD, OSS Index, GitHub Advisories, and more. Dependency-Track provides a web UI and REST API, no host ports; access via Caddy.",
+    "url": "apps/dependency-track/"
+  },
+  {
+    "name": "Dionaea + ConPot",
+    "category": "Security",
+    "summary": "Dionaea and ConPot are multi-protocol malware and industrial-control honeypots that capture exploits, payloads, and ICS/SCADA probe traffic.",
+    "url": "apps/dionaea-conpot/"
+  },
+  {
+    "name": "Dispatcharr",
+    "category": "Media",
+    "summary": "Dispatcharr is a self-hosted stream routing and EPG management tool for organizing IPTV channels and playlist sources.",
+    "url": "apps/dispatcharr/"
+  },
+  {
+    "name": "Diun",
+    "category": "Utilities",
+    "summary": "Docker image update notifier. Watches your running containers’ images and sends a notification when new tags are available (e.g. Telegram, Discord, webhook). Complements Watchtower: you see what changed before or after Watchtower pulls. No web UI; no Caddy reverse proxy needed.",
+    "url": "apps/diun/"
+  },
+  {
+    "name": "Docker Forensics Toolkit",
+    "category": "Utilities",
+    "summary": "Post-mortem analysis of Docker runtime environments from forensic copies of a Docker host’s disk. Docker Forensics Toolkit can mount host disk images, list containers/images, show configs and logs, mount container filesystems, and extract metadata for timeline analysis (e.g. with Sleuth Kit’s mactime).",
+    "url": "apps/docker-forensics-toolkit/"
+  },
+  {
+    "name": "docker-gc",
+    "category": "Utilities",
+    "summary": "Garbage collector for Docker containers and images. Runs a one-shot cleanup against the Docker daemon on the host using the Docker socket.",
+    "url": "apps/docker-gc/"
+  },
+  {
+    "name": "DocuSeal – self-hosted PDF e-signatures",
+    "category": "Utilities",
+    "summary": "DocuSeal is an open-source platform for building PDF forms, collecting signatures, and sending signing links. This stack runs the official DocuSeal image with PostgreSQL behind Caddy (no published ports on the host).",
+    "url": "apps/docuseal/"
+  },
+  {
+    "name": "Dozzle",
+    "category": "Utilities",
+    "summary": "Real-time Docker container log viewer. It uses a scoped Docker API proxy to list containers and stream logs without mounting the Docker socket into the UI.",
+    "url": "apps/dozzle/"
+  },
+  {
+    "name": "Emby",
+    "category": "Media",
+    "summary": "Media server for movies, TV shows, and music. Emby serves your library to web, mobile, and TV apps and supports hardware-accelerated transcoding.",
+    "url": "apps/emby/"
+  },
+  {
+    "name": "Enclosed",
+    "category": "Security",
+    "summary": "Minimal web app for sharing end-to-end encrypted notes and files: the server only stores ciphertext (similar idea to PrivateBin / Bitwarden Send).",
+    "url": "apps/enclosed/"
+  },
+  {
+    "name": "ErsatzTV",
+    "category": "Media",
+    "summary": "ErsatzTV is a self-hosted virtual cable TV server that creates linear TV channels from your media library.",
+    "url": "apps/ersatztv/"
+  },
+  {
+    "name": "Explo - music discovery automation",
+    "category": "Knowledge",
+    "summary": "Explo is a scheduled discovery worker for self-hosted music systems. It fetches personalized recommendations (ListenBrainz) and requests tracks from YouTube and/or Soulseek into your library.",
+    "url": "apps/explo/"
+  },
+  {
+    "name": "Firecrawl",
+    "category": "AI",
+    "summary": "Web scraping and crawling API that converts any website into LLM-ready markdown or structured data.",
+    "url": "apps/firecrawl/"
+  },
+  {
+    "name": "Firefly III – personal finance manager",
+    "category": "Finance",
+    "summary": "Firefly III is a self-hosted personal finance manager for tracking accounts, transactions, budgets, and reports.",
+    "url": "apps/firefly-iii/"
+  },
+  {
+    "name": "FlareSolverr",
+    "category": "Documents",
+    "summary": "Proxy server that solves Cloudflare and DDoS-GUARD browser challenges and returns HTML, cookies, and user-agent for use with other HTTP clients (for example arr indexers or Jackett).",
+    "url": "apps/flaresolverr/"
+  },
+  {
+    "name": "Flood",
+    "category": "Downloads",
+    "summary": "Flood provides a web interface for the bundled rTorrent service. Both services share the torrentsmanual download volume and rTorrent socket volume. rTorrent is built from Alpine's maintained package rather than the abandoned jesec/rtorrent image.",
+    "url": "apps/flood/"
+  },
+  {
+    "name": "RSS reader (FreshRSS)",
+    "category": "Utilities",
+    "summary": "Self-hosted RSS feed aggregator: subscribe to feeds, categories, star articles, and use extensions. Feedly-like experience with no account limits.",
+    "url": "apps/freshrss/"
+  },
+  {
+    "name": "GHunt",
+    "category": "Knowledge",
+    "summary": "OSINT framework for investigating Google accounts and assets: emails, Gaia IDs, Drive files, BSSIDs, and Digital Asset Links. Provides CLI modules with JSON export and requires a one-time login using the GHunt Companion browser extension.",
+    "url": "apps/ghunt/"
+  },
+  {
+    "name": "Gitea – self-hosted Git service",
+    "category": "Developer tools",
+    "summary": "Gitea is a lightweight, self-hosted Git service with a web UI, issue tracking, and basic CI integrations.",
+    "url": "apps/gitea/"
+  },
+  {
+    "name": "GitLab",
+    "category": "Developer tools",
+    "summary": "GitLab is a self-hosted DevSecOps platform providing Git repositories, CI/CD pipelines, issue tracking, and a container registry.",
+    "url": "apps/gitlab/"
+  },
+  {
+    "name": "GitLab Runners",
+    "category": "Developer tools",
+    "summary": "GitLab Runners are CI/CD job execution agents that connect to a GitLab instance and run pipeline jobs in isolated containers.",
+    "url": "apps/gitlab-runners/"
+  },
+  {
+    "name": "Glance – self-hosted dashboard",
+    "category": "Dashboard",
+    "summary": "Glance is a lightweight dashboard for RSS, weather, markets, Docker status, custom widgets, and more. Configuration is YAML (config/glance.yml). This stack runs Glance behind Caddy on the shared ingress-public network; there are no host port bindings.",
+    "url": "apps/glance/"
+  },
+  {
+    "name": "Gluetun – VPN client for other containers",
+    "category": "Networking",
+    "summary": "Outbound VPN client so specific containers can use a commercial VPN without putting the whole host behind it. Other stacks attach with networkmode: service:gluetun (e.g. the qbittorrent stack uses its own Gluetun instance; this stack is for a shared or alternate VPN client).",
+    "url": "apps/gluetun/"
+  },
+  {
+    "name": "Gotenberg",
+    "category": "Documents",
+    "summary": "Gotenberg is a stateless API microservice for converting HTML, Markdown, Office documents, and URLs to PDF using headless Chrome and LibreOffice.",
+    "url": "apps/gotenberg/"
+  },
+  {
+    "name": "Grafana",
+    "category": "Monitoring",
+    "summary": "Dashboard and visualization for Prometheus (and other datasources). Use with the Prometheus and cAdvisor stacks for host and container metrics.",
+    "url": "apps/grafana/"
+  },
+  {
+    "name": "Grafana Alloy",
+    "category": "Monitoring",
+    "summary": "Grafana Alloy collects Docker container logs and ships them to Loki, and exposes self-observability metrics for Prometheus to scrape.",
+    "url": "apps/grafana-alloy/"
+  },
+  {
+    "name": "Apache Guacamole",
+    "category": "Utilities",
+    "summary": "Clientless remote desktop gateway for RDP, VNC, and SSH accessible entirely through a modern HTML5 web browser, no client software required. Once deployed, you reach all your configured desktops and servers via a single Guacamole web UI.",
+    "url": "apps/guacamole/"
+  },
+  {
+    "name": "HandBrake",
+    "category": "Media",
+    "summary": "HandBrake is an open-source video transcoder that converts video files between formats and compresses media.",
+    "url": "apps/handbrake/"
+  },
+  {
+    "name": "Harbor – container registry (pointer stack)",
+    "category": "Developer tools",
+    "summary": "Harbor is a cloud-native container registry providing policies, RBAC, replication, scanning, and a web UI. Harbor is normally installed using its own installer, which generates a dedicated docker-compose.yml and harbor.yml config.",
+    "url": "apps/harbor/"
+  },
+  {
+    "name": "Hashcat",
+    "category": "Security",
+    "summary": "Hashcat is the world's fastest and most advanced password recovery utility supporting hundreds of hash types.",
+    "url": "apps/hashcat/"
+  },
+  {
+    "name": "Headscale",
+    "category": "Networking",
+    "summary": "Self-hosted implementation of the Tailscale control server. Lets you run your own Tailscale-style mesh VPN and use Tailscale clients (or headscale-specific options) to connect.",
+    "url": "apps/headscale/"
+  },
+  {
+    "name": "HedgeDoc – collaborative markdown editor",
+    "category": "Documents",
+    "summary": "HedgeDoc is a collaborative markdown editor for real-time note taking and documentation, similar to HackMD. This stack runs HedgeDoc with Postgres behind Caddy.",
+    "url": "apps/hedgedoc/"
+  },
+  {
+    "name": "Holehe (web UI)",
+    "category": "Osint",
+    "summary": "Holehe checks if an email address is registered on many websites using their \"forgot password\" flows, without sending emails to the target. This stack wraps the holehe-web FastAPI app to provide a simple web UI and CSV export.",
+    "url": "apps/holehe/"
+  },
+  {
+    "name": "Homarr – homelab dashboard",
+    "category": "Dashboard",
+    "summary": "Homarr is a dashboard for your homelab: add links to your services, widgets (Docker, Uptime Kuma, etc.), and optional integrations. This stack runs Homarr behind Caddy. No host ports; access via Caddy.",
+    "url": "apps/homarr/"
+  },
+  {
+    "name": "Home Assistant",
+    "category": "Home automation",
+    "summary": "Home automation hub for integrating lights, sensors, switches, and other devices. This stack runs Home Assistant in Docker with persistent config and exposes the web UI via Caddy.",
+    "url": "apps/home-assistant/"
+  },
+  {
+    "name": "Homepage",
+    "category": "Dashboard",
+    "summary": "Static landing page (e.g. \"under construction\") for your root domain or a dedicated hostname. One nginx container serves files from ./www; no database or app logic. Replace the default www/index.html with your own content when you are ready.",
+    "url": "apps/homepage/"
+  },
+  {
+    "name": "Immich",
+    "category": "Media",
+    "summary": "Self-hosted photo and video backup: upload from phones and the web, face detection, search, and albums.",
+    "url": "apps/immich/"
+  },
+  {
+    "name": "Infisical",
+    "category": "Developer tools",
+    "summary": "Self-hosted secrets manager for API keys, environment variables, and config. Sync secrets to apps, CI/CD, and CLI. Open-source alternative to Doppler, Vault (simpler), and env vaults.",
+    "url": "apps/infisical/"
+  },
+  {
+    "name": "InfluxDB",
+    "category": "Monitoring",
+    "summary": "InfluxDB is an open-source time-series database optimized for storing metrics, events, and analytics data.",
+    "url": "apps/influxdb/"
+  },
+  {
+    "name": "IT Tools",
+    "category": "Utilities",
+    "summary": "Collection of handy online tools for developers, with great UX. A comprehensive set of utilities for developers and IT professionals.",
+    "url": "apps/it-tools/"
+  },
+  {
+    "name": "Jellyfin",
+    "category": "Media",
+    "summary": "Open-source media server for movies, TV shows, and music. Jellyfin serves your media library to web, mobile, and TV apps with no proprietary cloud dependency.",
+    "url": "apps/jellyfin/"
+  },
+  {
+    "name": "Jellystat",
+    "category": "Media",
+    "summary": "Jellystat is a free, open-source statistics app for Jellyfin (session monitoring, libraries, watch history, and related metrics). This stack runs the official Docker image with a dedicated PostgreSQL instance.",
+    "url": "apps/jellystat/"
+  },
+  {
+    "name": "Joplin Server – sync backend",
+    "category": "Productivity",
+    "summary": "Joplin Server is the official synchronization backend for Joplin note-taking clients. This stack runs Joplin Server with Postgres behind Caddy.",
+    "url": "apps/joplin-server/"
+  },
+  {
+    "name": "Kali Linux",
+    "category": "Security",
+    "summary": "Kali Linux is a Debian-based distribution packed with offensive security and penetration testing tools.",
+    "url": "apps/kali/"
+  },
+  {
+    "name": "Kasm Workspaces",
+    "category": "Networking",
+    "summary": "Container streaming platform for browser-based access to desktops and applications. Delivers on-demand, disposable Docker containers (Remote Browser Isolation, DaaS, secure remote access) streamed to the web, no client software or VPN required. Powered by KasmVNC.",
+    "url": "apps/kasm/"
+  },
+  {
+    "name": "Kavita",
+    "category": "Dashboard",
+    "summary": "Comics, manga, and eBook server with a built-in web reader, OPDS support, and reading progress. Single app for mixed libraries (CBZ, CBR, EPUB, etc.). Can run alongside Komga and Calibre-Web or replace one of them depending on preference.",
+    "url": "apps/kavita/"
+  },
+  {
+    "name": "Keycloak – identity provider / SSO",
+    "category": "Monitoring",
+    "summary": "Keycloak is an open-source identity and access management solution. It provides SSO, identity brokering, and user management, and can act as an OpenID Connect / OAuth 2.0 / SAML IdP for your other stacks (e.g. Outline, Grafana, Immich, Linkwarden).",
+    "url": "apps/keycloak/"
+  },
+  {
+    "name": "Kokoro FastAPI (TTS)",
+    "category": "Utilities",
+    "summary": "Open https://kokoro-tts.home/web (or your internal hostname) to try voices. API base on Docker: http://kokoro-tts:8880/v1 with a dummy API key (e.g. not-needed). Add your own public site in Caddy only if you intentionally expose TTS on the Internet.",
+    "url": "apps/kokoro-tts/"
+  },
+  {
+    "name": "Kometa",
+    "category": "Media",
+    "summary": "Kometa (formerly Plex Meta Manager) is a tool that automatically manages Plex library metadata, overlays, and collections.",
+    "url": "apps/kometa/"
+  },
+  {
+    "name": "Komga",
+    "category": "Dashboard",
+    "summary": "Self-hosted comics and manga server: organize, browse, and read CBZ, CBR, PDF, and EPUB in the browser. OPDS support for apps like Tachiyomi; multi-user with reading progress and library-level permissions.",
+    "url": "apps/komga/"
+  },
+  {
+    "name": "Lanraragi",
+    "category": "Dashboard",
+    "summary": "Tag-based comic and manga archive manager. Upload or drop CBR, CBZ, PDF, and other archives; organize with namespaced tags and plugins for metadata. Good for large, tag-heavy libraries (e.g. doujinshi, manga). Reads from archives without extracting.",
+    "url": "apps/lanraragi/"
+  },
+  {
+    "name": "LibreChat Stack",
+    "category": "AI",
+    "summary": "Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code interpreter, and more.",
+    "url": "apps/librechat/"
+  },
+  {
+    "name": "Lidarr",
+    "category": "Media",
+    "summary": "Music collection manager for Usenet and torrents. Lidarr tracks artists and albums, grabs them from NZB/torrent indexers, and keeps your library organized.",
+    "url": "apps/lidarr/"
+  },
+  {
+    "name": "Linkding – lightweight bookmark manager",
+    "category": "Archiving",
+    "summary": "Linkding is a simple, self-hosted bookmark manager with tags, full-text search, and import (Netscape bookmarks, etc.). This stack runs Linkding behind Caddy. No host ports; access via Caddy.",
+    "url": "apps/linkding/"
+  },
+  {
+    "name": "LinkStack",
+    "category": "Productivity",
+    "summary": "Self-hosted link-in-bio page (Linktree-style): one URL that shows your profile and a list of links (social, projects, etc.). Customizable themes, optional multi-user, no database required, data lives in the container volume.",
+    "url": "apps/linkstack/"
+  },
+  {
+    "name": "Linkwarden",
+    "category": "Utilities",
+    "summary": "Self-hosted bookmark manager and link aggregator: save links, archive pages, organize with collections, full-text search.",
+    "url": "apps/linkwarden/"
+  },
+  {
+    "name": "LiteLLM",
+    "category": "AI",
+    "summary": "OpenAI-compatible LLM proxy for Ollama, OpenAI, Anthropic, Azure, and many other providers.",
+    "url": "apps/litellm/"
+  },
+  {
+    "name": "logseq-sync (community backend) – EXPERIMENTAL",
+    "category": "Knowledge",
+    "summary": "This stack is a thin wrapper around the community logseq-sync backend implementation. It is experimental and not an official Logseq product. Integration with the Logseq clients may require code modifications or custom builds; see the upstream repository for current status and instructions.",
+    "url": "apps/logseq-sync/"
+  },
+  {
+    "name": "Loki – log aggregation",
+    "category": "Monitoring",
+    "summary": "Loki is a log aggregation system from Grafana, optimized for storing and querying logs with Prometheus-style labels. This stack runs a single-node Loki instance. Deploy Promtail (stacks/promtail) separately to ship host and container logs to Loki.",
+    "url": "apps/loki/"
+  },
+  {
+    "name": "Maigret",
+    "category": "Osint",
+    "summary": "OSINT tool: collect a dossier on a person by homelab-user only, checking thousands of sites and gathering available info from profile pages. No API keys. Fork of Sherlock with profile parsing, recursive search, and report export (HTML, PDF, XMind).",
+    "url": "apps/maigret/"
+  },
+  {
+    "name": "#! Mailpit",
+    "category": "Email",
+    "summary": "Local SMTP catcher for development and testing. Receives all mail on port 1025 and displays it in a web UI (port 8025). No external delivery, ideal for internal-only mailing when combined with the Postfix relay.",
+    "url": "apps/mailpit/"
+  },
+  {
+    "name": "Maloja",
+    "category": "Media",
+    "summary": "Maloja is a self-hosted music scrobble server that tracks your listening history and provides statistics.",
+    "url": "apps/maloja/"
+  },
+  {
+    "name": "Matomo",
+    "category": "Analytics",
+    "summary": "Matomo is a self-hosted, privacy-respecting web analytics platform that gives you full ownership of your data.",
+    "url": "apps/matomo/"
+  },
+  {
+    "name": "Mattermost",
+    "category": "Home automation",
+    "summary": "Self-hosted team chat and collaboration with PostgreSQL backend, proxied by Caddy.",
+    "url": "apps/mattermost/"
+  },
+  {
+    "name": "Mealie",
+    "category": "Lifestyle",
+    "summary": "Self-hosted recipe manager and meal planner: import recipes from URLs, plan meals, generate shopping lists, and organize cookbooks.",
+    "url": "apps/mealie/"
+  },
+  {
+    "name": "Meilisearch – search engine",
+    "category": "Utilities",
+    "summary": "Meilisearch is a fast, typo-tolerant search engine with an HTTP API. Use it as a search backend for your apps or custom UIs. This stack runs Meilisearch behind Caddy. No host ports; access via Caddy.",
+    "url": "apps/meilisearch/"
+  },
+  {
+    "name": "Metagoofil",
+    "category": "Osint",
+    "summary": "OSINT tool for extracting metadata from publicly available documents (PDF, DOC, XLS, PPT, etc.) discovered via Google. Downloads files for a given domain and can reveal homelab-users, software versions, paths, and other metadata. No upstream Docker image; built from source.",
+    "url": "apps/metagoofil/"
+  },
+  {
+    "name": "MeTube",
+    "category": "Utilities",
+    "summary": "Self-hosted web GUI for yt-dlp/youtube-dl with playlist support and a download queue. Lets you send video URLs from your browser and download them as video or audio to your homelab storage.",
+    "url": "apps/metube/"
+  },
+  {
+    "name": "MinIO – S3-compatible object storage",
+    "category": "Backup",
+    "summary": "MinIO is a high-performance, S3-compatible object store. Use it as a backend for backups (e.g. the restic stack), application uploads, logs, and other large objects.",
+    "url": "apps/minio/"
+  },
+  {
+    "name": "Mosquitto (MQTT broker)",
+    "category": "Home automation",
+    "summary": "Lightweight MQTT broker for Home Assistant, Zigbee2MQTT, Node-RED, and other IoT/automation clients.",
+    "url": "apps/mosquitto/"
+  },
+  {
+    "name": "Mylar3",
+    "category": "Media",
+    "summary": "Automated comic book downloader (CBR/CBZ) for Usenet and torrents. Tracks series, fetches new issues via NZBGet or qBittorrent, and organizes them into /data/comics.",
+    "url": "apps/mylar3/"
+  },
+  {
+    "name": "n8n",
+    "category": "Utilities",
+    "summary": "Workflow automation: connect apps, APIs, and services with a visual editor. Self-hosted alternative to Zapier/Make. Uses SQLite by default (data in Docker volume); optional Postgres for scaling.",
+    "url": "apps/n8n/"
+  },
+  {
+    "name": "Naisho",
+    "category": "Productivity",
+    "summary": "Send personal data deletion request emails to hundreds of data brokers at once. Free, open-source Rails app: you compose your request, pick which companies to contact, and Naisho sends the emails via SMTP.",
+    "url": "apps/naisho/"
+  },
+  {
+    "name": "Navidrome",
+    "category": "Media",
+    "summary": "Self-hosted music streaming server: index your music library and stream it from anywhere with a modern web UI and Subsonic-compatible mobile apps (Android/iOS, desktop players, etc.). Navidrome is lightweight, fast, and handles very large libraries.",
+    "url": "apps/navidrome/"
+  },
+  {
+    "name": "NetBird",
+    "category": "Networking",
+    "summary": "Self-hosted NetBird control plane: WireGuard-based mesh VPN with a web dashboard, embedded identity (Dex), and combined management/signal/relay in one server image (NetBird Docs).",
+    "url": "apps/netbird/"
+  },
+  {
+    "name": "netboot.xyz",
+    "category": "Networking",
+    "summary": "netboot.xyz is a network boot utility that lets you PXE-boot into dozens of OS installers and live environments from a single menu.",
+    "url": "apps/netboot.xyz/"
+  },
+  {
+    "name": "NetBox (pointer stack)",
+    "category": "Networking",
+    "summary": "NetBox is an IPAM (IP address management) and DCIM (data center infrastructure management) tool for documenting networks, devices, racks, and circuits. The recommended Docker deployment is maintained in the netbox-docker project.",
+    "url": "apps/netbox/"
+  },
+  {
+    "name": "NetExec",
+    "category": "Security",
+    "summary": "NetExec (formerly CrackMapExec) is a network pentesting framework for enumerating and attacking Active Directory and network services.",
+    "url": "apps/netexec/"
+  },
+  {
+    "name": "Nextcloud – personal cloud storage",
+    "category": "Storage",
+    "summary": "Nextcloud is a self-hosted file sync and sharing platform with support for calendar, contacts, tasks, and many apps. This stack runs Nextcloud behind Caddy with Postgres and Redis.",
+    "url": "apps/nextcloud/"
+  },
+  {
+    "name": "Node Exporter",
+    "category": "Monitoring",
+    "summary": "Prometheus Node Exporter for host-level metrics (CPU, memory, disk, network). Use with Prometheus and Grafana (e.g. dashboard 1860 – Node Exporter Full).",
+    "url": "apps/node-exporter/"
+  },
+  {
+    "name": "Node-RED stack – low-code flows for your homelab",
+    "category": "Networking",
+    "summary": "Node-RED is a flow-based, low-code programming tool for wiring together hardware devices, APIs, and online services. It lets you build automations as drag‑and‑drop flows that react to events, timers, webhooks, MQTT messages, and more.",
+    "url": "apps/node-red/"
+  },
+  {
+    "name": "nodepad",
+    "category": "Dashboard",
+    "summary": "Spatial, AI-augmented thinking canvas (nodepad), notes on a canvas with automatic classification and connections. API keys are stored only in the browser (per upstream); the container just serves the Next.js UI.",
+    "url": "apps/nodepad/"
+  },
+  {
+    "name": "ntfy – push notifications",
+    "category": "Utilities",
+    "summary": "ntfy is a simple HTTP-based pub-sub notification service. Send push notifications via PUT/POST; use the Android/iOS app or curl to subscribe. This stack runs ntfy behind Caddy. No host ports; access via Caddy.",
+    "url": "apps/ntfy/"
+  },
+  {
+    "name": "ntopng",
+    "category": "Analytics",
+    "summary": "Network traffic analytics and flow monitoring. This stack runs ntopng with host networking so it can observe traffic on the Docker host’s interfaces.",
+    "url": "apps/ntopng/"
+  },
+  {
+    "name": "NUT Server (Network UPS Tools)",
+    "category": "Utilities",
+    "summary": "Self-hosted NUT server (upsd) for exposing UPS status to LAN clients and monitoring tools.",
+    "url": "apps/nut-server/"
+  },
+  {
+    "name": "NZBGet",
+    "category": "Media",
+    "summary": "High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet providers and integrates with automation tools like Sonarr, Radarr, Lidarr, and Prowlarr.",
+    "url": "apps/nzbget/"
+  },
+  {
+    "name": "NZBHydra 2",
+    "category": "Media",
+    "summary": "Meta search for Usenet indexers. NZBHydra 2 aggregates results from multiple NZB indexers, normalizes them, and exposes a Newznab-compatible API for apps like Sonarr, Radarr, Lidarr, and Prowlarr.",
+    "url": "apps/nzbhydra2/"
+  },
+  {
+    "name": "OASIS",
+    "category": "Utilities",
+    "summary": "Self-hosted file server with user authentication, upload/download, search, previews (text, images, audio, video, PDF), media playlists, and shareable external links. Stack: Svelte frontend, Rust (Rocket) backend.",
+    "url": "apps/oasis/"
+  },
+  {
+    "name": "Ollama Stack",
+    "category": "AI",
+    "summary": "Self-hosted Ollama instance with GPU support for running local LLMs.",
+    "url": "apps/ollama/"
+  },
+  {
+    "name": "Ombi",
+    "category": "Media",
+    "summary": "Ombi is a self-hosted media request and user management tool for Plex, Jellyfin, and Emby.",
+    "url": "apps/ombi/"
+  },
+  {
+    "name": "Onionprobe",
+    "category": "Monitoring",
+    "summary": "Tor Onion Services monitoring: continuously probes a set of onion endpoints, exports metrics to Prometheus, and provides Grafana dashboards and Alertmanager alerts. Uses the official Tor Project Onionprobe stack with service names prefixed so it does not clash with your existing Prometheus/Grafana.",
+    "url": "apps/onionprobe/"
+  },
+  {
+    "name": "OnionScan",
+    "category": "Osint",
+    "summary": "CLI tool for investigating Tor hidden services (onion sites). Scans for operational security issues and misconfigurations (e.g. modstatus, directory listings, EXIF, server fingerprinting). Useful for hidden-service operators and researchers.",
+    "url": "apps/onionscan/"
+  },
+  {
+    "name": "Open Notebook Stack",
+    "category": "AI",
+    "summary": "An open source, privacy-focused alternative to Google's Notebook LM with support for multiple AI providers.",
+    "url": "apps/open-notebook/"
+  },
+  {
+    "name": "Open WebUI Stack",
+    "category": "AI",
+    "summary": "Extensible, feature-rich, and user-friendly self-hosted AI platform designed to operate entirely offline. Supports Ollama and OpenAI-compatible APIs.",
+    "url": "apps/open-webui/"
+  },
+  {
+    "name": "OpenGist",
+    "category": "Developer tools",
+    "summary": "OpenGist is a self-hosted Gist service backed by Git, providing paste/snippet sharing with syntax highlighting.",
+    "url": "apps/opengist/"
+  },
+  {
+    "name": "OpenSpeedTest",
+    "category": "Networking",
+    "summary": "OpenSpeedTest is a self-hosted HTML5 network speed test tool that runs entirely in the browser.",
+    "url": "apps/openspeedtest/"
+  },
+  {
+    "name": "Outline – team knowledge base / wiki",
+    "category": "Security",
+    "summary": "Outline is a modern, collaborative knowledge base and wiki. This stack runs Outline with Postgres, Redis, and S3-compatible storage (e.g. the minio stack) behind Caddy, and is designed to integrate with an external IdP such as Keycloak or authentik.",
+    "url": "apps/outline/"
+  },
+  {
+    "name": "Paperless-AI next",
+    "category": "AI",
+    "summary": "AI-assisted classification and OCR rescue workflows for paperless-ngx.",
+    "url": "apps/paperless-ai-next/"
+  },
+  {
+    "name": "Paperless-GPT",
+    "category": "AI",
+    "summary": "LLM and OCR augmentation service for paperless-ngx.",
+    "url": "apps/paperless-gpt/"
+  },
+  {
+    "name": "Paperless-ngx",
+    "category": "Documents",
+    "summary": "Document management: scan, OCR, and search your paperwork.",
+    "url": "apps/paperless-ngx/"
+  },
+  {
+    "name": "Password Pusher",
+    "category": "Utilities",
+    "summary": "Secure password and secret sharing: create shareable links with view limits and expiration. Recipients see the secret once (or a set number of times), then the link expires. Optional passphrase for extra protection.",
+    "url": "apps/password-pusher/"
+  },
+  {
+    "name": "PeaNUT",
+    "category": "Infrastructure",
+    "summary": "PeaNUT is a self-hosted web dashboard for monitoring UPS devices via Network UPS Tools (NUT).",
+    "url": "apps/peanut/"
+  },
+  {
+    "name": "Perplexica Stack",
+    "category": "Media",
+    "summary": "Privacy-focused AI-powered answering engine that combines web search with AI models for cited answers. Perplexica uses ingress-public for Caddy and ai-backend for shared AI/search backends.",
+    "url": "apps/perplexica/"
+  },
+  {
+    "name": "pgAdmin",
+    "category": "Developer tools",
+    "summary": "pgAdmin 4 is the leading open-source web-based administration and development platform for PostgreSQL.",
+    "url": "apps/pgadmin/"
+  },
+  {
+    "name": "PhoneInfoga",
+    "category": "Knowledge",
+    "summary": "Phone number OSINT tool: looks up basic information about a phone number (country, carrier, line type, VOIP or mobile) and searches for web footprints using multiple search engines and sources. Exposes a web UI and REST API.",
+    "url": "apps/phoneinfoga/"
+  },
+  {
+    "name": "MusicBrainz Picard",
+    "category": "Dashboard",
+    "summary": "MusicBrainz Picard is an advanced music tagger and organizer. This stack provides a browser-accessible Picard UI and mounts both your main library and a staging import directory so you can review, tag, and move files into your canonical music tree.",
+    "url": "apps/picard/"
+  },
+  {
+    "name": "Pi-hole Stack",
+    "category": "Networking",
+    "summary": "This stack runs Pi-hole for network-wide ad blocking and DNS filtering in Docker.",
+    "url": "apps/pihole/"
+  },
+  {
+    "name": "Plaso (log2timeline)",
+    "category": "Utilities",
+    "summary": "Digital forensics timeline tool. Plaso (log2timeline) extracts timestamps from disk images, directories, and evidence files into a single timeline; psort writes that to CSV, JSON, or other formats. Use for incident response, artifact analysis, and timeline reconstruction.",
+    "url": "apps/plaso/"
+  },
+  {
+    "name": "Plex",
+    "category": "Media",
+    "summary": "Self-hosted media server for movies, TV shows, and music. Plex serves your media library to web, mobile, TV apps, and other clients.",
+    "url": "apps/plex/"
+  },
+  {
+    "name": "PocketBase",
+    "category": "Developer tools",
+    "summary": "PocketBase is an open-source backend-as-a-service with a built-in SQLite database, auth, and admin UI.",
+    "url": "apps/pocketbase/"
+  },
+  {
+    "name": "#! SMTP relay",
+    "category": "Email",
+    "summary": "Central SMTP relay (\"null client\") for your Docker stacks, based on boky/postfix. Apps send mail to this container; it then relays via your real mail provider (SES, Mailgun, SMTP relay from your ISP, etc.).",
+    "url": "apps/postfix/"
+  },
+  {
+    "name": "PostHog (hobby self-host)",
+    "category": "Storage",
+    "summary": "PostHog is product analytics, session replay, feature flags, and experimentation. The hobby deployment is PostHog’s supported Docker Compose layout (Postgres, ClickHouse, Kafka, Temporal, MinIO, SeaweedFS, workers, and an internal Caddy proxy service that routes traffic to web, capture, livestream, etc.).",
+    "url": "apps/posthog/"
+  },
+  {
+    "name": "Postiz",
+    "category": "Productivity",
+    "summary": "Postiz is an open-source social media scheduling and management platform supporting multiple networks.",
+    "url": "apps/postiz/"
+  },
+  {
+    "name": "Presidio",
+    "category": "Security",
+    "summary": "Microsoft Presidio is a data protection and PII detection/anonymization API for text and images.",
+    "url": "apps/presidio/"
+  },
+  {
+    "name": "PrivateBin",
+    "category": "Knowledge",
+    "summary": "Encrypted pastebin: share text snippets with optional expiration and password. No account required; pastes are encrypted in the browser before upload.",
+    "url": "apps/privatebin/"
+  },
+  {
+    "name": "Privotron",
+    "category": "Utilities",
+    "summary": "CLI tool to automate opting out of data brokers. Uses Playwright to fill opt-out forms so you don't have to do it by hand. Tracks which brokers you've already opted out from via profiles. No upstream Docker image; built from source.",
+    "url": "apps/privotron/"
+  },
+  {
+    "name": "Prometheus",
+    "category": "Monitoring",
+    "summary": "Metrics collection and storage. Scrapes cAdvisor (container metrics), optional Watchtower /v1/metrics, and itself. Grafana uses Prometheus as a datasource for dashboards.",
+    "url": "apps/prometheus/"
+  },
+  {
+    "name": "Promtail",
+    "category": "Monitoring",
+    "summary": "Promtail is the log-shipping agent for Loki. It tails log files on the host and pushes them to a Loki instance. Deploy this stack after the Loki stack so logs are available in Grafana (Explore → Loki).",
+    "url": "apps/promtail/"
+  },
+  {
+    "name": "Prowlarr",
+    "category": "Media",
+    "summary": "Indexer manager and proxy for Usenet and torrents. Prowlarr manages indexers centrally and syncs them to Sonarr, Radarr, Lidarr, Readarr, and other arr apps.",
+    "url": "apps/prowlarr/"
+  },
+  {
+    "name": "pwntools-gdb",
+    "category": "Security",
+    "summary": "pwntools + GDB/pwndbg is a containerized CTF and exploit-development environment with Python pwntools and a patched GDB.",
+    "url": "apps/pwntools-gdb/"
+  },
+  {
+    "name": "qBittorrent + VPN (Gluetun)",
+    "category": "Networking",
+    "summary": "Torrent client with all traffic routed through a VPN (Gluetun). Intended for automated downloads from the arr apps. The media tree is mounted once at /data, allowing hardlinked imports that preserve seeding without duplicating file data.",
+    "url": "apps/qbittorrent/"
+  },
+  {
+    "name": "Rackula",
+    "category": "Utilities",
+    "summary": "Rackula is a static site generator that turns a Rack-compatible Ruby app into a static website.",
+    "url": "apps/rackula/"
+  },
+  {
+    "name": "Radarr",
+    "category": "Media",
+    "summary": "Movie collection manager for Usenet and torrents. Radarr monitors your wanted movies, grabs releases from NZB/torrent indexers, sends them to download clients, and organizes the resulting files.",
+    "url": "apps/radarr/"
+  },
+  {
+    "name": "Bookshelf (Hardcover)",
+    "category": "Media",
+    "summary": "Bookshelf is a Readarr revival for managing ebook or audiobook collections with Usenet and torrents. This stack uses its Hardcover-backed image for higher-quality metadata.",
+    "url": "apps/readarr/"
+  },
+  {
+    "name": "ReconFTW",
+    "category": "Osint",
+    "summary": "Automated recon framework that orchestrates many tools (subdomain enumeration, port scanning, screenshots, Nuclei, directory fuzzing, OSINT, etc.) into a single workflow. Designed for offensive recon and bug bounty style asset discovery.",
+    "url": "apps/reconftw/"
+  },
+  {
+    "name": "Resilio Sync",
+    "category": "Storage",
+    "summary": "Resilio Sync (formerly BitTorrent Sync) is a peer-to-peer file synchronization tool for homelab and private file sharing.",
+    "url": "apps/resilio/"
+  },
+  {
+    "name": "Responder + mitm6",
+    "category": "Security",
+    "summary": "Responder and mitm6 are network penetration testing tools for LLMNR/NBT-NS/WPAD poisoning and IPv6 MitM attacks.",
+    "url": "apps/responder-mitm6/"
+  },
+  {
+    "name": "Restic backups (cron)",
+    "category": "Backup",
+    "summary": "Automated backups using restic running on a schedule, typically targeting an S3-compatible object store such as the minio stack in this repo.",
+    "url": "apps/restic/"
+  },
+  {
+    "name": "RomM",
+    "category": "Dashboard",
+    "summary": "Self-hosted ROM manager: scan, enrich with metadata, browse, and play games in the browser via EmulatorJS. Supports 400+ platforms, multi-disk games, mods, and optional metadata from IGDB, Screenscraper, MobyGames, SteamGridDB, and RetroAchievements.",
+    "url": "apps/romm/"
+  },
+  {
+    "name": "rTorrent",
+    "category": "Downloads",
+    "summary": "Standalone rTorrent service for manual torrent downloads. It stores session state in rtorrentdata and downloads in the shared external torrentsmanual volume.",
+    "url": "apps/rtorrent/"
+  },
+  {
+    "name": "rTorrent + Flood (manual torrents)",
+    "category": "Downloads",
+    "summary": "Manual torrent stack for hand‑curated torrents from private trackers. Uses the LinuxServer.io rtorrent-flood image, which bundles the rTorrent daemon with the Flood web UI.",
+    "url": "apps/rtorrent-flood/"
+  },
+  {
+    "name": "RustDesk Server OSS",
+    "category": "Utilities",
+    "summary": "Self-hosted ID / rendezvous (hbbs) and relay (hbbr) for RustDesk remote desktop. Traffic stays on infrastructure you control; clients use your public hostname or IP with the ports below.",
+    "url": "apps/rustdesk/"
+  },
+  {
+    "name": "RustFS",
+    "category": "Storage",
+    "summary": "RustFS is a high-performance, S3-compatible object storage server written in Rust.",
+    "url": "apps/rustfs/"
+  },
+  {
+    "name": "ruTorrent",
+    "category": "Downloads",
+    "summary": "LinuxServer.io ruTorrent deployment with persistent configuration and the shared torrentsmanual download volume.",
+    "url": "apps/rutorrent/"
+  },
+  {
+    "name": "Scrutiny – disk health / SMART monitoring",
+    "category": "Utilities",
+    "summary": "Scrutiny provides a web UI and alerting for disk SMART metrics. It helps you monitor drive health and catch failing disks early.",
+    "url": "apps/scrutiny/"
+  },
+  {
+    "name": "Scrypted",
+    "category": "Home automation",
+    "summary": "Scrypted is a home automation and camera management platform with AI-powered plugins for smart home integration.",
+    "url": "apps/scrypted/"
+  },
+  {
+    "name": "Seafile – file sync and sharing",
+    "category": "Storage",
+    "summary": "Seafile is a self-hosted file sync and sharing platform with desktop and mobile clients. This stack runs Seafile with MariaDB and Memcached behind Caddy.",
+    "url": "apps/seafile/"
+  },
+  {
+    "name": "SearXNG",
+    "category": "Utilities",
+    "summary": "Privacy-respecting metasearch engine. Aggregates results from multiple search engines.",
+    "url": "apps/searx-ng/"
+  },
+  {
+    "name": "Seerr",
+    "category": "Media",
+    "summary": "Seerr is an open-source media discovery and request manager. It works with Jellyfin, Plex, or Emby, and forwards approved requests to Radarr and Sonarr.",
+    "url": "apps/seerr/"
+  },
+  {
+    "name": "Shlink",
+    "category": "Documents",
+    "summary": "Self-hosted URL shortener: short links, redirects, REST API, visit analytics, and optional geolocation. Use the web UI at app.shlink.io (add your server URL and API key) or self-host the web client. Separate from YOURLS (which lives at urls.yourdomain.com in this repo); Shlink is at short.yourdomain.com.",
+    "url": "apps/shlink/"
+  },
+  {
+    "name": "SimpleLogin",
+    "category": "Networking",
+    "summary": "Email alias service: create unlimited aliases (e.g. shop@yourdomain.com) that forward to your real inbox. Reply anonymously, block spam per alias, integrate with Bitwarden/1Password. Self-hosted fork of the Proton-owned SimpleLogin app.",
+    "url": "apps/simplelogin/"
+  },
+  {
+    "name": "Slink",
+    "category": "Productivity",
+    "summary": "Self-hosted image sharing platform: upload images (PNG, JPG, WEBP, SVG, AVIF, HEIC, etc.), create collections, share links, ShareX integration, optional guest uploads. Built with Symfony and SvelteKit.",
+    "url": "apps/slink/"
+  },
+  {
+    "name": "Snipe-IT",
+    "category": "Security",
+    "summary": "IT asset management (hardware, software licenses, accessories, consumables). This stack runs Snipe-IT with a MariaDB backend and exposes the web UI via Caddy.",
+    "url": "apps/snipe-it/"
+  },
+  {
+    "name": "Snowflake Relay",
+    "category": "Utilities",
+    "summary": "Snowflake is a Tor pluggable transport proxy that helps censored users reach the Tor network via WebRTC.",
+    "url": "apps/snowflake-relay/"
+  },
+  {
+    "name": "Social-Hunt",
+    "category": "Osint",
+    "summary": "OSINT framework for homelab-user discovery across 500+ platforms, breach lookups (Have I Been Pwned, BreachVIP, Snusbase, LeakCheck), face matching, reverse image search, and optional AI demasking. Includes a web dashboard and CLI.",
+    "url": "apps/social-hunt/"
+  },
+  {
+    "name": "Sonarr",
+    "category": "Media",
+    "summary": "TV series management for Usenet and torrents. Sonarr monitors your library, grabs new episodes from NZB/torrent indexers, sends them to your download clients, and organizes the resulting files.",
+    "url": "apps/sonarr/"
+  },
+  {
+    "name": "Soulseek (slskd)",
+    "category": "Utilities",
+    "summary": "Self-hosted Soulseek client stack using slskd: web UI, API, and background Soulseek connectivity in one container.",
+    "url": "apps/soulseek/"
+  },
+  {
+    "name": "SpiderFoot",
+    "category": "Networking",
+    "summary": "Automated OSINT tool with 180+ modules for domains, IPs, emails, BTC addresses, homelab-users and more. Aggregates data from many sources (DNS, breaches, Shodan, GreyNoise, cloud buckets, social media, etc.) into a single web UI.",
+    "url": "apps/spiderfoot/"
+  },
+  {
+    "name": "Stirling-PDF – PDF tools",
+    "category": "Utilities",
+    "summary": "Stirling-PDF is a web-based PDF toolkit: merge, split, rotate, watermark, OCR, convert to/from images, and more. This stack runs Stirling-PDF behind Caddy. No host ports; access via Caddy.",
+    "url": "apps/stirling-pdf/"
+  },
+  {
+    "name": "Stoat",
+    "category": "Storage",
+    "summary": "Self-hosted, user-first chat platform (channels, DMs, threads, media, voice) compatible with the official Stoat clients. This stack embeds the upstream stoatchat/self-hosted services but does not expose any host ports – all access goes through the main caddy reverse proxy in this homelab.",
+    "url": "apps/stoat/"
+  },
+  {
+    "name": "Sublist3r",
+    "category": "Utilities",
+    "summary": "Subdomain enumeration tool that discovers subdomains for a given domain using multiple search engines and techniques. Often used as a first step in recon workflows.",
+    "url": "apps/sublist3r/"
+  },
+  {
+    "name": "Super Productivity",
+    "category": "Knowledge",
+    "summary": "Self-hosted productivity app (tasks, timeboxing, focus, and planning UI) served as a web app behind Caddy.",
+    "url": "apps/super-productivity/"
+  },
+  {
+    "name": "Syncthing – continuous file sync",
+    "category": "Productivity",
+    "summary": "Syncthing is a continuous file synchronization tool that keeps folders in sync across devices without a central server.",
+    "url": "apps/syncthing/"
+  },
+  {
+    "name": "tailscale-exporter",
+    "category": "Monitoring",
+    "summary": "tailscale-exporter is a Prometheus exporter that exposes Headscale node and network metrics.",
+    "url": "apps/tailscale-exporter/"
+  },
+  {
+    "name": "Tautulli",
+    "category": "Media",
+    "summary": "Tautulli is a monitoring and statistics tracker for Plex Media Server.",
+    "url": "apps/tautulli/"
+  },
+  {
+    "name": "TRMNL Terminus",
+    "category": "Utilities",
+    "summary": "Terminus is the self-hosted API and web backend for TRMNL e-paper devices. This stack runs the official image with PostgreSQL, Valkey (Redis-compatible), and a Sidekiq worker, matching the upstream compose.yml layout adapted for Caddy (no published host ports on the app or data stores).",
+    "url": "apps/terminus/"
+  },
+  {
+    "name": "theHarvester (REST API)",
+    "category": "Knowledge",
+    "summary": "Classic OSINT tool to collect emails, subdomains, hosts, open ports, and banners from multiple public sources (search engines, PGP servers, Shodan, etc.). This stack runs the REST API variant (restfulharvest) so you can query theHarvester over HTTP from other tools and scripts.",
+    "url": "apps/theharvester/"
+  },
+  {
+    "name": "The Lounge",
+    "category": "Productivity",
+    "summary": "The Lounge is a self-hosted, always-on IRC web client with persistent connection and multi-user support.",
+    "url": "apps/thelounge/"
+  },
+  {
+    "name": "OWASP Threat Dragon",
+    "category": "Developer tools",
+    "summary": "Threat modeling tool: create diagrams, document threats (STRIDE, etc.), and optionally save models to GitHub, Bitbucket, or GitLab. OWASP Threat Dragon runs as a web app, no host ports; access via Caddy.",
+    "url": "apps/threat-dragon/"
+  },
+  {
+    "name": "Apache Tika",
+    "category": "Documents",
+    "summary": "Apache Tika is a content detection and extraction toolkit that parses text and metadata from hundreds of file types.",
+    "url": "apps/tika/"
+  },
+  {
+    "name": "OWASP TorBot",
+    "category": "Osint",
+    "summary": "Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. OWASP TorBot project; upstream DedSecInside/TorBot. No official Docker image, you must build from upstream once and set TORBOTIMAGE, or use an image from your registry.",
+    "url": "apps/torbot/"
+  },
+  {
+    "name": "Trilium",
+    "category": "Utilities",
+    "summary": "TriliumNext Notes is a self-hosted hierarchical note-taking application with rich text, code blocks, and relation maps.",
+    "url": "apps/trilium/"
+  },
+  {
+    "name": "TwitchDropsMiner Stack",
+    "category": "Utilities",
+    "summary": "This stack runs TwitchDropsMiner using Docker Compose.",
+    "url": "apps/twitch-drops-miner/"
+  },
+  {
+    "name": "Umami",
+    "category": "Dashboard",
+    "summary": "Umami is a self-hosted, privacy-focused web analytics dashboard. You add websites in the UI, embed a small script.js on pages you want to measure, and view traffic in Umami.",
+    "url": "apps/umami/"
+  },
+  {
+    "name": "Unbound",
+    "category": "Networking",
+    "summary": "Unbound is a validating, recursive, caching DNS resolver for private DNS resolution in your homelab.",
+    "url": "apps/unbound/"
+  },
+  {
+    "name": "Uptime Kuma",
+    "category": "Monitoring",
+    "summary": "Self-hosted uptime monitoring and status page. Monitors HTTP(s), TCP, ping, and more; supports many notification channels (Telegram, email, Discord, etc.).",
+    "url": "apps/uptime-kuma/"
+  },
+  {
+    "name": "Vaultwarden",
+    "category": "Security",
+    "summary": "Lightweight, self-hosted password manager compatible with Bitwarden clients (browser extensions, mobile apps, CLI).",
+    "url": "apps/vaultwarden/"
+  },
+  {
+    "name": "Vector (log shipper)",
+    "category": "Monitoring",
+    "summary": "Vector is a log collection and routing agent. This stack ships host and container logs to the existing Loki stack for centralized search and dashboards in Grafana. It is an alternative to Grafana Alloy; do not enable both Docker collectors at the same time or Loki will receive duplicate container logs.",
+    "url": "apps/vector/"
+  },
+  {
+    "name": "Vikunja – tasks and lists",
+    "category": "Utilities",
+    "summary": "Vikunja is a self-hosted task and project manager (lists, kanban, Gantt, CalDAV). This stack runs Vikunja with SQLite behind Caddy. No host ports; access via Caddy.",
+    "url": "apps/vikunja/"
+  },
+  {
+    "name": "Watchtower",
+    "category": "Utilities",
+    "summary": "Automatically updates running containers when new images are available. Uses the Docker socket on the host.",
+    "url": "apps/watchtower/"
+  },
+  {
+    "name": "Web-Check",
+    "category": "Osint",
+    "summary": "🕵️‍♂️ All-in-one OSINT tool for analysing any website. Comprehensive, on-demand open source intelligence for any website.",
+    "url": "apps/web-check/"
+  },
+  {
+    "name": "Whisparr",
+    "category": "Networking",
+    "summary": "Adult movie collection manager for Usenet and torrents (Servarr family). Monitors indexers, sends grabs to download clients, and organizes files, same workflow as Radarr, separate library and metadata.",
+    "url": "apps/whisparr/"
+  },
+  {
+    "name": "Whisper ASR webservice",
+    "category": "Utilities",
+    "summary": "For faster inference, switch the image to onerahmet/openai-whisper-asr-webservice:latest-gpu, set ASRDEVICE=cuda, install the NVIDIA Container Toolkit, and add the same deploy.resources.reservations.devices NVIDIA block used in stacks/ollama/docker-compose.yml.",
+    "url": "apps/whisper-asr/"
+  },
+  {
+    "name": "WireGuard server (LinuxServer.io)",
+    "category": "Networking",
+    "summary": "Remote access VPN server so you can connect laptops and phones into your homelab over WireGuard. This stack runs the LinuxServer.io WireGuard image and exposes UDP 51820 on the host. No HTTP UI; peer configs and QR codes are generated under the wireguardconfig volume.",
+    "url": "apps/wireguard/"
+  },
+  {
+    "name": "Woodpecker CI – lightweight CI/CD",
+    "category": "Developer tools",
+    "summary": "Woodpecker CI is a lightweight, Docker-native CI/CD system. This stack runs a Woodpecker server and agent with Postgres, designed to integrate with your gitea stack as the Git provider.",
+    "url": "apps/woodpecker-ci/"
+  },
+  {
+    "name": "YOURLS (Your Own URL Shortener)",
+    "category": "Productivity",
+    "summary": "Self-hosted URL shortener: one app with web UI, API, and redirects. No path routing, Caddy just reverse-proxies the host to the container.",
+    "url": "apps/yourls/"
+  },
+  {
+    "name": "OWASP ZAP (Zed Attack Proxy)",
+    "category": "Security",
+    "summary": "Web application and API security scanner. This stack runs ZAP with the Webswing UI and proxy; access it through your browser or via ZAP desktop/scripts pointing at the proxy port via Caddy.",
+    "url": "apps/zed-attack-proxy/"
+  },
+  {
+    "name": "Zigbee2MQTT",
+    "category": "Home automation",
+    "summary": "Bridge Zigbee devices to MQTT so they can be used by Home Assistant, Node-RED, and other automation tools.",
+    "url": "apps/zigbee2mqtt/"
+  }
+]

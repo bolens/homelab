@@ -60,6 +60,9 @@ echo "Checking generated documentation..."
 python3 scripts/build-stack-catalog.py --check
 python3 scripts/build-topology.py --check
 python3 scripts/validate-topology-artifacts.py
+python3 scripts/build-pages-site.py --check
+python3 scripts/validate-pages-site.py
+run_optional_check node node --check site/public/search.js
 
 echo "Checking YAML style..."
 mapfile -t yaml_files < <(git ls-files '*.yaml' '*.yml' | while read -r file; do

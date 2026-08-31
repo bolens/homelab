@@ -6,12 +6,16 @@ on:
     paths:
       - ".github/workflows/pages.yml"
       - "site/public/**"
+      - "stacks/*/README.md"
+      - "stacks/*/stack.yaml"
+      - "documents/topology.html"
+      - "documents/topology-dark.png"
+      - "scripts/build-pages-site.py"
+      - "scripts/validate-pages-site.py"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: github-pages
@@ -19,6 +23,12 @@ concurrency:
 
 jobs:
   deploy:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -34,6 +44,20 @@ jobs:
         with:
           enablement: true
 
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install generator dependency
+        run: python -m pip install --disable-pip-version-check --require-hashes -r .github/requirements-validation.txt
+
+      - name: Validate generated site
+        run: |
+          python scripts/build-pages-site.py --check
+          python scripts/validate-pages-site.py
+          node --check site/public/search.js
+
       - name: Upload site
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -42,3 +66,40 @@ jobs:
       - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+  visual-evidence:
+    needs: deploy
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the published page
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          for _ in {1..12}; do
+            if curl --fail --silent --show-error "$PAGE_URL" > /dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1
+
+      - name: Capture desktop and mobile layouts
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          mkdir -p visual-evidence
+          google-chrome --headless --disable-gpu --no-sandbox --hide-scrollbars \
+            --window-size=1440,3200 --screenshot=visual-evidence/home-desktop.png "$PAGE_URL"
+          google-chrome --headless --disable-gpu --no-sandbox --hide-scrollbars \
+            --window-size=390,2400 --screenshot=visual-evidence/home-mobile.png "$PAGE_URL"
+          google-chrome --headless --disable-gpu --no-sandbox --hide-scrollbars \
+            --window-size=1440,3200 --screenshot=visual-evidence/catalog-desktop.png "${PAGE_URL}apps/"
+
+      - name: Upload visual evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pages-visual-evidence
+          path: visual-evidence
+          if-no-files-found: error

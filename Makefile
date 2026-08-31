@@ -1,4 +1,4 @@
-.PHONY: help doctor validate validate-strict validate-changed ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate validate-strict validate-changed ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 help:
 	@echo "Homelab repository targets:"
@@ -14,6 +14,8 @@ help:
 	@echo "  hygiene-audit      Validate examples, docs, and cross-file basics"
 	@echo "  docs-generate      Regenerate topology and stack catalog documents"
 	@echo "  docs-check         Fail when generated documentation is stale"
+	@echo "  pages-generate     Regenerate the public application reference"
+	@echo "  pages-check        Validate generated Pages content and links"
 	@echo "  secrets            Scan the full Git history with Gitleaks"
 	@echo "  secrets-files      Scan files on disk, including ignored runtime files"
 	@echo "  monitoring-iterate Validate, reload, and smoke-test monitoring"
@@ -58,6 +60,14 @@ docs-generate:
 docs-check:
 	python3 scripts/build-stack-catalog.py --check
 	python3 scripts/build-topology.py --check
+
+pages-generate:
+	python3 scripts/build-pages-site.py
+
+pages-check:
+	python3 scripts/build-pages-site.py --check
+	python3 scripts/validate-pages-site.py
+	node --check site/public/search.js
 
 secrets:
 	bash scripts/scan-secrets-gitleaks.sh git

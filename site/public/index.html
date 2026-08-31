@@ -1,58 +1,16 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#050914">
-  <meta name="description" content="Explore the Docker homelab topology and its portable stack model.">
-  <title>Homelab Atlas</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <a class="skip-link" href="#topology">Skip to topology</a>
-  <header class="site-header">
-    <a class="brand" href="#home" aria-label="Homelab Atlas home">
-      <span class="brand-mark" aria-hidden="true"></span> Homelab Atlas
-    </a>
-    <nav aria-label="Primary navigation">
-      <a href="#topology">Topology</a>
-      <a href="#stack-model">Stack model</a>
-      <a href="https://github.com/bolens/homelab">Repository</a>
-    </nav>
-  </header>
-
-  <main>
-    <section class="hero" id="home" aria-labelledby="hero-title">
-      <span class="eyebrow">Portable Docker infrastructure</span>
-      <h1 id="hero-title">See the homelab before you deploy it.</h1>
-      <p>Explore the ingress paths, shared services, observability layer, and isolated application stacks that make up this self-hosted system.</p>
-      <div class="hero-actions">
-        <a class="button primary" href="#topology">Explore the live topology</a>
-        <a class="button secondary" href="https://github.com/bolens/homelab/tree/main/stacks">Browse stack examples</a>
-      </div>
-      <dl class="stats" aria-label="Repository summary">
-        <div><dt>documented stacks</dt><dd>217</dd></div>
-        <div><dt>Compose projects validated</dt><dd>214</dd></div>
-        <div><dt>ingress trust zones</dt><dd>3</dd></div>
-      </dl>
-    </section>
-
-    <section class="topology-section" id="topology" aria-labelledby="topology-title">
-      <div class="section-heading">
-        <div><span class="eyebrow">Interactive architecture</span><h2 id="topology-title">Trace how traffic moves</h2></div>
-        <a class="text-link" href="topology.html">Open full screen <span aria-hidden="true">↗</span></a>
-      </div>
-      <p class="section-intro" id="topology-description">Follow public ingress, private access, service dependencies, VPN egress, telemetry, and operational control paths. The diagram supports keyboard navigation, search, zoom, relationship tracing, and export.</p>
-      <div class="topology-frame">
-        <iframe src="topology.html" title="Interactive Docker homelab architecture" aria-describedby="topology-description" loading="eager"></iframe>
-      </div>
-    </section>
-
-    <section class="stack-model" id="stack-model" aria-labelledby="stack-model-title">
-      <span class="eyebrow">Operating model</span>
-      <h2 id="stack-model-title">Independent stacks, explicit contracts</h2>
-      <p>Every service remains a portable Compose example with its own setup, storage, networking, security choices, and verification steps.</p>
-    </section>
-  </main>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#050914"><meta name="description" content="Find and understand the applications available in this Docker homelab.">
+<title>Home | Homelab Atlas</title><link rel="stylesheet" href="/homelab/styles.css"></head>
+<body><a class="skip-link" href="#main">Skip to main content</a>
+<header class="site-header"><a class="brand" href="/homelab/"><span class="brand-mark" aria-hidden="true"></span> Homelab Atlas</a>
+<nav aria-label="Primary navigation"><a href="/homelab/apps/">Apps</a><a href="/homelab/architecture/">How it works</a><a href="/homelab/safety/">Safety</a><a href="https://github.com/bolens/homelab">Technical docs</a></nav></header><main id="main"><section class="hero"><span class="eyebrow">Your guide to the homelab</span><h1>Find the service that fits the job.</h1>
+<p>Browse 217 self-hosted applications by what they do. Each guide explains the service, its dependencies, and the safety choices to review before deployment.</p>
+<div class="hero-actions"><a class="button primary" href="apps/">Browse applications</a><a class="button secondary" href="architecture/">See how it works</a></div></section>
+<section class="content-section" aria-labelledby="browse-title"><span class="eyebrow">Browse by need</span><h2 id="browse-title">What do you want to run?</h2><div class="category-grid"><a class="category" href="apps/?category=AI">AI</a><a class="category" href="apps/?category=Analytics">Analytics</a><a class="category" href="apps/?category=Archiving">Archiving</a><a class="category" href="apps/?category=Backup">Backup</a><a class="category" href="apps/?category=Browser">Browser</a><a class="category" href="apps/?category=Dashboard">Dashboard</a><a class="category" href="apps/?category=Developer%20tools">Developer tools</a><a class="category" href="apps/?category=Documents">Documents</a><a class="category" href="apps/?category=Downloads">Downloads</a><a class="category" href="apps/?category=Email">Email</a><a class="category" href="apps/?category=Finance">Finance</a><a class="category" href="apps/?category=Home%20automation">Home automation</a><a class="category" href="apps/?category=Infrastructure">Infrastructure</a><a class="category" href="apps/?category=Knowledge">Knowledge</a><a class="category" href="apps/?category=Lifestyle">Lifestyle</a><a class="category" href="apps/?category=Media">Media</a><a class="category" href="apps/?category=Monitoring">Monitoring</a><a class="category" href="apps/?category=Networking">Networking</a><a class="category" href="apps/?category=Osint">Osint</a><a class="category" href="apps/?category=Productivity">Productivity</a><a class="category" href="apps/?category=Security">Security</a><a class="category" href="apps/?category=Storage">Storage</a><a class="category" href="apps/?category=Utilities">Utilities</a></div></section>
+<section class="content-section split" aria-labelledby="reference-title"><div><span class="eyebrow">Two levels of detail</span><h2 id="reference-title">Start here. Build from the repository.</h2></div>
+<div><p>This site helps you choose and understand services. When you are ready to deploy one, follow its technical setup in the repository.</p><a class="text-link" href="https://github.com/bolens/homelab">Open the technical documentation <span aria-hidden="true">→</span></a></div></section>
+<section class="content-section" aria-labelledby="topology-title"><div class="section-heading"><div><span class="eyebrow">Interactive map</span><h2 id="topology-title">See how requests reach each service</h2></div><a class="text-link" href="topology.html">Open full screen <span aria-hidden="true">↗</span></a></div>
+<p class="section-intro" id="topology-description">The map shows internet access, private access, application groups, shared services, monitoring, and administrator control.</p>
+<div class="topology-frame"><iframe src="topology.html" title="Interactive Docker homelab architecture" aria-describedby="topology-description"></iframe></div>
+<noscript><p><a href="topology-dark.png">View the static topology image</a>.</p></noscript></section></main><footer><p>Homelab Atlas explains what is available. <a href="https://github.com/bolens/homelab">The repository contains deployment and configuration instructions.</a></p></footer></body></html>

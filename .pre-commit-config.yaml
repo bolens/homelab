@@ -24,6 +24,13 @@ repos:
         pass_filenames: false
         files: >-
           ^(documents/(TOPOLOGY\.md|topology-dark\.png|topology\.(architecture\.json|html|yaml))|scripts/(build-topology|validate-topology-artifacts)\.py)$
+      - id: pages-site
+        name: Generated Pages site
+        entry: make pages-check
+        language: system
+        pass_filenames: false
+        files: >-
+          ^(site/public/|stacks/[^/]+/(README\.md|stack\.yaml)|documents/topology\.(html|architecture\.json)|documents/topology-dark\.png|scripts/(build-pages-site|validate-pages-site)\.py|Makefile)$
       - id: actionlint
         name: GitHub workflow syntax
         entry: actionlint
