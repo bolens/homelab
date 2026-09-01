@@ -22,6 +22,7 @@ class Document(HTMLParser):
         self.ids: set[str] = set()
         self.links: list[str] = []
         self.iframes_without_title = 0
+        self.metadata: set[str] = set()
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = dict(attrs)
@@ -37,6 +38,10 @@ class Document(HTMLParser):
             self.nav_labels += 1
         elif tag == "iframe" and not values.get("title"):
             self.iframes_without_title += 1
+        elif tag == "meta":
+            key = values.get("name") or values.get("property")
+            if key:
+                self.metadata.add(key)
         if values.get("id"):
             self.ids.add(values["id"] or "")
         for attribute in ("href", "src"):
@@ -69,6 +74,9 @@ def main() -> None:
     if len(app_pages) < 200:
         problems.append(f"expected at least 200 application pages, found {len(app_pages)}")
     parsed: dict[Path, Document] = {}
+    for asset in ("favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "social-card.png", "site.webmanifest"):
+        if not (PUBLIC / asset).is_file():
+            problems.append(f"site/public/{asset}: missing discovery asset")
     for path in html_files:
         doc = Document()
         doc.feed(path.read_text(encoding="utf-8"))
@@ -87,6 +95,12 @@ def main() -> None:
             problems.append(f"{relative}: navigation needs an accessible label")
         if doc.iframes_without_title:
             problems.append(f"{relative}: iframe needs a title")
+        if not is_topology:
+            for key in ("description", "og:type", "og:url", "og:site_name", "og:title", "og:description",
+                        "og:image", "og:image:width", "og:image:height", "og:image:alt", "twitter:card",
+                        "twitter:title", "twitter:description", "twitter:image", "twitter:image:alt"):
+                if key not in doc.metadata:
+                    problems.append(f"{relative}: missing {key} metadata")
     for source, doc in parsed.items():
         for raw in doc.links:
             local = local_target(source, raw)

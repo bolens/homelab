@@ -64,11 +64,16 @@ def footer() -> str:
     return f'''<footer><p>Homelab Atlas explains what is available. <a href="{REPO_URL}">The repository contains deployment and configuration instructions.</a></p></footer>'''
 
 
-def page(title: str, description: str, body: str, active: str = "") -> str:
+def page(title: str, description: str, body: str, active: str = "", path: str = "") -> str:
+    canonical = f"https://bolens.github.io/homelab/{path}"
+    social_title = f"{title} | Homelab Atlas"
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#050914"><meta name="description" content="{html.escape(description, quote=True)}">
-<title>{html.escape(title)} | Homelab Atlas</title><link rel="stylesheet" href="/homelab/styles.css"></head>
+<link rel="canonical" href="{canonical}"><meta property="og:type" content="website"><meta property="og:url" content="{canonical}"><meta property="og:site_name" content="Homelab Atlas">
+<meta property="og:title" content="{html.escape(social_title, quote=True)}"><meta property="og:description" content="{html.escape(description, quote=True)}"><meta property="og:image" content="https://bolens.github.io/homelab/social-card.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Homelab Atlas service catalog and architecture guide">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{html.escape(social_title, quote=True)}"><meta name="twitter:description" content="{html.escape(description, quote=True)}"><meta name="twitter:image" content="https://bolens.github.io/homelab/social-card.png"><meta name="twitter:image:alt" content="Homelab Atlas service catalog and architecture guide">
+<title>{html.escape(social_title)}</title><link rel="icon" href="/homelab/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/homelab/apple-touch-icon.png"><link rel="manifest" href="/homelab/site.webmanifest"><link rel="stylesheet" href="/homelab/styles.css"></head>
 <body>{header(active)}<main id="main" tabindex="-1">{body}</main>{footer()}</body></html>
 '''
 
@@ -147,7 +152,7 @@ def catalog(items: list[dict]) -> str:
 <p class="results-status" id="results-status" role="status" aria-live="polite">Showing all {len(items)} applications.</p>
 <section class="app-grid" id="app-grid" aria-label="Applications">{cards(items)}</section><p class="empty-state" id="empty-state" hidden>No applications match those filters.</p>
 <script src="/homelab/search.js" defer></script>'''
-    return page("Applications", "Search the homelab application catalog by name, purpose, or category.", body, "Apps")
+    return page("Applications", "Search the homelab application catalog by name, purpose, or category.", body, "Apps", "apps/")
 
 
 def detail(item: dict) -> str:
@@ -159,21 +164,21 @@ def detail(item: dict) -> str:
     body = f'''<article class="detail"><a class="back-link" href="../">← All applications</a><header class="detail-header"><span class="eyebrow">{html.escape(item['category_name'])}</span><h1>{html.escape(item['display_name'])}</h1><p>{html.escape(item['summary'])}</p><div class="tag-row">{tags}</div></header>
 <section aria-labelledby="overview"><h2 id="overview">What to know</h2><dl class="facts"><div><dt>Access</dt><dd>{html.escape(exposure)}</dd></div><div><dt>Login</dt><dd>{html.escape(label(item['auth']['mode']))}</dd></div><div><dt>Shared services</dt><dd>{html.escape(dependencies)}</dd></div><div><dt>Backups</dt><dd>{html.escape(backup)}</dd></div><div><dt>Resource size</dt><dd>{html.escape(label(item['resources']['memory_profile']))}</dd></div><div><dt>Lifecycle</dt><dd>{html.escape(label(item['lifecycle']['status']))}</dd></div></dl></section>
 <section class="callout" aria-labelledby="setup"><h2 id="setup">Ready for the technical setup?</h2><p>The stack README documents configuration, storage, networking, deployment, verification, upgrades, and troubleshooting.</p><a class="button primary" href="{repo}">View technical setup</a></section></article>'''
-    return page(item["display_name"], item["summary"], body, "Apps")
+    return page(item["display_name"], item["summary"], body, "Apps", f"apps/{item['slug']}/")
 
 
 def architecture() -> str:
     body = '''<section class="page-intro"><span class="eyebrow">How it works</span><h1>Four steps connect you to an application.</h1><p>The homelab keeps public, private, and administrative access separate. Applications join only the networks they need.</p></section>
 <ol class="steps"><li><strong>You request a service.</strong><p>You use a public hostname, a private network, or an administrator connection.</p></li><li><strong>The access layer checks the route.</strong><p>Cloudflare handles public entry. Private connections stay on the private network.</p></li><li><strong>Caddy sends the request to one application.</strong><p>Separate ingress networks limit which applications can receive each kind of request.</p></li><li><strong>Shared services support the application.</strong><p>Dedicated networks connect storage, databases, downloads, AI tools, and monitoring without exposing them publicly.</p></li></ol>
 <section class="callout"><h2>Explore the complete map</h2><p>Use the interactive topology to trace relationships, search for a service, or isolate one part of the system.</p><a class="button primary" href="/homelab/topology.html">Open the topology</a></section>'''
-    return page("How it works", "A plain-language guide to homelab access, routing, isolation, and shared services.", body, "How it works")
+    return page("How it works", "A plain-language guide to homelab access, routing, isolation, and shared services.", body, "How it works", "architecture/")
 
 
 def safety() -> str:
     body = '''<section class="page-intro"><span class="eyebrow">Safety guide</span><h1>Check the access and data choices before you deploy.</h1><p>Self-hosting moves responsibility for access, updates, and backups to the operator. The catalog marks services that need extra review.</p></section>
 <section class="guidance-grid"><article><span class="tag warning">Personal data</span><h2>Protect private records</h2><p>Photos, documents, messages, identity data, and account records need restricted access and tested backups.</p></article><article><span class="tag danger">Privileged access</span><h2>Review host control</h2><p>A privileged container, host networking, or Docker socket access can affect more than one application.</p></article><article><span class="tag safe">Standard isolation</span><h2>Keep the default boundary</h2><p>A standard label means the recorded stack avoids the high-risk runtime flags. You must still review passwords, routes, and storage.</p></article><article><h2>Back up persistent data</h2><p>Back up application data and databases before upgrades. Test that you can restore them.</p></article></section>
 <section class="callout"><h2>Use the technical checks before deployment</h2><p>Every stack README lists its configuration and verification steps. The repository also documents shared networks, secrets, monitoring, and troubleshooting.</p><a class="button primary" href="https://github.com/bolens/homelab/blob/main/documents/GETTING-STARTED.md">Read the deployment guide</a></section>'''
-    return page("Safety", "Understand access, personal data, host permissions, and backup choices before deploying a service.", body, "Safety")
+    return page("Safety", "Understand access, personal data, host permissions, and backup choices before deploying a service.", body, "Safety", "safety/")
 
 
 def expected_files(items: list[dict]) -> dict[str, bytes]:
