@@ -1,4 +1,4 @@
-FROM golang:1.26.6-alpine AS build
+FROM golang:1.27.0-alpine AS build
 
 ARG SOURCE_COMMIT=a2939b625d91389d3f0a3e58cbc3bfa7ebb8390a
 WORKDIR /src
