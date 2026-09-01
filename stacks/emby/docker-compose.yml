@@ -2,7 +2,7 @@ services:
   emby:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/emby:latest@sha256:5f1c19ce11055ddc0c53c1c4185214cd824572b49c1b97d401d96d60f8d42147
+    image: lscr.io/linuxserver/emby:latest@sha256:6e5d37259955155bbfc36cee8cf490fb436867e70b1d523c0b58c81cdcc3e8d9
     container_name: emby
     restart: unless-stopped
     env_file:

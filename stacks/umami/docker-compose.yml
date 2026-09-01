@@ -26,7 +26,7 @@ services:
   umami:
     labels:
       logging: "true"
-    image: ghcr.io/umami-software/umami:latest@sha256:8edfe4beaef13f9d1300619fa264ef250a3688df9cc54d24ca830ca31cb475ec
+    image: ghcr.io/umami-software/umami:latest@sha256:fa32d116cf20cad52cbc3fad9a63b46e7fa02299d8f967168eb453d49c476b4a
     container_name: umami
     restart: unless-stopped
     init: true

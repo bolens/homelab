@@ -2,7 +2,7 @@ services:
   web-check:
     labels:
       logging: "true"
-    image: lissy93/web-check:latest@sha256:7ca557beb271b8711aa5b82bc185ccad04b3120b0b3b995f82866957361d76f5
+    image: lissy93/web-check:latest@sha256:a4e021c0f6a9382d9b3dbab7217eb33b8e1f09dd005ab82ff9131b85692f5a6a
     container_name: web-check
     restart: unless-stopped
     # No host port: access via Caddy on the dedicated ingress network.

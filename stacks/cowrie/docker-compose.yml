@@ -2,7 +2,7 @@ services:
   cowrie:
     labels:
       logging: "true"
-    image: cowrie/cowrie:latest@sha256:3e4ce75576e4dffc3397ae3ad8dbb00afa00fe826b1531fea50d4fd9728326e1
+    image: cowrie/cowrie:latest@sha256:42e01e0e5fe705a0a63dacc0f1992b2d230740ac149af7675f48197abf740d44
     container_name: cowrie
     restart: unless-stopped
     cpus: 1.5

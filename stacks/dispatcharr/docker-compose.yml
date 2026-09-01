@@ -2,7 +2,7 @@ services:
   dispatcharr:
     labels:
       logging: "true"
-    image: ghcr.io/dispatcharr/dispatcharr:latest@sha256:df768adcb9993b58f5e67010cc802c8659b7f964cb1213ab7ff9bb9384db9145
+    image: ghcr.io/dispatcharr/dispatcharr:latest@sha256:e764cd3fb3a4b14e0c96eeb830cce645b44ef0a2494838e21462c71dde5abeb4
     container_name: dispatcharr
     restart: unless-stopped
     cpus: 2.0

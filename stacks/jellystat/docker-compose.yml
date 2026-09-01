@@ -3,7 +3,7 @@
 # Point Jellystat at your Jellyfin URL from the setup UI (same host network as Caddy: use internal http://jellyfin:8096 or your public URL).
 services:
   jellystat-db:
-    image: postgres:18.4
+    image: postgres:18.6
     container_name: jellystat-db
     restart: unless-stopped
     labels:
