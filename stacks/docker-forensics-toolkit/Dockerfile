@@ -3,7 +3,7 @@
 # Multi-stage: build with gcc, final image has only runtime deps (smaller for Harbor push).
 # syntax=docker/dockerfile:1
 # --- Builder stage ---
-FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS builder
+FROM python:3.14-slim@sha256:656d12e70054d5fda18a045e2494c96701e9792dd1445f95b3d038df954f57e9 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && rm -rf /app/.git
 
 # --- Runtime stage ---
-FROM python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4
+FROM python:3.14-slim@sha256:656d12e70054d5fda18a045e2494c96701e9792dd1445f95b3d038df954f57e9
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic1 \

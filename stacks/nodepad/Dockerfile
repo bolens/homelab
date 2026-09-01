@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1
 # nodepad – Next.js app. Build context must include ./repo (run ./clone-repo.sh first).
 
-FROM node:26-bookworm-slim@sha256:cd565714d4da3e84bfd341e31448f81d47c6362198f152345297c9c1154e6341 AS deps
+FROM node:26-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS deps
 WORKDIR /app
 COPY repo/package.json repo/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
-FROM node:26-bookworm-slim@sha256:cd565714d4da3e84bfd341e31448f81d47c6362198f152345297c9c1154e6341 AS builder
+FROM node:26-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 # Optional first-run defaults in the client bundle (compose build.args).
@@ -19,7 +19,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY repo/ .
 RUN --mount=type=cache,target=/app/.next/cache npm run build
 
-FROM node:26-bookworm-slim@sha256:cd565714d4da3e84bfd341e31448f81d47c6362198f152345297c9c1154e6341 AS runner
+FROM node:26-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
