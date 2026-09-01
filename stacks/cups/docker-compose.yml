@@ -2,7 +2,7 @@
 # For USB printers on the Docker host, uncomment the devices block below.
 services:
   cups:
-    image: docker.io/anujdatar/cups:latest@sha256:8a1627299d24acdf4174416b0d3a5bd23f4ef0029ff05b35acc850649417d167
+    image: docker.io/anujdatar/cups:latest@sha256:bf853bf5c2295c20c35d9b150df7a4619cbdce103b4d8dce9c87648645781b5a
     container_name: cups
     restart: unless-stopped
     labels:

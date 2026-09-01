@@ -2,7 +2,7 @@ services:
   snipeit:
     labels:
       logging: "true"
-    image: snipe/snipe-it:latest@sha256:248ce44efac237f02e36cd55d234e0578641c403a660826332e4d6f1cecc6972
+    image: snipe/snipe-it:latest@sha256:3d8f042581751938c2ac5f831b3acf91c7a893054f525ba7d82a23a664d9c7ce
     container_name: snipe-it
     restart: unless-stopped
     cpus: 2.0

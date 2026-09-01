@@ -2,7 +2,7 @@ services:
   jellyfin:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/jellyfin:latest@sha256:b8dcc7b71d0ea872b74314da4b995c0cf282b1778438c295996e7be88c70fdda
+    image: lscr.io/linuxserver/jellyfin:latest@sha256:4f6d8dfc53ec5a1ddf7a90e4338972d57d7b0adff6dc88b53184f8285d0b594f
     container_name: jellyfin
     restart: unless-stopped
     cpus: 6.0

@@ -64,7 +64,7 @@ services:
   rreading-glasses-db:
     labels:
       logging: "true"
-    image: postgres:17
+    image: postgres:18
     container_name: rreading-glasses-db
     restart: unless-stopped
     cpus: 1.0

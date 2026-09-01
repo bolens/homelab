@@ -4,7 +4,7 @@
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   anything-llm:
-    image: mintplexlabs/anythingllm:latest@sha256:68bcedecb720e3fadde986bcc4f3aad20059fa64805bc9b306a3023244947515
+    image: mintplexlabs/anythingllm:latest@sha256:8ef5ab45e5e7af66f91e2a0ef5b6989f884bf3baed0087b7a59b0a775aa8e822
     container_name: anything-llm
     restart: unless-stopped
     cap_add:

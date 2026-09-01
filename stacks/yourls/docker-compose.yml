@@ -5,7 +5,7 @@ services:
   yourls:
     labels:
       logging: "true"
-    image: ${YOURLS_IMAGE:-yourls:1.10.3-apache}
+    image: ${YOURLS_IMAGE:-yourls:1.10.6-apache}
     container_name: yourls
     restart: unless-stopped
     env_file:
