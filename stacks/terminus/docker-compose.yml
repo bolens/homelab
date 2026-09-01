@@ -5,7 +5,7 @@ services:
   terminus-init-certificates:
     labels:
       logging: "true"
-    image: ghcr.io/usetrmnl/terminus:latest@sha256:5e5fe4ff058f50ca8cee06d864126d62caa87e51952b3751f8d180ba659f60c4
+    image: ghcr.io/usetrmnl/terminus:latest@sha256:ce4a123b49c058d0b5387a7d6fa51f7c80b3f6d89e101ad0460bb804f4d6b152
     container_name: terminus-init-certificates
     user: root
     restart: "no"
@@ -24,7 +24,7 @@ services:
       - default
 
   terminus-db:
-    image: postgres:18.4-alpine
+    image: postgres:18.6-alpine
     container_name: terminus-db
     restart: unless-stopped
     labels:
@@ -97,7 +97,7 @@ services:
     cpus: 0.5
 
   terminus-web:
-    image: ghcr.io/usetrmnl/terminus:latest@sha256:5e5fe4ff058f50ca8cee06d864126d62caa87e51952b3751f8d180ba659f60c4
+    image: ghcr.io/usetrmnl/terminus:latest@sha256:ce4a123b49c058d0b5387a7d6fa51f7c80b3f6d89e101ad0460bb804f4d6b152
     container_name: terminus-web
     init: true
     restart: unless-stopped
@@ -147,7 +147,7 @@ services:
     cpus: 1.0
 
   terminus-worker:
-    image: ghcr.io/usetrmnl/terminus:latest@sha256:5e5fe4ff058f50ca8cee06d864126d62caa87e51952b3751f8d180ba659f60c4
+    image: ghcr.io/usetrmnl/terminus:latest@sha256:ce4a123b49c058d0b5387a7d6fa51f7c80b3f6d89e101ad0460bb804f4d6b152
     container_name: terminus-worker
     init: true
     restart: unless-stopped

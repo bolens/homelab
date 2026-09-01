@@ -27,7 +27,7 @@ services:
       start_period: 20s
 
   mattermost:
-    image: mattermost/mattermost-team-edition:latest@sha256:8a68c6544020eb223e98bc3bdc5784149826039b62f046680d640a3664a4201b
+    image: mattermost/mattermost-team-edition:latest@sha256:8285b96eb412d89dd308e4c1ad9cc7f1a9dc9edcd798167b55bc35f1c7ee69d1
     container_name: mattermost
     restart: unless-stopped
     labels:

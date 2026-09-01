@@ -10,7 +10,7 @@ services:
   gluetun:
     labels:
       logging: "true"
-    image: qmcgaw/gluetun:latest@sha256:e3272b29a4bc177b389fbdcb54cf9716ccbfc30f04d8b7a35b0a5be9cdb58461
+    image: qmcgaw/gluetun:latest@sha256:688bd15396f7f47b56351f645d8c8d24e5da935a9ff86c89bcd1e51ea287da3e
     container_name: qbittorrent
     cap_add:
       - NET_ADMIN
@@ -34,7 +34,7 @@ services:
   qbittorrent:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/qbittorrent:latest@sha256:b024436f8ca665d16d9a997d26fd27fdf867ee5566ba09f32764e7b2976d3e02
+    image: lscr.io/linuxserver/qbittorrent:latest@sha256:a00b6a597a3832a1814cde0ef60abc55c94644f3f80902c3432f6af6de8d4a96
     network_mode: service:gluetun
     env_file:
       - stack.env

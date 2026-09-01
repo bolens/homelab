@@ -2,7 +2,7 @@ services:
   infisical:
     labels:
       logging: "true"
-    image: infisical/infisical:latest@sha256:344a56c4063bdc7366eca0fe6651f5b783c41db193e98af685482669be97e98f
+    image: infisical/infisical:latest@sha256:d3ff9f82faa786fddf83ce015331c3725bac56db22f6444f48b3b02ff3c772f9
     container_name: infisical
     restart: unless-stopped
     cpus: 2.0
