@@ -7,7 +7,13 @@
     "repository": {
       "url": "https://github.com/bolens/homelab",
       "revision": "71c6aa5f84f733c257f7277799e90beef3e3ab1b"
-    }
+    },
+    "views": [
+      { "id": "public-ingress", "label": "Public ingress", "focus": ["clients", "cloudflare", "caddy", "apps"], "note": "Public HTTPS crosses the optional Cloudflare tunnel, then Caddy routes by hostname to an attached stack." },
+      { "id": "private-ingress", "label": "Private ingress", "focus": ["clients", "remote", "caddy", "apps"], "note": "VPN and mesh clients reach the same Caddy routing layer without using the public tunnel." },
+      { "id": "selected-egress", "label": "Selected VPN egress", "focus": ["apps", "gluetun", "internet"], "note": "Only selected application stacks send outbound traffic through Gluetun and its VPN provider." },
+      { "id": "operate-and-observe", "label": "Operate and observe", "focus": ["apps", "telemetry", "operations"], "note": "Observability reads workload signals while management, updates, and backups act on selected stacks." }
+    ]
   },
   "components": [
     { "id": "clients", "type": "external", "label": "Clients", "sublabel": "LAN and Internet", "pos": [40, 300], "size": [130, 64], "sources": [{ "path": "documents/topology.yaml", "line": 315, "end_line": 331, "label": "client ingress relations" }] },
