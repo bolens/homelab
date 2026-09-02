@@ -12,7 +12,7 @@ Access via Caddy at **https://kavita.yourdomain.com** (or your configured hostna
 
 1. Copy `stack.env.example` → `stack.env`; set the library paths and optionally `PUID`, `PGID`, and `TZ`.
 2. From the stack directory: `docker compose up -d`.
-3. Open the web UI and add libraries pointing at `/data/calibre-books` and `/data/comics`.
+3. Open the web UI and add separate libraries rooted at `/data/calibre-books`, `/data/comics`, and `/data/manga`.
 
 **Portainer:** Add stack → paste `docker-compose.yml` → set env vars → deploy.
 
@@ -23,7 +23,7 @@ Access via Caddy at **https://kavita.yourdomain.com** (or your configured hostna
 | **Access** | Via Caddy only (no host port; reverse-proxy to `kavita:5000`) |
 | **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
 | **Images** | `lscr.io/linuxserver/kavita:latest` |
-| **Storage** | `kavita_config`, `${KAVITA_BOOKS_PATH}` → `/data/books`, `${KAVITA_CALIBRE_EXPORT_PATH}` → `/data/calibre-books` (read-only), `${KAVITA_COMICS_PATH}` → `/data/comics` |
+| **Storage** | Local `kavita_config`; books, Calibre exports, comics, and manga are mounted read-only below `/data` |
 
 ## Calibre compatibility
 
@@ -32,6 +32,10 @@ Use Calibre as the metadata source and export copies to
 `/data/calibre-books`. Do not point that library at `/data/books`: Calibre's
 database tree and Readarr's source files can expose duplicate books and loose
 files that violate Kavita's scanner layout.
+
+Mylar3 remains the writer for `/mnt/unraid/media/comics`; Kavita and Komga only
+scan it. Keep manga in `/mnt/unraid/media/manga`. Each series must have its own
+subdirectory, and files must not sit directly in either library root.
 
 Install `scripts/calibre-kavita-sync.sh` as
 `/usr/local/libexec/calibre-kavita-sync`, install the matching units from
