@@ -1,8 +1,10 @@
 # Development workflow: GitHub source and Gitea mirror
 
 GitHub is the authoritative repository. Self-hosted Gitea is a
-fast-forward-only mirror for redundancy and local visibility. Pull requests,
-Dependabot updates, and normal pushes land on GitHub first.
+fast-forward-only mirror for redundancy and local visibility. Pull requests
+and Dependabot updates land on GitHub first. Every default-branch change is
+squash-merged through a pull request; direct pushes and protection bypasses are
+disabled.
 
 Use **placeholder** URLs in docs you commit publicly; set real URLs in your local git remotes and in Gitea/Woodpecker settings.
 
@@ -27,11 +29,10 @@ git remote -v
 # origin    -> Gitea
 ```
 
-Daily workflow:
+Daily synchronization:
 
 ```bash
 git pull --ff-only
-git push
 ```
 
 Synchronize Gitea manually:
