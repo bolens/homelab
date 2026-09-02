@@ -21,9 +21,9 @@ Post-mortem analysis of Docker runtime environments from forensic copies of a Do
    # or: cp stack.env.example stack.env
    ```
 
-   `prepare-stack.sh` creates `stack.env` from the example and syncs `DOCKER_FORENSICS_TOOLKIT_IMAGE` to `.env` for compose. If using a pre-built Harbor image, set that variable in `stack.env`.
+   `prepare-stack.sh` creates `stack.env` from the example and syncs `DOCKER_FORENSICS_TOOLKIT_IMAGE` to `.env` for Compose. GHCR is the default; set that variable in `stack.env` to use Harbor.
 
-3. **Build and push the image** (for Harbor; skip if using a pre-built image):
+3. **Build and push a replacement image** (optional; skip when using the default GHCR image):
 
    ```bash
    docker build -t harbor.yourdomain.com/homelab/docker-forensics-toolkit:latest .
@@ -81,7 +81,7 @@ docker compose run --rm docker-forensics-toolkit mount-image help
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm docker-forensics-toolkit ...`. |
-| **Image** | Build locally and push to Harbor, or use a pre-built image. Set `DOCKER_FORENSICS_TOOLKIT_IMAGE` in `stack.env`. |
+| **Image** | Defaults to the repository's GHCR build. Set `DOCKER_FORENSICS_TOOLKIT_IMAGE` for Harbor or another registry. |
 | **Storage** | Local `data/` bind-mounted to `/data` for disk images. Files created in `data/` may be root-owned; to access as your user run `chown -R $(id -u):$(id -g) ./data` after use. |
 | **docker-gc** | If you use the docker-gc stack, add `docker-forensics-toolkit` to `EXCLUDE_CONTAINERS` in docker-gc's `stack.env` so the container is not pruned when it has not run recently. Images may still be cleaned. |
 | **docker-gc** | If you use the docker-gc stack, add `docker-forensics-toolkit` to `EXCLUDE_CONTAINERS` in docker-gc's `stack.env` so the container is not pruned when it has not run recently. Images may still be cleaned. |

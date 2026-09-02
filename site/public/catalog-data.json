@@ -1196,7 +1196,7 @@
   {
     "name": "OWASP TorBot",
     "category": "Osint",
-    "summary": "Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. OWASP TorBot project; upstream DedSecInside/TorBot. No official Docker image, you must build from upstream once and set TORBOTIMAGE, or use an image from your registry.",
+    "summary": "Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. OWASP TorBot project; upstream DedSecInside/TorBot. The stack defaults to the repository's GHCR build; set TORBOTIMAGE to use the Harbor mirror or another registry.",
     "url": "apps/torbot/"
   },
   {

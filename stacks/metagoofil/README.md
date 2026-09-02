@@ -38,14 +38,14 @@ Output is stored under `~/.config/metagoofil/data` (or `METAGOOFIL_DATA_PATH`).
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm metagoofil ...`. |
-| **Image** | Built from Dockerfile (opsdisk/metagoofil). Optional `METAGOOFIL_IMAGE` for Harbor. |
+| **Image** | Defaults to the repository's GHCR build from the Dockerfile; `METAGOOFIL_IMAGE` selects Harbor or another registry. |
 | **Storage** | `~/.config/metagoofil/data` (or `METAGOOFIL_DATA_PATH`) bind‑mounted to `/data`. |
 
 ## Portainer
 
 **From Git:** Stacks → Add stack → **Repository** → Compose path `stacks/metagoofil/docker-compose.yml`. Portainer will build from the Dockerfile. Set `METAGOOFIL_DATA_PATH` to an absolute path (e.g. `/home/youruser/.config/metagoofil/data`).
 
-**Pre-built image:** Build on the host, push to Harbor (see below), then set `METAGOOFIL_IMAGE` in the stack Environment.
+**Registry fallback:** Set `METAGOOFIL_IMAGE` in the stack environment to the Harbor tag. You can also build and push a replacement as described below.
 
 ## Push to Harbor (optional)
 
@@ -68,4 +68,3 @@ Set `METAGOOFIL_IMAGE=localhost:8880/homelab/metagoofil:latest` in `stack.env`, 
 
 - Metagoofil issues many automated queries to search engines; respect rate limits and terms of service.
 - Use only for **authorized** testing and research against domains you have permission to assess.
-

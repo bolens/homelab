@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: unbound-local:alpine-3.24
+    image: ${UNBOUND_IMAGE:-ghcr.io/bolens/homelab-unbound:latest}
     container_name: unbound
     restart: unless-stopped
     labels:

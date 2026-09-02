@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: homelab/caddy:2.11.4-custom
+    image: ${CADDY_IMAGE:-ghcr.io/bolens/homelab-caddy:latest}
     container_name: caddy
     restart: unless-stopped
     cpus: 2.0

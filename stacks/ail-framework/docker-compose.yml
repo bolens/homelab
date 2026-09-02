@@ -66,7 +66,7 @@ services:
       args:
         LACUS_REVISION: ${LACUS_REVISION:-e3be12569431234dfc08cffd4a5000cd86011545}
         VALSTORE_REVISION: ${VALSTORE_REVISION:-23b3f6bb66c19502225a40e7aeec9e1be76456c1}
-    image: ${LACUS_IMAGE:-ail-lacus:1.25.1}
+    image: ${LACUS_IMAGE:-ghcr.io/bolens/homelab-ail-lacus:latest}
     container_name: ail-lacus
     restart: unless-stopped
     depends_on:
@@ -101,7 +101,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.tor
-    image: ail-tor:alpine-3.24
+    image: ${AIL_TOR_IMAGE:-ghcr.io/bolens/homelab-ail-tor:latest}
     container_name: ail-tor
     restart: unless-stopped
     volumes:

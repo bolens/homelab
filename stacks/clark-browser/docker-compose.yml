@@ -15,6 +15,7 @@ services:
     build:
       context: build
       dockerfile: Dockerfile
+    image: ${CLARK_BROWSER_IMAGE:-ghcr.io/bolens/homelab-clark-browser:latest}
     env_file:
       - stack.env
       - path: ../../shared.env

@@ -2,7 +2,7 @@ services:
   docker-gc:
     labels:
       logging: "true"
-    image: ${DOCKER_GC_IMAGE:-harbor.yourdomain.com/homelab/docker-gc:latest}
+    image: ${DOCKER_GC_IMAGE:-ghcr.io/bolens/homelab-docker-gc:latest}
     container_name: docker-gc
     restart: "no"
     env_file:

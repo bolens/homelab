@@ -4,7 +4,7 @@ services:
       logging: "true"
     build:
       context: .
-    image: homelab/auth-fuzz:local
+    image: ${AUTH_FUZZ_IMAGE:-ghcr.io/bolens/homelab-auth-fuzz:latest}
     profiles: ["tools"]
     cpus: 2.0
     mem_limit: 2g

@@ -9,14 +9,14 @@ OSINT framework for investigating Google accounts and assets: emails, Gaia IDs, 
 
 ## Quick start
 
-1. **Prepare env** (copy template, optionally set Harbor image):
+1. **Prepare env** (copy the template; optionally select the Harbor fallback):
 
    ```bash
    ./prepare-stack.sh
    # or: cp stack.env.example stack.env
    ```
 
-   To use a pre-built image from Harbor, set `GHUNT_IMAGE` in `stack.env` and run `./prepare-stack.sh`. See **Building the image** below.
+   The default image comes from GHCR. To use Harbor instead, set `GHUNT_IMAGE` in `stack.env` and run `./prepare-stack.sh`.
 
 2. **(Optional) Set timezone / proxy** in `stack.env`:
 
@@ -64,11 +64,10 @@ Set `GHUNT_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-stack.
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm ghunt ...`. |
-| **Image** | Built from GHunt PyPI package; build and push to Harbor, or use default placeholder. |
+| **Image** | Defaults to the repository's GHCR build from the GHunt PyPI package; `GHUNT_IMAGE` selects Harbor or another registry. |
 | **Storage** | Named volume `ghunt-config` for GHunt config/cookies; `ghunt-data` for JSON exports and other outputs. |
 
 ## Notes
 
 - GHunt is an offensive/defensive research tool; use it only for **lawful and ethical** purposes and follow the upstream license and disclaimer.
 - The container does not run persistently; each `docker compose run` invocation performs one operation and exits.
-

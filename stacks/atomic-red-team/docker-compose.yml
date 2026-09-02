@@ -6,7 +6,7 @@ services:
       context: .
       args:
         ATOMIC_RED_TEAM_COMMIT: ${ATOMIC_RED_TEAM_COMMIT:-1ba1dd8d9ce6f74700f7aec2e60de5632f667f03}
-    image: homelab/atomic-red-team:local
+    image: ${ATOMIC_RED_TEAM_IMAGE:-ghcr.io/bolens/homelab-atomic-red-team:latest}
     profiles: ["tools"]
     stdin_open: true
     tty: true

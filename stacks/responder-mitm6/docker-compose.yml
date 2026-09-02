@@ -4,7 +4,7 @@ services:
       logging: "true"
     build:
       context: .
-    image: homelab/responder-mitm6:local
+    image: ${RESPONDER_MITM6_IMAGE:-ghcr.io/bolens/homelab-responder-mitm6:latest}
     profiles: ["tools"]
     stdin_open: true
     tty: true

@@ -4,7 +4,7 @@ services:
   lidarr:
     labels:
       logging: "true"
-    image: homelab/lidarr:3.1.0.4875-null-metadata-guards.4
+    image: ${LIDARR_IMAGE:-ghcr.io/bolens/homelab-lidarr:latest}
     build:
       context: .
       dockerfile: Dockerfile
