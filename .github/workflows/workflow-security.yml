@@ -23,6 +23,6 @@ jobs:
     name: Lint and audit workflows
     permissions:
       contents: read
-    uses: bolens/.github/.github/workflows/reusable-actionlint.yml@3f2e5f3e61c419f3678ea8f472d24562254624c6
+    uses: bolens/.github/.github/workflows/reusable-actionlint.yml@b179e4783aca035374a85da9676e0be893fa1701
     with:
       security-audit: true
