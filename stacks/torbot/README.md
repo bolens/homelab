@@ -9,18 +9,22 @@ Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if link
 
 ## Quick start
 
-1. **Get an image.** TorBot does not publish an official image. Build from the [upstream repo](https://github.com/DedSecInside/TorBot) (or use the Dockerfile in this stack), tag and push to your registry, e.g.:
+1. **Choose an image.** The stack uses the repository's GHCR builds by default. To use another registry, build and push the included images, then set `TORBOT_IMAGE` and `TORBOT_TOR_IMAGE` in `stack.env`.
 
    ```bash
    docker build -t harbor.yourdomain.com/homelab/torbot:latest -f stacks/torbot/Dockerfile stacks/torbot
+   docker build -t harbor.yourdomain.com/homelab/torbot-tor:latest -f stacks/torbot/Dockerfile.tor stacks/torbot
    docker push harbor.yourdomain.com/homelab/torbot:latest
+   docker push harbor.yourdomain.com/homelab/torbot-tor:latest
    ```
 
-2. **Prepare** and set the image:
+2. **Prepare** the local environment file:
 
    ```bash
    ./prepare-stack.sh
-   # Optional fallback: TORBOT_IMAGE=harbor.yourdomain.com/homelab/torbot:latest
+   # Optional mirror overrides:
+   # TORBOT_IMAGE=harbor.yourdomain.com/homelab/torbot:latest
+   # TORBOT_TOR_IMAGE=harbor.yourdomain.com/homelab/torbot-tor:latest
    ```
 
 3. **Start the stack** (Tor + TorBot):
@@ -61,10 +65,11 @@ If the `torbot` binary is not found: `docker compose exec torbot python -m torbo
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose exec torbot torbot ...`. |
-| **Tor** | Locally built Alpine 3.24 image with the current Tor package; SOCKS at `tor:9050`. |
-| **Image** | No official image. Set `TORBOT_IMAGE` to an image you built from upstream (or from the Dockerfile in this stack) and pushed to your registry. |
+| **Tor** | Alpine 3.24 image with the current Tor package; SOCKS at `tor:9050`. |
+| **Images** | Defaults to `ghcr.io/bolens/homelab-torbot:latest` and `ghcr.io/bolens/homelab-torbot-tor:latest`; `stack.env` can select registry mirrors. |
 | **Network** | `torbot` (internal); Tor and TorBot share it, always use `--host tor --port 9050`. |
+| **Health** | TorBot is healthy only when its Python package imports and the Tor SOCKS endpoint accepts a TCP connection. |
 
 ## Portainer
 
-Stacks → Add stack → **Repository** → Compose path `stacks/torbot/docker-compose.yml`. Set `TORBOT_IMAGE` in the stack Environment to your registry image (build from upstream or from this stack's Dockerfile once, then push).
+Stacks → Add stack → **Repository** → Compose path `stacks/torbot/docker-compose.yml`. The GHCR images require no overrides. Set `TORBOT_IMAGE` and `TORBOT_TOR_IMAGE` only when using another registry.
