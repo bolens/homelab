@@ -1,6 +1,6 @@
 # OWASP TorBot – Dark Web OSINT crawler (.onion crawler, email extraction, link tree, JSON export).
 # No host ports: Tor SOCKS (9050) is internal; run crawls via docker compose exec torbot ...
-# Use official/upstream image only (set TORBOT_IMAGE in stack.env; no local build).
+# Defaults to the repository's GHCR images; stack.env can select registry mirrors.
 # Docs: https://owasp.org/www-project-torbot/  |  GitHub: https://github.com/DedSecInside/TorBot
 
 name: torbot
@@ -43,6 +43,12 @@ services:
     # Use Tor in this stack: --host tor --port 9050 when running torbot CLI
     networks:
       - torbot
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket, torbot; s = socket.create_connection(('tor', 9050), 5); s.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 networks:
   torbot:
