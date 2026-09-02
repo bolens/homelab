@@ -1,3 +1,16 @@
+/* Catalog-surface polish. */
+::selection { background: var(--amber); color: #121723; }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+.site-header { position: sticky; top: 0; z-index: 20; overflow: hidden; border-bottom: 1px solid rgb(120 174 252 / 18%); background: rgb(7 10 18 / 88%); backdrop-filter: blur(18px); }
+.category, .app-card, .button { transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.category:hover, .app-card:hover { transform: translateY(-3px); border-color: var(--cyan); }
+.button:hover { transform: translateY(-2px); }
+.content-section, .topology-section, .stack-model { content-visibility: auto; contain-intrinsic-size: 680px; }
+@media (max-width: 720px) { .site-header { flex-direction: column; align-items: stretch !important; min-width: 0; } .site-header nav { contain: inline-size; flex: 1 1 auto; justify-content: flex-start; flex-wrap: nowrap; min-width: 0; width: 100%; max-width: 100%; overflow-x: auto; padding-bottom: .3rem; scrollbar-width: none; } .site-header nav::-webkit-scrollbar { display: none; } .hero-actions .button { flex: 1 1 12rem; } }
+@media (max-height: 560px) and (orientation: landscape) { .hero { padding-block: 2.75rem !important; } }
+@media (prefers-reduced-motion: reduce) { .category, .app-card, .button { transition: none; } .category:hover, .app-card:hover, .button:hover { transform: none; } }
+
 :root { color-scheme: dark; --ink: #f4f7ff; --muted: #b7c1d6; --page: #070a12; --panel: #101827; --line: #3b4b65; --cyan: #78aefc; --amber: #ffca68; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
