@@ -58,5 +58,7 @@ repos:
       - id: repository-validation
         name: repository validation
         entry: bash scripts/validate-repo.sh --strict
-        language: system
+        language: python
+        additional_dependencies:
+          - PyYAML==6.0.3
         pass_filenames: false
