@@ -1,7 +1,7 @@
-:root { color-scheme: dark; --ink: #f4f7ff; --muted: #b7c1d6; --page: #050914; --panel: #0b1221; --line: #33415e; --cyan: #33d6e8; --amber: #f7b84b; }
+:root { color-scheme: dark; --ink: #f4f7ff; --muted: #b7c1d6; --page: #070a12; --panel: #101827; --line: #3b4b65; --cyan: #78aefc; --amber: #ffca68; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: radial-gradient(circle at 80% 0%, rgb(18 63 80 / 35%), transparent 32rem), var(--page); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+body { margin: 0; background: linear-gradient(rgb(120 174 252 / 5%) 1px, transparent 1px), linear-gradient(90deg, rgb(120 174 252 / 5%) 1px, transparent 1px), radial-gradient(circle at 80% 0%, rgb(39 63 105 / 42%), transparent 32rem), var(--page); background-size: 3rem 3rem, 3rem 3rem, auto, auto; color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 a { color: inherit; }
 a:focus-visible, iframe:focus-visible { outline: 3px solid var(--amber); outline-offset: 4px; }
 .skip-link { position: fixed; left: 1rem; top: 1rem; z-index: 100; transform: translateY(-180%); border-radius: .5rem; background: var(--ink); color: var(--page); padding: .75rem 1rem; font-weight: 700; }
@@ -79,3 +79,8 @@ footer { border-top: 1px solid var(--line); color: var(--muted); line-height: 1.
 footer p { margin: 0 auto; max-width: 82rem; }
 @media (max-width: 720px) { .site-header { align-items: start; gap: 1.2rem; } nav { flex-wrap: wrap; justify-content: end; } .hero { padding-top: 4rem; } .stats, .facts, .catalog-tools, .content-section.split { gap: 1rem; grid-template-columns: 1fr; } .section-heading { align-items: start; flex-direction: column; gap: 1.25rem; } .topology-frame iframe { height: 70vh; min-height: 34rem; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Atlas reading details. */
+::selection { background: var(--amber); color: var(--page); }
+h1, h2, h3 { text-wrap: balance; }
+p, li { text-wrap: pretty; }
