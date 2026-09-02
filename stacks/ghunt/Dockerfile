@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install GHunt and clean up pip caches
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt
+RUN pip install --no-cache-dir --no-deps --require-hashes -r /tmp/requirements.txt
 
 # Default workdir for outputs (mounted as a volume in docker-compose)
 WORKDIR /data
