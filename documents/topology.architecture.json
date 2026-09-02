@@ -3,19 +3,23 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "Docker homelab architecture",
-    "quality_profile": "showcase"
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/bolens/homelab",
+      "revision": "71c6aa5f84f733c257f7277799e90beef3e3ab1b"
+    }
   },
   "components": [
-    { "id": "clients", "type": "external", "label": "Clients", "sublabel": "LAN and Internet", "pos": [40, 300], "size": [130, 64] },
-    { "id": "cloudflare", "type": "cloud", "label": "Cloudflare Tunnel", "sublabel": "Optional public ingress", "pos": [210, 150], "size": [160, 68] },
-    { "id": "remote", "type": "security", "label": "Remote access", "sublabel": "Headscale / WireGuard / NetBird", "pos": [210, 450], "size": [180, 72] },
-    { "id": "caddy", "type": "security", "label": "Caddy", "sublabel": "Reverse proxy :80 / :443", "pos": [450, 300], "size": [180, 72] },
-    { "id": "apps", "type": "backend", "label": "Application stacks", "sublabel": "Isolated Compose projects", "pos": [700, 300], "size": [180, 72] },
-    { "id": "shared", "type": "backend", "label": "Shared services", "sublabel": "DNS / mail / storage / AI", "pos": [700, 120], "size": [180, 68] },
-    { "id": "gluetun", "type": "security", "label": "Gluetun", "sublabel": "Selected container egress", "pos": [930, 120], "size": [160, 68] },
-    { "id": "internet", "type": "external", "label": "Internet", "sublabel": "Outbound providers", "pos": [1160, 120], "size": [150, 64] },
-    { "id": "telemetry", "type": "backend", "label": "Observability", "sublabel": "Prometheus / Loki / Grafana", "pos": [700, 500], "size": [190, 72] },
-    { "id": "operations", "type": "backend", "label": "Operations", "sublabel": "Portainer / updates / backup", "pos": [960, 500], "size": [190, 72] }
+    { "id": "clients", "type": "external", "label": "Clients", "sublabel": "LAN and Internet", "pos": [40, 300], "size": [130, 64], "sources": [{ "path": "documents/topology.yaml", "line": 315, "end_line": 331, "label": "client ingress relations" }] },
+    { "id": "cloudflare", "type": "cloud", "label": "Cloudflare Tunnel", "sublabel": "Optional public ingress", "pos": [210, 150], "size": [160, 68], "sources": [{ "path": "documents/topology.yaml", "line": 10, "end_line": 14, "label": "ingress inventory" }] },
+    { "id": "remote", "type": "security", "label": "Remote access", "sublabel": "Headscale / WireGuard / NetBird", "pos": [210, 450], "size": [180, 72], "sources": [{ "path": "documents/topology.yaml", "line": 16, "end_line": 24, "label": "VPN inventory" }] },
+    { "id": "caddy", "type": "security", "label": "Caddy", "sublabel": "Reverse proxy :80 / :443", "pos": [450, 300], "size": [180, 72], "sources": [{ "path": "documents/topology.yaml", "line": 10, "end_line": 14, "label": "reverse proxy inventory" }] },
+    { "id": "apps", "type": "backend", "label": "Application stacks", "sublabel": "Isolated Compose projects", "pos": [700, 300], "size": [180, 72], "sources": [{ "path": "documents/topology.yaml", "line": 26, "label": "application categories" }] },
+    { "id": "shared", "type": "backend", "label": "Shared services", "sublabel": "DNS / mail / storage / AI", "pos": [700, 120], "size": [180, 68], "sources": [{ "path": "documents/topology.yaml", "line": 250, "end_line": 304, "label": "infrastructure inventory" }] },
+    { "id": "gluetun", "type": "security", "label": "Gluetun", "sublabel": "Selected container egress", "pos": [930, 120], "size": [160, 68], "sources": [{ "path": "documents/topology.yaml", "line": 306, "end_line": 308, "label": "selected VPN egress" }] },
+    { "id": "internet", "type": "external", "label": "Internet", "sublabel": "Outbound providers", "pos": [1160, 120], "size": [150, 64], "sources": [{ "path": "documents/topology.yaml", "line": 346, "end_line": 353, "label": "provider egress relation" }] },
+    { "id": "telemetry", "type": "backend", "label": "Observability", "sublabel": "Prometheus / Loki / Grafana", "pos": [700, 500], "size": [190, 72], "sources": [{ "path": "documents/topology.yaml", "line": 267, "end_line": 290, "label": "observability inventory" }] },
+    { "id": "operations", "type": "backend", "label": "Operations", "sublabel": "Portainer / updates / backup", "pos": [960, 500], "size": [190, 72], "sources": [{ "path": "documents/topology.yaml", "line": 285, "end_line": 304, "label": "operations inventory" }] }
   ],
   "boundaries": [
     { "kind": "region", "label": "Docker host", "wraps": ["caddy", "apps", "shared", "gluetun", "telemetry", "operations"], "pad": 28 },
