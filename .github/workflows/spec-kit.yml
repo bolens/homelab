@@ -29,16 +29,18 @@ permissions: {}
 
 jobs:
   validate:
+    permissions:
+      contents: read
     if: github.event_name != 'schedule' && !inputs.update
-    uses: bolens/.github/.github/workflows/reusable-spec-kit.yml@1792f9078e7c8844e4ba86ffb8ed792efdff4c82
+    uses: bolens/.github/.github/workflows/reusable-spec-kit.yml@7159a187479e511a9420f8f4eec93246a43fea12
     with:
-      tooling-ref: 1792f9078e7c8844e4ba86ffb8ed792efdff4c82
+      tooling-ref: 7159a187479e511a9420f8f4eec93246a43fea12
 
   update:
     if: github.event_name == 'schedule' || inputs.update
     permissions:
       contents: write
       pull-requests: write
-    uses: bolens/.github/.github/workflows/reusable-spec-kit-update.yml@1792f9078e7c8844e4ba86ffb8ed792efdff4c82
+    uses: bolens/.github/.github/workflows/reusable-spec-kit-update.yml@7159a187479e511a9420f8f4eec93246a43fea12
     with:
-      tooling-ref: 1792f9078e7c8844e4ba86ffb8ed792efdff4c82
+      tooling-ref: 7159a187479e511a9420f8f4eec93246a43fea12
