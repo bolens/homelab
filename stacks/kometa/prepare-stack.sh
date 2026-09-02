@@ -6,14 +6,14 @@ source "$_PREPDIR/../../scripts/prepare-stack-lib.sh"
 prepare_stack_begin "$_PREPDIR"
 prepare_stack_copy_env
 
-prepare_stack_ensure_dir_from_env KOMETA_CONFIG_PATH "${HOME}/.config/kometa"
-prepare_stack_ensure_dir_from_env KOMETA_DATA_PATH "${HOME}/.config/kometa/data"
+prepare_stack_ensure_dir_from_env KOMETA_HOST_CONFIG_PATH "${HOME}/.config/kometa"
+prepare_stack_ensure_dir_from_env KOMETA_HOST_DATA_PATH "${HOME}/.config/kometa/data"
 
 _cfg="$(prepare_stack__expand_home_in_path "${HOME}/.config/kometa")"
 if [[ -f stack.env ]]; then
-  _line=$(grep -E "^KOMETA_CONFIG_PATH=" stack.env 2>/dev/null | tail -1) || true
+  _line=$(grep -E "^KOMETA_HOST_CONFIG_PATH=" stack.env 2>/dev/null | tail -1) || true
   if [[ -n "$_line" ]]; then
-    _val="${_line#*=}"; _val="${_val%$'\r$'}"
+    _val="${_line#*=}"; _val="${_val%$'\r'}"
     _val="${_val#\"}"; _val="${_val%\"}"; _val="${_val#'}"; _val="${_val%'}"
     [[ -n "$_val" ]] && _cfg="$(prepare_stack__expand_home_in_path "$_val")"
   fi

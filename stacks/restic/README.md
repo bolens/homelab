@@ -24,7 +24,8 @@ dead-man callback path to Uptime Kuma.
    - `RESTIC_REPOSITORY` (e.g. `s3:http://minio:9000/restic` when using the `minio` stack),
    - `RESTIC_PASSWORD` (encryption password; generate with `openssl rand -base64 32`),
    - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (S3 credentials),
-   - `RESTIC_PATH_DOCKER` / `RESTIC_PATH_MEDIA` (host paths to back up; defaults `/srv/docker`, `/srv/media`),
+   - `RESTIC_PATH_DOCKER`, `RESTIC_PATH_APPDATA`, and `RESTIC_PATH_MEDIA`
+     (host paths to back up),
    - `UPTIME_KUMA_RESTIC_PUSH_TOKEN`, matching the Restic push monitor token,
    - and adjust `BACKUP_CRON` if needed.
 
@@ -39,7 +40,7 @@ dead-man callback path to Uptime Kuma.
 3. **Run a manual backup (optional)**:
 
    ```bash
-   docker compose exec restic restic backup /data/docker /data/media
+   docker compose exec restic restic backup /data/docker /data/appdata /data/media
    ```
 
 4. **Let the scheduler run**
@@ -64,7 +65,7 @@ Stacks → Add stack → **Repository** → set your repo URL and Compose path (
 | **Type**    | CLI / cron-only stack (no web UI, no Caddy, no host ports)             |
 | **Image**   | `mazzolino/restic:latest`                                              |
 | **Network** | Isolated `backup` network plus internal `monitoring-push` callbacks   |
-| **Storage** | `restic_cache` (restic cache); data is stored in the remote repository |
+| **Storage** | Read-only backup sources at `/data/{docker,appdata,media}`; persistent cache at `/cache`; backup data in the remote repository |
 
 ## Key environment variables
 
@@ -72,8 +73,12 @@ Set these in `stack.env` (see `stack.env.example` for comments and examples):
 
 - `RESTIC_REPOSITORY` – Repository URL, e.g. `s3:http://minio:9000/restic`.
 - `RESTIC_PASSWORD` – Required encryption password. Generate with `openssl rand -base64 32`.
+- `RESTIC_CACHE_DIR` – Fixed at `/cache`, backed by the `restic_cache` volume.
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` – S3 credentials for the backup target (e.g. MinIO).
-- `RESTIC_PATH_DOCKER`, `RESTIC_PATH_MEDIA` – Host paths to back up (defaults `/srv/docker`, `/srv/media`). Set in Portainer to absolute paths.
+- `RESTIC_PATH_DOCKER` – Repository and Compose files; defaults to `/srv/docker`.
+- `RESTIC_PATH_APPDATA` – Docker named-volume data; defaults to
+  `/srv/docker-volumes`.
+- `RESTIC_PATH_MEDIA` – Shared media tree; defaults to `/srv/media`.
 - `BACKUP_CRON` – Cron schedule, default `0 3 * * *` (daily at 03:00).
 - `UPTIME_KUMA_RESTIC_PUSH_TOKEN` – Dead-man token shared with Uptime Kuma.
 - `TZ` – Optional timezone for logs and cron.
@@ -88,3 +93,5 @@ Set these in `stack.env` (see `stack.env.example` for comments and examples):
   ```
 
   Adjust target and paths to match your use case.
+- Raw application-data backups are crash-consistent. Use each database stack's
+  dump procedure when a transaction-consistent database backup is required.

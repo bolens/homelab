@@ -24,8 +24,8 @@ services:
       - path: stack.env
         required: false
     volumes:
-      - ${KOMETA_HOST_CONFIG_PATH:-/home/youruser/.config/kometa}:/config
-      - ${KOMETA_HOST_DATA_PATH:-/home/youruser/.config/kometa/data}:/data
+      - "${KOMETA_HOST_CONFIG_PATH:-${HOME}/.config/kometa}:/config"
+      - "${KOMETA_HOST_DATA_PATH:-${HOME}/.config/kometa/data}:/data"
     networks:
       - media-services
 
