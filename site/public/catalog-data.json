@@ -410,7 +410,7 @@
   {
     "name": "Hashcat",
     "category": "Security",
-    "summary": "Hashcat is the world's fastest and most advanced password recovery utility supporting hundreds of hash types.",
+    "summary": "Hashcat is a password recovery utility with GPU acceleration and support for hundreds of hash types.",
     "url": "apps/hashcat/"
   },
   {
@@ -794,7 +794,7 @@
   {
     "name": "Open WebUI Stack",
     "category": "AI",
-    "summary": "Extensible, feature-rich, and user-friendly self-hosted AI platform designed to operate entirely offline. Supports Ollama and OpenAI-compatible APIs.",
+    "summary": "Self-hosted chat interface for Ollama and OpenAI-compatible APIs. It can run without an internet connection when configured with local providers.",
     "url": "apps/open-webui/"
   },
   {

@@ -99,7 +99,7 @@ Open Notebook supports:
 - Google (GenAI)
 - Ollama (local models)
 - Groq
-- And many more...
+- Additional file formats supported by Open Notebook
 
 Configure API keys in the web UI after first login.
 

@@ -11,7 +11,7 @@ RUN git init . \
     && git fetch --depth 1 origin "${LIDARR_COMMIT}" \
     && git checkout --detach FETCH_HEAD \
     && test "$(git rev-parse HEAD)" = "${LIDARR_COMMIT}" \
-    && sed -i 's/"version": "8.0.405"/"version": "10.0.301"/' global.json
+    && sed -i 's/"version": "8.0.405"/"version": "10.0.400"/' global.json
 
 COPY patches/0001-guard-missing-artist-metadata.patch /tmp/lidarr.patch
 RUN --mount=type=cache,target=/root/.nuget/packages \

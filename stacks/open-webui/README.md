@@ -1,6 +1,6 @@
 # Open WebUI Stack
 
-Extensible, feature-rich, and user-friendly self-hosted AI platform designed to operate entirely offline. Supports Ollama and OpenAI-compatible APIs.
+Self-hosted chat interface for Ollama and OpenAI-compatible APIs. It can run without an internet connection when configured with local providers.
 
 **Website:** https://openwebui.com  
 **Docs:** https://docs.openwebui.com  
@@ -12,7 +12,7 @@ Extensible, feature-rich, and user-friendly self-hosted AI platform designed to 
 
 - **Multi-Provider Support**: Ollama, OpenAI, Anthropic, Google, and more
 - **RAG Integration**: Local RAG with 9+ vector database options
-- **Web Search**: 15+ search providers for enhanced context
+- **Web Search**: 15+ supported search providers
 - **Voice/Video**: Speech-to-text and text-to-speech support
 - **Image Generation**: DALL-E, Stable Diffusion, ComfyUI integration
 - **Multi-User**: Role-based access control
@@ -65,7 +65,7 @@ Open WebUI supports:
 - **Google** (Gemini)
 - **Azure OpenAI**
 - **OpenRouter**
-- **And many more...**
+- Other OpenAI-compatible providers
 
 Configure providers in Settings → Connections after login.
 

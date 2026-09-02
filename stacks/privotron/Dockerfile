@@ -4,7 +4,7 @@
 # https://github.com/kevinl95/Privotron
 
 # syntax=docker/dockerfile:1
-FROM python:3.14-slim-bookworm@sha256:9ab8d9c8514b44f90cf0029dd42fdd7e9e211e639c8b995304cc04568dee900f AS builder
+FROM python:3.13-slim-bookworm@sha256:ed86c82274b3c69b52fb5820f358f0bd7df0b603332063cb5c6e32bd220c3e6e AS builder
 
 WORKDIR /app
 
@@ -33,7 +33,7 @@ RUN poetry config virtualenvs.create false \
 
 RUN sed -i 's/headless=False/headless=True/g' main.py
 
-FROM python:3.14-slim-bookworm@sha256:9ab8d9c8514b44f90cf0029dd42fdd7e9e211e639c8b995304cc04568dee900f
+FROM python:3.13-slim-bookworm@sha256:ed86c82274b3c69b52fb5820f358f0bd7df0b603332063cb5c6e32bd220c3e6e
 
 ENV PATH=/opt/venv/bin:$PATH
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
