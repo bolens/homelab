@@ -5,9 +5,10 @@ from __future__ import annotations
 
 import html
 import json
-from pathlib import Path
+import re
 import struct
 import sys
+from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -34,6 +35,11 @@ def load_source() -> dict:
         fail("topology source must use diagram_type architecture")
     if data.get("meta", {}).get("quality_profile") != "showcase":
         fail("topology source must use the showcase quality profile")
+    repository = data.get("meta", {}).get("repository", {})
+    if not repository.get("url") or not re.fullmatch(
+        r"[0-9a-f]{40}", repository.get("revision", "")
+    ):
+        fail("topology repository evidence must be pinned to a full commit")
     return data
 
 
@@ -52,6 +58,9 @@ def validate_graph(data: dict) -> None:
         fail("every topology component needs a non-empty id")
     if len(ids) != len(set(ids)):
         fail("topology component ids must be unique")
+    for component in components:
+        if not component.get("sources"):
+            fail(f"topology component {component.get('id')!r} has no evidence")
 
     known = set(ids)
     for connection in connections:
