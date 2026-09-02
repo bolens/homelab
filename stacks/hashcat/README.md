@@ -1,6 +1,6 @@
 # Hashcat
 
-Hashcat is the world's fastest and most advanced password recovery utility supporting hundreds of hash types.
+Hashcat is a password recovery utility with GPU acceleration and support for hundreds of hash types.
 
 **Website:** https://hashcat.net
 **GitHub:** https://github.com/hashcat/hashcat

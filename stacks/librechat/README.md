@@ -83,7 +83,7 @@ LibreChat supports:
 - **DeepSeek**
 - **Mistral**
 - **OpenRouter**
-- **And many more...**
+- Other OpenAI-compatible providers
 
 Configure providers in Settings → Endpoints after login.
 
