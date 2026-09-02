@@ -57,7 +57,7 @@ def header(active: str = "") -> str:
     )
     return f'''<a class="skip-link" href="#main">Skip to main content</a>
 <header class="site-header"><a class="brand" href="/homelab/"><span class="brand-mark" aria-hidden="true"></span> Homelab Atlas</a>
-<nav aria-label="Primary navigation">{nav}<a href="{REPO_URL}">Technical docs</a></nav></header>'''
+<nav aria-label="Primary navigation">{nav}<a href="{REPO_URL}">Technical docs</a><label class="color-mode-picker"><span>Theme</span><select data-color-mode aria-label="Color theme"><option value="system">System</option><option value="time">Day cycle</option><option value="light">Light</option><option value="dark">Dark</option></select></label></nav></header>'''
 
 
 def footer() -> str:
@@ -68,12 +68,12 @@ def page(title: str, description: str, body: str, active: str = "", path: str = 
     canonical = f"https://bolens.github.io/homelab/{path}"
     social_title = f"{title} | Homelab Atlas"
     return f'''<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en" data-color-mode-storage="homelab-atlas-color-mode"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#050914"><meta name="description" content="{html.escape(description, quote=True)}">
 <link rel="canonical" href="{canonical}"><meta property="og:type" content="website"><meta property="og:url" content="{canonical}"><meta property="og:site_name" content="Homelab Atlas">
 <meta property="og:title" content="{html.escape(social_title, quote=True)}"><meta property="og:description" content="{html.escape(description, quote=True)}"><meta property="og:image" content="https://bolens.github.io/homelab/social-card.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Homelab Atlas service catalog and architecture guide">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{html.escape(social_title, quote=True)}"><meta name="twitter:description" content="{html.escape(description, quote=True)}"><meta name="twitter:image" content="https://bolens.github.io/homelab/social-card.png"><meta name="twitter:image:alt" content="Homelab Atlas service catalog and architecture guide">
-<title>{html.escape(social_title)}</title><link rel="icon" href="/homelab/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/homelab/apple-touch-icon.png"><link rel="manifest" href="/homelab/site.webmanifest"><link rel="stylesheet" href="/homelab/styles.css"></head>
+<title>{html.escape(social_title)}</title><link rel="icon" href="/homelab/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/homelab/apple-touch-icon.png"><link rel="manifest" href="/homelab/site.webmanifest"><script src="/homelab/theme.js"></script><link rel="stylesheet" href="/homelab/styles.css"><link rel="stylesheet" href="/homelab/theme-modes.css"></head>
 <body>{header(active)}<main id="main" tabindex="-1">{body}</main>{footer()}</body></html>
 '''
 

@@ -74,7 +74,7 @@ def main() -> None:
     if len(app_pages) < 200:
         problems.append(f"expected at least 200 application pages, found {len(app_pages)}")
     parsed: dict[Path, Document] = {}
-    for asset in ("favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "social-card.png", "site.webmanifest"):
+    for asset in ("theme.js", "theme-modes.css", "favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "social-card.png", "site.webmanifest"):
         if not (PUBLIC / asset).is_file():
             problems.append(f"site/public/{asset}: missing discovery asset")
     for path in html_files:
@@ -117,6 +117,13 @@ def main() -> None:
     for requirement in (":focus-visible", "prefers-reduced-motion", "color-scheme: dark", "[hidden]"):
         if requirement not in css:
             problems.append(f"site/public/styles.css: missing {requirement}")
+    theme = (PUBLIC / "theme.js").read_text(encoding="utf-8")
+    for behavior in ("prefers-color-scheme: light", "prefers-color-scheme: dark", "new Date().getHours()", "return \"dark\"", "localStorage.setItem", "source.searchParams.set"):
+        if behavior not in theme:
+            problems.append(f"site/public/theme.js: missing {behavior} adaptive-theme behavior")
+    if any("data-color-mode-storage" not in path.read_text(encoding="utf-8") for path in html_files if path.name != "topology.html"):
+        problems.append("generated pages must initialize the adaptive theme before paint")
+
     if problems:
         raise SystemExit("\n".join(problems))
     print(f"Pages site is valid ({len(html_files)} HTML files, {len(app_pages)} application pages).")
