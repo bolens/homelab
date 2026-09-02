@@ -1,0 +1,34 @@
+# Direct TorBot dependencies. Regenerate requirements.txt with:
+# uv pip compile --generate-hashes --python-version 3.14 requirements.lock -o requirements.txt
+altgraph==0.17.4
+beautifulsoup4==4.12.3
+certifi==2026.7.22
+charset-normalizer==3.3.2
+decorator==5.1.1
+httpx[socks]==0.27.0
+idna==3.18
+igraph==0.11.4
+joblib==1.4.2
+macholib==1.16.3
+numpy
+phonenumbers==8.13.37
+progress==1.6
+pyinstaller
+pyinstaller-hooks-contrib
+pysocks==1.7.1
+pytest==9.0.3
+python-dotenv==1.2.2
+scikit-learn
+scipy
+six==1.16.0
+soupsieve==2.8.4
+tabulate==0.9.0
+termcolor==3.1.0
+texttable==1.7.0
+threadpoolctl==3.6.0
+toml==0.10.2
+treelib==1.8.0
+unipath==1.1
+urllib3==2.6.3
+validators==0.35.0
+yattag==1.16.1
