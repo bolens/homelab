@@ -22,6 +22,16 @@ Access via Caddy at **https://calibre-web.yourdomain.com** (or your configured h
 `/mnt/unraid/media/books`. The directory must contain `metadata.db` and your
 book files. On first setup in the UI, set the database path to **/books**.
 
+`KAVITA_CALIBRE_EXPORT_PATH` is mounted at `/kavita-export`. Export books with
+Calibre's Save-to-Disk layout, then configure Kavita's Book library to scan
+`/data/calibre-books`. This keeps Kavita out of Calibre's private database
+layout and embeds current Calibre metadata in the exported copies.
+
+The host can automate the export with
+`scripts/calibre-kavita-sync.sh`. The matching systemd service and daily timer
+are in `scripts/systemd/calibre-kavita-sync.*`. The job converts AZW3 and MOBI
+copies to EPUB, removes stale exports, and requests a Kavita scan.
+
 ## Configuration
 
 | Item | Details |
@@ -29,7 +39,7 @@ book files. On first setup in the UI, set the database path to **/books**.
 | **Access** | Via Caddy only (no host port; reverse-proxy to `calibre-web:8083`) |
 | **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
 | **Images** | `lscr.io/linuxserver/calibre-web:latest` |
-| **Storage** | `calibre_web_config` (app DB and settings), `${CALIBRE_BOOKS_PATH}` → `/books`; `UMASK=002` keeps shared files group-writable |
+| **Storage** | `calibre_web_config`, `${CALIBRE_BOOKS_PATH}` → `/books`, `${KAVITA_CALIBRE_EXPORT_PATH}` → `/kavita-export`; `UMASK=002` keeps shared files group-writable |
 
 ## Caddy reverse proxy
 

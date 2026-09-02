@@ -22,6 +22,7 @@ services:
     volumes:
       - kavita_config:/config
       - "${KAVITA_BOOKS_PATH:-/mnt/unraid/media/books}:/data/books"
+      - "${KAVITA_CALIBRE_EXPORT_PATH:-/mnt/unraid/media/kavita-books}:/data/calibre-books:ro"
       - "${KAVITA_COMICS_PATH:-/mnt/unraid/media/comics}:/data/comics"
     networks:
       - ingress-public

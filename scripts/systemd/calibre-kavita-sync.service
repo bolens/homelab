@@ -1,0 +1,9 @@
+[Unit]
+Description=Export the Calibre library for Kavita
+After=docker.service mnt-unraid-media.mount
+Requires=docker.service
+RequiresMountsFor=/mnt/unraid/media
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/calibre-kavita-sync

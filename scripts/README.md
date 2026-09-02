@@ -58,6 +58,7 @@ changing `stack.env`.
 | Helper | Purpose |
 |---|---|
 | `apply-running-resource-limits.sh` | Previews fallback runtime limits. Applying requires both `--container NAME` and `--apply`; prefer persistent per-stack Compose limits. |
+| `calibre-kavita-sync.sh` | Exports Calibre metadata and EPUB/PDF copies into Kavita's scanner layout, converts AZW3/MOBI copies to EPUB, removes stale exports, and requests a Kavita scan. Install with the matching systemd units for daily runs. |
 | `find-apache2-containers.sh` | Maps running host Apache processes to Docker containers. |
 | `list-layout.sh` | Summarizes the repository layout. |
 | `migrate-docker-volume-to-path.sh` | Copies a named volume to a bind path. Stop the affected stack first. |
