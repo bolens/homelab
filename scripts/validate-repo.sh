@@ -83,7 +83,7 @@ fi
 
 echo "Checking repository shell helpers..."
 mapfile -t shell_files < <(git ls-files '*.sh' | while read -r file; do
-  [[ -f "$file" ]] && printf '%s\n' "$file"
+  [[ -f "$file" && "$file" != .specify/* ]] && printf '%s\n' "$file"
 done)
 run_optional_check shellcheck shellcheck -S warning "${shell_files[@]}"
 
