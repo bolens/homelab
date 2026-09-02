@@ -76,7 +76,7 @@ docker compose run --rm acquire /data/evidence.vmdk -o /data/output-dir
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm acquire ...`. |
-| **Image** | Built from Dockerfile and pushed to Harbor. See [Building the image](#building-the-image). |
+| **Image** | Defaults to the repository's GHCR build; set `ACQUIRE_IMAGE` for the Harbor fallback or a local build. |
 | **Storage** | Local `data/` bind-mounted to `/data` for evidence and output. Output files may be root-owned; to access as your user run `chown -R $(id -u):$(id -g) ./data` after a run. |
 
 ## Common options

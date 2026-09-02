@@ -4,7 +4,7 @@ services:
       logging: "true"
     build:
       context: .
-    image: homelab/netexec:local
+    image: ${NETEXEC_IMAGE:-ghcr.io/bolens/homelab-netexec:latest}
     profiles: ["tools"]
     cpus: 4.0
     mem_limit: 4g

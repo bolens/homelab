@@ -1,6 +1,6 @@
 # OWASP TorBot
 
-Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. [OWASP TorBot](https://owasp.org/www-project-torbot/) project; upstream [DedSecInside/TorBot](https://github.com/DedSecInside/TorBot). **No official Docker image**, you must build from upstream once and set `TORBOT_IMAGE`, or use an image from your registry.
+Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if links are live, save results as JSON or tree. [OWASP TorBot](https://owasp.org/www-project-torbot/) project; upstream [DedSecInside/TorBot](https://github.com/DedSecInside/TorBot). The stack defaults to the repository's GHCR build; set `TORBOT_IMAGE` to use the Harbor mirror or another registry.
 
 **Website:** https://owasp.org/www-project-torbot/
 **Docs:** https://github.com/DedSecInside/TorBot#readme
@@ -20,7 +20,7 @@ Dark Web OSINT tool: crawl .onion sites, extract links and emails, check if link
 
    ```bash
    ./prepare-stack.sh
-   # Edit stack.env: TORBOT_IMAGE=harbor.yourdomain.com/homelab/torbot:latest
+   # Optional fallback: TORBOT_IMAGE=harbor.yourdomain.com/homelab/torbot:latest
    ```
 
 3. **Start the stack** (Tor + TorBot):

@@ -62,7 +62,7 @@ Set `BLACKBIRD_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-st
 | Item | Details |
 |------|---------|
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm blackbird ...`. |
-| **Image** | Built from Dockerfile; push to Harbor and set `BLACKBIRD_IMAGE` in `stack.env`. |
+| **Image** | Defaults to the repository's GHCR build; set `BLACKBIRD_IMAGE` for the Harbor fallback or a local build. |
 | **Storage** | Local `results/` directory bind‑mounted into `/results` for exported reports. |
 | **Network** | `security-research`; it can reach Caddy's optional forward proxy without joining ingress. |
 

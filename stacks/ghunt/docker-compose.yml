@@ -6,7 +6,7 @@ services:
   ghunt:
     labels:
       logging: "true"
-    image: ${GHUNT_IMAGE:-harbor.yourdomain.com/homelab/ghunt:latest}
+    image: ${GHUNT_IMAGE:-ghcr.io/bolens/homelab-ghunt:latest}
     container_name: ghunt
     restart: "no"
     env_file:

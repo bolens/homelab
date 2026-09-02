@@ -12,7 +12,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.tor
-    image: torbot-tor:alpine-3.24
+    image: ${TORBOT_TOR_IMAGE:-ghcr.io/bolens/homelab-torbot-tor:latest}
     container_name: torbot-tor
     restart: unless-stopped
     networks:
@@ -32,7 +32,7 @@ services:
       dockerfile: Dockerfile
       args:
         TORBOT_COMMIT: ${TORBOT_COMMIT:-9a829a593cd2a5b8e01487962e29cb47d26e001b}
-    image: ${TORBOT_IMAGE:-torbot:latest}
+    image: ${TORBOT_IMAGE:-ghcr.io/bolens/homelab-torbot:latest}
     container_name: torbot
     restart: unless-stopped
     depends_on:

@@ -21,7 +21,7 @@ docker build -t harbor.yourdomain.com/homelab/docker-gc:latest .
 docker push harbor.yourdomain.com/homelab/docker-gc:latest
 ```
 
-Set `DOCKER_GC_IMAGE` in `stack.env` to match the tag you use (e.g. `harbor.yourdomain.com/homelab/docker-gc:latest`). Run `./prepare-stack.sh` after changing the image so `.env` is updated for compose.
+The stack defaults to the repository's GHCR image. Set `DOCKER_GC_IMAGE` in `stack.env` to use Harbor or another tag, then run `./prepare-stack.sh` so `.env` is updated for Compose.
 
 ## Quick start
 
@@ -133,4 +133,3 @@ Adjust the path and schedule for your environment. Do not commit real cron paths
 2. **Before first deploy:** Ensure `stack.env` exists. On the host, in the stack directory, run `./prepare-stack.sh` or `cp stack.env.example stack.env`. If using **Git**: set the compose path to `stacks/docker-gc/docker-compose.yml`.
 3. **Environment variables** (optional): add `DRY_RUN`, `EXCLUDE_CONTAINERS`, `EXCLUDE_IMAGES` to override defaults. Example: `DRY_RUN=false` to actually remove resources (after testing with `true`).
 4. **Deploy.** The container will run once and exit (restart: no). For periodic cleanup, create a cron job or systemd timer on the host that runs `docker compose run --rm docker-gc` from this stack's directory.
-

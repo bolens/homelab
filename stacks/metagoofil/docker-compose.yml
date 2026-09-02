@@ -12,7 +12,7 @@ services:
       context: .
       args:
         METAGOOFIL_COMMIT: ${METAGOOFIL_COMMIT:-8d50624f1534e63c8bb64ee132d8c2298dba6724}
-    image: ${METAGOOFIL_IMAGE:-metagoofil:latest}
+    image: ${METAGOOFIL_IMAGE:-ghcr.io/bolens/homelab-metagoofil:latest}
     container_name: metagoofil
     restart: "no"
     env_file:

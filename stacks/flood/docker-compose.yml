@@ -21,7 +21,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.rtorrent
-    image: flood-rtorrent:alpine-3.24
+    image: ${FLOOD_RTORRENT_IMAGE:-ghcr.io/bolens/homelab-flood-rtorrent:latest}
     container_name: rtorrent
     restart: unless-stopped
     cpus: 3.0

@@ -4,7 +4,7 @@ services:
       logging: "true"
     build:
       context: .
-    image: homelab/rackula:local
+    image: ${RACKULA_IMAGE:-ghcr.io/bolens/homelab-rackula:latest}
     profiles: ["tools"]
     cpus: 2.0
     mem_limit: 2g

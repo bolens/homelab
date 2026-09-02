@@ -7,6 +7,7 @@ services:
       logging: "true"
     build:
       context: ./restart-gateway
+    image: ${N8N_RESTART_GATEWAY_IMAGE:-ghcr.io/bolens/homelab-n8n-restart-gateway:latest}
     container_name: n8n-restart-gateway
     restart: unless-stopped
     environment:

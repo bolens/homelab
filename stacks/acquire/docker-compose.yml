@@ -8,7 +8,7 @@ services:
   acquire:
     labels:
       logging: "true"
-    image: ${ACQUIRE_IMAGE:-harbor.yourdomain.com/homelab/acquire:latest}
+    image: ${ACQUIRE_IMAGE:-ghcr.io/bolens/homelab-acquire:latest}
     container_name: acquire
     restart: "no"
     env_file:

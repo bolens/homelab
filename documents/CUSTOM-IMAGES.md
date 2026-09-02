@@ -12,6 +12,11 @@ Each image has two tags:
 Use the commit tag for reproducible deployments. The workflow attaches build
 provenance and an SBOM to each published image.
 
+Stacks use GHCR by default. Each Compose image has a stack-specific
+`*_IMAGE` override. Set that variable to
+`harbor.bolens.dev/homelab/<name>:latest` in `stack.env` or Portainer when
+GHCR is unavailable. Compose cannot automatically try a second registry.
+
 The matrix excludes images whose build context is not committed:
 
 - AIL Framework's build and runtime stages require its local vendor checkout.
