@@ -19,6 +19,7 @@ services:
     volumes:
       - calibre_web_config:/config
       - "${CALIBRE_BOOKS_PATH:-/mnt/unraid/media/books}:/books"
+      - "${KAVITA_CALIBRE_EXPORT_PATH:-/mnt/unraid/media/kavita-books}:/kavita-export"
     networks:
       - ingress-public
     healthcheck:
