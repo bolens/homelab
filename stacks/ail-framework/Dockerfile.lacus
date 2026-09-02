@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM ubuntu:26.04
+FROM ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b
 
 ARG LACUS_REVISION=e3be12569431234dfc08cffd4a5000cd86011545
 ARG VALSTORE_REVISION=23b3f6bb66c19502225a40e7aeec9e1be76456c1
@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
     && apt-get install -y --no-install-recommends \
-        build-essential ca-certificates curl git python3 supervisor
+        build-essential ca-certificates curl git python3-poetry supervisor
 
 WORKDIR /app
 
@@ -29,8 +29,6 @@ RUN git init lacus \
     && git -C lacus fetch --depth 1 origin "${LACUS_REVISION}" \
     && git -C lacus checkout --detach FETCH_HEAD \
     && test "$(git -C lacus rev-parse HEAD)" = "${LACUS_REVISION}"
-
-RUN curl -sSL https://install.python-poetry.org | python3 -
 
 WORKDIR /app/lacus
 
