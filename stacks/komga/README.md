@@ -11,22 +11,19 @@ Access via Caddy at **https://komga.yourdomain.com** (or your configured hostnam
 
 ## Quick start
 
-1. Copy `stack.env.example` → `stack.env` (optional: set `TZ`, or `JAVA_TOOL_OPTIONS` for large libraries). For bind-mounted libraries, ensure the host directory is owned by the container user (gotson/komga runs as UID 1000), e.g. `chown -R 1000:1000 /path/to/comics`.
+1. Copy `stack.env.example` → `stack.env`; confirm the comic and manga paths. Set `JAVA_TOOL_OPTIONS` only if the library needs a larger JVM heap.
 2. From the stack directory: `docker compose up -d`.
-3. Open the web UI, create the first user (admin), then add libraries pointing at `/data` (default) or bind-mount your comic folders to `/data` (see **Library** below).
+3. Open the web UI, create the first user, then add separate libraries rooted at `/data/comics` and `/data/manga`.
 
 **Portainer:** Add stack → paste `docker-compose.yml` → set env vars from `stack.env` if needed → deploy.
 
 ## Library
 
-By default the stack uses a named volume `komga_data` for `/data`. To use existing folders, replace the volume with a bind mount in `docker-compose.yml`, e.g.:
-
-```yaml
-volumes:
-  - /path/to/your/comics:/data
-```
-
-Create libraries in the Komga UI; choose a directory under `/data` (e.g. `/data/comics`). Komga recommends a local filesystem for `/config` (no NFS/CIFS).
+The shared libraries are mounted read-only. Mylar3 can organize `/data/comics`
+through its own writable media mount; Komga scans the same host directory
+without modifying it. Keep `/config` on the local `komga_config` volume because
+Komga does not support its database on NFS or CIFS. Library roots must not
+overlap, so use `/data/comics` and `/data/manga`, never `/data`.
 
 ## Configuration
 
@@ -35,7 +32,7 @@ Create libraries in the Komga UI; choose a directory under `/data` (e.g. `/data/
 | **Access** | Via Caddy only (no host port; reverse-proxy to `komga:25600`) |
 | **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
 | **Images** | `gotson/komga:latest` |
-| **Storage** | Named volumes: `komga_config` (DB and settings), `komga_data` (books); or bind-mount `/data` |
+| **Storage** | Local `komga_config`; `${KOMGA_COMICS_PATH}` → `/data/comics` and `${KOMGA_MANGA_PATH}` → `/data/manga`, both read-only |
 
 ## Caddy reverse proxy
 

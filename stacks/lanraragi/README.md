@@ -25,6 +25,17 @@ Access via Caddy at **https://lanraragi.yourdomain.com** (or your configured hos
 | **Images** | `difegue/lanraragi:latest` |
 | **Storage** | Named volumes: `lanraragi_content`, `lanraragi_database`, `lanraragi_thumb`; or bind-mount content |
 
+## Library interoperability
+
+LANraragi keeps its archive collection in a dedicated writable volume. Do not
+point that volume at the Calibre, Kavita, Komga, or Mylar library roots: those
+applications use different metadata and file-management rules, and sharing one
+writable directory risks conflicting moves or deletions.
+
+For an archive that should also appear in Kavita or Komga, keep the managed copy
+under `/mnt/unraid/media/comics` or `/mnt/unraid/media/manga` and import a copy
+into LANraragi. Kavita and Komga mount those shared roots read-only.
+
 ## Caddy reverse proxy
 
 Add a site block for the Lanraragi hostname (e.g. `lanraragi.yourdomain.com`):

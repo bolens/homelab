@@ -8,4 +8,6 @@ prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "media-services"
 prepare_stack_ensure_docker_network "ingress-public"
+prepare_stack_ensure_dir_from_env "JELLYFIN_AUDIOBOOKS_PATH" "${MEDIA_ROOT:-/srv/media}/audiobooks"
+prepare_stack_ensure_dir_from_env "JELLYFIN_BOOKS_PATH" "${MEDIA_ROOT:-/srv/media}/kavita-books"
 prepare_stack_end

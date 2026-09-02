@@ -16,6 +16,8 @@ services:
       - "${EMBY_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
       - "${EMBY_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
       - "${EMBY_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"
+      - "${EMBY_AUDIOBOOKS_PATH:-/mnt/unraid/media/audiobooks}:/data/audiobooks:ro"
+      - "${EMBY_BOOKS_PATH:-/mnt/unraid/media/kavita-books}:/data/books:ro"
     networks:
       - media-services
       - ingress-public
