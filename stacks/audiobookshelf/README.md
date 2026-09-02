@@ -13,10 +13,13 @@ Self-hosted podcast (and audiobook) server: subscribe to podcasts, stream or dow
 1. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ` to your timezone if different from America/Denver.
+   - Confirm `AUDIOBOOKSHELF_AUDIOBOOKS_PATH` (default `/mnt/unraid/media/audiobooks`).
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open Audiobookshelf via Caddy (e.g. audiobookshelf.home, audiobookshelf.yourdomain.com), create the admin account, then add libraries (e.g. Podcasts pointing at `/podcasts`) and subscribe to feeds.
 
-The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it works when deployed from Portainer's web editor.
+Application state and podcast downloads use local named volumes. The audiobook
+library is a read-only bind mount so Bookshelf or another organizer remains the
+only service that writes media files.
 
 ## Configuration
 
@@ -25,29 +28,20 @@ The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it 
 | **Access** | Via Caddy only (no host port; use audiobookshelf.home, audiobookshelf.yourdomain.com, etc.) |
 | **Network** | `ingress-public` (external), dedicated Caddy-to-service ingress |
 | **Image** | ghcr.io/advplyr/audiobookshelf:latest |
-| **Env** | `TZ` (optional, default America/Denver) |
-| **Storage** | Named volumes: `abs_config`, `abs_metadata`, `abs_audiobooks`, `abs_podcasts` |
+| **Env** | `TZ`; `AUDIOBOOKSHELF_AUDIOBOOKS_PATH` defaults to `/mnt/unraid/media/audiobooks` |
+| **Storage** | `abs_config` and `abs_metadata` stay local; `${AUDIOBOOKSHELF_AUDIOBOOKS_PATH}` → `/audiobooks` (read-only); `abs_podcasts` → `/podcasts` |
 
 ## Features
 
 - **Podcasts** – Subscribe by URL or search (iTunes), stream or download, auto-new-episode downloads.
-- **Audiobooks** – Add folders under `/audiobooks` (e.g. bind-mount extra host paths if you need more than the default volume).
+- **Audiobooks** – Add one audiobook library rooted at `/audiobooks`.
 - **Progress sync** – Web and mobile apps (iOS/Android) sync position and play state.
 - **Libraries** – In the UI, add a "Podcast" library with path `/podcasts`, and optionally an "Audiobook" library with path `/audiobooks`.
 
-## Adding more media (bind mounts)
-
-To use host directories for audiobooks or podcasts instead of (or in addition to) the named volumes, add volume mounts to the `audiobookshelf` service, e.g.:
-
-```yaml
-volumes:
-  - abs_config:/config
-  - abs_metadata:/metadata
-  - /path/on/host/audiobooks:/audiobooks
-  - /path/on/host/podcasts:/podcasts
-```
-
-Then add the corresponding library in the Audiobookshelf UI. Ensure the host directories are readable by the container user (Audiobookshelf typically runs as UID 1000); e.g. `chown -R 1000:1000 /path/on/host/audiobooks` if you need to access files as your host user.
+Audiobookshelf does not support `PUID` or `PGID`. The media bind is read-only,
+while `/config` and `/metadata` remain local Docker volumes as required for
+their SQLite data. If you choose to run the whole container with Compose's
+`user:` setting, update the ownership of both named volumes first.
 
 ## Caddy reverse proxy
 

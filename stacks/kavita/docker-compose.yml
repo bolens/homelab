@@ -21,9 +21,10 @@ services:
       - TZ=${TZ:-America/Denver}
     volumes:
       - kavita_config:/config
-      - "${KAVITA_BOOKS_PATH:-/mnt/unraid/media/books}:/data/books"
+      - "${KAVITA_BOOKS_PATH:-/mnt/unraid/media/books}:/data/books:ro"
       - "${KAVITA_CALIBRE_EXPORT_PATH:-/mnt/unraid/media/kavita-books}:/data/calibre-books:ro"
-      - "${KAVITA_COMICS_PATH:-/mnt/unraid/media/comics}:/data/comics"
+      - "${KAVITA_COMICS_PATH:-/mnt/unraid/media/comics}:/data/comics:ro"
+      - "${KAVITA_MANGA_PATH:-/mnt/unraid/media/manga}:/data/manga:ro"
     networks:
       - ingress-public
     healthcheck:

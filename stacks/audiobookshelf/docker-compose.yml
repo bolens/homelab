@@ -1,5 +1,5 @@
 # Audiobookshelf – self-hosted podcasts (and audiobooks). See https://www.audiobookshelf.org/
-# Portainer-friendly: named volumes and dedicated Caddy ingress network.
+# App state stays in local named volumes; media comes from the shared host tree.
 # Official example: https://github.com/advplyr/audiobookshelf/blob/master/docker-compose.yml
 services:
   audiobookshelf:
@@ -12,7 +12,7 @@ services:
     volumes:
       - abs_config:/config
       - abs_metadata:/metadata
-      - abs_audiobooks:/audiobooks
+      - "${AUDIOBOOKSHELF_AUDIOBOOKS_PATH:-/mnt/unraid/media/audiobooks}:/audiobooks:ro"
       - abs_podcasts:/podcasts
     restart: unless-stopped
     networks:
@@ -32,5 +32,4 @@ networks:
 volumes:
   abs_config:
   abs_metadata:
-  abs_audiobooks:
   abs_podcasts:

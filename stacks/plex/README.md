@@ -14,7 +14,7 @@ Self-hosted media server for movies, TV shows, and music. Plex serves your media
    - Set:
      - `TZ` to your timezone.
      - `PUID` / `PGID` to the user/group that should own media and metadata.
-     - Confirm media paths (defaults `/mnt/unraid/media/{tv,movies,music}`).
+     - Confirm media paths (defaults below `/mnt/unraid/media`).
      - Keep `PLEX_VERSION=latest` to install the newest release available to
        the signed-in account, or use `public` to avoid Plex Pass beta releases.
      - Optionally `PLEX_CLAIM` with a claim token from Plex (first run only).
@@ -29,6 +29,7 @@ Self-hosted media server for movies, TV shows, and music. Plex serves your media
      - `/data/tv` for TV shows.
      - `/data/movies` for movies.
      - `/data/music` for music.
+     - `/data/audiobooks` for an audiobook music library.
 
 Media libraries are bind-mounted from the same host paths used by Sonarr/Radarr/Lidarr (defaults under `/mnt/unraid/media/`).
 An idempotent startup hook ensures the named `/transcode` volume remains
@@ -42,7 +43,11 @@ writable by the configured `PUID`/`PGID`.
 | **Network**| Plex uses host networking for direct clients and LAN discovery; a port-32400-only proxy preserves segmented `ingress-public` and `media-services` access |
 | **Image**  | `lscr.io/linuxserver/plex:latest`                                      |
 | **Env**    | `TZ`, `PUID`, `PGID`, `PLEX_VERSION`, `PLEX_*_PATH`, optional `PLEX_CLAIM` |
-| **Storage**| `plex_config` → `/config`, `plex_transcode` → `/transcode`, host media paths → `/data/{tv,movies,music}` |
+| **Storage**| Local config/transcode volumes; host media → `/data/{tv,movies,music,audiobooks}`; audiobooks are read-only |
+
+Plex can expose `/data/audiobooks` as a separate music library. Audiobookshelf
+remains the preferred audiobook client because it understands narrators,
+chapters, and listening progress.
 
 ## Direct connections and Remote Access
 

@@ -15,7 +15,7 @@ dedicated `media-services` network alongside Plex and related stacks.
 ## Setup
 
 1. Copy `stack.env.example` to `stack.env` and fill in required values.
-2. Create your Kometa config at the path specified by KOMETA_CONFIG_PATH (see Kometa docs for format).
+2. Create your Kometa config at the path specified by `KOMETA_HOST_CONFIG_PATH` (see Kometa docs for format).
 3. Ensure the `media-services` external Docker network exists before deploying.
 4. Deploy: `docker compose up -d`
 
@@ -25,8 +25,8 @@ dedicated `media-services` network alongside Plex and related stacks.
 |----------|----------|---------|-------------|
 | PUID | Yes | 1000 | Host UID for config file ownership |
 | PGID | Yes | 1000 | Host GID for config file ownership |
-| KOMETA_CONFIG_PATH | Yes | /home/youruser/.config/kometa | Host path to Kometa config directory |
-| KOMETA_DATA_PATH | Yes | /home/youruser/.config/kometa/data | Host path to Kometa data directory |
+| KOMETA_HOST_CONFIG_PATH | No | `$HOME/.config/kometa` | Host path to Kometa config directory |
+| KOMETA_HOST_DATA_PATH | No | `$HOME/.config/kometa/data` | Host path to Kometa data directory |
 
 ## Notes
 

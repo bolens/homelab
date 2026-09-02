@@ -10,7 +10,7 @@ Media server for movies, TV shows, and music. Emby serves your library to web, m
 1. **Environment**
    - Copy `stack.env.example` to `stack.env`.
    - Set `TZ`, `PUID`, and `PGID` to match your host user/group.
-   - Confirm media paths (defaults `/mnt/unraid/media/{tv,movies,music}`).
+   - Confirm media paths (defaults below `/mnt/unraid/media`).
 2. **Deploy**
    - From this directory:
      ```bash
@@ -22,6 +22,8 @@ Media server for movies, TV shows, and music. Emby serves your library to web, m
      - `/data/tv` for TV shows.
      - `/data/movies` for movies.
      - `/data/music` for music.
+     - `/data/audiobooks` for audiobooks.
+     - `/data/books` for the scanner-safe Calibre export.
 
 ## NVIDIA GPU transcoding
 
@@ -54,8 +56,12 @@ To use it:
 | **Access** | Via Caddy only (no host ports; reverse-proxy to `emby:8096`)           |
 | **Network**| `ingress-public` plus `media-services`                                  |
 | **Image**  | `lscr.io/linuxserver/emby:latest`                                      |
-| **Env**    | `TZ`, `PUID`, `PGID`, `EMBY_TV_PATH`, `EMBY_MOVIES_PATH`, `EMBY_MUSIC_PATH` |
-| **Storage**| `emby_config` → `/config`, host media paths → `/data/{tv,movies,music}` |
+| **Env**    | `TZ`, `PUID`, `PGID`, and the `EMBY_*_PATH` library paths |
+| **Storage**| `emby_config` → `/config`; host media → `/data/{tv,movies,music,audiobooks,books}`; books and audiobooks are read-only |
+
+`/data/books` defaults to `/mnt/unraid/media/kavita-books`, the automated
+Calibre Save-to-Disk export. Do not point Emby at the live Calibre library:
+that tree is managed with `metadata.db` and is not the shared scanner format.
 
 ## Caddy reverse proxy
 

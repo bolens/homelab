@@ -15,7 +15,8 @@ services:
       - SERVER_PORT=25600
     volumes:
       - komga_config:/config
-      - komga_data:/data
+      - "${KOMGA_COMICS_PATH:-/mnt/unraid/media/comics}:/data/comics:ro"
+      - "${KOMGA_MANGA_PATH:-/mnt/unraid/media/manga}:/data/manga:ro"
     networks:
       - ingress-public
     healthcheck:
@@ -32,4 +33,3 @@ networks:
 
 volumes:
   komga_config:
-  komga_data:

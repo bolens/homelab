@@ -40,9 +40,6 @@ volumes:
 - name: abs_metadata
   role: app_data
   critical: true
-- name: abs_audiobooks
-  role: app_data
-  critical: true
 - name: abs_podcasts
   role: app_data
   critical: true

@@ -27,6 +27,7 @@ services:
       - "${PLEX_TV_PATH:-/mnt/unraid/media/tv}:/data/tv"
       - "${PLEX_MOVIES_PATH:-/mnt/unraid/media/movies}:/data/movies"
       - "${PLEX_MUSIC_PATH:-/mnt/unraid/media/music}:/data/music"
+      - "${PLEX_AUDIOBOOKS_PATH:-/mnt/unraid/media/audiobooks}:/data/audiobooks:ro"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:32400/identity"]
       interval: 60s

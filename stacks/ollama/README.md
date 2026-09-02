@@ -24,7 +24,8 @@ Self-hosted Ollama instance with GPU support for running local LLMs.
 
 1. Run `./prepare-stack.sh` (creates local config and ensures `ai-backend` plus `ingress-admin`).
 
-2. (Optional) Edit `stack.env` and set your model storage path; otherwise models use `./models`:
+2. (Optional) Edit `stack.env` and set your model storage path. The default is
+   `/srv/ollama/models`:
    ```bash
    OLLAMA_MODELS_PATH=/path/to/your/models
    ```
