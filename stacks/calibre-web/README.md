@@ -9,7 +9,7 @@ Access via Caddy at **https://calibre-web.yourdomain.com** (or your configured h
 
 ## Quick start
 
-1. Copy `stack.env.example` → `stack.env`, set `CALIBRE_BOOKS_PATH`, and optionally set `PUID`/`PGID`.
+1. Copy `stack.env.example` → `stack.env`, set `CALIBRE_BOOKS_PATH`, and optionally set `PUID`, `PGID`, or `UMASK`.
 2. From the stack directory: `docker compose up -d`.
 3. Open the web UI. On first run you'll be asked for the Calibre database path: set **/books** (or the path where your `metadata.db` lives inside the container).
 4. Default login: **admin** with the image's default password, change immediately in Admin → Edit user.
@@ -29,7 +29,7 @@ book files. On first setup in the UI, set the database path to **/books**.
 | **Access** | Via Caddy only (no host port; reverse-proxy to `calibre-web:8083`) |
 | **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
 | **Images** | `lscr.io/linuxserver/calibre-web:latest` |
-| **Storage** | `calibre_web_config` (app DB and settings), `${CALIBRE_BOOKS_PATH}` → `/books` |
+| **Storage** | `calibre_web_config` (app DB and settings), `${CALIBRE_BOOKS_PATH}` → `/books`; `UMASK=002` keeps shared files group-writable |
 
 ## Caddy reverse proxy
 
