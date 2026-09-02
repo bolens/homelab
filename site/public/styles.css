@@ -1,4 +1,12 @@
 /* Catalog-surface polish. */
+.atlas-route { display: block; width: min(100%, 52rem); margin-top: clamp(2rem, 5vw, 4rem); overflow: visible; }
+.atlas-route path { fill: none; stroke: var(--line); stroke-width: 2; stroke-dasharray: .08 .025; }
+.atlas-route > g circle { fill: var(--panel); stroke: var(--cyan); stroke-width: 3; }
+.atlas-route .route-line { animation: atlas-route 6s linear infinite; }
+.atlas-route .route-pulse { fill: var(--amber); filter: drop-shadow(0 0 8px var(--amber)); animation: atlas-pulse 6s cubic-bezier(.45,0,.2,1) infinite; }
+@keyframes atlas-route { to { stroke-dashoffset: -1; } }
+@keyframes atlas-pulse { 0%,8% { transform: translate(0,0); } 36% { transform: translate(254px,-32px); } 70% { transform: translate(510px,32px); } 92%,100% { transform: translate(680px,32px); } }
+@media (prefers-reduced-motion: reduce) { .atlas-route * { animation: none !important; } .atlas-route .route-pulse { transform: translate(680px,32px); } }
 ::selection { background: var(--amber); color: #121723; }
 h1, h2, h3 { text-wrap: balance; }
 p { text-wrap: pretty; }
