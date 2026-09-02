@@ -16,7 +16,7 @@ Automated OSINT tool with 180+ modules for domains, IPs, emails, BTC addresses, 
    cp stack.env.example stack.env
    ```
 
-2. **(Optional) Set timezone** in `stack.env` if you don’t want the default:
+2. **(Optional) Set timezone** in `stack.env` if you don't want the default:
 
    ```bash
    TZ=America/Denver

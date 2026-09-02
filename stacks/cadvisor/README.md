@@ -12,7 +12,7 @@ Container resource metrics (CPU, memory, network, filesystem) for all containers
 
 1. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).
 2. Deploy **Prometheus** next (scrapes cAdvisor); then **Grafana** for dashboards.
-3. Optional: open via Caddy (e.g. https://cadvisor.home) to see cAdvisor’s built-in UI.
+3. Optional: open via Caddy (e.g. https://cadvisor.home) to see cAdvisor's built-in UI.
 
 ## Configuration
 
@@ -22,7 +22,7 @@ Container resource metrics (CPU, memory, network, filesystem) for all containers
 | **Network** | `ingress-admin`, shared with Caddy, Prometheus, Grafana |
 | **Privileged** | Required for full container and host visibility |
 
-**Portainer:** Deploy as usual; no config files or volumes. The container runs privileged; ensure you’re comfortable with that on the host.
+**Portainer:** Deploy as usual; no config files or volumes. The container runs privileged; ensure you're comfortable with that on the host.
 
 To limit Prometheus scrape size on hosts with many containers, cAdvisor exports
 only the `com.docker.compose.project` and `com.docker.compose.service` Docker

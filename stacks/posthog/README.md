@@ -1,6 +1,6 @@
 # PostHog (hobby self-host)
 
-[PostHog](https://posthog.com/) is product analytics, session replay, feature flags, and experimentation. The **hobby** deployment is PostHog’s supported Docker Compose layout (Postgres, ClickHouse, Kafka, Temporal, MinIO, SeaweedFS, workers, and an **internal Caddy** `proxy` service that routes traffic to `web`, capture, livestream, etc.).
+[PostHog](https://posthog.com/) is product analytics, session replay, feature flags, and experimentation. The **hobby** deployment is PostHog's supported Docker Compose layout (Postgres, ClickHouse, Kafka, Temporal, MinIO, SeaweedFS, workers, and an **internal Caddy** `proxy` service that routes traffic to `web`, capture, livestream, etc.).
 
 This stack **vendors the upstream compose files** next to this README and adds a small **homelab override**: the `proxy` service joins the shared **`ingress-public`** network, drops host port bindings, and runs **HTTP-only** so your homelab **Caddy** can terminate TLS and forward to `proxy:80`.
 
@@ -73,15 +73,15 @@ This stack **vendors the upstream compose files** next to this README and adds a
 
 ## Portainer
 
-1. Run **clone + prepare** on a host with Git (not inside Portainer’s "Web editor" alone).
+1. Run **clone + prepare** on a host with Git (not inside Portainer's "Web editor" alone).
 2. From this directory, export a **single merged** compose file for pasting or review:
 
    ```bash
    docker compose -f docker-compose.yml config >posthog.merged.compose.yml
    ```
 
-   Portainer’s editor has size limits; prefer **"Upload"** / **stack path on host** pointing at this prepared directory so Portainer runs `docker compose` from disk.
-3. **Environment:** mirror every variable from your `.env` into Portainer’s stack **Environment** UI (same names as `stack.env.example`). PostHog’s hobby file interpolates **`$DOMAIN`**, **`$POSTHOG_SECRET`**, etc., from the project environment.
+   Portainer's editor has size limits; prefer **"Upload"** / **stack path on host** pointing at this prepared directory so Portainer runs `docker compose` from disk.
+3. **Environment:** mirror every variable from your `.env` into Portainer's stack **Environment** UI (same names as `stack.env.example`). PostHog's hobby file interpolates **`$DOMAIN`**, **`$POSTHOG_SECRET`**, etc., from the project environment.
 4. Ensure the **`ingress-public`** network exists on the same Docker endpoint before deploy.
 
 ## Upgrades

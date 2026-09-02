@@ -54,11 +54,11 @@ tunnel traffic may retain `ingress-admin`.
 - **Local DNS:** Add A records (e.g. `portainer.home`, `kuma.home`) to your resolver so hostnames point at this host. Use `https://portainer.home` etc.
 - **Public (your domain):** Use Cloudflare Tunnel (see `stacks/cloudflare-tunnel`) or port forwarding + Let's Encrypt. Set hostnames and email in `Caddyfile`.
 - **URL shortener (YOURLS):** The shortener is reverse-proxied at the same hostnames (e.g. urls.yourdomain.com, short.yourdomain.com). Set `YOURLS_SITE` in the stack to match. Login is handled by YOURLS itself (see `stacks/yourls`).
-- **Optional HTTP forward proxy:** For CLI tools (e.g. Blackbird) that need to route traffic through Caddy, see the commented block in `Caddyfile.example`. Requires Caddy built with `github.com/caddyserver/forwardproxy`; the default `serfriz/caddy-cloudflare` image does not include it. When enabled, add `3128:3128` to the Caddy stack’s `ports`.
+- **Optional HTTP forward proxy:** For CLI tools (e.g. Blackbird) that need to route traffic through Caddy, see the commented block in `Caddyfile.example`. Requires Caddy built with `github.com/caddyserver/forwardproxy`; the default `serfriz/caddy-cloudflare` image does not include it. When enabled, add `3128:3128` to the Caddy stack's `ports`.
 
 ## Building Caddy with plugins
 
-The default `serfriz/caddy-cloudflare` image includes the Cloudflare DNS plugin but not the HTTP forward proxy. To add the forward proxy (for Blackbird and other CLI tools), build a custom Caddy image with [xcaddy](https://github.com/caddyserver/xcaddy). Skip this section if you don’t need the forward proxy.
+The default `serfriz/caddy-cloudflare` image includes the Cloudflare DNS plugin but not the HTTP forward proxy. To add the forward proxy (for Blackbird and other CLI tools), build a custom Caddy image with [xcaddy](https://github.com/caddyserver/xcaddy). Skip this section if you don't need the forward proxy.
 
 **1. Install xcaddy** (if needed):
 
@@ -100,12 +100,12 @@ docker build -t harbor.yourdomain.com/homelab/caddy:latest .
 docker push harbor.yourdomain.com/homelab/caddy:latest
 ```
 
-**4. Use the custom image**, update the Caddy stack’s `docker-compose.yml` to use your image instead of `serfriz/caddy-cloudflare`, then uncomment the `:3128 { forward_proxy }` block in your Caddyfile and add `3128:3128` to the Caddy `ports`.
+**4. Use the custom image**, update the Caddy stack's `docker-compose.yml` to use your image instead of `serfriz/caddy-cloudflare`, then uncomment the `:3128 { forward_proxy }` block in your Caddyfile and add `3128:3128` to the Caddy `ports`.
 
 ## Deploy (keeping Caddyfile out of the repo)
 
 - **From the host (recommended if you use this repo):** Clone the repo on the server, then in `stacks/caddy` create `Caddyfile` from the example and run `docker compose up -d`. Your real `Caddyfile` stays only on the host.
-- **Portainer:** Don’t use "Git repository" for this stack, the repo has no `Caddyfile` (it’s gitignored). Instead:
+- **Portainer:** Don't use "Git repository" for this stack, the repo has no `Caddyfile` (it's gitignored). Instead:
   1. Put your real `Caddyfile` on the host somewhere only the server can see (e.g. `/opt/caddy/Caddyfile`).
   2. Add stack → **Web editor** (or paste the compose from the repo).
   3. Change the Caddyfile volume to that path, e.g.

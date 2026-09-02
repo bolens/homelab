@@ -14,7 +14,7 @@ list containers and stream logs without mounting the Docker socket into the UI.
 1. From this directory: **`./prepare-stack.sh`**, creates `stack.env` (if missing), **`DOZZLE_CONFIG_DIR`** on the host (default **`~/.config/dozzle`**), seeds **`users.yaml`** from **[users.yaml.example](users.yaml.example)** when no `users.yaml`/`users.yml` exists yet, copies **`stack.env` → `.env`** for Compose `${HOME}` interpolation, and ensures the **`ingress-admin`** network exists.
 2. Ensure the **`ingress-admin`** network exists if you skipped the script (e.g. `docker network create ingress-admin` or deploy Caddy first).
 3. **`docker compose up -d`** (after prepare, Compose reads `.env` for bind-mount paths).
-4. Access via Caddy (e.g. https://dozzle.home or https://dozzle.example.com). Start from this stack’s committed [caddy_snippet.conf.example](caddy_snippet.conf.example); the prepared private `caddy_snippet.conf` is imported by the main Caddyfile.
+4. Access via Caddy (e.g. https://dozzle.home or https://dozzle.example.com). Start from this stack's committed [caddy_snippet.conf.example](caddy_snippet.conf.example); the prepared private `caddy_snippet.conf` is imported by the main Caddyfile.
 
 ## Configuration
 
@@ -24,7 +24,7 @@ list containers and stream logs without mounting the Docker socket into the UI.
 | **Volumes** | **Auth data:** host dir **`DOZZLE_CONFIG_DIR`** (default **`~/.config/dozzle`**) → container **`/data`** (`users.yaml` / `users.yml`). |
 | **Network** | `ingress-admin` (external) for Caddy; private `docker-api` for the scoped Docker API proxy. |
 | **Env** | See [stack.env.example](stack.env.example), [ENV-VARS.md](../../documents/ENV-VARS.md), and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md). `DOZZLE_LOCAL_HOST_LABEL` names the local engine in the host selector; `DOZZLE_REMOTE_AGENT` adds remote engines. Set **`DOZZLE_AUTH_PROVIDER=simple`** only with a valid **`users.yaml`** (see below). **`stack.env` → `.env`** is for Compose interpolation only; only selected values are passed into Dozzle. |
-| **Health** | Uses Dozzle’s built-in **`/dozzle healthcheck`** (see https://dozzle.dev/guide/healthcheck ), the image has no `wget`/`sh`. |
+| **Health** | Uses Dozzle's built-in **`/dozzle healthcheck`** (see https://dozzle.dev/guide/healthcheck ), the image has no `wget`/`sh`. |
 
 ## Host views
 

@@ -1,6 +1,6 @@
 # Docker Forensics Toolkit
 
-Post-mortem analysis of Docker runtime environments from forensic copies of a Docker host’s disk. [Docker Forensics Toolkit](https://github.com/docker-forensics-toolkit/toolkit) can mount host disk images, list containers/images, show configs and logs, mount container filesystems, and extract metadata for timeline analysis (e.g. with Sleuth Kit’s `mactime`).
+Post-mortem analysis of Docker runtime environments from forensic copies of a Docker host's disk. [Docker Forensics Toolkit](https://github.com/docker-forensics-toolkit/toolkit) can mount host disk images, list containers/images, show configs and logs, mount container filesystems, and extract metadata for timeline analysis (e.g. with Sleuth Kit's `mactime`).
 
 **GitHub:** https://github.com/docker-forensics-toolkit/toolkit  
 **Usage guide:** https://github.com/docker-forensics-toolkit/toolkit/blob/master/USAGE.md  
@@ -83,8 +83,8 @@ docker compose run --rm docker-forensics-toolkit mount-image help
 | **Access** | CLI only; no web UI, no host ports. Run via `docker compose run --rm docker-forensics-toolkit ...`. |
 | **Image** | Build locally and push to Harbor, or use a pre-built image. Set `DOCKER_FORENSICS_TOOLKIT_IMAGE` in `stack.env`. |
 | **Storage** | Local `data/` bind-mounted to `/data` for disk images. Files created in `data/` may be root-owned; to access as your user run `chown -R $(id -u):$(id -g) ./data` after use. |
-| **docker-gc** | If you use the docker-gc stack, add `docker-forensics-toolkit` to `EXCLUDE_CONTAINERS` in docker-gc’s `stack.env` so the container is not pruned when it has not run recently. Images may still be cleaned. |
-| **docker-gc** | If you use the docker-gc stack, add `docker-forensics-toolkit` to `EXCLUDE_CONTAINERS` in docker-gc’s `stack.env` so the container is not pruned when it has not run recently. Images may still be cleaned. |
+| **docker-gc** | If you use the docker-gc stack, add `docker-forensics-toolkit` to `EXCLUDE_CONTAINERS` in docker-gc's `stack.env` so the container is not pruned when it has not run recently. Images may still be cleaned. |
+| **docker-gc** | If you use the docker-gc stack, add `docker-forensics-toolkit` to `EXCLUDE_CONTAINERS` in docker-gc's `stack.env` so the container is not pruned when it has not run recently. Images may still be cleaned. |
 
 ## Common commands
 
@@ -108,4 +108,4 @@ Full tour: [USAGE.md](https://github.com/docker-forensics-toolkit/toolkit/blob/m
 - Use only on **authorized** forensic copies (your own systems or with explicit permission).
 - **mount-image** uses FUSE/loop and may require running the container with `--privileged`. If you hit permission or mount errors, use `docker compose run --rm --privileged docker-forensics-toolkit mount-image /data/host.raw` or set `privileged: true` in `docker-compose.yml` for that run.
 - The toolkit expects a **full disk or partition image** of a Linux host that ran Docker (e.g. raw, VMDK). The repo uses [imagemounter](https://github.com/ralphje/imagemounter); swap partitions may produce warnings but the root FS mount still succeeds.
-- Optional: set `DOF_IMAGE_MOUNTPOINT` in `stack.env` to the root mountpoint so you don’t have to pass it to every command (then use `docker compose run --rm -e DOF_IMAGE_MOUNTPOINT=/path docker-forensics-toolkit status` or similar).
+- Optional: set `DOF_IMAGE_MOUNTPOINT` in `stack.env` to the root mountpoint so you don't have to pass it to every command (then use `docker compose run --rm -e DOF_IMAGE_MOUNTPOINT=/path docker-forensics-toolkit status` or similar).

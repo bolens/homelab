@@ -51,7 +51,7 @@ threatdragon.home, threatdragon.local {
 }
 ```
 
-For OAuth callbacks (e.g. GitHub), use the same hostname in your OAuth app’s callback URL (e.g. `https://threatdragon.home/oauth/github`).
+For OAuth callbacks (e.g. GitHub), use the same hostname in your OAuth app's callback URL (e.g. `https://threatdragon.home/oauth/github`).
 
 ## Rebuild / update
 

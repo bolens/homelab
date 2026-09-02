@@ -16,7 +16,7 @@ Phone number OSINT tool: looks up basic information about a phone number (countr
    cp stack.env.example stack.env
    ```
 
-2. **(Optional) Set timezone** in `stack.env` if you don’t want the default:
+2. **(Optional) Set timezone** in `stack.env` if you don't want the default:
 
    ```bash
    TZ=America/Denver

@@ -65,14 +65,14 @@ To send transactional and forwarding emails via the shared relay, set:
 
 Ensure the relay allows the `EMAIL_DOMAIN` / `SUPPORT_EMAIL` domain in `ALLOWED_SENDER_DOMAINS` (see [stacks/postfix/README.md](../postfix/README.md)).
 
-For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. All emails appear in Mailpit’s web UI; none are delivered externally. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
+For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. All emails appear in Mailpit's web UI; none are delivered externally. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
 ## Receiving mail (inbound)
 
 Receiving mail for aliases (MX → your server) requires an MTA (e.g. Postfix) that accepts mail for `EMAIL_DOMAIN` (and any `OTHER_ALIAS_DOMAINS`) and delivers to the **email handler** container. The handler listens on port **20381** inside the `simplelogin` network. This stack does not include that MTA; you need to:
 
 - Point MX for `EMAIL_DOMAIN` to the host that runs the MTA.
-- Configure the MTA to deliver to `simplelogin-email:20381` (when the MTA runs in Docker on the same network) or to the host’s published 20381 port if the MTA is on the host.
+- Configure the MTA to deliver to `simplelogin-email:20381` (when the MTA runs in Docker on the same network) or to the host's published 20381 port if the MTA is on the host.
 
 See [SimpleLogin self-hosting](https://github.com/simple-login/app#run-simplelogin-docker-containers) for Postfix relay/transport maps and DNS (SPF, DKIM, DMARC).
 

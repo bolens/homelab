@@ -55,7 +55,7 @@ Use `Ctrl+C` to stop following. If the wizard is still running, return to `https
    ```
    Then in **Admin** → **Workspaces**, edit each affected workspace and set the image tag to the new one (e.g. `kasmweb/brave:1.18.0-rolling-daily`). Re-install or pull the new images from the registry (or manually: `docker exec kasm docker pull kasmweb/brave:1.18.0-rolling-daily`).
 
-3. **If it stays stuck** – Refresh the Workspaces / Registry page; sometimes the UI doesn’t update when installs finish. If logs show repeated errors, fix the cause (e.g. image tag, registry access, or disk space) and retry or restart the container.
+3. **If it stays stuck** – Refresh the Workspaces / Registry page; sometimes the UI doesn't update when installs finish. If logs show repeated errors, fix the cause (e.g. image tag, registry access, or disk space) and retry or restart the container.
 
 ## Configuration
 
@@ -68,7 +68,7 @@ Use `Ctrl+C` to stop following. If the wizard is still running, return to `https
 | **Auth**    | Users and passwords set during the setup wizard; default `admin@kasm.local` and `user@kasm.local` |
 | **Privileged** | Required (DinD – Docker in Docker for spawning workspace containers) |
 
-**Resource limits:** The stack sets CPU and memory **limits** on the Kasm container (`deploy.resources.limits` in `docker-compose.yml`). The Kasm agent inside the container sees only this capacity, so you don’t need to set compute overrides in the admin UI, workspaces use whatever is available within those limits. Adjust `limits.cpus` and `limits.memory` (e.g. `"4"` and `8G`) to dedicate the desired share of the host to Kasm. After changing limits, recreate the container: `docker compose up -d`.
+**Resource limits:** The stack sets CPU and memory **limits** on the Kasm container (`deploy.resources.limits` in `docker-compose.yml`). The Kasm agent inside the container sees only this capacity, so you don't need to set compute overrides in the admin UI, workspaces use whatever is available within those limits. Adjust `limits.cpus` and `limits.memory` (e.g. `"4"` and `8G`) to dedicate the desired share of the host to Kasm. After changing limits, recreate the container: `docker compose up -d`.
 
 **GPU:** The compose file reserves all NVIDIA GPUs when the host has the **nvidia-container-toolkit** installed. Workspace images can then use GPU. If you have no GPU or no toolkit, use the CPU-only override so the container starts: `cp docker-compose.override.yml.example docker-compose.override.yml` (the example omits the GPU reservation). With GPU, do not use that override.
 
@@ -130,7 +130,7 @@ Log in as admin at `https://kasm.yourdomain.com`, then use the admin UI to contr
 | **Admin** → **Groups** | Control which users see which workspaces. Workspaces can be assigned to groups; users only see workspaces for groups they belong to (plus "all users" workspaces). |
 | **Admin** → **Images** | In some versions, image/registry management is under **Images**; use it to add or fix Docker images used by workspaces. |
 
-**Making certain workspaces not available to the default users group:** By default, new workspaces are often added to the "Default User" / "All Users" group. To restrict a workspace to specific groups only: (1) **Admin** → **Workspaces** → edit the workspace → under **Groups** (or **Allowed Groups**), remove **Default User** / **All Users** and assign only the groups that should see it. (2) Optionally enable **Hide Workspace on Dashboard** so it doesn’t appear on the main dashboard for users who have access via another group. (3) To stop new workspaces from being auto-added to the default group, set the global setting **Add Images to Default Group** (or **Add Workspaces To Default Group**) to **False** in **Admin** → **Settings** or **Server** settings; then assign each new workspace to the desired groups manually.
+**Making certain workspaces not available to the default users group:** By default, new workspaces are often added to the "Default User" / "All Users" group. To restrict a workspace to specific groups only: (1) **Admin** → **Workspaces** → edit the workspace → under **Groups** (or **Allowed Groups**), remove **Default User** / **All Users** and assign only the groups that should see it. (2) Optionally enable **Hide Workspace on Dashboard** so it doesn't appear on the main dashboard for users who have access via another group. (3) To stop new workspaces from being auto-added to the default group, set the global setting **Add Images to Default Group** (or **Add Workspaces To Default Group**) to **False** in **Admin** → **Settings** or **Server** settings; then assign each new workspace to the desired groups manually.
 
 **Admin can't add groups or update a user's groups:** Kasm uses permission-based access. If **Add Group** or editing user groups is missing or disabled:
 
@@ -146,7 +146,7 @@ Besides the built-in Kasm Technologies and Kasm AI registries, you can add the *
 
 1. In Kasm: **Workspaces** → **Workspace Registry** (or **Registry** in the nav) → **Add new** / **Workspace Registry Link**.
 2. Use the **root URL only**: `https://kasmregistry.linuxserver.io` (do **not** use `.../1.1/`; that path can fail to add in some versions).
-3. Click **Add**. Some setups may only list a subset of workspaces (e.g. two browsers) from that registry; you can install those and add more workspaces manually (Admin → Workspaces → Add, using image names from [LinuxServer’s Kasm registry](https://kasmregistry.linuxserver.io/) or [baseimage-kasmvnc docs](https://docs.linuxserver.io/images/docker-baseimage-kasmvnc/)). Review any workspace that shows an orange "review" warning before installing.
+3. Click **Add**. Some setups may only list a subset of workspaces (e.g. two browsers) from that registry; you can install those and add more workspaces manually (Admin → Workspaces → Add, using image names from [LinuxServer's Kasm registry](https://kasmregistry.linuxserver.io/) or [baseimage-kasmvnc docs](https://docs.linuxserver.io/images/docker-baseimage-kasmvnc/)). Review any workspace that shows an orange "review" warning before installing.
 
 ## Portainer
 
@@ -172,7 +172,7 @@ Besides the built-in Kasm Technologies and Kasm AI registries, you can add the *
 
 **versions.txt 404 for kasmregistry.linuxserver.io/1.18/:** Kasm may try to fetch version info from the LinuxServer registry; that path can return 404 and is often harmless (log noise). If it bothers you, remove the LinuxServer registry from Workspaces → Registry or ignore the error.
 
-**"manifest unknown" when starting a workspace:** The workspace’s Docker image tag may be invalid or the image was removed from the registry. Kasm images do **not** use a `latest` tag; use a versioned tag (e.g. `1.18.0-rolling-weekly`, `1.18.0`, or `develop`). In Admin → Workspaces (edit the workspace) or Admin → Images, set the image to e.g. `kasmweb/brave:1.18.0-rolling-weekly` instead of `kasmweb/brave:latest`. When pulling manually to monitor progress, use the same tag: `docker exec kasm docker pull kasmweb/brave:1.18.0-rolling-weekly`.
+**"manifest unknown" when starting a workspace:** The workspace's Docker image tag may be invalid or the image was removed from the registry. Kasm images do **not** use a `latest` tag; use a versioned tag (e.g. `1.18.0-rolling-weekly`, `1.18.0`, or `develop`). In Admin → Workspaces (edit the workspace) or Admin → Images, set the image to e.g. `kasmweb/brave:1.18.0-rolling-weekly` instead of `kasmweb/brave:latest`. When pulling manually to monitor progress, use the same tag: `docker exec kasm docker pull kasmweb/brave:1.18.0-rolling-weekly`.
 
 **"Unexpected error while creating" / workspace won't start / containerd "failed to save daemon pid" or "connection refused" in logs:** The inner Docker (DinD) can leave orphaned containerd shim state after a restart or crash, so containerd fails to start and no workspace containers can be created. Fix: stop Kasm, clear the orphaned runtime state in the data volume, then start again (pulled images and Kasm DB are kept):
 
@@ -192,11 +192,11 @@ Besides the built-in Kasm Technologies and Kasm AI registries, you can add the *
 
   Then try launching a workspace again.
 
-  **If Doom (or another workspace) still shows "Unexpected error" after the above:** The failure is often **device passthrough** (e.g. webcam or GPU) when the device doesn’t exist inside the Kasm container. Try: **Admin** → **Access Management** → **Groups** → open the group your user is in → set **Allow Kasm Webcam** to **false**, then try launching the workspace again. To see the exact error: launch the workspace once, then immediately run:
+  **If Doom (or another workspace) still shows "Unexpected error" after the above:** The failure is often **device passthrough** (e.g. webcam or GPU) when the device doesn't exist inside the Kasm container. Try: **Admin** → **Access Management** → **Groups** → open the group your user is in → set **Allow Kasm Webcam** to **false**, then try launching the workspace again. To see the exact error: launch the workspace once, then immediately run:
   `docker exec kasm sh -c 'for c in kasm_manager kasm_api kasm_agent; do echo "=== $c ==="; docker logs $c 2>&1 | tail -100 | grep -iE "error|exception|500|traceback|create|device|gathering"; done'`
   The output will show which container logged the failure and the device or API error (e.g. `error gathering device ... /dev/video0`).
 
-**"Unexpected error" with `plugin "rclone" not found` in logs:** Kasm is trying to create a volume using the **rclone** Docker volume plugin (used for Storage Providers / cloud mounts), but the inner Docker in the LinuxServer image doesn’t have that plugin. Fix: **disable the Storage Provider** so sessions don’t request rclone volumes. In the Kasm UI go to **Settings** → **Storage** (or **Server** → **Storage**), find the provider that uses rclone (e.g. MinIO/S3) and set it to **disabled**, or delete it. If users have added a **Cloud Storage** mapping in their profile (profile icon → Edit Profile → Cloud Storage), they can remove that mapping so their sessions no longer request the rclone volume. After that, try launching the workspace again.
+**"Unexpected error" with `plugin "rclone" not found` in logs:** Kasm is trying to create a volume using the **rclone** Docker volume plugin (used for Storage Providers / cloud mounts), but the inner Docker in the LinuxServer image doesn't have that plugin. Fix: **disable the Storage Provider** so sessions don't request rclone volumes. In the Kasm UI go to **Settings** → **Storage** (or **Server** → **Storage**), find the provider that uses rclone (e.g. MinIO/S3) and set it to **disabled**, or delete it. If users have added a **Cloud Storage** mapping in their profile (profile icon → Edit Profile → Cloud Storage), they can remove that mapping so their sessions no longer request the rclone volume. After that, try launching the workspace again.
 
 **"No resources are available to create the kasm":** Kasm could not find an agent with capacity. On a single-node (LinuxServer) setup, the inner Docker is the only agent. Check:
 
@@ -259,13 +259,13 @@ If you use the **minio** stack and have created a bucket named `kasm`, Kasm and 
 
 1. **Bucket:** Create bucket `kasm` in the MinIO console (e.g. `https://minio.yourdomain.com/console/`) if you have not already.
 2. **Kasm Server Settings:** In the Kasm UI go to **Settings** → **Storage** (or **Server** settings). Set:
-   - **Object Storage Key** = MinIO access key (e.g. `MINIO_ROOT_USER` from the minio stack’s `stack.env`).
+   - **Object Storage Key** = MinIO access key (e.g. `MINIO_ROOT_USER` from the minio stack's `stack.env`).
    - **Object Storage Secret** = MinIO secret key (e.g. `MINIO_ROOT_PASSWORD`).
    - If your Kasm version has an **Object Storage Endpoint** or **S3 Endpoint URL** field, set it to `http://minio:9000`.
 3. **Restart Kasm API** after saving (e.g. `docker restart kasm` or restart from the Kasm admin UI if available).
 4. **Per workspace:** In **Admin** → **Workspaces** → edit a workspace → set **Persistent Profile Path** to an S3 path in the `kasm` bucket, e.g. `s3://kasm/profiles/{homelab-user}/` so each user gets a prefix under the bucket. Use `{homelab-user}` or `{user_id}` as required by your Kasm version.
 
-Users’ profile data will then be stored in MinIO. See [Kasm S3 persistent profiles](https://docs.kasm.com/docs/latest/guide/persistent_data/persistent_profiles.html) and [S3 storage](https://docs.kasm.com/docs/latest/guide/storage_providers/s3.html).
+Users' profile data will then be stored in MinIO. See [Kasm S3 persistent profiles](https://docs.kasm.com/docs/latest/guide/persistent_data/persistent_profiles.html) and [S3 storage](https://docs.kasm.com/docs/latest/guide/storage_providers/s3.html).
 
 ### MinIO as a Storage Provider (mount bucket in sessions)
 

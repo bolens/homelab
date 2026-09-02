@@ -55,7 +55,7 @@ Use **Open WebUI** (in `docker/stacks/open-webui`) as a web UI to install and ma
 1. Start the **ollama** and **open-webui** stacks and set `OLLAMA_BASE_URL` to `http://ollama:11434` on `ai-backend`.
 2. In Open WebUI, go to **Settings (gear) → Connections → Ollama** and click the **Manage** (wrench) button.
 3. From there you can **pull/install models**, see installed models, and manage the connection.
-4. In chat you can also select a model by name; if it’s not installed, Open WebUI can prompt you to download it.
+4. In chat you can also select a model by name; if it's not installed, Open WebUI can prompt you to download it.
 
 No `docker exec` is required for pulling or maintaining models when using Open WebUI.
 
@@ -83,7 +83,7 @@ If you run **CPU-only** and Compose or the engine errors on the `deploy` device 
 ### 1. Install the NVIDIA driver (if not already)
 
 - **Arch / CachyOS:** `sudo pacman -S nvidia` (or `nvidia-dkms` if you use a custom kernel).
-- **Ubuntu/Debian:** Use the driver from your distro (e.g. `ubuntu-drivers install`) or [NVIDIA’s package repo](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/).
+- **Ubuntu/Debian:** Use the driver from your distro (e.g. `ubuntu-drivers install`) or [NVIDIA's package repo](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/).
 - **Fedora/RHEL:** `sudo dnf install akmod-nvidia` (or follow [NVIDIA Container Toolkit guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)).
 
 Reboot if this is the first time installing the driver, then check: `nvidia-smi`.
@@ -114,7 +114,7 @@ The `deploy` block is already in `docker-compose.yml`. After the toolkit and Doc
 docker compose --env-file stack.env up -d --force-recreate
 ```
 
-Confirm the container sees the GPU: `docker exec ollama nvidia-smi` (or check Ollama’s API/UI).
+Confirm the container sees the GPU: `docker exec ollama nvidia-smi` (or check Ollama's API/UI).
 
 ## Model storage
 

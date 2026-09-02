@@ -1,6 +1,8 @@
 # AnythingLLM
 
-All-in-one **RAG workspace**: upload documents, build vector workspaces, and chat with **Ollama** (or other providers) using built-in **LanceDB**.
+AnythingLLM is a **RAG workspace** for uploading documents, building vector
+workspaces, and chatting with **Ollama** or other model providers. The default
+vector database is **LanceDB**.
 
 **Docs:** https://github.com/Mintplex-Labs/anything-llm/blob/master/docker/HOW_TO_USE_DOCKER.md  
 **Image:** `mintplexlabs/anythingllm:latest` (pin a digest or version tag for production)

@@ -14,7 +14,7 @@ Self-hosted [NetBird](https://netbird.io/) control plane: WireGuard-based mesh V
    - Set `authSecret` and `store.encryptionKey` (see generation commands below).
    - Replace `netbird.example.com` with your public hostname (`exposedAddress`, `auth.issuer`, `auth.dashboardRedirectURIs`).
 3. Edit `dashboard.env` so `NETBIRD_MGMT_*` and `AUTH_AUTHORITY` use the **same** `https://` hostname and port clients will use (typically `https://netbird.example.com` with no path).
-4. Import the stack’s `caddy_snippet.conf` into your main Caddyfile (this repo’s Caddy stack imports `stacks/*/caddy_snippet.conf`).
+4. Import the stack's `caddy_snippet.conf` into your main Caddyfile (this repo's Caddy stack imports `stacks/*/caddy_snippet.conf`).
 5. From this directory: `docker compose up -d`.
 
 **Portainer:** Set `NETBIRD_CONFIG_PATH` in the stack environment to the **absolute** path of `config.yaml` on the host (compose defaults to `./config.yaml` relative to the stack dir).

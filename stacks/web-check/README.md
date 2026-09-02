@@ -1,6 +1,7 @@
 # Web-Check
 
-🕵️‍♂️ All-in-one OSINT tool for analysing any website. Comprehensive, on-demand open source intelligence for any website.
+Web-Check collects DNS, TLS, hosting, performance, and security information
+for a supplied website.
 
 **Website:** https://web-check.xyz  
 **Docs:** https://github.com/Lissy93/web-check#readme  
@@ -25,7 +26,7 @@
 
 ## Features
 
-Web-Check provides comprehensive website analysis including:
+Web-Check reports:
 - IP information and geolocation
 - SSL certificate chain analysis
 - DNS records (A, AAAA, MX, TXT, etc.)
@@ -33,14 +34,14 @@ Web-Check provides comprehensive website analysis including:
 - Technology stack detection
 - Performance metrics
 - Security analysis (HSTS, CSP, etc.)
-- And much more...
+- Related host and technology data
 
 ## Optional API Keys
 
-For enhanced features, you can add API keys to `stack.env` (copy `stack.env.example` → `stack.env`):
+Some integrations require API keys in `stack.env` (copy `stack.env.example` → `stack.env`):
 - `GOOGLE_CLOUD_API_KEY` - Quality metrics via Lighthouse
 - `REACT_APP_SHODAN_API_KEY` - Associated hostnames (Shodan)
-- `REACT_APP_WHO_API_KEY` - Comprehensive WhoIs records
+- `REACT_APP_WHO_API_KEY` - WHOIS records
 - `URL_SCAN_API_KEY` - urlscan.io integration
 - `BUILT_WITH_API_KEY` - BuiltWith technology detection
 
@@ -48,7 +49,7 @@ See `stack.env.example` for the template.
 
 ## TLS checks (tls-cipher-suites, tls-security-config, tls-client-support)
 
-These use Mozilla’s TLS Observatory (`tls-observatory.services.mozilla.com`), which is archived and may be retired. The stack sets explicit DNS (8.8.8.8, 1.1.1.1) so the container can resolve that hostname; if you still see `getaddrinfo ENOTFOUND`, the service may no longer be available and those checks will fail until web-check supports an alternative (see [web-check#276](https://github.com/Lissy93/web-check/issues/276)).
+These use Mozilla's TLS Observatory (`tls-observatory.services.mozilla.com`), which is archived and may be retired. The stack sets explicit DNS (8.8.8.8, 1.1.1.1) so the container can resolve that hostname; if you still see `getaddrinfo ENOTFOUND`, the service may no longer be available and those checks will fail until web-check supports an alternative (see [web-check#276](https://github.com/Lissy93/web-check/issues/276)).
 
 ## Start
 

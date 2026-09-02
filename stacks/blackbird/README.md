@@ -68,7 +68,7 @@ Set `BLACKBIRD_IMAGE` in `stack.env` to match the tag you use. Run `./prepare-st
 
 ## Routing through Caddy
 
-To route Blackbird traffic through Caddy’s HTTP forward proxy:
+To route Blackbird traffic through Caddy's HTTP forward proxy:
 
 1. **Build Caddy with the forwardproxy plugin** (the default `serfriz/caddy-cloudflare` image does not include it):
 
@@ -86,9 +86,9 @@ To route Blackbird traffic through Caddy’s HTTP forward proxy:
    }
    ```
 
-3. **Expose port 3128** in the Caddy stack’s `docker-compose.yml` (add `3128:3128` to `ports`).
+3. **Expose port 3128** in the Caddy stack's `docker-compose.yml` (add `3128:3128` to `ports`).
 
-4. **Set proxy env vars** in Blackbird’s `stack.env`:
+4. **Set proxy env vars** in Blackbird's `stack.env`:
 
    ```
    HTTP_PROXY=http://caddy:3128
@@ -100,4 +100,4 @@ Blackbird is already on `security-research`, so it can reach Caddy at `caddy:312
 ## Notes
 
 - Blackbird may rely on third‑party sites and APIs which can change behavior over time; check upstream docs for current flags and output formats.
-- Use only for **authorized** OSINT investigations and respect each site’s terms of service.
+- Use only for **authorized** OSINT investigations and respect each site's terms of service.

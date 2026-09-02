@@ -22,7 +22,7 @@ Holehe checks if an email address is registered on many websites using their "fo
    cp stack.env.example stack.env
    ```
 
-3. **(Optional) Set timezone** in `stack.env` if you don’t want the default:
+3. **(Optional) Set timezone** in `stack.env` if you don't want the default:
 
    ```bash
    TZ=America/Denver
@@ -77,4 +77,4 @@ In your real setup, use the hostname you expose via Cloudflare/Tunnel (for examp
   holehe test@example.com
   ```
 
-Use Holehe only for lawful and ethical purposes; respect the upstream project’s license and disclaimer.
+Use Holehe only for lawful and ethical purposes; respect the upstream project's license and disclaimer.

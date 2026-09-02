@@ -1,6 +1,6 @@
 # CrowdSec + Cloudflare Workers bouncer
 
-This guide shows how to take **decisions from your CrowdSec engine** (running in the `stacks/crowdsec` stack) and **enforce them at Cloudflare’s edge** using the **Cloudflare Workers bouncer**.
+This guide shows how to take **decisions from your CrowdSec engine** (running in the `stacks/crowdsec` stack) and **enforce them at Cloudflare's edge** using the **Cloudflare Workers bouncer**.
 
 - Requests from bad IPs can be **blocked or challenged at Cloudflare** before they reach your tunnel or Caddy.
 - This complements, not replaces, Cloudflare Access / SSO and your existing Caddy configuration.
@@ -16,7 +16,7 @@ Use the Cloudflare Workers bouncer if:
 - You want CrowdSec detections (SSH brute force, HTTP abuse, scanners, etc.) to result in **Cloudflare firewall actions** (block or challenge).
 - You prefer bans to happen at the **edge** instead of only on your homelab host.
 
-If you only ever access services on your LAN and don’t use Cloudflare for them, you may not need this bouncer.
+If you only ever access services on your LAN and don't use Cloudflare for them, you may not need this bouncer.
 
 ---
 
@@ -24,7 +24,7 @@ If you only ever access services on your LAN and don’t use Cloudflare for them
 
 - **CrowdSec stack running** from this repo (`stacks/crowdsec`):
   - LAPI is exposed on the host as `http://127.0.0.1:8080/` via the compose file.
-  - You’ve configured at least some **acquisitions** (Caddy logs, SSH logs, Docker logs, etc.) and installed appropriate **collections**.
+  - You've configured at least some **acquisitions** (Caddy logs, SSH logs, Docker logs, etc.) and installed appropriate **collections**.
 - **Cloudflare**:
   - A Cloudflare account that manages the zones you want to protect (e.g. your homelab domain).
   - A Cloudflare **API token** with permissions for Workers, Workers KV, Zones, and Firewall rules.
@@ -164,7 +164,7 @@ Once the Workers bouncer is running:
 
 - **CrowdSec** analyzes logs (Caddy, SSH, Docker containers) and emits decisions (`ban`, `challenge`, etc.).
 - The **Workers bouncer** syncs those decisions to Cloudflare.
-- Requests from banned IPs are **blocked or challenged at Cloudflare’s edge** before they reach:
+- Requests from banned IPs are **blocked or challenged at Cloudflare's edge** before they reach:
   - Your Cloudflare Tunnel,
   - Your Caddy instance,
   - Your Docker host and apps.
@@ -174,13 +174,13 @@ This works alongside:
 - **Cloudflare Access / Zero Trust** rules for SSO.
 - **Caddy** routing and TLS.
 
-CrowdSec decisions are just another signal feeding Cloudflare’s firewall.
+CrowdSec decisions are just another signal feeding Cloudflare's firewall.
 
 ---
 
 ## 8. Maintenance and safety
 
-- To **change** Cloudflare configuration (zones, actions, etc.), edit the YAML file and, if necessary, run the bouncer’s cleanup/init flows as described in the official docs.
+- To **change** Cloudflare configuration (zones, actions, etc.), edit the YAML file and, if necessary, run the bouncer's cleanup/init flows as described in the official docs.
 - To **rotate** your LAPI key:
   - Remove/re‑add the bouncer with `cscli bouncers delete/add`.
   - Update `lapi_key` in the bouncer config.

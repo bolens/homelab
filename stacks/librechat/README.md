@@ -1,6 +1,7 @@
 # LibreChat Stack
 
-Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code interpreter, and more.
+Self-hosted chat interface for multiple AI providers, agents, MCP tools, code
+execution, search, and image generation.
 
 **Website:** https://www.librechat.ai  
 **Docs:** https://www.librechat.ai/docs  

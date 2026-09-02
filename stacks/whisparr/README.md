@@ -7,7 +7,7 @@ Adult movie collection manager for Usenet and torrents (Servarr family). Monitor
 **GitHub:** https://github.com/Whisparr/Whisparr
 **Docker image:** https://github.com/thespad/docker-whisparr (multi-arch `ghcr.io/thespad/whisparr`)
 
-> There is no LinuxServer.io Whisparr image; this stack uses **thespad**’s image (Alpine-based, port **6969**).
+> There is no LinuxServer.io Whisparr image; this stack uses **thespad**'s image (Alpine-based, port **6969**).
 
 ## Quick start
 

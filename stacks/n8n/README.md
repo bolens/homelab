@@ -13,7 +13,7 @@ Workflow automation: connect apps, APIs, and services with a visual editor. Self
 1. Ensure `ingress-public`, `mail-clients`, `telemetry`, and
    `media-automation` exist (or run `./prepare-stack.sh`).
 2. Copy `stack.env.example` to `stack.env`, set **N8N_HOST** and
-   **WEBHOOK_URL** to the URL where you’ll reach n8n behind Caddy, and set a
+   **WEBHOOK_URL** to the URL where you'll reach n8n behind Caddy, and set a
    random **N8N_RESTART_GATEWAY_TOKEN**. Both URL variables must match your
    Caddy hostname.
 3. Start: `docker compose up -d` from this directory (or deploy as stack in Portainer).

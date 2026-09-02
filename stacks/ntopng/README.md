@@ -1,6 +1,6 @@
 # ntopng
 
-Network traffic analytics and flow monitoring. This stack runs ntopng with host networking so it can observe traffic on the Docker host’s interfaces.
+Network traffic analytics and flow monitoring. This stack runs ntopng with host networking so it can observe traffic on the Docker host's interfaces.
 
 **Website:** https://www.ntop.org/products/traffic-analysis/ntop/  
 **Docs:** https://www.ntop.org/guides/ntopng/  

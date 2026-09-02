@@ -19,7 +19,7 @@ Network-wide DNS-level ad and tracker blocking. Run AdGuard Home on your Docker 
    ```
 
 3. On first run, access the setup wizard via Caddy (e.g. `https://dns.yourdomain.com` or `https://adguard-home.yourdomain.com`) using the example site block in the Caddyfile. Complete the wizard and create an admin account.
-4. Point your router or DHCP server to this Docker host’s IP as the primary DNS server (port 53).
+4. Point your router or DHCP server to this Docker host's IP as the primary DNS server (port 53).
 
 ## Configuration
 

@@ -32,7 +32,7 @@ Dashboard and visualization for Prometheus (and other datasources). Use with the
 | **Network** | `ingress-admin`, shared with Caddy, Prometheus, cAdvisor |
 | **Env** | See [ENV-VARS.md](../../documents/ENV-VARS.md) and [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) for TZ/locale and shared resources. Optional: `GF_SERVER_ROOT_URL`, `GF_SECURITY_*`, `GRAFANA_DATASOURCES_PATH` |
 
-**Portainer:** Use "Git repository" or paste the compose; when deploying from Portainer you **must** set `GRAFANA_DATASOURCES_PATH` in the stack’s Environment to the **absolute path** of your `datasources.yml` on the host (e.g. `/home/youruser/.config/grafana/datasources.yml` or `/opt/grafana/datasources.yml`), otherwise the default becomes `/.config/grafana/datasources.yml` and the stack will fail. Put the file on the host first (copy from `datasources.yml.example`).
+**Portainer:** Use "Git repository" or paste the compose; when deploying from Portainer you **must** set `GRAFANA_DATASOURCES_PATH` in the stack's Environment to the **absolute path** of your `datasources.yml` on the host (e.g. `/home/youruser/.config/grafana/datasources.yml` or `/opt/grafana/datasources.yml`), otherwise the default becomes `/.config/grafana/datasources.yml` and the stack will fail. Put the file on the host first (copy from `datasources.yml.example`).
 
 **Root URL:** If you access Grafana at a different URL (e.g. https://grafana.yourdomain.com), set `GF_SERVER_ROOT_URL` in `stack.env` to that URL so login redirects work. For TZ/locale and shared resources, see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 

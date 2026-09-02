@@ -77,7 +77,7 @@ metube.yourdomain.com {
 }
 ```
 
-In this repo’s Caddy stack, you can add similar site blocks to `Caddyfile` so Caddy can route both local (`*.home`) and public (`*.yourdomain.com`) hostnames to MeTube.
+In this repo's Caddy stack, you can add similar site blocks to `Caddyfile` so Caddy can route both local (`*.home`) and public (`*.yourdomain.com`) hostnames to MeTube.
 
 ## Optional: browser cookies
 

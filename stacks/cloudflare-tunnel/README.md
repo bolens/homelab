@@ -12,7 +12,7 @@ Exposes services on your Docker host via Cloudflare, no port forwarding or dynam
 
 1. **Cloudflare:** Zero Trust → **Networks → Tunnels → Create tunnel** (Cloudflared). Copy the **tunnel token**.
 2. Copy `stack.env.example` → `stack.env` and set `TUNNEL_TOKEN=...`.
-3. In the tunnel’s **Public Hostnames**, add routes (e.g. `portainer.yourdomain.com` → HTTP → `localhost:9443`; `status.yourdomain.com` → `localhost:3001`). To route via Caddy, use **`http://caddy:80`** from the `cloudflared` container on **`edge-services`** (not `localhost:80`, which points at the tunnel container itself). Caddy routes by `Host`. Plain-HTTP upstream blocks should include `transport http { versions 1.1 }` so backends that only speak HTTP/1.1 do not return empty responses through Caddy 2.11+; see `scripts/patch-caddy-h1-transport.py` and stack `caddy_snippet.conf` / `.example` files. (Headscale MagicDNS names like `mylaptop.ts.yourdomain.com` resolve on the tailnet only, no tunnel route needed.)
+3. In the tunnel's **Public Hostnames**, add routes (e.g. `portainer.yourdomain.com` → HTTP → `localhost:9443`; `status.yourdomain.com` → `localhost:3001`). To route via Caddy, use **`http://caddy:80`** from the `cloudflared` container on **`edge-services`** (not `localhost:80`, which points at the tunnel container itself). Caddy routes by `Host`. Plain-HTTP upstream blocks should include `transport http { versions 1.1 }` so backends that only speak HTTP/1.1 do not return empty responses through Caddy 2.11+; see `scripts/patch-caddy-h1-transport.py` and stack `caddy_snippet.conf` / `.example` files. (Headscale MagicDNS names like `mylaptop.ts.yourdomain.com` resolve on the tailnet only, no tunnel route needed.)
 4. Start: `docker compose up -d`.
 
 ## Config file (alternative)
@@ -40,10 +40,10 @@ To protect specific subdomains (e.g. `portainer.yourdomain.com`) with SSO or one
 
 ### "err name not resolved" but nslookup/dig shows the hostname
 
-If the hostname resolves (e.g. you see AAAA addresses) but the browser or `curl` reports "name not resolved", either Cloudflare is only returning AAAA or your **client’s DNS resolver** is (e.g. only returning AAAA, or stale cache).
+If the hostname resolves (e.g. you see AAAA addresses) but the browser or `curl` reports "name not resolved", either Cloudflare is only returning AAAA or your **client's DNS resolver** is (e.g. only returning AAAA, or stale cache).
 
 **Check:** Run `dig +short <hostname> A` and `dig @1.1.1.1 +short <hostname> A`. If the first is empty but the second returns IPv4 addresses, the issue is your **default resolver**, not Cloudflare.
 
 **Fix (client resolver):** Use a resolver that returns A records: set system or router DNS to **1.1.1.1** (or 8.8.8.8), or flush local DNS cache (e.g. `resolvectl flush-caches` on systemd-resolved, or reboot the device that fails).
 
-**Fix (Cloudflare):** If `dig @1.1.1.1 +short <hostname> A` is also empty, in **Cloudflare Dashboard** → your domain → **DNS** ensure the hostname’s record is **Proxied** (orange cloud). Proxied CNAMEs for tunnels normally get both A and AAAA from Cloudflare.
+**Fix (Cloudflare):** If `dig @1.1.1.1 +short <hostname> A` is also empty, in **Cloudflare Dashboard** → your domain → **DNS** ensure the hostname's record is **Proxied** (orange cloud). Proxied CNAMEs for tunnels normally get both A and AAAA from Cloudflare.

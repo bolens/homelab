@@ -32,7 +32,7 @@ The stack uses an internal SQLite DB by default (volume `shlink_data`). For prod
 
 ## Caddy reverse proxy
 
-The repo’s `Caddyfile.example` already includes a block for `short.yourdomain.com` (and `short.home`, `short.local`) proxying to `shlink:8080` with `header_up X-Forwarded-Proto https`. Ensure the stack is on `ingress-public`.
+The repo's `Caddyfile.example` already includes a block for `short.yourdomain.com` (and `short.home`, `short.local`) proxying to `shlink:8080` with `header_up X-Forwarded-Proto https`. Ensure the stack is on `ingress-public`.
 
 Example (hostnames must match `DEFAULT_DOMAIN`):
 

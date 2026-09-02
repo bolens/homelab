@@ -25,7 +25,7 @@ Media server for movies, TV shows, and music. Emby serves your library to web, m
 
 ## NVIDIA GPU transcoding
 
-This stack requests access to your NVIDIA GPU using Docker’s device reservations (similar to the `ollama` stack):
+This stack requests access to your NVIDIA GPU using Docker's device reservations (similar to the `ollama` stack):
 
 ```yaml
 deploy:

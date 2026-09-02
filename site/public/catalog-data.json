@@ -44,7 +44,7 @@
   {
     "name": "AnythingLLM",
     "category": "AI",
-    "summary": "All-in-one RAG workspace: upload documents, build vector workspaces, and chat with Ollama (or other providers) using built-in LanceDB.",
+    "summary": "AnythingLLM is a RAG workspace for uploading documents, building vector workspaces, and chatting with Ollama or other model providers. The default vector database is LanceDB.",
     "url": "apps/anything-llm/"
   },
   {
@@ -254,13 +254,13 @@
   {
     "name": "Diun",
     "category": "Utilities",
-    "summary": "Docker image update notifier. Watches your running containers’ images and sends a notification when new tags are available (e.g. Telegram, Discord, webhook). Complements Watchtower: you see what changed before or after Watchtower pulls. No web UI; no Caddy reverse proxy needed.",
+    "summary": "Docker image update notifier. Watches your running containers' images and sends a notification when new tags are available (e.g. Telegram, Discord, webhook). Complements Watchtower: you see what changed before or after Watchtower pulls. No web UI; no Caddy reverse proxy needed.",
     "url": "apps/diun/"
   },
   {
     "name": "Docker Forensics Toolkit",
     "category": "Utilities",
-    "summary": "Post-mortem analysis of Docker runtime environments from forensic copies of a Docker host’s disk. Docker Forensics Toolkit can mount host disk images, list containers/images, show configs and logs, mount container filesystems, and extract metadata for timeline analysis (e.g. with Sleuth Kit’s mactime).",
+    "summary": "Post-mortem analysis of Docker runtime environments from forensic copies of a Docker host's disk. Docker Forensics Toolkit can mount host disk images, list containers/images, show configs and logs, mount container filesystems, and extract metadata for timeline analysis (e.g. with Sleuth Kit's mactime).",
     "url": "apps/docker-forensics-toolkit/"
   },
   {
@@ -392,7 +392,7 @@
   {
     "name": "Apache Guacamole",
     "category": "Utilities",
-    "summary": "Clientless remote desktop gateway for RDP, VNC, and SSH accessible entirely through a modern HTML5 web browser, no client software required. Once deployed, you reach all your configured desktops and servers via a single Guacamole web UI.",
+    "summary": "Browser-based gateway for RDP, VNC, and SSH connections. Guacamole provides one web interface for configured desktops and servers without a local remote-desktop client.",
     "url": "apps/guacamole/"
   },
   {
@@ -470,7 +470,7 @@
   {
     "name": "IT Tools",
     "category": "Utilities",
-    "summary": "Collection of handy online tools for developers, with great UX. A comprehensive set of utilities for developers and IT professionals.",
+    "summary": "Browser-based utilities for developers and administrators, including text, encoding, hash, JSON, color, and QR-code tools.",
     "url": "apps/it-tools/"
   },
   {
@@ -542,7 +542,7 @@
   {
     "name": "LibreChat Stack",
     "category": "AI",
-    "summary": "Enhanced ChatGPT Clone with support for multiple AI providers, agents, MCP, code interpreter, and more.",
+    "summary": "Self-hosted chat interface for multiple AI providers, agents, MCP tools, code execution, search, and image generation.",
     "url": "apps/librechat/"
   },
   {
@@ -674,7 +674,7 @@
   {
     "name": "Navidrome",
     "category": "Media",
-    "summary": "Self-hosted music streaming server: index your music library and stream it from anywhere with a modern web UI and Subsonic-compatible mobile apps (Android/iOS, desktop players, etc.). Navidrome is lightweight, fast, and handles very large libraries.",
+    "summary": "Self-hosted music server that indexes a local library and streams through its web interface or Subsonic-compatible mobile and desktop clients.",
     "url": "apps/navidrome/"
   },
   {
@@ -734,7 +734,7 @@
   {
     "name": "ntopng",
     "category": "Analytics",
-    "summary": "Network traffic analytics and flow monitoring. This stack runs ntopng with host networking so it can observe traffic on the Docker host’s interfaces.",
+    "summary": "Network traffic analytics and flow monitoring. This stack runs ntopng with host networking so it can observe traffic on the Docker host's interfaces.",
     "url": "apps/ntopng/"
   },
   {
@@ -810,9 +810,9 @@
     "url": "apps/openspeedtest/"
   },
   {
-    "name": "Outline – team knowledge base / wiki",
+    "name": "Outline: team knowledge base and wiki",
     "category": "Security",
-    "summary": "Outline is a modern, collaborative knowledge base and wiki. This stack runs Outline with Postgres, Redis, and S3-compatible storage (e.g. the minio stack) behind Caddy, and is designed to integrate with an external IdP such as Keycloak or authentik.",
+    "summary": "Outline is a collaborative knowledge base. This stack runs Outline with Postgres, Redis, S3-compatible storage such as MinIO, and Caddy. Authentication uses an external identity provider such as Keycloak or Authentik.",
     "url": "apps/outline/"
   },
   {
@@ -902,7 +902,7 @@
   {
     "name": "PostHog (hobby self-host)",
     "category": "Storage",
-    "summary": "PostHog is product analytics, session replay, feature flags, and experimentation. The hobby deployment is PostHog’s supported Docker Compose layout (Postgres, ClickHouse, Kafka, Temporal, MinIO, SeaweedFS, workers, and an internal Caddy proxy service that routes traffic to web, capture, livestream, etc.).",
+    "summary": "PostHog is product analytics, session replay, feature flags, and experimentation. The hobby deployment is PostHog's supported Docker Compose layout (Postgres, ClickHouse, Kafka, Temporal, MinIO, SeaweedFS, workers, and an internal Caddy proxy service that routes traffic to web, capture, livestream, etc.).",
     "url": "apps/posthog/"
   },
   {
@@ -1256,7 +1256,7 @@
   {
     "name": "Web-Check",
     "category": "Osint",
-    "summary": "🕵️‍♂️ All-in-one OSINT tool for analysing any website. Comprehensive, on-demand open source intelligence for any website.",
+    "summary": "Web-Check collects DNS, TLS, hosting, performance, and security information for a supplied website.",
     "url": "apps/web-check/"
   },
   {

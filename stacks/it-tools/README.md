@@ -1,6 +1,7 @@
 # IT Tools
 
-Collection of handy online tools for developers, with great UX. A comprehensive set of utilities for developers and IT professionals.
+Browser-based utilities for developers and administrators, including text,
+encoding, hash, JSON, color, and QR-code tools.
 
 **Website:** https://it-tools.tech
 **Docs:** https://github.com/sharevb/it-tools#readme
@@ -23,14 +24,14 @@ Collection of handy online tools for developers, with great UX. A comprehensive 
 
 ## Features
 
-IT Tools provides a wide range of developer utilities including:
+IT Tools includes:
 - Text converters and formatters
 - Hash generators
 - Base64 encoders/decoders
 - JSON formatters
 - Color pickers
 - QR code generators
-- And many more...
+- Additional conversion and formatting tools
 
 ## Start
 

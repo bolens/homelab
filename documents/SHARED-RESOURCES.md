@@ -42,7 +42,7 @@ Create these once (e.g. from the docker repo root or any host where you run stac
 
 **Address pool exhaustion:** shared external networks are created once and reused by
 services with the same role. Multi-service stacks still use a private per-stack
-network for databases and caches. If pool limits are reached, adjust Docker’s
+network for databases and caches. If pool limits are reached, adjust Docker's
 default address pools in `daemon.json`.
 
 ### MinIO (S3-compatible storage)
@@ -61,7 +61,7 @@ console through `ingress-admin`. Create buckets per app in the MinIO console.
 
 The **postfix** stack (folder `stacks/postfix`) is the shared outbound mail relay. Stacks that send email explicitly join `mail-clients` and point to `smtp-relay:587`. Configure `RELAYHOST`, `ALLOWED_SENDER_DOMAINS`, etc. in the postfix stack; see [stacks/postfix/README.md](../stacks/postfix/README.md).
 
-**Stacks with SMTP relay support:** Alertmanager, Authentik, Diun, Firefly III, Gitea, Hedgedoc, Infisical, Joplin Server, Keycloak, Linkwarden, n8n, Naisho, Nextcloud, Outline, Password Pusher, Romm, Scrutiny, SimpleLogin, Snipe-IT, Uptime Kuma. See each stack’s README for configuration (env vars or admin UI).
+**Stacks with SMTP relay support:** Alertmanager, Authentik, Diun, Firefly III, Gitea, Hedgedoc, Infisical, Joplin Server, Keycloak, Linkwarden, n8n, Naisho, Nextcloud, Outline, Password Pusher, Romm, Scrutiny, SimpleLogin, Snipe-IT, Uptime Kuma. See each stack's README for configuration (env vars or admin UI).
 
 For **internal-only mailing** (no external delivery), deploy the **mailpit** stack and set Postfix `RELAYHOST=mailpit:1025`. Mailpit catches all mail and displays it in a web UI at `https://mailpit.yourdomain.com`; see [stacks/mailpit/README.md](../stacks/mailpit/README.md).
 
@@ -256,7 +256,7 @@ Stacks stay runnable without the shared file: if you use only `stack.env` (e.g. 
 **Portainer**
 Portainer does not load a host path like `shared.env` when deploying from Git or the web editor, so use one of these:
 
-- **Recommended:** Add the same four variables to each stack’s **Environment variables** in Portainer. When creating or editing a stack, in the "Environment variables" section add:
+- **Recommended:** Add the same four variables to each stack's **Environment variables** in Portainer. When creating or editing a stack, in the "Environment variables" section add:
   - `TZ` = your timezone (e.g. `America/Denver`)
   - `LANG` = `en_US.UTF-8` (or your locale)
   - `LC_ALL` = `en_US.UTF-8`
@@ -278,13 +278,13 @@ Several stacks run their own Redis (Outline, Nextcloud, Immich, LibreChat, SearX
 
 **If you want a shared Redis:**
 
-1. Add a small **redis** stack (or reuse an existing one that you’re comfortable sharing) on a dedicated internal dependency network, with a single Redis container and a volume for persistence.
+1. Add a small **redis** stack (or reuse an existing one that you're comfortable sharing) on a dedicated internal dependency network, with a single Redis container and a volume for persistence.
 2. In each app stack that currently has its own Redis:
-   - Remove the Redis service and its volume from that stack’s compose.
+   - Remove the Redis service and its volume from that stack's compose.
    - Point the app to the shared Redis host (e.g. `redis-shared:6379`) and set the **DB index** (e.g. `redis://redis-shared:6379/0` for app A, `/1` for app B). Use different DB numbers per app to avoid key collisions.
 3. Document which app uses which DB index (e.g. in this file or in ENV-VARS.md).
 
-Stacks that don’t opt in keep their bundled Redis; modularity is preserved.
+Stacks that don't opt in keep their bundled Redis; modularity is preserved.
 
 ### 3. Optional shared Postgres (advanced)
 
@@ -322,7 +322,7 @@ To avoid "network/volume does not exist" when bringing up stacks:
    - `docker network create torrents`   (if you use qbittorrent / *arr)
    - `docker network create usenet`    (if you use NZBGet / *arr)
 
-2. **External volumes / host paths** (if your stacks declare them as `external: true` and you haven’t created them yet):
+2. **External volumes / host paths** (if your stacks declare them as `external: true` and you haven't created them yet):
    - Ensure host media paths exist before deploying media stacks, e.g.:
      - `/mnt/unraid/media/{tv,movies,music,books,comics}`
      - `/mnt/unraid/media/downloads/usenet`

@@ -59,10 +59,10 @@ Mutating API requests are blocked.
 
 ## Config file (acquis)
 
-CrowdSec reads **log acquisition** config from `acquis.yaml` on the host, mounted into the container (same pattern as the Prometheus stack’s config file).
+CrowdSec reads **log acquisition** config from `acquis.yaml` on the host, mounted into the container (same pattern as the Prometheus stack's config file).
 
 - **Default path:** `~/.config/crowdsec/acquis.yaml`  
-  Run `./prepare-stack.sh` once: it creates that directory and copies `acquis.yaml.example` there if the file doesn’t exist.
+  Run `./prepare-stack.sh` once: it creates that directory and copies `acquis.yaml.example` there if the file doesn't exist.
 - **Override:** set `CROWDSEC_ACQUIS_PATH` in `stack.env` to the full path to your acquis file (e.g. `/home/youruser/.config/crowdsec/acquis.yaml`).  
   **Portainer:** you must set `CROWDSEC_ACQUIS_PATH` to the **absolute** path to the acquis file on the host, because `$HOME` is not available in that context.
 - Edit the acquis file to add or remove log sources (Docker containers, file paths, etc.), then restart CrowdSec.
@@ -129,7 +129,7 @@ For **Cloudflare edge protection**, use the **Cloudflare Workers bouncer** so Cr
 
 ## Portainer
 
-Stacks → Add stack → **Repository** → Compose path `stacks/crowdsec/docker-compose.yml`. Add env vars from `stack.env.example` if needed. Set **`CROWDSEC_ACQUIS_PATH`** to the **absolute path** to your `acquis.yaml` on the host (e.g. `/home/youruser/.config/crowdsec/acquis.yaml`), since the default uses `$HOME` which is not set in Portainer’s environment. Deploy; LAPI is reached via Caddy (https://crowdsec.yourdomain.com or your internal hostname) or from containers on the same Docker network at `http://crowdsec:8080`.
+Stacks → Add stack → **Repository** → Compose path `stacks/crowdsec/docker-compose.yml`. Add env vars from `stack.env.example` if needed. Set **`CROWDSEC_ACQUIS_PATH`** to the **absolute path** to your `acquis.yaml` on the host (e.g. `/home/youruser/.config/crowdsec/acquis.yaml`), since the default uses `$HOME` which is not set in Portainer's environment. Deploy; LAPI is reached via Caddy (https://crowdsec.yourdomain.com or your internal hostname) or from containers on the same Docker network at `http://crowdsec:8080`.
 
 ## References
 

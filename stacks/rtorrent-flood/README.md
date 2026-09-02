@@ -55,7 +55,7 @@ This stack is intended for **manual use only**. Keep your *arr automation stacks
 
 ### Notes on ports and port‑forwarding
 
-- This stack exposes rTorrent’s listening port `49160` on the Docker host.
+- This stack exposes rTorrent's listening port `49160` on the Docker host.
 - If you want incoming connections from the Internet (often required by private trackers), forward that port on your router to the Docker host.
 - You can change the host port in `docker-compose.yml` if you prefer a different external port; keep the container ports at `49160`.
 

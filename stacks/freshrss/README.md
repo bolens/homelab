@@ -17,7 +17,7 @@ Self-hosted RSS feed aggregator: subscribe to feeds, categories, star articles, 
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open FreshRSS via Caddy (e.g. freshrss.home, freshrss.yourdomain.com), complete the web setup wizard (language, default user, SQLite is pre-configured).
 
-The stack uses a **named volume** (`freshrss_config`) so it works when deployed from Portainer’s web editor.
+The stack uses a **named volume** (`freshrss_config`) so it works when deployed from Portainer's web editor.
 
 ## Configuration
 

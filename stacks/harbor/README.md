@@ -67,14 +67,14 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
    - Follow the official Harbor installation docs to download the installer bundle (online or offline) on your Docker host.
 
 2. **Generate configuration**
-   - Use the installer’s `prepare` script to generate `harbor.yml` and `docker-compose.yml` in a dedicated directory (for example, `/opt/harbor`).
+   - Use the installer's `prepare` script to generate `harbor.yml` and `docker-compose.yml` in a dedicated directory (for example, `/opt/harbor`).
    - Configure:
      - External URL (e.g. `https://harbor.yourdomain.com`).
      - TLS settings (you can terminate TLS at Caddy and run Harbor HTTP-only internally, or let Harbor handle TLS).
      - Storage backend (filesystem, S3, etc.).
 
 3. **Run Harbor**
-   - Use the installer’s scripts (`./install.sh`, `docker compose up -d`, etc.) as documented upstream.
+   - Use the installer's scripts (`./install.sh`, `docker compose up -d`, etc.) as documented upstream.
 
 4. **Integrate with Caddy**
    - If you terminate TLS at Caddy, attach Harbor's proxy to `ingress-admin` and
@@ -178,22 +178,22 @@ Use the shared template so one unit file works for Harbor and every other stack.
    # e.g. also: avahi-alias@gitea.service, avahi-alias@nextcloud.service, …
    ```
    See [documents/SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) (mDNS aliases) for the full list. For a **Harbor-only** unit, you can instead use `stacks/harbor/avahi-harbor-alias.service` as before.
-   Check: from another machine on the LAN, `ping harbor.local` or `avahi-resolve -n harbor.local` should resolve to the Caddy host’s IP.
+   Check: from another machine on the LAN, `ping harbor.local` or `avahi-resolve -n harbor.local` should resolve to the Caddy host's IP.
 
-3. **Harbor and Caddy**: In Harbor’s `harbor.yml`, set `hostname` to the hostname you use in the browser. You can keep the public hostname (e.g. `harbor.yourdomain.com`) there; Caddy serves both that and `harbor.local` (see `Caddyfile.example`). Run `./prepare` and restart Harbor if you change it; ensure Caddy is configured for `harbor.local` (and `harbor.home`) with the same block and `request_body { max_size 0 }`.
+3. **Harbor and Caddy**: In Harbor's `harbor.yml`, set `hostname` to the hostname you use in the browser. You can keep the public hostname (e.g. `harbor.yourdomain.com`) there; Caddy serves both that and `harbor.local` (see `Caddyfile.example`). Run `./prepare` and restart Harbor if you change it; ensure Caddy is configured for `harbor.local` (and `harbor.home`) with the same block and `request_body { max_size 0 }`.
 
 4. **On clients**: Use `https://harbor.local` for login and as the registry when on the LAN. Large pushes/pulls bypass Cloudflare.
 
 **Alternative (without the unit file):** If you prefer not to use the service, you can run once (and keep running) on the Caddy host:
-`avahi-publish -a -R harbor $(hostname -I | awk '{print $1}')`. Or set the machine’s hostname to `harbor` (not recommended if you want to keep your current hostname).
+`avahi-publish -a -R harbor $(hostname -I | awk '{print $1}')`. Or set the machine's hostname to `harbor` (not recommended if you want to keep your current hostname).
 
 **If `avahi-alias@harbor` fails** with `Failed to resolve host name 'harbor.local': Timeout reached`, use the **static Avahi hosts file** instead (see [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) → mDNS aliases): add `LAN_IP  harbor.local` to `/etc/avahi/hosts`, restart avahi-daemon, disable the alias unit. **Note:** many systems do not resolve `/etc/avahi/hosts` on the *same* machine that runs Avahi; other LAN devices should resolve `harbor.local`. On the Caddy host itself, add `LAN_IP  harbor.local` to **`/etc/hosts`** if you need to resolve it there.
 
-### Troubleshooting: https://harbor.local doesn’t work
+### Troubleshooting: https://harbor.local doesn't work
 
-1. **Resolution** – From a LAN client (or the Caddy host): `avahi-resolve -n harbor.local` and `ping harbor.local`. If this fails, mDNS isn’t advertising `harbor` (unit not running, or use `/etc/avahi/hosts` as above).
+1. **Resolution** – From a LAN client (or the Caddy host): `avahi-resolve -n harbor.local` and `ping harbor.local`. If this fails, mDNS isn't advertising `harbor` (unit not running, or use `/etc/avahi/hosts` as above).
 2. **Caddy** – Your **live** Caddyfile (not only the example) must have a server block for `harbor.local` (and optionally `harbor.home`) with `reverse_proxy` to Harbor and `request_body { max_size 0 }`. Reload after edits: `caddy reload --config /path/to/Caddyfile`.
-3. **Harbor proxy** – Caddy’s block uses `proxy:8080` when Harbor is on the `ingress-admin` network as service `proxy`. If Harbor runs elsewhere (e.g. host installer), point Caddy at that (e.g. `host.docker.internal:80`).
+3. **Harbor proxy** – Caddy's block uses `proxy:8080` when Harbor is on the `ingress-admin` network as service `proxy`. If Harbor runs elsewhere (e.g. host installer), point Caddy at that (e.g. `host.docker.internal:80`).
 4. **TLS / `tlsv1 alert internal error`** – If resolution and ping work but `curl -k https://harbor.local` fails with a TLS error:
    - Your **live** Caddyfile must include a block for `harbor.local` (and optionally `harbor.home`) with `tls internal` and the same `reverse_proxy` as in `Caddyfile.example`. If that block is missing, Caddy may be serving a different vhost and the handshake can fail.
    - Reload or restart Caddy so it issues the internal cert for `harbor.local`: from the Caddy stack dir run `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile` or `docker compose restart caddy`. Then try again.
@@ -206,7 +206,7 @@ Use the shared template so one unit file works for Harbor and every other stack.
 If you see `dial tcp <IP>:443: connect: connection refused` when pushing:
 
 1. **Who is &lt;IP&gt;?**
-   - If &lt;IP&gt; is the **machine where you run `docker push`** (e.g. your laptop), then **harbor.local is resolving to the wrong host**. It must resolve to the **Caddy host** (the server that runs the Caddy container). Fix: On the machine where you push, set `/etc/hosts` or your LAN DNS so `harbor.local` → Caddy host’s IP. Or run `docker push` from the Caddy host and use `harbor.local` there (with `harbor.local` in that host’s `/etc/hosts` pointing to 127.0.0.1 or the host’s LAN IP).
+   - If &lt;IP&gt; is the **machine where you run `docker push`** (e.g. your laptop), then **harbor.local is resolving to the wrong host**. It must resolve to the **Caddy host** (the server that runs the Caddy container). Fix: On the machine where you push, set `/etc/hosts` or your LAN DNS so `harbor.local` → Caddy host's IP. Or run `docker push` from the Caddy host and use `harbor.local` there (with `harbor.local` in that host's `/etc/hosts` pointing to 127.0.0.1 or the host's LAN IP).
    - If &lt;IP&gt; is the **Caddy host**, then nothing is listening on 443 on that box.
 
 2. **Caddy listening on 443 (on the Caddy host):**
@@ -235,7 +235,7 @@ When Caddy uses `tls internal` for `harbor.local`, the Docker daemon does not tr
    ```
    If that leaves `ca.crt` empty or wrong, copy the **root** certificate (the last block in `harbor-chain.pem`) into `ca.crt` by hand.
 
-   **When Caddy uses `tls internal`:** Docker needs the **root** CA, not the intermediate. If you already have a cert in `ca.crt` but still get "certificate signed by unknown authority", replace it with Caddy’s root (run from the host that runs Caddy):
+   **When Caddy uses `tls internal`:** Docker needs the **root** CA, not the intermediate. If you already have a cert in `ca.crt` but still get "certificate signed by unknown authority", replace it with Caddy's root (run from the host that runs Caddy):
    ```bash
    docker exec caddy cat /data/caddy/pki/authorities/local/root.crt | sudo tee /etc/docker/certs.d/harbor.local/ca.crt > /dev/null
    ```
@@ -243,7 +243,7 @@ When Caddy uses `tls internal` for `harbor.local`, the Docker daemon does not tr
 3. **Restart Docker**: `sudo systemctl restart docker`
 4. **Log in**: `docker login harbor.local`
 
-**Alternative:** Use Option 3 (direct by IP / `localhost`) and, if Harbor is HTTP internally, add that address to Docker’s `insecure-registries` in `/etc/docker/daemon.json` so you don’t need to trust the internal CA.
+**Alternative:** Use Option 3 (direct by IP / `localhost`) and, if Harbor is HTTP internally, add that address to Docker's `insecure-registries` in `/etc/docker/daemon.json` so you don't need to trust the internal CA.
 
 ### Option 2: Local DNS override (e.g. Pi-hole, AdGuard, router)
 
