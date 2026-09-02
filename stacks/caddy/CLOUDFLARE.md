@@ -8,15 +8,15 @@ All Docker stacks (Caddy, Portainer, Uptime Kuma, Cloudflare Tunnel) run on your
 
 1. Set up the tunnel (see `../cloudflare-tunnel/README.md`)
 2. In Cloudflare Zero Trust → Tunnels → Your Tunnel → Public Hostnames:
-   - Route each hostname → **`http://caddy:80`** when `cloudflared` runs in Docker on the **`ingress-admin`** network (same as Caddy). Do **not** use `localhost:80` there, that is the tunnel container’s loopback, not Caddy.
+   - Route each hostname → **`http://caddy:80`** when `cloudflared` runs in Docker on the **`ingress-admin`** network (same as Caddy). Do **not** use `localhost:80` there, that is the tunnel container's loopback, not Caddy.
    - Plain-HTTP `reverse_proxy` blocks in stack snippets should use **`transport http { versions 1.1 }`** to the upstream so Caddy 2.11 does not negotiate h2c with apps that only speak HTTP/1.1 (symptom: **HTTP 200, empty body** via the tunnel). Regenerate or run `scripts/patch-caddy-h1-transport.py` after editing snippets.
-3. Caddy handles routing based on Host headers (copy `Caddyfile.example` to `Caddyfile` and set your domain). Each app’s **`stacks/<name>/caddy_snippet.conf`** must define **`http://<name>.example.com`** (and usually **`…example.com { tls { dns cloudflare … } }`**) if that hostname should work; snippets that only list **`.home` / `.local`** do not create public routes, see **Split horizon** in [stacks/caddy/README.md](./README.md).
+3. Caddy handles routing based on Host headers (copy `Caddyfile.example` to `Caddyfile` and set your domain). Each app's **`stacks/<name>/caddy_snippet.conf`** must define **`http://<name>.example.com`** (and usually **`…example.com { tls { dns cloudflare … } }`**) if that hostname should work; snippets that only list **`.home` / `.local`** do not create public routes, see **Split horizon** in [stacks/caddy/README.md](./README.md).
 
 **Benefits:** No router config, no dynamic IP management, origin IP hidden.
 
 ### ACME: `No such authorization` (HTTP 404) on new hostnames
 
-After adding many **`*.example.com`** sites at once, Caddy logs may show **`tls.obtain`** errors: **Let's Encrypt `urn:ietf:params:acme:error:malformed`, "No such authorization"** for some identifiers. That is usually **transient** (too many parallel orders, authz reuse timing, or LE-side hiccups). Caddy **retries** (`will retry` / `retrying_in`). If DNS-01 succeeds for the same zone on other names, check **Cloudflare API token** (DNS:Edit), **propagation**, and **[Let’s Encrypt rate limits](https://letsencrypt.org/docs/rate-limits/)**; stagger reloads or wait for retries before assuming a bad snippet.
+After adding many **`*.example.com`** sites at once, Caddy logs may show **`tls.obtain`** errors: **Let's Encrypt `urn:ietf:params:acme:error:malformed`, "No such authorization"** for some identifiers. That is usually **transient** (too many parallel orders, authz reuse timing, or LE-side hiccups). Caddy **retries** (`will retry` / `retrying_in`). If DNS-01 succeeds for the same zone on other names, check **Cloudflare API token** (DNS:Edit), **propagation**, and **[Let's Encrypt rate limits](https://letsencrypt.org/docs/rate-limits/)**; stagger reloads or wait for retries before assuming a bad snippet.
 
 ### Log noise after restarts (Tunnel + Caddy)
 
@@ -43,7 +43,7 @@ In **Cloudflare Dashboard → yourdomain.com → DNS → Records**, add:
 | A    | portainer      | YOUR_PUBLIC_IP | Proxied (orange) or DNS only |
 | A    | status         | YOUR_PUBLIC_IP | Proxied or DNS only |
 
-- **Content:** Your home’s public IPv4 (the one your router gets from the ISP). If it changes, use Cloudflare’s dynamic DNS or a script.
+- **Content:** Your home's public IPv4 (the one your router gets from the ISP). If it changes, use Cloudflare's dynamic DNS or a script.
 - **Proxy:** "Proxied" (orange cloud) = traffic goes through Cloudflare (DDoS hiding, optional WAF). "DNS only" (grey) = direct to your IP.
 
 ## 2. Router: port forwarding
@@ -59,9 +59,9 @@ Caddy is bound to 80/443 on bamboo.local.
 
 **Cloudflare Dashboard → SSL/TLS:**
 
-- Set encryption mode to **Full (strict)** so Cloudflare expects valid HTTPS on your origin. Caddy will get Let’s Encrypt certs for your domain automatically.
+- Set encryption mode to **Full (strict)** so Cloudflare expects valid HTTPS on your origin. Caddy will get Let's Encrypt certs for your domain automatically.
 
-(If you use "Flexible," Cloudflare→origin is HTTP only; Caddy won’t get certs for the origin. Prefer Full (strict).)
+(If you use "Flexible," Cloudflare→origin is HTTP only; Caddy won't get certs for the origin. Prefer Full (strict).)
 
 ## 4. Optional: lock down sensitive services
 
@@ -83,7 +83,7 @@ To expose another app on your domain:
      reverse_proxy host.docker.internal:PORT
    }
    ```
-3. Redeploy the Caddy stack and ensure the app’s port is published on the host.
+3. Redeploy the Caddy stack and ensure the app's port is published on the host.
 
 ## Summary (Port Forwarding Method)
 

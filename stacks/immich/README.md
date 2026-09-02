@@ -27,7 +27,7 @@ openssl rand -hex 16 | tr -d '\n' | head -c 24
 
 Set the output as `DB_PASSWORD` in `stack.env`.
 
-The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it works when deployed from Portainer’s web editor.
+The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it works when deployed from Portainer's web editor.
 
 ## Configuration
 
@@ -52,7 +52,7 @@ To use Google as the login method:
    - `https://immich.yourdomain.com/auth/login`
    - `https://immich.yourdomain.com/user-settings`
    - `app.immich:///oauth-callback` (required for mobile app)
-   - If you use the mobile app and your provider doesn’t allow custom schemes, also add:
+   - If you use the mobile app and your provider doesn't allow custom schemes, also add:
      `https://immich.yourdomain.com/api/oauth/mobile-redirect`
 5. Copy the **Client ID** and **Client secret**.
 
@@ -69,7 +69,7 @@ To use Google as the login method:
    - **Button text:** e.g. "Sign in with Google"
    - **Auto register:** optional (create users on first Google sign-in)
    - **Auto launch:** optional (skip login page and go straight to Google)
-   - **Mobile redirect:** if your Google client doesn’t allow `app.immich:///oauth-callback`, enable **Mobile Redirect URI Override** and set it to `https://immich.yourdomain.com/api/oauth/mobile-redirect`, and add that URL to Google’s redirect URIs.
+   - **Mobile redirect:** if your Google client doesn't allow `app.immich:///oauth-callback`, enable **Mobile Redirect URI Override** and set it to `https://immich.yourdomain.com/api/oauth/mobile-redirect`, and add that URL to Google's redirect URIs.
 3. Save. Test login on web and, if used, on the mobile app.
 
 ### 3. Optional: config file (e.g. for automation)

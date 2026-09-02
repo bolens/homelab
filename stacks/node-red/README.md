@@ -56,5 +56,5 @@ docker compose up -d
 Then visit:
 
 - `https://nodered.home` on your LAN, or
-- `https://nodered.example.com` if you’ve configured public DNS, Cloudflare Tunnel, and (optionally) Cloudflare Access SSO.
+- `https://nodered.example.com` if you've configured public DNS, Cloudflare Tunnel, and (optionally) Cloudflare Access SSO.
 

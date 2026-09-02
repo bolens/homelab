@@ -17,7 +17,7 @@
    ```
 
 3. **Access**
-   - Syncthing’s web UI listens on port `8384` inside the container.
+   - Syncthing's web UI listens on port `8384` inside the container.
    - Put the web UI behind Caddy on `ingress-admin` (e.g. `https://syncthing.yourdomain.com` → `syncthing:8384`).
    - Use the UI to add devices and shared folders.
 

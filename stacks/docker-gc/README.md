@@ -56,7 +56,7 @@ Set `DOCKER_GC_IMAGE` in `stack.env` to match the tag you use (e.g. `harbor.your
 
 4. Once you are comfortable with the output, set `DRY_RUN=false` in `stack.env` (or adjust the fine-grained `DRY_RUN_CONTAINERS` / `DRY_RUN_IMAGES` flags), then re-run the job.
 
-For scheduled runs, create a cron job or systemd timer on the host that periodically calls one of the commands above from this stack directory. The container is designed to run once and exit (like Watchtower’s one-off mode); **Docker will show it as Exited after each run, that is expected.** Schedule it (e.g. weekly) so it runs periodically.
+For scheduled runs, create a cron job or systemd timer on the host that periodically calls one of the commands above from this stack directory. The container is designed to run once and exit (like Watchtower's one-off mode); **Docker will show it as Exited after each run, that is expected.** Schedule it (e.g. weekly) so it runs periodically.
 
 ### Scheduling options
 
@@ -132,5 +132,5 @@ Adjust the path and schedule for your environment. Do not commit real cron paths
 1. **Add stack** → **Web editor** or **Git repository**.
 2. **Before first deploy:** Ensure `stack.env` exists. On the host, in the stack directory, run `./prepare-stack.sh` or `cp stack.env.example stack.env`. If using **Git**: set the compose path to `stacks/docker-gc/docker-compose.yml`.
 3. **Environment variables** (optional): add `DRY_RUN`, `EXCLUDE_CONTAINERS`, `EXCLUDE_IMAGES` to override defaults. Example: `DRY_RUN=false` to actually remove resources (after testing with `true`).
-4. **Deploy.** The container will run once and exit (restart: no). For periodic cleanup, create a cron job or systemd timer on the host that runs `docker compose run --rm docker-gc` from this stack’s directory.
+4. **Deploy.** The container will run once and exit (restart: no). For periodic cleanup, create a cron job or systemd timer on the host that runs `docker compose run --rm docker-gc` from this stack's directory.
 

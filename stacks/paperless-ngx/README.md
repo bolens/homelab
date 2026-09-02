@@ -26,7 +26,7 @@ openssl rand -hex 32
 
 Set the output as `PAPERLESS_SECRET_KEY` in `stack.env` or in the Portainer stack Environment. Also set `PAPERLESS_URL` to your public URL (e.g. `https://paperless.yourdomain.com`).
 
-Config uses **named volumes** for export and consume (no bind-mounted `./export` or `./consume`), so the stack works when deployed from Portainer’s web editor.
+Config uses **named volumes** for export and consume (no bind-mounted `./export` or `./consume`), so the stack works when deployed from Portainer's web editor.
 
 ## Configuration
 

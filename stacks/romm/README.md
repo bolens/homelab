@@ -17,7 +17,7 @@ Access via Caddy at **https://romm.yourdomain.com** (or your configured hostname
    - RomM requires a `config.yml` in its config directory. Copy the [upstream example](https://github.com/rommapp/romm/blob/master/examples/config.example.yml) into the `romm_config` volume after first run, or bind-mount a host directory (see **Library and config** below).
 2. **Deploy:** From the stack directory run `docker compose up -d`.
 3. **First run:** Create an admin user in the web UI. Then add `config.yml` to `/romm/config` (e.g. `docker cp config.yml romm:/romm/config/`) or bind-mount your config and restart.
-4. **Library:** By default the stack uses a named volume `romm_library` for ROMs. For large collections, bind-mount a host path in `docker-compose.yml` (e.g. `- /path/to/your/roms:/romm/library`) and follow RomM’s [folder structure](https://docs.romm.app/latest/Getting-Started/Folder-Structure/).
+4. **Library:** By default the stack uses a named volume `romm_library` for ROMs. For large collections, bind-mount a host path in `docker-compose.yml` (e.g. `- /path/to/your/roms:/romm/library`) and follow RomM's [folder structure](https://docs.romm.app/latest/Getting-Started/Folder-Structure/).
 
 **Portainer:** Add stack → paste `docker-compose.yml` → set env vars from `stack.env` (or mount `stack.env`). Ensure `config.yml` is present in the config volume or bind-mounted before relying on scans.
 

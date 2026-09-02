@@ -7,7 +7,7 @@ Remote access VPN server so you can connect laptops and phones into your homelab
 
 ## Stack type
 
-- **No Caddy hostname** – WireGuard is UDP-only; clients connect directly to your host’s public IP or domain on port 51820.
+- **No Caddy hostname** – WireGuard is UDP-only; clients connect directly to your host's public IP or domain on port 51820.
 - **Host port** – Only `51820/udp` is bound (required for VPN; not HTTP).
 
 ## Quick start

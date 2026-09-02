@@ -71,10 +71,10 @@ Configure providers in Settings → Connections after login.
 
 ### Ollama model management (install & maintain models)
 
-Open WebUI can manage your Ollama models so you don’t need `docker exec`:
+Open WebUI can manage your Ollama models so you don't need `docker exec`:
 
 - **Settings → Connections → Ollama → Manage** (wrench icon): pull new models, see installed models, and configure the Ollama connection.
-- In chat, when you pick a model that isn’t installed, Open WebUI can prompt you to download it.
+- In chat, when you pick a model that isn't installed, Open WebUI can prompt you to download it.
 
 Use this as your web UI for installing and maintaining Ollama models.
 

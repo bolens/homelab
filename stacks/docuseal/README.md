@@ -32,7 +32,7 @@
 
 5. **Caddy** – On the host where Caddy runs, add or import the snippet from `caddy_snippet.conf.example` (replace placeholder hostnames), reload Caddy.
 
-6. **Optional SMTP** – DocuSeal mail settings are not in the compose file by default. To enable outbound mail from Portainer, switch to **Web editor**, and under `docuseal` → `environment`, add the `SMTP_*` keys from the comments in `stack.env.example` (see upstream [environment variables](https://www.docuseal.com/docs/configuring-docuseal-via-environment-variables)). For this homelab’s relay, see [stacks/postfix](../postfix/README.md); attach DocuSeal to the dedicated mail network when enabling it.
+6. **Optional SMTP** – DocuSeal mail settings are not in the compose file by default. To enable outbound mail from Portainer, switch to **Web editor**, and under `docuseal` → `environment`, add the `SMTP_*` keys from the comments in `stack.env.example` (see upstream [environment variables](https://www.docuseal.com/docs/configuring-docuseal-via-environment-variables)). For this homelab's relay, see [stacks/postfix](../postfix/README.md); attach DocuSeal to the dedicated mail network when enabling it.
 
 **Note:** `env_file: ../../shared.env` in compose is optional (`required: false`). It only applies when this stack lives in a git checkout where that path exists; Portainer-only deploys can ignore it or set `TZ` via Portainer if you want.
 

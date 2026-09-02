@@ -13,7 +13,7 @@ file data.
 ## Hostname and access
 
 - **Primary hostname:** `qbittorrent.yourdomain.com` (via Caddy; no host port for the Web UI).
-- **Internal URL for *arr stacks:** `http://qbittorrent:8080` (container name `qbittorrent` is the Gluetun container exposing qBittorrent’s Web UI and API).
+- **Internal URL for *arr stacks:** `http://qbittorrent:8080` (container name `qbittorrent` is the Gluetun container exposing qBittorrent's Web UI and API).
 
 ## Quick start
 
@@ -47,7 +47,7 @@ file data.
    - In Sonarr/Radarr/Lidarr/Readarr, add a download client:
      **qBittorrent**, host `qbittorrent`, port `8080`, and the credentials you
      set.
-   - Set the torrent listening port in qBittorrent. For incoming peers, use your VPN provider’s port forwarding (configure in Gluetun; see Gluetun docs). No host port binding is used; Caddy handles all HTTP access to the Web UI.
+   - Set the torrent listening port in qBittorrent. For incoming peers, use your VPN provider's port forwarding (configure in Gluetun; see Gluetun docs). No host port binding is used; Caddy handles all HTTP access to the Web UI.
 
 ## Configuration
 
@@ -55,7 +55,7 @@ file data.
 |------|---------|
 | **Access** | Web UI and API on port 8080 inside the stack; **only via Caddy** (no host ports). |
 | **Networks** | `torrents` (for *arr and peers), `ingress-admin` (for Caddy). |
-| **Ports** | No host port bindings. Torrent listening port 6881 is internal; for incoming peers use your VPN provider’s port forwarding in Gluetun and set that port in qBittorrent’s connection settings. |
+| **Ports** | No host port bindings. Torrent listening port 6881 is internal; for incoming peers use your VPN provider's port forwarding in Gluetun and set that port in qBittorrent's connection settings. |
 | **Env** | `TZ`, `PUID`, `PGID`; Gluetun: `VPN_SERVICE_PROVIDER`, `VPN_TYPE`, and provider-specific vars (see `stack.env.example` and Gluetun docs). |
 | **Storage** | `qbittorrent_config` → qBittorrent config; `${QBITTORRENT_MEDIA_PATH}` → `/data` |
 

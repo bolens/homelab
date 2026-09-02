@@ -43,7 +43,7 @@
   - Cloudflare Access (Zero Trust) if you want Keycloak to back Access as an IdP.
 - Typical pattern:
   - Create a **realm** for your homelab.
-  - Create **clients** for each app (set redirect URIs to the app’s Caddy URL).
+  - Create **clients** for each app (set redirect URIs to the app's Caddy URL).
   - Configure each app with the corresponding client ID/secret and discovery URL.
 
 ## Email / SMTP (optional)

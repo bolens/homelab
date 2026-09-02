@@ -24,7 +24,7 @@ Outbound VPN client so **specific containers** can use a commercial VPN without 
    ```
 
 3. **Route another container through Gluetun**
-   In another stack’s `docker-compose.yml`, set:
+   In another stack's `docker-compose.yml`, set:
    ```yaml
    my-service:
      image: your/image

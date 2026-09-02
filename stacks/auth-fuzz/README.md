@@ -21,4 +21,4 @@ CLI-only FFUF workspace. The default command prints FFUF help and the configured
 
 - CLI-only tool; use `docker compose run` rather than `up -d`.
 - Only target systems you own or have explicit written permission to test.
-- Combine with Burp Suite or ZAP for more comprehensive web-app fuzzing.
+- Combine with Burp Suite or ZAP to test additional web application paths.

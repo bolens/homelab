@@ -19,7 +19,7 @@ Lightweight, self-hosted password manager compatible with Bitwarden clients (bro
 2. **Deploy:** `docker compose --env-file stack.env up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open the web UI via Caddy, create your account, then set `SIGNUPS_ALLOWED=false` and redeploy.
 
-The stack uses a **named volume** `vw_data` so it works when deployed from Portainer’s web editor.
+The stack uses a **named volume** `vw_data` so it works when deployed from Portainer's web editor.
 
 ## Configuration
 

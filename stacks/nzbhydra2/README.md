@@ -30,7 +30,7 @@ Meta search for Usenet indexers. NZBHydra 2 aggregates results from multiple NZB
      - Add your Usenet indexers (Newznab, etc.).
      - Set the base URL and API key.
 
-Config is stored in the `nzbhydra2_config` named volume so it survives container upgrades and works from Portainer’s web editor.
+Config is stored in the `nzbhydra2_config` named volume so it survives container upgrades and works from Portainer's web editor.
 
 ## Configuration
 

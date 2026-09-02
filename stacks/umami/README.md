@@ -28,7 +28,7 @@ Umami creates a default administrator: **username `admin`**, **password `umami`*
 
 In Umami, add a website to get a **Website ID** and script URL. For apps in this repo (for example [stacks/nodepad](../nodepad/README.md)), set `UMAMI_SCRIPT_URL` and `UMAMI_WEBSITE_ID` if the app supports it.
 
-The tracker endpoint must be reachable from visitors’ browsers (same hostname as your public site, or a dedicated analytics subdomain). The **admin dashboard** should stay behind Caddy and, if you use it, Cloudflare Access.
+The tracker endpoint must be reachable from visitors' browsers (same hostname as your public site, or a dedicated analytics subdomain). The **admin dashboard** should stay behind Caddy and, if you use it, Cloudflare Access.
 
 ## Health checks
 

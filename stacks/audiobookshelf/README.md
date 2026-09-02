@@ -16,7 +16,7 @@ Self-hosted podcast (and audiobook) server: subscribe to podcasts, stream or dow
 2. **Deploy:** `docker compose up -d` (or add the stack in Portainer and set the same vars in the stack Environment).
 3. **First run:** Open Audiobookshelf via Caddy (e.g. audiobookshelf.home, audiobookshelf.yourdomain.com), create the admin account, then add libraries (e.g. Podcasts pointing at `/podcasts`) and subscribe to feeds.
 
-The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it works when deployed from Portainer’s web editor.
+The stack uses **named volumes** (config, metadata, audiobooks, podcasts) so it works when deployed from Portainer's web editor.
 
 ## Configuration
 

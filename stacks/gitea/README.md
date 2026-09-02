@@ -73,4 +73,4 @@ For notifications (password reset, issue mentions, etc.), configure mail in **Si
 
 Ensure your domain is in Postfix `ALLOWED_SENDER_DOMAINS`. For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`; view caught emails at `https://mailpit.yourdomain.com`. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md).
 
-Gitea can act as the Git provider for the `woodpecker-ci` stack via OAuth; see that stack’s README for integration notes.
+Gitea can act as the Git provider for the `woodpecker-ci` stack via OAuth; see that stack's README for integration notes.

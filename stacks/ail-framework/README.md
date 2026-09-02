@@ -18,7 +18,7 @@ theme.
 
 1. **Environment** – Copy `stack.env.example` to `stack.env` if you want to set `TZ` (optional), then run `docker compose --env-file stack.env up -d` or set the same vars in the Portainer stack Environment.
 2. **Deploy:** `docker compose --env-file stack.env up -d` (or add the stack in Portainer).
-3. **Access:** Open via Caddy (e.g. https://ail.home or https://ail.example.com). **Default login:** email `admin@admin.test`. (Some images may write the generated password to a file in the container; if that doesn’t work, run **Reset password** below.) Change the password after first login.
+3. **Access:** Open via Caddy (e.g. https://ail.home or https://ail.example.com). **Default login:** email `admin@admin.test`. (Some images may write the generated password to a file in the container; if that doesn't work, run **Reset password** below.) Change the password after first login.
 4. **Reset admin password (recommended):**
    `docker exec ail-framework bin/LAUNCH.sh -rp`
    (If the container name or path differs, adjust accordingly.)
@@ -111,7 +111,7 @@ AIL 7.x images are **large** (often **many GB** compressed). A public Harbor hos
    ```
    `7.0` and `7.0-cpu` intentionally reference the same CPU image.
 
-4. **Use on other hosts:** Set `AIL_IMAGE=harbor.local/PROJECT/ail-framework:7.0` in `stack.env`, keep `docker-compose.override.yml` (same `/opt/AIL` paths). Ensure Docker trusts Harbor’s TLS cert where needed (see e.g. [social-hunt README](../social-hunt/README.md) → "harbor.local: certificate signed by unknown authority" if applicable).
+4. **Use on other hosts:** Set `AIL_IMAGE=harbor.local/PROJECT/ail-framework:7.0` in `stack.env`, keep `docker-compose.override.yml` (same `/opt/AIL` paths). Ensure Docker trusts Harbor's TLS cert where needed (see e.g. [social-hunt README](../social-hunt/README.md) → "harbor.local: certificate signed by unknown authority" if applicable).
 
 ## Caddy reverse proxy
 
@@ -124,7 +124,7 @@ The stack uses `security-research` for research-tool communication and `ingress-
 ### Login problems (after restarts or unrelated to Docker changes)
 
 - **Not caused by** the compose `tmpfs` for `/run/screen` or screen restarts: user accounts live in Kvrocks/Redis volumes.
-- **Redirect loop or "can’t log in" via Caddy:** ensure your live Caddyfile includes the **`Host` / `X-Forwarded-*`** lines from `caddy_snippet.conf.example`, then reload Caddy. Clear site cookies for your AIL hostname and try again.
+- **Redirect loop or "can't log in" via Caddy:** ensure your live Caddyfile includes the **`Host` / `X-Forwarded-*`** lines from `caddy_snippet.conf.example`, then reload Caddy. Clear site cookies for your AIL hostname and try again.
 - **Wrong or unknown password / lost access after API key change:** `docker exec ail-framework bin/LAUNCH.sh -rp`, then `docker exec ail-framework cat /opt/AIL/DEFAULT_PASSWORD`. Sign in as **`admin@admin.test`**; create a new API key under settings after you are in.
 - **Brute-force timer:** run `./clear-login-lockout.sh` from this stack directory (or wait for TTL).
 - Flask also picks a **new random `SECRET_KEY` and session cookie name on each process start**, so expect to sign in again after container restarts; that is upstream AIL behavior, not the stack tmpfs change.

@@ -1,6 +1,7 @@
 # Navidrome
 
-Self-hosted music streaming server: index your music library and stream it from anywhere with a modern web UI and Subsonic-compatible mobile apps (Android/iOS, desktop players, etc.). Navidrome is lightweight, fast, and handles very large libraries.
+Self-hosted music server that indexes a local library and streams through its
+web interface or Subsonic-compatible mobile and desktop clients.
 
 **Website:** https://www.navidrome.org/
 **Docs:** https://www.navidrome.org/docs/

@@ -28,7 +28,7 @@ This stack is a thin wrapper around the community [logseq-sync](https://github.c
    The `docker-compose.yml` in this stack expects a `Dockerfile` in `./repo` that builds the backend image.
 
 4. **Configure Logseq clients**
-   - Follow the upstream project’s guidance for pointing Logseq at your self-hosted sync backend (may require experimental builds or config flags).
+   - Follow the upstream project's guidance for pointing Logseq at your self-hosted sync backend (may require experimental builds or config flags).
 
 ## Configuration
 

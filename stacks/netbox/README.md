@@ -33,7 +33,7 @@ Then:
 
 ## Why pointer-only?
 
-NetBox’s official Docker deployment is multi-service (PostgreSQL, Redis, workers, housekeeping) and is actively maintained upstream. Keeping that config in one place avoids it drifting from the recommended setup. This stack exists to:
+NetBox's official Docker deployment is multi-service (PostgreSQL, Redis, workers, housekeeping) and is actively maintained upstream. Keeping that config in one place avoids it drifting from the recommended setup. This stack exists to:
 
 - Remind you that NetBox is a good fit for documenting your homelab.
 - Provide a name and placeholder for Caddy, ENV, and topology docs.

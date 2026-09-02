@@ -48,8 +48,8 @@ The `server` and `worker` containers share configuration via environment variabl
   - Cloudflare Access, if you want authentik to act as the backing IdP.
 - Typical pattern:
   - Configure an **application** in authentik for each service.
-  - Use the app’s Caddy URL as the redirect URI.
-  - Configure the app with authentik’s discovery URL and client credentials.
+  - Use the app's Caddy URL as the redirect URI.
+  - Configure the app with authentik's discovery URL and client credentials.
 
 ## Troubleshooting
 

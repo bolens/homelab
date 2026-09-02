@@ -54,7 +54,7 @@ docker compose --env-file stack.env restart seerr
 | **Storage** | `SEERR_CONFIG_PATH` (default `${HOME}/.config/seerr`) → `/app/config` (SQLite by default; see [database options](https://docs.seerr.dev/extending-seerr/database-config)) |
 | **Process user** | Runs as UID **1000** (`node`). If you bind-mount config instead of the named volume, `chown -R 1000:1000` that path. |
 
-Set the **public URL** in Seerr’s settings to match the URL users use (e.g. `https://seerr.example.com`) so OAuth and links work behind Caddy.
+Set the **public URL** in Seerr's settings to match the URL users use (e.g. `https://seerr.example.com`) so OAuth and links work behind Caddy.
 
 ## Caddy reverse proxy
 

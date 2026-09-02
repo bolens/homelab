@@ -34,7 +34,7 @@ Prometheus Alertmanager for routing alerts (email, webhooks, chat, etc.) based o
 
 ### Integrating with Prometheus
 
-- Add an `alerting` block in your Prometheus config so it knows where to send alerts. The main repo’s `stacks/prometheus/prometheus.yml.example` includes this; if you use that file, Prometheus already points at `alertmanager:9093`. Add alert rules (e.g. `rule_files` or recording rules) as needed.
+- Add an `alerting` block in your Prometheus config so it knows where to send alerts. The main repo's `stacks/prometheus/prometheus.yml.example` includes this; if you use that file, Prometheus already points at `alertmanager:9093`. Add alert rules (e.g. `rule_files` or recording rules) as needed.
 - Ensure the **Alertmanager** and **Prometheus** stacks are on `telemetry`.
 
 ### Receivers

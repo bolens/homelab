@@ -1,6 +1,6 @@
 # Diun
 
-Docker image update notifier. Watches your running containers’ images and sends a notification when new tags are available (e.g. Telegram, Discord, webhook). Complements Watchtower: you see what changed before or after Watchtower pulls. No web UI; no Caddy reverse proxy needed.
+Docker image update notifier. Watches your running containers' images and sends a notification when new tags are available (e.g. Telegram, Discord, webhook). Complements Watchtower: you see what changed before or after Watchtower pulls. No web UI; no Caddy reverse proxy needed.
 
 **Website:** https://crazymax.dev/diun
 **Docs:** https://crazymax.dev/diun/
@@ -48,7 +48,7 @@ ping, and version endpoints; mutating API requests are disabled.
 
 By default Diun watches all containers. To watch only stacks you care about:
 
-1. Set `DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=false` in this stack’s env.
+1. Set `DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT=false` in this stack's env.
 2. Add to each service you want to watch: `labels: - "diun.enable=true"`.
 
 ## Start

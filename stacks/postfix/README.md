@@ -77,7 +77,7 @@ Apps still send to `smtp-relay:587`; Postfix relays to Mailpit, which catches al
 | **Mailgun** | 100 emails/day | From $15/mo (10k) | `smtp.mailgun.org:587` (US) or `smtp.eu.mailgun.org:587` (EU) |
 | **SendGrid** | 100/day for 60-day trial | From ~$20/mo | `smtp.sendgrid.net:587` |
 
-**Homelab recommendation:** **Brevo** has the most generous free tier (300/day, no credit card). **AWS SES** is cheapest at scale ($0.10 per 1,000). Verify current pricing on each provider’s site before signing up.
+**Homelab recommendation:** **Brevo** has the most generous free tier (300/day, no credit card). **AWS SES** is cheapest at scale ($0.10 per 1,000). Verify current pricing on each provider's site before signing up.
 
 ## Public access (`smtp.yourdomain.com`)
 

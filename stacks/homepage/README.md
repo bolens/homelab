@@ -72,7 +72,7 @@ This stack serves a public static page. It is typically **not** protected by Clo
 ## Portainer
 
 1. Ensure the `ingress-admin` network exists (e.g. create it from Networks or deploy Caddy first).
-2. Stacks → Add stack → paste this compose (or pull from repo). Set **Web editor** path to this stack’s `docker-compose.yml`.
+2. Stacks → Add stack → paste this compose (or pull from repo). Set **Web editor** path to this stack's `docker-compose.yml`.
 3. Optionally set environment variables (e.g. `TZ`); defaults work.
 4. Add the Caddy site block(s) above to your Caddyfile and reload Caddy.
 

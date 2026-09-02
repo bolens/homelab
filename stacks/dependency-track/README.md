@@ -43,7 +43,7 @@ Software Composition Analysis (SCA) platform: upload SBOMs (CycloneDX, SPDX), tr
 
 ## API_BASE_URL (required)
 
-The frontend only serves static files; all API calls are made **from the user’s browser** to `API_BASE_URL`. You must set this to the URL where Caddy exposes the Dependency-Track API.
+The frontend only serves static files; all API calls are made **from the user's browser** to `API_BASE_URL`. You must set this to the URL where Caddy exposes the Dependency-Track API.
 
 **Option A – Path-based (one hostname)**
 Caddy serves frontend at `/` and API at `/api`:

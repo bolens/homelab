@@ -57,4 +57,4 @@ If you do **not** use web clients, you can leave 21118/21119 closed.
 
 ## Portainer
 
-Paste this stack’s `docker-compose.yml`, add an **Environment** section or upload `stack.env` contents. **Host networking** applies to the Portainer host; ensure firewall rules match the table above.
+Paste this stack's `docker-compose.yml`, add an **Environment** section or upload `stack.env` contents. **Host networking** applies to the Portainer host; ensure firewall rules match the table above.

@@ -46,7 +46,7 @@ hardlinked torrent imports.
 | Item        | Details                                                                 |
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `sonarr:8989`)          |
-| **Networks** | `ingress-admin`, `usenet`, `torrents`, plus the stack’s default network     |
+| **Networks** | `ingress-admin`, `usenet`, `torrents`, plus the stack's default network     |
 | **Image**  | `lscr.io/linuxserver/sonarr:latest`                                    |
 | **Env**    | `TZ`, `PUID`, `PGID`, `SONARR_MEDIA_PATH`, optional `SONARR__*` |
 | **Storage**| `sonarr_config` → `/config`, `${SONARR_MEDIA_PATH}` → `/data` |

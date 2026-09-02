@@ -1,6 +1,9 @@
-# Outline – team knowledge base / wiki
+# Outline: team knowledge base and wiki
 
-[Outline](https://www.getoutline.com/) is a modern, collaborative knowledge base and wiki. This stack runs Outline with Postgres, Redis, and S3-compatible storage (e.g. the `minio` stack) behind Caddy, and is designed to integrate with an external IdP such as Keycloak or authentik.
+[Outline](https://www.getoutline.com/) is a collaborative knowledge base. This
+stack runs Outline with Postgres, Redis, S3-compatible storage such as MinIO,
+and Caddy. Authentication uses an external identity provider such as Keycloak
+or Authentik.
 
 **Website:** https://www.getoutline.com/  
 **Docs:** https://www.getoutline.com/developers  

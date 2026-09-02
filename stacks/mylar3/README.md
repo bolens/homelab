@@ -25,7 +25,7 @@ Access via Caddy at **https://mylar3.yourdomain.com** (or your configured hostna
 
 ## Integration with Komga
 
-Point Mylar3’s Comic Location at `/data/comics`. Komga can continue mounting
+Point Mylar3's Comic Location at `/data/comics`. Komga can continue mounting
 the corresponding host directory independently.
 
 ## Configuration

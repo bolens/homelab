@@ -26,7 +26,7 @@ Access is part of **Cloudflare Zero Trust**. The free tier includes a limited nu
 6. **Application domain:** use the **exact subdomain** that your tunnel already exposes:
   - **Subdomain:** e.g. `portainer` (or whatever hostname you use).
   - **Domain:** select your zone (e.g. `yourdomain.com`).
-  - So the application domain is `portainer.yourdomain.com`, the same hostname as in your tunnel’s Public Hostnames.
+  - So the application domain is `portainer.yourdomain.com`, the same hostname as in your tunnel's Public Hostnames.
 7. Click **Save**.
 
 Traffic to that hostname will now be checked by Access before it is sent through the tunnel to Caddy and your app.
@@ -35,12 +35,12 @@ Traffic to that hostname will now be checked by Access before it is sent through
 
 ## 2. Add a policy (who can log in)
 
-Right after saving the application you’ll be prompted to add a policy. You can also go to **Access** → **Applications** → your app → **Policies** and add or edit there.
+Right after saving the application you'll be prompted to add a policy. You can also go to **Access** → **Applications** → your app → **Policies** and add or edit there.
 
 ### Option A: SSO (Google, GitHub, Azure AD, Okta, etc.)
 
 1. In Zero Trust go to **Settings** → **Authentication** → **Login methods**.
-2. Add and configure an **identity provider** (e.g. Google, GitHub, Azure AD, Okta, or generic OIDC/SAML). Follow Cloudflare’s prompts (redirect URLs, client ID/secret, etc.).
+2. Add and configure an **identity provider** (e.g. Google, GitHub, Azure AD, Okta, or generic OIDC/SAML). Follow Cloudflare's prompts (redirect URLs, client ID/secret, etc.).
 3. Back in **Access** → **Applications** → your app → **Policies** → **Add a policy**:
   - **Policy name:** e.g. `Allow team SSO`.
   - **Action:** **Allow**.
@@ -80,11 +80,11 @@ To protect only part of a hostname (e.g. `/admin`):
 
 ## 3b. Special case: Headscale (keep domain accessible for Tailscale clients)
 
-**Headscale’s hostname must stay reachable** by Tailscale clients (phones, laptops, servers) for login and registration. Those clients talk to the server over HTTPS but are not browsers, if you put Cloudflare Access on the **entire** hostname, they would get an HTML login page instead of the API response and **client login would break**.
+**Headscale's hostname must stay reachable** by Tailscale clients (phones, laptops, servers) for login and registration. Those clients talk to the server over HTTPS but are not browsers, if you put Cloudflare Access on the **entire** hostname, they would get an HTML login page instead of the API response and **client login would break**.
 
 **Ways to protect Headscale while keeping the domain usable for clients:**
 
-1. **Don’t put Access on the Headscale hostname.** Rely on Headscale’s own auth (pre-auth keys, OIDC if you use it) and exposure only via your tunnel. The hostname is "protected" by not being widely advertised and by requiring a valid key to join the tailnet.
+1. **Don't put Access on the Headscale hostname.** Rely on Headscale's own auth (pre-auth keys, OIDC if you use it) and exposure only via your tunnel. The hostname is "protected" by not being widely advertised and by requiring a valid key to join the tailnet.
 2. **Protect only a path (if you run an admin UI on the same host).** Headscale has no built-in web UI. If you run a separate admin UI (e.g. Headplane, headscale-admin) on the **same** hostname under a path (e.g. `headscale.yourdomain.com/admin`), create an Access application **only for that path** (`headscale.yourdomain.com/admin`). Then only `/admin` requires SSO; Tailscale client traffic to `/register`, `/key`, `/ts`, etc. is unchanged and clients can log in.
 3. **Separate hostname for admin.** Run the admin UI on a different hostname (e.g. `headscale-admin.yourdomain.com`) and put Access on that hostname only. Leave `headscale.yourdomain.com` without an Access application so clients can reach it.
 
@@ -95,7 +95,7 @@ To protect only part of a hostname (e.g. `/admin`):
 ## 4. No Caddy or tunnel config changes
 
 - **Tunnel:** Keep your existing Public Hostnames (e.g. `portainer.yourdomain.com` → `localhost:80`). No change.
-- **Caddy:** No change. Access runs in front of the tunnel; by the time traffic reaches Caddy it’s already been allowed by Access. You do **not** need to add Access headers in Caddy unless an app explicitly uses them (e.g. for homelab-user).
+- **Caddy:** No change. Access runs in front of the tunnel; by the time traffic reaches Caddy it's already been allowed by Access. You do **not** need to add Access headers in Caddy unless an app explicitly uses them (e.g. for homelab-user).
 
 If you previously used **basic auth** in Caddy for that hostname, you can remove it and rely on Access instead, or keep both (Access first, then optional app-level auth).
 
@@ -103,7 +103,7 @@ If you previously used **basic auth** in Caddy for that hostname, you can remove
 
 ## 5. Optional: pass identity to the app
 
-Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or headers you configure). Most homelab apps don’t need this; they use their own login. If you want to use JWT or headers, see [Cloudflare Access – JWT validation](https://developers.cloudflare.com/cloudflare-one/identity/users/validating-json/) and **Access** → **Applications** → your app → **Overview** → **Application identity**.
+Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or headers you configure). Most homelab apps don't need this; they use their own login. If you want to use JWT or headers, see [Cloudflare Access – JWT validation](https://developers.cloudflare.com/cloudflare-one/identity/users/validating-json/) and **Access** → **Applications** → your app → **Overview** → **Application identity**.
 
 ---
 

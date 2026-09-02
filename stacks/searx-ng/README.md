@@ -46,7 +46,7 @@ From this directory: `./prepare-stack.sh && docker compose --env-file stack.env 
 
 - Preferred: **Stacks** → **Add stack** → **Repository**, compose path `stacks/searx-ng/docker-compose.yml`.
 - On the Docker host, run `./prepare-stack.sh` first so `stack.env`, `caddy_snippet.conf`, and the host `settings.yml` exist.
-- In Portainer’s stack environment, set at least `SEARXNG_SECRET`, `SEARXNG_BASE_URL` (public HTTPS URL), and `SEARXNG_SETTINGS_PATH` (absolute path on the host to `settings.yml`).
+- In Portainer's stack environment, set at least `SEARXNG_SECRET`, `SEARXNG_BASE_URL` (public HTTPS URL), and `SEARXNG_SETTINGS_PATH` (absolute path on the host to `settings.yml`).
 - Attach SearXNG to `ingress-public` so Caddy can reach `searxng:8080`.
 - Do not publish HTTP ports from this stack if Caddy is the front door.
 

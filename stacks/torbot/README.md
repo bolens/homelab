@@ -67,4 +67,4 @@ If the `torbot` binary is not found: `docker compose exec torbot python -m torbo
 
 ## Portainer
 
-Stacks → Add stack → **Repository** → Compose path `stacks/torbot/docker-compose.yml`. Set `TORBOT_IMAGE` in the stack Environment to your registry image (build from upstream or from this stack’s Dockerfile once, then push).
+Stacks → Add stack → **Repository** → Compose path `stacks/torbot/docker-compose.yml`. Set `TORBOT_IMAGE` in the stack Environment to your registry image (build from upstream or from this stack's Dockerfile once, then push).
