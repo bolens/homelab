@@ -48,3 +48,15 @@ test('mobile pages do not overflow horizontally', async ({ page }) => {
     expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client);
   }
 });
+
+test("theme selection follows the system and persists explicit choices", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("");
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "light");
+
+  await page.getByLabel("Color theme").selectOption("dark");
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+  await page.reload();
+  await expect(page.getByLabel("Color theme")).toHaveValue("dark");
+  await expect(page.locator("html")).toHaveAttribute("data-color-scheme", "dark");
+});
