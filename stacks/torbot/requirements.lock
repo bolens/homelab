@@ -29,6 +29,6 @@ threadpoolctl==3.6.0
 toml==0.10.2
 treelib==1.8.0
 unipath==1.1
-urllib3==2.6.3
+urllib3==2.7.0
 validators==0.35.0
 yattag==1.16.1
