@@ -1,0 +1,16 @@
+{
+  "python": [
+    "*"
+  ],
+  "javascript": [
+    "scripts/*.js",
+    "scripts/*.mjs",
+    "site/*.js",
+    "tests/*.js",
+    "playwright.config.js"
+  ],
+  "css": [
+    "site/*.css"
+  ],
+  "notes": "Complements native repository checks. Managed Spec Kit files retain their dedicated integrity gate; imported snapshots and generated/native-checked surfaces are scoped separately."
+}
