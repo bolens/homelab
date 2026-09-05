@@ -29,6 +29,10 @@ permissions: {}
 
 jobs:
   validate:
+    # Only validation is disposable; the update job writes a pull request.
+    concurrency:
+      group: ${{ github.workflow }}-validate-${{ github.ref }}
+      cancel-in-progress: true
     permissions:
       contents: read
     if: github.event_name != 'schedule' && !inputs.update
