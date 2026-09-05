@@ -19,6 +19,19 @@ make ci-local
 Regenerate catalog or topology output from its source rather than hand-editing
 it. Record optional validator skips accurately.
 
+## Push
+
+Follow the [fleet push and merge steps](https://github.com/bolens/.github/blob/main/RELEASING.md#push-and-merge).
+After the local checks pass, inspect the diff, commit focused changes, and push
+only the feature branch to the GitHub remote:
+
+```sh
+git push --set-upstream github HEAD
+```
+
+Confirm `github` points to `bolens/homelab` on GitHub before pushing.
+Do not push `main`, force-push, skip failing hooks, or bypass protection.
+
 ## Review, deliver, and verify
 
 Open a GitHub pull request, require all checks and resolved conversations, and
