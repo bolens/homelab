@@ -35,7 +35,7 @@ task.
 make validate
 ```
 
-Use make validate-changed BASE=github/main or make ci-local for broader changes,
+Use make validate-changed BASE=origin/main or make ci-local for broader changes,
 following RELEASING.md. Validation does not authorize image pulls, directory creation
 over missing mounts, service changes, or destructive volume removal.
 

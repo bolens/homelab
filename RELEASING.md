@@ -6,13 +6,13 @@ not authorize pulling images, deploying stacks, or changing live services.
 
 ## Prepare and validate
 
-Branch from current `github/main`. Read every file and local README for each
+Branch from current `origin/main`. Read every file and local README for each
 touched stack. Update Compose, environment example, stack metadata,
 preparation, ingress example, and documentation together. Use placeholders only
 and never inspect or stage live secrets or ignored runtime configuration.
 
 ```sh
-make validate-changed BASE=github/main
+make validate-changed BASE=origin/main
 make ci-local
 ```
 
@@ -23,10 +23,12 @@ it. Record optional validator skips accurately.
 
 Follow the [fleet push and merge steps](https://github.com/bolens/.github/blob/main/RELEASING.md#push-and-merge).
 After the local checks pass, inspect the diff, commit focused changes, and push
-only the feature branch to the GitHub remote:
+only the feature branch to the GitHub remote. Confirm `git remote get-url --push
+origin` names `bolens/homelab` on GitHub; use the corresponding remote name if
+your checkout uses another alias:
 
 ```sh
-git push --set-upstream github HEAD
+git push --set-upstream origin HEAD
 ```
 
 Confirm `github` points to `bolens/homelab` on GitHub before pushing.
