@@ -1,6 +1,6 @@
 # Specification: Preserve missing media storage boundaries
 
-Status: Implementation in progress
+Status: Implemented; source delivery and hosted validation verified
 
 The preparation standard forbids creating media bind directories when a remote
 mount may be missing. Sixteen wrappers currently call the shared mkdir helper
