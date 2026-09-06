@@ -163,3 +163,12 @@ stacks/asking-ng/
 # The Clark image build context intentionally includes its generated hash lock.
 !stacks/clark-browser/build/
 !stacks/clark-browser/build/requirements.txt
+
+# Local tooling and runtime artifacts
+compose.override.yml
+compose.override.yaml
+compose.*.local.yml
+compose.*.local.yaml
+docker-compose.override.yaml
+docker-compose.*.local.yaml
+docker-compose.override.*.yaml
