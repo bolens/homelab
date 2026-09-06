@@ -1,5 +1,7 @@
 # Custom container images
 
+[Documentation](README.md)
+
 GitHub Actions builds the repository's self-contained Dockerfiles and publishes
 them to GHCR after changes reach `main`. Pull requests build the same matrix
 without publishing it.

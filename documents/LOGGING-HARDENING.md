@@ -1,5 +1,7 @@
 # Logging hardening and migration
 
+[Documentation](README.md)
+
 ## Docker log rotation
 
 The repository baseline is `config/docker/daemon.json`. It uses Docker's

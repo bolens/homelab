@@ -1,5 +1,7 @@
 # Stack troubleshooting
 
+[Documentation](README.md)
+
 ## Healthchecks
 
 Healthchecks must use the **port and path** the app actually listens on. Known fixes applied in this repo:

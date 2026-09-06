@@ -1,5 +1,7 @@
 # Stack preparation standards
 
+[Documentation](README.md)
+
 Every top-level directory under `stacks/` has an executable
 `prepare-stack.sh`, including CLI-only and pointer stacks. Preparation is
 idempotent: it may create missing local files, directories, Docker networks,

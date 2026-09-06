@@ -1,5 +1,7 @@
 # CrowdSec + Cloudflare Workers bouncer
 
+[Documentation](README.md)
+
 This guide shows how to take **decisions from your CrowdSec engine** (running in the `stacks/crowdsec` stack) and **enforce them at Cloudflare's edge** using the **Cloudflare Workers bouncer**.
 
 - Requests from bad IPs can be **blocked or challenged at Cloudflare** before they reach your tunnel or Caddy.
