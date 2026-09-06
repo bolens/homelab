@@ -1,6 +1,8 @@
 root = true
 
 [*]
+indent_style = space
+indent_size = 2
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
@@ -9,9 +11,6 @@ trim_trailing_whitespace = true
 [*.md]
 trim_trailing_whitespace = false
 
-[Makefile]
-indent_style = tab
-
 [*.{json,yaml,yml}]
 indent_style = space
 indent_size = 2
@@ -19,3 +18,25 @@ indent_size = 2
 [*.py]
 indent_style = space
 indent_size = 4
+
+[{Makefile,makefile,GNUmakefile,*.mk}]
+indent_style = tab
+indent_size = tab
+
+[*.{patch,diff}]
+trim_trailing_whitespace = false
+
+# Lockfiles are written by their owning tool.
+[package-lock.json]
+indent_style = unset
+indent_size = unset
+trim_trailing_whitespace = unset
+insert_final_newline = unset
+
+[*.{jpg,png}]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset
