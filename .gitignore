@@ -172,3 +172,13 @@ compose.*.local.yaml
 docker-compose.override.yaml
 docker-compose.*.local.yaml
 docker-compose.override.*.yaml
+
+# Shared VS Code configuration; keep personal editor state ignored.
+!/.vscode/
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/extensions.json
+!/.vscode/tasks.json
+!/.vscode/launch.json
+!/.vscode/*.code-snippets
+!/.vscode/README.md

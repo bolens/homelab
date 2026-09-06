@@ -1,0 +1,20 @@
+{
+  "files.encoding": "utf8",
+  "files.insertFinalNewline": true,
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false,
+    "editor.wordWrap": "on"
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/__pycache__": true,
+    "**/.devenv": true,
+    "**/.direnv": true
+  },
+  "files.watcherExclude": {
+    "**/.devenv/**": true,
+    "**/.direnv/**": true,
+    "**/.venv/**": true
+  }
+}
