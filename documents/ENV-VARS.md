@@ -1,5 +1,7 @@
 # Environment variables for Docker homelab stacks
 
+[Documentation](README.md)
+
 Use this as a reference when adding new stacks. Per-stack environment variable
 details live in each stack's `README.md` under the **Environment variables**
 section. This file covers shared conventions and common variables only.

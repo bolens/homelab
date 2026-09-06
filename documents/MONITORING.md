@@ -1,5 +1,7 @@
 # Monitoring and observability
 
+[Documentation](README.md)
+
 This guide explains how the repository's monitoring stacks fit together. Each
 component remains optional and independently deployable. Read the linked stack
 README before configuring or starting it.

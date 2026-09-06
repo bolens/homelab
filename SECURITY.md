@@ -1,5 +1,7 @@
 # Security policy
 
+[Documentation](documents/README.md)
+
 This repository contains deployment configuration, not the upstream
 applications themselves. Report vulnerabilities in an upstream application to
 that project's maintainers.

@@ -1,5 +1,7 @@
 # Development workflow: GitHub source and Gitea mirror
 
+[Documentation](README.md)
+
 GitHub is the authoritative repository. Self-hosted Gitea is a
 fast-forward-only mirror for redundancy and local visibility. Pull requests
 and Dependabot updates land on GitHub first. Every default-branch change is

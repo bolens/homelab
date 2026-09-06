@@ -1,5 +1,7 @@
 # Contributing
 
+[Documentation](documents/README.md)
+
 Changes should preserve local runtime configuration and keep committed examples
 portable.
 

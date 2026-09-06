@@ -1,5 +1,7 @@
 # Delivery playbook
 
+[Documentation](documents/README.md)
+
 Homelab continuously delivers portable stack examples and generated catalog
 content from protected `main`; it has no tagged product release. Merging does
 not authorize pulling images, deploying stacks, or changing live services.
