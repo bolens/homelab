@@ -4,31 +4,59 @@ on:
   pull_request:
     paths:
       - ".github/workflows/custom-images.yml"
-      - "stacks/**/Dockerfile*"
-      - "stacks/**/.dockerignore"
-      - "stacks/**/requirements*.txt"
-      - "stacks/**/requirements*.lock"
-      - "stacks/**/patches/**"
+      - ".github/custom-images.json"
+      - "scripts/ci-custom-images.py"
+      - "scripts/tests/test_ci_custom_images.py"
+      - "stacks/**"
   push:
     branches: ["main"]
     paths:
       - ".github/workflows/custom-images.yml"
-      - "stacks/**/Dockerfile*"
-      - "stacks/**/.dockerignore"
-      - "stacks/**/requirements*.txt"
-      - "stacks/**/requirements*.lock"
-      - "stacks/**/patches/**"
+      - ".github/custom-images.json"
+      - "scripts/ci-custom-images.py"
+      - "scripts/tests/test_ci_custom_images.py"
+      - "stacks/**"
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: custom-images-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Select custom images
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      any: ${{ steps.matrix.outputs.any }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check selection and generate filters
+        run: |
+          python3 -m unittest discover -s scripts/tests -p test_ci_custom_images.py
+          python3 scripts/ci-custom-images.py filters > "$RUNNER_TEMP/custom-image-filters.json"
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
+        id: paths
+        if: github.event_name != 'workflow_dispatch'
+        with:
+          filters: ${{ runner.temp }}/custom-image-filters.json
+      - name: Select affected build contexts
+        id: matrix
+        env:
+          CHANGED_IMAGES: ${{ steps.paths.outputs.changes }}
+          FULL_RUN: ${{ github.event_name == 'workflow_dispatch' }}
+        run: python3 scripts/ci-custom-images.py matrix >> "$GITHUB_OUTPUT"
+
   build:
+    needs: changes
+    if: needs.changes.outputs.any == 'true'
     name: Build ${{ matrix.image }}
     permissions:
       contents: read
@@ -37,80 +65,7 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - image: acquire
-            context: stacks/acquire
-            dockerfile: stacks/acquire/Dockerfile
-          - image: ail-lacus
-            context: stacks/ail-framework
-            dockerfile: stacks/ail-framework/Dockerfile.lacus
-          - image: ail-tor
-            context: stacks/ail-framework
-            dockerfile: stacks/ail-framework/Dockerfile.tor
-          - image: atomic-red-team
-            context: stacks/atomic-red-team
-            dockerfile: stacks/atomic-red-team/Dockerfile
-          - image: auth-fuzz
-            context: stacks/auth-fuzz
-            dockerfile: stacks/auth-fuzz/Dockerfile
-          - image: blackbird
-            context: stacks/blackbird
-            dockerfile: stacks/blackbird/Dockerfile
-          - image: caddy
-            context: stacks/caddy
-            dockerfile: stacks/caddy/Dockerfile
-          - image: clark-browser
-            context: stacks/clark-browser/build
-            dockerfile: stacks/clark-browser/build/Dockerfile
-          - image: docker-forensics-toolkit
-            context: stacks/docker-forensics-toolkit
-            dockerfile: stacks/docker-forensics-toolkit/Dockerfile
-          - image: docker-gc
-            context: stacks/docker-gc
-            dockerfile: stacks/docker-gc/Dockerfile
-          - image: flood-rtorrent
-            context: stacks/flood
-            dockerfile: stacks/flood/Dockerfile.rtorrent
-          - image: ghunt
-            context: stacks/ghunt
-            dockerfile: stacks/ghunt/Dockerfile
-          - image: hashcat
-            context: stacks/hashcat
-            dockerfile: stacks/hashcat/Dockerfile
-          - image: lidarr
-            context: stacks/lidarr
-            dockerfile: stacks/lidarr/Dockerfile
-          - image: metagoofil
-            context: stacks/metagoofil
-            dockerfile: stacks/metagoofil/Dockerfile
-          - image: n8n-restart-gateway
-            context: stacks/n8n/restart-gateway
-            dockerfile: stacks/n8n/restart-gateway/Dockerfile
-          - image: netexec
-            context: stacks/netexec
-            dockerfile: stacks/netexec/Dockerfile
-          - image: onionscan
-            context: stacks/onionscan
-            dockerfile: stacks/onionscan/Dockerfile
-          - image: privotron
-            context: stacks/privotron
-            dockerfile: stacks/privotron/Dockerfile
-          - image: rackula
-            context: stacks/rackula
-            dockerfile: stacks/rackula/Dockerfile
-          - image: responder-mitm6
-            context: stacks/responder-mitm6
-            dockerfile: stacks/responder-mitm6/Dockerfile
-          - image: torbot
-            context: stacks/torbot
-            dockerfile: stacks/torbot/Dockerfile
-          - image: torbot-tor
-            context: stacks/torbot
-            dockerfile: stacks/torbot/Dockerfile.tor
-          - image: unbound
-            context: stacks/unbound
-            dockerfile: stacks/unbound/Dockerfile
+      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -122,7 +77,7 @@ jobs:
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Log in to GHCR
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
@@ -134,7 +89,7 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/homelab-${{ matrix.image }}:latest
             ghcr.io/${{ github.repository_owner }}/homelab-${{ matrix.image }}:sha-${{ github.sha }}

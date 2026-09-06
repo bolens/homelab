@@ -60,3 +60,14 @@ with the same tooling revision pinned in
 [the workflow](.github/workflows/source-lint.yml). Review exclusions when adding
 source files; generated and imported files retain their native validation.
 Require the new check to pass on the current PR head before merging.
+
+## Custom-image CI selection
+
+`.github/custom-images.json` owns the build matrix. Dorny selects images whose
+build contexts changed, including deletions and renames. Images sharing a context
+are rebuilt together. Selector, inventory, and workflow changes select all images;
+manual runs also validate all images. Run `python3 -m unittest discover -s
+scripts/tests -p test_ci_custom_images.py` locally when changing this contract.
+Only trusted `main` runs publish to GHCR. PR and other branch runs only build.
+Publishing runs finish without cancellation so a newer push cannot interrupt the
+set of selected image publications.
