@@ -6,9 +6,10 @@ not authorize pulling images, deploying stacks, or changing live services.
 
 ## Prepare and validate
 
-Branch from current `origin/main`. Read every file and local README for each
-touched stack. Update Compose, environment example, stack metadata,
-preparation, ingress example, and documentation together. Use placeholders only
+Branch from current `origin/main`. Use `AGENTS.md` to select required tracked
+sources and local stack documentation. For contract changes, update Compose,
+environment example, stack metadata, preparation, ingress example, and
+documentation together. Use placeholders only
 and never inspect or stage live secrets or ignored runtime configuration.
 
 ```sh
