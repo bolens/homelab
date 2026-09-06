@@ -71,3 +71,7 @@ scripts/tests -p test_ci_custom_images.py` locally when changing this contract.
 Only trusted `main` runs publish to GHCR. PR and other branch runs only build.
 Publishing runs finish without cancellation so a newer push cannot interrupt the
 set of selected image publications.
+
+The `Custom images` result runs on every PR, including those with no selected
+images. It rejects failed detection, cancelled builds, and unexpected skips, and
+is required alongside the repository's existing branch-protection checks.

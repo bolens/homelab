@@ -2,12 +2,6 @@ name: Publish Custom Images
 
 on:
   pull_request:
-    paths:
-      - ".github/workflows/custom-images.yml"
-      - ".github/custom-images.json"
-      - "scripts/ci-custom-images.py"
-      - "scripts/tests/test_ci_custom_images.py"
-      - "stacks/**"
   push:
     branches: ["main"]
     paths:
@@ -97,3 +91,27 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
           provenance: mode=max
           sbom: true
+
+  result:
+    name: Custom images
+    needs: [changes, build]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Require every selected build
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          import os
+          import sys
+          jobs = json.loads(os.environ["NEEDS_JSON"])
+          selected = jobs["changes"].get("outputs", {}).get("any")
+          expected = "success" if selected == "true" else "skipped"
+          valid = jobs["changes"]["result"] == "success" and selected in ("true", "false")
+          valid &= jobs["build"]["result"] == expected
+          sys.exit(0 if valid else 1)
+          PYTHON
