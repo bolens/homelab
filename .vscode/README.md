@@ -1,5 +1,7 @@
 # VS Code for docker
 
+[Documentation](../documents/README.md)
+
 Open this repository as a folder, or add it as a folder in a multi-root workspace.
 Install the recommendations from the Extensions view. Use **Tasks: Run Task** for
 the commands below. Tasks run from this repository unless they state another directory.

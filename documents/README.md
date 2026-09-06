@@ -98,3 +98,5 @@ troubleshooting guide.
 Each `stacks/<name>/README.md` should describe the application, link to its upstream project and
 image, and document its own prerequisites, configuration, deployment, verification, upgrade, and
 troubleshooting details. Omit upstream link fields that do not apply.
+
+- [Editor setup](../.vscode/README.md)
