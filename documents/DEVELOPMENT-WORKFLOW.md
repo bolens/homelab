@@ -64,8 +64,28 @@ the ignored, host-specific `scripts/sync-gitea-mirrors.local.sh`; start from
 `scripts/sync-gitea-mirrors.sh`. For each repository, it
 fetches GitHub `main`, confirms Gitea can fast-forward, pushes that exact commit
 to the Gitea backup, and mirrors tags. It never force-pushes or deletes refs.
-Direct commits to Gitea are unsupported; if a backup diverges, synchronization
+Direct commits to the configured backup refs are unsupported; if a backup diverges, synchronization
 fails for that repository while the remaining repositories are still checked.
+
+Each entry has `name|path|source-remote|backup-remote`, optionally followed by
+`|destination-branch|tag-prefix`. The defaults are `main` and no tag prefix.
+For a Gitea repository with its own maintained history or protected branches,
+use `|github-main|github/`. This backs up GitHub's published `main` and tags to
+separate refs while preserving Gitea's existing branches and tags. It does not
+merge the two development histories or change Gitea's default branch.
+
+The helper supports normal, linked, and bare repositories. It resolves configured
+remote URLs, then fetches and pushes in a disposable bare repository. Local edits,
+unpublished local tags, and working-copy hooks do not participate; the source is
+the published GitHub ref. Source development still follows its normal PR and CI
+requirements. Destination protections are respected, and a lookup failure stops
+before publication. Existing destination branches must be ancestors of the source;
+conflicting tags are refused. Branch and tag pushes are separate operations, so a
+tag failure can follow a successful branch update; inspect both before retrying.
+
+After changing the installed service definition, run `systemctl --user daemon-reload`
+and verify its `ExecStart` points to `sync-gitea-mirrors.local.sh`. Keep the local
+repository list ignored. Verify remote refs and the service result after a sync.
 
 ---
 
