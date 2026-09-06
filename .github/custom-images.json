@@ -1,0 +1,122 @@
+[
+  {
+    "image": "acquire",
+    "context": "stacks/acquire",
+    "dockerfile": "stacks/acquire/Dockerfile"
+  },
+  {
+    "image": "ail-lacus",
+    "context": "stacks/ail-framework",
+    "dockerfile": "stacks/ail-framework/Dockerfile.lacus"
+  },
+  {
+    "image": "ail-tor",
+    "context": "stacks/ail-framework",
+    "dockerfile": "stacks/ail-framework/Dockerfile.tor"
+  },
+  {
+    "image": "atomic-red-team",
+    "context": "stacks/atomic-red-team",
+    "dockerfile": "stacks/atomic-red-team/Dockerfile"
+  },
+  {
+    "image": "auth-fuzz",
+    "context": "stacks/auth-fuzz",
+    "dockerfile": "stacks/auth-fuzz/Dockerfile"
+  },
+  {
+    "image": "blackbird",
+    "context": "stacks/blackbird",
+    "dockerfile": "stacks/blackbird/Dockerfile"
+  },
+  {
+    "image": "caddy",
+    "context": "stacks/caddy",
+    "dockerfile": "stacks/caddy/Dockerfile"
+  },
+  {
+    "image": "clark-browser",
+    "context": "stacks/clark-browser/build",
+    "dockerfile": "stacks/clark-browser/build/Dockerfile"
+  },
+  {
+    "image": "docker-forensics-toolkit",
+    "context": "stacks/docker-forensics-toolkit",
+    "dockerfile": "stacks/docker-forensics-toolkit/Dockerfile"
+  },
+  {
+    "image": "docker-gc",
+    "context": "stacks/docker-gc",
+    "dockerfile": "stacks/docker-gc/Dockerfile"
+  },
+  {
+    "image": "flood-rtorrent",
+    "context": "stacks/flood",
+    "dockerfile": "stacks/flood/Dockerfile.rtorrent"
+  },
+  {
+    "image": "ghunt",
+    "context": "stacks/ghunt",
+    "dockerfile": "stacks/ghunt/Dockerfile"
+  },
+  {
+    "image": "hashcat",
+    "context": "stacks/hashcat",
+    "dockerfile": "stacks/hashcat/Dockerfile"
+  },
+  {
+    "image": "lidarr",
+    "context": "stacks/lidarr",
+    "dockerfile": "stacks/lidarr/Dockerfile"
+  },
+  {
+    "image": "metagoofil",
+    "context": "stacks/metagoofil",
+    "dockerfile": "stacks/metagoofil/Dockerfile"
+  },
+  {
+    "image": "n8n-restart-gateway",
+    "context": "stacks/n8n/restart-gateway",
+    "dockerfile": "stacks/n8n/restart-gateway/Dockerfile"
+  },
+  {
+    "image": "netexec",
+    "context": "stacks/netexec",
+    "dockerfile": "stacks/netexec/Dockerfile"
+  },
+  {
+    "image": "onionscan",
+    "context": "stacks/onionscan",
+    "dockerfile": "stacks/onionscan/Dockerfile"
+  },
+  {
+    "image": "privotron",
+    "context": "stacks/privotron",
+    "dockerfile": "stacks/privotron/Dockerfile"
+  },
+  {
+    "image": "rackula",
+    "context": "stacks/rackula",
+    "dockerfile": "stacks/rackula/Dockerfile"
+  },
+  {
+    "image": "responder-mitm6",
+    "context": "stacks/responder-mitm6",
+    "dockerfile": "stacks/responder-mitm6/Dockerfile"
+  },
+  {
+    "image": "torbot",
+    "context": "stacks/torbot",
+    "dockerfile": "stacks/torbot/Dockerfile"
+  },
+  {
+    "image": "torbot-tor",
+    "context": "stacks/torbot",
+    "dockerfile": "stacks/torbot/Dockerfile.tor"
+  },
+  {
+    "image": "unbound",
+    "context": "stacks/unbound",
+    "dockerfile": "stacks/unbound/Dockerfile"
+  }
+]
