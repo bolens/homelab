@@ -4,8 +4,12 @@ Before Spec Kit planning or implementation, read
 `.specify/memory/project-guide.md` with the project constitution. It maps
 requirements to this repository's source, acceptance evidence, and validation.
 
-Read `.specify/memory/constitution.md`, the target stack's `README.md`, and all
-files in that stack before editing. Each stack is an independent public,
+For stack behavior or configuration changes, read `.specify/memory/constitution.md`,
+the target stack's `README.md`, and its tracked contract files: Compose,
+environment example, metadata, preparation, and ingress examples. Follow their
+tracked dependencies. For prose-only edits, read the affected documentation and
+the tracked sources needed to verify its claims. Use `CONTRIBUTING.md` and
+`RELEASING.md` for validation and delivery. Each stack is an independent public,
 portable example; local stack documentation overrides nearby conventions.
 
 - Preserve unrelated work. Change every affected contract surface together:
