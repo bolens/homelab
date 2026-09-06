@@ -47,6 +47,7 @@ python3 scripts/validate-compose-config.py "${compose_args[@]}"
 echo "Auditing stack preparation scripts..."
 python3 scripts/audit-prepare-scripts.py
 python3 -m unittest discover -s scripts/tests -p test_prepare_storage.py
+python3 -m unittest discover -s scripts/tests -p test_mirror_sync.py
 
 echo "Auditing stack metadata..."
 python3 scripts/audit-stack-metadata.py
