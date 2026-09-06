@@ -37,3 +37,9 @@ Downloads are stored directly in `RESILIO_DOWNLOADS_PATH`.
 - The web UI stays internal to Caddy; TCP port 55555 is published for peer synchronization.
 - Resilio Free tier limits folder count; a Business/Pro license unlocks more features.
 - Ensure sync ports (default 55555) are open in firewall for LAN/WAN peer discovery.
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.

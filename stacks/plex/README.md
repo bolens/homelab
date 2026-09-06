@@ -118,3 +118,9 @@ headers shown in `caddy_snippet.conf.example`.
 
 The Caddy example contains placeholder names. Replace them in the local,
 ignored Caddy snippet; never commit a real hostname or API token.
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.

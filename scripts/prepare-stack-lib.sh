@@ -80,6 +80,11 @@ prepare_stack_ensure_dir_from_env() {
   prepare_stack__require_prepdir || return 1
   local var_name="${1:?variable name}"
   local default_path="${2:?default directory}"
+  local policy="${3:-create}"
+  case "$policy" in
+    create|require-existing) ;;
+    *) prepare_stack_msg "invalid directory policy for $var_name." >&2; return 1 ;;
+  esac
   local dir="$default_path"
   if [[ -f stack.env ]]; then
     local line val
@@ -95,8 +100,16 @@ prepare_stack_ensure_dir_from_env() {
     fi
   fi
   dir="$(prepare_stack__expand_home_in_path "$dir")"
+  if [[ "$policy" == require-existing ]]; then
+    if [[ ! -d "$dir" ]]; then
+      prepare_stack_msg "$var_name requires an existing directory; verify the intended mount and access before retrying." >&2
+      return 1
+    fi
+    prepare_stack_msg "$var_name directory exists; verify mount identity before deployment."
+    return 0
+  fi
   mkdir -p "$dir"
-  prepare_stack_msg "ensured $var_name → $dir"
+  prepare_stack_msg "ensured directory for $var_name."
 }
 
 # Copy an example to a path configured in stack.env. Existing files are never

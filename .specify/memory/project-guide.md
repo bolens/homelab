@@ -50,9 +50,15 @@ and constitution checks in `plan.md`, and evidence-bearing work in `tasks.md` un
 feature directory created by Spec Kit. Resolve material unknowns before implementation.
 Mark tasks complete only after their stated verification, and distinguish completed,
 skipped, blocked, and manual checks. Retain completed feature documents as decision
-history; do not backfill feature specifications for already finished code.
+history. Backfill finished work only when explicitly requested. Label those
+specifications as retrospective baselines, record the inspected revision, and map
+requirements to source and acceptance evidence. Separate observed behavior from
+corrective requirements. Never imply the specification preceded its code or mark
+unverified checks complete.
 
 Keep `.specify/templates/`, `.specify/scripts/`, and generated Codex skills under their
 integration manifests. Use this guide and the constitution for local customization.
 Regenerate managed files through Spec Kit and verify that project-owned memory survives
 updates. Follow `RELEASING.md` for push, merge, release or delivery, and recovery.
+
+The retrospective specification register is [specs/README.md](../../specs/README.md).

@@ -33,6 +33,13 @@ Preparation must never:
 Optional behavior should be described with `prepare_stack_msg`. Copy an
 optional override only when the operator explicitly chooses it.
 
+Media callers of `prepare_stack_ensure_dir_from_env` must pass
+`require-existing` as the third argument. Missing paths and regular files fail
+without creating parent directories. The default `create` policy is only for
+application-local directories. Diagnostics identify the variable, not its value.
+An existing directory does not prove that the expected remote filesystem is
+mounted: verify mount identity and access before preparation or deployment.
+
 ## Audit and maintenance
 
 Run:

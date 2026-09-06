@@ -55,3 +55,9 @@ kavita.yourdomain.com {
 ## Health and monitoring
 
 Kavita does not expose a dedicated health endpoint. Use a generic HTTP check to the app URL (e.g. `https://kavita.yourdomain.com`) in Uptime Kuma.
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.

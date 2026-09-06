@@ -59,3 +59,9 @@ Ensure the podcast stack is on `ingress-public` so Caddy can reach `audiobookshe
 
 From this directory: `docker compose up -d`.
 In Portainer: Stacks → Add stack → paste the compose and optionally set `TZ` in **Environment**.
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.

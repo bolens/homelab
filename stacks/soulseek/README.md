@@ -53,3 +53,9 @@ soulseek.home, soulseek.local {
 ## Portainer
 
 Create a stack from this directory, ensure `stack.env` exists (run `./prepare-stack.sh` first), then deploy. Keep Caddy as the HTTP entrypoint; do not publish `5030` on the host.
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.
