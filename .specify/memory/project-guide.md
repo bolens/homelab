@@ -1,5 +1,7 @@
 # homelab Spec Kit project guide
 
+[Documentation](../../documents/README.md)
+
 Portable Docker Compose stack examples and generated catalog content, separate from live
 homelab deployments.
 

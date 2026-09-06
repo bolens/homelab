@@ -1,5 +1,7 @@
 # Shared resources and stack optimizations
 
+[Documentation](README.md)
+
 This guide describes **what is already shared** across homelab stacks and **optional optimizations** you can apply to reduce duplication while keeping stacks modular and independently deployable.
 
 ---
