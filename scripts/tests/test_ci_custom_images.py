@@ -48,6 +48,25 @@ class ImageSelectionTests(unittest.TestCase):
             self.assertTrue((ROOT / image["context"]).is_dir())
             self.assertTrue((ROOT / image["dockerfile"]).is_file())
 
+    def test_every_stack_dockerfile_has_a_publication_decision(self):
+        # Keep reasons aligned with documents/CUSTOM-IMAGES.md. A new Dockerfile
+        # must enter the publish matrix or receive a reviewed exclusion.
+        excluded = {
+            "stacks/ail-framework/Dockerfile.build",  # Untracked vendor source.
+            "stacks/ail-framework/Dockerfile.runtime",  # Requires the local build.
+            "stacks/searx-ng/Dockerfile.4get",  # Operator-managed unlicensed source.
+            "stacks/searx-ng/Dockerfile.4get-sidecar",  # Same source restriction.
+        }
+        dockerfiles = {
+            path.relative_to(ROOT).as_posix()
+            for path in (ROOT / "stacks").rglob("*")
+            if path.is_file() and "Dockerfile" in path.name
+            and "repo" not in path.relative_to(ROOT).parts
+        }
+        published = {image["dockerfile"] for image in self.images}
+        self.assertFalse(published & excluded)
+        self.assertEqual(dockerfiles, published | excluded)
+
 
 if __name__ == "__main__":
     unittest.main()

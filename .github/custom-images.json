@@ -85,6 +85,11 @@
     "dockerfile": "stacks/netexec/Dockerfile"
   },
   {
+    "image": "nodepad",
+    "context": "stacks/nodepad",
+    "dockerfile": "stacks/nodepad/Dockerfile"
+  },
+  {
     "image": "onionscan",
     "context": "stacks/onionscan",
     "dockerfile": "stacks/onionscan/Dockerfile"
@@ -103,6 +108,11 @@
     "image": "responder-mitm6",
     "context": "stacks/responder-mitm6",
     "dockerfile": "stacks/responder-mitm6/Dockerfile"
+  },
+  {
+    "image": "rreading-glasses",
+    "context": "stacks/readarr",
+    "dockerfile": "stacks/readarr/rreading-glasses.Dockerfile"
   },
   {
     "image": "torbot",

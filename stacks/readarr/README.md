@@ -74,6 +74,10 @@ rejects larger combined queries with `top_level_limit_exceeded` or rate-limit
 responses. It retries transient HTTP 429 and Hardcover-specific rate-limit HTTP
 403 responses with bounded backoff instead of returning an empty search result.
 
+To use the CI image, remove the metadata service's `build:` block and set its
+`image:` to `ghcr.io/bolens/homelab-rreading-glasses:latest` or a commit tag from
+[custom-image CI](../../documents/CUSTOM-IMAGES.md). Local builds remain the default.
+
 ## Caddy reverse proxy
 
 Example Caddy vhost (SANITIZED hostnames):
