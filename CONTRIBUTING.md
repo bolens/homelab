@@ -45,3 +45,8 @@ checks before every commit:
 ```bash
 make hooks-install
 ```
+
+## Devcontainer
+
+See [the devcontainer guide](.devcontainer/README.md) for the repository toolchain,
+setup, checks and platform limits.
