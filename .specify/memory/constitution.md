@@ -1,5 +1,7 @@
 # Docker Stack Collection Constitution
 
+[Documentation](../../documents/README.md)
+
 ## Core principles
 
 ### I. Portable Public Examples

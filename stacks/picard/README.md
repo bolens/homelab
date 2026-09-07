@@ -38,3 +38,9 @@ Access via Caddy at **https://picard.yourdomain.com** (or your configured hostna
 
 - Picard does not provide a built-in unattended library auto-organize daemon in this image; it is best used as a review/cleanup step.
 - For your "more often than once/day" requirement, keep Explo's schedule as the frequent automated sorter and use Picard for higher-quality tagging passes.
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.

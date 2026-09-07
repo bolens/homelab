@@ -49,3 +49,9 @@ Adult movie collection manager for Usenet and torrents (Servarr family). Monitor
 ## Caddy reverse proxy
 
 `caddy_snippet.conf` in this directory proxies `whisparr.home` / `whisparr.local` with internal TLS. For a public hostname, add your own site block (strongly recommend **Cloudflare Access** or equivalent); this UI is not intended to be world-exposed without protection.
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.

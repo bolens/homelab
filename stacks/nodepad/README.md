@@ -74,7 +74,7 @@ Until a registry (for example Harbor) is reachable, **this path is the simplest*
 
 ### Portainer
 
-1. **Image:** On any host that has this stack directory (or a copy of `Dockerfile` + `clone-repo.sh`), run `./clone-repo.sh` then `docker build -t <your-registry>/homelab/nodepad:latest .` and push that tag. The Git repo does not include `./repo` (it is gitignored), so Portainer cannot build from a bare git checkout unless you run `clone-repo.sh` on the server first or use a CI job that embeds the upstream sources. In `docker-compose.yml`, **comment out the `build:` block** and set **`image:`** to your pushed tag (or override the image in the Portainer stack UI).
+1. **Image:** Use `ghcr.io/bolens/homelab-nodepad:latest` or a commit tag from [custom-image CI](../../documents/CUSTOM-IMAGES.md). Remove the `build:` block and set `image:` to that tag in your Portainer stack definition. To build your own image, run `./clone-repo.sh`, then build and push it to your registry. The upstream `repo/` checkout is gitignored and must be prepared before a local build.
 2. **Networks:** Ensure external **`ai-backend`** and **`ingress-public`** exist.
 3. **Stack:** In Portainer → **Stacks** → **Add stack** → use **Repository** (recommended) with this monorepo's URL and **Compose path** `stacks/nodepad/docker-compose.yml`, or paste the contents of that file in the web editor.
 4. **Environment:** Paste the same variables as `stack.env.example` into Portainer's stack environment (or attach an env file). Runtime keys match **`env_file`** usage in compose.

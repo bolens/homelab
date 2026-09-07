@@ -74,7 +74,7 @@ def main() -> None:
     if len(app_pages) < 200:
         problems.append(f"expected at least 200 application pages, found {len(app_pages)}")
     parsed: dict[Path, Document] = {}
-    for asset in ("theme.js", "theme-modes.css", "favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "social-card.png", "site.webmanifest"):
+    for asset in ("theme.js", "theme-modes.css", "favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "social-card.png", "site.webmanifest", "robots.txt", "sitemap.xml", "llms.txt"):
         if not (PUBLIC / asset).is_file():
             problems.append(f"site/public/{asset}: missing discovery asset")
     for path in html_files:

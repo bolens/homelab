@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STACKS = ROOT / "stacks"
 PUBLIC = ROOT / "site" / "public"
 REPO_URL = "https://github.com/bolens/homelab"
+PUBLIC_ROOT = "https://bolens.github.io/homelab/"
 CATEGORY_NAMES = {
     "ai": "AI", "analytics": "Analytics", "backup": "Backup",
     "dev": "Developer tools", "documents": "Documents", "downloads": "Downloads",
@@ -182,11 +183,41 @@ def safety() -> str:
 
 
 def expected_files(items: list[dict]) -> dict[str, bytes]:
+    routes = ["", "apps/", "architecture/", "safety/"] + [
+        f"apps/{item['slug']}/" for item in items
+    ]
+    sitemap = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "".join(f"  <url><loc>{PUBLIC_ROOT}{route}</loc></url>\n" for route in routes)
+        + "</urlset>\n"
+    )
+    llms = f"""# Homelab Atlas
+
+Homelab Atlas is a public catalog and safety guide for the self-hosted applications defined in the bolens/homelab repository. Each application page summarizes purpose, access, dependencies, persistence, and elevated runtime requirements; the repository remains the source of truth for deployment.
+
+## Documentation
+
+- Home: {PUBLIC_ROOT}
+- Application catalog: {PUBLIC_ROOT}apps/
+- Architecture: {PUBLIC_ROOT}architecture/
+- Safety guide: {PUBLIC_ROOT}safety/
+- Interactive topology: {PUBLIC_ROOT}topology.html
+
+## Source
+
+- Repository: {REPO_URL}
+- Getting started: {REPO_URL}/blob/main/documents/GETTING-STARTED.md
+- Stack definitions: {REPO_URL}/tree/main/stacks
+"""
     expected = {
         "index.html": home(items).encode(), "apps/index.html": catalog(items).encode(),
         "architecture/index.html": architecture().encode(), "safety/index.html": safety().encode(),
         "topology.html": (ROOT / "documents/topology.html").read_bytes(),
         "topology-dark.png": (ROOT / "documents/topology-dark.png").read_bytes(),
+        "robots.txt": f"User-agent: *\nAllow: /\n\nSitemap: {PUBLIC_ROOT}sitemap.xml\n".encode(),
+        "sitemap.xml": sitemap.encode(),
+        "llms.txt": llms.encode(),
     }
     for item in items:
         expected[f"apps/{item['slug']}/index.html"] = detail(item).encode()
@@ -199,12 +230,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    expected = expected_files(load_stacks())
+    items = load_stacks()
+    expected = expected_files(items)
     if args.check:
         stale = [name for name, content in expected.items() if not (PUBLIC / name).exists() or (PUBLIC / name).read_bytes() != content]
         if stale:
             raise SystemExit("Pages site is stale: " + ", ".join(stale[:10]))
-        print(f"Pages site is current ({len(expected) - 7} application pages).")
+        print(f"Pages site is current ({len(items)} application pages).")
         return
     for directory in (PUBLIC / "apps", PUBLIC / "architecture", PUBLIC / "safety"):
         if directory.exists():
@@ -213,7 +245,7 @@ def main() -> None:
         path = PUBLIC / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(content)
-    print(f"Updated Pages site ({len(expected) - 7} application pages).")
+    print(f"Updated Pages site ({len(items)} application pages).")
 
 
 if __name__ == "__main__":

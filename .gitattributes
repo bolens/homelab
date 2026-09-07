@@ -17,3 +17,5 @@ stacks/readarr/*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 *.jpeg binary
 *.png binary
 *.webp binary
+
+.editorconfig text eol=lf

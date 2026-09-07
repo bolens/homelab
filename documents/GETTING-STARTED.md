@@ -1,5 +1,7 @@
 # Getting started
 
+[Documentation](README.md)
+
 This is the shortest safe path from a new clone to one working stack. The
 repository is a catalog: deploy only the services you need.
 

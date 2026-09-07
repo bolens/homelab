@@ -1,0 +1,21 @@
+# Policy: https://github.com/bolens/.github/blob/dca68e2aef0df5caae0e6d03470decd17c7ae1e0/docs/auto-assignment.md
+name: Assign maintainer
+
+on:
+  issues:
+    types: [opened, reopened, transferred]
+  # Metadata only: the pinned reusable workflow never checks out or executes PR code.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [opened, reopened]
+  schedule:
+    - cron: '9 7 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  assign:
+    permissions:
+      issues: write
+      pull-requests: write
+    uses: bolens/.github/.github/workflows/reusable-auto-assign.yml@dca68e2aef0df5caae0e6d03470decd17c7ae1e0

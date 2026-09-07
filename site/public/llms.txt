@@ -1,0 +1,17 @@
+# Homelab Atlas
+
+Homelab Atlas is a public catalog and safety guide for the self-hosted applications defined in the bolens/homelab repository. Each application page summarizes purpose, access, dependencies, persistence, and elevated runtime requirements; the repository remains the source of truth for deployment.
+
+## Documentation
+
+- Home: https://bolens.github.io/homelab/
+- Application catalog: https://bolens.github.io/homelab/apps/
+- Architecture: https://bolens.github.io/homelab/architecture/
+- Safety guide: https://bolens.github.io/homelab/safety/
+- Interactive topology: https://bolens.github.io/homelab/topology.html
+
+## Source
+
+- Repository: https://github.com/bolens/homelab
+- Getting started: https://github.com/bolens/homelab/blob/main/documents/GETTING-STARTED.md
+- Stack definitions: https://github.com/bolens/homelab/tree/main/stacks

@@ -1,5 +1,7 @@
 # Cloudflare Access SSO for tunnel subdomains
 
+[Documentation](README.md)
+
 Use **Cloudflare Zero Trust Access** to put a login (SSO or one-time PIN) in front of subdomains that are already exposed via your Cloudflare Tunnel. No Caddy or app config changes are required, Access runs at the Cloudflare edge before traffic reaches your tunnel.
 
 **Typical use:** Replace or supplement basic auth (or app-only login) with Google/GitHub/Okta SSO or email one-time PIN for hostnames like `portainer.yourdomain.com`, `paperless.yourdomain.com`, etc.
@@ -217,11 +219,9 @@ Access can send user identity in headers (e.g. `CF-Access-JWT-Assertion` or head
 | **yourls**                                | Yes            | Protect shortener hostname(s).                                     |
 | **zigbee2mqtt**                           | Yes            | Protect Zigbee2MQTT admin UI hostname.                             |
 
-
 ### Native app SSO (OAuth / OIDC / SAML / LDAP)
 
 These services support **in-app** SSO configuration (Google, GitHub, OIDC, LDAP, etc.). You can use them together with Cloudflare Access (Access in front, then app login) or rely on app SSO only.
-
 
 | Service           | Native SSO options                                           | Where to configure                                                                                                    |
 | ----------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
@@ -234,9 +234,7 @@ These services support **in-app** SSO configuration (Google, GitHub, OIDC, LDAP,
 | **Open WebUI**    | OAuth, LDAP/AD                                               | Settings → Authentication                                                                                             |
 | **Paperless-ngx** | OIDC (optional)                                              | App config / env; see [Paperless-ngx configuration](https://docs.paperless-ngx.com/configuration/)                    |
 
-
 ### No native SSO (Access or app password only)
-
 
 | Service                                                   | Auth model                                                         |
 | --------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -248,11 +246,9 @@ These services support **in-app** SSO configuration (Google, GitHub, OIDC, LDAP,
 | **Shlink**                                                | API key for app.shlink.io; no in-app login (manage via API/web client). |
 | **YOURLS**                                                | `YOURLS_USER` / `YOURLS_PASS` (admin login)                        |
 
-
 ---
 
 ## Summary
-
 
 | Step | Where                              | What                                                              |
 | ---- | ---------------------------------- | ----------------------------------------------------------------- |
@@ -260,7 +256,6 @@ These services support **in-app** SSO configuration (Google, GitHub, OIDC, LDAP,
 | 2    | Same app → Policies                | Add Allow policy: SSO (IdP) or One-time PIN or email list         |
 | 3    | (Optional)                         | Restrict by path; remove Caddy basic auth for that hostname       |
 | 4    | None | Tunnel and Caddy unchanged                                        |
-
 
 **References**
 

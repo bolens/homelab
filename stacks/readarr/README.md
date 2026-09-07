@@ -74,6 +74,10 @@ rejects larger combined queries with `top_level_limit_exceeded` or rate-limit
 responses. It retries transient HTTP 429 and Hardcover-specific rate-limit HTTP
 403 responses with bounded backoff instead of returning an empty search result.
 
+To use the CI image, remove the metadata service's `build:` block and set its
+`image:` to `ghcr.io/bolens/homelab-rreading-glasses:latest` or a commit tag from
+[custom-image CI](../../documents/CUSTOM-IMAGES.md). Local builds remain the default.
+
 ## Caddy reverse proxy
 
 Example Caddy vhost (SANITIZED hostnames):
@@ -84,3 +88,9 @@ readarr.home, readarr.local {
   reverse_proxy readarr:8787
 }
 ```
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.

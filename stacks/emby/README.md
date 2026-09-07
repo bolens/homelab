@@ -75,3 +75,9 @@ emby.home, emby.local {
 ```
 
 For public access via Cloudflare Tunnel, add e.g. `emby.yourdomain.com` in the public HTTPS section of your Caddyfile and protect it with Cloudflare Access if desired.
+
+## Media preparation prerequisite
+
+Verify the configured media directories exist on the intended filesystem before
+running preparation. The helper refuses to create missing media paths. Directory
+existence alone does not verify the remote mount; check its source and access.

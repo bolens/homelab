@@ -1,0 +1,20 @@
+name: Source lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    uses: bolens/.github/.github/workflows/reusable-source-lint.yml@7603518f305fb76f7bb1b9979f2692521f633b82
+    with:
+      tooling-ref: 7603518f305fb76f7bb1b9979f2692521f633b82

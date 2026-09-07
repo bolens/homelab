@@ -1,5 +1,7 @@
 # Stack metadata
 
+[Documentation](README.md)
+
 Each top-level `stacks/<name>/` directory uses `stack.yaml` as its catalog
 record. `stack.yml` is not supported. Metadata documents intended deployment
 and operational characteristics; `docker-compose.yml` remains authoritative
