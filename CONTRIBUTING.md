@@ -1,5 +1,7 @@
 # Contributing
 
+[Documentation](documents/README.md)
+
 Changes should preserve local runtime configuration and keep committed examples
 portable.
 
@@ -43,3 +45,8 @@ checks before every commit:
 ```bash
 make hooks-install
 ```
+
+## Devcontainer
+
+See [the devcontainer guide](.devcontainer/README.md) for the repository toolchain,
+setup, checks and platform limits.
