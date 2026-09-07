@@ -17,7 +17,7 @@ services:
     labels:
       logging: "true"
     container_name: firecrawl-playwright
-    image: ghcr.io/firecrawl/playwright-service:latest@sha256:468009bae00911d40d7120d58489a1d529362c22c45585cb9076094fe61b0025
+    image: ghcr.io/firecrawl/playwright-service:latest@sha256:df1a393ce8bfc3801570a826a9b0dcc400ae48789adb4a0ad9d6cbf0229b059b
     environment:
       - PORT=3000
       - PROXY_SERVER=${PROXY_SERVER:-}

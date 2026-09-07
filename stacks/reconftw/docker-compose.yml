@@ -8,7 +8,7 @@ services:
   reconftw:
     labels:
       logging: "true"
-    image: six2dez/reconftw:main@sha256:a916930e71e892775bc0630ab2f6000f9e7e3c6a3c3840a90bde4c5d6ef550d8
+    image: six2dez/reconftw:main@sha256:9a4b4f426b748d000bcef617a7137a309a6100878d04f86777f5b1ff4aacdc30
     container_name: reconftw
     restart: "no"
     env_file:
