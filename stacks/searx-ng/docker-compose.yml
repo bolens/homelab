@@ -30,7 +30,7 @@ services:
       start_period: 10s
 
   searxng:
-    image: docker.io/searxng/searxng:latest@sha256:b36af7984b87191b595bc5301418ed6432c047668a4547ab531a7439b816fac3
+    image: docker.io/searxng/searxng:latest@sha256:3547509b419cd6a67333d6d68bd1ffad8d46d3669d82e7a7bd538f7b45827432
     container_name: searxng
     restart: unless-stopped
     depends_on:
