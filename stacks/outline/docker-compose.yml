@@ -49,7 +49,7 @@ services:
   outline:
     labels:
       logging: "true"
-    image: outlinewiki/outline:latest@sha256:32d76719c378931dd65d93945930ca380d8376a0337d98a991fcc12b266f33cf
+    image: outlinewiki/outline:latest@sha256:cc9f1f05fd7cd316745b5fc9cfe01e681b1b4cf97705d1d812a5c778d7986cfd
     container_name: outline
     restart: unless-stopped
     cpus: 2.0
