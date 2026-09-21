@@ -44,6 +44,9 @@ services:
     # this, v3 exits with "forge not configured" if stack.env omits WOODPECKER_GITEA.
     environment:
       WOODPECKER_GITEA: "true"
+      # Minutes. Repository defaults do not retroactively update existing repos.
+      WOODPECKER_DEFAULT_PIPELINE_TIMEOUT: "30"
+      WOODPECKER_MAX_PIPELINE_TIMEOUT: "60"
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,13 +60,24 @@ services:
     image: woodpeckerci/woodpecker-agent:v3
     container_name: woodpecker-agent
     restart: unless-stopped
-    cpus: 4.0
-    mem_limit: 6g
-    memswap_limit: 8g
-    pids_limit: 1024
-    cpu_shares: 512
+    cpus: 1.0
+    mem_limit: 512m
+    memswap_limit: 512m
+    pids_limit: 256
+    cpu_shares: 128
     env_file:
       - stack.env
+    # Builds are sibling containers: agent limits alone do not constrain them.
+    # Explicit policy overrides stale/unbounded values in an existing stack.env.
+    environment:
+      WOODPECKER_BACKEND: docker
+      WOODPECKER_MAX_WORKFLOWS: "1"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_QUOTA: "200000"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_CPU_SHARES: "128"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_MEM: "4294967296"
+      # Docker interprets MemorySwap as RAM + swap; equality disables swap.
+      WOODPECKER_BACKEND_DOCKER_LIMIT_MEM_SWAP: "4294967296"
+      WOODPECKER_BACKEND_DOCKER_LIMIT_SHM_SIZE: "67108864"
     depends_on:
       server:
         condition: service_started
