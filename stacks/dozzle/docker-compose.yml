@@ -38,7 +38,7 @@ services:
   dozzle:
     labels:
       logging: "false"
-    image: amir20/dozzle:latest@sha256:243666b0593ff33ed1373901575236f0d6bed8a2d6b451cdae4345969a7b6d5c
+    image: amir20/dozzle:latest@sha256:2875e3c1f31f2244ee99d6067b53852b30666b3e2fb293d179bc8be94b1da5eb
     container_name: dozzle
     restart: unless-stopped
     cpus: 1.0
