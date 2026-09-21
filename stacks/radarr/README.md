@@ -41,7 +41,8 @@ Movie collection manager for Usenet and torrents. Radarr monitors your wanted mo
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `radarr:7878`)          |
 | **Networks** | `ingress-admin`, `usenet`, `torrents`, plus default                         |
-| **Image**  | `lscr.io/linuxserver/radarr:latest`                                    |
+| **Image**  | `lscr.io/linuxserver/radarr:6.4.4.10685-ls318`, pinned by digest in Compose |
+| **Memory** | 6 GiB RAM limit; 8 GiB combined RAM and swap limit, if host swap is available |
 | **Env**    | `TZ`, `PUID`, `PGID`, `RADARR_MEDIA_PATH`, optional `RADARR__*` |
 | **Storage**| `radarr_config` → `/config`, `${RADARR_MEDIA_PATH}` → `/data`; use `/data/movies` and `/data/downloads/*` |
 
@@ -61,3 +62,34 @@ radarr.home, radarr.local {
 Verify the configured media directories exist on the intended filesystem before
 running preparation. The helper refuses to create missing media paths. Directory
 existence alone does not verify the remote mount; check its source and access.
+
+## Upgrade and recovery
+
+Before upgrading, create and verify a Radarr backup under **System → Backup** and
+keep a copy outside the container. Record the previous image digest. Upgrade the
+container image rather than using Radarr's in-app updater:
+
+```bash
+docker compose --env-file stack.env pull radarr
+docker compose --env-file stack.env up -d --no-deps radarr
+```
+
+Verify the version under **System → Status**, container health, and loading the
+full movie list. If rollback is needed after a database migration, restore the
+matching pre-upgrade backup with the previous image. Reverting the image alone
+may not be compatible with an upgraded database.
+
+## Memory errors
+
+`System.OutOfMemoryException` can fail movie-list requests while the container
+still reports healthy. Check `docker stats --no-stream radarr`, the exception
+stack trace, and container memory-pressure counters. `OOMKilled=false` does not
+rule out an application allocation failure.
+
+The 6 GiB RAM limit provides more headroom for movie-list processing than the
+previous 3 GiB limit. The 8 GiB combined limit permits up to 2 GiB of swap. Ensure
+the host has capacity before deployment. This is a memory-pressure mitigation,
+not proof that an application memory leak or oversized allocation is fixed.
+After upgrading, repeat the failing movie-list request and check for new
+exceptions. If it still fails, retain a sanitized stack trace and measure memory
+during the request before increasing limits again.

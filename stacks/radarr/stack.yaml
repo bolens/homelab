@@ -43,7 +43,7 @@ auth:
   access_policy: access_full_site
 resources:
   cpu_profile: small
-  memory_profile: small
+  memory_profile: medium
   storage_profile: medium
   gpu_profile: none
 placement:
