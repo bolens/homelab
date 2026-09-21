@@ -48,7 +48,7 @@ COPY --from=ruff /ruff /usr/local/bin/ruff
 COPY --from=actionlint /usr/local/bin/actionlint /usr/local/bin/actionlint
 COPY --from=hadolint /bin/hadolint /usr/local/bin/hadolint
 
-RUN npm install --global corepack@0.36.0 markdownlint-cli2@0.23.2 \
+RUN npm install --global corepack@0.36.0 markdownlint-cli2@0.23.3 \
     && corepack enable \
     && UV_TOOL_DIR=/opt/uv-tools UV_TOOL_BIN_DIR=/usr/local/bin uv tool install zizmor==1.30.0
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 COREPACK_ENABLE_DOWNLOAD_PROMPT=0
