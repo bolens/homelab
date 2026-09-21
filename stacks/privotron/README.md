@@ -49,6 +49,14 @@ CLI tool to automate opting out of data brokers. Uses Playwright to fill opt-out
 
 Profiles are stored in the `privotron-profiles` volume and persist between runs.
 
+## Build compatibility
+
+Both Dockerfile stages use Python 3.13. The committed Poetry bootstrap
+requirements were resolved for Python 3.13 and include `backports-zstd`, which
+requires Python below 3.14. The pinned upstream Poetry lock also uses Playwright
+1.52.0 and greenlet 3.2.2. Before upgrading Python, update both dependency locks
+and verify the complete image build, including Chromium installation.
+
 ## Configuration
 
 | Item | Details |
