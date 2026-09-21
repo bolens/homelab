@@ -73,7 +73,9 @@ SearXNG image copies custom Python engines during build instead of running the
 application container as root. Local build patches also authenticate sidecar
 requests, cap request/result sizes, allowlist scraper methods, escape rendered
 content, and reject media/result URLs that resolve to non-public addresses.
-The build fails if these patches no longer apply to the pinned source.
+The build fails if these patches no longer apply to the pinned source. Whitespace-only
+differences are accepted, but every context line must match with zero patch
+fuzz. The derived image uses the same pinned SearXNG base as the main stack.
 
 Enabling private-network and HTTP outbound access is limited to the overlay
 but expands what SearXNG engines can reach, so do not install untrusted engine
