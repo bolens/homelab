@@ -1,0 +1,7 @@
+# Do not copy the old backup repository into the new backup repository.
+/data/appdata/minio_minio_data/_data/restic
+# Restic's local cache can be rebuilt from repository metadata.
+/data/appdata/restic_restic_cache
+# Operator-approved exclusion: old Kasm Docker layers. Preserve its named
+# volumes, installation/configuration, and the separate profile volume.
+/data/appdata/kasm_kasm_data/_data/docker/overlay2
