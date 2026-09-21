@@ -65,3 +65,36 @@
   - Access the UI at `https://ci.yourdomain.com`, sign in via Gitea, and enable repositories for builds.
 
 The `woodpecker-agent` runs builds on the same Docker host, using the Docker socket (`/var/run/docker.sock`) to launch build containers.
+
+## Shared-host resource policy
+
+Compose enforces one workflow at a time on this agent. Each build container,
+including service containers, is limited to 2 CPUs, 4 GiB RAM, no swap, CPU
+shares 128, and 64 MiB shared memory. The agent itself has a separate 1-CPU,
+512-MiB RAM, no-swap, 256-process budget. Its limits do not contain the build
+containers, which are siblings created through the host Docker socket.
+
+These non-secret settings are explicit in Compose and override duplicate keys
+in `stack.env`. Review this policy before raising limits. The server defaults
+new repositories to a 30-minute pipeline timeout and allows at most 60 minutes
+in repository settings. Check existing repositories' timeout settings separately.
+
+Keep steps sequential on this shared host and limit service containers: the
+4-GiB budget applies per container, not per workflow. Additional agents multiply
+concurrency. Privileged jobs or jobs given the host Docker socket can launch
+other workloads outside these limits and should use a separate build host.
+CPU and memory limits do not bound disk usage or disk I/O. Monitor free space,
+image/build-cache growth, and host I/O pressure. Do not automatically prune
+shared images or volumes used by other stacks.
+
+Before applying the policy, let running workflows finish. Then recreate only
+the CI server and agent using the locally installed images:
+
+```bash
+docker compose up -d --no-deps --pull never server agent
+```
+
+Verify the next build container's Docker `HostConfig` resource fields. An
+agent health check alone does not prove the build limits are applied. See the
+[agent configuration](https://woodpecker-ci.org/docs/administration/configuration/agent)
+and [Docker backend configuration](https://woodpecker-ci.org/docs/administration/configuration/backends/docker).

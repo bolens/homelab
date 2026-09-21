@@ -3,8 +3,10 @@ import { expect, test } from '@playwright/test';
 
 const pages = ['', 'apps/', 'architecture/', 'safety/', 'apps/immich/'];
 
-for (const path of pages) {
-  test(`${path || 'home'} has no serious accessibility violations`, async ({ page }) => {
+for (const colorScheme of ['light', 'dark']) {
+ for (const path of pages) {
+  test(`${path || 'home'} in ${colorScheme} has no serious accessibility violations`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme });
     await page.goto(path);
     const builder = new AxeBuilder({ page });
     // Archify owns and validates the interactive document inside this iframe.
@@ -14,6 +16,7 @@ for (const path of pages) {
     const violations = results.violations.filter(({ impact }) => ['serious', 'critical'].includes(impact));
     expect(violations).toEqual([]);
   });
+ }
 }
 
 test('catalog search and category filters work', async ({ page }) => {

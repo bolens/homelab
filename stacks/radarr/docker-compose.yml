@@ -4,12 +4,12 @@ services:
   radarr:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/radarr:latest@sha256:95ba0801df4d9d1d79d0d9a3849f656542497dab061d91b87ad4f53a71aff3ef
+    image: lscr.io/linuxserver/radarr:6.4.4.10685-ls318@sha256:adb6c09d6b729ea5e642c99cea35af72702ef476bf4763f153299ac5db9f0b4f
     container_name: radarr
     restart: unless-stopped
     cpus: 2.0
-    mem_limit: 3g
-    memswap_limit: 4g
+    mem_limit: 6g
+    memswap_limit: 8g
     pids_limit: 512
     cpu_shares: 256
     env_file:

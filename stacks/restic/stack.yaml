@@ -52,7 +52,13 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: >-
+    Optional docker-compose.local-backup.yml writes to an existing host directory,
+    backs up repository and application data, and excludes the old MinIO Restic
+    repository and Restic cache. Media is excluded. Successful local backups keep
+    7 daily, 4 weekly, 3 monthly, and at least 3 recent snapshots per source-path
+    set, with weekly pruning bounded to 1 GiB of repacking. Old S3 backups remain
+    untouched.
 runtime_security:
   privileged_services: []
   host_network_services: []

@@ -1,0 +1,58 @@
+# Opt-in local repository. Verify the destination filesystem before deployment.
+# RESTIC_LOCAL_PATH=/srv/backups/restic docker compose --env-file stack.env \
+#   -f docker-compose.yml -f docker-compose.local-backup.yml up -d
+services:
+  restic:
+    environment:
+      RESTIC_REPOSITORY: /repository
+      RESTIC_REPOSITORY_FILE: ""
+      SUCCESS_ON_INCOMPLETE_BACKUP: "false"
+      RESTIC_BACKUP_SOURCES: /data/docker /data/appdata
+      RESTIC_BACKUP_ARGS: --exclude-file /etc/restic/local-excludes.txt
+      RESTIC_FORGET_ARGS: ""
+      # Run retention only after a complete backup, never after a failed run.
+      POST_COMMANDS_SUCCESS: >-
+        if sh /etc/restic/local-retention.sh; then
+        curl -fsS "http://uptime-kuma:3001/api/push/${UPTIME_KUMA_RESTIC_PUSH_TOKEN}?status=up&msg=Backup%20and%20retention%20completed";
+        else
+        curl -fsS "http://uptime-kuma:3001/api/push/${UPTIME_KUMA_RESTIC_PUSH_TOKEN}?status=down&msg=Backup%20completed%20but%20maintenance%20needs%20attention";
+        fi
+      LOCAL_KEEP_LAST: ${LOCAL_KEEP_LAST:-3}
+      LOCAL_KEEP_DAILY: ${LOCAL_KEEP_DAILY:-7}
+      LOCAL_KEEP_WEEKLY: ${LOCAL_KEEP_WEEKLY:-4}
+      LOCAL_KEEP_MONTHLY: ${LOCAL_KEEP_MONTHLY:-3}
+      RUN_ON_STARTUP: "false"
+      # This image's scheduler accepts seconds as its first cron field.
+      BACKUP_CRON: "0 0 3 * * *"
+    # Local mode does not require the remote media mount.
+    volumes: !override
+      - type: bind
+        source: ${RESTIC_PATH_DOCKER:-/srv/docker}
+        target: /data/docker
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${RESTIC_PATH_APPDATA:-/srv/docker-volumes}
+        target: /data/appdata
+        read_only: true
+        bind:
+          create_host_path: false
+      - restic_cache:/cache
+      - type: bind
+        source: ${RESTIC_LOCAL_PATH:-/srv/backups/restic}
+        target: /repository
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./local-excludes.txt
+        target: /etc/restic/local-excludes.txt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./local-retention.sh
+        target: /etc/restic/local-retention.sh
+        read_only: true
+        bind:
+          create_host_path: false

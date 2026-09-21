@@ -1,0 +1,9 @@
+# Opt in only on a verified fixed kernel, such as Linux 7.0.14 or newer.
+# Never bypass MongoDB's guard on affected Linux 6.19 through 7.0.13 kernels.
+services:
+  mongodb:
+    # Preserve the official initialization and permission handling. Omitting an
+    # architecture argument retains the container's native architecture.
+    entrypoint:
+      ["setarch", "--uname-2.6", "/usr/local/bin/docker-entrypoint.sh"]
+    command: ["mongod"]

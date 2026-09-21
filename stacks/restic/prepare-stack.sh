@@ -8,4 +8,5 @@ prepare_stack_copy_env
 prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "backup" true
 prepare_stack_ensure_docker_network "monitoring-push" true
+prepare_stack_msg "For local backups, verify the destination filesystem and create RESTIC_LOCAL_PATH before selecting docker-compose.local-backup.yml; preparation does not create it."
 prepare_stack_end

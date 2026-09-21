@@ -60,7 +60,10 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: >-
+    Optional docker-compose.kernel-workaround.yml bypasses MongoDB's over-broad
+    kernel check only on operator-verified fixed kernels until the image includes
+    SERVER-125742. The base deployment keeps the safety check enabled.
 runtime_security:
   privileged_services: []
   host_network_services: []

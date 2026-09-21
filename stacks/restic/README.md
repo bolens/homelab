@@ -9,7 +9,7 @@ dead-man callback path to Uptime Kuma.
 
 **Website (restic):** https://restic.net  
 **Docs (restic):** https://restic.readthedocs.io/  
-**Image (mazzolino/restic):** https://github.com/mazzolino/docker-restic  
+**Image (mazzolino/restic):** https://github.com/djmaze/resticker
 
 ## Quick start
 
@@ -54,7 +54,67 @@ dead-man callback path to Uptime Kuma.
    push monitor in Uptime Kuma. The default daily schedule uses a 26-hour
    heartbeat grace period.
 
-## Portainer
+## Local backup disk
+
+Use the optional override to write a new encrypted repository to a local backup
+disk. Existing S3 backups remain untouched. The override retains the encryption
+password from `stack.env` and does not migrate or delete old snapshots.
+
+First verify the destination's mount identity, free space, and write access with
+`findmnt -T /srv/backups` and `df -h /srv/backups`. Create the repository directory
+only after verifying the intended backup disk is mounted. Compose refuses to
+create a missing bind directory.
+
+```bash
+RESTIC_LOCAL_PATH=/srv/backups/restic docker compose --env-file stack.env \
+  -f docker-compose.yml -f docker-compose.local-backup.yml up -d --pull never
+```
+
+Use this same override and host path for subsequent deployments. Starting the
+base Compose file alone selects the original repository again.
+
+Local mode backs up `/data/docker` and `/data/appdata` daily at 03:00 using the
+image's six-field cron syntax. It excludes the MinIO Restic repository and Restic
+cache listed in `local-excludes.txt`. The exclusion file also omits Kasm's inner
+Docker `overlay2` layers, while retaining its named volumes, installation files,
+and profiles. Kasm recovery requires recreating containers and obtaining their
+images again. Changes stored only in excluded writable layers are not backed up.
+Review these exclusions and volume names for your host.
+Media is not selected, and backup-on-startup is disabled so the first run can be
+checked deliberately. After a complete backup, local mode keeps 7 daily, 4 weekly,
+and 3 monthly snapshots, plus at least the last 3 snapshots per source-path set.
+Overlapping recovery points count once. Container hostname changes do not create
+new retention groups. Failed or incomplete backups do not delete snapshots.
+Local mode clears `RESTIC_REPOSITORY_FILE` and forces
+`SUCCESS_ON_INCOMPLETE_BACKUP=false`, overriding inherited environment settings.
+
+Unused backup data is pruned at most weekly, after a complete backup, with at
+most 1 GiB of pack data selected for repacking per run. Retention failures report
+a failed heartbeat to Uptime Kuma. `LOCAL_KEEP_LAST`, `LOCAL_KEEP_DAILY`,
+`LOCAL_KEEP_WEEKLY`, and `LOCAL_KEEP_MONTHLY` override the positive retention
+counts. These settings apply only to the new local repository. The old S3
+repository is preserved.
+
+Retention counts do not impose a byte limit. Reserve at least 15% of the backup
+disk for growth and maintenance, and compare free space with the largest recent
+backup's added data. The post-backup maintenance hook reports a failed heartbeat
+when less than 20% is free, after attempting retention and any scheduled prune.
+Review exclusions and capacity at that point, before the reserve is exhausted.
+Keep application data and database dumps in scope.
+Do not apply object-store expiration rules to Restic pack files.
+
+```bash
+docker exec restic backup
+docker exec restic restic snapshots
+docker exec restic restic check
+```
+
+Verify a restore into a new temporary directory before relying on the new
+repository. Keep the repository password separately backed up. Restoring the
+original Compose deployment returns the scheduler to S3, provided that backend
+is available. Neither direction removes either repository.
+
+## Portainer deployment
 
 Stacks → Add stack → **Repository** → set your repo URL and Compose path (e.g. `stacks/restic/docker-compose.yml`). In **Environment**, set all required vars including `RESTIC_PATH_DOCKER` and `RESTIC_PATH_MEDIA` to absolute host paths (e.g. `/srv/docker`, `/srv/media`). Ensure MinIO is deployed and the `restic` bucket exists.
 

@@ -149,6 +149,26 @@ For shared Ollama backend and one-time setup, see [SHARED-RESOURCES.md](../../do
 - Verify credentials match in `stack.env`
 - Check MongoDB logs: `docker logs librechat-mongodb`
 
+Some MongoDB images reject fixed kernels because of an over-broad kernel check
+tracked as `SERVER-125742`. The base Compose file keeps this safety check enabled.
+Check `uname -r` and MongoDB's
+[production notes](https://www.mongodb.com/docs/v8.0/administration/production-notes/)
+before selecting the optional workaround. Never enable it on affected Linux
+6.19 through 7.0.13 kernels. Upgrade those kernels instead.
+
+On a verified fixed kernel, such as Linux 7.0.14 or newer, an image still affected
+by the false rejection can use:
+
+```bash
+docker compose --env-file stack.env -f docker-compose.yml \
+  -f docker-compose.kernel-workaround.yml up -d
+```
+
+The override runs the official entrypoint through `setarch --uname-2.6`, retaining
+initialization and permissions while changing the reported kernel release. Use
+the same file selection for later deployments until the image includes
+`SERVER-125742`, then remove the override from the deployment command.
+
 ### Redis connection issues
 - Check Redis is healthy: `docker ps | grep redis`
 - Verify password matches in `stack.env`

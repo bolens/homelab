@@ -1,3 +1,23 @@
+/* Catalog-surface polish. */
+.atlas-route { display: block; width: min(100%, 52rem); margin-top: clamp(2rem, 5vw, 4rem); overflow: visible; }
+.atlas-route path { fill: none; stroke: var(--line); stroke-width: 2; stroke-dasharray: .08 .025; }
+.atlas-route > g circle { fill: var(--panel); stroke: var(--cyan); stroke-width: 3; }
+.atlas-route .route-line { animation: atlas-route 5s linear forwards; }
+.atlas-route .route-pulse { fill: var(--amber); filter: drop-shadow(0 0 8px var(--amber)); animation: atlas-pulse 5s cubic-bezier(.45,0,.2,1) forwards; }
+@keyframes atlas-route { to { stroke-dashoffset: -1; } }
+@keyframes atlas-pulse { 0%,8% { transform: translate(0,0); } 36% { transform: translate(254px,-32px); } 70% { transform: translate(510px,32px); } 92%,100% { transform: translate(680px,32px); } }
+@media (prefers-reduced-motion: reduce) { .atlas-route * { animation: none !important; } .atlas-route .route-pulse { transform: translate(680px,32px); } }
+::selection { background: var(--amber); color: #121723; }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+.site-header { position: sticky; top: 0; z-index: 20; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--page); }
+.category, .app-card, .button { transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.category:hover, .app-card:hover { transform: translateY(-3px); border-color: var(--cyan); }
+.button:hover { transform: translateY(-2px); }
+.content-section, .topology-section, .stack-model { content-visibility: auto; contain-intrinsic-size: 680px; }
+@media (max-width: 720px) { .site-header { flex-direction: column; align-items: stretch !important; min-width: 0; } .site-header nav { contain: inline-size; flex: 1 1 auto; justify-content: flex-start; flex-wrap: nowrap; min-width: 0; width: 100%; max-width: 100%; overflow-x: auto; padding-bottom: .3rem; scrollbar-width: none; } .site-header nav::-webkit-scrollbar { display: none; } .hero-actions .button { flex: 1 1 12rem; } }
+@media (prefers-reduced-motion: reduce) { .category, .app-card, .button { transition: none; } .category:hover, .app-card:hover, .button:hover { transform: none; } }
+
 :root { color-scheme: dark; --ink: #f4f7ff; --muted: #b7c1d6; --page: #070a12; --panel: #101827; --line: #3b4b65; --cyan: #78aefc; --amber: #ffca68; }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -78,6 +98,7 @@ input:focus-visible, select:focus-visible { outline: 3px solid var(--amber); out
 footer { border-top: 1px solid var(--line); color: var(--muted); line-height: 1.6; padding: 2rem clamp(1.25rem, 4vw, 4rem); }
 footer p { margin: 0 auto; max-width: 82rem; }
 @media (max-width: 720px) { .site-header { align-items: start; gap: 1.2rem; } nav { flex-wrap: wrap; justify-content: end; } .hero { padding-top: 4rem; } .stats, .facts, .catalog-tools, .content-section.split { gap: 1rem; grid-template-columns: 1fr; } .section-heading { align-items: start; flex-direction: column; gap: 1.25rem; } .topology-frame iframe { height: 70vh; min-height: 34rem; } }
+@media (orientation: landscape) and (max-height: 560px) { .hero { padding-block: 1.25rem 2rem; } h1 { font-size: clamp(2.75rem, 7vw, 3.5rem); margin-bottom: .65rem; } .hero > p { line-height: 1.45; } .hero-actions { margin-block: .65rem 1.5rem; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 /* Atlas reading details. */
