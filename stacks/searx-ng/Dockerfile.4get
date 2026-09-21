@@ -1,4 +1,4 @@
-ARG SEARXNG_IMAGE=docker.io/searxng/searxng:latest@sha256:37baac8380e1a31e022b8dda0c58dbd6ba0630e3fdaf2c522bda3d140f5ef111
+ARG SEARXNG_IMAGE=docker.io/searxng/searxng:latest@sha256:3547509b419cd6a67333d6d68bd1ffad8d46d3669d82e7a7bd538f7b45827432
 ARG PATCH_IMAGE=docker.io/library/php:8.2-apache@sha256:e71d4502e5569f46b638c81c420d552d8776e4703c06a90775792497ab982230
 FROM ${PATCH_IMAGE} AS hijacker-patcher
 
@@ -7,7 +7,7 @@ FROM ${PATCH_IMAGE} AS hijacker-patcher
 COPY --from=fourget / /tmp/4get-hijacked/
 COPY patches/4get-hijacked-client-hardening.patch /tmp/client-hardening.patch
 WORKDIR /tmp/4get-hijacked
-RUN patch --batch --forward -p1 < /tmp/client-hardening.patch
+RUN patch --batch --forward --ignore-whitespace --fuzz=0 -p1 < /tmp/client-hardening.patch
 
 FROM ${SEARXNG_IMAGE}
 

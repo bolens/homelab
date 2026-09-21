@@ -145,6 +145,11 @@ docker exec -w /opt/AIL/bin ail-framework /opt/AIL/AILENV/bin/python -c \
   'from lib import crawlers; crawlers.save_lacus_url_api("http://lacus:7100", None)'
 ```
 
+Lacus uses Ubuntu's `python3-poetry` package. Supervisor starts both workers
+through `/usr/bin/poetry`; a user-local Poetry path prevents the website and
+capture manager from starting. Rebuild the Lacus image after changing its
+supervisor configuration.
+
 The crawler services are internal-only. `only_global_lookups` prevents Lacus
 from being used to scan private addresses. I2P and interactive headed captures
 remain disabled because this stack does not include an I2P router or Tactus/xpra
