@@ -1,4 +1,4 @@
-FROM docker.io/library/node:24-trixie-slim@sha256:50c3b2f6988dfc307b86e5301d69611af31f4789bdf232863b07d3b02fe55ae0 AS node
+FROM docker.io/library/node:26-trixie-slim@sha256:c0753125a3789977aefe869cbebccf70e3cfd7ea84ca48547458f02e4f1d7146 AS node
 FROM ghcr.io/astral-sh/uv:latest@sha256:79c6f4776b851471cc73b7d21d0cc834bb94383c292e83640d27eff512864df7 AS uv
 FROM ghcr.io/astral-sh/ruff:latest@sha256:ec3c84a063840fc9a678004f4d958ea4e1e79de1ee3f94dc0f0df3a4a3a1f1a7 AS ruff
 FROM docker.io/rhysd/actionlint:latest@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 AS actionlint
