@@ -4,6 +4,8 @@
 # https://github.com/kevinl95/Privotron
 
 # syntax=docker/dockerfile:1
+# Keep both stages on Python 3.13 until the bootstrap and upstream locks support
+# Python 3.14; backports-zstd currently requires Python <3.14.
 FROM python:3.13-slim-bookworm@sha256:ed86c82274b3c69b52fb5820f358f0bd7df0b603332063cb5c6e32bd220c3e6e AS builder
 
 WORKDIR /app

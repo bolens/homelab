@@ -1,4 +1,4 @@
-FROM golang:1.27.0-alpine@sha256:4c9fe60190a2a3350ddc51de80d0224b8a6698d12bdfc999fee45ea9d6c46dbc AS build
+FROM golang:1.27.1-alpine@sha256:cf6fca6641884b8433441b2b0652976f975e1d0fdd26d177eaaf8596087f3125 AS build
 
 ARG SOURCE_COMMIT=a2939b625d91389d3f0a3e58cbc3bfa7ebb8390a
 WORKDIR /src
@@ -10,7 +10,7 @@ RUN git apply --check /tmp/batch-limit.patch \
     && git apply /tmp/batch-limit.patch \
     && CGO_ENABLED=0 go build -o /main -ldflags="-w -s" ./cmd/rghc
 
-FROM gcr.io/distroless/static:nonroot@sha256:1c2c046bc09ed40fad370b599a0b1ae7987f55b01e247cf27a7c27cd97e5bbc7
+FROM gcr.io/distroless/static:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3
 COPY --from=build /main /main
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 EXPOSE 8788
