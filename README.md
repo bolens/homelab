@@ -140,3 +140,8 @@ volumes.
 
 To report a vulnerability in the repository, see the
 [security policy](SECURITY.md).
+
+## License scope and attribution
+
+See [third-party notices](THIRD_PARTY_NOTICES.md) for the project license scope,
+retained upstream notices, and dependency or asset exceptions.
