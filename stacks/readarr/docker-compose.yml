@@ -5,7 +5,7 @@ services:
     labels:
       logging: "true"
     # Hardcover metadata is incompatible with existing Readarr databases.
-    image: ghcr.io/pennydreadful/bookshelf:hardcover-v0.4.20.129
+    image: ghcr.io/pennydreadful/bookshelf:hardcover-v0.4.21.182
     container_name: readarr
     restart: unless-stopped
     cpus: 2.0

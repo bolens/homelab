@@ -9,7 +9,7 @@ services:
     labels:
       logging: "true"
     container_name: mealie
-    image: ghcr.io/mealie-recipes/mealie:latest@sha256:6066c29eca95a6cac640ecadf734799522f3b646ee4a714e0d13ce795d989ba2
+    image: ghcr.io/mealie-recipes/mealie:latest@sha256:ba24b88462380fb59a6c7d04c6d9e607e0b6b04e31306592181186bcdab1952b
     restart: unless-stopped
     env_file:
       - stack.env

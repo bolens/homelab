@@ -8,7 +8,7 @@ services:
   mylar3:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4
+    image: lscr.io/linuxserver/mylar3:latest@sha256:64df3a9d583e051f49fb349e9bc44f5804dab152bc866be8dd8a2869ac152cf9
     container_name: mylar3
     restart: unless-stopped
     cpus: 2.0

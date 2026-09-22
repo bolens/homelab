@@ -4,7 +4,7 @@
 # Upstream: https://github.com/qdm12/ddns-updater
 services:
   ddns-updater:
-    image: ghcr.io/qdm12/ddns-updater:latest@sha256:dd0d029b8ed74062d53c3a42e147462598600e842b6d08d8cd809b5ab41869e1
+    image: ghcr.io/qdm12/ddns-updater:latest@sha256:d63829b761ba45e37fc8273de722c5f3bdc65d2196e8dd8195406969eb657543
     container_name: ddns-updater
     restart: unless-stopped
     labels:

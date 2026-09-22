@@ -2,7 +2,7 @@
 # All runtime settings come from `stack.env` (and optional `../../shared.env`). Run `./prepare-stack.sh` then `docker compose up -d`.
 services:
   code-server:
-    image: lscr.io/linuxserver/code-server:latest@sha256:acffbb134396e39dcdd398f62f0953eea3e7047ee9abbde5ad382246780617c9
+    image: lscr.io/linuxserver/code-server:latest@sha256:6fb8bbaf3148a56027704830a63f5880cce31dda442b42d6cca66b29a505bad6
     container_name: code-server
     restart: unless-stopped
     cpus: 4.0
