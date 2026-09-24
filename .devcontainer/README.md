@@ -35,6 +35,6 @@ For catalog browser tests, install the lockfile-matched browser and its Linux
 libraries inside the container, then run the site suite:
 
 ```sh
-npx --no-install playwright install --with-deps chromium
+npx --no-install playwright install --with-deps chrome
 make site-test
 ```

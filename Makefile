@@ -1,4 +1,4 @@
-.PHONY: help doctor validate validate-strict validate-changed ci-local hooks-install mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
+.PHONY: help doctor validate validate-strict validate-changed ci-local hooks-install hooks-install-site mirror-sync prepare-audit metadata-audit hygiene-audit docs-generate docs-check pages-generate pages-check site-test-syntax site-test secrets secrets-files monitoring-validate monitoring-reload monitoring-smoke-check monitoring-iterate monitoring-quick monitoring-sync-blackbox
 
 help:
 	@echo "Homelab repository targets:"
@@ -8,6 +8,7 @@ help:
 	@echo "  validate-changed   Validate changed stacks; requires BASE=<git revision>"
 	@echo "  ci-local           Run all pre-commit and history secret checks"
 	@echo "  hooks-install      Install repository pre-commit hooks"
+	@echo "  hooks-install-site Opt in to Pages browser tests before push"
 	@echo "  mirror-sync        Fast-forward Gitea from authoritative GitHub"
 	@echo "  prepare-audit      Audit stack preparation scripts and prerequisites"
 	@echo "  metadata-audit     Validate stack.yaml catalog metadata"
@@ -42,6 +43,9 @@ ci-local:
 
 hooks-install:
 	pre-commit install --install-hooks
+
+hooks-install-site: hooks-install
+	pre-commit install --hook-type pre-push
 
 mirror-sync:
 	bash scripts/sync-gitea-mirrors.local.sh

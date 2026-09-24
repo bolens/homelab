@@ -130,6 +130,27 @@ than the commit-time checks:
 make site-test
 ```
 
+To opt in to the same browser suite before every push, install the locked
+Node dependencies and Playwright's Chrome browser, then install the pre-push
+hook:
+
+```bash
+npm ci
+npx --no-install playwright install chrome
+make hooks-install-site
+```
+
+The opt-in hook uses two workers and CI mode, so it starts its own local
+server and fails if port 4173 is already occupied. A failed test blocks the
+push. `make hooks-install` and `make ci-local` do not enable or run this
+browser hook. Hook installation is shared by linked worktrees; each checkout
+used for pushing needs its own installed Node dependencies.
+
+Run the hook directly with
+`pre-commit run pre-push-site-browser-tests --hook-stage pre-push --all-files`.
+To remove the optional push hook, run `pre-commit uninstall --hook-type pre-push`.
+The commit hook remains installed.
+
 CI runs the same locked Playwright and Axe suite before it publishes GitHub
 Pages. The tests cover serious accessibility violations, catalog search and
 filters, keyboard skip navigation, JavaScript errors, and mobile overflow.
