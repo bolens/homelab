@@ -165,7 +165,8 @@ FROM (
     ('Container: Immich Database', 'immich-postgres', 2150),
     ('Container: Paperless Database', 'paperless-ngx-db', 2160),
     ('Container: AdGuard Home', 'adguard-home', 2170),
-    ('Container: Pi-hole', 'pihole', 2180)
+    ('Container: Pi-hole', 'pihole', 2180),
+    ('Container: Mylar3 Workers', 'mylar3', 2190)
 )
 WHERE NOT EXISTS (
   SELECT 1 FROM monitor WHERE monitor.name = column1

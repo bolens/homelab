@@ -32,3 +32,19 @@ The matrix excludes images whose required source is unavailable in CI:
 
 Those images remain local builds until their source preparation is made
 reproducible in CI.
+
+## Comic automation
+
+- `ghcr.io/bolens/homelab-mylar3` includes DDL recovery, import problems,
+  post-processing monitoring, worker health, and the desktop navigation/layout.
+  Select it with `MYLAR3_IMAGE` in the Mylar stack.
+- `ghcr.io/bolens/homelab-comic-normalizer` includes archive conversion,
+  verified duplicate cleanup, corrupt-file quarantine, and opt-in import recovery.
+  Select it with `COMIC_NORMALIZER_IMAGE` in Komga's normalizer override.
+
+Both images run regression gates during their multi-stage builds and exclude test
+code from their final stages. Their allowlisted build contexts exclude runtime
+configuration and media. Linux amd64 is verified; other architectures are not
+currently published by this workflow. Existing application data and worker recovery
+state remain in external volumes or bind mounts. Follow each stack's verified
+backup, update, and rollback procedure when changing an image.
