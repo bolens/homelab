@@ -399,9 +399,10 @@ def tick(queue):
                 if str(r['IssueID']) not in seen:
                     emit('library','Confirmed in library',issueid=r['IssueID'],comicid=r['ComicID'],name=r['ComicName'])
         if seen is None or set(seen)!=current:store().set('meta','library_seen',sorted(current))
-        for held in store().active('handoff',HELD):
-            if held['phase']=='accepted' and held['issueid'] in current:
-                set_handoff(held,'completed','NZB issue confirmed in library')
+        for held in store().active('handoff',HELD|{'source-ready'}):
+            if held['phase'] in ('accepted','source-ready') and held['issueid'] in current:
+                db.DBConnection().upsert('ddl_info',{'status':'Completed'},{'id':held['ddl_id']})
+                set_handoff(held,'completed','Issue confirmed in library; original DDL retired')
         for held in store().active('dispatch',DISPATCH_HELD):
             if held['issueid'] in current:
                 store().set('dispatch',held['issueid'],dict(held,phase='completed'))

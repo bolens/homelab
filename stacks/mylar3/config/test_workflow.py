@@ -221,6 +221,15 @@ class WorkflowTest(unittest.TestCase):
         cmd=web.confirm_import(p['source_token'],p['version'],'10',confirmation='checked')
         self.assertTrue(cmd['reviewed_source'])
 
+    def test_handoff_completion_retires_original_ddl_status(self):
+        row=self.handoff();workflow.set_handoff(row,'source-ready','Existing source')
+        self.conn.execute("UPDATE ddl_info SET status='Source review'")
+        workflow.tick(app.SEARCH_QUEUE);self.assertEqual(self.status(),'Source review')
+        self.conn.execute("UPDATE issues SET Status='Downloaded',Location='Example.cbz'")
+        workflow._LAST_TICK=0;workflow.tick(app.SEARCH_QUEUE)
+        self.assertEqual(self.status(),'Completed')
+        self.assertEqual(workflow.store().get('handoff','10')['phase'],'completed')
+
     def test_native_patch_is_idempotent_and_preserves_return_contract(self):
         import patch_workflow
         for name,patcher in [('search.py',patch_workflow.search),('queues/search.py',patch_workflow.search_queue),('queues/ddl.py',patch_workflow.ddl),('webserve.py',patch_workflow.server),('api.py',patch_workflow.api)]:
