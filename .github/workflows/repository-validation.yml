@@ -73,3 +73,40 @@ jobs:
           path: test-results
           if-no-files-found: ignore
           retention-days: 7
+
+  mylar-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify pinned Mylar image without live configuration
+        shell: bash
+        run: |
+          image=$(awk '$1 == "FROM" {print $2; exit}' stacks/mylar3/Dockerfile)
+          [[ "$image" == *@sha256:* ]]
+          docker pull "$image"
+          stacks/mylar3/verify-image.sh "$image"
+
+  comic-maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test preservation and cleanup in the pinned converter image
+        shell: bash
+        run: |
+          image=$(awk '$1 == "FROM" {print $2; exit}' stacks/komga/normalizer/Dockerfile)
+          [[ "$image" == *@sha256:* ]]
+          docker pull "$image"
+          docker run --rm --pull=never --network=none --read-only --user=1000:1000 \
+            --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=64 --memory=768m \
+            --tmpfs /tmp:rw,size=256m,mode=1777 -e PYTHONDONTWRITEBYTECODE=1 \
+            -e ARCHIVING_UTILS_BIN=/opt/archiving-utils/bin/archiving-utils \
+            --mount "type=bind,src=$PWD/stacks/komga/normalizer,dst=/app,readonly" \
+            --entrypoint python3 "$image" -m unittest discover -s /app -p 'test_*.py'

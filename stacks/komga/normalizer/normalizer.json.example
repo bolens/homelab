@@ -1,0 +1,24 @@
+{
+  "roots": [
+    "/data/comics",
+    "/data/manga"
+  ],
+  "state": "/state",
+  "reader_state": "/normalizer-state",
+  "poll_seconds": 60,
+  "settle_seconds": 120,
+  "max_expanded_bytes": 2147483648,
+  "komga": {
+    "url": "http://komga:25600",
+    "api_key": "REPLACE_ME"
+  },
+  "maintenance": {
+    "enabled": false,
+    "completed": "/completed-comics",
+    "ddl_cache": "/ddl-cache",
+    "interval_seconds": 300,
+    "settle_seconds": 600,
+    "auto_import": false,
+    "mylar_ddl_cache": "/config/mylar/cache"
+  }
+}

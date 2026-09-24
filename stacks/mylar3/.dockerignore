@@ -1,0 +1,7 @@
+**
+!Dockerfile
+!config/
+!config/*.py
+!config/*.html
+!config/*.css
+!config/*.sh
