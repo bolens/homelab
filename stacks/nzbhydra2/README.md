@@ -32,6 +32,27 @@ Meta search for Usenet indexers. NZBHydra 2 aggregates results from multiple NZB
 
 Config is stored in the `nzbhydra2_config` named volume so it survives container upgrades and works from Portainer's web editor.
 
+## Upgrading from NZBHydra 8
+
+The pinned image runs NZBHydra 9.0.4. Its first startup migrates H2 from
+2.1 to 2.4, which can take several minutes. Stop NZBHydra before backing up
+the complete `nzbhydra2_config` volume and Compose/environment configuration.
+Verify an isolated restore and retain the previous image reference before
+upgrading. Let migration finish without interrupting startup.
+
+Downloads, history, and statistics survive migration; cached search results
+do not. Clients may need to repeat searches before downloading. Verify the
+UI, indexers, history, and a client search afterward. Upstream retains the
+old database for 14 days, but that copy does not replace a verified backup.
+For rollback, stop NZBHydra and restore the pre-upgrade data and configuration
+with the previous image.
+
+The Newznab API remains compatible. Custom `/internalapi` clients must
+handle CSRF protection or use the supported `/externalapi/v1` API. Upstream
+recommends `stop_grace_period: 120s` for database compaction during shutdown.
+
+See the [upstream migration notes](https://github.com/theotherp/nzbhydra2/releases/tag/v9.0.0).
+
 ## Configuration
 
 | Item        | Details                                                                 |
