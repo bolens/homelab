@@ -1,0 +1,129 @@
+<%inherit file="base.html"/>
+<%def name="headerIncludes()">
+<div id="subhead_container"><div id="subhead_menu">
+<a id="menu_link_edit" href="manage">Manage</a>
+<a id="menu_link_check" href="queueManage">DDL Queue Management</a>
+<a id="menu_link_manualmeta" href="importProblems">Import problems</a>
+<a id="pp_refresh" href="postProcessing" role="button">Refresh status</a>
+</div></div>
+</%def>
+<%def name="headIncludes()">
+<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+<style>
+#pp_monitor .pp_summary { display: flex; flex-wrap: wrap; gap: 1.5em; margin: 1em 0; }
+#pp_monitor .pp_summary dt { font-weight: bold; }
+#pp_monitor .pp_summary dd { margin: 0; }
+#pp_monitor .table_wrapper { overflow-x: auto; margin-bottom: 2em; }
+#pp_monitor h2 { margin-top: 1.5em; }
+#pp_message[data-stale="true"] { border-left: 3px solid #db9f42; padding-left: 0.7em; }
+</style>
+</%def>
+<%def name="body()">
+<input type="hidden" id="page_name" value="post_processing" />
+<div id="pp_monitor">
+<div id="paddingheader"><h1 class="clearfix">Post-processing</h1></div>
+<p id="pp_message" role="status" aria-live="polite">Loading post-processing status…</p>
+<dl class="pp_summary">
+<div><dt>Status</dt><dd id="pp_status">Unknown</dd></div>
+<div><dt>Worker</dt><dd id="pp_worker">Unknown</dd></div>
+<div><dt>Waiting</dt><dd id="pp_waiting">Unknown</dd></div>
+<div><dt>Last updated</dt><dd id="pp_updated">Not yet updated</dd></div>
+</dl>
+<p>Updates every five seconds. Mylar does not report a processing percentage.
+Run observations cover this service session; confirmed imports come from Mylar history.</p>
+<noscript>This monitor needs JavaScript. Enable it to load queue status.</noscript>
+<div class="pp_pair"><section>
+<h2>Active work</h2>
+<p>Runs currently observed by Mylar.</p>
+<div class="table_wrapper"><table id="pp_active" class="display">
+<thead><tr><th>Item</th><th>Source</th><th>Started</th><th>Elapsed</th></tr></thead><tbody></tbody></table></div>
+</section><section>
+<h2>Waiting to process</h2>
+<p id="pp_limit"></p>
+<div class="table_wrapper"><table id="pp_queue" class="display">
+<thead><tr><th>Position</th><th>Item</th><th>Source</th></tr></thead><tbody></tbody></table></div>
+</section></div>
+<h2>Recent processing runs</h2>
+<p id="pp_since">Observations start when Mylar starts. A finished run does not by itself confirm an import.</p>
+<div class="table_wrapper"><table id="pp_recent" class="display">
+<thead><tr><th>Item</th><th>Source</th><th>Outcome</th><th>Finished</th><th>Elapsed</th></tr></thead><tbody></tbody></table></div>
+<h2>Archive conversion and metadata</h2>
+<p>Original and output formats are observed from archive headers when available.
+Metadata results compare ComicInfo.xml and ComicBookInfo blocks, not the accuracy of individual fields.
+Library normalization preserves metadata rather than retagging it.</p>
+<p id="pp_archive_report">Waiting for conversion report.</p>
+<div class="table_wrapper"><table id="pp_archives" class="display">
+<thead><tr><th>Item</th><th>Stage</th><th>Original format</th><th>Output format</th><th>Conversion</th><th>Metadata</th></tr></thead><tbody></tbody></table></div>
+<h2>Recent confirmed imports</h2>
+<div class="table_wrapper"><table id="pp_imports" class="display">
+<thead><tr><th>Issue</th><th>Recorded by Mylar</th></tr></thead><tbody></tbody></table></div>
+</div>
+</%def>
+<%def name="javascriptIncludes()">
+<script src="js/libs/jquery.dataTables.min.js"></script>
+<script>
+$(document).ready(function() {
+    initActions();
+    $('#pp_refresh').button({icons: {primary: 'ui-icon-refresh'}});
+    function text(value) { return $('<span>').text(value == null ? '--' : value).html(); }
+    function table(id, empty) {
+        return $(id).DataTable({pageLength: 10, order: [], pagingType: 'full_numbers',
+            columnDefs: [{targets: '_all', render: text}], language: {emptyTable: empty}});
+    }
+    var active=table('#pp_active', 'No observed processing is active.');
+    var waiting=table('#pp_queue', 'No items are waiting.');
+    var recent=table('#pp_recent', 'No processing runs observed since this service started.');
+    var archives=table('#pp_archives', 'No observed tagging or reported library conversions yet.');
+    var imports=table('#pp_imports', 'No confirmed imports in Mylar history.');
+    function update(table, rows) {
+        table.clear().rows.add(rows).draw(false);
+        var info=table.page.info();
+        if (info.pages && info.page >= info.pages) table.page(info.pages-1).draw(false);
+    }
+    function date(value) { return new Date(value*1000).toLocaleString(); }
+    function elapsed(seconds) {
+        seconds=Math.max(0, Math.floor(seconds || 0));
+        return Math.floor(seconds/60) + 'm ' + seconds%60 + 's';
+    }
+    var timer=null, loading=false, stopped=false;
+    function refresh() {
+        if (loading || stopped) return;
+        clearTimeout(timer);
+        loading=true;
+        $('#pp_refresh').button('disable');
+        $.ajax({url:'postProcessingStatus', dataType:'json', cache:true, timeout:10000})
+        .done(function(data) {
+            if (!data || !Array.isArray(data.waiting) || !Array.isArray(data.active) ||
+                !Array.isArray(data.recent) || !Array.isArray(data.imports) || !data.archives ||
+                !Array.isArray(data.archives.tagging) || !Array.isArray(data.archives.normalizer)) {
+                failed(); return;
+            }
+            $('#pp_status').text(data.status);
+            $('#pp_worker').text(data.enabled ? (data.worker_alive ? 'Running' : 'Unavailable') : 'Disabled');
+            $('#pp_waiting').text(data.queue_depth);
+            $('#pp_updated').text(date(data.checked_at));
+            var warning=data.observer_errors ? ' Some activity could not be observed; check Mylar logs.' : '';
+            $('#pp_message').attr('data-stale','false').text('Status is current.' + warning);
+            $('#pp_since').text('Up to 50 runs observed since ' + date(data.observing_since) + '. A finished run does not by itself confirm an import.');
+            $('#pp_limit').text(data.waiting_truncated ? 'Showing the first 100 waiting items.' : 'Queue order is unchanged by this monitor.');
+            update(active, data.active.map(function(r) {return [r.name,r.source,date(r.started_at),elapsed(r.elapsed_seconds)];}));
+            update(waiting, data.waiting.map(function(r,i) {return [i+1,r.name,r.source];}));
+            update(recent, data.recent.map(function(r) {return [r.name,r.source,r.outcome,date(r.finished_at),elapsed(r.elapsed_seconds)];}));
+            $('#pp_archive_report').text(data.archives.normalizer_status);
+            update(archives, data.archives.tagging.concat(data.archives.normalizer).map(function(r) {return [r.name,r.source,r.original_format,r.output_format,r.conversion,r.metadata];}));
+            update(imports, data.imports.map(function(r) {return [r.name,r.imported_at];}));
+        }).fail(failed).always(function() {
+            loading=false;
+            $('#pp_refresh').button('enable');
+            if (!stopped) timer=setTimeout(refresh, 5000);
+        });
+    }
+    function failed() {
+        $('#pp_message').attr('data-stale','true').text('Status could not be refreshed. Displayed data may be stale. Check the connection or sign in again through Manage.');
+    }
+    $('#pp_refresh').on('click', function(event) {event.preventDefault();refresh();});
+    $(window).on('beforeunload', function() {stopped=true;clearTimeout(timer);});
+    refresh();
+});
+</script>
+</%def>

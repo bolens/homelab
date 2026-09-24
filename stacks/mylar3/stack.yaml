@@ -52,7 +52,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Published GHCR image includes DDL compatibility, worker recovery, queue control, verified transfers, import-problem reporting, the post-processing monitor, and authenticated health checks without source bind mounts. Enable the Mylar API for container health.'
 runtime_security:
   privileged_services: []
   host_network_services: []

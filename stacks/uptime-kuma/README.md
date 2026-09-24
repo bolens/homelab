@@ -59,6 +59,20 @@ docker run --rm --entrypoint sqlite3 \
   /app/data/kuma.db < ../../scripts/uptime-kuma-baseline.sql.example
 ```
 
+### Comic worker alerts
+
+Keep the Mylar HTTPS monitor and add a **Docker Container** monitor for `mylar3`
+under **Critical Containers**, using the existing read-only Docker host. Attach
+the same notification routes as the Mylar HTTPS monitor. Use a 60-second interval,
+two retries at 30 seconds, and a 30-minute reminder interval.
+
+When the optional Komga maintenance worker is deployed, add another container
+monitor using its actual Compose container name. Mylar's probe detects dead
+workers and 15-minute progress stalls. The normalizer probe detects conversion
+and maintenance errors or stale checks. These monitors appear on the private
+Kuma dashboard, while Docker-aware dashboards display each container's health.
+No API key or new public endpoint is required for either container monitor.
+
 ### Notifications
 
 `Homelab ntfy` publishes to the `uptime-kuma` topic at
