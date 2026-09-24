@@ -5,14 +5,21 @@
 </%def>
 <%def name="headIncludes()">
 <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+<style>
+.import_filters { display: flex; flex-wrap: wrap; align-items: center; gap: .7em; margin: 1em 0; }
+.import_filters select { padding: .5em; max-width: 100%; }
+#import_problems .review_match { margin: .5em 0; }
+#import_problems td:first-child a { display: block; margin-top: .4em; }
+.import_filters :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
+</style>
 </%def>
 <%def name="body()">
 <input type="hidden" id="page_name" value="import_problems" />
 <div id="paddingheader"><h1 class="clearfix">Import problems</h1></div>
-<p>${report_status | h}</p>
+<p role="status">${report_status | h}</p>
 <p>Files remain untouched until their identity and archive contents are verified. Refresh this page for the latest report.</p>
-<p><label for="recovery_filter">Recovery status:</label>
-<select id="recovery_filter"><option value="">All recovery states</option></select></p>
+<div class="import_filters"><label for="recovery_filter">Recovery status:</label>
+<select id="recovery_filter"><option value="">All recovery states</option></select><button id="clear_import_filters" type="button">Clear filters</button></div>
 <div class="table_wrapper">
 <table class="display" id="import_problems">
 <thead><tr><th scope="col">File or issue</th><th scope="col">Problem</th><th scope="col">Recovery status</th><th scope="col">Suggested action</th></tr></thead>
@@ -36,6 +43,7 @@
 <script>
     $(document).ready(function() {
         initActions();
+        $('#clear_import_filters').button();
         $('.review_match').button({icons: {primary: 'ui-icon-search'}});
         var table=$('#import_problems').DataTable({
             pageLength: 25,
@@ -50,6 +58,7 @@
         table.column(2).data().unique().sort().each(function(value) {
             $('<option>').val(value).text(value).appendTo('#recovery_filter');
         });
+        $('#clear_import_filters').on('click',function() { $('#recovery_filter').val(''); table.search('').columns().search('').draw(); });
         $('#recovery_filter').on('change', function() {
             var value=$.fn.dataTable.util.escapeRegex(this.value);
             table.column(2).search(value ? '^' + value + '$' : '', true, false).draw();

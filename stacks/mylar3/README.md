@@ -280,6 +280,12 @@ pause. Missing or unreadable configured storage stops new intake and reports the
 reason; it never creates a replacement directory. Change these settings in Activity,
 not environment variables.
 
+Activity and Post-processing have section links for reaching review controls and
+conversion details directly. Activity history scrolls within a bounded region,
+with a stage selector and clear-filter action. Requests show feedback beside their
+controls, and unchanged import-review controls preserve keyboard focus during refresh.
+Import problems can clear its recovery and text filters together.
+
 Workflow uses existing configuration/state volumes, login, primary-key worker API
 and ingress. Mutations require POST and a session-bound CSRF token. Back up the
 whole Mylar data directory, including `workflow.sqlite` and existing control files.
