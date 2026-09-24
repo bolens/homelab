@@ -11,3 +11,4 @@ python3 /opt/mylar3-fixes/patch_queue_views.py /app/mylar3/mylar
 python3 /opt/mylar3-fixes/patch_pp_monitor.py /app/mylar3/mylar
 python3 /opt/mylar3-fixes/patch_wide_layout.py /app/mylar3/mylar
 python3 /opt/mylar3-fixes/patch_workflow.py /app/mylar3/mylar
+python3 /opt/mylar3-fixes/patch_ddl_ui.py /app/mylar3/mylar

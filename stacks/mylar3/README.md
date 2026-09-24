@@ -132,6 +132,13 @@ provider cooldown.
 Pack downloads are not marked imported based on one member issue. The health probe counts new byte high-water marks and completed downloads.
 Switching mirrors or shrinking the queue alone cannot clear a stall warning.
 
+DDL Queue Management keeps the active transfer visible when its size is unknown,
+with an indeterminate progress bar. Failed refreshes retain the last snapshot and
+disable active-download actions until fresh status arrives. Requests do not overlap,
+and polling pauses in hidden tabs. The queue becomes labeled cards on small screens,
+with a sort selector, while larger screens retain the full table. Queue-wide actions
+are separate from active-download controls; removals and aborts ask for confirmation.
+
 Each release gets six attempts across restarts and mirror changes. Two consecutive
 failures on a provider cause a 15-minute cooldown for that provider. HTTP 429 starts
 the cooldown immediately. Other eligible providers continue. An explicit Restart
@@ -284,7 +291,9 @@ Activity and Post-processing have section links for reaching review controls and
 conversion details directly. Activity history scrolls within a bounded region,
 with a stage selector and clear-filter action. Requests show feedback beside their
 controls, and unchanged import-review controls preserve keyboard focus during refresh.
-Import problems can clear its recovery and text filters together.
+Import problems can clear its recovery and text filters together. All four queue
+workflow pages use native-style buttons with explicit readable colors for normal,
+hover, focus, pressed, and disabled states.
 
 Workflow uses existing configuration/state volumes, login, primary-key worker API
 and ingress. Mutations require POST and a session-bound CSRF token. Back up the
@@ -299,8 +308,11 @@ from [custom image builds](../../documents/CUSTOM-IMAGES.md) for repeatable depl
 Linux amd64 is the verified platform. Updates use the container image; Mylar's
 in-application updater can overwrite these enhancements and should remain disabled.
 
-Before updating, stop writers and back up the configuration volume and shared
-library, then verify an isolated restore. Pull the selected image and recreate
+Scope service interruptions to the update. For a Mylar-only interface change, keep
+NZBGet and Komga running and stop only Mylar while backing up its configuration and
+application state. Use an application-consistent backup for any shared media the
+operation could change; do not stop unrelated services as a blanket precaution.
+Verify an isolated restore before updating. Pull the selected image and recreate
 only Mylar. Check database integrity, baseline issue records and media hashes,
 container health, and the DDL and post-processing pages. If data is missing or
 corrupt, stop writers and restore the verified backup and previous image. Remove

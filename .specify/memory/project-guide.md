@@ -41,6 +41,10 @@ Use make validate-changed BASE=origin/main or make ci-local for broader changes,
 following RELEASING.md. Validation does not authorize image pulls, directory creation
 over missing mounts, service changes, or destructive volume removal.
 
+For Mylar-only updates, keep NZBGet and Komga running. Scope backups and any writer
+coordination to the affected state and follow the Mylar stack's update instructions.
+Do not reuse a multi-service rollout script for a single-service UI change.
+
 ## Working through Spec Kit
 
 Use Spec Kit for new capabilities, architectural or security-sensitive changes,

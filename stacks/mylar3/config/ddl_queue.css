@@ -1,0 +1,72 @@
+/* Queue-owned responsive layout; other Mylar pages keep their existing layout. */
+body:has(#ddl_queue_page) #main, body:has(#ddl_queue_page) footer { box-sizing: border-box; width: calc(100% - clamp(24px, 4vw, 96px)); min-width: 0; max-width: none; }
+body:has(#ddl_queue_page) #subhead_container { float: none; height: auto; }
+body:has(#ddl_queue_page) #subhead_menu { float: none; display: flex; flex-wrap: wrap; gap: 6px; }
+#ddl_queue_page { min-width: 0; }
+#ddl_queue_page *, #ddl_queue_page *::before { box-sizing: border-box; }
+#ddl_queue_page [hidden] { display: none !important; }
+#ddl_queue_page .ddl_sections, #ddl_queue_page .ddl_actions { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; }
+#ddl_queue_page .ddl_sections { margin: 1rem 0; gap: 1rem; }
+#ddl_queue_page section { scroll-margin-top: 90px; }
+#ddl_active { padding: clamp(14px, 2vw, 28px); border: 1px solid #8886; border-radius: 6px; margin: 1rem 0 2rem; }
+#ddl_queue_page .ddl_active_heading { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+#ddl_queue_page #ddl_state { font-weight: bold; }
+#ddl_series { font-size: 1.25rem; margin: 1rem 0 .4rem; overflow-wrap: anywhere; }
+#ddl_filename, #ddl_idle, #ddl_action_notice { overflow-wrap: anywhere; }
+#ddl_filename { margin-bottom: 1.2rem; }
+#ddl_queue_page .ddl_progress_line { display: flex; gap: 1rem; align-items: center; }
+#ddl_progress { display: block; width: 100%; min-width: 0; height: 1.25rem; accent-color: #3383bb; }
+#ddl_percent { flex: 0 0 auto; }
+#ddl_queue_page .ddl_metrics { display: flex; flex-wrap: wrap; gap: 1rem 3rem; margin: 1.2rem 0; }
+#ddl_queue_page dt { font-weight: bold; } #ddl_queue_page dd { margin: .4rem 0; }
+#ddl_notice[data-stale=true], #ddl_action_notice:not(:empty) { padding: .7rem 1rem; border-left: 3px solid #bd7d25; }
+#ddl_queue_page :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
+#ddl_queue_page button, #ddl_queue_page select, #ddl_queue_page input { min-height: 36px; max-width: 100%; }
+#ddl_queue_page .table_wrapper { width: 100%; overflow-x: auto; }
+#ddl_queue_page #queue_table { width: 100% !important; }
+#ddl_queue_page #queue_table td { vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+#ddl_queue_page #queue_table th { text-align: left; }
+#ddl_queue_page .ddl_row_actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+#ddl_queue_page .ddl_row_actions button { padding: .4rem .6rem; color: inherit; background: transparent; border: 1px solid #8889; border-radius: 3px; cursor: pointer; }
+#ddl_queue_page .ddl_row_actions button:hover { background: #8882; }
+#ddl_queue_page .ddl_mobile_sort { display: none; }
+@media (min-width: 1600px) {
+ #ddl_transfer { display: grid; grid-template-columns: minmax(0, 2fr) minmax(14rem, 1fr); gap: .5rem 2rem; }
+ #ddl_series, #ddl_filename { grid-column: 1; }
+ #ddl_queue_page .ddl_progress_line { grid-column: 1; }
+ #ddl_queue_page .ddl_metrics { grid-column: 2; grid-row: 1 / 4; align-content: center; margin: 0; }
+}
+@media (max-width: 999px) {
+ body:has(#ddl_queue_page) { min-width: 0; }
+ body:has(#ddl_queue_page) header { position: static; height: auto; min-width: 0; }
+ body:has(#ddl_queue_page) header .wrapper { width: calc(100% - 24px); min-width: 0; height: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+ body:has(#ddl_queue_page) header #logo { float: none; margin: 0; flex: 0 0 auto; }
+ body:has(#ddl_queue_page) header #nav { flex: 1; min-width: 0; float: none; display: flex; flex-wrap: wrap; padding: 0; margin: 0; height: auto; }
+ body:has(#ddl_queue_page) header #nav li { font-size: 14px; float: none; margin-top: 0; }
+ body:has(#ddl_queue_page) header #nav a { padding: 10px 8px; display: inline-block; }
+ body:has(#ddl_queue_page) header #searchbar { position: static; padding: 8px 0; width: 100%; display: flex; gap: 6px; }
+ body:has(#ddl_queue_page) header #searchbar input[type=text] { width: auto; flex: 1; min-width: 0; }
+ body:has(#ddl_queue_page) #main { padding-top: 12px; }
+ body:has(#ddl_queue_page) footer { display: block; }
+ body:has(#ddl_queue_page) footer #version, body:has(#ddl_queue_page) footer #backendstatus { width: 100%; clear: both; }
+ body:has(#ddl_queue_page) #subhead button { min-height: 36px; }
+ #ddl_queue_page .dataTables_filter, #ddl_queue_page .dataTables_length { float: none; width: auto; text-align: left; margin: .8rem 0; }
+ #ddl_queue_page .dataTables_filter input { width: min(65vw, 22rem); }
+ #ddl_queue_page .dataTables_paginate { width: auto; max-width: 100%; height: auto; float: none; display: flex; flex-wrap: wrap; gap: .25rem; justify-content: flex-start; margin: .7rem 0; }
+ #ddl_queue_page .dataTables_info { float: none; width: auto; }
+}
+@media (max-width: 760px) {
+ #ddl_queue_page .ddl_mobile_sort { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+ #ddl_queue_page .table_wrapper, #ddl_queue_page .dataTables_wrapper { overflow: visible; }
+ #ddl_queue_page #queue_table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+ #ddl_queue_page #queue_table, #ddl_queue_page #queue_table tbody { display: block; }
+ #ddl_queue_page #queue_table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid #8886; border-radius: 5px; padding: .7rem; margin: 1rem 0; }
+ #ddl_queue_page #queue_table td { display: block; width: auto !important; border: 0; padding: .5rem; }
+ #ddl_queue_page #queue_table td::before { content: attr(data-label); display: block; font-weight: bold; margin-bottom: .3rem; }
+ #ddl_queue_page #queue_table td:nth-child(1), #ddl_queue_page #queue_table td:nth-child(7), #ddl_queue_page #queue_table td:nth-child(11), #ddl_queue_page #queue_table td.dataTables_empty { grid-column: 1 / -1; }
+ #ddl_queue_page #queue_table td:first-child { font-size: 1.1rem; }
+ #ddl_queue_page #queue_table td.dataTables_empty::before { display: none; }
+ #ddl_queue_page .ddl_row_actions button, #ddl_queue_page button, #ddl_queue_page select { min-height: 44px; }
+ #ddl_queue_page .ddl_progress_line { flex-wrap: wrap; }
+ #ddl_progress { flex-basis: 100%; }
+}
