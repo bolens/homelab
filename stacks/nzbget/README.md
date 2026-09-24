@@ -99,3 +99,13 @@ For public access via Cloudflare Tunnel, add a corresponding `nzbget.yourdomain.
   - URL base: (empty, unless you change it in NZBGet)
   - Category: set per-app (e.g. `tv`, `movies`, `music`, `books`) and configure NZBGet categories accordingly.
 - **Path mapping:** Use `/downloads` as the download root in NZBGet and in your *arr apps so they see the same files via the shared host bind mount (`/mnt/unraid/media/downloads/usenet` by default).
+
+## Comic download integrity
+
+For the comics category, keep `Unpack=yes`. Check the downloader's integrity
+settings: `CrcCheck=yes`, `ParCheck=auto`, `ParRepair=yes`, and `HealthCheck=park`.
+Parity repair can recover damaged Usenet articles when enough recovery data is
+available. It cannot repair every bad comic archive inside an otherwise valid
+release. Mylar's failed-download handling and the optional
+[completed-download maintenance worker](../komga/README.md#completed-download-maintenance)
+handle those remaining failures and retain verified quarantine copies.

@@ -1,0 +1,286 @@
+/* Keep the native compact layout below desktop width. */
+@media (min-width: 1000px) {
+  header .wrapper,
+  #main,
+  footer {
+    box-sizing: border-box;
+    width: calc(100% - clamp(32px, 4vw, 96px));
+    max-width: none;
+    min-width: 0;
+  }
+
+  #main #series_table,
+  #main table.display {
+    box-sizing: border-box;
+    width: 100% !important;
+  }
+
+  #main .table_wrapper,
+  #main .dataTables_wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  #main .dataTables_length,
+  #main .dataTables_filter,
+  #main .dataTables_info,
+  #main .dataTables_paginate {
+    width: auto;
+    max-width: 100%;
+  }
+
+  #main .dataTables_filter input {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  #subhead #subhead_container {
+    float: none;
+    height: auto;
+    min-height: 32px;
+  }
+
+  #subhead #subhead_container #subhead_menu {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    float: none;
+    padding-bottom: 6px;
+  }
+
+  #queue_table td,
+  #import_problems td,
+  #pp_monitor td {
+    overflow-wrap: anywhere;
+  }
+
+  #import_problems td,
+  #pp_monitor td {
+    text-align: left;
+    vertical-align: top;
+  }
+
+  #import_problems th:first-child {
+    width: 40%;
+  }
+
+  #pp_monitor .pp_pair > section {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1200px) {
+  header .wrapper {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 58px;
+  }
+
+  header #logo {
+    flex: 0 0 auto;
+    float: none;
+    margin: 0;
+  }
+
+  header ul#nav {
+    flex: 0 0 auto;
+    float: none;
+    margin-right: auto;
+    padding-left: 0;
+  }
+
+  header div#searchbar {
+    position: static;
+    flex: 0 0 auto;
+    padding: 0;
+  }
+}
+
+@media (min-width: 1600px) {
+  #pp_monitor .pp_pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+    align-items: start;
+  }
+}
+
+/* Give wide tables useful column proportions, rather than stretching every field. */
+@media (min-width: 1000px) {
+  #subhead #subhead_container #subhead_menu {
+    justify-content: flex-start;
+    margin-bottom: 12px;
+  }
+
+  #main .dataTables_filter,
+  #main .dataTables_length {
+    margin-bottom: 12px;
+  }
+
+  #main table.display th,
+  #main table.display td {
+    line-height: 1.5;
+  }
+
+  #series_table th#name,
+  #series_table td#name {
+    width: 45% !important;
+    max-width: none;
+    text-align: left;
+    white-space: normal;
+  }
+
+  #series_table td#name a {
+    white-space: normal;
+    overflow-wrap: break-word;
+    max-width: none;
+  }
+
+  #queue_table th:first-child,
+  #queue_table td:first-child {
+    width: 24% !important;
+    text-align: left;
+  }
+
+  #queue_table th:last-child,
+  #queue_table td:last-child {
+    width: 25% !important;
+    text-align: left;
+  }
+
+  #pp_monitor table.display th,
+  #import_problems th {
+    text-align: left;
+  }
+
+  #pp_monitor .pp_summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    max-width: 72rem;
+    margin: 20px 0;
+  }
+
+  #pp_monitor .pp_summary > div {
+    padding: 12px 16px;
+    border: 1px solid rgba(128, 128, 128, 0.35);
+    border-radius: 4px;
+  }
+
+  #pp_monitor .pp_summary dd {
+    margin-top: 6px;
+    overflow-wrap: anywhere;
+  }
+
+  #pp_monitor .pp_pair > section > p {
+    min-height: 1.5em;
+  }
+
+  #pp_monitor #pp_active th:first-child,
+  #pp_monitor #pp_queue th:nth-child(2),
+  #pp_monitor #pp_recent th:first-child {
+    width: 38% !important;
+  }
+
+  #pp_monitor #pp_archives th:first-child {
+    width: 28% !important;
+  }
+
+  #pp_monitor #pp_archives th:last-child {
+    width: 22% !important;
+  }
+
+  #pp_monitor #pp_recent th:nth-child(3) {
+    width: 28% !important;
+  }
+
+  #main .configtable p {
+    max-width: 85ch;
+  }
+}
+
+header #nav .homelab_desktop_nav {
+  display: none;
+}
+
+@media (min-width: 1200px) {
+  header .wrapper {
+    overflow: visible;
+  }
+
+  header #nav .homelab_desktop_nav {
+    display: block;
+  }
+
+  header ul#nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  header ul#nav li {
+    margin-top: 0;
+    float: none;
+  }
+
+  header #nav a,
+  header #nav summary {
+    box-sizing: border-box;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 7px 12px;
+    border: 1px solid transparent;
+  }
+
+  header #nav a[aria-current="page"],
+  header #nav details.current > summary {
+    border-bottom-color: #46a9b9;
+  }
+
+  header #nav details {
+    position: relative;
+  }
+
+  header #nav summary {
+    cursor: pointer;
+    list-style: none;
+  }
+
+  header #nav summary::after {
+    content: "▾";
+    margin-left: 8px;
+    font-size: 12px;
+  }
+
+  header #nav .homelab_queue_links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 210px;
+    padding: 6px;
+    border: 1px solid #687078;
+    border-radius: 4px;
+    background: #30363b;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  }
+
+  header #nav .homelab_queue_links a {
+    font-size: 14px;
+    text-align: left;
+    white-space: nowrap;
+    color: #f1f3f4;
+    text-shadow: none;
+  }
+
+  header #nav summary:hover,
+  header #nav summary:focus-visible {
+    background: rgba(128, 128, 128, 0.2);
+  }
+
+  header #searchbar input[type="text"] {
+    width: clamp(160px, 14vw, 300px);
+  }
+}

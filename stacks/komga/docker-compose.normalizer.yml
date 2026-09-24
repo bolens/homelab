@@ -1,0 +1,82 @@
+# Opt-in verified comic conversion. See README before enabling this override.
+services:
+  komga:
+    user: "${PUID:-1000}:${PGID:-1000}"
+    volumes:
+      - type: bind
+        source: ${KOMGA_COMICS_PATH:-/mnt/unraid/media/comics}
+        target: /data/comics
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${KOMGA_MANGA_PATH:-/mnt/unraid/media/manga}
+        target: /data/manga
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMALIZER_STATE_PATH:-./normalizer-state}
+        target: /normalizer-state
+        read_only: true
+        bind:
+          create_host_path: false
+
+  comic-normalizer:
+    image: ${COMIC_NORMALIZER_IMAGE:-ghcr.io/bolens/homelab-comic-normalizer:latest}
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.5
+    mem_limit: 768m
+    pids_limit: 64
+    entrypoint: [python3, /app/normalize.py]
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    volumes:
+      - type: bind
+        source: ${NORMALIZER_CONFIG_PATH:-./normalizer.json}
+        target: /config/normalizer.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${NORMALIZER_STATE_PATH:-./normalizer-state}
+        target: /state
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${KOMGA_COMICS_PATH:-/mnt/unraid/media/comics}
+        target: /data/comics
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${KOMGA_MANGA_PATH:-/mnt/unraid/media/manga}
+        target: /data/manga
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MYLAR_CONFIG_PATH:-./normalizer/empty-mylar}
+        target: /mylar
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - ingress-public
+      - media-automation
+    depends_on:
+      komga:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python3, /app/normalize.py, --health]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  media-automation:
+    name: media-automation
+    external: true

@@ -37,6 +37,9 @@ volumes:
 - name: komga_config
   role: app_data
   critical: true
+- name: normalizer_state
+  role: app_data
+  critical: true
 auth:
   mode: app_local
   sso_provider: null
@@ -52,7 +55,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Optional normalizer override uses the published comic-normalizer GHCR image without source bind mounts, enables writable libraries and preserves original archives in the NORMALIZER_STATE_PATH bind mount. Optional maintenance override adds completed-download cleanup and corrupt-archive quarantine in that state directory, publishes conversion status to the Mylar post-processing monitor, and supports opt-in source-preserving recovery of uniquely matched imports.'
 runtime_security:
   privileged_services: []
   host_network_services: []

@@ -17,6 +17,10 @@ caddy_snippet.conf
 # Shared env (TZ, locale) – copy from shared.env.example
 shared.env
 
+# Comic normalization credentials, receipts, and preserved original archives.
+stacks/komga/normalizer.json
+stacks/komga/normalizer-state/
+
 # Local .local hostnames list – copy from scripts/local-hosts.conf.example
 scripts/local-hosts.conf
 scripts/local-hosts.overrides
