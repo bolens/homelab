@@ -1,5 +1,6 @@
 """Run inside a candidate image without live mounts, networking, or app startup."""
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import sys
@@ -20,9 +21,9 @@ with tempfile.TemporaryDirectory() as directory:
         subprocess.run([sys.executable, str(FIXES / patch), str(source)], check=True)
     for test in ('test_ddl_fix.py', 'test_worker_fix.py', 'test_health.py', 'test_integrity.py', 'test_queue_progress.py', 'test_queue_control.py', 'test_verified_transfer.py', 'test_queue_views.py', 'test_search_fallback.py', 'test_search_cooldown.py', 'test_pp_monitor.py', 'test_archive_monitor.py'):
         subprocess.run([sys.executable, str(FIXES / test), str(source)], check=True)
+    for test in ('test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py'):
+        subprocess.run([sys.executable, str(FIXES / test)], check=True,env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
 subprocess.run([sys.executable, str(FIXES / 'test_reliability.py')], check=True)
 
-for test in ('test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py'):
-    subprocess.run([sys.executable, str(FIXES / test)], check=True)
 
 print('Candidate image passed the isolated Mylar reliability gate')

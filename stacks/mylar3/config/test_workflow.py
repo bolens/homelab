@@ -1,5 +1,6 @@
 """Workflow ownership, admission, security and native integration regressions."""
 import ast
+import os
 import importlib
 import json
 from pathlib import Path
@@ -233,7 +234,7 @@ class WorkflowTest(unittest.TestCase):
     def test_native_patch_is_idempotent_and_preserves_return_contract(self):
         import patch_workflow
         for name,patcher in [('search.py',patch_workflow.search),('queues/search.py',patch_workflow.search_queue),('queues/ddl.py',patch_workflow.ddl),('webserve.py',patch_workflow.server),('api.py',patch_workflow.api)]:
-            source=Path('/app/mylar3/mylar')/name
+            source=Path(os.environ.get('MYLAR_WORKFLOW_SOURCE','/app/mylar3/mylar'))/name
             if not source.exists():source=Path('/tmp/mylar-workflow-native/mylar')/name
             if not source.exists():self.skipTest('Native fixture not available')
             changed=patcher(source.read_text());self.assertEqual(patcher(changed),changed);ast.parse(changed)
