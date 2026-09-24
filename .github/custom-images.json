@@ -40,6 +40,11 @@
     "dockerfile": "stacks/clark-browser/build/Dockerfile"
   },
   {
+    "image": "comic-normalizer",
+    "context": "stacks/komga/normalizer",
+    "dockerfile": "stacks/komga/normalizer/Dockerfile"
+  },
+  {
     "image": "docker-forensics-toolkit",
     "context": "stacks/docker-forensics-toolkit",
     "dockerfile": "stacks/docker-forensics-toolkit/Dockerfile"
@@ -73,6 +78,11 @@
     "image": "metagoofil",
     "context": "stacks/metagoofil",
     "dockerfile": "stacks/metagoofil/Dockerfile"
+  },
+  {
+    "image": "mylar3",
+    "context": "stacks/mylar3",
+    "dockerfile": "stacks/mylar3/Dockerfile"
   },
   {
     "image": "n8n-restart-gateway",

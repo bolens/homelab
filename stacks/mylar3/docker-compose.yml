@@ -8,7 +8,7 @@ services:
   mylar3:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4
+    image: ${MYLAR3_IMAGE:-ghcr.io/bolens/homelab-mylar3:latest}
     container_name: mylar3
     restart: unless-stopped
     cpus: 2.0
@@ -31,9 +31,9 @@ services:
       - usenet
       - torrents
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8090/"]
+      test: ["CMD", "python3", "/opt/mylar3-fixes/health.py"]
       interval: 60s
-      timeout: 10s
+      timeout: 20s
       retries: 3
       start_period: 30s
 

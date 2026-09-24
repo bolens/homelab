@@ -1,0 +1,14 @@
+# Add after docker-compose.normalizer.yml to permit verified download cleanup.
+services:
+  comic-normalizer:
+    volumes:
+      - type: bind
+        source: ${MYLAR_COMPLETED_PATH:-/mnt/unraid/media/downloads/usenet/completed/comics}
+        target: /completed-comics
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MYLAR_DDL_CACHE_PATH:?Set MYLAR_DDL_CACHE_PATH to the existing Mylar DDL cache}
+        target: /ddl-cache
+        bind:
+          create_host_path: false
