@@ -284,3 +284,45 @@ header #nav .homelab_desktop_nav {
     width: clamp(160px, 14vw, 300px);
   }
 }
+
+/* Match native jQuery UI controls, with explicit contrast for every state.
+   The upstream active text is white while its hover image can remain white. */
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button) {
+  color: #245f89;
+  background: #eee;
+  background-image: linear-gradient(#fafafa, #e8e8e8) !important;
+  border: 1px solid #b8bec4;
+  border-radius: 4px;
+  text-shadow: none;
+  font-weight: bold;
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:hover, :focus-visible, .ui-state-hover, .ui-state-focus) {
+  color: #1d5277;
+  background: #e6f0f7;
+  background-image: none !important;
+  border-color: #7399b3;
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:active, .ui-state-active) {
+  color: #fff;
+  background: #286a96;
+  background-image: none !important;
+  border-color: #205778;
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):focus-visible {
+  outline: 2px solid #286a96;
+  outline-offset: 3px;
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button .ui-icon {
+  background-image: url("images/ui-icons_3383bb_256x240.png");
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button:is(:active, .ui-state-active) .ui-icon {
+  background-image: url("images/icon_sprite_white.png");
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:disabled, .ui-state-disabled, [aria-disabled="true"]) {
+  color: #555d65;
+  background: #e6e8ea;
+  background-image: none !important;
+  border-color: #b8bec4;
+  opacity: 1;
+  cursor: not-allowed;
+}

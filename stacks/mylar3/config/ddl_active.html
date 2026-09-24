@@ -1,0 +1,18 @@
+<div id="ddl_queue_page">
+<div id="paddingheader"><h1>DDL Queue Management</h1></div>
+<nav class="ddl_sections" aria-label="DDL queue sections"><a href="#ddl_active">Active download</a><a href="#ddl_history">Queue and history</a><button id="ddl_refresh" type="button">Refresh status</button></nav>
+<p id="ddl_notice" role="status">Loading download status…</p>
+<p id="ddl_action_notice" role="status"></p>
+<section id="ddl_active" aria-labelledby="ddl_active_heading">
+<div class="ddl_active_heading"><h2 id="ddl_active_heading">Active download</h2><span id="ddl_state">Loading</span></div>
+<p id="ddl_idle">Waiting for the current download.</p>
+<div id="ddl_transfer" hidden>
+<h3 id="ddl_series"></h3><p id="ddl_filename"></p>
+<div class="ddl_progress_line"><progress id="ddl_progress" max="100" aria-label="Download progress"></progress><strong id="ddl_percent">Size unknown</strong></div>
+<dl class="ddl_metrics"><div><dt>Reported size</dt><dd id="ddl_size">Unknown</dd></div><div><dt>Last checked</dt><dd id="ddl_checked">Not yet checked</dd></div></dl>
+</div>
+<div id="ddl_active_actions" class="ddl_actions" hidden><button type="button" data-ddl-mode="restart">Restart download</button><button type="button" data-ddl-mode="resume">Resume download</button><button type="button" data-ddl-mode="abort">Abort download</button></div>
+</section>
+<section id="ddl_history" aria-labelledby="ddl_history_heading"><h2 id="ddl_history_heading">Queue and history</h2>
+<p>Download completion and confirmed library import are shown separately in Download / import status.</p>
+<div class="ddl_mobile_sort"><label for="ddl_sort">Sort queue</label><select id="ddl_sort"><option value="5:desc">Recently updated</option><option value="5:asc">Oldest updated</option><option value="0:asc">Series A–Z</option><option value="3:desc">Progress, highest first</option><option value="4:asc">Status A–Z</option><option value="custom" disabled>Current table order</option></select></div>
