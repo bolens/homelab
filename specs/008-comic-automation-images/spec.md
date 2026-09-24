@@ -2,7 +2,7 @@
 
 **Created**: 2026-09-24
 
-**Status**: In progress
+**Status**: Delivered; optional merged-branch cleanup awaits authorization
 
 **Input**: Merge the comic automation changes into GitHub and publish the enhancements
 in GHCR images so redeployment does not require local source code.
