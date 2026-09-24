@@ -62,11 +62,11 @@ checks. Both maintenance reports were fresh and error-free, all four containers
 were healthy, and both Uptime Kuma worker monitors reported UP. Private worker
 configuration and credentials were unchanged.
 
-Automatic approval review rejected deletion of the merged feature branch because
-branch deletion had not been explicitly authorized. The branch is retained; this
-does not affect the reviewed merge, published artifacts, or deployed services.
+The user subsequently authorized merged-branch cleanup. Local feature and rollout
+documentation branches were removed after their exact tips were verified against
+merged PRs #106 and #108. Their GitHub refs were already absent.
 
 Temporary application/library backups, isolated restores, and the task-created
 source-safety stash were removed after verification. Existing backups and the
 pre-existing Git stash were preserved. The primary checkout is clean at the merged
-release; only the optional task-branch deletion remains blocked.
+release, and task-branch cleanup is complete.

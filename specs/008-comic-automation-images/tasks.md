@@ -6,4 +6,4 @@
 - [x] Pass required local and PR gates and squash-merge into GitHub main.
 - [x] Verify GHCR publication, mirror, Pages, and backed-up deployment from published digests.
 - [x] Verify preserved data, clean temporary backups, and synchronize checkout.
-- [ ] Optional task-branch cleanup: blocked by automatic approval review pending explicit branch-deletion authorization.
+- [x] Remove completed task branches after explicit user authorization and merged-head verification.

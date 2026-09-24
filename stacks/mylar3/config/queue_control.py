@@ -119,6 +119,32 @@ def reset(key):
         store().reset(key)
 
 
+def search_order(order, nzbproviders):
+    """Prefer available NZB searches while every known GetComics host is cooling."""
+    lowered = {name.casefold() for name in order}
+    if ('ddl(getcomics)' not in lowered
+            or lowered.intersection(('ddl(external)', 'airdcpp'))):
+        return order
+    nzb_names = {name.casefold() for name in nzbproviders}
+    nzbs = [name for name in order if name.casefold() in nzb_names]
+    if not nzbs:
+        return order
+    try:
+        with _LOCK:
+            state = store()
+            known = [row for name, row in state.data['providers'].items()
+                     if name in ('GC-Main', 'GC-Mirror', 'GC_Mirror',
+                                 'GC-Mega', 'GC-Media', 'GC-Pixel')]
+            now = state.clock()
+            if not known or any(row.get('until', 0) <= now for row in known):
+                return order
+    except (OSError, ValueError, TypeError, AttributeError):
+        # Optional ordering must not turn damaged DDL state into an NZB outage.
+        # The existing queue/health paths still report invalid control state.
+        return order
+    return nzbs + [name for name in order if name.casefold() not in nzb_names]
+
+
 def clear_active(key):
     import mylar
     mylar.DDL_QUEUED[:] = [value for value in mylar.DDL_QUEUED if str(value) != str(key)]
