@@ -134,6 +134,15 @@ the cooldown immediately. Other eligible providers continue. An explicit Restart
 or Resume resets that release's attempt budget, while the provider cooldown remains.
 Review the reason before restarting exhausted releases.
 
+When every previously observed GetComics download host is still cooling down,
+new searches temporarily try enabled, unblocked NZB indexers first. Their relative
+order is preserved, and DDL remains a fallback if NZB searches find nothing.
+Existing queued downloads are not re-snatched or removed. The next search after
+any host's cooldown expires uses the saved provider order again, without a restart
+or configuration write. An enabled independent external DDL server or AirDC++
+source retains the normal order because GetComics cooldowns do not cover it.
+Missing or unreadable cooldown data also leaves the normal order unchanged.
+
 At worker startup, persisted Queued and Downloading records are reconciled with
 items already in memory. Interrupted records become Queued and are added once.
 Eligible main-server partials resume when automatic DDL resume is enabled. Completed

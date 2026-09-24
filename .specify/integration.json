@@ -1,5 +1,5 @@
 {
-  "version": "1.0.6",
+  "version": "1.0.9",
   "integration_state_schema": 1,
   "installed_integrations": [
     "codex"
