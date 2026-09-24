@@ -37,7 +37,7 @@
 ## Integration and delivery
 
 - [x] T017 Integrate image gates, contracts, examples, preparation and metadata in stacks/mylar3/ and stacks/komga/; regenerate affected documents.
-- [ ] T018 Verify both candidate images, browser flows, security boundaries and repository checks; record specs/009-mylar-workflow-controls/validation.md.
+- [x] T018 Verify both candidate images, browser flows, security boundaries and repository checks; record specs/009-mylar-workflow-controls/validation.md.
 - [ ] T019 Review exact diff for correctness/privacy, pass PR checks, merge and verify GHCR/main/Pages/mirror delivery.
 - [ ] T020 Back up and restore-verify live state, deploy images in order, prove data/health preservation, remove operation backups and merged task branches.
 

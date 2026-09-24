@@ -33,6 +33,16 @@ intake waits.
 
 ## Delivery gates
 
-Final image rebuild, exact-commit review, required GitHub checks, publication,
-verified-backup deployment and live data preservation remain pending. Their
-results must be recorded before claiming delivery complete.
+Both final candidate images passed: 120 Mylar tests and 61 normalizer tests, with
+no image-gate skips. The standalone offline Mylar gate also passes against the
+pinned upstream image. Its workflow tests use the fully patched disposable source
+rather than the untouched upstream source. `make ci-local` passes.
+
+Independent reviews covered issue ownership/API failure paths and worker evidence,
+receipt preservation and alias safety. All reported findings have focused fixes
+and regressions, including retiring original DDL statuses after library confirmation.
+Gitleaks and TruffleHog scanned the feature commit range without findings.
+
+GitHub PR #110 tracks required checks, merge and GHCR publication. Live rollout
+uses a private operation backup and isolated restore. The deployment and cleanup
+receipt belongs to the operational handoff, not the portable stack example.
