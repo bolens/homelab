@@ -2,7 +2,7 @@ services:
   bazarr:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/bazarr:latest@sha256:a20fb11a440d704a9d61c283aa26462aad33dc63223b173f8d8c77d33e8e9d59
+    image: lscr.io/linuxserver/bazarr:latest@sha256:762f802274598da27255b2e5778f262b2b71b355a23e3812d9ee1520f8dbe37c
     container_name: bazarr
     restart: unless-stopped
     # Audio extraction for subtitle synchronization invokes ffmpeg with

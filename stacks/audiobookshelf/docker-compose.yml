@@ -6,7 +6,7 @@ services:
     labels:
       logging: "true"
     container_name: audiobookshelf
-    image: ghcr.io/advplyr/audiobookshelf:latest@sha256:180acad33d69c99ed208676465d8edcb268fa46967735579a7810859885b1a8e
+    image: ghcr.io/advplyr/audiobookshelf:latest@sha256:3528a93b6442ffe54bd46771bbbab7c97084e1101071586d9dc2254f30bb4358
     env_file:
       - stack.env
     volumes:
