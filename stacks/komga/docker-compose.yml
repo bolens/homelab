@@ -5,7 +5,7 @@ services:
   komga:
     labels:
       logging: "true"
-    image: gotson/komga:latest@sha256:6c2a967bbe9acefd05933b2eb498f34afe96a83c6f7f8ab0acb512a1bb3ab50f
+    image: gotson/komga:1.27.1@sha256:9cf102f5fb78e2e020700c53eca757e4f4d4e347121b0a16380822760337cca9
     container_name: komga
     restart: unless-stopped
     env_file:
