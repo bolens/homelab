@@ -198,6 +198,29 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(app.SEARCH_QUEUE.qsize(),1)
         self.assertEqual(app.SEARCH_QUEUE.get()['comicid'],'20')
 
+    def test_reviewed_import_release_rejects_delayed_token_and_allows_new_choice(self):
+        p=self.proposal();cmd=web.confirm_import(p['source_token'],p['version'],'10')
+        web.acknowledge(cmd['id'],'claimed');web.acknowledge(cmd['id'],'review')
+        with self.assertRaises(ValueError):web.resolve_import(cmd['id'],'')
+        app.PP_QUEUE.put({'issueid':'10'})
+        with self.assertRaises(ValueError):web.resolve_import(cmd['id'],'checked')
+        app.PP_QUEUE.get();web.resolve_import(cmd['id'],'checked')
+        with self.assertRaises(ValueError):workflow.processing_put(app.PP_QUEUE,{'issueid':'10','comicid':'20'},cmd['id'])
+        new=web.confirm_import(p['source_token'],p['version'],'10')
+        self.assertNotEqual(new['id'],cmd['id']);self.assertTrue(new['reviewed_source'])
+    def test_existing_archive_transfer_does_not_schedule_replacement(self):
+        p=self.proposal();workflow.sender(lambda:{'status':True},'10')
+        with self.assertRaises(ValueError):web.confirm_import(p['source_token'],p['version'],'10')
+        web.resolve_dispatch('10','import','checked')
+        self.assertIsNone(workflow.store().get('deferred','10'))
+        self.assertEqual(self.conn.execute('SELECT Status FROM issues').fetchone()[0],'Snatched')
+        self.assertEqual(web.confirm_import(p['source_token'],p['version'],'10')['phase'],'queued')
+    def test_previous_import_proposal_requires_checked_confirmation(self):
+        p=self.proposal();p['requires_review']=True;web.report_guidance(json.dumps([p]))
+        with self.assertRaises(ValueError):web.confirm_import(p['source_token'],p['version'],'10')
+        cmd=web.confirm_import(p['source_token'],p['version'],'10',confirmation='checked')
+        self.assertTrue(cmd['reviewed_source'])
+
     def test_native_patch_is_idempotent_and_preserves_return_contract(self):
         import patch_workflow
         for name,patcher in [('search.py',patch_workflow.search),('queues/search.py',patch_workflow.search_queue),('queues/ddl.py',patch_workflow.ddl),('webserve.py',patch_workflow.server),('api.py',patch_workflow.api)]:

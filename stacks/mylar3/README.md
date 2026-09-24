@@ -308,3 +308,10 @@ docker build -t homelab-mylar3:local stacks/mylar3
 
 The build runs the source compatibility gate. The final image contains patched
 application files and the health probe, without patch scripts or regression tests.
+
+Reviewed import holds can be released from Activity after checking both downloader
+and processing queues. Late submissions from the released command are rejected.
+A new explicit choice can then stage a fresh verified copy while retaining the old
+receipt. For an already downloaded but unmatched NZB, choose **Use existing archive
+for guided import** on its submission or handoff card. This does not queue another
+search. A handoff's original DDL stays inactive as **Source review**.

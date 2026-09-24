@@ -371,7 +371,9 @@ class Maintenance:
                             previous_import = previous_attempt(self, path)
                             if previous_import:
                                 kind, match = previous_import
-                                problems.append({'name': path.name, 'kind': kind, **match})
+                                guided=guidance.propose(path) if kind=='import_review' else {}
+                                if guided:guidance.proposals[-1]['requires_review']=True
+                                problems.append({'name': path.name, 'kind': kind, **match, **guided})
                                 continue
                             recovery = self.import_match(path)
                             if not recovery and guidance.aliases:

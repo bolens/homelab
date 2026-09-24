@@ -107,6 +107,17 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(submit(self.m,self.source,{'issueid':'100','comicid':'10'}),'import_review')
         self.m.mylar.assert_called_once()
 
+    def test_explicit_reviewed_retry_keeps_prior_receipt_and_uses_new_command(self):
+        match={'issueid':'100','comicid':'10'}
+        self.m.mylar.side_effect=TimeoutError
+        self.assertEqual(submit(self.m,self.source,match,explicit=True,workflow_command='a'*32),'import_review')
+        self.m.import_submitted=False;self.m.mylar.side_effect=None
+        self.assertEqual(submit(self.m,self.source,match,explicit=True,workflow_command='b'*32),'import_review')
+        self.assertEqual(submit(self.m,self.source,match,explicit=True,workflow_command='b'*32,reviewed_source=True),'import_queued')
+        self.assertEqual(len(list((self.state/'imports').glob('*.json'))),2)
+        self.assertTrue(self.source.exists())
+        self.assertEqual(self.m.mylar.call_count,2)
+
     def test_busy_disabled_unsupported_and_symlink(self):
         self.m.idle.return_value=False
         self.assertEqual(submit(self.m,self.source,{}),'ready')

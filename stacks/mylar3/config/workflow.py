@@ -457,7 +457,7 @@ def guard_requeue(function):
         with queue_control._LOCK,LOCK:
             row=db.DBConnection().selectone('SELECT issueid FROM ddl_info WHERE id=?',[id]).fetchone() if id else None
             iid=str(row['issueid']) if row else issueid
-            if reservation(iid):raise cherrypy.HTTPError(409,'This issue is reserved for NZB handoff; review it in Activity')
+            if reservation(iid) or import_owner(iid) or dispatch_owner(iid):raise cherrypy.HTTPError(409,'This issue is reserved for NZB handoff; review it in Activity')
             return function(self,mode,id=id,issueid=issueid)
     return wrapped
 

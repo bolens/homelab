@@ -53,7 +53,7 @@ def report_guidance(payload):
         choices=row.get('candidates');evidence=row.get('evidence')
         if not isinstance(choices,list) or len(choices)>8 or not isinstance(evidence,list) or len(evidence)>6:raise ValueError('Invalid candidate report')
         safe={'source_token':row['source_token'],'version':row['version'],'name':name,'candidates':[],
-              'evidence':[clean_text(v) for v in evidence],'reported_at':time.time()}
+              'evidence':[clean_text(v) for v in evidence],'reported_at':time.time(),'requires_review':row.get('requires_review') is True}
         for c in choices:
             if not identifier(c.get('issueid')) or not identifier(c.get('comicid')):raise ValueError('Invalid candidate issue')
             item={k:clean_text(str(c.get(k,''))) for k in ('issueid','comicid','title','year','number','status')}
@@ -75,16 +75,21 @@ def report_guidance(payload):
 
 def commands():
     store=workflow.store()
-    return {'commands':store.active('command',workflow.IMPORT_HELD,50),
+    rows=store.active('command',workflow.IMPORT_HELD)
+    offset=store.get('meta','command_cursor',0) % max(1,len(rows))
+    page=(rows[offset:]+rows[:offset])[:50]
+    store.set('meta','command_cursor',(offset+len(page)) % max(1,len(rows)))
+    return {'commands':page,
             'aliases':[r for r in store.all('alias') if r['enabled']][:200]}
 
 
-def confirm_import(token,version,issueid,save_alias=False):
+def confirm_import(token,version,issueid,save_alias=False,confirmation=None):
     from mylar import db,queue_control
     with workflow.issue_lock(issueid),queue_control._LOCK,LOCK:
         store=workflow.store();proposal=store.get('proposal',token)
         if not proposal or proposal['version']!=version or time.time()-proposal['reported_at']>900:
             raise ValueError('Source report changed or is stale; refresh before confirming')
+        if proposal.get('requires_review') and confirmation!='checked':raise ValueError('Check the downloader and processing queues before replacing a previous import attempt')
         candidate=next((r for r in proposal['candidates'] if r['issueid']==issueid),None)
         if not candidate:raise ValueError('Choose an issue from the current candidates')
         row=db.DBConnection().selectone('SELECT ComicID,Status FROM issues WHERE IssueID=?',[issueid]).fetchone()
@@ -101,7 +106,9 @@ def confirm_import(token,version,issueid,save_alias=False):
             if (not scope or scope['year']!=candidate['year'] or not any(v in candidate['agrees'] for v in ('filename issue','metadata issue'))
                     or any('issue' in v.lower() for v in candidate['conflicts'])):
                 raise ValueError('This selection lacks consistent issue/year evidence for a reusable alias')
-        command={'id':uuid.uuid4().hex,'source_token':token,'version':version,'issueid':issueid,'comicid':candidate['comicid'],
+        released=store.get('released_source',token,{})
+        reviewed=proposal.get('requires_review') or released.get('version')==version
+        command={'reviewed_source':bool(reviewed),'id':uuid.uuid4().hex,'source_token':token,'version':version,'issueid':issueid,'comicid':candidate['comicid'],
                  'save_alias':save_alias,'phase':'queued','reason':'Waiting for maintenance worker','created_at':time.time()}
         store.set('command',command['id'],command)
         if save_alias:store.set('command_scope',command['id'],scope)
@@ -135,43 +142,64 @@ def acknowledge(command_id,phase,reason=''):
 
 def resolve_handoff(issueid,resolution,confirmation):
     from mylar import queue_control,db
-    if confirmation!='checked' or resolution not in ('keep','restore'):raise ValueError('Check the downloader and post-processing before resolving this hold')
+    if confirmation!='checked' or resolution not in ('keep','restore','import'):raise ValueError('Check the downloader and post-processing before resolving this hold')
     with workflow.issue_lock(issueid),queue_control._LOCK,LOCK:
         row=workflow.reservation(issueid)
         if not row or row['phase'] not in ('review','accepted'):raise ValueError('Only submitted handoffs can be reconciled')
         if resolution=='keep':return workflow.set_handoff(row,'accepted','Operator confirmed NZB in downloader; DDL held')
         raw=db.DBConnection().selectone('SELECT Status FROM issues WHERE IssueID=?',[issueid]).fetchone()
         if not raw or raw['Status']=='Downloaded' or workflow.native_busy(issueid,True):raise ValueError('Issue still has download or processing work')
+        if resolution=='import':
+            db.DBConnection().upsert('ddl_info',{'status':'Source review'},{'id':row['ddl_id']})
+            return workflow.set_handoff(row,'source-ready','Operator selected existing archive for guided import')
         workflow.restore_ddl(row)
         return workflow.store().get('handoff',issueid)
 
 
 def resolve_dispatch(issueid,resolution,confirmation):
     from mylar import queue_control,db
-    if confirmation!='checked' or resolution not in ('keep','retry'):
+    if confirmation!='checked' or resolution not in ('keep','retry','import'):
         raise ValueError('Check the downloader and processing queues before resolving this hold')
     with workflow.issue_lock(issueid),queue_control._LOCK,LOCK:
         row=workflow.dispatch_owner(issueid)
         if not row or row['phase'] not in ('sending','review','accepted'):raise ValueError('Only uncertain submissions can be reconciled')
-        if resolution=='retry':
+        if resolution in ('retry','import'):
             current=db.DBConnection().selectone('SELECT Status FROM issues WHERE IssueID=?',[issueid]).fetchone()
             if not current or current['Status']=='Downloaded' or workflow.native_busy(issueid,True):
                 raise ValueError('Issue is imported or still has download or processing work')
-            db.DBConnection().upsert('issues',{'Status':'Wanted'},{'IssueID':issueid})
+            if resolution=='retry':db.DBConnection().upsert('issues',{'Status':'Wanted'},{'IssueID':issueid})
         row.update(phase='accepted' if resolution=='keep' else 'released',reason='Downloader checked by operator')
         workflow.store().set('dispatch',issueid,row)
         if resolution=='retry':workflow.defer_search(issueid)
         return row
 
 
+def resolve_import(command_id,confirmation):
+    from mylar import db,queue_control
+    if confirmation!='checked':raise ValueError('Check the downloader and processing queues before releasing this import')
+    row=workflow.store().get('command',command_id)
+    if not row:raise ValueError('Unknown import command')
+    with workflow.issue_lock(row['issueid']),queue_control._LOCK,LOCK:
+        row=workflow.store().get('command',command_id)
+        issue=db.DBConnection().selectone('SELECT Status FROM issues WHERE IssueID=?',[row['issueid']]).fetchone()
+        if row['phase'] not in ('queued','review') or not issue or issue['Status']=='Downloaded' or workflow.native_busy(row['issueid'],True):
+            raise ValueError('Import is active or already downloaded; retain the hold until verified')
+        row.update(phase='rejected',reason='Operator checked and released import hold',updated_at=time.time())
+        workflow.store().set('command',command_id,row)
+        workflow.store().set('released_source',row['source_token'],{'version':row['version']})
+        workflow.emit('matching','Operator released import hold; originals and receipts retained',issueid=row['issueid'])
+        return row
+
+
 def action(name,values):
+    if name=='resolve_import':return resolve_import(values.get('command_id'),values.get('confirmation'))
     if name=='resolve_dispatch':return resolve_dispatch(identifier(values.get('issueid')),values.get('resolution'),values.get('confirmation'))
     if name=='policy':
         result=workflow.set_policy(json.loads(values.get('values','{}')))
         workflow.store().delete('intake','current');return result
     if name=='handoff':return workflow.request_handoff(values.get('ddl_id'))
     if name=='resolve_handoff':return resolve_handoff(identifier(values.get('issueid')),values.get('resolution'),values.get('confirmation'))
-    if name=='confirm_import':return confirm_import(values.get('source_token'),values.get('version'),identifier(values.get('issueid')),values.get('save_alias')=='true')
+    if name=='confirm_import':return confirm_import(values.get('source_token'),values.get('version'),identifier(values.get('issueid')),values.get('save_alias')=='true',values.get('confirmation'))
     if name=='disable_alias':
         with LOCK:
             row=workflow.store().get('alias',values.get('alias_id'))

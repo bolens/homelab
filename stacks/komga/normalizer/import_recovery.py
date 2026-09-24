@@ -32,7 +32,7 @@ def previous_attempt(maintenance, source):
     return None
 
 
-def submit(maintenance, source, match, explicit=False, expected_identity=None, expected_sha256=None, workflow_command=None):
+def submit(maintenance, source, match, explicit=False, expected_identity=None, expected_sha256=None, workflow_command=None, reviewed_source=False):
     from maintenance import scoped_file
     settings = maintenance.settings
     if not explicit and not settings.get('auto_import', False):
@@ -50,7 +50,7 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     if ((expected_identity is not None and before != expected_identity)
             or (expected_sha256 is not None and checksum != expected_sha256)):
         raise RuntimeError('Confirmed source changed; original retained')
-    key = hashlib.sha256(os.fsencode(source) + checksum.encode()).hexdigest()
+    key = hashlib.sha256(os.fsencode(source) + checksum.encode() + (workflow_command or '').encode()).hexdigest()
     receipts = maintenance.state / 'imports'
     receipts.mkdir(exist_ok=True, mode=0o700)
     receipt = receipts / (key + '.json')
@@ -64,7 +64,7 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     # A different filename for the same issue must not bypass an uncertain attempt.
     for previous in receipts.glob('*.json'):
         record = json.loads(previous.read_text())
-        if record.get('match', {}).get('issueid') == match.get('issueid'):
+        if (record.get('source') == str(source) or record.get('match', {}).get('issueid') == match.get('issueid')) and not (explicit and workflow_command and reviewed_source):
             return 'import_review'
     if getattr(maintenance, 'import_submitted', False) or not maintenance.idle():
         return 'ready'
@@ -95,7 +95,7 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
             stage.rmdir()
             return 'import_review'
     record = {'source': str(source), 'identity': before, 'sha256': checksum, 'stage': str(target),
-              'match': match, 'phase': 'unconfirmed', 'submitted_at': time.time()}
+              'match': match, 'workflow_command':workflow_command, 'phase': 'unconfirmed', 'submitted_at': time.time()}
     maintenance.import_attempts = None
     save(receipt, record)  # Persist before the potentially accepted network request.
     maintenance.import_submitted = True

@@ -61,6 +61,24 @@ class GuidedTest(unittest.TestCase):
         self.assertEqual(self.g.proposals[0]['alias_scope'],{'series':'testcomix','year':'2017'})
         self.assertEqual(self.g.propose(self.source),first)
 
+    def test_replacement_during_evidence_cannot_bind_old_metadata_to_new_source(self):
+        from guided_match import evidence
+        source = self.archive('Opaque.cbz',
+            '<ComicInfo><Series>Old Series</Series><Number>1</Number><Volume>2017</Volume></ComicInfo>')
+        def replace_after_read(path):
+            result = evidence(path)
+            replacement = self.archive('Replacement.cbz',
+                '<ComicInfo><Series>Replacement Series</Series><Number>2</Number><Volume>2017</Volume></ComicInfo>')
+            replacement.replace(path)
+            return result
+        with patch('guided_match.evidence', side_effect=replace_after_read):
+            with self.assertRaisesRegex(RuntimeError, 'Source changed'):
+                self.g.propose(source)
+        self.assertEqual(self.g.proposals, [])
+        self.assertEqual(list(self.g.root.glob('*.json')), [])
+        self.assertEqual(evidence(source)[0][0][:2], ('Replacement Series', '2'))
+        self.assertFalse(self.force_calls())
+
     def test_hostile_metadata_omits_only_its_guidance_and_keeps_other_problem_rows(self):
         valid = self.g.propose(self.source)
         problems = [{'name': self.source.name, 'kind': 'unmatched', **valid}]

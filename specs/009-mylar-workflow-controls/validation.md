@@ -22,6 +22,15 @@ intake waits.
 - Repository validation and the privacy scanner pass. Publication includes no
   runtime configuration, media, private source receipts, or browser credentials.
 
+## Independent review corrections
+
+- Capture source identity before extracting evidence, so displayed metadata and
+  the confirmed file fingerprint describe the same file version.
+- Provide checked release of uncertain import holds, reject delayed old command
+  tokens, and preserve previous receipts during explicit reviewed resubmission.
+- Transfer accepted download ownership to guided import without queuing another
+  search. Active work and imported issues remain protected.
+
 ## Delivery gates
 
 Final image rebuild, exact-commit review, required GitHub checks, publication,

@@ -103,6 +103,7 @@
 <div id="wf_proposals"><p>No proposals loaded.</p></div>
 <h3>Import submissions</h3>
 <div class="table_wrapper"><table class="display" id="wf_commands"><thead><tr><th scope="col">Submission</th><th scope="col">Issue ID</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead><tbody><tr><td colspan="4">No submissions loaded.</td></tr></tbody></table></div>
+<div id="wf_import_review"></div>
 <h3>Saved series aliases</h3>
 <p>Aliases apply only to the exact source series and start year shown. A requested alias activates only after the selected import is confirmed.</p>
 <div id="wf_aliases"><p>No aliases loaded.</p></div>
@@ -174,7 +175,7 @@ $(document).ready(function() {
             label.append(document.createTextNode(' I checked the downloader and post-processing queues for this issue.'));
             checked.on('change',function(){reviewState[r.id]=this.checked;});
             var controls=$('<div>').addClass('wf_actions').appendTo(card);
-            $.each([['keep','Keep DDL held; NZB accepted'],['restore','Restore DDL; no download accepted']],function(_,choice) {
+            $.each([['keep','Keep DDL held; NZB accepted'],['restore','Restore DDL; no download accepted'],['import','Use existing archive for guided import']],function(_,choice) {
                 var button=styled($('<button type="button">').text(choice[1]).appendTo(controls));
                 button.on('click',function() {
                     if (!checked.prop('checked')) {message('Check the downloader and post-processing queues, then select the confirmation checkbox.');return;}
@@ -199,7 +200,7 @@ $(document).ready(function() {
             label.append(document.createTextNode(' I checked the downloader and post-processing queues for this issue.'));
             checked.on('change',function(){reviewState[key]=this.checked;});
             var controls=$('<div>').addClass('wf_actions').appendTo(card);
-            $.each([['keep','Keep hold until library import'],['retry','Allow retry; no queued or active download']],function(_,choice) {
+            $.each([['keep','Keep hold until library import'],['retry','Allow retry; no queued or active download'],['import','Use existing archive for guided import']],function(_,choice) {
                 var button=styled($('<button type="button">').text(choice[1]).appendTo(controls));
                 button.on('click',function() {
                     if (!checked.prop('checked')) {message('Check the downloader and post-processing queues, then select the confirmation checkbox.');return;}
@@ -250,11 +251,14 @@ $(document).ready(function() {
                 help.text(p.alias_scope ? 'Exact scope: '+p.alias_scope.series+' ('+p.alias_scope.year+'). '+(allowed ? 'The alias remains inactive until import confirmation.' : 'Choose a candidate with matching year and issue evidence to enable saving.') : 'No explicit series/year scope is available for an alias.');
             }
             updateAlias();
+            var reviewed=$('<input type="checkbox">').prop('checked',!!state.reviewed);reviewed.on('change',function(){state.reviewed=this.checked;});
+            if(p.requires_review){var reviewLabel=$('<label>').appendTo(card);reviewed.appendTo(reviewLabel);reviewLabel.append(document.createTextNode(' I checked that the previous import is absent from the downloader and processing queues.'));}
             var controls=$('<div>').addClass('wf_actions').appendTo(card);
             var button=styled($('<button type="button">').text('Confirm selected issue').appendTo(controls));
             button.on('click',function() {
                 if (!state.issueid) {message('Choose a candidate issue before confirming this import.');return;}
-                action({action:'confirm_import',source_token:p.source_token,version:p.version,issueid:state.issueid,save_alias:state.save ? 'true':'false'},button);
+                if(p.requires_review && !reviewed.prop('checked')){message('Check the previous import and select the confirmation checkbox.');return;}
+                action({confirmation:reviewed.prop('checked')?'checked':'',action:'confirm_import',source_token:p.source_token,version:p.version,issueid:state.issueid,save_alias:state.save ? 'true':'false'},button);
             });
             if (p.source_token===selectedSource) { card[0].focus();selectedSource=''; }
         });
@@ -291,6 +295,16 @@ $(document).ready(function() {
         $('#wf_handoff_form button').button(data.ddl_candidates.length ? 'enable':'disable');
         $('#wf_policy_form button').button('enable');
         handoffs(data.handoffs); dispatches(data.dispatches || []); proposals(data.proposals); aliases(data.aliases);
+        var importReview=$('#wf_import_review').empty();
+        $.each(data.commands,function(_,r){if(r.phase!=='review' && r.phase!=='queued')return;
+            var card=$('<div>').addClass('wf_card').appendTo(importReview), label=$('<label>').appendTo(card);
+            var checked=$('<input type="checkbox">').prop('checked',!!reviewState['import:'+r.id]).appendTo(label);
+            checked.on('change',function(){reviewState['import:'+r.id]=this.checked;});
+            label.append(document.createTextNode(' I checked issue '+r.issueid+' and no download or processing remains active.'));
+            var button=styled($('<button type="button">').text('Release import hold').appendTo(card));
+            button.on('click',function(){if(!checked.prop('checked')){message('Check active work before releasing the import hold.');return;}
+                action({action:'resolve_import',command_id:r.id,confirmation:'checked'},button);});
+        });
         table('#wf_commands',data.commands.map(function(r){return [r.id,r.issueid,r.phase,r.reason];}),4,'No guided import submissions recorded.');
     }
     function failed() { $('#wf_status').attr('data-stale','true').text('Status could not be refreshed. Displayed data may be stale. Check the connection or sign in through Manage.'); }

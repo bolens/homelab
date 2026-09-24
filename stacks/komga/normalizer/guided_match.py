@@ -115,8 +115,8 @@ class Guided:
         from maintenance import scoped_file
         if not scoped_file(source, self.m.roots):
             return {}
-        points, ids, meta = evidence(source)
         before = identity(source)
+        points, ids, meta = evidence(source)
         checksum = digest(source)
         if identity(source) != before:
             raise RuntimeError('Source changed while preparing guidance')
@@ -248,6 +248,6 @@ class Guided:
             return
         self.acknowledge(file, record, 'claimed')
         result = submit(self.m, source, {'issueid': str(rows[0][0]), 'comicid': str(rows[0][1])}, explicit=True,
-                        expected_identity=proposal['identity'], expected_sha256=proposal['sha256'], workflow_command=record['id'])
+                        expected_identity=proposal['identity'], expected_sha256=proposal['sha256'], workflow_command=record['id'],reviewed_source=record.get('reviewed_source') is True)
         phase = 'submitted' if result == 'import_queued' else 'review'
         self.acknowledge(file, record, phase, '' if phase == 'submitted' else 'unconfirmed')
