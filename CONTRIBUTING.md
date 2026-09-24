@@ -46,6 +46,10 @@ checks before every commit:
 make hooks-install
 ```
 
+To opt in to Pages browser tests before pushing, follow the
+[pre-push setup](documents/DEVELOPMENT-WORKFLOW.md#3-local-ci-before-pushing).
+The default hook installation runs commit checks only.
+
 ## Devcontainer
 
 See [the devcontainer guide](.devcontainer/README.md) for the repository toolchain,

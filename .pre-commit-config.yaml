@@ -1,3 +1,5 @@
+default_stages: [pre-commit]
+
 repos:
   - repo: local
     hooks:
@@ -62,3 +64,10 @@ repos:
         additional_dependencies:
           - PyYAML==6.0.3
         pass_filenames: false
+      - id: pre-push-site-browser-tests
+        name: Pages browser tests
+        entry: env CI=true npm run test:site:ci -- --workers=2
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
