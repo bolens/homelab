@@ -12,7 +12,9 @@ Branch from current `origin/main`. Use `AGENTS.md` to select required tracked
 sources and local stack documentation. For contract changes, update Compose,
 environment example, stack metadata, preparation, ingress example, and
 documentation together. Use placeholders only
-and never inspect or stage live secrets or ignored runtime configuration.
+and never stage live secrets or ignored runtime configuration. Repository-only
+delivery must not inspect them. Requested live operations follow the backup,
+verification, rollback, and cleanup workflow in [AGENTS.md](AGENTS.md#live-configuration-and-updates).
 
 ```sh
 make validate-changed BASE=origin/main

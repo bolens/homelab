@@ -1,0 +1,54 @@
+<%inherit file="base.html"/>
+<%def name="headerIncludes()">
+<div id="subhead_container"><div id="subhead_menu"><a id="menu_link_edit" href="queueManage">DDL Queue Management</a>
+<a id="menu_link_refresh" href="importProblems" title="Reload the latest saved maintenance report">Refresh report</a></div></div>
+</%def>
+<%def name="headIncludes()">
+<link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
+</%def>
+<%def name="body()">
+<input type="hidden" id="page_name" value="import_problems" />
+<div id="paddingheader"><h1 class="clearfix">Import problems</h1></div>
+<p>${report_status | h}</p>
+<p>Files remain untouched until their identity and archive contents are verified. Refresh this page for the latest report.</p>
+<p><label for="recovery_filter">Recovery status:</label>
+<select id="recovery_filter"><option value="">All recovery states</option></select></p>
+<div class="table_wrapper">
+<table class="display" id="import_problems">
+<thead><tr><th scope="col">File or issue</th><th scope="col">Problem</th><th scope="col">Recovery status</th><th scope="col">Suggested action</th></tr></thead>
+<tbody>
+% for row in rows:
+<tr><td>${row['name'] | h}
+% if row.get('comicid'):
+ <a href="comicDetails?ComicID=${row['comicid'] | h}">Open series</a>
+% endif
+</td><td>${row['reason'] | h}</td><td>${{'saved': 'Recovery copy saved', 'quarantined': 'Quarantined', 'retry_queued': 'Replacement search queued', 'retry_stopped': 'Replacement search stopped', 'retry_unconfirmed': 'Replacement request unconfirmed'}.get(row.get('phase', ''), 'No recovery recorded') | h}</td><td>${row['action'] | h}</td></tr>
+% endfor
+</tbody></table>
+</div>
+</%def>
+<%def name="javascriptIncludes()">
+<script src="js/libs/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function() {
+        initActions();
+        var table=$('#import_problems').DataTable({
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+            pagingType: 'full_numbers',
+            order: [],
+            language: {
+                emptyTable: 'No import problems in the current report.',
+                search: 'Search:'
+            }
+        });
+        table.column(2).data().unique().sort().each(function(value) {
+            $('<option>').val(value).text(value).appendTo('#recovery_filter');
+        });
+        $('#recovery_filter').on('change', function() {
+            var value=$.fn.dataTable.util.escapeRegex(this.value);
+            table.column(2).search(value ? '^' + value + '$' : '', true, false).draw();
+        });
+    });
+</script>
+</%def>

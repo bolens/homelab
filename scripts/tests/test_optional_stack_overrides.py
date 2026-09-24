@@ -89,6 +89,109 @@ class OptionalStackOverrideTests(unittest.TestCase):
         ])
         self.assertEqual(service["command"], ["mongod"])
 
+    def test_comic_normalizer_is_opt_in_and_runs_without_privileges(self):
+        override = "docker-compose.normalizer.yml"
+        target = self.fixture("komga", override)
+        base = self.render(target)
+        self.assertNotIn("comic-normalizer", base)
+        self.assertTrue(all(mount.get("read_only") for mount in base["komga"]["volumes"]
+                            if mount["target"].startswith("/data/")))
+        services = self.render(target, override)
+        worker = services["comic-normalizer"]
+        self.assertEqual(worker["user"], "1000:1000")
+        self.assertTrue(worker["read_only"])
+        self.assertEqual(worker["cap_drop"], ["ALL"])
+        self.assertFalse(worker.get("ports"))
+        self.assertEqual(worker["image"], "ghcr.io/bolens/homelab-comic-normalizer:latest")
+        self.assertNotIn("/app", [m["target"] for m in worker["volumes"]])
+        for service in services.values():
+            for mount in service["volumes"]:
+                if mount["type"] == "bind":
+                    self.assertFalse(mount.get("bind", {}).get("create_host_path", False))
+        mounts = {mount["target"]: mount for mount in services["komga"]["volumes"]}
+        self.assertFalse(mounts["/data/comics"].get("read_only", False))
+        self.assertTrue(mounts["/normalizer-state"]["read_only"])
+
+    def test_maintenance_mount_is_explicit_and_does_not_create_storage(self):
+        override = "docker-compose.normalizer.yml"
+        target = self.fixture("komga", override, f"MYLAR_DDL_CACHE_PATH={self.root}/ddl-cache\n")
+        extra = "docker-compose.maintenance.yml"
+        shutil.copy2(ROOT / "stacks/komga" / extra, target)
+        # Compose permits multiple override flags. Keep the fixture free of live env.
+        result = subprocess.run(
+            [self.docker, "compose", "--env-file", "stack.env", "-f", "docker-compose.yml",
+             "-f", override, "-f", extra, "config", "--format", "json"], cwd=target,
+            env={"PATH": os.environ["PATH"], "HOME": str(self.root)},
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        services = json.loads(result.stdout)["services"]
+        mounts = {m["target"]: m for m in services["comic-normalizer"]["volumes"]}
+        self.assertFalse(mounts["/completed-comics"].get("read_only", False))
+        self.assertFalse(mounts["/completed-comics"].get("bind", {}).get("create_host_path", False))
+        self.assertFalse(mounts["/ddl-cache"].get("read_only", False))
+        self.assertFalse(mounts["/ddl-cache"].get("bind", {}).get("create_host_path", False))
+        self.assertTrue(mounts["/mylar"]["read_only"])
+        self.assertNotIn("/completed-comics", [m["target"] for m in services["komga"]["volumes"]])
+
+    def test_maintenance_preparation_requires_existing_download_directory(self):
+        target = self.fixture("komga", "docker-compose.maintenance.yml")
+        scripts = self.root / "scripts"
+        scripts.mkdir()
+        shutil.copy2(ROOT / "scripts/prepare-stack-lib.sh", scripts)
+        shutil.copy2(ROOT / "stacks/komga/prepare-maintenance.sh", target)
+        completed = self.root / "missing-media" / "completed"
+        (target / "stack.env").write_text(f"MYLAR_COMPLETED_PATH={completed}\nMYLAR_DDL_CACHE_PATH={completed.parent}/ddl-cache\n")
+        def prepare():
+            return subprocess.run(["bash", "prepare-maintenance.sh"], cwd=target,
+                                  env={"PATH": os.environ["PATH"]}, capture_output=True, text=True)
+        self.assertNotEqual(prepare().returncode, 0)
+        self.assertFalse(completed.parent.exists())
+        completed.mkdir(parents=True)
+        (completed.parent / "ddl-cache").mkdir()
+        original = (target / "stack.env").read_bytes()
+        self.assertEqual(prepare().returncode, 0)
+        self.assertEqual(prepare().returncode, 0)
+        self.assertEqual((target / "stack.env").read_bytes(), original)
+
+    def test_normalizer_preparation_preserves_config_and_requires_storage(self):
+        target = self.fixture("komga", "docker-compose.normalizer.yml")
+        scripts = self.root / "scripts"
+        scripts.mkdir()
+        shutil.copy2(ROOT / "scripts/prepare-stack-lib.sh", scripts)
+        source = ROOT / "stacks/komga"
+        shutil.copy2(source / "prepare-normalizer.sh", target)
+        (target / "normalizer").mkdir()
+        shutil.copy2(source / "normalizer/normalizer.json.example", target / "normalizer")
+        media = self.root / "media"
+        state = self.root / "state"
+        state.mkdir()
+        (target / "stack.env").write_text(
+            f"KOMGA_COMICS_PATH={media}/comics\nKOMGA_MANGA_PATH={media}/manga\n"
+            f"NORMALIZER_STATE_PATH={state}\n", encoding="utf-8")
+        binary = self.root / "bin"
+        binary.mkdir()
+        docker = binary / "docker"
+        docker.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$DOCKER_TRACE"\nexit 0\n')
+        docker.chmod(0o755)
+        trace = self.root / "docker-calls"
+        environment = {"PATH": str(binary) + ":" + os.environ["PATH"],
+                       "DOCKER_TRACE": str(trace)}
+        def prepare():
+            return subprocess.run(["bash", "prepare-normalizer.sh"], cwd=target,
+                                  env=environment, capture_output=True, text=True)
+        self.assertNotEqual(prepare().returncode, 0)
+        self.assertFalse(media.exists())
+        (media / "comics").mkdir(parents=True)
+        (media / "manga").mkdir()
+        self.assertEqual(prepare().returncode, 0)
+        runtime = target / "normalizer.json"
+        runtime.write_text('{"operator": "preserve"}\n')
+        self.assertEqual(prepare().returncode, 0)
+        self.assertEqual(runtime.read_text(), '{"operator": "preserve"}\n')
+        self.assertEqual(runtime.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn(" up", trace.read_text())
+        self.assertNotIn(" run", trace.read_text())
+
 
 if __name__ == "__main__":
     unittest.main()
