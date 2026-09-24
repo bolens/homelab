@@ -14,6 +14,9 @@
 #pp_monitor .pp_summary dt { font-weight: bold; }
 #pp_monitor .pp_summary dd { margin: 0; }
 #pp_monitor .table_wrapper { overflow-x: auto; margin-bottom: 2em; }
+#pp_monitor #pp_work, #pp_monitor h2[id] { scroll-margin-top: 90px; }
+#pp_monitor .pp_jump { display: flex; flex-wrap: wrap; gap: .5em 1.5em; padding: .8em 0; border-bottom: 1px solid #8886; }
+#pp_monitor :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
 #pp_monitor h2 { margin-top: 1.5em; }
 #pp_message[data-stale="true"] { border-left: 3px solid #db9f42; padding-left: 0.7em; }
 </style>
@@ -23,6 +26,7 @@
 <div id="pp_monitor">
 <div id="paddingheader"><h1 class="clearfix">Post-processing</h1></div>
 <p id="pp_message" role="status" aria-live="polite">Loading post-processing status…</p>
+<nav class="pp_jump" aria-label="Post-processing sections"><a href="#pp_work">Active and waiting</a><a href="#pp_runs">Recent runs</a><a href="#pp_conversion">Conversion and metadata</a><a href="#pp_confirmed">Confirmed imports</a></nav>
 <dl class="pp_summary">
 <div><dt>Status</dt><dd id="pp_status">Unknown</dd></div>
 <div><dt>Worker</dt><dd id="pp_worker">Unknown</dd></div>
@@ -32,7 +36,7 @@
 <p>Updates every five seconds. Mylar does not report a processing percentage.
 Run observations cover this service session; confirmed imports come from Mylar history.</p>
 <noscript>This monitor needs JavaScript. Enable it to load queue status.</noscript>
-<div class="pp_pair"><section>
+<div class="pp_pair" id="pp_work"><section>
 <h2>Active work</h2>
 <p>Runs currently observed by Mylar.</p>
 <div class="table_wrapper"><table id="pp_active" class="display">
@@ -43,18 +47,18 @@ Run observations cover this service session; confirmed imports come from Mylar h
 <div class="table_wrapper"><table id="pp_queue" class="display">
 <thead><tr><th>Position</th><th>Item</th><th>Source</th></tr></thead><tbody></tbody></table></div>
 </section></div>
-<h2>Recent processing runs</h2>
+<h2 id="pp_runs">Recent processing runs</h2>
 <p id="pp_since">Observations start when Mylar starts. A finished run does not by itself confirm an import.</p>
 <div class="table_wrapper"><table id="pp_recent" class="display">
 <thead><tr><th>Item</th><th>Source</th><th>Outcome</th><th>Finished</th><th>Elapsed</th></tr></thead><tbody></tbody></table></div>
-<h2>Archive conversion and metadata</h2>
+<h2 id="pp_conversion">Archive conversion and metadata</h2>
 <p>Original and output formats are observed from archive headers when available.
 Metadata results compare ComicInfo.xml and ComicBookInfo blocks, not the accuracy of individual fields.
 Library normalization preserves metadata rather than retagging it.</p>
 <p id="pp_archive_report">Waiting for conversion report.</p>
 <div class="table_wrapper"><table id="pp_archives" class="display">
 <thead><tr><th>Item</th><th>Stage</th><th>Original format</th><th>Output format</th><th>Conversion</th><th>Metadata</th></tr></thead><tbody></tbody></table></div>
-<h2>Recent confirmed imports</h2>
+<h2 id="pp_confirmed">Recent confirmed imports</h2>
 <div class="table_wrapper"><table id="pp_imports" class="display">
 <thead><tr><th>Issue</th><th>Recorded by Mylar</th></tr></thead><tbody></tbody></table></div>
 </div>

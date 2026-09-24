@@ -12,10 +12,33 @@
 <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 <style>
 #workflow { min-width: 0; }
-#workflow .wf_summary, #workflow .wf_controls { display: flex; flex-wrap: wrap; gap: 1em 2em; align-items: end; }
+#workflow .wf_controls { display: flex; flex-wrap: wrap; gap: 1em 2em; align-items: end; }
 #workflow .wf_summary dt, #workflow label { font-weight: bold; }
 #workflow .wf_summary dd { margin: .35em 0 0; }
-#workflow .wf_summary > div { flex: 1 1 15em; }
+#workflow .wf_summary { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1em; margin: 1.5em 0; }
+#workflow .wf_summary > div { padding: 1em; border: 1px solid #8886; border-radius: 4px; min-width: 0; }
+#workflow .wf_summary dd { overflow-wrap: anywhere; }
+#workflow .wf_jump { display: flex; flex-wrap: wrap; gap: .5em 1.5em; padding: .8em 0; border-bottom: 1px solid #8886; }
+#workflow section { scroll-margin-top: 90px; }
+#workflow .wf_history_scroll th { position: sticky; top: 0; z-index: 1; }
+#workflow .wf_history_scroll { max-height: 30em; overflow: auto; }
+#workflow .wf_pair { align-items: start; }
+#workflow .wf_pair > section { padding: 1.2em; border: 1px solid #8886; border-radius: 4px; box-sizing: border-box; }
+#workflow .wf_local_status:not(:empty) { padding: .6em .8em; border-left: 3px solid #3383bb; margin: .8em 0; }
+#workflow .wf_policy_grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5em 1.5em; }
+#workflow #wf_proposals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32em), 1fr)); gap: 1.5em; align-items: start; }
+#workflow #wf_proposals fieldset { margin: 0; border: 1px solid #8886; border-radius: 4px; }
+#workflow .wf_candidate { border: 1px solid transparent; border-radius: 4px; }
+#workflow .wf_candidate:has(input:checked) { border-color: #3383bb; background: #3383bb12; }
+#workflow :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
+#workflow input[type=text], #workflow input[type=number], #workflow select { box-sizing: border-box; padding: .5em; border: 1px solid #888; border-radius: 3px; min-height: 2.6em; }
+#workflow #wf_ddl { width: 100%; }
+#workflow #wf_events th:nth-child(2) { width: 22%; }
+#workflow #wf_events th:nth-child(5) { width: 35%; }
+#workflow #wf_events th:first-child { min-width: 10em; }
+#workflow p { max-width: 100ch; }
+@media (max-width: 1050px) { #workflow .wf_summary { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { #workflow .wf_policy_grid { grid-template-columns: 1fr; } }
 #workflow .wf_pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2em; }
 #workflow section { min-width: 0; margin: 1em 0 2em; }
 #workflow .table_wrapper { overflow-x: auto; margin: 1em 0; }
@@ -43,26 +66,35 @@
 <p id="wf_status" class="wf_notice" role="status" aria-live="polite">Loading workflow status…</p>
 <p id="wf_action_status" role="status" aria-live="polite"></p>
 <noscript>Enable JavaScript to view activity and use workflow controls. Manage, DDL Queue Management, Post-processing and Import problems remain available from the links above.</noscript>
+<nav class="wf_jump" aria-label="Activity sections">
+<a href="#wf_history">Issue activity</a><a href="#wf_handoff">NZB handoff</a>
+<a href="#guided_matches">Resolve imports <span id="wf_match_count"></span></a><a href="#wf_settings">Intake settings</a>
+</nav>
 <dl class="wf_summary">
 <div><dt>New intake</dt><dd id="wf_intake">Unknown</dd></div>
 <div><dt>DDL providers</dt><dd id="wf_cooldown">Unknown</dd></div>
 <div><dt>Last updated</dt><dd id="wf_updated">Not yet updated</dd></div>
 </dl>
-<section aria-labelledby="wf_history_title">
+<section id="wf_history" aria-labelledby="wf_history_title">
 <h2 id="wf_history_title">Issue activity</h2>
 <p>Search, download and processing observations persist across restarts. A finished step does not by itself confirm a library import.</p>
 <form id="wf_filter" class="wf_controls">
 <div class="wf_field"><label for="wf_issue">Issue ID</label><input id="wf_issue" type="text" maxlength="100" /></div>
-<div class="wf_field"><label for="wf_stage">Stage</label><input id="wf_stage" type="text" maxlength="60" placeholder="All stages" /></div>
-<button type="submit">Apply filters</button>
+<div class="wf_field"><label for="wf_stage">Stage</label><select id="wf_stage"><option value="">All stages</option>
+<option value="search">Search</option><option value="provider">Provider results</option>
+<option value="download">Download</option><option value="processing">Post-processing</option>
+<option value="conversion">Conversion</option><option value="tagging">Metadata tagging</option>
+<option value="library">Library import</option><option value="matching">Import matching</option>
+<option value="handoff">NZB handoff</option><option value="intake">Intake</option></select></div>
+<button type="submit">Apply filters</button><button id="wf_clear_filters" type="button">Clear filters</button>
 </form>
-<div class="table_wrapper"><table class="display" id="wf_events">
+<div class="table_wrapper wf_history_scroll" tabindex="0" role="region" aria-label="Issue activity history"><table class="display" id="wf_events">
 <thead><tr><th scope="col">When</th><th scope="col">Issue</th><th scope="col">Stage</th><th scope="col">Provider</th><th scope="col">Outcome</th><th scope="col">Next retry</th></tr></thead><tbody><tr><td colspan="6">Waiting for activity.</td></tr></tbody></table></div>
 <div class="wf_actions"><button id="wf_latest" type="button">Latest activity</button><button id="wf_older" type="button" disabled>Older activity</button></div>
 <p id="wf_history_note">Up to 100 events per page. Status updates every five seconds; viewing older activity pauses automatic updates.</p>
 </section>
 <div class="wf_pair">
-<section aria-labelledby="wf_handoff_title">
+<section id="wf_handoff" aria-labelledby="wf_handoff_title">
 <h2 id="wf_handoff_title">Try NZB instead</h2>
 <p>Choose an inactive single-issue DDL download. Mylar checks for duplicate or active work before searching NZB providers. Partial files stay in place. A search with no result restores the DDL item.</p>
 <form id="wf_handoff_form">
@@ -75,7 +107,7 @@
 <h3>Handoff status</h3>
 <div id="wf_handoffs"><p>No handoff status loaded.</p></div>
 </section>
-<section aria-labelledby="wf_policy_title">
+<section id="wf_settings" aria-labelledby="wf_policy_title">
 <h2 id="wf_policy_title">Intake and handoff settings</h2>
 <p>Intake limits pause new searches and snatches while existing transfers and processing continue. Automatic handoff is optional.</p>
 <form id="wf_policy_form">
@@ -85,7 +117,7 @@
 </fieldset>
 <fieldset><legend>New intake</legend>
 <label><input id="wf_intake_enabled" type="checkbox" /> Pause intake when processing or storage reaches a limit</label>
-<div class="wf_controls">
+<div class="wf_policy_grid">
 <div class="wf_field"><label for="wf_queue_high">Pause at pending items</label><input id="wf_queue_high" type="number" min="1" step="1" required /></div>
 <div class="wf_field"><label for="wf_queue_low">Resume below pending items</label><input id="wf_queue_low" type="number" min="1" step="1" max="999" required /></div>
 <div class="wf_field"><label for="wf_free_stop_gib">Pause below free space (GiB)</label><input id="wf_free_stop_gib" type="number" min="1" step="1" max="10240" required /></div>
@@ -120,12 +152,20 @@ $(document).ready(function() {
     $('#workflow button').button();
     var csrf='', timer=null, loading=false, mutating=false, stopped=false, pending=false;
     var generation=0, before='', oldest='', dirtyPolicy=false, policyRevision=0, proposalState={}, reviewState={};
+    var lastCommandSignature='';
     var lastProposalSignature='', lastHandoffSignature='', lastAliasSignature='', lastDispatchSignature='';
     var selectedSource=new URLSearchParams(window.location.search).get('source_token') || '';
     var filters={issueid:'',stage:''};
     var policyFields=['auto_handoff','handoff_hours','intake_enabled','queue_high','queue_low','free_stop_gib','free_resume_gib'];
     function date(value) { return value == null || value === '' ? '—' : new Date(Number(value)*1000).toLocaleString(); }
-    function message(value) { $('#wf_action_status').text(value); }
+    function message(value, button) {
+        $('#wf_action_status').text(value);
+        if (button) {
+            var scope=button.closest('form, .wf_card, fieldset'), notice=scope.children('.wf_local_status');
+            if (!notice.length) notice=$('<p>').addClass('wf_local_status').attr('role','status').appendTo(scope);
+            notice.text(value);
+        }
+    }
     function styled(button) { return button.button(); }
     function cell(row, value) { $('<td>').text(value == null || value === '' ? '—' : value).appendTo(row); }
     function table(id, rows, columns, empty) {
@@ -134,20 +174,20 @@ $(document).ready(function() {
         $.each(rows,function(_,values) { var row=$('<tr>').appendTo(body); $.each(values,function(_,v){cell(row,v);}); });
     }
     function action(data, button, success) {
-        if (!csrf || mutating) { message('Wait for the current request to finish before trying again.'); return; }
+        if (!csrf || mutating) { message('Wait for the current request to finish before trying again.',button); return; }
         mutating=true; generation++; clearTimeout(timer); button.button('disable');
-        data.csrf=csrf; message('Submitting request…');
+        data.csrf=csrf; message('Submitting request…',button);
         $.ajax({url:'workflowAction',type:'POST',data:data,dataType:'json',timeout:15000})
         .done(function(response) {
-            if (!response || response.ok !== true) { message('The request was not confirmed. Refresh status before trying again.'); return; }
-            message('Request saved. Refreshing status.');
+            if (!response || response.ok !== true) { message('The request was not confirmed. Refresh status before trying again.',button); return; }
+            message('Request saved. Refreshing status.',button);
             if (success) success();
         }).fail(function(xhr) {
             var text='The request could not be confirmed. Refresh status before trying again.';
             if (xhr.status===409) text='This item changed. Refresh and review its current state before trying again.';
             else if (xhr.status===401 || xhr.status===403) text='The session or request token expired. Sign in through Manage, then refresh.';
             else if (xhr.status>=400 && xhr.status<500) text='The request was rejected. Check the values and current item status.';
-            message(text);
+            message(text,button);
         }).always(function() { mutating=false;button.button('enable');refresh(); });
     }
     function policy(data) {
@@ -178,7 +218,7 @@ $(document).ready(function() {
             $.each([['keep','Keep DDL held; NZB accepted'],['restore','Restore DDL; no download accepted'],['import','Use existing archive for guided import']],function(_,choice) {
                 var button=styled($('<button type="button">').text(choice[1]).appendTo(controls));
                 button.on('click',function() {
-                    if (!checked.prop('checked')) {message('Check the downloader and post-processing queues, then select the confirmation checkbox.');return;}
+                    if (!checked.prop('checked')) {message('Check the downloader and post-processing queues, then select the confirmation checkbox.',button);return;}
                     action({action:'resolve_handoff',issueid:r.issueid,resolution:choice[0],confirmation:'checked'},button);
                 });
             });
@@ -203,7 +243,7 @@ $(document).ready(function() {
             $.each([['keep','Keep hold until library import'],['retry','Allow retry; no queued or active download'],['import','Use existing archive for guided import']],function(_,choice) {
                 var button=styled($('<button type="button">').text(choice[1]).appendTo(controls));
                 button.on('click',function() {
-                    if (!checked.prop('checked')) {message('Check the downloader and post-processing queues, then select the confirmation checkbox.');return;}
+                    if (!checked.prop('checked')) {message('Check the downloader and post-processing queues, then select the confirmation checkbox.',button);return;}
                     action({action:'resolve_dispatch',issueid:r.issueid,resolution:choice[0],confirmation:'checked'},button);
                 });
             });
@@ -235,7 +275,7 @@ $(document).ready(function() {
                 label.append(document.createTextNode(c.title+' #'+c.number+' ('+c.year+') — '+c.status));
                 $('<span>').text('Agrees: '+((c.agrees || []).join(', ') || 'No matching evidence')).appendTo(label);
                 $('<span>').text('Conflicts: '+((c.conflicts || []).join(', ') || 'None reported')).appendTo(label);
-                input.on('change',function(){state.issueid=String(c.issueid);updateAlias();});
+                input.on('change',function(){state.issueid=String(c.issueid);card.children('.wf_local_status').empty();updateAlias();});
             });
             if (!(p.candidates || []).length) $('<p>').text('No candidate issues are available.').appendTo(card);
             var aliasLabel=$('<label>').appendTo(card);
@@ -256,8 +296,8 @@ $(document).ready(function() {
             var controls=$('<div>').addClass('wf_actions').appendTo(card);
             var button=styled($('<button type="button">').text('Confirm selected issue').appendTo(controls));
             button.on('click',function() {
-                if (!state.issueid) {message('Choose a candidate issue before confirming this import.');return;}
-                if(p.requires_review && !reviewed.prop('checked')){message('Check the previous import and select the confirmation checkbox.');return;}
+                if (!state.issueid) {message('Choose a candidate issue before confirming this import.',button);return;}
+                if(p.requires_review && !reviewed.prop('checked')){message('Check the previous import and select the confirmation checkbox.',button);return;}
                 action({confirmation:reviewed.prop('checked')?'checked':'',action:'confirm_import',source_token:p.source_token,version:p.version,issueid:state.issueid,save_alias:state.save ? 'true':'false'},button);
             });
             if (p.source_token===selectedSource) { card[0].focus();selectedSource=''; }
@@ -292,9 +332,13 @@ $(document).ready(function() {
         $('<option>').val('').text(data.ddl_candidates.length ? 'Choose a queued issue':'No eligible downloads reported.').appendTo(ddl);
         $.each(data.ddl_candidates,function(_,r){$('<option>').val(r.id).text(r.name || r.issueid).appendTo(ddl);});
         ddl.val(selected || ''); if (!ddl.val()) ddl.val('');
-        $('#wf_handoff_form button').button(data.ddl_candidates.length ? 'enable':'disable');
+        $('#wf_handoff_form button').button(ddl.val() ? 'enable':'disable');
         $('#wf_policy_form button').button('enable');
         handoffs(data.handoffs); dispatches(data.dispatches || []); proposals(data.proposals); aliases(data.aliases);
+        $('#wf_match_count').text(data.proposals.length ? '('+data.proposals.length+')' : '');
+        var commandSignature=JSON.stringify(data.commands);
+        if (commandSignature===lastCommandSignature) return;
+        lastCommandSignature=commandSignature;
         var importReview=$('#wf_import_review').empty();
         $.each(data.commands,function(_,r){if(r.phase!=='review' && r.phase!=='queued')return;
             var card=$('<div>').addClass('wf_card').appendTo(importReview), label=$('<label>').appendTo(card);
@@ -302,7 +346,7 @@ $(document).ready(function() {
             checked.on('change',function(){reviewState['import:'+r.id]=this.checked;});
             label.append(document.createTextNode(' I checked issue '+r.issueid+' and no download or processing remains active.'));
             var button=styled($('<button type="button">').text('Release import hold').appendTo(card));
-            button.on('click',function(){if(!checked.prop('checked')){message('Check active work before releasing the import hold.');return;}
+            button.on('click',function(){if(!checked.prop('checked')){message('Check active work before releasing the import hold.',button);return;}
                 action({action:'resolve_import',command_id:r.id,confirmation:'checked'},button);});
         });
         table('#wf_commands',data.commands.map(function(r){return [r.id,r.issueid,r.phase,r.reason];}),4,'No guided import submissions recorded.');
@@ -326,11 +370,13 @@ $(document).ready(function() {
     $('#wf_policy_form').on('submit',function(event) {
         event.preventDefault();var values={}, revision=policyRevision;
         $.each(policyFields,function(_,name){var input=$('#wf_'+name);values[name]=input.attr('type')==='checkbox' ? input.prop('checked'):Number(input.val());});
-        if (values.queue_low>=values.queue_high || values.free_resume_gib<=values.free_stop_gib) {message('Resume pending items must be below the pause threshold; resume free space must be above the pause threshold.');return;}
+        if (values.queue_low>=values.queue_high || values.free_resume_gib<=values.free_stop_gib) {message('Resume pending items must be below the pause threshold; resume free space must be above the pause threshold.',$(this).find('button'));return;}
         action({action:'policy',values:JSON.stringify(values)},$(this).find('button'),function(){if (revision===policyRevision) dirtyPolicy=false;});
     });
+    $('#wf_ddl').on('change',function(){$('#wf_handoff_form button').button(this.value ? 'enable':'disable');});
     $('#wf_handoff_form').on('submit',function(event){event.preventDefault();if (!$('#wf_ddl').val()) {message('Choose a queued DDL issue first.');return;}action({action:'handoff',ddl_id:$('#wf_ddl').val()},$(this).find('button'));});
-    $('#wf_filter').on('submit',function(event){event.preventDefault();filters={issueid:$('#wf_issue').val().trim(),stage:$('#wf_stage').val().trim()};before='';generation++;refresh();});
+    $('#wf_filter').on('submit',function(event){event.preventDefault();$('.wf_history_scroll').scrollTop(0);filters={issueid:$('#wf_issue').val().trim(),stage:$('#wf_stage').val().trim()};before='';generation++;refresh();});
+    $('#wf_clear_filters').on('click',function(){$('#wf_issue, #wf_stage').val('');$('#wf_filter').trigger('submit');});
     $('#wf_latest').on('click',function(){before='';generation++;refresh();});
     $('#wf_older').on('click',function(){if (!oldest || loading) return;before=oldest;generation++;refresh();});
     $('#workflow_refresh').on('click',function(event){event.preventDefault();refresh();});
