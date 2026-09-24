@@ -57,7 +57,7 @@ rather than Hardcover metadata.
 |------------|-------------------------------------------------------------------------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `readarr:8787`)         |
 | **Networks** | `ingress-admin`, `usenet`, `torrents`, plus default                         |
-| **Image**  | `ghcr.io/pennydreadful/bookshelf:hardcover-v0.4.20.129`                 |
+| **Image**  | `ghcr.io/pennydreadful/bookshelf:hardcover-v0.4.21.182`                 |
 | **Env**    | `TZ`, `PUID`, `PGID`, `READARR_MEDIA_PATH`, optional `READARR__*` |
 | **Storage**| `bookshelf_config` → `/config`, `${READARR_MEDIA_PATH}` → `/data`; use `/data/books` and `/data/downloads/*` |
 

@@ -4,7 +4,7 @@ services:
   nzbget:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/nzbget:latest@sha256:4cc4afc944e0239037b7b95c64deb8e39e49ca770b7e2f61476a04443d7fcab9
+    image: lscr.io/linuxserver/nzbget:latest@sha256:3b92679543623c8710fec557de7dd525d55bb5dfc8c59526f054123eaae0f995
     container_name: nzbget
     restart: unless-stopped
     cpus: 3.0

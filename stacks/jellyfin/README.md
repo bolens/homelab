@@ -32,6 +32,26 @@ The stack keeps the HTTP UI internal and uses `ingress-public` for Caddy plus `m
 An idempotent startup hook ensures the named `/cache` volume remains writable
 by the configured `PUID`/`PGID`.
 
+## Upgrading from Jellyfin 10.11
+
+The pinned image runs Jellyfin 12.1 and migrates the database. Before
+upgrading, remove external plugins and correct usernames that differ only
+by capitalization. Stop Jellyfin, back up the complete `jellyfin_config`
+and `jellyfin_cache` volumes plus Compose/environment configuration, and
+verify an isolated restore. Keep the previous image reference with the backup.
+
+Let the first startup finish migration without interruption. Run a full
+library scan afterward to restore automatically detected alternative
+versions. Check users, libraries, playback, and integrations before
+reinstalling compatible plugins. Clients using `/emby/*`, `/mediabrowser/*`,
+or legacy authorization need updates.
+
+To roll back, stop Jellyfin and restore the verified pre-upgrade data and
+configuration with the previous image. An image downgrade alone cannot
+reverse the database migration.
+
+See the [upstream upgrade notes](https://github.com/jellyfin/jellyfin/releases/tag/v12.0).
+
 ## Configuration
 
 | Item        | Details                                                                 |
