@@ -2,7 +2,7 @@ services:
   prowlarr:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/prowlarr:latest@sha256:91844fa2c927ad6ede5630127183cc7868b175f6223e83e6a5da1fffea2aa782
+    image: lscr.io/linuxserver/prowlarr:latest@sha256:f2b26429893d4c4cb71941b7ee50b1bdecd9d5f9f9e02d5410615e9f4f7c8d95
     container_name: prowlarr
     restart: unless-stopped
     cpus: 2.0

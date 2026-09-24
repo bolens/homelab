@@ -7,7 +7,7 @@ services:
   metube-init:
     labels:
       logging: "true"
-    image: ghcr.io/alexta69/metube:latest@sha256:397778fccf13d83adf9325fe813b260617a082d1772aff6d678c5b9256dd01fb
+    image: ghcr.io/alexta69/metube:latest@sha256:fdc49cbebf04e72e298043b927a0c1e2aa9df1992258e63013eebba58b25b26e
     container_name: metube-init
     user: "${PUID:-1000}:${PGID:-1000}"
     network_mode: none
@@ -26,7 +26,7 @@ services:
   metube:
     labels:
       logging: "true"
-    image: ghcr.io/alexta69/metube:latest@sha256:397778fccf13d83adf9325fe813b260617a082d1772aff6d678c5b9256dd01fb
+    image: ghcr.io/alexta69/metube:latest@sha256:fdc49cbebf04e72e298043b927a0c1e2aa9df1992258e63013eebba58b25b26e
     container_name: metube
     restart: unless-stopped
     depends_on:

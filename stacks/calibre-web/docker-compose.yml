@@ -6,7 +6,7 @@ services:
   calibre-web:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/calibre-web:latest@sha256:b1b9d15e12561ab4cd7cb01a693000e57925bf1906c69d04d5685891c7376ead
+    image: lscr.io/linuxserver/calibre-web:latest@sha256:802729966faed5e32d671cd4f92ba6196e9e754a6c0f740ce1ee9acd86b10e55
     container_name: calibre-web
     restart: unless-stopped
     env_file:

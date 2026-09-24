@@ -8,7 +8,7 @@ services:
   wireguard:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/wireguard:latest@sha256:bf03578ef7318ccc7675b4a82beac4d35cd0da2253194f6b6ecf61656b40f0ee
+    image: lscr.io/linuxserver/wireguard:latest@sha256:33c5e4260f5ddf9376fcb6f1ff90c0ccc3c63d2ab469595e33d178ecf8a4c4c6
     container_name: wireguard
     cap_add:
       - NET_ADMIN
