@@ -13,8 +13,9 @@ portable example; local stack documentation overrides nearby conventions.
 - Preserve unrelated work. Change every affected contract surface together:
   Compose, `stack.env.example`, `stack.yaml`, preparation, ingress example, and
   README.
-- Never read, print, edit, stage, or commit runtime secrets or ignored live
-  configuration. Edit committed examples with placeholder values.
+- Keep runtime secrets and ignored live configuration out of output, Git, and
+  committed examples. Use placeholder values in examples. Access live
+  configuration only for requested operational work under the workflow below.
 - Validation is read-only by default. Do not pull, start, stop, recreate, or
   deploy containers without explicit operational authorization. Never use
   `docker compose down -v` routinely.
@@ -29,6 +30,31 @@ portable example; local stack documentation overrides nearby conventions.
 - Use focused validators, then `make validate`; reserve
   `make validate-changed BASE=<rev>` or `make ci-local` for appropriately broad
   work. Report optional-tool skips accurately.
+
+## Live configuration and updates
+
+A request to update or repair a live service authorizes the necessary scoped
+configuration access and lifecycle actions. Do not request a separate exception
+for that access. Repository-only work and validation remain read-only.
+
+1. Record the current image, configuration, data locations, and application data
+   baseline. Back up the configuration and all persistent state the operation
+   could change. Keep backups private and outside Git. Quiesce the service or
+   use an application-consistent backup method.
+2. Verify the backup before updating: restore it to an isolated location and
+   check completeness, file integrity, and database readability as applicable.
+   Do not proceed if verification fails.
+3. Apply the requested update, preserving unrelated settings and data.
+4. Verify service health and application behavior, then compare the data with
+   the baseline. Check records, files, and database integrity as applicable;
+   a healthy container alone does not prove the data survived.
+5. If data is missing or corrupted, stop the updated service and restore the
+   verified backup with the prior compatible image and configuration. Verify
+   recovery before resuming service. If verification is inconclusive, retain
+   the backup and report the gap rather than declaring success.
+6. After successful update or rollback verification, remove only the temporary
+   backup and restore copies created for this operation. Preserve existing
+   backups and retention policies. Report the update or rollback and evidence.
 
 ## Planning and evidence
 
