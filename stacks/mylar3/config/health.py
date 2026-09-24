@@ -13,6 +13,9 @@ import urllib.request
 def assess(snapshot, previous, now, stall_seconds=900):
     errors = []
     observations = {}
+    workflow = snapshot.get('workflow', {})
+    if workflow and not workflow.get('valid'):
+        errors.append('Workflow state is unavailable; review Activity and application logs')
     queues = snapshot['queues']
     for name in snapshot['enabled']:
         if not queues.get(name, {}).get('alive'):
@@ -29,11 +32,37 @@ def assess(snapshot, previous, now, stall_seconds=900):
         if name == 'DDL-QUEUE' and 'ddl_useful' in snapshot and isinstance(old.get('token'), list):
             before = old['token']
             changed = len(before) != 2 or not all(isinstance(x, (int, float)) for x in before) or any(a > b for a, b in zip(token, before))
-        waiting = name in snapshot['enabled'] and (size > 0 or active)
+        cooldown = snapshot.get('ddl_cooldown') if name == 'DDL-QUEUE' else None
+        pending = cooldown.get('pending', 0) if cooldown else 0
+        waiting = name in snapshot['enabled'] and (size > 0 or active or pending > 0)
         since = old.get('since', now) if waiting and not changed else now
         observations[name] = {'token': copy.deepcopy(token), 'size': size, 'since': since}
-        if waiting and now - since >= stall_seconds:
-            errors.append(name + ' has made no progress for 15 minutes')
+        expected_wait = False
+        expiry_stalled = False
+        if cooldown and name in snapshot['enabled']:
+            if not cooldown.get('valid'):
+                errors.append('DDL cooldown state requires review')
+            elif waiting and not active and not cooldown.get('active'):
+                deadline = old.get('cooldown_deadline')
+                if changed:
+                    deadline = None
+                if cooldown.get('all_cooling'):
+                    deadline = cooldown['next_retry_at']
+                elif deadline is not None and now < deadline:
+                    # New ready work must not inherit another provider's wait.
+                    deadline = None
+                if deadline is not None:
+                    observations[name]['cooldown_deadline'] = deadline
+                    expected_wait = now < deadline + 120 and now - since < 3600
+                    expiry_stalled = now >= deadline + 120
+                if deadline is not None and now - since >= 3600:
+                    errors.append('DDL-QUEUE has made no useful progress for one hour during provider cooldowns')
+                    continue
+        if name == 'DDL-QUEUE' and not active and workflow.get('intake', {}).get('paused'):
+            expected_wait = True
+        if waiting and not expected_wait and (expiry_stalled or now - since >= stall_seconds):
+            errors.append(name + (' did not resume within two minutes of provider cooldown expiry'
+                                 if expiry_stalled else ' has made no progress for 15 minutes'))
     return {'checked_at': now, 'observations': observations, 'errors': errors}
 
 

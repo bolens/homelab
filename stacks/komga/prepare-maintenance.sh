@@ -8,4 +8,5 @@ prepare_stack_copy_env
 prepare_stack_ensure_dir_from_env "MYLAR_COMPLETED_PATH" "${MEDIA_ROOT:-/srv/media}/downloads/usenet/completed/comics" require-existing
 prepare_stack_ensure_dir_from_env "MYLAR_DDL_CACHE_PATH" "/srv/mylar/cache" require-existing
 prepare_stack_msg "Run prepare-normalizer.sh too. Enable maintenance in normalizer.json only after configuring Mylar and the completed-download mount."
+prepare_stack_msg "Deploy the matching Mylar image first. Review guided imports in Mylar Activity; keep guided receipts with the existing worker state backups."
 prepare_stack_end

@@ -29,12 +29,13 @@ class SearchCooldownTest(unittest.TestCase):
             ENABLE_AIRDCPP=False, USENET_RETENTION=1000,
             PROVIDER_ORDER={0: 'DDL(GetComics)', 1: 'One', 2: 'Two'})
         self.mylar = SimpleNamespace(CONFIG=self.settings, queue_control=control)
+        self.workflow = SimpleNamespace(provider_order=lambda order, providers: order)
         self.logger = Mock()
         self.blocked = set()
         tree = ast.parse(SOURCE.read_text())
         functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)
                      and node.name in ('provider_order', 'provider_sequence')]
-        namespace = {'mylar': self.mylar, 'logger': self.logger,
+        namespace = {'mylar': self.mylar, 'workflow': self.workflow, 'logger': self.logger,
                      'helpers': SimpleNamespace(block_provider_check=lambda name: name in self.blocked),
                      'itemgetter': itemgetter}
         exec(compile(ast.Module(body=functions, type_ignores=[]), str(SOURCE), 'exec'), namespace)

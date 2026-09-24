@@ -50,7 +50,7 @@ class WorkerFixTest(unittest.TestCase):
         # Stop only after the bounded retries have marked the item failed.
         helpers.reverse_the_pack_snatch.side_effect = lambda *args: queue.put('exit')
         mylar = SimpleNamespace(DDL_LOCK=False, DDL_QUEUED=[], CONFIG=SimpleNamespace(POST_PROCESSING=True))
-        namespace = dict(queue_control=MagicMock(),verified_transfer=SimpleNamespace(validate_result=lambda value,item:value),mylar=mylar, db=SimpleNamespace(DBConnection=lambda: database),
+        namespace = dict(workflow=SimpleNamespace(ddl_begin=lambda fn,item,q:fn(item,q),ddl_finished=lambda *a:None),queue_control=MagicMock(),verified_transfer=SimpleNamespace(validate_result=lambda value,item:value),mylar=mylar, db=SimpleNamespace(DBConnection=lambda: database),
                          logger=MagicMock(), helpers=helpers, getcomics=SimpleNamespace(GC=lambda **kw: gc),
                          datetime=datetime, time=MagicMock(), requests=SimpleNamespace(RequestException=ConnectionError))
         exec(compile(ast.Module(body=[node], type_ignores=[]), '<ddl>', 'exec'), namespace)

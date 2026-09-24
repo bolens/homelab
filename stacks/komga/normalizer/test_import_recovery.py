@@ -97,6 +97,7 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(submit(self.m,self.source,identity),'import_queued')
         self.m.mylar.assert_called_once()
         self.assertEqual(self.m.mylar.call_args.kwargs['ddl'],'True')
+        self.assertNotIn('workflow_command', self.m.mylar.call_args.kwargs)
         self.assertEqual(self.m.mylar.call_args.kwargs['nzb_folder'],'/config/mylar/cache/'+staged.parent.name)
 
     def test_lost_response_never_repeated(self):

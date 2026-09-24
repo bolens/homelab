@@ -1,4 +1,5 @@
 # Komga — split-horizon + public TLS: komga.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Guided import review lives in Mylar; the optional worker exposes no HTTP service.
 
 komga.home, komga.local {
 	tls internal

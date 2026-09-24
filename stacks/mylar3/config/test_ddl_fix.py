@@ -40,7 +40,7 @@ class DDLFixTest(unittest.TestCase):
             DDL_LOCK=False, DDL_QUEUED=[])
         def receive(response, path, resume, record_id):
             Path(path).write_bytes(b''.join(response.iter_content()))
-        self.namespace = dict(queue_control=MagicMock(),
+        self.namespace = dict(workflow=SimpleNamespace(ddl_begin=lambda fn,item,q:fn(item,q),ddl_finished=lambda *a:None),queue_control=MagicMock(),
             verified_transfer=SimpleNamespace(receive=receive,validate_result=lambda value,item:value),
             db=SimpleNamespace(DBConnection=lambda: self.database),
             mylar=self.mylar, json=json, os=os, re=re, urllib=urllib,

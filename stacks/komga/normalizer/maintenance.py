@@ -245,9 +245,48 @@ class Maintenance:
             pass
         return True
 
+    def conversion_identities(self, paths):
+        """Bind exact known library paths only; filenames are never identities."""
+        settings = self.worker.config.get('mylar', {})
+        if not settings:
+            return {}
+        wanted = {str(Path(p)) for p in paths if p and Path(p).is_absolute() and '..' not in Path(p).parts}
+        if not wanted:
+            return {}
+        database = Path(settings.get('config_dir', '/mylar')) / 'mylar.db'
+        matches = {}
+        try:
+            with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as db:
+                rows = db.execute("SELECT i.IssueID,i.ComicID,i.Location,c.ComicLocation FROM issues i "
+                    "JOIN comics c ON c.ComicID=i.ComicID WHERE (CASE WHEN substr(i.Location,1,1)='/' "
+                    "THEN i.Location ELSE rtrim(c.ComicLocation,'/') || '/' || i.Location END) IN ("
+                    + ','.join('?' for _ in wanted) + ')', sorted(wanted)).fetchall()
+            for issueid, comicid, location, directory in rows:
+                ids = (str(issueid), str(comicid))
+                if any(not value.isdecimal() or len(value) > 20 for value in ids):
+                    continue
+                target = Path(location) if Path(location).is_absolute() else Path(directory) / location
+                if '..' not in target.parts and str(target) in wanted:
+                    matches.setdefault(str(target), set()).add(ids)
+        except (OSError, sqlite3.Error, TypeError, ValueError):
+            # Optional activity attribution cannot suppress conversion reporting.
+            return {}
+        return matches
+
     def conversion_report(self):
-        rows=[]
-        def summary(source, phase, original=None):
+        jobs = []
+        status = self.worker.state / 'status.json'
+        if status.exists():
+            for error in json.loads(status.read_text()).get('errors', [])[:50]:
+                if error.get('path'):
+                    jobs.append({'source': error['path'], 'phase': 'failed'})
+        receipts = sorted((self.worker.state / 'jobs').glob('*/receipt.json'), key=lambda p: p.stat().st_mtime, reverse=True)
+        for receipt in receipts[:50-len(jobs)]:
+            jobs.append(json.loads(receipt.read_text()))
+        identities = self.conversion_identities([job.get(key) for job in jobs for key in ('source', 'destination')])
+        rows = []
+        for job in jobs:
+            source, phase, original = job['source'], job['phase'], job.get('original')
             name=re.sub(r'[\x00-\x1f\x7f]', '', Path(source).name)[:160]
             if '://' in name or '?' in name or '\\' in name:
                 name='Name unavailable'
@@ -260,16 +299,12 @@ class Maintenance:
                                         (b'\x1f\x8b','GZIP'),(b'BZh','BZIP2'),(b'\xfd7zXZ','XZ'),(b'\x28\xb5\x2f\xfd','ZSTD')]:
                         if header.startswith(magic):container=label;break
                     if header[257:262]==b'ustar':container='TAR'
-            return {'name':name,'original_format':(archive_suffix(Path(source)) or '.unknown').lstrip('.').upper(),
-                    'original_container':container,'phase':phase}
-        status=self.worker.state/'status.json'
-        if status.exists():
-            for error in json.loads(status.read_text()).get('errors',[])[:50]:
-                if error.get('path'):rows.append(summary(error['path'],'failed'))
-        receipts=sorted((self.worker.state/'jobs').glob('*/receipt.json'), key=lambda p:p.stat().st_mtime, reverse=True)
-        for receipt in receipts[:50-len(rows)]:
-            job=json.loads(receipt.read_text())
-            rows.append(summary(job['source'],job['phase'],job.get('original')))
+            row = {'name':name,'original_format':(archive_suffix(Path(source)) or '.unknown').lstrip('.').upper(),
+                   'original_container':container,'phase':phase}
+            matched = set().union(*(identities.get(str(Path(job[key])), set()) for key in ('source', 'destination') if job.get(key)))
+            if len(matched) == 1:
+                row['issueid'], row['comicid'] = next(iter(matched))
+            rows.append(row)
         return rows
 
     def cycle(self, force=False):
@@ -280,6 +315,8 @@ class Maintenance:
         self.import_submitted = False
         self.import_catalog = None
         self.import_attempts = None
+        from guided_match import Guided
+        guidance = Guided(self)
         errors, warnings, problems = [], [], []
         status = self.worker.state / 'maintenance-status.json'
         try:
@@ -288,6 +325,7 @@ class Maintenance:
                 previous_errors = json.loads(status.read_text()).get('errors', []) if status.exists() else []
                 save(status, {'checked_at': now, 'state': 'waiting for post-processing', 'errors': previous_errors})
                 return
+            guidance.poll()
             for receipt in self.receipts.glob('*.json'):
                 row = json.loads(receipt.read_text())
                 if row['kind'] == 'quarantine' and row['phase'] in ('saved', 'quarantined'):
@@ -336,6 +374,9 @@ class Maintenance:
                                 problems.append({'name': path.name, 'kind': kind, **match})
                                 continue
                             recovery = self.import_match(path)
+                            if not recovery and guidance.aliases:
+                                from guided_match import alias_match
+                                recovery = alias_match(path, guidance.rows(), guidance.aliases)
                             match = recovery or self.issue_match(path) or {}
                             kind = 'ready' if match else 'unmatched'
                             if identity(path) != fingerprint:
@@ -343,7 +384,8 @@ class Maintenance:
                             if recovery:
                                 from import_recovery import submit
                                 kind = submit(self, path, recovery)
-                            problems.append({'name': path.name, 'kind': kind,
+                            guided = guidance.propose(path) if kind == 'unmatched' else {}
+                            problems.append({'name': path.name, 'kind': kind, **guided,
                                              'issueid': match.get('issueid', ''), 'comicid': match.get('comicid', '')})
                     except CorruptArchive:
                         self.quarantine(path, fingerprint)
@@ -354,7 +396,8 @@ class Maintenance:
                     except Exception:
                         errors.append('Maintenance failed for ' + str(path))
                         problems.append({'name': path.name, 'kind': 'failed'})
-            self.mylar('reportImportProblems', report=json.dumps(problems[:500]), processing=json.dumps(self.conversion_report()))
+            extra = {'guidance': json.dumps(guidance.proposals)} if guidance.available else {}
+            self.mylar('reportImportProblems', report=json.dumps(problems[:500]), processing=json.dumps(self.conversion_report()), **extra)
             save(status, {'checked_at': time.time(), 'state': 'checked', 'errors': errors, 'warnings': warnings})
         except Exception:
             save(status, {'checked_at': time.time(), 'state': 'failed',

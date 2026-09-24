@@ -11,3 +11,5 @@ Installation validation alone does not establish feature completion.
 - [Mylar post-processing monitor](006-mylar-post-processing-monitor/spec.md): [plan](006-mylar-post-processing-monitor/plan.md), [tasks](006-mylar-post-processing-monitor/tasks.md).
 - [Automatic import recovery](007-mylar-import-recovery/spec.md): [plan](007-mylar-import-recovery/plan.md), [tasks](007-mylar-import-recovery/tasks.md).
 - [Published comic automation images](008-comic-automation-images/spec.md): [plan](008-comic-automation-images/plan.md), [tasks](008-comic-automation-images/tasks.md).
+
+- [Mylar workflow controls](009-mylar-workflow-controls/spec.md): [plan](009-mylar-workflow-controls/plan.md), [tasks](009-mylar-workflow-controls/tasks.md).

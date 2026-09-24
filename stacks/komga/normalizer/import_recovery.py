@@ -32,10 +32,10 @@ def previous_attempt(maintenance, source):
     return None
 
 
-def submit(maintenance, source, match):
+def submit(maintenance, source, match, explicit=False, expected_identity=None, expected_sha256=None, workflow_command=None):
     from maintenance import scoped_file
     settings = maintenance.settings
-    if not settings.get('auto_import', False):
+    if not explicit and not settings.get('auto_import', False):
         return 'ready'
     cache = Path(settings.get('ddl_cache', ''))
     remote = Path(settings.get('mylar_ddl_cache', ''))
@@ -47,12 +47,17 @@ def submit(maintenance, source, match):
         raise ValueError('Unsafe import source')
     before = identity(source)
     checksum = digest(source)
+    if ((expected_identity is not None and before != expected_identity)
+            or (expected_sha256 is not None and checksum != expected_sha256)):
+        raise RuntimeError('Confirmed source changed; original retained')
     key = hashlib.sha256(os.fsencode(source) + checksum.encode()).hexdigest()
     receipts = maintenance.state / 'imports'
     receipts.mkdir(exist_ok=True, mode=0o700)
     receipt = receipts / (key + '.json')
     if receipt.exists():
         record = json.loads(receipt.read_text())
+        if record.get('match') != match:
+            return 'import_review'
         if record['phase'] == 'submitted' and time.time() - record['submitted_at'] < 1800:
             return 'import_queued'
         return 'import_review'
@@ -80,14 +85,24 @@ def submit(maintenance, source, match):
         target.unlink()
         stage.rmdir()
         return 'ready'
+    if explicit:
+        database = Path(maintenance.worker.config['mylar'].get('config_dir', '/mylar')) / 'mylar.db'
+        with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as db:
+            current = db.execute('SELECT Status FROM issues WHERE IssueID=? AND ComicID=?',
+                                 (match['issueid'], match['comicid'])).fetchall()
+        if len(current) != 1 or current[0][0] == 'Downloaded':
+            target.unlink()
+            stage.rmdir()
+            return 'import_review'
     record = {'source': str(source), 'identity': before, 'sha256': checksum, 'stage': str(target),
               'match': match, 'phase': 'unconfirmed', 'submitted_at': time.time()}
     maintenance.import_attempts = None
     save(receipt, record)  # Persist before the potentially accepted network request.
     maintenance.import_submitted = True
     try:
+        command = {'workflow_command': workflow_command} if workflow_command is not None else {}
         maintenance.mylar('forceProcess', nzb_name=source.name,
-                          nzb_folder=str(remote / stage.name), ddl='True', **match)
+                          nzb_folder=str(remote / stage.name), ddl='True', **match, **command)
     except Exception:
         return 'import_review'
     record['phase'] = 'submitted'
