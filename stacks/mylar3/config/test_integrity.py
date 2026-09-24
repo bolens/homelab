@@ -61,7 +61,7 @@ class IntegrityTest(unittest.TestCase):
         database.select.return_value = [item]
         database.selectone.return_value.fetchone.return_value = {'ComicID': 'comic'}
         mylar = SimpleNamespace(CONFIG=SimpleNamespace(DDL_AUTORESUME=True), DDL_QUEUE=MagicMock(), DDL_QUEUED=[])
-        namespace = {'mylar': mylar, 'db': SimpleNamespace(DBConnection=lambda: database), 'logger': MagicMock(), 'json': json}
+        namespace = {'workflow': SimpleNamespace(guard_requeue=lambda fn:fn),'mylar': mylar, 'db': SimpleNamespace(DBConnection=lambda: database), 'logger': MagicMock(), 'json': json}
         exec(compile(ast.Module(body=[method], type_ignores=[]), '<requeue>', 'exec'), namespace)
         with patch.dict(sys.modules, {'mylar': SimpleNamespace(queue_control=MagicMock())}):
             namespace['ddl_requeue'](None, 'restart_queue')

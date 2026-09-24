@@ -1,5 +1,7 @@
 """Real archive cleanup, preservation, and interrupted recovery checks."""
 import json
+import sqlite3
+from contextlib import closing
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -10,6 +12,60 @@ import zipfile
 from maintenance import Maintenance, CorruptArchive
 from normalize import digest, identity
 from test_normalize import PNG, TOOL, Reader
+
+
+class ConversionIdentityTest(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.state = self.root / 'state'; self.state.mkdir()
+        self.library = self.root / 'library'; self.library.mkdir()
+        self.database = self.root / 'mylar.db'
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.executescript('CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Location TEXT);'
+                             'CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);')
+            db.execute('INSERT INTO comics VALUES (?,?)', ('20', str(self.library)))
+            db.execute('INSERT INTO issues VALUES (?,?,?)', ('10', '20', 'Comic.cbz'))
+        self.m = Maintenance.__new__(Maintenance)
+        self.m.worker = SimpleNamespace(state=self.state, config={'mylar': {'config_dir': str(self.root)}})
+
+    def report(self, source, destination=None):
+        job = self.state / 'jobs' / 'fixture'; job.mkdir(parents=True, exist_ok=True)
+        (job/'receipt.json').write_text(json.dumps({'source':str(source), 'destination':str(destination) if destination else None, 'phase':'done'}))
+        return self.m.conversion_report()[0]
+
+    def test_exact_destination_or_source_retains_issue_identity_without_archive_scan(self):
+        row = self.report(self.library/'Comic.cb7', self.library/'Comic.cbz')
+        self.assertEqual((row['issueid'], row['comicid']), ('10', '20'))
+        self.assertNotIn(str(self.root), json.dumps(row))
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute('UPDATE issues SET Location=?', (str(self.library/'Comic.cb7'),))
+        row = self.report(self.library/'Comic.cb7', self.library/'Comic.cbz')
+        self.assertEqual(row['issueid'], '10')
+        self.assertFalse((self.library/'Comic.cb7').exists())
+
+    def test_same_filename_elsewhere_and_conflicting_path_identities_stay_global(self):
+        self.assertNotIn('issueid', self.report(self.root/'other'/'Comic.cbz'))
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute('INSERT INTO issues VALUES (?,?,?)', ('11', '20', 'Comic.cb7'))
+        self.assertNotIn('issueid', self.report(self.library/'Comic.cb7', self.library/'Comic.cbz'))
+        with closing(sqlite3.connect(self.database)) as db, db:
+            db.execute('INSERT INTO issues VALUES (?,?,?)', ('12', '20', 'Comic.cbz'))
+        self.assertNotIn('issueid', self.report(self.library/'Comic.cbz'))
+
+    def test_failed_conversion_path_can_be_attributed_without_receipt(self):
+        (self.state/'status.json').write_text(json.dumps({'errors':[{'path':str(self.library/'Comic.cbz')}]}))
+        row = self.m.conversion_report()[0]
+        self.assertEqual((row['issueid'], row['comicid'], row['phase']), ('10', '20', 'failed'))
+
+    def test_missing_database_or_schema_does_not_suppress_conversion(self):
+        self.database.unlink()
+        row = self.report(self.library/'Comic.cb7', self.library/'Comic.cbz')
+        self.assertNotIn('issueid', row)
+        self.assertEqual(row['original_format'], 'CB7')
+        self.assertFalse(self.database.exists())
+        self.database.write_bytes(b'not sqlite')
+        self.assertEqual(self.report(self.library/'Comic.cb7')['phase'], 'done')
 
 
 @unittest.skipUnless(TOOL, 'Set ARCHIVING_UTILS_BIN')

@@ -8,7 +8,7 @@ import time
 
 def snapshot():
     import mylar
-    from mylar import db, queue_control
+    from mylar import db, queue_control, cooldown_health, workflow
     from mylar.queues import queue_info
     database = db.DBConnection()
     queues = {q.name: {'alive': bool(q.is_alive), 'size': q.size} for q in queue_info()}
@@ -25,9 +25,11 @@ def snapshot():
             and mylar.OS_DETECT != 'Windows' and mylar.CONFIG.TORRENT_DOWNLOADER in (2, 4)):
         enabled.append('AUTO-SNATCHER')
     downloaded = database.selectone("SELECT count(*) AS n FROM issues WHERE Status='Downloaded'").fetchone()['n']
+    cooldown = cooldown_health.snapshot(database)
     active = []
     active_rows = database.select("SELECT * FROM ddl_info WHERE status='Downloading'")
-    queue_control.diagnostics(active_rows)
+    if cooldown['valid']:
+        queue_control.diagnostics(active_rows)
     for row in active_rows:
         paths = [row['tmp_filename']]
         if row['filename']:
@@ -47,13 +49,14 @@ def snapshot():
             completed += sum(name.lower().endswith(('.cbr', '.cbz', '.cb7', '.cbt')) for name in files)
     return {'completed': completed, 'queues': queues, 'enabled': enabled, 'downloaded': downloaded,
             'processing': bool(mylar.APILOCK), 'ddl_active': sorted(active),
-            'ddl_useful': queue_control.useful_progress(),
+            'ddl_useful': queue_control.useful_progress() if cooldown['valid'] else [0, 0],
+            'ddl_cooldown': cooldown, 'workflow': workflow.state_health(),
             'time': time.time(), 'failed_auto': bool(mylar.CONFIG.FAILED_AUTO)}
 
 
 def report_failed(issueid, comicid, release):
     import mylar
-    from mylar import db, Failed, webserve
+    from mylar import db, Failed, webserve, workflow
     database = db.DBConnection()
     issue = database.selectone('SELECT ComicID, Status FROM issues WHERE IssueID=?', [issueid]).fetchone()
     releases = database.select('SELECT ID, PROVIDER, NZBName FROM nzblog WHERE IssueID=?', [issueid])
@@ -68,6 +71,7 @@ def report_failed(issueid, comicid, release):
     Failed.FailedProcessor(issueid=issueid, comicid=comicid, queue=result).Process()
     entry = result.get_nowait()[0]
     if entry['mode'] == 'retry':
+        workflow.release_failed(issueid)
         webserve.WebInterface().queueit(
             mode='want_ann' if entry['annchk'] != 'no' else 'want',
             ComicID=entry['comicid'], IssueID=entry['issueid'],

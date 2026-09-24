@@ -89,7 +89,11 @@ tagging timeouts and bounded network retries.
 The image adds authenticated `getHealth` and `reportFailedDownload` API
 commands. Both require the primary API key. Keep Mylar's API enabled. The Docker
 probe checks enabled workers every 60 seconds and reports a failure when a worker
-is down or a download/post-processing backlog makes no progress for 15 minutes.
+is down or an active download/post-processing backlog makes no progress for 15 minutes.
+When every pending DDL provider is cooling and no transfer is active, health reports
+the expected retry time instead. It allows two minutes after cooldown expiry for
+work to resume, but one continuous hour without useful progress still alerts,
+even if cooldowns keep extending. Invalid cooldown state also fails visibly.
 New queue arrivals do not reset that timer. Idle queues are healthy. Docker marks
 the container unhealthy after three failed probes. Completed files that cannot be
 imported also trigger a backlog warning and need review.
@@ -164,8 +168,9 @@ attempts, and issues left Snatched for over 24 hours. The optional Komga mainten
 worker publishes file reports through the primary-key `reportImportProblems` API.
 Missing or stale reports are labeled. Recovery states use readable labels and can
 be filtered. **Refresh report** reloads the latest saved report without starting a
-new scan or replacement search. This view suggests actions and does not assign
-ambiguous issues or delete files. It uses the existing Mylar login and ingress.
+new scan or replacement search. Ambiguous imports with candidate proposals link
+to Activity for explicit issue selection; viewing the report never assigns an
+issue or deletes files. It uses the existing Mylar login and ingress.
 
 `ddl-control.json` and `import-problems.json` live in Mylar's existing data directory.
 Back them up with the application database and configuration. Invalid control state
@@ -224,10 +229,62 @@ Submission retains the source and does not establish successful library import.
 Configure opt-in automatic matching recovery in the Komga maintenance worker.
 
 Desktop navigation at 1,200 pixels and wider adds a Library link and a Queues menu
-for DDL, post-processing, and import problems. The menu supports keyboard activation,
+for Activity, DDL, post-processing, and import problems. The menu supports keyboard activation,
 Escape to close, outside-click dismissal, and a current-page indicator. Page actions
 stay near the left-aligned heading. Wide tables give names and diagnostic text more
 space, and post-processing summaries use aligned cards and balanced queue panels.
+
+## Activity and workflow controls
+
+Open **Activity** from Manage or the Queues menu. The authenticated `activity`
+page combines search/provider results, download, conversion, tagging and processing
+observations. History survives restarts in private `workflow.sqlite` beside Mylar's
+database. It retains up to 5,000 events and 30 days, with 100 events per page and
+issue/stage filters. This starts recording new observations, not a historical
+backfill. Older pages pause automatic updates; failed refreshes retain the last
+snapshot with a stale warning. Finished processing is separate from confirmed
+library import.
+
+**Try NZB instead** requests a replacement for one inactive, single-issue DDL
+entry. The native serialized search uses only enabled, unblocked NZB providers
+and retains native pacing and candidate validation. Packs, active or duplicate
+work, and already imported issues are rejected. The original DDL entry is held
+before the search; a definite no-result restores it, while confirmed NZB acceptance
+keeps it held. Partial files and retry history remain. Automatic handoff is off by
+default; enabling it starts with a two-hour waiting threshold and considers at most
+one eligible issue per scheduler cycle.
+
+Uncertain downloader responses remain held across restarts to prevent repeated
+sends. Activity exposes both DDL handoffs and ordinary NZB submissions needing
+review. Check the downloader and post-processing queues before checking the
+confirmation box. Keep the hold if accepted work exists; allow retry or restore
+DDL only after verifying no queued or active work remains. Do not delete journal
+records to bypass a hold.
+
+**Resolve import matches** shows candidate series, start year, issue number,
+existing status, and agreeing/conflicting evidence from the optional Komga worker.
+No candidate is selected automatically. Confirming a candidate submits a
+source-version-bound request; a changed source requires a new review. A requested
+series alias covers only the displayed exact source series/start-year pair and
+activates after confirmed import. Aliases require matching issue/year evidence,
+remain visible, and can be disabled. See
+[guided matching](../komga/README.md#guided-matching-and-series-aliases) for worker
+prerequisites and preserved-source behavior.
+
+**Intake settings** pause new searches and snatches when processing or storage
+limits are reached. Defaults enable intake control at 50 pending items, resume at
+20, and use 5/8 GiB free-space pause/resume thresholds. The separate thresholds
+prevent repeated pause/resume switching. Existing transfers and processing drain
+normally, deferred searches stay queued, and no retry budget is consumed by a
+pause. Missing or unreadable configured storage stops new intake and reports the
+reason; it never creates a replacement directory. Change these settings in Activity,
+not environment variables.
+
+Workflow uses existing configuration/state volumes, login, primary-key worker API
+and ingress. Mutations require POST and a session-bound CSRF token. Back up the
+whole Mylar data directory, including `workflow.sqlite` and existing control files.
+Deploy the Mylar image before its matching maintenance worker image. No additional
+service, port, credential, mount or concurrency is introduced.
 
 ## Image updates and rollback
 
@@ -251,3 +308,10 @@ docker build -t homelab-mylar3:local stacks/mylar3
 
 The build runs the source compatibility gate. The final image contains patched
 application files and the health probe, without patch scripts or regression tests.
+
+Reviewed import holds can be released from Activity after checking both downloader
+and processing queues. Late submissions from the released command are rejected.
+A new explicit choice can then stage a fresh verified copy while retaining the old
+receipt. For an already downloaded but unmatched NZB, choose **Use existing archive
+for guided import** on its submission or handoff card. This does not queue another
+search. A handoff's original DDL stays inactive as **Source review**.

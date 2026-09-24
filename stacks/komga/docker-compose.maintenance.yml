@@ -1,4 +1,5 @@
 # Add after docker-compose.normalizer.yml to permit verified download cleanup.
+# Guided matching uses the same cache/state mounts and primary-key Mylar API.
 services:
   comic-normalizer:
     volumes:

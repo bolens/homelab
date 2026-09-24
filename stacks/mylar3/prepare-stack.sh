@@ -11,4 +11,5 @@ prepare_stack_ensure_docker_network "ingress-admin"
 prepare_stack_ensure_docker_network "torrents"
 prepare_stack_ensure_docker_network "usenet"
 prepare_stack_ensure_dir_from_env "MYLAR3_MEDIA_PATH" "${MEDIA_ROOT:-/srv/media}" require-existing
+prepare_stack_msg "Configure Activity intake and optional handoff settings in Mylar. Back up its complete config volume, including workflow.sqlite. Deploy Mylar before the maintenance worker."
 prepare_stack_end

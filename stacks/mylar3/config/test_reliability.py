@@ -18,7 +18,7 @@ class FailedRecoveryTest(unittest.TestCase):
         self.queueit = Mock()
         self.factory = Mock(side_effect=self.processor)
         self.mylar = SimpleNamespace(CONFIG=SimpleNamespace(FAILED_DOWNLOAD_HANDLING=True, FAILED_AUTO=True),
-                                     db=SimpleNamespace(DBConnection=lambda: self.database),
+                                     db=SimpleNamespace(DBConnection=lambda: self.database), workflow=SimpleNamespace(release_failed=Mock()),
                                      Failed=SimpleNamespace(FailedProcessor=self.factory),
                                      webserve=SimpleNamespace(WebInterface=lambda: SimpleNamespace(queueit=self.queueit)))
         self.patch = patch.dict(sys.modules, {'mylar': self.mylar})

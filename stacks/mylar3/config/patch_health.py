@@ -46,6 +46,7 @@ def main(directory):
     if helper.exists() and 'homelab-reliability-v1' not in helper.read_text():
         raise ValueError('Refusing to overwrite an upstream reliability module')
     helper.write_text(Path(__file__).with_name('reliability.py').read_text())
+    (Path(directory) / 'cooldown_health.py').write_text(Path(__file__).with_name('cooldown_health.py').read_text())
     path.write_text(source)
     print('Mylar authenticated reliability API verified')
 

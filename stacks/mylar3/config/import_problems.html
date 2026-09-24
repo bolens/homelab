@@ -22,7 +22,11 @@
 % if row.get('comicid'):
  <a href="comicDetails?ComicID=${row['comicid'] | h}">Open series</a>
 % endif
-</td><td>${row['reason'] | h}</td><td>${{'saved': 'Recovery copy saved', 'quarantined': 'Quarantined', 'retry_queued': 'Replacement search queued', 'retry_stopped': 'Replacement search stopped', 'retry_unconfirmed': 'Replacement request unconfirmed'}.get(row.get('phase', ''), 'No recovery recorded') | h}</td><td>${row['action'] | h}</td></tr>
+</td><td>${row['reason'] | h}</td><td>${{'saved': 'Recovery copy saved', 'quarantined': 'Quarantined', 'retry_queued': 'Replacement search queued', 'retry_stopped': 'Replacement search stopped', 'retry_unconfirmed': 'Replacement request unconfirmed'}.get(row.get('phase', ''), 'No recovery recorded') | h}</td><td>${row['action'] | h}
+% if row.get('source_token'):
+ <a class="review_match" href="activity?source_token=${row['source_token'] | h}#guided_matches">Review matches</a>
+% endif
+</td></tr>
 % endfor
 </tbody></table>
 </div>
@@ -32,6 +36,7 @@
 <script>
     $(document).ready(function() {
         initActions();
+        $('.review_match').button({icons: {primary: 'ui-icon-search'}});
         var table=$('#import_problems').DataTable({
             pageLength: 25,
             lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],

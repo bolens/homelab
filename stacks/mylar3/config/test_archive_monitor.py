@@ -5,7 +5,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import zipfile
 import archive_monitor as archive
 import pp_monitor
@@ -18,8 +18,18 @@ class ArchiveTest(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)
         archive._ACTIVE.clear();archive._RECENT.clear()
-        context=patch.dict(sys.modules,{'mylar':SimpleNamespace(DATA_DIR=str(self.root),pp_monitor=pp_monitor)})
+        context=patch.dict(sys.modules,{'mylar':SimpleNamespace(DATA_DIR=str(self.root),workflow=SimpleNamespace(emit=Mock()),pp_monitor=pp_monitor)})
         context.start();self.addCleanup(context.stop)
+
+    def test_conversion_identity_is_preserved_and_validated(self):
+        row={'name':'Example.cb7','original_format':'CB7','phase':'complete','issueid':'10','comicid':'20'}
+        # Use a native supported receipt phase.
+        row['phase']=next(iter(archive._PHASES))
+        archive.report(json.dumps([row]))
+        call=sys.modules['mylar'].workflow.emit.call_args.kwargs
+        self.assertEqual((call['issueid'],call['comicid']),('10','20'))
+        row['issueid']='../unsafe'
+        with self.assertRaises(ValueError):archive.report(json.dumps([row]))
 
     def comic(self,name,metadata=None):
         path=self.root/name

@@ -49,6 +49,8 @@ def observe(function):
         try:
             value = item_info(vars(self))
             value.update(started_at=time.time(), started_clock=time.monotonic())
+            from mylar import workflow
+            workflow.emit('processing','Post-processing started',issueid=value['issueid'],comicid=value['comicid'],name=value['name'])
             with _LOCK:
                 if len(_ACTIVE) < 16:
                     _SEQUENCE += 1
@@ -74,6 +76,7 @@ def observe(function):
                         value.update(outcome=outcome, finished_at=time.time(),
                                      elapsed_seconds=max(0, int(time.monotonic() - value.pop('started_clock'))))
                         _RECENT.appendleft(value)
+                    workflow.emit('processing',outcome,issueid=value['issueid'],comicid=value['comicid'],name=value['name'])
             except Exception:
                 with _LOCK:
                     _ACTIVE.pop(token, None)

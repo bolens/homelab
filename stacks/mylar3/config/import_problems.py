@@ -1,6 +1,7 @@
 """Bounded maintenance reports and an authenticated import troubleshooting view."""
 import json
 import os
+import re
 from pathlib import Path
 import time
 
@@ -42,7 +43,12 @@ def report(payload):
         phase = row.get('phase', '')
         if phase not in ('', 'saved', 'quarantined', 'retry_queued', 'retry_stopped', 'retry_unconfirmed'):
             raise ValueError('Invalid recovery phase')
-        safe.append(dict(name=name, kind=row['kind'], phase=phase, **ids))
+        item=dict(name=name, kind=row['kind'], phase=phase, **ids)
+        if row.get('source_token'):
+            if not re.fullmatch(r'[0-9a-f]{32}', str(row['source_token'])) or not re.fullmatch(r'[0-9a-f]{64}',str(row.get('version',''))):
+                raise ValueError('Invalid guidance identity')
+            item.update(source_token=row['source_token'],version=row['version'])
+        safe.append(item)
     target = path()
     temporary = target.with_suffix('.new')
     with temporary.open('w') as output:

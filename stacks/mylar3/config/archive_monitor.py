@@ -102,6 +102,10 @@ def tagging(function):
                         value.update(output_format=after.get('format','Unknown'),conversion=conversion,
                                      metadata=metadata,updated_at=time.time())
                         _RECENT.appendleft(value)
+                    from mylar import workflow
+                    issue=signature.bind_partial(*args, **kwargs).arguments.get('issueid')
+                    workflow.emit('tagging',metadata,issueid=issue,name=value['name'])
+                    workflow.emit('conversion',conversion,issueid=issue,name=value['name'])
             except Exception:
                 with _LOCK:_ACTIVE.pop(token,None)
                 pp_monitor.observer_error()
@@ -129,8 +133,14 @@ def report(payload):
         if container not in ('ZIP','RAR','7Z','TAR','GZIP','BZIP2','XZ','ZSTD','Unknown'):
             raise ValueError('Invalid archive container')
         original += (' ('+container+')') if container!='Unknown' else ''
-        safe.append({'name':name,'source':'Library normalizer','original_format':original,'output_format':'Not confirmed' if row['phase']=='failed' else 'CBZ (ZIP)',
+        iid=str(row.get('issueid',''));cid=str(row.get('comicid',''))
+        if (iid or cid) and (not iid.isdecimal() or not cid.isdecimal() or len(iid)>20 or len(cid)>20):
+            raise ValueError('Invalid conversion issue identity')
+        safe.append({'issueid':iid,'comicid':cid,'name':name,'source':'Library normalizer','original_format':original,'output_format':'Not confirmed' if row['phase']=='failed' else 'CBZ (ZIP)',
                      'conversion':_PHASES[row['phase']], 'metadata':'Not confirmed' if row['phase']=='failed' else 'Preserved; archive contents verified'})
+    from mylar import workflow
+    for row in safe:
+        workflow.emit('conversion',row['conversion'],name=row['name'],issueid=row['issueid'],comicid=row['comicid'],provider='Library normalizer',key='conversion:'+row['issueid']+':'+row['name']+':'+row['conversion'])
     target=Path(mylar.DATA_DIR)/'archive-processing.json'
     with _LOCK:
         temporary=target.with_suffix('.new')

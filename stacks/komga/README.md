@@ -213,6 +213,38 @@ redirect the staged copy. The Mylar image preserves that mode through the queue'
 optional download-info field. The client accepts the native plain-text forceProcess
 acknowledgment; an unknown response still requires review rather than resubmission.
 
+### Guided matching and series aliases
+
+With maintenance and Mylar integration configured, the worker publishes bounded
+candidate proposals for ambiguous imports to Mylar's **Import problems** and
+**Activity** pages. Follow the proposal link, compare series/year/issue evidence,
+select a candidate explicitly, then confirm. Candidate ranking is a suggestion,
+not permission to import. This explicit action is separate from the optional
+`maintenance.auto_import` setting for automatic unique matches.
+
+Worker-owned source tokens and versions distinguish same-named files and reject
+changed sources. Guided submission validates the archive and stages at most one
+CBZ/CBR copy per idle maintenance cycle in the existing shared DDL cache. Originals
+remain in place. Other formats must be converted before submission. The configured
+`maintenance.mylar_ddl_cache` path must identify that cache inside Mylar, just as
+for automatic recovery. The existing read-only Mylar configuration mount supplies
+the primary API key; browser requests never supply source paths.
+
+**Save an exact series alias** is available only with an explicit, consistent source
+series/start-year scope and matching selected issue/year evidence. It remains
+inactive until source/library content equivalence confirms the import. Later files
+use the alias only for that exact scope and a unique eligible issue; conflicting
+evidence remains for review. Review or disable confirmed aliases from Activity.
+Submitted does not mean imported, and an uncertain response is not automatically
+resubmitted. Preserve guided proposal/command receipts with the entire worker
+state directory and Mylar's private `workflow.sqlite` journal.
+
+Deploy the updated Mylar image before the maintenance worker. Missing guided API
+support leaves existing receipts intact. Preparation preserves private settings;
+no new environment variable, public service, mount, credential or worker concurrency
+is required. Mylar's Activity page also reports cooldown waits, intake pauses and
+DDL/NZB handoff state; see its [workflow controls](../mylar3/README.md#activity-and-workflow-controls).
+
 ## Worker image updates
 
 `COMIC_NORMALIZER_IMAGE` selects the published worker image. It includes the Python

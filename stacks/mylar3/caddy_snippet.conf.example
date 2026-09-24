@@ -1,4 +1,5 @@
 # Mylar3 — split-horizon + public TLS: mylar3.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
+# Activity and workflow actions use the existing authenticated Mylar application routes.
 
 mylar3.home, mylar3.local {
 	tls internal

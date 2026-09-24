@@ -10,7 +10,7 @@ import tempfile
 import archive_monitor
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import pp_monitor as monitor
 from patch_pp_monitor import processor, server, navigation, tagger, api
 
@@ -29,7 +29,7 @@ class MonitorTest(unittest.TestCase):
             INSERT INTO snatched VALUES ('1','Post-Processed','2026-09-24 12:00:00'),('3','Snatched','2026-09-24 12:01:00');
         """)
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
-        self.mylar=SimpleNamespace(DATA_DIR=self.temp.name, archive_monitor=archive_monitor, pp_monitor=monitor, PP_QUEUE=Queue(),PPPOOL=SimpleNamespace(is_alive=lambda:True),
+        self.mylar=SimpleNamespace(DATA_DIR=self.temp.name, workflow=SimpleNamespace(emit=Mock()), archive_monitor=archive_monitor, pp_monitor=monitor, PP_QUEUE=Queue(),PPPOOL=SimpleNamespace(is_alive=lambda:True),
                                   APILOCK=False,CONFIG=SimpleNamespace(POST_PROCESSING=True),
                                   db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q:self.db.execute(q).fetchall())))
         context=patch.dict(sys.modules,{'mylar':self.mylar});context.start();self.addCleanup(context.stop)
@@ -108,7 +108,7 @@ class MonitorTest(unittest.TestCase):
         source=recovery_api((SOURCE/'api.py').read_text())
         node=next(n for n in ast.walk(ast.parse(source)) if isinstance(n,ast.FunctionDef) and n.name=='_forceProcess')
         queue=Queue()
-        namespace={'mylar':SimpleNamespace(PP_QUEUE=queue),'logger':SimpleNamespace(info=lambda *args:None)}
+        namespace={'workflow':SimpleNamespace(force_process=lambda fn:fn,processing_put=lambda q,item,token=None:q.put(item)),'mylar':SimpleNamespace(PP_QUEUE=queue),'logger':SimpleNamespace(info=lambda *args:None)}
         exec(compile(ast.Module(body=[node],type_ignores=[]),'<native-api>','exec'),namespace)
         namespace['_forceProcess'](SimpleNamespace(),nzb_name='Comic.cbz',nzb_folder='/cache/recovery',issueid='1',comicid='2',ddl='True')
         item=queue.get_nowait()
