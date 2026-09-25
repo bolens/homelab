@@ -137,7 +137,10 @@ with an indeterminate progress bar. Failed refreshes retain the last snapshot an
 disable active-download actions until fresh status arrives. Requests do not overlap,
 and polling pauses in hidden tabs. The queue becomes labeled cards on small screens,
 with a sort selector, while larger screens retain the full table. Queue-wide actions
-are separate from active-download controls; removals and aborts ask for confirmation.
+are separate from active-download controls. Removing an entry uses an inline
+Remove / Cancel confirmation in its row; Escape cancels. Aborting a download or
+clearing the queue still asks for confirmation. Workflow pages use compact charcoal
+buttons with white labels, with larger touch targets on touch devices.
 
 Each release gets six attempts across restarts and mirror changes. Two consecutive
 failures on a provider cause a 15-minute cooldown for that provider. HTTP 429 starts

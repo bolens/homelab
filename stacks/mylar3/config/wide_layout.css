@@ -285,35 +285,36 @@ header #nav .homelab_desktop_nav {
   }
 }
 
-/* Match native jQuery UI controls, with explicit contrast for every state.
-   The upstream active text is white while its hover image can remain white. */
+/* Compact charcoal controls retain white labels across native UI states. */
 body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button) {
-  color: #245f89;
-  background: #eee;
-  background-image: linear-gradient(#fafafa, #e8e8e8) !important;
-  border: 1px solid #b8bec4;
-  border-radius: 4px;
+  color: #fff;
+  background: #555;
+  background-image: linear-gradient(#626262, #4d4d4d) !important;
+  border: 1px solid #444;
+  border-radius: 3px;
   text-shadow: none;
-  font-weight: bold;
+  font-weight: normal;
+  font-size: 12px;
+  min-height: 26px;
 }
 body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:hover, :focus-visible, .ui-state-hover, .ui-state-focus) {
-  color: #1d5277;
-  background: #e6f0f7;
+  color: #fff;
+  background: #454545;
   background-image: none !important;
-  border-color: #7399b3;
+  border-color: #333;
 }
 body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:active, .ui-state-active) {
   color: #fff;
-  background: #286a96;
+  background: #333;
   background-image: none !important;
-  border-color: #205778;
+  border-color: #222;
 }
 body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):focus-visible {
   outline: 2px solid #286a96;
   outline-offset: 3px;
 }
 body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button .ui-icon {
-  background-image: url("images/ui-icons_3383bb_256x240.png");
+  background-image: url("images/icon_sprite_white.png");
 }
 body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button:is(:active, .ui-state-active) .ui-icon {
   background-image: url("images/icon_sprite_white.png");
@@ -325,4 +326,11 @@ body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead
   border-color: #b8bec4;
   opacity: 1;
   cursor: not-allowed;
+}
+
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button-text-only .ui-button-text {
+  padding: .2em .65em;
+}
+@media (pointer: coarse) {
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button) { min-height: 44px; }
 }
