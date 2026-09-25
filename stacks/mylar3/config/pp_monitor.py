@@ -29,7 +29,9 @@ def identifier(value):
 def item_info(item):
     name = item.get('nzb_name')
     manual = name in ('Manual Run', 'Manual+Run')
-    return {'name': display_name(item.get('nzb_folder') if manual else name),
+    download = item.get('download_info') or {}
+    ddl_id = identifier(download.get('id')) if item.get('ddl') and isinstance(download, dict) else ''
+    return {'ddl_id': ddl_id, 'name': display_name(item.get('nzb_folder') if manual else name),
             'source': 'DDL' if item.get('ddl') else 'Manual scan' if manual else 'Download client',
             'issueid': identifier(item.get('issueid')), 'comicid': identifier(item.get('comicid'))}
 
@@ -50,6 +52,8 @@ def observe(function):
             value = item_info(vars(self))
             value.update(started_at=time.time(), started_clock=time.monotonic())
             from mylar import workflow
+            if value['ddl_id']:
+                workflow.store().set('ddl_processing', value['ddl_id'], dict(value, phase='processing'))
             workflow.emit('processing','Post-processing started',issueid=value['issueid'],comicid=value['comicid'],name=value['name'])
             with _LOCK:
                 if len(_ACTIVE) < 16:
@@ -76,12 +80,49 @@ def observe(function):
                         value.update(outcome=outcome, finished_at=time.time(),
                                      elapsed_seconds=max(0, int(time.monotonic() - value.pop('started_clock'))))
                         _RECENT.appendleft(value)
+                    if value['ddl_id']:
+                        workflow.store().set('ddl_processing', value['ddl_id'], dict(value, phase='finished'))
                     workflow.emit('processing',outcome,issueid=value['issueid'],comicid=value['comicid'],name=value['name'])
             except Exception:
                 with _LOCK:
                     _ACTIVE.pop(token, None)
                 observer_error()
     return wrapped
+
+
+def ddl_states(filenames=(), record_ids=()):
+    """Small queue-label snapshot; never infer waiting from download completion."""
+    import mylar
+    with mylar.PP_QUEUE.mutex:
+        waiting = [item_info(item) for item in mylar.PP_QUEUE.queue
+                   if isinstance(item, dict) and item.get('ddl')]
+    with _LOCK:
+        active = [dict(item) for item in _ACTIVE.values() if item.get('source') == 'DDL']
+        recent = [dict(item) for item in _RECENT if item.get('source') == 'DDL']
+    # The existing journal survives restarts and the 50-entry in-memory window.
+    names = sorted({name for name in filenames if name and len(name) < 160})
+    if names or record_ids:
+        from mylar import workflow
+        with workflow.store().connection() as journal:
+            for offset in range(0, len(names), 200):
+                batch = names[offset:offset + 200]
+                marks = ','.join('?' for _ in batch)
+                rows = journal.execute("SELECT name,outcome FROM events WHERE id IN ("
+                    "SELECT MAX(id) FROM events WHERE stage='processing' AND name IN (" + marks + ") GROUP BY name)", batch)
+                recorded = {row['name']: dict(row) for row in rows}
+                recent = [item for item in recent if item['name'] not in recorded]
+                recent.extend(item for item in recorded.values() if item['outcome'] != 'Post-processing started')
+            for offset in range(0, len(record_ids), 200):
+                batch = list(record_ids)[offset:offset + 200]
+                marks = ','.join('?' for _ in batch)
+                import json
+                for row in journal.execute("SELECT value FROM records WHERE kind='ddl_processing' AND key IN (" + marks + ")", batch):
+                    item = json.loads(row['value'])
+                    # A persisted active marker is not evidence of an active worker after restart.
+                    recent = [old for old in recent if old.get('ddl_id') != item['ddl_id'] and old['name'] != item['name']]
+                    if item.get('phase') == 'finished':
+                        recent.insert(0, item)
+    return {'waiting': waiting, 'active': active, 'recent': recent}
 
 
 def snapshot():

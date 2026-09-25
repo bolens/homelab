@@ -2,6 +2,8 @@
 import hashlib
 import json
 import os
+import re
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 import threading
 import time
@@ -228,22 +230,125 @@ def byte_count(row, directory):
     return 0
 
 
+
+def pack_numbers(value):
+    """Only explicit integer issue lists/ranges establish complete pack membership."""
+    if not isinstance(value, str) or len(value) > 512 or not re.fullmatch(r'\s*#?\d+(?:\s*-\s*#?\d+)?(?:\s*[, +]\s*#?\d+(?:\s*-\s*#?\d+)?)*\s*', value):
+        return None
+    numbers = set()
+    for first, last in re.findall(r'#?(\d+)(?:\s*-\s*#?(\d+))?', value):
+        first, last = int(first), int(last or first)
+        if last < first or last - first > 5000:
+            return None
+        numbers.update(range(first, last + 1))
+        if len(numbers) > 5000:
+            return None
+    return numbers or None
+
+
+def library_present(folder, location, status):
+    if status not in ('Downloaded', 'Archived') or not folder or not location:
+        return False
+    try:
+        path = Path(folder) / location
+        return path.is_file() and path.stat().st_size > 0
+    except OSError:
+        return False
+
+
+def import_evidence(database):
+    rows = database.select("""
+        SELECT d.id, d.pack, d.issues, d.comicid, c.ComicLocation,
+               i.Status AS issue_status, i.Location
+        FROM ddl_info d LEFT JOIN comics c ON c.ComicID=d.comicid
+        LEFT JOIN issues i ON i.IssueID=d.issueid WHERE d.status='Completed'
+        UNION ALL
+        SELECT d.id, d.pack, d.issues, d.comicid, c.ComicLocation,
+               i.Status AS issue_status, i.Location
+        FROM ddl_info d LEFT JOIN comics c ON c.ComicID=d.comicid
+        JOIN annuals i ON i.IssueID=d.issueid WHERE d.status='Completed'
+    """)
+    result, members = {}, {}
+    for row in rows:
+        key = str(row['id'])
+        linked = library_present(row['ComicLocation'], row['Location'], row['issue_status'])
+        if not row['pack']:
+            if linked:
+                result[key] = ('Post-processed; in library', True)
+            continue
+        numbers = pack_numbers(row['issues'])
+        if numbers is None:
+            result[key] = ('Linked issue in library; pack membership unconfirmed' if linked else
+                           'Pack membership unconfirmed; review imports', False)
+            continue
+        comicid = str(row['comicid'])
+        if comicid not in members:
+            found = {}
+            for issue in database.select('SELECT Issue_Number, Status, Location FROM issues WHERE ComicID=?', [comicid]):
+                try:
+                    number = Decimal(str(issue['Issue_Number']))
+                    if not number.is_finite() or number != number.to_integral_value():
+                        continue
+                except InvalidOperation:
+                    continue
+                found.setdefault(int(number), []).append(issue)
+            members[comicid] = found
+        count = 0
+        for number in numbers:
+            matches = members[comicid].get(number, [])
+            if len(matches) == 1 and library_present(row['ComicLocation'], matches[0]['Location'], matches[0]['Status']):
+                count += 1
+        complete = count == len(numbers)
+        result[key] = (('Pack in library' if complete else 'Pack import incomplete') +
+                       ' (%d/%d issues)' % (count, len(numbers)), complete)
+    return result
+
+
 def diagnostics(rows):
     import mylar
     # Download completion is distinct from import completion. Read current issue
     # state on each poll so imports completed after finish() are visible too.
     from mylar import db
-    imported = {str(row['id']) for row in db.DBConnection().select("""
-        SELECT d.id FROM ddl_info d
-        JOIN issues i ON i.IssueID = d.issueid
-        WHERE d.status = 'Completed' AND COALESCE(d.pack, 0) = 0
-          AND i.Status = 'Downloaded' AND COALESCE(i.Location, '') != ''
-        UNION
-        SELECT d.id FROM ddl_info d
-        JOIN annuals i ON i.IssueID = d.issueid
-        WHERE d.status = 'Completed' AND COALESCE(d.pack, 0) = 0
-          AND i.Status = 'Downloaded' AND COALESCE(i.Location, '') != ''
-    """)}
+    evidence = import_evidence(db.DBConnection())
+    from mylar import pp_monitor
+    names = set()
+    completed_ids = []
+    for row in rows:
+        if row['status'] == 'Completed':
+            path = Path(row['filename'] or '')
+            names.add(path.name)
+            if path.suffix.lower() == '.zip':
+                names.add(path.stem)
+            completed_ids.append(str(row['id']))
+    processing = pp_monitor.ddl_states(names, completed_ids)
+    def processing_reason(row):
+        key = str(row['id'])
+        imported, complete = evidence.get(key, ('', False))
+        if complete:
+            return imported
+        path = Path(row['filename'] or '')
+        filename = path.name
+        aliases = {filename}
+        if path.suffix.lower() == '.zip':
+            aliases.add(path.stem)
+        def matches(item):
+            if item.get('ddl_id'):
+                return item['ddl_id'] == key
+            return bool(filename) and len(filename) < 160 and item['name'] in aliases
+        # Never match a truncated observer-name prefix.
+        if filename:
+            for stage, label in (('active', 'Post-processing now'),
+                                 ('waiting', 'Downloaded; awaiting post-processing')):
+                if any(matches(item) for item in processing[stage]):
+                    return label + ('; ' + imported if imported else '')
+            for item in processing['recent']:
+                if matches(item):
+                    outcome = item.get('outcome', '')
+                    label = ('Processing failed; review import' if 'error' in outcome or 'failure' in outcome else
+                             'Processing handed off; queue entry unconfirmed' if 'Handed off' in outcome else
+                             'Processing finished; review import')
+                    return label + ('; ' + imported if imported else '')
+        return imported or 'Downloaded; import not confirmed (not known to be queued)'
     result = {}
     with _LOCK:
         state = store()
@@ -259,8 +364,7 @@ def diagnostics(rows):
             last = value.get('last_progress')
             cooldown = max(0, int(state.data['providers'].get(value.get('provider'), {}).get('until', 0) - now))
             finished = row['status'] == 'Completed'
-            reason = ('Post-processed; in library' if key in imported else
-                      'Downloaded; awaiting post-processing' if finished else value.get('reason', ''))
+            reason = processing_reason(row) if finished else value.get('reason', '')
             result[key] = {'finished': finished, 'bytes': value.get('bytes', 0), 'speed': round(speed),
                            'last_progress_seconds': int(now - last) if last is not None else None,
                            'attempts': value.get('attempts', 0), 'reason': reason,
