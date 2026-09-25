@@ -1,7 +1,8 @@
 // Queue UI owns one active-status request at a time. Native queue actions stay explicit.
-var ImportTimer=null, ddlLoading=false, ddlStopped=false, ddlMutating=false, ddlActiveId=null, ddlFresh=false, ddlRemoveId=null;
+var ImportTimer=null, ddlLoading=false, ddlStopped=false, ddlMutating=false, ddlActiveId=null, ddlFresh=false, ddlRemoveId=null, ddlTableLoading=false;
 function ddlText(value) { return $('<span>').text(value == null ? '' : String(value)).html(); }
 function ddlSchedule() { clearTimeout(ImportTimer); if (!ddlStopped && !document.hidden) ImportTimer=setTimeout(activecheck,5000); }
+function ddlRowActionsEnabled() { $('#queue_table button').prop('disabled',ddlTableLoading || ddlMutating); }
 function ddlActionsEnabled() { $('#ddl_active_actions button').prop('disabled',!ddlFresh || ddlMutating || ddlActiveId==null); }
 function ddlFailed() {
     ddlFresh=false;ddlActionsEnabled();
@@ -29,19 +30,19 @@ function activecheck() {
         ddlActionsEnabled();
         // homelab-queue-progress-v1: preserve table page and scroll position.
         // Keep the focused inline confirmation intact while active status continues.
-        if ($('#queue_table').length && ddlRemoveId===null) {$('#queue_table').DataTable().ajax.reload(null, false);}
+        if ($('#queue_table').length && ddlRemoveId===null && !ddlTableLoading) {$('#queue_table').DataTable().ajax.reload(null, false);}
     }).fail(ddlFailed).always(function(){ddlLoading=false;$('#ddl_refresh').prop('disabled',false);ddlSchedule();});
 }
 function ajaxcallit(mode,id,confirmed) {
     if (ddlMutating) return;
     if (mode==='remove' && !confirmed) return;
     if ((mode==='clear_queue' || mode==='abort') && !window.confirm(mode==='clear_queue' ? 'Remove all queued entries? Active and completed downloads stay in place.' : 'Abort this download?')) return;
-    ddlMutating=true;clearTimeout(ImportTimer);ddlActionsEnabled();
+    ddlMutating=true;clearTimeout(ImportTimer);ddlActionsEnabled();ddlRowActionsEnabled();
     $('#ddl_action_notice').text('Sending request…');
     $.ajax({url:'ddl_requeue',data:{mode:mode,id:id},dataType:'json',timeout:15000})
     .done(function(data){$('#ddl_action_notice').text(data && data.status===true && !data.error ? data.message || 'Request accepted.' : 'The request was not confirmed. Refresh and check the item before retrying.');})
     .fail(function(){$('#ddl_action_notice').text('The request could not be confirmed. Refresh and check the item before retrying.');})
-    .always(function(){ddlMutating=false;ddlActionsEnabled();activecheck();});
+    .always(function(){ddlMutating=false;ddlActionsEnabled();ddlRowActionsEnabled();activecheck();});
 }
 function ddlRowActions(full) {
     var actions=[], status=full[3];
@@ -70,7 +71,7 @@ $(document).ready(function(){
         box.find('[data-ddl-mode=remove]').focus();
     }
     $('#queue_table').on('click','button[data-ddl-mode]',function(){
-        if (ddlMutating) return;
+        if (ddlMutating || ddlTableLoading) return;
         var button=$(this),mode=button.attr('data-ddl-mode'),id=button.attr('data-ddl-id');
         if (mode!=='remove') {ajaxcallit(mode,id);return;}
         $('#queue_table .ddl_remove_prompt:visible').each(function(){closeRemove($(this).parent());});
@@ -85,6 +86,9 @@ $(document).ready(function(){
         if (remove) ajaxcallit('remove',id,true);
     }).on('keydown','.ddl_remove_prompt',function(event){
         if(event.key==='Escape'){event.preventDefault();closeRemove($(this).parent());}
+    });
+    $('#queue_table').on('processing.dt',function(event,settings,processing){
+        ddlTableLoading=processing;ddlRowActionsEnabled();
     });
     $('#queue_table').on('preDraw.dt',function(){
         ddlRemoveId=null;
