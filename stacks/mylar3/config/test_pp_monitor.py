@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch, Mock
 import pp_monitor as monitor
-from patch_pp_monitor import processor, server, navigation, tagger, api
+from patch_pp_monitor import processor, server, navigation, tagger, api, processing_identity
 
 SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 else None
 
@@ -46,6 +46,49 @@ class MonitorTest(unittest.TestCase):
         self.assertEqual(len(value['waiting']),100);self.assertTrue(value['waiting_truncated'])
         self.assertEqual(original,list(self.mylar.PP_QUEUE.queue));self.assertNotIn('/private',json.dumps(value))
         self.assertEqual([r['name'] for r in value['imports']],['Comic #1'])
+
+    def test_ddl_labels_use_real_queue_and_persisted_finished_runs(self):
+        from workflow_store import Store
+        journal = Store(self.temp.name)
+        self.mylar.workflow.store = lambda: journal
+        self.mylar.PP_QUEUE.put({'nzb_name':'Pack.cbz','ddl':True})
+        self.mylar.PP_QUEUE.put({'nzb_name':'Other.cbz','ddl':False})
+        journal.event('processing','Run finished; check confirmed imports below',name='Old pack.cbz')
+        state = monitor.ddl_states(['Old pack.cbz'])
+        self.assertEqual([r['name'] for r in state['waiting']], ['Pack.cbz'])
+        self.assertEqual(state['recent'][0]['name'], 'Old pack.cbz')
+        self.assertEqual(self.mylar.PP_QUEUE.qsize(), 2)
+        journal.event('processing','Post-processing started',name='Old pack.cbz')
+        self.assertEqual(monitor.ddl_states(['Old pack.cbz'])['recent'], [])
+        monitor._ACTIVE[1] = {'name':'Pack.cbz','source':'DDL'}
+        self.assertEqual(monitor.ddl_states()['active'][0]['name'], 'Pack.cbz')
+
+    def test_pack_identity_and_completion_survive_restart(self):
+        from workflow_store import Store
+        journal = Store(self.temp.name);self.mylar.workflow.store = lambda: journal
+        @monitor.observe
+        def process(job):
+            self.assertEqual(monitor.ddl_states()['active'][0]['ddl_id'], '42')
+        process(self.job(download_info={'provider':'DDL','id':'42'}))
+        monitor._RECENT.clear()
+        state = monitor.ddl_states(['Different outer archive.zip'], ['42'])
+        self.assertEqual(state['recent'][0]['ddl_id'], '42')
+        self.assertEqual(state['recent'][0]['phase'], 'finished')
+        journal.set('ddl_processing','42',dict(state['recent'][0],phase='processing'))
+        state = monitor.ddl_states(['Different outer archive.zip'], ['42'])
+        self.assertEqual(state['recent'], [])
+        self.assertEqual(state['active'], [])
+
+    def test_native_handoff_preserves_download_identity(self):
+        if SOURCE is None:
+            self.skipTest('Native source is required')
+        source = (SOURCE/'process.py').read_text()
+        patched = processing_identity(source)
+        self.assertEqual(processing_identity(patched), patched)
+        self.assertIn('PostProcess.download_info = self.download_info', patched)
+        ast.parse(patched)
+        with self.assertRaises(ValueError):
+            processing_identity('pass')
 
     def test_worker_states_are_distinct(self):
         self.assertEqual(monitor.snapshot()['status'],'Idle')

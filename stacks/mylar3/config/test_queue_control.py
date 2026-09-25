@@ -83,15 +83,26 @@ class ControlTest(unittest.TestCase):
         self.addCleanup(database.close)
         database.row_factory = sqlite3.Row
         database.executescript("""
-            CREATE TABLE ddl_info(id TEXT, issueid TEXT, status TEXT, pack INTEGER);
+            CREATE TABLE ddl_info(id TEXT, issueid TEXT, status TEXT, pack INTEGER, filename TEXT);
             CREATE TABLE issues(IssueID TEXT, Status TEXT, Location TEXT);
             CREATE TABLE annuals(IssueID TEXT, Status TEXT, Location TEXT);
-            INSERT INTO ddl_info VALUES ('1','2','Completed',0),('pack','2','Completed',1),
-              ('annual','3','Completed',0),('queued','2','Queued',0),('missing','4','Completed',0);
+            INSERT INTO ddl_info VALUES ('1','2','Completed',0,'comic.cbz'),('pack','2','Completed',1,'pack.cbz'),
+              ('annual','3','Completed',0,'annual.cbz'),('queued','2','Queued',0,'queued.cbz'),('missing','4','Completed',0,'missing.cbz');
             INSERT INTO issues VALUES ('2','Snatched',NULL),('4','Downloaded',NULL);
             INSERT INTO annuals VALUES ('3','Downloaded','annual.cbz');
         """)
-        mylar = SimpleNamespace(db=SimpleNamespace(DBConnection=lambda: SimpleNamespace(
+        database.executescript("""
+            ALTER TABLE ddl_info ADD COLUMN comicid TEXT DEFAULT '20';
+            ALTER TABLE ddl_info ADD COLUMN issues TEXT;
+            ALTER TABLE issues ADD COLUMN ComicID TEXT DEFAULT '20';
+            ALTER TABLE issues ADD COLUMN Issue_Number TEXT DEFAULT '1';
+            CREATE TABLE comics(ComicID TEXT, ComicLocation TEXT);
+        """)
+        database.execute('INSERT INTO comics VALUES (?,?)', ('20', str(self.root)))
+        (self.root/'comic.cbz').write_bytes(b'comic')
+        (self.root/'annual.cbz').write_bytes(b'annual')
+        processing = {'waiting': [], 'active': [], 'recent': []}
+        mylar = SimpleNamespace(pp_monitor=SimpleNamespace(ddl_states=lambda filenames, ids: processing), db=SimpleNamespace(DBConnection=lambda: SimpleNamespace(
             select=lambda query: database.execute(query).fetchall())))
         self.state.begin(self.item)
         self.state.finish(self.item, True)
@@ -99,18 +110,54 @@ class ControlTest(unittest.TestCase):
         rows = database.execute('SELECT * FROM ddl_info').fetchall()
         with patch.dict(sys.modules, {'mylar': mylar}), patch.object(control, '_STORE', self.state):
             before = control.diagnostics(rows)
-            self.assertEqual(before['1']['reason'], 'Downloaded; awaiting post-processing')
+            self.assertIn('not known to be queued', before['1']['reason'])
+            processing['waiting'] = [{'name': 'Extracted pack directory', 'ddl_id': '1'}]
+            self.assertEqual(control.diagnostics(rows)['1']['reason'], 'Downloaded; awaiting post-processing')
+            processing['active'] = [{'name': 'Another extracted directory', 'ddl_id': '1'}]
+            self.assertEqual(control.diagnostics(rows)['1']['reason'], 'Post-processing now')
+            processing['waiting'] = []
+            processing['active'] = []
+            processing['recent'] = [{'name': 'pack.cbz'}]
             database.execute("UPDATE issues SET Status='Downloaded', Location='comic.cbz' WHERE IssueID='2'")
             after = control.diagnostics(rows)
         self.assertEqual(after['1']['reason'], 'Post-processed; in library')
         self.assertEqual(after['annual']['reason'], 'Post-processed; in library')
-        for key in ('pack', 'missing'):
-            self.assertEqual(after[key]['reason'], 'Downloaded; awaiting post-processing')
+        self.assertIn('Processing finished', after['pack']['reason'])
+        self.assertIn('pack membership unconfirmed', after['pack']['reason'])
+        self.assertIn('not known to be queued', after['missing']['reason'])
         self.assertFalse(after['queued']['finished'])
         self.assertTrue(after['1']['finished'])
         self.assertEqual(after['1']['cooldown_seconds'], 0)
         self.assertEqual(after['1']['attempts'], 1)
         self.assertEqual(self.state.data['items']['1']['reason'], 'Downloaded; handed to post-processing')
+
+    def test_pack_completion_requires_every_member_and_existing_file(self):
+        database = sqlite3.connect(':memory:');database.row_factory = sqlite3.Row
+        self.addCleanup(database.close)
+        database.executescript("""
+            CREATE TABLE ddl_info(id TEXT,issueid TEXT,comicid TEXT,status TEXT,pack INTEGER,issues TEXT);
+            CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);
+            CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Issue_Number TEXT,Status TEXT,Location TEXT);
+            CREATE TABLE annuals(IssueID TEXT,Status TEXT,Location TEXT);
+            INSERT INTO ddl_info VALUES ('pack','1','20','Completed',1,'001-003'),
+                ('unknown','1','20','Completed',1,NULL),('single','1','20','Completed',0,NULL);
+            INSERT INTO issues VALUES ('1','20','1','Archived','one.cbz'),
+                ('2','20','2','Downloaded','two.cbz'),('3','20','3','Downloaded','three.cbz');
+        """)
+        database.execute('INSERT INTO comics VALUES (?,?)', ('20',str(self.root)))
+        adapter = SimpleNamespace(select=lambda q,args=(): database.execute(q,args).fetchall())
+        (self.root/'one.cbz').write_bytes(b'one');(self.root/'two.cbz').write_bytes(b'two')
+        evidence = control.import_evidence(adapter)
+        self.assertEqual(evidence['pack'], ('Pack import incomplete (2/3 issues)',False))
+        self.assertEqual(evidence['single'], ('Post-processed; in library',True))
+        self.assertFalse(evidence['unknown'][1])
+        (self.root/'three.cbz').write_bytes(b'three')
+        self.assertEqual(control.import_evidence(adapter)['pack'], ('Pack in library (3/3 issues)',True))
+        database.execute("INSERT INTO issues VALUES ('duplicate','20','3','Downloaded','three.cbz')")
+        self.assertFalse(control.import_evidence(adapter)['pack'][1])
+        for value in (None, '', '1-3 + Annual', '3-1', '1-999999', '1.5', 'Complete'):
+            self.assertIsNone(control.pack_numbers(value))
+        self.assertEqual(control.pack_numbers('001-003, 5 + 7'), {1,2,3,5,7})
 
     def test_health_does_not_treat_retry_churn_as_progress(self):
         from health import assess

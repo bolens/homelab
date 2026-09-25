@@ -126,10 +126,20 @@ preservation. The offline gate cannot verify a download provider's availability.
 The image includes queue control. The queue table
 shows received bytes, recent speed, seconds since progress, attempts, and cooldown
 status. Completed individual issues show **Post-processed; in library** once Mylar
-records them as Downloaded with a library location. The **Download / import status** column keeps completed items clear of retry
+records them as Downloaded or Archived and their recorded library file exists. The **Download / import status** column keeps completed items clear of retry
 notation. Their download attempt count remains available in a tooltip, with no
 provider cooldown.
-Pack downloads are not marked imported based on one member issue. The health probe counts new byte high-water marks and completed downloads.
+Awaiting post-processing is shown only for a matching entry actually in the
+post-processing queue. Active runs and finished runs have distinct labels; other
+completed downloads show that their import is unconfirmed instead of claiming
+they are queued. Pack downloads are not marked imported based on one member issue. Explicit
+integer issue lists and ranges show how many members have a Downloaded or Archived
+record and a nonempty library file. Missing files and ambiguous membership prevent
+a fully imported label. Unspecified annuals, collected editions, and unknown member
+lists remain unconfirmed. Finished processing runs also use the existing retained
+Activity journal, and new runs retain their exact DDL ID and processing receipt.
+A restart or newer processing activity does not turn a finished pack back into a
+waiting item, even when extraction changes its folder name. The health probe counts new byte high-water marks and completed downloads.
 Switching mirrors or shrinking the queue alone cannot clear a stall warning.
 
 DDL Queue Management keeps the active transfer visible when its size is unknown,

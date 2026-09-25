@@ -84,12 +84,24 @@ def base(source):
     return replace_once(source, before, 'tt.value != "storyarc_detail" && ' + marker + ' && tt.value != "config")')
 
 
+def processing_identity(source):
+    marker = '# homelab-ddl-processing-identity-v1'
+    if marker in source:
+        return source
+    anchor = '            if any([self.nzb_name == '
+    if source.count(anchor) != 1:
+        raise ValueError('Processing handoff changed; review DDL identity patch')
+    return source.replace(anchor, '            ' + marker + '\n'
+                          '            PostProcess.download_info = self.download_info\n' + anchor, 1)
+
+
 def main(directory):
     root = Path(directory)
     templates = root.parent/'data/interfaces/default'
     changes = {templates/'base.html': base((templates/'base.html').read_text()),
                root/'cmtagmylar.py': tagger((root/'cmtagmylar.py').read_text()),
                root/'api.py': recovery_api(api((root/'api.py').read_text())),
+               root/'process.py': processing_identity((root/'process.py').read_text()),
                root/'PostProcessor.py': processor((root/'PostProcessor.py').read_text()),
                root/'webserve.py': server((root/'webserve.py').read_text())}
     for name in ('manage.html', 'queue_management.html', 'import_problems.html'):
