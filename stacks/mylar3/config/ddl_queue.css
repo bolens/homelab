@@ -21,13 +21,13 @@ body:has(#ddl_queue_page) #subhead_menu { float: none; display: flex; flex-wrap:
 #ddl_queue_page dt { font-weight: bold; } #ddl_queue_page dd { margin: .4rem 0; }
 #ddl_notice[data-stale=true], #ddl_action_notice:not(:empty) { padding: .7rem 1rem; border-left: 3px solid #bd7d25; }
 #ddl_queue_page :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
-#ddl_queue_page button, #ddl_queue_page select, #ddl_queue_page input { min-height: 36px; max-width: 100%; }
+#ddl_queue_page button, #ddl_queue_page select, #ddl_queue_page input { min-height: 26px; max-width: 100%; }
 #ddl_queue_page .table_wrapper { width: 100%; overflow-x: auto; }
 #ddl_queue_page #queue_table { width: 100% !important; }
 #ddl_queue_page #queue_table td { vertical-align: top; text-align: left; overflow-wrap: anywhere; }
 #ddl_queue_page #queue_table th { text-align: left; }
 #ddl_queue_page .ddl_row_actions { display: flex; flex-wrap: wrap; gap: .4rem; }
-#ddl_queue_page .ddl_row_actions button { padding: .4rem .6rem; color: inherit; background: transparent; border: 1px solid #8889; border-radius: 3px; cursor: pointer; }
+#ddl_queue_page .ddl_row_actions button { padding: .2rem .5rem; color: inherit; background: transparent; border: 1px solid #8889; border-radius: 3px; cursor: pointer; }
 #ddl_queue_page .ddl_row_actions button:hover { background: #8882; }
 #ddl_queue_page .ddl_mobile_sort { display: none; }
 @media (min-width: 1600px) {
@@ -70,3 +70,5 @@ body:has(#ddl_queue_page) #subhead_menu { float: none; display: flex; flex-wrap:
  #ddl_queue_page .ddl_progress_line { flex-wrap: wrap; }
  #ddl_progress { flex-basis: 100%; }
 }
+
+#ddl_queue_page .ddl_remove_prompt { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }

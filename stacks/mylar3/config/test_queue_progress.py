@@ -76,7 +76,7 @@ class QueueProgressTest(unittest.TestCase):
         template = patched_template(path.read_text())
         self.assertEqual(patched_template(template), template)
         self.assertNotIn("if (percent == '100%')", template)
-        self.assertIn("if ($('#queue_table').length)", template)
+        self.assertRegex(template, r"if \(\$\('#queue_table'\)\.length(?:\s*&&[^)]*)?\)")
         self.assertIn('.ajax.reload(null, false)', template)
         self.assertNotIn("$('html,body').scrollTop(0)", template)
 

@@ -1,5 +1,5 @@
 // Queue UI owns one active-status request at a time. Native queue actions stay explicit.
-var ImportTimer=null, ddlLoading=false, ddlStopped=false, ddlMutating=false, ddlActiveId=null, ddlFresh=false;
+var ImportTimer=null, ddlLoading=false, ddlStopped=false, ddlMutating=false, ddlActiveId=null, ddlFresh=false, ddlRemoveId=null;
 function ddlText(value) { return $('<span>').text(value == null ? '' : String(value)).html(); }
 function ddlSchedule() { clearTimeout(ImportTimer); if (!ddlStopped && !document.hidden) ImportTimer=setTimeout(activecheck,5000); }
 function ddlActionsEnabled() { $('#ddl_active_actions button').prop('disabled',!ddlFresh || ddlMutating || ddlActiveId==null); }
@@ -28,12 +28,14 @@ function activecheck() {
         $('#ddl_active_actions').prop('hidden',!hasItem).find('[data-ddl-mode=resume]').prop('hidden',!downloading);
         ddlActionsEnabled();
         // homelab-queue-progress-v1: preserve table page and scroll position.
-        if ($('#queue_table').length) {$('#queue_table').DataTable().ajax.reload(null, false);}
+        // Keep the focused inline confirmation intact while active status continues.
+        if ($('#queue_table').length && ddlRemoveId===null) {$('#queue_table').DataTable().ajax.reload(null, false);}
     }).fail(ddlFailed).always(function(){ddlLoading=false;$('#ddl_refresh').prop('disabled',false);ddlSchedule();});
 }
-function ajaxcallit(mode,id) {
+function ajaxcallit(mode,id,confirmed) {
     if (ddlMutating) return;
-    if ((mode==='clear_queue' || mode==='abort' || mode==='remove') && !window.confirm(mode==='clear_queue' ? 'Remove all queued entries? Active and completed downloads stay in place.' : mode==='abort' ? 'Abort this download?' : 'Remove this queue/history entry?')) return;
+    if (mode==='remove' && !confirmed) return;
+    if ((mode==='clear_queue' || mode==='abort') && !window.confirm(mode==='clear_queue' ? 'Remove all queued entries? Active and completed downloads stay in place.' : 'Abort this download?')) return;
     ddlMutating=true;clearTimeout(ImportTimer);ddlActionsEnabled();
     $('#ddl_action_notice').text('Sending request…');
     $.ajax({url:'ddl_requeue',data:{mode:mode,id:id},dataType:'json',timeout:15000})
@@ -49,13 +51,46 @@ function ddlRowActions(full) {
     actions.push(['remove','Remove']);
     var box=$('<div>').addClass('ddl_row_actions');
     $.each(actions,function(_,a){$('<button type="button">').attr({'data-ddl-mode':a[0],'data-ddl-id':String(full[5])}).text(a[1]).appendTo(box);});
+    var prompt=$('<span>').addClass('ddl_remove_prompt').prop('hidden',ddlRemoveId!==String(full[5]));
+    $('<span>').text('Remove entry?').appendTo(prompt);
+    $('<button type="button" data-ddl-confirm="remove">').text('Remove').appendTo(prompt);
+    $('<button type="button" data-ddl-confirm="cancel">').text('Cancel').appendTo(prompt);
+    box.children().prop('hidden',ddlRemoveId===String(full[5]));
+    box.attr('data-ddl-id',String(full[5])).append(prompt);
     return $('<div>').append(box).html();
 }
 $(document).ready(function(){
     $('#ddl_refresh, #ddl_active_actions button, #ddl_restart_queue, #ddl_clear_queue').button();
     $('#ddl_refresh').on('click',activecheck);
     $('#ddl_active_actions').on('click','button',function(){if(ddlFresh && ddlActiveId!==null)ajaxcallit($(this).attr('data-ddl-mode'),ddlActiveId);});
-    $('#queue_table').on('click','button[data-ddl-mode]',function(){ajaxcallit($(this).attr('data-ddl-mode'),$(this).attr('data-ddl-id'));});
+    function closeRemove(box) {
+        ddlRemoveId=null;
+        box.children('[data-ddl-mode]').prop('hidden',false);
+        box.find('.ddl_remove_prompt').prop('hidden',true);
+        box.find('[data-ddl-mode=remove]').focus();
+    }
+    $('#queue_table').on('click','button[data-ddl-mode]',function(){
+        if (ddlMutating) return;
+        var button=$(this),mode=button.attr('data-ddl-mode'),id=button.attr('data-ddl-id');
+        if (mode!=='remove') {ajaxcallit(mode,id);return;}
+        $('#queue_table .ddl_remove_prompt:visible').each(function(){closeRemove($(this).parent());});
+        ddlRemoveId=id;
+        var box=button.closest('.ddl_row_actions');
+        box.children('[data-ddl-mode]').prop('hidden',true);
+        box.find('.ddl_remove_prompt').prop('hidden',false).find('[data-ddl-confirm=cancel]').focus();
+    });
+    $('#queue_table').on('click','button[data-ddl-confirm]',function(){
+        var box=$(this).closest('.ddl_row_actions'),id=box.attr('data-ddl-id'),remove=$(this).attr('data-ddl-confirm')==='remove';
+        closeRemove(box);
+        if (remove) ajaxcallit('remove',id,true);
+    }).on('keydown','.ddl_remove_prompt',function(event){
+        if(event.key==='Escape'){event.preventDefault();closeRemove($(this).parent());}
+    });
+    $('#queue_table').on('preDraw.dt',function(){
+        ddlRemoveId=null;
+        $(this).find('.ddl_remove_prompt').prop('hidden',true);
+        $(this).find('[data-ddl-mode]').prop('hidden',false);
+    });
     $('#ddl_restart_queue').on('click',function(){ajaxcallit('restart_queue');});
     $('#ddl_clear_queue').on('click',function(){ajaxcallit('clear_queue');});
     $('#ddl_sort').on('change',function(){if(this.value==='custom')return;var order=this.value.split(':');$('#queue_table').DataTable().order([Number(order[0]),order[1]]).draw();});
