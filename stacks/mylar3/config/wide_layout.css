@@ -328,6 +328,15 @@ body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead
   cursor: not-allowed;
 }
 
+
+/* Polling briefly disables DDL controls; keep their surface steady between polls. */
+body:has(#ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:disabled, .ui-state-disabled, [aria-disabled="true"]) {
+  color: #fff;
+  background: #555;
+  background-image: linear-gradient(#626262, #4d4d4d) !important;
+  border-color: #444;
+}
+
 body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button-text-only .ui-button-text {
   padding: .2em .65em;
 }
