@@ -139,9 +139,26 @@ def scheduler(source):
     return source
 
 
+def queue_view(source):
+    marker = '# homelab-queue-order-view-v1'
+    if marker in source:
+        return source
+    source = replace_once(source,
+        'SELECT id, status, filename, tmp_filename, remote_filesize, link_type FROM ddl_info',
+        'SELECT id, status, filename, tmp_filename, remote_filesize, link_type, pack FROM ddl_info')
+    source = replace_once(source, '        for row in resultlist:\n            download = downloads.get',
+        '        ' + marker + '\n        from mylar import queue_schedule\n        positions = queue_schedule.positions(downloads.values())\n        for row in resultlist:\n            row["queue_order"] = positions.get(str(row["queueid"]), {"sort": 2000000000})["sort"]\n            download = downloads.get')
+    source = replace_once(source, "        sortcolumn = 'series'\n        if iSortCol_0 == '1':",
+        "        sortcolumn = 'series'\n        if iSortCol_0 == '11':\n            sortcolumn = 'queue_order'\n        elif iSortCol_0 == '1':")
+    source = replace_once(source, "diagnostics.get(str(row['queueid']), {})] for row in rows]",
+        "diagnostics.get(str(row['queueid']), {}), positions.get(str(row['queueid']), {})] for row in rows]")
+    ast.parse(source)
+    return source
+
+
 def main(directory):
     root = Path(directory)
-    for name, patch in [('PostProcessor.py', processor), ('process.py', processing), ('helpers.py', helpers), ('search.py', search), ('api.py', api), ('queues/ddl.py', scheduler), ('__init__.py', startup)]:
+    for name, patch in [('PostProcessor.py', processor), ('process.py', processing), ('helpers.py', helpers), ('search.py', search), ('api.py', api), ('queues/ddl.py', scheduler), ('__init__.py', startup), ('webserve.py', queue_view)]:
         path = root / name
         path.write_text(patch(path.read_text()))
     for name in ('processing_guard.py', 'pack_intake.py', 'pack_catalog.py', 'queue_schedule.py'):

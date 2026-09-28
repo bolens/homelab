@@ -44,6 +44,10 @@ over missing mounts, service changes, or destructive volume removal.
 For Mylar-only updates, keep NZBGet and Komga running. Scope backups and any writer
 coordination to the affected state and follow the Mylar stack's update instructions.
 Do not reuse a multi-service rollout script for a single-service UI change.
+Do not copy the entire comic library for routine interface, image or configuration
+updates. Back up affected application state and verify the library in place. If
+an operation changes existing media, preserve those specific files first. Reserve
+full-library copies for major library changes.
 
 ## Working through Spec Kit
 
