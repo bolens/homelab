@@ -125,7 +125,8 @@ class OptionalStackOverrideTests(unittest.TestCase):
         services=json.loads(result.stdout)['services']
         mounts={m['target']:m for m in services['comic-normalizer']['volumes']}
         self.assertFalse(mounts['/mylar-writer'].get('read_only',False))
-        self.assertFalse(mounts['/mylar-writer']['bind']['create_host_path'])
+        # Compose versions may omit false-valued fields from normalized JSON.
+        self.assertFalse(mounts['/mylar-writer'].get('bind', {}).get('create_host_path', False))
         self.assertTrue(mounts['/mylar']['read_only'])
         self.assertNotIn('/mylar-writer',{m['target'] for m in services['komga']['volumes']})
 
