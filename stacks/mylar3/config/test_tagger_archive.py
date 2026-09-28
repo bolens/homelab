@@ -59,6 +59,22 @@ class ArchiveTest(unittest.TestCase):
                 self.assertEqual(getattr(old.getinfo('001.png'), field), getattr(new.getinfo('001.png'), field))
         self.unchanged_source(digest)
 
+    def test_duplicate_identity_never_creates_verified_output(self):
+        digest = self.pair()
+        self.fixture(self.tagged, b'<ComicInfo><Number>1</Number><Number>2</Number></ComicInfo>')
+        with self.assertRaises(ValueError):
+            subject.prepare(self.original, self.tagged, self.output)
+        self.unchanged_source(digest)
+        self.assertFalse(self.output.exists())
+
+    def test_processing_instruction_is_preserved_and_distinct_from_comment(self):
+        old = b'<ComicInfo><?vendor retain?><Series>Old</Series></ComicInfo>'
+        digest = self.pair(old)
+        self.assertEqual(subject.prepare(self.original, self.tagged, self.output), 'updated')
+        self.assertIn(b'<?vendor retain?>', subject.snapshot(self.output).xml)
+        self.assertNotEqual(subject.semantic(old), subject.semantic(old.replace(b'<?vendor retain?>', b'<!--vendor retain-->')))
+        self.unchanged_source(digest)
+
     def test_existing_notes_unknown_fields_pages_and_explicit_arcs_survive_in_archive(self):
         old = b'<ComicInfo><Series>Old</Series><Notes>Preserve</Notes><Extension a="b">Extra</Extension><Pages><Page Image="0" Bookmark="Cover"/></Pages><StoryArc>Old</StoryArc><StoryArcNumber>9</StoryArcNumber></ComicInfo>'
         digest = self.pair(old)

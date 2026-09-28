@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 import stat
 import struct
 import zipfile
+import xml.etree.ElementTree as ET
 
 from tagger_metadata import MAX_XML, parse, reconcile
 
@@ -123,7 +124,7 @@ def semantic(raw):
         if len(value) and not text.strip():
             text = ''
         tail = value.tail or ''
-        return (value.tag if isinstance(value.tag, str) else '#comment',
+        return (value.tag if isinstance(value.tag, str) else '#pi' if value.tag is ET.ProcessingInstruction else '#comment',
                 tuple(sorted(value.attrib.items())), text, tail if tail.strip() else '',
                 tuple(node(child) for child in value))
     root = parse(raw)
