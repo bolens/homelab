@@ -2,7 +2,7 @@
 import ast
 from pathlib import Path
 import sys
-from patch_queue_control import replace_once
+from source_patches import replace_once
 
 MARKER = '# homelab-pp-monitor-v1'
 

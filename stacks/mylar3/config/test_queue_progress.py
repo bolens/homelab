@@ -8,7 +8,7 @@ from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, patch
 from patch_queue_progress import patched_source, patched_template
-from patch_pack_intake import queue_view
+from patch_ddl_schedule import queue_view
 import queue_progress
 
 SOURCE = Path(sys.argv.pop(1))
