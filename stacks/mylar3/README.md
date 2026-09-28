@@ -485,7 +485,8 @@ license files and selected corresponding source archives are retained under
 [tagger-NOTICES.md](tagger-NOTICES.md). Dependabot is configured for the runtime and
 build requirements files. The first bot run could not fetch referenced `.lock` files,
 so hashes now live directly in `requirements.txt` and `requirements-build.txt`.
-Successful bot evaluation of this corrected layout remains to be verified.
+GitHub's dependency graph has successfully evaluated both corrected files. A
+subsequent version-update job remains to be observed.
 Review native build-package pins monthly and whenever changing the base digest.
 
 The published image is currently built/tested for linux/amd64. A Python wheel's

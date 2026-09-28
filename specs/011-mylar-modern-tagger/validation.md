@@ -37,7 +37,9 @@ Scope: inactive modern runtime and staged-file CLI protocol against `b9e95f6`.
   installed distributions. Both runtime and build locks were exposed through requirements manifests. The
   first live bot runs failed to fetch their referenced `.lock` files. The corrective
   layout places the same pins and hashes directly in recognized requirements files,
-  pending successful bot evaluation.
+  verified by successful dependency-graph run `36488315419`, which reported both
+  requirement files and their packages. A subsequent version-update job remains
+  unverified.
 - The candidate build and final read-only, network-disabled, unprivileged image gate
   passed 232 existing tests and 11 modern-runtime tests. Real CLI writes cover
   regular issues, annuals, variants, Unicode, explicit volume 1, page/sidecar/ZIP
