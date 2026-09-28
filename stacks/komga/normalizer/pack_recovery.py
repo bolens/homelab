@@ -287,7 +287,9 @@ class Packs:
         if not matched and not member.get('catalog_attempted') and points['series'] and number(points['number']) is not None:
             member['catalog_attempted'] = True
             return  # Persist intent before the next cycle makes an external request.
-        if not matched and member.get('catalog_attempted') and not member.get('catalog_result'):
+        previous = member.get('catalog_result') or {}
+        retry_due = previous.get('phase') == 'retry' and time.time() >= previous.get('retry_at', 0)
+        if not matched and member.get('catalog_attempted') and (not previous or retry_due):
             # Server stores the idempotent request before catalog mutations.
             parent = self.parent(points)
             if parent:
@@ -299,7 +301,9 @@ class Packs:
         if not matched and member.get('catalog_result', {}).get('phase') == 'ready':
             matched = {k: member['catalog_result'][k] for k in ('issueid', 'comicid')}
         if not matched:
-            member.update(phase='review', reason='No unique catalog identity; original retained')
+            member.update(phase='review', reason='Catalog lookup unavailable; waiting for scheduled retry'
+                          if member.get('catalog_result', {}).get('phase') == 'retry' else
+                          'No unique catalog identity; original retained')
             return
         from edition_evidence import landscape
         with closing(sqlite3.connect('file:' + str(self.db) + '?mode=ro', uri=True)) as database:

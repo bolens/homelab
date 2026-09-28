@@ -274,6 +274,10 @@ required. The default example leaves them disabled. The worker uses the existing
 shared cache and state mounts, accepts completed pack work through the primary-key
 API, and reports member outcomes to Activity's **Packs and extras** section.
 
+The worker preserves retryable catalog responses across restarts and honors Mylar's
+retry time. Only safe catalog reads retry automatically; ambiguous identities,
+exhausted attempts and uncertain catalog writes remain held for review.
+
 Pack inventories are retained under `maintenance/packs` in the existing state
 directory. Outer archives use the pinned bounded extractor; comic members use the
 existing CBZ converter. A pack inventory is limited to 2,000 files and 32 GiB of

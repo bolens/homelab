@@ -1,6 +1,7 @@
 """Mixed-pack preservation, annual recovery and repeat-run fixtures."""
 from contextlib import closing
 from pathlib import Path
+import json
 import sqlite3
 import tempfile
 import unittest
@@ -54,6 +55,24 @@ class PackTest(unittest.TestCase):
             if extra:z.writestr('notes.txt','preserve this sidecar')
             if meta:z.writestr('ComicInfo.xml',meta)
         return path
+
+    def test_catalog_retry_survives_receipt_reload_and_obeys_backoff(self):
+        self.archive(self.pack/'Missing Comic 001 (2017).cbz')
+        receipt,value=self.packs.inventory(self.record);member=value['members'][0]
+        self.m.mylar.return_value={'phase':'retry','retry_at':1300,'attempts':1}
+        with patch('pack_recovery.time.time',return_value=1000):
+            self.packs.member(member,receipt.parent)  # durable request intent
+            self.packs.member(member,receipt.parent)
+        self.assertEqual(self.m.mylar.call_count,1)
+        member=json.loads(json.dumps(member))  # simulate reloaded worker receipt
+        with patch('pack_recovery.time.time',return_value=1299):self.packs.member(member,receipt.parent)
+        self.assertEqual(self.m.mylar.call_count,1)
+        self.m.mylar.return_value={'phase':'review','reason':'No unique match'}
+        with patch('pack_recovery.time.time',return_value=1300):self.packs.member(member,receipt.parent)
+        self.assertEqual(self.m.mylar.call_count,2)
+        with patch('pack_recovery.time.time',return_value=9000):self.packs.member(member,receipt.parent)
+        self.assertEqual(self.m.mylar.call_count,2)
+        self.assertTrue(Path(member['source']).is_file())
 
     def test_mixed_pack_keeps_cover_separate_and_cleans_only_verified_sources(self):
         issue=self.archive(self.pack/'Test Comic 001 (2017).cbz')

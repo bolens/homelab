@@ -1,6 +1,7 @@
 """Persistent DDL attempts, progress, provider cooldowns, and restart recovery."""
 import hashlib
 import json
+import math
 import os
 import re
 from decimal import Decimal, InvalidOperation
@@ -308,10 +309,11 @@ def diagnostics(rows):
     import mylar
     # Download completion is distinct from import completion. Read current issue
     # state on each poll so imports completed after finish() are visible too.
-    from mylar import db
+    from mylar import db, workflow
+    paused = workflow.policy()['ddl_paused']
     evidence = import_evidence(db.DBConnection())
     from mylar import pack_intake
-    evidence.update(pack_intake.evidence())
+    evidence.update(pack_intake.evidence([row['id'] for row in rows if row['status'] == 'Completed']))
     from mylar import pp_monitor
     names = set()
     completed_ids = []
@@ -364,9 +366,19 @@ def diagnostics(rows):
             elapsed = now - value.get('sample_time', now)
             speed = value.get('speed', 0) if active and elapsed <= 15 else 0
             last = value.get('last_progress')
-            cooldown = max(0, int(state.data['providers'].get(value.get('provider'), {}).get('until', 0) - now))
+            provider = (row['link_type'] if 'link_type' in row.keys() else None) or value.get('provider') or 'GC-Main'
+            cooldown = max(0, math.ceil(state.data['providers'].get(provider, {}).get('until', 0) - now))
             finished = row['status'] == 'Completed'
             reason = processing_reason(row) if finished else value.get('reason', '')
+            if row['status'] == 'Queued':
+                if value.get('attempts', 0) >= ATTEMPT_LIMIT:
+                    reason = 'Retry limit reached; review this release before restarting'
+                elif paused:
+                    reason = 'New downloads paused'
+                elif cooldown:
+                    reason = 'Provider cooling down'
+                else:
+                    reason = 'Queued; waiting for download slot'
             result[key] = {'finished': finished, 'bytes': value.get('bytes', 0), 'speed': round(speed),
                            'last_progress_seconds': int(now - last) if last is not None else None,
                            'attempts': value.get('attempts', 0), 'reason': reason,

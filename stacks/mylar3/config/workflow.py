@@ -7,7 +7,7 @@ import threading
 import time
 import uuid
 
-from mylar.workflow_store import Store, LOCK, identifier, label
+from mylar.workflow_store import Store, LOCK, identifier, ddl_identifier, label
 
 _STORE=None
 _CONTEXT=threading.local()
@@ -16,7 +16,7 @@ _LAST_TICK=0
 _OBSERVER_ERRORS=0
 _ISSUE_LOCKS={}
 _ISSUE_GUARD=threading.Lock()
-_DEFAULTS={'ddl_order':'fifo','ddl_paused':False,'pack_automation':False,'auto_handoff':False,'handoff_hours':2,'intake_enabled':True,
+_DEFAULTS={'ddl_kind':'mixed','ddl_order':'fifo','ddl_paused':False,'pack_automation':False,'auto_handoff':False,'handoff_hours':2,'intake_enabled':True,
            'queue_high':50,'queue_low':20,'free_stop_gib':5,'free_resume_gib':8}
 IMPORT_HELD={'queued','claimed','submitted','review'}
 DISPATCH_HELD={'sending','review','accepted'}
@@ -42,25 +42,40 @@ def emit(stage,outcome,**kwargs):
     except Exception:_OBSERVER_ERRORS+=1
 
 
-def policy():return dict(_DEFAULTS,**store().get('policy','current',{}))
+def policy():
+    value = dict(_DEFAULTS, **store().get('policy', 'current', {}))
+    if value['ddl_order'] in ('singles', 'packs', 'alternate'):
+        value['ddl_kind'], value['ddl_order'] = value['ddl_order'], 'fifo'
+    return value
 
 
 def set_policy(values):
-    value=policy()
-    if not isinstance(values,dict) or set(values)-set(_DEFAULTS):raise ValueError('Unknown policy setting')
-    for k,v in values.items():
-        if k=='ddl_order':
-            if v not in ('fifo','newest','singles','packs','alternate'):raise ValueError('Unknown DDL download order')
-        elif isinstance(_DEFAULTS[k],bool):
-            if not isinstance(v,bool):raise ValueError('Expected an enabled or disabled setting')
-        elif not isinstance(v,int) or isinstance(v,bool):raise ValueError('Expected whole-number thresholds')
-        value[k]=v
-    if not (1<=value['handoff_hours']<=168 and 1<=value['queue_low']<value['queue_high']<=1000
-            and 1<=value['free_stop_gib']<value['free_resume_gib']<=10240):
-        raise ValueError('Thresholds must be ordered and within the displayed limits')
-    store().set('policy','current',value)
-    emit('intake','Workflow settings updated')
-    return value
+    with LOCK:
+        value=policy()
+        if not isinstance(values,dict) or set(values)-set(_DEFAULTS):raise ValueError('Unknown policy setting')
+        values = dict(values)
+        if values.get('ddl_order') in ('singles', 'packs', 'alternate'):
+            values.setdefault('ddl_kind', values['ddl_order'])
+            values['ddl_order'] = 'fifo'
+        for k,v in values.items():
+            if k=='ddl_order':
+                if v not in ('fifo','newest','release_oldest','release_newest'):raise ValueError('Unknown DDL download order')
+            elif k=='ddl_kind':
+                if v not in ('mixed','singles','packs','alternate'):raise ValueError('Unknown DDL download type')
+            elif isinstance(_DEFAULTS[k],bool):
+                if not isinstance(v,bool):raise ValueError('Expected an enabled or disabled setting')
+            elif not isinstance(v,int) or isinstance(v,bool):raise ValueError('Expected whole-number thresholds')
+            value[k]=v
+        if not (1<=value['handoff_hours']<=168 and 1<=value['queue_low']<value['queue_high']<=1000
+                and 1<=value['free_stop_gib']<value['free_resume_gib']<=10240):
+            raise ValueError('Thresholds must be ordered and within the displayed limits')
+        store().set('policy','current',value)
+        cached=store().get('intake','current',{})
+        if cached:
+            cached['checked_at']=0
+            store().set('intake','current',cached)
+        emit('intake','Workflow settings updated')
+        return value
 
 
 def intake():
@@ -206,12 +221,12 @@ def eligible(ddl_id,allow_held=False):
 def request_handoff(ddl_id):
     import mylar
     from mylar import queue_control,db,search
-    preliminary=db.DBConnection().selectone('SELECT issueid FROM ddl_info WHERE id=?',[identifier(ddl_id)]).fetchone()
+    preliminary=db.DBConnection().selectone('SELECT issueid FROM ddl_info WHERE id=?',[ddl_identifier(ddl_id)]).fetchone()
     if not preliminary:raise ValueError('DDL entry no longer exists')
     with issue_lock(preliminary['issueid']),queue_control._LOCK,LOCK:
         existing=reservation(preliminary['issueid'])
         if existing and existing['ddl_id']==str(ddl_id):return existing
-        row=eligible(identifier(ddl_id));iid=str(row['issueid'])
+        row=eligible(ddl_identifier(ddl_id));iid=str(row['issueid'])
         old=reservation(iid)
         if old:return old
         providers=search.provider_order()['prov_order']

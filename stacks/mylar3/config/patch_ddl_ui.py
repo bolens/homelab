@@ -45,6 +45,9 @@ def template(source):
 
 
 def queue_state_template(source):
+    if '$.getJSON(sSource, aoData, function (json) {' in source:
+        source = replace_once(source, '$.getJSON(sSource, aoData, function (json) {',
+            "$.ajax({url:sSource,data:aoData,dataType:'json',timeout:10000,cache:true}).done(function (json) {")
     marker = '// homelab-queue-request-recovery-v1'
     if marker in source:
         return source

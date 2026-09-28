@@ -1,4 +1,4 @@
-/* Keep the native compact layout below desktop width. */
+/* Shared desktop sizing, with scoped responsive operational pages below. */
 @media (min-width: 1000px) {
   header .wrapper,
   #main,
@@ -286,7 +286,7 @@ header #nav .homelab_desktop_nav {
 }
 
 /* Compact charcoal controls retain white labels across native UI states. */
-body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button) {
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button) {
   color: #fff;
   background: #555;
   background-image: linear-gradient(#626262, #4d4d4d) !important;
@@ -297,29 +297,29 @@ body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead
   font-size: 12px;
   min-height: 26px;
 }
-body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:hover, :focus-visible, .ui-state-hover, .ui-state-focus) {
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:hover, :focus-visible, .ui-state-hover, .ui-state-focus) {
   color: #fff;
   background: #454545;
   background-image: none !important;
   border-color: #333;
 }
-body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:active, .ui-state-active) {
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:active, .ui-state-active) {
   color: #fff;
   background: #333;
   background-image: none !important;
   border-color: #222;
 }
-body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):focus-visible {
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):focus-visible {
   outline: 2px solid #286a96;
   outline-offset: 3px;
 }
-body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button .ui-icon {
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button .ui-icon {
   background-image: url("images/icon_sprite_white.png");
 }
-body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button:is(:active, .ui-state-active) .ui-icon {
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button:is(:active, .ui-state-active) .ui-icon {
   background-image: url("images/icon_sprite_white.png");
 }
-body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:disabled, .ui-state-disabled, [aria-disabled="true"]) {
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button):is(:disabled, .ui-state-disabled, [aria-disabled="true"]) {
   color: #555d65;
   background: #e6e8ea;
   background-image: none !important;
@@ -337,9 +337,132 @@ body:has(#ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) 
   border-color: #444;
 }
 
-body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button-text-only .ui-button-text {
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) .ui-button-text-only .ui-button-text {
   padding: .2em .65em;
 }
 @media (pointer: coarse) {
-  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button) { min-height: 44px; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#subhead #subhead_container #subhead_menu, #main) :is(.ui-button, .ddl_row_actions button) { min-height: 44px; }
+}
+
+/* Common operational pages share a fluid frame and compact wrapping toolbar. */
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) {
+  min-width: 0;
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) :is(#main, footer) {
+  box-sizing: border-box;
+  width: calc(100% - clamp(24px, 4vw, 96px));
+  min-width: 0;
+  max-width: none;
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) #subhead #subhead_container {
+  height: auto;
+  float: none;
+}
+body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) #subhead #subhead_menu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  float: none;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+:is(#workflow, #pp_monitor) :is(.wf_jump, .pp_jump) { gap: 8px 20px; }
+:is(#workflow, #pp_monitor) :is(.wf_jump, .pp_jump) a { padding: 5px 0; }
+#pp_monitor .pp_summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  max-width: none;
+}
+#pp_monitor .pp_summary > div { padding: 12px; border: 1px solid #8886; border-radius: 4px; min-width: 0; }
+#pp_monitor .pp_summary dd { margin-top: 6px; overflow-wrap: anywhere; }
+#pp_monitor p { max-width: 100ch; }
+body:has(#import_problems) .import_filters { padding: 12px; border: 1px solid #8886; border-radius: 4px; align-items: center; }
+body:has(#import_problems) .import_filters select { flex: 0 1 22rem; min-width: 0; }
+body:has(#workflow, #pp_monitor, #import_problems) #main :is(.table_wrapper, .dataTables_wrapper) { min-width: 0; max-width: 100%; }
+body:has(#workflow, #pp_monitor, #import_problems) #main .table_wrapper { overflow-x: auto; }
+body:has(#workflow, #pp_monitor, #import_problems) #main :is(.dataTables_filter, .dataTables_length) { margin: 8px 0 12px; }
+body:has(#workflow, #pp_monitor, #import_problems) #main .dataTables_filter input { box-sizing: border-box; max-width: min(18rem, 100%); }
+#workflow .wf_pair { gap: 20px; }
+#workflow .wf_pair > section { padding: 16px; }
+@media (min-width: 1200px) {
+  #pp_monitor .pp_pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+}
+@media (max-width: 1199px) {
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header { position: static; height: auto; min-width: 0; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header .wrapper { width: calc(100% - 24px); min-width: 0; height: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #logo { float: none; margin: 0; flex: 0 0 auto; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #nav { flex: 1; min-width: 0; float: none; display: flex; flex-wrap: wrap; padding: 0; margin: 0; height: auto; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #nav li { font-size: 14px; float: none; margin: 0; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #searchbar { position: static; width: 100%; padding: 8px 0; display: flex; gap: 8px; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #searchbar input[type="text"] { flex: 1; min-width: 0; }
+  body:has(#workflow, #pp_monitor, #import_problems) #main table.display { width: 100% !important; }
+  #pp_monitor .pp_summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body:has(#workflow, #pp_monitor, #import_problems) #main :is(.dataTables_length, .dataTables_filter, .dataTables_info, .dataTables_paginate) { float: none; width: auto; text-align: left; }
+  body:has(#workflow, #pp_monitor, #import_problems) #main .dataTables_filter label { display: flex; align-items: center; gap: 8px; }
+  body:has(#workflow, #pp_monitor, #import_problems) #main .dataTables_filter input { flex: 1; min-width: 0; }
+  body:has(#workflow, #pp_monitor, #import_problems) #main .dataTables_paginate { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 12px; }
+  body:has(#workflow, #pp_monitor, #import_problems) #main .dataTables_paginate span { display: flex; flex-wrap: wrap; }
+  #workflow .wf_summary { gap: 10px; margin: 16px 0; }
+  #workflow .wf_pair { gap: 0; }
+  #workflow .wf_controls { gap: 8px 16px; }
+  #workflow .wf_pair > section { padding: 12px; }
+}
+
+body:has(#comicScan) #tabs { box-sizing: border-box; min-width: 0; }
+body:has(#comicScan) #tabs .ui-tabs-nav { display: flex; flex-wrap: wrap; gap: 4px; }
+body:has(#comicScan) #tabs .ui-tabs-nav li { float: none; margin: 0; }
+body:has(#comicScan) #tabs .ui-tabs-panel { box-sizing: border-box; max-width: 100%; overflow-x: auto; }
+body:has(#comicScan) #tabs input[type=text] { box-sizing: border-box; width: min(100%, 38rem); max-width: 100%; }
+body:has(#comicScan) #tabs .row { max-width: 100%; }
+:is(#pp_monitor, #workflow) .table_wrapper:focus-visible, body:has(#import_problems) .table_wrapper:focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
+#pp_monitor table.display :is(th, td), #import_problems :is(th, td) { text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+@media (max-width: 1199px) {
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) #main { padding-top: 12px; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) footer { display: block; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) footer :is(#version, #backendstatus) { width: 100%; clear: both; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #nav a { padding: 10px 8px; display: inline-block; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #searchbar input[type=text] { width: auto; }
+  body:has(#comicScan) #tabs .configtable .row { margin: 12px 0; }
+  body:has(#comicScan) #tabs .configtable .row > label { float: none; display: block; width: auto; margin-bottom: 6px; }
+  body:has(#comicScan) #tabs .configtable p { width: auto; }
+  body:has(#comicScan) #tabs-1 > div { float: none !important; width: 100% !important; }
+  body:has(#comicScan) #tabs-1:not(.ui-tabs-hide) { display: flex; flex-direction: column; gap: 16px; }
+  body:has(#comicScan) #comicScan { width: 100%; }
+  body:has(#comicScan) #tabs input[type=button], body:has(#comicScan) #tabs input[type=submit] { white-space: normal; max-width: 100%; margin: 4px 4px 4px 0; }
+  #pp_monitor table.display { min-width: 32rem; }
+  #import_problems { min-width: 42rem; }
+}
+@media (max-width: 1199px) {
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #nav .homelab_desktop_nav { display: block; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #nav details { position: relative; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #nav summary { cursor: pointer; padding: 10px 8px; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #nav .homelab_queue_links { position: absolute; top: 100%; left: 0; min-width: 210px; background: #30363b; padding: 6px; border: 1px solid #687078; border-radius: 4px; z-index: 20; box-shadow: 0 6px 18px #0004; }
+  body:has(#workflow, #pp_monitor, #import_problems, #ddl_queue_page, #comicScan) header #nav .homelab_queue_links a { display: block; color: #f1f3f4; text-shadow: none; white-space: nowrap; }
+}
+
+body:has(#comicScan) #tabs-1 > div:has(#importstatus) {
+  position: static !important;
+  float: none !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 12px;
+  border: 1px solid #8886;
+  border-radius: 4px;
+  box-sizing: border-box;
+  align-self: start;
+}
+body:has(#comicScan) #comicScan .row.checkbox { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 4px 8px; align-items: start; }
+body:has(#comicScan) #comicScan .row.checkbox > input { grid-column: 1; grid-row: 1; float: none; }
+body:has(#comicScan) #comicScan .row.checkbox > label { grid-column: 2; grid-row: 1; float: none; width: auto; margin: 0; }
+body:has(#comicScan) #comicScan .row.checkbox > small { grid-column: 2; }
+body:has(#comicScan) #comicScan .row.checkbox > br { display: none; }
+@media (min-width: 1200px) {
+  body:has(#comicScan) #tabs-1:not(.ui-tabs-hide) { display: grid; grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr); gap: 28px; }
+  body:has(#comicScan) #comicScan { grid-column: 1; grid-row: 1; }
+  body:has(#comicScan) #tabs-1 > div:has(#importstatus) { grid-column: 2; grid-row: 1; }
+}
+@media (max-width: 1199px) {
+  body:has(#comicScan) #tabs-1 > div:has(#importstatus) { order: 2; align-self: stretch; }
 }

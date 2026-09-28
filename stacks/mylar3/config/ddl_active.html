@@ -5,8 +5,12 @@
 <p id="ddl_action_notice" role="status"></p>
 <form id="ddl_schedule" aria-label="Download preferences">
 <div class="ddl_setting">
-<label for="ddl_order">Download order</label>
-<select id="ddl_order" disabled><option value="fifo">Oldest queued first</option><option value="newest">Newest queued first</option><option value="singles">Singles before packs</option><option value="packs">Packs before singles</option><option value="alternate">Alternate singles and packs</option></select>
+<label for="ddl_kind">Download type</label>
+<select id="ddl_kind" disabled><option value="mixed">Mixed singles and packs</option><option value="singles">Singles before packs</option><option value="packs">Packs before singles</option><option value="alternate">Alternate singles and packs</option></select>
+</div>
+<div class="ddl_setting">
+<label for="ddl_order">Sort by</label>
+<select id="ddl_order" disabled><option value="fifo">Oldest queued first</option><option value="newest">Newest queued first</option><option value="release_oldest">Oldest release first</option><option value="release_newest">Newest release first</option></select>
 </div>
 <label class="ddl_toggle"><input id="ddl_paused" type="checkbox" disabled> Pause new downloads</label>
 <button id="ddl_save_schedule" type="submit" disabled>Save queue preferences</button>

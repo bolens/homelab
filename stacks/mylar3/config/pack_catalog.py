@@ -46,47 +46,69 @@ def resolve(payload):
     with _LOCK:
         store = workflow.store()
         previous = store.get('pack_catalog', key)
-        if previous:
-            return previous  # Lost acknowledgements never repeat catalog writes.
-        record = {'phase': 'review', 'reason': 'Catalog identity needs review', 'created_at': time.time()}
-        store.set('pack_catalog', key, record)
+        now = time.time()
+        if previous and (previous.get('phase') != 'retry' or now < previous.get('retry_at', 0)):
+            return previous  # Ambiguous identities and catalog writes are never replayed.
+        if previous and previous.get('attempts', 0) >= 5:
+            previous.update(phase='review', reason='Catalog lookup failed after five attempts; retained for review')
+            store.set('pack_catalog', key, previous)
+            return previous
+        attempts = (previous or {}).get('attempts', 0) + 1
+        record = {'phase': 'review', 'reason': 'Catalog identity needs review',
+                  'created_at': (previous or {}).get('created_at', now), 'attempts': attempts}
+        def finish():
+            store.set('pack_catalog', key, record)
+            return record
+        # A crash during safe reads may retry after backoff. Persist a terminal
+        # mutation intent before either native importer can change the catalog.
+        retry_at = now + min(3600, 300 * 2 ** min(attempts - 1, 4))
+        store.set('pack_catalog', key, dict(record, phase='retry', retry_at=retry_at))
         try:
             if issueid:
                 info = cv.getComic(None, 'single_issue', issueid)
-                if (not info or str(info['issueid']) != issueid or title(info['series']) != title(name)
+                if not info:
+                    raise LookupError('Catalog issue unavailable')
+                if (str(info['issueid']) != issueid or title(info['series']) != title(name)
                         or number(info['issue_number']) != number(num)):
-                    return record
+                    return finish()
                 volumeid = identifier(info['comicid'])
             else:
-                candidates = mb.findComic(name, 'series', issue=None) or []
+                candidates = mb.findComic(name, 'series', issue=None)
+                if candidates is None:
+                    raise LookupError('Catalog search unavailable')
                 choices = {identifier(r.get('comicid')) for r in candidates
                            if title(r.get('name', r.get('comicname', ''))) == title(name)
                            and str(r.get('comicyear', r.get('year', ''))) == year
                            and (not edition or r.get('type') == edition)}
                 choices.discard('')
                 if len(choices) != 1:
-                    return record
+                    return finish()
                 volumeid = choices.pop()
             volume = cv.getComic(volumeid, 'comic')
-            if not volume or title(volume['ComicName']) != title(name):
-                return record
+            if not volume:
+                raise LookupError('Catalog volume unavailable')
+            if title(volume['ComicName']) != title(name):
+                return finish()
             if str(volume['ComicYear']) != year:
                 # An explicit issue ID may corroborate an issue publication year.
                 if not issueid or str(info.get('coverdate', ''))[:4] != year:
-                    return record
+                    return finish()
             if edition and volume.get('Type') != edition:
-                return record
-            issues = (cv.getComic(volumeid, 'issue') or {}).get('issuechoice', [])
+                return finish()
+            issue_data = cv.getComic(volumeid, 'issue')
+            if not issue_data or 'issuechoice' not in issue_data:
+                raise LookupError('Catalog issue list unavailable')
+            issues = issue_data['issuechoice']
             choices = [r for r in issues if number(r['Issue_Number']) == number(num)
                        and (not issueid or str(r['Issue_ID']) == issueid)]
             if len(choices) != 1:
-                return record
+                return finish()
             issueid = identifier(choices[0]['Issue_ID'])
             database = db.DBConnection()
             current = database.selectone('SELECT ComicID,Deleted FROM annuals WHERE IssueID=?', [issueid]).fetchone()
             if current:
                 if current['Deleted']:
-                    return record
+                    return finish()
                 record.update(phase='ready', issueid=issueid, comicid=str(current['ComicID']), reason='Existing annual identity')
             else:
                 current = database.selectone('SELECT ComicID FROM issues WHERE IssueID=?', [issueid]).fetchone()
@@ -113,27 +135,37 @@ def resolve(payload):
                         related = bool(re.search(r'(?:https?://(?:www\.)?comicvine\.gamespot\.com)?/[^\s"<>]*?4050-' + re.escape(parentid) + r'(?:/|["\s<>])', raw))
                     if related:
                         rows = importer.manualAnnual(manual_comicid=volumeid, comicname=parent['ComicName'],
-                                                     comicyear=parent['ComicYear'], comicid=parentid, manualupd=True) or []
+                                                     comicyear=parent['ComicYear'], comicid=parentid, manualupd=True)
+                        if rows is None:
+                            raise LookupError('Annual catalog unavailable')
                         rows = [dict(r, Status='Skipped') for r in rows if str(r['IssueID']) == issueid
                                 and str(r['ReleaseComicID']) == volumeid and str(r['ComicID']) == parentid]
                         if len(rows) != 1:
-                            return record
+                            return finish()
                         # The native write path is used only for a genuinely absent ID.
                         if not database.selectone('SELECT IssueID FROM annuals WHERE IssueID=?', [issueid]).fetchone():
+                            record.update(mutation_started=True, issueid=issueid, comicid=parentid,
+                                          reason='Catalog addition incomplete; retained for review')
+                            finish()
                             importer.manualAnnual(annchk=rows)
                         comicid = parentid
                         current = database.selectone('SELECT IssueID FROM annuals WHERE IssueID=? AND NOT Deleted', [issueid]).fetchone()
                     else:
                         # A cataloged annual/special can be tracked as its own exact
                         # volume when the parent relationship cannot be established.
+                        record.update(mutation_started=True, issueid=issueid, comicid=volumeid,
+                                      reason='Catalog addition incomplete; retained for review')
+                        finish()
                         importer.addComictoDB(volumeid, suppress_addall=True)
                         comicid = volumeid
                         current = database.selectone('SELECT IssueID FROM issues WHERE IssueID=? AND ComicID=?', [issueid, comicid]).fetchone()
                     if current:
                         record.update(phase='ready', issueid=issueid, comicid=comicid, reason='Exact catalog entry added')
-            store.set('pack_catalog', key, record)
-            return record
+            return finish()
         except Exception:
-            record.update(reason='Catalog lookup or addition incomplete; retained for review')
-            store.set('pack_catalog', key, record)
-            return record
+            if not record.get('mutation_started') and attempts < 5:
+                record.update(phase='retry', retry_at=retry_at, reason='Catalog lookup unavailable; retry scheduled')
+            else:
+                record.update(reason='Catalog addition incomplete; retained for review' if record.get('mutation_started') else
+                              'Catalog lookup failed after five attempts; retained for review')
+            return finish()
