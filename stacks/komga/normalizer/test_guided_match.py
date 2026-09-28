@@ -144,6 +144,27 @@ class GuidedTest(unittest.TestCase):
         Guided(self.m).poll()
         self.assertEqual(len(self.force_calls()),1)
 
+    def test_archived_after_confirmation_or_claim_never_submits(self):
+        command = self.command()
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE issues SET Status='Archived' WHERE IssueID='100'")
+        self.g.process(command)
+        self.assertEqual(self.m.mylar.call_args.kwargs['reason'], 'issue_unavailable')
+        self.assertFalse(self.force_calls())
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE issues SET Status='Wanted' WHERE IssueID='100'")
+        command['id'] = 'c'*32
+        def archive_on_claim(name, **kwargs):
+            if name == 'workflowAcknowledge' and kwargs.get('phase') == 'claimed':
+                with closing(sqlite3.connect(self.db)) as db, db:
+                    db.execute("UPDATE issues SET Status='Archived' WHERE IssueID='100'")
+            return {}
+        self.m.mylar.side_effect = archive_on_claim
+        self.g.process(command)
+        self.assertEqual(self.m.mylar.call_args.kwargs['phase'], 'review')
+        self.assertFalse(self.force_calls())
+        self.assertTrue(self.source.is_file())
+
     def test_rejected_processing_response_stays_review_without_resending(self):
         command=self.command()
         def api(name, **kwargs):
@@ -204,6 +225,44 @@ class GuidedTest(unittest.TestCase):
         with patch('guided_match.time.time',return_value=10**12): self.g.process(command)
         self.assertEqual(self.m.mylar.call_args.kwargs['phase'],'review')
         self.assertEqual(len(self.force_calls()),1)
+
+    def test_annual_confirmation_requires_current_identity_and_verified_content(self):
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.executescript("""CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,Status TEXT,
+                Issue_Number TEXT,IssueDate TEXT,Location TEXT,ReleaseComicName TEXT,Deleted INTEGER);
+                INSERT INTO annuals VALUES('200','10','Wanted','1','2017-05-01','','Test Comics Annual',0);""")
+            db.execute('UPDATE comics SET ComicLocation=?', (str(self.library),))
+        self.source = self.archive('Test Comix Annual 001 (2017).cbz')
+        command = {'id': 'b'*32, **self.g.propose(self.source), 'issueid': '200', 'comicid': '10',
+                   'save_alias': False, 'phase': 'queued'}
+        self.g.process(command)
+        self.assertEqual(len(self.force_calls()), 1)
+        target = self.library / self.source.name
+        target.write_bytes(self.source.read_bytes())
+        record = json.loads((self.g.commands / (command['id'] + '.json')).read_text())
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE annuals SET Status='Downloaded',Location=?", (target.name,))
+        self.assertFalse(self.g.confirmed(record))  # Status alone is insufficient.
+        save(self.receipts/'annual.json', {'kind': 'duplicate', 'phase': 'removed',
+             'source': str(self.source), 'destination': str(target), 'sha256': digest(self.source),
+             'destination_sha256': digest(target)})
+        self.source.unlink()
+        self.assertTrue(self.g.confirmed(record))
+        self.assertFalse(self.g.confirmed(dict(record, comicid='999')))
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("INSERT INTO issues VALUES('200','10','Downloaded','1','2017-05-01',?)", (target.name,))
+        for status, deleted in [('Archived', 0), ('Downloaded', 1)]:
+            with closing(sqlite3.connect(self.db)) as db, db:
+                db.execute('UPDATE annuals SET Status=?,Deleted=?', (status, deleted))
+            self.assertFalse(self.g.confirmed(record))
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE annuals SET Status='Downloaded',Deleted=0")
+        original = target.read_bytes()
+        target.write_bytes(b'changed')
+        self.assertFalse(self.g.confirmed(record))
+        target.write_bytes(original)
+        self.g.process(command)
+        self.assertEqual(self.m.mylar.call_args.kwargs['phase'], 'confirmed')
 
     def test_alias_cannot_be_saved_from_conflicting_issue_number(self):
         command=self.command();command.update(issueid='101',save_alias=True)

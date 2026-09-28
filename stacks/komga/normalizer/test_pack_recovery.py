@@ -6,6 +6,7 @@ import sqlite3
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
+from types import SimpleNamespace
 import zipfile
 
 from normalize import Normalizer
@@ -13,6 +14,31 @@ from maintenance import Maintenance
 from pack_recovery import Packs, evidence, kind
 from import_match import match
 from test_normalize import PNG, TOOL
+
+
+class PackEvidenceTest(unittest.TestCase):
+    def test_conflicting_volume_year_never_reaches_catalog_fallback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'Test Comic 001 (2017).cbz'
+            with zipfile.ZipFile(path, 'w') as archive:
+                archive.writestr('ComicInfo.xml', '<ComicInfo><Series>Test Comic</Series>'
+                                 '<Number>1</Number><Volume>2020</Volume></ComicInfo>')
+            worker = SimpleNamespace(prepared=Mock(return_value=(path, {})), db=None,
+                                     parent=Mock(return_value=None), m=SimpleNamespace(mylar=Mock(return_value={'phase': 'review'})))
+            with patch('pack_recovery.catalog', return_value=[]):
+                with self.assertRaisesRegex(ValueError, 'Filename and metadata disagree'):
+                    Packs.member(worker, {'phase': 'discovered', 'kind': 'issue', 'source': str(path),
+                                          'catalog_attempted': True}, Path(directory))
+            worker.m.mylar.assert_not_called()
+            self.assertTrue(path.is_file())
+
+    def test_publication_year_does_not_conflict_with_series_start_year(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'Test Comic 001 (2017).cbz'
+            with zipfile.ZipFile(path, 'w') as archive:
+                archive.writestr('ComicInfo.xml', '<ComicInfo><Series>Test Comic</Series>'
+                                 '<Number>1</Number><Volume>2017</Volume><Year>2020</Year></ComicInfo>')
+            self.assertEqual(evidence(path)['year'], '2017')
 
 
 @unittest.skipUnless(TOOL, 'Set ARCHIVING_UTILS_BIN')

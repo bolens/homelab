@@ -25,6 +25,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Post-processing observations | `patch_pp_monitor.py` | `pp_monitor.py`, `archive_monitor.py`; corresponding `test_*.py` |
 | Pack membership and catalog intake | `patch_pack_intake.py` | `pack_intake.py`, `pack_catalog.py`; `test_pack_intake.py`, `test_pack_records.py`, `test_pack_catalog.py` |
 | Preserve tracked series on startup | `patch_series_preservation.py` | `test_pack_intake.py` |
+| Regular/annual identity and verified library presence | `patch_workflow.py` | `library_status.py`; workflow, queue-control and monitor tests |
 | Activity, admission and DDL/NZB handoff | `patch_workflow.py` | `workflow.py`, `workflow_store.py`, `workflow_nzb.py`, `workflow_web.py`; corresponding `test_*.py` |
 | Responsive queue interface | `patch_ddl_ui.py` | `ddl_queue.js`, `ddl_queue.css`, `test_ddl_ui.py` |
 | Shared wide-screen layout | `patch_wide_layout.py` | `wide_layout.css` |

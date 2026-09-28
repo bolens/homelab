@@ -38,7 +38,10 @@ class WorkflowTest(unittest.TestCase):
             CREATE TABLE ddl_info(id TEXT,issueid TEXT,comicid TEXT,series TEXT,pack TEXT,status TEXT,site TEXT,updated_date TEXT,link_type TEXT);
             INSERT INTO ddl_info VALUES ('1','10','20','Example #1','0','Queued','DDL(GetComics)','2026-01-01 00:00','GC-Main');
             CREATE TABLE nzblog(IssueID TEXT,PROVIDER TEXT);
+            CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,ComicName TEXT,Status TEXT,Location TEXT,Deleted INT);
+            CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);
         """)
+        self.conn.execute('INSERT INTO comics VALUES (?,?)',('20',self.tmp.name))
         app.DATA_DIR=self.tmp.name;app.db=SimpleNamespace(DBConnection=lambda:DB(self.conn))
         app.CONFIG=SimpleNamespace(DESTINATION_DIR=self.tmp.name,CACHE_DIR=self.tmp.name,DDL_LOCATION=self.tmp.name,ENABLE_CHECK_FOLDER=False)
         app.PP_QUEUE=Queue();app.NZB_QUEUE=Queue();app.RETURN_THE_NZBQUEUE=Queue();app.SEARCH_QUEUE=Queue();app.DDL_QUEUE=Queue();app.APILOCK=False
@@ -96,6 +99,86 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(app.SEARCH_QUEUE.qsize(),1)
         self.assertEqual(workflow.request_handoff('1-1'),row)
         self.assertEqual(app.SEARCH_QUEUE.qsize(),1)
+
+    def test_archived_issue_cannot_be_handed_off_or_retried(self):
+        self.conn.execute("UPDATE issues SET Status='Archived'")
+        with self.assertRaises(ValueError):self.handoff()
+        workflow.store().set('dispatch','10',{'issueid':'10','phase':'review'})
+        with self.assertRaises(ValueError):web.resolve_dispatch('10','retry','checked')
+        self.assertEqual(self.conn.execute('SELECT Status FROM issues').fetchone()[0],'Archived')
+
+    def test_annual_deferred_search_retains_parent_and_excludes_deleted(self):
+        self.conn.execute("INSERT INTO annuals VALUES ('11','20','Example Annual','Wanted',NULL,0)")
+        workflow.defer_search('11')
+        self.assertEqual(workflow.store().get('deferred','11')['comicid'],'20')
+        self.conn.execute("UPDATE annuals SET Deleted=1")
+        workflow.store().delete('deferred','11')
+        workflow.defer_search('11')
+        self.assertIsNone(workflow.store().get('deferred','11'))
+
+    def test_restoring_handoff_preserves_another_active_transfer(self):
+        self.recover.stop()
+        for column in ('link','mainlink','year','size','filename','remote_filesize'):
+            self.conn.execute('ALTER TABLE ddl_info ADD COLUMN '+column+' TEXT')
+        self.conn.execute("UPDATE ddl_info SET status='NZB handoff' WHERE id='1'")
+        self.conn.execute("INSERT INTO ddl_info(id,issueid,comicid,series,pack,status,site,updated_date,link_type) "
+                          "VALUES ('active','12','20','Another comic','0','Downloading','DDL(GetComics)','2026-01-01','GC-Main')")
+        app.DDL_QUEUED=['active']
+        row={'id':'handoff-token','ddl_id':'1','issueid':'10','comicid':'20','name':'Example','phase':'searching'}
+        workflow.store().set('handoff','10',row)
+        workflow.restore_ddl(row)
+        workflow.restore_ddl(row)
+        self.assertEqual(self.status(),'Queued')
+        self.assertEqual(self.conn.execute("SELECT status FROM ddl_info WHERE id='active'").fetchone()[0],'Downloading')
+        self.assertEqual(app.DDL_QUEUED,['active'])
+        self.assertEqual([item['id'] for item in app.DDL_QUEUE.queue],['1'])
+        self.assertFalse(workflow.reservation('10'))
+        available=[]
+        def probe():
+            for lock in (control._LOCK,workflow.LOCK):
+                acquired=lock.acquire(timeout=1)
+                available.append(acquired)
+                if acquired:lock.release()
+        thread=threading.Thread(target=probe);thread.start();thread.join(3)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(available,[True,True])
+
+    def test_guided_final_admission_rechecks_archived_and_deleted_intent(self):
+        proposal=self.proposal()
+        command=web.confirm_import(proposal['source_token'],proposal['version'],'10')
+        self.conn.execute("UPDATE issues SET Status='Archived'")
+        with self.assertRaises(ValueError):web.acknowledge(command['id'],'claimed')
+        self.conn.execute("UPDATE issues SET Status='Wanted'")
+        web.acknowledge(command['id'],'claimed')
+        self.conn.execute("INSERT INTO annuals VALUES ('10','20','Deleted Annual','Wanted',NULL,1)")
+        with self.assertRaises(ValueError):
+            workflow.processing_put(app.PP_QUEUE,{'issueid':'10','comicid':'20'},command['id'])
+        self.assertTrue(app.PP_QUEUE.empty())
+        self.assertFalse(workflow.store().get('command',command['id']).get('dispatched'))
+
+    def test_guided_annual_claim_confirm_and_release_preserve_identity(self):
+        proposal=self.proposal()
+        self.conn.execute("INSERT INTO annuals VALUES ('11','20','Example Annual','Wanted',NULL,0)")
+        proposal['candidates'][0].update(issueid='11',title='Example Annual')
+        web.report_guidance(json.dumps([proposal]))
+        command=web.confirm_import(proposal['source_token'],proposal['version'],'11')
+        web.acknowledge(command['id'],'claimed')
+        web.acknowledge(command['id'],'review')
+        self.assertEqual(web.resolve_import(command['id'],'checked')['phase'],'rejected')
+        self.conn.execute("UPDATE annuals SET Deleted=1")
+        self.conn.execute("INSERT INTO issues VALUES ('11','20','Shadow','Wanted',NULL)")
+        with self.assertRaises(ValueError):web.confirm_import(proposal['source_token'],proposal['version'],'11')
+
+    def test_library_confirmation_requires_file_and_includes_annuals(self):
+        self.conn.execute("UPDATE issues SET Status='Downloaded',Location='missing.cbz'")
+        self.conn.execute("INSERT INTO annuals VALUES ('11','20','Example Annual','Archived','annual.cbz',0)")
+        for iid in ('10','11'):
+            workflow.store().set('dispatch',iid,{'issueid':iid,'phase':'accepted'})
+        (Path(self.tmp.name)/'annual.cbz').write_bytes(b'archive')
+        workflow.tick(app.SEARCH_QUEUE)
+        self.assertEqual(workflow.store().get('dispatch','10')['phase'],'accepted')
+        self.assertEqual(workflow.store().get('dispatch','11')['phase'],'completed')
+        self.assertEqual(workflow._OBSERVER_ERRORS,0)
 
     def test_download_next_preserves_native_worker_scheduler(self):
         native = Mock()
@@ -282,6 +365,7 @@ class WorkflowTest(unittest.TestCase):
         self.conn.execute("UPDATE ddl_info SET status='Source review'")
         workflow.tick(app.SEARCH_QUEUE);self.assertEqual(self.status(),'Source review')
         self.conn.execute("UPDATE issues SET Status='Downloaded',Location='Example.cbz'")
+        (Path(self.tmp.name)/'Example.cbz').write_bytes(b'comic')
         workflow._LAST_TICK=0;workflow.tick(app.SEARCH_QUEUE)
         self.assertEqual(self.status(),'Completed')
         self.assertEqual(workflow.store().get('handoff','10')['phase'],'completed')

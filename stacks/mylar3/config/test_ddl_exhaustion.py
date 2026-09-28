@@ -13,14 +13,16 @@ import unittest
 from unittest.mock import MagicMock
 import urllib.parse
 from patch_ddl_exhaustion import patched_source
+from patch_queue_control import patched_source as control_source
 
 SOURCE = Path(sys.argv.pop(1))
 
 
 def method(filename, name, namespace):
     original = (SOURCE / filename).read_text()
-    patched = patched_source(original)
+    patched = control_source(filename, patched_source(original))
     assert patched_source(patched) == patched
+    assert control_source(filename, patched) == patched
     node = next(
         (
             n
@@ -137,6 +139,33 @@ class DdlExhaustionTest(unittest.TestCase):
         )
         self.assertEqual(self.mylar.DDL_QUEUED, [])
         helpers.reverse_the_pack_snatch.assert_called_once_with("1", "3")
+
+    def test_unknown_provider_cannot_reuse_previous_success_or_crash(self):
+        for with_previous in (False, True):
+            with self.subTest(previous_success=with_previous):
+                item = dict(id='unknown', series='Comic', site='DDL(GetComics)',
+                            remote_filesize=0, link_type='Unknown', link='unused',
+                            mainlink='unused', resume=None, issueid='2', comicid='3',
+                            oneoff=False, comicinfo=None, packinfo=None)
+                queue = MagicMock()
+                queue.qsize.return_value = 1
+                prior = dict(item, id='prior', link_type='GC-Main')
+                queue.get.side_effect = ([prior] if with_previous else []) + [item, 'exit']
+                gc = MagicMock()
+                gc.downloadit.return_value = {'success': True, 'filename': 'prior.cbz', 'path': '/fixture/prior.cbz'}
+                gc.parse_downloadresults.return_value = {'success': False, 'links_exhausted': ['Unknown']}
+                self.mylar.CONFIG.POST_PROCESSING = True
+                self.mylar.PP_QUEUE = MagicMock()
+                self.mylar.DDL_QUEUED = []
+                self.namespace.update(datetime=datetime, helpers=MagicMock(),
+                                      getcomics=SimpleNamespace(GC=lambda **kwargs: gc), ddl_cleanup=MagicMock())
+                self.database.reset_mock()
+                method('queues/ddl.py', 'ddl_downloader', self.namespace)(queue)
+                self.database.upsert.assert_any_call('ddl_info', {'status': 'Failed'}, {'id': 'unknown'})
+                completed_ids = [call.args[2]['id'] for call in self.database.upsert.call_args_list
+                                 if call.args[1].get('status') == 'Completed']
+                self.assertEqual(completed_ids, ['prior'] if with_previous else [])
+                self.assertEqual(self.mylar.PP_QUEUE.put.call_count, int(with_previous))
 
 
 if __name__ == "__main__":

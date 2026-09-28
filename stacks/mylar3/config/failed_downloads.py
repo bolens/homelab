@@ -18,7 +18,7 @@ def report_failed(issueid, comicid, release):
     )
     if (
         not issue
-        or issue["Status"] == "Downloaded"
+        or issue["Status"] in ("Downloaded", "Archived")
         or str(issue["ComicID"]) != str(comicid)
         or len(releases) != 1
     ):

@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 import zipfile
 
 from import_match import match
-from import_recovery import submit, previous_attempt
+from import_recovery import submit, previous_attempt, issue_state
 from normalize import digest
 
 
@@ -55,6 +55,46 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(match(self.source,self.db),{'issueid':'100','comicid':'10'})
         renamed=self.root/'Unhelpful [__100__].cbz';self.source.rename(renamed)
         self.assertEqual(match(renamed,self.db)['issueid'],'100')
+
+    def test_annual_state_overrides_shadow_issue_and_retains_parent(self):
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.executescript("""CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,Status TEXT,Location TEXT,Deleted INT);
+                INSERT INTO annuals VALUES('100','20','Wanted','annual.cbz',0);""")
+            self.assertIsNone(issue_state(db, {'issueid': '100', 'comicid': '10'}))
+            self.assertEqual(issue_state(db, {'issueid': '100', 'comicid': '20'}), ('Wanted', 'annual.cbz'))
+            db.execute('UPDATE annuals SET Deleted=1')
+            self.assertIsNone(issue_state(db, {'issueid': '100', 'comicid': '20'}))
+            self.assertIsNone(issue_state(db, {'issueid': '100', 'comicid': '10'}))
+
+    def test_cached_pack_catalog_identity_cannot_revive_deleted_annual(self):
+        from pack_recovery import Packs
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.executescript("""CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,Status TEXT,Location TEXT,
+                Deleted INT,Issue_Number TEXT,IssueDate TEXT,ReleaseComicName TEXT);
+                INSERT INTO annuals VALUES('200','10','Wanted','',1,'1','2017-05-01','Test Comic Annual');""")
+            db.execute("UPDATE comics SET ComicName='Other'")
+        worker = SimpleNamespace(prepared=Mock(return_value=(self.source, {})), db=self.db,
+                                 destination=Mock(return_value=None), m=self.m)
+        member = {'source': str(self.source), 'kind': 'annual', 'phase': 'review', 'catalog_attempted': True,
+                  'catalog_result': {'phase': 'ready', 'issueid': '200', 'comicid': '10'}}
+        Packs.member(worker, member, self.root)
+        self.assertEqual(member['phase'], 'review')
+        self.m.mylar.assert_not_called()
+        self.assertTrue(self.source.is_file())
+
+    def test_automatic_import_rechecks_archived_state_after_staging(self):
+        import shutil
+        original = shutil.copyfile
+        def archive_after_copy(source, target):
+            result = original(source, target)
+            with closing(sqlite3.connect(self.db)) as db, db:
+                db.execute("UPDATE issues SET Status='Archived'")
+            return result
+        with patch('import_recovery.shutil.copyfile', side_effect=archive_after_copy):
+            self.assertEqual(submit(self.m, self.source, {'issueid': '100', 'comicid': '10'}), 'import_review')
+        self.m.mylar.assert_not_called()
+        self.assertTrue(self.source.is_file())
+        self.assertFalse(list(self.cache.glob('.mylar-recovery-*')))
 
     def test_metadata_publication_year_and_number(self):
         self.source=self.root/'opaque.cbz'

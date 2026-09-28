@@ -150,7 +150,7 @@ def main(directory):
         p=root/name;p.write_text(patch(p.read_text()))
     for name in ('base.html','manage.html','queue_management.html','import_problems.html','post_processing.html'):
         p=templates/name;p.write_text(template(name,p.read_text()))
-    for name in ('workflow_store.py','workflow.py','workflow_web.py','workflow_nzb.py'):
+    for name in ('workflow_store.py','workflow.py','workflow_web.py','workflow_nzb.py','library_status.py'):
         (root/name).write_text(Path(__file__).with_name(name).read_text())
     (templates/'workflow.html').write_text(Path(__file__).with_name('workflow.html').read_text())
     print('Workflow native boundaries, authenticated actions and navigation verified')

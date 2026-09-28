@@ -7,9 +7,32 @@ from source_patches import replace_once
 MARKER = '# homelab-queue-control-v1'
 
 
+def transfer_boundaries(name, source):
+    """Upgrade existing patched images as well as fresh native sources."""
+    if name == 'queues/ddl.py' and '# homelab-ddl-result-ownership-v1' not in source:
+        source = replace_once(source, "            try:\n                if item['site'] == 'DDL(GetComics)':", """            # homelab-ddl-result-ownership-v1
+            ddzstat = {'success': False, 'filename': None,
+                       '_queue_reason': 'Unsupported download provider'}
+            try:
+                if item['site'] == 'DDL(GetComics)':""")
+    elif name == 'webserve.py' and '# homelab-ddl-staged-resume-v1' not in source:
+        source = replace_once(source,
+            "                        filesize = os.stat(os.path.join(mylar.CONFIG.DDL_LOCATION, item['filename'])).st_size",
+            """                        # homelab-ddl-staged-resume-v1
+                        resume_path = os.path.join(mylar.CONFIG.DDL_LOCATION, item['filename'])
+                        if os.path.isfile(resume_path + '.part'):
+                            resume_path += '.part'
+                        filesize = os.stat(resume_path).st_size""")
+        source = replace_once(source,
+            "                                    ' Resume unavailable - will restart download.')\n                        filesize = 0",
+            "                                    ' Resume unavailable - will restart download.')\n                        filesize = None")
+    ast.parse(source)
+    return source
+
+
 def patched_source(name, source):
     if MARKER in source:
-        return source
+        return transfer_boundaries(name, source)
     if name == 'queues/ddl.py':
         source = 'from mylar import queue_control, verified_transfer\n' + source
         source = replace_once(source, "    link_type_failure = {}", "    " + MARKER + "\n    link_type_failure = {}\n    queue_control.recover(queue)")
@@ -58,7 +81,7 @@ def patched_source(name, source):
     else:
         raise ValueError('Unsupported queue-control patch target')
     ast.parse(source)
-    return source
+    return transfer_boundaries(name, source)
 
 
 def main(directory):

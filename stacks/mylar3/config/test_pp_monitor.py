@@ -8,6 +8,7 @@ import sys
 import threading
 import tempfile
 import archive_monitor
+import library_status
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch, Mock
@@ -25,12 +26,16 @@ class MonitorTest(unittest.TestCase):
         self.addCleanup(self.db.close)
         self.db.executescript("""
             CREATE TABLE issues(IssueID TEXT, ComicID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, Location TEXT);
+            CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);
+            CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,ComicName TEXT,ReleaseComicName TEXT,Issue_Number TEXT,Status TEXT,Location TEXT,Deleted INT);
             CREATE TABLE snatched(IssueID TEXT, Status TEXT, DateAdded TEXT);
             INSERT INTO issues VALUES ('1','2','Comic','1','Downloaded','comic.cbz'),('3','2','Comic','2','Snatched',NULL);
             INSERT INTO snatched VALUES ('1','Post-Processed','2026-09-24 12:00:00'),('3','Snatched','2026-09-24 12:01:00');
         """)
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
-        self.mylar=SimpleNamespace(DATA_DIR=self.temp.name, workflow=SimpleNamespace(emit=Mock()), archive_monitor=archive_monitor, pp_monitor=monitor, PP_QUEUE=Queue(),PPPOOL=SimpleNamespace(is_alive=lambda:True),
+        self.db.execute('INSERT INTO comics VALUES (?,?)',('2',self.temp.name))
+        Path(self.temp.name,'comic.cbz').write_bytes(b'comic')
+        self.mylar=SimpleNamespace(library_status=library_status, DATA_DIR=self.temp.name, workflow=SimpleNamespace(emit=Mock()), archive_monitor=archive_monitor, pp_monitor=monitor, PP_QUEUE=Queue(),PPPOOL=SimpleNamespace(is_alive=lambda:True),
                                   APILOCK=False,CONFIG=SimpleNamespace(POST_PROCESSING=True),
                                   db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q:self.db.execute(q).fetchall())))
         context=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.workflow_store':workflow_store});context.start();self.addCleanup(context.stop)
@@ -47,6 +52,15 @@ class MonitorTest(unittest.TestCase):
         self.assertEqual(len(value['waiting']),100);self.assertTrue(value['waiting_truncated'])
         self.assertEqual(original,list(self.mylar.PP_QUEUE.queue));self.assertNotIn('/private',json.dumps(value))
         self.assertEqual([r['name'] for r in value['imports']],['Comic #1'])
+
+    def test_recent_imports_include_annuals_and_exclude_missing_files(self):
+        self.db.execute("INSERT INTO annuals VALUES ('4','2','Comic','Comic Annual','1','Archived','annual.cbz',0)")
+        self.db.execute("INSERT INTO snatched VALUES ('4','Post-Processed','2026-09-24 12:02:00')")
+        Path(self.temp.name,'annual.cbz').write_bytes(b'annual')
+        Path(self.temp.name,'comic.cbz').unlink()
+        self.assertEqual([r['name'] for r in monitor.snapshot()['imports']],['Comic Annual #1'])
+        self.db.execute('UPDATE annuals SET Deleted=1')
+        self.assertEqual(monitor.snapshot()['imports'],[])
 
     def test_ddl_labels_use_real_queue_and_persisted_finished_runs(self):
         from workflow_store import Store

@@ -185,14 +185,18 @@ def finish(item, result):
         clear_active(item['id'])
 
 
-def recover(queue):
-    """Called by the sole native DDL worker before consuming its first item."""
+def recover(queue, record_id=None):
+    """Recover startup state, or restore one queued record during normal operation."""
     import mylar
     from mylar import db
     database = db.DBConnection()
     with queue.mutex:
         pending = {str(item['id']) for item in queue.queue if isinstance(item, dict)}
-    for row in database.select("SELECT * FROM ddl_info WHERE status IN ('Queued', 'Downloading') ORDER BY CASE status WHEN 'Downloading' THEN 0 ELSE 1 END, updated_date"):
+    if record_id is None:
+        rows = database.select("SELECT * FROM ddl_info WHERE status IN ('Queued', 'Downloading') ORDER BY CASE status WHEN 'Downloading' THEN 0 ELSE 1 END, updated_date")
+    else:
+        rows = database.select("SELECT * FROM ddl_info WHERE id=? AND status='Queued'", [str(record_id)])
+    for row in rows:
         key = str(row['id'])
         if key in pending:
             continue
@@ -248,13 +252,8 @@ def pack_numbers(value):
 
 
 def library_present(folder, location, status):
-    if status not in ('Downloaded', 'Archived') or not folder or not location:
-        return False
-    try:
-        path = Path(folder) / location
-        return path.is_file() and path.stat().st_size > 0
-    except OSError:
-        return False
+    from mylar.library_status import present
+    return present(folder, location, status)
 
 
 def import_evidence(database):
@@ -262,18 +261,19 @@ def import_evidence(database):
         SELECT d.id, d.pack, d.issues, d.comicid, c.ComicLocation,
                i.Status AS issue_status, i.Location
         FROM ddl_info d LEFT JOIN comics c ON c.ComicID=d.comicid
-        LEFT JOIN issues i ON i.IssueID=d.issueid WHERE d.status='Completed'
+        LEFT JOIN issues i ON i.IssueID=d.issueid AND i.ComicID=d.comicid WHERE d.status='Completed'
+          AND NOT EXISTS (SELECT 1 FROM annuals a WHERE a.IssueID=d.issueid)
         UNION ALL
         SELECT d.id, d.pack, d.issues, d.comicid, c.ComicLocation,
                i.Status AS issue_status, i.Location
         FROM ddl_info d LEFT JOIN comics c ON c.ComicID=d.comicid
-        JOIN annuals i ON i.IssueID=d.issueid WHERE d.status='Completed'
+        JOIN annuals i ON i.IssueID=d.issueid AND i.ComicID=d.comicid WHERE d.status='Completed' AND COALESCE(i.Deleted,0)=0
     """)
     result, members = {}, {}
     for row in rows:
         key = str(row['id'])
         linked = library_present(row['ComicLocation'], row['Location'], row['issue_status'])
-        if not row['pack']:
+        if str(row['pack']).lower() not in ('1','true'):
             if linked:
                 result[key] = ('Post-processed; in library', True)
             continue

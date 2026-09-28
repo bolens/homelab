@@ -14,10 +14,13 @@ from normalize import digest, identity, save, sync_directory
 
 def issue_state(database, match):
     args = (match['issueid'], match['comicid'])
-    row = database.execute('SELECT Status,Location FROM issues WHERE IssueID=? AND ComicID=?', args).fetchone()
-    if row is None and database.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='annuals'").fetchone():
-        row = database.execute('SELECT Status,Location FROM annuals WHERE IssueID=? AND ComicID=? AND COALESCE(Deleted,0)=0', args).fetchone()
-    return row
+    if database.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='annuals'").fetchone():
+        rows = database.execute('SELECT Status,Location,ComicID,Deleted FROM annuals WHERE IssueID=?', (match['issueid'],)).fetchall()
+        if rows:
+            row = rows[0]
+            return tuple(row[:2]) if len(rows) == 1 and not row[3] and str(row[2]) == str(match['comicid']) else None
+    rows = database.execute('SELECT Status,Location FROM issues WHERE IssueID=? AND ComicID=?', args).fetchall()
+    return rows[0] if len(rows) == 1 else None
 
 
 def previous_attempt(maintenance, source):
@@ -92,14 +95,13 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
         target.unlink()
         stage.rmdir()
         return 'ready'
-    if explicit:
-        database = Path(maintenance.worker.config['mylar'].get('config_dir', '/mylar')) / 'mylar.db'
-        with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as db:
-            current = issue_state(db, match)
-        if not current or current[0] == 'Downloaded':
-            target.unlink()
-            stage.rmdir()
-            return 'import_review'
+    database = Path(maintenance.worker.config['mylar'].get('config_dir', '/mylar')) / 'mylar.db'
+    with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as db:
+        current = issue_state(db, match)
+    if not current or current[0] in ('Downloaded', 'Archived'):
+        target.unlink()
+        stage.rmdir()
+        return 'import_review'
     record = {'source': str(source), 'identity': before, 'sha256': checksum, 'stage': str(target),
               'match': match, 'workflow_command':workflow_command, 'phase': 'unconfirmed', 'submitted_at': time.time()}
     maintenance.import_attempts = None

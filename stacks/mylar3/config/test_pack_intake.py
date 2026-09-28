@@ -91,6 +91,32 @@ class ProcessingTest(unittest.TestCase):
         self.assertEqual(db.execute('SELECT ComicID FROM comics ORDER BY ComicID').fetchall(),[('1',),('2',),('4',)])
 
     @unittest.skipUnless(SOURCE, 'native image source required')
+    def test_native_filename_identity_prefers_annual_and_honors_tombstone(self):
+        source=processor((SOURCE/'PostProcessor.py').read_text())
+        tree=ast.parse(source)
+        block=next(n for n in ast.walk(tree) if isinstance(n,ast.If)
+                   and ast.unparse(n.test)=="fl['issueid'] is not None"
+                   and any(isinstance(x,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='annchk' for t in x.targets) for x in n.body))
+        end=next(i for i,n in enumerate(block.body) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='osi' for t in n.targets))
+        loop=ast.parse("for fl in files:\n    results.append((fl['issueid'], dict(csi) if csi else None, annchk))").body[0]
+        loop.body=block.body[:end]+loop.body
+        db=sqlite3.connect(':memory:');self.addCleanup(db.close);db.row_factory=sqlite3.Row
+        db.executescript("""CREATE TABLE comics(ComicID,ComicName,ComicYear,AgeRating);
+            CREATE TABLE issues(ComicID,IssueID,Issue_Number);
+            CREATE TABLE annuals(ComicID,IssueID,Issue_Number,ReleaseComicName,ReleaseComicID,Deleted);
+            INSERT INTO comics VALUES('1','Parent','2020','Teen'),('2','Shadow','2020','Teen');
+            INSERT INTO issues VALUES('2','100','1'),('2','101','1'),('2','102','1');
+            INSERT INTO annuals VALUES('1','100','1','Parent Annual','3',0),('1','101','2','Parent Annual','3',1);
+        """)
+        def selectone(query,args):
+            if 'FROM storyarcs' in query:return SimpleNamespace(fetchone=lambda:None)
+            return db.execute(query,args)
+        scope={'files':[{'issueid':i} for i in ('100','101','102')],'results':[],
+               'myDB':SimpleNamespace(selectone=selectone),'logger':Mock()}
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[loop],type_ignores=[])),'native-identity','exec'),scope)
+        self.assertEqual([(i,row['ComicID'],annual) for i,row,annual in scope['results']], [('100','1','yes'),('102','2','no')])
+
+    @unittest.skipUnless(SOURCE, 'native image source required')
     def test_annual_query_executes_with_downstream_fields_and_deleted_filter(self):
         source = processor((SOURCE / 'PostProcessor.py').read_text())
         self.assertEqual(processor(source), source)

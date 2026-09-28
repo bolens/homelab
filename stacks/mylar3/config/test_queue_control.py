@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, patch
 import queue_control as control
+import library_status
 
 if len(sys.argv) > 1:
     sys.argv.pop(1)
@@ -15,6 +16,7 @@ if len(sys.argv) > 1:
 
 class ControlTest(unittest.TestCase):
     def setUp(self):
+        context=patch.dict(sys.modules, {'mylar.library_status': library_status});context.start();self.addCleanup(context.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -85,11 +87,11 @@ class ControlTest(unittest.TestCase):
         database.executescript("""
             CREATE TABLE ddl_info(id TEXT, issueid TEXT, status TEXT, pack INTEGER, filename TEXT);
             CREATE TABLE issues(IssueID TEXT, Status TEXT, Location TEXT);
-            CREATE TABLE annuals(IssueID TEXT, Status TEXT, Location TEXT);
+            CREATE TABLE annuals(IssueID TEXT, Status TEXT, Location TEXT,ComicID TEXT DEFAULT '20',Deleted INT DEFAULT 0);
             INSERT INTO ddl_info VALUES ('1','2','Completed',0,'comic.cbz'),('pack','2','Completed',1,'pack.cbz'),
               ('annual','3','Completed',0,'annual.cbz'),('queued','2','Queued',0,'queued.cbz'),('missing','4','Completed',0,'missing.cbz');
             INSERT INTO issues VALUES ('2','Snatched',NULL),('4','Downloaded',NULL);
-            INSERT INTO annuals VALUES ('3','Downloaded','annual.cbz');
+            INSERT INTO annuals(IssueID,Status,Location) VALUES ('3','Downloaded','annual.cbz');
         """)
         database.executescript("""
             ALTER TABLE ddl_info ADD COLUMN comicid TEXT DEFAULT '20';
@@ -122,6 +124,8 @@ class ControlTest(unittest.TestCase):
             after = control.diagnostics(rows)
         self.assertEqual(after['1']['reason'], 'Post-processed; in library')
         self.assertEqual(after['annual']['reason'], 'Post-processed; in library')
+        database.execute('UPDATE annuals SET Deleted=1')
+        self.assertNotIn('annual',control.import_evidence(SimpleNamespace(select=lambda q:database.execute(q).fetchall())))
         self.assertIn('Processing finished', after['pack']['reason'])
         self.assertIn('pack membership unconfirmed', after['pack']['reason'])
         self.assertIn('not known to be queued', after['missing']['reason'])
@@ -168,7 +172,7 @@ class ControlTest(unittest.TestCase):
             CREATE TABLE ddl_info(id TEXT,issueid TEXT,comicid TEXT,status TEXT,pack INTEGER,issues TEXT);
             CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);
             CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Issue_Number TEXT,Status TEXT,Location TEXT);
-            CREATE TABLE annuals(IssueID TEXT,Status TEXT,Location TEXT);
+            CREATE TABLE annuals(IssueID TEXT,Status TEXT,Location TEXT,ComicID TEXT DEFAULT '20',Deleted INT DEFAULT 0);
             INSERT INTO ddl_info VALUES ('pack','1','20','Completed',1,'001-003'),
                 ('unknown','1','20','Completed',1,NULL),('single','1','20','Completed',0,NULL);
             INSERT INTO issues VALUES ('1','20','1','Archived','one.cbz'),
@@ -180,6 +184,9 @@ class ControlTest(unittest.TestCase):
         evidence = control.import_evidence(adapter)
         self.assertEqual(evidence['pack'], ('Pack import incomplete (2/3 issues)',False))
         self.assertEqual(evidence['single'], ('Post-processed; in library',True))
+        for flag in ('False','false','0',None):
+            database.execute("UPDATE ddl_info SET pack=? WHERE id='single'",(flag,))
+            self.assertEqual(control.import_evidence(adapter)['single'], ('Post-processed; in library',True))
         self.assertFalse(evidence['unknown'][1])
         (self.root/'three.cbz').write_bytes(b'three')
         self.assertEqual(control.import_evidence(adapter)['pack'], ('Pack in library (3/3 issues)',True))

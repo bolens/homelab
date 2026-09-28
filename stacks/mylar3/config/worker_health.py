@@ -29,7 +29,9 @@ def snapshot():
     ):
         enabled.append("AUTO-SNATCHER")
     downloaded = database.selectone(
-        "SELECT count(*) AS n FROM issues WHERE Status='Downloaded'"
+        "SELECT count(*) AS n FROM (SELECT IssueID FROM issues WHERE Status IN ('Downloaded','Archived') "
+        "AND NOT EXISTS (SELECT 1 FROM annuals a WHERE a.IssueID=issues.IssueID) UNION ALL "
+        "SELECT IssueID FROM annuals WHERE Status IN ('Downloaded','Archived') AND COALESCE(Deleted,0)=0)"
     ).fetchone()["n"]
     cooldown = cooldown_health.snapshot(database)
     active = []
