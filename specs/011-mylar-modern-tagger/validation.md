@@ -29,8 +29,9 @@ T009-T014 remain pending, including native integration, crash recovery, monitor
 outcomes and the live canary. Modern tagging and curl remain inactive. No live
 configuration or library changes were made for this packaging increment.
 
-Only linux/amd64 has been built and tested. Arm64 and dependency advisory scanning
-are not established by the image gate.
+The official PyPI per-version metadata reported no known advisories for the 28
+distinct runtime/build pins on 2026-09-28. This does not cover native Ubuntu
+packages. Only linux/amd64 has been built and tested. Arm64 remains unverified.
 
 ## Foundation increment
 
