@@ -12,6 +12,12 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 
 
+class WriterProtocolContractTests(unittest.TestCase):
+    def test_both_images_ship_identical_writer_protocol(self):
+        self.assertEqual((ROOT/'stacks/mylar3/config/media_writer.py').read_bytes(),
+                         (ROOT/'stacks/komga/normalizer/media_writer.py').read_bytes())
+
+
 class OptionalStackOverrideTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -88,6 +94,40 @@ class OptionalStackOverrideTests(unittest.TestCase):
             "setarch", "--uname-2.6", "/usr/local/bin/docker-entrypoint.sh",
         ])
         self.assertEqual(service["command"], ["mongod"])
+
+    def test_coordination_preparation_requires_existing_state_and_preserves_settings(self):
+        target=self.fixture('komga','docker-compose.coordination.yml')
+        scripts=self.root/'scripts';scripts.mkdir()
+        shutil.copy2(ROOT/'scripts/prepare-stack-lib.sh',scripts)
+        shutil.copy2(ROOT/'stacks/komga/prepare-coordination.sh',target)
+        shared=self.root/'missing'/'protocol'
+        (target/'stack.env').write_text(f'MYLAR_WRITER_STATE_PATH={shared}\n')
+        def prepare():
+            return subprocess.run(['bash','prepare-coordination.sh'],cwd=target,
+                                  env={'PATH':os.environ['PATH']},capture_output=True,text=True)
+        self.assertNotEqual(prepare().returncode,0)
+        self.assertFalse(shared.parent.exists())
+        shared.mkdir(parents=True)
+        before=(target/'stack.env').read_bytes()
+        self.assertEqual(prepare().returncode,0);self.assertEqual(prepare().returncode,0)
+        self.assertEqual((target/'stack.env').read_bytes(),before)
+        self.assertEqual(list(shared.iterdir()),[])
+
+    def test_writer_coordination_mount_is_narrow_and_requires_existing_storage(self):
+        override='docker-compose.normalizer.yml'
+        target=self.fixture('komga',override,'MYLAR_WRITER_STATE_PATH=/tmp/fixture-writer-state')
+        extra='docker-compose.coordination.yml'
+        shutil.copy2(ROOT/'stacks/komga'/extra,target)
+        command=[self.docker,'compose','--env-file','stack.env','-f','docker-compose.yml',
+                 '-f',override,'-f',extra,'config','--format','json']
+        result=subprocess.run(command,cwd=target,env={'PATH':os.environ['PATH'],'HOME':str(self.root)},
+                              capture_output=True,text=True,check=True,timeout=30)
+        services=json.loads(result.stdout)['services']
+        mounts={m['target']:m for m in services['comic-normalizer']['volumes']}
+        self.assertFalse(mounts['/mylar-writer'].get('read_only',False))
+        self.assertFalse(mounts['/mylar-writer']['bind']['create_host_path'])
+        self.assertTrue(mounts['/mylar']['read_only'])
+        self.assertNotIn('/mylar-writer',{m['target'] for m in services['komga']['volumes']})
 
     def test_comic_normalizer_is_opt_in_and_runs_without_privileges(self):
         override = "docker-compose.normalizer.yml"

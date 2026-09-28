@@ -12,4 +12,5 @@ prepare_stack_ensure_docker_network "torrents"
 prepare_stack_ensure_docker_network "usenet"
 prepare_stack_ensure_dir_from_env "MYLAR3_MEDIA_PATH" "${MEDIA_ROOT:-/srv/media}" require-existing
 prepare_stack_msg "Configure Activity intake and optional handoff settings in Mylar. Back up its complete config volume, including workflow.sqlite. Deploy Mylar before the maintenance worker. Enable pack verification only with matching worker pack_import enabled."
+prepare_stack_msg "Legacy ComicTagger remains default. Mylar startup owns media-writer protocol creation; configure the matching normalizer coordination override separately and preserve pending recovery markers."
 prepare_stack_end

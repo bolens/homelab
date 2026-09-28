@@ -25,6 +25,48 @@ without modifying it. Keep `/config` on the local `komga_config` volume because
 Komga does not support its database on NFS or CIFS. Library roots must not
 overlap, so use `/data/comics` and `/data/manga`, never `/data`.
 
+## Coordination with Mylar
+
+Use the optional `docker-compose.coordination.yml` after the normalizer override
+when both applications can write the same comics. Matching Mylar images create a
+private `media-writer` directory beside `config.ini` at startup. Set
+`MYLAR_WRITER_STATE_PATH` to that existing directory on **local storage**, run
+`./prepare-coordination.sh`, and set `"writer_state": "/mylar-writer"` in the
+private `normalizer.json`. Both services must use the same owner UID. This adds
+one narrow writable bind mount. The existing `/mylar` configuration mount stays
+read-only, and Komga receives no coordination mount or configuration change.
+
+Mylar post-processing and complete manual-tagging operations share an exclusive
+lock with the worker's entire conversion/maintenance cycle. The worker skips busy
+cycles without discarding existing error reports. A persistent recovery marker
+remains while conversion receipts are unfinished, including asynchronous Komga
+upgrades, ambiguous API timeouts and worker crashes. Mylar waits up to 180 seconds
+for admission, then fails without running the blocked operation. Its result queue
+still completes, allowing the caller to report failure rather than hang.
+
+A matching worker reconciles its receipts before clearing the marker. A stored
+identity binds the protocol to the worker state and jobs directories. Missing or
+replaced recovery directories cannot be mistaken for an empty queue. Restoring to
+new directories requires an idle, verified recovery and identity rebind before
+resuming the worker. Missing,
+linked, malformed or wrongly owned protocol state prevents writes. Do not delete
+lock files or pending markers to clear a warning. If recovery cannot complete,
+retain state and investigate the conversion receipts. An existing state directory
+with a missing lock is rejected, including at startup, to avoid two lock owners.
+
+Before enabling this override, drain existing worker upgrades and Mylar processing,
+back up and restore-check both applications' affected state, and verify that both
+mounts refer to the same directory. Deploy matching images and activate the worker
+setting while idle. Update only `comic-normalizer` with `--no-deps` for worker-only
+changes. Keep Komga and NZBGet running. Never replace or restore coordination state
+while either writer can run. Recovery or rollback must preserve pending markers
+until asynchronous upgrades are verified complete. Existing installations keep
+legacy worker behavior when `writer_state` is null or absent.
+
+This protocol covers normalizer conversion/maintenance, Mylar post-processing and
+manual tagging. Other native rename/rescan writers and modern startup/publication
+recovery still require audit before enabling the modern tagger backend.
+
 ## Automatic comic conversion
 
 The optional `docker-compose.normalizer.yml` override converts CBR/RAR, CB7/7z,

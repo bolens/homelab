@@ -4,6 +4,7 @@
     "/data/manga"
   ],
   "state": "/state",
+  "writer_state": null,
   "reader_state": "/normalizer-state",
   "poll_seconds": 60,
   "settle_seconds": 120,

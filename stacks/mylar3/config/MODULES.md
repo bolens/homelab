@@ -11,6 +11,8 @@ Mylar's package; adapters and tests stay in the build stage.
 | HTTP response validation | `patch_ddl_responses.py` | `test_ddl_responses.py` |
 | Exhausted mirrors | `patch_ddl_exhaustion.py` | `test_ddl_exhaustion.py` |
 | Transient mirror lookup failures | `patch_ddl_mirror_retries.py` | `test_ddl_mirror_retries.py` |
+| Shared media writer ownership | `patch_media_writers.py` | `media_writer.py`, `native_writers.py`; lock, crash-fence and native admission tests |
+| ComicTagger backend preference and availability | `patch_tagger_backend.py` | `tagger_backend.py`, `test_tagger_backend.py`; follows observer and handoff adapters |
 | Native tagger result ownership | `patch_tagger_handoff.py` | `tagger_handoff.py`, `test_tagger_handoff.py`; follows native processing and monitoring adapters |
 | ComicTagger timeout | `patch_tagger_timeout.py` | `test_tagger_timeout.py` |
 | Unnumbered issue parsing | `patch_unnumbered_issues.py` | `test_unnumbered_issues.py` |
@@ -88,3 +90,10 @@ cover manual/automatic ownership, no-overwrite, corruption and recovery admissio
 The real-CLI gate exercises these native-package modules together. The service
 requires a caller-supplied global writer coordinator. It is not connected to
 cmtagmylar, settings or startup, and uncertain staging remains private for recovery.
+
+`tagger_backend.py` owns exact backend names, server validation and native dispatch.
+The settings choice persists in the existing Metatagging section. Legacy remains
+the default, and Modern is visibly unavailable until its integration gates close.
+Native jobs capture their backend at entry. Unsupported configured values return
+an observed failure without invoking Legacy. The availability gate is a code
+capability, not a user-controlled bypass flag.

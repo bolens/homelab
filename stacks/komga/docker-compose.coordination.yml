@@ -1,0 +1,10 @@
+# Opt-in shared writer protocol. Apply after docker-compose.normalizer.yml.
+# The directory is created by matching Mylar startup; never create it over a missing mount.
+services:
+  comic-normalizer:
+    volumes:
+      - type: bind
+        source: ${MYLAR_WRITER_STATE_PATH:?Set MYLAR_WRITER_STATE_PATH to Mylar's existing media-writer directory}
+        target: /mylar-writer
+        bind:
+          create_host_path: false

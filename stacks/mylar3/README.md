@@ -461,7 +461,14 @@ The [migration plan](../../specs/011-mylar-modern-tagger/plan.md) covers a pinne
 modern ComicTagger runtime, metadata preservation, failure recovery, and an optional
 DDL discovery transport. The image now includes ComicTagger **1.6.0b11.dev0** in an
 isolated `/opt/comictagger` environment. Mylar continues using its existing vendored
-1.3.5 tagger. There is no modern-backend setting or automatic selection yet.
+1.3.5 tagger. Settings → Quality & Post Processing → Metadata Tagging includes a
+**ComicTagger backend** selector. **Legacy (default)** remains available during the
+migration. **Modern (experimental)** is visible but disabled until native writer
+coordination, startup recovery and canary checks are complete. The server rejects
+unavailable or invalid selections before changing settings. Backend changes apply
+to the next tagging job, never to a job already running. Editing the configuration
+to select an unavailable backend reports unsupported tagging instead of silently
+using Legacy.
 
 The image build tests the real modern CLI offline with generated CBZs, including
 annual/variant metadata, Unicode, volume 1, archive comments and unrelated members.
@@ -472,9 +479,11 @@ Native manual tagging now recognizes an explicit verified in-place result and sk
 its legacy temporary-file copy/delete branch. Automatic imports reject non-string
 results before placement. The monitor accepts verified added/updated/unchanged and
 specific failure outcomes. These guards preserve legacy paths and do not select the
-modern backend. An inactive native-package service now provides bounded ComicVine
-lookup, automatic staging and recovery admission before each job. Native settings,
-caller routing, startup wiring and global writer coordination remain pending. Requests remains the DDL transport.
+modern backend. The choice persists as `Metatagging.tagger_backend` in the existing
+config volume. No environment variable, mount or ingress change is required.
+An inactive native-package service now provides bounded ComicVine
+lookup, automatic staging and recovery admission before each job. Modern caller
+routing, startup wiring and global writer coordination remain pending. Requests remains the DDL transport.
 
 The archive helper reconciles ComicInfo into a new CBZ and reopens it to check page
 and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown
@@ -526,3 +535,12 @@ bounded responses and validated issue/volume identities. Redirects and retries a
 disabled. Each provider request waits the configured 2–10 second interval.
 Conflicting recovery receipts block new work. Failed or uncertain staging is retained
 for review until native cleanup ownership is implemented.
+
+Mylar initializes private `media-writer` protocol state beside `config.ini`. Its
+post-processing owner and complete manual-tagging calls hold the shared writer
+lock through publication and cleanup. The normalizer can opt into the matching
+[coordination override](../komga/README.md#coordination-with-mylar). Pending worker
+recovery prevents admission, including after a worker crash. Include this state
+in application backups and never replace it while either writer can run. Library
+files are not copied for this configuration change. Other native media writers,
+modern caller routing and live rollout checks still gate modern-backend activation.

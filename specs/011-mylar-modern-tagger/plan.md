@@ -37,6 +37,13 @@ all affected contract surfaces together and regenerate catalog output if metadat
   and private versioned receipts. Integration must coordinate other media writers.
 - `patch_tagger_handoff.py` and `tagger_handoff.py`: checked native ownership guards
   and explicit in-place results. Future producer/setting adapter selects the backend.
+- `patch_tagger_backend.py` and `tagger_backend.py`: persisted backend choice,
+  pre-mutation validation and native dispatch. Modern stays unavailable until its
+  writer, startup and canary gates close. Legacy remains the default.
+- `media_writer.py`: shared local flock and durable normalizer recovery fence.
+  Identical copies ship in both image contexts, checked by repository tests.
+- `native_writers.py`, `processing_guard.py` and normalizer `writer_cycle.py`:
+  complete manual tagging, post-processing and conversion/maintenance ownership.
 - `archive_monitor.py`: receipts from verified results, not CLI banner interpretation.
 - `stacks/mylar3/Dockerfile`: isolated venv copied with native ICU dependencies into
   final image. Never overwrite Mylar's Python dependency environment.
