@@ -11,6 +11,7 @@ import sqlite3
 import time
 
 from import_match import catalog, metadata, number, title
+from import_recovery import issue_state
 from normalize import digest, identity, save
 
 HEX32 = re.compile(r'^[a-f0-9]{32}$')
@@ -165,8 +166,9 @@ class Guided:
             return False
         database = Path(self.m.worker.config['mylar'].get('config_dir', '/mylar')) / 'mylar.db'
         with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as db:
-            row = db.execute('SELECT i.Status,i.Location,c.ComicLocation FROM issues i JOIN comics c ON c.ComicID=i.ComicID '
-                             'WHERE i.IssueID=? AND i.ComicID=?', (record['issueid'], record['comicid'])).fetchone()
+            current = issue_state(db, record)
+            parent = db.execute('SELECT ComicLocation FROM comics WHERE ComicID=?', (record['comicid'],)).fetchone()
+            row = (*current, parent[0]) if current and parent else None
         if not row or row[0] != 'Downloaded' or not row[1] or not row[2]:
             return False
         target = Path(row[1]) if Path(row[1]).is_absolute() else Path(row[2]) / row[1]
@@ -234,7 +236,7 @@ class Guided:
             self.acknowledge(file, record, 'rejected', 'changed_source')
             return
         rows = [r for r in self.rows() if str(r[0]) == str(command.get('issueid')) and str(r[1]) == str(command.get('comicid'))]
-        if len(rows) != 1 or rows[0][2] == 'Downloaded':
+        if len(rows) != 1 or rows[0][2] in ('Downloaded', 'Archived'):
             self.acknowledge(file, record, 'rejected', 'issue_unavailable')
             return
         if source.name in self.m.pending_ddl_names() or source.suffix.casefold() not in ('.cbz', '.cbr'):

@@ -7,6 +7,7 @@ import threading
 import time
 import uuid
 
+from mylar import library_status
 from mylar.workflow_store import Store, LOCK, identifier, ddl_identifier, label
 
 _STORE=None
@@ -140,6 +141,10 @@ def native_busy(issueid,active_only=False):
 
 
 def admit_import(issueid,command_id=None):
+    from mylar import db
+    current=library_status.issue(db.DBConnection(), issueid)
+    if not current or current['Status'] in ('Downloaded','Archived'):
+        raise ValueError('Issue is imported, archived, deleted or unavailable')
     if reservation(issueid) or dispatch_owner(issueid) or import_owner(issueid,command_id) or native_busy(issueid):
         raise ValueError('Another download or processing task owns this issue')
 
@@ -167,8 +172,8 @@ def defer_search(issueid,comicid=None):
     iid=identifier(issueid)
     if iid:
         from mylar import db
-        row=db.DBConnection().selectone('SELECT ComicID FROM issues WHERE IssueID=?',[iid]).fetchone()
-        cid=identifier(comicid) or (identifier(row['ComicID']) if row else '')
+        row=library_status.issue(db.DBConnection(), iid)
+        cid=identifier(row['ComicID']) if row else ''
         if cid:store().set('deferred',iid,{'issueid':iid,'comicid':cid,'phase':'waiting'})
 
 
@@ -208,7 +213,7 @@ def eligible(ddl_id,allow_held=False):
     allowed=('Queued','NZB handoff') if allow_held else ('Queued',)
     if row['status'] not in allowed:raise ValueError('Only waiting, inactive DDL entries can be switched')
     issue=database.selectone('SELECT Status,ComicID,Location FROM issues WHERE IssueID=?',[iid]).fetchone()
-    if not issue or str(issue['ComicID'])!=cid or issue['Status']=='Downloaded' or issue['Location']:
+    if not issue or str(issue['ComicID'])!=cid or issue['Status'] in ('Downloaded','Archived') or issue['Location']:
         raise ValueError('Issue is missing, already downloaded, or needs library review')
     others=database.select("SELECT id FROM ddl_info WHERE issueid=? AND id!=? AND status IN ('Queued','Downloading','NZB handoff','Completed')",[iid,ddl_id])
     sending=store().get('dispatch',iid,{})
@@ -256,7 +261,7 @@ def restore_ddl(row):
     with queue_control._LOCK,LOCK:
         db.DBConnection().upsert('ddl_info',{'status':'Queued'},{'id':row['ddl_id']})
         set_handoff(row,'no-result','No NZB accepted; DDL queue restored')
-        queue_control.recover(mylar.DDL_QUEUE)
+        queue_control.recover(mylar.DDL_QUEUE, record_id=row['ddl_id'])
 
 
 def queue_item(item,queue):
@@ -408,7 +413,7 @@ def tick(queue):
                         row=set_handoff(row,'queued','Resuming reserved NZB search')
                         queue.put({'issueid':row['issueid'],'comicid':row['comicid'],'workflow_handoff':row['id']})
             _STARTED=True
-        rows=db.DBConnection().select("SELECT IssueID,ComicID,ComicName FROM issues WHERE Status='Downloaded' AND COALESCE(Location,'')!=''")
+        rows=library_status.confirmed(db.DBConnection())
         seen=store().get('meta','library_seen')
         current={str(r['IssueID']) for r in rows}
         if seen is not None:

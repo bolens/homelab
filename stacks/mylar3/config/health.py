@@ -76,7 +76,9 @@ def main():
     key = next(parser.get(s, 'api_key') for s in parser.sections() if parser.has_option(s, 'api_key'))
     port = next((parser.get(s, 'http_port') for s in parser.sections() if parser.has_option(s, 'http_port')), '8090')
     body = urllib.parse.urlencode({'apikey': key, 'cmd': 'getHealth'}).encode()
-    req = urllib.request.Request('http://127.0.0.1:' + port + '/api', data=body)
+    root = next((parser.get(s, 'http_root') for s in parser.sections() if parser.has_option(s, 'http_root')), '/')
+    root = '/' + root.strip('/') if root.strip('/') else ''
+    req = urllib.request.Request('http://127.0.0.1:' + port + root + '/api', data=body)
     with urllib.request.urlopen(req, timeout=10) as response:
         payload = json.load(response)
     if not payload.get('success'):

@@ -8,9 +8,29 @@ from source_patches import replace_once
 MARKER = "# homelab-pack-intake-v1"
 
 
+def annual_identity(source):
+    marker = '# homelab-annual-filename-identity-v1'
+    if marker in source:
+        return source
+    source = replace_once(source,
+        "                        if fl['issueid'] is not None:\n                            story_the_arcs = False",
+        """                        if fl['issueid'] is not None:
+                            # homelab-annual-filename-identity-v1
+                            annual_intent = myDB.selectone('SELECT Deleted FROM annuals WHERE IssueID=?', [fl['issueid']]).fetchone()
+                            if annual_intent and annual_intent['Deleted']:
+                                logger.info('Deleted annual identity retained for review; skipping import')
+                                continue
+                            story_the_arcs = False""")
+    source = replace_once(source,
+        'FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?',
+        'FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=? AND NOT EXISTS (SELECT 1 FROM annuals a WHERE a.IssueID=i.IssueID)')
+    ast.parse(source)
+    return source
+
+
 def processor(source):
     if MARKER in source:
-        return source
+        return annual_identity(source)
     source = replace_once(
         source,
         "from mylar import pp_monitor",
@@ -47,7 +67,7 @@ def processor(source):
                                         'SELECT i.ComicID, i.IssueID, i.Issue_Number, i.ReleaseComicName, i.ReleaseComicID, c.ComicName, c.ComicYear, c.AgeRating FROM comics as c JOIN annuals as i ON c.ComicID = i.ComicID WHERE i.IssueID=? AND COALESCE(i.Deleted,0)=0',"""
     source = replace_once(source, before, after)
     ast.parse(source)
-    return source
+    return annual_identity(source)
 
 
 def processing(source):

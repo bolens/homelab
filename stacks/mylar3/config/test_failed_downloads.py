@@ -75,6 +75,11 @@ class FailedRecoveryTest(unittest.TestCase):
             report_failed("1", "2", self.token)
         self.factory.assert_not_called()
 
+    def test_archived_issue_is_never_marked_failed(self):
+        self.database.selectone.return_value.fetchone.return_value["Status"] = "Archived"
+        with self.assertRaises(ValueError):report_failed("1", "2", self.token)
+        self.factory.assert_not_called()
+
     def test_new_release_or_ambiguous_history_is_not_retried(self):
         with self.assertRaises(ValueError):
             report_failed("1", "2", "outdated-release")

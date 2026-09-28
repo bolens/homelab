@@ -6,7 +6,7 @@ import secrets
 import time
 import uuid
 
-from mylar import workflow
+from mylar import workflow, library_status
 from mylar.workflow_store import LOCK, identifier, label
 HEX32=re.compile(r'[0-9a-f]{32}\Z');HEX64=re.compile(r'[0-9a-f]{64}\Z')
 REASONS={'':'','stale_source':'Source proposal changed; refresh before choosing',
@@ -92,8 +92,8 @@ def confirm_import(token,version,issueid,save_alias=False,confirmation=None):
         if proposal.get('requires_review') and confirmation!='checked':raise ValueError('Check the downloader and processing queues before replacing a previous import attempt')
         candidate=next((r for r in proposal['candidates'] if r['issueid']==issueid),None)
         if not candidate:raise ValueError('Choose an issue from the current candidates')
-        row=db.DBConnection().selectone('SELECT ComicID,Status FROM issues WHERE IssueID=?',[issueid]).fetchone()
-        if not row or str(row['ComicID'])!=candidate['comicid'] or row['Status']=='Downloaded':raise ValueError('Issue is no longer eligible')
+        row=library_status.issue(db.DBConnection(), issueid)
+        if not row or str(row['ComicID'])!=candidate['comicid'] or row['Status'] in ('Downloaded','Archived'):raise ValueError('Issue is no longer eligible')
         existing=store.active('command',workflow.IMPORT_HELD)
         for r in existing:
             if r['source_token']==token and r['version']==version:
@@ -148,7 +148,7 @@ def resolve_handoff(issueid,resolution,confirmation):
         if not row or row['phase'] not in ('review','accepted'):raise ValueError('Only submitted handoffs can be reconciled')
         if resolution=='keep':return workflow.set_handoff(row,'accepted','Operator confirmed NZB in downloader; DDL held')
         raw=db.DBConnection().selectone('SELECT Status FROM issues WHERE IssueID=?',[issueid]).fetchone()
-        if not raw or raw['Status']=='Downloaded' or workflow.native_busy(issueid,True):raise ValueError('Issue still has download or processing work')
+        if not raw or raw['Status'] in ('Downloaded','Archived') or workflow.native_busy(issueid,True):raise ValueError('Issue still has download or processing work')
         if resolution=='import':
             db.DBConnection().upsert('ddl_info',{'status':'Source review'},{'id':row['ddl_id']})
             return workflow.set_handoff(row,'source-ready','Operator selected existing archive for guided import')
@@ -165,7 +165,7 @@ def resolve_dispatch(issueid,resolution,confirmation):
         if not row or row['phase'] not in ('sending','review','accepted'):raise ValueError('Only uncertain submissions can be reconciled')
         if resolution in ('retry','import'):
             current=db.DBConnection().selectone('SELECT Status FROM issues WHERE IssueID=?',[issueid]).fetchone()
-            if not current or current['Status']=='Downloaded' or workflow.native_busy(issueid,True):
+            if not current or current['Status'] in ('Downloaded','Archived') or workflow.native_busy(issueid,True):
                 raise ValueError('Issue is imported or still has download or processing work')
             if resolution=='retry':db.DBConnection().upsert('issues',{'Status':'Wanted'},{'IssueID':issueid})
         row.update(phase='accepted' if resolution=='keep' else 'released',reason='Downloader checked by operator')
@@ -181,8 +181,8 @@ def resolve_import(command_id,confirmation):
     if not row:raise ValueError('Unknown import command')
     with workflow.issue_lock(row['issueid']),queue_control._LOCK,LOCK:
         row=workflow.store().get('command',command_id)
-        issue=db.DBConnection().selectone('SELECT Status FROM issues WHERE IssueID=?',[row['issueid']]).fetchone()
-        if row['phase'] not in ('queued','review') or not issue or issue['Status']=='Downloaded' or workflow.native_busy(row['issueid'],True):
+        issue=library_status.issue(db.DBConnection(), row['issueid'])
+        if row['phase'] not in ('queued','review') or not issue or issue['Status'] in ('Downloaded','Archived') or workflow.native_busy(row['issueid'],True):
             raise ValueError('Import is active or already downloaded; retain the hold until verified')
         row.update(phase='rejected',reason='Operator checked and released import hold',updated_at=time.time())
         workflow.store().set('command',command_id,row)

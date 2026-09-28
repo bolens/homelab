@@ -128,7 +128,7 @@ def ddl_states(filenames=(), record_ids=()):
 
 def snapshot():
     import mylar
-    from mylar import db, archive_monitor
+    from mylar import db, archive_monitor, library_status
     now = time.time()
     queue = mylar.PP_QUEUE
     with queue.mutex:
@@ -148,16 +148,9 @@ def snapshot():
               'Processing' if active else 'Processing lock held; activity details unavailable' if locked else
               'Queued' if depth else 'Idle')
     database = db.DBConnection()
-    imports = database.select("""
-        SELECT i.ComicName AS name, i.Issue_Number AS issue, i.ComicID AS comicid,
-               MAX(s.DateAdded) AS imported_at
-        FROM snatched s JOIN issues i ON s.IssueID=i.IssueID
-        WHERE s.Status='Post-Processed' AND i.Status='Downloaded' AND COALESCE(i.Location,'')!=''
-        GROUP BY i.IssueID
-        ORDER BY imported_at DESC LIMIT 25
-    """)
+    imports = library_status.recent_imports(database)
     confirmed = [{'name': display_name(row['name']) + ' #' + display_name(str(row['issue'])),
-                  'comicid': identifier(row['comicid']), 'imported_at': str(row['imported_at'])[:32]}
+                  'comicid': identifier(row['ComicID']), 'imported_at': str(row['imported_at'])[:32]}
                  for row in imports]
     return {'checked_at': now, 'observing_since': _STARTED, 'status': status,
             'enabled': enabled, 'worker_alive': alive, 'processing_lock': locked,

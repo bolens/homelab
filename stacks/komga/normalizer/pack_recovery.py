@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from import_match import catalog, match, metadata, number, title
-from import_recovery import submit
+from import_recovery import submit, issue_state
 from maintenance import preserves, scoped_file
 from normalize import archive_suffix, digest, identity, save, sync_directory, api_path
 
@@ -35,7 +35,8 @@ def evidence(path):
     num = meta.get('Number') or (parsed[2] if parsed else '')
     year = meta.get('Volume') if re.fullmatch(r'(19|20)\d{2}', meta.get('Volume', '')) else (parsed[3] if parsed else meta.get('Year', ''))
     if parsed and ((meta.get('Series') and title(meta['Series']) != title(parsed[1]))
-                   or (meta.get('Number') and number(meta['Number']) != number(parsed[2]))):
+                   or (meta.get('Number') and number(meta['Number']) != number(parsed[2]))
+                   or (re.fullmatch(r'(19|20)\d{2}', meta.get('Volume', '')) and meta['Volume'] != parsed[3])):
         raise ValueError('Filename and metadata disagree')
     edition = 'Digital' if re.search(r'\b(digital first|digital exclusive)\b|\[digital\]', clean, re.I) or meta.get('Format', '').lower() == 'digital' else ''
     return {'series': name, 'number': num, 'year': str(year or ''), 'issueid': next(iter(ids), ''), 'edition': edition}
@@ -190,16 +191,11 @@ class Packs:
 
     def destination(self, matched):
         with closing(sqlite3.connect('file:' + str(self.db) + '?mode=ro', uri=True)) as database:
-            for table in ('issues', 'annuals'):
-                rows = database.execute('SELECT i.Status,i.Location,c.ComicLocation FROM ' + table +
-                                        ' i JOIN comics c ON c.ComicID=i.ComicID WHERE i.IssueID=? AND i.ComicID=?' +
-                                        (' AND COALESCE(i.Deleted,0)=0' if table == 'annuals' else ''),
-                                        (matched['issueid'], matched['comicid'])).fetchall()
-                if rows:
-                    if len(rows) != 1 or rows[0][0] not in ('Downloaded', 'Archived') or not rows[0][1]:
-                        return None
-                    path = Path(rows[0][2]) / rows[0][1]
-                    return path if scoped_file(path, self.worker.roots) else None
+            current = issue_state(database, matched)
+            parent = database.execute('SELECT ComicLocation FROM comics WHERE ComicID=?', [matched['comicid']]).fetchone()
+            if current and current[0] in ('Downloaded', 'Archived') and current[1] and parent and parent[0]:
+                path = Path(parent[0]) / current[1]
+                return path if scoped_file(path, self.worker.roots) else None
         return None
 
     def preserve_extra(self, source, member, points, info):
@@ -307,6 +303,9 @@ class Packs:
             return
         from edition_evidence import landscape
         with closing(sqlite3.connect('file:' + str(self.db) + '?mode=ro', uri=True)) as database:
+            if not issue_state(database, matched):
+                member.update(phase='review', reason='Catalog identity changed; original retained')
+                return
             columns = {r[1] for r in database.execute('PRAGMA table_info(comics)')}
             row = database.execute('SELECT Type FROM comics WHERE ComicID=?', [matched['comicid']]).fetchone() if 'Type' in columns else None
         actual_edition = row[0] if row else ''

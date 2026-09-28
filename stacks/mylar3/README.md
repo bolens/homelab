@@ -79,6 +79,10 @@ items, `100%` for completed items, and `Unknown` when the provider supplies no
 total size. Failed items show `--`. Percentage sorting is numeric, and polling
 preserves the current page and scroll position.
 
+Unknown DDL mirror types fail the current attempt without reusing another
+transfer's result. Manual Resume prefers the staged `.part` file and starts a
+fresh request when no saved bytes exist.
+
 The adapters are organized by responsibility rather than delivery batch. See the
 [module map](config/MODULES.md) for their source ownership, dependency order, and
 focused tests. `config/apply_patches.py` owns the ordered adapter list used by both
@@ -276,13 +280,15 @@ database. It retains up to 5,000 events and 30 days, with 100 events per page an
 issue/stage filters. This starts recording new observations, not a historical
 backfill. Older pages pause automatic updates; failed refreshes retain the last
 snapshot with a stale warning. Finished processing is separate from confirmed
-library import.
+library import. Library confirmation requires a nonempty file at the tracked series
+location. Annual imports contribute to progress and recent-import observations;
+missing files do not release download ownership.
 
 **Try NZB instead** requests a replacement for one inactive, single-issue DDL
 entry. The native serialized search uses only enabled, unblocked NZB providers
 and retains native pacing and candidate validation. Packs, active or duplicate
 work, and already imported issues are rejected. The original DDL entry is held
-before the search; a definite no-result restores it, while confirmed NZB acceptance
+before the search; a definite no-result restores only that entry without requeueing another active DDL, while confirmed NZB acceptance
 keeps it held. Partial files and retry history remain. Automatic handoff is off by
 default; enabling it starts with a two-hour waiting threshold and considers at most
 one eligible issue per scheduler cycle.
@@ -296,6 +302,9 @@ records to bypass a hold.
 
 **Resolve import matches** shows candidate series, start year, issue number,
 existing status, and agreeing/conflicting evidence from the optional Komga worker.
+Regular issues and non-deleted annuals use the same guided admission and release
+checks. Annual IDs resolve to their parent series; deleted annuals cannot fall back
+to a regular-issue record with the same ID. Archived intent is preserved.
 No candidate is selected automatically. Confirming a candidate submits a
 source-version-bound request; a changed source requires a new review. A requested
 series alias covers only the displayed exact source series/start-year pair and

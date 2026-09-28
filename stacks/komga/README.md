@@ -218,7 +218,9 @@ acknowledgment; an unknown response still requires review rather than resubmissi
 With maintenance and Mylar integration configured, the worker publishes bounded
 candidate proposals for ambiguous imports to Mylar's **Import problems** and
 **Activity** pages. Follow the proposal link, compare series/year/issue evidence,
-select a candidate explicitly, then confirm. Candidate ranking is a suggestion,
+select a candidate explicitly, then confirm. Regular issues and non-deleted annuals are supported; annual confirmation uses
+the parent series path and the same content receipts as regular issues.
+Candidate ranking is a suggestion,
 not permission to import. This explicit action is separate from the optional
 `maintenance.auto_import` setting for automatic unique matches.
 
@@ -273,6 +275,9 @@ Set `maintenance.pack_import` and `maintenance.auto_import` to `true`, then enab
 required. The default example leaves them disabled. The worker uses the existing
 shared cache and state mounts, accepts completed pack work through the primary-key
 API, and reports member outcomes to Activity's **Packs and extras** section.
+
+Filename and metadata volume-year conflicts remain for review before catalog
+lookup; an issue publication year is not treated as a volume start year.
 
 The worker preserves retryable catalog responses across restarts and honors Mylar's
 retry time. Only safe catalog reads retry automatically; ambiguous identities,
