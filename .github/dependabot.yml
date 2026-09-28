@@ -95,6 +95,7 @@ updates:
       - "/stacks/docker-forensics-toolkit"
       - "/stacks/ghunt"
       - "/stacks/metagoofil"
+      - "/stacks/mylar3"
       - "/stacks/privotron"
       - "/stacks/torbot"
     schedule:

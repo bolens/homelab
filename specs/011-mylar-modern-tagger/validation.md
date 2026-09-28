@@ -1,4 +1,38 @@
-# First-increment evidence
+# Implementation evidence
+
+## Runtime packaging increment
+
+Scope: inactive modern runtime and staged-file CLI protocol against `b9e95f6`.
+
+- Pinned ComicTagger `1.6.0b11.dev0`, 25 runtime dependencies and three build
+  dependencies with artifact hashes. Built on the image's Ubuntu 22.04/Python 3.10
+  runtime using ICU 70.1. Python build isolation is disabled.
+- Retained installed notices and corresponding source archives for the three
+  identified GPL/LGPL components. Tests compare bundled versions and hashes with
+  installed distributions. Both runtime and build locks have requirements manifests
+  for Dependabot discovery. Actual bot update execution remains unverified.
+- The candidate build and final read-only, network-disabled, unprivileged image gate
+  passed 232 existing tests and 11 modern-runtime tests. Real CLI writes cover
+  regular issues, annuals, variants, Unicode, explicit volume 1, page/sidecar/ZIP
+  comment preservation, malformed archives and missing executables.
+- The installed modern CLI's version command returns exit 1 with its expected
+  banner and an optional-RAR warning. The protocol accepts that exact banner and
+  rejects other versions. The legacy CLI still reports ComicTagger 1.3.5.
+- Independent packaging review identified source-version drift and build-lock
+  discovery gaps. Both were fixed and re-reviewed without remaining findings.
+  Independent CLI review found no actionable defects, but identified the limits
+  below, which remain acceptance work.
+
+The metadata reconciliation check currently inspects merged XML in memory. It does
+not establish verified archive publication or full repeat-run archive identity.
+T009-T014 remain pending, including native integration, crash recovery, monitor
+outcomes and the live canary. Modern tagging and curl remain inactive. No live
+configuration or library changes were made for this packaging increment.
+
+Only linux/amd64 has been built and tested. Arm64 and dependency advisory scanning
+are not established by the image gate.
+
+## Foundation increment
 
 Scope: process and metadata foundation only, against baseline `060b782`.
 
@@ -18,5 +52,5 @@ or curl. No live configuration, library files or services were changed.
 
 `make ci-local` passed. Publication scanning found no secrets or privacy indicators
 in 107 Mylar files and 10 feature documents, with no skips. Gitleaks scanned 372
-commits with no findings. PR publication is the remaining delivery step for this
-increment; subsequent capability tasks remain unchecked.
+commits with no findings. PR #128 merged as `b9e95f6` and its GHCR image was
+published. Subsequent capability gates remain separate.

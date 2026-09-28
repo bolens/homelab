@@ -25,4 +25,9 @@ with tempfile.TemporaryDirectory() as directory:
     subprocess.run([sys.executable, '-c', "import mylar; from mylar import ddl_schedule; assert callable(mylar.queue_schedule); assert callable(ddl_schedule.take); assert callable(ddl_schedule.positions)"], check=True, env=dict(os.environ, PYTHONPATH=str(source.parent) + ':/app/mylar3:/app/mylar3/lib'))
 subprocess.run([sys.executable, str(FIXES / 'test_failed_downloads.py')], check=True)
 
+if Path('/opt/comictagger/bin/python').exists():
+    subprocess.run(['/opt/comictagger/bin/python', str(FIXES / 'test_modern_tagger.py')], check=True)
+else:
+    print('Source-only base gate: isolated modern runtime is not installed')
+
 print('Candidate image passed the isolated Mylar reliability gate')

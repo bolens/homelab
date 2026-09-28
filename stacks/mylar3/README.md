@@ -455,8 +455,24 @@ gray controls retain their existing appearance.
 
 The [migration plan](../../specs/011-mylar-modern-tagger/plan.md) covers a pinned
 modern ComicTagger runtime, metadata preservation, failure recovery, and an optional
-DDL discovery transport. The first increment tests bounded process execution and
-ComicInfo reconciliation during image builds. It does not change the active tagger,
-install ComicTagger or curl dependencies, or add a backend setting. Requests remains
-the download transport. Real-package, archive, native integration and rollback gates
-must pass before enabling a new backend.
+DDL discovery transport. The image now includes ComicTagger **1.6.0b11.dev0** in an
+isolated `/opt/comictagger` environment. Mylar continues using its existing vendored
+1.3.5 tagger. There is no modern-backend setting or automatic selection yet.
+
+The image build tests the real modern CLI offline with generated CBZs, including
+annual/variant metadata, Unicode, volume 1, archive comments and unrelated members.
+The CLI protocol helper reports only a staged save; it does not claim a verified
+library import. Archive publication/recovery, native integration and live rollback
+remain activation gates. Requests remains the DDL transport.
+
+Runtime and Python build dependencies have exact versions and SHA-256 locks. Build
+tools stay outside the final image. ICU 70 comes from the pinned Ubuntu base. Package
+license files and selected corresponding source archives are retained under
+`/opt/comictagger`; the build rejects version/hash drift in those sources. See
+[tagger-NOTICES.md](tagger-NOTICES.md). Dependabot is configured for the runtime and
+build requirements manifests; a successful bot update has not yet been observed.
+Review native build-package pins monthly and whenever changing the base digest.
+
+The published image is currently built/tested for linux/amd64. A Python wheel's
+arm64 availability alone is not proof of an arm64 build. No services need restarting
+solely to inspect this inactive migration runtime.
