@@ -1,7 +1,7 @@
 # ComicTagger runtime components
 
 The isolated runtime contains unmodified ComicTagger 1.6.0b11.dev0 and the exact
-packages in tagger-requirements.lock. Installed distribution metadata and license
+packages in requirements.txt. Installed distribution metadata and license
 files remain under `/opt/comictagger/lib/python3.10/site-packages/*.dist-info/`.
 The legacy Mylar environment is separate.
 

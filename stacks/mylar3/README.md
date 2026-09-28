@@ -474,7 +474,9 @@ tools stay outside the final image. ICU 70 comes from the pinned Ubuntu base. Pa
 license files and selected corresponding source archives are retained under
 `/opt/comictagger`; the build rejects version/hash drift in those sources. See
 [tagger-NOTICES.md](tagger-NOTICES.md). Dependabot is configured for the runtime and
-build requirements manifests; a successful bot update has not yet been observed.
+build requirements files. The first bot run could not fetch referenced `.lock` files,
+so hashes now live directly in `requirements.txt` and `requirements-build.txt`.
+Successful bot evaluation of this corrected layout remains to be verified.
 Review native build-package pins monthly and whenever changing the base digest.
 
 The published image is currently built/tested for linux/amd64. A Python wheel's

@@ -9,8 +9,10 @@ Scope: inactive modern runtime and staged-file CLI protocol against `b9e95f6`.
   runtime using ICU 70.1. Python build isolation is disabled.
 - Retained installed notices and corresponding source archives for the three
   identified GPL/LGPL components. Tests compare bundled versions and hashes with
-  installed distributions. Both runtime and build locks have requirements manifests
-  for Dependabot discovery. Actual bot update execution remains unverified.
+  installed distributions. Both runtime and build locks were exposed through requirements manifests. The
+  first live bot runs failed to fetch their referenced `.lock` files. The corrective
+  layout places the same pins and hashes directly in recognized requirements files,
+  pending successful bot evaluation.
 - The candidate build and final read-only, network-disabled, unprivileged image gate
   passed 232 existing tests and 11 modern-runtime tests. Real CLI writes cover
   regular issues, annuals, variants, Unicode, explicit volume 1, page/sidecar/ZIP
