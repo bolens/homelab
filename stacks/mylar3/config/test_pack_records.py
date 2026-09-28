@@ -32,6 +32,18 @@ class RecordsTest(unittest.TestCase):
         self.key='a'*64
         self.store.set('pack',self.key,{'id':self.key,'ddl_id':'1','source':'/private/download','name':'Test pack','phase':'discovered','members':[],'inventory_complete':False})
 
+    def test_authoritative_evidence_outlives_bounded_activity_history(self):
+        target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
+        self.module.report(self.report(target))
+        for n in range(205):
+            record=dict(self.store.get('pack',self.key),id=str(n),ddl_id=str(n+2))
+            self.store.set('pack',str(n),record)
+        self.assertEqual(len(self.module.snapshot()),20)
+        self.assertTrue(self.module.evidence(['1'])['1'][1])
+        self.assertEqual(set(self.module.evidence(['1'])),{'1'})
+        target.unlink()
+        self.assertFalse(self.module.evidence(['1'])['1'][1])
+
     def test_capture_dotted_folder_uses_its_own_zip(self):
         import queue
         folder=self.root/'Pack.v2';folder.mkdir()

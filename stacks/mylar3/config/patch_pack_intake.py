@@ -142,10 +142,10 @@ def scheduler(source):
 def queue_view(source):
     marker = '# homelab-queue-order-view-v1'
     if marker in source:
-        return source
+        return source.replace('link_type, pack FROM ddl_info', 'link_type, pack, comicid, issueid, issues FROM ddl_info')
     source = replace_once(source,
         'SELECT id, status, filename, tmp_filename, remote_filesize, link_type FROM ddl_info',
-        'SELECT id, status, filename, tmp_filename, remote_filesize, link_type, pack FROM ddl_info')
+        'SELECT id, status, filename, tmp_filename, remote_filesize, link_type, pack, comicid, issueid, issues FROM ddl_info')
     source = replace_once(source, '        for row in resultlist:\n            download = downloads.get',
         '        ' + marker + '\n        from mylar import ddl_schedule\n        positions = ddl_schedule.positions(downloads.values())\n        for row in resultlist:\n            row["queue_order"] = positions.get(str(row["queueid"]), {"sort": 2000000000})["sort"]\n            download = downloads.get')
     source = replace_once(source, "        sortcolumn = 'series'\n        if iSortCol_0 == '1':",

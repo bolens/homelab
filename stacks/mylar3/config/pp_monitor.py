@@ -30,7 +30,8 @@ def item_info(item):
     name = item.get('nzb_name')
     manual = name in ('Manual Run', 'Manual+Run')
     download = item.get('download_info') or {}
-    ddl_id = identifier(download.get('id')) if item.get('ddl') and isinstance(download, dict) else ''
+    from mylar.workflow_store import ddl_identifier
+    ddl_id = ddl_identifier(download.get('id')) if item.get('ddl') and isinstance(download, dict) else ''
     return {'ddl_id': ddl_id, 'name': display_name(item.get('nzb_folder') if manual else name),
             'source': 'DDL' if item.get('ddl') else 'Manual scan' if manual else 'Download client',
             'issueid': identifier(item.get('issueid')), 'comicid': identifier(item.get('comicid'))}

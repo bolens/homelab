@@ -50,6 +50,53 @@ class WorkflowTest(unittest.TestCase):
         self.disk=patch.object(workflow.shutil,'disk_usage',return_value=SimpleNamespace(free=20*1024**3));self.disk.start();self.addCleanup(self.disk.stop)
     def handoff(self):return workflow.request_handoff('1')
     def status(self):return self.conn.execute('SELECT status FROM ddl_info WHERE id="1"').fetchone()[0]
+    def test_download_type_and_sort_are_independent_and_legacy_policy_survives(self):
+        workflow.store().set('policy','current',{'ddl_order':'packs','ddl_paused':True})
+        rules=workflow.policy()
+        self.assertEqual((rules['ddl_kind'],rules['ddl_order']),('packs','fifo'))
+        workflow.set_policy({'ddl_order':'release_newest'})
+        self.assertEqual(workflow.policy()['ddl_kind'],'packs')
+        workflow.set_policy({'ddl_kind':'alternate'})
+        self.assertEqual(workflow.policy()['ddl_order'],'release_newest')
+        self.assertTrue(workflow.policy()['ddl_paused'])
+        with self.assertRaises(ValueError):workflow.set_policy({'ddl_kind':'invalid'})
+    def test_concurrent_partial_policy_updates_preserve_both_changes(self):
+        store=workflow.store();original=store.get
+        first_read=threading.Event();release=threading.Event();second_done=threading.Event()
+        errors=[]
+        def get(kind,key,default=None):
+            value=original(kind,key,default)
+            if kind=='policy' and threading.current_thread().name=='first-save':
+                first_read.set();release.wait(2)
+            return value
+        def save(values,done=None):
+            try:workflow.set_policy(values)
+            except Exception as error:errors.append(error)
+            finally:
+                if done:done.set()
+        with patch.object(store,'get',side_effect=get):
+            first=threading.Thread(target=save,args=({'ddl_paused':True},),name='first-save')
+            second=threading.Thread(target=save,args=({'pack_automation':True},second_done))
+            first.start();self.assertTrue(first_read.wait(1));second.start()
+            second_done.wait(.1);release.set();first.join(2);second.join(2)
+        self.assertFalse(errors);self.assertFalse(first.is_alive() or second.is_alive())
+        self.assertTrue(workflow.policy()['ddl_paused']);self.assertTrue(workflow.policy()['pack_automation'])
+
+    def test_policy_change_invalidates_cached_intake_without_losing_hysteresis(self):
+        workflow.store().set('intake','current',{'paused':True,'checked_at':123})
+        web.action('policy',{'values':json.dumps({'queue_high':60})})
+        cached=workflow.store().get('intake','current')
+        self.assertTrue(cached['paused']);self.assertEqual(cached['checked_at'],0)
+
+    def test_split_single_handoff_keeps_exact_download_identity(self):
+        self.conn.execute("UPDATE ddl_info SET id='1-1' WHERE id='1'");self.conn.commit()
+        row=workflow.request_handoff('1-1')
+        self.assertEqual(row['ddl_id'],'1-1')
+        self.assertEqual(self.conn.execute("SELECT status FROM ddl_info WHERE id='1-1'").fetchone()[0],'NZB handoff')
+        self.assertEqual(app.SEARCH_QUEUE.qsize(),1)
+        self.assertEqual(workflow.request_handoff('1-1'),row)
+        self.assertEqual(app.SEARCH_QUEUE.qsize(),1)
+
     def test_download_next_preserves_native_worker_scheduler(self):
         native = Mock()
         with patch.object(app, 'queue_schedule', native, create=True):

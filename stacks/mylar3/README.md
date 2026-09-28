@@ -129,6 +129,9 @@ status. Completed individual issues show **Post-processed; in library** once Myl
 records them as Downloaded or Archived and their recorded library file exists. The **Download / import status** column keeps completed items clear of retry
 notation. Their download attempt count remains available in a tooltip, with no
 provider cooldown.
+Queued labels follow the current pause setting and provider cooldown deadline,
+so an expired cooldown does not remain displayed from an earlier blocked attempt.
+The attempt count records attempts already used, not time spent waiting.
 Awaiting post-processing is shown only for a matching entry actually in the
 post-processing queue. Active runs and finished runs have distinct labels; other
 completed downloads show that their import is unconfirmed instead of claiming
@@ -359,7 +362,8 @@ while leaving Mylar's setting on retains new packs pending worker recovery.
 Activity's **Packs and extras** section records each original format, catalog
 identity, classification and outcome. It survives DDL history cleanup. Submitted
 imports remain pending until page bytes and non-metadata sidecars match the
-library. Changed or missing library files invalidate completion. Related cover
+library. Changed or missing library files invalidate completion. DDL completion evidence
+is independent of the bounded recent-history display. Related cover
 collections, short cover-only archives, named extras and alternate scans are kept
 in a sibling `Series - Extras` folder, without a regular issue identity. Legitimate
 short comics are not rejected merely for having few pages. Ambiguous relationships
@@ -369,7 +373,10 @@ Missing exact catalog entries are requested through Mylar's native catalog
 adapter. Existing statuses and deleted annual intent are preserved. An annual
 with a verified catalog link to its parent can be added under that series;
 otherwise an exact annual volume is tracked separately. Catalog uncertainty is
-retained for review rather than repeatedly adding or submitting work. Pack number
+retained for review rather than repeatedly adding or submitting work. Temporary
+read-only lookup failures allow up to five attempts with increasing delays, starting
+at five minutes. A persisted write intent prevents retries from repeating an
+uncertain catalog addition. Legacy uncertain receipts remain held for review. Pack number
 ranges no longer mark inferred issue lists Snatched or overwrite them on failure.
 Annual filename IDs resolve against annual records, and processing ownership is
 released on empty input, errors and normal completion. Startup retains unfinished
@@ -385,16 +392,26 @@ checks. Keep NZBGet and Komga running during this scoped update.
 
 ### DDL download scheduling
 
-DDL Queue Management separates **Download order** from table sorting. Select oldest
-queued first, newest queued first, singles before packs, packs before singles, or
-alternate singles and packs. Oldest/newest use persisted local arrival order;
-existing entries are seeded in their current queue order. Cooldowns and retries
-do not change age. Each group keeps oldest-first order. **Download next** overrides
-the preference
-for one eligible queued entry; provider cooldowns still apply. **Pause new
-downloads** holds the next start without interrupting an active download or NZB work.
-Preferences persist in the existing workflow database and take effect at the next
-transfer boundary. The default remains oldest queued first.
+DDL Queue Management combines two independent preferences. **Download type** chooses
+mixed singles and packs, singles before packs, packs before singles, or alternating.
+**Sort by** chooses oldest queued first, newest queued first, oldest release first,
+or newest release first. The selected sort applies within each type group, or to
+each type's next item while alternating. Mixed applies it across all items.
+Existing type preferences retain their behavior with oldest queued first.
+
+Queued order uses persisted local arrival order. Existing entries are seeded in
+their current queue order, and cooldowns and retries do not change age.
+**Download next** overrides both preferences for one eligible entry, with provider
+cooldowns still applying. **Pause new downloads** holds the next start without
+interrupting an active download or NZB work. Preferences persist in the workflow
+database and take effect at the next transfer boundary. The default remains mixed
+with oldest queued first.
+
+Release order uses the issue's store release date, falling back to its cover date.
+For explicit pack issue ranges, oldest/newest use the earliest/latest known member
+date. Other packs use the linked issue date when available. Unknown dates follow
+known dates in both directions, with queue arrival order breaking ties. These
+options do not use the series start year or change the saved queued-order options.
 
 Use **View order → Download queue order** above the table to follow those saved
 preferences. The estimate places active transfers first, then eligible queued
@@ -402,3 +419,15 @@ downloads, provider cooldowns, unscheduled entries and history. Position labels
 show each queued entry's place. The view refreshes after preference or priority
 changes and remains usable while paused. Changing the view never changes the
 download preference.
+
+Queue table reads time out after ten seconds and retry through normal polling,
+retaining existing rows while disabling stale actions. Preference saves merge
+atomically, so concurrent Activity and queue changes preserve unrelated settings.
+Split-download IDs retain their exact identity in processing history and NZB
+handoff requests.
+
+Manage, Activity, Import problems and Post-processing use the same fluid frame
+and wrapping toolbars as the DDL queue. Library and Queues navigation remains
+available on smaller screens. Manage's scan form and status panel stack without
+overlap; wide report tables scroll inside focusable, labeled regions. Compact
+gray controls retain their existing appearance.

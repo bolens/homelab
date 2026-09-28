@@ -149,10 +149,11 @@ def member_present(member):
         return False
 
 
-def snapshot():
+def snapshot(records=None):
     result = []
     store = workflow.store()
-    records = store.active('pack', {'discovered', 'review'}) + [r for r in store.all('pack', 200) if r['phase'] == 'confirmed'][:20]
+    if records is None:
+        records = store.active('pack', {'discovered', 'review'}) + [r for r in store.all('pack', 200) if r['phase'] == 'confirmed'][:20]
     for record in records:
         members = []
         for original in record['members']:
@@ -168,6 +169,11 @@ def snapshot():
     return result
 
 
-def evidence():
+def evidence(record_ids=None):
+    # Presentation history must never limit authoritative DDL membership evidence.
+    records = workflow.store().active('pack', {'discovered', 'review', 'confirmed'})
+    if record_ids is not None:
+        requested = {str(key) for key in record_ids}
+        records = [r for r in records if r['ddl_id'] in requested]
     return {r['ddl_id']: (('Pack in library' if r['complete'] else 'Pack member review') +
-                          ' (%d/%d members)' % (r['confirmed'], r['total']), r['complete']) for r in snapshot()}
+                          ' (%d/%d members)' % (r['confirmed'], r['total']), r['complete']) for r in snapshot(records)}

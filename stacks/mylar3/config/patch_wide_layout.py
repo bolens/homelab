@@ -24,6 +24,9 @@ def template(source, css):
             '  if(new URL(a.href).pathname===location.pathname) {a.setAttribute("aria-current","page");if(menu.contains(a)) menu.classList.add("current");}\n'
             ' });\n'
             '});\n</script>\n</head>')
+    if '<div class="homelab_queue_links"><a href="activity">' not in source:
+        source = replace_once(source, '<div class="homelab_queue_links">',
+                              '<div class="homelab_queue_links"><a href="activity">Activity</a>')
     block = START + '\n<style>\n' + css + '</style>\n' + END
     if START in source:
         if source.count(START) != 1 or source.count(END) != 1:

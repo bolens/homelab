@@ -74,11 +74,11 @@ $(document).ready(function(){
     $('#ddl_save_schedule').button();
     $.ajax({url:'workflowStatus',dataType:'json',timeout:10000,cache:true}).done(function(data){
         if (!data || !data.csrf || !data.policy) return;
-        ddlCsrf=data.csrf;$('#ddl_order').val(data.policy.ddl_order);$('#ddl_paused').prop('checked',data.policy.ddl_paused);
+        ddlCsrf=data.csrf;$('#ddl_kind').val(data.policy.ddl_kind);$('#ddl_order').val(data.policy.ddl_order);$('#ddl_paused').prop('checked',data.policy.ddl_paused);
         $('#ddl_schedule :input').prop('disabled',false);$('#ddl_save_schedule').button('refresh');
         $('#ddl_schedule_note').text('Applies to the next eligible download. Active transfers keep running; provider cooldowns still apply.');
     }).fail(function(){$('#ddl_schedule_note').text('Queue preferences could not be loaded. Reload or sign in through Manage.');});
-    $('#ddl_schedule').on('submit',function(event){event.preventDefault();ddlSchedulingAction('policy',{values:JSON.stringify({ddl_order:$('#ddl_order').val(),ddl_paused:$('#ddl_paused').prop('checked')})});});
+    $('#ddl_schedule').on('submit',function(event){event.preventDefault();ddlSchedulingAction('policy',{values:JSON.stringify({ddl_kind:$('#ddl_kind').val(),ddl_order:$('#ddl_order').val(),ddl_paused:$('#ddl_paused').prop('checked')})});});
     $('#ddl_refresh').on('click',activecheck);
     $('#ddl_active_actions').on('click','button',function(){if(ddlFresh && ddlActiveId!==null)ajaxcallit($(this).attr('data-ddl-mode'),ddlActiveId);});
     function closeRemove(box) {

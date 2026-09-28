@@ -102,7 +102,7 @@ class ControlTest(unittest.TestCase):
         (self.root/'comic.cbz').write_bytes(b'comic')
         (self.root/'annual.cbz').write_bytes(b'annual')
         processing = {'waiting': [], 'active': [], 'recent': []}
-        mylar = SimpleNamespace(pack_intake=SimpleNamespace(evidence=lambda: {}), pp_monitor=SimpleNamespace(ddl_states=lambda filenames, ids: processing), db=SimpleNamespace(DBConnection=lambda: SimpleNamespace(
+        mylar = SimpleNamespace(workflow=SimpleNamespace(policy=lambda: {'ddl_paused': False}), pack_intake=SimpleNamespace(evidence=lambda ids: {}), pp_monitor=SimpleNamespace(ddl_states=lambda filenames, ids: processing), db=SimpleNamespace(DBConnection=lambda: SimpleNamespace(
             select=lambda query: database.execute(query).fetchall())))
         self.state.begin(self.item)
         self.state.finish(self.item, True)
@@ -130,6 +130,36 @@ class ControlTest(unittest.TestCase):
         self.assertEqual(after['1']['cooldown_seconds'], 0)
         self.assertEqual(after['1']['attempts'], 1)
         self.assertEqual(self.state.data['items']['1']['reason'], 'Downloaded; handed to post-processing')
+
+    def test_queued_reason_uses_current_pause_and_provider_deadline(self):
+        policy = {'ddl_paused': False}
+        mylar = SimpleNamespace(workflow=SimpleNamespace(policy=lambda: policy),
+            db=SimpleNamespace(DBConnection=lambda: None),
+            pack_intake=SimpleNamespace(evidence=lambda ids: {}),
+            pp_monitor=SimpleNamespace(ddl_states=lambda names, ids: {'active': [], 'waiting': [], 'recent': []}))
+        row = dict(self.item, status='Queued', filename='comic.cbz')
+        self.state.data['providers']['GC-Main'] = {'until': self.now + 900}
+        with patch.dict(sys.modules, {'mylar': mylar}), patch.object(control, '_STORE', self.state), patch.object(control, 'import_evidence', return_value={}):
+            self.assertEqual(control.diagnostics([row])['1']['reason'], 'Provider cooling down')
+            self.assertEqual(self.state.begin(self.item), 'cooldown')
+            self.state.data['providers']['GC-Main']['until'] = self.now + 0.5
+            self.assertEqual(control.diagnostics([row])['1']['cooldown_seconds'], 1)
+            policy['ddl_paused'] = True
+            self.assertEqual(control.diagnostics([row])['1']['reason'], 'New downloads paused')
+            self.now += 901
+            paused = control.diagnostics([row])['1']
+            self.assertEqual(paused['reason'], 'New downloads paused')
+            self.assertEqual(paused['cooldown_seconds'], 0)
+            policy['ddl_paused'] = False
+            self.assertEqual(control.diagnostics([row])['1']['reason'], 'Queued; waiting for download slot')
+            self.state.data['providers']['GC-Main']['until'] = self.now + 900
+            self.assertEqual(control.diagnostics([dict(row, link_type='GC-Pixel')])['1']['cooldown_seconds'], 0)
+            self.assertEqual(self.state.data['items']['1']['reason'], 'Provider cooling down')
+            self.assertEqual(self.state.data['items']['1']['attempts'], 0)
+            self.state.data['items']['1']['attempts'] = 6
+            self.assertIn('Retry limit reached', control.diagnostics([row])['1']['reason'])
+            self.state.data['items']['1']['reason'] = 'Download failed'
+            self.assertEqual(control.diagnostics([dict(row, status='Failed')])['1']['reason'], 'Download failed')
 
     def test_pack_completion_requires_every_member_and_existing_file(self):
         database = sqlite3.connect(':memory:');database.row_factory = sqlite3.Row

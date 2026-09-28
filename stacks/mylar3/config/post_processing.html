@@ -39,27 +39,27 @@ Run observations cover this service session; confirmed imports come from Mylar h
 <div class="pp_pair" id="pp_work"><section>
 <h2>Active work</h2>
 <p>Runs currently observed by Mylar.</p>
-<div class="table_wrapper"><table id="pp_active" class="display">
+<div class="table_wrapper" tabindex="0" role="region" aria-label="Active processing"><table id="pp_active" class="display">
 <thead><tr><th>Item</th><th>Source</th><th>Started</th><th>Elapsed</th></tr></thead><tbody></tbody></table></div>
 </section><section>
 <h2>Waiting to process</h2>
 <p id="pp_limit"></p>
-<div class="table_wrapper"><table id="pp_queue" class="display">
+<div class="table_wrapper" tabindex="0" role="region" aria-label="Waiting processing"><table id="pp_queue" class="display">
 <thead><tr><th>Position</th><th>Item</th><th>Source</th></tr></thead><tbody></tbody></table></div>
 </section></div>
 <h2 id="pp_runs">Recent processing runs</h2>
 <p id="pp_since">Observations start when Mylar starts. A finished run does not by itself confirm an import.</p>
-<div class="table_wrapper"><table id="pp_recent" class="display">
+<div class="table_wrapper" tabindex="0" role="region" aria-label="Recent processing"><table id="pp_recent" class="display">
 <thead><tr><th>Item</th><th>Source</th><th>Outcome</th><th>Finished</th><th>Elapsed</th></tr></thead><tbody></tbody></table></div>
 <h2 id="pp_conversion">Archive conversion and metadata</h2>
 <p>Original and output formats are observed from archive headers when available.
 Metadata results compare ComicInfo.xml and ComicBookInfo blocks, not the accuracy of individual fields.
 Library normalization preserves metadata rather than retagging it.</p>
 <p id="pp_archive_report">Waiting for conversion report.</p>
-<div class="table_wrapper"><table id="pp_archives" class="display">
+<div class="table_wrapper" tabindex="0" role="region" aria-label="Conversion and metadata"><table id="pp_archives" class="display">
 <thead><tr><th>Item</th><th>Stage</th><th>Original format</th><th>Output format</th><th>Conversion</th><th>Metadata</th></tr></thead><tbody></tbody></table></div>
 <h2 id="pp_confirmed">Recent confirmed imports</h2>
-<div class="table_wrapper"><table id="pp_imports" class="display">
+<div class="table_wrapper" tabindex="0" role="region" aria-label="Confirmed imports"><table id="pp_imports" class="display">
 <thead><tr><th>Issue</th><th>Recorded by Mylar</th></tr></thead><tbody></tbody></table></div>
 </div>
 </%def>

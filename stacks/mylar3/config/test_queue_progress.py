@@ -46,18 +46,24 @@ class QueueProgressTest(unittest.TestCase):
         self.row.update(link_type='GC-Main', remote_filesize=10)
         self.assertEqual(queue_progress.progress(self.row, self.directory), '100%')
 
-    def endpoint(self, items, downloads, sort='3', positions=None, **params):
+    def endpoint(self, items, downloads, sort='3', positions=None, projection=None, **params):
         source = queue_view(patched_source((SOURCE / 'webserve.py').read_text()))
         self.assertEqual(patched_source(source), source)
         self.assertEqual(queue_view(source), source)
         node = next(n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.FunctionDef) and n.name == 'queueManageIt')
         database = MagicMock()
-        database.select.side_effect = [items, [], downloads]
+        calls = iter((items, []))
+        def select(query):
+            if 'tmp_filename' in query:
+                columns = query.split('SELECT ',1)[1].split(' FROM ',1)[0].split(', ')
+                return [{key: row.get(key) for key in columns} for row in downloads]
+            return next(calls)
+        database.select.side_effect = select
         namespace = dict(db=SimpleNamespace(DBConnection=lambda: database), json=json,
                          mylar=SimpleNamespace(CONFIG=SimpleNamespace(DDL_LOCATION=str(self.directory))))
         exec(compile(ast.Module(body=[node], type_ignores=[]), '<queue>', 'exec'), namespace)
         parent = ModuleType('mylar');parent.queue_schedule=lambda *args:None
-        with patch.dict(sys.modules, {'mylar': parent, 'mylar.queue_progress': queue_progress, 'mylar.queue_control': SimpleNamespace(diagnostics=lambda rows:{}), 'mylar.ddl_schedule': SimpleNamespace(positions=lambda rows:positions or {})}):
+        with patch.dict(sys.modules, {'mylar': parent, 'mylar.queue_progress': queue_progress, 'mylar.queue_control': SimpleNamespace(diagnostics=lambda rows:{}), 'mylar.ddl_schedule': SimpleNamespace(positions=projection or (lambda rows:positions or {}))}):
             return json.loads(namespace['queueManageIt'](None, iSortCol_0=sort, sSortDir_0='asc', **params))
 
     def test_endpoint_populates_and_sorts_percent_numerically(self):
@@ -83,6 +89,36 @@ class QueueProgressTest(unittest.TestCase):
         result = self.endpoint(items, downloads, sort='11', positions=ranks, iDisplayStart=1, iDisplayLength=1, sSearch='Comic')
         self.assertEqual(result['aaData'][0][5], 2)
         self.assertEqual(result['aaData'][0][10], ranks['2'])
+
+    def test_native_endpoint_keeps_release_identity_for_actual_projection(self):
+        import queue
+        import threading
+        import ddl_schedule
+        import queue_control
+        import workflow_store
+        items = [dict(issues=None, Issue_Number='1', ComicYear='2026', ComicVersion=None,
+                      ComicName='Comic', ComicID='comic', IssueID=str(index), comicid='comic', issueid=str(index),
+                      status='Queued', pack=False, id=index, link_type='GC-Main', size='100 B', updated_date='today')
+                 for index in range(2)]
+        downloads = [dict(self.row, **{key: row[key] for key in ('id','status','pack','comicid','issueid','issues')}) for row in items]
+        q = queue.Queue()
+        for row in items:q.put(row)
+        catalog = [dict(IssueID=str(i),ComicID='comic',Issue_Number=str(i),ReleaseDate=day,IssueDate=None)
+                   for i,day in enumerate(('2024-01-01','2026-01-01'))]
+        database = SimpleNamespace(select=lambda sql: [] if 'FROM annuals' in sql else catalog)
+        rules = {'ddl_order':'release_newest','ddl_kind':'mixed'}
+        store = workflow_store.Store(self.directory)
+        parent = SimpleNamespace(DDL_QUEUE=q,db=SimpleNamespace(DBConnection=lambda:database),
+            workflow=SimpleNamespace(store=lambda:store,policy=lambda:rules),
+            queue_control=SimpleNamespace(_LOCK=threading.RLock(),store=lambda:SimpleNamespace(data={'providers':{}})))
+        def project(rows):
+            with patch.dict(sys.modules,{'mylar':parent,'mylar.workflow_store':workflow_store,'mylar.queue_control':queue_control}):
+                return ddl_schedule.positions(rows)
+        result = self.endpoint(items, downloads, sort='11', projection=project)
+        self.assertEqual([row[5] for row in result['aaData']], [1,0])
+        rows = {str(row['id']): dict(row) for row in downloads}
+        with patch.dict(sys.modules,{'mylar.queue_control':queue_control}):ddl_schedule.release_dates(rows,database)
+        self.assertEqual(ddl_schedule.choose(items,rows,{},'release_newest','','',0,{'0':0,'1':1},'mixed'),1)
 
     def test_poll_refreshes_without_completion_or_scroll_jump(self):
         path = SOURCE.parent / 'data/interfaces/default/queue_management.html'

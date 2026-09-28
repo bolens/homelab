@@ -198,8 +198,7 @@ def action(name,values):
     if name=='resolve_import':return resolve_import(values.get('command_id'),values.get('confirmation'))
     if name=='resolve_dispatch':return resolve_dispatch(identifier(values.get('issueid')),values.get('resolution'),values.get('confirmation'))
     if name=='policy':
-        result=workflow.set_policy(json.loads(values.get('values','{}')))
-        workflow.store().delete('intake','current');return result
+        return workflow.set_policy(json.loads(values.get('values','{}')))
     if name=='handoff':return workflow.request_handoff(values.get('ddl_id'))
     if name=='resolve_handoff':return resolve_handoff(identifier(values.get('issueid')),values.get('resolution'),values.get('confirmation'))
     if name=='confirm_import':return confirm_import(values.get('source_token'),values.get('version'),identifier(values.get('issueid')),values.get('save_alias')=='true',values.get('confirmation'))

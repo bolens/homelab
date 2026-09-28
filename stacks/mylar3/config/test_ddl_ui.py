@@ -16,6 +16,8 @@ class QueueUITest(unittest.TestCase):
         self.assertIn('id="queue_table"', result)
         self.assertNotIn('id="btn_container"', result)
         self.assertNotIn('setInterval(activecheck', result)
+        self.assertNotIn('$.getJSON(sSource', result)
+        self.assertIn("dataType:'json',timeout:10000,cache:true", result)
 
     def test_upstream_drift_is_not_silently_accepted(self):
         with self.assertRaises(ValueError):

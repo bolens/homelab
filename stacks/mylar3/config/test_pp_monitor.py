@@ -12,6 +12,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch, Mock
 import pp_monitor as monitor
+import workflow_store
 from patch_pp_monitor import processor, server, navigation, tagger, api, processing_identity
 
 SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 else None
@@ -32,7 +33,7 @@ class MonitorTest(unittest.TestCase):
         self.mylar=SimpleNamespace(DATA_DIR=self.temp.name, workflow=SimpleNamespace(emit=Mock()), archive_monitor=archive_monitor, pp_monitor=monitor, PP_QUEUE=Queue(),PPPOOL=SimpleNamespace(is_alive=lambda:True),
                                   APILOCK=False,CONFIG=SimpleNamespace(POST_PROCESSING=True),
                                   db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q:self.db.execute(q).fetchall())))
-        context=patch.dict(sys.modules,{'mylar':self.mylar});context.start();self.addCleanup(context.stop)
+        context=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.workflow_store':workflow_store});context.start();self.addCleanup(context.stop)
 
     def job(self, **kwargs):
         return SimpleNamespace(nzb_name='/private/Comic.cbz',nzb_folder='/private/downloads',
@@ -68,14 +69,14 @@ class MonitorTest(unittest.TestCase):
         journal = Store(self.temp.name);self.mylar.workflow.store = lambda: journal
         @monitor.observe
         def process(job):
-            self.assertEqual(monitor.ddl_states()['active'][0]['ddl_id'], '42')
-        process(self.job(download_info={'provider':'DDL','id':'42'}))
+            self.assertEqual(monitor.ddl_states()['active'][0]['ddl_id'], '42-1')
+        process(self.job(download_info={'provider':'DDL','id':'42-1'}))
         monitor._RECENT.clear()
-        state = monitor.ddl_states(['Different outer archive.zip'], ['42'])
-        self.assertEqual(state['recent'][0]['ddl_id'], '42')
+        state = monitor.ddl_states(['Different outer archive.zip'], ['42-1'])
+        self.assertEqual(state['recent'][0]['ddl_id'], '42-1')
         self.assertEqual(state['recent'][0]['phase'], 'finished')
-        journal.set('ddl_processing','42',dict(state['recent'][0],phase='processing'))
-        state = monitor.ddl_states(['Different outer archive.zip'], ['42'])
+        journal.set('ddl_processing','42-1',dict(state['recent'][0],phase='processing'))
+        state = monitor.ddl_states(['Different outer archive.zip'], ['42-1'])
         self.assertEqual(state['recent'], [])
         self.assertEqual(state['active'], [])
 
