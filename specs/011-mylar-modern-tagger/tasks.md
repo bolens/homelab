@@ -32,8 +32,9 @@ Independent test: C3/C4/N3/L1 failures, recovery and old-image rollback.
 
 - [ ] T012 [US2] Add versioned durable publication intent and restart reconciliation in `tagger_adapter.py`; test source races and crash boundaries in `test_modern_tagger.py`.
   The standalone publisher has real-process crash tests before/after exchange,
-  conflict retention, token serialization and historical replay coverage. Startup
-  recovery wiring and native writer exclusion remain pending.
+  conflict retention, token serialization and historical replay coverage. The streaming
+  startup recovery API now skips completed history and reports busy/invalid receipts.
+  Native startup wiring and native writer exclusion remain pending.
 - [ ] T013 [US2] Connect verified added/updated/unchanged/failed/timed-out/unsupported results to `archive_monitor.py`, with tests for all monitor states.
 - [ ] T014 [US2] Verify old/new image state compatibility and scoped canary rollback, record evidence in `validation.md`. Keep legacy selectable.
 

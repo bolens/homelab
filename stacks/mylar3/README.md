@@ -487,6 +487,12 @@ Operation tokens and source paths have separate locks; old completed receipts do
 block newer jobs. Hardlinked files, extended attributes/ACLs and filesystems without
 atomic exchange are unsupported. Native integration must exclude other writers and
 prove the actual media filesystem supports the operation before enabling this backend.
+Unfinished commit cleanup rechecks source identity/permissions and displaced contents;
+unknown or malformed receipts are retained without interpreting them as failed jobs.
+The startup recovery API streams pending results, skips cleaned history without
+rehashing comics, and reports active locks as busy. Its caller must finish the scan
+and keep modern admission closed on conflicts, invalid receipts, I/O errors or busy
+jobs. Native startup wiring remains pending alongside writer coordination.
 The helpers ship under `/opt/mylar3-fixes` but do not run at startup. Existing live
 settings, library files and services are unaffected by this inactive implementation.
 

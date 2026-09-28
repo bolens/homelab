@@ -37,3 +37,11 @@ exception expectations. Provider resolution and archive transfers are separate
 choices. No double retry layer, extra cooldown mutation, automatic fallback, or
 unbounded queue is acceptable. Public workflow routes retain existing authentication
 and CSRF. Selection is validated server-side and shown with accurate availability.
+
+`Publisher.recover_pending()` streams sanitized `RecoveryResult(token, state,
+metadata)` records. It does not wait for token/source locks or hash cleaned history.
+Callers must exhaust the iterator before admitting modern work and keep admission
+closed on `busy`, `conflict`, `invalid_journal` or `io_error`. Malformed receipt names
+return an empty token, never a path/name. Unexpected receipts remain untouched; one
+invalid receipt does not prevent reconciliation of other valid pending jobs. This
+API is not yet called from native startup.
