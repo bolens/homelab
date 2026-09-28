@@ -1,0 +1,29 @@
+# Compatibility contracts
+
+The first increment exposes internal pure helpers only. It does not add a UI choice
+or change the active tagger/transport.
+
+`tagger_runtime.run(argv, cwd, timeout, max_output)` accepts an argument sequence,
+never a shell command. It returns bounded output and a typed state. It does not
+inspect or replace archives. Both version and tagging processes use this boundary.
+Callers must not log argv or raw output. Timeouts kill the process group and reap the direct child. The real-CLI gate must
+prove that the trusted CLI does not detach children into other sessions. Otherwise
+stronger containment is required before activation.
+
+`tagger_metadata.reconcile(original, tagged, updates, replace_fields)` accepts bounded
+ComicInfo bytes. Existing fields survive unless their names appear in replace_fields
+or updates. It neither reads archives nor changes files. Updates are explicit writes,
+not inferred deletion. Preserve full page metadata when pages are unchanged. StoryArc and StoryArcNumber
+are one replacement group. A partial original name never borrows an unrelated
+tagged number; partial explicit replacement or mismatched numbered lists is rejected.
+
+Future native adapter retains cmtagmylar.run's path/sentinel return contract and
+manualmeta semantics, but reports a verified structured receipt to archive_monitor.
+One adapter owns replacement. Modern backend does not convert or delete originals.
+Conversion-only and non-ZIP routes must be proved before native activation.
+
+Future discovery session exposes the current requests get/post/context lifetime and
+exception expectations. Provider resolution and archive transfers are separate
+choices. No double retry layer, extra cooldown mutation, automatic fallback, or
+unbounded queue is acceptable. Public workflow routes retain existing authentication
+and CSRF. Selection is validated server-side and shown with accurate availability.
