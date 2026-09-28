@@ -372,7 +372,9 @@ otherwise an exact annual volume is tracked separately. Catalog uncertainty is
 retained for review rather than repeatedly adding or submitting work. Pack number
 ranges no longer mark inferred issue lists Snatched or overwrite them on failure.
 Annual filename IDs resolve against annual records, and processing ownership is
-released on empty input, errors and normal completion.
+released on empty input, errors and normal completion. Startup retains unfinished
+series entries when they have issue or annual records, preserving catalog refresh
+intent and parent relationships.
 
 The existing `workflow.sqlite` also retains pack/member and catalog receipts.
 Prior ComicInfo metadata and non-comic pack credits stay in the worker's

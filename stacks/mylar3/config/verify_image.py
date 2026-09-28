@@ -15,7 +15,7 @@ with tempfile.TemporaryDirectory() as directory:
     for name in ('queue_management.html', 'manage.html', 'base.html'):
         shutil.copyfile('/app/mylar3/data/interfaces/default/' + name, templates / name)
     (source / 'queues').mkdir()
-    for name in ('webserve.py', 'getcomics.py', 'queues/ddl.py', 'cmtagmylar.py', 'api.py', 'PostProcessor.py', 'search.py', 'queues/search.py', 'queues/nzb.py', 'process.py', 'helpers.py'):
+    for name in ('webserve.py', 'getcomics.py', 'queues/ddl.py', 'cmtagmylar.py', 'api.py', 'PostProcessor.py', 'search.py', 'queues/search.py', 'queues/nzb.py', 'process.py', 'helpers.py', '__init__.py'):
         shutil.copyfile(Path('/app/mylar3/mylar') / name, source / name)
     for patch in ('patch_ddl.py', 'patch_workers.py', 'patch_health.py', 'patch_integrity.py', 'patch_queue_progress.py', 'patch_queue_control.py', 'patch_search_cooldown.py', 'patch_queue_views.py', 'patch_pp_monitor.py', 'patch_wide_layout.py', 'patch_workflow.py', 'patch_ddl_ui.py', 'patch_pack_intake.py'):
         subprocess.run([sys.executable, str(FIXES / patch), str(source)], check=True)
