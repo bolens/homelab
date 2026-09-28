@@ -1,3 +1,31 @@
+/* DataTables owns visibility; shared styling also covers non-DDL tables. */
+body .dataTables_wrapper { position: relative; }
+body .dataTables_wrapper .dataTables_processing {
+  box-sizing: border-box;
+  position: absolute;
+  left: 50%;
+  top: 3.5rem;
+  transform: translateX(-50%);
+  width: max-content;
+  min-width: min(9rem, calc(100% - 24px));
+  max-width: calc(100% - 24px);
+  height: auto;
+  margin: 0;
+  padding: 10px 16px;
+  color: #fff;
+  background: #3d4348;
+  background-image: none;
+  border: 1px solid #777;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px #0005;
+  font-size: 1rem;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  z-index: 2;
+  pointer-events: none;
+}
+
 /* Shared desktop sizing, with scoped responsive operational pages below. */
 @media (min-width: 1000px) {
   header .wrapper,

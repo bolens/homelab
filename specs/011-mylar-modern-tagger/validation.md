@@ -32,6 +32,14 @@ Scope: additive settings and shared writer ownership against `1d8d721`.
   and successful admission after reconciliation, with disposable state mounted at
   different paths in the two containers. No live service or media has changed.
 
+- Shared processing-overlay styling now covers non-DDL DataTables without changing
+  plugin-controlled visibility. An isolated Chromium fixture used both bundled
+  DataTables versions with page styles loaded after the shared styles, at 375,
+  768, 1440 and 2560 pixels. All eight cases verified readable colors, bounded
+  centered placement and automatic dismissal after the actual plugin callback.
+  The 375-pixel capture was visually inspected. This is fixture evidence, not a
+  live-page or full-theme verification.
+
 Other native rescan/file-management writers, modern producer routing, recovery cleanup,
 startup admission and live rollout/canary acceptance remain pending. The worker
 protocol is opt-in. This increment does not select the modern backend.
