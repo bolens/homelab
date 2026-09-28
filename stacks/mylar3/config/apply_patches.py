@@ -24,6 +24,7 @@ PATCHES = (
     "patch_ddl_ui",
     "patch_postprocessing",
     "patch_ddl_schedule",
+    "patch_queue_labels",
     "patch_series_preservation",
     "patch_pack_intake",
     "patch_database_transactions",
