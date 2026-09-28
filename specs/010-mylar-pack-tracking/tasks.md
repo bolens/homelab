@@ -36,6 +36,24 @@ GHCR delivery were verified; completed feature branches were removed.
 Live pack coverage is limited to enabled API/worker configuration and health:
 no retained completed pack source was available for a fresh real transfer.
 Real archive and restart fixtures provide the pack-preservation evidence.
-The additional table-order/layout scope below remains open.
+The table-order and settings-layout additions were deployed in PRs 122 and 123.
 
-- [ ] T12 Add scheduler-based table sorting and compact responsive settings; verify preference changes, priority, cooldowns, pause and history ordering in fixtures and the live browser.
+- [x] T12 Add scheduler-based table sorting and compact responsive settings; verify preference changes, priority, cooldowns, pause and history ordering in fixtures and the live browser.
+
+Table ordering projects the scheduler's saved preferences; fixtures verify that
+it matches successive admissions. Fixtures cover all five modes, one-item priority, cooldowns, pause, history and
+server-side pagination. A native package-name collision found during live checks
+was corrected, with a full patched-package import gate and action regression.
+The image gate passes on both the pinned upstream image and the built image.
+
+Authenticated Chromium saved all five modes while paused, checked ranked table
+ordering, and verified layouts at 375, 768, 1440 and 2560 pixels. Gray processing
+indicators at 375 and 1440 pixels were checked and visually inspected. One
+injected failed table request retained rows, disabled stale actions, cleared the
+indicator and recovered through normal automatic polling. The exact original
+queue preference and pause state were restored from the verified baseline.
+
+The final delayed-refresh check verified stable colors on 51 controls. Repeated
+preservation checks confirmed all baseline records and existing library files,
+with the original policy intact. Mylar and its Kuma monitors were healthy.
+NZBGet, Komga, the normalizer and Kuma kept their identities and start times.
