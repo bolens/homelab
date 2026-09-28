@@ -26,4 +26,9 @@ with tempfile.TemporaryDirectory() as directory:
 subprocess.run([sys.executable, str(FIXES / 'test_reliability.py')], check=True)
 
 
+
+# Import the real package, not only extracted worker methods: native Mylar owns
+# queue_schedule as a function used to start and stop its worker pools.
+subprocess.run([sys.executable, '-c', "import mylar; from mylar import ddl_schedule; assert callable(mylar.queue_schedule); assert callable(ddl_schedule.take); assert callable(ddl_schedule.positions)"], check=True, env=dict(os.environ, PYTHONPATH='/app/mylar3:/app/mylar3/lib'))
+
 print('Candidate image passed the isolated Mylar reliability gate')

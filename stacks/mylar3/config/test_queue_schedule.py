@@ -5,7 +5,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock,patch
-from queue_schedule import choose,take,started,projected_order,positions
+from ddl_schedule import choose,take,started,projected_order,positions
 from workflow_store import Store
 
 
@@ -33,7 +33,7 @@ class ScheduleTest(unittest.TestCase):
         self.assertEqual(self.pick('newest'),0)
 
     def test_native_split_ids_are_opaque_and_arrival_is_persistent(self):
-        from queue_schedule import arrival_order
+        from ddl_schedule import arrival_order
         with tempfile.TemporaryDirectory() as root:
             store=Store(root);mylar=SimpleNamespace(workflow=SimpleNamespace(store=lambda:store))
             items=[{'id':'90000','link_type':'GC-Main'},{'id':'12345-1','link_type':'GC-Main'}]
