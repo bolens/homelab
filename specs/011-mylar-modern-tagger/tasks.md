@@ -13,7 +13,7 @@
 
 Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
 
-- [x] T007 [US1] Resolve hashed target-runtime dependencies in `stacks/mylar3/tagger-requirements.lock`; document license/platform/runtime proof in `research.md`.
+- [x] T007 [US1] Resolve hashed target-runtime dependencies in `stacks/mylar3/requirements.txt`; document license/platform/runtime proof in `research.md`.
 - [x] T008 [US1] Build isolated headless venv and final-stage native libraries in `stacks/mylar3/Dockerfile`, preserving the legacy runtime.
 - [ ] T009 [US1] Implement staged archive verification and sole publication owner in `stacks/mylar3/config/tagger_adapter.py`; preserve pages, comments, sidecars and permissions.
   `tagger_archive.py` now implements the verification/reconciliation component.
