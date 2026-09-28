@@ -100,3 +100,10 @@ plus pause-new-starts and one-item download-next controls. Changes affect the ne
 eligible transfer, preserve provider cooldowns and active downloads, and do not
 confuse visual table order with actual scheduling. This scope was added during
 implementation; its acceptance evidence belongs with the final candidate.
+
+The queue table must also offer **Download queue order**, using the same saved
+preference and one-item priority as the scheduler. Eligible queued downloads
+precede provider cooldowns, active downloads stay first, and history follows
+queued work. The display is an estimate that refreshes as eligibility changes.
+It remains usable while downloads are paused. Download settings and display
+sorting must be separately labeled and usable at narrow and wide widths.

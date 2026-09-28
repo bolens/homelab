@@ -8,6 +8,7 @@ from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, patch
 from patch_queue_progress import patched_source, patched_template
+from patch_pack_intake import queue_view
 import queue_progress
 
 SOURCE = Path(sys.argv.pop(1))
@@ -45,9 +46,10 @@ class QueueProgressTest(unittest.TestCase):
         self.row.update(link_type='GC-Main', remote_filesize=10)
         self.assertEqual(queue_progress.progress(self.row, self.directory), '100%')
 
-    def endpoint(self, items, downloads):
-        source = patched_source((SOURCE / 'webserve.py').read_text())
+    def endpoint(self, items, downloads, sort='3', positions=None, **params):
+        source = queue_view(patched_source((SOURCE / 'webserve.py').read_text()))
         self.assertEqual(patched_source(source), source)
+        self.assertEqual(queue_view(source), source)
         node = next(n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.FunctionDef) and n.name == 'queueManageIt')
         database = MagicMock()
         database.select.side_effect = [items, [], downloads]
@@ -55,8 +57,8 @@ class QueueProgressTest(unittest.TestCase):
                          mylar=SimpleNamespace(CONFIG=SimpleNamespace(DDL_LOCATION=str(self.directory))))
         exec(compile(ast.Module(body=[node], type_ignores=[]), '<queue>', 'exec'), namespace)
         parent = ModuleType('mylar')
-        with patch.dict(sys.modules, {'mylar': parent, 'mylar.queue_progress': queue_progress, 'mylar.queue_control': SimpleNamespace(diagnostics=lambda rows:{})}):
-            return json.loads(namespace['queueManageIt'](None, iSortCol_0='3', sSortDir_0='asc'))
+        with patch.dict(sys.modules, {'mylar': parent, 'mylar.queue_progress': queue_progress, 'mylar.queue_control': SimpleNamespace(diagnostics=lambda rows:{}), 'mylar.queue_schedule': SimpleNamespace(positions=lambda rows:positions or {})}):
+            return json.loads(namespace['queueManageIt'](None, iSortCol_0=sort, sSortDir_0='asc', **params))
 
     def test_endpoint_populates_and_sorts_percent_numerically(self):
         items, downloads = [], []
@@ -70,6 +72,17 @@ class QueueProgressTest(unittest.TestCase):
 
     def test_empty_queue_returns_empty_table(self):
         self.assertEqual(self.endpoint([], [])['aaData'], [])
+
+    def test_queue_order_sorts_before_pagination_and_keeps_rank_in_response(self):
+        items = [dict(issues=None, Issue_Number='1', ComicYear='2026', ComicVersion=None,
+                      ComicName='Comic', ComicID='comic', IssueID=str(index), comicid='comic', issueid=str(index),
+                      status='Queued', pack=False, id=index, link_type='GC-Main', size='100 B', updated_date='today')
+                 for index in range(3)]
+        ranks = {str(index): {'sort': rank, 'label': '#'+str(rank)} for index, rank in enumerate((3, 1, 2))}
+        downloads = [dict(self.row, id=index) for index in range(3)]
+        result = self.endpoint(items, downloads, sort='11', positions=ranks, iDisplayStart=1, iDisplayLength=1, sSearch='Comic')
+        self.assertEqual(result['aaData'][0][5], 2)
+        self.assertEqual(result['aaData'][0][10], ranks['2'])
 
     def test_poll_refreshes_without_completion_or_scroll_jump(self):
         path = SOURCE.parent / 'data/interfaces/default/queue_management.html'

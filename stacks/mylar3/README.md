@@ -391,7 +391,14 @@ alternate singles and packs. Oldest/newest use persisted local arrival order;
 existing entries are seeded in their current queue order. Cooldowns and retries
 do not change age. Each group keeps oldest-first order. **Download next** overrides
 the preference
-for one eligible queued entry; provider cooldowns still apply. **Pause new DDL
+for one eligible queued entry; provider cooldowns still apply. **Pause new
 downloads** holds the next start without interrupting an active download or NZB work.
 Preferences persist in the existing workflow database and take effect at the next
 transfer boundary. The default remains oldest queued first.
+
+Use **View order → Download queue order** above the table to follow those saved
+preferences. The estimate places active transfers first, then eligible queued
+downloads, provider cooldowns, unscheduled entries and history. Position labels
+show each queued entry's place. The view refreshes after preference or priority
+changes and remains usable while paused. Changing the view never changes the
+download preference.

@@ -76,7 +76,7 @@ $(document).ready(function(){
         if (!data || !data.csrf || !data.policy) return;
         ddlCsrf=data.csrf;$('#ddl_order').val(data.policy.ddl_order);$('#ddl_paused').prop('checked',data.policy.ddl_paused);
         $('#ddl_schedule :input').prop('disabled',false);$('#ddl_save_schedule').button('refresh');
-        $('#ddl_schedule_note').text('Applies to the next eligible download. Provider cooldowns still apply. Table sorting does not change download order.');
+        $('#ddl_schedule_note').text('Applies to the next eligible download. Active transfers keep running; provider cooldowns still apply.');
     }).fail(function(){$('#ddl_schedule_note').text('Queue preferences could not be loaded. Reload or sign in through Manage.');});
     $('#ddl_schedule').on('submit',function(event){event.preventDefault();ddlSchedulingAction('policy',{values:JSON.stringify({ddl_order:$('#ddl_order').val(),ddl_paused:$('#ddl_paused').prop('checked')})});});
     $('#ddl_refresh').on('click',activecheck);
@@ -116,7 +116,11 @@ $(document).ready(function(){
     $('#ddl_restart_queue').on('click',function(){ajaxcallit('restart_queue');});
     $('#ddl_clear_queue').on('click',function(){ajaxcallit('clear_queue');});
     $('#ddl_sort').on('change',function(){if(this.value==='custom')return;var order=this.value.split(':');$('#queue_table').DataTable().order([Number(order[0]),order[1]]).draw();});
-    $('#queue_table').on('order.dt',function(){var order=$(this).DataTable().order()[0],value=order[0]+':'+order[1];$('#ddl_sort').val($('#ddl_sort option').filter(function(){return this.value===value;}).length ? value : 'custom');});
+    $('#queue_table').on('order.dt',function(){
+        var order=$(this).DataTable().order()[0],value=order[0]+':'+order[1];
+        $('#ddl_sort').val($('#ddl_sort option').filter(function(){return this.value===value;}).length ? value : 'custom');
+        $('#ddl_sort_note').text(value==='11:asc' ? 'Estimated from saved preferences and Download next. Active first, eligible downloads before cooldowns, then history. Updates automatically.' : 'Changes the table view only.');
+    });
     document.addEventListener('visibilitychange',function(){if(document.hidden)clearTimeout(ImportTimer);else activecheck();});
     $(window).on('beforeunload',function(){ddlStopped=true;clearTimeout(ImportTimer);});
 });

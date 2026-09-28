@@ -3,13 +3,15 @@
 <nav class="ddl_sections" aria-label="DDL queue sections"><a href="#ddl_active">Active download</a><a href="#ddl_history">Queue and history</a><button id="ddl_refresh" type="button">Refresh status</button></nav>
 <p id="ddl_notice" role="status">Loading download status…</p>
 <p id="ddl_action_notice" role="status"></p>
-<form id="ddl_schedule" class="ddl_actions">
+<form id="ddl_schedule" aria-label="Download preferences">
+<div class="ddl_setting">
 <label for="ddl_order">Download order</label>
 <select id="ddl_order" disabled><option value="fifo">Oldest queued first</option><option value="newest">Newest queued first</option><option value="singles">Singles before packs</option><option value="packs">Packs before singles</option><option value="alternate">Alternate singles and packs</option></select>
-<label><input id="ddl_paused" type="checkbox" disabled> Pause new DDL downloads</label>
+</div>
+<label class="ddl_toggle"><input id="ddl_paused" type="checkbox" disabled> Pause new downloads</label>
 <button id="ddl_save_schedule" type="submit" disabled>Save queue preferences</button>
-</form>
 <p id="ddl_schedule_note" role="status">Loading queue preferences…</p>
+</form>
 <section id="ddl_active" aria-labelledby="ddl_active_heading">
 <div class="ddl_active_heading"><h2 id="ddl_active_heading">Active download</h2><span id="ddl_state">Loading</span></div>
 <p id="ddl_idle">Waiting for the current download.</p>
@@ -22,4 +24,4 @@
 </section>
 <section id="ddl_history" aria-labelledby="ddl_history_heading"><h2 id="ddl_history_heading">Queue and history</h2>
 <p>Download completion and confirmed library import are shown separately in Download / import status.</p>
-<div class="ddl_mobile_sort"><label for="ddl_sort">Sort queue</label><select id="ddl_sort"><option value="5:desc">Recently updated</option><option value="5:asc">Oldest updated</option><option value="0:asc">Series A–Z</option><option value="3:desc">Progress, highest first</option><option value="4:asc">Status A–Z</option><option value="custom" disabled>Current table order</option></select></div>
+<div class="ddl_view_settings"><label for="ddl_sort">View order</label><select id="ddl_sort" aria-describedby="ddl_sort_note"><option value="11:asc">Download queue order</option><option value="5:desc" selected>Recently updated</option><option value="5:asc">Oldest updated</option><option value="0:asc">Series A–Z</option><option value="3:desc">Progress, highest first</option><option value="4:asc">Status A–Z</option><option value="custom" disabled>Current table order</option></select><span id="ddl_sort_note">Changes the table view only.</span></div>

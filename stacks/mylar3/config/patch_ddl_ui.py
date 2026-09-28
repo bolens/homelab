@@ -16,7 +16,7 @@ def between(source, start, end, value):
 
 def template(source):
     if MARKER in source:
-        return source
+        return queue_order_template(source)
     files = Path(__file__).parent
     source = between(source, '            <div id="paddingheader">', '             <div class="table_wrapper">',
                      MARKER + '\n' + (files/'ddl_active.html').read_text())
@@ -41,7 +41,21 @@ def template(source):
     source = between(source, '                      <a id="menu_link_refresh" href="#" title="Restart stalled queue"', '                </div>',
                      '                      <button id="ddl_restart_queue" type="button">Restart queued downloads</button>\n'
                      '                      <button id="ddl_clear_queue" type="button">Clear queued entries</button>\n')
-    return source
+    return queue_order_template(source)
+
+
+def queue_order_template(source):
+    marker = '// homelab-queue-order-column-v1'
+    if marker in source:
+        return source
+    source = replace_once(source, '<th>Download / import status</th>',
+                          '<th>Download / import status</th><th>Download queue order</th>')
+    source = replace_once(source, '                    "columnDefs": [',
+        '                    "columnDefs": [\n                        ' + marker + '\n                        {"targets": [11], "visible": false, "sortable": true, "data": null, "render": function(data,type,full) {return (full[10] || {}).sort || 0;}},')
+    return replace_once(source,
+        '''return '<a href="comicDetails?ComicID=' + encodeURIComponent(full[7]) + '">' + ddlText(full[0]) + '</a>';''',
+        '''var label=(full[10] || {}).label;
+                                return (label ? '<span class="ddl_rank">' + ddlText(label) + '</span>' : '') + '<a href="comicDetails?ComicID=' + encodeURIComponent(full[7]) + '">' + ddlText(full[0]) + '</a>';''')
 
 
 def main(directory):
