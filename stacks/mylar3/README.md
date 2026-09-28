@@ -78,6 +78,10 @@ with the active-download poll and shows measured percentages, `0%` for queued
 items, `100%` for completed items, and `Unknown` when the provider supplies no
 total size. Failed items show `--`. Percentage sorting is numeric, and polling
 preserves the current page and scroll position.
+Queue and history labels use the saved release title, matching the active download
+even when a pack is linked to one issue or its legacy pack flag is missing. Entries
+without a release title retain their catalog label. This does not change issue
+links, pack membership, or import status.
 
 Unknown DDL mirror types fail the current attempt without reusing another
 transfer's result. Manual Resume prefers the staged `.part` file and starts a

@@ -18,6 +18,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
 | DDL progress | `patch_queue_progress.py` | `queue_progress.py`, `test_queue_progress.py` |
+| DDL release labels | `patch_queue_labels.py` | `test_queue_progress.py`; follows queue ordering, retains linked issue identity |
 | Queue policy and execution ordering | `patch_ddl_schedule.py` | `ddl_schedule.py`, `test_queue_schedule.py` |
 | Queue diagnostics and import problems | `patch_queue_views.py` | `import_problems.py`, `test_queue_views.py` |
 | Cooldown search fallback | `patch_search_cooldown.py` | `test_search_cooldown.py`, `test_search_fallback.py` |
