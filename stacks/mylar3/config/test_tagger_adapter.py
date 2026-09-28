@@ -56,6 +56,41 @@ class PublicationTest(unittest.TestCase):
         self.assertFalse(list(self.root.glob('.mylar-tag-*')))
         self.assertEqual(self.publisher.receipt(TOKEN).stat().st_mode & 0o777, 0o600)
 
+    def test_terminal_commit_rechecks_ownership_before_cleanup(self):
+        for change in ('permissions', 'replacement', 'displaced'):
+            with self.subTest(change=change):
+                self.setUp()
+                with patch.object(subject.shutil, 'rmtree', side_effect=SystemExit):
+                    with self.assertRaises(SystemExit):
+                        self.tag()
+                folder = self.root/('.mylar-tag-'+TOKEN)
+                if change == 'permissions':
+                    self.source.chmod(0o644)
+                elif change == 'replacement':
+                    replacement = self.root/'replacement'
+                    shutil.copyfile(self.source, replacement)
+                    replacement.chmod(0o640)
+                    os.replace(replacement, self.source)
+                else:
+                    (folder/'verified.cbz').write_bytes(b'another writer')
+                self.assertEqual(self.publisher.recover(TOKEN).state, 'conflict')
+                self.assertEqual((folder/'original.cbz').read_bytes(), self.before)
+
+    def test_unknown_state_and_malformed_receipts_are_retained(self):
+        self.crash('staged')
+        original = self.publisher.read(TOKEN)
+        for change in ({'state':'future_state'}, {'cleaned':'false'}, {'workspace':[]},
+                       {'source':42}, {'source':str(self.source)+'\0'},
+                       {'source':str(self.source)+'\ud800'}, {'source':'/'+str(self.source)},
+                       {'before':'not a hash'}):
+            record = dict(original, **change)
+            raw = json.dumps(record)
+            self.publisher.receipt(TOKEN).write_text(raw)
+            with self.assertRaises(ValueError):
+                self.publisher.recover(TOKEN)
+            self.assertEqual(self.publisher.receipt(TOKEN).read_text(), raw)
+            self.assertTrue((self.root/('.mylar-tag-'+TOKEN)/'original.cbz').exists())
+
     def test_failed_timeout_and_changed_page_keep_original(self):
         for state in ('failed', 'timed_out', 'invalid_result'):
             token = hashlib.md5(state.encode()).hexdigest()
@@ -178,10 +213,14 @@ a.Publisher(sys.argv[1]).tag(sys.argv[2], {'series':'Fixture'}, token='a'*32)
             self.assertEqual(self.publisher.tag(self.source, {'series':'Third'}, token='c'*32, updates={'Series':'Third'}).state, 'committed')
 
     def test_no_lifetime_quota_from_completed_history(self):
+        self.assertEqual(self.tag().state, 'committed')
+        template = self.publisher.read(TOKEN)
+        self.publisher.receipt(TOKEN).unlink()
         for i in range(1001):
             token = format(i, '032x')
-            self.publisher.receipt(token).write_text(json.dumps(dict(version=1, token=token, source=str(self.source), state='failed', cleaned=True)))
-        self.assertEqual(self.tag().state, 'committed')
+            self.publisher.receipt(token).write_text(json.dumps(dict(template, token=token, state='failed', cleaned=True)))
+        with patch.object(subject, 'save', return_value=TagResult('saved')):
+            self.assertEqual(self.publisher.tag(self.source, {'series':'Fixture'}, token=TOKEN).state, 'unchanged')
 
     def test_removed_completed_source_does_not_rewrite_history(self):
         self.assertEqual(self.tag().state, 'committed')
@@ -227,6 +266,73 @@ a.Publisher(sys.argv[1]).tag(sys.argv[2], {'series':'Fixture'}, token='a'*32)
         self.assertEqual(self.source.read_bytes(), self.before)
         with self.assertRaises(ValueError):
             subject.Publisher(self.root/'sub'/'..'/'state')
+
+    def test_startup_recovers_pending_and_skips_cleaned_history(self):
+        self.crash('after_exchange')
+        with patch.object(subject, 'save', side_effect=AssertionError('No repeated CLI')):
+            rows = list(self.publisher.recover_pending())
+        self.assertEqual(rows, [subject.RecoveryResult(TOKEN, 'committed', 'added')])
+        with patch.object(subject, 'fingerprint', side_effect=AssertionError('No history hashing')):
+            self.assertEqual(list(self.publisher.recover_pending()), [])
+        self.assertNotIn(str(self.root), repr(rows))
+
+    def test_startup_retains_invalid_receipts_and_continues_recovery(self):
+        self.crash('staged')
+        invalid = self.publisher.receipt('b'*32)
+        invalid.write_text('not json')
+        nested = self.publisher.receipt('c'*32)
+        nested_raw = '['*100000 + '0' + ']'*100000
+        nested.write_text(nested_raw)
+        named = self.publisher.root/'private-name.json'
+        named.write_text('{}')
+        rows = list(self.publisher.recover_pending())
+        self.assertEqual(sorted(r.state for r in rows), ['failed', 'invalid_journal', 'invalid_journal', 'invalid_journal'])
+        self.assertEqual(invalid.read_text(), 'not json')
+        self.assertTrue(named.exists())
+        self.assertEqual(nested.read_text(), nested_raw)
+        self.assertNotIn('private-name', repr(rows))
+        self.assertEqual(self.source.read_bytes(), self.before)
+
+    def test_startup_does_not_wait_on_active_token_or_source(self):
+        self.crash('staged')
+        for lock in ('token:' + TOKEN, self.source):
+            with self.publisher.lock(lock):
+                rows = list(self.publisher.recover_pending())
+            self.assertEqual(rows, [subject.RecoveryResult(TOKEN, 'busy')])
+            self.assertEqual(self.publisher.read(TOKEN)['state'], 'staged')
+        self.assertEqual(list(self.publisher.recover_pending())[0].state, 'failed')
+
+    def test_startup_releases_locks_before_yielding(self):
+        self.crash('staged')
+        pending = self.publisher.recover_pending()
+        self.assertEqual(next(pending).state, 'failed')
+        with self.publisher.lock('token:' + TOKEN, blocking=False), self.publisher.lock(self.source, blocking=False):
+            pass
+        pending.close()
+
+    def test_startup_retains_symlink_receipt(self):
+        external = self.root/'external'
+        external.write_text('keep')
+        self.publisher.receipt(TOKEN).symlink_to(external)
+        self.assertEqual(list(self.publisher.recover_pending()), [subject.RecoveryResult(TOKEN, 'io_error')])
+        self.assertEqual(external.read_text(), 'keep')
+        self.assertTrue(self.publisher.receipt(TOKEN).is_symlink())
+
+    def test_pre_epoch_source_timestamp_round_trips(self):
+        os.utime(self.source, ns=(-1000000000, -1000000000))
+        result = self.tag()
+        self.assertEqual(result.state, 'committed')
+        self.assertEqual(self.publisher.recover(TOKEN), result)
+        self.assertEqual(list(self.publisher.recover_pending()), [])
+
+    def test_double_root_alias_cannot_bypass_pending_owner(self):
+        self.crash('staged')
+        with patch.object(subject, 'save', side_effect=AssertionError('Pending owner must block')):
+            self.assertEqual(self.publisher.tag('/'+str(self.source), {}, token='b'*32).state, 'unsupported')
+        self.assertEqual(self.publisher.read(TOKEN)['state'], 'staged')
+        self.assertEqual(self.source.read_bytes(), self.before)
+        with self.assertRaises(ValueError):
+            subject.Publisher('/'+str(self.publisher.root))
 
     def test_unknown_journal_version_retained(self):
         path = self.publisher.receipt(TOKEN)

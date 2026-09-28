@@ -68,7 +68,8 @@ vendored legacy tagger. Tests: `test_tagger_runtime.py`, `test_tagger_metadata.p
 operation files, reopens them for verification and never replaces a source.
 `fetch_tagger_sources.py` runs only during image construction.
 The publisher owns atomic CBZ exchange and versioned recovery receipts. Conflict
-copies remain private for review. All five helpers are retained under
+copies remain private for review. Its streaming recovery API skips cleaned history,
+reports active locks without waiting, and retains malformed receipts. All five helpers are retained under
 `/opt/mylar3-fixes` in the final image, with no startup or native invocation.
 Native routing, writer coordination, filesystem canaries and optional DDL discovery
 remain separate activation gates.

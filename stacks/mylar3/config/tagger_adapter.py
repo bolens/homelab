@@ -26,6 +26,8 @@ from tagger_cli import save, VERSION
 
 TERMINAL = {'committed', 'unchanged', 'failed', 'timed_out', 'unsupported'}
 HEX = re.compile(r'[0-9a-f]{32}\Z')
+HASH = re.compile(r'[0-9a-f]{64}\Z')
+STATES = TERMINAL | {'staged', 'publishing', 'conflict'}
 
 
 @dataclass(frozen=True)
@@ -33,6 +35,13 @@ class Result:
     state: str
     metadata: str = ''
     # Paths, raw errors, command arguments and metadata stay out of the result.
+
+
+@dataclass(frozen=True)
+class RecoveryResult:
+    token: str
+    state: str
+    metadata: str = ''
 
 
 def sync(directory):
@@ -80,7 +89,7 @@ def _checkpoint(stage):
 class Publisher:
     def __init__(self, directory):
         self.root = Path(directory).absolute()
-        if '..' in self.root.parts or any(p.is_symlink() for p in (self.root, *self.root.parents)):
+        if self.root.anchor != '/' or '..' in self.root.parts or any(p.is_symlink() for p in (self.root, *self.root.parents)):
             raise ValueError('Linked journal directory')
         self.root.mkdir(mode=0o700, exist_ok=True)
         info = self.root.stat()
@@ -99,9 +108,35 @@ class Publisher:
             raw = stream.read(1048577)
         if len(raw) > 1048576:
             raise ValueError('Oversized journal')
-        value = json.loads(raw)
-        if value.get('version') != 1 or value.get('token') != token:
+        try:
+            value = json.loads(raw)
+        except RecursionError as error:
+            raise ValueError('Overnested journal') from error
+        def integers(name, length, signed_tail=0):
+            field = value.get(name)
+            return (isinstance(field, list) and len(field) == length
+                    and all(type(n) is int for n in field)
+                    and all(n >= 0 for n in field[:length-signed_tail]))
+        def digest(name):
+            field = value.get(name)
+            return isinstance(field, str) and HASH.fullmatch(field) is not None
+        if not isinstance(value, dict):
+            raise ValueError('Invalid journal')
+        source = value.get('source')
+        if (type(value.get('version')) is not int or value['version'] != 1 or value.get('token') != token
+                or not isinstance(value.get('state'), str) or value['state'] not in STATES
+                or type(value.get('cleaned')) is not bool
+                or not isinstance(source, str) or '\0' in source or source != str(Path(source))
+                or Path(source).anchor != '/' or '..' in Path(source).parts
+                or not digest('request') or not digest('before')
+                or not integers('source_identity', 5, 2) or not integers('workspace', 2)
+                or not integers('permissions', 3)
+                or value.get('metadata', '') not in ('', 'added', 'updated', 'unchanged')
+                or (value['cleaned'] and value['state'] not in TERMINAL)):
             raise ValueError('Unsupported journal')
+        os.fsencode(source)  # Reject unencodable receipt paths before any mutation.
+        if value['state'] in ('publishing', 'committed') and (not digest('after') or not integers('candidate_identity', 5, 2)):
+            raise ValueError('Invalid publication intent')
         return value
 
     def write(self, value):
@@ -120,13 +155,13 @@ class Publisher:
         sync(self.root)
 
     @contextmanager
-    def lock(self, source):
+    def lock(self, source, *, blocking=True):
         key = hashlib.sha256(os.fsencode(source)).hexdigest()
         fd = os.open(self.root / (key + '.lock'), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600)
         try:
             if not stat.S_ISREG(os.fstat(fd).st_mode):
                 raise ValueError('Invalid lock')
-            fcntl.flock(fd, fcntl.LOCK_EX)
+            fcntl.flock(fd, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
             yield
         finally:
             os.close(fd)
@@ -134,14 +169,44 @@ class Publisher:
     def workspace(self, record):
         source = Path(record['source'])
         expected = source.parent / ('.mylar-tag-' + record['token'])
-        if not source.is_absolute() or '..' in source.parts or any(p.is_symlink() for p in source.parents):
+        if source.anchor != '/' or '..' in source.parts or any(p.is_symlink() for p in source.parents):
             raise ValueError('Invalid source ancestry')
         info = expected.lstat()
         if not stat.S_ISDIR(info.st_mode) or list(identity(info)[:2]) != record['workspace']:
             raise ValueError('Workspace identity changed')
         return expected
 
+    def committed_intact(self, record):
+        source = Path(record['source'])
+        if any(p.is_symlink() for p in (source, *source.parents)):
+            return False
+        info = source.lstat()
+        if (fingerprint(source) != record['after']
+                or list(identity(info)[:4]) != record['candidate_identity'][:4]
+                or [stat.S_IMODE(info.st_mode), info.st_uid, info.st_gid] != record['permissions']
+                or info.st_nlink != 1 or os.listxattr(source, follow_symlinks=False)):
+            return False
+        folder = source.parent / ('.mylar-tag-' + record['token'])
+        if folder.exists() or folder.is_symlink():
+            folder = self.workspace(record)
+            displaced = folder / 'verified.cbz'
+            if displaced.exists() or displaced.is_symlink():
+                info = displaced.lstat()
+                if (fingerprint(displaced) != record['before']
+                        or list(identity(info)[:4]) != record['source_identity'][:4]
+                        or [stat.S_IMODE(info.st_mode), info.st_uid, info.st_gid] != record['permissions']
+                        or info.st_nlink != 1 or os.listxattr(displaced, follow_symlinks=False)):
+                    return False
+        return True
+
     def finish(self, record, state, *, cleanup=True):
+        if cleanup and state == 'committed':
+            try:
+                intact = self.committed_intact(record)
+            except (OSError, ValueError):
+                intact = False
+            if not intact:
+                state, cleanup = 'conflict', False
         if cleanup and state in ('failed', 'timed_out', 'unchanged'):
             try:
                 source = Path(record['source'])
@@ -168,13 +233,46 @@ class Publisher:
             with self.lock(record['source']):
                 return self._recover(self.read(token))
 
+    def recover_pending(self):
+        """Stream startup results without waiting on active jobs or hashing history.
+
+        A caller must exhaust this iterator before admitting modern tag jobs and
+        keep the gate closed for busy, invalid_journal, io_error or conflict.
+        Unknown receipts are retained, not guessed or overwritten. No native
+        startup calls this method until other-writer coordination is installed.
+        """
+        with os.scandir(self.root) as entries:
+            for entry in entries:
+                if not entry.name.endswith('.json'):
+                    continue
+                token = entry.name[:-5]
+                if not HEX.fullmatch(token):
+                    yield RecoveryResult('', 'invalid_journal')
+                    continue
+                try:
+                    # Do not yield while holding either lock: callers may pause.
+                    with self.lock('token:' + token, blocking=False):
+                        record = self.read(token)
+                        if record['state'] in TERMINAL and record['cleaned']:
+                            continue
+                        with self.lock(record['source'], blocking=False):
+                            result = self._recover(record)
+                    outcome = RecoveryResult(token, result.state, result.metadata)
+                except BlockingIOError:
+                    outcome = RecoveryResult(token, 'busy')
+                except (ValueError, TypeError, KeyError):
+                    outcome = RecoveryResult(token, 'invalid_journal')
+                except OSError:
+                    outcome = RecoveryResult(token, 'io_error')
+                yield outcome
+
     def _recover(self, record):
         source = Path(record['source'])
         try:
             if record['state'] in TERMINAL:
                 if record['state'] in ('committed', 'unchanged'):
                     expected = record['after'] if record['state'] == 'committed' else record['before']
-                    if fingerprint(source) != expected:
+                    if fingerprint(source) != expected or (not record.get('cleaned') and record['state'] == 'committed' and not self.committed_intact(record)):
                         # A newer job/operator can supersede a completed receipt.
                         # Do not turn cleaned history into a blocking active owner.
                         return Result('conflict') if record.get('cleaned') else self.finish(record, 'conflict', cleanup=False)
@@ -219,7 +317,7 @@ class Publisher:
     def tag(self, source, metadata, *, token, updates=None, replace_fields=(), executable=None):
         source = Path(source).absolute()
         replace_fields = tuple(replace_fields)
-        if source.suffix.lower() != '.cbz' or '..' in source.parts or any(p.is_symlink() for p in (source, *source.parents)):
+        if source.anchor != '/' or source.suffix.lower() != '.cbz' or '..' in source.parts or any(p.is_symlink() for p in (source, *source.parents)):
             return Result('unsupported')
         request = hashlib.sha256(json.dumps([str(source), metadata, updates, list(replace_fields)],
                                            sort_keys=True, allow_nan=False).encode()).hexdigest()

@@ -23,3 +23,11 @@
 - Future transport selection: `requests` default or `curl_discovery`; full
   `curl_stream` unavailable until its acceptance gate. Store independently of
   queue ordering and provider cooldown state.
+
+- RecoveryResult: validated opaque token (empty for invalid names), typed outcome,
+  optional verified metadata outcome. Busy jobs, malformed receipts and I/O errors
+  are explicit blocking startup outcomes. The scanner never exposes file paths or
+  raw exceptions and releases all job locks before yielding to its caller.
+- Uncleaned committed receipts retain recovery copies if the source inode,
+  permissions, links, extended attributes or displaced bytes/ownership changed.
+  Schema/state validation happens before recovery can modify a journal or workspace.

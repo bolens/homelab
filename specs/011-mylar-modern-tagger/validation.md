@@ -1,5 +1,30 @@
 # Implementation evidence
 
+## Recovery gate and second seam-review increment
+
+Scope: publisher recovery review against `52e9cc6` and an inactive startup scan API.
+
+- Reproduced cleanup after a durable commit accepting changed permissions, a new
+  source inode with identical bytes, or altered displaced bytes. Unfinished cleanup
+  now revalidates source and displaced ownership/content and retains conflicts.
+- Reproduced unknown states being guessed as staging failures. Receipt schema and
+  state validation now precede recovery mutation. Deeply nested JSON and malformed
+  paths remain unchanged and are reported as invalid journals.
+- Independent compatibility review found valid pre-epoch timestamps rejected by
+  the new validator and a pre-existing double-root alias bypassing pending ownership.
+  Signed timestamp fields now round-trip; ambiguous roots are rejected consistently.
+- Added streaming `recover_pending()` for future startup admission. It skips cleaned
+  history without hashing media, reports busy token/source locks without waiting,
+  releases locks before yielding, and continues valid recovery past invalid receipts.
+  Tests use real crash fixtures and forbid repeating CLI work.
+- Two independent reviewers verified their corrections; 30 publisher/recovery tests
+  and the 301-test final unprivileged, offline image gate passed. `make ci-local`
+  passed, including secret scanning. Native startup wiring and coordination with
+  other writers remain pending.
+
+The component is inactive: no settings, services or live media were changed. Compose,
+environment, preparation, ingress and stack metadata contracts remain unchanged.
+
 ## Publication and seam-review increment
 
 Scope: inactive publisher and earlier helper audit against `e48ee9e`.
