@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch, Mock
 
 from processing_guard import run
-from patch_pack_intake import processor, processing, helpers, search, scheduler
+from patch_pack_intake import processor, processing, helpers, search, scheduler, startup
 
 SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 and not sys.argv[1].startswith('-') else None
 
@@ -76,6 +76,16 @@ class ProcessingTest(unittest.TestCase):
         source=scheduler((SOURCE/'queues/ddl.py').read_text())
         self.assertEqual(scheduler(source),source)
         self.assertIn('queue_schedule.take(queue)',source)
+
+    @unittest.skipUnless(SOURCE and (SOURCE/'__init__.py').exists(), 'native image source required')
+    def test_startup_preserves_incomplete_series_with_issue_or_annual(self):
+        source=startup((SOURCE/'__init__.py').read_text())
+        self.assertEqual(startup(source),source)
+        query=next(n.value for n in ast.walk(ast.parse(source)) if isinstance(n,ast.Constant) and isinstance(n.value,str) and n.value.startswith('DELETE from comics WHERE ('))
+        db=sqlite3.connect(':memory:');self.addCleanup(db.close)
+        db.executescript("CREATE TABLE comics(ComicID,ComicName);CREATE TABLE issues(ComicID);CREATE TABLE annuals(ComicID);INSERT INTO comics VALUES('1','Comic ID: 1'),('2','Comic ID: 2'),('3','Comic ID: 3'),('4','Valid name');INSERT INTO issues VALUES('1');INSERT INTO annuals VALUES('2');")
+        db.execute(query)
+        self.assertEqual(db.execute('SELECT ComicID FROM comics ORDER BY ComicID').fetchall(),[('1',),('2',),('4',)])
 
     @unittest.skipUnless(SOURCE, 'native image source required')
     def test_annual_query_executes_with_downstream_fields_and_deleted_filter(self):

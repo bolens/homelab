@@ -115,6 +115,17 @@ def api(source):
     return source
 
 
+def startup(source):
+    marker = '# homelab-preserve-tracked-series-v1'
+    if marker in source:
+        return source
+    original = "    c.execute(\"DELETE from comics WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL OR ComicName like '%Fetch%failed%'\")"
+    replacement = "    " + marker + "\n    c.execute(\"DELETE from comics WHERE (ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL OR ComicName like '%Fetch%failed%') AND NOT EXISTS (SELECT 1 FROM issues WHERE issues.ComicID=comics.ComicID) AND NOT EXISTS (SELECT 1 FROM annuals WHERE annuals.ComicID=comics.ComicID)\")"
+    source = replace_once(source, original, replacement)
+    ast.parse(source)
+    return source
+
+
 def scheduler(source):
     marker = '# homelab-ddl-scheduling-v1'
     if marker in source:
@@ -130,7 +141,7 @@ def scheduler(source):
 
 def main(directory):
     root = Path(directory)
-    for name, patch in [('PostProcessor.py', processor), ('process.py', processing), ('helpers.py', helpers), ('search.py', search), ('api.py', api), ('queues/ddl.py', scheduler)]:
+    for name, patch in [('PostProcessor.py', processor), ('process.py', processing), ('helpers.py', helpers), ('search.py', search), ('api.py', api), ('queues/ddl.py', scheduler), ('__init__.py', startup)]:
         path = root / name
         path.write_text(patch(path.read_text()))
     for name in ('processing_guard.py', 'pack_intake.py', 'pack_catalog.py', 'queue_schedule.py'):
