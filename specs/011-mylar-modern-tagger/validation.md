@@ -1,5 +1,33 @@
 # Implementation evidence
 
+## Metadata lookup and native producer increment
+
+Scope: inactive producer integration against `4e2f7e3`.
+
+- ComicVine lookup validates issue, linked volume and expected volume identities,
+  maps explicit provider metadata, and bounds HTTP responses and process execution.
+  Private request files keep credentials out of argv and diagnostics. Redirects and
+  retries are disabled. A local HTTP fixture exercises the actual worker process.
+- The native-package service returns verified in-place receipts for manual work and
+  disposable CBZ paths for automatic work. Automatic source bytes remain unchanged.
+  Existing ComicInfo with overwrite disabled skips lookup, overrides and CLI work.
+- Pending publication recovery runs before admission under a required caller-owned
+  global writer coordinator. Conflicts block new jobs. Backend dispatch never falls
+  back after a modern attempt. These APIs have no native settings or caller yet.
+- Independent review reproduced corrupt ZIP exceptions escaping the service. The
+  corrected boundary returns typed failure for both routes and preserves the source.
+  Automatic failure reasons also reach the observer through the legacy fail sentinel.
+- Both reviewers rechecked their areas with no remaining scoped findings. The actual
+  pinned CLI passed manual and automatic service fixtures, credit/series/volume
+  mapping, no-overwrite, page preservation and canonical native result checks.
+- The final candidate passed 329 tests in the unprivileged, offline image gate.
+  `make ci-local` passed, including the 391-commit secret scan with no findings.
+
+Native caller/annual identity wiring, backend settings, global writer exclusion,
+startup ownership, retained-staging cleanup and live canary/rollback remain pending.
+No live service, setting or media was changed. Compose, preparation, environment,
+ingress and stack metadata contracts remain unchanged.
+
 ## Native handoff and monitor increment
 
 Scope: review against `6569f07`, then native result-ownership integration.

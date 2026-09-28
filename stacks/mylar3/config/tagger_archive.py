@@ -10,7 +10,10 @@ import struct
 import zipfile
 import xml.etree.ElementTree as ET
 
-from tagger_metadata import MAX_XML, parse, reconcile
+if __package__:
+    from .tagger_metadata import MAX_XML, parse, reconcile
+else:
+    from tagger_metadata import MAX_XML, parse, reconcile
 
 MAX_MEMBERS = 4096
 MAX_UNPACKED = 4 * 1024 ** 3

@@ -101,7 +101,7 @@ def tagging(function):
                         metadata='Metadata updated'
                     else:
                         metadata='Metadata unchanged'
-                    if published:
+                    if published or isinstance(result,tagger_handoff.Failure):
                         metadata=({'added':'Metadata added','updated':'Metadata updated','unchanged':'Metadata unchanged'}[result.metadata]
                                   if valid else {'timed_out':'Tagging timed out','unsupported':'Tagging unsupported',
                                                  'conflict':'Tagging needs review'}.get(result.state,'Tagging failed or incomplete'))

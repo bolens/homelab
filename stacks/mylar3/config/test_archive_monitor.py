@@ -26,11 +26,12 @@ class ArchiveTest(unittest.TestCase):
         before=self.comic('source.cbz')
         for state,label in [('failed','Tagging failed or incomplete'),('timed_out','Tagging timed out'),
                             ('unsupported','Tagging unsupported'),('conflict','Tagging needs review')]:
-            @archive.tagging
-            def tag(filename=None):return tagger_handoff.Published(state)
-            tag(filename=str(before))
-            self.assertEqual(archive.snapshot()['tagging'][0]['metadata'],label)
-            self.assertNotIn(str(self.root),json.dumps(archive.snapshot()))
+            for result_type in (tagger_handoff.Published, tagger_handoff.Failure):
+                @archive.tagging
+                def tag(filename=None):return result_type(state)
+                tag(filename=str(before))
+                self.assertEqual(archive.snapshot()['tagging'][0]['metadata'],label)
+                self.assertNotIn(str(self.root),json.dumps(archive.snapshot()))
 
     def test_conversion_identity_is_preserved_and_validated(self):
         row={'name':'Example.cb7','original_format':'CB7','phase':'complete','issueid':'10','comicid':'20'}

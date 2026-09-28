@@ -472,8 +472,9 @@ Native manual tagging now recognizes an explicit verified in-place result and sk
 its legacy temporary-file copy/delete branch. Automatic imports reject non-string
 results before placement. The monitor accepts verified added/updated/unchanged and
 specific failure outcomes. These guards preserve legacy paths and do not select the
-modern backend; metadata lookup, automatic staging, startup admission and writer
-coordination remain pending. Requests remains the DDL transport.
+modern backend. An inactive native-package service now provides bounded ComicVine
+lookup, automatic staging and recovery admission before each job. Native settings,
+caller routing, startup wiring and global writer coordination remain pending. Requests remains the DDL transport.
 
 The archive helper reconciles ComicInfo into a new CBZ and reopens it to check page
 and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown
@@ -498,7 +499,8 @@ The startup recovery API streams pending results, skips cleaned history without
 rehashing comics, and reports active locks as busy. Its caller must finish the scan
 and keep modern admission closed on conflicts, invalid receipts, I/O errors or busy
 jobs. Native startup wiring remains pending alongside writer coordination.
-The helpers ship under `/opt/mylar3-fixes` but do not run at startup. Existing live
+Core helpers ship under `/opt/mylar3-fixes` and in Mylar's package. The lookup and
+service modules ship only in Mylar's package. None runs at startup. Existing live
 settings, library files and services are unaffected by this inactive implementation.
 
 Runtime and Python build dependencies have exact versions and SHA-256 locks. Build
@@ -515,3 +517,12 @@ Review native build-package pins monthly and whenever changing the base digest.
 The published image is currently built/tested for linux/amd64. A Python wheel's
 arm64 availability alone is not proof of an arm64 build. No services need restarting
 solely to inspect this inactive migration runtime.
+
+The inactive service preserves the automatic download source and returns a verified
+disposable CBZ for native placement. Manual jobs return an in-place receipt. Existing
+ComicInfo with overwrite disabled skips lookup and tagging entirely. ComicVine
+lookup uses private temporary credential files, a 45-second process deadline,
+bounded responses and validated issue/volume identities. Redirects and retries are
+disabled. Each provider request waits the configured 2–10 second interval.
+Conflicting recovery receipts block new work. Failed or uncertain staging is retained
+for review until native cleanup ownership is implemented.

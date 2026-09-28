@@ -27,8 +27,10 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
 - [ ] T011 [US1] Wire additive backend choice and native/manual/annual routing; cover N1/N2 and update every affected stack contract.
   `patch_tagger_handoff.py` installs checked manual ownership and automatic rejection
   guards. `mylar.tagger_handoff` is the sole native result identity. Legacy temporary
-  paths retain their behavior; backend settings, metadata lookup and modern native
-  producer routing remain pending.
+  paths retain their behavior. The inactive service now provides bounded ComicVine
+  lookup, manual in-place results, automatic disposable outputs, no-overwrite policy
+  and exact backend dispatch. Native settings, annual caller identity, global writer
+  coordination and producer routing remain pending.
 
 ## US2 - Failure recovery and observability
 
