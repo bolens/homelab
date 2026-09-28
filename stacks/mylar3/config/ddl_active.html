@@ -3,6 +3,13 @@
 <nav class="ddl_sections" aria-label="DDL queue sections"><a href="#ddl_active">Active download</a><a href="#ddl_history">Queue and history</a><button id="ddl_refresh" type="button">Refresh status</button></nav>
 <p id="ddl_notice" role="status">Loading download status…</p>
 <p id="ddl_action_notice" role="status"></p>
+<form id="ddl_schedule" class="ddl_actions">
+<label for="ddl_order">Download order</label>
+<select id="ddl_order" disabled><option value="fifo">Oldest queued first</option><option value="newest">Newest queued first</option><option value="singles">Singles before packs</option><option value="packs">Packs before singles</option><option value="alternate">Alternate singles and packs</option></select>
+<label><input id="ddl_paused" type="checkbox" disabled> Pause new DDL downloads</label>
+<button id="ddl_save_schedule" type="submit" disabled>Save queue preferences</button>
+</form>
+<p id="ddl_schedule_note" role="status">Loading queue preferences…</p>
 <section id="ddl_active" aria-labelledby="ddl_active_heading">
 <div class="ddl_active_heading"><h2 id="ddl_active_heading">Active download</h2><span id="ddl_state">Loading</span></div>
 <p id="ddl_idle">Waiting for the current download.</p>

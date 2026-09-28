@@ -16,7 +16,7 @@ _LAST_TICK=0
 _OBSERVER_ERRORS=0
 _ISSUE_LOCKS={}
 _ISSUE_GUARD=threading.Lock()
-_DEFAULTS={'auto_handoff':False,'handoff_hours':2,'intake_enabled':True,
+_DEFAULTS={'ddl_order':'fifo','ddl_paused':False,'pack_automation':False,'auto_handoff':False,'handoff_hours':2,'intake_enabled':True,
            'queue_high':50,'queue_low':20,'free_stop_gib':5,'free_resume_gib':8}
 IMPORT_HELD={'queued','claimed','submitted','review'}
 DISPATCH_HELD={'sending','review','accepted'}
@@ -49,7 +49,9 @@ def set_policy(values):
     value=policy()
     if not isinstance(values,dict) or set(values)-set(_DEFAULTS):raise ValueError('Unknown policy setting')
     for k,v in values.items():
-        if isinstance(_DEFAULTS[k],bool):
+        if k=='ddl_order':
+            if v not in ('fifo','newest','singles','packs','alternate'):raise ValueError('Unknown DDL download order')
+        elif isinstance(_DEFAULTS[k],bool):
             if not isinstance(v,bool):raise ValueError('Expected an enabled or disabled setting')
         elif not isinstance(v,int) or isinstance(v,bool):raise ValueError('Expected whole-number thresholds')
         value[k]=v
@@ -488,7 +490,7 @@ def force_process(function):
 def state_health():
     try:
         store().get('policy','current')
-        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake()}
+        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused']}
     except Exception:return {'valid':False,'observer_errors':_OBSERVER_ERRORS}
 
 

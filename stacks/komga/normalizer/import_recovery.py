@@ -12,6 +12,14 @@ from normalize import digest, identity, save, sync_directory
 
 
 
+def issue_state(database, match):
+    args = (match['issueid'], match['comicid'])
+    row = database.execute('SELECT Status,Location FROM issues WHERE IssueID=? AND ComicID=?', args).fetchone()
+    if row is None and database.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='annuals'").fetchone():
+        row = database.execute('SELECT Status,Location FROM annuals WHERE IssueID=? AND ComicID=? AND COALESCE(Deleted,0)=0', args).fetchone()
+    return row
+
+
 def previous_attempt(maintenance, source):
     """Keep attempted imports visible even after matching stops returning Downloaded issues."""
     if getattr(maintenance, 'import_attempts', None) is None:
@@ -22,8 +30,7 @@ def previous_attempt(maintenance, source):
             continue
         directory = Path(maintenance.worker.config['mylar'].get('config_dir', '/mylar'))
         with closing(sqlite3.connect('file:' + str(directory / 'mylar.db') + '?mode=ro', uri=True)) as db:
-            row = db.execute('SELECT Status,Location FROM issues WHERE IssueID=? AND ComicID=?',
-                             (record['match']['issueid'], record['match']['comicid'])).fetchone()
+            row = issue_state(db, record['match'])
         if row and row[0] == 'Downloaded' and row[1]:
             return 'import_cleanup', record['match']
         kind = ('import_queued' if record['phase'] == 'submitted'
@@ -88,9 +95,8 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     if explicit:
         database = Path(maintenance.worker.config['mylar'].get('config_dir', '/mylar')) / 'mylar.db'
         with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as db:
-            current = db.execute('SELECT Status FROM issues WHERE IssueID=? AND ComicID=?',
-                                 (match['issueid'], match['comicid'])).fetchall()
-        if len(current) != 1 or current[0][0] == 'Downloaded':
+            current = issue_state(db, match)
+        if not current or current[0] == 'Downloaded':
             target.unlink()
             stage.rmdir()
             return 'import_review'

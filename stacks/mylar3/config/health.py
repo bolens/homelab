@@ -37,6 +37,9 @@ def assess(snapshot, previous, now, stall_seconds=900):
         waiting = name in snapshot['enabled'] and (size > 0 or active or pending > 0)
         since = old.get('since', now) if waiting and not changed else now
         observations[name] = {'token': copy.deepcopy(token), 'size': size, 'since': since}
+        if name == 'DDL-QUEUE' and not active and workflow.get('ddl_paused'):
+            observations[name]['since'] = now
+            continue
         expected_wait = False
         expiry_stalled = False
         if cooldown and name in snapshot['enabled']:

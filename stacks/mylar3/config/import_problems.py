@@ -6,6 +6,7 @@ from pathlib import Path
 import time
 
 ACTIONS = {
+    'quarantine_resolved': ('Quarantined download replaced', 'A replacement is recorded in the library. The corrupt source and its receipt remain in private recovery storage.'),
     'ready': ('Ready to import', 'Use Manual Post-Processing for the completed download folder.'),
     'import_cleanup': ('Mylar reports downloaded; source retained', 'Waiting for verified duplicate cleanup. Review filenames if this persists; the retained source has not been deleted.'),
     'import_queued': ('Automatic import submitted', 'Waiting for Mylar post-processing. The original download is retained.'),

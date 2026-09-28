@@ -310,6 +310,8 @@ def diagnostics(rows):
     # state on each poll so imports completed after finish() are visible too.
     from mylar import db
     evidence = import_evidence(db.DBConnection())
+    from mylar import pack_intake
+    evidence.update(pack_intake.evidence())
     from mylar import pp_monitor
     names = set()
     completed_ids = []

@@ -1,5 +1,14 @@
 // Queue UI owns one active-status request at a time. Native queue actions stay explicit.
 var ImportTimer=null, ddlLoading=false, ddlStopped=false, ddlMutating=false, ddlActiveId=null, ddlFresh=false, ddlRemoveId=null, ddlTableLoading=false;
+var ddlCsrf=null;
+function ddlSchedulingAction(action,values) {
+    if (!ddlCsrf || ddlMutating) return;
+    ddlMutating=true;ddlRowActionsEnabled();$('#ddl_schedule :input').prop('disabled',true);
+    $.ajax({url:'workflowAction',type:'POST',data:$.extend({csrf:ddlCsrf,action:action},values),dataType:'json',timeout:15000})
+    .done(function(data){$('#ddl_schedule_note').text(data && data.ok ? (action==='ddl_next' ? 'This queued item will run next when its provider is available.' : 'Preferences saved. The active download is unchanged.') : 'Change was not confirmed. Reload before retrying.');})
+    .fail(function(){$('#ddl_schedule_note').text('Change was not confirmed. Reload and check preferences before retrying.');ddlCsrf=null;})
+    .always(function(){ddlMutating=false;ddlRowActionsEnabled();$('#ddl_schedule :input').prop('disabled',!ddlCsrf);activecheck();});
+}
 function ddlText(value) { return $('<span>').text(value == null ? '' : String(value)).html(); }
 function ddlSchedule() { clearTimeout(ImportTimer); if (!ddlStopped && !document.hidden) ImportTimer=setTimeout(activecheck,5000); }
 function ddlRowActionsEnabled() { $('#queue_table button').prop('disabled',ddlTableLoading || ddlMutating); }
@@ -47,7 +56,7 @@ function ajaxcallit(mode,id,confirmed) {
 function ddlRowActions(full) {
     var actions=[], status=full[3];
     if (['Completed','Failed','Downloading','Incomplete'].indexOf(status)!==-1) actions.push(['restart','Restart']);
-    else if (status==='Queued') actions.push(['restart','Start']);
+    else if (status==='Queued') actions.push(['next','Download next']);
     if (status==='Incomplete') actions.push(['resume','Resume']);
     actions.push(['remove','Remove']);
     var box=$('<div>').addClass('ddl_row_actions');
@@ -62,6 +71,14 @@ function ddlRowActions(full) {
 }
 $(document).ready(function(){
     $('#ddl_refresh, #ddl_active_actions button, #ddl_restart_queue, #ddl_clear_queue').button();
+    $('#ddl_save_schedule').button();
+    $.ajax({url:'workflowStatus',dataType:'json',timeout:10000,cache:false}).done(function(data){
+        if (!data || !data.csrf || !data.policy) return;
+        ddlCsrf=data.csrf;$('#ddl_order').val(data.policy.ddl_order);$('#ddl_paused').prop('checked',data.policy.ddl_paused);
+        $('#ddl_schedule :input').prop('disabled',false);
+        $('#ddl_schedule_note').text('Applies to the next eligible download. Provider cooldowns still apply. Table sorting does not change download order.');
+    }).fail(function(){$('#ddl_schedule_note').text('Queue preferences could not be loaded. Reload or sign in through Manage.');});
+    $('#ddl_schedule').on('submit',function(event){event.preventDefault();ddlSchedulingAction('policy',{values:JSON.stringify({ddl_order:$('#ddl_order').val(),ddl_paused:$('#ddl_paused').prop('checked')})});});
     $('#ddl_refresh').on('click',activecheck);
     $('#ddl_active_actions').on('click','button',function(){if(ddlFresh && ddlActiveId!==null)ajaxcallit($(this).attr('data-ddl-mode'),ddlActiveId);});
     function closeRemove(box) {
@@ -73,6 +90,7 @@ $(document).ready(function(){
     $('#queue_table').on('click','button[data-ddl-mode]',function(){
         if (ddlMutating || ddlTableLoading) return;
         var button=$(this),mode=button.attr('data-ddl-mode'),id=button.attr('data-ddl-id');
+        if (mode==='next') {ddlSchedulingAction('ddl_next',{ddl_id:id});return;}
         if (mode!=='remove') {ajaxcallit(mode,id);return;}
         $('#queue_table .ddl_remove_prompt:visible').each(function(){closeRemove($(this).parent());});
         ddlRemoveId=id;
