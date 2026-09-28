@@ -102,7 +102,7 @@ class ControlTest(unittest.TestCase):
         (self.root/'comic.cbz').write_bytes(b'comic')
         (self.root/'annual.cbz').write_bytes(b'annual')
         processing = {'waiting': [], 'active': [], 'recent': []}
-        mylar = SimpleNamespace(pp_monitor=SimpleNamespace(ddl_states=lambda filenames, ids: processing), db=SimpleNamespace(DBConnection=lambda: SimpleNamespace(
+        mylar = SimpleNamespace(pack_intake=SimpleNamespace(evidence=lambda: {}), pp_monitor=SimpleNamespace(ddl_states=lambda filenames, ids: processing), db=SimpleNamespace(DBConnection=lambda: SimpleNamespace(
             select=lambda query: database.execute(query).fetchall())))
         self.state.begin(self.item)
         self.state.finish(self.item, True)

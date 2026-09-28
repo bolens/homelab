@@ -19,6 +19,7 @@
     "interval_seconds": 300,
     "settle_seconds": 600,
     "auto_import": false,
+    "pack_import": false,
     "mylar_ddl_cache": "/config/mylar/cache"
   }
 }

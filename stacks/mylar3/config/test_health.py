@@ -20,6 +20,15 @@ class HealthTest(unittest.TestCase):
         initial = assess(self.value, {}, 0)
         self.assertFalse(assess(self.value, initial['observations'], 10000)['errors'])
 
+    def test_paused_queue_is_expected_but_active_stalls_still_alert(self):
+        self.value['workflow']={'valid':True,'ddl_paused':True}
+        self.value['queues']['DDL-QUEUE']['size']=5
+        initial=assess(self.value,{},0)
+        self.assertFalse(assess(self.value,initial['observations'],10000)['errors'])
+        self.value['ddl_active']=[['id',1,'date']]
+        initial=assess(self.value,{},0)
+        self.assertTrue(assess(self.value,initial['observations'],1000)['errors'])
+
     def test_dead_worker_is_immediate_error(self):
         self.value['queues']['DDL-QUEUE']['alive'] = False
         self.assertIn('DDL-QUEUE is down', assess(self.value, {}, 0)['errors'])

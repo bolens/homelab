@@ -1,0 +1,200 @@
+"""Mixed-pack preservation, annual recovery and repeat-run fixtures."""
+from contextlib import closing
+import json
+from pathlib import Path
+import sqlite3
+import tempfile
+import unittest
+from unittest.mock import Mock, patch
+import zipfile
+
+from normalize import Normalizer, digest
+from maintenance import Maintenance
+from pack_recovery import Packs, evidence, kind
+from import_match import match
+from test_normalize import PNG, TOOL
+
+
+@unittest.skipUnless(TOOL, 'Set ARCHIVING_UTILS_BIN')
+class PackTest(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.cache, self.library, self.state, self.completed = [self.root / n for n in ('cache', 'library', 'state', 'completed')]
+        for p in (self.cache, self.library, self.state, self.completed):
+            p.mkdir()
+        self.folder = self.library / 'Test Comic (2017)'
+        self.folder.mkdir()
+        self.db = self.root / 'mylar.db'
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.executescript('''CREATE TABLE comics(ComicID TEXT,ComicName TEXT,ComicYear TEXT,ComicLocation TEXT);
+                CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Status TEXT,Issue_Number TEXT,IssueDate TEXT,Location TEXT);
+                CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,Status TEXT,Issue_Number TEXT,IssueDate TEXT,Location TEXT,ReleaseComicName TEXT,Deleted INTEGER);
+                INSERT INTO issues VALUES('100','10','Downloaded','1','2017-01-01','Test Comic 001 (2017).cbz');
+                INSERT INTO annuals VALUES('200','10','Wanted','1','2017-05-01','','Test Comic Annual',0);''')
+            db.execute('INSERT INTO comics VALUES(?,?,?,?)', ('10','Test Comic','2017',str(self.folder)))
+        config = {'state': str(self.state), 'roots': [str(self.library)], 'converter': TOOL,
+                  'mylar': {'config_dir': str(self.root)},
+                  'maintenance': {'completed':str(self.completed), 'ddl_cache':str(self.cache),
+                                  'mylar_ddl_cache':'/cache','auto_import':True,'pack_import':True}}
+        self.worker = Normalizer(config, reader=Mock())
+        self.worker.reader.call.return_value=[]
+        self.m = Maintenance(self.worker)
+        self.m.idle=Mock(return_value=True)
+        self.m.import_submitted=False
+        self.m.mylar=Mock(return_value={'phase':'review'})
+        self.packs=Packs(self.m)
+        self.pack=self.cache/'pack';self.pack.mkdir()
+        self.record={'id':'a'*64,'ddl_id':'1','source':'/cache/pack','name':'Test pack'}
+        self.archive(self.folder/'Test Comic 001 (2017).cbz', 3)
+
+    def archive(self, path, pages=3, meta=None, extra=True):
+        with zipfile.ZipFile(path,'w') as z:
+            for n in range(pages):z.writestr('%03d.png'%n,PNG)
+            if extra:z.writestr('notes.txt','preserve this sidecar')
+            if meta:z.writestr('ComicInfo.xml',meta)
+        return path
+
+    def test_mixed_pack_keeps_cover_separate_and_cleans_only_verified_sources(self):
+        issue=self.archive(self.pack/'Test Comic 001 (2017).cbz')
+        cover=self.archive(self.pack/'Test Comic 001 (2017) (Variant Cover).cbz',1,
+                           '<ComicInfo><Series>Test Comic</Series><Number>1</Number><Web>https://comicvine.gamespot.com/a/4000-100/</Web></ComicInfo>')
+        (self.pack/'credits.txt').write_text('pack credit')
+        receipt,value=self.packs.inventory(self.record)
+        for m in value['members']:self.packs.member(m,receipt.parent)
+        self.assertEqual(sorted(m['kind'] for m in value['members']),['issue','sidecar','supplement'])
+        self.assertTrue(all(m['phase'] in ('confirmed','preserved') for m in value['members']))
+        extra=next(self.library.glob('* - Extras/*.cbz'))
+        with zipfile.ZipFile(extra) as z:
+            text=z.read('ComicInfo.xml').decode()
+            self.assertNotIn('<Web>',text)
+            self.assertIn('Extras',text)
+        for m in value['members']:self.packs.member(m,receipt.parent)
+        self.assertEqual(len(list(self.library.glob('* - Extras/*.cbz'))),1)
+        self.packs.cleanup(receipt,value)
+        self.assertFalse(issue.exists());self.assertFalse(cover.exists())
+        self.assertFalse(list(self.cache.glob('.mylar-pack-*/*.cbz')))
+        self.assertTrue((receipt.parent/('sidecar-'+next(m['id'] for m in value['members'] if m['kind']=='sidecar'))).exists())
+        self.m.mylar.assert_not_called()
+
+    def test_annual_matches_parent_and_submits_once(self):
+        annual=self.archive(self.pack/'Test Comic Annual 001 (2017) [__200__].cbz')
+        self.assertEqual(match(annual,self.db),{'issueid':'200','comicid':'10'})
+        receipt,value=self.packs.inventory(self.record)
+        member=value['members'][0]
+        self.packs.member(member,receipt.parent)
+        self.assertEqual(member['phase'],'submitted')
+        self.m.import_submitted=False
+        self.packs.member(member,receipt.parent)
+        self.m.mylar.assert_called_once()
+        self.assertTrue(annual.exists())
+
+    def test_cover_is_not_blanket_short_comic_rejection(self):
+        path=self.pack/'Short Story 001 (2017).cbz'
+        self.assertEqual(kind(path,{'page_count':1}),'issue')
+        self.assertEqual(kind(path.with_name('Story 001 (2017) (Variant Cover).cbz'),{'page_count':32}),'issue')
+        self.assertEqual(kind(path.with_name('Story 001 (2017) (Variant Cover).cbz'),{'page_count':1}),'supplement')
+
+    def test_changed_destination_prevents_all_source_cleanup(self):
+        source=self.archive(self.pack/'Test Comic 001 (2017).cbz')
+        receipt,value=self.packs.inventory(self.record)
+        self.packs.member(value['members'][0],receipt.parent)
+        Path(value['members'][0]['destination']).write_bytes(b'changed')
+        with self.assertRaises(ValueError):self.packs.cleanup(receipt,value)
+        self.assertTrue(source.exists())
+
+    def test_conflicting_identity_and_unsafe_paths_are_retained(self):
+        source=self.archive(self.pack/'Test Comic 001 (2017) [__100__].cbz',meta='<ComicInfo><Web>https://comicvine.gamespot.com/a/4000-200/</Web></ComicInfo>')
+        with self.assertRaises(ValueError):evidence(source)
+        with self.assertRaises(ValueError):self.packs.local('/cache/../outside')
+        (self.pack/'linked.cbz').symlink_to(source)
+        with self.assertRaises(ValueError):self.packs.inventory(self.record)
+
+    def test_outer_pack_uses_bounded_extractor_and_preserves_source(self):
+        source=self.archive(self.pack/'Test Comic 001 (2017).cbz')
+        outer=self.cache/'outer.zip'
+        with zipfile.ZipFile(outer,'w') as z:z.write(source,source.name)
+        record=dict(self.record,source='/cache/outer.zip')
+        receipt,value=self.packs.inventory(record)
+        self.packs.member(value['members'][0],receipt.parent)
+        self.assertEqual(value['members'][0]['phase'],'confirmed')
+        self.packs.cleanup(receipt,value)
+        self.assertFalse(outer.exists())
+        self.assertTrue(source.exists())  # Outside the owned extraction, not an incidental cleanup.
+
+    def test_existing_extracted_copy_is_also_verified_before_cleanup(self):
+        folder=self.cache/'outer';folder.mkdir()
+        duplicate=self.archive(folder/'Test Comic 001 (2017).cbz')
+        outer=self.cache/'outer.zip'
+        with zipfile.ZipFile(outer,'w') as z:z.write(duplicate,duplicate.name)
+        receipt,value=self.packs.inventory(dict(self.record,source='/cache/outer.zip'))
+        self.assertEqual(len(value['members']),2)
+        self.assertEqual(len({m['id'] for m in value['members']}),2)
+        for m in value['members']:self.packs.member(m,receipt.parent)
+        self.packs.cleanup(receipt,value)
+        self.assertFalse(outer.exists());self.assertFalse(duplicate.exists())
+
+    def test_landscape_edition_conflict_is_retained(self):
+        import struct
+        source=self.pack/'Test Comic 001 (2017).cbz'
+        with zipfile.ZipFile(source,'w') as z:
+            for n in range(4):z.writestr('%03d.png'%n,PNG[:16]+struct.pack('>II',1200,800)+PNG[24:])
+        # The header check is intentionally separate from archive decoding.
+        from edition_evidence import landscape
+        self.assertTrue(landscape(source))
+        with patch('pack_recovery.Packs.prepared',return_value=(source,{'page_count':4})):
+            member={'id':'c'*64,'phase':'discovered','source':str(source),'kind':'issue'}
+            self.packs.member(member,self.state)
+        self.assertEqual(member['phase'],'review')
+        self.assertIn('Edition',member['reason'])
+        self.assertTrue(source.exists())
+
+    def test_restart_rebuilds_owned_extraction_from_verified_source(self):
+        source=self.archive(self.pack/'Test Comic 001 (2017).cbz')
+        outer=self.cache/'restart.zip'
+        with zipfile.ZipFile(outer,'w') as z:z.write(source,source.name)
+        record=dict(self.record,source='/cache/restart.zip')
+        import pack_recovery
+        real_save=pack_recovery.save
+        def interrupted(path,value):
+            if path.name=='receipt.json':raise RuntimeError('crash after extraction')
+            return real_save(path,value)
+        with patch.object(pack_recovery,'save',side_effect=interrupted):
+            with self.assertRaises(RuntimeError):self.packs.inventory(record)
+        receipt,value=self.packs.inventory(record)
+        self.assertTrue(receipt.exists());self.assertEqual(len(value['members']),1)
+
+    def test_bad_outer_pack_does_not_block_later_pack(self):
+        (self.cache/'bad.zip').write_bytes(b'not an archive')
+        good=self.archive(self.pack/'Test Comic 001 (2017).cbz')
+        bad=dict(self.record,id='b'*64,source='/cache/bad.zip')
+        work={'enabled':True,'packs':[bad,self.record]}
+        self.m.mylar.side_effect=lambda cmd,**kw:work if cmd=='packWork' else {'phase':'confirmed'}
+        self.packs.cycle()
+        self.assertTrue((self.packs.root/self.record['id']/'receipt.json').exists())
+        self.assertFalse(good.exists())
+
+    def test_loose_cover_does_not_hide_nested_comic(self):
+        comic=self.archive(self.pack/'Test Comic 001 (2017).cbz')
+        outer=self.cache/'Test Comic 001 (2017).zip'
+        with zipfile.ZipFile(outer,'w') as z:
+            z.write(comic,comic.name);z.writestr('cover.png',PNG)
+        receipt,value=self.packs.inventory(dict(self.record,source='/cache/'+outer.name))
+        self.assertEqual(len(value['members']),2)
+        for member in value['members']:self.packs.member(member,receipt.parent)
+        self.assertEqual(sum(m['phase']=='confirmed' for m in value['members']),1)
+        self.assertEqual(next(m for m in value['members'] if m['name']=='cover.png')['phase'],'review')
+        self.m.mylar.assert_not_called()
+        self.packs.cleanup(receipt,value)
+        self.assertTrue(outer.exists())
+
+    def test_single_comic_pack_does_not_extract_pages_as_members(self):
+        source=self.archive(self.cache/'Test Comic 001 (2017).cbz')
+        receipt,value=self.packs.inventory(dict(self.record,source='/cache/'+source.name))
+        self.assertEqual(len(value['members']),1)
+        self.packs.member(value['members'][0],receipt.parent)
+        self.assertEqual(value['members'][0]['phase'],'confirmed')
+
+
+if __name__=='__main__':unittest.main()

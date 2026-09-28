@@ -17,6 +17,11 @@ def identifier(value):
     return value if value.isdecimal() and len(value)<=20 else ''
 
 
+def ddl_identifier(value):
+    value=str(value or '')
+    return value if re.fullmatch(r'[0-9]{1,20}(?:-[0-9]{1,8})?',value) else ''
+
+
 def label(value,limit=160):
     value=str(value or '')
     if '://' in value or '?' in value:return 'Details withheld'

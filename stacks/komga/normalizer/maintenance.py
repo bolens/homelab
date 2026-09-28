@@ -41,9 +41,10 @@ def scoped_file(path, roots):
     return False
 
 
-def preserves(source, target):
+def preserves(source, target, metadata_changed=False):
     return (source['page_count'] > 0 and source['pages'] == target['pages']
-            and all(row in target['other_files'] for row in source['other_files']))
+            and all(row in target['other_files'] for row in source['other_files']
+                    if not (metadata_changed and Path(row['name']).name.casefold() == 'comicinfo.xml')))
 
 
 class Maintenance:
@@ -326,6 +327,8 @@ class Maintenance:
                 save(status, {'checked_at': now, 'state': 'waiting for post-processing', 'errors': previous_errors})
                 return
             guidance.poll()
+            from pack_recovery import Packs
+            protected_packs = Packs(self).cycle() if self.settings.get('pack_import', False) else set()
             for receipt in self.receipts.glob('*.json'):
                 row = json.loads(receipt.read_text())
                 if row['kind'] == 'quarantine' and row['phase'] in ('saved', 'quarantined'):
@@ -336,7 +339,17 @@ class Maintenance:
                 row = json.loads(receipt.read_text())
                 if row['kind'] == 'quarantine':
                     match = row.get('match') or {}
-                    problems.append({'name': Path(row['source']).name, 'kind': 'retry_unconfirmed' if row['phase']=='retry_unconfirmed' else 'quarantine',
+                    resolved = False
+                    if match and self.worker.config.get('mylar'):
+                        from import_recovery import issue_state
+                        directory = Path(self.worker.config['mylar'].get('config_dir', '/mylar'))
+                        with closing(sqlite3.connect('file:' + str(directory / 'mylar.db') + '?mode=ro', uri=True)) as database:
+                            current = issue_state(database, match)
+                            parent = database.execute('SELECT ComicLocation FROM comics WHERE ComicID=?', [match['comicid']]).fetchone()
+                        if current and current[0] in ('Downloaded', 'Archived') and current[1] and parent:
+                            target = Path(parent[0]) / current[1]
+                            resolved = scoped_file(target, self.worker.roots) and target.stat().st_size > 0
+                    problems.append({'name': Path(row['source']).name, 'kind': 'quarantine_resolved' if resolved else 'retry_unconfirmed' if row['phase']=='retry_unconfirmed' else 'quarantine',
                                      'phase': row['phase'], 'issueid': match.get('issueid', ''), 'comicid': match.get('comicid', '')})
             protected_ddl = self.pending_ddl_names()
             books = self.worker.reader.books()
@@ -349,6 +362,8 @@ class Maintenance:
                 dirs[:] = [d for d in dirs if not d.startswith('.mylar-') and not (Path(directory) / d).is_symlink()]
                 for name in files:
                     path = Path(directory) / name
+                    if any(path == root or path.is_relative_to(root) for root in protected_packs):
+                        continue
                     if path.is_symlink() or not path.is_file() or not archive_suffix(path):
                         continue
                     if (self.settings.get('ddl_cache') and path.is_relative_to(Path(self.settings['ddl_cache']))

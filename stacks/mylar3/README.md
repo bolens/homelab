@@ -135,8 +135,8 @@ completed downloads show that their import is unconfirmed instead of claiming
 they are queued. Pack downloads are not marked imported based on one member issue. Explicit
 integer issue lists and ranges show how many members have a Downloaded or Archived
 record and a nonempty library file. Missing files and ambiguous membership prevent
-a fully imported label. Unspecified annuals, collected editions, and unknown member
-lists remain unconfirmed. Finished processing runs also use the existing retained
+a fully imported label. Without a verified member inventory, unspecified annuals, collected editions, and
+unknown member lists remain unconfirmed. Finished processing runs also use the existing retained
 Activity journal, and new runs retain their exact DDL ID and processing receipt.
 A restart or newer processing activity does not turn a finished pack back into a
 waiting item, even when extraction changes its folder name. The health probe counts new byte high-water marks and completed downloads.
@@ -346,3 +346,50 @@ A new explicit choice can then stage a fresh verified copy while retaining the o
 receipt. For an already downloaded but unmatched NZB, choose **Use existing archive
 for guided import** on its submission or handoff card. This does not queue another
 search. A handoff's original DDL stays inactive as **Source review**.
+
+## Verified packs and supplements
+
+Enable **Verify pack members with the maintenance worker** in Activity only after
+setting `maintenance.pack_import` and `maintenance.auto_import` to `true` in the
+matching worker configuration. Mylar hands new DDL packs to that worker before
+native anchor-based processing. Existing completed packs with retained sources
+are also inventoried. Keep both sides enabled together; disabling the worker
+while leaving Mylar's setting on retains new packs pending worker recovery.
+
+Activity's **Packs and extras** section records each original format, catalog
+identity, classification and outcome. It survives DDL history cleanup. Submitted
+imports remain pending until page bytes and non-metadata sidecars match the
+library. Changed or missing library files invalidate completion. Related cover
+collections, short cover-only archives, named extras and alternate scans are kept
+in a sibling `Series - Extras` folder, without a regular issue identity. Legitimate
+short comics are not rejected merely for having few pages. Ambiguous relationships
+and conflicting print/digital evidence require review.
+
+Missing exact catalog entries are requested through Mylar's native catalog
+adapter. Existing statuses and deleted annual intent are preserved. An annual
+with a verified catalog link to its parent can be added under that series;
+otherwise an exact annual volume is tracked separately. Catalog uncertainty is
+retained for review rather than repeatedly adding or submitting work. Pack number
+ranges no longer mark inferred issue lists Snatched or overwrite them on failure.
+Annual filename IDs resolve against annual records, and processing ownership is
+released on empty input, errors and normal completion.
+
+The existing `workflow.sqlite` also retains pack/member and catalog receipts.
+Prior ComicInfo metadata and non-comic pack credits stay in the worker's
+private recovery state. Verified pack sources can be cleaned after all members are accounted for. Back up both state locations. No additional public route,
+credential, mount, port or processing concurrency is introduced. Deploy Mylar
+before the updated worker, then enable the two opt-in settings after preservation
+checks. Keep NZBGet and Komga running during this scoped update.
+
+### DDL download scheduling
+
+DDL Queue Management separates **Download order** from table sorting. Select oldest
+queued first, newest queued first, singles before packs, packs before singles, or
+alternate singles and packs. Oldest/newest use persisted local arrival order;
+existing entries are seeded in their current queue order. Cooldowns and retries
+do not change age. Each group keeps oldest-first order. **Download next** overrides
+the preference
+for one eligible queued entry; provider cooldowns still apply. **Pause new DDL
+downloads** holds the next start without interrupting an active download or NZB work.
+Preferences persist in the existing workflow database and take effect at the next
+transfer boundary. The default remains oldest queued first.

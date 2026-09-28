@@ -68,13 +68,18 @@
 <noscript>Enable JavaScript to view activity and use workflow controls. Manage, DDL Queue Management, Post-processing and Import problems remain available from the links above.</noscript>
 <nav class="wf_jump" aria-label="Activity sections">
 <a href="#wf_history">Issue activity</a><a href="#wf_handoff">NZB handoff</a>
-<a href="#guided_matches">Resolve imports <span id="wf_match_count"></span></a><a href="#wf_settings">Intake settings</a>
+<a href="#wf_packs">Packs and extras</a><a href="#guided_matches">Resolve imports <span id="wf_match_count"></span></a><a href="#wf_settings">Intake settings</a>
 </nav>
 <dl class="wf_summary">
 <div><dt>New intake</dt><dd id="wf_intake">Unknown</dd></div>
 <div><dt>DDL providers</dt><dd id="wf_cooldown">Unknown</dd></div>
 <div><dt>Last updated</dt><dd id="wf_updated">Not yet updated</dd></div>
 </dl>
+<section id="wf_packs" aria-labelledby="wf_packs_title">
+<h2 id="wf_packs_title">Packs and extras</h2>
+<p>Each member is tracked separately. Confirmed issues have verified library content; preserved supplements keep covers and alternate copies without replacing full issues. Uncertain content stays available for review.</p>
+<div id="wf_pack_records"><p>No pack status loaded.</p></div>
+</section>
 <section id="wf_history" aria-labelledby="wf_history_title">
 <h2 id="wf_history_title">Issue activity</h2>
 <p>Search, download and processing observations persist across restarts. A finished step does not by itself confirm a library import.</p>
@@ -112,6 +117,8 @@
 <p>Intake limits pause new searches and snatches while existing transfers and processing continue. Automatic handoff is optional.</p>
 <form id="wf_policy_form">
 <fieldset><legend>Automatic handoff</legend>
+<label><input id="wf_pack_automation" type="checkbox" /> Verify pack members with the maintenance worker</label>
+<p class="wf_help">Requires pack import enabled in the worker. Uncertain members are retained for review; supplements do not satisfy full issues.</p>
 <label><input id="wf_auto_handoff" type="checkbox" /> Try NZB for eligible waiting DDL issues</label>
 <div class="wf_field"><label for="wf_handoff_hours">Wait before automatic handoff (hours)</label><input id="wf_handoff_hours" type="number" step="1" min="1" max="168" required /></div>
 </fieldset>
@@ -156,7 +163,7 @@ $(document).ready(function() {
     var lastProposalSignature='', lastHandoffSignature='', lastAliasSignature='', lastDispatchSignature='';
     var selectedSource=new URLSearchParams(window.location.search).get('source_token') || '';
     var filters={issueid:'',stage:''};
-    var policyFields=['auto_handoff','handoff_hours','intake_enabled','queue_high','queue_low','free_stop_gib','free_resume_gib'];
+    var policyFields=['pack_automation','auto_handoff','handoff_hours','intake_enabled','queue_high','queue_low','free_stop_gib','free_resume_gib'];
     function date(value) { return value == null || value === '' ? '—' : new Date(Number(value)*1000).toLocaleString(); }
     function message(value, button) {
         $('#wf_action_status').text(value);
@@ -316,7 +323,31 @@ $(document).ready(function() {
             }
         });
     }
+    var lastPackSignature='';
+    function packs(rows) {
+        rows=rows || [];
+        var signature=JSON.stringify(rows);
+        if (signature===lastPackSignature) return;
+        lastPackSignature=signature;
+        var target=$('#wf_pack_records'), opened={};
+        target.find('details[open]').each(function(){opened[$(this).attr('data-pack')]=true;});
+        target.empty();
+        if (!rows.length) $('<p>').text('No inventoried packs yet. Enable pack verification with the maintenance worker to track new and retained downloads.').appendTo(target);
+        $.each(rows,function(_,r) {
+            var details=$('<details>').attr('data-pack',r.id).addClass('wf_card').appendTo(target);
+            if (opened[r.id]) details.prop('open',true);
+            $('<summary>').text(r.name+' — '+r.confirmed+'/'+r.total+' members verified'+(r.complete ? ' · Complete' : ' · Review or processing pending')).appendTo(details);
+            var list=$('<ul>').appendTo(details);
+            $.each(r.members,function(_,m) {
+                var item=$('<li>').appendTo(list);
+                $('<strong>').text(m.name).appendTo(item);
+                $('<span>').text(' — '+m.kind+' · '+m.format+' · '+m.phase+' · '+m.reason).appendTo(item);
+                if (m.comicid) $('<a>').attr('href','comicDetails?ComicID='+encodeURIComponent(m.comicid)).text(' View series').appendTo(item);
+            });
+        });
+    }
     function render(data) {
+        packs(data.packs);
         csrf=data.csrf;
         $('#wf_updated').text(date(data.checked_at));
         var intake=data.intake || {}, cooldown=data.cooldown || {};

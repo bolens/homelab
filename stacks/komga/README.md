@@ -188,8 +188,8 @@ comics. Update the Mylar image before restarting the maintenance worker.
 
 Maintenance also checks settled files against explicit Mylar issue identifiers,
 bounded ZIP ComicInfo metadata, and exact series/year/issue filenames. Ambiguous
-editions and conflicting evidence remain on Import problems. This does not guess
-from similar titles, add series, or change failed-release blacklisting.
+editions and conflicting evidence remain on Import problems. Ordinary loose-file recovery does not guess from similar titles or change failed-release
+blacklisting. The separate opt-in pack workflow can add exact catalog entries.
 
 To enable submission, set `maintenance.auto_import` to `true` and set
 `maintenance.mylar_ddl_cache` to the same DDL cache directory **as seen inside
@@ -265,3 +265,35 @@ Build locally from the repository root with
 `docker build -t homelab-comic-normalizer:local stacks/komga/normalizer`.
 The build runs disposable archive regressions; the final image excludes tests
 and example configuration. Private runtime JSON is excluded from its build context.
+
+### Verified pack recovery
+
+Set `maintenance.pack_import` and `maintenance.auto_import` to `true`, then enable
+**Verify pack members with the maintenance worker** in Mylar Activity. Both are
+required. The default example leaves them disabled. The worker uses the existing
+shared cache and state mounts, accepts completed pack work through the primary-key
+API, and reports member outcomes to Activity's **Packs and extras** section.
+
+Pack inventories are retained under `maintenance/packs` in the existing state
+directory. Outer archives use the pinned bounded extractor; comic members use the
+existing CBZ converter. A pack inventory is limited to 2,000 files and 32 GiB of
+member bytes, with the configured expanded-size limit applied to extraction and
+each comic conversion. Unsupported or ambiguous members remain for review.
+Only one verified issue import is submitted per idle maintenance cycle. A lost
+acknowledgement never starts another import automatically.
+
+Related named extras, cover collections, short cover-only archives and different
+copies of an already imported issue are preserved as CBZ supplements in a sibling
+`Series - Extras` folder. Their metadata identifies them as extras and omits the
+regular issue Web identity. Original ComicInfo bytes remain in private receipts;
+page bytes and other sidecars must survive. Small text/NFO/credit sidecars are
+retained in private receipts rather than exposed as comic books. Unknown non-comic
+members remain in the source for review.
+
+Cleanup requires every inventoried member to be accounted for and fresh source
+and destination verification. Unconfirmed imports, changing files and missing
+library contents prevent removal. Completed member checks reuse unchanged file
+identities; cleanup rechecks full hashes. Pack records remain in Mylar after DDL
+queue history disappears. Preserve the whole worker state and Mylar data volume
+in backups. A replaced quarantine entry is labeled resolved while its original
+corrupt archive and retry history remain retained.

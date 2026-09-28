@@ -46,8 +46,14 @@ def metadata(path):
 
 def catalog(database):
     with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as db:
-        return db.execute('SELECT i.IssueID,i.ComicID,i.Status,i.Issue_Number,i.IssueDate,c.ComicName,c.ComicYear '
+        rows = db.execute('SELECT i.IssueID,i.ComicID,i.Status,i.Issue_Number,i.IssueDate,c.ComicName,c.ComicYear '
                           'FROM issues i JOIN comics c ON c.ComicID=i.ComicID').fetchall()
+        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='annuals'").fetchone():
+            annuals = db.execute('SELECT i.IssueID,i.ComicID,i.Status,i.Issue_Number,i.IssueDate,i.ReleaseComicName,substr(i.IssueDate,1,4) '
+                                 'FROM annuals i WHERE COALESCE(i.Deleted,0)=0').fetchall()
+            ids = {str(r[0]) for r in db.execute('SELECT IssueID FROM annuals')}
+            rows = [r for r in rows if str(r[0]) not in ids] + annuals
+        return rows
 
 
 def match(path, database, rows=None):
