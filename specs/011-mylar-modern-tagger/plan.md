@@ -31,6 +31,8 @@ all affected contract surfaces together and regenerate catalog output if metadat
 
 - `stacks/mylar3/config/tagger_runtime.py`: bounded child execution and typed results.
 - `tagger_metadata.py`: explicit overrides and conservative ComicInfo reconciliation.
+- `tagger_archive.py`: bounded member verification and reconciliation into a new
+  operation file. It never publishes over a source.
 - Future `tagger_adapter.py`: staged archive verification and sole replacement owner.
 - Future `patch_modern_tagger.py`: checked native/manual routing and preference adapter.
 - `archive_monitor.py`: receipts from verified results, not CLI banner interpretation.
@@ -49,6 +51,10 @@ all affected contract surfaces together and regenerate catalog output if metadat
 3. Implement archive staging, page/member hashes, XML policy, source-race detection,
    permissions, fsync and atomic publication. Persist private recovery receipts and
    crash recovery before a source can be replaced. Reject unsupported inputs.
+   Native manual tagging currently copies the returned temporary path over its
+   destination and deletes that temporary file. Integration must replace that
+   publication path, not return the original path into its cleanup branch. Automatic
+   post-processing also consumes a temporary path, so its handoff needs separate proof.
 4. Wire native automatic/manual tagging, annual identity, disabled tagging, overwrite
    settings and monitor outcomes. Legacy remains default; unsupported CBL writes are
    explicit and retain the configured preference. Do not auto-fallback after a write.
