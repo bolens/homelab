@@ -53,3 +53,11 @@ Do not combine unrelated fixes into a new batch module. Add an adapter at its
 required dependency point, give behavior a focused runtime helper where needed,
 and include regression checks in `verify_image.py`. Remove an adapter when a
 verified base-image update provides its behavior natively.
+
+## Migration foundation
+
+`tagger_runtime.py` and `tagger_metadata.py` are build-tested helpers for the
+[modern tagger migration](../../../specs/011-mylar-modern-tagger/plan.md). They are
+not copied into the active Mylar package or called by the legacy tagger. Tests:
+`test_tagger_runtime.py`, `test_tagger_metadata.py`. Native routing, archive
+publication and optional DDL discovery remain separate acceptance gates.

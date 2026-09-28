@@ -13,3 +13,5 @@ Installation validation alone does not establish feature completion.
 - [Published comic automation images](008-comic-automation-images/spec.md): [plan](008-comic-automation-images/plan.md), [tasks](008-comic-automation-images/tasks.md).
 
 - [Mylar workflow controls](009-mylar-workflow-controls/spec.md): [plan](009-mylar-workflow-controls/plan.md), [tasks](009-mylar-workflow-controls/tasks.md).
+
+- [Modern tagging and optional DDL transport](011-mylar-modern-tagger/spec.md): prospective [plan](011-mylar-modern-tagger/plan.md), [acceptance matrix](011-mylar-modern-tagger/acceptance.md), [tasks](011-mylar-modern-tagger/tasks.md).

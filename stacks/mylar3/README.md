@@ -450,3 +450,13 @@ and wrapping toolbars as the DDL queue. Library and Queues navigation remains
 available on smaller screens. Manage's scan form and status panel stack without
 overlap; wide report tables scroll inside focusable, labeled regions. Compact
 gray controls retain their existing appearance.
+
+## Modern tagger migration
+
+The [migration plan](../../specs/011-mylar-modern-tagger/plan.md) covers a pinned
+modern ComicTagger runtime, metadata preservation, failure recovery, and an optional
+DDL discovery transport. The first increment tests bounded process execution and
+ComicInfo reconciliation during image builds. It does not change the active tagger,
+install ComicTagger or curl dependencies, or add a backend setting. Requests remains
+the download transport. Real-package, archive, native integration and rollback gates
+must pass before enabling a new backend.
