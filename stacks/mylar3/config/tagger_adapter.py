@@ -142,6 +142,15 @@ class Publisher:
         return expected
 
     def finish(self, record, state, *, cleanup=True):
+        if cleanup and state in ('failed', 'timed_out', 'unchanged'):
+            try:
+                source = Path(record['source'])
+                intact = (fingerprint(source) == record['before']
+                          and list(identity(source.lstat())) == record['source_identity'])
+            except (OSError, ValueError):
+                intact = False
+            if not intact:
+                state, cleanup = 'conflict', False
         record.update(state=state, updated=time.time())
         self.write(record)  # Terminal state is durable before removing any copy.
         if cleanup and state in TERMINAL:

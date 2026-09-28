@@ -17,15 +17,16 @@ Scope: inactive publisher and earlier helper audit against `e48ee9e`.
   focused regressions. Retained history no longer imposes a lifetime job quota.
 - Failures cover missing/changed sources, CRC errors, source growth, low space,
   exchange failure, workspace replacement, permissions, hardlinks and xattrs.
-  An uncertain exchange retains both the original copy and displaced file.
+  An uncertain exchange retains both the original copy and displaced file. A failed
+  child combined with a concurrent source change also retains the recovery copy.
 - Final-image tests compare all five shipped helper files with tested sources and
   run the pinned CLI through verified publication, same-token replay and unchanged
   repeat tagging. Legacy runtime behavior remains covered.
 
 The final image build and unprivileged, network-disabled candidate gate passed
-291 tests. Two independent review passes closed their reproduced findings. Source
+292 tests. Two independent review passes closed their reproduced findings. Source
 privacy scans found no secrets, privacy indicators or skipped files. `make ci-local`
-passed, including the 384-commit Gitleaks history scan.
+passed, including the 385-commit Gitleaks history scan.
 
 Native callers, startup scanning, other-writer coordination, actual media-filesystem
 support, monitor receipts and canary/rollback evidence remain pending. The publisher

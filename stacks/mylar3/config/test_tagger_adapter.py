@@ -70,6 +70,15 @@ class PublicationTest(unittest.TestCase):
             self.assertEqual(self.publisher.tag(self.source, {'series':'Fixture'}, token=TOKEN).state, 'failed')
         self.assertEqual(self.source.read_bytes(), self.before)
 
+    def test_failed_child_with_changed_source_retains_original_copy(self):
+        def failed(path, metadata, **kwargs):
+            self.source.write_bytes(b'concurrent update')
+            return TagResult('failed')
+        with patch.object(subject, 'save', side_effect=failed):
+            self.assertEqual(self.publisher.tag(self.source, {'series':'Fixture'}, token=TOKEN).state, 'conflict')
+        self.assertEqual(self.source.read_bytes(), b'concurrent update')
+        self.assertEqual((self.root/('.mylar-tag-'+TOKEN)/'original.cbz').read_bytes(), self.before)
+
     def test_low_space_and_exchange_error_preserve_source(self):
         with patch.object(subject.shutil, 'disk_usage', return_value=shutil._ntuple_diskusage(1, 1, 0)):
             self.assertEqual(self.tag().state, 'failed')
