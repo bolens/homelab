@@ -130,7 +130,7 @@ def scheduler(source):
     marker = '# homelab-ddl-scheduling-v1'
     if marker in source:
         return source
-    source = 'from mylar import queue_schedule\n' + marker + '\n' + source
+    source = 'from mylar import ddl_schedule as queue_schedule\n' + marker + '\n' + source
     source = replace_once(source, '            item = queue.get(True)',
         '            item = queue_schedule.take(queue)\n            if item is None:\n                time.sleep(1)\n                continue')
     source = replace_once(source, "            if item['id'] not in mylar.DDL_QUEUED:",
@@ -147,7 +147,7 @@ def queue_view(source):
         'SELECT id, status, filename, tmp_filename, remote_filesize, link_type FROM ddl_info',
         'SELECT id, status, filename, tmp_filename, remote_filesize, link_type, pack FROM ddl_info')
     source = replace_once(source, '        for row in resultlist:\n            download = downloads.get',
-        '        ' + marker + '\n        from mylar import queue_schedule\n        positions = queue_schedule.positions(downloads.values())\n        for row in resultlist:\n            row["queue_order"] = positions.get(str(row["queueid"]), {"sort": 2000000000})["sort"]\n            download = downloads.get')
+        '        ' + marker + '\n        from mylar import ddl_schedule\n        positions = ddl_schedule.positions(downloads.values())\n        for row in resultlist:\n            row["queue_order"] = positions.get(str(row["queueid"]), {"sort": 2000000000})["sort"]\n            download = downloads.get')
     source = replace_once(source, "        sortcolumn = 'series'\n        if iSortCol_0 == '1':",
         "        sortcolumn = 'series'\n        if iSortCol_0 == '11':\n            sortcolumn = 'queue_order'\n        elif iSortCol_0 == '1':")
     source = replace_once(source, "diagnostics.get(str(row['queueid']), {})] for row in rows]",
@@ -161,7 +161,7 @@ def main(directory):
     for name, patch in [('PostProcessor.py', processor), ('process.py', processing), ('helpers.py', helpers), ('search.py', search), ('api.py', api), ('queues/ddl.py', scheduler), ('__init__.py', startup), ('webserve.py', queue_view)]:
         path = root / name
         path.write_text(patch(path.read_text()))
-    for name in ('processing_guard.py', 'pack_intake.py', 'pack_catalog.py', 'queue_schedule.py'):
+    for name in ('processing_guard.py', 'pack_intake.py', 'pack_catalog.py', 'ddl_schedule.py'):
         (root / name).write_text(Path(__file__).with_name(name).read_text())
     print('Annual identity and processing ownership verified')
 

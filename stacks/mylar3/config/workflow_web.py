@@ -193,8 +193,8 @@ def resolve_import(command_id,confirmation):
 
 def action(name,values):
     if name=='ddl_next':
-        from mylar import queue_schedule
-        return queue_schedule.next_item(values.get('ddl_id'))
+        from mylar import ddl_schedule
+        return ddl_schedule.next_item(values.get('ddl_id'))
     if name=='resolve_import':return resolve_import(values.get('command_id'),values.get('confirmation'))
     if name=='resolve_dispatch':return resolve_dispatch(identifier(values.get('issueid')),values.get('resolution'),values.get('confirmation'))
     if name=='policy':

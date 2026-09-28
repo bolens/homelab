@@ -16,7 +16,7 @@ def between(source, start, end, value):
 
 def template(source):
     if MARKER in source:
-        return queue_order_template(source)
+        return queue_state_template(queue_order_template(source))
     files = Path(__file__).parent
     source = between(source, '            <div id="paddingheader">', '             <div class="table_wrapper">',
                      MARKER + '\n' + (files/'ddl_active.html').read_text())
@@ -41,7 +41,25 @@ def template(source):
     source = between(source, '                      <a id="menu_link_refresh" href="#" title="Restart stalled queue"', '                </div>',
                      '                      <button id="ddl_restart_queue" type="button">Restart queued downloads</button>\n'
                      '                      <button id="ddl_clear_queue" type="button">Clear queued entries</button>\n')
-    return queue_order_template(source)
+    return queue_state_template(queue_order_template(source))
+
+
+def queue_state_template(source):
+    marker = '// homelab-queue-request-recovery-v1'
+    if marker in source:
+        return source
+    return replace_once(source,
+        '                                        fnCallback(json)\n                                });',
+        '''                                        if(ddlTableFailed){$('#ddl_action_notice').text('Queue table refreshed.');ddlTableFailed=false;}
+                                        fnCallback(json)
+                                }).fail(function(){
+                                    // homelab-queue-request-recovery-v1
+                                    ddlTableFailed=true;
+                                    var table=$('#queue_table');
+                                    table.trigger('processing.dt',[table.DataTable().settings()[0],false]);
+                                    $('#queue_table_processing').hide();
+                                    $('#ddl_action_notice').text('Queue table could not be refreshed. Existing rows are retained; retrying automatically.');
+                                });''')
 
 
 def queue_order_template(source):

@@ -56,8 +56,8 @@ class QueueProgressTest(unittest.TestCase):
         namespace = dict(db=SimpleNamespace(DBConnection=lambda: database), json=json,
                          mylar=SimpleNamespace(CONFIG=SimpleNamespace(DDL_LOCATION=str(self.directory))))
         exec(compile(ast.Module(body=[node], type_ignores=[]), '<queue>', 'exec'), namespace)
-        parent = ModuleType('mylar')
-        with patch.dict(sys.modules, {'mylar': parent, 'mylar.queue_progress': queue_progress, 'mylar.queue_control': SimpleNamespace(diagnostics=lambda rows:{}), 'mylar.queue_schedule': SimpleNamespace(positions=lambda rows:positions or {})}):
+        parent = ModuleType('mylar');parent.queue_schedule=lambda *args:None
+        with patch.dict(sys.modules, {'mylar': parent, 'mylar.queue_progress': queue_progress, 'mylar.queue_control': SimpleNamespace(diagnostics=lambda rows:{}), 'mylar.ddl_schedule': SimpleNamespace(positions=lambda rows:positions or {})}):
             return json.loads(namespace['queueManageIt'](None, iSortCol_0=sort, sSortDir_0='asc', **params))
 
     def test_endpoint_populates_and_sorts_percent_numerically(self):

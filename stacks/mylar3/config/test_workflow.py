@@ -50,6 +50,14 @@ class WorkflowTest(unittest.TestCase):
         self.disk=patch.object(workflow.shutil,'disk_usage',return_value=SimpleNamespace(free=20*1024**3));self.disk.start();self.addCleanup(self.disk.stop)
     def handoff(self):return workflow.request_handoff('1')
     def status(self):return self.conn.execute('SELECT status FROM ddl_info WHERE id="1"').fetchone()[0]
+    def test_download_next_preserves_native_worker_scheduler(self):
+        native = Mock()
+        with patch.object(app, 'queue_schedule', native, create=True):
+            result = web.action('ddl_next', {'ddl_id': '1'})
+            self.assertEqual(result, {'next': '1'})
+            self.assertEqual(workflow.store().get('meta', 'ddl_next'), '1')
+            self.assertIs(app.queue_schedule, native)
+            native.assert_not_called()
     def test_duplicate_handoff_has_one_reservation_and_one_queue_entry(self):
         first=self.handoff();second=self.handoff()
         self.assertEqual(first,second);self.assertEqual(app.SEARCH_QUEUE.qsize(),1)

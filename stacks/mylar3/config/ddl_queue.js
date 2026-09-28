@@ -1,6 +1,6 @@
 // Queue UI owns one active-status request at a time. Native queue actions stay explicit.
 var ImportTimer=null, ddlLoading=false, ddlStopped=false, ddlMutating=false, ddlActiveId=null, ddlFresh=false, ddlRemoveId=null, ddlTableLoading=false;
-var ddlCsrf=null;
+var ddlCsrf=null, ddlTableFailed=false;
 function ddlSchedulingAction(action,values) {
     if (!ddlCsrf || ddlMutating) return;
     ddlMutating=true;ddlRowActionsEnabled();$('#ddl_schedule :input').prop('disabled',true);$('#ddl_save_schedule').button('refresh');
@@ -11,7 +11,7 @@ function ddlSchedulingAction(action,values) {
 }
 function ddlText(value) { return $('<span>').text(value == null ? '' : String(value)).html(); }
 function ddlSchedule() { clearTimeout(ImportTimer); if (!ddlStopped && !document.hidden) ImportTimer=setTimeout(activecheck,5000); }
-function ddlRowActionsEnabled() { $('#queue_table button').prop('disabled',ddlTableLoading || ddlMutating); }
+function ddlRowActionsEnabled() { $('#queue_table button').prop('disabled',ddlTableLoading || ddlMutating || ddlTableFailed); }
 function ddlActionsEnabled() { $('#ddl_active_actions button').prop('disabled',!ddlFresh || ddlMutating || ddlActiveId==null); }
 function ddlFailed() {
     ddlFresh=false;ddlActionsEnabled();
@@ -107,6 +107,8 @@ $(document).ready(function(){
     });
     $('#queue_table').on('processing.dt',function(event,settings,processing){
         ddlTableLoading=processing;ddlRowActionsEnabled();
+        $(this).attr('aria-busy',processing ? 'true' : 'false');
+        $('#queue_table_processing').attr('aria-hidden','true').text('Refreshing queue…').css('top',$(this).position().top+12);
     });
     $('#queue_table').on('preDraw.dt',function(){
         ddlRemoveId=null;
