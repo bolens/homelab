@@ -55,10 +55,12 @@ required dependency point, give behavior a focused runtime helper where needed,
 and include regression checks in `verify_image.py`. Remove an adapter when a
 verified base-image update provides its behavior natively.
 
-## Migration foundation
+## Modern tagger migration
 
-`tagger_runtime.py` and `tagger_metadata.py` are build-tested helpers for the
-[modern tagger migration](../../../specs/011-mylar-modern-tagger/plan.md). They are
-not copied into the active Mylar package or called by the legacy tagger. Tests:
-`test_tagger_runtime.py`, `test_tagger_metadata.py`. Native routing, archive
-publication and optional DDL discovery remain separate acceptance gates.
+`tagger_runtime.py`, `tagger_metadata.py` and `tagger_cli.py` provide bounded process,
+metadata and pinned CLI boundaries for the [migration](../../../specs/011-mylar-modern-tagger/plan.md).
+They are build-tested and not connected to native Mylar tagging. The isolated
+`/opt/comictagger` runtime is copied into the image, while Mylar continues using its
+vendored legacy tagger. Tests: `test_tagger_runtime.py`, `test_tagger_metadata.py`,
+`test_modern_tagger.py`. `fetch_tagger_sources.py` runs only during image construction.
+Archive publication, native routing and optional DDL discovery remain separate gates.

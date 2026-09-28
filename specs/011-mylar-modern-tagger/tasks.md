@@ -13,10 +13,12 @@
 
 Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
 
-- [ ] T007 [US1] Resolve hashed target-runtime dependencies in `stacks/mylar3/tagger-requirements.lock`; document license/platform/runtime proof in `research.md`.
-- [ ] T008 [US1] Build isolated headless venv and final-stage native libraries in `stacks/mylar3/Dockerfile`, preserving the legacy runtime.
+- [x] T007 [US1] Resolve hashed target-runtime dependencies in `stacks/mylar3/tagger-requirements.lock`; document license/platform/runtime proof in `research.md`.
+- [x] T008 [US1] Build isolated headless venv and final-stage native libraries in `stacks/mylar3/Dockerfile`, preserving the legacy runtime.
 - [ ] T009 [US1] Implement staged archive verification and sole publication owner in `stacks/mylar3/config/tagger_adapter.py`; preserve pages, comments, sidecars and permissions.
 - [ ] T010 [US1] Add real CLI and archive cases C1/C2/P1 in `stacks/mylar3/config/test_modern_tagger.py`, including actual observed version banner and error behavior.
+  CLI/version, generated archive preservation and legacy isolation cases pass.
+  Archive publication and writing reconciled XML back into the staged archive remain pending.
 - [ ] T011 [US1] Wire additive backend choice and native/manual/annual routing in `patch_modern_tagger.py`; cover N1/N2 and update every affected stack contract.
 
 ## US2 - Failure recovery and observability

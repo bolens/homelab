@@ -48,3 +48,28 @@ low-speed timeout and close/wait behavior. Force identity encoding for any event
 archive transfer. A future full option needs bounded backpressure plus cancellation,
 resume and memory proof. Neither a browser impersonation string nor an HTTP 200 is
 proof of a downloadable archive. No provider URLs or credentials belong in fixtures.
+
+## Locked-runtime implementation evidence
+
+The exact base is Ubuntu 22.04, Python 3.10.12 and ICU 70.1, not Alpine. It already
+contains the runtime ICU libraries. The new venv is built separately without pip,
+setuptools or GUI packages and copied onto the unchanged base. Compiler-side tools
+use a separate hashed lock and are excluded from the final runtime. The 26 runtime
+packages are locked, including current compatible transitive dependencies. Three
+build-tool packages are locked separately. Native builder pins remain visible in
+Dockerfile and require manual monthly review.
+
+Real offline execution confirms `--version` exits 1 and writes its exact banner to
+stderr. The optional RAR plugin logs `rar unavailable` without its extra installed;
+CBZ saves still succeed. Save JSON reports action/status/target/tags. The CLI helper
+requires that protocol but explicitly does not equate it with archive preservation.
+Legacy ComicTagger 1.3.5 still runs through `/lsiopy/bin/python3`.
+
+A fresh release inventory check still finds PyPI 1.6.0b11.dev0 as newest prerelease,
+1.5.5 as stable, and GitHub 1.6.0-beta.10 as newest release tag. No newer published
+package was found. This is a prerelease compatibility migration, not a stable update.
+
+All real tests use generated archives, fresh temporary config and no network. Source
+archives for comicfn2dict, chardet and isocodes ship with the runtime; final-image
+tests compare manifest versions and archive hashes to installed distributions.
+linux/amd64 is the tested publication platform. Other architectures remain unverified.

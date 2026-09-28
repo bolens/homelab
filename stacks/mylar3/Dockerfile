@@ -1,7 +1,31 @@
+FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS tagger-build
+# The pinned final base already supplies ICU 70; compilation tools stay here.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential=12.9ubuntu3 libicu-dev=70.1-2 \
+        python3-dev=3.10.6-1~22.04.1 pkg-config=0.29.2-1ubuntu3 \
+    && rm -rf /var/lib/apt/lists/*
+COPY tagger-build-requirements.lock tagger-requirements.lock /tmp/tagger-locks/
+RUN python3 -m venv --without-pip /opt/tagger-build \
+    && python3 -m pip --python /opt/tagger-build/bin/python install --no-cache-dir \
+        --require-hashes --no-deps -r /tmp/tagger-locks/tagger-build-requirements.lock \
+    && python3 -m pip --python /opt/tagger-build/bin/python wheel --no-cache-dir \
+        --require-hashes --no-deps --no-build-isolation \
+        -r /tmp/tagger-locks/tagger-requirements.lock --wheel-dir /tmp/tagger-wheels \
+    && python3 -m venv --without-pip /opt/comictagger \
+    && python3 -m pip --python /opt/comictagger/bin/python install --no-index --no-deps /tmp/tagger-wheels/*.whl \
+    && python3 -m pip --python /opt/comictagger/bin/python check
+
+COPY tagger-sources.json /tmp/tagger-sources.json
+COPY config/fetch_tagger_sources.py /tmp/fetch_tagger_sources.py
+RUN python3 /tmp/fetch_tagger_sources.py /tmp/tagger-sources.json /opt/comictagger/sources
+COPY tagger-NOTICES.md /opt/comictagger/NOTICES.md
+
 FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS checked
 ENV PYTHONDONTWRITEBYTECODE=1
+COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY config/ /opt/mylar3-fixes/
-RUN python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
+RUN --network=none python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
     && python3 /opt/mylar3-fixes/verify_image.py
 
 FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4
@@ -10,3 +34,4 @@ LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
 COPY --from=checked /app/mylar3/mylar/ /app/mylar3/mylar/
 COPY --from=checked /app/mylar3/data/interfaces/default/ /app/mylar3/data/interfaces/default/
 COPY --from=checked /opt/mylar3-fixes/health.py /opt/mylar3-fixes/health.py
+COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
