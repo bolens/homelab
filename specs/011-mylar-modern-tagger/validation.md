@@ -1,5 +1,38 @@
 # Implementation evidence
 
+## Publication and seam-review increment
+
+Scope: inactive publisher and earlier helper audit against `e48ee9e`.
+
+- Review reproduced conflicting singleton metadata fields, discarded processing
+  instructions, hardlinked staging that could reach an outside original, and final
+  image omission of the tested helper files. Regression tests fail on the former
+  behavior and pass after correction. Unsupported document-level XML nodes are
+  rejected before writing instead of silently dropped.
+- Added a private versioned journal, separate token/source locks, verified copies,
+  atomic Linux exchange, and deterministic restart reconciliation. Real subprocess
+  deaths before and after exchange exercise recovery without repeating the CLI.
+- Independent review reproduced concurrent token reuse, historical replay blocking
+  later jobs, and path aliases bypassing pending ownership. All were fixed with
+  focused regressions. Retained history no longer imposes a lifetime job quota.
+- Failures cover missing/changed sources, CRC errors, source growth, low space,
+  exchange failure, workspace replacement, permissions, hardlinks and xattrs.
+  An uncertain exchange retains both the original copy and displaced file. A failed
+  child combined with a concurrent source change also retains the recovery copy.
+- Final-image tests compare all five shipped helper files with tested sources and
+  run the pinned CLI through verified publication, same-token replay and unchanged
+  repeat tagging. Legacy runtime behavior remains covered.
+
+The final image build and unprivileged, network-disabled candidate gate passed
+292 tests. Two independent review passes closed their reproduced findings. Source
+privacy scans found no secrets, privacy indicators or skipped files. `make ci-local`
+passed, including the 385-commit Gitleaks history scan.
+
+Native callers, startup scanning, other-writer coordination, actual media-filesystem
+support, monitor receipts and canary/rollback evidence remain pending. The publisher
+is not called by live Mylar, and no live settings or media were changed. Existing
+Compose, ingress, environment, preparation and stack metadata contracts are unchanged.
+
 ## Archive reconciliation increment
 
 Scope: inactive archive verification/reconciliation against `8713e4a`.

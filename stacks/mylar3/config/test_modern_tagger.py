@@ -2,11 +2,13 @@
 import hashlib
 from importlib import metadata
 import json
+import os
 from pathlib import Path
 import shutil
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 import zlib
 
@@ -14,6 +16,7 @@ from tagger_cli import EXECUTABLE, VERSION, save, version_supported, saved_resul
 from tagger_metadata import overrides, parse, reconcile
 from tagger_runtime import ProcessResult, run
 from tagger_archive import prepare, snapshot
+from tagger_adapter import Publisher
 
 
 def png():
@@ -60,6 +63,35 @@ class ModernTaggerTest(unittest.TestCase):
         result = run([EXECUTABLE, '--config', str(self.root/'config'), '--version'], cwd=self.root, timeout=10)
         self.assertEqual(result.returncode, 1)
         self.assertTrue(version_supported(result))
+
+    def test_real_cli_publication_and_repeated_job(self):
+        _, before = self.fixture()
+        owner = Publisher(self.root/'journal')
+        metadata = {'series':'Fixture', 'issue':'1', 'volume':1}
+        result = owner.tag(self.original, metadata, token='a'*32)
+        self.assertEqual((result.state, result.metadata), ('committed', 'added'))
+        self.assertEqual(contents(self.original), before)
+        self.assertEqual(snapshot(self.original).mode, 0o640)
+        self.assertEqual(parse(snapshot(self.original).xml).findtext('Volume'), '1')
+        self.assertEqual(owner.tag(self.original, metadata, token='a'*32), result)
+        repeated = owner.tag(self.original, metadata, token='b'*32)
+        self.assertEqual((repeated.state, repeated.metadata), ('unchanged', 'unchanged'))
+        self.assertFalse(list(self.root.glob('.mylar-tag-*')))
+
+    def test_final_image_contains_the_verified_inactive_helpers(self):
+        for name in ('tagger_runtime.py', 'tagger_metadata.py', 'tagger_cli.py',
+                     'tagger_archive.py', 'tagger_adapter.py'):
+            self.assertEqual((Path('/opt/mylar3-fixes')/name).read_bytes(),
+                             Path(__file__).with_name(name).read_bytes())
+
+    def test_hardlinked_staging_cannot_modify_external_original(self):
+        original, _ = self.fixture()
+        self.archive.unlink()
+        os.link(self.original, self.archive)
+        with patch('tagger_cli.run', side_effect=AssertionError('Child must not run')):
+            with self.assertRaises(ValueError):
+                save(self.archive, {'series':'Fixture'}, workdir=self.stage)
+        self.assertEqual(hashlib.sha256(self.original.read_bytes()).hexdigest(), original)
 
     def test_legacy_tagger_remains_independent(self):
         result = run(['/lsiopy/bin/python3', '/app/mylar3/comictagger.py', '--configfolder', str(self.root/'legacy'), '--version'], cwd=self.root, timeout=10)

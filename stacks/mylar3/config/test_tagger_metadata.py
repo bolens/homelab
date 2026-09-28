@@ -4,6 +4,26 @@ from tagger_metadata import MAX_XML, overrides, parse, reconcile
 
 
 class MetadataTest(unittest.TestCase):
+    def test_duplicate_singleton_identity_rejected_after_policy(self):
+        duplicate = b'<ComicInfo><Number>1</Number><Number>2</Number></ComicInfo>'
+        for old, new in ((None, duplicate), (duplicate, b'<ComicInfo/>')):
+            with self.assertRaises(ValueError):
+                reconcile(old, new)
+        fixed = reconcile(duplicate, b'<ComicInfo/>', updates={'Number': '3'})
+        self.assertEqual(parse(fixed).findtext('Number'), '3')
+
+    def test_processing_instruction_survives(self):
+        old = b'<ComicInfo><?vendor preserve-me?><Notes>Keep</Notes></ComicInfo>'
+        result = reconcile(old, b'<ComicInfo><Title>New</Title></ComicInfo>')
+        self.assertIn(b'<?vendor preserve-me?>', result)
+        self.assertEqual(reconcile(result, result), result)
+
+    def test_unrepresentable_document_nodes_are_rejected_without_loss(self):
+        for raw in (b'<?vendor keep?><ComicInfo/>', b'<ComicInfo/><!--keep-->',
+                    b'<ComicInfo>unstructured text<Notes>Keep</Notes></ComicInfo>'):
+            with self.assertRaises(ValueError):
+                reconcile(raw, b'<ComicInfo/>')
+
     def test_explicit_volume_one_and_start_year(self):
         self.assertEqual(overrides(volume=1), {'Volume':'1'})
         self.assertEqual(overrides(volume='2017'), {'Volume':'2017'})

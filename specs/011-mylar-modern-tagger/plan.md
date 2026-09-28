@@ -33,7 +33,8 @@ all affected contract surfaces together and regenerate catalog output if metadat
 - `tagger_metadata.py`: explicit overrides and conservative ComicInfo reconciliation.
 - `tagger_archive.py`: bounded member verification and reconciliation into a new
   operation file. It never publishes over a source.
-- Future `tagger_adapter.py`: staged archive verification and sole replacement owner.
+- `tagger_adapter.py`: inactive staged archive verification, atomic exchange owner
+  and private versioned receipts. Integration must coordinate other media writers.
 - Future `patch_modern_tagger.py`: checked native/manual routing and preference adapter.
 - `archive_monitor.py`: receipts from verified results, not CLI banner interpretation.
 - `stacks/mylar3/Dockerfile`: isolated venv copied with native ICU dependencies into
@@ -53,8 +54,12 @@ all affected contract surfaces together and regenerate catalog output if metadat
    crash recovery before a source can be replaced. Reject unsupported inputs.
    Native manual tagging currently copies the returned temporary path over its
    destination and deletes that temporary file. Integration must replace that
-   publication path, not return the original path into its cleanup branch. Automatic
+  publication path, not return the original path into its cleanup branch. Automatic
    post-processing also consumes a temporary path, so its handoff needs separate proof.
+   The fixture publisher now retains a displaced source via Linux atomic exchange.
+   It refuses hardlinks and extended attributes/ACLs. An unsupported filesystem has
+   no non-atomic fallback. Prove the real media filesystem and exclude other writers
+   before native activation; conflict copies must not be deleted automatically.
 4. Wire native automatic/manual tagging, annual identity, disabled tagging, overwrite
    settings and monitor outcomes. Legacy remains default; unsupported CBL writes are
    explicit and retain the configured preference. Do not auto-fallback after a write.

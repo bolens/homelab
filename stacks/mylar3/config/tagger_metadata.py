@@ -8,6 +8,37 @@ import re
 import xml.etree.ElementTree as ET
 
 MAX_XML = 262144
+SINGLETONS = set(('Title Series Number Count Volume AlternateSeries AlternateNumber AlternateCount '
+                 'Summary Notes Year Month Day Writer Penciller Inker Colorist Letterer CoverArtist Editor '
+                 'Publisher Imprint Genre Tags Web PageCount LanguageISO Format BlackAndWhite Manga '
+                 'Characters Teams Locations ScanInformation StoryArc StoryArcNumber SeriesGroup '
+                 'AgeRating Pages CommunityRating MainCharacterOrTeam Review GTIN Translator').split())
+
+
+class ComicTree(ET.TreeBuilder):
+    """ElementTree cannot retain document-level nodes outside the root."""
+    def __init__(self):
+        super().__init__(insert_comments=True, insert_pis=True)
+        self.depth = 0
+
+    def start(self, tag, attrs):
+        self.depth += 1
+        return super().start(tag, attrs)
+
+    def end(self, tag):
+        result = super().end(tag)
+        self.depth -= 1
+        return result
+
+    def comment(self, text):
+        if not self.depth:
+            raise ValueError('Document-level comments cannot be preserved')
+        return super().comment(text)
+
+    def pi(self, target, text):
+        if not self.depth:
+            raise ValueError('Document-level instructions cannot be preserved')
+        return super().pi(target, text)
 
 
 def parse(raw):
@@ -17,12 +48,14 @@ def parse(raw):
         text = raw.decode('utf-8-sig')
         if re.search(r'<!\s*(?:DOCTYPE|ENTITY)\b', text, re.I):
             raise ValueError('DTD and entities are unsupported')
-        parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True))
+        parser = ET.XMLParser(target=ComicTree())
         root = ET.fromstring(text, parser=parser)
     except (UnicodeError, ET.ParseError) as error:
         raise ValueError('Malformed ComicInfo') from error
     if root.tag != 'ComicInfo':
         raise ValueError('Expected ComicInfo root')
+    if (root.text or '').strip():
+        raise ValueError('Unsupported text outside metadata fields')
     return root
 
 
@@ -86,6 +119,8 @@ def reconcile(original, tagged, *, updates=None, replace_fields=()):
             if node.tag == name:
                 root.remove(node)
         ET.SubElement(root, name).text = text
+    if any(len(root.findall(name)) > 1 for name in SINGLETONS):
+        raise ValueError('Duplicate singleton metadata field')
     names, numbers = root.findall('StoryArc'), root.findall('StoryArcNumber')
     if len(names) > 1 or len(numbers) > 1 or (numbers and not names):
         raise ValueError('Ambiguous arc fields')

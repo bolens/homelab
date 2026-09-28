@@ -22,6 +22,16 @@ manualmeta semantics, but reports a verified structured receipt to archive_monit
 One adapter owns replacement. Modern backend does not convert or delete originals.
 Conversion-only and non-ZIP routes must be proved before native activation.
 
+`tagger_adapter.Publisher.tag(source, metadata, token=...)` is an inactive internal
+CBZ operation. It replaces a source only after staged verification, using Linux
+atomic exchange to retain the displaced file until commit verification. Unsupported
+filesystems have no weaker fallback. The caller must exclude non-cooperating writers;
+an observed race keeps recovery copies and never reports success. Hardlinks and
+extended attributes/ACLs are unsupported. `recover(token)` reconciles a durable
+intent without repeating the CLI. Same-token/different-request calls conflict;
+separate token and source locks serialize overlapping work. Raw child output and
+file paths never appear in the returned `Result`. No native caller uses this API yet.
+
 Future discovery session exposes the current requests get/post/context lifetime and
 exception expectations. Provider resolution and archive transfers are separate
 choices. No double retry layer, extra cooldown mutation, automatic fallback, or

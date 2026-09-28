@@ -32,7 +32,7 @@ def save(staged, metadata, *, workdir, executable=EXECUTABLE, timeout=TAG_TIMEOU
     """
     staged = Path(staged)
     workdir = Path(workdir).resolve(strict=True)
-    if staged.is_symlink() or not staged.is_file() or staged.suffix.lower() != '.cbz':
+    if staged.is_symlink() or not staged.is_file() or staged.stat().st_nlink != 1 or staged.suffix.lower() != '.cbz':
         raise ValueError('Expected a regular staged CBZ')
     staged = staged.resolve(strict=True)
     if workdir not in staged.parents:

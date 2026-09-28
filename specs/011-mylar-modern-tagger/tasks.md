@@ -17,7 +17,9 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
 - [x] T008 [US1] Build isolated headless venv and final-stage native libraries in `stacks/mylar3/Dockerfile`, preserving the legacy runtime.
 - [ ] T009 [US1] Implement staged archive verification and sole publication owner in `stacks/mylar3/config/tagger_adapter.py`; preserve pages, comments, sidecars and permissions.
   `tagger_archive.py` now implements the verification/reconciliation component.
-  Publication ownership and durable recovery remain pending.
+  `tagger_adapter.py` adds an inactive publication owner and versioned recovery
+  receipts. Native caller ownership, other-writer coordination and live filesystem
+  acceptance remain pending before this task can close.
 - [ ] T010 [US1] Add real CLI and archive cases C1/C2/P1 in `stacks/mylar3/config/test_modern_tagger.py`, including actual observed version banner and error behavior.
   CLI/version, generated archive preservation and legacy isolation cases pass.
   Reconciled XML is now written into a new CBZ and read back with content/permission
@@ -29,6 +31,9 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
 Independent test: C3/C4/N3/L1 failures, recovery and old-image rollback.
 
 - [ ] T012 [US2] Add versioned durable publication intent and restart reconciliation in `tagger_adapter.py`; test source races and crash boundaries in `test_modern_tagger.py`.
+  The standalone publisher has real-process crash tests before/after exchange,
+  conflict retention, token serialization and historical replay coverage. Startup
+  recovery wiring and native writer exclusion remain pending.
 - [ ] T013 [US2] Connect verified added/updated/unchanged/failed/timed-out/unsupported results to `archive_monitor.py`, with tests for all monitor states.
 - [ ] T014 [US2] Verify old/new image state compatibility and scoped canary rollback, record evidence in `validation.md`. Keep legacy selectable.
 

@@ -466,8 +466,9 @@ isolated `/opt/comictagger` environment. Mylar continues using its existing vend
 The image build tests the real modern CLI offline with generated CBZs, including
 annual/variant metadata, Unicode, volume 1, archive comments and unrelated members.
 The CLI protocol helper reports only a staged save; it does not claim a verified
-library import. Archive publication/recovery, native integration and live rollback
-remain activation gates. Requests remains the DDL transport.
+library import. Publication/recovery now has an isolated fixture implementation;
+native integration, writer coordination and live rollback remain activation gates.
+Requests remains the DDL transport.
 
 The archive helper reconciles ComicInfo into a new CBZ and reopens it to check page
 and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown
@@ -477,6 +478,17 @@ entries and changed sources. Current prototype limits are 4 GiB per archive and
 in total unpacked data, 512 MiB per non-metadata member, 4,096 members, an 8 MiB
 central directory and 256 KiB ComicInfo. ZIP64 and split archives are unsupported.
 These are prototype limits, not changes to the active legacy tagger.
+
+The inactive publisher uses a private versioned journal and same-filesystem staging.
+It verifies page bytes before atomic Linux file exchange, then verifies the displaced
+source before recording a commit. Restart recovery never blindly repeats a CLI run
+or file exchange. Conflicts retain the original copy and displaced file for review.
+Operation tokens and source paths have separate locks; old completed receipts do not
+block newer jobs. Hardlinked files, extended attributes/ACLs and filesystems without
+atomic exchange are unsupported. Native integration must exclude other writers and
+prove the actual media filesystem supports the operation before enabling this backend.
+The helpers ship under `/opt/mylar3-fixes` but do not run at startup. Existing live
+settings, library files and services are unaffected by this inactive implementation.
 
 Runtime and Python build dependencies have exact versions and SHA-256 locks. Build
 tools stay outside the final image. ICU 70 comes from the pinned Ubuntu base. Package
