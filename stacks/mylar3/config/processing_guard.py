@@ -12,12 +12,13 @@ def run(function):
         # Native callers include the queue, manual scans and API requests. The
         # ownership guard spans all of them, including early returns/errors.
         with _RUN:
-            mylar.APILOCK = True
             try:
-                from mylar import pack_intake
-                if pack_intake.capture(self):
-                    return None
-                return function(self, *args, **kwargs)
+                from mylar import pack_intake, native_writers
+                with native_writers.owner().hold(timeout=180):
+                    mylar.APILOCK = True
+                    if pack_intake.capture(self):
+                        return None
+                    return function(self, *args, **kwargs)
             finally:
                 mylar.APILOCK = False
                 # The synchronous native caller waits for a result after join().

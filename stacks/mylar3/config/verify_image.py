@@ -12,12 +12,12 @@ with tempfile.TemporaryDirectory() as directory:
     shutil.copytree('/app/mylar3/mylar', source)
     templates = Path(directory) / 'data/interfaces/default'
     templates.mkdir(parents=True)
-    for name in ('queue_management.html', 'manage.html', 'base.html', 'searchresults.html'):
+    for name in ('queue_management.html', 'manage.html', 'base.html', 'searchresults.html', 'config.html'):
         shutil.copyfile('/app/mylar3/data/interfaces/default/' + name, templates / name)
     subprocess.run([sys.executable, str(FIXES / 'apply_patches.py'), str(source)], check=True)
-    for test in ('test_ddl_status.py', 'test_ddl_responses.py', 'test_ddl_exhaustion.py', 'test_tagger_timeout.py', 'test_ddl_mirror_retries.py', 'test_health.py', 'test_unnumbered_issues.py', 'test_ddl_resume.py', 'test_ddl_requeue.py', 'test_queue_progress.py', 'test_queue_control.py', 'test_verified_transfer.py', 'test_queue_views.py', 'test_search_fallback.py', 'test_search_cooldown.py', 'test_pp_monitor.py', 'test_archive_monitor.py', 'test_ddl_ui.py', 'test_pack_intake.py', 'test_database_transactions.py', 'test_catalog_volumes.py', 'test_story_arc_search.py', 'test_release_calendar.py', 'test_file_matching.py', 'test_tagger_handoff.py'):
+    for test in ('test_ddl_status.py', 'test_ddl_responses.py', 'test_ddl_exhaustion.py', 'test_tagger_timeout.py', 'test_ddl_mirror_retries.py', 'test_health.py', 'test_unnumbered_issues.py', 'test_ddl_resume.py', 'test_ddl_requeue.py', 'test_queue_progress.py', 'test_queue_control.py', 'test_verified_transfer.py', 'test_queue_views.py', 'test_search_fallback.py', 'test_search_cooldown.py', 'test_pp_monitor.py', 'test_archive_monitor.py', 'test_ddl_ui.py', 'test_pack_intake.py', 'test_database_transactions.py', 'test_catalog_volumes.py', 'test_story_arc_search.py', 'test_release_calendar.py', 'test_file_matching.py', 'test_tagger_handoff.py', 'test_tagger_backend.py'):
         subprocess.run([sys.executable, str(FIXES / test), str(source)], check=True)
-    for test in ('test_file_identity.py', 'test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py', 'test_pack_records.py', 'test_pack_catalog.py', 'test_queue_schedule.py', 'test_tagger_runtime.py', 'test_tagger_metadata.py', 'test_tagger_archive.py', 'test_tagger_adapter.py', 'test_tagger_lookup.py', 'test_tagger_service.py'):
+    for test in ('test_file_identity.py', 'test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py', 'test_pack_records.py', 'test_pack_catalog.py', 'test_queue_schedule.py', 'test_tagger_runtime.py', 'test_tagger_metadata.py', 'test_tagger_archive.py', 'test_tagger_adapter.py', 'test_tagger_lookup.py', 'test_tagger_service.py', 'test_media_writer.py', 'test_native_writers.py'):
         subprocess.run([sys.executable, str(FIXES / test)], check=True,env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
     # Import the full patched package: native Mylar owns queue_schedule as a
     # function used to start and stop worker pools. Both upstream and built

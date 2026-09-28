@@ -72,3 +72,21 @@ and bounds the child to 45 seconds and 64 KiB output. HTTP responses are limited
 volume identities must agree. The caller supplies the actual annual release volume
 when applicable. Provider requests wait the configured interval before each request.
 Only fields explicitly returned by the provider may replace existing fields.
+
+`Metatagging.tagger_backend` is additive, defaults to `legacy`, and accepts only the
+exact values `legacy` and `modern`. Native config requests validate all matching
+keys before any mutation, including duplicate case variants. An unavailable Modern
+choice is rejected with a sanitized message. The settings page disables the Modern
+option and explains the missing capabilities. Native entry dispatch reads the
+configured choice once, preserves legacy arguments and exception behavior, and
+never falls back for a manually configured unsupported backend. No modern
+activation is implied by the presence of this selector.
+
+The version-1 media writer protocol lives in private, local Mylar state and is
+mounted narrowly read-write by the opt-in normalizer. File locks exclude complete
+native post-processing/manual tagging and worker cycles. A durable worker marker
+blocks native admission while conversion receipts remain unfinished, surviving
+process death and asynchronous Komga requests. Only worker reconciliation clears
+it. Protocol files cannot be recreated in an existing directory after deletion.
+Both image contexts ship identical protocol code, checked by repository tests.
+This does not assert coverage of every native rescan or file-management writer.

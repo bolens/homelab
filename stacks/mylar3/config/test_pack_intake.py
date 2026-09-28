@@ -1,5 +1,6 @@
 """Regressions for annual filename IDs and empty/failed processing runs."""
 import ast
+from contextlib import nullcontext
 from pathlib import Path
 import queue
 import sqlite3
@@ -20,7 +21,7 @@ SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 and not sys.argv[1].startswi
 
 class ProcessingTest(unittest.TestCase):
     def test_empty_error_and_success_release_owned_lock(self):
-        mylar = SimpleNamespace(APILOCK=False, pack_intake=SimpleNamespace(capture=Mock(return_value=False)))
+        mylar = SimpleNamespace(APILOCK=False, native_writers=SimpleNamespace(owner=lambda:SimpleNamespace(hold=lambda **kwargs:nullcontext())), pack_intake=SimpleNamespace(capture=Mock(return_value=False)))
         for error in (False, True):
             obj = SimpleNamespace(queue=queue.Queue())
             @run
@@ -39,7 +40,7 @@ class ProcessingTest(unittest.TestCase):
             self.assertEqual(obj.queue.get_nowait(), [{'mode': 'stop'}])
 
     def test_concurrent_call_waits_for_owner(self):
-        mylar = SimpleNamespace(APILOCK=False, pack_intake=SimpleNamespace(capture=Mock(return_value=False)))
+        mylar = SimpleNamespace(APILOCK=False, native_writers=SimpleNamespace(owner=lambda:SimpleNamespace(hold=lambda **kwargs:nullcontext())), pack_intake=SimpleNamespace(capture=Mock(return_value=False)))
         entered, release, second = threading.Event(), threading.Event(), threading.Event()
         @run
         def operation(self):

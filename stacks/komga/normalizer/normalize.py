@@ -435,9 +435,8 @@ def main():
         threading.Thread(target=heartbeat, daemon=True).start()
         while True:
             try:
-                normalizer.cycle()
-                if maintenance:
-                    maintenance.cycle()
+                from writer_cycle import cycle
+                cycle(normalizer, maintenance)
             except Exception as exc:
                 save(state / 'status.json', {'checked_at': time.time(),
                                             'errors': [{'error': str(exc)}]})

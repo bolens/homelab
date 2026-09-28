@@ -34,6 +34,8 @@ PATCHES = (
     "patch_release_calendar",
     "patch_tagger_handoff",
     "install_tagger_service",
+    "patch_tagger_backend",
+    "patch_media_writers",
 )
 
 

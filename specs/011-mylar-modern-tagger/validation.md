@@ -1,5 +1,49 @@
 # Implementation evidence
 
+## Backend choice and normalizer coordination increment
+
+Scope: additive settings and shared writer ownership against `1d8d721`.
+
+- Metadata Tagging now includes a persisted Legacy-default backend selector. Modern
+  is visibly disabled until its remaining gates close. Native config and web requests
+  reject malformed, duplicate or unavailable choices before mutating settings. The
+  native entry point preserves arguments and captures the chosen backend once.
+- Complete native manual tagging and post-processing share a local-filesystem lock
+  with opt-in worker conversion/maintenance cycles. The narrow coordination mount
+  preserves the normalizer's read-only access to the rest of Mylar configuration.
+- Persistent worker recovery markers span asynchronous Komga upgrades and process
+  death. Busy cycles skip mutation without discarding existing errors. Missing or
+  malformed state fails closed. A bound recovery-directory identity prevents lost
+  or remounted jobs from being interpreted as completed recovery. Native admission
+  errors still complete result queues.
+- Independent review reproduced lock-file recreation admitting a second owner while
+  the original inode was held. Only a newly created state directory may bootstrap a
+  lock now. Existing state with a missing lock fails closed, including at startup.
+  The real-process regression and reviewer reproduction pass after the correction.
+- Both protocol copies are checked for equality. Real process/thread contention,
+  process death, recovery fences, native completion, Compose isolation and preparation
+  preservation have focused regression coverage.
+- Local focused checks pass: six lock tests, seven worker-cycle tests, three native
+  ownership tests and nine stack-contract tests. Repository CI and secret scanning
+  pass. The settings fixture passed keyboard/form assertions and four Chromium
+  viewport checks from 375 to 2560 pixels. Modern activation remains unavailable.
+- Final image validation passed 345 Mylar tests and 94 normalizer tests. The
+  cross-image harness verified exclusive admission, a killed-worker recovery fence
+  and successful admission after reconciliation, with disposable state mounted at
+  different paths in the two containers. No live service or media has changed.
+
+- Shared processing-overlay styling now covers non-DDL DataTables without changing
+  plugin-controlled visibility. An isolated Chromium fixture used both bundled
+  DataTables versions with page styles loaded after the shared styles, at 375,
+  768, 1440 and 2560 pixels. All eight cases verified readable colors, bounded
+  centered placement and automatic dismissal after the actual plugin callback.
+  The 375-pixel capture was visually inspected. This is fixture evidence, not a
+  live-page or full-theme verification.
+
+Other native rescan/file-management writers, modern producer routing, recovery cleanup,
+startup admission and live rollout/canary acceptance remain pending. The worker
+protocol is opt-in. This increment does not select the modern backend.
+
 ## Metadata lookup and native producer increment
 
 Scope: inactive producer integration against `4e2f7e3`.

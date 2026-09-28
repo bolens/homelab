@@ -29,8 +29,13 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
   guards. `mylar.tagger_handoff` is the sole native result identity. Legacy temporary
   paths retain their behavior. The inactive service now provides bounded ComicVine
   lookup, manual in-place results, automatic disposable outputs, no-overwrite policy
-  and exact backend dispatch. Native settings, annual caller identity, global writer
-  coordination and producer routing remain pending.
+  and exact backend dispatch. The native settings selector now persists a Legacy
+  default and visibly gates Modern availability. Server validation precedes changes,
+  and the native entry point captures the choice once per job. Modern routing,
+  annual caller identity and remaining native writer coverage remain pending.
+  Shared flock admission and durable normalizer recovery fences now cover complete
+  post-processing/manual tagging and opt-in normalizer cycles. Live coordination
+  rollout, modern recovery ownership and canary checks remain pending.
 
 ## US2 - Failure recovery and observability
 
