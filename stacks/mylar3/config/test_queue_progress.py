@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from patch_queue_progress import patched_source, patched_template
 from patch_ddl_schedule import queue_view
+from patch_queue_labels import server as release_labels
 import queue_progress
 
 SOURCE = Path(sys.argv.pop(1))
@@ -47,7 +48,8 @@ class QueueProgressTest(unittest.TestCase):
         self.assertEqual(queue_progress.progress(self.row, self.directory), '100%')
 
     def endpoint(self, items, downloads, sort='3', positions=None, projection=None, **params):
-        source = queue_view(patched_source((SOURCE / 'webserve.py').read_text()))
+        source = release_labels(queue_view(patched_source((SOURCE / 'webserve.py').read_text())))
+        self.assertEqual(release_labels(source), source)
         self.assertEqual(patched_source(source), source)
         self.assertEqual(queue_view(source), source)
         node = next(n for n in ast.walk(ast.parse(source)) if isinstance(n, ast.FunctionDef) and n.name == 'queueManageIt')
@@ -78,6 +80,24 @@ class QueueProgressTest(unittest.TestCase):
 
     def test_empty_queue_returns_empty_table(self):
         self.assertEqual(self.endpoint([], [])['aaData'], [])
+
+    def test_release_title_overrides_linked_issue_even_without_pack_flag(self):
+        title = 'Grimm Fairy Tales presents The Library #1 – 5 (2011-2012)'
+        item = dict(issues=None, Issue_Number='5', ComicYear='2011', ComicVersion=None,
+                    ComicName='Grimm Fairy Tales presents The Library', ComicID='comic',
+                    IssueID='327730', comicid='comic', issueid='327730', status='Downloading',
+                    pack=False, id='67812', link_type='GC-Main', size='100 B', updated_date='today')
+        for status in ('Queued', 'Downloading', 'Completed'):
+            with self.subTest(status=status):
+                result = self.endpoint([dict(item, status=status)],
+                                       [dict(self.row, id='67812', series=title, status=status)],
+                                       sSearch='1 – 5')
+                self.assertEqual(result['aaData'][0][0], title)
+                self.assertEqual(result['aaData'][0][5:8], ['67812', '327730', 'comic'])
+        for title in (None, '', '   '):
+            result = self.endpoint([item], [dict(self.row, id='67812', series=title)])
+            self.assertEqual(result['aaData'][0][0],
+                             'Grimm Fairy Tales presents The Library #5 (2011)')
 
     def test_queue_order_sorts_before_pagination_and_keeps_rank_in_response(self):
         items = [dict(issues=None, Issue_Number='1', ComicYear='2026', ComicVersion=None,
@@ -130,6 +150,8 @@ class QueueProgressTest(unittest.TestCase):
         self.assertNotIn("$('html,body').scrollTop(0)", template)
 
     def test_source_drift_rejected(self):
+        with self.assertRaises(ValueError):
+            release_labels('pass\n')
         with self.assertRaises((ValueError, StopIteration)):
             patched_source('pass\n')
         with self.assertRaises(ValueError):
