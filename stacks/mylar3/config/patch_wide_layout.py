@@ -1,7 +1,7 @@
 """Add a theme-neutral desktop layout override to Mylar's shared template."""
 from pathlib import Path
 import sys
-from patch_queue_control import replace_once
+from source_patches import replace_once
 
 START = '<!-- homelab-wide-layout-v1 -->'
 END = '<!-- /homelab-wide-layout-v1 -->'

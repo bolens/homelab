@@ -10,7 +10,10 @@ import unittest
 from unittest.mock import patch, Mock
 
 from processing_guard import run
-from patch_pack_intake import processor, processing, helpers, search, scheduler, startup
+from patch_postprocessing import processor, processing
+from patch_pack_intake import helpers, search
+from patch_ddl_schedule import scheduler
+from patch_series_preservation import startup
 
 SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 and not sys.argv[1].startswith('-') else None
 

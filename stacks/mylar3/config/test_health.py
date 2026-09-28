@@ -5,7 +5,7 @@ import sys
 import unittest
 
 from health import assess
-from patch_health import patched_source
+from patch_diagnostics_api import patched_source
 
 SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 else None
 

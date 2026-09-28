@@ -2,14 +2,9 @@
 import ast
 from pathlib import Path
 import sys
+from source_patches import replace_once
 
 MARKER = '# homelab-queue-control-v1'
-
-
-def replace_once(source, before, after):
-    if source.count(before) != 1:
-        raise ValueError('Queue-control source changed; review candidate image')
-    return source.replace(before, after, 1)
 
 
 def patched_source(name, source):

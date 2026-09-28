@@ -65,10 +65,10 @@ marks downloads Failed when their mirrors are exhausted. The build checks the ex
 upstream source before patching. When changing the pinned base, verify the patches
 against its source; remove them once upstream handles these cases. It does
 not increase Mylar's single DDL worker or post-processing concurrency.
-The worker recovery patch bounds ComicTagger runs to 180 seconds and retains the
+The tagger-timeout adapter bounds ComicTagger runs to 180 seconds and retains the
 original on timeout. Network failures while finding another DDL mirror are
-retried three times without terminating the queue thread. The import-integrity
-patch preserves Mylar's native issue-1 fallback for unnumbered one-shots. Resume
+retried three times without terminating the queue thread. The unnumbered-issue adapter
+preserves Mylar's native issue-1 fallback for unnumbered one-shots. Resume
 requests append only when the saved file matches the requested offset and the
 server returns HTTP 206 with that starting offset;
 a server that ignores Range restarts the partial file instead of corrupting it by
@@ -79,12 +79,22 @@ items, `100%` for completed items, and `Unknown` when the provider supplies no
 total size. Failed items show `--`. Percentage sorting is numeric, and polling
 preserves the current page and scroll position.
 
-Regression check against source copied from the pinned image:
-`python3 config/test_ddl_fix.py /path/to/mylar/source` (requires `webserve.py`
-and `getcomics.py`, plus `queues/ddl.py`; makes no network requests or changes
-to that source). Run `python3 config/test_worker_fix.py /path/to/mylar/source`
-against source with the DDL patch applied, including `cmtagmylar.py`, to verify
-tagging timeouts and bounded network retries.
+The adapters are organized by responsibility rather than delivery batch. See the
+[module map](config/MODULES.md) for their source ownership, dependency order, and
+focused tests. `config/apply_patches.py` owns the ordered adapter list used by both
+the image build and isolated verification.
+
+The image also rolls back failed SQLite writes before retrying, preserves explicit
+catalog volume 1, and keeps years that are part of a series title during filename
+matching. Recovery for an unnumbered collected edition requires one actual catalog
+issue, an exact title or ordinary alias, and one main comic file. Conflicting
+issue numbers, annual aliases, variants, and supplemental annotations are not
+collapsed into that issue.
+
+Story-arc searches queue every eligible missing entry with its arc identity and
+preserve already imported issues and annuals. TalkHard pull-list navigation uses
+Wednesday release weeks across year boundaries, including valid week 53. Legacy
+and file-pull modes retain their existing stored week identities.
 
 The image adds authenticated `getHealth` and `reportFailedDownload` API
 commands. Both require the primary API key. Keep Mylar's API enabled. The Docker

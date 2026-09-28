@@ -1,7 +1,7 @@
 FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS checked
 ENV PYTHONDONTWRITEBYTECODE=1
 COPY config/ /opt/mylar3-fixes/
-RUN sh /opt/mylar3-fixes/20-ddl-fix.sh \
+RUN python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
     && python3 /opt/mylar3-fixes/verify_image.py
 
 FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4
