@@ -5,7 +5,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock,patch
-from queue_schedule import choose,take,next_item,started
+from queue_schedule import choose,take,started
 from workflow_store import Store
 
 

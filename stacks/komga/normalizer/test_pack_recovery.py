@@ -1,6 +1,5 @@
 """Mixed-pack preservation, annual recovery and repeat-run fixtures."""
 from contextlib import closing
-import json
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -8,7 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 import zipfile
 
-from normalize import Normalizer, digest
+from normalize import Normalizer
 from maintenance import Maintenance
 from pack_recovery import Packs, evidence, kind
 from import_match import match
