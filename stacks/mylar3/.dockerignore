@@ -5,7 +5,7 @@
 !config/*.html
 !config/*.css
 !config/*.sh
-!tagger-requirements.lock
-!tagger-build-requirements.lock
+!requirements.txt
+!requirements-build.txt
 !tagger-sources.json
 !tagger-NOTICES.md

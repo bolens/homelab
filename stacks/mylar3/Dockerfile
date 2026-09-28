@@ -5,13 +5,13 @@ RUN apt-get update \
         build-essential=12.9ubuntu3 libicu-dev=70.1-2 \
         python3-dev=3.10.6-1~22.04.1 pkg-config=0.29.2-1ubuntu3 \
     && rm -rf /var/lib/apt/lists/*
-COPY tagger-build-requirements.lock tagger-requirements.lock /tmp/tagger-locks/
+COPY requirements-build.txt requirements.txt /tmp/tagger-locks/
 RUN python3 -m venv --without-pip /opt/tagger-build \
     && python3 -m pip --python /opt/tagger-build/bin/python install --no-cache-dir \
-        --require-hashes --no-deps -r /tmp/tagger-locks/tagger-build-requirements.lock \
+        --require-hashes --no-deps -r /tmp/tagger-locks/requirements-build.txt \
     && python3 -m pip --python /opt/tagger-build/bin/python wheel --no-cache-dir \
         --require-hashes --no-deps --no-build-isolation \
-        -r /tmp/tagger-locks/tagger-requirements.lock --wheel-dir /tmp/tagger-wheels \
+        -r /tmp/tagger-locks/requirements.txt --wheel-dir /tmp/tagger-wheels \
     && python3 -m venv --without-pip /opt/comictagger \
     && python3 -m pip --python /opt/comictagger/bin/python install --no-index --no-deps /tmp/tagger-wheels/*.whl \
     && python3 -m pip --python /opt/comictagger/bin/python check
