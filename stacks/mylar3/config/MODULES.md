@@ -11,6 +11,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | HTTP response validation | `patch_ddl_responses.py` | `test_ddl_responses.py` |
 | Exhausted mirrors | `patch_ddl_exhaustion.py` | `test_ddl_exhaustion.py` |
 | Transient mirror lookup failures | `patch_ddl_mirror_retries.py` | `test_ddl_mirror_retries.py` |
+| Native tagger result ownership | `patch_tagger_handoff.py` | `tagger_handoff.py`, `test_tagger_handoff.py`; follows native processing and monitoring adapters |
 | ComicTagger timeout | `patch_tagger_timeout.py` | `test_tagger_timeout.py` |
 | Unnumbered issue parsing | `patch_unnumbered_issues.py` | `test_unnumbered_issues.py` |
 | HTTP resume offsets | `patch_ddl_resume.py` | `test_ddl_resume.py` |
@@ -73,3 +74,9 @@ reports active locks without waiting, and retains malformed receipts. All five h
 `/opt/mylar3-fixes` in the final image, with no startup or native invocation.
 Native routing, writer coordination, filesystem canaries and optional DDL discovery
 remain separate activation gates.
+
+`mylar.tagger_handoff` is the canonical native result module. It captures only
+reconciled publication receipts, verifies the expected manual source, and keeps
+in-place results out of automatic temporary-file placement. The final image does
+not install a second standalone copy. Native tagging still returns legacy strings;
+backend selection and modern producer routing remain pending.

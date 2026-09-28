@@ -1,5 +1,34 @@
 # Implementation evidence
 
+## Native handoff and monitor increment
+
+Scope: review against `6569f07`, then native result-ownership integration.
+
+- The existing recovery implementation passed an independent review and 69 focused
+  adapter/archive/metadata tests with no new actionable defect.
+- Added a canonical `mylar.tagger_handoff.Published` result captured from reconciled
+  receipts and verified against current source content/identity/permissions. Manual
+  tagging rechecks its expected source and bypasses legacy copy/delete only on success.
+- All four automatic caller expressions reject non-string results before placement.
+  Legacy temporary paths and sentinel results retain their behavior. Actual native
+  manual result-handling code is executed against disposable files in the tests.
+- The observer now reports verified added/updated/unchanged metadata and distinct
+  timeout, unsupported and conflict outcomes. Paths and raw errors stay out of results.
+- Independent review reproduced a duplicate-module class identity gap. The final
+  image now installs the handoff module only in Mylar's namespace; manual and
+  automatic guards reject foreign/unknown typed objects. A separately loaded module
+  fixture verifies this rejection. Misleading failure-retention wording was corrected.
+- Eleven handoff and eight archive-monitor tests pass, including unchanged/manual,
+  bulk behavior, legacy cleanup, real caller expressions and foreign class identities.
+  Both reviewers verified the corrections with no remaining scoped findings.
+- The final pinned image passed 314 tests in the unprivileged offline gate, including
+  the real CLI result captured by the canonical native module. `make ci-local` passed
+  with no secret-scan findings.
+
+Native metadata lookup, backend settings, automatic staged output, startup admission,
+writer exclusion and live UI/canary acceptance remain pending. Legacy tagging remains
+selected. No live services, settings or media changed in this increment.
+
 ## Recovery gate and second seam-review increment
 
 Scope: publisher recovery review against `52e9cc6` and an inactive startup scan API.

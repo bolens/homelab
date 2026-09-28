@@ -17,8 +17,10 @@ not inferred deletion. Preserve full page metadata when pages are unchanged. Sto
 are one replacement group. A partial original name never borrows an unrelated
 tagged number; partial explicit replacement or mismatched numbered lists is rejected.
 
-Future native adapter retains cmtagmylar.run's path/sentinel return contract and
-manualmeta semantics, but reports a verified structured receipt to archive_monitor.
+The legacy adapter retains cmtagmylar.run's path/sentinel return contract. Modern
+manual tagging uses an explicit `mylar.tagger_handoff.Published` result; automatic
+routing must continue to supply a verified disposable path. The observer understands
+typed results, but no native producer selects modern tagging yet.
 One adapter owns replacement. Modern backend does not convert or delete originals.
 Conversion-only and non-ZIP routes must be proved before native activation.
 
@@ -45,3 +47,11 @@ closed on `busy`, `conflict`, `invalid_journal` or `io_error`. Malformed receipt
 return an empty token, never a path/name. Unexpected receipts remain untouched; one
 invalid receipt does not prevent reconciliation of other valid pending jobs. This
 API is not yet called from native startup.
+
+`mylar.tagger_handoff.capture(publisher, token)` reconciles a receipt and checks its
+cleaned outcome, current bytes, inode, permissions and expected source before
+creating an in-place result. Paths and digests are excluded from repr. Manual
+callers reverify the exact expected source before bypassing copy/delete and rescanning.
+All four automatic calls reject every non-string result before placement. Unknown
+or foreign typed results fail closed. Producers and consumers must import the same
+canonical native module; the final image has no standalone handoff module copy.

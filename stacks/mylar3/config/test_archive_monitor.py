@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch, Mock
 import zipfile
+import tagger_handoff
 import archive_monitor as archive
 import pp_monitor
 
@@ -18,8 +19,18 @@ class ArchiveTest(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name)
         archive._ACTIVE.clear();archive._RECENT.clear()
-        context=patch.dict(sys.modules,{'mylar':SimpleNamespace(DATA_DIR=str(self.root),workflow=SimpleNamespace(emit=Mock()),pp_monitor=pp_monitor)})
+        context=patch.dict(sys.modules,{'mylar':SimpleNamespace(DATA_DIR=str(self.root),workflow=SimpleNamespace(emit=Mock()),pp_monitor=pp_monitor,tagger_handoff=tagger_handoff)})
         context.start();self.addCleanup(context.stop)
+
+    def test_typed_failures_have_specific_sanitized_metadata_status(self):
+        before=self.comic('source.cbz')
+        for state,label in [('failed','Tagging failed or incomplete'),('timed_out','Tagging timed out'),
+                            ('unsupported','Tagging unsupported'),('conflict','Tagging needs review')]:
+            @archive.tagging
+            def tag(filename=None):return tagger_handoff.Published(state)
+            tag(filename=str(before))
+            self.assertEqual(archive.snapshot()['tagging'][0]['metadata'],label)
+            self.assertNotIn(str(self.root),json.dumps(archive.snapshot()))
 
     def test_conversion_identity_is_preserved_and_validated(self):
         row={'name':'Example.cb7','original_format':'CB7','phase':'complete','issueid':'10','comicid':'20'}
