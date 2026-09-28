@@ -14,6 +14,14 @@ MAX_ARCHIVE = 4 * 1024 ** 3
 SUCCESS = {'committed', 'unchanged'}
 
 
+class Failure(str):
+    """Native automatic callers keep their legacy 'fail' sentinel and reason."""
+    def __new__(cls, state):
+        value = super().__new__(cls, 'fail')
+        value.state = state if state in ('failed', 'timed_out', 'unsupported', 'conflict') else 'failed'
+        return value
+
+
 @dataclass(frozen=True)
 class Published:
     state: str

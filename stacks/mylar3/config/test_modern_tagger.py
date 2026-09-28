@@ -1,6 +1,6 @@
 """Offline acceptance against the real pinned console command, not a mocked CLI."""
 import hashlib
-from importlib import metadata, util
+from importlib import metadata, util, import_module
 import json
 import os
 from pathlib import Path
@@ -8,6 +8,8 @@ import shutil
 import struct
 import sys
 import tempfile
+from contextlib import contextmanager
+from types import ModuleType
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -87,6 +89,39 @@ class ModernTaggerTest(unittest.TestCase):
             self.assertTrue(handoff.valid_for(self.original))
             with self.assertRaises(RuntimeError):
                 native.automatic(handoff)
+
+    def test_native_service_real_cli_manual_and_automatic(self):
+        _, before = self.fixture()
+        package = ModuleType('mylar'); package.__path__ = ['/app/mylar3/mylar']
+        with patch.dict(sys.modules, {'mylar':package}):
+            service_module = import_module('mylar.tagger_service')
+            adapter = import_module('mylar.tagger_adapter')
+            handoff = import_module('mylar.tagger_handoff')
+            lookup = import_module('mylar.tagger_lookup')
+            cli = import_module('mylar.tagger_cli')
+            from test_tagger_lookup import ISSUE, VOLUME
+            fields = lookup.mapping(ISSUE, VOLUME, '123', '456')
+            @contextmanager
+            def coordinate():yield
+            cache = self.root/'cache'; cache.mkdir(mode=0o700)
+            owner = adapter.Publisher(self.root/'native-journal')
+            service = service_module.Service(owner, cache, lambda **kwargs:lookup.LookupResult('ok', fields), handoff, coordinate)
+            automatic = service.tag(self.original, issueid='123', volumeid='456', volume='1')
+            self.assertNotEqual(automatic, 'fail')
+            self.assertEqual(contents(Path(automatic)), before)
+            self.assertIsNone(snapshot(self.original).xml)
+            manual = service.tag(self.original, issueid='123', volumeid='456', manualmeta=True, volume='1')
+            self.assertIsInstance(manual, handoff.Published)
+            self.assertTrue(manual.valid_for(self.original))
+            root = parse(snapshot(self.original).xml)
+            self.assertEqual(root.findtext('Writer'), 'Creator')
+            self.assertEqual(root.findtext('Penciller'), 'Creator')
+            self.assertEqual(root.findtext('Series'), 'Fixture Annual')
+            self.assertEqual(root.findtext('Volume'), '1')
+            self.assertEqual(contents(self.original), before)
+            with patch.object(cli, 'run', side_effect=AssertionError('No overwrite')):
+                result = service.tag(self.original, issueid='123', volumeid='456', manualmeta=True)
+            self.assertEqual(result.state, 'unchanged')
 
     def test_final_image_contains_the_verified_inactive_helpers(self):
         for name in ('tagger_runtime.py', 'tagger_metadata.py', 'tagger_cli.py',

@@ -80,3 +80,11 @@ reconciled publication receipts, verifies the expected manual source, and keeps
 in-place results out of automatic temporary-file placement. The final image does
 not install a second standalone copy. Native tagging still returns legacy strings;
 backend selection and modern producer routing remain pending.
+
+`install_tagger_service.py` installs package-relative helper imports and the inactive
+`mylar.tagger_service` producer. `tagger_lookup.py` bounds credential-bearing
+ComicVine work in a child process and validates issue/volume identity. Service tests
+cover manual/automatic ownership, no-overwrite, corruption and recovery admission.
+The real-CLI gate exercises these native-package modules together. The service
+requires a caller-supplied global writer coordinator. It is not connected to
+cmtagmylar, settings or startup, and uncertain staging remains private for recovery.

@@ -33,6 +33,7 @@ PATCHES = (
     "patch_story_arcs",
     "patch_release_calendar",
     "patch_tagger_handoff",
+    "install_tagger_service",
 )
 
 

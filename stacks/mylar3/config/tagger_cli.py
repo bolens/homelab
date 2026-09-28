@@ -5,7 +5,10 @@ from pathlib import Path
 import re
 import tempfile
 
-from tagger_runtime import run, VERSION_TIMEOUT, TAG_TIMEOUT
+if __package__:
+    from .tagger_runtime import run, VERSION_TIMEOUT, TAG_TIMEOUT
+else:
+    from tagger_runtime import run, VERSION_TIMEOUT, TAG_TIMEOUT
 
 VERSION = '1.6.0b11.dev0'
 EXECUTABLE = '/opt/comictagger/bin/comictagger'

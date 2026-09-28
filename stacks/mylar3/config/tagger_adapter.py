@@ -21,8 +21,12 @@ import time
 import zipfile
 import zlib
 
-from tagger_archive import MAX_UNPACKED, identity, prepare, regular, snapshot
-from tagger_cli import save, VERSION
+if __package__:
+    from .tagger_archive import MAX_UNPACKED, identity, prepare, regular, snapshot
+    from .tagger_cli import save, VERSION
+else:
+    from tagger_archive import MAX_UNPACKED, identity, prepare, regular, snapshot
+    from tagger_cli import save, VERSION
 
 TERMINAL = {'committed', 'unchanged', 'failed', 'timed_out', 'unsupported'}
 HEX = re.compile(r'[0-9a-f]{32}\Z')
@@ -314,13 +318,17 @@ class Publisher:
                 return Result('conflict')
             return self.finish(record, 'conflict', cleanup=False)
 
-    def tag(self, source, metadata, *, token, updates=None, replace_fields=(), executable=None):
+    def tag(self, source, metadata, *, token, updates=None, replace_fields=(), executable=None, preserve_existing=False):
+        if type(preserve_existing) is not bool:
+            raise ValueError('Expected explicit no-overwrite policy')
         source = Path(source).absolute()
         replace_fields = tuple(replace_fields)
         if source.anchor != '/' or source.suffix.lower() != '.cbz' or '..' in source.parts or any(p.is_symlink() for p in (source, *source.parents)):
             return Result('unsupported')
-        request = hashlib.sha256(json.dumps([str(source), metadata, updates, list(replace_fields)],
-                                           sort_keys=True, allow_nan=False).encode()).hexdigest()
+        intent = [str(source), metadata, updates, list(replace_fields)]
+        if preserve_existing:
+            intent.append('preserve_existing')
+        request = hashlib.sha256(json.dumps(intent, sort_keys=True, allow_nan=False).encode()).hexdigest()
         path = self.receipt(token)
         # A token belongs to exactly one request, even across different sources.
         # Keep this order in recover too to prevent token/source lock inversion.
@@ -370,6 +378,11 @@ class Publisher:
                     os.fsync(writer.fileno())
                 if fingerprint(original) != before or identity(source.lstat()) != old.identity:
                     return self.finish(record, 'conflict', cleanup=False)
+                if preserve_existing:
+                    if old.xml is None:
+                        raise ValueError('Existing metadata disappeared')
+                    record['metadata'] = 'unchanged'
+                    return self.finish(record, 'unchanged')
                 shutil.copyfile(original, tagged)
                 _checkpoint('staged')
                 options = {'executable': executable} if executable else {}
