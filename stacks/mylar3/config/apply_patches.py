@@ -32,6 +32,7 @@ PATCHES = (
     "patch_catalog_volumes",
     "patch_story_arcs",
     "patch_release_calendar",
+    "patch_tagger_handoff",
 )
 
 

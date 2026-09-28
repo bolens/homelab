@@ -468,7 +468,12 @@ annual/variant metadata, Unicode, volume 1, archive comments and unrelated membe
 The CLI protocol helper reports only a staged save; it does not claim a verified
 library import. Publication/recovery now has an isolated fixture implementation;
 native integration, writer coordination and live rollback remain activation gates.
-Requests remains the DDL transport.
+Native manual tagging now recognizes an explicit verified in-place result and skips
+its legacy temporary-file copy/delete branch. Automatic imports reject non-string
+results before placement. The monitor accepts verified added/updated/unchanged and
+specific failure outcomes. These guards preserve legacy paths and do not select the
+modern backend; metadata lookup, automatic staging, startup admission and writer
+coordination remain pending. Requests remains the DDL transport.
 
 The archive helper reconciles ComicInfo into a new CBZ and reopens it to check page
 and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown

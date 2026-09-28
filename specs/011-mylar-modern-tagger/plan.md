@@ -35,7 +35,8 @@ all affected contract surfaces together and regenerate catalog output if metadat
   operation file. It never publishes over a source.
 - `tagger_adapter.py`: inactive staged archive verification, atomic exchange owner
   and private versioned receipts. Integration must coordinate other media writers.
-- Future `patch_modern_tagger.py`: checked native/manual routing and preference adapter.
+- `patch_tagger_handoff.py` and `tagger_handoff.py`: checked native ownership guards
+  and explicit in-place results. Future producer/setting adapter selects the backend.
 - `archive_monitor.py`: receipts from verified results, not CLI banner interpretation.
 - `stacks/mylar3/Dockerfile`: isolated venv copied with native ICU dependencies into
   final image. Never overwrite Mylar's Python dependency environment.

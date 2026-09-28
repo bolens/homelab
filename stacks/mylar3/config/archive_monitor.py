@@ -77,8 +77,12 @@ def tagging(function):
         finally:
             try:
                 if token is not None:
+                    from mylar import tagger_handoff
+                    published=isinstance(result,tagger_handoff.Published)
                     valid=isinstance(result,str) and result not in ('fail','corrupt','unrar error') and not result.startswith('file not found') and Path(result).is_file()
-                    after=inspect_archive(result) if valid else {}
+                    if published:
+                        valid=result.valid_for(filename)
+                    after=inspect_archive(result.path if published else result) if valid else {}
                     conversion='Failed or incomplete' if failed or not valid else (
                         'Output '+after['format']+'; original container unknown' if not before['container'] else
                         'Converted to '+after['format'] if before['container']!=after['container'] else
@@ -97,6 +101,10 @@ def tagging(function):
                         metadata='Metadata updated'
                     else:
                         metadata='Metadata unchanged'
+                    if published:
+                        metadata=({'added':'Metadata added','updated':'Metadata updated','unchanged':'Metadata unchanged'}[result.metadata]
+                                  if valid else {'timed_out':'Tagging timed out','unsupported':'Tagging unsupported',
+                                                 'conflict':'Tagging needs review'}.get(result.state,'Tagging failed or incomplete'))
                     with _LOCK:
                         value=_ACTIVE.pop(token)
                         value.update(output_format=after.get('format','Unknown'),conversion=conversion,

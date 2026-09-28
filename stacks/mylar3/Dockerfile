@@ -34,5 +34,5 @@ LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
 COPY --from=checked /app/mylar3/mylar/ /app/mylar3/mylar/
 COPY --from=checked /app/mylar3/data/interfaces/default/ /app/mylar3/data/interfaces/default/
 COPY --from=checked /opt/mylar3-fixes/health.py /opt/mylar3-fixes/health.py
-COPY --from=checked /opt/mylar3-fixes/tagger_*.py /opt/mylar3-fixes/
+COPY --from=checked /opt/mylar3-fixes/tagger_runtime.py /opt/mylar3-fixes/tagger_metadata.py /opt/mylar3-fixes/tagger_cli.py /opt/mylar3-fixes/tagger_archive.py /opt/mylar3-fixes/tagger_adapter.py /opt/mylar3-fixes/
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/

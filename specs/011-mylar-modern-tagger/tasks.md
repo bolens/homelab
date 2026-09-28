@@ -24,7 +24,11 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
   CLI/version, generated archive preservation and legacy isolation cases pass.
   Reconciled XML is now written into a new CBZ and read back with content/permission
   checks. Native publication and the complete failure/recovery matrix remain pending.
-- [ ] T011 [US1] Wire additive backend choice and native/manual/annual routing in `patch_modern_tagger.py`; cover N1/N2 and update every affected stack contract.
+- [ ] T011 [US1] Wire additive backend choice and native/manual/annual routing; cover N1/N2 and update every affected stack contract.
+  `patch_tagger_handoff.py` installs checked manual ownership and automatic rejection
+  guards. `mylar.tagger_handoff` is the sole native result identity. Legacy temporary
+  paths retain their behavior; backend settings, metadata lookup and modern native
+  producer routing remain pending.
 
 ## US2 - Failure recovery and observability
 
@@ -36,6 +40,8 @@ Independent test: C3/C4/N3/L1 failures, recovery and old-image rollback.
   startup recovery API now skips completed history and reports busy/invalid receipts.
   Native startup wiring and native writer exclusion remain pending.
 - [ ] T013 [US2] Connect verified added/updated/unchanged/failed/timed-out/unsupported results to `archive_monitor.py`, with tests for all monitor states.
+  The native observer now consumes verified Published results with tests for all
+  outcomes. Active modern producer routing and live UI acceptance remain pending.
 - [ ] T014 [US2] Verify old/new image state compatibility and scoped canary rollback, record evidence in `validation.md`. Keep legacy selectable.
 
 ## US3 - Optional DDL discovery

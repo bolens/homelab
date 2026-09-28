@@ -1,11 +1,12 @@
 """Offline acceptance against the real pinned console command, not a mocked CLI."""
 import hashlib
-from importlib import metadata
+from importlib import metadata, util
 import json
 import os
 from pathlib import Path
 import shutil
 import struct
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -77,12 +78,25 @@ class ModernTaggerTest(unittest.TestCase):
         repeated = owner.tag(self.original, metadata, token='b'*32)
         self.assertEqual((repeated.state, repeated.metadata), ('unchanged', 'unchanged'))
         self.assertFalse(list(self.root.glob('.mylar-tag-*')))
+        spec = util.spec_from_file_location('mylar.tagger_handoff', '/app/mylar3/mylar/tagger_handoff.py')
+        native = util.module_from_spec(spec)
+        with patch.dict(sys.modules, {'mylar.tagger_handoff':native}):
+            spec.loader.exec_module(native)
+            handoff = native.capture(owner, 'b'*32)
+            self.assertEqual((handoff.state, handoff.metadata), ('unchanged', 'unchanged'))
+            self.assertTrue(handoff.valid_for(self.original))
+            with self.assertRaises(RuntimeError):
+                native.automatic(handoff)
 
     def test_final_image_contains_the_verified_inactive_helpers(self):
         for name in ('tagger_runtime.py', 'tagger_metadata.py', 'tagger_cli.py',
                      'tagger_archive.py', 'tagger_adapter.py'):
             self.assertEqual((Path('/opt/mylar3-fixes')/name).read_bytes(),
                              Path(__file__).with_name(name).read_bytes())
+
+    def test_native_handoff_module_matches_tested_source(self):
+        self.assertEqual(Path('/app/mylar3/mylar/tagger_handoff.py').read_bytes(),
+                         Path(__file__).with_name('tagger_handoff.py').read_bytes())
 
     def test_hardlinked_staging_cannot_modify_external_original(self):
         original, _ = self.fixture()
