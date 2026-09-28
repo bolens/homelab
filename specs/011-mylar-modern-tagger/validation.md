@@ -27,8 +27,10 @@ Scope: additive settings and shared writer ownership against `1d8d721`.
   ownership tests and nine stack-contract tests. Repository CI and secret scanning
   pass. The settings fixture passed keyboard/form assertions and four Chromium
   viewport checks from 375 to 2560 pixels. Modern activation remains unavailable.
-- Final combined-image validation, including the cross-image crash-fence harness,
-  remains outstanding before delivery. No live service or media has changed.
+- Final image validation passed 345 Mylar tests and 94 normalizer tests. The
+  cross-image harness verified exclusive admission, a killed-worker recovery fence
+  and successful admission after reconciliation, with disposable state mounted at
+  different paths in the two containers. No live service or media has changed.
 
 Other native rescan/file-management writers, modern producer routing, recovery cleanup,
 startup admission and live rollout/canary acceptance remain pending. The worker
