@@ -57,10 +57,13 @@ verified base-image update provides its behavior natively.
 
 ## Modern tagger migration
 
-`tagger_runtime.py`, `tagger_metadata.py` and `tagger_cli.py` provide bounded process,
-metadata and pinned CLI boundaries for the [migration](../../../specs/011-mylar-modern-tagger/plan.md).
+`tagger_runtime.py`, `tagger_metadata.py`, `tagger_cli.py` and `tagger_archive.py`
+provide bounded process, metadata, CLI and archive-reconciliation boundaries for
+the [migration](../../../specs/011-mylar-modern-tagger/plan.md).
 They are build-tested and not connected to native Mylar tagging. The isolated
 `/opt/comictagger` runtime is copied into the image, while Mylar continues using its
 vendored legacy tagger. Tests: `test_tagger_runtime.py`, `test_tagger_metadata.py`,
-`test_modern_tagger.py`. `fetch_tagger_sources.py` runs only during image construction.
+`test_tagger_archive.py`, `test_modern_tagger.py`. The archive helper writes only new
+operation files, reopens them for verification and never replaces a source.
+`fetch_tagger_sources.py` runs only during image construction.
 Archive publication, native routing and optional DDL discovery remain separate gates.

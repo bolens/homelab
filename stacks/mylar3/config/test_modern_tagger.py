@@ -13,6 +13,7 @@ import zlib
 from tagger_cli import EXECUTABLE, VERSION, save, version_supported, saved_result
 from tagger_metadata import overrides, parse, reconcile
 from tagger_runtime import ProcessResult, run
+from tagger_archive import prepare, snapshot
 
 
 def png():
@@ -98,7 +99,14 @@ class ModernTaggerTest(unittest.TestCase):
         # The actual built-in writer does not supply the new sequence numbers.
         self.assertNotEqual(parse(tagged).findtext('StoryArcNumber'), '1,2')
         merged = reconcile(old, tagged, updates=overrides(volume=1, reading_order=[('First',1),('Second',2)]))
-        root = parse(merged)
+        output = self.stage/'verified.cbz'
+        self.assertEqual(prepare(self.original, self.archive, output,
+            updates=overrides(volume=1, reading_order=[('First',1),('Second',2)])), 'updated')
+        verified = snapshot(output)
+        self.assertEqual(verified.xml, merged)
+        self.assertEqual(contents(output), before)
+        self.assertEqual(verified.mode, 0o640)
+        root = parse(verified.xml)
         self.assertEqual(root.findtext('Notes'), 'Keep notes')
         self.assertEqual(root.findtext('Web'), 'https://example.org/comic')
         self.assertEqual(root.findtext('StoryArc'), 'First,Second')
@@ -112,12 +120,19 @@ class ModernTaggerTest(unittest.TestCase):
         self.fixture()
         fields = {'series':'Fixture','issue':'1','volume':1}
         self.assertEqual(save(self.archive, fields, workdir=self.stage).state, 'saved')
-        with zipfile.ZipFile(self.archive) as archive:first = archive.read('ComicInfo.xml')
+        output = self.stage/'verified.cbz'
+        self.assertEqual(prepare(self.original, self.archive, output), 'added')
+        first = snapshot(output).xml
+        verified_hash = hashlib.sha256(output.read_bytes()).hexdigest()
         self.assertEqual(save(self.archive, fields, workdir=self.stage).state, 'saved')
         with zipfile.ZipFile(self.archive) as archive:second = archive.read('ComicInfo.xml')
         normalized = reconcile(first, second)
         self.assertEqual(reconcile(first, normalized), normalized)
         self.assertEqual(parse(normalized).findtext('Notes'), parse(first).findtext('Notes'))
+        repeated = self.stage/'repeated.cbz'
+        self.assertEqual(prepare(output, self.archive, repeated), 'unchanged')
+        self.assertFalse(repeated.exists())
+        self.assertEqual(hashlib.sha256(output.read_bytes()).hexdigest(), verified_hash)
 
     def test_corrupt_archive_is_not_success(self):
         self.archive.write_bytes(b'not a comic archive')

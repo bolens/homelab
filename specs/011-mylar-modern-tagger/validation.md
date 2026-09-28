@@ -1,5 +1,30 @@
 # Implementation evidence
 
+## Archive reconciliation increment
+
+Scope: inactive archive verification/reconciliation against `8713e4a`.
+
+- Nineteen focused tests cover metadata additions and explicit replacements,
+  preserved notes/extensions/bookmarks/arcs, unchanged results, member hashes,
+  ZIP comments/attributes, filesystem ownership/mode, malformed names, CRC/truncation,
+  input limits, source replacement and staging cleanup after output failure.
+- The real CLI cases now write the reconciled XML into a new CBZ and reopen it.
+  They verify exact XML and preserved non-metadata contents. Repeated tagging and
+  reconciliation return unchanged without producing another output archive.
+- Independent review found an out-of-buffer ZIP64 locator and NUL-truncated member
+  names that could defeat the intended validation. Both were fixed with regression
+  cases and re-reviewed. Additional reviewer checks confirmed cleanup preserves
+  a replaced output inode and retains the source on ownership-setting failure.
+- The complete build and final unprivileged, network-disabled image gate passed
+  263 tests: 233 existing, 19 archive and 11 real-runtime tests. `make ci-local`
+  passed. The 19 archive cases also passed independently outside the image.
+
+This closes the in-memory-only XML verification gap. It does not implement source
+publication, durable intent, crash recovery, native/manual routing or monitor
+receipts. C3/C4, native, rollout and transport gates remain pending. The helper's
+limits and unsupported ZIP64/split archives are documented in the stack README.
+No live library files or application settings were changed for this increment.
+
 ## Runtime packaging increment
 
 Scope: inactive modern runtime and staged-file CLI protocol against `b9e95f6`.
@@ -12,7 +37,9 @@ Scope: inactive modern runtime and staged-file CLI protocol against `b9e95f6`.
   installed distributions. Both runtime and build locks were exposed through requirements manifests. The
   first live bot runs failed to fetch their referenced `.lock` files. The corrective
   layout places the same pins and hashes directly in recognized requirements files,
-  pending successful bot evaluation.
+  verified by successful dependency-graph run `36488315419`, which reported both
+  requirement files and their packages. A subsequent version-update job remains
+  unverified.
 - The candidate build and final read-only, network-disabled, unprivileged image gate
   passed 232 existing tests and 11 modern-runtime tests. Real CLI writes cover
   regular issues, annuals, variants, Unicode, explicit volume 1, page/sidecar/ZIP

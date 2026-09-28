@@ -469,6 +469,15 @@ The CLI protocol helper reports only a staged save; it does not claim a verified
 library import. Archive publication/recovery, native integration and live rollback
 remain activation gates. Requests remains the DDL transport.
 
+The archive helper reconciles ComicInfo into a new CBZ and reopens it to check page
+and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown
+fields and page bookmarks survive unless explicitly replaced. Unchanged metadata
+produces no output. Verification rejects ambiguous metadata/member names, corrupt
+entries and changed sources. Current prototype limits are 4 GiB per archive and
+in total unpacked data, 512 MiB per non-metadata member, 4,096 members, an 8 MiB
+central directory and 256 KiB ComicInfo. ZIP64 and split archives are unsupported.
+These are prototype limits, not changes to the active legacy tagger.
+
 Runtime and Python build dependencies have exact versions and SHA-256 locks. Build
 tools stay outside the final image. ICU 70 comes from the pinned Ubuntu base. Package
 license files and selected corresponding source archives are retained under
@@ -476,7 +485,8 @@ license files and selected corresponding source archives are retained under
 [tagger-NOTICES.md](tagger-NOTICES.md). Dependabot is configured for the runtime and
 build requirements files. The first bot run could not fetch referenced `.lock` files,
 so hashes now live directly in `requirements.txt` and `requirements-build.txt`.
-Successful bot evaluation of this corrected layout remains to be verified.
+GitHub's dependency graph has successfully evaluated both corrected files. A
+subsequent version-update job remains to be observed.
 Review native build-package pins monthly and whenever changing the base digest.
 
 The published image is currently built/tested for linux/amd64. A Python wheel's
