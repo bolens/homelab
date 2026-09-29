@@ -2,7 +2,7 @@
 
 **Feature Branch**: `codex/library-metadata-maintenance`
 **Created**: 2026-09-29
-**Status**: Planned
+**Status**: Implemented and activated
 **Input**: Automatically handle duplicate nested metadata and untagged library comics.
 
 ## User Scenarios & Testing

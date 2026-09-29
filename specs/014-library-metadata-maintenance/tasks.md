@@ -21,9 +21,9 @@
 
 ## Delivery and acceptance
 
-- [ ] T008 Update affected stack contract documentation and module map; run focused and repository/image gates.
-- [ ] T009 Merge reviewed changes, verify published GHCR image and mirror under RELEASING.md.
-- [ ] T010 Perform verified Mylar-only deployment and opt-in canary, confirm library/catalog preservation, dependent-service uptime and UI, then remove operation backups. Record evidence in specs/014-library-metadata-maintenance/tasks.md.
+- [x] T008 Update affected stack contract documentation and module map; run focused and repository/image gates.
+- [x] T009 Merge reviewed changes, verify published GHCR image and mirror under RELEASING.md.
+- [x] T010 Perform verified Mylar-only deployment and opt-in canary, confirm library/catalog preservation, dependent-service uptime and UI, then remove operation backups. Record evidence in specs/014-library-metadata-maintenance/tasks.md.
 
 ## Dependencies and strategy
 
@@ -31,4 +31,10 @@ T002 precedes repair publication. US1 discovery and US2 reconciliation can be de
 
 ## Implementation evidence
 
-Focused archive, publication, discovery and conversion-queue tests passed. The isolated candidate image gate passed against the current pinned Mylar/Modern runtime. Two independent reviews covered behavior/contracts and preservation/recovery. Their unsupported-archive starvation and cached ownership findings were fixed with regressions. Later review refinements keep newest review outcomes visible and allow catalog ownership corrections to be rediscovered. Real power loss was not tested. Live acceptance and published-image proof remain pending.
+Focused archive, publication, discovery and conversion-queue tests passed. The isolated candidate image gate passed against the current pinned Mylar/Modern runtime. Two independent reviews covered behavior/contracts and preservation/recovery. Their unsupported-archive starvation and cached ownership findings were fixed with regressions. Later review refinements keep newest review outcomes visible and allow catalog ownership corrections to be rediscovered. Real power loss was not tested. Published-image and live acceptance are recorded below.
+
+PR #161 merged as `4d97471240490e98dd18008fafd81444068a0cd4`. All PR and merged-commit validation, security, source-lint, image-publication and Pages workflows passed. Mylar deployment passed application backup/isolated restore and initial catalog/library preservation checks. Final live activation passed as recorded below.
+
+The published image digest is `sha256:59770fbca4c1e5db49610a80490bf69d7cd90f1ba71136e285744d80a6d453a1`. Its installed-image gate passed. Both library policies are enabled and persisted through the authenticated Activity UI. A real idle scan started. NFS repair/recovery canaries preserved every member and supported attribute. Browser checks passed at 390, 1440 and 2560 pixels with no overflow or console/request errors. Screenshots were inspected.
+
+Final preservation retained all baseline catalog IDs and library files, allowing exactly one independently verified concurrent normalizer conversion. The retained original, prepared CBZ, committed tagging journal and final tagged archive proved identical page/extra payloads and preserved attributes. All other baseline files remained unchanged. Database integrity passed. Mylar is healthy, its prior DDL pause policy was restored, and Komga, NZBGet, the normalizer and Uptime Kuma retained their container IDs and start times. Temporary application backup and isolated restore copies were removed after verification. Existing normalizer recovery retention remains intact. No full-library backup or real power-loss test was performed.
