@@ -1,5 +1,44 @@
 # Implementation evidence
 
+## Startup and native caller integration
+
+Scope: native integration against `e20d8fe`; no live service or media changes.
+
+- `tagger_native.py` binds private recovery directories, selects v2 explicitly,
+  snapshots policy and resolves annual release identity. Ambiguous/deleted identities
+  fail without lookup. Backend routing remains behind the static availability gate.
+- Startup reconciles publication before database maintenance or scans, including in
+  Legacy mode. A subprocess killed after displacement leaves a missing filename;
+  initialization restores the original before a guarded scanner can enter. Missing
+  bound state or invalid receipts retains the fence and prevents admission.
+- Native guards span imports, rescans, renames, moves, cover writes, web/API deletion,
+  manual tagging and complete processing. Writer admission precedes the processing
+  mutex, and admission failure still completes the native result queue.
+- Staging receipts retain automatic output until native placement finishes. Cleanup
+  only removes verified disposable copies while the unchanged original survives;
+  uncertain/sole remaining copies are retained without claiming import success.
+  Automatic copies retain legacy destination permission policy; manual publication
+  verifies exact supported attributes. Automatic link placement is rejected before
+  staging so a library link cannot point at subsequently removed temporary output.
+- The durable tagger fence blocks worker recovery too. Review found the synchronous
+  normalizer rescan callback would deadlock under ownership; it is now a persisted
+  notification sent after release, retried without conversion. Review also found
+  API deletion bypassed the web guard; the complete API path is now guarded.
+- Two focused independent reviews covered preservation/state binding and native
+  ownership. Corrections were rechecked. The automatic-attribute concern was
+  reconciled against legacy `shutil.copy` and documented explicitly.
+- Candidate builds pass the full Mylar gate and 97 normalizer tests without skips.
+  The final Mylar gate also runs as UID 1000, read-only and without network/live
+  mounts. It includes real pinned-CLI native manual/automatic caller fixtures,
+  annual identity, canonical results, all declared source guards and patch replay.
+  Repository `make ci-local`, including secret scanning, passes.
+
+Modern remains disabled. T022 integration is complete; its old-image rollback
+acceptance is retained explicitly as T023 alongside T014 live canary work. Both
+images must be deployed together if normalizer coordination is enabled. Older
+workers do not honor the new fence or callback sequence. This increment does not
+claim live activation, old-image rollback proof, or optional DDL transport support.
+
 ## NFS publication correction
 
 Scope: inactive, explicitly selected version-2 publisher against `4e7ca51`.

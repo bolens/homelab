@@ -32,7 +32,7 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
   and exact backend dispatch. The native settings selector now persists a Legacy
   default and visibly gates Modern availability. Server validation precedes changes,
   and the native entry point captures the choice once per job. Modern routing,
-  annual caller identity and remaining native writer coverage remain pending.
+  annual caller identity and native writer coverage are implemented by T022.
   Shared flock admission and durable normalizer recovery fences now cover complete
   post-processing/manual tagging and opt-in normalizer cycles. Live coordination
   rollout, modern recovery ownership and canary checks remain pending.
@@ -45,7 +45,8 @@ Independent test: C3/C4/N3/L1 failures, recovery and old-image rollback.
   The standalone publisher has real-process crash tests before/after exchange,
   conflict retention, token serialization and historical replay coverage. The streaming
   startup recovery API now skips completed history and reports busy/invalid receipts.
-  Native startup wiring and native writer exclusion remain pending.
+  Native startup wiring and native writer exclusion are implemented by T022;
+  live canary/rollback acceptance remains pending.
 - [ ] T013 [US2] Connect verified added/updated/unchanged/failed/timed-out/unsupported results to `archive_monitor.py`, with tests for all monitor states.
   The native observer now consumes verified Published results with tests for all
   outcomes. Active modern producer routing and live UI acceptance remain pending.
@@ -67,9 +68,13 @@ Independent test: D1/D4 dual-backend local HTTP/proxy/TLS fixtures. D2/D3 gate f
   exchange strategy and reject mixed-version receipts without mutation. Prove real
   process crash boundaries, competing writers, ambiguous NFS RPC results, exact ACL
   preservation and canonical handoff on disposable actual-media fixtures.
-- [ ] T022 Integrate v2 journal selection, startup reconciliation and scanner/writer
+- [x] T022 Integrate v2 journal selection, startup reconciliation and scanner/writer
   admission with native routing. Prove the missing-name interval is recovered before
-  other work and complete old-image rollback acceptance. Do not enable Modern early.
+  other work. Cover annual identity, automatic output lifetime, and deferred worker
+  refresh outside ownership. Keep Modern disabled.
+- [ ] T023 Complete the remaining T022 old-image rollback acceptance together with
+  T014 live coordination/canary rollout. Old readers must never run against pending
+  v2 publication; recover first or restore verified prior state and affected fixtures.
 
 ## Delivery
 

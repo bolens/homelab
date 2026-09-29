@@ -76,6 +76,26 @@ class CycleTest(unittest.TestCase):
         with self.assertRaises(ValueError):cycle(self.worker)
         self.worker.cycle.assert_not_called();self.assertTrue(self.owner.fenced())
 
+    def test_notification_runs_after_release_and_retries_without_conversion(self):
+        folder=self.jobs/'job';folder.mkdir();receipt=folder/'receipt.json'
+        receipt.write_text(json.dumps({'phase':'done','mylar_refresh_pending':True}))
+        def notify(job):
+            self.assertFalse(self.owner.fenced())
+            self.assertEqual(getattr(self.owner.local[1],'depth',0),0)
+            with self.owner.hold(timeout=0):pass
+            raise RuntimeError('API unavailable')
+        self.worker.refresh_mylar=Mock(side_effect=notify)
+        with self.assertRaises(RuntimeError):cycle(self.worker)
+        self.assertTrue(json.loads(receipt.read_text())['mylar_refresh_pending'])
+        self.worker.refresh_mylar.side_effect=None
+        self.assertTrue(cycle(self.worker))
+        self.assertNotIn('mylar_refresh_pending',json.loads(receipt.read_text()))
+
+    def test_tagger_crash_fence_blocks_even_worker_recovery(self):
+        with self.owner.hold(allow_tagger_pending=True):self.owner.mark_tagger_pending()
+        self.assertFalse(cycle(self.worker,self.maintenance))
+        self.worker.cycle.assert_not_called();self.maintenance.cycle.assert_not_called()
+
     def test_missing_protocol_never_runs_writers(self):
         self.worker.config={'writer_state':str(self.root/'absent')}
         with self.assertRaises(FileNotFoundError):cycle(self.worker,self.maintenance)

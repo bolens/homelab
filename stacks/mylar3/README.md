@@ -464,7 +464,7 @@ isolated `/opt/comictagger` environment. Mylar continues using its existing vend
 1.3.5 tagger. Settings → Quality & Post Processing → Metadata Tagging includes a
 **ComicTagger backend** selector. **Legacy (default)** remains available during the
 migration. **Modern (experimental)** is visible but disabled until native writer
-coordination, startup recovery and canary checks are complete. The server rejects
+coordination rollout, live canary and rollback checks are complete. The server rejects
 unavailable or invalid selections before changing settings. Backend changes apply
 to the next tagging job, never to a job already running. Editing the configuration
 to select an unavailable backend reports unsupported tagging instead of silently
@@ -474,7 +474,7 @@ The image build tests the real modern CLI offline with generated CBZs, including
 annual/variant metadata, Unicode, volume 1, archive comments and unrelated members.
 The CLI protocol helper reports only a staged save; it does not claim a verified
 library import. Publication/recovery now has an isolated fixture implementation;
-native integration, writer coordination and live rollback remain activation gates.
+live coordination and rollback remain activation gates.
 Native manual tagging now recognizes an explicit verified in-place result and skips
 its legacy temporary-file copy/delete branch. Automatic imports reject non-string
 results before placement. The monitor accepts verified added/updated/unchanged and
@@ -482,8 +482,9 @@ specific failure outcomes. These guards preserve legacy paths and do not select 
 modern backend. The choice persists as `Metatagging.tagger_backend` in the existing
 config volume. No environment variable, mount or ingress change is required.
 An inactive native-package service now provides bounded ComicVine
-lookup, automatic staging and recovery admission before each job. Modern caller
-routing, startup wiring and global writer coordination remain pending. Requests remains the DDL transport.
+lookup, automatic staging and recovery admission before each job. Native routing uses
+the v2 journal; annuals resolve their release volume rather than parent-series metadata.
+Requests remains the DDL transport.
 
 The archive helper reconciles ComicInfo into a new CBZ and reopens it to check page
 and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown
@@ -507,7 +508,8 @@ unknown or malformed receipts are retained without interpreting them as failed j
 The startup recovery API streams pending results, skips cleaned history without
 rehashing comics, and reports active locks as busy. Its caller must finish the scan
 and keep modern admission closed on conflicts, invalid receipts, I/O errors or busy
-jobs. Native startup wiring remains pending alongside writer coordination.
+jobs. Native startup performs this recovery before database maintenance and scans,
+including when the selected backend is Legacy.
 Core helpers ship under `/opt/mylar3-fixes` and in Mylar's package. The lookup and
 service modules ship only in Mylar's package. None runs at startup. Existing live
 settings, library files and services are unaffected by this inactive implementation.
@@ -533,8 +535,15 @@ ComicInfo with overwrite disabled skips lookup and tagging entirely. ComicVine
 lookup uses private temporary credential files, a 45-second process deadline,
 bounded responses and validated issue/volume identities. Redirects and retries are
 disabled. Each provider request waits the configured 2–10 second interval.
-Conflicting recovery receipts block new work. Failed or uncertain staging is retained
-for review until native cleanup ownership is implemented.
+Conflicting recovery receipts block new work. Private staging receipts track automatic
+outputs through native placement. Cleanup removes a disposable output only when its
+recorded content matches and its unchanged original still exists; uncertain or sole
+remaining copies stay private for review. This does not claim a successful import.
+Manual in-place publication preserves supported ACLs and user attributes exactly.
+Automatic imports retain the existing native destination permission policy: cache
+copies preserve file bytes and mode, without transplanting download ACLs or xattrs.
+Automatic link-based placement reports unsupported tagging and keeps the original
+import path; a library softlink must never reference disposable staging.
 
 Mylar initializes private `media-writer` protocol state beside `config.ini`. Its
 post-processing owner and complete manual-tagging calls hold the shared writer
@@ -542,15 +551,25 @@ lock through publication and cleanup. The normalizer can opt into the matching
 [coordination override](../komga/README.md#coordination-with-mylar). Pending worker
 recovery prevents admission, including after a worker crash. Include this state
 in application backups and never replace it while either writer can run. Library
-files are not copied for this configuration change. Other native media writers,
-modern caller routing and live rollout checks still gate modern-backend activation.
+files are not copied for this configuration change. Renames, moves, deletion (including
+the API), series imports and rescans also take this lock. The separate durable tagger
+fence blocks the normalizer after a Mylar crash until publication recovery succeeds.
+Recovery directories are identity-bound; missing or replaced state fails closed.
+
+Deploy matching Mylar and normalizer images together while idle when coordination is
+enabled. The normalizer durably defers Mylar rescan notifications until after releasing
+its lock. An older worker can otherwise deadlock with guarded rescans, and does not
+honor the new tagger fence. Do not roll back to an older image with pending publication
+receipts: recover with the matching image first, or restore the verified pre-change
+application state and affected canary files while writers are stopped. Live rollout,
+canary and old-image rollback proof still gate Modern activation.
 
 
 An additional inactive NFS publisher uses separate version-2 receipts, retaining
 the original inode before publishing through a no-clobber link. It preserves and
 reads back supported ACLs and user attributes; it never silently substitutes for
 atomic exchange. Its source filename can be temporarily absent until recovery, so
-native startup/scanner coordination and old-image rollback checks must pass before
-selection. Older readers reject its receipts without modifying them. The modern
+startup/scanner coordination is mandatory and old-image rollback checks must pass
+before selection. Older readers reject its receipts without modifying them. The modern
 backend remains unavailable. No live setting, mount, port or privilege changes are
 required to inspect or test this module with generated fixtures.

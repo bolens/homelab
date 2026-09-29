@@ -4,8 +4,8 @@ Legacy remains available throughout migration. A configured modern preference mu
 never silently run legacy while native writer/recovery integration is incomplete.
 """
 CHOICES = ('legacy', 'modern')
-MODERN_UNAVAILABLE = ('Modern tagging is not available yet. Native routing, recovery cleanup '
-                      'and canary verification are still pending.')
+MODERN_UNAVAILABLE = ('Modern tagging is not available yet. Live coordination, canary '
+                      'and rollback verification are still pending.')
 
 
 def choice(value):
@@ -37,5 +37,8 @@ def dispatch(legacy, *args, **kwargs):
         return tagger_handoff.Failure('unsupported')
     if selected == 'legacy':
         return legacy(*args, **kwargs)
+    if status()['modern_available']:
+        from mylar import tagger_native
+        return tagger_native.run(*args, **kwargs)
     mylar.logger.warn(MODERN_UNAVAILABLE)
     return tagger_handoff.Failure('unsupported')
