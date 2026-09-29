@@ -33,7 +33,7 @@ services:
     labels:
       logging: "true"
     container_name: linkwarden-meilisearch
-    image: getmeili/meilisearch:v1.53.2
+    image: getmeili/meilisearch:v1.54.0
     cpus: 2.0
     mem_limit: 2g
     memswap_limit: 3g

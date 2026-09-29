@@ -34,7 +34,7 @@ services:
   qbittorrent:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/qbittorrent:latest@sha256:457e4eec2ee3f5e4ef59f237ad51f6143deba9f7445ab48bb5204a98888ef9aa
+    image: lscr.io/linuxserver/qbittorrent:latest@sha256:b522f9f4b769f8f36d49d22d5eb6a92e9aa18904c6a1830b1439df511ec21983
     network_mode: service:gluetun
     env_file:
       - stack.env
