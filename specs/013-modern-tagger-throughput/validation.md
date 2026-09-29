@@ -21,7 +21,7 @@ requests instead of twenty; this is an extrapolation from the request contract.
 
 ## Regression evidence
 
-73 focused cache, worker, publication, NFS-publication and service tests pass;
+74 focused cache, worker, publication, NFS-publication and service tests pass;
 one real pinned-CLI test requires the image and is skipped on the host.
 New negative cases cover fixed expiry, expiry during the issue request, credential,
 endpoint and TLS isolation, capacity, oversized entries, malformed identities,
@@ -38,11 +38,13 @@ validate` and `make ci-local` passed. The first full hook run detected concurren
 staging as a changed-file condition; a stable rerun passed without suppressions.
 
 Two independent reviews inspected cache/worker contracts and publication/recovery/
-packaging. The cache reviewer reproduced one regression: optional cache response
-data could exceed the existing 64 KiB worker output budget for large valid metadata.
-The response encoder now omits optional cache data when needed; a real bounded
-child-process regression verifies this case. Preservation review found no defects
-or actionable nits. Review follow-up and the rebuilt image gate cover the repair.
+packaging. The cache reviewer reproduced an output-budget regression, including warnings on
+stderr: optional cache data could exceed the runner's combined 64 KiB budget for
+large valid metadata. The final protocol keeps stdout unchanged and transfers
+optional cache data through a bounded 0600 sidecar in the existing private lookup
+directory. Sidecar failures are cache misses and cleanup removes it with the request.
+Real worker reuse and large metadata plus stderr regressions pass. Preservation
+review found no defects or actionable nits. Review follow-up covers the final repair.
 
 GitHub checks, published image and Mylar-only deployment evidence are pending.
 No dependency, runtime configuration, permission, mount or port changes are needed.

@@ -17,10 +17,10 @@ import time
 from urllib.parse import urlsplit
 
 if __package__:
-    from .tagger_runtime import run, MAX_OUTPUT
+    from .tagger_runtime import run
     from .tagger_volume_cache import VolumeCache, context, fresh, TTL, MAX_BYTES
 else:
-    from tagger_runtime import run, MAX_OUTPUT
+    from tagger_runtime import run
     from tagger_volume_cache import VolumeCache, context, fresh, TTL, MAX_BYTES
 
 VOLUMES = VolumeCache()
@@ -242,13 +242,14 @@ def lookup(*, workdir, issueid, api_key, base_url, volumeid=None, verify=True, i
         try:
             value = json.loads(result.stdout)
             if value['state'] == 'ok' and isinstance(value.get('metadata'), dict) and value['metadata']:
-                volume = value.get('volume')
+                cache = read_cache_result(folder)
+                volume = cache.get('volume')
                 if cache_key is not None and isinstance(volume, dict) and volume:
                     try:
                         # Revalidate the worker's volume before retaining it.
                         mapping({'id':issueid, 'issue_number':'1', 'volume':{'id':volumeid}},
                                 volume, issueid, volumeid)
-                        VOLUMES.put(cache_key, volume, value.get('expires'))
+                        VOLUMES.put(cache_key, volume, cache.get('expires'))
                     except (ValueError, TypeError, KeyError):
                         pass
                 return LookupResult('ok', value['metadata'])
@@ -258,14 +259,38 @@ def lookup(*, workdir, issueid, api_key, base_url, volumeid=None, verify=True, i
 
 
 def encode_result(result):
-    """Optional cache admission must not consume the metadata output budget."""
-    value = {'state':result.state, 'metadata':result.metadata}
-    if result.volume:
-        candidate = json.dumps(dict(value, volume=result.volume, expires=result.expires),
-                               ensure_ascii=True, allow_nan=False)
-        if len(candidate.encode()) + 1 <= MAX_OUTPUT:  # print adds a newline
-            return candidate
-    return json.dumps(value, ensure_ascii=True, allow_nan=False)
+    """Keep the original combined stdout/stderr budget entirely for the lookup."""
+    return json.dumps({'state':result.state, 'metadata':result.metadata},
+                      ensure_ascii=True, allow_nan=False)
+
+
+def write_cache_result(folder, result):
+    """Optional bounded sidecar; the parent's private directory owns its lifetime."""
+    if result.state != 'ok' or not result.volume:
+        return
+    try:
+        raw = json.dumps({'volume':result.volume, 'expires':result.expires},
+                         ensure_ascii=True, allow_nan=False).encode()
+        if len(raw) > MAX_BYTES + 1024:
+            return
+        fd = os.open(Path(folder)/'volume.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(raw)
+    except (OSError, ValueError, TypeError, RecursionError, OverflowError):
+        pass  # Cache admission is optional; metadata lookup has already succeeded.
+
+
+def read_cache_result(folder):
+    try:
+        with (Path(folder)/'volume.json').open('rb') as stream:
+            raw = stream.read(MAX_BYTES + 1025)
+        if len(raw) <= MAX_BYTES + 1024:
+            value = json.loads(raw)
+            if isinstance(value, dict):
+                return value
+    except (OSError, ValueError, TypeError, RecursionError):
+        pass
+    return {}
 
 
 if __name__ == '__main__':
@@ -274,6 +299,7 @@ if __name__ == '__main__':
         if len(raw) > 32768:
             raise ValueError('Oversized settings')
         result = fetch(json.loads(raw))
+        write_cache_result(Path(sys.argv[1]).parent, result)
         print(encode_result(result))
     except Exception:
         print('{"state":"failed"}')

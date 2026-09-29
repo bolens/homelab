@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import tagger_lookup as lookup
-from tagger_runtime import ProcessResult
+from tagger_runtime import ProcessResult, MAX_OUTPUT
 
 ISSUE = {'id':123,'issue_number':'1','name':'Étoile','volume':{'id':456},
          'cover_date':'2020-02-29','description':'<p>Story &amp; art</p><script>ignore</script>',
@@ -156,7 +156,7 @@ class LookupTest(unittest.TestCase):
                 return ProcessResult('ok',0,b'{"state":"failed"}')
             payload={'state':'ok','metadata':{'series':'Fixture','issue':'1'}}
             if not settings.get('cached_volume'):
-                payload.update(volume=VOLUME,expires=now[0]+300)
+                lookup.write_cache_result(Path(argv[-1]).parent,lookup.LookupResult('ok',payload['metadata'],VOLUME,now[0]+300))
             return ProcessResult('ok',0,json.dumps(payload).encode())
         with tempfile.TemporaryDirectory() as directory, patch.object(lookup,'run',side_effect=worker):
             args=dict(workdir=directory,issueid='123',volumeid='456',api_key='fixture',base_url='https://example.com/api')
@@ -187,14 +187,30 @@ class LookupTest(unittest.TestCase):
         volume=dict(VOLUME,name='S'*4000)
         metadata=lookup.mapping(dict(ISSUE,description='D'*60000),volume,'123','456')
         encoded=lookup.encode_result(lookup.LookupResult('ok',metadata,volume,12345))
-        self.assertLessEqual(len(encoded.encode())+1,lookup.MAX_OUTPUT)
+        self.assertLessEqual(len(encoded.encode())+1,MAX_OUTPUT)
         self.assertNotIn('volume',json.loads(encoded))
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'response.json';path.write_text(encoded)
-            result=lookup.run([sys.executable,'-c','import pathlib,sys;print(pathlib.Path(sys.argv[1]).read_text())',str(path)],
+            result=lookup.run([sys.executable,'-c',
+                              'import pathlib,sys;print("fixture warning"*20,file=sys.stderr);print(pathlib.Path(sys.argv[1]).read_text())',str(path)],
                               cwd=directory,timeout=5)
         self.assertEqual(result.state,'ok')
         self.assertEqual(json.loads(result.stdout)['metadata'],metadata)
+
+    def test_cache_sidecar_is_private_bounded_optional_and_failure_is_not_cached(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'volume.json'
+            lookup.write_cache_result(directory,lookup.LookupResult('failed',{},VOLUME,12345))
+            self.assertFalse(path.exists())
+            lookup.write_cache_result(directory,lookup.LookupResult('ok',{'series':'Fixture'},VOLUME,12345))
+            self.assertEqual(path.stat().st_mode&0o777,0o600)
+            self.assertEqual(lookup.read_cache_result(directory),{'volume':VOLUME,'expires':12345})
+            path.write_bytes(b'x'*(lookup.MAX_BYTES+1025))
+            self.assertEqual(lookup.read_cache_result(directory),{})
+            path.unlink()
+            with patch.object(lookup.os,'open',side_effect=OSError('full')):
+                lookup.write_cache_result(directory,lookup.LookupResult('ok',{'series':'Fixture'},VOLUME,12345))
+            self.assertEqual(lookup.read_cache_result(directory),{})
 
 
 if __name__=='__main__':unittest.main()
