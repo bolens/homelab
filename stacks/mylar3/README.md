@@ -670,7 +670,15 @@ The existing post-processing worker runs these jobs when its download import
 queue is idle. **Post-processing → Converted comic tagging** shows up to 100
 recent durable jobs, including waiting, retry, review and verified completion.
 Transient tagging failures allow six attempts; an unmatched catalog path waits
-up to 24 hours. Small terminal identities remain in `workflow.sqlite` to suppress
+up to 24 hours. If a rescan leaves a converted comic pointing at its old archive,
+the tagging queue can repair that exact location before tagging. This requires a
+unique existing issue or annual, a missing original, and a CBZ matching the
+normalizer's acknowledged checksum. It does not infer issue identity from a
+filename. Later rescans preserve that established conversion mapping while the
+file remains unchanged. Conflicts, deleted annuals, and replaced files stay for
+review.
+
+Small terminal identities remain in `workflow.sqlite` to suppress
 old notification replays. Recovery checks the stored publication receipt before
 another attempt, including after a crash between publication and queue completion.
 Keep this journal with existing application backups. The API acknowledges

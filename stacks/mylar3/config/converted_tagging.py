@@ -75,7 +75,7 @@ class Queue:
 
     def process(self, job):
         try:
-            match = self.catalog(job['path'])
+            match = self.catalog(job['path'], job['sha256'])
         except ValueError:
             self.save(job, 'review', 'Catalog ownership is ambiguous; review required')
             return
@@ -127,7 +127,7 @@ class Queue:
             self.save(job, 'review', 'Publication could not be verified; review required')
 
 
-def catalog(path):
+def catalog(path, converted_sha256=None):
     from mylar import db, tagger_native
     from mylar.workflow_store import identifier
     source = Path(path)
@@ -160,6 +160,10 @@ def catalog(path):
                                     readingorder=[(r['StoryArc'], r['ReadingOrder']) for r in arcs]))
     if len(matches) > 1:
         raise ValueError('Ambiguous catalog ownership')
+    if not matches and converted_sha256:
+        from mylar import converted_catalog
+        if converted_catalog.reconcile(database, path, converted_sha256):
+            return catalog(path)
     return matches[0] if matches else None
 
 

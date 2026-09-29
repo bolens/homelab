@@ -120,6 +120,30 @@ class NativeTest(unittest.TestCase):
             self.assertEqual(archive.read('001.png'), b'page')
         queue.tag.assert_not_called()
 
+    def test_conversion_repairs_stale_location_then_tags_and_survives_rescan(self):
+        converted, store, key, queue = self.conversion_queue()
+        for table in ('issues', 'annuals'):
+            self.db.execute('ALTER TABLE '+table+' ADD COLUMN ComicName TEXT')
+        self.mylar.db = SimpleNamespace(DBConnection=lambda: SimpleNamespace(
+            select=lambda sql,args:self.db.execute(sql,args).fetchall(),
+            action=lambda sql,args:self.db.execute(sql,args)))
+        self.db.execute('UPDATE issues SET Location=?,Status="Archived"',[self.source.with_suffix('.cbr').name])
+        queue.tick()
+        self.assertEqual(store.get('converted_tag',key)['phase'],'completed')
+        self.assertEqual(tuple(self.db.execute('SELECT Location,Status FROM issues').fetchone()),(self.source.name,'Downloaded'))
+        self.mylar.workflow=SimpleNamespace(store=lambda:store)
+        reconcile=import_module('mylar.converted_catalog')
+        @self.writers.guard
+        @reconcile.rescan
+        def filename_rescan(comicid):
+            self.db.execute('UPDATE issues SET Status="Archived"')
+        filename_rescan('456')
+        self.assertEqual(self.db.execute('SELECT Status FROM issues').fetchone()[0],'Downloaded')
+        self.assertEqual(self.lookup_mock.call_count,1)
+        with zipfile.ZipFile(self.source) as archive:
+            self.assertEqual(archive.read('001.png'),b'page')
+            self.assertIn('ComicInfo.xml',archive.namelist())
+
     def test_conversion_changed_during_lookup_is_not_published(self):
         converted, store, key, queue = self.conversion_queue()
         def external_change(**kwargs):
