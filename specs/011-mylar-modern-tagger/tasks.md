@@ -41,16 +41,16 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
 
 Independent test: C3/C4/N3/L1 failures, recovery and old-image rollback.
 
-- [ ] T012 [US2] Add versioned durable publication intent and restart reconciliation in `tagger_adapter.py`; test source races and crash boundaries in `test_modern_tagger.py`.
+- [x] T012 [US2] Add versioned durable publication intent and restart reconciliation in `tagger_adapter.py`; test source races and crash boundaries in `test_modern_tagger.py`.
   The standalone publisher has real-process crash tests before/after exchange,
   conflict retention, token serialization and historical replay coverage. The streaming
   startup recovery API now skips completed history and reports busy/invalid receipts.
   Native startup wiring and native writer exclusion are implemented by T022;
-  live canary/rollback acceptance remains pending.
+  live canary/rollback acceptance passed in T014/T023.
 - [ ] T013 [US2] Connect verified added/updated/unchanged/failed/timed-out/unsupported results to `archive_monitor.py`, with tests for all monitor states.
   The native observer now consumes verified Published results with tests for all
   outcomes. Active modern producer routing and live UI acceptance remain pending.
-- [ ] T014 [US2] Verify old/new image state compatibility and scoped canary rollback, record evidence in `validation.md`. Keep legacy selectable.
+- [x] T014 [US2] Verify old/new image state compatibility and scoped canary rollback, record evidence in `validation.md`. Keep legacy selectable.
 
 ## US3 - Optional DDL discovery
 
@@ -72,7 +72,7 @@ Independent test: D1/D4 dual-backend local HTTP/proxy/TLS fixtures. D2/D3 gate f
   admission with native routing. Prove the missing-name interval is recovered before
   other work. Cover annual identity, automatic output lifetime, and deferred worker
   refresh outside ownership. Keep Modern disabled.
-- [ ] T023 Complete the remaining T022 old-image rollback acceptance together with
+- [x] T023 Complete the remaining T022 old-image rollback acceptance together with
   T014 live coordination/canary rollout. Old readers must never run against pending
   v2 publication; recover first or restore verified prior state and affected fixtures.
 

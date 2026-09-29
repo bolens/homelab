@@ -1,5 +1,43 @@
 # Implementation evidence
 
+## Live canary and startup recovery
+
+Scope: Mylar image from `e800ad75165737027c2faf699d8b016216840bfc`
+and coordinated normalizer from `09cd7a5886585c163c3830fa107cb856c6fe81c9`,
+tested on 2026-09-29. Legacy remains selected and Modern remains globally gated.
+
+- PR #145 fixes inherited Python settings that made the modern executable import
+  the vendored legacy ComicTagger package. The real-CLI regression fails in the
+  prior image and passes in the fixed image. Image acceptance, repository CI,
+  CodeQL, source lint and GHCR publication passed. A separate self-review covered
+  subprocess callers, environment isolation and packaging without further findings.
+- Quiesced application and worker backups were restored to isolated directories.
+  File hashes, ownership, modes, symlinks and SQLite integrity checks passed.
+  The comic library was verified in place, not copied. Only disposable canary
+  copies of selected regular and annual comics were tagged.
+- The published image passed manual regular/annual tagging, automatic staging and
+  native placement, overwrite-disabled preservation and unsupported-preference
+  rejection. Page and extra-member hashes, ZIP comments, supported attributes and
+  original comic hashes survived. Modern was admitted only in the test process.
+- A process was deliberately terminated after NFS source displacement. A fresh
+  normalizer status confirmed it waited behind the pending tagger fence. Actual
+  Mylar startup restored the original hash and cleared the fence before admission.
+  This proves process-crash recovery, not power-loss or NFS-server recovery.
+- An earlier verification attempt failed because root could not read an
+  owner-private canary directory on the NFS mount. Automatic restoration of prior
+  images and verified application state passed. The corrected test reads media as
+  its owning UID without weakening directory permissions.
+- After recovery completed and all pending markers cleared, the prior Mylar and
+  normalizer images started with their compatible configuration and the newer
+  application state retained. Both became healthy. Catalog records, downloaded
+  issue/annual status and locations, SQLite integrity and the existing library
+  file baseline survived. NZBGet, Komga and Uptime Kuma kept their original
+  container identities and start times. The published images were then restored
+  and passed the same preservation checks. This closes T014 and T023.
+
+Modern availability and remaining live UI acceptance are separate gates. These
+checks do not enable the optional DDL transport or establish power-loss recovery.
+
 ## Startup and native caller integration
 
 Scope: native integration against `e20d8fe`; no live service or media changes.
