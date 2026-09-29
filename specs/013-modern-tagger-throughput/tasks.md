@@ -24,8 +24,8 @@ Independent test: unchanged publication succeeds without archive staging and ret
 ## Verification and delivery
 
 - [x] T009 Record controlled before/after results and update stacks/mylar3/README.md and specs/013-modern-tagger-throughput/validation.md.
-- [ ] T010 Run focused and image gates, required repository checks and independent reviews; record evidence in specs/013-modern-tagger-throughput/validation.md.
-- [ ] T011 Merge through GitHub checks, verify published GHCR image and deploy only Mylar with verified backups and preservation checks; record evidence in specs/013-modern-tagger-throughput/validation.md.
+- [x] T010 Run focused and image gates, required repository checks and independent reviews; record evidence in specs/013-modern-tagger-throughput/validation.md.
+- [x] T011 Merge through GitHub checks, verify published GHCR image and deploy only Mylar with verified backups and preservation checks; record evidence in specs/013-modern-tagger-throughput/validation.md.
 
 ## Dependencies and strategy
 
