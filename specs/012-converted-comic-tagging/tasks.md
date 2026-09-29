@@ -26,7 +26,7 @@ Independent test: restart after publication and duplicate delivery never trigger
 - [x] T009 Update both stack README, preparation, example and metadata contracts, and register tests in stacks/mylar3/config/verify_image.py.
 - [x] T010 Run focused and image gates, repository checks and review; record results in specs/012-converted-comic-tagging/validation.md.
 - [x] T011 Merge reviewed changes, verify published images, and record delivery in specs/012-converted-comic-tagging/validation.md.
-- [ ] T012 Deploy consumer then producer with verified scoped backups, selected-file canary, preservation and protected-service uptime checks; record private evidence and clean operation backups.
+- [x] T012 Deploy consumer then producer with verified scoped backups, selected-file canary, preservation and protected-service uptime checks; record private evidence and clean operation backups.
 
 ## Dependencies and strategy
 
