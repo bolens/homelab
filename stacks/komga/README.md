@@ -114,8 +114,9 @@ receipts are not bulk-retagged on upgrade; selected verified receipts can be
 replayed operationally with their affected files preserved first. Set the independent `mylar.refresh_reader_after_tagging` boolean to `true` to
 request Komga metadata refresh after Mylar confirms tagging is complete. It
 defaults to `false` so other setups keep their own refresh schedule. The worker
-polls the durable job without repeating its rescan or tagging, then calls Komga's
-book metadata-refresh endpoint for the verified replacement book ID. A failed
+polls the durable job without repeating its rescan or tagging, then requests Komga reanalysis for the verified replacement book ID.
+Reanalysis refreshes the cached archive file list and schedules metadata import
+after success, so newly added ComicInfo is discovered. A failed
 request retains a retryable receipt; duplicate refresh requests are harmless.
 Turning this setting off clears pending reader notifications without cancelling
 Mylar tagging. When disabled, refresh Komga metadata manually or use its schedule. Turning the worker opt-in off stops new admissions; disable Mylar

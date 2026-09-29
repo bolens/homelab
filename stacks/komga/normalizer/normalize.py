@@ -116,7 +116,9 @@ class Reader:
         self.call(f'/api/v1/books/{book_id}/analyze', {})
 
     def refresh_metadata(self, book_id):
-        self.call(f'/api/v1/books/{book_id}/metadata/refresh', {})
+        # ComicInfoProvider checks the cached media file list. Reanalysis discovers
+        # newly added ComicInfo and schedules metadata import only after success.
+        self.analyze(book_id)
 
     def upgrade(self, job):
         self.call('/api/v1/books/import', {
