@@ -15,7 +15,7 @@ import threading
 import time
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import requests
 import ddl_transport as transport
@@ -75,6 +75,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
+@unittest.skipUnless(transport.PYTHON.is_file(), 'Source-only base gate: isolated Curl runtime is not installed')
 class TransportTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -152,7 +153,9 @@ class TransportTest(unittest.TestCase):
                 '-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1',
                 '-keyout',str(key),'-out',str(cert)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
-            context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);context.load_cert_chain(cert,key)
+            context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            context.minimum_version=ssl.TLSVersion.TLSv1_2
+            context.load_cert_chain(cert,key)
             server.socket=context.wrap_socket(server.socket,server_side=True)
             thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
             try:
@@ -230,6 +233,15 @@ class TransportTest(unittest.TestCase):
                 'ddl_transport_status':{'curl_available':available,'message':'<unsafe>'}})
             self.assertIn('&lt;unsafe&gt;',rendered)
             self.assertEqual('disabled="disabled"' in rendered,not available)
+
+
+class SourceContractTest(unittest.TestCase):
+    def test_default_remains_usable_without_optional_runtime(self):
+        with patch.object(transport, 'PYTHON', Path('/missing-optional-runtime')):
+            with transport.session('requests') as session:
+                self.assertIsInstance(session, requests.Session)
+            self.assertFalse(transport.status()['curl_available'])
+            with self.assertRaises(ValueError): transport.validate_update('curl')
 
     def test_source_patches_preserve_archive_owner_and_are_idempotent(self):
         source=Path(os.environ['MYLAR_WORKFLOW_SOURCE'])

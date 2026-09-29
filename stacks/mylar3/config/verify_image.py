@@ -7,6 +7,8 @@ import sys
 import tempfile
 
 FIXES = Path(__file__).parent
+if Path('/opt/comictagger/bin/python').exists():
+    assert Path('/opt/ddl-transport/bin/python').is_file(), 'Custom image is missing its required optional discovery runtime'
 with tempfile.TemporaryDirectory() as directory:
     source = Path(directory) / 'mylar'
     shutil.copytree('/app/mylar3/mylar', source)
@@ -30,6 +32,7 @@ if Path('/opt/comictagger/bin/python').exists():
 else:
     print('Source-only base gate: isolated modern runtime is not installed')
 
-subprocess.run(['/opt/ddl-transport/bin/python', str(FIXES / 'evaluate_ddl_streaming.py')], check=True, timeout=15)
+if Path('/opt/ddl-transport/bin/python').exists():
+    subprocess.run(['/opt/ddl-transport/bin/python', str(FIXES / 'evaluate_ddl_streaming.py')], check=True, timeout=15)
 
 print('Candidate image passed the isolated Mylar reliability gate')
