@@ -4,7 +4,6 @@ import json
 import ast
 import sys
 from types import SimpleNamespace
-from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch

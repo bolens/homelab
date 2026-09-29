@@ -648,4 +648,5 @@ another attempt, including after a crash between publication and queue completio
 Keep this journal with existing application backups. The API acknowledges
 admission, not completed tagging. No new public endpoint, mount or privilege is
 introduced. Deploy Mylar before the producer and retain prior images/state until
-health, catalog/file preservation and reader refresh have been verified.
+health and catalog/file preservation have been verified. Run a Komga metadata
+rescan after tagging to refresh its displayed metadata.

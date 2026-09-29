@@ -59,4 +59,4 @@ Annual release IDs differ from parent IDs. Extras and alternate files not unique
 
 ## Assumptions
 
-The installed Modern backend is the target. Automatic Legacy in-place publication is outside this feature because it lacks the verified receipt contract. Existing metadata is retained regardless of manual overwrite preference. No new metadata lookup provider, public route, mount or library-wide retag is introduced. Reader file watching observes the metadata-only replacement.
+The installed Modern backend is the target. Automatic Legacy in-place publication is outside this feature because it lacks the verified receipt contract. Existing metadata is retained regardless of manual overwrite preference. No new metadata lookup provider, public route, mount or library-wide retag is introduced. The operator will trigger a Komga metadata rescan after tagging completes, as explicitly requested during implementation.

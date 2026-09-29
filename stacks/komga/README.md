@@ -110,9 +110,8 @@ Deploy Mylar first, then the worker with `--no-deps`, and enable the opt-in only
 after consumer verification. No additional mount, port, credential or dependency
 is needed. Keep both applications' recovery state in backups. Existing completed
 receipts are not bulk-retagged on upgrade; selected verified receipts can be
-replayed operationally with their affected files preserved first. Reader file
-watching should observe metadata-only replacement; verify reader refresh during
-activation. Turning the worker opt-in off stops new admissions; disable Mylar
+replayed operationally with their affected files preserved first. After tagging finishes, run a metadata rescan in Komga to refresh its displayed
+metadata without waiting for the next scheduled scan. Turning the worker opt-in off stops new admissions; disable Mylar
 metadata tagging to pause already admitted jobs.
 
 ## Automatic comic conversion
