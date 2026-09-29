@@ -198,7 +198,7 @@ ARCHIVING_UTILS_BIN=/path/to/archiving-utils/bin/archiving-utils python3 normali
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `komga:25600`) |
 | **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
-| **Images** | `gotson/komga:1.27.1` (digest-pinned in Compose) |
+| **Images** | `gotson/komga:1.28.0` (digest-pinned in Compose) |
 | **Storage** | Local `komga_config`; `${KOMGA_COMICS_PATH}` → `/data/comics` and `${KOMGA_MANGA_PATH}` → `/data/manga`, both read-only |
 
 ## Caddy reverse proxy
