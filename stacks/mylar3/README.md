@@ -87,6 +87,21 @@ Unknown DDL mirror types fail the current attempt without reusing another
 transfer's result. Manual Resume prefers the staged `.part` file and starts a
 fresh request when no saved bytes exist.
 
+Failed GetComics downloads immediately check alternative mirrors and give the
+replacement priority over normal pack/single and age preferences. Main and Mirror
+remain distinct providers. Failed-provider history and the six-attempt budget
+survive mirror changes and restarts. Explicit manual restart resets the budget
+and failure history. Priority does not bypass pause, cooldown or intake limits.
+
+When every queued provider is cooling down, Mylar checks releases in the configured
+queue order for a non-cooling mirror. It checks at most one release every five
+seconds and waits five minutes before rechecking an unchanged release. Misses keep
+the original queued mirror and spend no transfer attempts. Available replacements
+update the existing pending entry and its displayed execution order. Activity shows
+lookup outcomes. Concurrent removal, changed release identity or NZB handoff takes
+precedence over a lookup result. A replacement that changes a pack into multiple
+child downloads requires review instead of duplicating its original queue entry.
+
 The adapters are organized by responsibility rather than delivery batch. See the
 [module map](config/MODULES.md) for their source ownership, dependency order, and
 focused tests. `config/apply_patches.py` owns the ordered adapter list used by both

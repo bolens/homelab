@@ -63,7 +63,7 @@ class ScheduleTest(unittest.TestCase):
         for key, day in zip(self.rows, (300, None, 100, 300)):
             self.rows[key].update(release_oldest=day, release_newest=day)
         for mode, kind, preferred, last, cooling in itertools.product(
-                ('fifo', 'newest', 'release_oldest', 'release_newest'), ('mixed', 'singles', 'packs', 'alternate'), ('', '1', '3'), ('single', 'pack'), (False, True)):
+                ('fifo', 'newest', 'release_oldest', 'release_newest'), ('mixed', 'singles', 'packs', 'alternate'), ('', '1', '3', ['3','1']), ('single', 'pack'), (False, True)):
             items = list(self.items)
             randomizer.shuffle(items)
             items[0] = dict(items[0], link_type='GC-Mirror')
