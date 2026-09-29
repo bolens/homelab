@@ -30,7 +30,9 @@ def discovery(method):
                 return {'success': False, 'links_exhausted': failed}
             cooling = [name for name, value in state.data['providers'].items()
                        if value.get('until', 0) > state.clock() and name not in failed]
-        token = _RETRY.set(dict(row))
+        # Native SQLite names the primary key ID. Row lookup ignores case, but
+        # converting to dict does not. Keep the ownership snapshot canonical.
+        token = _RETRY.set({name.lower(): row[name] for name in row.keys()})
         try:
             result = method(self, id, mainlink, comicinfo, packinfo, failed + cooling)
             if cooling and isinstance(result, dict) and 'links_exhausted' in result:

@@ -10,7 +10,7 @@ HTML='''<p style="text-align: center;">Fixture<br/>Language:<br/>English<br/>Yea
 class DB:
  def __init__(self):
   self.connection=sqlite3.connect(':memory:');self.connection.row_factory=sqlite3.Row
-  self.connection.execute('CREATE TABLE ddl_info(id TEXT PRIMARY KEY, series,year,size,issues,issueid,comicid,link,mainlink,site,pack,link_type,updated_date,status)')
+  self.connection.execute('CREATE TABLE ddl_info(ID TEXT PRIMARY KEY, series,year,size,issues,issueid,comicid,link,mainlink,site,pack,link_type,updated_date,status)')
  def upsert(self,table,values,control):
   fields=dict(control,**values);cols=','.join(fields)
   self.connection.execute(f'INSERT INTO {table} ({cols}) VALUES ({",".join("?" for _ in fields)}) ON CONFLICT(id) DO UPDATE SET '+','.join(k+'=excluded.'+k for k in values),list(fields.values()))

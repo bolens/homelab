@@ -24,7 +24,7 @@ class FailoverTest(unittest.TestCase):
         self.item = dict(id='123-1', mainlink='release', issueid='42', comicid='7', link_type='GC-Main')
         self.connection=sqlite3.connect(':memory:');self.connection.row_factory=sqlite3.Row
         self.addCleanup(self.connection.close)
-        self.connection.execute('CREATE TABLE ddl_info(id TEXT PRIMARY KEY,status TEXT,pack INTEGER,issues TEXT,comicid TEXT,issueid TEXT,link TEXT,mainlink TEXT,link_type TEXT)')
+        self.connection.execute('CREATE TABLE ddl_info(ID TEXT PRIMARY KEY,status TEXT,pack INTEGER,issues TEXT,comicid TEXT,issueid TEXT,link TEXT,mainlink TEXT,link_type TEXT)')
         for id,pack in [('123-1',1),('900',0)]:
             self.connection.execute('INSERT INTO ddl_info VALUES (?,?,?,NULL,?,?,NULL,?,?)', (id,'Queued',pack,'7','42','release','GC-Main'))
         self.rows={row['id']:dict(row) for row in self.connection.execute('SELECT * FROM ddl_info')}
