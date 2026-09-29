@@ -21,7 +21,7 @@ class ProcessResult:
     stderr: bytes = field(default=b'', repr=False)
 
 
-def run(argv, *, cwd, timeout=TAG_TIMEOUT, max_output=MAX_OUTPUT):
+def run(argv, *, cwd, timeout=TAG_TIMEOUT, max_output=MAX_OUTPUT, env=None):
     """Run without a shell. Never log argv or captured output, which may be private.
 
     The caller owns archive staging, validation and publication. Exit zero alone
@@ -37,7 +37,7 @@ def run(argv, *, cwd, timeout=TAG_TIMEOUT, max_output=MAX_OUTPUT):
     try:
         child = subprocess.Popen(argv, cwd=cwd, stdin=subprocess.DEVNULL,
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                 start_new_session=True, close_fds=True)
+                                 start_new_session=True, close_fds=True, env=env)
     except OSError:
         return ProcessResult('unavailable', None)
     output = [bytearray(), bytearray()]

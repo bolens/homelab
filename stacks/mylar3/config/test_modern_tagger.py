@@ -149,6 +149,18 @@ class ModernTaggerTest(unittest.TestCase):
         self.assertEqual(result.state, 'ok')
         self.assertIn(b'ComicTagger 1.3.5', result.stdout)
 
+    def test_modern_cli_ignores_inherited_legacy_python_environment(self):
+        original, before = self.fixture()
+        inherited = {'PYTHONPATH':'/app/mylar3:/app/mylar3/lib',
+                     'PYTHONHOME':'/no/such/python-home',
+                     'PYTHONUSERBASE':str(self.root/'user-site'), 'PYTHONINSPECT':'1'}
+        with patch.dict(os.environ, inherited):
+            result = save(self.archive, {'series':'Fixture', 'issue':'1'}, workdir=self.stage)
+            self.assertEqual(result.state, 'saved')
+            self.assertTrue(all(os.environ[key] == value for key, value in inherited.items()))
+        self.assertEqual(contents(self.archive), before)
+        self.assertEqual(hashlib.sha256(self.original.read_bytes()).hexdigest(), original)
+
     def test_wrong_version_and_error_banner_rejected(self):
         for result in (ProcessResult('failed', 1, b'ComicTagger 1.5.5:  Copyright x'),
                        ProcessResult('failed', 2, b'ComicTagger '+VERSION.encode()+b':  Copyright x'),
