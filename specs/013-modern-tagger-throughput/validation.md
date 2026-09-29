@@ -21,7 +21,7 @@ requests instead of twenty; this is an extrapolation from the request contract.
 
 ## Regression evidence
 
-72 focused cache, worker, publication, NFS-publication and service tests pass;
+73 focused cache, worker, publication, NFS-publication and service tests pass;
 one real pinned-CLI test requires the image and is skipped on the host.
 New negative cases cover fixed expiry, expiry during the issue request, credential,
 endpoint and TLS isolation, capacity, oversized entries, malformed identities,
@@ -33,7 +33,17 @@ modules pass; the image gate supplies the required source argument for all modul
 
 ## Delivery gates
 
-Full image test gate, repository validation, independent reviews, GitHub checks,
-published image and Mylar-only deployment evidence are pending.
+The full candidate image gate passed, including pinned real-CLI checks. `make
+validate` and `make ci-local` passed. The first full hook run detected concurrent
+staging as a changed-file condition; a stable rerun passed without suppressions.
+
+Two independent reviews inspected cache/worker contracts and publication/recovery/
+packaging. The cache reviewer reproduced one regression: optional cache response
+data could exceed the existing 64 KiB worker output budget for large valid metadata.
+The response encoder now omits optional cache data when needed; a real bounded
+child-process regression verifies this case. Preservation review found no defects
+or actionable nits. Review follow-up and the rebuilt image gate cover the repair.
+
+GitHub checks, published image and Mylar-only deployment evidence are pending.
 No dependency, runtime configuration, permission, mount or port changes are needed.
 The existing backup/isolated-restore/preservation/rollback workflow applies to deployment.

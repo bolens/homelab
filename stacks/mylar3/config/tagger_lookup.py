@@ -17,10 +17,10 @@ import time
 from urllib.parse import urlsplit
 
 if __package__:
-    from .tagger_runtime import run
+    from .tagger_runtime import run, MAX_OUTPUT
     from .tagger_volume_cache import VolumeCache, context, fresh, TTL, MAX_BYTES
 else:
-    from tagger_runtime import run
+    from tagger_runtime import run, MAX_OUTPUT
     from tagger_volume_cache import VolumeCache, context, fresh, TTL, MAX_BYTES
 
 VOLUMES = VolumeCache()
@@ -257,13 +257,23 @@ def lookup(*, workdir, issueid, api_key, base_url, volumeid=None, verify=True, i
         return LookupResult('failed')
 
 
+def encode_result(result):
+    """Optional cache admission must not consume the metadata output budget."""
+    value = {'state':result.state, 'metadata':result.metadata}
+    if result.volume:
+        candidate = json.dumps(dict(value, volume=result.volume, expires=result.expires),
+                               ensure_ascii=True, allow_nan=False)
+        if len(candidate.encode()) + 1 <= MAX_OUTPUT:  # print adds a newline
+            return candidate
+    return json.dumps(value, ensure_ascii=True, allow_nan=False)
+
+
 if __name__ == '__main__':
     try:
         raw = Path(sys.argv[1]).read_bytes()
         if len(raw) > 32768:
             raise ValueError('Oversized settings')
         result = fetch(json.loads(raw))
-        print(json.dumps({'state':result.state,'metadata':result.metadata,
-                          'volume':result.volume,'expires':result.expires}, ensure_ascii=True, allow_nan=False))
+        print(encode_result(result))
     except Exception:
         print('{"state":"failed"}')

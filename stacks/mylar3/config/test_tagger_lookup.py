@@ -4,6 +4,7 @@ import http.server
 import threading
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 from unittest.mock import Mock, patch
 
@@ -181,6 +182,19 @@ class LookupTest(unittest.TestCase):
             with patch.object(lookup,'run',return_value=ProcessResult('timed_out',-9)):
                 self.assertEqual(lookup.lookup(workdir=directory,issueid='123',api_key='fixture',base_url='https://example.com/api').state,'timed_out')
             self.assertEqual(list(Path(directory).iterdir()),[])
+
+    def test_optional_cache_payload_does_not_overflow_worker_output_budget(self):
+        volume=dict(VOLUME,name='S'*4000)
+        metadata=lookup.mapping(dict(ISSUE,description='D'*60000),volume,'123','456')
+        encoded=lookup.encode_result(lookup.LookupResult('ok',metadata,volume,12345))
+        self.assertLessEqual(len(encoded.encode())+1,lookup.MAX_OUTPUT)
+        self.assertNotIn('volume',json.loads(encoded))
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'response.json';path.write_text(encoded)
+            result=lookup.run([sys.executable,'-c','import pathlib,sys;print(pathlib.Path(sys.argv[1]).read_text())',str(path)],
+                              cwd=directory,timeout=5)
+        self.assertEqual(result.state,'ok')
+        self.assertEqual(json.loads(result.stdout)['metadata'],metadata)
 
 
 if __name__=='__main__':unittest.main()
