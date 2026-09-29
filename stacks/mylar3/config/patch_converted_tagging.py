@@ -41,13 +41,25 @@ def worker(source):
     return source
 
 
+def rescan(source):
+    marker = '# homelab-converted-catalog-v1'
+    if marker in source:
+        return source
+    source = replace_once(source, 'def forceRescan(', '@converted_catalog.rescan\ndef forceRescan(')
+    source = marker+'\nfrom mylar import converted_catalog\n'+source
+    ast.parse(source)
+    return source
+
+
 def main(directory):
     root = Path(directory)
     changes = {root/'api.py': api((root/'api.py').read_text()),
-               root/'queues/postprocess.py': worker((root/'queues/postprocess.py').read_text())}
+               root/'queues/postprocess.py': worker((root/'queues/postprocess.py').read_text()),
+               root/'updater.py': rescan((root/'updater.py').read_text())}
     for path, source in changes.items():
         path.write_text(source)
-    (root/'converted_tagging.py').write_text(Path(__file__).with_name('converted_tagging.py').read_text())
+    for name in ('converted_tagging.py', 'converted_catalog.py'):
+        (root/name).write_text(Path(__file__).with_name(name).read_text())
 
 
 if __name__ == '__main__':
