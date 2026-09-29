@@ -1,6 +1,6 @@
 services:
   beszel:
-    image: henrygd/beszel:latest@sha256:fefb27166f5e1611ebf67f8697ea928a23f44efdb00af922e2ac3b5faa2efd5c
+    image: henrygd/beszel:latest@sha256:897e807a065adf8e89e30ae0cd79d1f5e38fe84ccaffbc418bde9d3cdca4eacc
     container_name: beszel
     restart: unless-stopped
     labels:
