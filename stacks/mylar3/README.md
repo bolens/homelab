@@ -501,7 +501,12 @@ Requests remains the archive transfer transport. Discovery has a separate opt-in
 The archive helper reconciles ComicInfo into a new CBZ and reopens it to check page
 and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown
 fields and page bookmarks survive unless explicitly replaced. Unchanged metadata
-produces no output. Verification rejects ambiguous metadata/member names, corrupt
+produces no output. When the CLI output already matches the approved metadata and
+preserves every original ZIP member attribute, reconciliation copies that verified
+archive instead of decompressing and recompressing its pages. Overrides or changed
+attributes use the full rebuild. Both paths retain content checks, source-race
+detection, durable staging and publication recovery. ComicVine pacing is unchanged.
+Verification rejects ambiguous metadata/member names, corrupt
 entries and changed sources. Current Modern limits are 4 GiB per archive and
 in total unpacked data, 512 MiB per non-metadata member, 4,096 members, an 8 MiB
 central directory and 256 KiB ComicInfo. ZIP64 and split archives are unsupported.

@@ -32,6 +32,7 @@ class Archive:
     mode: int
     uid: int
     gid: int
+    attributes: tuple
 
 
 def identity(info):
@@ -79,7 +80,7 @@ def snapshot(path):
             infos = archive.infolist()
             if not infos or len(infos) > MAX_MEMBERS:
                 raise ValueError('Unsupported archive member count')
-            names, total, pages, members, xml = set(), 0, 0, [], None
+            names, total, pages, members, xml, attributes = set(), 0, 0, [], None, []
             for info in infos:
                 name = info.filename
                 member_path = PurePosixPath(name)
@@ -89,6 +90,11 @@ def snapshot(path):
                         or stat.S_ISLNK(info.external_attr >> 16) or info.flag_bits & 1):
                     raise ValueError('Unsafe or ambiguous archive member')
                 names.add(name)
+                # Offsets, CRC and sizes describe encoded contents, not attributes.
+                attributes.append((name, info.date_time, info.compress_type, info.comment,
+                                   info.extra, info.create_system, info.create_version,
+                                   info.extract_version, info.internal_attr, info.external_attr,
+                                   info.flag_bits))
                 if member_path.name.lower() == XML.lower() and name != XML:
                     raise ValueError('Ambiguous metadata location')
                 limit = MAX_XML if name == XML else MAX_MEMBER
@@ -118,7 +124,8 @@ def snapshot(path):
         after = os.fstat(stream.fileno())
         if identity(before) != identity(after) or identity(before) != identity(archive_path.lstat()):
             raise ValueError('Archive changed during verification')
-    return Archive(tuple(members), comment, xml, identity(before), stat.S_IMODE(before.st_mode), before.st_uid, before.st_gid)
+    return Archive(tuple(members), comment, xml, identity(before), stat.S_IMODE(before.st_mode),
+                   before.st_uid, before.st_gid, tuple(attributes))
 
 
 def semantic(raw):
@@ -156,37 +163,44 @@ def prepare(original, tagged, output, *, updates=None, replace_fields=()):
         raise ValueError('Source changed before reconciliation')
     if old.xml is not None and semantic(old.xml) == semantic(merged):
         return 'unchanged'
+    # The CLI often already produced exactly the approved metadata. Reuse those
+    # encoded pages only if every original ZIP attribute also survived. Otherwise
+    # retain the reconciliation path that restores bookmarks, extras and overrides.
+    reusable = (semantic(new.xml) == semantic(merged)
+                and tuple(a for a in new.attributes if old.xml is not None or a[0] != XML) == old.attributes)
+    expected_xml = new.xml if reusable else merged
     created = None
     try:
         with output.open('xb') as target:
             created = identity(os.fstat(target.fileno()))[:2]
-            with regular(original) as source:
-                if identity(os.fstat(source.fileno())) != old.identity:
-                    raise ValueError('Source changed before reconciliation')
-                directory_limits(source)
-                with zipfile.ZipFile(source) as source_zip, zipfile.ZipFile(target, 'w') as result:
-                    result.comment = old.comment
-                    xml_info = None
-                    for info in source_zip.infolist():
-                        if info.filename == XML:
-                            xml_info = copy.copy(info)
-                            continue
-                        with source_zip.open(info) as member, result.open(copy.copy(info), 'w') as dest:
-                            while block := member.read(1024 * 1024):
-                                dest.write(block)
-                    result.writestr(xml_info or XML, merged,
-                                    compress_type=xml_info.compress_type if xml_info else zipfile.ZIP_DEFLATED)
-                if identity(os.fstat(source.fileno())) != old.identity:
-                    raise ValueError('Source changed during reconciliation')
+            if reusable:
+                with regular(tagged) as candidate:
+                    if identity(os.fstat(candidate.fileno())) != new.identity:
+                        raise ValueError('Tagged archive changed before reuse')
+                    remaining = new.identity[2]
+                    while remaining:
+                        block = candidate.read(min(1024 * 1024, remaining))
+                        if not block:
+                            raise ValueError('Tagged archive shrank during reuse')
+                        target.write(block)
+                        remaining -= len(block)
+                    if candidate.read(1):
+                        raise ValueError('Tagged archive grew during reuse')
+                    if (identity(os.fstat(candidate.fileno())) != new.identity
+                            or identity(tagged.lstat()) != new.identity):
+                        raise ValueError('Tagged archive changed during reuse')
+            else:
+                rebuild(original, target, old, merged)
             target.flush()
             os.fchown(target.fileno(), old.uid, old.gid)
             os.fchmod(target.fileno(), old.mode)
             os.fsync(target.fileno())
         verified = snapshot(output)
         if (verified.members != old.members or verified.comment != old.comment
-                or verified.xml != merged or verified.mode != old.mode
+                or verified.xml != expected_xml or verified.mode != old.mode
                 or verified.identity[:2] != created
                 or (verified.uid, verified.gid) != (old.uid, old.gid)
+                or (reusable and verified.attributes != new.attributes)
                 or identity(original.lstat()) != old.identity):
             raise ValueError('Reconciled archive failed preservation checks')
         return 'updated' if old.xml is not None else 'added'
@@ -198,3 +212,25 @@ def prepare(original, tagged, output, *, updates=None, replace_fields=()):
             except FileNotFoundError:
                 pass
         raise
+
+
+def rebuild(original, target, old, merged):
+    """Restore original member attributes while merging changed metadata."""
+    with regular(original) as source:
+        if identity(os.fstat(source.fileno())) != old.identity:
+            raise ValueError('Source changed before reconciliation')
+        directory_limits(source)
+        with zipfile.ZipFile(source) as source_zip, zipfile.ZipFile(target, 'w') as result:
+            result.comment = old.comment
+            xml_info = None
+            for info in source_zip.infolist():
+                if info.filename == XML:
+                    xml_info = copy.copy(info)
+                    continue
+                with source_zip.open(info) as member, result.open(copy.copy(info), 'w') as dest:
+                    while block := member.read(1024 * 1024):
+                        dest.write(block)
+            result.writestr(xml_info or XML, merged,
+                            compress_type=xml_info.compress_type if xml_info else zipfile.ZIP_DEFLATED)
+        if identity(os.fstat(source.fileno())) != old.identity:
+            raise ValueError('Source changed during reconciliation')

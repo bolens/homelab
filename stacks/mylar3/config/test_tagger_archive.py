@@ -102,6 +102,75 @@ class ArchiveTest(unittest.TestCase):
         self.assertEqual(subject.prepare(self.output, self.tagged, second), 'unchanged')
         self.assertFalse(second.exists())
 
+    def test_approved_tagged_archive_reuses_encoded_contents(self):
+        for old in (None, b'<ComicInfo><Series>Old</Series><Number>1</Number></ComicInfo>'):
+            with self.subTest(existing_metadata=old is not None):
+                self.pair(old)
+                with patch.object(subject, 'rebuild', side_effect=AssertionError('Redundant rebuild')):
+                    self.assertEqual(subject.prepare(self.original, self.tagged, self.output,
+                                                    replace_fields=('Series',)),
+                                     'added' if old is None else 'updated')
+                self.assertEqual(self.output.read_bytes(), self.tagged.read_bytes())
+                self.output.unlink()
+
+    def test_bookmarks_and_overrides_still_use_reconciliation(self):
+        for old, updates in ((b'<ComicInfo><Notes>Keep</Notes></ComicInfo>', {}),
+                             (None, {'Volume':'2'})):
+            with self.subTest(old=old):
+                self.pair(old)
+                with patch.object(subject, 'rebuild', wraps=subject.rebuild) as rebuild:
+                    subject.prepare(self.original, self.tagged, self.output, updates=updates)
+                rebuild.assert_called_once()
+                xml = parse(subject.snapshot(self.output).xml)
+                self.assertEqual(xml.findtext('Notes' if old else 'Volume'), 'Keep' if old else '2')
+                self.output.unlink()
+
+    def test_changed_zip_attributes_use_reconciliation(self):
+        self.pair()
+        with zipfile.ZipFile(self.tagged) as archive:
+            entries = [(info, archive.read(info)) for info in archive.infolist()]
+            comment = archive.comment
+        with zipfile.ZipFile(self.tagged, 'w') as archive:
+            for info, data in entries:
+                info.comment = b'Changed attribute'
+                archive.writestr(info, data)
+            archive.comment = comment
+        with patch.object(subject, 'rebuild', wraps=subject.rebuild) as rebuild:
+            subject.prepare(self.original, self.tagged, self.output)
+        rebuild.assert_called_once()
+        self.assertEqual(tuple(a for a in subject.snapshot(self.output).attributes if a[0] != subject.XML),
+                         subject.snapshot(self.original).attributes)
+
+    def test_tagged_replacement_before_fast_copy_is_rejected(self):
+        self.pair()
+        regular = subject.regular
+        def race(path):
+            if path == self.tagged:
+                replacement = self.root/'replacement.cbz'
+                shutil.copy2(path, replacement)
+                os.replace(replacement, path)
+            return regular(path)
+        # Switch to the racing opener only after both snapshots have completed.
+        reconcile = subject.reconcile
+        def change(*args, **kwargs):
+            subject.regular = race
+            return reconcile(*args, **kwargs)
+        with patch.object(subject, 'regular', regular), patch.object(subject, 'reconcile', change):
+            with self.assertRaises(ValueError):subject.prepare(self.original, self.tagged, self.output)
+        self.assertFalse(self.output.exists())
+
+    def test_fast_copy_output_corruption_is_rejected(self):
+        digest = self.pair()
+        snapshot = subject.snapshot
+        def corrupt(path):
+            if path == self.output:
+                path.write_bytes(path.read_bytes().replace(b'page bytes', b'bad! bytes', 1))
+            return snapshot(path)
+        with patch.object(subject, 'snapshot', corrupt):
+            with self.assertRaises(zipfile.BadZipFile):subject.prepare(self.original, self.tagged, self.output)
+        self.assertFalse(self.output.exists())
+        self.unchanged_source(digest)
+
     def test_page_sidecar_comment_or_member_changes_are_rejected(self):
         digest = self.pair()
         for changed in ({'page':b'changed'}, {'sidecar':b'changed'}, {'comment':b'changed'}):
