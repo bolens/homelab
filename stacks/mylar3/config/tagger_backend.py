@@ -4,8 +4,8 @@ Legacy remains available throughout migration. A configured modern preference mu
 never silently run legacy while native writer/recovery integration is incomplete.
 """
 CHOICES = ('legacy', 'modern')
-MODERN_UNAVAILABLE = ('Modern tagging is not available yet. Live coordination, canary '
-                      'and rollback verification are still pending.')
+MODERN_UNAVAILABLE = ('Modern tagging is not available yet. '
+                      'This image keeps Modern disabled pending activation.')
 
 
 def choice(value):
