@@ -120,6 +120,19 @@ class NativeTest(unittest.TestCase):
             self.assertEqual(archive.read('001.png'), b'page')
         queue.tag.assert_not_called()
 
+    def test_conversion_changed_during_lookup_is_not_published(self):
+        converted, store, key, queue = self.conversion_queue()
+        def external_change(**kwargs):
+            with zipfile.ZipFile(self.source, 'w') as archive:
+                archive.writestr('001.png', b'external replacement')
+            return self.lookup.LookupResult('ok', {'series':'Fixture', 'issue':'1'})
+        self.lookup_mock.side_effect = external_change
+        queue.tick()
+        self.assertEqual(store.get('converted_tag', key)['phase'], 'review')
+        with zipfile.ZipFile(self.source) as archive:
+            self.assertEqual(archive.read('001.png'), b'external replacement')
+            self.assertNotIn('ComicInfo.xml', archive.namelist())
+
     def test_conversion_annual_matches_parent_path_but_uses_release_metadata(self):
         converted, store, key, queue = self.conversion_queue()
         self.db.execute('DELETE FROM issues')

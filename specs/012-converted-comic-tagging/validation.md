@@ -13,3 +13,5 @@ Remote CI, published-image identity, live deployment, and browser acceptance rem
 GitHub source lint caught an unused test import that local repository checks do not cover. The import was removed. No production behavior changed.
 
 The independently configurable reader-refresh extension passed both reviewers with no actionable findings. Focused fixtures cover disabled settings, completion gating, API failure, and replay after receipt-save failure. The installed Komga OpenAPI confirms the metadata-refresh route; live resulting metadata remains to be verified.
+
+The final source-integrity check carries the conversion hash through metadata lookup to publication. A regression replaces the archive during lookup and verifies that metadata is not published to the replacement. Both independent reviewers found no actionable issues in this delta.

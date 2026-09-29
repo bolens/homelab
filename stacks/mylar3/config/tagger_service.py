@@ -58,7 +58,7 @@ class Service:
 
     def tag(self, filename, *, issueid, volumeid=None, manualmeta=False, enabled=True,
             comicrack=True, comicbooklover=False, conversion_only=False, overwrite=False,
-            volume=None, reading_order=None, age_rating=None, publication_token=None):
+            volume=None, reading_order=None, age_rating=None, publication_token=None, expected_digest=None):
         if any(type(v) is not bool for v in (manualmeta, enabled, comicrack, comicbooklover, conversion_only, overwrite)):
             raise ValueError('Expected explicit tagging policy')
         if not enabled or not comicrack or comicbooklover or conversion_only:
@@ -84,6 +84,8 @@ class Service:
                 original = snapshot(source)
                 security = self.publisher.security(source)
                 before = fingerprint(source)
+                if expected_digest is not None and before != expected_digest:
+                    return self.failure('conflict', manualmeta)
                 if identity(source.lstat()) != original.identity:
                     return self.failure('conflict', manualmeta)
                 # No-overwrite means an existing ComicInfo is not modified at all.
@@ -123,7 +125,8 @@ class Service:
                     if fingerprint(target) != before or identity(source.lstat()) != original.identity:
                         return self.failure('conflict', manualmeta)
                 result = self.publisher.tag(target, metadata, token=token, updates=updates,
-                                            replace_fields=replacements, preserve_existing=skip)
+                                            replace_fields=replacements, preserve_existing=skip,
+                                            expected_digest=expected_digest)
                 if result.state not in ('committed', 'unchanged'):
                     return self.failure(result.state, manualmeta)
                 if manualmeta:

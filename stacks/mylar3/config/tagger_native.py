@@ -90,7 +90,7 @@ def catalog(issueid):
 
 def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
         filename=None, module=None, manualmeta=False, readingorder=None, agerating=None,
-        automatic_in_place=False, publication_token=None):
+        automatic_in_place=False, publication_token=None, expected_digest=None):
     import mylar
     from mylar import native_writers, tagger_handoff
     from .tagger_lookup import lookup
@@ -135,7 +135,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
                 tagger_handoff, native_writers.operation, staging=staging)
             return service.tag(filename, issueid=issueid, volumeid=volumeid, manualmeta=manualmeta,
                                volume=volume, reading_order=readingorder, age_rating=agerating,
-                               publication_token=publication_token, **policy)
+                               publication_token=publication_token, expected_digest=expected_digest, **policy)
     except (OSError, ValueError, TypeError, KeyError, RuntimeError):
         mylar.logger.warn('Modern tagging could not complete; original and recovery state retained')
         return failure()

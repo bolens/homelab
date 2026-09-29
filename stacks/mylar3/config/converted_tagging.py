@@ -201,6 +201,7 @@ def tag(job):
     try:
         result = tagger_native.run(str(Path(job['path']).parent), filename=job['path'], issueid=job['issueid'],
             manualmeta=True, automatic_in_place=True, publication_token=job['token'],
+            expected_digest=job['sha256'],
             readingorder=job.get('readingorder'), agerating=job.get('agerating'))
         return result.metadata if result.valid_for(job['path']) else result.state
     finally:
