@@ -4,7 +4,7 @@
 
 ## Summary
 
-Extend the normalizer's durable notification with an opt-in primary-key API request after rescan. Store jobs in Mylar's existing workflow journal. Poll one due job from the native post-processing worker while its download queue is idle. Revalidate catalog ownership and file digest under the existing writer lock. Use Modern in-place publication with a stored token, recover that token first after interruptions, and fill missing metadata only. Show a separate durable conversion-tagging table. Independently opt into a normalizer receipt that polls completed tagging and submits an idempotent Komga metadata refresh.
+Extend the normalizer's durable notification with an opt-in primary-key API request after rescan. Store jobs in Mylar's existing workflow journal. Poll one due job from the native post-processing worker while its download queue is idle. Revalidate catalog ownership and file digest under the existing writer lock. Use Modern in-place publication with a stored token, recover that token first after interruptions, and fill missing metadata only. Show a separate durable conversion-tagging table. Independently opt into a normalizer receipt that polls completed tagging and submits an idempotent Komga reanalysis request, which schedules metadata import after rebuilding the archive entry list.
 
 ## Technical Context
 

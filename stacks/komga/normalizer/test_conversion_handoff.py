@@ -98,10 +98,20 @@ class HandoffTest(unittest.TestCase):
             self.worker.refresh_mylar(self.job)
         self.assertTrue(self.job['mylar_tag_pending'])
 
-    def test_reader_uses_metadata_refresh_endpoint(self):
-        reader = object.__new__(Reader); reader.call = Mock()
+    def test_reader_reanalysis_discovers_new_comicinfo_before_import(self):
+        # Komga's ComicInfoProvider consults media.files before reading the XML.
+        cached_files = {'001.jpg'}
+        archive_files = {'001.jpg', 'ComicInfo.xml'}
+        imported = []
+        def reader_api(route, data):
+            if route.endswith('/analyze'):
+                cached_files.update(archive_files)
+            if 'ComicInfo.xml' in cached_files:
+                imported.append('metadata')
+        reader = object.__new__(Reader); reader.call = Mock(side_effect=reader_api)
         reader.refresh_metadata('book-id')
-        reader.call.assert_called_once_with('/api/v1/books/book-id/metadata/refresh', {})
+        self.assertEqual(imported, ['metadata'])
+        reader.call.assert_called_once_with('/api/v1/books/book-id/analyze', {})
 
     def test_opt_in_requires_shared_writer_and_boolean_setting(self):
         for writer, enabled in ((None, True), ('', True), ('/shared', 'true')):
