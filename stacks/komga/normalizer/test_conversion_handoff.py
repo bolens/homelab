@@ -6,8 +6,8 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
-from unittest.mock import patch
-from normalize import Normalizer
+from unittest.mock import patch, Mock
+from normalize import Normalizer, Reader
 
 
 class HandoffTest(unittest.TestCase):
@@ -60,6 +60,48 @@ class HandoffTest(unittest.TestCase):
         with patch('normalize.request') as api:
             self.worker.refresh_mylar(self.job)
         api.assert_not_called()
+
+    def test_reader_refresh_waits_for_tagging_and_retries_api_failure(self):
+        self.config['mylar']['refresh_reader_after_tagging'] = True
+        self.worker.reader = Mock()
+        self.job.update(replacement_id='reader-book', mylar_tag_pending=True)
+        with patch.object(self.worker, 'tagging_status', return_value='tagging'):
+            self.worker.refresh_tagged(self.job)
+        self.worker.reader.refresh_metadata.assert_not_called()
+        self.assertTrue(self.job['mylar_tag_pending'])
+        with patch.object(self.worker, 'tagging_status', return_value='completed'):
+            self.worker.reader.refresh_metadata.side_effect = RuntimeError('reader unavailable')
+            with self.assertRaises(RuntimeError): self.worker.refresh_tagged(self.job)
+            self.assertTrue(self.job['mylar_tag_pending'])
+            self.worker.reader.refresh_metadata.side_effect = None
+            self.worker.refresh_tagged(self.job)
+        self.assertNotIn('mylar_tag_pending', self.job)
+        self.assertEqual(self.job['mylar_reader_refresh'], 'metadata refresh requested')
+        self.worker.reader.refresh_metadata.assert_called_with('reader-book')
+
+    def test_reader_refresh_is_independently_optional_and_review_does_not_analyze(self):
+        self.worker.reader = Mock(); self.job['mylar_tag_pending'] = True
+        with patch.object(self.worker, 'tagging_status') as status:
+            self.worker.refresh_tagged(self.job)
+        status.assert_not_called(); self.worker.reader.refresh_metadata.assert_not_called()
+        self.assertEqual(self.job['mylar_reader_refresh'], 'disabled')
+        self.config['mylar']['refresh_reader_after_tagging'] = True
+        self.job['mylar_tag_pending'] = True
+        with patch.object(self.worker, 'tagging_status', return_value='review'):
+            self.worker.refresh_tagged(self.job)
+        self.worker.reader.refresh_metadata.assert_not_called()
+        self.assertNotIn('mylar_tag_pending', self.job)
+
+    def test_admission_persists_optional_reader_followup(self):
+        self.config['mylar']['refresh_reader_after_tagging'] = True
+        with patch('normalize.request', side_effect=self.response):
+            self.worker.refresh_mylar(self.job)
+        self.assertTrue(self.job['mylar_tag_pending'])
+
+    def test_reader_uses_metadata_refresh_endpoint(self):
+        reader = object.__new__(Reader); reader.call = Mock()
+        reader.refresh_metadata('book-id')
+        reader.call.assert_called_once_with('/api/v1/books/book-id/metadata/refresh', {})
 
     def test_opt_in_requires_shared_writer_and_boolean_setting(self):
         for writer, enabled in ((None, True), ('', True), ('/shared', 'true')):

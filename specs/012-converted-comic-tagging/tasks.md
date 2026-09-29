@@ -12,7 +12,7 @@ Independent test: one verified converted CBZ with a unique catalog path gains me
 - [x] T003 [US1] Add admission, exact identity, annual, settings, duplicate and stale-file fixtures in stacks/mylar3/config/test_converted_tagging.py. Enforce version 1, payload at most 8192 UTF-8 bytes, path at most 4096 characters, and 64 lowercase hexadecimal digest characters.
 - [x] T004 [US1] Implement durable admission and serial processing in stacks/mylar3/config/converted_tagging.py with 6 attempts, 24-hour catalog waits and 32 hexadecimal publication tokens.
 - [x] T005 [US1] Integrate checked primary-key API and idle PP polling in stacks/mylar3/config/patch_converted_tagging.py and apply_patches.py.
-- [x] T006 [US1] Test and implement opt-in handoff after rescan in stacks/komga/normalizer/normalize.py and notification isolation in writer_cycle.py.
+- [x] T006 [US1] Test and implement opt-in handoff and independently optional durable reader metadata refresh after rescan in stacks/komga/normalizer/normalize.py and notification isolation in writer_cycle.py.
 
 ## US2: Recovery and visible status
 

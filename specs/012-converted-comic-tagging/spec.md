@@ -42,6 +42,7 @@ Annual release IDs differ from parent IDs. Extras and alternate files not unique
 - **FR-007**: Display bounded filename-only job status in Post-processing. Do not expose private paths, credentials or raw errors.
 - **FR-008**: Keep API handling fast, serialize tagging with native post-processing, and bound retries.
 - **FR-009**: Require explicit normalizer opt-in and shared writer coordination. Older installations retain rescan-only behavior.
+- **FR-011**: An optional reader follow-up MUST wait for verified tagging completion, persist across restart, and retry failed metadata-refresh requests without redoing tagging.
 - **FR-010**: Validate with disposable regression fixtures and an authorized bounded live canary, verified application/affected-file backups, and preservation checks.
 
 ### Key Entities
@@ -59,4 +60,4 @@ Annual release IDs differ from parent IDs. Extras and alternate files not unique
 
 ## Assumptions
 
-The installed Modern backend is the target. Automatic Legacy in-place publication is outside this feature because it lacks the verified receipt contract. Existing metadata is retained regardless of manual overwrite preference. No new metadata lookup provider, public route, mount or library-wide retag is introduced. The operator will trigger a Komga metadata rescan after tagging completes, as explicitly requested during implementation.
+The installed Modern backend is the target. Automatic Legacy in-place publication is outside this feature because it lacks the verified receipt contract. Existing metadata is retained regardless of manual overwrite preference. No new metadata lookup provider, public route, mount or library-wide retag is introduced. Reader metadata refresh is independently configurable and disabled by default for other setups.

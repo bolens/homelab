@@ -86,7 +86,8 @@ series rescan:
 "mylar": {
   "url": "http://mylar3:8090",
   "config_dir": "/mylar",
-  "tag_converted": true
+  "tag_converted": true,
+  "refresh_reader_after_tagging": false
 }
 ```
 
@@ -110,8 +111,14 @@ Deploy Mylar first, then the worker with `--no-deps`, and enable the opt-in only
 after consumer verification. No additional mount, port, credential or dependency
 is needed. Keep both applications' recovery state in backups. Existing completed
 receipts are not bulk-retagged on upgrade; selected verified receipts can be
-replayed operationally with their affected files preserved first. After tagging finishes, run a metadata rescan in Komga to refresh its displayed
-metadata without waiting for the next scheduled scan. Turning the worker opt-in off stops new admissions; disable Mylar
+replayed operationally with their affected files preserved first. Set the independent `mylar.refresh_reader_after_tagging` boolean to `true` to
+request Komga metadata refresh after Mylar confirms tagging is complete. It
+defaults to `false` so other setups keep their own refresh schedule. The worker
+polls the durable job without repeating its rescan or tagging, then calls Komga's
+book metadata-refresh endpoint for the verified replacement book ID. A failed
+request retains a retryable receipt; duplicate refresh requests are harmless.
+Turning this setting off clears pending reader notifications without cancelling
+Mylar tagging. When disabled, refresh Komga metadata manually or use its schedule. Turning the worker opt-in off stops new admissions; disable Mylar
 metadata tagging to pause already admitted jobs.
 
 ## Automatic comic conversion

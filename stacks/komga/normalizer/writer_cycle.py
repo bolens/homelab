@@ -79,11 +79,15 @@ def refresh_completed(normalizer):
     failures = 0
     for receipt in normalizer.jobs.glob('*/receipt.json'):
         job = json.loads(receipt.read_text())
-        if job['phase'] == 'done' and job.get('mylar_refresh_pending'):
+        if job['phase'] == 'done' and (job.get('mylar_refresh_pending') or job.get('mylar_tag_pending')):
             try:
-                normalizer.refresh_mylar(job)
-                job.pop('mylar_refresh_pending')
-                save(receipt, job)
+                if job.get('mylar_refresh_pending'):
+                    normalizer.refresh_mylar(job)
+                    job.pop('mylar_refresh_pending')
+                    save(receipt, job)
+                elif job.get('mylar_tag_pending'):
+                    normalizer.refresh_tagged(job)
+                    save(receipt, job)
             except Exception:
                 failures += 1
     if failures:

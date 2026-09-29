@@ -9,3 +9,5 @@
 - Decision: retain small terminal identities. Rationale: pruning them would permit old conversion receipt replay. Display is bounded independently.
 
 Research inspected native queue source and the existing tagger, workflow, normalizer and publication modules at base 97a7f524. Read-only delegated research confirmed lock, manual-route and retry hazards. No unresolved design questions.
+
+- Decision: optional `mylar.refresh_reader_after_tagging`, false by default. The installed reader scans on a schedule, so file watching cannot prove prompt metadata display. Its OpenAPI contract exposes POST `/api/v1/books/{bookId}/metadata/refresh`. Persist a pending follow-up after admission, poll the existing idempotent request for completion, and retain the receipt after an ambiguous refresh response. Do not restart or alter the reader.
