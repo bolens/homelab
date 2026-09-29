@@ -70,6 +70,28 @@ class ScanTest(unittest.TestCase):
         self.assertFalse(self.scan.state['pending']); self.assertFalse(self.requests)
         self.cycle(1000); self.assertFalse(self.requests)
 
+    def test_startup_baseline_needs_no_archive_or_writer_access(self):
+        self.add('existing')
+        with patch('reader_scan.tagged_cbz',side_effect=AssertionError('archive opened')):
+            self.assertTrue(self.scan.initialize())
+        self.assertEqual(len(self.scan.state['known']),1)
+        self.assertFalse(self.scan.state['pending'])
+        self.worker.reader.call.assert_not_called()
+        self.add('new-after-startup')
+        self.assertTrue(self.scan.initialize())
+        self.assertEqual(len(self.scan.state['known']),1, 'Restart must not rebaseline new additions')
+        self.cycle();self.assertEqual(len(self.scan.state['pending']),1)
+
+    def test_unrelated_pending_conversion_does_not_block_completed_batch(self):
+        self.cycle()
+        for i in range(6):self.add(str(i))
+        folder=self.jobs/'active';folder.mkdir()
+        (folder/'receipt.json').write_text(json.dumps({'phase':'submitted','destination':str(self.media/'5.cbz')}))
+        self.cycle();self.cycle(120)
+        self.assertEqual(len(self.requests),1)
+        self.assertEqual(len(self.scan.state['pending']),1)
+        self.assertEqual(next(iter(self.scan.state['pending'].values()))['path'],str(self.media/'5.cbz'))
+
     def test_five_ready_additions_scan_only_matching_library_once(self):
         self.ready()
         self.assertEqual(self.requests, ['/api/v1/libraries/comics-id/scan'])

@@ -149,14 +149,13 @@ class CycleTest(unittest.TestCase):
         self.assertTrue(cycle(self.worker))
         self.worker.scan_batch.dispatch.assert_called_once()
 
-    def test_pending_conversion_defers_scan_and_updates_waiting_health(self):
+    def test_pending_conversion_allows_scanning_other_completed_paths(self):
         folder=self.jobs/'pending'; folder.mkdir()
         (folder/'receipt.json').write_text(json.dumps({'phase':'submitted'}))
         self.worker.scan_batch = Mock()
         self.assertTrue(cycle(self.worker))
-        self.worker.scan_batch.collect.assert_not_called()
-        self.worker.scan_batch.dispatch.assert_not_called()
-        self.worker.scan_batch.waiting.assert_called_once()
+        self.worker.scan_batch.collect.assert_called_once()
+        self.worker.scan_batch.dispatch.assert_called_once()
         self.assertTrue(self.owner.fenced())
 
     def test_failed_scan_readiness_does_not_retain_media_fence(self):

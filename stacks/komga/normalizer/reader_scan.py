@@ -143,10 +143,18 @@ class ScanBatch:
              ready=sum(row.get('ready_at') is not None for row in pending.values()),
              last_requested=state.get('last_requested'), errors=[error or state['last_error']] if error or state.get('last_error') else []))
 
-    def waiting(self):
-        previous = json.loads(self.status_path.read_text()) if self.status_path.exists() else {'errors': []}
-        previous.update(checked_at=self.clock(), state='waiting for conversion recovery')
-        save(self.status_path, previous)
+    def initialize(self):
+        """Catalog-only baseline under worker ownership; no media lock or reads."""
+        try:
+            self.state = self.load()
+            if self.state is None:
+                self.state = dict(version=1, scope=self.scope, known=self.catalog(), pending={}, next_allowed=0)
+                save(self.path, self.state)
+            self.status()
+            return True
+        except Exception as exc:
+            self.status('Catalog baseline failed: '+type(exc).__name__)
+            return False
 
     def collect(self):
         """Called only with the normalizer's shared writer lock held."""

@@ -58,12 +58,13 @@ def cycle(normalizer, maintenance=None):
                         for path in normalizer.jobs.glob('*/receipt.json'))
             if not pending:writer.clear_pending()
             scans = getattr(normalizer, 'scan_batch', None)
-            scan_ready = bool(not pending and scans and scans.collect())
-            if pending and scans:scans.waiting()
-        if not pending:
-            try:refresh_completed(normalizer)
-            finally:
-                if scan_ready:scans.dispatch()
+            # Readiness is per path: unrelated asynchronous conversions must not
+            # starve completed additions. collect excludes their receipt paths.
+            scan_ready = bool(scans and scans.collect())
+        try:
+            if not pending:refresh_completed(normalizer)
+        finally:
+            if scan_ready:scans.dispatch()
         return True
     except Busy:
         # A busy lock is normal contention. Preserve errors and pending counts,
