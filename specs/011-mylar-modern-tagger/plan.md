@@ -78,6 +78,37 @@ all affected contract surfaces together and regenerate catalog output if metadat
 6. Independently add opt-in curl discovery. Requests remains archive transport. Full
    curl streaming needs a bounded-buffer design and every transport gate before use.
 
+## NFS publication strategy
+
+The real NFSv4 media mount rejected atomic exchange with `EINVAL` and exposed
+`system.nfs4_acl`. The version-1 exchange publisher remains unchanged by default;
+there is no automatic fallback. `tagger_nfs.Publisher` is a separate, inactive
+version-2 strategy with its own journal directory.
+
+It durably records intent, moves the original inode into the private same-filesystem
+workspace, checks it again, then creates the candidate at the source name with a
+no-clobber hard link. A competing destination is retained, never overwritten. The
+original stays recoverable until the candidate's bytes, inode, ownership, mode and
+attributes verify. NFS errors can describe operations that actually completed;
+recovery decides from both filenames and identities, never the syscall result alone.
+A crash before the candidate link restores the original without replaying tagging.
+A crash after linking verifies the candidate and reconciles its temporary hard link.
+
+Unlike exchange, this strategy has a missing-name interval, potentially lasting
+until restart recovery. Native integration must exclude all media writers and
+finish startup recovery before scans, tagging or placement. Uncoordinated readers
+may briefly observe an absent filename. Rollback to an older image requires completed
+reconciliation or restoration of verified state/media; old readers intentionally
+reject v2 receipts. Do not enable this path merely because fixture tests pass.
+
+`tagger_attributes.py` bounds and verifies exact NFSv4/POSIX access ACL and user
+attribute bytes. Unsupported security attributes fail closed. Mode/owner checks run
+after ACL application; an unsuccessful round trip leaves the source untouched.
+Private receipts include the attribute manifest, which must never enter logs.
+The syscall contracts and NFS ambiguity caveat are documented in
+[rename(2)](https://man7.org/linux/man-pages/man2/rename.2.html) and
+[link(2)](https://man7.org/linux/man-pages/man2/link.2.html).
+
 ## Rollback and mixed versions
 
 New settings are additive and legacy defaults remain intact. New receipt fields are

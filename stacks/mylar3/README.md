@@ -544,3 +544,13 @@ recovery prevents admission, including after a worker crash. Include this state
 in application backups and never replace it while either writer can run. Library
 files are not copied for this configuration change. Other native media writers,
 modern caller routing and live rollout checks still gate modern-backend activation.
+
+
+An additional inactive NFS publisher uses separate version-2 receipts, retaining
+the original inode before publishing through a no-clobber link. It preserves and
+reads back supported ACLs and user attributes; it never silently substitutes for
+atomic exchange. Its source filename can be temporarily absent until recovery, so
+native startup/scanner coordination and old-image rollback checks must pass before
+selection. Older readers reject its receipts without modifying them. The modern
+backend remains unavailable. No live setting, mount, port or privilege changes are
+required to inspect or test this module with generated fixtures.

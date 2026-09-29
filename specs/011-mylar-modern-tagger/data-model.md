@@ -31,3 +31,8 @@
 - Uncleaned committed receipts retain recovery copies if the source inode,
   permissions, links, extended attributes or displaced bytes/ownership changed.
   Schema/state validation happens before recovery can modify a journal or workspace.
+
+- TagReceipt v2: separate NFS journal, `publication=rename-link-v1`, bounded base64
+  ACL/user-attribute manifest. Other fields retain v1 meanings. The displaced
+  original inode lives at `displaced.cbz`; candidate linking temporarily produces
+  two candidate links, reconciled before commit. No v1 reader migration is implied.

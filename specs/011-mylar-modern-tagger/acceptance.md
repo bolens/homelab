@@ -12,6 +12,7 @@ proof does not satisfy real-package, native, final-image or live gates.
 | C2 | Real archive | Regular, annual, variant, volume 1, Unicode, multiple/new/existing arcs, notes/web/legacy comments/unknown tags | Page/member/comment hashes, exact approved XML delta, valid CRCs |
 | C3 | Archive failure | Nonzero, timeout, truncated ZIP, unreadable entry, changed page, empty tag, unchanged file, symlink, low space | Original hash/permissions retained, staged data removed or recovery recorded |
 | C4 | Publication | Source race, file replacement failure, crash before/after rename, restart, repeated job | Atomic ownership, durable intent, deterministic recovery, no duplicate write |
+| C5 | NFS publication | Explicit v2, ACL/user attributes, no-clobber link, crash before/after displacement/link, ambiguous RPC, v1 reader | Actual NFS fixture preserves pages/ACLs; deterministic recovery; no competing file overwritten; old reader rejects unchanged |
 | N1 | Native | Automatic/manual, disabled tags, overwrite off/on, CBL-only and mixed preferences, alternate config root | Old/new return contracts, settings unchanged, unsupported choice explicit |
 | N2 | Conversion | CBZ, CBR, CB7, CBT and conversion-only with worker enabled/disabled | Exactly one converter, retained original on failure, no second tagger converter |
 | N3 | UI | Added, updated, unchanged, failed, timed out, unsupported | Accurate monitor and history at mobile/wide sizes, no raw output/secrets |

@@ -10,6 +10,11 @@ import os
 from pathlib import Path
 import stat
 
+if __package__:
+    from . import tagger_attributes as file_attributes
+else:
+    import tagger_attributes as file_attributes
+
 MAX_ARCHIVE = 4 * 1024 ** 3
 SUCCESS = {'committed', 'unchanged'}
 
@@ -30,6 +35,7 @@ class Published:
     digest: str = field(default='', repr=False)
     identity: tuple = field(default=(), repr=False)
     permissions: tuple = field(default=(), repr=False)
+    attributes: tuple = field(default=(), repr=False)
 
     def valid_for(self, source):
         """Verify the exact expected caller source before bypassing native cleanup."""
@@ -48,7 +54,7 @@ class Published:
                 if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
                         or info.st_size > MAX_ARCHIVE or stamp != self.identity
                         or (stat.S_IMODE(info.st_mode), info.st_uid, info.st_gid) != self.permissions
-                        or os.listxattr(expected, follow_symlinks=False)):
+                        or tuple(sorted(file_attributes.capture(expected).items())) != self.attributes):
                     return False
                 digest = hashlib.sha256()
                 remaining = info.st_size
@@ -82,7 +88,7 @@ def capture(publisher, token):
     value = Published(result.state, result.metadata, record['source'],
                       record['after'] if committed else record['before'],
                       tuple(record['candidate_identity' if committed else 'source_identity'][:4]),
-                      tuple(record['permissions']))
+                      tuple(record['permissions']), tuple(sorted(record.get('attributes', {}).items())))
     return value if value.valid_for(record['source']) else Published('conflict')
 
 

@@ -1,5 +1,37 @@
 # Implementation evidence
 
+## NFS publication correction
+
+Scope: inactive, explicitly selected version-2 publisher against `4e7ca51`.
+
+The actual NFSv4 media mount rejected version-1 atomic exchange with `EINVAL`
+and exposed `system.nfs4_acl`. The new strategy preserves the displaced inode,
+uses no-clobber candidate linking, and reconciles ambiguous operation results.
+Bounded ACL/user-attribute manifests are applied and read back before publication;
+the native handoff verifies them again. Existing exchange behavior remains default.
+
+Eleven tests passed as UID 1000 on disposable actual-NFS archives, including the
+real pinned CLI and native handoff. Cases cover six real-process crash checkpoints,
+competing destinations, source replacement at displacement, RPC errors after success,
+ACL-write failure, changed attributes, malformed manifests and v1 rejection without
+mutation. Exact NFS ACL bytes, member bytes and file mode/ownership survive accepted
+writes. All temporary media fixtures were removed; no existing comics or services
+changed. Host execution passed ten cases and skipped the pinned-runtime case, which
+passed in the image/NFS run. Two independent reviewers found no actionable defects;
+one independently verified recovery after denied candidate linking.
+
+The final candidate image passed 356 tests with no skips, including the unprivileged,
+read-only/no-network gate. The native-package fixture was corrected to provide the
+package context for the new attribute-helper import; installed helper bytes are
+checked against the tested source.
+
+This closes the publisher filesystem blocker only. Native v2 journal selection,
+complete writer/scanner exclusion, startup recovery, automatic staging ownership,
+annual caller identity and old-image canary/rollback remain activation gates. The
+source name can be absent until recovery; Modern must remain unavailable until the
+integration accounts for that interval. This is process-crash and injected RPC proof,
+not evidence from a power failure or server reboot.
+
 ## Backend choice and normalizer coordination increment
 
 Scope: additive settings and shared writer ownership against `1d8d721`.
