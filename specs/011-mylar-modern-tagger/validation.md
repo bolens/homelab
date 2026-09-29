@@ -447,7 +447,7 @@ A separate source review found the static Manage page can lack `page_name` durin
 an SSE notification. The focused adapter keeps success/failure notification styling
 and skips refresh targets on those pages. Executing the actual patched message
 listener with a missing page element passes success, failure and intermediate cases.
-Live browser acceptance and publication of this increment remain delivery gates.
+The live browser and delivery checks below complete those gates.
 
 A distinct self-review traced saved settings through the session decorator, worker
 protocol and native discovery callers, and confirmed the archive owner remains
@@ -456,3 +456,42 @@ bounds, process cleanup, native failure contracts, packaging and publication gat
 The notification guard was corrected to retain styling before returning. No
 independent reviewer was used. Live transport/provider acceptance remains separate
 from deterministic local fixtures.
+
+
+## Optional transport delivered
+
+PR #152 merged at `ec1f21e2ca3fbcc18b9fe3860729c52647da3da0`. Current-head
+repository, source lint, CodeQL, base-image compatibility and custom-image build
+checks passed. The complete custom-image gate also passed locally as UID 1000
+with a read-only filesystem and no network or live mounts. The source-only base
+gate explicitly skips runtime-dependent Curl cases, while the custom-image gate
+requires that runtime. The HTTPS fixture requires TLS 1.2 or newer.
+
+Published and deployed Mylar digest:
+`sha256:3bf72eab0f72933ad6b1cb592891c06d9795fc9d91200d9b55fc6f52cdf7178f`.
+The live settings test saved Curl, reloaded it, saved Requests and reloaded it,
+rejected invalid input, and preserved every other setting. Requests remains the
+selected discovery backend. Existing Modern tagging preference remained intact.
+Selector captures at 1920 and 390 pixels were visually inspected. The Manage SSE
+fixture displayed its notification with no page error, and post-processing status
+was current. Browser error collection was empty.
+
+The rollout drained active downloads and processing, verified a fresh app backup
+and isolated restore, checked all baseline records and library files in place,
+and restored the original DDL admission preference. Only Mylar was restarted.
+NZBGet, Komga, Uptime Kuma and the normalizer retained their container IDs/start
+times during this rollout. The temporary operation backup was removed after the
+final preservation check. Library-wide backups and real power-loss tests were
+not performed.
+
+A separate, explicitly authorized normalizer repair restored its missing shared
+writer mount with the same worker image. Its state/config backup and isolated
+restore were verified first. Fourteen existing conversion receipts and library
+files survived unchanged. Three recent originals and outputs matched recorded
+hashes and full member inventories. Fresh conversion/maintenance scans, authenticated
+Komga access and shared Mylar protocol checks passed. That operation's temporary
+backup was removed. Normalization subsequently resumed and completed pending
+conversions with deferred Mylar refreshes delivered.
+
+T018 remains a completed rejection of full Curl streaming, not D2/D3 acceptance.
+No live provider anti-bot bypass or physical storage power-loss guarantee is claimed.
