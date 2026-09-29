@@ -469,9 +469,13 @@ DDL discovery transport. The image now includes ComicTagger **1.6.0b11.dev0** in
 isolated `/opt/comictagger` environment. Mylar continues using its existing vendored
 1.3.5 tagger. Settings → Quality & Post Processing → Metadata Tagging includes a
 **ComicTagger backend** selector. **Legacy (default)** remains available during the
-migration. **Modern (experimental)** is visible but disabled until native writer
-coordination rollout, live canary and rollback checks are complete. The server rejects
-unavailable or invalid selections before changing settings. Backend changes apply
+migration. **Modern (experimental)** is available as an explicit opt-in after
+native writer coordination, live canary, crash recovery and rollback acceptance.
+Select it and save settings to test it, or select Legacy and save to switch back.
+Modern supports CBZ ComicRack metadata. ComicBookLover writes, conversion-only
+tagging and link-based automatic placement report unsupported without changing
+preferences or falling back. Let the normalizer own format conversions.
+The server rejects invalid selections before changing settings. Backend changes apply
 to the next tagging job, never to a job already running. Editing the configuration
 to select an unavailable backend reports unsupported tagging instead of silently
 using Legacy.
@@ -481,15 +485,15 @@ annual/variant metadata, Unicode, volume 1, archive comments and unrelated membe
 The modern CLI clears inherited Python configuration and disables user-site imports
 so Mylar's vendored legacy modules cannot shadow its pinned dependencies.
 The CLI protocol helper reports only a staged save; it does not claim a verified
-library import. Publication/recovery now has an isolated fixture implementation;
-live coordination and rollback remain activation gates.
+library import. Publication, startup recovery, native ownership and live rollback have passed
+the [acceptance checks](../../specs/011-mylar-modern-tagger/validation.md).
 Native manual tagging now recognizes an explicit verified in-place result and skips
 its legacy temporary-file copy/delete branch. Automatic imports reject non-string
 results before placement. The monitor accepts verified added/updated/unchanged and
 specific failure outcomes. These guards preserve legacy paths and do not select the
 modern backend. The choice persists as `Metatagging.tagger_backend` in the existing
 config volume. No environment variable, mount or ingress change is required.
-An inactive native-package service now provides bounded ComicVine
+The native-package service provides bounded ComicVine
 lookup, automatic staging and recovery admission before each job. Native routing uses
 the v2 journal; annuals resolve their release volume rather than parent-series metadata.
 Requests remains the DDL transport.
@@ -498,19 +502,18 @@ The archive helper reconciles ComicInfo into a new CBZ and reopens it to check p
 and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown
 fields and page bookmarks survive unless explicitly replaced. Unchanged metadata
 produces no output. Verification rejects ambiguous metadata/member names, corrupt
-entries and changed sources. Current prototype limits are 4 GiB per archive and
+entries and changed sources. Current Modern limits are 4 GiB per archive and
 in total unpacked data, 512 MiB per non-metadata member, 4,096 members, an 8 MiB
 central directory and 256 KiB ComicInfo. ZIP64 and split archives are unsupported.
-These are prototype limits, not changes to the active legacy tagger.
+These limits apply only to Modern; Legacy retains its existing behavior.
 
-The inactive publisher uses a private versioned journal and same-filesystem staging.
+The standalone v1 compatibility publisher uses a private versioned journal and same-filesystem staging.
 It verifies page bytes before atomic Linux file exchange, then verifies the displaced
 source before recording a commit. Restart recovery never blindly repeats a CLI run
 or file exchange. Conflicts retain the original copy and displaced file for review.
 Operation tokens and source paths have separate locks; old completed receipts do not
 block newer jobs. Hardlinked files, extended attributes/ACLs and filesystems without
-atomic exchange are unsupported. Native integration must exclude other writers and
-prove the actual media filesystem supports the operation before enabling this backend.
+atomic exchange are unsupported. Native Modern jobs instead select the verified v2 NFS publisher described below.
 Unfinished commit cleanup rechecks source identity/permissions and displaced contents;
 unknown or malformed receipts are retained without interpreting them as failed jobs.
 The startup recovery API streams pending results, skips cleaned history without
@@ -519,8 +522,8 @@ and keep modern admission closed on conflicts, invalid receipts, I/O errors or b
 jobs. Native startup performs this recovery before database maintenance and scans,
 including when the selected backend is Legacy.
 Core helpers ship under `/opt/mylar3-fixes` and in Mylar's package. The lookup and
-service modules ship only in Mylar's package. None runs at startup. Existing live
-settings, library files and services are unaffected by this inactive implementation.
+service modules ship only in Mylar's package. Startup recovery runs before scans
+for either selected backend. Upgrading retains existing settings and defaults to Legacy.
 
 Runtime and Python build dependencies have exact versions and SHA-256 locks. Build
 tools stay outside the final image. ICU 70 comes from the pinned Ubuntu base. Package
@@ -535,9 +538,9 @@ Review native build-package pins monthly and whenever changing the base digest.
 
 The published image is currently built/tested for linux/amd64. A Python wheel's
 arm64 availability alone is not proof of an arm64 build. No services need restarting
-solely to inspect this inactive migration runtime.
+solely to inspect the bundled runtime.
 
-The inactive service preserves the automatic download source and returns a verified
+The service preserves the automatic download source and returns a verified
 disposable CBZ for native placement. Manual jobs return an in-place receipt. Existing
 ComicInfo with overwrite disabled skips lookup and tagging entirely. ComicVine
 lookup uses private temporary credential files, a 45-second process deadline,
@@ -570,14 +573,14 @@ its lock. An older worker can otherwise deadlock with guarded rescans, and does 
 honor the new tagger fence. Do not roll back to an older image with pending publication
 receipts: recover with the matching image first, or restore the verified pre-change
 application state and affected canary files while writers are stopped. Live rollout,
-canary and old-image rollback proof still gate Modern activation.
+canary and old-image rollback checks passed before exposing Modern as an opt-in.
 
 
-An additional inactive NFS publisher uses separate version-2 receipts, retaining
+The native NFS publisher uses separate version-2 receipts, retaining
 the original inode before publishing through a no-clobber link. It preserves and
 reads back supported ACLs and user attributes; it never silently substitutes for
 atomic exchange. Its source filename can be temporarily absent until recovery, so
 startup/scanner coordination is mandatory and old-image rollback checks must pass
-before selection. Older readers reject its receipts without modifying them. The modern
-backend remains unavailable. No live setting, mount, port or privilege changes are
-required to inspect or test this module with generated fixtures.
+before selection. Older readers reject its receipts without modifying them. No new
+mount, port or privilege is required. Keep the matching normalizer coordination
+enabled when both applications can write the library.

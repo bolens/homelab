@@ -92,14 +92,17 @@ class NativeTest(unittest.TestCase):
 
     @unittest.skipUnless(Path('/opt/comictagger/bin/comictagger').exists(), 'Pinned runtime image required')
     def test_real_cli_through_native_manual_and_automatic_callers(self):
+        backend = import_module('mylar.tagger_backend')
+        self.mylar.CONFIG.TAGGER_BACKEND = 'modern'
+        legacy = Mock(side_effect=AssertionError('Unexpected legacy fallback'))
         with patch.object(self.base, 'save', self.cli.save):
             with self.writers.operation():
-                result = self.native.run(str(self.root), filename=str(self.source), issueid='123')
+                result = backend.dispatch(legacy, str(self.root), filename=str(self.source), issueid='123')
                 self.assertIs(type(result), str)
                 with zipfile.ZipFile(result) as archive:
                     self.assertIsNone(archive.testzip()); self.assertEqual(archive.read('001.png'), b'page')
                     self.assertIn(b'<Volume>1</Volume>', archive.read('ComicInfo.xml'))
-            result = self.native.run(str(self.root), filename=str(self.source), issueid='124', manualmeta=True)
+            result = backend.dispatch(legacy, str(self.root), filename=str(self.source), issueid='124', manualmeta=True)
             self.assertTrue(result.valid_for(self.source))
             self.assertEqual(os.getxattr(self.source, 'user.fixture'), b'original')
 
@@ -110,10 +113,10 @@ class NativeTest(unittest.TestCase):
         self.assertEqual(backend.dispatch(legacy,'folder'),'legacy')
         self.mylar.CONFIG.TAGGER_BACKEND='modern'
         with patch.object(self.native,'run',return_value='modern') as modern:
-            self.assertIsInstance(backend.dispatch(legacy,'folder'),self.handoff.Failure)
+            with patch.object(backend,'status',return_value={'modern_available':False}):
+                self.assertIsInstance(backend.dispatch(legacy,'folder'),self.handoff.Failure)
             modern.assert_not_called()
-            with patch.object(backend,'status',return_value={'modern_available':True}):
-                self.assertEqual(backend.dispatch(legacy,'folder',issueid='123'),'modern')
+            self.assertEqual(backend.dispatch(legacy,'folder',issueid='123'),'modern')
             modern.assert_called_once_with('folder',issueid='123')
         legacy.assert_called_once()
 

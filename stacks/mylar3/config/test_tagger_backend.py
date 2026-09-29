@@ -44,7 +44,8 @@ class BackendTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'fixture'):
             tagger_backend.dispatch(Mock(side_effect=RuntimeError('fixture')))
 
-    def test_unavailable_and_invalid_never_fall_back_or_expose_raw_value(self):
+    @patch.object(tagger_backend, 'status', return_value={'modern_available': False})
+    def test_unavailable_and_invalid_never_fall_back_or_expose_raw_value(self, unavailable):
         legacy=Mock()
         for selected in ('modern','secret-invalid',None,[],True):
             self.config.TAGGER_BACKEND=selected
@@ -55,6 +56,18 @@ class BackendTest(unittest.TestCase):
         for value in ('modern', 'unknown', None, ['legacy']):
             with self.assertRaises(ValueError):tagger_backend.validate_update(value)
         self.assertEqual(tagger_backend.validate_update('legacy'),'legacy')
+
+    def test_modern_dispatch_is_opt_in_and_never_retries_legacy(self):
+        native = SimpleNamespace(run=Mock(return_value=tagger_handoff.Failure('failed')))
+        self.mylar.tagger_native = native
+        legacy = Mock()
+        self.assertTrue(tagger_backend.status()['modern_available'])
+        self.assertEqual(tagger_backend.validate_update('modern'), 'modern')
+        self.config.TAGGER_BACKEND = 'modern'
+        result = tagger_backend.dispatch(legacy, 'folder', filename='source.cbz', manualmeta=True)
+        self.assertEqual(result.state, 'failed')
+        native.run.assert_called_once_with('folder', filename='source.cbz', manualmeta=True)
+        legacy.assert_not_called()
 
     def test_native_configuration_roundtrip_and_prevalidation(self):
         source=configuration((SOURCE/'config.py').read_text())
@@ -72,11 +85,12 @@ class BackendTest(unittest.TestCase):
         target=SimpleNamespace(MINIMAL_INI=False,ENCRYPT_PASSWORDS=False,OTHER='unchanged')
         target._define=lambda key:define(target,key)
         self.assertEqual(defs['TAGGER_BACKEND'],(str,'Metatagging','legacy'))
-        process(target,{'tagger_backend':'legacy'})
-        output=StringIO();parser.write(output)
-        restored=configparser.ConfigParser();restored.read_string(output.getvalue())
-        self.assertEqual(restored.get('Metatagging','tagger_backend'),'legacy')
-        for values in ({'other':'changed','TAGGER_BACKEND':'bad'}, {'other':'changed','tagger_backend':'modern'},
+        for selected in ('legacy', 'modern', 'legacy'):
+            process(target,{'tagger_backend':selected})
+            output=StringIO();parser.write(output)
+            restored=configparser.ConfigParser();restored.read_string(output.getvalue())
+            self.assertEqual(restored.get('Metatagging','tagger_backend'),selected)
+        for values in ({'other':'changed','TAGGER_BACKEND':'bad'}, {'other':'changed','tagger_backend':'Modern'},
                        {'other':'changed','tagger_backend':'legacy','TAGGER_BACKEND':'legacy'}):
             with self.assertRaises(ValueError):process(target,values)
             self.assertEqual(target.OTHER,'unchanged')
@@ -87,7 +101,7 @@ class BackendTest(unittest.TestCase):
         source=web((SOURCE/'webserve.py').read_text())
         class HTTPError(Exception):pass
         update=function(method(source,'configUpdate'),{'mylar':self.mylar,'cherrypy':SimpleNamespace(HTTPError=HTTPError)})
-        for values in ({'tagger_backend':'invalid'},{'TAGGER_BACKEND':'modern'},
+        for values in ({'tagger_backend':'invalid'},{'TAGGER_BACKEND':'Modern'},
                        {'tagger_backend':'legacy','TAGGER_BACKEND':'legacy'}):
             with self.assertRaises(HTTPError) as caught:update(None,**values)
             self.assertEqual(caught.exception.args[0],400)
@@ -112,7 +126,7 @@ class BackendTest(unittest.TestCase):
             self.assertIn('&lt;unsafe&gt;',html)
             self.assertIn('aria-describedby="tagger_backend_help"',html)
             modern=html.split('<option value="modern"',1)[1].split('</option>',1)[0]
-            self.assertIn('disabled="disabled"',modern)
+            self.assertNotIn('disabled="disabled"',modern)
             self.assertEqual('selected="selected"' in modern,selected=='modern')
 
     def test_patches_are_idempotent(self):

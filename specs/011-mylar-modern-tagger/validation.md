@@ -390,3 +390,19 @@ or curl. No live configuration, library files or services were changed.
 in 107 Mylar files and 10 feature documents, with no skips. Gitleaks scanned 372
 commits with no findings. PR #128 merged as `b9e95f6` and its GHCR image was
 published. Subsequent capability gates remain separate.
+
+## Modern opt-in activation candidate
+
+The activation increment exposes Modern in the existing backend selector while
+retaining the Legacy default. It changes no dependency, conversion ownership,
+publication strategy, mount, privilege or ingress route. The previous live canary,
+startup recovery, rollback and N3 UI evidence above satisfy those activation gates.
+
+The final-image gate now sends real regular/annual automatic and manual fixtures
+through the enabled backend dispatcher, rather than opening its gate in the test.
+Native config persistence covers Legacy → Modern → Legacy. Invalid and duplicate
+values still fail before unrelated mutation, and a Modern failure never retries
+Legacy. Disabled-capability rejection remains covered as a compatibility case.
+
+Live deployment and successful settings save/reload are pending for this candidate.
+Optional DDL transport remains independent and unimplemented.

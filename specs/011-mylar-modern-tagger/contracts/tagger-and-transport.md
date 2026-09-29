@@ -20,7 +20,7 @@ tagged number; partial explicit replacement or mismatched numbered lists is reje
 The legacy adapter retains cmtagmylar.run's path/sentinel return contract. Modern
 manual tagging uses an explicit `mylar.tagger_handoff.Published` result; automatic
 routing must continue to supply a verified disposable path. The observer understands
-typed results, but no native producer selects modern tagging yet.
+typed results; native dispatch selects Modern only for its saved opt-in preference.
 One adapter owns replacement. Modern backend does not convert or delete originals.
 Conversion-only and non-ZIP routes must be proved before native activation.
 
@@ -45,8 +45,8 @@ metadata)` records. It does not wait for token/source locks or hash cleaned hist
 Callers must exhaust the iterator before admitting modern work and keep admission
 closed on `busy`, `conflict`, `invalid_journal` or `io_error`. Malformed receipt names
 return an empty token, never a path/name. Unexpected receipts remain untouched; one
-invalid receipt does not prevent reconciliation of other valid pending jobs. This
-API is not yet called from native startup.
+invalid receipt does not prevent reconciliation of other valid pending jobs. Native startup
+exhausts this API before admitting work.
 
 `mylar.tagger_handoff.capture(publisher, token)` reconciles a receipt and checks its
 cleaned outcome, current bytes, inode, permissions and expected source before
@@ -80,11 +80,10 @@ Only fields explicitly returned by the provider may replace existing fields.
 `Metatagging.tagger_backend` is additive, defaults to `legacy`, and accepts only the
 exact values `legacy` and `modern`. Native config requests validate all matching
 keys before any mutation, including duplicate case variants. An unavailable Modern
-choice is rejected with a sanitized message. The settings page disables the Modern
-option and explains the missing capabilities. Native entry dispatch reads the
+choice is rejected with a sanitized message. This image exposes Modern as an
+experimental opt-in after native, live canary, UI and rollback acceptance. Native entry dispatch reads the
 configured choice once, preserves legacy arguments and exception behavior, and
-never falls back for a manually configured unsupported backend. No modern
-activation is implied by the presence of this selector.
+never falls back for a manually configured unsupported backend. Legacy remains the default and switching back preserves recovery ownership.
 
 The version-1 media writer protocol lives in private, local Mylar state and is
 mounted narrowly read-write by the opt-in normalizer. File locks exclude complete
@@ -110,7 +109,7 @@ before any media writer or scanner is admitted. RPC errors are reconciled from
 verified identities and bytes. Exact supported ACL/user-attribute values, mode and
 ownership are checked before publication and in the canonical native handoff.
 Old readers reject v2 receipts without mutation. Native modern routing explicitly
-selects v2; activation remains gated on live canary and rollback acceptance. Never
+selects v2; live canary and rollback acceptance passed before opt-in activation. Never
 start an old writer over pending v2 state. Reconcile with the matching image first,
 or restore the verified prior state and affected fixture files with writers stopped.
 Automatic cache inputs retain legacy native destination ownership policy; exact ACL

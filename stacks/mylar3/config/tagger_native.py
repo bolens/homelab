@@ -1,4 +1,4 @@
-"""Native policy and versioned recovery ownership for the gated modern backend."""
+"""Native policy and versioned recovery ownership for the opt-in modern backend."""
 import hashlib
 import json
 import os
