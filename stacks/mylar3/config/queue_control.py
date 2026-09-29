@@ -97,6 +97,7 @@ class Store:
             state.update(failures=0, until=0)
         else:
             state['failures'] += 1
+            value['failed_providers'] = list(dict.fromkeys(value.get('failed_providers', []) + [provider]))
             value['reason'] = reason or 'Download failed; checking another mirror'
             if state['failures'] >= 2 or reason == 'Provider rate limit':
                 state['until'] = self.clock() + COOLDOWN_SECONDS
@@ -105,7 +106,7 @@ class Store:
     def reset(self, key):
         value = self.data['items'].get(str(key))
         if value:
-            value.update(attempts=0, completed=False, reason='Manual retry requested')
+            value.update(failed_providers=[], attempts=0, completed=False, reason='Manual retry requested')
             self.save()
 
 

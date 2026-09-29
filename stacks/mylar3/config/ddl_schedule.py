@@ -54,6 +54,33 @@ def order_key(row, mode, age):
     return (False, -age if mode == 'newest' else age, age)
 
 
+def priority_ids(preferred):
+    return [preferred] if isinstance(preferred, str) and preferred else list(preferred or [])
+
+
+def priority_rank(key, preferred):
+    ids = priority_ids(preferred)
+    return ids.index(key) if key in ids else len(ids)
+
+
+def prune_priorities(store, rows):
+    from mylar.workflow_store import LOCK
+    with LOCK:
+        pending = store.get('meta', 'ddl_retry_next', [])
+        remaining = [key for key in pending if key in rows]
+        if remaining != pending:
+            store.set('meta', 'ddl_retry_next', remaining)
+        with store.connection() as database:
+            stale = [row['key'] for row in database.execute("SELECT key FROM records WHERE kind='ddl_mirror_probe'") if row['key'] not in rows]
+            database.executemany("DELETE FROM records WHERE kind='ddl_mirror_probe' AND key=?", [(key,) for key in stale])
+
+
+def priorities(store):
+    retries = store.get('meta', 'ddl_retry_next', [])
+    manual = store.get('meta', 'ddl_next', '')
+    return list(dict.fromkeys(retries + ([manual] if manual else [])))
+
+
 def choose(items, rows, providers, mode, preferred, last, now, ages=None, kind=None):
     ages=ages or {str(item.get("id")):index for index,item in enumerate(items) if isinstance(item,dict)}
     if 'exit' in items:
@@ -73,7 +100,7 @@ def choose(items, rows, providers, mode, preferred, last, now, ages=None, kind=N
         group=('pack' if pack else 'single')
         wanted=('single' if kind=='singles' else 'pack' if kind=='packs' else
                 'single' if kind=='alternate' and last=='pack' else 'pack' if kind=='alternate' else '')
-        eligible.append(((str(item['id'])!=preferred, bool(wanted and group!=wanted), order_key(row, mode, ages[str(item['id'])]), index),index))
+        eligible.append(((priority_rank(str(item['id']), preferred), bool(wanted and group!=wanted), order_key(row, mode, ages[str(item['id'])]), index),index))
     return min(eligible)[1] if eligible else None
 
 
@@ -110,11 +137,12 @@ def projected_order(items, rows, providers, mode, preferred, last, now, ages, ki
     result = []
     for blocked, group in groups.items():
         group.sort()
-        priority = next((row for row in group if row[1] == preferred), None)
-        if priority:
-            group.remove(priority)
-            result.append((priority[1], blocked))
-            last = priority[2]
+        for key in priority_ids(preferred):
+            priority = next((row for row in group if row[1] == key), None)
+            if priority:
+                group.remove(priority)
+                result.append((priority[1], blocked))
+                last = priority[2]
         if kind == 'alternate':
             singles = deque(row for row in group if row[2] == 'single')
             packs = deque(row for row in group if row[2] == 'pack')
@@ -150,7 +178,7 @@ def positions(downloads):
                 sequence += 1
         rules = workflow.policy()
         mode = rules['ddl_order']
-        preferred = store.get('meta', 'ddl_next', '')
+        preferred = priorities(store)
         last = store.get('meta', 'ddl_last_kind', '')
     with queue_control._LOCK:
         providers = {key: dict(value) for key, value in queue_control.store().data['providers'].items()}
@@ -183,10 +211,14 @@ def take(queue):
             release_dates(rows, database)
         with queue_control._LOCK:
             providers=dict(queue_control.store().data['providers'])
-        preferred=workflow.store().get('meta','ddl_next','')
+        prune_priorities(workflow.store(), rows)
+        preferred=priorities(workflow.store())
         index=choose(items,rows,providers,rules['ddl_order'],preferred,
                      workflow.store().get('meta','ddl_last_kind',''),time.time(),ages,rules.get('ddl_kind'))
         if index is None:
+            from mylar import ddl_failover
+            ddl_failover.refresh_cooling(items, rows, providers, rules, preferred,
+                                         workflow.store().get('meta', 'ddl_last_kind', ''), ages, time.time())
             # Drop obsolete queue entries through the existing begin() check,
             # while keeping live cooldown entries queued without spending attempts.
             index=next((i for i,r in enumerate(items) if isinstance(r,dict) and str(r.get('id')) not in rows),None)
@@ -210,6 +242,9 @@ def started(item):
     row=db.DBConnection().selectone('SELECT pack FROM ddl_info WHERE id=?',[item['id']]).fetchone()
     with LOCK:
         workflow.store().set('meta','ddl_last_kind','pack' if row and str(row['pack']).lower() in ('1','true') else 'single')
+        retries = workflow.store().get('meta', 'ddl_retry_next', [])
+        if str(item['id']) in retries:
+            workflow.store().set('meta', 'ddl_retry_next', [key for key in retries if key != str(item['id'])])
         if workflow.store().get('meta','ddl_next','')==str(item['id']):
             workflow.store().delete('meta','ddl_next')
 

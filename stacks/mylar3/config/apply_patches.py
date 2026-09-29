@@ -40,6 +40,7 @@ PATCHES = (
     "patch_global_events",
     "patch_converted_tagging",
     "patch_library_metadata",
+    "patch_ddl_failover",
 )
 
 
