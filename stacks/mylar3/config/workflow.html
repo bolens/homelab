@@ -122,6 +122,11 @@
 <label><input id="wf_auto_handoff" type="checkbox" /> Try NZB for eligible waiting DDL issues</label>
 <div class="wf_field"><label for="wf_handoff_hours">Wait before automatic handoff (hours)</label><input id="wf_handoff_hours" type="number" step="1" min="1" max="168" required /></div>
 </fieldset>
+<fieldset><legend>Library metadata maintenance</legend>
+<label><input id="wf_library_missing_tags" type="checkbox" /> Automatically queue untagged library comics</label>
+<label><input id="wf_library_nested_metadata" type="checkbox" /> Repair agreeing nested ComicInfo copies</label>
+<p class="wf_help">Requires Modern ComicRack tagging. Scans one downloaded catalog file per idle poll. Root tags, pages and extras are preserved; conflicting metadata needs review. Disabling discovery leaves admitted tagging jobs intact. See <a href="postProcessing#pp_library_metadata">maintenance results</a>.</p>
+</fieldset>
 <fieldset><legend>New intake</legend>
 <label><input id="wf_intake_enabled" type="checkbox" /> Pause intake when processing or storage reaches a limit</label>
 <div class="wf_policy_grid">
@@ -163,7 +168,7 @@ $(document).ready(function() {
     var lastProposalSignature='', lastHandoffSignature='', lastAliasSignature='', lastDispatchSignature='';
     var selectedSource=new URLSearchParams(window.location.search).get('source_token') || '';
     var filters={issueid:'',stage:''};
-    var policyFields=['pack_automation','auto_handoff','handoff_hours','intake_enabled','queue_high','queue_low','free_stop_gib','free_resume_gib'];
+    var policyFields=['library_missing_tags','library_nested_metadata','pack_automation','auto_handoff','handoff_hours','intake_enabled','queue_high','queue_low','free_stop_gib','free_resume_gib'];
     function date(value) { return value == null || value === '' ? '—' : new Date(Number(value)*1000).toLocaleString(); }
     function message(value, button) {
         $('#wf_action_status').text(value);

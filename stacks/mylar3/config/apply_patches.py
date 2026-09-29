@@ -39,6 +39,7 @@ PATCHES = (
     "patch_ddl_transport",
     "patch_global_events",
     "patch_converted_tagging",
+    "patch_library_metadata",
 )
 
 

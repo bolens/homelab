@@ -17,7 +17,7 @@ _LAST_TICK=0
 _OBSERVER_ERRORS=0
 _ISSUE_LOCKS={}
 _ISSUE_GUARD=threading.Lock()
-_DEFAULTS={'ddl_kind':'mixed','ddl_order':'fifo','ddl_paused':False,'pack_automation':False,'auto_handoff':False,'handoff_hours':2,'intake_enabled':True,
+_DEFAULTS={'library_missing_tags':False,'library_nested_metadata':False,'ddl_kind':'mixed','ddl_order':'fifo','ddl_paused':False,'pack_automation':False,'auto_handoff':False,'handoff_hours':2,'intake_enabled':True,
            'queue_high':50,'queue_low':20,'free_stop_gib':5,'free_resume_gib':8}
 IMPORT_HELD={'queued','claimed','submitted','review'}
 DISPATCH_HELD={'sending','review','accepted'}

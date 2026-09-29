@@ -70,7 +70,7 @@ def directory_limits(stream):
     stream.seek(0)
 
 
-def snapshot(path):
+def snapshot(path, *, allow_nested_metadata=False):
     """Read every member with CRC checks and fixed decompressed-size bounds."""
     archive_path = Path(path)
     with regular(path) as stream:
@@ -95,9 +95,10 @@ def snapshot(path):
                                    info.extra, info.create_system, info.create_version,
                                    info.extract_version, info.internal_attr, info.external_attr,
                                    info.flag_bits))
-                if member_path.name.lower() == XML.lower() and name != XML:
+                is_metadata = member_path.name.lower() == XML.lower()
+                if is_metadata and name != XML and not allow_nested_metadata:
                     raise ValueError('Ambiguous metadata location')
-                limit = MAX_XML if name == XML else MAX_MEMBER
+                limit = MAX_XML if is_metadata else MAX_MEMBER
                 total += info.file_size
                 if info.file_size > limit or total > MAX_UNPACKED:
                     raise ValueError('Archive exceeds verification limits')
@@ -108,10 +109,12 @@ def snapshot(path):
                         if received > limit or received > info.file_size:
                             raise ValueError('Archive member exceeds declared size')
                         digest.update(block)
-                        if name == XML:
+                        if is_metadata:
                             chunks.append(block)
                 if received != info.file_size:
                     raise ValueError('Incomplete archive member')
+                if is_metadata:
+                    parse(b''.join(chunks))
                 if name == XML:
                     xml = b''.join(chunks)
                     parse(xml)

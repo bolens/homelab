@@ -128,7 +128,7 @@ def ddl_states(filenames=(), record_ids=()):
 
 def snapshot():
     import mylar
-    from mylar import db, archive_monitor, library_status, converted_tagging
+    from mylar import db, archive_monitor, library_status, converted_tagging, library_metadata
     now = time.time()
     queue = mylar.PP_QUEUE
     with queue.mutex:
@@ -157,4 +157,4 @@ def snapshot():
             'queue_depth': depth, 'waiting': waiting, 'waiting_truncated': depth > 100,
             'active': active, 'recent': recent, 'imports': confirmed,
             'observer_errors': errors, 'archives': archive_monitor.snapshot(),
-            'converted_tagging': converted_tagging.snapshot()}
+            'converted_tagging': converted_tagging.snapshot(), 'library_metadata': library_metadata.snapshot()}

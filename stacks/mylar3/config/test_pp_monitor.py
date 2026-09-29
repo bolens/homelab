@@ -35,7 +35,7 @@ class MonitorTest(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.db.execute('INSERT INTO comics VALUES (?,?)',('2',self.temp.name))
         Path(self.temp.name,'comic.cbz').write_bytes(b'comic')
-        self.mylar=SimpleNamespace(converted_tagging=SimpleNamespace(snapshot=lambda:[], busy=lambda:False), library_status=library_status, DATA_DIR=self.temp.name, workflow=SimpleNamespace(emit=Mock()), archive_monitor=archive_monitor, pp_monitor=monitor, PP_QUEUE=Queue(),PPPOOL=SimpleNamespace(is_alive=lambda:True),
+        self.mylar=SimpleNamespace(library_metadata=SimpleNamespace(snapshot=lambda:{'scan':{},'rows':[]}), converted_tagging=SimpleNamespace(snapshot=lambda:[], busy=lambda:False), library_status=library_status, DATA_DIR=self.temp.name, workflow=SimpleNamespace(emit=Mock()), archive_monitor=archive_monitor, pp_monitor=monitor, PP_QUEUE=Queue(),PPPOOL=SimpleNamespace(is_alive=lambda:True),
                                   APILOCK=False,CONFIG=SimpleNamespace(POST_PROCESSING=True),
                                   db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q:self.db.execute(q).fetchall())))
         context=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.workflow_store':workflow_store});context.start();self.addCleanup(context.stop)

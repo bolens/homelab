@@ -335,7 +335,9 @@ class Publisher:
             return self.finish(record, 'conflict', cleanup=False)
 
     def tag(self, source, metadata, *, token, updates=None, replace_fields=(), executable=None, preserve_existing=False,
-            expected_digest=None):
+            expected_digest=None, repair_nested=False):
+        if type(repair_nested) is not bool or (repair_nested and (self.version != 2 or preserve_existing or updates or replace_fields or metadata)):
+            raise ValueError('Invalid metadata repair policy')
         if type(preserve_existing) is not bool:
             raise ValueError('Expected explicit no-overwrite policy')
         source = Path(source).absolute()
@@ -343,6 +345,8 @@ class Publisher:
         if source.anchor != '/' or source.suffix.lower() != '.cbz' or '..' in source.parts or any(p.is_symlink() for p in (source, *source.parents)):
             return Result('unsupported')
         intent = [str(source), metadata, updates, list(replace_fields)]
+        if repair_nested:
+            intent.append('repair_nested_metadata_v1')
         if preserve_existing:
             intent.append('preserve_existing')
         if expected_digest is not None:
@@ -367,7 +371,7 @@ class Publisher:
             folder = source.parent / ('.mylar-tag-' + token)
             record = None
             try:
-                old = snapshot(source)
+                old = snapshot(source, allow_nested_metadata=True) if repair_nested else snapshot(source)
                 try:
                     security = self.security(source)
                 except ValueError:
@@ -414,11 +418,18 @@ class Publisher:
                     return self.finish(record, 'conflict', cleanup=False)
                 shutil.copyfile(original, tagged)
                 _checkpoint('staged')
-                options = {'executable': executable} if executable else {}
-                result = save(tagged, metadata, workdir=folder, **options)
-                if result.state != 'saved':
-                    return self.finish(record, 'timed_out' if result.state == 'timed_out' else 'failed')
-                record['metadata'] = prepare(original, tagged, output, updates=updates, replace_fields=replace_fields)
+                if repair_nested:
+                    if __package__:
+                        from .metadata_repair import prepare as repair
+                    else:
+                        from metadata_repair import prepare as repair
+                    record['metadata'] = repair(original, output)
+                else:
+                    options = {'executable': executable} if executable else {}
+                    result = save(tagged, metadata, workdir=folder, **options)
+                    if result.state != 'saved':
+                        return self.finish(record, 'timed_out' if result.state == 'timed_out' else 'failed')
+                    record['metadata'] = prepare(original, tagged, output, updates=updates, replace_fields=replace_fields)
                 if identity(source.lstat()) != old.identity or fingerprint(source) != before:
                     return self.finish(record, 'conflict', cleanup=False)
                 if record['metadata'] == 'unchanged':
