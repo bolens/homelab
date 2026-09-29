@@ -117,12 +117,15 @@ class FailoverTest(unittest.TestCase):
         with self.assertRaises(OSError):parser(self.owner,'123-1','release',link_type_failure=['GC-Main'])
         self.assertEqual(self.queue.qsize(),0)
 
-    def test_split_retries_keep_order_and_manual_next_is_retained(self):
+    def test_latest_retry_moves_to_front_and_manual_next_is_retained(self):
         self.store.set('meta','ddl_next','900')
         ddl_failover.enqueue(dict(self.item,id='123-1'),['GC-Main'])
         self.connection.execute("INSERT INTO ddl_info SELECT '123-2',status,pack,issues,comicid,issueid,link,mainlink,link_type FROM ddl_info WHERE id='123-1'")
         ddl_failover.enqueue(dict(self.item,id='123-2'),['GC-Main'])
+        self.assertEqual(ddl_schedule.priorities(self.store),['123-2','123-1','900'])
+        ddl_failover.enqueue(dict(self.item,id='123-1'),['GC-Main'])
         self.assertEqual(ddl_schedule.priorities(self.store),['123-1','123-2','900'])
+        self.assertEqual(self.queue.qsize(),2)
         self.assertEqual(self.store.get('meta','ddl_next'),'900')
 
     def test_fresh_search_does_not_gain_priority(self):

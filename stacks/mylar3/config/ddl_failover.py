@@ -85,8 +85,7 @@ def enqueue(item, failed):
                 return
             state = workflow.store()
             priority = state.get('meta', 'ddl_retry_next', [])
-            if key not in priority:
-                state.set('meta', 'ddl_retry_next', priority + [key])
+            state.set('meta', 'ddl_retry_next', [key] + [old for old in priority if old != key])
         with queue_control._LOCK:
             control = queue_control.store()
             value = control.record(item)
