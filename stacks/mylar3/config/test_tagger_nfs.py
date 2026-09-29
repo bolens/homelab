@@ -79,6 +79,28 @@ tagger_nfs.Publisher(root/'state').tag(root/'comic.cbz',{'series':'Fixture'},tok
         self.assertEqual(self.publisher.recover(TOKEN).state, 'conflict')
         self.assertEqual(self.publisher.read(TOKEN)['state'], 'committed')
 
+    def test_preserved_metadata_verifies_attributes_without_staging(self):
+        saved(self.source,{})
+        before=self.source.read_bytes()
+        def check(stage):
+            if stage=='preserved':
+                self.assertEqual(list((self.root/('.mylar-tag-'+TOKEN)).iterdir()),[])
+        with patch.object(base,'_checkpoint',side_effect=check):
+            result=self.publisher.tag(self.source,{},token=TOKEN,preserve_existing=True)
+        self.assertEqual(result.state,'unchanged')
+        self.assertEqual(self.source.read_bytes(),before)
+        self.assertEqual(attributes.capture(self.source),self.security)
+        self.assertTrue(tagger_handoff.capture(self.publisher,TOKEN).valid_for(self.source))
+
+    def test_preserved_attribute_race_keeps_conflict_receipt(self):
+        saved(self.source,{})
+        def change(stage):
+            if stage=='preserved':os.setxattr(self.source,'user.fixture',b'changed')
+        with patch.object(base,'_checkpoint',side_effect=change):
+            result=self.publisher.tag(self.source,{},token=TOKEN,preserve_existing=True)
+        self.assertEqual(result.state,'conflict')
+        self.assertFalse(self.publisher.read(TOKEN)['cleaned'])
+
     @unittest.skipUnless(Path('/opt/comictagger/bin/comictagger').exists(), 'Pinned runtime image required')
     def test_real_cli_preserves_nfs_attributes_and_verified_handoff(self):
         before = snapshot(self.source)

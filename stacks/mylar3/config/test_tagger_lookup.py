@@ -29,6 +29,11 @@ class Response:
 
 
 class LookupTest(unittest.TestCase):
+    def setUp(self):
+        self.cache = patch.object(lookup, 'VOLUMES', lookup.VolumeCache())
+        self.cache.start()
+        self.addCleanup(self.cache.stop)
+
     def fetch(self, responses, **changes):
         settings = dict(issueid='123',volumeid='456',base_url='https://example.com/api',api_key='private-fixture-key')
         settings.update(changes)
@@ -78,7 +83,8 @@ class LookupTest(unittest.TestCase):
         class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
                 paths.append(self.path.split('?')[0])
-                value=ISSUE if '/issue/' in self.path else VOLUME
+                value=(dict(ISSUE, id=int(self.path.split('4000-')[1].split('/')[0]))
+                       if '/issue/' in self.path else VOLUME)
                 body=json.dumps({'status_code':1,'results':value}).encode()
                 self.send_response(200);self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
             def log_message(self,*args):pass
@@ -90,10 +96,75 @@ class LookupTest(unittest.TestCase):
                                      base_url='http://127.0.0.1:'+str(server.server_port)+'/api')
                 self.assertEqual(result.state,'ok')
                 self.assertEqual(result.metadata['series'],'Fixture Annual')
+                result=lookup.lookup(workdir=directory,issueid='124',volumeid='456',api_key='private-fixture-key',
+                                     base_url='http://127.0.0.1:'+str(server.server_port)+'/api')
+                self.assertEqual(result.state,'ok')
+                self.assertEqual(result.metadata, lookup.mapping(dict(ISSUE,id=124),VOLUME,'124','456'))
                 self.assertEqual(list(Path(directory).iterdir()),[])
         finally:
             server.shutdown();server.server_close();thread.join(5)
-        self.assertEqual(paths,['/api/issue/4000-123/','/api/volume/4050-456/'])
+        self.assertEqual(paths,['/api/issue/4000-123/','/api/volume/4050-456/','/api/issue/4000-124/'])
+
+    def test_cache_hit_still_fetches_issue_and_does_not_return_renewable_volume(self):
+        with patch.object(lookup.time,'monotonic',return_value=1000):
+            result,session=self.fetch([Response(ISSUE)], cached_volume={'volume':VOLUME,'expires':1100})
+        self.assertEqual(result.metadata,lookup.mapping(ISSUE,VOLUME,'123','456'))
+        self.assertEqual(session.get.call_count,1)
+        self.assertEqual(result.volume,{})
+        self.assertEqual(result.expires,0)
+
+    def test_expired_malformed_and_wrong_volume_cache_fall_back(self):
+        for cached in [{'volume':VOLUME,'expires':1000}, {'volume':VOLUME,'expires':float('nan')},
+                       {'volume':dict(VOLUME,id=999),'expires':1100},
+                       {'volume':dict(VOLUME,name=None),'expires':1100},
+                       {'volume':VOLUME,'expires':1400}, {'expires':1100}]:
+            with self.subTest(cached=cached), patch.object(lookup.time,'monotonic',return_value=1000):
+                result,session=self.fetch([Response(ISSUE),Response(VOLUME)],cached_volume=cached)
+                self.assertEqual(result.state,'ok');self.assertEqual(session.get.call_count,2)
+                self.assertEqual(result.volume,VOLUME);self.assertEqual(result.expires,1300)
+
+    def test_wrong_fresh_issue_or_volume_never_uses_cache(self):
+        for issue in [dict(ISSUE,id=999),dict(ISSUE,volume={'id':999})]:
+            with patch.object(lookup.time,'monotonic',return_value=1000):
+                result,session=self.fetch([Response(issue)],cached_volume={'volume':VOLUME,'expires':1100})
+            self.assertEqual(result.state,'failed');self.assertEqual(session.get.call_count,1)
+            self.assertEqual(result.volume,{})
+
+    def test_expiry_is_checked_after_issue_request_and_every_request_is_paced(self):
+        clock=[1000]
+        class SlowIssue(Response):
+            def iter_content(self,chunk_size):
+                clock[0]=1101
+                yield from super().iter_content(chunk_size)
+        settings=dict(issueid='123',volumeid='456',base_url='https://example.com/api',api_key='fixture',
+                      interval=7,cached_volume={'volume':VOLUME,'expires':1100})
+        session=Mock();session.__enter__=Mock(return_value=session);session.__exit__=Mock(return_value=False)
+        session.get.side_effect=[SlowIssue(ISSUE),Response(VOLUME)]
+        with patch.object(lookup.time,'monotonic',side_effect=lambda:clock[0]), patch.object(lookup.time,'sleep') as sleep:
+            result=lookup.fetch(settings,session_factory=lambda:session)
+        self.assertEqual(result.state,'ok');self.assertEqual(session.get.call_count,2)
+        self.assertEqual([c.args for c in sleep.call_args_list],[(7,),(7,)])
+
+    def test_parent_context_isolation_failure_and_no_renewal(self):
+        now=[1000]
+        lookup.VOLUMES=lookup.VolumeCache(clock=lambda:now[0])
+        seen=[]
+        def worker(argv,**kwargs):
+            settings=json.loads(Path(argv[-1]).read_text());seen.append(settings.get('cached_volume'))
+            if settings['api_key']=='failed':
+                return ProcessResult('ok',0,b'{"state":"failed"}')
+            payload={'state':'ok','metadata':{'series':'Fixture','issue':'1'}}
+            if not settings.get('cached_volume'):
+                payload.update(volume=VOLUME,expires=now[0]+300)
+            return ProcessResult('ok',0,json.dumps(payload).encode())
+        with tempfile.TemporaryDirectory() as directory, patch.object(lookup,'run',side_effect=worker):
+            args=dict(workdir=directory,issueid='123',volumeid='456',api_key='fixture',base_url='https://example.com/api')
+            lookup.lookup(**args);now[0]+=200;lookup.lookup(**args)
+            self.assertIsNone(seen[0]);self.assertEqual(seen[1]['expires'],1300)
+            for changes in [{'api_key':'other'},{'base_url':'https://other.example/api'},{'verify':False},{'api_key':'failed'}]:
+                lookup.lookup(**dict(args,**changes));self.assertIsNone(seen[-1])
+            lookup.lookup(**dict(args,api_key='failed'));self.assertIsNone(seen[-1])
+            now[0]=1300;lookup.lookup(**args);self.assertIsNone(seen[-1])
 
     def test_private_settings_never_enter_argv_and_are_removed(self):
         with tempfile.TemporaryDirectory() as directory:

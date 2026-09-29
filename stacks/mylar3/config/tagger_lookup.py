@@ -18,8 +18,12 @@ from urllib.parse import urlsplit
 
 if __package__:
     from .tagger_runtime import run
+    from .tagger_volume_cache import VolumeCache, context, fresh, TTL, MAX_BYTES
 else:
     from tagger_runtime import run
+    from tagger_volume_cache import VolumeCache, context, fresh, TTL, MAX_BYTES
+
+VOLUMES = VolumeCache()
 
 MAX_RESPONSE = 1024 * 1024
 FIELDS = 'id,name,issue_number,volume,description,cover_date,site_detail_url,person_credits,character_credits,team_credits,location_credits'
@@ -33,6 +37,8 @@ ROLES = {'writer':'Writer','penciler':'Penciller','penciller':'Penciller','inker
 class LookupResult:
     state: str
     metadata: dict = field(default_factory=dict, repr=False)
+    volume: dict = field(default_factory=dict, repr=False)
+    expires: float = field(default=0, repr=False)
 
 
 def identifier(value):
@@ -186,8 +192,23 @@ def fetch(settings, *, session_factory=None):
             volumeid = identifier(issue['volume'].get('id'))
             if expected is not None and expected != volumeid:
                 raise ValueError('Unexpected volume identity')
+            cached = settings.get('cached_volume')
+            # Recheck after the fresh issue request, which can consume the TTL.
+            # A bad cache candidate is a miss, never an alternative identity.
+            if isinstance(cached, dict) and fresh(cached.get('expires'), time.monotonic()):
+                try:
+                    volume = cached['volume']
+                    if len(json.dumps(volume, allow_nan=False).encode()) <= MAX_BYTES:
+                        return LookupResult('ok', mapping(issue, volume, issueid, expected))
+                except (ValueError, TypeError, KeyError, RecursionError, OverflowError):
+                    pass
             volume = get('volume/4050-'+volumeid, VOLUME_FIELDS)
-            return LookupResult('ok', mapping(issue, volume, issueid, expected))
+            metadata = mapping(issue, volume, issueid, expected)
+            # Keep only fields used by mapping, and only return validated data.
+            selected = {key: volume[key] for key in ('id', 'name', 'count_of_issues', 'publisher') if key in volume}
+            if len(json.dumps(selected, allow_nan=False).encode()) > MAX_BYTES:
+                selected = {}
+            return LookupResult('ok', metadata, selected, time.monotonic()+TTL)
     except (requests.RequestException, ValueError, TypeError, KeyError, RecursionError, OverflowError):
         return LookupResult('failed')
 
@@ -199,6 +220,17 @@ def lookup(*, workdir, issueid, api_key, base_url, volumeid=None, verify=True, i
     payload = json.dumps(settings, allow_nan=False)
     if len(payload.encode()) > 32768:
         return LookupResult('failed')
+    cache_key = None
+    if volumeid is not None:
+        try:
+            cache_key = context(base_url, api_key, verify, identifier(volumeid))
+            cached = VOLUMES.get(cache_key)
+            if cached:
+                candidate = json.dumps(dict(settings, cached_volume=cached), allow_nan=False)
+                if len(candidate.encode()) <= 32768:
+                    payload = candidate
+        except (ValueError, TypeError, AttributeError):
+            pass  # Invalid settings are still rejected by the worker.
     with tempfile.TemporaryDirectory(prefix='.lookup-', dir=workdir) as folder:
         path = Path(folder)/'request.json'
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -210,6 +242,15 @@ def lookup(*, workdir, issueid, api_key, base_url, volumeid=None, verify=True, i
         try:
             value = json.loads(result.stdout)
             if value['state'] == 'ok' and isinstance(value.get('metadata'), dict) and value['metadata']:
+                volume = value.get('volume')
+                if cache_key is not None and isinstance(volume, dict) and volume:
+                    try:
+                        # Revalidate the worker's volume before retaining it.
+                        mapping({'id':issueid, 'issue_number':'1', 'volume':{'id':volumeid}},
+                                volume, issueid, volumeid)
+                        VOLUMES.put(cache_key, volume, value.get('expires'))
+                    except (ValueError, TypeError, KeyError):
+                        pass
                 return LookupResult('ok', value['metadata'])
         except (ValueError, TypeError, KeyError, RecursionError):
             pass
@@ -222,6 +263,7 @@ if __name__ == '__main__':
         if len(raw) > 32768:
             raise ValueError('Oversized settings')
         result = fetch(json.loads(raw))
-        print(json.dumps({'state':result.state,'metadata':result.metadata}, ensure_ascii=True, allow_nan=False))
+        print(json.dumps({'state':result.state,'metadata':result.metadata,
+                          'volume':result.volume,'expires':result.expires}, ensure_ascii=True, allow_nan=False))
     except Exception:
         print('{"state":"failed"}')

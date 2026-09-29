@@ -377,7 +377,9 @@ class Publisher:
                     return Result('conflict')
                 if identity(source.lstat()) != old.identity:
                     return Result('conflict')
-                if shutil.disk_usage(source.parent).free < old.identity[2] * 3 + 16 * 1024 ** 2:
+                if preserve_existing and old.xml is None:
+                    return Result('failed')
+                if not preserve_existing and shutil.disk_usage(source.parent).free < old.identity[2] * 3 + 16 * 1024 ** 2:
                     return Result('failed')
                 folder.mkdir(mode=0o700)
                 sync(folder.parent)
@@ -387,6 +389,12 @@ class Publisher:
                               workspace=list(identity(folder.stat())[:2]), state='staged', cleaned=False)
                 record.update(security)
                 self.write(record)
+                if preserve_existing:
+                    record['metadata'] = 'unchanged'
+                    _checkpoint('preserved')
+                    # finish rechecks source bytes, identity and attributes before
+                    # durably completing and cleaning this empty workspace.
+                    return self.finish(record, 'unchanged')
                 original, tagged, output = (folder / name for name in ('original.cbz', 'tagged.cbz', 'verified.cbz'))
                 with regular(source) as reader, original.open('xb') as writer:
                     remaining = old.identity[2]
@@ -404,11 +412,6 @@ class Publisher:
                     os.fsync(writer.fileno())
                 if fingerprint(original) != before or identity(source.lstat()) != old.identity:
                     return self.finish(record, 'conflict', cleanup=False)
-                if preserve_existing:
-                    if old.xml is None:
-                        raise ValueError('Existing metadata disappeared')
-                    record['metadata'] = 'unchanged'
-                    return self.finish(record, 'unchanged')
                 shutil.copyfile(original, tagged)
                 _checkpoint('staged')
                 options = {'executable': executable} if executable else {}

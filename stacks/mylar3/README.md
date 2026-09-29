@@ -551,6 +551,16 @@ ComicInfo with overwrite disabled skips lookup and tagging entirely. ComicVine
 lookup uses private temporary credential files, a 45-second process deadline,
 bounded responses and validated issue/volume identities. Redirects and retries are
 disabled. Each provider request waits the configured 2–10 second interval.
+Consecutive issues can reuse validated series metadata for up to five minutes;
+each issue is still fetched and checked against its expected volume. The process-local
+cache holds at most 64 volumes of 16 KiB each, separates provider/credential/TLS
+contexts, never extends expiry on a hit, and clears on restart. It stores no issue
+responses or failed lookups. For example, two issues from the same series need three
+requests instead of four while the volume entry is fresh.
+Preserving existing ComicInfo completes the publication receipt without copying an
+archive into its workspace or reserving space for three archive copies. Full source
+integrity, identity, attribute, durable receipt and handoff checks still run. This
+does not remove the disposable destination needed for automatic import placement.
 Conflicting recovery receipts block new work. Private staging receipts track automatic
 outputs through native placement. Cleanup removes a disposable output only when its
 recorded content matches and its unchanged original still exists; uncertain or sole

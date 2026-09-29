@@ -122,6 +122,49 @@ class PublicationTest(unittest.TestCase):
         self.assertEqual(self.source.read_bytes(), self.before)
         self.assertFalse(list(self.root.glob('.mylar-tag-*')))
 
+    def test_preserved_metadata_needs_no_archive_staging_or_archive_sized_space(self):
+        saved(self.source, {})
+        before = self.source.read_bytes()
+        original_open = Path.open
+        def no_archive_copy(path, mode='r', *args, **kwargs):
+            if path.suffix == '.cbz' and any(flag in mode for flag in 'wax+'):
+                raise AssertionError('Preserved archive must not be staged')
+            return original_open(path, mode, *args, **kwargs)
+        with patch.object(subject.shutil, 'disk_usage', return_value=shutil._ntuple_diskusage(1,1,0)), \
+                patch.object(Path, 'open', no_archive_copy), \
+                patch.object(subject, 'save', side_effect=AssertionError('No CLI')):
+            result = self.publisher.tag(self.source, {}, token=TOKEN, preserve_existing=True)
+        self.assertEqual((result.state,result.metadata),('unchanged','unchanged'))
+        self.assertEqual(self.source.read_bytes(),before)
+        self.assertTrue(self.publisher.read(TOKEN)['cleaned'])
+        self.assertEqual(self.publisher.recover(TOKEN),result)
+
+    def test_preserved_metadata_still_detects_source_race(self):
+        saved(self.source, {})
+        def race(stage):
+            if stage == 'preserved':
+                self.source.write_bytes(b'concurrent update')
+        with patch.object(subject, '_checkpoint', side_effect=race):
+            result = self.publisher.tag(self.source, {}, token=TOKEN, preserve_existing=True)
+        self.assertEqual(result.state,'conflict')
+        self.assertEqual(self.source.read_bytes(),b'concurrent update')
+        self.assertFalse(self.publisher.read(TOKEN)['cleaned'])
+
+    def test_preserved_empty_workspace_recovers_interrupted_intent(self):
+        saved(self.source, {})
+        before = self.source.read_bytes()
+        with patch.object(subject, '_checkpoint', side_effect=SystemExit):
+            with self.assertRaises(SystemExit):
+                self.publisher.tag(self.source, {}, token=TOKEN, preserve_existing=True)
+        self.assertEqual(list((self.root/('.mylar-tag-'+TOKEN)).iterdir()),[])
+        self.assertEqual(self.publisher.recover(TOKEN).state,'failed')
+        self.assertEqual(self.source.read_bytes(),before)
+        self.assertTrue(self.publisher.read(TOKEN)['cleaned'])
+
+    def test_preserve_request_without_metadata_fails(self):
+        self.assertEqual(self.publisher.tag(self.source, {}, token=TOKEN, preserve_existing=True).state,'failed')
+        self.assertEqual(self.source.read_bytes(),self.before)
+
     def test_symlink_hardlink_xattrs_and_wrong_format_rejected(self):
         link = self.root/'link.cbz'
         link.symlink_to(self.source)
