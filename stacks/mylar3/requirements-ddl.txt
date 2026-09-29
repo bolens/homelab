@@ -1,0 +1,10 @@
+# Optional DDL discovery runtime, isolated from Mylar and ComicTagger.
+# linux/amd64, Python 3.10; resolved from PyPI in the pinned base.
+certifi==2026.7.22 \
+    --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775
+cffi==2.1.1 \
+    --hash=sha256:194cffa889098ced9976c3fc6340305e43f6303657d298da55366907c05c22d6
+curl_cffi==0.16.3 \
+    --hash=sha256:a875a661e2f9a949be29454880bbb9553307a487c4c08819738298cf5c1622e2
+pycparser==3.0 \
+    --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992

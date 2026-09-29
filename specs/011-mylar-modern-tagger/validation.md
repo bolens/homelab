@@ -405,4 +405,54 @@ values still fail before unrelated mutation, and a Modern failure never retries
 Legacy. Disabled-capability rejection remains covered as a compatibility case.
 
 Live deployment and successful settings save/reload are pending for this candidate.
-Optional DDL transport remains independent and unimplemented.
+Optional DDL transport was independent and unimplemented at that activation increment. The subsequent work is recorded below.
+
+## Opt-in activation delivered, then optional transport
+
+PR #150 merged at `dbfb377c30b87c8540abb3f124b27f48f81f2437`. The published
+image passed the native full-form Modern → Legacy → original-choice live test,
+invalid-choice rejection and post-processing readiness. Selector screenshots were
+inspected at 1920 and 390 pixels. This does not claim that the entire legacy
+settings document fits a phone viewport. All configuration values were preserved.
+The app backup and isolated restore were verified, original library records/files
+survived, and the operation backup was removed. Concurrent catalog additions,
+four queue removals and resumed admission were confirmed as operator actions.
+A separate operator Komga update explains its changed uptime.
+
+The optional transport increment adds an isolated, exact-hash Python 3.10 runtime.
+Dual-backend local fixtures cover redirects, cookie scope/deletion, cross-origin
+credential stripping, POST JSON, HTTP proxy routing, HTTPS CONNECT, rejected TLS
+and explicit CA trust, timeout/reset/redirect-loop failures, and 429/503 without
+added retries. Curl additionally rejects oversized bodies and normalizes malformed
+worker results. Native config tests cover persistence, duplicate/invalid input
+before mutation, accurate availability and escaped help. Nested operations retain
+their captured choice, and the next outer operation observes a saved change.
+The native archive constructor and download method retain Requests. Existing queue,
+cooldown, NZB fallback, transfer and resume suites run unchanged in the full gate.
+
+The 16 MiB local streaming evaluator observed an unbounded queue (`maxsize=0`,
+over 64 unread chunks) under a slow consumer. Full curl streaming fails D3 and is
+not exposed. D2, multi-gigabyte memory, stalled-server cancellation and physical
+power-loss acceptance are not claimed. T018 completes an evaluation, not activation.
+
+The durability audit follows candidate-file fsync, workspace sync, durable intent,
+displacement/link directory sync, terminal journal sync and retained-copy cleanup.
+A failed durable intent prevents displacement. Persistent flush errors after
+displacement retain original/displaced copies and report conflict for review.
+Existing real-process interruption tests reconcile each publication boundary
+without rerunning the tagger. These are simulated failures only. The user excluded
+real power-loss testing, including disposable VM power cuts.
+
+A separate source review found the static Manage page can lack `page_name` during
+an SSE notification. The focused adapter keeps success/failure notification styling
+and skips refresh targets on those pages. Executing the actual patched message
+listener with a missing page element passes success, failure and intermediate cases.
+Live browser acceptance and publication of this increment remain delivery gates.
+
+A distinct self-review traced saved settings through the session decorator, worker
+protocol and native discovery callers, and confirmed the archive owner remains
+unchanged. It covered credential redirects, TLS/proxy propagation, request/response
+bounds, process cleanup, native failure contracts, packaging and publication gates.
+The notification guard was corrected to retain styling before returning. No
+independent reviewer was used. Live transport/provider acceptance remains separate
+from deterministic local fixtures.

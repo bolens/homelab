@@ -36,6 +36,8 @@ PATCHES = (
     "install_tagger_service",
     "patch_tagger_backend",
     "patch_media_writers",
+    "patch_ddl_transport",
+    "patch_global_events",
 )
 
 

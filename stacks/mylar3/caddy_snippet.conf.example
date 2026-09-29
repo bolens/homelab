@@ -1,3 +1,4 @@
+# Optional DDL discovery uses existing authenticated settings; Requests remains default and owns archive transfers.
 # Mylar3 — split-horizon + public TLS: mylar3.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
 # Activity, workflow and backend settings use the existing authenticated Mylar application routes.
 

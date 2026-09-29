@@ -21,9 +21,22 @@ COPY config/fetch_tagger_sources.py /tmp/fetch_tagger_sources.py
 RUN python3 /tmp/fetch_tagger_sources.py /tmp/tagger-sources.json /opt/comictagger/sources
 COPY tagger-NOTICES.md /opt/comictagger/NOTICES.md
 
+FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS ddl-build
+COPY requirements-ddl.txt /tmp/requirements-ddl.txt
+RUN python3 -m venv --without-pip /opt/ddl-transport \
+    && python3 -m pip --python /opt/ddl-transport/bin/python install --no-cache-dir \
+        --require-hashes --no-deps -r /tmp/requirements-ddl.txt \
+    && python3 -m pip --python /opt/ddl-transport/bin/python check
+
+COPY ddl-sources.json /tmp/ddl-sources.json
+COPY config/fetch_tagger_sources.py /tmp/fetch_ddl_sources.py
+RUN python3 /tmp/fetch_ddl_sources.py /tmp/ddl-sources.json /opt/ddl-transport/sources
+COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
+
 FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS checked
 ENV PYTHONDONTWRITEBYTECODE=1
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
+COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
 COPY config/ /opt/mylar3-fixes/
 RUN --network=none python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
     && python3 /opt/mylar3-fixes/verify_image.py
@@ -36,3 +49,4 @@ COPY --from=checked /app/mylar3/data/interfaces/default/ /app/mylar3/data/interf
 COPY --from=checked /opt/mylar3-fixes/health.py /opt/mylar3-fixes/health.py
 COPY --from=checked /opt/mylar3-fixes/tagger_runtime.py /opt/mylar3-fixes/tagger_metadata.py /opt/mylar3-fixes/tagger_cli.py /opt/mylar3-fixes/tagger_archive.py /opt/mylar3-fixes/tagger_adapter.py /opt/mylar3-fixes/
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
+COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/

@@ -135,6 +135,45 @@ tagger_nfs.Publisher(root/'state').tag(root/'comic.cbz',{'series':'Fixture'},tok
                 self.assertEqual(attributes.capture(self.source),self.security)
                 self.assertEqual(self.source.stat().st_nlink,1)
 
+    def test_durable_intent_failure_prevents_displacement(self):
+        write = self.publisher.write
+        def fail_intent(record):
+            if record['state'] == 'publishing':
+                raise OSError('Simulated journal durability failure')
+            return write(record)
+        with patch.object(self.publisher, 'write', side_effect=fail_intent), \
+             patch.object(self.publisher, 'publish', side_effect=AssertionError('Undurable intent published')):
+            self.assertEqual(self.tag().state, 'failed')
+        self.assertEqual(self.source.read_bytes(), self.original)
+
+    def test_persistent_flush_failure_retains_recovery_copies(self):
+        # Inject I/O failure only after displacement. No machine is powered off.
+        sync = base.sync
+        broken = False
+        def fail_flush(directory):
+            if broken:
+                raise OSError('Simulated storage flush failure')
+            return sync(directory)
+        def checkpoint(stage):
+            nonlocal broken
+            if stage == 'after_displace': broken = True
+        with patch.object(base, 'sync', side_effect=fail_flush), \
+             patch.object(base, '_checkpoint', side_effect=checkpoint):
+            with self.assertRaises(OSError): self.tag()
+        folder = self.root / ('.mylar-tag-' + TOKEN)
+        self.assertEqual((folder / 'displaced.cbz').read_bytes(), self.original)
+        self.assertEqual((folder / 'original.cbz').read_bytes(), self.original)
+        with patch.object(base, 'save', side_effect=AssertionError('No repeated tagging')):
+            self.assertEqual(self.publisher.recover(TOKEN).state, 'conflict')
+        self.assertTrue(folder.exists())
+        self.assertEqual((folder / 'displaced.cbz').read_bytes(), self.original)
+        self.assertEqual(attributes.capture(self.source), self.security)
+        with zipfile.ZipFile(self.source) as archive:
+            self.assertEqual(archive.read('001.png'), b'page')
+            self.assertEqual(archive.read('credits.txt'), b'extras')
+            self.assertEqual(archive.comment, b'legacy comment')
+        self.assertIsNotNone(snapshot(self.source).xml)
+
     def test_acl_write_failure_leaves_source_unchanged(self):
         with patch.object(attributes,'apply',side_effect=PermissionError('denied')):
             self.assertEqual(self.tag().state,'failed')
