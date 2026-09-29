@@ -58,7 +58,7 @@ class Service:
 
     def tag(self, filename, *, issueid, volumeid=None, manualmeta=False, enabled=True,
             comicrack=True, comicbooklover=False, conversion_only=False, overwrite=False,
-            volume=None, reading_order=None, age_rating=None):
+            volume=None, reading_order=None, age_rating=None, publication_token=None):
         if any(type(v) is not bool for v in (manualmeta, enabled, comicrack, comicbooklover, conversion_only, overwrite)):
             raise ValueError('Expected explicit tagging policy')
         if not enabled or not comicrack or comicbooklover or conversion_only:
@@ -72,6 +72,15 @@ class Service:
                 for recovered in self.publisher.recover_pending():
                     if recovered.state not in ('committed', 'unchanged', 'failed', 'timed_out', 'unsupported'):
                         return self.failure('conflict', manualmeta)
+                if publication_token is not None:
+                    if not manualmeta:
+                        return self.failure('unsupported', manualmeta)
+                    receipt = self.publisher.receipt(publication_token)
+                    if receipt.exists() or receipt.is_symlink():
+                        record = self.publisher.read(publication_token)
+                        if record['source'] != str(source):
+                            return self.failure('conflict', manualmeta)
+                        return self.handoff.capture(self.publisher, publication_token)
                 original = snapshot(source)
                 security = self.publisher.security(source)
                 before = fingerprint(source)
@@ -92,7 +101,7 @@ class Service:
                 if overwrite and not skip:
                     replacements = [field for key, field in PROVIDER_FIELDS.items() if metadata.get(key) is not None]
                     replacements += [CREDIT_FIELDS[c['role']] for c in metadata.get('credits', []) if c.get('role') in CREDIT_FIELDS]
-                token = uuid.uuid4().hex
+                token = publication_token or uuid.uuid4().hex
                 target = source
                 if not manualmeta:
                     if self.staging is not None:

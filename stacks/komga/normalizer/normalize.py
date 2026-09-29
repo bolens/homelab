@@ -128,6 +128,10 @@ class Reader:
 class Normalizer:
     def __init__(self, config, reader=None):
         self.config = config
+        tagging = (config.get('mylar') or {}).get('tag_converted', False)
+        if type(tagging) is not bool or (tagging and
+                (not isinstance(config.get('writer_state'), str) or not config['writer_state'])):
+            raise ValueError('Automatic converted tagging requires boolean opt-in and shared writer coordination')
         self.state = Path(config.get('state', '/state'))
         self.roots = [Path(path) for path in config['roots']]
         if not self.state.is_dir() or self.state.is_symlink():
@@ -289,12 +293,29 @@ class Normalizer:
         with closing(sqlite3.connect(f'file:{directory / "mylar.db"}?mode=ro', uri=True)) as db:
             rows = db.execute('SELECT ComicID, ComicLocation FROM comics').fetchall()
         parent = Path(job['destination']).parent
+        matched = False
         for comic_id, location in rows:
             if location and Path(location) == parent:
+                matched = True
                 result = request(settings['url'], '/api', form={
                     'apikey': key, 'cmd': 'recheckFiles', 'id': comic_id})
-                if isinstance(result, dict) and result.get('success') is False:
+                # Native recheckFiles returns JSON null on successful dispatch.
+                # Only the versioned tagging endpoint has a durable acknowledgment.
+                if result is not None and (not isinstance(result, dict) or result.get('success') is not True):
                     raise RuntimeError('Mylar rejected the series recheck')
+        if matched and settings.get('tag_converted', False):
+            conversion = dict(version=1, path=job['destination'], sha256=job['output_hash'])
+            payload = json.dumps(conversion, sort_keys=True, separators=(',', ':'))
+            expected = hashlib.sha256(payload.encode()).hexdigest()
+            result = request(settings['url'], '/api', form={
+                'apikey': key, 'cmd': 'queueConvertedTag', 'conversion': payload})
+            acknowledgment = result.get('data') if isinstance(result, dict) else None
+            if (not isinstance(result, dict) or result.get('success') is not True
+                    or not isinstance(acknowledgment, dict)
+                    or type(acknowledgment.get('version')) is not int or acknowledgment['version'] != 1
+                    or acknowledgment.get('key') != expected):
+                raise RuntimeError('Mylar did not acknowledge converted tagging; notification retained')
+            job['mylar_tag_key'] = expected
 
     def advance(self, receipt, books):
         job = json.loads(receipt.read_text())

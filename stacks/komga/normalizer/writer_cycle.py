@@ -74,11 +74,17 @@ def cycle(normalizer, maintenance=None):
 
 
 def refresh_completed(normalizer):
-    """Retry durable notifications outside the writer lock; never retag media."""
+    """Retry independent durable rescan/tag admissions outside the writer lock."""
     from normalize import save
+    failures = 0
     for receipt in normalizer.jobs.glob('*/receipt.json'):
         job = json.loads(receipt.read_text())
         if job['phase'] == 'done' and job.get('mylar_refresh_pending'):
-            normalizer.refresh_mylar(job)
-            job.pop('mylar_refresh_pending')
-            save(receipt, job)
+            try:
+                normalizer.refresh_mylar(job)
+                job.pop('mylar_refresh_pending')
+                save(receipt, job)
+            except Exception:
+                failures += 1
+    if failures:
+        raise RuntimeError('Mylar notifications remain pending for retry: '+str(failures))

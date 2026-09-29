@@ -56,6 +56,7 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: 'Optional normalizer override uses the published comic-normalizer GHCR image without source bind mounts, enables writable libraries and preserves original archives in the NORMALIZER_STATE_PATH bind mount. Optional maintenance override adds completed-download cleanup and corrupt-archive quarantine in that state directory, publishes conversion status to the Mylar post-processing monitor, and supports opt-in verified pack inventories and related supplements, plus source-preserving recovery of uniquely matched imports plus explicit guided matching and confirmed exact series aliases through Mylar Activity. Guided receipts remain in the existing private state directory; update Mylar before the worker. An optional coordination override grants the worker a narrow writable Mylar media-writer state mount for exclusive writer admission and durable asynchronous-upgrade fencing.'
+# Converted tagging uses existing app state and primary-key API; see stack README for opt-in and rollout.
 runtime_security:
   privileged_services: []
   host_network_services: []

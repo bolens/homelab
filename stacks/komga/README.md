@@ -76,6 +76,45 @@ neither honor the tagger marker nor defer their rescan callback. Drain and verif
 recovery before rollback; never switch an older writer onto pending v2 publication
 state. Live coordination/canary/rollback acceptance still gates the Modern backend.
 
+### Automatic tagging after conversion
+
+With matching Mylar and worker images, set `"tag_converted": true` inside the
+existing private `mylar` object to queue missing ComicInfo metadata after the
+series rescan:
+
+```json
+"mylar": {
+  "url": "http://mylar3:8090",
+  "config_dir": "/mylar",
+  "tag_converted": true
+}
+```
+
+This opt-in requires the coordination override and nonempty `writer_state`.
+It defaults to false. Mylar must have post-processing and Modern ComicRack
+metadata enabled. Legacy or unsupported metadata settings leave jobs waiting
+without switching backends. Existing ComicInfo is preserved even when manual
+overwrite is enabled. Only an exact downloaded catalog path is eligible; extras,
+ambiguous matches and changed archives require review instead of guessed tags.
+Annual metadata uses its release volume.
+
+The worker retains the rescan notification until Mylar acknowledges durable
+admission. One failed notification does not block later receipts. Mylar's existing
+post-processing worker handles one due tagging job while the download import
+queue is idle. Requests survive restarts in `workflow.sqlite`, and a saved
+publication token prevents repeating a committed tag operation. Provider failures
+retry up to six attempts; unresolved catalog matches require review after 24 hours.
+See **Manage → Post-processing → Converted comic tagging** for persistent status.
+
+Deploy Mylar first, then the worker with `--no-deps`, and enable the opt-in only
+after consumer verification. No additional mount, port, credential or dependency
+is needed. Keep both applications' recovery state in backups. Existing completed
+receipts are not bulk-retagged on upgrade; selected verified receipts can be
+replayed operationally with their affected files preserved first. Reader file
+watching should observe metadata-only replacement; verify reader refresh during
+activation. Turning the worker opt-in off stops new admissions; disable Mylar
+metadata tagging to pause already admitted jobs.
+
 ## Automatic comic conversion
 
 The optional `docker-compose.normalizer.yml` override converts CBR/RAR, CB7/7z,
@@ -231,8 +270,8 @@ The maintenance report also supplies Mylar's **Post-processing** monitor with up
 50 conversion receipts or failures, including original format, output format, and
 verification phase. It reads existing recovery receipts and preserves the conversion
 workflow. Reports expose filenames and fixed status labels, without private paths
-or raw errors. Metadata is reported as preserved, since normalization does not retag
-comics. Update the Mylar image before restarting the maintenance worker.
+or raw errors. Conversion itself reports preserved metadata. The separate converted-comic
+tagging table reports Mylar follow-up results when that opt-in is enabled. Update the Mylar image before restarting the maintenance worker.
 
 
 ### Automatic recovery of unmatched imports

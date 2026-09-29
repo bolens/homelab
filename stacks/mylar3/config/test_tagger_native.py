@@ -56,6 +56,93 @@ class NativeTest(unittest.TestCase):
         cli_patch = patch.object(self.base, 'save', side_effect=save)
         cli_patch.start(); self.addCleanup(cli_patch.stop)
 
+    def test_automatic_in_place_honors_enable_and_backend(self):
+        self.mylar.CONFIG.TAGGER_BACKEND = 'modern'
+        self.mylar.CONFIG.ENABLE_META = False
+        result = self.native.run(str(self.root), filename=str(self.source), issueid='123',
+                                 manualmeta=True, automatic_in_place=True)
+        self.assertFalse(result.valid_for(self.source))
+        self.mylar.CONFIG.ENABLE_META = True
+        self.mylar.CONFIG.TAGGER_BACKEND = 'legacy'
+        result = self.native.run(str(self.root), filename=str(self.source), issueid='123',
+                                 manualmeta=True, automatic_in_place=True)
+        self.assertFalse(result.valid_for(self.source))
+        self.lookup_mock.assert_not_called()
+        self.assertEqual(self.source.read_bytes(), self.before)
+
+    def test_persistent_token_reconciles_without_second_lookup(self):
+        self.mylar.CONFIG.TAGGER_BACKEND = 'modern'
+        args = dict(filename=str(self.source), issueid='123', manualmeta=True,
+                    automatic_in_place=True, publication_token='a'*32)
+        first = self.native.run(str(self.root), **args)
+        self.assertTrue(first.valid_for(self.source))
+        second = self.native.run(str(self.root), **args)
+        self.assertTrue(second.valid_for(self.source))
+        self.assertEqual(self.lookup_mock.call_count, 1)
+
+    def conversion_queue(self):
+        import json
+        converted = import_module('mylar.converted_tagging')
+        store = import_module('mylar.workflow_store').Store(self.root)
+        self.mylar.CONFIG.POST_PROCESSING = True
+        self.mylar.CONFIG.TAGGER_BACKEND = 'modern'
+        for table in ('issues', 'annuals'):
+            self.db.execute('ALTER TABLE '+table+' ADD COLUMN Location TEXT')
+            self.db.execute('ALTER TABLE '+table+' ADD COLUMN Status TEXT')
+        self.db.execute('ALTER TABLE annuals ADD COLUMN ComicID TEXT')
+        self.db.execute('ALTER TABLE comics ADD COLUMN ComicLocation TEXT')
+        self.db.execute('ALTER TABLE comics ADD COLUMN AgeRating TEXT')
+        self.db.execute('ALTER TABLE storyarcs ADD COLUMN StoryArc TEXT')
+        self.db.execute('ALTER TABLE storyarcs ADD COLUMN ReadingOrder TEXT')
+        self.db.execute('UPDATE comics SET ComicLocation=? WHERE ComicID="456"', [str(self.root)])
+        self.db.execute('UPDATE issues SET Location=?,Status="Downloaded"', [self.source.name])
+        payload = json.dumps(dict(version=1, path=str(self.source), sha256=self.base.fingerprint(self.source)))
+        key = converted.admit(payload, store)['key']
+        queue = converted.Queue(store, converted.catalog, self.writers.operation, converted.inspect_archive,
+                                converted.tag, converted.recover, converted.settings)
+        return converted, store, key, queue
+
+    def test_converted_file_publishes_and_restart_recovers_real_receipt(self):
+        converted, store, key, queue = self.conversion_queue()
+        def crash(job):
+            result = converted.tag(job)
+            self.assertEqual(result, 'added')
+            raise KeyboardInterrupt()
+        queue.tag = crash
+        with self.assertRaises(KeyboardInterrupt): queue.tick()
+        self.assertEqual(store.get('converted_tag', key)['phase'], 'tagging')
+        queue.tag = Mock(side_effect=AssertionError('must not tag again'))
+        queue.tick()
+        self.assertEqual(store.get('converted_tag', key)['phase'], 'completed')
+        self.assertEqual(self.lookup_mock.call_count, 1)
+        self.assertEqual(os.getxattr(self.source, 'user.fixture'), b'original')
+        with zipfile.ZipFile(self.source) as archive:
+            self.assertEqual(archive.read('001.png'), b'page')
+        queue.tag.assert_not_called()
+
+    def test_conversion_annual_matches_parent_path_but_uses_release_metadata(self):
+        converted, store, key, queue = self.conversion_queue()
+        self.db.execute('DELETE FROM issues')
+        self.db.execute('UPDATE annuals SET ComicID="456",Location=?,Status="Downloaded"', [self.source.name])
+        queue.tick()
+        self.assertEqual(store.get('converted_tag', key)['phase'], 'completed')
+        self.assertEqual(self.lookup_mock.call_args.kwargs['volumeid'], '457')
+
+    def test_conversion_normalizes_trailing_slash_in_catalog_directory(self):
+        converted, store, key, queue = self.conversion_queue()
+        self.db.execute('UPDATE comics SET ComicLocation=? WHERE ComicID="456"', [str(self.root)+'/'])
+        queue.tick()
+        self.assertEqual(store.get('converted_tag', key)['phase'], 'completed')
+        self.assertEqual(self.lookup_mock.call_count, 1)
+
+    def test_conversion_rejects_ambiguous_exact_location(self):
+        converted, store, key, queue = self.conversion_queue()
+        self.db.execute('UPDATE annuals SET ComicID="456",Location=?,Status="Downloaded"', [self.source.name])
+        queue.tick()
+        self.assertEqual(store.get('converted_tag', key)['phase'], 'review')
+        self.lookup_mock.assert_not_called()
+        self.assertEqual(self.source.read_bytes(), self.before)
+
     def test_manual_annual_uses_release_volume_and_canonical_handoff(self):
         result = self.native.run(str(self.root), filename=str(self.source), issueid='124', comversion='v99', manualmeta=True)
         self.assertIsInstance(result, self.handoff.Published); self.assertTrue(result.valid_for(self.source))

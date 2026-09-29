@@ -91,6 +91,20 @@ class CycleTest(unittest.TestCase):
         self.assertTrue(cycle(self.worker))
         self.assertNotIn('mylar_refresh_pending',json.loads(receipt.read_text()))
 
+    def test_one_failed_notification_does_not_starve_later_receipts(self):
+        receipts = []
+        for name in ('first', 'second'):
+            folder = self.jobs/name; folder.mkdir(); receipt = folder/'receipt.json'
+            receipt.write_text(json.dumps({'phase':'done', 'mylar_refresh_pending':True, 'name':name}))
+            receipts.append(receipt)
+        def notify(job):
+            if job['name'] == 'first': raise RuntimeError('unavailable')
+        self.worker.refresh_mylar = Mock(side_effect=notify)
+        with self.assertRaises(RuntimeError): cycle(self.worker)
+        self.assertEqual(self.worker.refresh_mylar.call_count, 2)
+        self.assertTrue(json.loads(receipts[0].read_text())['mylar_refresh_pending'])
+        self.assertNotIn('mylar_refresh_pending', json.loads(receipts[1].read_text()))
+
     def test_tagger_crash_fence_blocks_even_worker_recovery(self):
         with self.owner.hold(allow_tagger_pending=True):self.owner.mark_tagger_pending()
         self.assertFalse(cycle(self.worker,self.maintenance))

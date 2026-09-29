@@ -1,3 +1,4 @@
+# Converted tagging uses the existing primary-key Mylar API and authenticated monitor; no new ingress.
 # Komga — split-horizon + public TLS: komga.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
 # Guided import review lives in Mylar; the optional worker exposes no HTTP service.
 
