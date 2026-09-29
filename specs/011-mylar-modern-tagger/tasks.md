@@ -77,7 +77,7 @@ Independent test: D1/D4 dual-backend local HTTP/proxy/TLS fixtures. D2/D3 gate f
 ## Delivery
 
 - [x] T019 Audit final increment and run focused tests, full candidate image gate and `make ci-local`; record completed versus pending gates in `validation.md`.
-- [ ] T020 Publish the reviewed increment through PR/GHCR; activate only capabilities with completed gates, follow verified backup/restore/canary workflow in `plan.md`.
+- [x] T020 Publish the reviewed increment through PR/GHCR; activate only capabilities with completed gates, follow verified backup/restore/canary workflow in `plan.md`.
 
 ## Dependencies and implementation strategy
 
