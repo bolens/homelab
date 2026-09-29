@@ -57,16 +57,22 @@ def cycle(normalizer, maintenance=None):
             pending=any(json.loads(path.read_text())['phase']!='done'
                         for path in normalizer.jobs.glob('*/receipt.json'))
             if not pending:writer.clear_pending()
+            scans = getattr(normalizer, 'scan_batch', None)
+            scan_ready = bool(not pending and scans and scans.collect())
+            if pending and scans:scans.waiting()
         if not pending:
-            refresh_completed(normalizer)
+            try:refresh_completed(normalizer)
+            finally:
+                if scan_ready:scans.dispatch()
         return True
     except Busy:
         # A busy lock is normal contention. Preserve errors and pending counts,
         # but update freshness so health does not misreport a stalled scan.
         from normalize import save
-        for name in ('status.json','maintenance-status.json'):
+        for name in ('status.json','maintenance-status.json','reader-scan-status.json'):
             path=normalizer.state/name
             if name=='maintenance-status.json' and not maintenance:continue
+            if name=='reader-scan-status.json' and not getattr(normalizer, 'scan_batch', None):continue
             previous=json.loads(path.read_text()) if path.exists() else {'errors':[]}
             previous.update(checked_at=time.time(),state='waiting for media writer')
             save(path,previous)

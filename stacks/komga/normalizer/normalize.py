@@ -156,6 +156,8 @@ class Normalizer:
         self.observed = {}
         self.errors = []
         self.rejected = {}
+        from reader_scan import ScanBatch, policy
+        self.scan_batch = ScanBatch(self) if policy(config)['enabled'] else None
 
     def convert_tool(self, *args):
         environment = dict(os.environ, TMPDIR=str(self.state / 'tmp'),
@@ -483,6 +485,10 @@ def main():
         conversion = json.loads((state / 'status.json').read_text())
         if conversion.get('errors') or time.time() - conversion['checked_at'] > 900:
             raise SystemExit(1)
+        if config.get('reader_scan', {}).get('enabled'):
+            scan = json.loads((state / 'reader-scan-status.json').read_text())
+            if scan.get('errors') or time.time() - scan['checked_at'] > 900:
+                raise SystemExit(1)
         if config.get('maintenance', {}).get('enabled'):
             result = json.loads((state / 'maintenance-status.json').read_text())
             limit = max(180, config['maintenance'].get('interval_seconds', 300) * 3)

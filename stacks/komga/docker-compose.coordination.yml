@@ -1,4 +1,4 @@
-# Required for opt-in mylar.tag_converted notifications; deploy the Mylar consumer first.
+# Required for opt-in reader_scan batching and mylar.tag_converted notifications; deploy the Mylar consumer first.
 # Opt-in shared writer protocol. Apply after docker-compose.normalizer.yml.
 # The directory is created by matching Mylar startup; never create it over a missing mount.
 services:

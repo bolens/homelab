@@ -13,6 +13,12 @@
     "url": "http://komga:25600",
     "api_key": "REPLACE_ME"
   },
+  "reader_scan": {
+    "enabled": false,
+    "batch_size": 5,
+    "max_wait_seconds": 300,
+    "min_interval_seconds": 120
+  },
   "maintenance": {
     "enabled": false,
     "completed": "/completed-comics",
