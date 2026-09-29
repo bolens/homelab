@@ -661,3 +661,28 @@ introduced. Deploy Mylar before the producer and retain prior images/state until
 health and catalog/file preservation have been verified. The normalizer can independently enable `mylar.refresh_reader_after_tagging` to
 refresh Komga metadata after verified completion, or leave it off for another
 reader refresh workflow.
+
+
+### Automatic library metadata maintenance
+
+Activity settings includes two independent options, both off by default:
+
+- **Automatically queue untagged library comics** discovers downloaded catalog CBZs without ComicInfo and admits them to the existing durable tagging queue.
+- **Repair agreeing nested ComicInfo copies** reconciles exactly one root and one nested copy with agreeing series/issue identities. Root values win. Missing fields are merged, while nested page indexes and arc ordering stay in provenance. The original nested XML remains as `SourceMetadata.xml`; name collisions and conflicting identities require review.
+
+Maintenance inspects one catalog entry per idle post-processing poll and waits one
+hour between completed sweeps. Unchanged file identities avoid repeated archive
+reads. Full archive validation and exact downloaded catalog ownership are required
+before admission. Modern ComicRack tagging must be enabled. Existing tags and
+supplemental files without a unique downloaded catalog issue are preserved.
+Disabling discovery leaves already admitted missing-tag jobs in the tagging queue;
+disabling nested repair pauses its pending jobs. Publication recovery still runs.
+
+Post-processing shows **Converted and library comic tagging** and **Library metadata
+maintenance**, including repair completion and review outcomes. Repairs reuse the
+shared writer lock, v2 NFS publication, source staging, attribute checks and startup
+recovery. No new service, dependency, mount, port or credential is required. Back up
+`workflow.sqlite` and `modern-tagger-v2` with existing application state. Uncertain
+publication retains source/recovery copies. A normal reader scan discovers repaired
+tags; the normalizer's converted-file refresh option remains scoped to its own
+conversion notifications.

@@ -109,3 +109,13 @@ crashes, conflicts, RPC ambiguity, native handoff and the pinned CLI. It can run
 an explicitly provided disposable media fixture root. Native journal selection,
 startup recovery and writer/scanner admission are integrated. Live canary, startup
 recovery and old-image rollback acceptance passed before opt-in activation.
+
+## Library metadata maintenance
+
+`patch_library_metadata.py` follows converted-tagging installation and adds the idle
+worker hook. `library_metadata.py` owns incremental catalog discovery and durable
+repair admission. `metadata_repair.py` owns agreeing identity checks, provenance and
+archive preservation. The explicit repair mode in `tagger_adapter.py` reuses v2
+publication and recovery; normal archive/tagging paths remain strict. Settings live
+in Activity and outcomes in the post-processing monitor. Focused coverage is in
+`test_library_metadata.py` and `test_metadata_repair.py`.

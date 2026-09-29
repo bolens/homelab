@@ -53,6 +53,7 @@ lifecycle:
   status: stable
   replacement_for: null
   notes: 'Published GHCR image includes DDL compatibility, worker recovery, queue control, verified transfers, import-problem reporting, the post-processing monitor, persistent Activity and pack-member history, opt-in verified pack recovery, annual identity fixes, guarded DDL-to-NZB handoff, guided import review, intake throttling, and cooldown-aware authenticated health checks without source bind mounts. A Legacy-default backend selector offers opt-in experimental modern CBZ ComicRack tagging; shared writer protocol state coordinates post-processing and manual tagging with an opt-in matching normalizer. Optional Curl discovery is isolated and Requests-default; archive transfers retain Requests. Enable the Mylar API for container health.'
+# Library metadata maintenance is independently opt-in in Activity; no added mounts or ingress.
 # Converted tagging uses existing app state and primary-key API; see stack README for opt-in and rollout.
 runtime_security:
   privileged_services: []

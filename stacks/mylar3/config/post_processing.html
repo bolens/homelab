@@ -26,7 +26,7 @@
 <div id="pp_monitor">
 <div id="paddingheader"><h1 class="clearfix">Post-processing</h1></div>
 <p id="pp_message" role="status" aria-live="polite">Loading post-processing status…</p>
-<nav class="pp_jump" aria-label="Post-processing sections"><a href="#pp_work">Active and waiting</a><a href="#pp_runs">Recent runs</a><a href="#pp_conversion">Conversion and metadata</a><a href="#pp_tagging">Converted comic tagging</a><a href="#pp_confirmed">Confirmed imports</a></nav>
+<nav class="pp_jump" aria-label="Post-processing sections"><a href="#pp_work">Active and waiting</a><a href="#pp_runs">Recent runs</a><a href="#pp_conversion">Conversion and metadata</a><a href="#pp_tagging">Converted and library comic tagging</a><a href="#pp_confirmed">Confirmed imports</a></nav>
 <dl class="pp_summary">
 <div><dt>Status</dt><dd id="pp_status">Unknown</dd></div>
 <div><dt>Worker</dt><dd id="pp_worker">Unknown</dd></div>
@@ -58,11 +58,16 @@ Library normalization preserves existing metadata. Opt-in Mylar follow-up fills 
 <p id="pp_archive_report">Waiting for conversion report.</p>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Conversion and metadata"><table id="pp_archives" class="display">
 <thead><tr><th>Item</th><th>Stage</th><th>Original format</th><th>Output format</th><th>Conversion</th><th>Metadata</th></tr></thead><tbody></tbody></table></div>
-<h2 id="pp_tagging">Converted comic tagging</h2>
+<h2 id="pp_tagging">Converted and library comic tagging</h2>
 <p>Up to 100 durable jobs, processed when the download import queue is idle. Existing ComicInfo is preserved.
 Waiting for settings means Modern ComicRack metadata tagging must be enabled.</p>
-<div class="table_wrapper" tabindex="0" role="region" aria-label="Converted comic tagging"><table id="pp_converted" class="display">
+<div class="table_wrapper" tabindex="0" role="region" aria-label="Converted and library comic tagging"><table id="pp_converted" class="display">
 <thead><tr><th>Item</th><th>Status</th><th>Details</th><th>Attempts</th><th>Updated</th></tr></thead><tbody></tbody></table></div>
+<h2 id="pp_library_metadata">Library metadata maintenance</h2>
+<p id="pp_library_scan">Enable missing-tag discovery or nested-copy repair in <a href="activity#wf_settings">Activity settings</a>. Requires Modern ComicRack tagging.</p>
+<p id="pp_library_progress">Waiting for scan status.</p>
+<div class="table_wrapper" tabindex="0" role="region" aria-label="Library metadata maintenance"><table id="pp_library" class="display">
+<thead><tr><th>Item</th><th>Status</th><th>Details</th><th>Updated</th></tr></thead><tbody></tbody></table></div>
 <h2 id="pp_confirmed">Recent confirmed imports</h2>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Confirmed imports"><table id="pp_imports" class="display">
 <thead><tr><th>Issue</th><th>Recorded by Mylar</th></tr></thead><tbody></tbody></table></div>
@@ -83,7 +88,8 @@ $(document).ready(function() {
     var waiting=table('#pp_queue', 'No items are waiting.');
     var recent=table('#pp_recent', 'No processing runs observed since this service started.');
     var archives=table('#pp_archives', 'No observed tagging or reported library conversions yet.');
-    var converted=table('#pp_converted', 'No converted comics have been queued for tagging.');
+    var converted=table('#pp_converted', 'No comics have been queued for missing metadata.');
+    var library=table('#pp_library', 'No library repairs or review items recorded.');
     var imports=table('#pp_imports', 'No confirmed imports in Mylar history.');
     function update(table, rows) {
         table.clear().rows.add(rows).draw(false);
@@ -121,6 +127,9 @@ $(document).ready(function() {
             update(recent, data.recent.map(function(r) {return [r.name,r.source,r.outcome,date(r.finished_at),elapsed(r.elapsed_seconds)];}));
             $('#pp_archive_report').text(data.archives.normalizer_status);
             update(archives, data.archives.tagging.concat(data.archives.normalizer).map(function(r) {return [r.name,r.source,r.original_format,r.output_format,r.conversion,r.metadata];}));
+            var maintenance=data.library_metadata || {scan:{},rows:[]};
+            $('#pp_library_progress').text(maintenance.scan.reason || 'No library metadata sweep recorded yet.');
+            update(library, maintenance.rows.map(function(r) {return [r.name,r.phase,r.reason,date(r.updated_at)];}));
             update(converted, (data.converted_tagging || []).map(function(r) {return [r.name,r.phase,r.reason,r.phase === 'completed' ? '--' : r.attempts,date(r.updated_at)];}));
             update(imports, data.imports.map(function(r) {return [r.name,r.imported_at];}));
         }).fail(failed).always(function() {

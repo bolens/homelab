@@ -15,4 +15,5 @@ prepare_stack_msg "Configure Activity intake and optional handoff settings in My
 prepare_stack_msg "Legacy ComicTagger remains default; Modern is an experimental CBZ ComicRack opt-in in settings. Mylar startup owns media-writer protocol creation; configure the matching normalizer coordination override separately and preserve pending recovery markers."
 prepare_stack_msg "DDL discovery defaults to Requests; optional Curl is selected in Mylar settings. Archive transfers stay on Requests. No extra runtime preparation is needed."
 prepare_stack_msg "Converted metadata follow-up requires matching Mylar first, shared writer coordination, Modern ComicRack tagging, and private mylar.tag_converted opt-in. Existing settings are preserved."
+prepare_stack_msg "Optional library metadata discovery and nested-copy repair are configured in Activity. Both default off and require Modern ComicRack tagging; no additional preparation is needed."
 prepare_stack_end
