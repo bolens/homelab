@@ -18,11 +18,18 @@ def server(source):
 
     def queueManage(self):''')
     source = replace_once(source, "        rows = [[row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid'], row['issueid'], row['comicid'], row['linktype']] for row in rows]", "        from mylar import queue_control\n        diagnostics = queue_control.diagnostics(downloads.values())\n        rows = [[row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid'], row['issueid'], row['comicid'], row['linktype'], diagnostics.get(str(row['queueid']), {})] for row in rows]")
-    source = replace_once(source, '                 if filelocation and os.path.exists(filelocation) is True:', '''                 if active['tmp_filename'] and os.path.isfile(active['tmp_filename']):
-                     filelocation = active['tmp_filename']
-                 elif filelocation and os.path.isfile(filelocation + '.part'):
-                     filelocation += '.part'
-                 if filelocation and os.path.exists(filelocation) is True:''')
+    source = replace_once(source, '                 if filelocation and os.path.exists(filelocation) is True:\n                     filesize = os.stat(filelocation).st_size', """                 from mylar.queue_progress import received_bytes
+                 filesize = received_bytes(active, mylar.CONFIG.DDL_LOCATION)
+                 if filesize is not None:""")
+    source = replace_once(source,
+        "                 statline = '%s does not exist.</br> This probably needs to be restarted (use the option in the GUI)' % filelocation",
+        "                 statline = 'Downloading (waiting for file activity)'")
+    source = replace_once(source,
+        "                 statline = 'No filename assigned for %s.</br> This was probably never started successfully - you should restart the download (use the option in the GUI)' % infoline",
+        "                 statline = 'Downloading (preparing file)'")
+    source = replace_once(source,
+        "             return json.dumps({'a_id': active['id'], 'status': statline, 'percent': 0})",
+        "             return json.dumps({'a_id': active['id'], 'status': statline, 'percent': 0, 'a_series': active['series'], 'a_year': active['year'], 'a_filename': active['filename'], 'a_size': active['size']})")
     ast.parse(source)
     return source
 

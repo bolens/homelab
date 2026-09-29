@@ -163,6 +163,12 @@ A restart or newer processing activity does not turn a finished pack back into a
 waiting item, even when extraction changes its folder name. The health probe counts new byte high-water marks and completed downloads.
 Switching mirrors or shrinking the queue alone cannot clear a stall warning.
 
+Active DDL progress and stall tracking resolve provider temporary filenames against
+the download directory, including Pixel basenames and staged `.part` files. A brief
+absence during setup or handoff is shown as waiting for file activity; it does not
+imply that the download needs restarting. Retry diagnostics still track stalled
+transfers independently.
+
 DDL Queue Management keeps the active transfer visible when its size is unknown,
 with an indeterminate progress bar. Failed refreshes retain the last snapshot and
 disable active-download actions until fresh status arrives. Requests do not overlap,

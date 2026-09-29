@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import queue_control as control
 import library_status
+import queue_progress
 
 if len(sys.argv) > 1:
     sys.argv.pop(1)
@@ -16,7 +17,7 @@ if len(sys.argv) > 1:
 
 class ControlTest(unittest.TestCase):
     def setUp(self):
-        context=patch.dict(sys.modules, {'mylar.library_status': library_status});context.start();self.addCleanup(context.stop)
+        context=patch.dict(sys.modules, {'mylar.library_status': library_status, 'mylar.queue_progress': queue_progress});context.start();self.addCleanup(context.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
