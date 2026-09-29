@@ -9,7 +9,8 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+import queue_progress
 import urllib.parse
 from patch_ddl_status import patched_source
 
@@ -37,6 +38,9 @@ class DdlStatusTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.location = Path(self.temp.name)
+        context = patch.dict(sys.modules, {"mylar.queue_progress": queue_progress})
+        context.start()
+        self.addCleanup(context.stop)
         self.database = MagicMock()
         self.mylar = SimpleNamespace(
             CONFIG=SimpleNamespace(DDL_LOCATION=str(self.location)),
@@ -92,7 +96,15 @@ class DdlStatusTest(unittest.TestCase):
                 self.assertEqual(result["percent"], percent)
                 self.assertEqual(result["a_id"], 1)
         active["link_type"] = "GC-Pixel"
-        self.assertEqual(json.loads(check(None))["percent"], 0)
+        self.assertEqual(json.loads(check(None))["percent"], "50%")
+        active["tmp_filename"] = "Comic[__123__].cbr"
+        (self.location / active["tmp_filename"]).write_bytes(b"x" * 75)
+        self.assertEqual(json.loads(check(None))["percent"], "75%")
+        path.unlink()
+        (self.location / active["tmp_filename"]).unlink()
+        pending = json.loads(check(None))
+        self.assertEqual(pending["status"], "Downloading (waiting for file activity)")
+        self.assertEqual(pending["a_series"], "Comic")
         active["filename"] = None
         self.assertEqual(json.loads(check(None))["percent"], 0)
         self.database.selectone.return_value.fetchone.return_value = None

@@ -43,9 +43,28 @@ class QueueProgressTest(unittest.TestCase):
             self.row.update(link_type=provider, tmp_filename=str(temporary))
             self.assertEqual(queue_progress.progress(self.row, self.directory), '75%')
         temporary.unlink()
-        self.assertEqual(queue_progress.progress(self.row, self.directory), '0%')
+        self.assertEqual(queue_progress.progress(self.row, self.directory), '50%')
         self.row.update(link_type='GC-Main', remote_filesize=10)
         self.assertEqual(queue_progress.progress(self.row, self.directory), '100%')
+
+    def test_pixel_basename_shared_with_stall_tracking_and_publication(self):
+        import queue_control
+        temporary = self.directory / 'Comic[__123__].cbr'
+        temporary.write_bytes(b'x' * 75)
+        self.row.update(link_type='GC-Pixel', tmp_filename=temporary.name)
+        with patch.dict(sys.modules, {'mylar.queue_progress': queue_progress}):
+            self.assertEqual(queue_control.byte_count(self.row, self.directory), 75)
+        self.assertEqual(queue_progress.progress(self.row, self.directory), '75%')
+        temporary.rename(str(temporary) + '.part')
+        self.assertEqual(queue_progress.received_bytes(self.row, self.directory), 75)
+        Path(str(temporary) + '.part').unlink()
+        self.assertEqual(queue_progress.received_bytes(self.row, self.directory), 50)
+        (self.directory / 'comic.cbz').unlink()
+        self.assertIsNone(queue_progress.received_bytes(self.row, self.directory))
+
+    def test_stat_race_is_not_an_endpoint_error(self):
+        with patch.object(queue_progress.os, 'stat', side_effect=FileNotFoundError):
+            self.assertIsNone(queue_progress.received_bytes(self.row, self.directory))
 
     def endpoint(self, items, downloads, sort='3', positions=None, projection=None, **params):
         source = release_labels(queue_view(patched_source((SOURCE / 'webserve.py').read_text())))

@@ -222,17 +222,8 @@ def recover(queue, record_id=None):
 
 
 def byte_count(row, directory):
-    paths = [row['tmp_filename']]
-    if row['filename'] and directory:
-        final = Path(directory) / row['filename']
-        paths.extend([str(final) + '.part', final])
-    for path in paths:
-        try:
-            if path and Path(path).is_file():
-                return Path(path).stat().st_size
-        except OSError:
-            pass
-    return 0
+    from mylar.queue_progress import received_bytes
+    return received_bytes(row, directory) or 0
 
 
 
