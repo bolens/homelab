@@ -1,11 +1,10 @@
 """Backend preference and readiness shared by settings and native dispatch.
 
 Legacy remains available throughout migration. A configured modern preference must
-never silently run legacy while native writer/recovery integration is incomplete.
+never silently run legacy after a modern operation fails.
 """
 CHOICES = ('legacy', 'modern')
-MODERN_UNAVAILABLE = ('Modern tagging is not available yet. '
-                      'This image keeps Modern disabled pending activation.')
+MODERN_UNAVAILABLE = 'Modern tagging is unavailable in this image.'
 
 
 def choice(value):
@@ -15,9 +14,11 @@ def choice(value):
 
 
 def status():
-    # This is a code capability gate, not a user-controlled setting or environment
-    # flag. Remove it only with the native ownership and rollout acceptance proof.
-    return {'modern_available': False, 'message': MODERN_UNAVAILABLE}
+    # Native ownership, startup recovery, live canary and rollback gates passed.
+    # Job admission still verifies writer state and recovery receipts.
+    return {'modern_available': True,
+            'message': 'Modern is opt-in for CBZ ComicRack metadata. ComicBookLover writing '
+                       'and conversion-only tagging are unsupported; use the normalizer for conversions.'}
 
 
 def validate_update(value):

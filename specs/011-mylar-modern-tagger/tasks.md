@@ -15,27 +15,18 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
 
 - [x] T007 [US1] Resolve hashed target-runtime dependencies in `stacks/mylar3/requirements.txt`; document license/platform/runtime proof in `research.md`.
 - [x] T008 [US1] Build isolated headless venv and final-stage native libraries in `stacks/mylar3/Dockerfile`, preserving the legacy runtime.
-- [ ] T009 [US1] Implement staged archive verification and sole publication owner in `stacks/mylar3/config/tagger_adapter.py`; preserve pages, comments, sidecars and permissions.
-  `tagger_archive.py` now implements the verification/reconciliation component.
-  `tagger_adapter.py` adds an inactive publication owner and versioned recovery
-  receipts. Native caller ownership, other-writer coordination and live filesystem
-  acceptance remain pending before this task can close.
-- [ ] T010 [US1] Add real CLI and archive cases C1/C2/P1 in `stacks/mylar3/config/test_modern_tagger.py`, including actual observed version banner and error behavior.
-  CLI/version, generated archive preservation and legacy isolation cases pass.
-  Reconciled XML is now written into a new CBZ and read back with content/permission
-  checks. Native publication and the complete failure/recovery matrix remain pending.
-- [ ] T011 [US1] Wire additive backend choice and native/manual/annual routing; cover N1/N2 and update every affected stack contract.
-  `patch_tagger_handoff.py` installs checked manual ownership and automatic rejection
-  guards. `mylar.tagger_handoff` is the sole native result identity. Legacy temporary
-  paths retain their behavior. The inactive service now provides bounded ComicVine
-  lookup, manual in-place results, automatic disposable outputs, no-overwrite policy
-  and exact backend dispatch. The native settings selector now persists a Legacy
-  default and visibly gates Modern availability. Server validation precedes changes,
-  and the native entry point captures the choice once per job. Modern routing,
-  annual caller identity and native writer coverage are implemented by T022.
-  Shared flock admission and durable normalizer recovery fences now cover complete
-  post-processing/manual tagging and opt-in normalizer cycles. Live coordination
-  rollout, modern recovery ownership and canary checks remain pending.
+- [x] T009 [US1] Implement staged archive verification and sole publication owner.
+  `tagger_archive.py`, v2 `tagger_nfs.py`, native ownership and staging receipts
+  preserve pages, comments, sidecars and supported permissions. T021-T023 and
+  the live canary cover actual NFS publication and recovery.
+- [x] T010 [US1] Add real CLI and archive cases C1/C2/P1.
+  Final-image gates exercise the pinned binary, generated regular/annual/variant
+  archives, metadata reconciliation, native publication and failure/recovery.
+  Live canary and rollback evidence is recorded in `validation.md`.
+- [ ] T011 [US1] Wire additive backend choice and native/manual/annual routing.
+  Native and conversion ownership passed in T022 and live canaries. The opt-in
+  activation increment retains Legacy as default and removes the static gate.
+  Live settings save/reload and switching back to Legacy remain to be verified.
 
 ## US2 - Failure recovery and observability
 

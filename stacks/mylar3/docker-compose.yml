@@ -1,6 +1,6 @@
 # Mylar3 – automated comic downloader (Usenet/torrents). Like Sonarr for comics.
 # Pack inventories and Activity history and workflow controls persist in the existing Mylar config volume.
-# Backend preference and media-writer protocol persist in the existing config volume.
+# Legacy-default/Modern opt-in preference and media-writer protocol persist in the config volume.
 # Configure NZBGet, qBittorrent, Prowlarr in the UI. Point /comics at a folder Komga can scan.
 # Access via Caddy only (no host port).
 # Unified media bind mount: MYLAR3_MEDIA_PATH in stack.env.

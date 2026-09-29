@@ -1,4 +1,4 @@
-"""Native tagging producer; activation still requires a coordinated writer owner.
+"""Native tagging producer requiring a coordinated writer owner.
 
 Manual jobs publish in place and return canonical native receipts. Automatic jobs
 return a verified disposable path, leaving placement to native post-processing.
