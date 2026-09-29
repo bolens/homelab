@@ -60,6 +60,17 @@ Independent test: D1/D4 dual-backend local HTTP/proxy/TLS fixtures. D2/D3 gate f
 - [ ] T017 [US3] Prove D1/D4 in `stacks/mylar3/config/test_ddl_transport.py`, with the current requests tests unchanged.
 - [ ] T018 [US3] Evaluate full curl streaming with bounded backpressure, memory/cancellation and D2/D3 tests in `test_ddl_transport.py`. Do not expose this mode if proof fails.
 
+## NFS filesystem acceptance correction
+
+- [x] T021 Implement explicit v2 retained-inode/no-clobber publication and bounded
+  ACL preservation in `tagger_nfs.py` and `tagger_attributes.py`. Preserve the v1
+  exchange strategy and reject mixed-version receipts without mutation. Prove real
+  process crash boundaries, competing writers, ambiguous NFS RPC results, exact ACL
+  preservation and canonical handoff on disposable actual-media fixtures.
+- [ ] T022 Integrate v2 journal selection, startup reconciliation and scanner/writer
+  admission with native routing. Prove the missing-name interval is recovered before
+  other work and complete old-image rollback acceptance. Do not enable Modern early.
+
 ## Delivery
 
 - [x] T019 Audit final increment and run focused tests, full candidate image gate and `make ci-local`; record completed versus pending gates in `validation.md`.

@@ -82,7 +82,8 @@ class ModernTaggerTest(unittest.TestCase):
         self.assertFalse(list(self.root.glob('.mylar-tag-*')))
         spec = util.spec_from_file_location('mylar.tagger_handoff', '/app/mylar3/mylar/tagger_handoff.py')
         native = util.module_from_spec(spec)
-        with patch.dict(sys.modules, {'mylar.tagger_handoff':native}):
+        package = ModuleType('mylar'); package.__path__ = ['/app/mylar3/mylar']
+        with patch.dict(sys.modules, {'mylar':package, 'mylar.tagger_handoff':native}):
             spec.loader.exec_module(native)
             handoff = native.capture(owner, 'b'*32)
             self.assertEqual((handoff.state, handoff.metadata), ('unchanged', 'unchanged'))
@@ -130,8 +131,9 @@ class ModernTaggerTest(unittest.TestCase):
                              Path(__file__).with_name(name).read_bytes())
 
     def test_native_handoff_module_matches_tested_source(self):
-        self.assertEqual(Path('/app/mylar3/mylar/tagger_handoff.py').read_bytes(),
-                         Path(__file__).with_name('tagger_handoff.py').read_bytes())
+        for name in ('tagger_handoff.py', 'tagger_attributes.py', 'tagger_nfs.py'):
+            self.assertEqual((Path('/app/mylar3/mylar')/name).read_bytes(),
+                             Path(__file__).with_name(name).read_bytes())
 
     def test_hardlinked_staging_cannot_modify_external_original(self):
         original, _ = self.fixture()

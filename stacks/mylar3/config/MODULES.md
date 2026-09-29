@@ -97,3 +97,11 @@ the default, and Modern is visibly unavailable until its integration gates close
 Native jobs capture their backend at entry. Unsupported configured values return
 an observed failure without invoking Legacy. The availability gate is a code
 capability, not a user-controlled bypass flag.
+
+
+`tagger_nfs.py` supplies the inactive version-2 rename/link publication strategy;
+`tagger_attributes.py` owns bounded ACL/user-attribute preservation. The version-1
+exchange publisher remains the default. `test_tagger_nfs.py` covers real-process
+crashes, conflicts, RPC ambiguity, native handoff and the pinned CLI. It can run on
+an explicitly provided disposable media fixture root. Native journal selection,
+startup recovery and writer/scanner coordination still gate activation.

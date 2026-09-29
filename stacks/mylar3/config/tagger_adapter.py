@@ -91,6 +91,8 @@ def _checkpoint(stage):
 
 
 class Publisher:
+    version = 1
+
     def __init__(self, directory):
         self.root = Path(directory).absolute()
         if self.root.anchor != '/' or '..' in self.root.parts or any(p.is_symlink() for p in (self.root, *self.root.parents)):
@@ -127,7 +129,7 @@ class Publisher:
         if not isinstance(value, dict):
             raise ValueError('Invalid journal')
         source = value.get('source')
-        if (type(value.get('version')) is not int or value['version'] != 1 or value.get('token') != token
+        if (type(value.get('version')) is not int or value['version'] != self.version or value.get('token') != token
                 or not isinstance(value.get('state'), str) or value['state'] not in STATES
                 or type(value.get('cleaned')) is not bool
                 or not isinstance(source, str) or '\0' in source or source != str(Path(source))
@@ -180,6 +182,22 @@ class Publisher:
             raise ValueError('Workspace identity changed')
         return expected
 
+    def security(self, source):
+        if source.stat().st_nlink != 1 or os.listxattr(source, follow_symlinks=False):
+            raise ValueError('Unsupported links or attributes')
+        return {}
+
+    def prepare_output(self, output, record):
+        pass
+
+    def publish(self, source, output, record):
+        exchange(source, output)
+
+    def original_intact(self, record):
+        source = Path(record['source'])
+        return (fingerprint(source) == record['before']
+                and list(identity(source.lstat())) == record['source_identity'])
+
     def committed_intact(self, record):
         source = Path(record['source'])
         if any(p.is_symlink() for p in (source, *source.parents)):
@@ -213,9 +231,7 @@ class Publisher:
                 state, cleanup = 'conflict', False
         if cleanup and state in ('failed', 'timed_out', 'unchanged'):
             try:
-                source = Path(record['source'])
-                intact = (fingerprint(source) == record['before']
-                          and list(identity(source.lstat())) == record['source_identity'])
+                intact = self.original_intact(record)
             except (OSError, ValueError):
                 intact = False
             if not intact:
@@ -347,8 +363,10 @@ class Publisher:
             record = None
             try:
                 old = snapshot(source)
-                if source.stat().st_nlink != 1 or os.listxattr(source, follow_symlinks=False):
-                    return Result('unsupported')  # Do not silently sever links/ACLs.
+                try:
+                    security = self.security(source)
+                except ValueError:
+                    return Result('unsupported')
                 before = fingerprint(source)
                 if identity(source.lstat()) != old.identity:
                     return Result('conflict')
@@ -356,10 +374,11 @@ class Publisher:
                     return Result('failed')
                 folder.mkdir(mode=0o700)
                 sync(folder.parent)
-                record = dict(version=1, token=token, source=str(source), request=request,
+                record = dict(version=self.version, token=token, source=str(source), request=request,
                               backend=VERSION, before=before, source_identity=list(old.identity),
                               permissions=[old.mode, old.uid, old.gid],
                               workspace=list(identity(folder.stat())[:2]), state='staged', cleaned=False)
+                record.update(security)
                 self.write(record)
                 original, tagged, output = (folder / name for name in ('original.cbz', 'tagged.cbz', 'verified.cbz'))
                 with regular(source) as reader, original.open('xb') as writer:
@@ -394,6 +413,7 @@ class Publisher:
                     return self.finish(record, 'conflict', cleanup=False)
                 if record['metadata'] == 'unchanged':
                     return self.finish(record, 'unchanged')
+                self.prepare_output(output, record)
                 record.update(state='publishing', after=fingerprint(output),
                               candidate_identity=list(identity(output.stat())))
                 sync(folder)
@@ -401,7 +421,7 @@ class Publisher:
                 _checkpoint('before_exchange')
                 if identity(source.lstat()) != old.identity:
                     return self.finish(record, 'conflict', cleanup=False)
-                exchange(source, output)
+                self.publish(source, output, record)
                 _checkpoint('after_exchange')
                 return self._recover(record)
             except (OSError, ValueError, RuntimeError, zipfile.BadZipFile, zlib.error, EOFError):

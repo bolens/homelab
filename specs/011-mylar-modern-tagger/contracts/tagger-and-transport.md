@@ -90,3 +90,15 @@ process death and asynchronous Komga requests. Only worker reconciliation clears
 it. Protocol files cannot be recreated in an existing directory after deletion.
 Both image contexts ship identical protocol code, checked by repository tests.
 This does not assert coverage of every native rescan or file-management writer.
+
+
+`tagger_nfs.Publisher` explicitly selects version-2 rename/link publication. It is
+not a fallback and must use a separate journal from the version-1 exchange publisher.
+Both retain recovery material on conflicts. NFS publication retains the displaced
+inode and never replaces a competing destination. The source name can be absent
+between displacement and publication, including across a crash; recovery must run
+before any media writer or scanner is admitted. RPC errors are reconciled from
+verified identities and bytes. Exact supported ACL/user-attribute values, mode and
+ownership are checked before publication and in the canonical native handoff.
+Old readers reject v2 receipts without mutation. Neither strategy is selected by
+native modern routing yet; enabling this module remains an integration gate.
