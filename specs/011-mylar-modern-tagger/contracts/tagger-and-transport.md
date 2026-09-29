@@ -34,7 +34,7 @@ intent without repeating the CLI. Same-token/different-request calls conflict;
 separate token and source locks serialize overlapping work. Raw child output and
 file paths never appear in the returned `Result`. No native caller uses this API yet.
 
-Future discovery session exposes the current requests get/post/context lifetime and
+The optional discovery session exposes the current requests get/post/context lifetime and
 exception expectations. Provider resolution and archive transfers are separate
 choices. No double retry layer, extra cooldown mutation, automatic fallback, or
 unbounded queue is acceptable. Public workflow routes retain existing authentication
@@ -117,3 +117,18 @@ and user-attribute preservation applies to manual in-place publication. Automati
 link placement is unsupported and retains the original path rather than linking to
 a disposable stage. No live
 configuration, Compose, privilege or ingress change is part of this increment.
+
+
+`DDL.ddl_discovery_backend` accepts exactly `requests` or `curl`, defaulting to
+Requests. Config validation rejects invalid or duplicate case variants before any
+mutation. The outer search/loadsite/cookie operation captures its backend and
+closes responses at exit. Nested calls retain that session. Archive `self.session`
+remains the original Requests session. Discovery copies scoped cookies and proxies
+at entry and returns cookie updates at exit. Curl uses an isolated child for each
+bounded response, normalizes network exceptions and adds no retries or fallback.
+Full curl streaming is not selectable because its queue fails the bounded-buffer
+gate. No D2/D3 success is implied by discovery acceptance.
+
+Power-loss testing is excluded by user instruction. Existing durable publication
+and startup recovery are checked with process interruption and injected flush
+errors only. Persistent flush failure retains copies and requires review.

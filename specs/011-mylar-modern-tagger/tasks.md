@@ -23,10 +23,11 @@ Independent test: C1/C2/P1 matrix with actual pinned CLI and generated archives.
   Final-image gates exercise the pinned binary, generated regular/annual/variant
   archives, metadata reconciliation, native publication and failure/recovery.
   Live canary and rollback evidence is recorded in `validation.md`.
-- [ ] T011 [US1] Wire additive backend choice and native/manual/annual routing.
+- [x] T011 [US1] Wire additive backend choice and native/manual/annual routing.
   Native and conversion ownership passed in T022 and live canaries. The opt-in
   activation increment retains Legacy as default and removes the static gate.
-  Live settings save/reload and switching back to Legacy remain to be verified.
+  Live settings save/reload and switching in both directions passed after PR #150.
+  The currently saved choice is preserved. Legacy remains the default for unset preferences.
 
 ## US2 - Failure recovery and observability
 
@@ -50,10 +51,13 @@ Independent test: C3/C4/N3/L1 failures, recovery and old-image rollback.
 
 Independent test: D1/D4 dual-backend local HTTP/proxy/TLS fixtures. D2/D3 gate full streaming separately.
 
-- [ ] T015 [US3] Lock optional curl dependencies and add lazy discovery session adapter in `stacks/mylar3/config/ddl_transport.py`; normalize exceptions and cleanup without added retries.
-- [ ] T016 [US3] Add server-validated opt-in discovery choice and next-session switching in native adapter/UI; keep requests archive transfers and document availability.
-- [ ] T017 [US3] Prove D1/D4 in `stacks/mylar3/config/test_ddl_transport.py`, with the current requests tests unchanged.
-- [ ] T018 [US3] Evaluate full curl streaming with bounded backpressure, memory/cancellation and D2/D3 tests in `test_ddl_transport.py`. Do not expose this mode if proof fails.
+- [x] T015 [US3] Lock optional curl dependencies and add lazy discovery session adapter in `stacks/mylar3/config/ddl_transport.py`; normalize exceptions and cleanup without added retries.
+- [x] T016 [US3] Add server-validated opt-in discovery choice and next-session switching in native adapter/UI; keep requests archive transfers and document availability.
+- [x] T017 [US3] Prove D1/D4 in `stacks/mylar3/config/test_ddl_transport.py`, with the current requests tests unchanged.
+- [x] T018 [US3] Evaluate full curl streaming with `evaluate_ddl_streaming.py`.
+  The slow-consumer fixture fails the bounded-backpressure gate. Keep full streaming
+  unavailable. D2 and the remaining D3 cases are not run because this prerequisite
+  fails; no archive-transfer activation is claimed.
 
 ## NFS filesystem acceptance correction
 
@@ -87,3 +91,10 @@ Parallel opportunities: runtime and metadata helper tests can be developed separ
 Dependency packaging and transport fixture research can run independently after the
 contracts are fixed. Archive publication and native integration share ownership and
 must be sequenced. No agent may change live services during fixture work.
+
+## Power-loss acceptance extension
+
+- [x] T024 Audit file/directory flush ordering and add practical durability-failure
+  and simulated interruption fixtures. Real power-loss testing is excluded by the
+  user. Keep physical/NFS server power-loss durability explicitly unproven.
+  Never power-cycle hosts, storage, or virtual machines for this task.

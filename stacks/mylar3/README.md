@@ -496,7 +496,7 @@ config volume. No environment variable, mount or ingress change is required.
 The native-package service provides bounded ComicVine
 lookup, automatic staging and recovery admission before each job. Native routing uses
 the v2 journal; annuals resolve their release volume rather than parent-series metadata.
-Requests remains the DDL transport.
+Requests remains the archive transfer transport. Discovery has a separate opt-in described below.
 
 The archive helper reconciles ComicInfo into a new CBZ and reopens it to check page
 and sidecar hashes, comments, permissions and the exact XML. Existing notes, unknown
@@ -584,3 +584,40 @@ startup/scanner coordination is mandatory and old-image rollback checks must pas
 before selection. Older readers reject its receipts without modifying them. No new
 mount, port or privilege is required. Keep the matching normalizer coordination
 enabled when both applications can write the library.
+
+### Optional DDL discovery transport
+
+Settings → Download settings → DDL providers includes **DDL discovery transport**.
+Requests remains the default. **Curl (experimental)** uses the pinned curl_cffi
+0.16.3 runtime under `/opt/ddl-transport` for provider pages and cookie discovery.
+Archive transfers always retain Requests, including resume validation, retries,
+provider cooldowns, NZB fallback and queue ordering. Changing the preference takes
+effect at the next outer discovery operation. An active operation keeps its owner.
+Select Requests and save to revert without restarting Mylar.
+
+Curl discovery runs in isolated child processes, with an 8 MiB response limit,
+a 1 MiB request-body limit, no transport retries and a bounded request deadline.
+Scoped cookies, explicit proxies and TLS verification pass through the adapter.
+Unsupported or unavailable choices fail explicitly without silently switching.
+The dependency lock is `requirements-ddl.txt`. Installed license notices remain in
+the isolated environment. See [ddl-NOTICES.md](ddl-NOTICES.md).
+No additional port, mount, privilege or preparation step is required. The preference
+persists as `DDL.ddl_discovery_backend` in the existing config volume.
+
+Full curl archive streaming is deliberately unavailable. The pinned package's
+streaming queue is unbounded under a slow consumer, so it fails the required
+backpressure gate. The bounded local evaluator is `config/evaluate_ddl_streaming.py`.
+It does not establish multi-gigabyte, stalled-server or restart/resume acceptance.
+
+### Recovery durability limits
+
+Publication flushes candidate data and attributes, its workspace, and the local
+intent journal before displacing a source. It flushes each rename/link boundary
+and records a durable terminal result before deleting retained copies. Startup
+reconciles pending work before admitting writers or scans. Simulated process exits
+and storage-flush failures verify recovery and copy retention. Persistent I/O
+failures require review and retain evidence rather than reporting success.
+
+No real power-loss test is performed. Recovery depends on the filesystem and NFS
+server honoring acknowledged flushes. Process interruption tests do not prove
+storage-controller caches or server power-loss durability.

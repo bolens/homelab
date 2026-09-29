@@ -7,6 +7,8 @@ Mylar's package; adapters and tests stay in the build stage.
 
 | Responsibility | Build adapter | Runtime helper / focused tests |
 |---|---|---|
+| Discovery transport and preference | `patch_ddl_transport.py` | `ddl_transport.py`, `ddl_transport_worker.py`, `test_ddl_transport.py`; isolated curl runtime, Requests archive owner |
+| Static-page notifications | `patch_global_events.py` | Guard absent page reload targets after displaying the notification |
 | Active DDL path and size handling | `patch_ddl_status.py` | `test_ddl_status.py` |
 | HTTP response validation | `patch_ddl_responses.py` | `test_ddl_responses.py` |
 | Exhausted mirrors | `patch_ddl_exhaustion.py` | `test_ddl_exhaustion.py` |
@@ -74,7 +76,7 @@ The publisher owns atomic CBZ exchange and versioned recovery receipts. Conflict
 copies remain private for review. Its streaming recovery API skips cleaned history,
 reports active locks without waiting, and retains malformed receipts. All five helpers are retained under
 `/opt/mylar3-fixes` in the final image, with v1 exchange retained as a standalone compatibility helper. Native startup uses
-the explicit v2 NFS publisher. Live rollout and rollback passed; optional DDL discovery remains unimplemented.
+the explicit v2 NFS publisher. Live rollout and rollback passed; optional DDL discovery has an independent Requests-default adapter.
 
 `mylar.tagger_handoff` is the canonical native result module. It captures only
 reconciled publication receipts, verifies the expected manual source, and keeps

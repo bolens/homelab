@@ -7,6 +7,8 @@ import sys
 import tempfile
 
 FIXES = Path(__file__).parent
+if Path('/opt/comictagger/bin/python').exists():
+    assert Path('/opt/ddl-transport/bin/python').is_file(), 'Custom image is missing its required optional discovery runtime'
 with tempfile.TemporaryDirectory() as directory:
     source = Path(directory) / 'mylar'
     shutil.copytree('/app/mylar3/mylar', source)
@@ -17,7 +19,7 @@ with tempfile.TemporaryDirectory() as directory:
     subprocess.run([sys.executable, str(FIXES / 'apply_patches.py'), str(source)], check=True)
     for test in ('test_ddl_status.py', 'test_ddl_responses.py', 'test_ddl_exhaustion.py', 'test_tagger_timeout.py', 'test_ddl_mirror_retries.py', 'test_health.py', 'test_unnumbered_issues.py', 'test_ddl_resume.py', 'test_ddl_requeue.py', 'test_queue_progress.py', 'test_queue_control.py', 'test_verified_transfer.py', 'test_queue_views.py', 'test_search_fallback.py', 'test_search_cooldown.py', 'test_pp_monitor.py', 'test_archive_monitor.py', 'test_ddl_ui.py', 'test_pack_intake.py', 'test_database_transactions.py', 'test_catalog_volumes.py', 'test_story_arc_search.py', 'test_release_calendar.py', 'test_file_matching.py', 'test_tagger_handoff.py', 'test_tagger_backend.py'):
         subprocess.run([sys.executable, str(FIXES / test), str(source)], check=True)
-    for test in ('test_file_identity.py', 'test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py', 'test_pack_records.py', 'test_pack_catalog.py', 'test_queue_schedule.py', 'test_tagger_runtime.py', 'test_tagger_metadata.py', 'test_tagger_archive.py', 'test_tagger_adapter.py', 'test_tagger_nfs.py', 'test_tagger_lookup.py', 'test_tagger_service.py', 'test_media_writer.py', 'test_native_writers.py', 'test_tagger_staging.py', 'test_tagger_native.py'):
+    for test in ('test_file_identity.py', 'test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py', 'test_pack_records.py', 'test_pack_catalog.py', 'test_queue_schedule.py', 'test_tagger_runtime.py', 'test_tagger_metadata.py', 'test_tagger_archive.py', 'test_tagger_adapter.py', 'test_tagger_nfs.py', 'test_tagger_lookup.py', 'test_tagger_service.py', 'test_media_writer.py', 'test_native_writers.py', 'test_tagger_staging.py', 'test_tagger_native.py', 'test_ddl_transport.py'):
         subprocess.run([sys.executable, str(FIXES / test)], check=True,env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
     # Import the full patched package: native Mylar owns queue_schedule as a
     # function used to start and stop worker pools. Both upstream and built
@@ -29,5 +31,8 @@ if Path('/opt/comictagger/bin/python').exists():
     subprocess.run(['/opt/comictagger/bin/python', str(FIXES / 'test_modern_tagger.py')], check=True)
 else:
     print('Source-only base gate: isolated modern runtime is not installed')
+
+if Path('/opt/ddl-transport/bin/python').exists():
+    subprocess.run(['/opt/ddl-transport/bin/python', str(FIXES / 'evaluate_ddl_streaming.py')], check=True, timeout=15)
 
 print('Candidate image passed the isolated Mylar reliability gate')

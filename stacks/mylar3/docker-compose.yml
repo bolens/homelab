@@ -1,3 +1,4 @@
+# Optional DDL discovery uses existing authenticated settings; Requests remains default and owns archive transfers.
 # Mylar3 – automated comic downloader (Usenet/torrents). Like Sonarr for comics.
 # Pack inventories and Activity history and workflow controls persist in the existing Mylar config volume.
 # Legacy-default/Modern opt-in preference and media-writer protocol persist in the config volume.

@@ -47,7 +47,7 @@ all affected contract surfaces together and regenerate catalog output if metadat
 - `archive_monitor.py`: receipts from verified results, not CLI banner interpretation.
 - `stacks/mylar3/Dockerfile`: isolated venv copied with native ICU dependencies into
   final image. Never overwrite Mylar's Python dependency environment.
-- Future `ddl_transport.py`: discovery session factory, exception normalization,
+- `ddl_transport.py`: discovery session factory, exception normalization,
   resource lifetime; `verified_transfer.py` remains byte-download owner.
 - Spec files: research, data model, contracts, acceptance, quickstart and tasks.
 

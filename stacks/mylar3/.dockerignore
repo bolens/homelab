@@ -9,3 +9,7 @@
 !requirements-build.txt
 !tagger-sources.json
 !tagger-NOTICES.md
+
+!requirements-ddl.txt
+!ddl-sources.json
+!ddl-NOTICES.md
