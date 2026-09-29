@@ -206,7 +206,9 @@ def eligible(ddl_id,allow_held=False):
     database=db.DBConnection()
     raw=database.selectone('SELECT * FROM ddl_info WHERE id=?',[ddl_id]).fetchone()
     if not raw:raise ValueError('DDL entry no longer exists')
-    row=dict(raw);iid=identifier(row.get('issueid'));cid=identifier(row.get('comicid'))
+    # SQLite's native ID column loses case-insensitive lookup in a plain dict.
+    row={name.lower(): raw[name] for name in raw.keys()}
+    iid=identifier(row.get('issueid'));cid=identifier(row.get('comicid'))
     if not iid or not cid or str(row.get('pack')).lower() not in ('0','false','none',''):
         raise ValueError('Only regular single-issue downloads can be switched')
     if row.get('site')!='DDL(GetComics)':raise ValueError('This download source cannot be switched')

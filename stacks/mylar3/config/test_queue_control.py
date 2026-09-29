@@ -86,7 +86,7 @@ class ControlTest(unittest.TestCase):
         self.addCleanup(database.close)
         database.row_factory = sqlite3.Row
         database.executescript("""
-            CREATE TABLE ddl_info(id TEXT, issueid TEXT, status TEXT, pack INTEGER, filename TEXT);
+            CREATE TABLE ddl_info(ID TEXT, issueid TEXT, status TEXT, pack INTEGER, filename TEXT);
             CREATE TABLE issues(IssueID TEXT, Status TEXT, Location TEXT);
             CREATE TABLE annuals(IssueID TEXT, Status TEXT, Location TEXT,ComicID TEXT DEFAULT '20',Deleted INT DEFAULT 0);
             INSERT INTO ddl_info VALUES ('1','2','Completed',0,'comic.cbz'),('pack','2','Completed',1,'pack.cbz'),
@@ -170,7 +170,7 @@ class ControlTest(unittest.TestCase):
         database = sqlite3.connect(':memory:');database.row_factory = sqlite3.Row
         self.addCleanup(database.close)
         database.executescript("""
-            CREATE TABLE ddl_info(id TEXT,issueid TEXT,comicid TEXT,status TEXT,pack INTEGER,issues TEXT);
+            CREATE TABLE ddl_info(ID TEXT,issueid TEXT,comicid TEXT,status TEXT,pack INTEGER,issues TEXT);
             CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);
             CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Issue_Number TEXT,Status TEXT,Location TEXT);
             CREATE TABLE annuals(IssueID TEXT,Status TEXT,Location TEXT,ComicID TEXT DEFAULT '20',Deleted INT DEFAULT 0);

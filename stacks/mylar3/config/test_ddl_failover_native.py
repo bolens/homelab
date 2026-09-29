@@ -10,7 +10,12 @@ HTML='''<p style="text-align: center;">Fixture<br/>Language:<br/>English<br/>Yea
 class DB:
  def __init__(self):
   self.connection=sqlite3.connect(':memory:');self.connection.row_factory=sqlite3.Row
-  self.connection.execute('CREATE TABLE ddl_info(id TEXT PRIMARY KEY, series,year,size,issues,issueid,comicid,link,mainlink,site,pack,link_type,updated_date,status)')
+  # Use the actual image schema, including every native column and its casing.
+  source=(Path(os.environ['MYLAR_WORKFLOW_SOURCE'])/'__init__.py').read_text()
+  schemas=[node.value for node in ast.walk(ast.parse(source)) if isinstance(node,ast.Constant)
+           and isinstance(node.value,str) and node.value.startswith('CREATE TABLE IF NOT EXISTS ddl_info (')]
+  assert len(schemas)==1, 'Native DDL schema changed; review its field contract'
+  self.connection.execute(schemas[0])
  def upsert(self,table,values,control):
   fields=dict(control,**values);cols=','.join(fields)
   self.connection.execute(f'INSERT INTO {table} ({cols}) VALUES ({",".join("?" for _ in fields)}) ON CONFLICT(id) DO UPDATE SET '+','.join(k+'=excluded.'+k for k in values),list(fields.values()))
@@ -33,6 +38,20 @@ class NativeParserTest(unittest.TestCase):
    (self.root/'html_cache'/('getcomics-'+id+'.html')).write_text(self.html);self.inject()
   self.owner=SimpleNamespace(issueid='42',comicid='7',oneoff=False,jd2=None,loadsite=loadsite)
  def call(self):return self.parse(self.owner,'123','https://fixture.invalid/release',None,dict(pack=False,pack_numbers=None,pack_issuelist=None),['GC-Main'])
+ def test_native_field_contract_and_retry_preservation(self):
+  columns={row[1] for row in self.db.connection.execute('PRAGMA table_info(ddl_info)')}
+  self.assertTrue({'ID','series','year','filename','size','issueid','comicid','link','status',
+                   'remote_filesize','updated_date','mainlink','issues','site','submit_date',
+                   'pack','link_type','tmp_filename','jd2_job_id'} <= columns)
+  self.db.action("UPDATE ddl_info SET filename='original.cbz',remote_filesize='123',submit_date='2026-01-01',tmp_filename='staged',jd2_job_id='job',issues='1-2',pack=1 WHERE id='123'")
+  self.assertTrue(self.call()['success'])
+  row=self.db.selectone("SELECT * FROM ddl_info WHERE id='123'").fetchone()
+  for key,value in dict(ID='123',issueid='42',comicid='7',mainlink='https://fixture.invalid/release',
+                        filename='original.cbz',remote_filesize='123',submit_date='2026-01-01',
+                        tmp_filename='staged',jd2_job_id='job',issues='1-2',pack=1,status='Queued',
+                        link_type='GC-Mirror',link='https://fixture.invalid/mirror',series='Fixture',year='2020',size='10 MB').items():
+   self.assertEqual(row[key],value,key)
+  self.assertTrue(row['updated_date'])
  def test_selects_native_mirror(self):
   self.assertTrue(self.call()['success']);self.assertEqual(self.queue.get_nowait()['link_type'],'GC-Mirror')
  def test_only_main_and_mirror_selects_mirror(self):
