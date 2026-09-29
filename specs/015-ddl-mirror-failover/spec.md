@@ -2,10 +2,10 @@
 
 **Feature Branch**: `codex/ddl-mirror-priority`
 **Created**: 2026-09-29
-**Status**: In progress
+**Status**: Implemented and deployed
 **Input**: Retry failed downloads immediately on another mirror with queue priority, and check queued releases for available mirrors when every selected provider is cooling down.
 
-This specification records the expanded scope during implementation. Delivery and live acceptance remain pending.
+This specification records the expanded scope during implementation. Delivery and live acceptance are recorded in tasks.md.
 
 ## User Scenarios & Testing
 
