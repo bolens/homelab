@@ -36,7 +36,7 @@ private `normalizer.json`. Both services must use the same owner UID. This adds
 one narrow writable bind mount. The existing `/mylar` configuration mount stays
 read-only, and Komga receives no coordination mount or configuration change.
 
-Mylar post-processing and complete manual-tagging operations share an exclusive
+Mylar post-processing, manual tagging, rescans, moves and deletions share an exclusive
 lock with the worker's entire conversion/maintenance cycle. The worker skips busy
 cycles without discarding existing error reports. A persistent recovery marker
 remains while conversion receipts are unfinished, including asynchronous Komga
@@ -63,9 +63,18 @@ while either writer can run. Recovery or rollback must preserve pending markers
 until asynchronous upgrades are verified complete. Existing installations keep
 legacy worker behavior when `writer_state` is null or absent.
 
-This protocol covers normalizer conversion/maintenance, Mylar post-processing and
-manual tagging. Other native rename/rescan writers and modern startup/publication
-recovery still require audit before enabling the modern tagger backend.
+A separate tagger recovery marker also blocks worker admission after Mylar crashes.
+Only Mylar may reconcile and clear that marker; worker recovery cannot bypass it.
+Mylar's startup recovers publication before scans even when Legacy is selected.
+After conversion is verified, the worker records a pending Mylar notification and
+releases the lock before calling its guarded rescan API. Failed notifications remain
+retryable without reconverting the archive. Notifications wait while any asynchronous
+conversion still requires recovery.
+
+Use matching Mylar and worker images for this protocol extension. Earlier workers
+neither honor the tagger marker nor defer their rescan callback. Drain and verify
+recovery before rollback; never switch an older writer onto pending v2 publication
+state. Live coordination/canary/rollback acceptance still gates the Modern backend.
 
 ## Automatic comic conversion
 

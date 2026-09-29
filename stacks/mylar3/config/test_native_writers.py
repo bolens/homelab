@@ -2,6 +2,8 @@
 from importlib import import_module
 from pathlib import Path
 import queue
+import ast
+import os
 import sys
 import tempfile
 import threading
@@ -48,6 +50,22 @@ class NativeWriterTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):wrapped(obj)
         operation.assert_not_called();self.assertFalse(self.mylar.APILOCK)
         self.assertEqual(obj.queue.get_nowait(),[{'mode':'stop'}])
+
+    @unittest.skipUnless(os.getenv('MYLAR_WORKFLOW_SOURCE'), 'Patched native source required')
+    def test_patch_guards_all_declared_callers_and_recovers_before_database(self):
+        from patch_media_writers import GUARDS, main
+        root=Path(os.environ['MYLAR_WORKFLOW_SOURCE'])
+        before={p:p.read_bytes() for p in [root/'__init__.py', *(root/name for name in GUARDS)]}
+        main(root)
+        self.assertEqual(before,{p:p.read_bytes() for p in before})
+        for filename,names in GUARDS.items():
+            tree=ast.parse((root/filename).read_text())
+            for name in names:
+                nodes=[n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name==name]
+                self.assertEqual(len(nodes),1)
+                self.assertEqual(sum(ast.unparse(d)=='native_writers.guard' for d in nodes[0].decorator_list),1)
+        source=(root/'__init__.py').read_text()
+        self.assertLess(source.index('native_writers.initialize()'),source.index('# Initialize the database'))
 
     def test_error_releases_manual_lock(self):
         @self.native.guard

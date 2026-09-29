@@ -73,23 +73,25 @@ operation files, reopens them for verification and never replaces a source.
 The publisher owns atomic CBZ exchange and versioned recovery receipts. Conflict
 copies remain private for review. Its streaming recovery API skips cleaned history,
 reports active locks without waiting, and retains malformed receipts. All five helpers are retained under
-`/opt/mylar3-fixes` in the final image, with no startup or native invocation.
-Native routing, writer coordination, filesystem canaries and optional DDL discovery
-remain separate activation gates.
+`/opt/mylar3-fixes` in the final image, with v1 exchange retained as a standalone compatibility helper. Native startup uses
+the explicit v2 NFS publisher. Live rollout and optional DDL discovery remain gated.
 
 `mylar.tagger_handoff` is the canonical native result module. It captures only
 reconciled publication receipts, verifies the expected manual source, and keeps
 in-place results out of automatic temporary-file placement. The final image does
 not install a second standalone copy. Native tagging still returns legacy strings;
-backend selection and modern producer routing remain pending.
+Modern producer routing is present but the live activation gate remains closed.
 
 `install_tagger_service.py` installs package-relative helper imports and the inactive
 `mylar.tagger_service` producer. `tagger_lookup.py` bounds credential-bearing
 ComicVine work in a child process and validates issue/volume identity. Service tests
 cover manual/automatic ownership, no-overwrite, corruption and recovery admission.
 The real-CLI gate exercises these native-package modules together. The service
-requires a caller-supplied global writer coordinator. It is not connected to
-cmtagmylar, settings or startup, and uncertain staging remains private for recovery.
+requires the global writer coordinator. `tagger_native.py` owns catalog identity,
+policy snapshots, bound recovery state and v2 publisher selection. `tagger_staging.py`
+owns disposable output receipts and conservative cleanup. Startup recovery precedes
+scans; complete native operations retain ownership through placement. Uncertain
+staging remains private for review without claiming import success.
 
 `tagger_backend.py` owns exact backend names, server validation and native dispatch.
 The settings choice persists in the existing Metatagging section. Legacy remains
@@ -101,7 +103,8 @@ capability, not a user-controlled bypass flag.
 
 `tagger_nfs.py` supplies the inactive version-2 rename/link publication strategy;
 `tagger_attributes.py` owns bounded ACL/user-attribute preservation. The version-1
-exchange publisher remains the default. `test_tagger_nfs.py` covers real-process
+exchange publisher remains available for isolated compatibility tests. `test_tagger_nfs.py` covers real-process
 crashes, conflicts, RPC ambiguity, native handoff and the pinned CLI. It can run on
 an explicitly provided disposable media fixture root. Native journal selection,
-startup recovery and writer/scanner coordination still gate activation.
+startup recovery and writer/scanner admission are integrated; live rollout and rollback
+acceptance still gate activation.

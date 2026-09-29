@@ -57,7 +57,9 @@ def cycle(normalizer, maintenance=None):
             pending=any(json.loads(path.read_text())['phase']!='done'
                         for path in normalizer.jobs.glob('*/receipt.json'))
             if not pending:writer.clear_pending()
-            return True
+        if not pending:
+            refresh_completed(normalizer)
+        return True
     except Busy:
         # A busy lock is normal contention. Preserve errors and pending counts,
         # but update freshness so health does not misreport a stalled scan.
@@ -69,3 +71,14 @@ def cycle(normalizer, maintenance=None):
             previous.update(checked_at=time.time(),state='waiting for media writer')
             save(path,previous)
         return False
+
+
+def refresh_completed(normalizer):
+    """Retry durable notifications outside the writer lock; never retag media."""
+    from normalize import save
+    for receipt in normalizer.jobs.glob('*/receipt.json'):
+        job = json.loads(receipt.read_text())
+        if job['phase'] == 'done' and job.get('mylar_refresh_pending'):
+            normalizer.refresh_mylar(job)
+            job.pop('mylar_refresh_pending')
+            save(receipt, job)

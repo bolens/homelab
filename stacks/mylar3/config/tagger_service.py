@@ -40,10 +40,11 @@ def select(backend, legacy, modern, *args, **kwargs):
 
 
 class Service:
-    def __init__(self, publisher, cache, lookup, handoff, coordinate):
+    def __init__(self, publisher, cache, lookup, handoff, coordinate, *, staging=None):
         self.publisher, self.lookup, self.handoff = publisher, lookup, handoff
         if not callable(coordinate):
             raise ValueError('Global media writer exclusion is required')
+        self.staging = staging
         self.coordinate = coordinate  # Must exclude writers for every journaled path.
         self.cache = Path(cache).absolute()
         if self.cache.anchor != '/' or '..' in self.cache.parts or any(p.is_symlink() for p in (self.cache, *self.cache.parents)):
@@ -72,8 +73,7 @@ class Service:
                     if recovered.state not in ('committed', 'unchanged', 'failed', 'timed_out', 'unsupported'):
                         return self.failure('conflict', manualmeta)
                 original = snapshot(source)
-                if source.stat().st_nlink != 1 or os.listxattr(source, follow_symlinks=False):
-                    return self.failure('unsupported', manualmeta)
+                security = self.publisher.security(source)
                 before = fingerprint(source)
                 if identity(source.lstat()) != original.identity:
                     return self.failure('conflict', manualmeta)
@@ -95,8 +95,11 @@ class Service:
                 token = uuid.uuid4().hex
                 target = source
                 if not manualmeta:
-                    folder = Path(tempfile.mkdtemp(prefix='mylar_modern_', dir=self.cache))
-                    target = folder/source.name
+                    if self.staging is not None:
+                        target = self.staging.allocate(token, source, before, original.identity)
+                    else:
+                        folder = Path(tempfile.mkdtemp(prefix='mylar_modern_', dir=self.cache))
+                        target = folder/source.name
                     with regular(source) as reader, target.open('xb') as writer:
                         remaining = original.identity[2]
                         while remaining:
@@ -116,8 +119,11 @@ class Service:
                     return self.failure(result.state, manualmeta)
                 if manualmeta:
                     return self.handoff.capture(self.publisher, token)
-                if fingerprint(source) != before or identity(source.lstat()) != original.identity:
+                if (fingerprint(source) != before or identity(source.lstat()) != original.identity
+                        or self.publisher.security(source) != security):
                     return self.failure('conflict', False)
+                if self.staging is not None:
+                    self.staging.ready(token, target)
                 return str(target)
         except (OSError, ValueError, TypeError, KeyError, RuntimeError, zipfile.BadZipFile, zlib.error, EOFError):
             # Keep uncertain staging for recovery; never remove publisher copies.

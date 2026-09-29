@@ -353,7 +353,12 @@ class Normalizer:
         for name, expected in job['sidecars'].items():
             if digest(destination.parent / name) != expected:
                 raise RuntimeError('Book sidecar preservation check failed')
-        self.refresh_mylar(job)
+        if self.config.get('writer_state'):
+            # Persist the notification before releasing ownership. The guarded
+            # Mylar rescan must run only after our complete cycle releases flock.
+            job['mylar_refresh_pending'] = True
+        else:
+            self.refresh_mylar(job)
         job['replacement_id'] = current['id']
         job['phase'] = 'done'
         job['completed_at'] = time.time()

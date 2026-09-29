@@ -63,8 +63,12 @@ a disposable path and preserves the download source. Automatic failures remain t
 literal `fail` string with a typed reason for the observer. No-overwrite on existing
 ComicInfo skips lookup, overrides and CLI work. Unsupported modes fail closed.
 The exact backend selector never retries through legacy after a modern failure.
-No native entry point or setting calls this service yet. Failed/uncertain staging
-remains private, pending coordinated native cleanup and startup ownership.
+The native entry point routes to this service only when the code capability gate
+opens. Startup reconciliation runs before database maintenance even under Legacy.
+Automatic callers require an outer native operation spanning placement and cleanup;
+manual calls return canonical in-place receipts. Staging manifests never imply import
+success. Uncertain copies remain private; disposable copies are deleted only against
+an unchanged original and the recorded content digest.
 
 `tagger_lookup.lookup` keeps credentials in a private temporary file, never argv,
 and bounds the child to 45 seconds and 64 KiB output. HTTP responses are limited to
@@ -89,7 +93,12 @@ blocks native admission while conversion receipts remain unfinished, surviving
 process death and asynchronous Komga requests. Only worker reconciliation clears
 it. Protocol files cannot be recreated in an existing directory after deletion.
 Both image contexts ship identical protocol code, checked by repository tests.
-This does not assert coverage of every native rescan or file-management writer.
+Native guards also cover series imports, rescans, renames, moves, cover writes and
+web/API series deletion. The v2 tagger fence is separate from the worker fence;
+neither recovery owner can bypass the other. State directory identities are bound
+before publication. The worker persists rescan notifications and sends them after
+release, retrying failure without replaying conversion. Matching images are required;
+old workers do not understand the tagger fence or deferred callback contract.
 
 
 `tagger_nfs.Publisher` explicitly selects version-2 rename/link publication. It is
@@ -100,5 +109,12 @@ between displacement and publication, including across a crash; recovery must ru
 before any media writer or scanner is admitted. RPC errors are reconciled from
 verified identities and bytes. Exact supported ACL/user-attribute values, mode and
 ownership are checked before publication and in the canonical native handoff.
-Old readers reject v2 receipts without mutation. Neither strategy is selected by
-native modern routing yet; enabling this module remains an integration gate.
+Old readers reject v2 receipts without mutation. Native modern routing explicitly
+selects v2; activation remains gated on live canary and rollback acceptance. Never
+start an old writer over pending v2 state. Reconcile with the matching image first,
+or restore the verified prior state and affected fixture files with writers stopped.
+Automatic cache inputs retain legacy native destination ownership policy; exact ACL
+and user-attribute preservation applies to manual in-place publication. Automatic
+link placement is unsupported and retains the original path rather than linking to
+a disposable stage. No live
+configuration, Compose, privilege or ingress change is part of this increment.

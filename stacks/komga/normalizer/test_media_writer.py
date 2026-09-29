@@ -37,6 +37,18 @@ class WriterTest(unittest.TestCase):
         with self.owner.hold(allow_pending=True):self.owner.clear_pending()
         with self.owner.hold(timeout=0):pass
 
+    def test_dead_tagger_fence_blocks_normalizer_recovery_authority(self):
+        child=self.child("from media_writer import Writer;import sys,os\nw=Writer(sys.argv[1])\nwith w.hold(allow_tagger_pending=True):\n w.mark_tagger_pending();os._exit(17)")
+        self.assertEqual(child.wait(5),17);child.stdout.close()
+        with self.assertRaises(Busy):
+            with self.owner.hold(allow_pending=True,timeout=0):pass
+        with self.assertRaises(ValueError):self.owner.clear_tagger_pending()
+        with self.owner.hold(allow_tagger_pending=True):self.owner.clear_tagger_pending()
+        with self.owner.hold(allow_pending=True,timeout=0):pass
+        with self.owner.hold():
+            with self.assertRaises(ValueError):
+                with self.owner.hold(allow_tagger_pending=True):pass
+
     def test_threads_and_nested_instances_keep_outer_ownership(self):
         other=Writer(self.root);seen=[]
         def attempt():
