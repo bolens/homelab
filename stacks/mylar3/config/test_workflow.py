@@ -35,7 +35,7 @@ class WorkflowTest(unittest.TestCase):
         self.conn.executescript("""
             CREATE TABLE issues(IssueID TEXT,ComicID TEXT,ComicName TEXT,Status TEXT,Location TEXT);
             INSERT INTO issues VALUES ('10','20','Example','Snatched',NULL);
-            CREATE TABLE ddl_info(id TEXT,issueid TEXT,comicid TEXT,series TEXT,pack TEXT,status TEXT,site TEXT,updated_date TEXT,link_type TEXT);
+            CREATE TABLE ddl_info(ID TEXT,issueid TEXT,comicid TEXT,series TEXT,pack TEXT,status TEXT,site TEXT,updated_date TEXT,link_type TEXT);
             INSERT INTO ddl_info VALUES ('1','10','20','Example #1','0','Queued','DDL(GetComics)','2026-01-01 00:00','GC-Main');
             CREATE TABLE nzblog(IssueID TEXT,PROVIDER TEXT);
             CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,ComicName TEXT,Status TEXT,Location TEXT,Deleted INT);

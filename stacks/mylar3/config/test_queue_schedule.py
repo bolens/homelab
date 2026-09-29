@@ -90,7 +90,7 @@ class ScheduleTest(unittest.TestCase):
         self.addCleanup(database.close)
         database.row_factory = sqlite3.Row
         database.executescript("""
-            CREATE TABLE ddl_info(id TEXT,comicid TEXT,issueid TEXT,issues TEXT,pack INTEGER,status TEXT);
+            CREATE TABLE ddl_info(ID TEXT,comicid TEXT,issueid TEXT,issues TEXT,pack INTEGER,status TEXT);
             CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Issue_Number TEXT,ReleaseDate TEXT,IssueDate TEXT);
             CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,Issue_Number TEXT,ReleaseDate TEXT,IssueDate TEXT);
             INSERT INTO ddl_info VALUES ('1','c','i1',NULL,0,'Queued'),('2','c','i2',NULL,0,'Queued'),

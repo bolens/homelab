@@ -25,7 +25,7 @@ class HealthTest(unittest.TestCase):
         database.executescript("""
             CREATE TABLE issues(IssueID TEXT,Status TEXT);
             CREATE TABLE annuals(IssueID TEXT,Status TEXT,Deleted INT);
-            CREATE TABLE ddl_info(id TEXT,status TEXT);
+            CREATE TABLE ddl_info(ID TEXT,status TEXT);
             INSERT INTO issues VALUES ('1','Downloaded'),('2','Downloaded'),('3','Downloaded');
             INSERT INTO annuals VALUES ('2','Downloaded',0),('3','Downloaded',1),('4','Archived',0);
         """)
