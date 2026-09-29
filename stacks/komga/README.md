@@ -122,6 +122,58 @@ Turning this setting off clears pending reader notifications without cancelling
 Mylar tagging. When disabled, refresh Komga metadata manually or use its schedule. Turning the worker opt-in off stops new admissions; disable Mylar
 metadata tagging to pause already admitted jobs.
 
+### Scan Komga after completed additions
+
+The normalizer can batch Komga library scans after new Mylar issues or annuals
+reach their final library paths. Enable this independently of per-book metadata
+refresh in the private `normalizer.json`:
+
+```json
+"reader_scan": {
+  "enabled": true,
+  "batch_size": 5,
+  "max_wait_seconds": 300,
+  "min_interval_seconds": 120
+}
+```
+
+It defaults to disabled. Enabling requires shared writer coordination, the
+read-only Mylar configuration mount (`mylar.config_dir`), and the existing Komga
+administrator API key. Mylar, Komga and the worker must see the library at the
+same absolute paths, normally `/data/comics`. No new port, mount or credential is
+needed. Preparation preserves existing configuration; add the settings explicitly
+when upgrading. Update only `comic-normalizer` with `--no-deps`.
+
+On first activation, the worker records the existing downloaded catalog without
+opening archives or requesting scans. Subsequent additions must have a unique
+Downloaded/Archived catalog entry, remain unchanged for `settle_seconds`, and be
+CBZ files with one readable root `ComicInfo.xml`. Pending conversion, tagging or
+metadata-repair receipts defer notification. Missing, linked, ambiguous, untagged
+or malformed files stay pending; a scan does not repair them. Deleted annuals are
+excluded. Existing baseline books and untracked extras rely on existing conversion
+notifications or scheduled scans.
+
+The defaults request a scan after five ready additions, or flush a smaller batch
+five minutes after its oldest item becomes ready. Requests are at least two
+minutes apart, including retries after failures or restarts. Timing is evaluated
+on worker cycles, so a busy writer or long conversion can delay a request. At most
+50 new/pending archives are inspected each cycle, using only bounded ZIP directory
+and ComicInfo reads; image pages are never decompressed for this check. Only the
+unique library containing each ready file is requested. A scan covers that whole
+library, so batching limits extra scan I/O; it does not limit Komga to those files.
+
+`batch_size` accepts 1–100 and both timing settings accept 1–86400 seconds.
+`reader-scan.json` persists the catalog baseline, pending additions and retry
+pacing. `reader-scan-status.json` reports pending/ready counts and the last accepted
+request; errors affect container health. Preserve these files with the normalizer
+state. Corrupt state or changed catalog/root scope requires review and is never
+silently reset. Disabling pauses notification and preserves queued state.
+
+Komga's scheduled scans and conversion-recovery scans remain unchanged. The
+independent `mylar.refresh_reader_after_tagging` setting still refreshes metadata
+for an already indexed converted book. A successful scan request means Komga
+accepted the job; discovery and analysis finish asynchronously in Komga.
+
 ## Automatic comic conversion
 
 The optional `docker-compose.normalizer.yml` override converts CBR/RAR, CB7/7z,

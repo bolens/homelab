@@ -51,15 +51,17 @@ class CycleTest(unittest.TestCase):
 
     def test_busy_native_writer_skips_all_work_and_preserves_errors(self):
         script="from media_writer import Writer;import sys,time\nwith Writer(sys.argv[1]).hold():\n print('locked',flush=True);time.sleep(60)"
+        self.worker.scan_batch = Mock()
         child=subprocess.Popen([sys.executable,'-c',script,str(self.owner.root)],
               env=dict(os.environ,PYTHONPATH=str(Path(__file__).parent)),stdout=subprocess.PIPE,text=True)
         try:
             self.assertEqual(child.stdout.readline().strip(),'locked')
-            for name in ('status.json','maintenance-status.json'):
+            for name in ('status.json','maintenance-status.json','reader-scan-status.json'):
                 (self.state/name).write_text(json.dumps({'errors':['existing'],'checked_at':1,'pending':2}))
             self.assertFalse(cycle(self.worker,self.maintenance))
             self.worker.cycle.assert_not_called();self.maintenance.cycle.assert_not_called()
-            for name in ('status.json','maintenance-status.json'):
+            self.worker.scan_batch.collect.assert_not_called();self.worker.scan_batch.dispatch.assert_not_called()
+            for name in ('status.json','maintenance-status.json','reader-scan-status.json'):
                 value=json.loads((self.state/name).read_text())
                 self.assertEqual(value['errors'],['existing']);self.assertEqual(value['pending'],2)
                 self.assertGreater(value['checked_at'],1)
@@ -134,6 +136,43 @@ class CycleTest(unittest.TestCase):
         with self.owner.hold(allow_tagger_pending=True):self.owner.mark_tagger_pending()
         self.assertFalse(cycle(self.worker,self.maintenance))
         self.worker.cycle.assert_not_called();self.maintenance.cycle.assert_not_called()
+
+    def test_scan_collects_under_lock_and_dispatches_after_release(self):
+        def collect():
+            self.assertEqual(self.owner.local[1].depth, 1)
+            self.assertFalse(self.owner.fenced())
+            return True
+        def dispatch():
+            self.assertEqual(self.owner.local[1].depth, 0)
+            self.assertFalse(self.owner.fenced())
+        self.worker.scan_batch = SimpleNamespace(collect=Mock(side_effect=collect), dispatch=Mock(side_effect=dispatch))
+        self.assertTrue(cycle(self.worker))
+        self.worker.scan_batch.dispatch.assert_called_once()
+
+    def test_pending_conversion_defers_scan_and_updates_waiting_health(self):
+        folder=self.jobs/'pending'; folder.mkdir()
+        (folder/'receipt.json').write_text(json.dumps({'phase':'submitted'}))
+        self.worker.scan_batch = Mock()
+        self.assertTrue(cycle(self.worker))
+        self.worker.scan_batch.collect.assert_not_called()
+        self.worker.scan_batch.dispatch.assert_not_called()
+        self.worker.scan_batch.waiting.assert_called_once()
+        self.assertTrue(self.owner.fenced())
+
+    def test_failed_scan_readiness_does_not_retain_media_fence(self):
+        self.worker.scan_batch = SimpleNamespace(collect=Mock(return_value=False), dispatch=Mock())
+        self.assertTrue(cycle(self.worker))
+        self.worker.scan_batch.dispatch.assert_not_called()
+        self.assertFalse(self.owner.fenced())
+
+    def test_other_failed_notification_does_not_starve_ready_scan(self):
+        folder=self.jobs/'done'; folder.mkdir()
+        (folder/'receipt.json').write_text(json.dumps({'phase':'done','mylar_refresh_pending':True}))
+        self.worker.refresh_mylar=Mock(side_effect=OSError('fixture'))
+        self.worker.scan_batch=SimpleNamespace(collect=Mock(return_value=True),dispatch=Mock())
+        with self.assertRaises(RuntimeError):cycle(self.worker)
+        self.worker.scan_batch.dispatch.assert_called_once()
+        self.assertFalse(self.owner.fenced())
 
     def test_missing_protocol_never_runs_writers(self):
         self.worker.config={'writer_state':str(self.root/'absent')}

@@ -16,3 +16,4 @@ Installation validation alone does not establish feature completion.
 
 - [Modern tagging and optional DDL transport](011-mylar-modern-tagger/spec.md): prospective [plan](011-mylar-modern-tagger/plan.md), [acceptance matrix](011-mylar-modern-tagger/acceptance.md), [tasks](011-mylar-modern-tagger/tasks.md).
 - [Automatic library metadata maintenance](014-library-metadata-maintenance/spec.md): [plan](014-library-metadata-maintenance/plan.md), [tasks](014-library-metadata-maintenance/tasks.md).
+- [Completed comic reader scans](016-completed-comic-scans/spec.md): [plan](016-completed-comic-scans/plan.md), [tasks](016-completed-comic-scans/tasks.md).
