@@ -91,6 +91,14 @@ class ModernTaggerTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 native.automatic(handoff)
 
+    def test_initial_metadata_reuses_verified_cli_archive(self):
+        _, before = self.fixture()
+        with patch('tagger_archive.rebuild', side_effect=AssertionError('Unnecessary recompression')):
+            result = Publisher(self.root/'journal').tag(
+                self.original, {'series':'Fixture', 'issue':'1'}, token='a'*32)
+        self.assertEqual((result.state, result.metadata), ('committed', 'added'))
+        self.assertEqual(contents(self.original), before)
+
     def test_native_service_real_cli_manual_and_automatic(self):
         _, before = self.fixture()
         package = ModuleType('mylar'); package.__path__ = ['/app/mylar3/mylar']
