@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from media_writer import Writer, Busy
 from writer_cycle import cycle
 
@@ -90,6 +90,45 @@ class CycleTest(unittest.TestCase):
         self.worker.refresh_mylar.side_effect=None
         self.assertTrue(cycle(self.worker))
         self.assertNotIn('mylar_refresh_pending',json.loads(receipt.read_text()))
+
+    def test_one_failed_notification_does_not_starve_later_receipts(self):
+        receipts = []
+        for name in ('first', 'second'):
+            folder = self.jobs/name; folder.mkdir(); receipt = folder/'receipt.json'
+            receipt.write_text(json.dumps({'phase':'done', 'mylar_refresh_pending':True, 'name':name}))
+            receipts.append(receipt)
+        def notify(job):
+            if job['name'] == 'first': raise RuntimeError('unavailable')
+        self.worker.refresh_mylar = Mock(side_effect=notify)
+        with self.assertRaises(RuntimeError): cycle(self.worker)
+        self.assertEqual(self.worker.refresh_mylar.call_count, 2)
+        self.assertTrue(json.loads(receipts[0].read_text())['mylar_refresh_pending'])
+        self.assertNotIn('mylar_refresh_pending', json.loads(receipts[1].read_text()))
+
+    def test_reader_followup_runs_outside_writer_and_survives_failure(self):
+        folder=self.jobs/'job';folder.mkdir();receipt=folder/'receipt.json'
+        receipt.write_text(json.dumps({'phase':'done','mylar_tag_pending':True}))
+        def refresh(job):
+            self.assertFalse(self.owner.fenced())
+            self.assertEqual(getattr(self.owner.local[1],'depth',0),0)
+            raise RuntimeError('Reader unavailable')
+        self.worker.refresh_tagged=Mock(side_effect=refresh)
+        with self.assertRaises(RuntimeError):cycle(self.worker)
+        self.assertTrue(json.loads(receipt.read_text())['mylar_tag_pending'])
+        self.worker.refresh_tagged.side_effect=lambda job:job.pop('mylar_tag_pending')
+        self.assertTrue(cycle(self.worker))
+        self.assertNotIn('mylar_tag_pending',json.loads(receipt.read_text()))
+
+    def test_reader_refresh_save_failure_replays_only_idempotent_notification(self):
+        folder=self.jobs/'job';folder.mkdir();receipt=folder/'receipt.json'
+        receipt.write_text(json.dumps({'phase':'done','mylar_tag_pending':True}))
+        self.worker.refresh_tagged=Mock(side_effect=lambda job:job.pop('mylar_tag_pending'))
+        with patch('normalize.save', side_effect=OSError('fixture write failure')):
+            with self.assertRaises(RuntimeError):cycle(self.worker)
+        self.assertTrue(json.loads(receipt.read_text())['mylar_tag_pending'])
+        cycle(self.worker)
+        self.assertEqual(self.worker.refresh_tagged.call_count, 2)
+        self.assertNotIn('mylar_tag_pending', json.loads(receipt.read_text()))
 
     def test_tagger_crash_fence_blocks_even_worker_recovery(self):
         with self.owner.hold(allow_tagger_pending=True):self.owner.mark_tagger_pending()

@@ -89,7 +89,8 @@ def catalog(issueid):
 
 
 def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
-        filename=None, module=None, manualmeta=False, readingorder=None, agerating=None):
+        filename=None, module=None, manualmeta=False, readingorder=None, agerating=None,
+        automatic_in_place=False, publication_token=None, expected_digest=None):
     import mylar
     from mylar import native_writers, tagger_handoff
     from .tagger_lookup import lookup
@@ -102,14 +103,17 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
         # Snapshot settings once. Caller-provided comversion can describe an annual's
         # parent series, so derive the optional volume override from its release ID.
         config = mylar.CONFIG
+        if type(automatic_in_place) is not bool or (automatic_in_place and
+                (not manualmeta or getattr(config, 'TAGGER_BACKEND', 'legacy') != 'modern')):
+            return failure()
         if not manualmeta and any(getattr(config, name, 'move') not in ('copy', 'move')
                                   for name in ('FILE_OPTS', 'ARC_FILEOPS')):
             # A native softlink would reference disposable staging. Preserve the
             # original import path until link-based placement has its own receipt.
             return failure()
-        policy = dict(enabled=bool(manualmeta or config.ENABLE_META), comicrack=bool(config.CT_TAG_CR),
+        policy = dict(enabled=bool((manualmeta and not automatic_in_place) or config.ENABLE_META), comicrack=bool(config.CT_TAG_CR),
                       comicbooklover=bool(config.CT_TAG_CBL), conversion_only=bool(config.CBR2CBZ_ONLY),
-                      overwrite=bool(config.CT_CBZ_OVERWRITE))
+                      overwrite=False if automatic_in_place else bool(config.CT_CBZ_OVERWRITE))
         api_key, base_url, interval = config.COMICVINE_API, config.COMICVINE_URL, config.CVAPI_RATE
         volume_enabled, year_volume, default_volume = config.CMTAG_VOLUME, config.CMTAG_START_YEAR_AS_VOLUME, config.SETDEFAULTVOLUME
         with native_writers.operation() as writer:
@@ -130,7 +134,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
                 lambda **kwargs: lookup(api_key=api_key, base_url=base_url, interval=interval, **kwargs),
                 tagger_handoff, native_writers.operation, staging=staging)
             return service.tag(filename, issueid=issueid, volumeid=volumeid, manualmeta=manualmeta,
-                               volume=volume, reading_order=readingorder, age_rating=agerating, **policy)
+                               volume=volume, reading_order=readingorder, age_rating=agerating,
+                               publication_token=publication_token, expected_digest=expected_digest, **policy)
     except (OSError, ValueError, TypeError, KeyError, RuntimeError):
         mylar.logger.warn('Modern tagging could not complete; original and recovery state retained')
         return failure()

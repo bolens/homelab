@@ -626,3 +626,28 @@ failures require review and retain evidence rather than reporting success.
 No real power-loss test is performed. Recovery depends on the filesystem and NFS
 server honoring acknowledged flushes. Process interruption tests do not prove
 storage-controller caches or server power-loss durability.
+
+
+### Converted comic metadata queue
+
+The matching normalizer can opt into [automatic tagging after conversion](../komga/README.md#automatic-tagging-after-conversion).
+Its primary-key `queueConvertedTag` API request follows the existing series rescan.
+Mylar durably queues the exact converted path and digest, waits for a unique
+downloaded catalog issue, and fills missing ComicInfo with Modern. Existing XML,
+page bytes, extras and supported file attributes are preserved. Annuals use their
+release volume. Settings must enable post-processing, metadata and Modern
+ComicRack-only tagging. Unsupported settings wait without changing preferences.
+
+The existing post-processing worker runs these jobs when its download import
+queue is idle. **Post-processing → Converted comic tagging** shows up to 100
+recent durable jobs, including waiting, retry, review and verified completion.
+Transient tagging failures allow six attempts; an unmatched catalog path waits
+up to 24 hours. Small terminal identities remain in `workflow.sqlite` to suppress
+old notification replays. Recovery checks the stored publication receipt before
+another attempt, including after a crash between publication and queue completion.
+Keep this journal with existing application backups. The API acknowledges
+admission, not completed tagging. No new public endpoint, mount or privilege is
+introduced. Deploy Mylar before the producer and retain prior images/state until
+health and catalog/file preservation have been verified. The normalizer can independently enable `mylar.refresh_reader_after_tagging` to
+refresh Komga metadata after verified completion, or leave it off for another
+reader refresh workflow.

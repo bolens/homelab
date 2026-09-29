@@ -334,7 +334,8 @@ class Publisher:
                 return Result('conflict')
             return self.finish(record, 'conflict', cleanup=False)
 
-    def tag(self, source, metadata, *, token, updates=None, replace_fields=(), executable=None, preserve_existing=False):
+    def tag(self, source, metadata, *, token, updates=None, replace_fields=(), executable=None, preserve_existing=False,
+            expected_digest=None):
         if type(preserve_existing) is not bool:
             raise ValueError('Expected explicit no-overwrite policy')
         source = Path(source).absolute()
@@ -344,6 +345,10 @@ class Publisher:
         intent = [str(source), metadata, updates, list(replace_fields)]
         if preserve_existing:
             intent.append('preserve_existing')
+        if expected_digest is not None:
+            if not isinstance(expected_digest, str) or not HASH.fullmatch(expected_digest):
+                raise ValueError('Invalid expected source digest')
+            intent.append(expected_digest)
         request = hashlib.sha256(json.dumps(intent, sort_keys=True, allow_nan=False).encode()).hexdigest()
         path = self.receipt(token)
         # A token belongs to exactly one request, even across different sources.
@@ -368,6 +373,8 @@ class Publisher:
                 except ValueError:
                     return Result('unsupported')
                 before = fingerprint(source)
+                if expected_digest is not None and before != expected_digest:
+                    return Result('conflict')
                 if identity(source.lstat()) != old.identity:
                     return Result('conflict')
                 if shutil.disk_usage(source.parent).free < old.identity[2] * 3 + 16 * 1024 ** 2:

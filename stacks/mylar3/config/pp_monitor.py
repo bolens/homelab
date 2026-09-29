@@ -128,7 +128,7 @@ def ddl_states(filenames=(), record_ids=()):
 
 def snapshot():
     import mylar
-    from mylar import db, archive_monitor, library_status
+    from mylar import db, archive_monitor, library_status, converted_tagging
     now = time.time()
     queue = mylar.PP_QUEUE
     with queue.mutex:
@@ -145,7 +145,7 @@ def snapshot():
     alive = bool(mylar.PPPOOL and mylar.PPPOOL.is_alive())
     locked = bool(mylar.APILOCK)
     status = ('Disabled' if not enabled else 'Worker unavailable' if not alive else
-              'Processing' if active else 'Processing lock held; activity details unavailable' if locked else
+              'Tagging converted comic' if converted_tagging.busy() else 'Processing' if active else 'Processing lock held; activity details unavailable' if locked else
               'Queued' if depth else 'Idle')
     database = db.DBConnection()
     imports = library_status.recent_imports(database)
@@ -156,4 +156,5 @@ def snapshot():
             'enabled': enabled, 'worker_alive': alive, 'processing_lock': locked,
             'queue_depth': depth, 'waiting': waiting, 'waiting_truncated': depth > 100,
             'active': active, 'recent': recent, 'imports': confirmed,
-            'observer_errors': errors, 'archives': archive_monitor.snapshot()}
+            'observer_errors': errors, 'archives': archive_monitor.snapshot(),
+            'converted_tagging': converted_tagging.snapshot()}

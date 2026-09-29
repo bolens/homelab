@@ -38,6 +38,7 @@ PATCHES = (
     "patch_media_writers",
     "patch_ddl_transport",
     "patch_global_events",
+    "patch_converted_tagging",
 )
 
 

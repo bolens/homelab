@@ -6,6 +6,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import sqlite3
@@ -114,6 +115,9 @@ class Reader:
     def analyze(self, book_id):
         self.call(f'/api/v1/books/{book_id}/analyze', {})
 
+    def refresh_metadata(self, book_id):
+        self.call(f'/api/v1/books/{book_id}/metadata/refresh', {})
+
     def upgrade(self, job):
         self.call('/api/v1/books/import', {
             'copyMode': 'COPY', 'books': [{
@@ -128,6 +132,11 @@ class Reader:
 class Normalizer:
     def __init__(self, config, reader=None):
         self.config = config
+        tagging = (config.get('mylar') or {}).get('tag_converted', False)
+        refresh = (config.get('mylar') or {}).get('refresh_reader_after_tagging', False)
+        if type(tagging) is not bool or type(refresh) is not bool or ((tagging or refresh) and
+                (not isinstance(config.get('writer_state'), str) or not config['writer_state'])):
+            raise ValueError('Automatic converted tagging requires boolean opt-in and shared writer coordination')
         self.state = Path(config.get('state', '/state'))
         self.roots = [Path(path) for path in config['roots']]
         if not self.state.is_dir() or self.state.is_symlink():
@@ -289,12 +298,64 @@ class Normalizer:
         with closing(sqlite3.connect(f'file:{directory / "mylar.db"}?mode=ro', uri=True)) as db:
             rows = db.execute('SELECT ComicID, ComicLocation FROM comics').fetchall()
         parent = Path(job['destination']).parent
+        matched = False
         for comic_id, location in rows:
             if location and Path(location) == parent:
+                matched = True
                 result = request(settings['url'], '/api', form={
                     'apikey': key, 'cmd': 'recheckFiles', 'id': comic_id})
-                if isinstance(result, dict) and result.get('success') is False:
+                # Native recheckFiles returns JSON null on successful dispatch.
+                # Only the versioned tagging endpoint has a durable acknowledgment.
+                if result is not None and (not isinstance(result, dict) or result.get('success') is not True):
                     raise RuntimeError('Mylar rejected the series recheck')
+        if matched and settings.get('tag_converted', False):
+            self.tagging_status(job)
+            if settings.get('refresh_reader_after_tagging', False):
+                job['mylar_tag_pending'] = True
+
+    def tagging_status(self, job):
+        """Duplicate admission reads durable status without rescan or retagging."""
+        settings = self.config.get('mylar') or {}
+        parser = configparser.ConfigParser()
+        parser.read(Path(settings.get('config_dir', '/mylar'))/'config.ini')
+        key = next((parser.get(section, 'api_key') for section in parser.sections()
+                    if parser.has_option(section, 'api_key')), None)
+        if not key:
+            raise RuntimeError('Mylar API key is unavailable')
+        conversion = dict(version=1, path=job['destination'], sha256=job['output_hash'])
+        payload = json.dumps(conversion, sort_keys=True, separators=(',', ':'))
+        expected = hashlib.sha256(payload.encode()).hexdigest()
+        result = request(settings['url'], '/api', form={
+            'apikey': key, 'cmd': 'queueConvertedTag', 'conversion': payload})
+        acknowledgment = result.get('data') if isinstance(result, dict) else None
+        if (not isinstance(result, dict) or result.get('success') is not True
+                or not isinstance(acknowledgment, dict)
+                or type(acknowledgment.get('version')) is not int or acknowledgment['version'] != 1
+                or acknowledgment.get('key') != expected
+                or acknowledgment.get('phase') not in ('queued', 'waiting-library', 'waiting-settings',
+                                                       'tagging', 'retry', 'review', 'completed')):
+            raise RuntimeError('Mylar did not acknowledge converted tagging; notification retained')
+        job['mylar_tag_key'] = expected
+        return acknowledgment['phase']
+
+    def refresh_tagged(self, job):
+        """Request idempotent reader metadata refresh after verified Mylar completion."""
+        if not (self.config.get('mylar') or {}).get('refresh_reader_after_tagging', False):
+            job.pop('mylar_tag_pending', None)
+            job['mylar_reader_refresh'] = 'disabled'
+            return
+        phase = self.tagging_status(job)
+        if phase == 'review':
+            job.pop('mylar_tag_pending', None)
+            job['mylar_reader_refresh'] = 'tagging requires review'
+        elif phase == 'completed':
+            book_id = job.get('replacement_id')
+            if not isinstance(book_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', book_id):
+                raise ValueError('Converted reader book identity is unavailable')
+            self.reader.refresh_metadata(book_id)
+            job.pop('mylar_tag_pending', None)
+            job['mylar_reader_refresh'] = 'metadata refresh requested'
+            job['mylar_reader_refresh_at'] = time.time()
 
     def advance(self, receipt, books):
         job = json.loads(receipt.read_text())
