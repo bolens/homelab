@@ -513,3 +513,5 @@ body:has(#comicScan) #comicScan .row.checkbox > br { display: none; }
   #pp_monitor #pp_archives :is(th, td):last-child,
   #workflow #wf_events :is(th, td):nth-child(5) { min-width: 17rem; }
 }
+/* DataTables' overflow:hidden must not hide columns from the focusable region. */
+#pp_monitor #pp_archives_wrapper { overflow: visible; display: flow-root; }
