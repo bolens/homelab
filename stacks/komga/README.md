@@ -58,7 +58,11 @@ Before enabling this override, drain existing worker upgrades and Mylar processi
 back up and restore-check both applications' affected state, and verify that both
 mounts refer to the same directory. Deploy matching images and activate the worker
 setting while idle. Update only `comic-normalizer` with `--no-deps` for worker-only
-changes. Keep Komga and NZBGet running. Never replace or restore coordination state
+changes. An idle observation alone does not quiesce the worker: it can begin
+another conversion during the container stop grace period. Acquire the existing
+shared writer lock, verify recovery is clear, and quiesce the verified worker
+process before stopping it. Release the shared lock before backing up state so
+Mylar can continue. Keep Komga and NZBGet running. Never replace or restore coordination state
 while either writer can run. Recovery or rollback must preserve pending markers
 until asynchronous upgrades are verified complete. Existing installations keep
 legacy worker behavior when `writer_state` is null or absent.
@@ -144,11 +148,13 @@ same absolute paths, normally `/data/comics`. No new port, mount or credential i
 needed. Preparation preserves existing configuration; add the settings explicitly
 when upgrading. Update only `comic-normalizer` with `--no-deps`.
 
-On first activation, the worker records the existing downloaded catalog without
+On first activation, after acquiring its process lock, the worker records the
+existing downloaded catalog even if a media writer is busy, without
 opening archives or requesting scans. Subsequent additions must have a unique
 Downloaded/Archived catalog entry, remain unchanged for `settle_seconds`, and be
 CBZ files with one readable root `ComicInfo.xml`. Pending conversion, tagging or
-metadata-repair receipts defer notification. Missing, linked, ambiguous, untagged
+metadata-repair receipts defer notification for their own paths; unrelated
+conversions do not block completed additions. Missing, linked, ambiguous, untagged
 or malformed files stay pending; a scan does not repair them. Deleted annuals are
 excluded. Existing baseline books and untracked extras rely on existing conversion
 notifications or scheduled scans.

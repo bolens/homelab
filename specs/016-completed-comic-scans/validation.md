@@ -34,3 +34,18 @@ scan replay, verify an accepted targeted scan with isolated notification state,
 and compare preserved state/media plus uninterrupted protected-service uptime.
 Do not claim asynchronous Komga analysis has finished merely from a successful
 HTTP request. Keep private operational receipts outside Git.
+
+## Live acceptance correction
+
+The first image accepted a real targeted scan with isolated notification state,
+without changing the comic hash or scheduled scans. Production startup exposed
+unnecessary global deferral behind active media work. Initialize the catalog-only
+baseline under the process lock before media admission, and inspect readiness
+under the shared writer lock even when unrelated conversion receipts are pending.
+Per-path receipt exclusion still prevents unfinished comics from counting.
+Regression tests cover startup without archive/API access, restart without
+rebaselining, and a completed batch alongside an unfinished conversion.
+
+The corrected suite passed all 129 tests with archive conversion enabled and no
+skips. `make ci-local` passed. Separate self-review traced startup ownership and
+per-path exclusion through the active-conversion and reader-request boundaries.

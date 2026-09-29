@@ -502,6 +502,8 @@ def main():
         maintenance = Maintenance(normalizer)
     with (state / 'worker.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if normalizer.scan_batch:
+            normalizer.scan_batch.initialize()
         def heartbeat():
             while True:
                 (state / 'heartbeat').touch()
