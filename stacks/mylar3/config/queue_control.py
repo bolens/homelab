@@ -361,9 +361,16 @@ def diagnostics(rows):
             provider = (row['link_type'] if 'link_type' in row.keys() else None) or value.get('provider') or 'GC-Main'
             cooldown = max(0, math.ceil(state.data['providers'].get(provider, {}).get('until', 0) - now))
             finished = row['status'] == 'Completed'
+            attempts = value.get('attempts', 0)
+            retry_eligible = row['status'] == 'Queued' and not paused and attempts < ATTEMPT_LIMIT
             reason = processing_reason(row) if finished else value.get('reason', '')
+            if row['status'] == 'Failed':
+                if attempts >= ATTEMPT_LIMIT:
+                    reason = 'Retry limit reached; review this release before restarting'
+                else:
+                    reason = 'Download failed; automatic retries stopped; review mirrors or restart'
             if row['status'] == 'Queued':
-                if value.get('attempts', 0) >= ATTEMPT_LIMIT:
+                if attempts >= ATTEMPT_LIMIT:
                     reason = 'Retry limit reached; review this release before restarting'
                 elif paused:
                     reason = 'New downloads paused'
@@ -373,8 +380,8 @@ def diagnostics(rows):
                     reason = 'Queued; waiting for download slot'
             result[key] = {'finished': finished, 'bytes': value.get('bytes', 0), 'speed': round(speed),
                            'last_progress_seconds': int(now - last) if last is not None else None,
-                           'attempts': value.get('attempts', 0), 'reason': reason,
-                           'cooldown_seconds': 0 if finished else cooldown}
+                           'attempts': attempts, 'reason': reason,
+                           'cooldown_seconds': cooldown if retry_eligible else 0}
         state.save()
     return result
 

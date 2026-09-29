@@ -151,6 +151,7 @@ class ControlTest(unittest.TestCase):
             self.assertEqual(control.diagnostics([row])['1']['cooldown_seconds'], 1)
             policy['ddl_paused'] = True
             self.assertEqual(control.diagnostics([row])['1']['reason'], 'New downloads paused')
+            self.assertEqual(control.diagnostics([row])['1']['cooldown_seconds'], 0)
             self.now += 901
             paused = control.diagnostics([row])['1']
             self.assertEqual(paused['reason'], 'New downloads paused')
@@ -163,8 +164,30 @@ class ControlTest(unittest.TestCase):
             self.assertEqual(self.state.data['items']['1']['attempts'], 0)
             self.state.data['items']['1']['attempts'] = 6
             self.assertIn('Retry limit reached', control.diagnostics([row])['1']['reason'])
+            self.assertEqual(control.diagnostics([row])['1']['cooldown_seconds'], 0)
             self.state.data['items']['1']['reason'] = 'Download failed'
-            self.assertEqual(control.diagnostics([dict(row, status='Failed')])['1']['reason'], 'Download failed')
+            self.assertIn('Retry limit reached', control.diagnostics([dict(row, status='Failed')])['1']['reason'])
+
+    def test_terminal_failure_does_not_advertise_provider_cooldown_as_retry(self):
+        mylar = SimpleNamespace(workflow=SimpleNamespace(policy=lambda: {'ddl_paused': False}),
+            db=SimpleNamespace(DBConnection=lambda: None),
+            pack_intake=SimpleNamespace(evidence=lambda ids: {}),
+            pp_monitor=SimpleNamespace(ddl_states=lambda names, ids: {'active': [], 'waiting': [], 'recent': []}))
+        self.state.record(self.item).update(attempts=3, reason='Download failed; checking another mirror')
+        self.state.data['providers']['GC-Main'] = {'until': self.now + 838}
+        row = dict(self.item, status='Failed', filename='comic.cbz')
+        with patch.dict(sys.modules, {'mylar': mylar}), patch.object(control, '_STORE', self.state), patch.object(control, 'import_evidence', return_value={}):
+            result = control.diagnostics([row])['1']
+            self.assertIn('automatic retries stopped', result['reason'])
+            self.assertNotIn('checking another mirror', result['reason'])
+            self.assertEqual(result['cooldown_seconds'], 0)
+            self.assertEqual(result['attempts'], 3)
+            self.assertFalse(result['finished'])
+            queued = control.diagnostics([dict(row, status='Queued')])['1']
+            self.assertEqual(queued['cooldown_seconds'], 838)
+            self.assertEqual(queued['reason'], 'Provider cooling down')
+        self.assertEqual(self.state.data['providers']['GC-Main']['until'], self.now + 838)
+        self.assertEqual(self.state.data['items']['1']['reason'], 'Download failed; checking another mirror')
 
     def test_pack_completion_requires_every_member_and_existing_file(self):
         database = sqlite3.connect(':memory:');database.row_factory = sqlite3.Row

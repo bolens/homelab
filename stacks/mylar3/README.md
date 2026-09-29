@@ -194,7 +194,10 @@ Remove / Cancel confirmation in its row; Escape cancels. Aborting a download or
 clearing the queue still asks for confirmation. Workflow pages use compact charcoal
 buttons with white labels, with larger touch targets on touch devices.
 
-Each release gets six attempts across restarts and mirror changes. Two consecutive
+Each release gets up to six attempts across restarts and mirror changes, and can
+stop earlier when its available mirrors fail. Failed entries show that automatic
+retries have stopped. A provider cooldown appears as a retry countdown only for
+queued entries with downloads enabled and attempts remaining. Two consecutive
 failures on a provider cause a 15-minute cooldown for that provider. HTTP 429 starts
 the cooldown immediately. Other eligible providers continue. An explicit Restart
 or Resume resets that release's attempt budget, while the provider cooldown remains.
