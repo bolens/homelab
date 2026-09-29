@@ -472,6 +472,8 @@ using Legacy.
 
 The image build tests the real modern CLI offline with generated CBZs, including
 annual/variant metadata, Unicode, volume 1, archive comments and unrelated members.
+The modern CLI clears inherited Python configuration and disables user-site imports
+so Mylar's vendored legacy modules cannot shadow its pinned dependencies.
 The CLI protocol helper reports only a staged save; it does not claim a verified
 library import. Publication/recovery now has an isolated fixture implementation;
 live coordination and rollback remain activation gates.

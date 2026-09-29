@@ -1,6 +1,7 @@
 """Pinned modern CLI protocol for staged CBZs; native Mylar does not call it yet."""
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import re
 import tempfile
@@ -44,11 +45,15 @@ def save(staged, metadata, *, workdir, executable=EXECUTABLE, timeout=TAG_TIMEOU
     if not isinstance(metadata, dict) or not metadata or len(payload.encode()) > 262144:
         raise ValueError('Expected bounded explicit metadata')
     with tempfile.TemporaryDirectory(prefix='.tagger-', dir=workdir) as directory:
+        # Mylar can export its vendored legacy libraries through PYTHONPATH.
+        # The pinned CLI must resolve only its own interpreter environment.
+        env = {key:value for key, value in os.environ.items() if not key.startswith('PYTHON')}
+        env['PYTHONNOUSERSITE'] = '1'
         prefix = [str(executable), '--config', directory]
-        probe = run(prefix + ['--version'], cwd=workdir, timeout=VERSION_TIMEOUT)
+        probe = run(prefix + ['--version'], cwd=workdir, timeout=VERSION_TIMEOUT, env=env)
         if not version_supported(probe):
             return TagResult(probe.state if probe.state in ('unavailable', 'timed_out', 'output_limit') else 'unsupported_version')
-        result = run(prefix + ['--json', '-s', '--tags-write', 'cr', '-m', payload, str(staged)], cwd=workdir, timeout=timeout)
+        result = run(prefix + ['--json', '-s', '--tags-write', 'cr', '-m', payload, str(staged)], cwd=workdir, timeout=timeout, env=env)
         if result.state != 'ok':
             return TagResult(result.state)
         return TagResult('saved' if saved_result(result, staged) else 'invalid_result')
