@@ -1,5 +1,42 @@
 # Implementation evidence
 
+## Modern tagger UI acceptance
+
+Verified on 2026-09-29 against the published image from PR #148,
+source `0011e6457f685809dd5f4212af222a5d7aeaf8f9`. Modern remains
+capability-gated and Legacy remains selected; this closes N3/T013 observability
+acceptance, not global activation or the optional DDL transport.
+
+- Authenticated production Manage, settings, Post-processing and Activity pages
+  were exercised in Chromium at 390×1000 and 1920×1000, with en-US locale and
+  America/Denver time zone. All six observer outcomes appeared accurately in the
+  conversion table and Activity history, with original archive format retained.
+- The first visual pass found compressed mobile columns. The corrected tables
+  retain readable column widths inside existing horizontal-scroll regions.
+  A further keyboard check found DataTables clipping its inner wrapper; removing
+  that clipping restored arrow-key access from the focusable outer region.
+  Final screenshots were visually inspected, including the rightmost columns.
+- The readiness explanation no longer claims completed live coordination,
+  canary and rollback checks are pending. Modern remains disabled in the selector;
+  a forced Modern save is rejected before mutation, and reload retains Legacy.
+  The live configuration file hash is unchanged by browser testing.
+- A simulated HTTP 503 retains displayed results and marks them stale. Manual
+  refresh restores current status. The final run observed no unexpected page,
+  console, request or HTTP errors.
+- Outcome fixtures came from the deployed modern publisher and native observer in
+  an unprivileged, network-disabled container with no live data mounts. Added,
+  updated and unchanged used the real pinned CLI; failure used a missing binary;
+  timeout used a real bounded subprocess through a fixture CLI adapter;
+  unsupported used the native typed failure. Pages, extras and comments survived.
+  These outputs were substituted only in the test browser's status responses,
+  not inserted into production history. Prior live native/NFS canary evidence
+  remains separate; successful globally enabled Modern selection was not tested.
+- The scoped rollout drained active work, verified the application backup through
+  an isolated restore, and preserved database records and existing library files.
+  NZBGet, Komga, Uptime Kuma and the normalizer retained their container identities
+  and start times. The original DDL pause preference was restored and temporary
+  operation backups were removed after live acceptance and preservation checks.
+
 ## Live canary and startup recovery
 
 Scope: Mylar image from `e800ad75165737027c2faf699d8b016216840bfc`
@@ -35,8 +72,9 @@ tested on 2026-09-29. Legacy remains selected and Modern remains globally gated.
   container identities and start times. The published images were then restored
   and passed the same preservation checks. This closes T014 and T023.
 
-Modern availability and remaining live UI acceptance are separate gates. These
-checks do not enable the optional DDL transport or establish power-loss recovery.
+Modern availability remains a separate gate. The subsequent UI acceptance is
+recorded above. These checks do not enable the optional DDL transport or establish
+power-loss recovery.
 
 ## Startup and native caller integration
 

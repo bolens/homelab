@@ -47,9 +47,12 @@ Independent test: C3/C4/N3/L1 failures, recovery and old-image rollback.
   startup recovery API now skips completed history and reports busy/invalid receipts.
   Native startup wiring and native writer exclusion are implemented by T022;
   live canary/rollback acceptance passed in T014/T023.
-- [ ] T013 [US2] Connect verified added/updated/unchanged/failed/timed-out/unsupported results to `archive_monitor.py`, with tests for all monitor states.
+- [x] T013 [US2] Connect verified added/updated/unchanged/failed/timed-out/unsupported results to `archive_monitor.py`, with tests for all monitor states.
   The native observer now consumes verified Published results with tests for all
-  outcomes. Active modern producer routing and live UI acceptance remain pending.
+  outcomes. Native producer routing was verified in T022 and the live canary;
+  N3 UI acceptance passed at phone/wide sizes after PR #148 corrected readable
+  columns, keyboard scrolling and readiness wording. Outcome/history fixtures
+  remained browser-local; global Modern activation is still separate.
 - [x] T014 [US2] Verify old/new image state compatibility and scoped canary rollback, record evidence in `validation.md`. Keep legacy selectable.
 
 ## US3 - Optional DDL discovery
