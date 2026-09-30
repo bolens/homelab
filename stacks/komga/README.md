@@ -17,6 +17,23 @@ Access via Caddy at **https://komga.yourdomain.com** (or your configured hostnam
 
 **Portainer:** Add stack → paste `docker-compose.yml` → set env vars from `stack.env` if needed → deploy.
 
+## Readable import notifications
+
+The optional `ghcr.io/bolens/homelab-komga` image keeps the pinned Komga server
+and replaces its next-UI assets with a checked presentation patch. Set
+`KOMGA_IMAGE` to a published digest to opt in. Successful imports show catalog
+series and issue metadata instead of the worker's internal staging path. If the
+metadata lookup fails or takes more than 1.5 seconds, the toast uses a cleaned
+filename. Its Open action still targets the imported book. Failure notifications
+also omit the source directory; detailed import history remains unchanged.
+
+The image builds the UI from the checksum-verified Komga 1.28.0 source and locked
+npm dependencies. Its patch fails if the expected upstream notification changes.
+The server, import paths, library files, API contracts and legacy UI are unchanged.
+For a live update, verify an isolated restore of Komga's configuration/database,
+drain normalizer upgrades, update only Komga, and verify catalog and reader state.
+Retain the previous image for rollback. No library copy is needed for this UI change.
+
 ## Library
 
 The shared libraries are mounted read-only. Mylar3 can organize `/data/comics`

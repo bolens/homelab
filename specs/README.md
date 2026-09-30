@@ -18,3 +18,5 @@ Installation validation alone does not establish feature completion.
 - [Automatic library metadata maintenance](014-library-metadata-maintenance/spec.md): [plan](014-library-metadata-maintenance/plan.md), [tasks](014-library-metadata-maintenance/tasks.md).
 - [Completed comic reader scans](016-completed-comic-scans/spec.md): [plan](016-completed-comic-scans/plan.md), [tasks](016-completed-comic-scans/tasks.md).
 - [PDF comic normalization](017-pdf-comic-normalization/spec.md): [plan](017-pdf-comic-normalization/plan.md), [tasks](017-pdf-comic-normalization/tasks.md).
+
+- [018: Readable Komga import notifications](018-komga-import-notifications/spec.md) — next-UI catalog titles with a filename fallback and optional UI image.
