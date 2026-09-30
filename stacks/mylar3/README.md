@@ -164,7 +164,8 @@ notation. Their download attempt count remains available in a tooltip, with no
 provider cooldown.
 Queued labels follow the current pause setting and provider cooldown deadline,
 so an expired cooldown does not remain displayed from an earlier blocked attempt.
-The attempt count records attempts already used, not time spent waiting.
+The tooltip separates download attempts used from the retry limit; the limit is
+not a mirror count. No attempt fraction appears in the status label.
 Awaiting post-processing is shown only for a matching entry actually in the
 post-processing queue. Active runs and finished runs have distinct labels; other
 completed downloads show that their import is unconfirmed instead of claiming
@@ -195,8 +196,11 @@ clearing the queue still asks for confirmation. Workflow pages use compact charc
 buttons with white labels, with larger touch targets on touch devices.
 
 Each release gets up to six attempts across restarts and mirror changes, and can
-stop earlier when its available mirrors fail. Failed entries show that automatic
-retries have stopped. A provider cooldown appears as a retry countdown only for
+stop earlier when its available mirrors fail. Confirmed mirror exhaustion shows
+how many distinct mirrors failed and recommends another release. Mirror lookup
+failures, changed pack layouts and the retry limit have separate explanations.
+Older failed records without a terminal receipt show the known failed-mirror count
+without claiming a total. Restart and Resume clear the terminal receipt. A provider cooldown appears as a retry countdown only for
 queued entries with downloads enabled and attempts remaining. Two consecutive
 failures on a provider cause a 15-minute cooldown for that provider. HTTP 429 starts
 the cooldown immediately. Other eligible providers continue. An explicit Restart

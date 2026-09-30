@@ -76,6 +76,7 @@ class DdlMirrorRetriesTest(unittest.TestCase):
         self.assertEqual(gc.parse_downloadresults.call_count, 4)
         database.upsert.assert_any_call("ddl_info", {"status": "Failed"}, {"id": "1"})
         self.assertEqual(mylar.DDL_QUEUED, [])
+        namespace["queue_control"].stop_retry.assert_called_once_with(item, lookup_failed=True)
 
 
 if __name__ == "__main__":

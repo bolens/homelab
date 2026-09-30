@@ -112,17 +112,31 @@ def completion_template(source):
 
 def clarity_template(source):
     if '// homelab-queue-clarity-v1' in source:
-        return source
+        return mirror_template(source)
     source = replace_once(source, '<th>Retry status</th>', '<th>Download / import status</th>')
     source = replace_once(source,
         "var suffix=d.finished ? (attempts ? ' (' + attempts + (attempts === 1 ? ' attempt)' : ' attempts)') : '') : ' (' + attempts + '/6 attempts)';",
         "var suffix=d.finished ? '' : ' (' + attempts + '/6 attempts)';")
-    return replace_once(source,
+    source = replace_once(source,
         "return $('<span>').text(text).html();",
         """// homelab-queue-clarity-v1
                             var label=$('<span>').text(text);
                             if (d.finished && attempts) label.attr('title', 'Downloaded in ' + attempts + (attempts === 1 ? ' attempt' : ' attempts'));
                             return $('<div>').append(label).html();""")
+    return mirror_template(source)
+
+
+
+def mirror_template(source):
+    if '// homelab-mirror-status-v1' in source:
+        return source
+    source = replace_once(source,
+        "var suffix=d.finished ? '' : ' (' + attempts + '/6 attempts)';",
+        "// homelab-mirror-status-v1\n                            var suffix='';")
+    return replace_once(source,
+        "if (d.finished && attempts) label.attr('title', 'Downloaded in ' + attempts + (attempts === 1 ? ' attempt' : ' attempts'));",
+        """if (d.finished && attempts) label.attr('title', 'Downloaded in ' + attempts + (attempts === 1 ? ' attempt' : ' attempts'));
+                            else if (!d.finished) label.attr('title', 'Download attempts used: ' + attempts + '; retry limit: ' + (d.attempt_limit || 6) + '. This limit is not a mirror count.');""")
 
 
 def main(directory):

@@ -65,6 +65,9 @@ class ViewsTest(unittest.TestCase):
         queue = template((SOURCE.parent/'data/interfaces/default/queue_management.html').read_text())
         self.assertIn('id="menu_link_edit" href="importProblems"', queue)
         self.assertIn('d.finished', queue)
+        self.assertNotIn('/6 attempts', queue)
+        self.assertIn('Download attempts used:', queue)
+        self.assertIn('This limit is not a mirror count.', queue)
         with self.assertRaises(ValueError):
             management_template('incompatible')
 

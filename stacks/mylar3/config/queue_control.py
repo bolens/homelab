@@ -107,6 +107,7 @@ class Store:
         value = self.data['items'].get(str(key))
         if value:
             value.update(failed_providers=[], attempts=0, completed=False, reason='Manual retry requested')
+            value.pop('retry_stopped', None)
             self.save()
 
 
@@ -121,6 +122,46 @@ def store():
 def reset(key):
     with _LOCK:
         store().reset(key)
+
+
+
+def stop_retry(item, result=None, lookup_failed=False):
+    """Retain why discovery stopped, independently of the transfer attempt budget."""
+    with _LOCK:
+        state = store()
+        value = state.record(item)
+        result = result or {}
+        if lookup_failed:
+            stopped = 'lookup_failed'
+        elif result.get('_queue_reason') == 'Alternate mirror changed pack layout; review release':
+            stopped = 'layout_changed'
+        else:
+            stopped = 'mirrors_exhausted'
+        value['retry_stopped'] = stopped
+        state.save()
+
+
+def failed_mirrors(value):
+    return len({name.replace('GC_Mirror', 'GC-Mirror')
+                for name in value.get('failed_providers', [])})
+
+
+def failure_reason(value):
+    if value.get('attempts', 0) >= ATTEMPT_LIMIT:
+        return 'Retry limit reached; review this release before restarting'
+    stopped = value.get('retry_stopped')
+    if stopped == 'lookup_failed':
+        return 'Mirror lookup failed repeatedly; automatic retries stopped'
+    if stopped == 'layout_changed':
+        return 'Alternate mirror changed pack layout; review release'
+    count = failed_mirrors(value)
+    if stopped == 'mirrors_exhausted':
+        if count:
+            return 'All %s available %s failed; try another release' % (count, 'mirror' if count == 1 else 'mirrors')
+        return 'No usable mirrors found; try another release'
+    # Old records lack a terminal discovery receipt. Do not invent a total.
+    prefix = ('%s %s failed' % (count, 'mirror' if count == 1 else 'mirrors')) if count else 'Download failed'
+    return prefix + '; automatic retries stopped; review mirrors'
 
 
 def search_order(order, nzbproviders):
@@ -365,10 +406,7 @@ def diagnostics(rows):
             retry_eligible = row['status'] == 'Queued' and not paused and attempts < ATTEMPT_LIMIT
             reason = processing_reason(row) if finished else value.get('reason', '')
             if row['status'] == 'Failed':
-                if attempts >= ATTEMPT_LIMIT:
-                    reason = 'Retry limit reached; review this release before restarting'
-                else:
-                    reason = 'Download failed; automatic retries stopped; review mirrors or restart'
+                reason = failure_reason(value)
             if row['status'] == 'Queued':
                 if attempts >= ATTEMPT_LIMIT:
                     reason = 'Retry limit reached; review this release before restarting'
@@ -380,7 +418,8 @@ def diagnostics(rows):
                     reason = 'Queued; waiting for download slot'
             result[key] = {'finished': finished, 'bytes': value.get('bytes', 0), 'speed': round(speed),
                            'last_progress_seconds': int(now - last) if last is not None else None,
-                           'attempts': attempts, 'reason': reason,
+                           'attempts': attempts, 'attempt_limit': ATTEMPT_LIMIT,
+                           'mirrors_failed': failed_mirrors(value), 'reason': reason,
                            'cooldown_seconds': cooldown if retry_eligible else 0}
         state.save()
     return result
