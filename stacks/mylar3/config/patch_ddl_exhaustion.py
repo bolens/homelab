@@ -10,7 +10,7 @@ MARKER = "# homelab-ddl-fix-v1"
 def patched_source(source):
     name = "queues/ddl.py"
     if MARKER in source:
-        return source
+        return terminal_source(source)
     before = "                        ggc.parse_downloadresults(item['id'], item['mainlink'], item['comicinfo'], item['packinfo'], link_type_failure[item['id']])"
     replacements = [
         (
@@ -26,6 +26,19 @@ def patched_source(source):
                 f"DDL fix no longer matches {name}; review the upstream change"
             )
         source = source.replace(before, after, 1)
+    ast.parse(source)
+    return terminal_source(source)
+
+
+def terminal_source(source):
+    if "# homelab-ddl-terminal-v1" in source:
+        return source
+    anchor = "                        if isinstance(retry, dict) and 'links_exhausted' in retry:\n"
+    assert source.count(anchor) == 1, "DDL exhaustion terminal contract changed"
+    source = source.replace(anchor, anchor + "                            # homelab-ddl-terminal-v1\n                            queue_control.stop_retry(item, retry)\n", 1)
+    anchor = "                        nval = {'status':  'Failed',"
+    assert source.count(anchor) == 1, "DDL direct exhaustion contract changed"
+    source = source.replace(anchor, "                        queue_control.stop_retry(item, ddzstat)\n" + anchor, 1)
     ast.parse(source)
     return source
 

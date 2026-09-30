@@ -139,6 +139,7 @@ class DdlExhaustionTest(unittest.TestCase):
         )
         self.assertEqual(self.mylar.DDL_QUEUED, [])
         helpers.reverse_the_pack_snatch.assert_called_once_with("1", "3")
+        self.namespace["queue_control"].stop_retry.assert_called_once_with(item, gc.parse_downloadresults.return_value)
 
     def test_unknown_provider_cannot_reuse_previous_success_or_crash(self):
         for with_previous in (False, True):

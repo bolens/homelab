@@ -35,6 +35,37 @@ class ControlTest(unittest.TestCase):
         restored.reset('1')
         self.assertEqual(restored.begin(self.item), 'ready')
 
+    def test_mirror_exhaustion_is_separate_from_attempt_limit(self):
+        for name in ('GC-Main', 'GC-Media', 'GC-Pixel'):
+            self.item['link_type'] = name
+            self.state.begin(self.item)
+            self.state.finish(self.item, False)
+        with patch.object(control, '_STORE', self.state):
+            control.stop_retry(self.item, {'links_exhausted': ['GC-Main', 'GC-Media', 'GC-Pixel']})
+        restored = control.Store(self.root, lambda: self.now)
+        value = restored.data['items']['1']
+        self.assertEqual(value['attempts'], 3)
+        self.assertEqual(control.failure_reason(value), 'All 3 available mirrors failed; try another release')
+        restored.reset('1')
+        self.assertNotIn('retry_stopped', restored.data['items']['1'])
+        self.assertEqual(control.failed_mirrors(restored.data['items']['1']), 0)
+        self.assertEqual(restored.begin(self.item), 'ready')
+
+    def test_terminal_reason_does_not_invent_available_mirrors(self):
+        value = self.state.record(self.item)
+        value.update(attempts=3, failed_providers=['GC-Mirror', 'GC_Mirror', 'GC-Pixel'])
+        self.assertEqual(control.failure_reason(value), '2 mirrors failed; automatic retries stopped; review mirrors')
+        with patch.object(control, '_STORE', self.state):
+            control.stop_retry(self.item, lookup_failed=True)
+            self.assertEqual(control.failure_reason(value), 'Mirror lookup failed repeatedly; automatic retries stopped')
+            control.stop_retry(self.item, {'_queue_reason': 'Alternate mirror changed pack layout; review release'})
+            self.assertEqual(control.failure_reason(value), 'Alternate mirror changed pack layout; review release')
+            value['attempts'] = 6
+            self.assertIn('Retry limit reached', control.failure_reason(value))
+            value.update(attempts=0, failed_providers=[])
+            control.stop_retry(self.item, {'links_exhausted': []})
+            self.assertEqual(control.failure_reason(value), 'No usable mirrors found; try another release')
+
     def test_provider_cooldown_does_not_block_other_provider(self):
         for _ in range(2):
             self.state.begin(self.item)
