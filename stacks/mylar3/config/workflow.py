@@ -1,5 +1,6 @@
 """Native workflow observations, durable handoffs and intake admission."""
 from functools import wraps
+import hashlib
 import inspect
 from pathlib import Path
 import shutil
@@ -201,7 +202,7 @@ def busy_issue(issueid):
     return any(str(r['PROVIDER']).casefold() not in ('ddl','ddl(getcomics)','ddl(external)') for r in rows)
 
 
-def eligible(ddl_id,allow_held=False):
+def eligible(ddl_id,allow_held=False,exhausted=False):
     from mylar import db
     database=db.DBConnection()
     raw=database.selectone('SELECT * FROM ddl_info WHERE id=?',[ddl_id]).fetchone()
@@ -212,7 +213,7 @@ def eligible(ddl_id,allow_held=False):
     if not iid or not cid or str(row.get('pack')).lower() not in ('0','false','none',''):
         raise ValueError('Only regular single-issue downloads can be switched')
     if row.get('site')!='DDL(GetComics)':raise ValueError('This download source cannot be switched')
-    allowed=('Queued','NZB handoff') if allow_held else ('Queued',)
+    allowed=('Queued','NZB handoff') if allow_held else (('Failed',) if exhausted else ('Queued',))
     if row['status'] not in allowed:raise ValueError('Only waiting, inactive DDL entries can be switched')
     issue=database.selectone('SELECT Status,ComicID,Location FROM issues WHERE IssueID=?',[iid]).fetchone()
     if not issue or str(issue['ComicID'])!=cid or issue['Status'] in ('Downloaded','Archived') or issue['Location']:
@@ -222,10 +223,26 @@ def eligible(ddl_id,allow_held=False):
     if others or busy_issue(iid) or import_owner(iid) or sending.get('phase') in DISPATCH_HELD:raise ValueError('Another download or processing task owns this issue')
     import mylar
     if iid in {str(k) for k in mylar.PACK_ISSUEIDS_DONT_QUEUE}:raise ValueError('This issue belongs to a queued pack')
+    if exhausted and str(ddl_id) in {str(k) for k in mylar.DDL_QUEUED}:
+        raise ValueError('DDL failure cleanup is still active')
+    held=reservation(iid) if allow_held else None
+    if held and held.get('exhausted_release') and exhausted_release(row)!=held['exhausted_release']:
+        raise ValueError('Exhausted release changed before NZB search')
     return row
 
 
-def request_handoff(ddl_id):
+def exhausted_release(row):
+    """Only a current terminal mirror receipt permits automatic Failed admission."""
+    from mylar import queue_control
+    record=queue_control.store().data['items'].get(str(row['id']),{})
+    release=hashlib.sha256((str(row.get('mainlink'))+':'+str(row.get('issueid'))).encode()).hexdigest()
+    if (record.get('release')!=release or record.get('retry_stopped')!='mirrors_exhausted'
+            or record.get('attempts',0)>=queue_control.ATTEMPT_LIMIT):
+        raise ValueError('No confirmed mirror exhaustion for this release')
+    return release
+
+
+def request_handoff(ddl_id,exhausted=False):
     import mylar
     from mylar import queue_control,db,search
     preliminary=db.DBConnection().selectone('SELECT issueid FROM ddl_info WHERE id=?',[ddl_identifier(ddl_id)]).fetchone()
@@ -233,7 +250,10 @@ def request_handoff(ddl_id):
     with issue_lock(preliminary['issueid']),queue_control._LOCK,LOCK:
         existing=reservation(preliminary['issueid'])
         if existing and existing['ddl_id']==str(ddl_id):return existing
-        row=eligible(ddl_identifier(ddl_id));iid=str(row['issueid'])
+        row=eligible(ddl_identifier(ddl_id),exhausted=exhausted);iid=str(row['issueid'])
+        release=exhausted_release(row) if exhausted else None
+        if exhausted and store().get('exhaustion_attempt',str(ddl_id),{}).get('release')==release:
+            raise ValueError('NZB fallback already attempted for this release')
         old=reservation(iid)
         if old:return old
         providers=search.provider_order()['prov_order']
@@ -242,11 +262,14 @@ def request_handoff(ddl_id):
         if not (mylar.USE_NZBGET or mylar.USE_SABNZBD):raise ValueError('Handoff requires NZBGet or SABnzbd')
         value={'id':uuid.uuid4().hex,'ddl_id':str(row['id']),'issueid':iid,'comicid':str(row['comicid']),
                'name':label(row['series']),'phase':'queued','created_at':time.time(),'reason':'Waiting for NZB search'}
+        if exhausted:
+            value.update(exhausted_release=release,reason='Mirrors exhausted; waiting for NZB-only fallback')
         # Durable reservation precedes native status change; DDL begin checks both.
         store().set('handoff',iid,value)
+        if exhausted:store().set('exhaustion_attempt',str(row['id']),{'release':release})
         db.DBConnection().upsert('ddl_info',{'status':'NZB handoff'},{'id':row['id']})
         mylar.SEARCH_QUEUE.put({'issueid':iid,'comicid':value['comicid'],'workflow_handoff':value['id']})
-        emit('handoff','Reserved for NZB-only search',issueid=iid,comicid=value['comicid'],name=value['name'])
+        emit('handoff',value['reason'] if exhausted else 'Reserved for NZB-only search',issueid=iid,comicid=value['comicid'],name=value['name'])
         return value
 
 
@@ -257,10 +280,14 @@ def set_handoff(row,phase,reason):
     return value
 
 
-def restore_ddl(row):
+def restore_ddl(row,no_result=False):
     import mylar
     from mylar import db,queue_control
     with queue_control._LOCK,LOCK:
+        if no_result and row.get('exhausted_release'):
+            db.DBConnection().upsert('ddl_info',{'status':'Failed'},{'id':row['ddl_id']})
+            set_handoff(row,'no-result','No NZB accepted; exhausted DDL remains Failed')
+            return
         db.DBConnection().upsert('ddl_info',{'status':'Queued'},{'id':row['ddl_id']})
         set_handoff(row,'no-result','No NZB accepted; DDL queue restored')
         queue_control.recover(mylar.DDL_QUEUE, record_id=row['ddl_id'])
@@ -294,7 +321,7 @@ def queue_item(item,queue):
         if current and current['phase']=='searching':
             if store().get('deferred',row['issueid']):
                 set_handoff(current,'queued','Waiting for intake capacity')
-            else:restore_ddl(current)
+            else:restore_ddl(current,no_result=True)
         elif current and current['phase']=='dispatching':set_handoff(current,'review','Downloader acceptance is uncertain; review required')
     return True
 
@@ -410,6 +437,19 @@ def tick(queue):
         if not _STARTED:
             with LOCK:
                 for row in store().active('handoff',HELD):
+                    if row.get('exhausted_release'):
+                        store().set('exhaustion_attempt',row['ddl_id'],{'release':row['exhausted_release']})
+                        if row['phase']=='searching':
+                            native=db.DBConnection().selectone('SELECT status FROM ddl_info WHERE id=? AND issueid=?',
+                                                               [row['ddl_id'],row['issueid']]).fetchone()
+                            if native and native['status']=='Failed':
+                                set_handoff(row,'no-result','No NZB accepted; exhausted DDL remains Failed')
+                            else:
+                                set_handoff(row,'review','Restart during final NZB search; review required')
+                            continue
+                        # Recover a crash after reservation but before native status publication.
+                        db.DBConnection().action("UPDATE ddl_info SET status='NZB handoff' WHERE id=? AND issueid=? AND status='Failed'",
+                                                 [row['ddl_id'],row['issueid']])
                     if row['phase']=='dispatching':set_handoff(row,'review','Restart during downloader send; review required')
                     elif row['phase'] in ('queued','searching'):
                         row=set_handoff(row,'queued','Resuming reserved NZB search')
@@ -439,6 +479,12 @@ def tick(queue):
                     item['workflow_handoff']=row['id']
                 queue.put(item)
                 store().delete('deferred',deferred['issueid'])
+        if not intake()['paused']:
+            for r in db.DBConnection().select("SELECT id FROM ddl_info WHERE status='Failed' ORDER BY updated_date"):
+                try:
+                    request_handoff(str(r['id']),exhausted=True)
+                    break
+                except ValueError:continue
         if policy()['auto_handoff'] and not intake()['paused']:
             for r in db.DBConnection().select("SELECT id,updated_date FROM ddl_info WHERE status='Queued' ORDER BY updated_date LIMIT 100"):
                 try:

@@ -169,7 +169,12 @@ not a mirror count. No attempt fraction appears in the status label.
 Awaiting post-processing is shown only for a matching entry actually in the
 post-processing queue. Active runs and finished runs have distinct labels; other
 completed downloads show that their import is unconfirmed instead of claiming
-they are queued. Pack downloads are not marked imported based on one member issue. Explicit
+they are queued. If the shared media writer remains busy for the 180-second admission
+timeout, the untouched processing job returns to the queue with its original issue
+and DDL identity. The serial worker retries it after other queued work. Invalid
+writer state and failures after processing starts still require review. Existing
+downloads stranded by an older image need a verified resubmission of the retained
+archive. Pack downloads are not marked imported based on one member issue. Explicit
 integer issue lists and ranges show how many members have a Downloaded or Archived
 record and a nonempty library file. Missing files and ambiguous membership prevent
 a fully imported label. Without a verified member inventory, unspecified annuals, collected editions, and
@@ -197,7 +202,8 @@ buttons with white labels, with larger touch targets on touch devices.
 
 Each release gets up to six attempts across restarts and mirror changes, and can
 stop earlier when its available mirrors fail. Confirmed mirror exhaustion shows
-how many distinct mirrors failed and recommends another release. Mirror lookup
+how many distinct mirrors failed. Eligible single issues then get one NZB-only
+fallback search, as described under Activity below. Mirror lookup
 failures, changed pack layouts and the retry limit have separate explanations.
 Older failed records without a terminal receipt show the known failed-mirror count
 without claiming a total. Restart and Resume clear the terminal receipt. A provider cooldown appears as a retry countdown only for
@@ -321,9 +327,21 @@ entry. The native serialized search uses only enabled, unblocked NZB providers
 and retains native pacing and candidate validation. Packs, active or duplicate
 work, and already imported issues are rejected. The original DDL entry is held
 before the search; a definite no-result restores only that entry without requeueing another active DDL, while confirmed NZB acceptance
-keeps it held. Partial files and retry history remain. Automatic handoff is off by
+keeps it held. Partial files and retry history remain. Automatic waiting-age handoff is off by
 default; enabling it starts with a two-hour waiting threshold and considers at most
 one eligible issue per scheduler cycle.
+
+Confirmed mirror exhaustion also triggers one last NZB-only search for an eligible
+failed single issue, independently of the waiting-age setting. It requires an
+enabled, unblocked NZB indexer and NZBGet or SABnzbd, and waits for intake capacity
+and publication of the DDL failure. Packs, one-offs, imported issues and issues owned by another task
+remain excluded. Cooldowns, lookup failures, changed pack layouts, the retry limit
+and older failures without a matching exhaustion receipt do not trigger it.
+The attempt persists per release across restarts. If no NZB is accepted, the DDL
+stays Failed without restarting its mirrors. Accepted or uncertain submissions
+remain held under the existing review rules. A restart during the final search
+also requires review rather than replaying the search. Activity records the fallback and
+its outcome. Existing failed entries with a matching receipt are also eligible.
 
 Uncertain downloader responses remain held across restarts to prevent repeated
 sends. Activity exposes both DDL handoffs and ordinary NZB submissions needing

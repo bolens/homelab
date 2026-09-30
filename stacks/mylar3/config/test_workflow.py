@@ -25,6 +25,8 @@ class DB:
     def __init__(self,connection):self.conn=connection
     def select(self,q,args=()):return self.conn.execute(q,args).fetchall()
     def selectone(self,q,args=()):return self.conn.execute(q,args)
+    def action(self,q,args=()):
+        result=self.conn.execute(q,args);self.conn.commit();return result
     def upsert(self,table,values,where):
         self.conn.execute('UPDATE '+table+' SET '+','.join(k+'=?' for k in values)+' WHERE '+' AND '.join(k+'=?' for k in where),list(values.values())+list(where.values()));self.conn.commit()
 
@@ -35,8 +37,8 @@ class WorkflowTest(unittest.TestCase):
         self.conn.executescript("""
             CREATE TABLE issues(IssueID TEXT,ComicID TEXT,ComicName TEXT,Status TEXT,Location TEXT);
             INSERT INTO issues VALUES ('10','20','Example','Snatched',NULL);
-            CREATE TABLE ddl_info(ID TEXT,issueid TEXT,comicid TEXT,series TEXT,pack TEXT,status TEXT,site TEXT,updated_date TEXT,link_type TEXT);
-            INSERT INTO ddl_info VALUES ('1','10','20','Example #1','0','Queued','DDL(GetComics)','2026-01-01 00:00','GC-Main');
+            CREATE TABLE ddl_info(ID TEXT,issueid TEXT,comicid TEXT,series TEXT,pack TEXT,status TEXT,site TEXT,updated_date TEXT,link_type TEXT,mainlink TEXT);
+            INSERT INTO ddl_info VALUES ('1','10','20','Example #1','0','Queued','DDL(GetComics)','2026-01-01 00:00','GC-Main','https://example.com/release');
             CREATE TABLE nzblog(IssueID TEXT,PROVIDER TEXT);
             CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,ComicName TEXT,Status TEXT,Location TEXT,Deleted INT);
             CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);
@@ -53,6 +55,114 @@ class WorkflowTest(unittest.TestCase):
         self.disk=patch.object(workflow.shutil,'disk_usage',return_value=SimpleNamespace(free=20*1024**3));self.disk.start();self.addCleanup(self.disk.stop)
     def handoff(self):return workflow.request_handoff('1')
     def status(self):return self.conn.execute('SELECT status FROM ddl_info WHERE id="1"').fetchone()[0]
+    def exhaust(self):
+        self.conn.execute("UPDATE ddl_info SET status='Failed'")
+        control.stop_retry({'id':'1','issueid':'10','mainlink':'https://example.com/release'}, {'links_exhausted':['GC-Main']})
+
+    def cycle(self):
+        workflow._LAST_TICK=0
+        workflow.tick(app.SEARCH_QUEUE)
+        self.assertEqual(workflow._OBSERVER_ERRORS,0)
+
+    def test_exhausted_fallback_is_nzb_only_and_no_result_stays_failed(self):
+        self.exhaust();self.assertFalse(workflow.policy()['auto_handoff'])
+        self.cycle();self.assertEqual(self.status(),'NZB handoff')
+        def search(iid,manual):
+            self.assertTrue(workflow.in_handoff(iid));self.assertFalse(manual)
+            self.assertEqual(workflow.provider_order(['DDL(GetComics)','newznab: fixture','torrent'],['newznab: fixture']),['newznab: fixture'])
+        app.search.searchforissue=Mock(side_effect=search)
+        workflow.queue_item(app.SEARCH_QUEUE.get_nowait(),app.SEARCH_QUEUE)
+        self.assertEqual(self.status(),'Failed');control.recover.assert_not_called()
+        workflow._STORE=Store(self.tmp.name);workflow._STARTED=False
+        self.cycle();self.cycle()
+        self.assertTrue(app.SEARCH_QUEUE.empty());app.search.searchforissue.assert_called_once()
+        self.assertEqual(workflow.store().get('handoff','10')['phase'],'no-result')
+
+    def test_exhausted_fallback_excludes_other_failures_and_stale_receipts(self):
+        self.exhaust()
+        record=control.store().data['items']['1']
+        for values in ({'retry_stopped':'lookup_failed'},{'retry_stopped':'layout_changed'},
+                       {'retry_stopped':None},{'attempts':control.ATTEMPT_LIMIT}, {'release':'stale'}):
+            with self.subTest(values=values):
+                original=dict(record);record.update(values)
+                self.cycle();self.assertTrue(app.SEARCH_QUEUE.empty());self.assertEqual(self.status(),'Failed')
+                record.clear();record.update(original)
+
+    def test_exhausted_fallback_waits_for_config_intake_and_cleanup(self):
+        self.exhaust()
+        app.USE_NZBGET=False;self.cycle();self.assertTrue(app.SEARCH_QUEUE.empty())
+        app.USE_NZBGET=True
+        with patch.object(app.search,'provider_order',return_value={'prov_order':['DDL(GetComics)']}):
+            self.cycle();self.assertTrue(app.SEARCH_QUEUE.empty())
+        with patch.object(workflow,'intake',return_value={'paused':True}):
+            self.cycle();self.assertTrue(app.SEARCH_QUEUE.empty())
+        app.DDL_QUEUED=['1'];self.cycle();self.assertTrue(app.SEARCH_QUEUE.empty())
+        app.DDL_QUEUED=[];self.cycle();self.assertEqual(app.SEARCH_QUEUE.qsize(),1)
+
+    def test_exhausted_fallback_reuses_pack_import_and_duplicate_guards(self):
+        self.exhaust()
+        for statement,restore in (("UPDATE ddl_info SET pack='1'","UPDATE ddl_info SET pack='0'"),
+                                  ("UPDATE issues SET Status='Downloaded'","UPDATE issues SET Status='Snatched'"),
+                                  ("INSERT INTO nzblog VALUES ('10','newznab: fixture')","DELETE FROM nzblog")):
+            self.conn.execute(statement);self.cycle();self.assertTrue(app.SEARCH_QUEUE.empty())
+            self.conn.execute(restore)
+        workflow.store().set('dispatch','10',{'issueid':'10','phase':'review'})
+        self.cycle();self.assertTrue(app.SEARCH_QUEUE.empty())
+
+    def test_exhausted_fallback_restart_repairs_reservation_publication_gap(self):
+        self.exhaust();self.cycle()
+        app.SEARCH_QUEUE.get_nowait()
+        self.conn.execute("UPDATE ddl_info SET status='Failed'")
+        workflow.store().delete('exhaustion_attempt','1')
+        workflow._STORE=Store(self.tmp.name);workflow._STARTED=False
+        self.cycle();self.assertEqual(self.status(),'NZB handoff')
+        self.assertEqual(app.SEARCH_QUEUE.qsize(),1)
+        self.assertIsNotNone(workflow.store().get('exhaustion_attempt','1'))
+
+    def test_exhausted_fallback_restart_does_not_replay_interrupted_search(self):
+        for native_status,phase in (('Failed','no-result'),('NZB handoff','review')):
+            with self.subTest(native_status=native_status):
+                self.exhaust();self.cycle()
+                app.SEARCH_QUEUE.get_nowait()
+                row=workflow.reservation('10')
+                workflow.set_handoff(row,'searching','Searching enabled NZB indexers')
+                self.conn.execute('UPDATE ddl_info SET status=?',(native_status,))
+                workflow._STORE=Store(self.tmp.name);workflow._STARTED=False
+                self.cycle();self.cycle()
+                self.assertTrue(app.SEARCH_QUEUE.empty())
+                app.search.searchforissue.assert_not_called()
+                self.assertEqual(workflow.store().get('handoff','10')['phase'],phase)
+                self.assertEqual(self.status(),native_status)
+                workflow.store().delete('handoff','10');workflow.store().delete('exhaustion_attempt','1')
+
+    def test_exhausted_fallback_revalidates_release_before_search(self):
+        self.exhaust();self.cycle()
+        self.conn.execute("UPDATE ddl_info SET mainlink='https://example.com/changed'")
+        workflow.queue_item(app.SEARCH_QUEUE.get_nowait(),app.SEARCH_QUEUE)
+        app.search.searchforissue.assert_not_called()
+        self.assertEqual(workflow.reservation('10')['phase'],'review')
+
+    def test_exhausted_fallback_still_allows_explicit_ddl_restore(self):
+        self.exhaust();self.cycle()
+        row=workflow.reservation('10')
+        workflow.set_handoff(row,'review','Uncertain response')
+        web.resolve_handoff('10','restore','checked')
+        self.assertEqual(self.status(),'Queued')
+        control.recover.assert_called_once()
+
+    def test_exhausted_fallback_acceptance_and_uncertainty_stay_held(self):
+        for response,phase in (({'status':True},'accepted'),({'status':False},'review')):
+            with self.subTest(phase=phase):
+                self.exhaust();self.cycle()
+                send=Mock(return_value=response)
+                app.search.searchforissue=lambda iid,manual:workflow.sender(send,iid)
+                item=app.SEARCH_QUEUE.get_nowait()
+                workflow.queue_item(item,app.SEARCH_QUEUE)
+                workflow._STORE=Store(self.tmp.name);workflow._STARTED=False
+                self.cycle();workflow.queue_item(item,app.SEARCH_QUEUE)
+                send.assert_called_once();self.assertEqual(workflow.reservation('10')['phase'],phase)
+                self.assertEqual(self.status(),'NZB handoff')
+                workflow.store().delete('handoff','10');workflow.store().delete('exhaustion_attempt','1')
     def test_download_type_and_sort_are_independent_and_legacy_policy_survives(self):
         workflow.store().set('policy','current',{'ddl_order':'packs','ddl_paused':True})
         rules=workflow.policy()
@@ -118,7 +228,7 @@ class WorkflowTest(unittest.TestCase):
 
     def test_restoring_handoff_preserves_another_active_transfer(self):
         self.recover.stop()
-        for column in ('link','mainlink','year','size','filename','remote_filesize'):
+        for column in ('link','year','size','filename','remote_filesize'):
             self.conn.execute('ALTER TABLE ddl_info ADD COLUMN '+column+' TEXT')
         self.conn.execute("UPDATE ddl_info SET status='NZB handoff' WHERE id='1'")
         self.conn.execute("INSERT INTO ddl_info(id,issueid,comicid,series,pack,status,site,updated_date,link_type) "

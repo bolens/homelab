@@ -18,6 +18,7 @@ class NativeWriterTest(unittest.TestCase):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.mylar=ModuleType('mylar');self.mylar.__path__=[str(Path(__file__).parent)]
         self.mylar.DATA_DIR=self.temp.name;self.mylar.APILOCK=False
+        self.mylar.PP_QUEUE=queue.Queue();self.mylar.logger=Mock()
         self.mylar.pack_intake=SimpleNamespace(capture=Mock(return_value=False))
         context=patch.dict(sys.modules,{'mylar':self.mylar});context.start();self.addCleanup(context.stop)
         self.native=import_module('mylar.native_writers');self.mylar.native_writers=self.native
@@ -39,16 +40,43 @@ class NativeWriterTest(unittest.TestCase):
         self.assertTrue(processed.is_set());self.assertFalse(self.mylar.APILOCK)
         self.assertEqual(obj.queue.get_nowait(),[{'mode':'stop'}])
 
-    def test_admission_failure_still_completes_native_result_queue(self):
+    def test_busy_admission_requeues_exact_job_then_processes_once(self):
         owner=self.native.owner()
         with owner.hold(allow_pending=True):owner.mark_pending()
         operation=Mock()
         wrapped=run(lambda obj:operation())
-        obj=SimpleNamespace(queue=queue.Queue())
+        obj=SimpleNamespace(queue=queue.Queue(), nzb_name='Issue.cbz',
+                            nzb_folder='/cache/Issue.cbz', issueid='35', comicid='12',
+                            apicall=True, ddl=True, download_info={'provider':'DDL','id':'99'})
         proxy=SimpleNamespace(hold=lambda **kwargs:owner.hold(timeout=0))
         with patch.object(self.native,'owner',return_value=proxy):
-            with self.assertRaises(RuntimeError):wrapped(obj)
+            wrapped(obj)
         operation.assert_not_called();self.assertFalse(self.mylar.APILOCK)
+        self.assertEqual(obj.queue.get_nowait(),[{'mode':'stop'}])
+        self.assertEqual(self.mylar.PP_QUEUE.get_nowait(), {
+            'nzb_name':'Issue.cbz', 'nzb_folder':'/cache/Issue.cbz',
+            'issueid':'35', 'comicid':'12', 'failed':False, 'apicall':True,
+            'ddl':True, 'download_info':{'provider':'DDL','id':'99'}})
+        with owner.hold(allow_pending=True):owner.clear_pending()
+        wrapped(obj)
+        operation.assert_called_once()
+        self.assertTrue(self.mylar.PP_QUEUE.empty())
+
+    def test_failure_after_admission_never_replays_processing(self):
+        from mylar.media_writer import Busy
+        obj=SimpleNamespace(queue=queue.Queue())
+        operation=Mock(side_effect=Busy('failure after writing began'))
+        with self.assertRaises(Busy):run(lambda obj:operation())(obj)
+        operation.assert_called_once()
+        self.assertTrue(self.mylar.PP_QUEUE.empty())
+        self.assertFalse(self.mylar.APILOCK)
+        self.assertEqual(obj.queue.get_nowait(),[{'mode':'stop'}])
+
+    def test_invalid_admission_is_not_retried(self):
+        obj=SimpleNamespace(queue=queue.Queue())
+        with patch.object(self.native,'owner',side_effect=ValueError('invalid protocol')):
+            with self.assertRaises(ValueError):run(lambda obj:None)(obj)
+        self.assertTrue(self.mylar.PP_QUEUE.empty())
         self.assertEqual(obj.queue.get_nowait(),[{'mode':'stop'}])
 
     @unittest.skipUnless(os.getenv('MYLAR_WORKFLOW_SOURCE'), 'Patched native source required')
