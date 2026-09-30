@@ -18,7 +18,6 @@ from test_normalize import PNG, TOOL
 
 class PackEvidenceTest(unittest.TestCase):
     def test_disabled_pdf_keeps_page_archive_with_pdf_extra_as_single_comic(self):
-        from normalize import digest, identity
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / 'comic.cbz'
