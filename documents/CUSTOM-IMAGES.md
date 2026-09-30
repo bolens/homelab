@@ -41,8 +41,12 @@ reproducible in CI.
 - `ghcr.io/bolens/homelab-comic-normalizer` includes archive conversion,
   verified duplicate cleanup, corrupt-file quarantine, and opt-in import recovery.
   Select it with `COMIC_NORMALIZER_IMAGE` in Komga's normalizer override.
+- `ghcr.io/bolens/homelab-komga` replaces the pinned server's next-UI assets
+  with readable import notifications. Select it explicitly with `KOMGA_IMAGE`;
+  the default remains the upstream image. The build verifies the UI types and
+  labels and preserves unrelated application-JAR entries byte-for-byte.
 
-Both images run regression gates during their multi-stage builds and exclude test
+These images run regression gates during their multi-stage builds and exclude test
 code from their final stages. Their allowlisted build contexts exclude runtime
 configuration and media. Linux amd64 is verified; other architectures are not
 currently published by this workflow. Existing application data and worker recovery

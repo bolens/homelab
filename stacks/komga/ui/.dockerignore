@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!patch-source.py
+!package-ui.py
+!import-title.ts
+!test-import-title.mjs
+!NOTICE.md

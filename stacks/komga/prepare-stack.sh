@@ -10,3 +10,4 @@ prepare_stack_ensure_docker_network "ingress-public"
 prepare_stack_ensure_dir_from_env "KOMGA_COMICS_PATH" "${MEDIA_ROOT:-/srv/media}/comics" require-existing
 prepare_stack_ensure_dir_from_env "KOMGA_MANGA_PATH" "${MEDIA_ROOT:-/srv/media}/manga" require-existing
 prepare_stack_end
+# KOMGA_IMAGE remains an explicit operator override; preparation never deploys it.

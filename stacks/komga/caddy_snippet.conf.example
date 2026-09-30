@@ -37,3 +37,4 @@ komga.example.com {
 	}
 }
 # PDF normalization is local to the optional worker; no additional ingress.
+# Optional readable-notification image uses the same service and ingress.

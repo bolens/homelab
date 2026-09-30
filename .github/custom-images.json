@@ -70,6 +70,11 @@
     "dockerfile": "stacks/hashcat/Dockerfile"
   },
   {
+    "image": "komga",
+    "context": "stacks/komga/ui",
+    "dockerfile": "stacks/komga/ui/Dockerfile"
+  },
+  {
     "image": "lidarr",
     "context": "stacks/lidarr",
     "dockerfile": "stacks/lidarr/Dockerfile"

@@ -62,3 +62,4 @@ runtime_security:
   host_network_services: []
   docker_socket_services: []
   floating_image_services: []
+# Optional KOMGA_IMAGE override replaces next-UI assets only; same persistence and exposure.
