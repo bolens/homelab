@@ -385,6 +385,16 @@ container health, and the DDL and post-processing pages. If data is missing or
 corrupt, stop writers and restore the verified backup and previous image. Remove
 temporary update backups only after preservation checks pass; retain routine backups.
 
+Mylar startup acquires the shared media-writer lock to reconcile interrupted
+publication before opening its API. Hold an external deployment guard only while
+quiescing Mylar and verifying its backup, then release it before starting either
+the updated or rollback image. Reacquire the guard after startup for preservation
+checks. Waiting for healthy startup while retaining the guard blocks startup until the
+writer-lock timeout, causing startup to fail.
+If the normalizer or an operator changed data during that interval, retain the
+backup and reconcile the differences before restoring; do not overwrite valid
+changes with an older snapshot. Confirm unrelated services remained healthy.
+
 For a local build from the repository root:
 
 ```sh
