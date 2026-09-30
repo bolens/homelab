@@ -5,7 +5,8 @@ from live activation; no live deployment or import is claimed below.
 
 - [x] T001 Inspect source contracts, tools and cached-file eligibility; write preservation requirements and plan.
   Evidence: existing converter has no PDF renderer; both inactive cached art books
-  have unique catalog identities. PDF partial suffixes stay excluded from automation.
+  were inspected for catalog identity. The Horizon edition mismatch was discovered
+  during visual verification below. PDF partial suffixes stay excluded from automation.
 - [x] T002 Implement bounded PDF derivative adapter with durable source retention and real rendering regressions.
   Evidence: Poppler/Pillow rendering, ordered PNG inventories, verified original
   and cache digests, dimension/page/byte/time/storage limits. Fixtures cover
@@ -53,8 +54,12 @@ from live activation; no live deployment or import is claimed below.
 ## Edition acceptance
 
 The cached Horizon PDF renders completely but is the short Dark Horse digital art
-book (52 PDF pages including covers), not Mylar's tracked Titan hardcover. Retain
-it as a related extra without satisfying or applying the hardcover issue metadata.
+book (52 PDF pages including covers), not Mylar's tracked Titan hardcover. Resolve
+the correct Dark Horse catalog edition and import against that issue so the correct
+match is completed. Do not classify a confirmed exact match as a related extra.
+Do not satisfy or apply the Titan hardcover issue metadata to this edition. If
+the correct edition is absent from the catalog, record that lookup gap explicitly
+instead of inventing a catalog identity or claiming completion.
 The Tomb Raider PDF is the matching Titan art book (97 scanned spreads/pages).
 This distinction must be verified during T007; filename-embedded issue IDs alone
 do not override discovered contrary edition evidence.
