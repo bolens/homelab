@@ -19,11 +19,12 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+from pdf_conversion import Pending as PDFPending
 
 SUFFIXES = ('.cbt.tar.zst', '.cbt.tar.gz', '.cbt.tar.bz2', '.cbt.tar.xz',
             '.cbt.zst', '.cbt.bz2', '.cbt.gz', '.cbt.xz', '.tar.zst', '.tar.bz2',
             '.tar.gz', '.tar.xz', '.cbz', '.cbr', '.cb7', '.cbt', '.zip', '.rar',
-            '.7z', '.tar', '.tgz', '.tbz2', '.txz', '.tzst', '.cba', '.ace')
+            '.7z', '.tar', '.tgz', '.tbz2', '.txz', '.tzst', '.cba', '.ace', '.pdf')
 
 
 def archive_suffix(path):
@@ -153,6 +154,11 @@ class Normalizer:
         (self.state / 'tmp').mkdir(exist_ok=True)
         self.tool = config.get('converter', '/opt/archiving-utils/bin/archiving-utils')
         self.reader = reader if reader is not None else Reader(config['komga'])
+        from pdf_conversion import policy
+        self.pdf_policy = policy(config)
+        self.pdf_pending = None
+        self.pdf_failures = {}
+        self.pdf_defer = False
         self.observed = {}
         self.errors = []
         self.rejected = {}
@@ -160,6 +166,24 @@ class Normalizer:
         self.scan_batch = ScanBatch(self) if policy(config)['enabled'] else None
 
     def convert_tool(self, *args):
+        if args[0] == 'comic-to-cbz' and Path(args[-1]).suffix.lower() == '.pdf':
+            from pdf_conversion import derivative
+            prepared = derivative(self, Path(args[-1]))
+            destination = Path(args[args.index('--output') + 1])
+            fd, pending_name = tempfile.mkstemp(prefix='.pdf-copy-', dir=destination.parent)
+            pending = Path(pending_name)
+            try:
+                with prepared.open('rb') as source, os.fdopen(fd, 'wb') as target:
+                    shutil.copyfileobj(source, target)
+                    target.flush()
+                    os.fsync(target.fileno())
+                if digest(pending) != digest(prepared):
+                    raise ValueError('PDF CBZ copy failed verification')
+                os.link(pending, destination)
+                sync_directory(destination.parent)
+            finally:
+                pending.unlink(missing_ok=True)
+            return {'results': [{'result': self.info(destination)}]}
         environment = dict(os.environ, TMPDIR=str(self.state / 'tmp'),
                            XDG_CONFIG_HOME=str(self.state / 'empty-config'))
         result = subprocess.run([self.tool, *map(str, args), '--max-members', '10000',
@@ -171,6 +195,9 @@ class Normalizer:
         return json.loads(result.stdout)
 
     def info(self, path):
+        if Path(path).suffix.lower() == '.pdf':
+            from pdf_conversion import derivative
+            path = derivative(self, path)
         return self.convert_tool('comic-info', path)['results'][0]['result']
 
     def candidates(self):
@@ -183,6 +210,8 @@ class Normalizer:
                 for name in sorted(files):
                     path = Path(directory) / name
                     if path.is_symlink() or not path.is_file() or not archive_suffix(path):
+                        continue
+                    if path.suffix.lower() == '.pdf' and not self.pdf_policy['enabled']:
                         continue
                     current = identity(path)
                     prior, since = self.observed.get(str(path), (None, time.time()))
@@ -454,10 +483,12 @@ class Normalizer:
                 # Let the reader register formats it already recognizes first. This
                 # ensures its native upgrade operation transfers existing user state.
                 books = self.reader.books()
-                if path.suffix.lower() in ('.cbr', '.rar', '.zip') and str(path) not in books:
+                if path.suffix.lower() in ('.cbr', '.rar', '.zip', '.pdf') and str(path) not in books:
                     self.reader.scan()
                     continue
                 self.advance(self.prepare(path, books), books)
+            except PDFPending:
+                continue
             except Exception as exc:
                 self.errors.append({'path': str(path), 'error': str(exc)})
                 if path.exists():
@@ -496,6 +527,7 @@ def main():
                 raise SystemExit(1)
         return
     normalizer = Normalizer(config)
+    normalizer.pdf_defer = True
     maintenance = None
     if config.get('maintenance', {}).get('enabled'):
         from maintenance import Maintenance
@@ -519,6 +551,8 @@ def main():
                 print(json.dumps({'event': 'cycle_failed', 'error': str(exc)}), flush=True)
                 if args.once:
                     raise
+            from pdf_conversion import render_pending
+            render_pending(normalizer)  # Preserved inputs only; shared media writer has been released.
             if args.once:
                 return
             time.sleep(config.get('poll_seconds', 60))

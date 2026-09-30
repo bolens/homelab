@@ -1,0 +1,3 @@
+# Data model
+
+PDF derivative receipt version 1 binds source SHA-256, original path, rendering options, renderer version, ordered page names/dimensions/hashes, output SHA-256 and completion. Only a complete, verified receipt is reusable. Temporary rendering stays private; no destination is published before all pages pass. A changed or corrupt committed derivative is an error, not silent overwrite. Uncommitted private output can be discarded and regenerated from its verified original; callers cannot consume it before receipt commit. Existing normalizer/import receipts continue to own library publication and API outcomes.

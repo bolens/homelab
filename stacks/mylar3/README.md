@@ -656,6 +656,24 @@ server honoring acknowledged flushes. Process interruption tests do not prove
 storage-controller caches or server power-loss durability.
 
 
+### PDF downloads and normalization
+
+Search prefers explicitly declared CBZ/CBR alternatives to PDF among matching
+results while preserving pack priority and existing quality/identity checks.
+Undeclared formats stay eligible; a known PDF is a fallback. GetComics discovery
+looks ahead at most 100 result entries after its first match, so preference cannot
+turn a successful lookup into an unbounded search. Queue pack/single and date
+ordering are unchanged.
+
+Transfers recognize structurally readable, unencrypted PDFs up to 1000 pages,
+using image-bundled Poppler inspection. A PDF download no longer fails solely
+because it is not a ZIP/RAR archive. Full page rendering and CBZ validation belong
+to the optional [normalizer PDF policy](../komga/README.md#optional-pdf-reading-copies).
+Enable that worker policy and existing import recovery to import uniquely matched
+PDFs; Mylar does not rasterize or guess their metadata. Without that worker opt-in,
+the PDF stays cached for review. Page-render failures never imply a successful
+library import. Deploy this Mylar consumer before enabling worker PDF support.
+
 ### Converted comic metadata queue
 
 The matching normalizer can opt into [automatic tagging after conversion](../komga/README.md#automatic-tagging-after-conversion).
@@ -670,7 +688,7 @@ The existing post-processing worker runs these jobs when its download import
 queue is idle. **Post-processing → Converted comic tagging** shows up to 100
 recent durable jobs, including waiting, retry, review and verified completion.
 Transient tagging failures allow six attempts; an unmatched catalog path waits
-up to 24 hours. If a rescan leaves a converted comic pointing at its old archive,
+up to 24 hours. If a rescan leaves a converted comic pointing at its old archive (including a normalized PDF),
 the tagging queue can repair that exact location before tagging. This requires a
 unique existing issue or annual, a missing original, and a CBZ matching the
 normalizer's acknowledged checksum. It does not infer issue identity from a

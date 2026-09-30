@@ -80,3 +80,4 @@ networks:
   media-automation:
     name: media-automation
     external: true
+# Optional PDF conversion uses the existing state/media mounts and serial worker resource limits.

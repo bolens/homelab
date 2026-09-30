@@ -15,6 +15,7 @@ import zipfile
 from import_match import catalog, match, metadata, number, title
 from import_recovery import submit, issue_state
 from maintenance import preserves, scoped_file
+from pdf_conversion import Pending as PDFPending
 from normalize import archive_suffix, digest, identity, save, sync_directory, api_path
 
 
@@ -86,7 +87,9 @@ class Packs:
         if source.is_file():
             try:
                 info = self.m.info(source)
-                nested = any(archive_suffix(Path(row['name'])) for row in info['other_files'])
+                nested = any(archive_suffix(Path(row['name'])) and
+                             (Path(row['name']).suffix.lower() != '.pdf' or self.worker.pdf_policy['enabled'])
+                             for row in info['other_files'])
                 if info['page_count'] > 0 and not nested:
                     single = source
             except ValueError:
@@ -157,7 +160,11 @@ class Packs:
         stage.mkdir(exist_ok=True, mode=0o700)
         output = stage / (source.name[:-len(archive_suffix(source))] + '.cbz')
         if not output.exists():
-            if shutil.disk_usage(stage).free < source.stat().st_size * 3 + 128 * 1024**2:
+            required = source.stat().st_size * 3
+            if source.suffix.lower() == '.pdf':
+                from pdf_conversion import derivative
+                required = derivative(self.worker, source).stat().st_size * 2
+            if shutil.disk_usage(stage).free < required + 128 * 1024**2:
                 raise ValueError('Insufficient conversion space')
             if source.suffix.lower() == '.cbz' and zipfile.is_zipfile(source):
                 shutil.copyfile(source, output)
@@ -395,6 +402,8 @@ class Packs:
                 for member in value['members']:
                     try:
                         self.member(member, receipt.parent)
+                    except PDFPending:
+                        member.update(phase='discovered', reason='PDF saved; waiting for page rendering')
                     except Exception:
                         member.update(phase='review', reason='Member validation or import needs review; source retained')
                     save(receipt, value)
@@ -405,6 +414,8 @@ class Packs:
                     self.cleanup(receipt, value)
                     if value.get('cleaned_at'):
                         self.m.mylar('packReport', report=json.dumps(dict(value, members=[{k: v for k, v in m.items() if k != 'original_metadata'} for m in value['members']])))
+            except PDFPending:
+                continue
             except Exception:
                 # Surface a failure through worker health; leave all originals in place.
                 failure = {'id': record['id'], 'inventory_complete': False,

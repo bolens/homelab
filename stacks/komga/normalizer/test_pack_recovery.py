@@ -17,6 +17,22 @@ from test_normalize import PNG, TOOL
 
 
 class PackEvidenceTest(unittest.TestCase):
+    def test_disabled_pdf_keeps_page_archive_with_pdf_extra_as_single_comic(self):
+        from normalize import digest, identity
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'comic.cbz'
+            with zipfile.ZipFile(source, 'w') as archive:
+                archive.writestr('001.png', PNG)
+                archive.writestr('bonus.pdf', b'%PDF fixture')
+            fake = SimpleNamespace(root=root, local=lambda remote:source,
+                m=SimpleNamespace(info=lambda path:{'page_count':1,'other_files':[{'name':'bonus.pdf'}]}),
+                worker=SimpleNamespace(pdf_policy={'enabled':False},convert_tool=Mock()))
+            receipt, result = Packs.inventory(fake, {'id':'fixture','source':'/cache/comic.cbz'})
+            fake.worker.convert_tool.assert_not_called()
+            self.assertEqual(len(result['members']),1)
+            self.assertEqual(result['members'][0]['source'],str(source))
+
     def test_conflicting_volume_year_never_reaches_catalog_fallback(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'Test Comic 001 (2017).cbz'

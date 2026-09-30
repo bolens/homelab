@@ -185,7 +185,7 @@ accepted the job; discovery and analysis finish asynchronously in Komga.
 The optional `docker-compose.normalizer.yml` override converts CBR/RAR, CB7/7z,
 CBT/TAR, ZIP, and gzip/bzip2/xz/Zstandard TAR comics to CBZ. It also repairs
 non-ZIP archives mislabeled `.cbz`. It copies page bytes and sidecars without
-re-encoding images. PDF and EPUB stay in their native formats. Encrypted,
+re-encoding images. PDF conversion is a separate opt-in described below; EPUB stays native. Encrypted,
 multipart, ACE, damaged, and unsafe archives are retained with an error report.
 Page-image formats remain unchanged and must also be supported by Komga.
 
@@ -248,6 +248,46 @@ Regression tests use disposable archives and a separately installed converter:
 ```sh
 ARCHIVING_UTILS_BIN=/path/to/archiving-utils/bin/archiving-utils python3 normalizer/test_normalize.py
 ```
+
+## Optional PDF reading copies
+
+Set the following in private `normalizer.json` to convert PDF comics and art books:
+
+```json
+"pdf_conversion": {
+  "enabled": true,
+  "long_edge_pixels": 3200,
+  "max_pages": 1000
+}
+```
+
+This defaults to disabled. Preparation preserves existing configuration. The image
+includes distribution Poppler, Pillow and fallback DejaVu fonts. No new mount,
+credential, port or service is required. Deploy only `comic-normalizer` with
+`--no-deps` and all existing overrides after verified state/config backup.
+
+Each PDF page becomes one PNG, ordered numerically in a CBZ, with its complete
+page layout, rotation and aspect ratio. Spreads remain spreads. The long edge
+accepts 512–6000 pixels; page count accepts 1–1000. Rendering is a reading
+derivative: searchable text, vectors, interactive forms, links, attachments and
+original color information remain in the preserved PDF, not the CBZ. PNG adds no
+lossy compression, but rasterization and scaling are not lossless PDF preservation.
+
+The worker keeps the original PDF and a checksummed rendering receipt under
+`pdf-derivatives` in existing recovery state. Every page is decoded and compared
+with the CBZ inventory. Cache reuse verifies original, settings, output and
+inventory. The existing expanded-byte limit applies; one preserved PDF renders per cycle outside the shared media writer lock with
+a 60-second per-page and 600-second total limit. Encrypted, malformed, oversized
+or failed PDFs remain for review. No partial CBZ replaces a library file. Interrupted private rendering is regenerated from the verified original; an altered
+committed output requires review. Failed renders retry after one hour.
+
+Library conversions use the existing Komga upgrade and Mylar notification flow.
+Completed cache PDFs and PDF members of packs can use the existing unique import
+matching when maintenance/auto-import or pack import is enabled. Metadata comes
+from the established catalog, never guessed from PDF document properties. Cached
+PDF originals are retained even after import. `.part` and retained partial
+filenames are not automatically adopted. A manual recovery must first verify the
+complete file and that its download is inactive.
 
 ## Completed-download maintenance
 

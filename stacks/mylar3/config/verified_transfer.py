@@ -15,7 +15,7 @@ MAX_MEMBERS = 100000
 MAX_EXPANDED = 32 * 1024 ** 3
 _VALIDATED = set()
 
-ARCHIVES = ('.cbr', '.cbz', '.cb7', '.cbt', '.zip', '.rar', '.7z', '.tar', '.tar.gz', '.tar.xz', '.tgz')
+ARCHIVES = ('.cbr', '.cbz', '.cb7', '.cbt', '.zip', '.rar', '.7z', '.tar', '.tar.gz', '.tar.xz', '.tgz', '.pdf')
 
 
 def safe_member(name):
@@ -31,7 +31,18 @@ def validate(path):
         raise ValueError('Missing or linked archive')
     with path.open('rb') as source:
         header = source.read(8)
-    if header.startswith(b'PK'):
+    if header.startswith(b'%PDF-'):
+        # Download validation checks the document structure. The normalizer owns
+        # full-page rendering and must verify all pages before a CBZ is imported.
+        result = subprocess.run(['pdfinfo', str(path)], capture_output=True, timeout=60,
+                                env=dict(os.environ, LC_ALL='C'))
+        info = result.stdout.decode('utf-8', errors='replace')
+        pages = re.search(r'^Pages:\s+(\d+)\s*$', info, re.M)
+        if (result.returncode or result.stderr or not pages or not 0 < int(pages[1]) <= 1000
+                or not re.search(r'^Encrypted:\s+no\s*$', info, re.M)):
+            raise ValueError('Invalid, encrypted or oversized PDF; source retained')
+    elif header.startswith(b'PK'):
+
         with zipfile.ZipFile(path) as archive:
             entries = archive.infolist()
             if not entries or len(entries) > MAX_MEMBERS or sum(x.file_size for x in entries) > MAX_EXPANDED:

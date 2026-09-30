@@ -1,5 +1,7 @@
 """Real ZIP/CRC fixtures, interrupted writes, and HTTP resume safety."""
 import io
+import base64
+import shutil
 from pathlib import Path
 import sys
 import tempfile
@@ -34,6 +36,23 @@ class TransferTest(unittest.TestCase):
     def response(self, body=None, status=200, headers=None):
         body = self.body if body is None else body
         return SimpleNamespace(status_code=status,headers=headers or {'Content-Length':str(len(body))},iter_content=lambda **kw:iter([body]))
+
+    @unittest.skipUnless(shutil.which('pdfinfo'), 'Poppler PDF inspection required')
+    def test_pdf_transfer_and_pack_preserve_valid_documents(self):
+        body = base64.b64decode('JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA1IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAyMDAgMTAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA3IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA3MyA+PgpzdHJlYW0KMSAwIDAgcmcgMCAwIDIwMCAxMDAgcmUgZiAwIDAgMCByZyBCVCAvRjEgMTYgVGYgMTAgNDAgVGQgKFBhZ2Ugb25lKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAxMDAgMjAwXSAvUm90YXRlIDkwIC9SZXNvdXJjZXMgPDwgPj4gL0NvbnRlbnRzIDYgMCBSID4+CmVuZG9iago2IDAgb2JqCjw8IC9MZW5ndGggMjUgPj4Kc3RyZWFtCjAgMCAxIHJnIDAgMCAxMDAgMjAwIHJlIGYKZW5kc3RyZWFtCmVuZG9iago3IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDgKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjQ3IDAwMDAwIG4gCjAwMDAwMDAzNzAgMDAwMDAgbiAKMDAwMDAwMDQ4NSAwMDAwMCBuIAowMDAwMDAwNTYwIDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgOCAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNjMwCiUlRU9GCg==')
+        self.final = self.root / 'art book.pdf'
+        transfer.receive(self.response(body), self.final, None, '1')
+        self.assertEqual(self.final.read_bytes(), body)
+        pack = self.root / 'art-pack.zip'
+        with zipfile.ZipFile(pack, 'w') as archive:
+            archive.writestr('art.pdf', body)
+        result = transfer.unpack('1', pack, pack.name)
+        self.assertEqual((Path(result['path'])/'art.pdf').read_bytes(), body)
+        self.final = self.root / 'broken.pdf'
+        with self.assertRaises(ValueError):
+            transfer.receive(self.response(b'%PDF-1.7 broken document'), self.final, None, '2')
+        self.assertFalse(self.final.exists())
+        self.assertTrue(self.final.with_suffix('.pdf.part').exists())
 
     def test_verified_transfer_promotes_only_complete_archive(self):
         transfer.receive(self.response(), self.final, None, '1')
