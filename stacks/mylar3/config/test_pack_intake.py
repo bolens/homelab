@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import patch, Mock
 
 from processing_guard import run
+from media_writer import Busy
 from patch_postprocessing import processor, processing
 from patch_pack_intake import helpers, search
 from patch_ddl_schedule import scheduler
@@ -29,7 +30,7 @@ class ProcessingTest(unittest.TestCase):
                 self.assert_locked = mylar.APILOCK
                 if error:
                     raise ValueError('unreadable source')
-            with patch.dict(sys.modules, {'mylar': mylar}):
+            with patch.dict(sys.modules, {'mylar': mylar, 'mylar.media_writer': SimpleNamespace(Busy=Busy)}):
                 if error:
                     with self.assertRaises(ValueError):
                         operation(obj)
@@ -52,7 +53,7 @@ class ProcessingTest(unittest.TestCase):
             self.locked = mylar.APILOCK
         a = SimpleNamespace(first=True, queue=queue.Queue())
         b = SimpleNamespace(first=False, queue=queue.Queue())
-        with patch.dict(sys.modules, {'mylar': mylar}):
+        with patch.dict(sys.modules, {'mylar': mylar, 'mylar.media_writer': SimpleNamespace(Busy=Busy)}):
             one = threading.Thread(target=operation, args=(a,))
             two = threading.Thread(target=operation, args=(b,))
             one.start()
