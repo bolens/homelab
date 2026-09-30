@@ -51,7 +51,8 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     remote = Path(settings.get('mylar_ddl_cache', ''))
     if not remote.is_absolute() or '..' in remote.parts or cache not in maintenance.roots:
         raise ValueError('Explicit shared cache mapping required')
-    if source.suffix.casefold() not in ('.cbz', '.cbr'):
+    pdf = source.suffix.casefold() == '.pdf' and maintenance.worker.pdf_policy['enabled']
+    if source.suffix.casefold() not in ('.cbz', '.cbr') and not pdf:
         return 'import_unsupported'
     if not scoped_file(source, maintenance.roots):
         raise ValueError('Unsafe import source')
@@ -79,18 +80,32 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     if getattr(maintenance, 'import_submitted', False) or not maintenance.idle():
         return 'ready'
     # Keep the original in place. Mylar can move/tag only this verified copy.
+    prepared_source = source
+    if pdf:
+        from pdf_conversion import derivative
+        prepared_source = derivative(maintenance.worker, source)
+    if shutil.disk_usage(cache).free < prepared_source.stat().st_size * 2 + 128 * 1024**2:
+        raise RuntimeError('Insufficient recovery storage')
     stage = cache / ('.mylar-recovery-' + key)
     stage.mkdir(mode=0o700)  # Existing/orphaned staging requires review, never reuse.
-    target = stage / source.name
-    if shutil.disk_usage(cache).free < source.stat().st_size * 2 + 128 * 1024**2:
+    target = stage / (source.stem + '.cbz' if pdf else source.name)
+    try:
+        if pdf:
+            maintenance.worker.convert_tool('comic-to-cbz', '--apply', '--output', target, source)
+        else:
+            shutil.copyfile(source, target)
+        with target.open('rb') as stream:
+            os.fsync(stream.fileno())
+        sync_directory(stage)
+        if identity(source) != before or (not pdf and digest(target) != checksum) or digest(source) != checksum:
+            raise RuntimeError('Recovery copy changed; originals retained')
+        if pdf and maintenance.info(source) != maintenance.info(target):
+            raise RuntimeError('PDF import pages changed; original retained')
+    except Exception:
+        # This newly owned stage has no receipt or external submission yet.
+        target.unlink(missing_ok=True)
         stage.rmdir()
-        raise RuntimeError('Insufficient recovery storage')
-    shutil.copyfile(source, target)
-    with target.open('rb') as stream:
-        os.fsync(stream.fileno())
-    sync_directory(stage)
-    if identity(source) != before or digest(target) != checksum or digest(source) != checksum:
-        raise RuntimeError('Recovery copy changed; originals retained')
+        raise
     if not maintenance.idle():
         target.unlink()
         stage.rmdir()

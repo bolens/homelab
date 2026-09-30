@@ -113,6 +113,23 @@ class GuidedTest(unittest.TestCase):
         self.g.process(command)
         self.assertEqual(len(self.force_calls()),1)
 
+    def test_pdf_confirmation_waits_for_render_before_claiming(self):
+        from pdf_conversion import Pending
+        self.source = self.source.with_suffix('.pdf')
+        self.source.write_bytes(b'%PDF fixture')
+        self.m.worker.pdf_policy = {'enabled': True}
+        command = self.command()
+        self.m.mylar.reset_mock()
+        self.m.info.side_effect = Pending('render queued')
+        with patch('import_recovery.submit', return_value='import_queued') as submit:
+            self.g.process(command)
+            submit.assert_not_called()
+            self.m.mylar.assert_not_called()
+            self.m.info.side_effect = None
+            self.g.process(command)
+            submit.assert_called_once()
+            self.assertEqual(self.m.mylar.call_args.kwargs['phase'], 'submitted')
+
     def test_changed_stale_missing_and_symlink_sources_rejected(self):
         command=self.command()
         self.source.write_bytes(b'changed');self.g.process(command)

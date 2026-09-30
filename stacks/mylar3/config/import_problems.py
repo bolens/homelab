@@ -11,6 +11,7 @@ ACTIONS = {
     'import_cleanup': ('Mylar reports downloaded; source retained', 'Waiting for verified duplicate cleanup. Review filenames if this persists; the retained source has not been deleted.'),
     'import_queued': ('Automatic import submitted', 'Waiting for Mylar post-processing. The original download is retained.'),
     'import_review': ('Automatic import needs review', 'The previous submission is unconfirmed or took over 30 minutes. Check post-processing before retrying.'),
+    'pdf_rendering': ('PDF conversion pending', 'Original PDF preserved; page rendering runs outside the shared media writer lock before import.'),
     'import_unsupported': ('Matched; format needs conversion', 'Automatic recovery currently submits CBZ and CBR files only. The source is retained.'),
     'unmatched': ('No unique issue match', 'Automatic matching found no unambiguous identity. Check series, volume, year, and issue number.'),
     'validation': ('Could not validate archive', 'Inspect the retained source and decoder availability.'),

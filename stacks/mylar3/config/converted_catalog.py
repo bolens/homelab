@@ -6,7 +6,7 @@ from pathlib import Path
 FORMATS = ('.cbt.tar.zst', '.cbt.tar.gz', '.cbt.tar.bz2', '.cbt.tar.xz',
            '.cbt.zst', '.cbt.bz2', '.cbt.gz', '.cbt.xz', '.tar.zst', '.tar.bz2',
            '.tar.gz', '.tar.xz', '.cbz', '.cbr', '.cb7', '.cbt', '.zip', '.rar',
-           '.7z', '.tar', '.tgz', '.tbz2', '.txz', '.tzst', '.cba', '.ace')
+           '.7z', '.tar', '.tgz', '.tbz2', '.txz', '.tzst', '.cba', '.ace', '.pdf')
 
 
 def destination(path):

@@ -239,12 +239,17 @@ class Guided:
         if len(rows) != 1 or rows[0][2] in ('Downloaded', 'Archived'):
             self.acknowledge(file, record, 'rejected', 'issue_unavailable')
             return
-        if source.name in self.m.pending_ddl_names() or source.suffix.casefold() not in ('.cbz', '.cbr'):
+        pdf = source.suffix.casefold() == '.pdf' and self.m.worker.pdf_policy['enabled']
+        if source.name in self.m.pending_ddl_names() or (source.suffix.casefold() not in ('.cbz', '.cbr') and not pdf):
             self.acknowledge(file, record, 'rejected', 'source_unavailable')
             return
         if not self.m.idle() or self.m.import_submitted:
             return
-        self.m.info(source)
+        from pdf_conversion import Pending
+        try:
+            self.m.info(source)
+        except Pending:
+            return  # Preserve queued confirmation until rendering completes.
         if identity(source) != proposal['identity'] or digest(source) != proposal['sha256']:
             self.acknowledge(file, record, 'rejected', 'changed_source')
             return

@@ -120,14 +120,14 @@ class NativeTest(unittest.TestCase):
             self.assertEqual(archive.read('001.png'), b'page')
         queue.tag.assert_not_called()
 
-    def test_conversion_repairs_stale_location_then_tags_and_survives_rescan(self):
+    def conversion_repairs_stale_location_then_tags_and_survives_rescan(self, suffix):
         converted, store, key, queue = self.conversion_queue()
         for table in ('issues', 'annuals'):
             self.db.execute('ALTER TABLE '+table+' ADD COLUMN ComicName TEXT')
         self.mylar.db = SimpleNamespace(DBConnection=lambda: SimpleNamespace(
             select=lambda sql,args:self.db.execute(sql,args).fetchall(),
             action=lambda sql,args:self.db.execute(sql,args)))
-        self.db.execute('UPDATE issues SET Location=?,Status="Archived"',[self.source.with_suffix('.cbr').name])
+        self.db.execute('UPDATE issues SET Location=?,Status="Archived"',[self.source.with_suffix(suffix).name])
         queue.tick()
         self.assertEqual(store.get('converted_tag',key)['phase'],'completed')
         self.assertEqual(tuple(self.db.execute('SELECT Location,Status FROM issues').fetchone()),(self.source.name,'Downloaded'))
@@ -143,6 +143,12 @@ class NativeTest(unittest.TestCase):
         with zipfile.ZipFile(self.source) as archive:
             self.assertEqual(archive.read('001.png'),b'page')
             self.assertIn('ComicInfo.xml',archive.namelist())
+
+    def test_conversion_repairs_stale_location_then_tags_and_survives_rescan(self):
+        self.conversion_repairs_stale_location_then_tags_and_survives_rescan('.cbr')
+
+    def test_pdf_conversion_repairs_then_tags_and_survives_rescan(self):
+        self.conversion_repairs_stale_location_then_tags_and_survives_rescan('.pdf')
 
     def test_conversion_changed_during_lookup_is_not_published(self):
         converted, store, key, queue = self.conversion_queue()

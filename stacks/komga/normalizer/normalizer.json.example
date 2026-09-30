@@ -28,5 +28,10 @@
     "auto_import": false,
     "pack_import": false,
     "mylar_ddl_cache": "/config/mylar/cache"
+  },
+  "pdf_conversion": {
+    "enabled": false,
+    "long_edge_pixels": 3200,
+    "max_pages": 1000
   }
 }

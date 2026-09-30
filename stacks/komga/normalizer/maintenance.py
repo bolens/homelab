@@ -11,6 +11,7 @@ import shutil
 import sqlite3
 import subprocess
 import time
+from pdf_conversion import Pending as PDFPending
 
 from normalize import archive_suffix, digest, identity, request, save, sync_directory
 
@@ -98,6 +99,12 @@ class Maintenance:
         cached = self.cache.get(str(path))
         if cached and cached[0] == fingerprint:
             return cached[1]
+        if path.suffix.lower() == '.pdf':
+            value = self.worker.info(path)
+            if identity(path) != fingerprint:
+                raise RuntimeError('PDF changed during validation')
+            self.cache[str(path)] = (fingerprint, value)
+            return value
         with path.open('rb') as stream:
             prefix = stream.read(4096).lstrip(b'\xef\xbb\xbf \t\r\n')
         if identity(path) != fingerprint:
@@ -296,7 +303,7 @@ class Maintenance:
                 path=Path(original)
                 if path.is_relative_to(self.worker.state) and not path.is_symlink() and path.is_file():
                     with path.open('rb') as stream:header=stream.read(512)
-                    for magic,label in [(b'PK','ZIP'),(b'Rar!','RAR'),(b'7z\xbc\xaf\x27\x1c','7Z'),
+                    for magic,label in [(b'%PDF-','PDF'),(b'PK','ZIP'),(b'Rar!','RAR'),(b'7z\xbc\xaf\x27\x1c','7Z'),
                                         (b'\x1f\x8b','GZIP'),(b'BZh','BZIP2'),(b'\xfd7zXZ','XZ'),(b'\x28\xb5\x2f\xfd','ZSTD')]:
                         if header.startswith(magic):container=label;break
                     if header[257:262]==b'ustar':container='TAR'
@@ -369,6 +376,8 @@ class Maintenance:
                     if (self.settings.get('ddl_cache') and path.is_relative_to(Path(self.settings['ddl_cache']))
                             and path.name in protected_ddl):
                         continue
+                    if path.suffix.lower() == '.pdf' and not self.worker.pdf_policy['enabled']:
+                        continue
                     fingerprint = identity(path)
                     previous, since = self.observed.get(str(path), (None, now))
                     if previous != fingerprint:
@@ -378,7 +387,7 @@ class Maintenance:
                         continue
                     try:
                         self.info(path)
-                        for target in candidates.get(name_key(path.stem), []):
+                        for target in ([] if path.suffix.lower() == '.pdf' else candidates.get(name_key(path.stem), [])):
                             if self.remove_duplicate(path, target):
                                 break
                         if path.exists():
@@ -404,6 +413,8 @@ class Maintenance:
                             guided = guidance.propose(path) if kind == 'unmatched' else {}
                             problems.append({'name': path.name, 'kind': kind, **guided,
                                              'issueid': match.get('issueid', ''), 'comicid': match.get('comicid', '')})
+                    except PDFPending:
+                        problems.append({'name': path.name, 'kind': 'pdf_rendering'})
                     except CorruptArchive:
                         self.quarantine(path, fingerprint)
                         problems.append({'name': path.name, 'kind': 'quarantine'})

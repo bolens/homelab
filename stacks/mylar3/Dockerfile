@@ -33,7 +33,13 @@ COPY config/fetch_tagger_sources.py /tmp/fetch_ddl_sources.py
 RUN python3 /tmp/fetch_ddl_sources.py /tmp/ddl-sources.json /opt/ddl-transport/sources
 COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS checked
+FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS pdf-runtime
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM pdf-runtime AS checked
 ENV PYTHONDONTWRITEBYTECODE=1
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
@@ -41,7 +47,7 @@ COPY config/ /opt/mylar3-fixes/
 RUN --network=none python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
     && python3 /opt/mylar3-fixes/verify_image.py
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4
+FROM pdf-runtime
 LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
       org.opencontainers.image.title="Mylar comic automation"
 COPY --from=checked /app/mylar3/mylar/ /app/mylar3/mylar/
