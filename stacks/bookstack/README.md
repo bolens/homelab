@@ -12,6 +12,7 @@
 1. **Environment**
    - From this directory: copy `stack.env.example` → `stack.env`.
    - Set `APP_URL` to your Caddy hostname (e.g. `https://bookstack.yourdomain.com`).
+   - Set `APP_KEY` to `base64:` followed by `openssl rand -base64 32` for a new installation. Existing installations must reuse their persisted key.
    - Set `MYSQL_ROOT_PASSWORD` and `MYSQL_PASSWORD` (e.g. `openssl rand -base64 24`).
 2. **Deploy**
 
@@ -41,3 +42,16 @@ To change `APP_URL` after install:
 ## Portainer
 
 Add stack from this directory; set `APP_URL`, `MYSQL_ROOT_PASSWORD`, and `MYSQL_PASSWORD` in stack env. No host ports; use Caddy to expose the service.
+
+## Upgrading to BookStack 26.09
+
+BookStack 26.09 requires a nonempty application encryption key. Before upgrading,
+verify the existing `APP_KEY` in `/config/www/.env` and preserve it in the backup.
+If supplying it through `stack.env`, copy that same key privately; changing it
+can make encrypted data unreadable. Preparation preserves existing configuration
+and does not generate or replace this key.
+
+Stop BookStack before quiescing MariaDB. Back up both configuration/data volumes
+and verify an isolated restore using the previous compatible images. Verify
+users, books, chapters, pages, revisions, uploads and the application migration
+after updating. Restore both volumes with the previous images on failure.

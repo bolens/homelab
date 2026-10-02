@@ -1,6 +1,6 @@
 # Baserow – self-hosted Airtable alternative
 
-[Baserow](https://baserow.io/) is an open-source no-code database and spreadsheet (tables, views, API). This stack runs Baserow with embedded SQLite; for production or heavy use you can switch to Postgres (see [Baserow Docker docs](https://baserow.io/docs/installation/install-with-docker-compose)). No host ports; put it behind Caddy.
+[Baserow](https://baserow.io/) is an open-source no-code database and spreadsheet (tables, views, API). This all-in-one image runs embedded PostgreSQL and Redis; for production or heavy use you can separate those services (see [Baserow Docker docs](https://baserow.io/docs/installation/install-with-docker-compose)). No host ports; put it behind Caddy.
 
 **Website:** https://baserow.io/  
 **Docs:** https://baserow.io/docs/  
@@ -39,3 +39,11 @@ For Postgres, Redis, and scaling options, see the [official installation guide](
 ## Portainer
 
 Add stack from this directory; set `BASEROW_PUBLIC_URL` in stack env. No host ports; use Caddy to expose the service.
+
+## Updates and backups
+
+Stop the all-in-one container before copying its complete `baserow_data` volume,
+including PostgreSQL and uploads. Verify an isolated restore with the previous
+image and check database readability before updating. Startup can run application
+migrations; verify users, tables, rows and uploads afterward. Restore the previous
+image and complete data backup if preservation checks fail.

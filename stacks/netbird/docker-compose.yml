@@ -29,7 +29,7 @@ services:
     cpus: 0.5
 
   netbird-server:
-    image: netbirdio/netbird-server:latest@sha256:3086534361a18573b85897383a0753a97b8c75d68dee9926fbd7eccab1f2fe89
+    image: netbirdio/netbird-server:latest@sha256:d1da0c0179c9e6f2ab7b48be54d06341b11037855a9426b9f2536aa79f13360b
     container_name: netbird-server
     restart: unless-stopped
     labels:

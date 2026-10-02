@@ -40,7 +40,7 @@ services:
   social-hunt-proxy:
     labels:
       logging: "true"
-    image: ajoergensen/tinyproxy:latest@sha256:ab5be3120573a3bb6b1d238b6f43940a587cbbc3ea83c3d18f0900e60461a5c4
+    image: ajoergensen/tinyproxy:latest@sha256:26c77c2e2a8b2ebbc6e345234f0543919a911eb8b027cf609120d2af88071b6d
     container_name: social-hunt-proxy
     restart: unless-stopped
     cpus: 0.5

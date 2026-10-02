@@ -1,4 +1,4 @@
-FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS tagger-build
+FROM lscr.io/linuxserver/mylar3:latest@sha256:6a29d48f51e86e44ef715a7b620a22d98d4abe27af78178ea0d7b5275eb2a763 AS tagger-build
 # The pinned final base already supplies ICU 70; compilation tools stay here.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -21,7 +21,7 @@ COPY config/fetch_tagger_sources.py /tmp/fetch_tagger_sources.py
 RUN python3 /tmp/fetch_tagger_sources.py /tmp/tagger-sources.json /opt/comictagger/sources
 COPY tagger-NOTICES.md /opt/comictagger/NOTICES.md
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS ddl-build
+FROM lscr.io/linuxserver/mylar3:latest@sha256:6a29d48f51e86e44ef715a7b620a22d98d4abe27af78178ea0d7b5275eb2a763 AS ddl-build
 COPY requirements-ddl.txt /tmp/requirements-ddl.txt
 RUN python3 -m venv --without-pip /opt/ddl-transport \
     && python3 -m pip --python /opt/ddl-transport/bin/python install --no-cache-dir \
@@ -33,7 +33,7 @@ COPY config/fetch_tagger_sources.py /tmp/fetch_ddl_sources.py
 RUN python3 /tmp/fetch_ddl_sources.py /tmp/ddl-sources.json /opt/ddl-transport/sources
 COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
 
-FROM lscr.io/linuxserver/mylar3:latest@sha256:93d24dc4d5c467d86e77eb278dd90aa19cdc7a90e87cf507abbfff7a5d937ef4 AS pdf-runtime
+FROM lscr.io/linuxserver/mylar3:latest@sha256:6a29d48f51e86e44ef715a7b620a22d98d4abe27af78178ea0d7b5275eb2a763 AS pdf-runtime
 # hadolint ignore=DL3008
 RUN apt-get update \
     && apt-get install -y --no-install-recommends poppler-utils \
