@@ -61,6 +61,22 @@ class LookupTest(unittest.TestCase):
         result,session=self.fetch([Response(dict(ISSUE,id=999))])
         self.assertEqual(result.state,'failed');self.assertEqual(session.get.call_count,1)
 
+    def test_unassigned_creator_roles_do_not_block_issue_metadata(self):
+        issue = dict(ISSUE, person_credits=[
+            {'name':'Unassigned', 'role':None},
+            {'name':'Empty', 'role':''},
+            {'name':'Blank', 'role':'  '},
+            {'name':'Writer', 'role':'writer'},
+        ])
+        result, _ = self.fetch([Response(issue), Response(VOLUME)])
+        self.assertEqual(result.state, 'ok')
+        self.assertEqual(result.metadata['credits'], [{'person':'Writer', 'role':'Writer'}])
+        self.assertEqual(result.metadata['series'], 'Fixture Annual')
+        self.assertEqual(result.metadata['issue'], '1')
+        for role in (7, {}, []):
+            with self.assertRaises(ValueError):
+                lookup.mapping(dict(ISSUE, person_credits=[{'name':'Creator','role':role}]), VOLUME, '123', '456')
+
     def test_http_disallows_redirects_and_bounds_responses(self):
         first,second=Response(ISSUE),Response(VOLUME)
         result,session=self.fetch([first,second])

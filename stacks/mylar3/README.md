@@ -643,6 +643,8 @@ ComicInfo with overwrite disabled skips lookup and tagging entirely. ComicVine
 lookup uses private temporary credential files, a 45-second process deadline,
 bounded responses and validated issue/volume identities. Redirects and retries are
 disabled. Each provider request waits the configured 2–10 second interval.
+ComicVine creator credits without an assigned role do not block tagging. Modern
+uses credits with recognized roles and leaves unassigned creators unmapped.
 Consecutive issues can reuse validated series metadata for up to five minutes;
 each issue is still fetched and checked against its expected volume. The process-local
 cache holds at most 64 volumes of 16 KiB each, separates provider/credential/TLS
