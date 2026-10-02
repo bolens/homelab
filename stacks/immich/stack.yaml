@@ -13,7 +13,9 @@ monitoring:
     internal: true
   blackbox_exporter: true
   grafana_dashboard: false
-shared_resources: []
+shared_resources:
+- ingress-public
+- telemetry
 type: web_app
 category: media
 exposure:

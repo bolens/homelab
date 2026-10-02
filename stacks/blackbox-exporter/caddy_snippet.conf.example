@@ -1,6 +1,8 @@
+# Optional: explicitly attach the exporter to Caddy's ingress network first.
+# The default deployment is internal and does not require this browser route.
 blackbox-exporter.home, blackbox-exporter.local {
 	tls internal
-	reverse_proxy blackbox-exporter:80 {
+	reverse_proxy blackbox-exporter:9115 {
 		transport http {
 			versions 1.1
 		}

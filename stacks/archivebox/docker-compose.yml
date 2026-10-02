@@ -5,6 +5,8 @@ services:
     image: archivebox/archivebox:latest@sha256:1a5a37331091d9df865ead2b9c231aa5a892fc26fe0422ce6140d9e2d9532327
     container_name: archivebox
     restart: unless-stopped
+    # Keep the listener aligned with health checks and Caddy across image defaults.
+    command: server --init 0.0.0.0:8000
     env_file:
       - stack.env
       - path: ../../shared.env
@@ -31,7 +33,10 @@ services:
     image: archivebox/archivebox:latest@sha256:1a5a37331091d9df865ead2b9c231aa5a892fc26fe0422ce6140d9e2d9532327
     container_name: archivebox_scheduler
     restart: unless-stopped
-    command: schedule --foreground --update --every=day
+    command: schedule --foreground
+    # This worker has no web listener; the image's server probe does not apply.
+    healthcheck:
+      disable: true
     env_file:
       - stack.env
       - path: ../../shared.env

@@ -53,6 +53,8 @@ services:
       disable: false
     networks:
       - default
+      # Blackbox checks /ping directly without publishing the inference port.
+      - telemetry
 
   redis:
     labels:
@@ -99,6 +101,9 @@ services:
       - default
 
 networks:
+  telemetry:
+    name: telemetry
+    external: true
   ingress-public:
     name: ingress-public
     external: true

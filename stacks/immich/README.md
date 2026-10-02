@@ -34,10 +34,16 @@ The stack uses **named volumes** (library, pgdata, model-cache, redisdata) so it
 | Item | Details |
 |------|---------|
 | **Port** | 2283 (proxied via Caddy; also bound to 127.0.0.1:2283 for localhost-only direct access) |
-| **Network** | `ingress-public` (external), Caddy can reverse-proxy to `immich-server:2283` |
+| **Network** | `ingress-public` for the server, the private stack network for dependencies, and internal `telemetry` for machine-learning health probes |
 | **Images** | immich-server, immich-machine-learning, Valkey (Redis), Postgres with vector extension |
 | **Env** | `DB_PASSWORD` required; `TZ`, `IMMICH_VERSION`, optional `IMMICH_CONFIG_FILE` (see `stack.env.example`) |
 | **Storage** | Named volumes: `library` (uploads), `pgdata`, `model-cache`, `redisdata` |
+
+Run `./prepare-stack.sh` before deployment to create the required shared networks.
+Only `immich-machine-learning` joins `telemetry`, allowing Blackbox Exporter to
+probe `http://immich-machine-learning:3003/ping`. Its inference port is not
+published to the host. PostgreSQL and Valkey remain on the stack network.
+An exporter on another network cannot resolve this Docker service hostname.
 
 ## Google OAuth (login with Google)
 
