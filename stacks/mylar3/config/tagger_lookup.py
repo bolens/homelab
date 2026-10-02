@@ -139,7 +139,10 @@ def mapping(issue, volume, issueid, volumeid=None):
         if not isinstance(credit, dict):
             raise ValueError('Invalid credit')
         person = text(credit.get('name'), required=True)
-        for role in text(credit.get('role'), required=True).lower().split(','):
+        # ComicVine can credit a named creator without assigning a role.
+        # Retain other metadata without inventing a role for that creator.
+        roles = text(credit.get('role')) or ''
+        for role in roles.lower().split(','):
             role = ROLES.get(role.strip())
             value = {'person':person, 'role':role}
             if role and value not in mapped:
