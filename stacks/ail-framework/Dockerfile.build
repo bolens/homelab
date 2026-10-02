@@ -82,7 +82,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY ail-framework-docker/ail-framework/other_installers/docker/docker_start.sh /opt/AIL/docker_start.sh
 
 # Preserve application runtime packages before autoremove, then discard
-# compilers, headers, package tests, sources, docs, and transient caches.
+# compilers, headers, sources, docs, and transient caches.
     RUN apt-mark manual \
         file graphviz libadns1 libev4 libfuzzy2 libgmp10 libmagic-mgc \
         libmagic1 libprotobuf23 libsnappy1v5 libssl3 libzbar0 p7zip-full \
@@ -95,8 +95,7 @@ COPY ail-framework-docker/ail-framework/other_installers/docker/docker_start.sh 
     && find /opt/AIL -mindepth 2 -type d -name .git -prune -exec rm -rf {} + \
     && find /opt/AIL -type d -name __pycache__ -prune -exec rm -rf {} + \
     && find /opt/AIL -type f -name '*.pyc' -delete \
-    && find /opt/AIL/AILENV/lib/python3.10/site-packages -type d \
-        \( -name test -o -name tests \) -prune -exec rm -rf {} + \
+    # Keep installed package tests: NumPy testing imports _core/tests at runtime.
     # Upstream downloads corpora below the TLSH source tree; preserve them
     # before deleting that build-only checkout.
     && mkdir -p /opt/AIL/nltk_data \
