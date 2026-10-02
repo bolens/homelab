@@ -19,6 +19,11 @@ portable example; local stack documentation overrides nearby conventions.
 - Validation is read-only by default. Do not pull, start, stop, recreate, or
   deploy containers without explicit operational authorization. Never use
   `docker compose down -v` routinely.
+- On Arch systems with Polkit available, use `pkexec docker <args>` when direct
+  Docker socket access is denied, or when the user requests it. If the sandbox
+  reports `pkexec must be setuid root`, retry the scoped command through the
+  normal sandbox escalation mechanism. Keep the same operational authorization
+  limits; privileged access does not expand the task's scope.
 - Do not create bind-mount directories when a missing remote mount could be the
   cause. Treat ports, privileges, host networking, Docker socket, devices, GPU,
   and public ingress as security-relevant contract changes.

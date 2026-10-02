@@ -309,6 +309,27 @@ Escape to close, outside-click dismissal, and a current-page indicator. Page act
 stay near the left-aligned heading. Wide tables give names and diagnostic text more
 space, and post-processing summaries use aligned cards and balanced queue panels.
 
+## Wanted backlogs
+
+For a large back catalog, enable **Pack Priority** in DDL settings. GetComics
+then searches the series and year first and prefers a verified pack match. The
+existing pack inventory and import checks still determine which issues were
+actually imported. This setting is separate from the per-series **Allow Packs**
+option used by torrent searches.
+
+Choose DDL host priority from observed download results. Prefer Main when it
+works and other hosts repeatedly fail; retain alternative hosts for fallback.
+Provider cooldowns and intake limits still apply. Keep the configured search
+delays rather than removing pacing to compensate for a large backlog.
+
+**Search Tier Cutoff** uses an issue's date added to Mylar, not its publication
+year. Wanted entries older than that window receive RSS matching but are skipped
+by the scheduled active search. A longer window, such as 90 days during backlog
+recovery, keeps recently added collections eligible. **Search on startup**
+repopulates the search queue after a restart. Review queue depth before repeatedly
+forcing full searches, and use Activity's confirmed library imports to measure
+progress. Search matches and Snatched status do not prove acquisition.
+
 ## Activity and workflow controls
 
 Open **Activity** from Manage or the Queues menu. The authenticated `activity`
