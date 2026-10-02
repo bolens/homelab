@@ -57,6 +57,12 @@ Official releases (e.g. **v7.0**) are not published as images; this stack builds
 
 **This repo** vendors a pinned checkout under `ail-framework-docker/ail-framework` (tag **v7.0**) with small build fixes for Ubuntu 22.04 / current pip (Dockerfile paths, `install_virtualenv.sh`, pystemon installer). Prefer building from there so you do not have to re-apply patches after a fresh clone.
 
+The native builder stays on Ubuntu 22.04 because its cleanup and runtime packages
+use Python 3.10 and Jammy library names. Upgrading the Ubuntu release requires
+updating those paths, package names, and Python dependency locks together, then
+verifying the complete CPU image build and native application startup. The custom
+image CI builds Lacus and Tor; it does not build the AIL application image.
+
 1. **Build both variants.** Native compilation is shared by BuildKit; build the
    CPU image first so the primary image does not wait for CUDA downloads:
    ```bash
