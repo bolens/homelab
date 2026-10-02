@@ -34,7 +34,7 @@ Config is stored in the `nzbhydra2_config` named volume so it survives container
 
 ## Upgrading from NZBHydra 8
 
-The pinned image runs NZBHydra 9.1.0. Its first startup migrates H2 from
+The pinned image runs NZBHydra 9.1.1. Its first startup migrates H2 from
 2.1 to 2.4, which can take several minutes. Stop NZBHydra before backing up
 the complete `nzbhydra2_config` volume and Compose/environment configuration.
 Verify an isolated restore and retain the previous image reference before
