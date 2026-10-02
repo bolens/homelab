@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM ubuntu:26.04@sha256:da6fc2be547864451aa253836dd926da33623312df4a9a243e35dc877c378a78 AS native_builder
+# AIL 7's Python 3.10 environment and native runtime package names require Jammy.
+# Migrate the Python and native ABI contracts together before changing releases.
+FROM ubuntu:22.04@sha256:b1066385161d28ddf6bc7e7b28a9170eec11484c821d1a5150d176cbde41d7f7 AS native_builder
 
 ARG tz_buildtime=Europe/Rome
 ENV TZ=$tz_buildtime
