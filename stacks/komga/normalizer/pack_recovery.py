@@ -37,7 +37,8 @@ def evidence(path):
     year = meta.get('Volume') if re.fullmatch(r'(19|20)\d{2}', meta.get('Volume', '')) else (parsed[3] if parsed else meta.get('Year', ''))
     if parsed and ((meta.get('Series') and title(meta['Series']) != title(parsed[1]))
                    or (meta.get('Number') and number(meta['Number']) != number(parsed[2]))
-                   or (re.fullmatch(r'(19|20)\d{2}', meta.get('Volume', '')) and meta['Volume'] != parsed[3])):
+                   or (re.fullmatch(r'(19|20)\d{2}', meta.get('Volume', '')) and meta['Volume'] != parsed[3]
+                       and meta.get('Year') != parsed[3])):
         raise ValueError('Filename and metadata disagree')
     edition = 'Digital' if re.search(r'\b(digital first|digital exclusive)\b|\[digital\]', clean, re.I) or meta.get('Format', '').lower() == 'digital' else ''
     return {'series': name, 'number': num, 'year': str(year or ''), 'issueid': next(iter(ids), ''), 'edition': edition}
@@ -205,8 +206,15 @@ class Packs:
                 return path if scoped_file(path, self.worker.roots) else None
         return None
 
-    def preserve_extra(self, source, member, points, info):
-        parent = self.parent(points)
+    def preserve_extra(self, source, member, points, info, comicid=None):
+        if comicid is None:
+            parent = self.parent(points)
+        else:
+            # An alternate scan already has a verified issue owner. Its release
+            # year need not be the parent series start year.
+            with closing(sqlite3.connect('file:' + str(self.db) + '?mode=ro', uri=True)) as database:
+                rows = database.execute('SELECT ComicID,ComicName,ComicYear,ComicLocation FROM comics WHERE ComicID=?', [comicid]).fetchall()
+            parent = rows[0] if len(rows) == 1 else None
         if not parent:
             raise ValueError('Related series is not uniquely established')
         folder = Path(parent[3]).with_name(Path(parent[3]).name + ' - Extras')
@@ -327,7 +335,7 @@ class Packs:
                 member.update(phase='confirmed', destination=str(target), destination_sha256=digest(target), destination_identity=identity(target), reason='Library content verified')
             else:
                 # A different scan is worth retaining, without replacing an existing issue.
-                self.preserve_extra(prepared, member, points, info)
+                self.preserve_extra(prepared, member, points, info, comicid=matched['comicid'])
             return
         result = submit(self.m, prepared, matched)
         member.update(phase='submitted' if result == 'import_queued' else 'ready' if result == 'ready' else 'review',
@@ -396,6 +404,15 @@ class Packs:
             except ValueError:
                 pass
         for record in work['packs']:
+            if record.get('phase') == 'confirmed' and record.get('cleanup_complete'):
+                # Cleaned sources and worker receipts are no longer required.
+                # Mylar rechecks the stored destination hashes before refreshing
+                # stale signatures. Rejected proofs retain the original history.
+                try:
+                    self.m.mylar('packReport', report=json.dumps(dict(record, cleaned_at=time.time())))
+                except Exception:
+                    pass
+                continue
             try:
                 protected.add(self.local(record['source']))
                 receipt, value = self.inventory(record)

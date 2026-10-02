@@ -23,10 +23,24 @@ Self-hosted web archive: save full copies of web pages (HTML, screenshots, PDFs,
 The stack includes:
 
 - `archivebox` – main web UI and archiver.
-- `archivebox_scheduler` – optional scheduler container that runs background jobs.
+- `archivebox_scheduler` – optional foreground runner for existing scheduled jobs.
 - `sonic` – fast full-text search backend.
 
 All state is stored in the `archivebox-data` and `archivebox-sonic-data` named volumes.
+
+The web command explicitly listens on port `8000`, matching Caddy and the health
+check. Image defaults may select another port. The scheduler runs existing
+schedules with `schedule --foreground`; it does not create a daily schedule or
+pass the removed `--update` option. Use the installed image's
+`archivebox schedule --help` when adding schedules because CLI options vary
+between versions.
+The scheduler has no web listener, so its inherited server health check is
+disabled. Check its running state and logs separately from the web container.
+
+Before repairing an existing deployment, stop both ArchiveBox writers, back up
+every mounted data volume, and verify an isolated restore and SQLite integrity.
+Keep the current image during a command-only repair. Verify the web endpoint,
+scheduler, database records, and archived files before removing temporary copies.
 
 ## Secrets
 

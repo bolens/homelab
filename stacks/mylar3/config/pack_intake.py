@@ -64,7 +64,8 @@ def work():
                 'inventory_complete': False, 'created_at': time.time()})
     store = workflow.store()
     pending = [r for r in store.active('pack', {'discovered', 'review', 'confirmed'})
-               if r['phase'] != 'confirmed' or not r.get('cleanup_complete')]
+               if r['phase'] != 'confirmed' or not r.get('cleanup_complete')
+               or any(not member_present(member) for member in r['members'])]
     offset = store.get('meta', 'pack_cursor', 0) % max(1, len(pending))
     page = (pending[offset:] + pending[:offset])[:50]
     store.set('meta', 'pack_cursor', (offset + len(page)) % max(1, len(pending)))

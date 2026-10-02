@@ -1,6 +1,6 @@
-FROM gotson/komga:1.28.0@sha256:19764751d501495b021530c9426f25d8f9f8748dc38ab3ba48eb62d7df2cd92e AS upstream
+FROM gotson/komga:1.28.1@sha256:d8f772dce7b3dcd8baa0ce7481bd890e68446065ab6c8eb2cb5b24df62fb3c4f AS upstream
 FROM python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6 AS source
-ADD --checksum=sha256:2507ee171b1922c7b01f8d4c57023b0875730403a8553c88a077385021a008ed https://codeload.github.com/gotson/komga/tar.gz/4f4099c56281b629f65896bc9e2c68447133d9ef /tmp/source.tar.gz
+ADD --checksum=sha256:9019d24e3efc2d0a427738edca6582730bc5a12e507b25c4d4d6cde176cf6754 https://codeload.github.com/gotson/komga/tar.gz/2ab7a5a61a8b8bb12a6edd576fed380b4b613c99 /tmp/source.tar.gz
 WORKDIR /source
 RUN tar -xzf /tmp/source.tar.gz --strip-components=1
 COPY patch-source.py import-title.ts /patch/

@@ -5,7 +5,7 @@ services:
   terminus-init-certificates:
     labels:
       logging: "true"
-    image: ghcr.io/usetrmnl/terminus:latest@sha256:d84babcaf68254a3b2294b180de54a983ce6841e86fd9de93a3b75824784e48f
+    image: ghcr.io/usetrmnl/terminus:latest@sha256:1ad86c6697cdb9bbe259d09cc31ed6912fd665f5b8a76d0b28522708d20ffbee
     container_name: terminus-init-certificates
     user: root
     restart: "no"
@@ -97,7 +97,7 @@ services:
     cpus: 0.5
 
   terminus-web:
-    image: ghcr.io/usetrmnl/terminus:latest@sha256:d84babcaf68254a3b2294b180de54a983ce6841e86fd9de93a3b75824784e48f
+    image: ghcr.io/usetrmnl/terminus:latest@sha256:1ad86c6697cdb9bbe259d09cc31ed6912fd665f5b8a76d0b28522708d20ffbee
     container_name: terminus-web
     init: true
     restart: unless-stopped
@@ -147,7 +147,7 @@ services:
     cpus: 1.0
 
   terminus-worker:
-    image: ghcr.io/usetrmnl/terminus:latest@sha256:d84babcaf68254a3b2294b180de54a983ce6841e86fd9de93a3b75824784e48f
+    image: ghcr.io/usetrmnl/terminus:latest@sha256:1ad86c6697cdb9bbe259d09cc31ed6912fd665f5b8a76d0b28522708d20ffbee
     container_name: terminus-worker
     init: true
     restart: unless-stopped

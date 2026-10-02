@@ -53,12 +53,14 @@ services:
       disable: false
     networks:
       - default
+      # Blackbox checks /ping directly without publishing the inference port.
+      - telemetry
 
   redis:
     labels:
       logging: "true"
     container_name: immich-redis
-    image: docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d
+    image: docker.io/valkey/valkey:9@sha256:418652cfb58ef879d4978c33553735d7147016032d5aefaa14c828e611eb9dfd
     cpus: 1.0
     mem_limit: 1g
     memswap_limit: 1536m
@@ -99,6 +101,9 @@ services:
       - default
 
 networks:
+  telemetry:
+    name: telemetry
+    external: true
   ingress-public:
     name: ingress-public
     external: true

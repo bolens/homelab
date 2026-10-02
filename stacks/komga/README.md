@@ -27,7 +27,7 @@ metadata lookup fails or takes more than 1.5 seconds, the toast uses a cleaned
 filename. Its Open action still targets the imported book. Failure notifications
 also omit the source directory; detailed import history remains unchanged.
 
-The image builds the UI from the checksum-verified Komga 1.28.0 source and locked
+The image builds the UI from the checksum-verified Komga 1.28.1 source and locked
 npm dependencies. Its patch fails if the expected upstream notification changes.
 The server, import paths, library files, API contracts and legacy UI are unchanged.
 For a live update, verify an isolated restore of Komga's configuration/database,
@@ -70,6 +70,13 @@ linked, malformed or wrongly owned protocol state prevents writes. Do not delete
 lock files or pending markers to clear a warning. If recovery cannot complete,
 retain state and investigate the conversion receipts. An existing state directory
 with a missing lock is rejected, including at startup, to avoid two lock owners.
+
+Device numbers can change after a remount even when directory inodes are
+unchanged. For `Normalizer recovery state identity changed`, follow Mylar's
+[recovery binding checks](../mylar3/README.md#image-updates-and-rollback) for both
+writers. Verify all conversion receipts are complete before rebinding. A matching
+old device number and the exact current inode set distinguish this case from a
+replaced recovery directory. Preserve retained originals and review copies.
 
 Before enabling this override, drain existing worker upgrades and Mylar processing,
 back up and restore-check both applications' affected state, and verify that both
@@ -359,7 +366,7 @@ ARCHIVING_UTILS_BIN=/path/to/archiving-utils/bin/archiving-utils python3 normali
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `komga:25600`) |
 | **Network** | `ingress-public` for dedicated Caddy-to-service traffic |
-| **Images** | `gotson/komga:1.28.0` (digest-pinned in Compose) |
+| **Images** | `gotson/komga:1.28.1` (digest-pinned in Compose) |
 | **Storage** | Local `komga_config`; `${KOMGA_COMICS_PATH}` → `/data/comics` and `${KOMGA_MANGA_PATH}` → `/data/manga`, both read-only |
 
 ## Caddy reverse proxy
@@ -402,6 +409,15 @@ Maintenance also checks settled files against explicit Mylar issue identifiers,
 bounded ZIP ComicInfo metadata, and exact series/year/issue filenames. Ambiguous
 editions and conflicting evidence remain on Import problems. Ordinary loose-file recovery does not guess from similar titles or change failed-release
 blacklisting. The separate opt-in pack workflow can add exact catalog entries.
+
+A filename year can match the series start year or the issue publication year,
+provided all available identity evidence selects exactly one catalog issue.
+Explicit ComicInfo volume years still select the series start year. Pack members
+whose filename uses the publication year can agree with a different ComicInfo
+volume year when ComicInfo's publication year agrees with the filename. Conflicting
+metadata, competing editions and uncertain prior submissions remain for review.
+Different scans of a verified issue use its catalog parent when preserved as
+extras, even when their filenames use the publication year.
 
 To enable submission, set `maintenance.auto_import` to `true` and set
 `maintenance.mylar_ddl_cache` to the same DDL cache directory **as seen inside
@@ -518,3 +534,7 @@ identities; cleanup rechecks full hashes. Pack records remain in Mylar after DDL
 queue history disappears. Preserve the whole worker state and Mylar data volume
 in backups. A replaced quarantine entry is labeled resolved while its original
 corrupt archive and retry history remain retained.
+
+Cleaned packs with stale Mylar file identities use authenticated destination hash
+revalidation without requiring retained sources or worker receipts. Rejected
+proofs preserve their original history and remain for review.

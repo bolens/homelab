@@ -1,11 +1,12 @@
 # BookStack – wiki and documentation (books, chapters, pages).
 # No host ports; access via Caddy (e.g. https://bookstack.yourdomain.com → bookstack:80).
-# Requires MariaDB; set APP_URL to your Caddy hostname.
+# Requires MariaDB; set APP_URL and preserve the APP_KEY supplied by stack.env
+# or existing /config/www/.env. Never rotate the key during an image update.
 services:
   mariadb:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/mariadb:latest@sha256:71eb1840431c36d5ff4985afc7b59072c5de3d8a91fe5353b5791f7a6e9fb7f5
+    image: lscr.io/linuxserver/mariadb:latest@sha256:fb38247d1a4440239b2c62f0084c5285302715777268a92f61f77406dbc3552e
     container_name: bookstack-mariadb
     restart: unless-stopped
     env_file:
@@ -29,7 +30,7 @@ services:
   bookstack:
     labels:
       logging: "true"
-    image: lscr.io/linuxserver/bookstack:latest@sha256:189c796273469115cf810e53f450e15b93184018e4728cd65fcaef8aa93584bc
+    image: lscr.io/linuxserver/bookstack:latest@sha256:7a6779d345d4d678614aa1a0a8a4d8456aeb98de10dfae700b839c3140c89f39
     container_name: bookstack
     restart: unless-stopped
     depends_on:

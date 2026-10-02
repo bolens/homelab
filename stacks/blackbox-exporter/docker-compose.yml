@@ -24,6 +24,8 @@ services:
       - ${BLACKBOX_CONFIG_PATH:-${HOME}/.config/blackbox-exporter/blackbox.yml}:/etc/blackbox_exporter/config.yml:ro
     networks:
       - telemetry
+      # Public probes need DNS and HTTP egress; telemetry remains internal.
+      - probe-egress
     env_file:
       - path: ../../shared.env
         required: false
@@ -41,6 +43,8 @@ services:
     cpu_shares: 256
 
 networks:
+  probe-egress:
+    driver: bridge
   telemetry:
     name: telemetry
     external: true

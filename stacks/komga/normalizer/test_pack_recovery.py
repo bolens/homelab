@@ -17,6 +17,36 @@ from test_normalize import PNG, TOOL
 
 
 class PackEvidenceTest(unittest.TestCase):
+    def test_cleaned_pack_revalidation_preserves_history_without_sources(self):
+        record={'id':'a'*64,'source':'/cache/removed.zip','phase':'confirmed',
+                'cleanup_complete':True,'inventory_complete':True,
+                'members':[{'id':'b'*64,'kind':'issue','phase':'confirmed',
+                            'destination':'/library/Test.cbz','destination_sha256':'c'*64}]}
+        api=Mock(side_effect=lambda command,**kwargs:{'enabled':True,'packs':[record]}
+                 if command=='packWork' else {'phase':'confirmed'})
+        packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=api),
+                              local=lambda value:Path(value),inventory=Mock(),changed=False)
+        Packs.cycle(packs)
+        packs.inventory.assert_not_called()
+        payload=json.loads(api.call_args.kwargs['report'])
+        self.assertEqual(payload['members'],record['members'])
+        self.assertTrue(payload['cleaned_at'])
+        self.assertEqual(api.call_args.args,('packReport',))
+
+    def test_rejected_cleaned_pack_revalidation_keeps_original_proof(self):
+        record={'id':'a'*64,'source':'/cache/removed.zip','phase':'confirmed',
+                'cleanup_complete':True,'members':[{'id':'b'*64,'phase':'confirmed'}]}
+        def api(command,**kwargs):
+            if command=='packWork':return {'enabled':True,'packs':[record]}
+            raise RuntimeError('Destination proof rejected')
+        calls=Mock(side_effect=api)
+        packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=calls),
+                              local=lambda value:Path(value),inventory=Mock(),changed=False)
+        Packs.cycle(packs)
+        self.assertEqual(calls.call_count,2)
+        self.assertEqual(record['members'][0]['phase'],'confirmed')
+        packs.inventory.assert_not_called()
+
     def test_disabled_pdf_keeps_page_archive_with_pdf_extra_as_single_comic(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -54,6 +84,14 @@ class PackEvidenceTest(unittest.TestCase):
                 archive.writestr('ComicInfo.xml', '<ComicInfo><Series>Test Comic</Series>'
                                  '<Number>1</Number><Volume>2017</Volume><Year>2020</Year></ComicInfo>')
             self.assertEqual(evidence(path)['year'], '2017')
+
+    def test_filename_publication_year_preserves_metadata_series_start(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'Test Comic 052 (2026) (digital-mobile-Empire).cbz'
+            with zipfile.ZipFile(path, 'w') as archive:
+                archive.writestr('ComicInfo.xml', '<ComicInfo><Series>Test Comic</Series>'
+                                 '<Number>52</Number><Volume>2024</Volume><Year>2026</Year></ComicInfo>')
+            self.assertEqual(evidence(path)['year'], '2024')
 
 
 @unittest.skipUnless(TOOL, 'Set ARCHIVING_UTILS_BIN')
@@ -154,6 +192,21 @@ class PackTest(unittest.TestCase):
         self.assertEqual(kind(path,{'page_count':1}),'issue')
         self.assertEqual(kind(path.with_name('Story 001 (2017) (Variant Cover).cbz'),{'page_count':32}),'issue')
         self.assertEqual(kind(path.with_name('Story 001 (2017) (Variant Cover).cbz'),{'page_count':1}),'supplement')
+
+    def test_publication_year_alternate_scan_uses_verified_catalog_parent(self):
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE issues SET IssueDate='2026-01-01'")
+        source = self.archive(self.pack/'Test Comic 001 (2026).cbz', 4)
+        receipt, value = self.packs.inventory(self.record)
+        member = value['members'][0]
+        self.packs.member(member, receipt.parent)
+        self.assertEqual(member['phase'], 'preserved')
+        self.assertEqual(member['kind'], 'supplement')
+        self.assertEqual(member['comicid'], '10')
+        self.assertTrue(Path(member['destination']).parent.name.endswith(' - Extras'))
+        self.assertTrue(source.is_file())
+        self.assertTrue((self.folder/'Test Comic 001 (2017).cbz').is_file())
+        self.m.mylar.assert_not_called()
 
     def test_changed_destination_prevents_all_source_cleanup(self):
         source=self.archive(self.pack/'Test Comic 001 (2017).cbz')

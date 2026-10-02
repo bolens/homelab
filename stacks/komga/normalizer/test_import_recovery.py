@@ -56,6 +56,36 @@ class RecoveryTest(unittest.TestCase):
         renamed=self.root/'Unhelpful [__100__].cbz';self.source.rename(renamed)
         self.assertEqual(match(renamed,self.db)['issueid'],'100')
 
+    def test_filename_publication_year_and_cbr_issue_marker(self):
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE issues SET IssueDate='2026-05-01'")
+        self.source = self.root / 'Test Comic 001 (2026) (Digital) [__100__].cbr'
+        self.source.write_bytes(b'opaque rar fixture')
+        self.assertEqual(match(self.source, self.db), {'issueid':'100','comicid':'10'})
+
+    def test_filename_publication_year_agrees_with_explicit_metadata_volume(self):
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE issues SET IssueDate='2026-05-01'")
+        self.source = self.root / 'Test Comic 001 (2026) (digital-mobile-Empire).cbz'
+        self.archive('<ComicInfo><Series>Test Comic</Series><Number>1</Number>'
+                     '<Volume>2017</Volume><Year>2026</Year></ComicInfo>')
+        self.assertEqual(match(self.source, self.db), {'issueid':'100','comicid':'10'})
+        self.archive('<ComicInfo><Series>Test Comic</Series><Number>1</Number>'
+                     '<Volume>2020</Volume><Year>2026</Year></ComicInfo>')
+        self.assertIsNone(match(self.source, self.db))
+
+    def test_publication_year_matching_keeps_reprint_ambiguity(self):
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE issues SET IssueDate='2026-05-01'")
+            db.execute("INSERT INTO comics VALUES ('20','Test Comic','2026')")
+            db.execute("INSERT INTO issues VALUES ('200','20','Wanted','1','2026-06-01','')")
+        self.source = self.root / 'Test Comic 001 (2026).cbz'
+        self.archive()
+        self.assertIsNone(match(self.source, self.db))
+        self.source = self.root / 'Test Comic 001 (2026) [__100__].cbz'
+        self.archive()
+        self.assertEqual(match(self.source, self.db), {'issueid':'100','comicid':'10'})
+
     def test_annual_state_overrides_shadow_issue_and_retains_parent(self):
         with closing(sqlite3.connect(self.db)) as db, db:
             db.executescript("""CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,Status TEXT,Location TEXT,Deleted INT);

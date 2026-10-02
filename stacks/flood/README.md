@@ -19,3 +19,15 @@ required `ingress-admin` and `torrents` networks and the external
 Flood listens on container port `3000` and is intended to be reached through
 Caddy on the dedicated `ingress-admin` network. Application state is stored in
 `flood_data`; rTorrent state is stored in `rtorrent_data`.
+
+## Session lock recovery
+
+`Could not lock session directory` can indicate an active rTorrent instance or a
+lock left by an old container. Identify every container mounting `rtorrent_data`
+and confirm that the recorded lock owner and any other rTorrent process are gone.
+Stop rTorrent and Flood before backing up their state and affected downloads.
+Verify an isolated restore before removing only the proven stale
+`session/rtorrent.lock`. Restart the existing containers and check rTorrent's
+running state, restart count, session records, and Flood connectivity. Preserve
+all torrent session files and downloads. Never remove a lock held by a running
+instance.

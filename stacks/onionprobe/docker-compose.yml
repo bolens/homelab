@@ -11,7 +11,7 @@ services:
   op-prometheus:
     labels:
       logging: "true"
-    image: quay.io/prometheus/prometheus:v3.14.0
+    image: quay.io/prometheus/prometheus:v3.15.0
     container_name: onionprobe-prometheus
     restart: unless-stopped
     env_file:

@@ -45,6 +45,11 @@ docker network create ingress-admin
 The internal flag prevents direct external access to `telemetry`. Caddy should
 join `ingress-admin`, not `telemetry`.
 
+Blackbox Exporter also uses its own outbound `probe-egress` bridge for public
+DNS and endpoint probes. It publishes no host ports. An exporter attached only
+to internal `telemetry` can pass its scrape and health checks while every public
+probe fails. Check `probe_success` as well as `up`.
+
 ## Recommended deployment order
 
 1. Deploy [Caddy](../stacks/caddy/README.md) if dashboards will be accessed by

@@ -24,5 +24,6 @@ else
 fi
 
 prepare_stack_copy_caddy
+# Compose creates its own outbound probe-egress bridge at deployment time.
 prepare_stack_ensure_docker_network "telemetry" "true"
 prepare_stack_end

@@ -12,7 +12,7 @@ with zipfile.ZipFile(original) as source:
         raise SystemExit('Unsupported Komga jar resource layout')
     prefix = choices[0]
     build_info = prefix.removesuffix('public/') + 'META-INF/build-info.properties'
-    if 'build.version=1.28.0' not in source.read(build_info).decode().splitlines():
+    if 'build.version=1.28.1' not in source.read(build_info).decode().splitlines():
         raise SystemExit('Komga server/UI version mismatch; update source and patch together')
     updates = {prefix + p.relative_to(dist).as_posix(): p.read_bytes()
                for p in dist.rglob('*') if p.is_file() and p.name != 'index.html'}

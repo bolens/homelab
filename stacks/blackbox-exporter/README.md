@@ -25,8 +25,19 @@ Prometheus Blackbox Exporter for probing endpoints over HTTP, TCP, and other pro
 | ----------- | ----------------------------------------------------------------------- |
 | **Access**  | Internal only; Prometheus scrapes `blackbox-exporter:9115` on `telemetry` |
 | **Config**  | Copy `blackbox.yml.example` to `~/.config/blackbox-exporter/blackbox.yml`; override with `BLACKBOX_CONFIG_PATH` (e.g. in Portainer) |
-| **Network** | `telemetry`, shared with Caddy, Prometheus, Grafana, Uptime Kuma        |
+| **Network** | Internal `telemetry` for scrapes and a stack-owned `probe-egress` bridge for outbound DNS and probes. No host ports are published. |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale.     |
+
+The exporter needs outbound access to probe public endpoints. Attaching it only
+to an internal network causes DNS failures even while its health check and
+Prometheus scrape succeed. Compose creates `probe-egress`; preparation creates
+only the shared internal `telemetry` network. Existing deployments must apply
+the updated Compose networking. Keep `telemetry` internal.
+
+Check `probe_success`, rather than only `up`, to verify monitored endpoints.
+`up` confirms Prometheus can scrape the exporter even when its probe fails.
+The Caddy snippet is optional and requires explicitly attaching the exporter to
+Caddy's ingress network. The default deployment exposes no browser route.
 
 ### Example Prometheus scrape config
 
@@ -50,4 +61,3 @@ scrape_configs:
       - target_label: __address__
         replacement: blackbox-exporter:9115
 ```
-

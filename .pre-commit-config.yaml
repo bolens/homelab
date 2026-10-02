@@ -51,7 +51,7 @@ repos:
         entry: bash scripts/pre-commit-zizmor.sh
         language: system
         pass_filenames: false
-        files: ^\.github/(workflows/.*\.ya?ml|actions/)
+        files: ^(\.github/(workflows/.*\.ya?ml|actions/)|\.pre-commit-config\.yaml$|scripts/pre-commit-zizmor\.sh$)
       - id: hadolint
         name: Dockerfile lint
         entry: bash scripts/pre-commit-hadolint.sh

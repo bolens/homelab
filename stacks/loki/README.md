@@ -42,3 +42,15 @@
 - This is a simple, single-node Loki suitable for homelab use. For HA or larger deployments, see the official Loki docs.
 - By default, Loki stores data on local disk in the `loki_data` volume. The example config sets **retention** to **30 days** (`retention_period: 720h`) with the compactor enforcing deletion; adjust in `loki-config.yml` if needed. Ensure the host has enough disk space for your log retention needs.
 
+## Retention errors after the schema transition
+
+Loki 3.7.7 can report `failed to apply retention` with
+`could not find entry of chunk ... to remove it` while compacting older
+`boltdb-shipper` tables. Its deletion code still contains the strict cross-table
+entry check described in [upstream issue #23358](https://github.com/grafana/loki/issues/23358).
+This can block expiration even when ingestion, queries, and readiness work.
+Check compactor retention success and disk growth separately from container
+health. Keep both schema periods so historical logs remain queryable. Do not
+delete indexes or chunks, disable retention, or downgrade across the schema
+transition merely to clear this error. A patched image needs backup/restore proof
+and verification of queries and retention before deployment.

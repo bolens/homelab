@@ -3,7 +3,7 @@ default_port: 9115
 databases: []
 health:
   endpoint: /health
-  internal_only: false
+  internal_only: true
 monitoring:
   prometheus: true
   uptime_kuma:
@@ -11,13 +11,14 @@ monitoring:
     internal: true
   blackbox_exporter: true
   grafana_dashboard: false
-shared_resources: []
+shared_resources:
+- telemetry
 type: web_app
 category: monitoring
 exposure:
-  behind_caddy: true
+  behind_caddy: false
   public_by_default: false
-  recommended_hostname: blackbox-exporter.yourdomain.com
+  recommended_hostname: null
 data_profile:
   contains_pii: false
   contains_logs_only: false
