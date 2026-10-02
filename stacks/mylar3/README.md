@@ -311,6 +311,12 @@ space, and post-processing summaries use aligned cards and balanced queue panels
 
 ## Wanted backlogs
 
+Prowlarr download URLs share a `/download` endpoint. The image derives a private
+release ID from the indexer path and encoded release link instead of treating
+every result as the same download. Failed-release checks retain genuine older
+failures by exact release name while allowing unrelated matches through. API
+keys and download URLs are not stored in the new ID.
+
 For a large back catalog, enable **Pack Priority** in DDL settings. GetComics
 then searches the series and year first and prefers a verified pack match. The
 existing pack inventory and import checks still determine which issues were

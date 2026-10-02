@@ -42,6 +42,7 @@ PATCHES = (
     "patch_library_metadata",
     "patch_ddl_failover",
     "patch_comic_format_preference",
+    "patch_prowlarr_identity",
 )
 
 
