@@ -4,19 +4,25 @@
   "homepage": "https://nzbget.com/documentation/post-processing-scripts/",
   "kind": "POST-PROCESSING",
   "displayName": "Unpack Music Tar",
-  "version": "1.9",
+  "version": "1.15",
   "author": "homelab",
   "license": "MIT",
   "about": "Safely extracts ZIP and tar-family archives for the music category.",
   "queueEvents": "",
   "requirements": [
-    "Python 3.11 or newer"
+    "Python 3.11 or newer on Linux"
   ],
   "description": [
     "Extracts zip, tar, tar.gz, tgz, tar.bz2, tbz2, tar.xz, and txz files.",
-    "Flattens archive and existing release folders while retaining CD, Disc, and Disk directories.",
-    "Restores missing extensions for recognizable media and text sidecars.",
-    "Removes accurip, cue, jpg, log, m3u, m3u8, md5, nfo, nzb, pls, png, sfv, srr, toc, txt, and url files after successful extraction.",
+    "Flattens archive and existing release folders while retaining numbered CD, Disc, and Disk directories, including mix and edition labels.",
+    "Restores missing or misleading extensions for recognizable media, including files named like sidecars.",
+    "Removes confirmed image, PDF, or text sidecars with accurip, jpg, log, m3u, m3u8, md5, nfo, nzb, pdf, pls, png, sfv, srr, toc, txt, and url extensions.",
+    "Retains cue sheets and unidentified files, and rejects duplicate archive file paths before extraction.",
+    "Updates cue FILE references when tracks move or receive extensions, and processes nested supported archives.",
+    "Preserves cue encodings and line endings, including UTF-16 BOMs, and resolves disposable sidecar conflicts across separate archives.",
+    "Validates the complete staged release before publication, rolls back ordinary write failures, and retains recovery files after an interrupted publication.",
+    "Identifies tagless MP3, ADTS AAC, and AIFF audio, reports processing counts and unidentified files, and skips publication for unchanged releases.",
+    "Offers explicit --preview and checksum-verified --recover commands for a selected release or retained workspace.",
     "Runs only for the music category and removes archives after successful extraction."
   ],
   "options": [],

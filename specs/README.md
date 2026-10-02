@@ -20,3 +20,5 @@ Installation validation alone does not establish feature completion.
 - [PDF comic normalization](017-pdf-comic-normalization/spec.md): [plan](017-pdf-comic-normalization/plan.md), [tasks](017-pdf-comic-normalization/tasks.md).
 
 - [018: Readable Komga import notifications](018-komga-import-notifications/spec.md) — next-UI catalog titles with a filename fallback and optional UI image.
+
+- [Music preview and recovery](020-music-preview-recovery/spec.md): [plan](020-music-preview-recovery/plan.md), [tasks](020-music-preview-recovery/tasks.md), [validation](020-music-preview-recovery/validation.md).
