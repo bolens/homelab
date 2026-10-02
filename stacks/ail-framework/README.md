@@ -61,7 +61,7 @@ The native builder stays on Ubuntu 22.04 because its cleanup and runtime package
 use Python 3.10 and Jammy library names. Upgrading the Ubuntu release requires
 updating those paths, package names, and Python dependency locks together, then
 verifying the complete CPU image build and native application startup. The custom
-image CI builds Lacus and Tor; it does not build the AIL application image.
+image CI builds Lacus and Tor; it does not build the AIL application image. Installed Python package test directories are retained because QReader imports NumPy testing helpers during normal startup.
 
 1. **Build both variants.** Native compilation is shared by BuildKit; build the
    CPU image first so the primary image does not wait for CUDA downloads:
