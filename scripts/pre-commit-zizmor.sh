@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if command -v zizmor >/dev/null 2>&1; then
-  exec zizmor --min-severity medium --min-confidence medium --offline .
+  exec zizmor --min-severity medium --min-confidence medium --offline .github
 fi
 
 if command -v docker >/dev/null 2>&1 &&
@@ -14,7 +14,7 @@ if command -v docker >/dev/null 2>&1 &&
     ghcr.io/zizmorcore/zizmor:1.29.0 \
     --min-severity medium \
     --min-confidence medium \
-    --offline .
+    --offline .github
 fi
 
 echo "pre-commit-zizmor.sh: install zizmor or provide Docker access." >&2

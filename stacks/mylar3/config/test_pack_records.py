@@ -109,5 +109,27 @@ class RecordsTest(unittest.TestCase):
         self.assertEqual(len(seen),102)
         self.assertEqual(len([r for r in self.module.snapshot() if r['id'].startswith('pending')]),101)
 
+    def test_cleaned_pack_with_stale_identity_returns_for_content_verification(self):
+        self.mylar.CONFIG.DDL_LOCATION=str(self.root)
+        self.mylar.db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q:[]))
+        target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
+        payload=json.loads(self.report(target));payload['cleaned_at']=1
+        self.module.report(json.dumps(payload))
+        self.assertNotIn(self.key,[r['id'] for r in self.module.work()['packs']])
+        record=self.store.get('pack',self.key)
+        record['members'][0]['signature'][0]-=1  # Mount device changed.
+        self.store.set('pack',self.key,record)
+        self.assertFalse(self.module.evidence()['1'][1])
+        self.assertIn(self.key,[r['id'] for r in self.module.work()['packs']])
+        self.assertFalse(self.module.evidence()['1'][1])  # Admission is not proof.
+        self.module.report(json.dumps(payload))  # Full destination hash verified.
+        self.assertTrue(self.module.evidence()['1'][1])
+        self.assertNotIn(self.key,[r['id'] for r in self.module.work()['packs']])
+        target.write_bytes(b'changed archive')
+        self.assertIn(self.key,[r['id'] for r in self.module.work()['packs']])
+        with self.assertRaisesRegex(ValueError,'Library destination changed'):
+            self.module.report(json.dumps(payload))
+        self.assertFalse(self.module.evidence()['1'][1])
+
 
 if __name__=='__main__':unittest.main()

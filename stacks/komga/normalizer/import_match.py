@@ -76,11 +76,12 @@ def match(path, database, rows=None):
             evidence.append((title(meta['Series']), number(meta['Number']), meta['Year'], 'issue'))
         elif not ids:
             return None
-    # A parenthesized filename year is treated strictly as the series start year.
+    # Releases use either the series start or issue publication year. Both must
+    # still resolve to one catalog identity across all available evidence.
     clean = re.sub(r'\[__\d+__\]', '', path.stem).strip()
-    parsed = re.fullmatch(r'(.+?)\s+#?(\d+(?:\.\d+)?)\s+\(((?:19|20)\d{2})\)(?:\s+\([^)]*\))*', clean)
+    parsed = re.fullmatch(r'(.+?)\s+#?(\d+(?:\.\d+)?)\s+\(((?:19|20)\d{2})\)(?:\s*\([^)]*\)|\s*\[[^]]*\])*', clean)
     if parsed:
-        evidence.append((title(parsed[1]), number(parsed[2]), parsed[3], 'series'))
+        evidence.append((title(parsed[1]), number(parsed[2]), parsed[3], 'filename'))
     if not ids and not evidence:
         return None
     if rows is None:
@@ -94,7 +95,8 @@ def match(path, database, rows=None):
         if meta.get('Number') and (number(meta['Number']) is None or number(meta['Number']) != number(row[3])):
             continue
         if any(not key or issue is None or key != title(row[5]) or issue != number(row[3])
-               or year != (str(row[6]) if kind == 'series' else str(row[4])[:4])
+               or year not in ((str(row[6]), str(row[4])[:4]) if kind == 'filename' else
+                               (str(row[6]),) if kind == 'series' else (str(row[4])[:4],))
                for key, issue, year, kind in evidence):
             continue
         candidates.append(row)

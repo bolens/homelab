@@ -409,6 +409,17 @@ quiescing Mylar and verifying its backup, then release it before starting either
 the updated or rollback image. Reacquire the guard after startup for preservation
 checks. Waiting for healthy startup while retaining the guard blocks startup until the
 writer-lock timeout, causing startup to fail.
+Recovery bindings include filesystem device numbers and directory inodes. A
+remount or reboot can change the device number while preserving every inode.
+If Mylar reports `Tagger recovery state identity changed`, keep the guard intact
+until both writers are quiesced and their complete state has a verified backup
+and isolated restore. Confirm terminal, cleaned publication receipts and no
+pending writer markers. A rebind is justified only when the stored hash matches
+the exact current inode set with the previous device number. Retained staging
+directory identities need the same verification, and their files must remain
+preserved. Do not clear pending markers or delete recovery directories to make
+startup succeed. The current device-number binding can require this review again
+after another remount.
 If the normalizer or an operator changed data during that interval, retain the
 backup and reconcile the differences before restoring; do not overwrite valid
 changes with an older snapshot. Confirm unrelated services remained healthy.
@@ -441,7 +452,11 @@ while leaving Mylar's setting on retains new packs pending worker recovery.
 Activity's **Packs and extras** section records each original format, catalog
 identity, classification and outcome. It survives DDL history cleanup. Submitted
 imports remain pending until page bytes and non-metadata sidecars match the
-library. Changed or missing library files invalidate completion. DDL completion evidence
+library. Changed or missing library files invalidate completion. Cleaned packs
+whose saved file identities become stale return to the worker for destination hash
+verification, even when their sources and worker receipts are unavailable.
+Unchanged content can receive a fresh receipt after a remount. Changed content or
+incomplete destination proofs remain for review. DDL completion evidence
 is independent of the bounded recent-history display. Related cover
 collections, short cover-only archives, named extras and alternate scans are kept
 in a sibling `Series - Extras` folder, without a regular issue identity. Legitimate
