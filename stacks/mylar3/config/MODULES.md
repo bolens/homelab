@@ -123,6 +123,7 @@ in Activity and outcomes in the post-processing monitor. Focused coverage is in
 `test_library_metadata.py` and `test_metadata_repair.py`.
 
 Reader metadata supplements use `tagger_enrichment.py` and the explicit offline `tagger_supplement.py` preview/apply command. `test_tagger_enrichment.py` exercises real NFS publication, restored backups, preservation and a byte-stable repeat. The existing Modern service adds derived fields to future tags.
+The coordinated `apply_preserved` entry point revalidates caller-owned original/restore copies and returns a native publication receipt without deleting them. Its tests cover reuse, stale/corrupt copies, linked copies, no-op retention and interrupted-token reconciliation.
 
 ## Release naming
 

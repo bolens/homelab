@@ -3,6 +3,8 @@ from pathlib import Path
 import tempfile
 import hashlib
 import json
+import os
+import shutil
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -11,7 +13,7 @@ from tagger_enrichment import supplements, validate
 from tagger_metadata import reconcile, parse
 from tagger_archive import snapshot
 from tagger_nfs import Publisher
-from tagger_supplement import apply, main, bound_publisher
+from tagger_supplement import apply, apply_preserved, main, bound_publisher
 from media_writer import Writer, PROTOCOL
 
 
@@ -118,6 +120,87 @@ class EnrichmentTest(unittest.TestCase):
                 (state/'staging').rename(state/'staging-old')
                 (state/'staging').mkdir(mode=0o700)
                 with self.assertRaises(ValueError): bound_publisher(writer)
+
+    def test_combined_preservation_reuse_keeps_copies_and_returns_durable_token(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); source = root/'Renamed.001.(2020).cbz'
+            with zipfile.ZipFile(source, 'w') as z:
+                z.writestr('page.jpg', b'unchanged payload')
+                z.writestr('ComicInfo.xml', '<ComicInfo><Series>Comic</Series><Number>1</Number><Publisher>DC</Publisher></ComicInfo>')
+            copies = root/'copies'; copies.mkdir(mode=0o700)
+            original, restored = copies/'original.cbz', copies/'restored.cbz'
+            for copy in (original, restored):shutil.copy2(source, copy)
+            before = hashlib.sha256(source.read_bytes()).hexdigest()
+            writer = Writer(root/'writer', create=True); publisher = Publisher(root/'journal')
+            token = 'a'*32
+            with patch('tagger_supplement.shutil.copy2', side_effect=AssertionError('Must reuse preservation')):
+                result = apply_preserved(source, {}, writer, publisher, original, restored, before, token)
+            self.assertEqual(result['state'], 'committed'); self.assertEqual(result['token'], token)
+            self.assertTrue(Path(result['journal']).is_file())
+            self.assertTrue(result['payloads_verified']); self.assertNotEqual(result['before'], result['after'])
+            self.assertEqual(snapshot(source).members, snapshot(original).members)
+            for copy in (original, restored):self.assertEqual(hashlib.sha256(copy.read_bytes()).hexdigest(), before)
+            self.assertFalse(writer.fenced(tagger=True))
+            with self.assertRaises(ValueError):apply_preserved(source, {}, writer, publisher, original, restored, before, token)
+
+    def test_combined_bad_restore_is_rejected_before_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); source = root/'Comic.cbz'
+            with zipfile.ZipFile(source, 'w') as z:
+                z.writestr('page.jpg', b'payload')
+                z.writestr('ComicInfo.xml', '<ComicInfo><Publisher>DC</Publisher></ComicInfo>')
+            copies = root/'copies'; copies.mkdir(mode=0o700)
+            original, restored = copies/'original.cbz', copies/'restored.cbz'
+            for copy in (original, restored):shutil.copy2(source, copy)
+            before = hashlib.sha256(source.read_bytes()).hexdigest()
+            writer = Writer(root/'writer', create=True); publisher = Publisher(root/'journal')
+            restored.write_bytes(b'bad restore')
+            with self.assertRaises(ValueError):apply_preserved(source, {}, writer, publisher, original, restored, before, 'b'*32)
+            self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), before)
+            self.assertFalse(writer.fenced(tagger=True)); self.assertFalse(list(publisher.root.glob('*.json')))
+
+    def test_combined_linked_copies_and_completed_noop(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); source = root/'Comic.cbz'
+            with zipfile.ZipFile(source, 'w') as z:
+                z.writestr('page.jpg', b'payload')
+                z.writestr('ComicInfo.xml', '<ComicInfo><Publisher>DC</Publisher><SeriesGroup>Publisher: DC</SeriesGroup></ComicInfo>')
+            copies = root/'copies'; copies.mkdir(mode=0o700)
+            original, restored = copies/'original.cbz', copies/'restored.cbz'
+            shutil.copy2(source, original); os.link(original, restored)
+            before = hashlib.sha256(source.read_bytes()).hexdigest()
+            writer = Writer(root/'writer', create=True); publisher = Publisher(root/'journal')
+            with patch.object(publisher, 'tag', side_effect=AssertionError('Must not publish')):
+                with self.assertRaises(ValueError):apply_preserved(source, {}, writer, publisher, original, restored, before, 'c'*32)
+                restored.unlink();shutil.copy2(source, restored)
+                result = apply_preserved(source, {}, writer, publisher, original, restored, before, 'c'*32)
+            self.assertEqual(result['state'], 'unchanged');self.assertIsNone(result['token'])
+            self.assertTrue(original.exists() and restored.exists());self.assertFalse(writer.fenced(tagger=True))
+
+    def test_combined_interruption_retains_copies_fence_and_reconciles_without_replay(self):
+        for checkpoint in ('after_displace', 'after_link'):
+            with self.subTest(checkpoint=checkpoint), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); source = root/'Comic.cbz'
+                with zipfile.ZipFile(source, 'w') as z:
+                    z.writestr('page.jpg', b'payload')
+                    z.writestr('ComicInfo.xml', '<ComicInfo><Publisher>DC</Publisher></ComicInfo>')
+                copies = root/'copies';copies.mkdir(mode=0o700)
+                original, restored = copies/'original.cbz', copies/'restored.cbz'
+                for copy in (original, restored):shutil.copy2(source, copy)
+                before = hashlib.sha256(source.read_bytes()).hexdigest()
+                writer = Writer(root/'writer', create=True);publisher = Publisher(root/'journal');token='d'*32
+                def crash(stage):
+                    if stage == checkpoint:raise KeyboardInterrupt()
+                with patch('tagger_adapter._checkpoint', side_effect=crash), self.assertRaises(KeyboardInterrupt):
+                    apply_preserved(source, {}, writer, publisher, original, restored, before, token)
+                self.assertTrue(writer.fenced(tagger=True));self.assertTrue(publisher.receipt(token).exists())
+                for copy in (original, restored):self.assertEqual(hashlib.sha256(copy.read_bytes()).hexdigest(), before)
+                with patch.object(publisher, 'tag', side_effect=AssertionError('Cannot replay uncertain token')):
+                    with self.assertRaisesRegex(ValueError, 'Existing publication token'):
+                        apply_preserved(source, {}, writer, publisher, original, restored, before, token)
+                self.assertFalse(writer.fenced(tagger=True));self.assertTrue(source.exists())
+                self.assertEqual(snapshot(source).members, snapshot(original).members)
+                self.assertTrue(original.exists() and restored.exists())
 
 
 if __name__ == '__main__':
