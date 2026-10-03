@@ -45,7 +45,8 @@ def evidence(path):
 
 
 def kind(path, info):
-    name = path.stem
+    # A cover-count annotation describes variants inside a full issue.
+    name = re.sub(r'\(\s*\d+\s+covers?\s*\)', '', path.stem, flags=re.I) if info['page_count'] > 3 else path.stem
     if (COVER.search(name) and (info['page_count'] <= 3 or re.search(r'\bcovers\b|collection|gallery', name, re.I))) or EXTRA.search(name):
         return 'supplement'
     return 'annual' if re.search(r'\bannual\b', name, re.I) else 'issue'
