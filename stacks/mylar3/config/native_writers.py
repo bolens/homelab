@@ -21,10 +21,13 @@ def owner():
 def operation(*, reconcile=False):
     from . import tagger_native
     writer = owner()
-    with writer.hold(allow_tagger_pending=True, timeout=180):
+    with writer.hold(allow_tagger_pending=True, allow_release_pending=True, timeout=180):
         outer = not getattr(_LOCAL, 'depth', 0)
         if outer and (reconcile or writer.fenced(tagger=True)):
             tagger_native.recover(writer)
+        if outer and writer.fenced(release=True):
+            from . import release_naming
+            release_naming.recover(writer)
         _LOCAL.depth = getattr(_LOCAL, 'depth', 0) + 1
         try:
             yield writer

@@ -39,7 +39,8 @@ reproducible in CI.
   post-processing monitoring, worker health, and the desktop navigation/layout.
   Select it with `MYLAR3_IMAGE` in the Mylar stack.
 - `ghcr.io/bolens/homelab-comic-normalizer` includes archive conversion,
-  verified duplicate cleanup, corrupt-file quarantine, and opt-in import recovery.
+  verified duplicate cleanup, corrupt-file quarantine, opt-in import recovery and
+  release naming with native ownership and reader restoration checks.
   Select it with `COMIC_NORMALIZER_IMAGE` in Komga's normalizer override.
 - `ghcr.io/bolens/homelab-komga` replaces the pinned server's next-UI assets
   with readable import notifications. Select it explicitly with `KOMGA_IMAGE`;

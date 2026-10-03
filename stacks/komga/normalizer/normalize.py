@@ -166,6 +166,9 @@ class Normalizer:
         self.rejected = {}
         from reader_scan import ScanBatch, policy
         self.scan_batch = ScanBatch(self) if policy(config)['enabled'] else None
+        from release_naming import policy as naming_policy
+        self.naming_rules = naming_policy(config)
+        self.naming = None
 
     def convert_tool(self, *args):
         if args[0] == 'comic-to-cbz' and Path(args[-1]).suffix.lower() == '.pdf':
@@ -509,7 +512,12 @@ def main():
     parser.add_argument('--config', default='/config/normalizer.json')
     parser.add_argument('--once', action='store_true')
     parser.add_argument('--health', action='store_true')
+    parser.add_argument('--naming-plan', metavar='MANIFEST')
+    parser.add_argument('--naming-apply', metavar='MANIFEST')
+    parser.add_argument('--naming-limit', type=int, default=1)
     args = parser.parse_args()
+    if not 1 <= args.naming_limit <= 100 or (args.naming_plan and args.naming_apply):
+        parser.error('Choose one naming action and a limit from 1 to 100')
     config = json.loads(Path(args.config).read_text())
     state = Path(config.get('state', '/state'))
     if args.health:
@@ -536,6 +544,18 @@ def main():
         maintenance = Maintenance(normalizer)
     with (state / 'worker.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if args.naming_plan or args.naming_apply or normalizer.naming_rules['enabled']:
+            from naming_worker import Naming
+            normalizer.naming = Naming(normalizer)
+        if args.naming_plan:
+            save(Path(args.naming_plan), normalizer.naming.plan())
+            return
+        if args.naming_apply:
+            result = normalizer.naming.apply(json.loads(Path(args.naming_apply).read_text()), args.naming_limit)
+            print(json.dumps({'phases': [row['phase'] for row in result]}), flush=True)
+            return
+        if normalizer.naming:
+            normalizer.naming.initialize()
         if normalizer.scan_batch:
             normalizer.scan_batch.initialize()
         def heartbeat():

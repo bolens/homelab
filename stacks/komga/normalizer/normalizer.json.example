@@ -33,5 +33,9 @@
     "enabled": false,
     "long_edge_pixels": 3200,
     "max_pages": 1000
+  },
+  "release_naming": {
+    "enabled": false,
+    "batch_size": 1
   }
 }

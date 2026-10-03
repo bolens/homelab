@@ -162,6 +162,21 @@ class NativeMatchingTest(unittest.TestCase):
         ):
             return checker.parseit(temp.name, name)
 
+    def test_dotted_release_names_keep_numbers_and_group(self):
+        for number in ('001', '001.5', '001.MU'):
+            value = self.parse('Series.Name.'+number+'.(2020).(Digital)-Son.of.Ultron-Empire.cbz', 'Series Name', 'Print')
+            self.assertEqual(str(value['issue_number']).lower().replace(' ', '.').lstrip('0'), number.lstrip('0').lower())
+            self.assertEqual(value['scangroup'], 'Son.of.Ultron-Empire')
+
+    def test_collected_release_preserves_distinct_series_and_issue_volumes(self):
+        for kind in ('GN', 'TPB', 'HC'):
+            value = self.parse('Series.Name.v2.v005.('+kind+').(2020).(Digital)-Group.cbz',
+                               'Series Name', kind, '5')
+            self.assertIsNotNone(value)
+            self.assertEqual(value['series_name'], 'Series Name')
+            self.assertEqual(int(value['issue_number']), 5)
+            self.assertEqual(value['scangroup'], 'Group')
+
     def test_title_ending_in_year_survives_regular_issue_parser(self):
         value = self.parse(
             "American Vampire 1976 001 (2020).cbz", "American Vampire 1976"

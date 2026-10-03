@@ -123,3 +123,14 @@ in Activity and outcomes in the post-processing monitor. Focused coverage is in
 `test_library_metadata.py` and `test_metadata_repair.py`.
 
 Reader metadata supplements use `tagger_enrichment.py` and the explicit offline `tagger_supplement.py` preview/apply command. `test_tagger_enrichment.py` exercises real NFS publication, restored backups, preservation and a byte-stable repeat. The existing Modern service adds derived fields to future tags.
+
+## Release naming
+
+`patch_release_naming.py` runs after file matching, writer coordination and workflow
+installation. It installs `release_naming.py`, primary-key versioned proposal,
+publication and status APIs, and the explicit final scanner-group/issue parser
+adapter. `native_writers.py` reconciles its journal before every other native
+writer while `release-v1.pending` exists. `release-state-v1.identity` binds the
+workflow journal inode so missing recovery state cannot silently clear a fence.
+The identical shared `media_writer.py` copies also block the optional worker while
+native rename recovery remains pending. No native catalog schema changes are required.

@@ -888,3 +888,23 @@ as an ended series. Supplementation does not assert completion.
 
 This capability uses existing state and media mounts. Compose, environment,
 preparation, stack metadata and ingress contracts require no additional settings.
+
+## Verified release filename changes
+
+The matching Komga worker can opt into [verified release naming](../komga/README.md#verified-release-naming).
+Mylar resolves each existing primary CBZ owner and verifies native filename,
+ComicInfo number, publication year and catalog identity. Primary-key-only versioned
+`getReleaseNaming`, `renameLibraryFile` and `releaseNamingStatus` APIs share a durable
+workflow journal and the existing media writer lock. Final names use dotted
+separators and a hyphen before the scanner group. Explicit fractional and variant
+issue numbers survive native parsing; actual archive names and bytes are preserved
+during parser checks.
+
+Publication links the new same-folder path without overwriting a destination,
+verifies its native identity, removes only the owned old link, and conditionally
+updates that same catalog row. Its status remains unchanged. The inode, file
+permissions, owner and supported ACL/user attributes remain identical. Startup
+reconciles interrupted publication before admitting any media writer. An unresolved
+content or ownership contradiction retains `release-v1.pending` for review.
+Deploy matching images before enabling the policy. Backups, reader verification,
+bounded bulk application and rollback follow the owning Komga instructions.
