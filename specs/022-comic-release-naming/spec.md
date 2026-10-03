@@ -47,7 +47,7 @@ Titles containing years, Unicode, punctuation and fractions; annual release vers
 
 - **FR-001**: Naming MUST be explicitly enabled and portable examples MUST default to disabled.
 - **FR-002**: Naming MUST use dotted release fields with `-Group` at the end, for example `Series.Name.v2.Annual.001.(2020).(Digital)-Group.cbz`.
-- **FR-003**: Names MUST retain verified series volume, publication year, annual/special/collection labels, editions, variants, reprints, cover-only status, source and existing release credits. Unknown fields MUST NOT be guessed.
+- **FR-003**: Names MUST retain verified series volume, publication year, annual/special/collection labels, editions, variants, reprints, cover-only status, source and existing release credits. Unknown fields MUST NOT be guessed. A regular catalog issue without a filename year may use matching embedded Year and stored issue date only when the exact canonical ComicVine issue link is present; explicit date contradictions remain for review.
 - **FR-004**: Catalog IDs and tagging history MUST remain in ComicInfo and private recovery records; transient verified import markers MUST NOT become release-group text.
 - **FR-005**: Only unique existing ownership with consistent embedded identity may be renamed automatically. Supplements and uncataloged collections require explicit proven publication identity or remain for review.
 - **FR-006**: Planning MUST reject symlinks, unsafe paths, oversize metadata, contradictory IDs and case-insensitive collisions.

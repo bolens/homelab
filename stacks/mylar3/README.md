@@ -911,7 +911,10 @@ ComicInfo number, publication year and catalog identity. Primary-key-only versio
 workflow journal and the existing media writer lock. Final names use dotted
 separators and a hyphen before the scanner group. Explicit fractional and variant
 issue numbers survive native parsing; actual archive names and bytes are preserved
-during parser checks.
+during parser checks. A regular catalog issue without a filename year can use
+agreement between its embedded Year and stored issue date only when its exact
+ComicVine issue link is present. An explicit conflicting filename year, absent
+identity evidence or an unknown catalog date remains for review.
 
 Publication links the new same-folder path without overwriting a destination,
 verifies its native identity, removes only the owned old link, and conditionally

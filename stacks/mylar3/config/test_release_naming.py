@@ -176,6 +176,54 @@ class NamingTest(unittest.TestCase):
         self.assertEqual(self.native.scanner('Old 001 (2020) (Empire)'),('Old 001 (2020) (Empire)',None))
 
 
+class MissingYearTest(unittest.TestCase):
+    def setUp(self):
+        import zipfile
+        self.zipfile = zipfile
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name); self.source = self.root / 'Fixture 001.cbz'
+        self.db = sqlite3.connect(':memory:'); self.db.row_factory = sqlite3.Row; self.addCleanup(self.db.close)
+        self.db.executescript("""CREATE TABLE comics(ComicID,ComicLocation,ComicName,ComicYear,ComicVersion,Type);
+          CREATE TABLE issues(IssueID,ComicID,ComicName,Location,Status,Issue_Number,IssueDate);
+          CREATE TABLE annuals(IssueID,ComicID,ComicName,Location,Status,Deleted);""")
+        self.db.execute('INSERT INTO comics VALUES (?,?,?,?,?,?)', ('1',str(self.root),'Fixture','2020',None,'Print'))
+        self.db.execute('INSERT INTO issues VALUES (?,?,?,?,?,?,?)', ('2','1','Fixture',self.source.name,'Downloaded','1','2020-02-01'))
+        self.database = SimpleNamespace(select=lambda sql,args:self.db.execute(sql,args).fetchall())
+        module = ModuleType('mylar'); module.__path__ = [str(Path(__file__).parent)]
+        context = patch.dict(sys.modules, {'mylar':module}); context.start(); self.addCleanup(context.stop)
+        self.native = importlib.import_module('mylar.release_naming')
+        self.parsed = patch.object(self.native, 'parsed', return_value=({'IssueYear':None,'scangroup':None}, 'Print'))
+        self.parsed.start(); self.addCleanup(self.parsed.stop)
+        self.write_xml()
+
+    def write_xml(self, *, year='2020', web='https://comicvine.gamespot.com/fixture/4000-2/'):
+        with self.zipfile.ZipFile(self.source, 'w') as archive:
+            archive.writestr('page.jpg', b'preserved page')
+            archive.writestr('ComicInfo.xml', '<ComicInfo><Series>Fixture</Series><Number>1</Number><Volume>2020</Volume><Year>'+year+'</Year><Web>'+web+'</Web></ComicInfo>')
+
+    def test_absent_filename_year_uses_exact_existing_identity_evidence(self):
+        original = self.source.read_bytes()
+        proposal = self.native.proposal(self.database, str(self.source))
+        self.assertEqual((proposal['year'],proposal['issueid'],proposal['comicid']), ('2020','2','1'))
+        self.assertEqual(self.source.read_bytes(), original)
+
+    def test_missing_or_unrelated_catalog_links_cannot_supply_year(self):
+        for web in ('', 'https://example.test/4000-2/', 'https://comicvine.gamespot.com/fixture/4000-3/',
+                    'https://comicvine.gamespot.com/fixture/4000-2/ https://comicvine.gamespot.com/other/4000-3/'):
+            with self.subTest(web=web):
+                self.write_xml(web=web)
+                with self.assertRaisesRegex(ValueError, 'year'):self.native.proposal(self.database, str(self.source))
+
+    def test_metadata_catalog_and_explicit_filename_year_conflicts_stay_held(self):
+        self.write_xml(year='2019')
+        with self.assertRaisesRegex(ValueError, 'year'):self.native.proposal(self.database, str(self.source))
+        self.write_xml()
+        with patch.object(self.native,'parsed',return_value=({'IssueYear':'2019'},'Print')):
+            with self.assertRaisesRegex(ValueError, 'year'):self.native.proposal(self.database, str(self.source))
+        self.db.execute("UPDATE issues SET IssueDate='0000-00-00'")
+        with self.assertRaisesRegex(ValueError, 'year'):self.native.proposal(self.database, str(self.source))
+
+
 class ApiTest(unittest.TestCase):
     def test_primary_authority_and_sanitized_errors(self):
         from patch_release_naming import api

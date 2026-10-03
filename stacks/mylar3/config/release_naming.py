@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import stat
+from urllib.parse import urlsplit
 
 
 def regular(path, *, links=(1,)):
@@ -150,8 +151,22 @@ def proposal(database, source):
         raise ValueError('Release identity metadata is incomplete')
     row, parent = owner['row'], owner['parent']
     year = str(row.get('IssueDate') or '')[:4]
-    if (not re.fullmatch(r'(?:19|20)\d{2}', year) or str(entry.get('IssueYear')) != year
+    parsed_year = entry.get('IssueYear')
+    if parsed_year is None and owner['table'] == 'issues' and root.findtext('Year') == year:
+        web = root.findtext('Web') or ''
+        ids = set(re.findall(r'4000-(\d+)(?:[/\s?#]|$)', web))
+        linked = set()
+        for link in re.findall(r'https?://[^\s;,]+', web, re.I):
+            url = urlsplit(link)
+            if (url.hostname in ('comicvine.gamespot.com', 'www.comicvine.gamespot.com',
+                                 'comicvine.com', 'www.comicvine.com')
+                    and url.username is None and url.password is None):
+                linked.update(re.findall(r'(?:^|/)4000-(\d+)(?:/|$)', url.path))
+        if ids == linked == {str(row['IssueID'])}:
+            parsed_year = year
+    if (not re.fullmatch(r'(?:19|20)\d{2}', year) or str(parsed_year) != year
             or (root.findtext('Year') and root.findtext('Year') != year)):
+
         raise ValueError('Publication or edition year needs review')
     if number_key(root.findtext('Number')) != number_key(row['Issue_Number']):
         raise ValueError('Release number contradicts catalog ownership')
