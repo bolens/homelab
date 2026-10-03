@@ -548,3 +548,53 @@ corrupt archive and retry history remain retained.
 Cleaned packs with stale Mylar file identities use authenticated destination hash
 revalidation without requiring retained sources or worker receipts. Rejected
 proofs preserve their original history and remain for review.
+
+## Verified release naming
+
+The optional worker policy uses dotted release names and a hyphen before the
+scanner group, for example `Series.Name.v2.001.(2020).(Digital)-Group.cbz`.
+Verified annual, collected-edition, variant, source and language labels remain in
+the name. Unknown issue numbers, conflicting years, sidecars, duplicate reader
+hashes and unproven catalog owners require review. Existing folders remain unchanged.
+Names help parsing; ComicInfo and exact catalog ownership still establish identity.
+
+Set `"release_naming": {"enabled": true, "batch_size": 1}` in the private worker
+configuration after deploying matching Mylar and worker images. The default is
+disabled. It requires the coordination override and absolute `writer_state` and
+`mylar.config_dir`, plus the existing Mylar URL and primary API key configuration.
+The worker includes Python xxhash to verify Komga's XXH3-128 content hash before a
+move. No additional port, mount, credential or privilege is needed.
+
+Automation records the existing library as its initial baseline and names new
+catalog arrivals after metadata and reader analysis are ready. Native Mylar owns
+the same-folder no-overwrite publication and catalog journal under the shared
+writer lock. Interrupted publication fences every other media writer until its
+verified recovery succeeds. The worker reconciles uncertain acknowledgements
+through that journal rather than submitting the rename again. It verifies exact
+archive hashes, reader pages and the API user's read progress before removing its
+per-file temporary originals and restore copies. Compact receipts remain in
+`/state/release-naming`. Komga's verified unique-hash restoration carries all-user
+progress and readlist membership to the new path.
+
+For existing files, run an isolated worker command with the same deployment mounts,
+network and media UID while the normal worker and other media writers are quiescent:
+
+```sh
+python3 /app/normalize.py --naming-plan /state/release-naming-plan.json
+python3 /app/normalize.py --naming-apply /state/release-naming-plan.json --naming-limit 1
+```
+
+Review the private manifest first. Apply validates fresh ownership, source and reader
+state and verifies an isolated per-file preservation copy before publication. Run
+again to continue a bounded batch. Reader restoration is asynchronous; the daemon
+reconciles pending receipts after it resumes. Rebuild the manifest after a completed
+pass to verify idempotence. Planning and application do not enable automation.
+
+Before a live pass, verify backups and isolated restores of Mylar configuration,
+its databases and writer state, worker configuration and receipts, and Komga's
+configuration and databases. Record all-user read progress and readlist membership
+for comparison after the pilot. Keep NZBGet running. Pause metadata writers and
+reader scans that could overlap the pass. Rollback requires restoring affected
+paths/catalog and compatible reader state while writers are stopped. Preserve
+unresolved receipts, originals and pending markers, and never deploy an older image
+while a release naming transaction remains pending.

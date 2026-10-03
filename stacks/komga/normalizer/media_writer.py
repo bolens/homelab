@@ -57,6 +57,7 @@ class Writer:
         self.lock=self.root/'writer-v1.lock'
         self.pending=self.root/'normalizer-v1.pending'
         self.tagger_pending=self.root/'tagger-v2.pending'
+        self.release_pending=self.root/'release-v1.pending'
         if created:
             self.create_file(self.lock)
         fd=checked_file(self.lock)
@@ -83,14 +84,14 @@ class Writer:
         finally:os.close(fd)
         sync(self.root)
 
-    def fenced(self, *, tagger=False):
-        try:fd=checked_file(self.tagger_pending if tagger else self.pending)
+    def fenced(self, *, tagger=False, release=False):
+        try:fd=checked_file(self.release_pending if release else self.tagger_pending if tagger else self.pending)
         except FileNotFoundError:return False
         else:os.close(fd);return True
 
     @contextmanager
-    def hold(self, *, allow_pending=False, allow_tagger_pending=False, timeout=30):
-        if type(allow_pending) is not bool or type(allow_tagger_pending) is not bool or timeout < 0:
+    def hold(self, *, allow_pending=False, allow_tagger_pending=False, allow_release_pending=False, timeout=30):
+        if type(allow_pending) is not bool or type(allow_tagger_pending) is not bool or type(allow_release_pending) is not bool or timeout < 0:
             raise ValueError('Invalid writer admission policy')
         mutex,local=self.local
         deadline=time.monotonic()+timeout
@@ -98,7 +99,7 @@ class Writer:
         fd=None
         try:
             if getattr(local,'depth',0):
-                if (allow_pending and not local.allow_pending) or (allow_tagger_pending and not local.allow_tagger_pending):
+                if (allow_pending and not local.allow_pending) or (allow_tagger_pending and not local.allow_tagger_pending) or (allow_release_pending and not local.allow_release_pending):
                     raise ValueError('Nested writer cannot gain recovery authority')
                 local.depth+=1
                 try:yield self
@@ -112,14 +113,14 @@ class Writer:
                     info=os.fstat(fd);current=self.lock.lstat()
                     if (info.st_dev,info.st_ino)!=(current.st_dev,current.st_ino) or (info.st_dev,info.st_ino)!=self.lock_identity:
                         raise ValueError('Media writer lock changed')
-                    if (allow_pending or not self.fenced()) and (allow_tagger_pending or not self.fenced(tagger=True)):break
+                    if (allow_pending or not self.fenced()) and (allow_tagger_pending or not self.fenced(tagger=True)) and (allow_release_pending or not self.fenced(release=True)):break
                     fcntl.flock(fd,fcntl.LOCK_UN)
                 except BlockingIOError:pass
                 if time.monotonic()>=deadline:raise Busy('Media writer active or normalizer recovery pending')
                 time.sleep(min(0.05,max(0,deadline-time.monotonic())))
-            local.depth=1;local.allow_pending=allow_pending;local.allow_tagger_pending=allow_tagger_pending
+            local.depth=1;local.allow_pending=allow_pending;local.allow_tagger_pending=allow_tagger_pending;local.allow_release_pending=allow_release_pending
             try:yield self
-            finally:local.depth=0;local.allow_pending=False;local.allow_tagger_pending=False
+            finally:local.depth=0;local.allow_pending=False;local.allow_tagger_pending=False;local.allow_release_pending=False
         finally:
             if fd is not None:os.close(fd)
             mutex.release()
@@ -157,3 +158,21 @@ class Writer:
                 raise ValueError('Tagger recovery marker changed')
             self.tagger_pending.unlink();sync(self.root)
         finally:os.close(fd)
+
+    def mark_release_pending(self):
+        if not getattr(self.local[1], 'depth', 0) or not self.local[1].allow_release_pending:
+            raise ValueError('Release recovery ownership required')
+        self.create_file(self.release_pending)
+
+    def clear_release_pending(self):
+        if not getattr(self.local[1], 'depth', 0) or not self.local[1].allow_release_pending:
+            raise ValueError('Release recovery ownership required')
+        self.validate_root()
+        fd = checked_file(self.release_pending)
+        try:
+            info = os.fstat(fd); current = self.release_pending.lstat()
+            if (info.st_dev, info.st_ino) != (current.st_dev, current.st_ino):
+                raise ValueError('Release recovery marker changed')
+            self.release_pending.unlink(); sync(self.root)
+        finally:
+            os.close(fd)

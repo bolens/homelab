@@ -21,6 +21,16 @@ class CycleTest(unittest.TestCase):
         self.worker=SimpleNamespace(config={'writer_state':str(self.owner.root)},jobs=self.jobs,state=self.state,cycle=Mock())
         self.maintenance=SimpleNamespace(cycle=Mock())
 
+    def test_naming_reconciles_native_fence_before_ordinary_writer_admission(self):
+        with self.owner.hold(allow_release_pending=True):self.owner.mark_release_pending()
+        def native_recovery():
+            # Simulate the remote native owner responding to releaseNamingStatus.
+            with self.owner.hold(allow_release_pending=True):self.owner.clear_release_pending()
+        self.worker.naming=SimpleNamespace(reconcile=Mock(side_effect=native_recovery),tick=Mock())
+        self.assertTrue(cycle(self.worker));self.assertFalse(self.owner.fenced(release=True))
+        self.worker.naming.reconcile.assert_called_once();self.worker.cycle.assert_called_once()
+        self.worker.naming.tick.assert_called_once()
+
     def test_whole_cycle_is_owned_and_clean_completion_unfences(self):
         def check():
             self.assertTrue(self.owner.fenced())

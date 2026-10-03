@@ -24,3 +24,5 @@ Installation validation alone does not establish feature completion.
 - [Music preview and recovery](020-music-preview-recovery/spec.md): [plan](020-music-preview-recovery/plan.md), [tasks](020-music-preview-recovery/tasks.md), [validation](020-music-preview-recovery/validation.md).
 
 - [Reader metadata supplements](021-reader-metadata-supplement/spec.md): [plan](021-reader-metadata-supplement/plan.md), [tasks](021-reader-metadata-supplement/tasks.md).
+
+- [Verified comic release naming](022-comic-release-naming/spec.md): prospective [plan](022-comic-release-naming/plan.md), [tasks](022-comic-release-naming/tasks.md).

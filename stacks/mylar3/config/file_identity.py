@@ -86,6 +86,21 @@ def validate_rescan(database, series, file_lists, *, booktype=None):
                 raise ValueError('Rescan identity review required: convert archive before metadata verification')
             annual_mode = bool(entry.get('AnnualComicID')) or bool(re.search(r'annual|special', str(entry.get('JusttheDigits')), re.I))
             annual_id = entry.get('AnnualComicID')
+            # Dotted release names may lose the parser's annual classification.
+            # Restore only with an explicit annual label and exact metadata owner.
+            tagged_ids = set(re.findall(r"4000-(\d+)(?:[/\s?#]|$)", fields.get("Web", "")))
+            if (not annual_mode and len(tagged_ids) == 1
+                    and re.search(r'(?:^|[.\s_-])(?:annual|special)(?:[.\s_-]|$)', path.stem, re.I)):
+                proven = [row for row in annuals if not row['Deleted']
+                          and str(row['IssueID']) == next(iter(tagged_ids))
+                          and title(fields.get('Series', '')) == title(row['ReleaseComicName'])
+                          and number(fields.get('Number')) == number(row['Issue_Number'])
+                          and re.fullmatch(r'(?:19|20)\d{2}', str(entry.get('IssueYear')))
+                          and str(field(row, 'IssueDate'))[:4] == str(entry.get('IssueYear'))]
+                if len(proven) == 1:
+                    annual_mode = True
+                    annual_id = proven[0]['ReleaseComicID']
+
             # Restore dropped parser identities only with an explicit catalog
             # link and a valid parsed publication year matching the catalog.
             release_year = str(number(entry.get('JusttheDigits')))

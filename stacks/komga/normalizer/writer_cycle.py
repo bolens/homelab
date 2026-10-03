@@ -37,6 +37,9 @@ def bind_state(writer, normalizer):
 
 
 def cycle(normalizer, maintenance=None):
+    naming = getattr(normalizer, 'naming', None)
+    if naming:
+        naming.reconcile()  # The native owner alone can clear a release recovery fence.
     root=normalizer.config.get('writer_state')
     if root is None:
         normalizer.cycle()
@@ -65,6 +68,9 @@ def cycle(normalizer, maintenance=None):
             if not pending:refresh_completed(normalizer)
         finally:
             if scan_ready:scans.dispatch()
+        naming = getattr(normalizer, 'naming', None)
+        if not pending and naming:
+            naming.tick()  # Native rename owns the writer; call only after releasing our lock.
         return True
     except Busy:
         # A busy lock is normal contention. Preserve errors and pending counts,
