@@ -16,6 +16,38 @@ from unittest.mock import Mock, patch
 
 
 class NativeMatchingTest(unittest.TestCase):
+    def test_native_duplicate_check_uses_annual_owner_and_retains_conflicts(self):
+        from mylar import helpers, db
+        from patch_postprocessing import duplicate_ownership
+        source = (SOURCE / 'helpers.py').read_text()
+        self.assertEqual(duplicate_ownership(source), source)
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        path = Path(temp.name) / 'Annual.cbz'
+        path.write_bytes(b'original retained')
+        database = sqlite3.connect(':memory:')
+        database.row_factory = sqlite3.Row
+        self.addCleanup(database.close)
+        database.executescript('''CREATE TABLE issues(IssueID,ComicID,Status,Location,ComicSize);
+            CREATE TABLE annuals(IssueID,ComicID,Status,Location,ComicSize,Deleted);
+            CREATE TABLE comics(ComicID,ComicName,ComicLocation);
+            INSERT INTO comics VALUES('10','Parent','/parent'),('20','Standalone','/standalone');
+            INSERT INTO issues VALUES('100','20','Downloaded','wrong.cbz',100);
+            INSERT INTO annuals VALUES('100','10','Wanted',NULL,NULL,0);''')
+        adapter = Mock()
+        adapter.selectone.side_effect = lambda sql, args: database.execute(sql, args)
+        with patch.object(db, 'DBConnection', return_value=adapter), patch.object(helpers, 'logger', Mock()):
+            self.assertEqual(helpers.duplicate_filecheck(str(path), ComicID='10', IssueID='100'), {'action': 'write'})
+            self.assertEqual(helpers.duplicate_filecheck(str(path), ComicID='20', IssueID='100'), {'action': None})
+            database.execute("UPDATE annuals SET Deleted=1")
+            self.assertEqual(helpers.duplicate_filecheck(str(path), ComicID='10', IssueID='100'), {'action': None})
+            database.execute('DELETE FROM annuals')
+            database.execute("UPDATE issues SET Status='Wanted'")
+            self.assertEqual(helpers.duplicate_filecheck(str(path), ComicID='20', IssueID='100'), {'action': 'write'})
+        adapter.action.assert_not_called()
+        adapter.upsert.assert_not_called()
+        self.assertEqual(path.read_bytes(), b'original retained')
+
     def test_native_rescan_rejects_identity_before_any_catalog_action(self):
         from mylar import updater, db
         import inspect

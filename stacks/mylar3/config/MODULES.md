@@ -29,7 +29,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Queue diagnostics and import problems | `patch_queue_views.py` | `import_problems.py`, `test_queue_views.py` |
 | Cooldown search fallback | `patch_search_cooldown.py` | `test_search_cooldown.py`, `test_search_fallback.py` |
 | Prowlarr release identity and legacy failure isolation | `patch_prowlarr_identity.py` | `prowlarr_identity.py`, `test_prowlarr_identity.py` |
-| Post-processing ownership and annual identity | `patch_postprocessing.py` | `processing_guard.py`, `test_pack_intake.py` |
+| Post-processing ownership and annual identity | `patch_postprocessing.py` | `processing_guard.py`, `test_pack_intake.py`, `test_file_matching.py` |
 | Post-processing observations | `patch_pp_monitor.py` | `pp_monitor.py`, `archive_monitor.py`; corresponding `test_*.py` |
 | Pack membership and catalog intake | `patch_pack_intake.py` | `pack_intake.py`, `pack_catalog.py`; `test_pack_intake.py`, `test_pack_records.py`, `test_pack_catalog.py` |
 | Preserve tracked series on startup | `patch_series_preservation.py` | `test_pack_intake.py` |

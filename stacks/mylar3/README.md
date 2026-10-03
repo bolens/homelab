@@ -511,7 +511,9 @@ read-only lookup failures allow up to five attempts with increasing delays, star
 at five minutes. A persisted write intent prevents retries from repeating an
 uncertain catalog addition. Legacy uncertain receipts remain held for review. Pack number
 ranges no longer mark inferred issue lists Snatched or overwrite them on failure.
-Annual filename IDs resolve against annual records, and processing ownership is
+Annual filename IDs and duplicate checks resolve against annual records even
+when a standalone issue shares the same catalog ID. Deleted annuals and a
+conflicting parent remain for review without replacing either file. Processing ownership is
 released on empty input, errors and normal completion. Startup retains unfinished
 series entries when they have issue or annual records, preserving catalog refresh
 intent and parent relationships.
