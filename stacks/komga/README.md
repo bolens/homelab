@@ -343,6 +343,11 @@ are retained. Library files are never removed by maintenance.
 HTML responses saved as comics and confirmed decoder corruption are copied to `maintenance/quarantine` under
 `NORMALIZER_STATE_PATH`. The worker verifies its SHA-256 before removing the
 completed copy. Receipts record the source, recovery copy, and retry outcome.
+When decoding fails without a dependency error, a file with a ZIP local-header
+signature also receives a bounded check for its end record. A missing end record
+confirms corruption even if the archive tool reports a generic format failure.
+This check does not load the central directory or bypass decoder member limits.
+ZIPs with an end-record signature and unexplained decoder failures remain for review.
 A unique Mylar release mapping can trigger one native failed-release replacement
 search. Ambiguous mappings remain for manual review. An interrupted API request
 is recorded as `retry_unconfirmed` and is never blindly repeated.
