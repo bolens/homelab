@@ -60,6 +60,8 @@ def save(path, value):
 
 
 def api_path(value):
+    if value.startswith('/'):
+        return Path(value)
     return Path(urllib.parse.unquote(urllib.parse.urlparse(value).path))
 
 

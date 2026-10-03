@@ -208,6 +208,48 @@ class RescanIdentityTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.check(self.files('Comic Annual 001 (2021).cbz', '<ComicInfo><Series>Comic Annual</Series><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-200/</Web></ComicInfo>', number='1 annual', annual='21'))
 
+    def test_year_named_annual_restores_only_proven_release_identity(self):
+        self.db.execute('ALTER TABLE annuals ADD COLUMN IssueDate')
+        self.db.execute("UPDATE annuals SET IssueDate='2021-01-01'")
+        self.db.execute("INSERT INTO annuals VALUES('201','10','1','Other Annual','21',0,'2022-01-01')")
+        files = self.files('Comic Annual 2021.cbz', '<ComicInfo><Series>Comic Annual</Series><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-200/</Web></ComicInfo>', number='2021 annual')
+        entry = files[0]['comiclist'][0]
+        entry['IssueYear'] = '2022'
+        with self.assertRaises(ValueError):
+            self.check(files)
+        self.assertIsNone(entry.get('AnnualComicID'))
+        entry['IssueYear'] = '2021'
+        self.check(files)
+        self.assertEqual(entry['AnnualComicID'], '20')
+        entry['AnnualComicID'] = None
+        self.db.execute("UPDATE annuals SET Deleted=1 WHERE IssueID='200'")
+        with self.assertRaises(ValueError):
+            self.check(files)
+        self.assertIsNone(entry['AnnualComicID'])
+
+    def test_annual_parser_correction_waits_for_complete_rescan_validation(self):
+        self.db.execute('ALTER TABLE annuals ADD COLUMN IssueDate')
+        self.db.execute("UPDATE annuals SET IssueDate='2021-01-01'")
+        files = self.files('Comic Annual 2021.cbz', '<ComicInfo><Series>Comic Annual</Series><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-200/</Web></ComicInfo>', number='2021 annual')
+        entry = files[0]['comiclist'][0]
+        entry['IssueYear'] = '2021'
+        bad = self.files('Comic 016.cbz', '<ComicInfo><Number>15</Number></ComicInfo>', number='16')
+        with self.assertRaises(ValueError):
+            self.check(files+bad)
+        self.assertIsNone(entry.get('AnnualComicID'))
+        self.check(files)
+        self.assertEqual(entry['AnnualComicID'], '20')
+
+    def test_annual_filename_cannot_claim_a_regular_issue_catalog_id(self):
+        self.db.execute('ALTER TABLE annuals ADD COLUMN IssueDate')
+        self.db.execute("UPDATE annuals SET IssueDate='2021-01-01'")
+        self.db.execute("UPDATE issues SET Issue_Number='1' WHERE IssueID='100'")
+        files = self.files('Comic Annual 2021.cbz', '<ComicInfo><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>', number='2021 annual')
+        files[0]['comiclist'][0]['IssueYear'] = '2021'
+        with self.assertRaises(ValueError):
+            self.check(files)
+        self.assertIsNone(files[0]['comiclist'][0].get('AnnualComicID'))
+
 
 if __name__ == "__main__":
     unittest.main()

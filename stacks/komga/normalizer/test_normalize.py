@@ -13,10 +13,19 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from normalize import Normalizer, digest, identity
+from normalize import Normalizer, api_path, digest, identity
 
 TOOL = os.environ.get('ARCHIVING_UTILS_BIN') or shutil.which('archiving-utils')
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j9ZkAAAAASUVORK5CYII=')
+
+
+class ReaderPathTest(unittest.TestCase):
+    def test_raw_reader_paths_keep_literal_punctuation(self):
+        path = '/data/comics/RWBY 2019-11-27 (#07) 100%20?!.cbz'
+        self.assertEqual(api_path(path), Path(path))
+
+    def test_file_uri_paths_decode_encoded_punctuation(self):
+        self.assertEqual(api_path('file:///data/comics/RWBY%20(%2307).cbz'), Path('/data/comics/RWBY (#07).cbz'))
 
 
 class Reader:

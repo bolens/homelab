@@ -199,6 +199,9 @@ request; errors affect container health. Preserve these files with the normalize
 state. Corrupt state or changed catalog/root scope requires review and is never
 silently reset. Disabling pauses notification and preserves queued state.
 
+Reader book paths preserve literal filename punctuation, including `#`, `?`, and
+percent signs. Only URI-form paths are URL-decoded before matching local files.
+
 Komga's scheduled scans and conversion-recovery scans remain unchanged. The
 independent `mylar.refresh_reader_after_tagging` setting still refreshes metadata
 for an already indexed converted book. A successful scan request means Komga
