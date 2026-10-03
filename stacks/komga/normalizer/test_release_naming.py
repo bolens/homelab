@@ -26,6 +26,15 @@ class NamingTest(unittest.TestCase):
         self.assertEqual(render(data), 'Series.Name.v001.(HC).(2020).cbz')
         self.assertEqual(render(dict(data, source='/comics/'+render(data))), render(data))
 
+    def test_bare_edition_labels_are_held_instead_of_lost(self):
+        for label in ('The Deluxe Edition', 'Anniversary Edition', 'Collectors Edition', 'Expanded Edition', 'Cover B', '2nd Printing', "Director's Cut"):
+            with self.assertRaisesRegex(ValueError, 'Unbracketed edition'):
+                render(self.proposal(source='/comics/Series Name 001 - '+label+' (2020).cbz', group=None))
+        data = self.proposal(series='The Walking Dead Deluxe', source='/comics/The Walking Dead Deluxe 001 (2020) (Digital)-Cover-Group.cbz', group='Cover-Group')
+        self.assertEqual(render(data), 'The.Walking.Dead.Deluxe.001.(2020).(Digital)-Cover-Group.cbz')
+        with self.assertRaisesRegex(ValueError, 'Unbracketed edition'):
+            render(self.proposal(type='HC', source='/comics/Series Name 001 - Omnibus (2020).cbz', group=None))
+
     def test_fraction_variants_zero_and_negative_numbers(self):
         for source, target in [('½','000.5'),('1¼','001.25'),('1.50','001.5'),('0','000'),('-1','-001'),('1 MU','001.MU')]:
             self.assertEqual(issue_number(source), target)

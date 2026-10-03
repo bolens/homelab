@@ -85,6 +85,15 @@ def labels(source, group, issueid, year, kind=None):
 
 def render(proposal):
     """Render only a publication already proven by the native naming resolver."""
+    # Bracket blocks survive below; bare edition/variant text must not disappear.
+    bare = re.sub(r'\([^()]*\)|\[[^\[\]]*\]', '', Path(proposal['source']).stem)
+    words = re.findall(r'[^\W_]+', proposal['series'])
+    prefix = r'^[\W_]*'+r'[\W_]*'.join(re.escape(word) for word in words)+r'(?!\w)'
+    bare = re.sub(prefix, '', bare, count=1, flags=re.I)
+    if proposal.get('group'):
+        bare = re.sub(r'-'+re.escape(proposal['group'])+r'$', '', bare, flags=re.I)
+    if re.search(r'\b(?:edition|deluxe|omnibus|hardcover|director[\W_]*s[\W_]*cut|variant|cover|reprint|printing|ashcan|preview|sketch|foil)\b', bare, re.I):
+        raise ValueError('Unbracketed edition or variant label needs review')
     year = str(proposal['year'])
     if not re.fullmatch(r'(?:19|20)\d{2}', year):
         raise ValueError('A verified publication year is required')

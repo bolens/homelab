@@ -556,6 +556,9 @@ scanner group, for example `Series.Name.v2.001.(2020).(Digital)-Group.cbz`.
 Verified annual, collected-edition, variant, source and language labels remain in
 the name. Unknown issue numbers, conflicting years, sidecars, duplicate reader
 hashes and unproven catalog owners require review. Existing folders remain unchanged.
+Unbracketed edition or variant annotations also require review, so rendering cannot
+silently drop a release distinction. A Deluxe Edition collection cannot fulfill
+the regular issue merely because stale embedded metadata names that issue.
 Names help parsing; ComicInfo and exact catalog ownership still establish identity.
 
 Set `"release_naming": {"enabled": true, "batch_size": 1}` in the private worker
