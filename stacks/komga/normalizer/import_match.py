@@ -46,13 +46,16 @@ def metadata(path):
 
 def catalog(database):
     with closing(sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)) as db:
+        columns = {r[1] for r in db.execute('PRAGMA table_info(comics)')}
+        version = 'c.ComicVersion' if 'ComicVersion' in columns else "''"
         rows = db.execute('SELECT i.IssueID,i.ComicID,i.Status,i.Issue_Number,i.IssueDate,c.ComicName,c.ComicYear '
+                          ', ' + version + ' '
                           'FROM issues i JOIN comics c ON c.ComicID=i.ComicID').fetchall()
         if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='annuals'").fetchone():
             annuals = db.execute('SELECT i.IssueID,i.ComicID,i.Status,i.Issue_Number,i.IssueDate,i.ReleaseComicName,substr(i.IssueDate,1,4) '
                                  'FROM annuals i WHERE COALESCE(i.Deleted,0)=0').fetchall()
             ids = {str(r[0]) for r in db.execute('SELECT IssueID FROM annuals')}
-            rows = [r for r in rows if str(r[0]) not in ids] + annuals
+            rows = [r for r in rows if str(r[0]) not in ids] + [tuple(r) + ('',) for r in annuals]
         return rows
 
 
@@ -88,13 +91,19 @@ def match(path, database, rows=None):
         rows = catalog(database)
     candidates = []
     for row in rows:
+        names = {title(row[5])}
+        # An ordinal is evidence, not disposable text: only accept it when
+        # the catalog explicitly records that version for this volume.
+        version = re.fullmatch(r'(?:v)?([1-9]\d*)', str(row[7] or ''), re.I) if len(row) > 7 else None
+        if version:
+            names.update(title(row[5] + suffix + version[1]) for suffix in (' v', ' vol. ', ' volume '))
         if ids and str(row[0]) not in ids:
             continue
         if meta.get('Series') and title(meta['Series']) != title(row[5]):
             continue
         if meta.get('Number') and (number(meta['Number']) is None or number(meta['Number']) != number(row[3])):
             continue
-        if any(not key or issue is None or key != title(row[5]) or issue != number(row[3])
+        if any(not key or issue is None or key not in (names if kind == 'filename' else {title(row[5])}) or issue != number(row[3])
                or year not in ((str(row[6]), str(row[4])[:4]) if kind == 'filename' else
                                (str(row[6]),) if kind == 'series' else (str(row[4])[:4],))
                for key, issue, year, kind in evidence):

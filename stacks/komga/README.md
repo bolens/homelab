@@ -506,6 +506,10 @@ API, and reports member outcomes to Activity's **Packs and extras** section.
 
 Filename and metadata volume-year conflicts remain for review before catalog
 lookup; an issue publication year is not treated as a volume start year.
+Filename volume ordinals such as `v2` match only an explicitly matching catalog
+`ComicVersion`; they are never discarded to guess between volumes. Full issues
+with a cover-count annotation such as `(2 covers)` remain regular comics, while
+short cover-only archives and named cover collections remain supplements.
 
 The worker preserves retryable catalog responses across restarts and honors Mylar's
 retry time. Only safe catalog reads retry automatically; ambiguous identities,

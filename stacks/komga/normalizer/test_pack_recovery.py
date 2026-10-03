@@ -12,11 +12,44 @@ import zipfile
 from normalize import Normalizer
 from maintenance import Maintenance
 from pack_recovery import Packs, evidence, kind
-from import_match import match
+from import_match import catalog, match
 from test_normalize import PNG, TOOL
 
 
 class PackEvidenceTest(unittest.TestCase):
+    def test_full_issue_with_cover_count_is_not_a_supplement(self):
+        self.assertEqual(kind(Path('Grimm Tales of Terror v2 005 (2016) (2 covers).cbz'),
+                              {'page_count': 27}), 'issue')
+        self.assertEqual(kind(Path('Story 005 (2016) (2 covers).cbz'),
+                              {'page_count': 2}), 'supplement')
+        self.assertEqual(kind(Path('Story 005 (2016) (Cover Collection).cbz'),
+                              {'page_count': 27}), 'supplement')
+
+    def test_catalog_version_disambiguates_same_title_and_year(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'Grimm Tales of Terror v2 001 (2015).cbz'
+            with zipfile.ZipFile(path, 'w') as archive:
+                archive.writestr('001.png', PNG)
+            rows = [('100', '10', 'Wanted', '1', '2015-10-31', 'Grimm Tales of Terror', '2015', 'v2'),
+                    ('200', '20', 'Wanted', '1', '2015-09-30', 'Grimm Tales of Terror', '2015', None)]
+            self.assertEqual(match(path, None, rows), {'issueid': '100', 'comicid': '10'})
+            self.assertIsNone(match(path, None, [rows[1]]))
+            self.assertIsNone(match(path, None, rows + [tuple(['300', '30'] + list(rows[0][2:]))]))
+            self.assertIsNone(match(path.with_name('Grimm Tales of Terror v3 001 (2015).cbz'), None, rows))
+
+    def test_catalog_reads_explicit_version_and_supports_older_schema(self):
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / 'catalog.db'
+            with closing(sqlite3.connect(database)) as connection, connection:
+                connection.executescript("CREATE TABLE comics(ComicID,ComicName,ComicYear);"
+                    "CREATE TABLE issues(IssueID,ComicID,Status,Issue_Number,IssueDate);"
+                    "INSERT INTO comics VALUES('10','Story','2015');"
+                    "INSERT INTO issues VALUES('100','10','Wanted','1','2015-10-31');")
+                self.assertEqual(catalog(database)[0][7], '')
+                connection.execute('ALTER TABLE comics ADD COLUMN ComicVersion')
+                connection.execute("UPDATE comics SET ComicVersion='v2'")
+            self.assertEqual(catalog(database)[0][7], 'v2')
+
     def test_cleaned_pack_revalidation_preserves_history_without_sources(self):
         record={'id':'a'*64,'source':'/cache/removed.zip','phase':'confirmed',
                 'cleanup_complete':True,'inventory_complete':True,
