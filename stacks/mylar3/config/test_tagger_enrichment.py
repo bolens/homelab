@@ -113,7 +113,10 @@ class EnrichmentTest(unittest.TestCase):
                 self.assertFalse(writer.fenced(tagger=True))
                 # Evidence from the interrupted per-file verification is retained.
                 self.assertTrue(list(backup.iterdir()))
-                (state/'staging').rmdir(); (state/'staging').mkdir(mode=0o700)
+                # Retain the old inode so filesystems cannot reuse it for the
+                # replacement; the binding deliberately identifies dev+inode.
+                (state/'staging').rename(state/'staging-old')
+                (state/'staging').mkdir(mode=0o700)
                 with self.assertRaises(ValueError): bound_publisher(writer)
 
 
