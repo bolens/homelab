@@ -14,6 +14,17 @@ from unittest.mock import Mock, patch
 
 
 class NativeMatchingTest(unittest.TestCase):
+    def test_rescan_identity_guard_precedes_duplicate_and_catalog_changes(self):
+        source = (SOURCE / "updater.py").read_text()
+        from patch_file_matching import patched
+        self.assertEqual(patched("updater.py", source), source)
+        start = source.index("def forceRescan(")
+        end = source.find("\ndef ", start + 1)
+        rescan = source[start:end if end != -1 else None]
+        guard = rescan.index("file_identity.validate_rescan(myDB, rescan, fca)")
+        self.assertLess(guard, rescan.index("    fcb = []"))
+        self.assertLess(guard, rescan.index("d_issues.append"))
+
     def parse(self, name, title, kind=None, number=None):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)

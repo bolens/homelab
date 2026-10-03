@@ -4,12 +4,24 @@ import sqlite3
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import time
 
 from normalize import digest, identity, save, sync_directory
 
+
+def staging_name(source, issueid, *, pdf=False):
+    """Carry the verified catalog choice into native post-processing's filename parser."""
+    issueid = str(issueid)
+    if not re.fullmatch(r'[1-9][0-9]*', issueid):
+        raise ValueError('Invalid recovery issue identity')
+    markers = re.findall(r'\[__(\d+)__\]', source.stem)
+    if '[__' in re.sub(r'\[__\d+__\]', '', source.stem) or (markers and markers != [issueid]):
+        raise ValueError('Conflicting recovery filename identity')
+    stem = source.stem if markers else source.stem + ' [__' + issueid + '__]'
+    return stem + ('.cbz' if pdf else source.suffix)
 
 
 def issue_state(database, match):
@@ -88,7 +100,11 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
         raise RuntimeError('Insufficient recovery storage')
     stage = cache / ('.mylar-recovery-' + key)
     stage.mkdir(mode=0o700)  # Existing/orphaned staging requires review, never reuse.
-    target = stage / (source.stem + '.cbz' if pdf else source.name)
+    try:
+        target = stage / staging_name(source, match['issueid'], pdf=pdf)
+    except ValueError:
+        stage.rmdir()
+        return 'import_review'
     try:
         if pdf:
             maintenance.worker.convert_tool('comic-to-cbz', '--apply', '--output', target, source)
@@ -124,7 +140,7 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     maintenance.import_submitted = True
     try:
         command = {'workflow_command': workflow_command} if workflow_command is not None else {}
-        maintenance.mylar('forceProcess', nzb_name=source.name,
+        maintenance.mylar('forceProcess', nzb_name=target.name,
                           nzb_folder=str(remote / stage.name), ddl='True', **match, **command)
     except Exception:
         return 'import_review'
