@@ -15,10 +15,12 @@ if __package__:
     from .tagger_archive import identity, regular, snapshot
     from .tagger_adapter import fingerprint
     from .tagger_metadata import overrides
+    from .tagger_enrichment import supplements
 else:
     from tagger_archive import identity, regular, snapshot
     from tagger_adapter import fingerprint
     from tagger_metadata import overrides
+    from tagger_enrichment import supplements
 
 # Only provider-owned fields explicitly present may replace existing values.
 # Notes, page bookmarks, unknown extensions and unselected fields remain intact.
@@ -99,6 +101,7 @@ class Service:
                     if fetched.state != 'ok':
                         return self.failure('timed_out' if fetched.state == 'timed_out' else 'failed', manualmeta)
                     metadata, skip = fetched.metadata, False
+                    updates = {**supplements(original.xml, metadata=metadata), **updates}
                 replacements = []
                 if overwrite and not skip:
                     replacements = [field for key, field in PROVIDER_FIELDS.items() if metadata.get(key) is not None]

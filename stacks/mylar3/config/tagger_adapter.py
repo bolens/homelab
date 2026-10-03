@@ -335,7 +335,15 @@ class Publisher:
             return self.finish(record, 'conflict', cleanup=False)
 
     def tag(self, source, metadata, *, token, updates=None, replace_fields=(), executable=None, preserve_existing=False,
-            expected_digest=None, repair_nested=False):
+            expected_digest=None, repair_nested=False, supplement=None):
+        if supplement is not None:
+            if __package__:
+                from .tagger_enrichment import validate, supplements
+            else:
+                from tagger_enrichment import validate, supplements
+            validate(supplement)
+            if metadata or updates or replace_fields or preserve_existing or repair_nested:
+                raise ValueError('Supplement requires an exclusive missing-field policy')
         if type(repair_nested) is not bool or (repair_nested and (self.version != 2 or preserve_existing or updates or replace_fields or metadata)):
             raise ValueError('Invalid metadata repair policy')
         if type(preserve_existing) is not bool:
@@ -345,6 +353,8 @@ class Publisher:
         if source.anchor != '/' or source.suffix.lower() != '.cbz' or '..' in source.parts or any(p.is_symlink() for p in (source, *source.parents)):
             return Result('unsupported')
         intent = [str(source), metadata, updates, list(replace_fields)]
+        if supplement is not None:
+            intent.append(['reader_supplement_v1', supplement])
         if repair_nested:
             intent.append('repair_nested_metadata_v1')
         if preserve_existing:
@@ -383,6 +393,11 @@ class Publisher:
                     return Result('conflict')
                 if preserve_existing and old.xml is None:
                     return Result('failed')
+                if supplement is not None:
+                    if old.xml is None:
+                        return Result('unsupported')
+                    updates = supplements(old.xml, supplement)
+                    preserve_existing = not updates
                 if not preserve_existing and shutil.disk_usage(source.parent).free < old.identity[2] * 3 + 16 * 1024 ** 2:
                     return Result('failed')
                 folder.mkdir(mode=0o700)
@@ -416,9 +431,12 @@ class Publisher:
                     os.fsync(writer.fileno())
                 if fingerprint(original) != before or identity(source.lstat()) != old.identity:
                     return self.finish(record, 'conflict', cleanup=False)
-                shutil.copyfile(original, tagged)
+                if supplement is None:
+                    shutil.copyfile(original, tagged)
                 _checkpoint('staged')
-                if repair_nested:
+                if supplement is not None:
+                    record['metadata'] = prepare(original, original, output, updates=updates)
+                elif repair_nested:
                     if __package__:
                         from .metadata_repair import prepare as repair
                     else:
