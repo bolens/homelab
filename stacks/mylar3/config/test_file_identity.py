@@ -151,6 +151,12 @@ class RescanIdentityTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.check(self.files('Comic 015 (2021).cbz', '<ComicInfo><Series>Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>'))
 
+    def test_distinct_display_numbers_with_same_native_number_require_review(self):
+        self.db.execute('ALTER TABLE issues ADD COLUMN Int_IssueNumber')
+        self.db.execute('UPDATE issues SET Int_IssueNumber=15000')
+        with self.assertRaises(ValueError):
+            self.check(self.files('Comic 015.cbz', '<ComicInfo><Series>Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>'))
+
     def test_annual_and_collected_effective_numbers_cannot_disagree(self):
         for parsed in ('Annual 2', '2annual'):
             with self.assertRaises(ValueError):
