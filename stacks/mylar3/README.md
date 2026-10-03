@@ -519,9 +519,15 @@ series entries when they have issue or annual records, preserving catalog refres
 intent and parent relationships.
 
 When the filename parser drops an annual release ID, rescan restores it only
-from one live annual catalog link whose publication year agrees with both
-parsed filename years. All metadata checks must pass before that parser
-identity is supplied to native rescan; ambiguity remains for review.
+from one live annual catalog link whose publication year agrees with a valid
+parsed filename year and whose issue number agrees with the archive. A year
+used as the annual number additionally must match that year. Unnumbered or
+year-named single-issue releases require the exact catalog link, number, and
+publication year before restoring their parsed number. All metadata checks
+must pass before either correction is supplied to native rescan.
+Unicode fraction numbers and equivalent numeric variant suffix spellings are
+compared consistently. Unicode dashes are normalized only in the parser copy;
+the actual release filename, edition labels, and scanner credits are preserved.
 
 The existing `workflow.sqlite` also retains pack/member and catalog receipts.
 Prior ComicInfo metadata and non-comic pack credits stay in the worker's

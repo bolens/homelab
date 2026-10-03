@@ -175,6 +175,13 @@ class NativeMatchingTest(unittest.TestCase):
         self.assertEqual(str(value["issue_number"]), "1")
         self.assertEqual(value["booktype"], "GN")
 
+    def test_unicode_title_separator_keeps_native_issue_number(self):
+        value = self.parse("Grimm Tales of Terror v5 007 – Slit Mouthed Woman (2025).cbz", "Grimm Tales of Terror", "Print")
+        self.assertEqual(int(value['issue_number']), 7)
+        from patch_file_matching import patched
+        source = (SOURCE / 'filechecker.py').read_text()
+        self.assertEqual(patched('filechecker.py', source), source)
+
     def test_ordinary_title_and_issue_unchanged(self):
         value = self.parse("Batman 003 (2020).cbz", "Batman")
         self.assertEqual(value["series_name"], "Batman")

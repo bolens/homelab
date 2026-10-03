@@ -240,6 +240,73 @@ class RescanIdentityTest(unittest.TestCase):
         self.check(files)
         self.assertEqual(entry['AnnualComicID'], '20')
 
+    def test_fraction_and_variant_number_spellings_preserve_identity(self):
+        for catalog, parsed, tagged in [('½','000.5','½'),('¼','.25','¼'),('1.MU','001 MU','1.MU')]:
+            self.db.execute("UPDATE issues SET Issue_Number=? WHERE IssueID='100'", (catalog,))
+            self.check(self.files('Comic variant.cbz', '<ComicInfo><Series>Comic</Series><Number>'+tagged+'</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>', number=parsed))
+        with self.assertRaises(ValueError):
+            self.check(self.files('Comic variant.cbz', '<ComicInfo><Number>1.UM</Number></ComicInfo>', number='001 MU'))
+
+    def test_numbered_annual_restores_only_matching_live_release_and_year(self):
+        self.db.execute('ALTER TABLE annuals ADD COLUMN IssueDate')
+        self.db.execute("UPDATE annuals SET IssueDate='2021-01-01'")
+        files = self.files('Comic Annual 001.cbz', '<ComicInfo><Series>Comic Annual</Series><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-200/</Web></ComicInfo>', number='001 annual')
+        entry = files[0]['comiclist'][0]
+        entry['IssueYear'] = '2020'
+        with self.assertRaises(ValueError):
+            self.check(files)
+        entry['IssueYear'] = '2021'
+        self.check(files)
+        self.assertEqual(entry['AnnualComicID'], '20')
+
+    def test_single_issue_parser_recovery_requires_exact_catalog_and_year(self):
+        self.db.execute("DELETE FROM issues WHERE IssueID='101'")
+        self.db.execute('ALTER TABLE issues ADD COLUMN IssueDate')
+        self.db.execute("UPDATE issues SET IssueDate='2021-01-01', Issue_Number='1'")
+        self.series['Total'] = '1'
+        for parsed in (None, '2021'):
+            files = self.files('Comic (2021).cbz', '<ComicInfo><Series>Comic</Series><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>', number=parsed)
+            entry = files[0]['comiclist'][0]
+            entry['IssueYear'] = '2020'
+            with self.assertRaises(ValueError):
+                self.check(files)
+            self.assertEqual(entry['JusttheDigits'], parsed)
+            entry['IssueYear'] = '2021'
+            self.check(files)
+            self.assertEqual(entry['JusttheDigits'], '1')
+        files = self.files('Comic (2021).cbz', '<ComicInfo><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-999/</Web></ComicInfo>', number=None)
+        files[0]['comiclist'][0]['IssueYear'] = '2021'
+        with self.assertRaises(ValueError):
+            self.check(files)
+
+    def test_missing_years_cannot_restore_parser_identities(self):
+        self.db.execute('ALTER TABLE annuals ADD COLUMN IssueDate')
+        files = self.files('Comic Annual 001.cbz', '<ComicInfo><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-200/</Web></ComicInfo>', number='1 annual')
+        with self.assertRaises(ValueError):
+            self.check(files)
+        self.assertIsNone(files[0]['comiclist'][0]['AnnualComicID'])
+        self.db.execute("DELETE FROM issues WHERE IssueID='101'")
+        self.db.execute('ALTER TABLE issues ADD COLUMN IssueDate')
+        self.db.execute("UPDATE issues SET Issue_Number='1'")
+        self.series['Total'] = '1'
+        files = self.files('Comic.cbz', '<ComicInfo><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>', number=None)
+        with self.assertRaises(ValueError):
+            self.check(files)
+        self.assertIsNone(files[0]['comiclist'][0]['JusttheDigits'])
+
+    def test_single_issue_correction_waits_for_complete_validation(self):
+        self.db.execute("DELETE FROM issues WHERE IssueID='101'")
+        self.db.execute('ALTER TABLE issues ADD COLUMN IssueDate')
+        self.db.execute("UPDATE issues SET IssueDate='2021-01-01', Issue_Number='1'")
+        self.series['Total'] = '1'
+        files = self.files('Comic (2021).cbz', '<ComicInfo><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>', number=None)
+        entry = files[0]['comiclist'][0]
+        entry['IssueYear'] = '2021'
+        bad = self.files('Comic 002.cbz', '<ComicInfo><Number>1</Number></ComicInfo>', number='2')
+        with self.assertRaises(ValueError):
+            self.check(files+bad)
+        self.assertIsNone(entry['JusttheDigits'])
+
     def test_annual_filename_cannot_claim_a_regular_issue_catalog_id(self):
         self.db.execute('ALTER TABLE annuals ADD COLUMN IssueDate')
         self.db.execute("UPDATE annuals SET IssueDate='2021-01-01'")
