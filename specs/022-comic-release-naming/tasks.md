@@ -33,12 +33,15 @@
 - [ ] T017 Apply eligible bulk entries under coordination; verify exact contents, native ownership and reader readiness, recording every review/skip. Additional reading-progress audit is deferred by the user. Rebind existing repaired-file credit deferrals through verified old-to-new receipts before the supplement pass resumes.
 - [ ] T018 Remove only conclusively completed temporary preservation copies and publish final acceptance evidence.
 - [ ] T019 Close the live-discovered unbracketed edition-label gap and collection/regular-issue mismatch, with regression proof and reviewed delivery before bulk apply.
+- [ ] T020 Coordinate one bounded per-publication rename/metadata pass: reuse verified preservation, acknowledge the unchanged-hash reader move before metadata rewriting, verify final archive payloads/native ownership/reader readiness and clean up only after both operations complete. Keep existing credit deferrals bound to verified paths.
 
 ## Dependencies and execution
 
 T004–T007 establish native ownership and recovery before live naming. T008–T011 share one renderer for new and existing normalized files. T012–T014 precede delivery; T016 precedes the bulk pass. Source work remains coordinated in one branch. Independent final review is required for the substantive PR; no parallel implementation is needed.
 
 ## Current evidence
+
+- The user requested a combined rename and metadata pass before bulk apply began. The coordinating supplement chat is inspecting its remaining per-file plan while all media writers remain paused. The combined sequence must preserve Komga's unchanged-hash move acknowledgement; tagging first would stale both the naming manifest and reader proof. Corrective PR #203 merged at `9ad19a7e794f6caef62d80272a9537c276ba85fa`; local main is synchronized, and matching image publication is pending. The actual Action Comics Deluxe source is rejected by the corrected native resolver.
 
 - Bulk preflight found the 160-page Action Comics #1000 Deluxe Edition falsely owned by the regular issue. Actual title-page evidence and the publisher's separate hardcover listing establish the distinction. Corrective guards hold unbracketed edition/variant annotations and reject collected-edition suffixes against an ordinary issue, even with stale matching ComicInfo IDs. Live repair, independent review and delivery remain pending; bulk apply has not started.
 
@@ -62,3 +65,5 @@ T004–T007 establish native ownership and recovery before live naming. T008–T
 - T016 live pilot is complete: Civil War II #6 became `Civil.War.II.006.(2016).cbz` with exact archive SHA/inode/attributes and native owner preserved; Komga is READY at 29 pages, and the completed receipt remains after temporary copies were removed. The private naming policy is enabled with batch size 1. The daemon and supplement batch remain paused for the isolated bulk pass. Additional reading-progress audit remains deferred by the user.
 
 - T019 corrective source verification: 30 file-identity tests and seven renderer tests pass; both complete candidate image gates pass, including 178 worker tests with no skips and the actual native parser. Both independent reviewers cleared their findings after generic Edition and HC Omnibus regressions were added. Full local CI passed. Corrective delivery and live repair remain pending.
+
+- T017 read-only manifest completed: 2,856 proposed renames, one already canonical pilot and 161 review entries. Revalidation with the corrective renderer additionally holds two unbracketed editions (Action Comics Deluxe and Civil War II Special Edition Digital Exclusive); no bulk apply has run. T020 metadata preview found 1,736 eligible additions and 1,216 already complete, excluding credit-deferral files and Extras. The shared-preservation helper passes twelve focused tests; both independent reviews report no actionable findings or nits. Controller integration and live canary remain pending.

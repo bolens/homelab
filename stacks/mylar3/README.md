@@ -863,6 +863,16 @@ and completeness. It removes only its verified per-file temporary copies. Failur
 stop the run and retain backups and publication recovery evidence. Do not delete
 pending markers to resume; reconcile through the existing recovery owner.
 
+A coordinated rename-and-supplement pass can reuse already restored archive copies
+through `tagger_supplement.apply_preserved`. The coordinator first proves the reader
+move at the unchanged archive hash, then supplies two distinct copies in a private
+owned folder, the fresh expected hash and a newly journaled publication token.
+The helper rechecks both copies and their full contents under writer exclusion,
+uses the same native publisher and returns its receipt and before/after hashes.
+It retains caller-owned copies for final catalog, payload and reader verification.
+An existing token requires receipt reconciliation, not another publication attempt.
+Do not derive supplemental labels for files with unverified credits.
+
 The command uses the durable Modern publisher and shared writer lock. An unchanged
 archive skips publication entirely, so a repeated run preserves its bytes. It does
 not run ComicVine lookup, re-download books, or modify PDFs. Missing, nested or

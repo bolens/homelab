@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import stat
 import uuid
@@ -81,24 +82,69 @@ def apply(path, policy, writer, publisher, backup_root):
         if fingerprint(backup) != before or fingerprint(restored) != before or snapshot(restored).members != old.members:
             raise ValueError('Backup restore verification failed')
         restored.unlink()
-        writer.mark_tagger_pending()
-        # Each admission is a new attempt. Recovery can roll an interrupted
-        # publication back to the same source bytes with a failed terminal token.
-        token = uuid.uuid4().hex
-        result = publisher.tag(path, {}, token=token, supplement=policy, expected_digest=before)
-        if result.state not in ('committed', 'unchanged'):
-            raise ValueError('Supplement publication failed; backup retained')
-        new = snapshot(path)
-        if ((old.members, old.comment, old.mode, old.uid, old.gid) !=
-                (new.members, new.comment, new.mode, new.uid, new.gid)
-                or publisher.security(path) != security or supplements(new.xml, policy)):
-            raise ValueError('Preservation or completeness verification failed; backup retained')
-        # The verified publisher already compares XML reconciliation and archive
-        # attributes. Keep the crash fence until independent completeness passes.
-        writer.clear_tagger_pending()
+        result = _publish(path, policy, writer, publisher, old, before, security, uuid.uuid4().hex)
         backup.unlink()
         folder.rmdir()
-        return result.state
+        return result['state']
+
+
+def _publish(path, policy, writer, publisher, old, before, security, token):
+    """Publication half; callers own verified preservation and writer admission."""
+    additions = supplements(old.xml, policy)
+    if not additions:
+        return dict(state='unchanged', token=None, before=before, after=before,
+                    fields=[], payloads_verified=True)
+    writer.mark_tagger_pending()
+    result = publisher.tag(path, {}, token=token, supplement=policy, expected_digest=before)
+    if result.state not in ('committed', 'unchanged'):
+        raise ValueError('Supplement publication failed; backup retained')
+    new = snapshot(path)
+    if ((old.members, old.comment, old.mode, old.uid, old.gid) !=
+            (new.members, new.comment, new.mode, new.uid, new.gid)
+            or {a[0]:a[1:] for a in old.attributes} != {a[0]:a[1:] for a in new.attributes}
+            or publisher.security(path) != security or supplements(new.xml, policy)):
+        raise ValueError('Preservation or completeness verification failed; backup retained')
+    writer.clear_tagger_pending()
+    return dict(state=result.state, token=token, journal=str(publisher.receipt(token)),
+                before=before, after=fingerprint(path), fields=sorted(additions), payloads_verified=True)
+
+
+def apply_preserved(path, policy, writer, publisher, original, restored, expected_digest, token):
+    """Reuse caller-owned copies after a verified reader move; never delete them.
+
+    The caller journals the token before admission and reconciles it after a
+    failure. Existing tokens are never replayed through this entry point.
+    """
+    if (not isinstance(expected_digest, str) or not isinstance(token, str)
+            or not re.fullmatch(r'[0-9a-f]{64}', expected_digest) or not re.fullmatch(r'[0-9a-f]{32}', token)):
+        raise ValueError('Expected verified digest and new publication token')
+    path, original, restored = map(Path, (path, original, restored))
+    if (any(not p.is_absolute() or '..' in p.parts for p in (path, original, restored))
+            or len({path, original, restored}) != 3 or original.parent != restored.parent):
+        raise ValueError('Expected distinct preservation copies in one private folder')
+    folder = original.parent
+    info = folder.lstat()
+    if (any(p.is_symlink() for p in (folder, *folder.parents)) or not stat.S_ISDIR(info.st_mode)
+            or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700):
+        raise ValueError('Expected private owned preservation folder')
+    with writer.hold(allow_tagger_pending=True, timeout=30):
+        recover(writer, publisher)
+        if publisher.receipt(token).exists():
+            raise ValueError('Existing publication token requires reconciliation')
+        old = snapshot(path)
+        security = publisher.security(path)
+        if fingerprint(path) != expected_digest:
+            raise ValueError('Combined source changed before metadata admission')
+        for copy in (original, restored):
+            info = copy.lstat()
+            if (copy.is_symlink() or not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                    or info.st_uid != os.geteuid() or fingerprint(copy) != expected_digest):
+                raise ValueError('Caller preservation hash or ownership changed')
+            saved = snapshot(copy)
+            if ((saved.members, saved.comment, saved.xml, saved.attributes) !=
+                    (old.members, old.comment, old.xml, old.attributes)):
+                raise ValueError('Caller restore archive differs from source')
+        return _publish(path, validate(policy), writer, publisher, old, expected_digest, security, token)
 
 
 def bound_publisher(writer):
