@@ -129,6 +129,21 @@ class RescanIdentityTest(unittest.TestCase):
             self.check(files)
         self.assertEqual(len(list(self.folder.iterdir())), 1)
 
+    def test_collection_edition_cannot_claim_regular_issue_with_stale_xml(self):
+        for name in ('Comic 015 - The Deluxe Edition (2020).cbz', 'Comic.015.(2020).(Deluxe.Edition)-Group.cbz'):
+            files = self.files(name, '<ComicInfo><Series>Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>')
+            with self.assertRaisesRegex(ValueError, 'collected edition'):
+                self.check(files)
+        self.series['Type'] = 'HC'
+        self.check(files)
+
+    def test_edition_title_and_explicit_scanner_are_not_collection_suffixes(self):
+        self.series['ComicName'] = 'Comic Deluxe Edition'
+        files = self.files('Comic Deluxe Edition 015 (2020).cbz', '<ComicInfo><Series>Comic Deluxe Edition</Series><Number>15</Number></ComicInfo>')
+        self.check(files)
+        self.series['ComicName'] = 'Comic'
+        self.check(self.files('Comic.015.(2020)-Hardcover.cbz', '<ComicInfo><Series>Comic</Series><Number>15</Number></ComicInfo>'))
+
     def test_other_volume_identity_is_rejected_before_rescan(self):
         files = self.files('Comic 015 (2021).cbz', '<ComicInfo><Series>Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-999/</Web></ComicInfo>')
         with self.assertRaises(ValueError):

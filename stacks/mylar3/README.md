@@ -113,6 +113,9 @@ matching. Recovery for an unnumbered collected edition requires one actual catal
 issue, an exact title or ordinary alias, and one main comic file. Conflicting
 issue numbers, annual aliases, variants, and supplemental annotations are not
 collapsed into that issue.
+Native rescans also hold a Deluxe Edition, collected-edition, omnibus or hardcover
+suffix against a regular-issue catalog, even when stale embedded metadata points
+to that issue. Edition words in the actual catalog title remain valid.
 
 Story-arc searches queue every eligible missing entry with its arc identity and
 preserve already imported issues and annuals. TalkHard pull-list navigation uses

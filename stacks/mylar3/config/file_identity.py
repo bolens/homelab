@@ -120,6 +120,19 @@ def validate_rescan(database, series, file_lists, *, booktype=None):
             names = [row['ReleaseComicName'] for row in annuals if not row['Deleted'] and (not entry.get('AnnualComicID') or str(row['ReleaseComicID']) == str(entry['AnnualComicID']))] if annual_mode else [series['ComicName']]
             if not annual_mode:
                 names.extend(part for part in (field(series, 'AlternateSearch') or '').split('##') if part and '!!' not in part)
+            if booktype not in ('TPB', 'GN', 'HC'):
+                # A collected release can contain the regular issue plus extras.
+                # Its issue number and stale ComicInfo link do not prove edition ownership.
+                stem = re.sub(r'\)-[^()[\]]+$', ')', path.stem)
+                for name in sorted(names, key=len, reverse=True):
+                    words = re.findall(r'[^\W_]+', name)
+                    prefix = r'^[\W_]*'+r'[\W_]*'.join(re.escape(word) for word in words)+r'(?!\w)'
+                    reduced = re.sub(prefix, '', stem, count=1, flags=re.I)
+                    if reduced != stem:
+                        stem = reduced
+                        break
+                if re.search(r'\b(?:deluxe[\W_]+edition|collected[\W_]+edition|omnibus|hardcover)\b', stem, re.I):
+                    raise ValueError('Rescan identity review required: collected edition contradicts issue catalog')
             if fields.get('Series') and title(fields['Series']) not in {title(name) for name in names}:
                 raise ValueError('Rescan identity review required: metadata series contradicts catalog')
             volume = fields.get('Volume', '')
