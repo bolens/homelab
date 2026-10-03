@@ -10,11 +10,28 @@ from unittest.mock import Mock, patch
 import zipfile
 
 from import_match import match
-from import_recovery import submit, previous_attempt, issue_state
+from import_recovery import submit, previous_attempt, issue_state, staging_name
 from normalize import digest
 
 
 class RecoveryTest(unittest.TestCase):
+    def test_staged_name_carries_exact_identity_and_actual_format(self):
+        self.assertEqual(staging_name(Path('Opaque.pdf'), '100', pdf=True), 'Opaque [__100__].cbz')
+        self.assertEqual(staging_name(Path('Opaque [__100__].cbz'), '100'), 'Opaque [__100__].cbz')
+        for name in ('Opaque [__101__].cbz', 'Opaque [__100__] [__100__].cbz', 'Opaque [__bad__].cbz'):
+            with self.assertRaises(ValueError):
+                staging_name(Path(name), '100')
+
+    def test_native_request_names_existing_verified_staged_copy(self):
+        original = digest(self.source)
+        self.assertEqual(submit(self.m, self.source, {'issueid':'100','comicid':'10'}), 'import_queued')
+        name = self.m.mylar.call_args.kwargs['nzb_name']
+        self.assertIn('[__100__]', name)
+        staged = next(self.cache.glob('.mylar-recovery-*')) / name
+        self.assertTrue(staged.is_file())
+        self.assertEqual(digest(staged), original)
+        self.assertEqual(digest(self.source), original)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

@@ -343,6 +343,9 @@ completed copy. Receipts record the source, recovery copy, and retry outcome.
 A unique Mylar release mapping can trigger one native failed-release replacement
 search. Ambiguous mappings remain for manual review. An interrupted API request
 is recorded as `retry_unconfirmed` and is never blindly repeated.
+Verified recovery copies carry the chosen issue ID in Mylar's native filename
+marker, and post-processing receives that staged filename. The retained original
+keeps its name and bytes. Conflicting or repeated markers require review.
 
 Active or queued DDL files are excluded, even when their size stops changing.
 Quarantined originals have no automatic expiry. Review receipts before removing

@@ -7,11 +7,24 @@ import sys
 from source_patches import replace_once
 
 MARKER = "# homelab-file-matching-v1"
+RESCAN_MARKER = "# homelab-rescan-identity-v1"
+
+
+def guard_rescan(name, source):
+    if name == "updater.py" and RESCAN_MARKER not in source:
+        source = replace_once(
+            source, "    fcb = []\n    fc = {}\n",
+            "    " + RESCAN_MARKER + "\n"
+            "    file_identity.validate_rescan(myDB, rescan, fca, booktype=booktype)\n"
+            "    fcb = []\n    fc = {}\n",
+        )
+    ast.parse(source)
+    return source
 
 
 def patched(name, source):
     if MARKER in source:
-        return source
+        return guard_rescan(name, source)
     if name == "filechecker.py":
         source = replace_once(
             source,
@@ -58,7 +71,7 @@ def patched(name, source):
         raise ValueError("Unsupported patch target: " + name)
     source = MARKER + "\n" + "from mylar import file_identity\n" + source
     ast.parse(source)
-    return source
+    return guard_rescan(name, source)
 
 
 def main(directory):

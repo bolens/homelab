@@ -490,6 +490,18 @@ in a sibling `Series - Extras` folder, without a regular issue identity. Legitim
 short comics are not rejected merely for having few pages. Ambiguous relationships
 and conflicting print/digital evidence require review.
 
+Native library rescans also check embedded ComicInfo before duplicate handling or
+issue status updates. Contradictory filename numbers, catalog IDs or annual release
+identities stop the rescan for review and preserve the files and existing records.
+Repeated native issue numbering also requires review because filename years can
+otherwise select a different catalog ID.
+Untagged files retain legacy matching for unique series; same-title, same-year
+volumes require an explicit matching version in the filename. This check cannot
+establish publication identity when both the filename and metadata are wrong;
+those files need their cover or publication credits checked before correction.
+RAR and 7-Zip comic archives wait for verified CBZ conversion before rescan,
+because their embedded metadata is not checked by this ZIP-based guard.
+
 Missing exact catalog entries are requested through Mylar's native catalog
 adapter. Existing statuses and deleted annual intent are preserved. An annual
 with a verified catalog link to its parent can be added under that series;

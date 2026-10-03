@@ -4,6 +4,134 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 import re
 import unicodedata
+import xml.etree.ElementTree as ET
+import zipfile
+
+
+def validate_rescan(database, series, file_lists, *, booktype=None):
+    """Reject contradictory identities before native rescan can delete or reassign files."""
+    comic_id = series["ComicID"]
+    issues = database.select("SELECT * FROM issues WHERE ComicID=?", [comic_id])
+    annuals = database.select("SELECT * FROM annuals WHERE ComicID=?", [comic_id])
+    owners = {}
+    for row in issues:
+        owners.setdefault(str(row["IssueID"]), []).append((row, False))
+    for row in annuals:
+        if str(row["Deleted"]).casefold() not in ("1", "true"):
+            owners.setdefault(str(row["IssueID"]), []).append((row, True))
+    siblings = database.select(
+        "SELECT * FROM comics WHERE ComicName=? AND ComicYear=?",
+        [series["ComicName"], series["ComicYear"]],
+    )
+    ambiguous = sum(row["Type"] == series["Type"] for row in siblings) > 1
+    booktype = booktype or series["Type"]
+
+    def field(row, key):
+        return row[key] if key in row.keys() else None
+
+    def title(value):
+        return ''.join(re.findall(r'[^\W_]+', unicodedata.normalize('NFKC', value).casefold().replace('&', 'and')))
+
+    def number(value):
+        if value is None:
+            return None
+        value = re.sub(r'annual|special', '', str(value), flags=re.I).strip().replace('_', ' ')
+        if "Director's Cut" not in value:
+            value = re.sub(r"[\#']", '', value)
+        try:
+            result = Decimal(value)
+            return result if result.is_finite() else None
+        except InvalidOperation:
+            return value.casefold() or None
+
+    for listing in file_lists:
+        for entry in listing.get("comiclist", []):
+            filename = entry["ComicFilename"]
+            path = Path(entry["ComicLocation"]) / filename
+            if Path(filename).name != filename or any(p.is_symlink() for p in (path, *path.parents)):
+                raise ValueError("Rescan identity review required: unsafe archive path")
+            fields = {}
+            if path.suffix.casefold() == ".cbz" or zipfile.is_zipfile(path):
+                with zipfile.ZipFile(path) as archive:
+                    metadata = [info for info in archive.infolist()
+                                if Path(info.filename).name.casefold() == "comicinfo.xml"]
+                    if len(metadata) > 1:
+                        raise ValueError("Rescan identity review required: ambiguous ComicInfo")
+                    if metadata:
+                        if metadata[0].file_size > 262144:
+                            raise ValueError("Rescan identity review required: oversized ComicInfo")
+                        raw = archive.read(metadata[0]).decode("utf-8-sig")
+                        if re.search(r"<!\s*(?:DOCTYPE|ENTITY)", raw, re.I):
+                            raise ValueError("Rescan identity review required: unsafe ComicInfo")
+                        root = ET.fromstring(raw)
+                        if root.tag != "ComicInfo":
+                            raise ValueError("Rescan identity review required: invalid ComicInfo")
+                        for child in root:
+                            if child.tag in ("Series", "Number", "Web", "Volume"):
+                                if child.tag in fields:
+                                    raise ValueError("Rescan identity review required: repeated identity field")
+                                fields[child.tag] = (child.text or "").strip()
+            elif path.suffix.casefold() in ('.cbr', '.cb7'):
+                raise ValueError('Rescan identity review required: convert archive before metadata verification')
+            annual_mode = bool(entry.get('AnnualComicID')) or bool(re.search(r'annual|special', str(entry.get('JusttheDigits')), re.I))
+            names = [row['ReleaseComicName'] for row in annuals if not row['Deleted'] and (not entry.get('AnnualComicID') or str(row['ReleaseComicID']) == str(entry['AnnualComicID']))] if annual_mode else [series['ComicName']]
+            if not annual_mode:
+                names.extend(part for part in (field(series, 'AlternateSearch') or '').split('##') if part and '!!' not in part)
+            if fields.get('Series') and title(fields['Series']) not in {title(name) for name in names}:
+                raise ValueError('Rescan identity review required: metadata series contradicts catalog')
+            volume = fields.get('Volume', '')
+            version = re.fullmatch(r'v?(\d+)', str(series['ComicVersion'] or ''), re.I)
+            if not annual_mode and ((re.fullmatch(r'(?:19|20)\d{2}', volume) and volume != str(series['ComicYear']))
+                    or (version and volume.isdigit() and len(volume) < 4 and int(volume) != int(version[1]))):
+                raise ValueError('Rescan identity review required: metadata volume contradicts catalog')
+            effective = entry.get('JusttheDigits')
+            if ((booktype in ('TPB', 'GN', 'HC') and len(issues) > 1)
+                    or (booktype == 'One-Shot' and len(issues) == 1 and effective is None)):
+                selected = entry.get('SeriesVolume') if entry.get('SeriesVolume') is not None else effective
+                effective = re.sub(r'[^0-9]', '', str(selected)) if selected is not None else None
+            if effective is None and booktype in ('TPB', 'GN', 'HC', 'One-Shot'):
+                effective = '1'
+            parsed = number(effective)
+            if annual_mode and re.fullmatch(r'(?:19|20)\d{2}', str(parsed)):
+                parsed = number('1')
+            scoped = [row for row in annuals if not row['Deleted'] and
+                      (not entry.get('AnnualComicID') or str(row['ReleaseComicID']) == str(entry['AnnualComicID']))] if annual_mode else issues
+            numbered = [row for row in scoped if number(row['Issue_Number']) == parsed]
+            if len(numbered) > 1:
+                raise ValueError('Rescan identity review required: repeated native catalog numbering')
+            if numbered and field(numbered[0], 'Int_IssueNumber') is not None:
+                collisions = [row for row in scoped if field(row, 'Int_IssueNumber') == numbered[0]['Int_IssueNumber']]
+                if len(collisions) > 1:
+                    raise ValueError('Rescan identity review required: repeated native catalog numbering')
+            tagged = number(fields.get("Number"))
+            if parsed is not None and tagged is not None and parsed != tagged:
+                raise ValueError("Rescan identity review required: filename and ComicInfo numbers differ")
+            ids = set(re.findall(r"4000-(\d+)(?:[/\s?#]|$)", fields.get("Web", "")))
+            if ids:
+                if len(ids) != 1:
+                    raise ValueError("Rescan identity review required: conflicting catalog IDs")
+                candidates = owners.get(next(iter(ids)), [])
+                matches = []
+                for row, annual in candidates:
+                    allowed_names = [row['ReleaseComicName']] if annual else names
+                    if fields.get("Series") and title(fields["Series"]) not in {title(name) for name in allowed_names}:
+                        continue
+                    if tagged is not None and tagged != number(row["Issue_Number"]):
+                        continue
+                    if parsed is None or parsed != number(row['Issue_Number']):
+                        continue
+                    if annual and str(entry.get("AnnualComicID")) != str(row["ReleaseComicID"]):
+                        continue
+                    if not annual and entry.get("AnnualComicID"):
+                        continue
+                    matches.append(row)
+                if len(matches) != 1:
+                    raise ValueError("Rescan identity review required: catalog identity contradicts series")
+            elif ambiguous:
+                version = re.fullmatch(r"v?(\d+)", str(series["ComicVersion"] or ""), re.I)
+                explicit = set(re.findall(r"\b(?:v|vol\.?|volume)\s*(\d+)\b", path.stem, re.I))
+                if not version or explicit != {version[1]}:
+                    raise ValueError("Rescan identity review required: ambiguous series volume")
 
 
 def single_issue_number(database, comic_id, total):
