@@ -142,6 +142,34 @@ class RescanIdentityTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.check(self.files('Comic 015.cbz', xml))
 
+    def test_catalog_id_checks_native_number_without_xml_number(self):
+        with self.assertRaises(ValueError):
+            self.check(self.files('Comic 016.cbz', '<ComicInfo><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>', number='16'))
+
+    def test_annual_and_collected_effective_numbers_cannot_disagree(self):
+        for parsed in ('Annual 2', '2annual'):
+            with self.assertRaises(ValueError):
+                self.check(self.files('Comic Annual 002.cbz', '<ComicInfo><Series>Comic Annual</Series><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-200/</Web></ComicInfo>', number=parsed, annual='20'))
+        self.series['Type'] = 'TPB'
+        files = self.files('Comic v16.cbz', '<ComicInfo><Series>Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>')
+        files[0]['comiclist'][0]['SeriesVolume'] = 'v16'
+        with self.assertRaises(ValueError):
+            self.check(files)
+
+    def test_series_and_volume_evidence_is_checked_without_web(self):
+        for fields in ('<Series>Other Comic</Series>', '<Series>Comic</Series><Volume>1990</Volume>'):
+            with self.assertRaises(ValueError):
+                self.check(self.files('Comic 015.cbz', '<ComicInfo>'+fields+'<Number>15</Number></ComicInfo>'))
+        self.series['AlternateSearch'] = 'Alias Comic'
+        self.check(self.files('Comic 015.cbz', '<ComicInfo><Series>Alias Comic</Series><Number>15</Number><Volume>2020</Volume></ComicInfo>'))
+
+    def test_non_zip_comic_archives_wait_for_verified_conversion(self):
+        path = self.folder/'Comic 015.cbr'
+        path.write_bytes(b'opaque rar fixture')
+        files = [dict(comiclist=[dict(ComicFilename=path.name, ComicLocation=str(self.folder), JusttheDigits='15')])]
+        with self.assertRaises(ValueError):
+            self.check(files)
+
     def test_matching_metadata_and_legacy_unique_series_survive(self):
         self.check(self.files('Comic 015 (2021).cbz', '<ComicInfo><Series>Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>'))
         self.check(self.files('Comic 016 (2021).cbz', number='16'))

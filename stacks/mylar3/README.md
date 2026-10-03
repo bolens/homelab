@@ -497,6 +497,8 @@ Untagged files retain legacy matching for unique series; same-title, same-year
 volumes require an explicit matching version in the filename. This check cannot
 establish publication identity when both the filename and metadata are wrong;
 those files need their cover or publication credits checked before correction.
+RAR and 7-Zip comic archives wait for verified CBZ conversion before rescan,
+because their embedded metadata is not checked by this ZIP-based guard.
 
 Missing exact catalog entries are requested through Mylar's native catalog
 adapter. Existing statuses and deleted annual intent are preserved. An annual

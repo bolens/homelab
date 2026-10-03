@@ -15,7 +15,7 @@ def guard_rescan(name, source):
         source = replace_once(
             source, "    fcb = []\n    fc = {}\n",
             "    " + RESCAN_MARKER + "\n"
-            "    file_identity.validate_rescan(myDB, rescan, fca)\n"
+            "    file_identity.validate_rescan(myDB, rescan, fca, booktype=booktype)\n"
             "    fcb = []\n    fc = {}\n",
         )
     ast.parse(source)

@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 
-def validate_rescan(database, series, file_lists):
+def validate_rescan(database, series, file_lists, *, booktype=None):
     """Reject contradictory identities before native rescan can delete or reassign files."""
     comic_id = series["ComicID"]
     issues = database.select("SELECT * FROM issues WHERE ComicID=?", [comic_id])
@@ -24,13 +24,25 @@ def validate_rescan(database, series, file_lists):
         [series["ComicName"], series["ComicYear"]],
     )
     ambiguous = sum(row["Type"] == series["Type"] for row in siblings) > 1
+    booktype = booktype or series["Type"]
+
+    def field(row, key):
+        return row[key] if key in row.keys() else None
+
+    def title(value):
+        return ''.join(re.findall(r'[^\W_]+', unicodedata.normalize('NFKC', value).casefold().replace('&', 'and')))
 
     def number(value):
+        if value is None:
+            return None
+        value = re.sub(r'annual|special', '', str(value), flags=re.I).strip().replace('_', ' ')
+        if "Director's Cut" not in value:
+            value = re.sub(r"[\#']", '', value)
         try:
-            result = Decimal(str(value).strip())
+            result = Decimal(value)
             return result if result.is_finite() else None
         except InvalidOperation:
-            return None
+            return value.casefold() or None
 
     for listing in file_lists:
         for entry in listing.get("comiclist", []):
@@ -55,11 +67,31 @@ def validate_rescan(database, series, file_lists):
                         if root.tag != "ComicInfo":
                             raise ValueError("Rescan identity review required: invalid ComicInfo")
                         for child in root:
-                            if child.tag in ("Series", "Number", "Web"):
+                            if child.tag in ("Series", "Number", "Web", "Volume"):
                                 if child.tag in fields:
                                     raise ValueError("Rescan identity review required: repeated identity field")
                                 fields[child.tag] = (child.text or "").strip()
-            parsed = number(entry.get("JusttheDigits"))
+            elif path.suffix.casefold() in ('.cbr', '.cb7'):
+                raise ValueError('Rescan identity review required: convert archive before metadata verification')
+            annual_mode = bool(entry.get('AnnualComicID')) or bool(re.search(r'annual|special', str(entry.get('JusttheDigits')), re.I))
+            names = [row['ReleaseComicName'] for row in annuals if not row['Deleted']] if annual_mode else [series['ComicName']]
+            if not annual_mode:
+                names.extend(part for part in (field(series, 'AlternateSearch') or '').split('##') if part and '!!' not in part)
+            if fields.get('Series') and title(fields['Series']) not in {title(name) for name in names}:
+                raise ValueError('Rescan identity review required: metadata series contradicts catalog')
+            volume = fields.get('Volume', '')
+            version = re.fullmatch(r'v?(\d+)', str(series['ComicVersion'] or ''), re.I)
+            if not annual_mode and ((re.fullmatch(r'(?:19|20)\d{2}', volume) and volume != str(series['ComicYear']))
+                    or (version and volume.isdigit() and len(volume) < 4 and int(volume) != int(version[1]))):
+                raise ValueError('Rescan identity review required: metadata volume contradicts catalog')
+            effective = entry.get('JusttheDigits')
+            if ((booktype in ('TPB', 'GN', 'HC') and len(issues) > 1)
+                    or (booktype == 'One-Shot' and len(issues) == 1 and effective is None)):
+                selected = entry.get('SeriesVolume') if entry.get('SeriesVolume') is not None else effective
+                effective = re.sub(r'[^0-9]', '', str(selected)) if selected is not None else None
+            if effective is None and booktype in ('TPB', 'GN', 'HC', 'One-Shot'):
+                effective = '1'
+            parsed = number(effective)
             tagged = number(fields.get("Number"))
             if parsed is not None and tagged is not None and parsed != tagged:
                 raise ValueError("Rescan identity review required: filename and ComicInfo numbers differ")
@@ -74,6 +106,8 @@ def validate_rescan(database, series, file_lists):
                     if fields.get("Series") and fields["Series"].casefold() != title.casefold():
                         continue
                     if tagged is not None and tagged != number(row["Issue_Number"]):
+                        continue
+                    if parsed is None or parsed != number(row['Issue_Number']):
                         continue
                     if annual and str(entry.get("AnnualComicID")) != str(row["ReleaseComicID"]):
                         continue
