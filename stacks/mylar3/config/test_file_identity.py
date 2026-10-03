@@ -162,6 +162,18 @@ class RescanIdentityTest(unittest.TestCase):
                 self.check(self.files('Comic 015.cbz', '<ComicInfo>'+fields+'<Number>15</Number></ComicInfo>'))
         self.series['AlternateSearch'] = 'Alias Comic'
         self.check(self.files('Comic 015.cbz', '<ComicInfo><Series>Alias Comic</Series><Number>15</Number><Volume>2020</Volume></ComicInfo>'))
+        self.check(self.files('Comic 015.cbz', '<ComicInfo><Series>Alias Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>'))
+
+    def test_multiple_matching_files_and_year_named_annuals_survive(self):
+        a = self.files('Comic 015.cbz', '<ComicInfo><Series>Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>')
+        b = self.files('Comic 016.cbz', '<ComicInfo><Series>Comic</Series><Number>16</Number><Web>https://comicvine.gamespot.com/issue/4000-101/</Web></ComicInfo>', number='16')
+        self.check(a+b)
+        self.check(self.files('Comic Annual 2021.cbz', '<ComicInfo><Series>Comic Annual</Series><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-200/</Web></ComicInfo>', number='2021annual', annual='20'))
+
+    def test_annual_metadata_must_name_its_parsed_release(self):
+        self.db.execute("INSERT INTO annuals VALUES('201','10','1','Other Annual','21',0)")
+        with self.assertRaises(ValueError):
+            self.check(self.files('Comic Annual 001.cbz', '<ComicInfo><Series>Other Annual</Series><Number>1</Number></ComicInfo>', number='Annual 1', annual='20'))
 
     def test_non_zip_comic_archives_wait_for_verified_conversion(self):
         path = self.folder/'Comic 015.cbr'

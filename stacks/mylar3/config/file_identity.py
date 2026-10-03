@@ -74,7 +74,7 @@ def validate_rescan(database, series, file_lists, *, booktype=None):
             elif path.suffix.casefold() in ('.cbr', '.cb7'):
                 raise ValueError('Rescan identity review required: convert archive before metadata verification')
             annual_mode = bool(entry.get('AnnualComicID')) or bool(re.search(r'annual|special', str(entry.get('JusttheDigits')), re.I))
-            names = [row['ReleaseComicName'] for row in annuals if not row['Deleted']] if annual_mode else [series['ComicName']]
+            names = [row['ReleaseComicName'] for row in annuals if not row['Deleted'] and (not entry.get('AnnualComicID') or str(row['ReleaseComicID']) == str(entry['AnnualComicID']))] if annual_mode else [series['ComicName']]
             if not annual_mode:
                 names.extend(part for part in (field(series, 'AlternateSearch') or '').split('##') if part and '!!' not in part)
             if fields.get('Series') and title(fields['Series']) not in {title(name) for name in names}:
@@ -92,6 +92,8 @@ def validate_rescan(database, series, file_lists, *, booktype=None):
             if effective is None and booktype in ('TPB', 'GN', 'HC', 'One-Shot'):
                 effective = '1'
             parsed = number(effective)
+            if annual_mode and re.fullmatch(r'(?:19|20)\d{2}', str(parsed)):
+                parsed = number('1')
             tagged = number(fields.get("Number"))
             if parsed is not None and tagged is not None and parsed != tagged:
                 raise ValueError("Rescan identity review required: filename and ComicInfo numbers differ")
@@ -102,8 +104,8 @@ def validate_rescan(database, series, file_lists, *, booktype=None):
                 candidates = owners.get(next(iter(ids)), [])
                 matches = []
                 for row, annual in candidates:
-                    title = row["ReleaseComicName"] if annual else series["ComicName"]
-                    if fields.get("Series") and fields["Series"].casefold() != title.casefold():
+                    allowed_names = [row['ReleaseComicName']] if annual else names
+                    if fields.get("Series") and title(fields["Series"]) not in {title(name) for name in allowed_names}:
                         continue
                     if tagged is not None and tagged != number(row["Issue_Number"]):
                         continue

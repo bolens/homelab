@@ -3,6 +3,8 @@
 from pathlib import Path
 import sys
 import tempfile
+import sqlite3
+import zipfile
 from types import SimpleNamespace
 import unittest
 
@@ -14,6 +16,45 @@ from unittest.mock import Mock, patch
 
 
 class NativeMatchingTest(unittest.TestCase):
+    def test_native_rescan_rejects_identity_before_any_catalog_action(self):
+        from mylar import updater, db
+        import inspect
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        folder = Path(temp.name)
+        name = 'Comic 016 (2021).cbz'
+        path = folder/name
+        with zipfile.ZipFile(path, 'w') as archive:
+            archive.writestr('page.jpg', b'fixture')
+            archive.writestr('ComicInfo.xml', '<ComicInfo><Series>Comic</Series><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>')
+        database = sqlite3.connect(':memory:')
+        database.row_factory = sqlite3.Row
+        self.addCleanup(database.close)
+        database.executescript('''CREATE TABLE comics(ComicID,ComicName,ComicYear,ComicVersion,Type);
+            CREATE TABLE issues(IssueID,ComicID,Issue_Number);
+            CREATE TABLE annuals(IssueID,ComicID,Issue_Number,ReleaseComicName,ReleaseComicID,Deleted);
+            INSERT INTO comics VALUES('10','Comic','2020','v2','Print');
+            INSERT INTO issues VALUES('100','10','15'),('101','10','16');''')
+        series = dict(ComicID='10', ComicName='Comic', ComicYear='2020', ComicVersion='v2', Type='Print',
+                      AlternateSearch=None, Status='Active', Corrected_Type=None, ComicPublisher='Fixture',
+                      Total=2, ComicLocation=str(folder))
+        adapter = Mock()
+        adapter.select.side_effect = lambda sql, args: database.execute(sql, args).fetchall()
+        adapter.selectone.return_value.fetchone.return_value = series
+        parsed = self.parse(name, 'Comic')
+        listing = dict(comiccount=1, comiclist=[dict(ComicFilename=name, ComicLocation=str(folder),
+                                                   JusttheDigits=str(parsed['issue_number']), AnnualComicID=None)])
+        with patch.object(db, 'DBConnection', return_value=adapter), \
+                patch.object(filechecker.FileChecker, 'listFiles', return_value=listing), \
+                patch.object(updater, 'logger', Mock()), \
+                patch.object(mylar, 'CONFIG', SimpleNamespace(MULTIPLE_DEST_DIRS=None)):
+            with self.assertRaises(ValueError):
+                inspect.unwrap(updater.forceRescan)('10')
+        adapter.action.assert_not_called()
+        adapter.upsert.assert_not_called()
+        self.assertTrue(path.is_file())
+        self.assertEqual(database.execute('SELECT IssueID,Issue_Number FROM issues ORDER BY IssueID').fetchall()[0]['Issue_Number'], '15')
+
     def test_rescan_identity_guard_precedes_duplicate_and_catalog_changes(self):
         source = (SOURCE / "updater.py").read_text()
         from patch_file_matching import patched
