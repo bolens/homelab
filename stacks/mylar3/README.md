@@ -518,6 +518,11 @@ released on empty input, errors and normal completion. Startup retains unfinishe
 series entries when they have issue or annual records, preserving catalog refresh
 intent and parent relationships.
 
+When the filename parser drops an annual release ID, rescan restores it only
+from one live annual catalog link whose publication year agrees with both
+parsed filename years. All metadata checks must pass before that parser
+identity is supplied to native rescan; ambiguity remains for review.
+
 The existing `workflow.sqlite` also retains pack/member and catalog receipts.
 Prior ComicInfo metadata and non-comic pack credits stay in the worker's
 private recovery state. Verified pack sources can be cleaned after all members are accounted for. Back up both state locations. No additional public route,
