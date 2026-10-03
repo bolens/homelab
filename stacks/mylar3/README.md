@@ -806,3 +806,60 @@ recovery. No new service, dependency, mount, port or credential is required. Bac
 publication retains source/recovery copies. A normal reader scan discovers repaired
 tags; the normalizer's converted-file refresh option remains scoped to its own
 conversion notifications.
+
+
+## Reader metadata supplementation
+
+Modern tagging adds deduplicated `Character:`, `Team:` and `Location:` labels to
+`Tags` from established credits, making those credits visible as Komga/Kavita
+filters. A missing `SeriesGroup` receives `Publisher: <publisher>`, which readers
+can import as a collection. Existing custom labels and collections remain intact.
+Future Modern tags receive these supplements; no-overwrite retains its existing
+meaning and does not modify already-tagged archives.
+
+For existing CBZs, the image provides an explicit offline supplement command. Run
+it as the configured media UID/GID, with the existing writer coordination enabled:
+
+```sh
+docker exec --user 1000:1000 mylar3 python3 /app/mylar3/mylar/tagger_supplement.py /data/comics /data/manga
+```
+
+This defaults to a read-only preview and reports counts and field names without
+provider requests or filenames. To apply, first back up complete application state
+and verify an isolated restore under writer exclusion, following the update
+workflow above. Supply `--apply --backup-root /config/mylar/private-supplement-backups`,
+using an existing private directory owned by the media UID (mode 0700). The command
+backs up each affected archive, restores and checks it before publication, then
+verifies decoded pages/sidecars, archive comments, permissions, extended attributes
+and completeness. It removes only its verified per-file temporary copies. Failures
+stop the run and retain backups and publication recovery evidence. Do not delete
+pending markers to resume; reconcile through the existing recovery owner.
+
+The command uses the durable Modern publisher and shared writer lock. An unchanged
+archive skips publication entirely, so a repeated run preserves its bytes. It does
+not run ComicVine lookup, re-download books, or modify PDFs. Missing, nested or
+ambiguous ComicInfo requires the separate existing metadata-repair workflow.
+After applying, refresh the affected Komga libraries' metadata and verify imported
+labels and collections; XML import, collection and read-list library options must
+be enabled.
+
+Optional `--policy /path/to/private-policy.json` accepts a JSON object of verified
+ComicInfo values for the selected roots: `Genre`, `LanguageISO`, `AgeRating`, `Manga`,
+`GTIN` (a valid ISBN), `SeriesGroup`, paired `StoryArc`/`StoryArcNumber`, and `Tags`.
+For example, `{"LanguageISO":"en"}` fills missing language only in a verified
+English collection. Policies apply to every selected archive: restrict the roots
+appropriately, especially for ISBNs and reading orders. Existing nonempty fields
+win; an existing arc never acquires a guessed position. Only `Tags` is extended.
+Do not infer language, ratings, genre or arc order from titles or directory names.
+Publisher collections are factual publisher groups, not inferred franchises.
+
+Komga uses these fields for tags, series genres/language/ratings, collections,
+ordered read lists, right-to-left direction (`Manga=YesAndRightToLeft`), and ISBNs.
+See [Komga imports](https://komga.org/docs/guides/scan-analysis-refresh/) and
+[Kavita ComicInfo](https://wiki.kavitareader.com/guides/metadata/comics/) for import
+options and differences. Existing `Count` is preserved: ComicVine's current issue
+count is not evidence that a series ended, and Kavita interprets nonzero `Count`
+as an ended series. Supplementation does not assert completion.
+
+This capability uses existing state and media mounts. Compose, environment,
+preparation, stack metadata and ingress contracts require no additional settings.

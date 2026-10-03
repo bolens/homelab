@@ -4,7 +4,8 @@ import sys
 
 MODULES = ('tagger_runtime.py','tagger_metadata.py','tagger_cli.py','tagger_archive.py',
            'tagger_adapter.py','tagger_volume_cache.py','tagger_lookup.py','tagger_service.py',
-           'tagger_attributes.py','tagger_nfs.py','tagger_staging.py','tagger_native.py')
+           'tagger_attributes.py','tagger_nfs.py','tagger_staging.py','tagger_native.py',
+           'tagger_enrichment.py','tagger_supplement.py')
 
 
 def main(directory):

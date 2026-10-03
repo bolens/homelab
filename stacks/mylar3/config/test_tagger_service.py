@@ -64,6 +64,15 @@ class ServiceTest(unittest.TestCase):
         self.assertEqual(self.lookups,1);self.assertEqual(self.source.read_bytes(),before)
         self.assertEqual(Path(result).read_bytes(),before)
 
+    def test_future_modern_tag_adds_reader_labels_and_publisher_collection(self):
+        self.service.lookup = lambda **kwargs: LookupResult('ok', {
+            'series':'Fixture Annual', 'issue':'1', 'publisher':'DC',
+            'characters':['Batman'], 'teams':['Justice League']})
+        self.assertEqual(self.tag(manualmeta=True).state, 'committed')
+        xml = snapshot(self.source).xml
+        self.assertIn(b'<Tags>Character: Batman, Team: Justice League</Tags>', xml)
+        self.assertIn(b'<SeriesGroup>Publisher: DC</SeriesGroup>', xml)
+
     def test_unsupported_modes_do_not_lookup_or_change_source(self):
         for options in ({'enabled':False},{'comicrack':False},{'comicbooklover':True},{'conversion_only':True}):
             result=self.tag(**options);self.assertEqual(result,'fail');self.assertEqual(result.state,'unsupported')

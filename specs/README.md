@@ -22,3 +22,5 @@ Installation validation alone does not establish feature completion.
 - [018: Readable Komga import notifications](018-komga-import-notifications/spec.md) — next-UI catalog titles with a filename fallback and optional UI image.
 
 - [Music preview and recovery](020-music-preview-recovery/spec.md): [plan](020-music-preview-recovery/plan.md), [tasks](020-music-preview-recovery/tasks.md), [validation](020-music-preview-recovery/validation.md).
+
+- [Reader metadata supplements](021-reader-metadata-supplement/spec.md): [plan](021-reader-metadata-supplement/plan.md), [tasks](021-reader-metadata-supplement/tasks.md).
