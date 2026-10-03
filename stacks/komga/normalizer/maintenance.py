@@ -121,6 +121,16 @@ class Maintenance:
         if result.returncode:
             errors = data.get('failures', [])
             text = ' '.join(row.get('error', '') for row in errors).lower()
+            if errors and not any(row.get('dependency') for row in errors) and prefix.startswith(b'PK\x03\x04'):
+                # ZIP's end record must be within 22 bytes plus its maximum comment.
+                # Do not load a directory rejected by the bounded decoder.
+                with path.open('rb') as stream:
+                    stream.seek(max(0, fingerprint[1] - 65557))
+                    tail = stream.read(65557)
+                if identity(path) != fingerprint:
+                    raise RuntimeError('Archive changed during validation')
+                if b'PK\x05\x06' not in tail:
+                    raise CorruptArchive('ZIP end record is missing')
             confirmed = ('bad crc-32', 'crc check failed', 'bad magic number for file header', 'invalid rar4 header',
                          'bad rar file data', 'rar4 archive has no complete end header', 'invalid symbol', 'invalid code lengths',
                          'error -3 while decompressing', 'truncated', 'unexpected end of archive')

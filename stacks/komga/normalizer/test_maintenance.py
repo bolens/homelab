@@ -252,6 +252,69 @@ class MaintenanceTest(unittest.TestCase):
         with self.assertRaises(CorruptArchive):
             self.m.info(source)
 
+    def test_missing_zip_directory_is_confirmed_even_when_decoder_falls_back_to_tar(self):
+        source = self.comic(self.downloads)
+        source.write_bytes(source.read_bytes()[:-22])
+        before = digest(source)
+        result = SimpleNamespace(returncode=1, stdout=json.dumps({'failures': [
+            {'error': "file could not be opened successfully: method tar: ReadError('invalid header')",
+             'dependency': False}]}))
+        with patch('maintenance.subprocess.run', return_value=result), self.assertRaises(CorruptArchive):
+            self.m.info(source)
+        self.assertEqual(digest(source), before)
+
+    def test_zip_structure_does_not_turn_dependency_failure_into_corruption(self):
+        source = self.comic(self.downloads)
+        source.write_bytes(source.read_bytes()[:-22])
+        result = SimpleNamespace(returncode=1, stdout=json.dumps({'failures': [
+            {'error': 'Decoder unavailable', 'dependency': True}]}))
+        with patch('maintenance.subprocess.run', return_value=result), self.assertRaises(ValueError) as raised:
+            self.m.info(source)
+        self.assertNotIsInstance(raised.exception, CorruptArchive)
+
+    def test_valid_zip_with_unclassified_tool_failure_stays_for_review(self):
+        source = self.comic(self.downloads)
+        result = SimpleNamespace(returncode=1, stdout=json.dumps({'failures': [
+            {'error': 'Unexpected decoder failure', 'dependency': False}]}))
+        with patch('maintenance.subprocess.run', return_value=result), self.assertRaises(ValueError) as raised:
+            self.m.info(source)
+        self.assertNotIsInstance(raised.exception, CorruptArchive)
+
+    def test_zip_member_limit_failure_does_not_load_the_directory_again(self):
+        source = self.downloads / 'many-members.cbz'
+        with zipfile.ZipFile(source, 'w') as archive:
+            for number in range(10001):
+                archive.writestr(str(number), b'')
+        result = SimpleNamespace(returncode=1, stdout=json.dumps({'failures': [
+            {'error': 'maximum member limit exceeded', 'dependency': False}]}))
+        with patch('maintenance.subprocess.run', return_value=result), \
+                patch('zipfile.ZipFile', side_effect=AssertionError('Unbounded directory parsing')), \
+                self.assertRaises(ValueError) as raised:
+            self.m.info(source)
+        self.assertNotIsInstance(raised.exception, CorruptArchive)
+
+    def test_maximum_zip_comment_keeps_the_end_record_in_the_bounded_check(self):
+        source = self.comic(self.downloads)
+        with zipfile.ZipFile(source, 'a') as archive:
+            archive.comment = b'x' * 65535
+        result = SimpleNamespace(returncode=1, stdout=json.dumps({'failures': [
+            {'error': 'Unexpected decoder failure', 'dependency': False}]}))
+        with patch('maintenance.subprocess.run', return_value=result), self.assertRaises(ValueError) as raised:
+            self.m.info(source)
+        self.assertNotIsInstance(raised.exception, CorruptArchive)
+
+    def test_changed_zip_is_not_classified_as_corrupt(self):
+        source = self.comic(self.downloads)
+        source.write_bytes(source.read_bytes()[:-22])
+        before = identity(source)
+        changed = [before[0], before[1], before[2] + 1]
+        result = SimpleNamespace(returncode=1, stdout=json.dumps({'failures': [
+            {'error': 'Unexpected decoder failure', 'dependency': False}]}))
+        with patch('maintenance.subprocess.run', return_value=result), \
+                patch('maintenance.identity', side_effect=[before, before, before, changed]), \
+                self.assertRaisesRegex(RuntimeError, 'changed during validation'):
+            self.m.info(source)
+
 
 if __name__ == '__main__':
     unittest.main()
