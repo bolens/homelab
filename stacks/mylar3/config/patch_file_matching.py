@@ -11,6 +11,12 @@ RESCAN_MARKER = "# homelab-rescan-identity-v1"
 
 
 def guard_rescan(name, source):
+    if name == "filechecker.py" and '# homelab-unicode-filename-separators-v1' not in source:
+        source = replace_once(source,
+            "        modfilename = re.sub(filetype, '', filename).strip()\n",
+            "        modfilename = re.sub(filetype, '', filename).strip()\n"
+            "        # homelab-unicode-filename-separators-v1\n"
+            "        modfilename = modfilename.translate(str.maketrans({'–': '-', '—': '-'}))\n")
     if name == "updater.py" and RESCAN_MARKER not in source:
         source = replace_once(
             source, "    fcb = []\n    fc = {}\n",

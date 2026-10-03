@@ -16,6 +16,39 @@ from unittest.mock import Mock, patch
 
 
 class NativeMatchingTest(unittest.TestCase):
+    def test_native_year_named_annuals_get_distinct_verified_release_ids(self):
+        from mylar import file_identity
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        folder = Path(temp.name)
+        database = sqlite3.connect(':memory:')
+        database.row_factory = sqlite3.Row
+        self.addCleanup(database.close)
+        database.executescript('''CREATE TABLE comics(ComicID,ComicName,ComicYear,ComicVersion,Type);
+            CREATE TABLE issues(IssueID,ComicID,Issue_Number);
+            CREATE TABLE annuals(IssueID,ComicID,Issue_Number,ReleaseComicName,ReleaseComicID,Deleted,IssueDate);
+            INSERT INTO comics VALUES('10','Grimm Fairy Tales','2016',NULL,'Print');
+            INSERT INTO annuals VALUES('100','10','1','Grimm Fairy Tales 2021 Annual','20',0,'2021-01-01'),
+                ('200','10','1','Grimm Fairy Tales 2022 Annual','21',0,'2022-01-01');''')
+        listing = []
+        for year, issueid in [('2021','100'),('2022','200')]:
+            name = 'Grimm Fairy Tales '+year+' Annual ('+year+').cbz'
+            with zipfile.ZipFile(folder/name,'w') as archive:
+                archive.writestr('page.jpg',b'fixture preserved')
+                archive.writestr('ComicInfo.xml','<ComicInfo><Series>Grimm Fairy Tales '+year+' Annual</Series><Number>1</Number><Web>https://comicvine.gamespot.com/issue/4000-'+issueid+'/</Web></ComicInfo>')
+        with patch.object(filechecker,'logger',Mock()), patch.object(mylar,'CONFIG',SimpleNamespace(IGNORE_SEARCH_WORDS=[],CUSTOM_ISSUE_EXCEPTIONS=[],ANNUALS_ON=True,FOLDER_SCAN_LOG_VERBOSE=False,ENFORCE_PERMS=False,ENABLE_TORRENTS=False,READ2FILENAME=False)):
+            checker = filechecker.FileChecker(dir=str(folder),watchcomic='Grimm Fairy Tales',Publisher='Fixture',AlternateSearch='Grimm Fairy Tales 2021 Annual!!20##Grimm Fairy Tales 2022 Annual!!21',comic_type='Print')
+            listing = checker.listFiles()['comiclist']
+        self.assertEqual(len(listing),2)
+        self.assertTrue(all(r['AnnualComicID'] is None for r in listing))
+        adapter = Mock()
+        adapter.select.side_effect = lambda sql,args:database.execute(sql,args).fetchall()
+        series=dict(ComicID='10',ComicName='Grimm Fairy Tales',ComicYear='2016',ComicVersion=None,Type='Print')
+        file_identity.validate_rescan(adapter,series,[dict(comiclist=listing)])
+        self.assertEqual({r['IssueYear']:r['AnnualComicID'] for r in listing},{'2021':'20','2022':'21'})
+        adapter.action.assert_not_called()
+        adapter.upsert.assert_not_called()
+
     def test_native_duplicate_check_uses_annual_owner_and_retains_conflicts(self):
         from mylar import helpers, db
         from patch_postprocessing import duplicate_ownership
@@ -122,7 +155,8 @@ class NativeMatchingTest(unittest.TestCase):
                 mylar,
                 "CONFIG",
                 SimpleNamespace(
-                    IGNORE_SEARCH_WORDS=[], ANNUALS_ON=True, CUSTOM_ISSUE_EXCEPTIONS=[]
+                    IGNORE_SEARCH_WORDS=[], ANNUALS_ON=True, CUSTOM_ISSUE_EXCEPTIONS=[],
+                    FOLDER_SCAN_LOG_VERBOSE=False,
                 ),
             ),
         ):
@@ -140,6 +174,13 @@ class NativeMatchingTest(unittest.TestCase):
         self.assertEqual(value["series_name"], "1984")
         self.assertEqual(str(value["issue_number"]), "1")
         self.assertEqual(value["booktype"], "GN")
+
+    def test_unicode_title_separator_keeps_native_issue_number(self):
+        value = self.parse("Grimm Tales of Terror v5 007 – Slit Mouthed Woman (2025).cbz", "Grimm Tales of Terror", "Print")
+        self.assertEqual(int(value['issue_number']), 7)
+        from patch_file_matching import patched
+        source = (SOURCE / 'filechecker.py').read_text()
+        self.assertEqual(patched('filechecker.py', source), source)
 
     def test_ordinary_title_and_issue_unchanged(self):
         value = self.parse("Batman 003 (2020).cbz", "Batman")
