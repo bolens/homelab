@@ -8,6 +8,32 @@ from source_patches import replace_once
 MARKER = "# homelab-pack-intake-v1"
 
 
+def duplicate_ownership(source):
+    marker = "# homelab-annual-duplicate-ownership-v1"
+    if marker in source:
+        return source
+    source = replace_once(source,
+        '''    if IssueID:
+        dupchk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+    if dupchk is None:
+        dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()''',
+        '''    # homelab-annual-duplicate-ownership-v1
+    dupchk = None
+    if IssueID:
+        annual = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+        if annual is not None:
+            if annual['Deleted'] or (ComicID is not None and str(annual['ComicID']) != str(ComicID)):
+                logger.info('Annual duplicate ownership requires review; retaining source')
+                return {'action': None}
+            dupchk = annual
+        else:
+            dupchk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+    if dupchk is None:
+        dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=? AND NOT Deleted", [IssueID]).fetchone()''')
+    ast.parse(source)
+    return source
+
+
 def annual_identity(source):
     marker = '# homelab-annual-filename-identity-v1'
     if marker in source:
@@ -93,6 +119,7 @@ def main(directory):
         (root / "PostProcessor.py").read_text()
     )
     changes[root / "process.py"] = processing((root / "process.py").read_text())
+    changes[root / "helpers.py"] = duplicate_ownership((root / "helpers.py").read_text())
     for path, source in changes.items():
         path.write_text(source)
     (root / "processing_guard.py").write_text(
