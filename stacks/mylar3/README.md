@@ -493,6 +493,8 @@ and conflicting print/digital evidence require review.
 Native library rescans also check embedded ComicInfo before duplicate handling or
 issue status updates. Contradictory filename numbers, catalog IDs or annual release
 identities stop the rescan for review and preserve the files and existing records.
+Repeated native issue numbering also requires review because filename years can
+otherwise select a different catalog ID.
 Untagged files retain legacy matching for unique series; same-title, same-year
 volumes require an explicit matching version in the filename. This check cannot
 establish publication identity when both the filename and metadata are wrong;

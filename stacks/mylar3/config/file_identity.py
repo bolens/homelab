@@ -94,6 +94,15 @@ def validate_rescan(database, series, file_lists, *, booktype=None):
             parsed = number(effective)
             if annual_mode and re.fullmatch(r'(?:19|20)\d{2}', str(parsed)):
                 parsed = number('1')
+            scoped = [row for row in annuals if not row['Deleted'] and
+                      (not entry.get('AnnualComicID') or str(row['ReleaseComicID']) == str(entry['AnnualComicID']))] if annual_mode else issues
+            numbered = [row for row in scoped if number(row['Issue_Number']) == parsed]
+            if len(numbered) > 1:
+                raise ValueError('Rescan identity review required: repeated native catalog numbering')
+            if numbered and field(numbered[0], 'Int_IssueNumber') is not None:
+                collisions = [row for row in scoped if field(row, 'Int_IssueNumber') == numbered[0]['Int_IssueNumber']]
+                if len(collisions) > 1:
+                    raise ValueError('Rescan identity review required: repeated native catalog numbering')
             tagged = number(fields.get("Number"))
             if parsed is not None and tagged is not None and parsed != tagged:
                 raise ValueError("Rescan identity review required: filename and ComicInfo numbers differ")

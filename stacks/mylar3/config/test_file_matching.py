@@ -31,10 +31,10 @@ class NativeMatchingTest(unittest.TestCase):
         database.row_factory = sqlite3.Row
         self.addCleanup(database.close)
         database.executescript('''CREATE TABLE comics(ComicID,ComicName,ComicYear,ComicVersion,Type);
-            CREATE TABLE issues(IssueID,ComicID,Issue_Number);
+            CREATE TABLE issues(IssueID,ComicID,Issue_Number,IssueDate);
             CREATE TABLE annuals(IssueID,ComicID,Issue_Number,ReleaseComicName,ReleaseComicID,Deleted);
             INSERT INTO comics VALUES('10','Comic','2020','v2','Print');
-            INSERT INTO issues VALUES('100','10','15'),('101','10','16');''')
+            INSERT INTO issues VALUES('100','10','15','2020-01-01'),('101','10','16','2021-01-01');''')
         series = dict(ComicID='10', ComicName='Comic', ComicYear='2020', ComicVersion='v2', Type='Print',
                       AlternateSearch=None, Status='Active', Corrected_Type=None, ComicPublisher='Fixture',
                       Total=2, ComicLocation=str(folder))
@@ -48,6 +48,13 @@ class NativeMatchingTest(unittest.TestCase):
                 patch.object(filechecker.FileChecker, 'listFiles', return_value=listing), \
                 patch.object(updater, 'logger', Mock()), \
                 patch.object(mylar, 'CONFIG', SimpleNamespace(MULTIPLE_DEST_DIRS=None)):
+            with self.assertRaises(ValueError):
+                inspect.unwrap(updater.forceRescan)('10')
+            database.execute("UPDATE issues SET Issue_Number='15' WHERE IssueID='101'")
+            new_name = 'Comic 015 (2021).cbz'
+            path = path.rename(folder/new_name)
+            parsed = self.parse(new_name, 'Comic')
+            listing['comiclist'][0].update(ComicFilename=new_name, JusttheDigits=str(parsed['issue_number']))
             with self.assertRaises(ValueError):
                 inspect.unwrap(updater.forceRescan)('10')
         adapter.action.assert_not_called()
