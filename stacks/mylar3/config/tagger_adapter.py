@@ -187,6 +187,10 @@ class Publisher:
             raise ValueError('Unsupported links or attributes')
         return {}
 
+    def publication_security(self, source):
+        """Capture journal extensions separately from stable preservation attributes."""
+        return self.security(source)
+
     def prepare_output(self, output, record):
         pass
 
@@ -383,7 +387,7 @@ class Publisher:
             try:
                 old = snapshot(source, allow_nested_metadata=True) if repair_nested else snapshot(source)
                 try:
-                    security = self.security(source)
+                    security = self.publication_security(source)
                 except ValueError:
                     return Result('unsupported')
                 before = fingerprint(source)

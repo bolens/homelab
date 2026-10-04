@@ -2,7 +2,7 @@
 
 **Feature Branch**: `codex/comic-release-naming`
 **Created**: 2026-10-03
-**Status**: Implementation verified; delivery and live acceptance pending
+**Status**: Naming delivered; bulk and pack-evidence correction in progress
 **Input**: Add release naming to comic normalization, then perform a bulk library pass. Use dots as separators and a hyphen before the release group. Preserve edition distinctions and additional verified identity information.
 
 ## User Scenarios & Testing
@@ -30,6 +30,7 @@ An operator renames already normalized files without losing content, catalog loc
 1. **Given** a verified existing CBZ, **when** it is renamed, **then** all archive bytes, sidecars and release credits survive and Mylar references its new location.
 2. **Given** an uncertain reader response or process interruption, **when** the worker retries, **then** it reconciles its durable receipt before attempting another mutation.
 3. **Given** another native writer or unfinished conversion, **when** renaming is due, **then** shared coordination prevents overlapping writes.
+4. **Given** confirmed DDL pack members, **when** a verified rename or metadata publication changes their paths or file signatures, **then** every matching pack retains confirmation through a durable exact-owner/hash transition while unrelated, changed and unconfirmed members remain untouched.
 
 ### User Story 3 — Auditable bulk pass (Priority: P2)
 
@@ -57,6 +58,8 @@ Titles containing years, Unicode, punctuation and fractions; annual release vers
 - **FR-010**: Bulk operation MUST support a read-only manifest, bounded application, source/catalog freshness checks, resumable outcomes and an idempotent second pass.
 - **FR-011**: New behavior MUST preserve disabled-policy compatibility and existing conversion, tagging, annual and pack recovery contracts.
 - **FR-012**: A combined bulk rename/metadata pass MUST handle each publication under one retained preservation set. It MUST prove the unchanged-hash reader move before changing ComicInfo, then prove final payloads, catalog ownership and reader readiness before removing that set. Metadata additions MUST exclude files with unverified credits; the combined receipt MUST retain separate before-rename and after-tag hashes.
+
+- **FR-013**: Controlled rename and metadata publication MUST retain truthful DDL pack confirmation. Capture exact prior owner, path, hash and file identity before publication, then bind every matching confirmed member to the verified final path/hash/signature before clearing recovery fences. Reconciliation MUST be idempotent and atomic across matching pack records, preserve inventories, sidecars and cleanup history, reject foreign ownership/content, and never promote unconfirmed members.
 
 ### Key Entities
 

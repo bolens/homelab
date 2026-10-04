@@ -50,6 +50,33 @@ class NamingTest(unittest.TestCase):
         self.assertEqual(self.native.rename(self.request)['key'],result['key'])
         self.assertFalse(self.writer.fenced(release=True))
 
+    def test_verified_rename_preserves_all_overlapping_pack_confirmations(self):
+        import base64
+        import hashlib
+        from mylar import pack_intake
+        patch.object(pack_intake.workflow, 'store', return_value=self.store).start()
+        info = self.source.stat()
+        member = dict(id='d'*64, kind='issue', phase='confirmed', name=self.source.name,
+                      issueid='1', comicid='2', destination=str(self.source),
+                      destination_sha256=self.request['sha256'],
+                      signature=[info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns])
+        sidecar = dict(id='e'*64, kind='sidecar', phase='preserved',
+                       sidecar=base64.b64encode(b'original credits').decode(),
+                       sha256=hashlib.sha256(b'original credits').hexdigest())
+        for key in ('a'*64, 'b'*64, 'c'*64):
+            self.store.set('pack', key, dict(id=key, ddl_id=key[0], phase='confirmed',
+                           name='Original pack', inventory_complete=True, cleanup_complete=True,
+                           members=[dict(member), dict(sidecar)]))
+        self.assertTrue(all(row['complete'] for row in pack_intake.snapshot()))
+        self.native.rename(self.request)
+        self.assertTrue(all(row['complete'] for row in pack_intake.snapshot()))
+        for record in self.store.active('pack', {'confirmed'}):
+            self.assertEqual(record['members'][0]['destination'], str(self.target))
+            self.assertEqual(record['members'][1], sidecar)
+            self.assertTrue(record['cleanup_complete'])
+        self.native.rename(self.request)
+        self.assertTrue(all(row['complete'] for row in pack_intake.snapshot()))
+
     def test_catalog_failure_recovers_without_old_source_path(self):
         with patch.object(self.database,'action',return_value=None):
             with self.assertRaises(ValueError):self.native.rename(self.request)
@@ -58,6 +85,25 @@ class NamingTest(unittest.TestCase):
         with self.writer.hold(allow_release_pending=True):self.native.recover(self.writer)
         self.assertFalse(self.writer.fenced(release=True))
         self.assertEqual(self.native.rename(self.request)['phase'],'committed')
+
+    def test_interrupted_rejection_recovers_without_recreating_target_link(self):
+        from mylar import pack_bindings
+        member=dict(id='d'*64,kind='issue',phase='confirmed',issueid='1',comicid='2',
+                    destination=str(self.source),destination_sha256=self.request['sha256'],
+                    signature=pack_bindings.signature(self.source))
+        self.store.set('pack','a'*64,dict(id='a'*64,phase='confirmed',members=[member]))
+        setter=self.store.set
+        def interrupted(kind,key,value):
+            if kind=='release_name' and value['phase']=='rejected':raise SystemExit(71)
+            return setter(kind,key,value)
+        with patch.object(self.native,'parsed',side_effect=ValueError('wrong name')), patch.object(self.store,'set',side_effect=interrupted):
+            with self.assertRaises(SystemExit):self.native.rename(self.request)
+        self.assertEqual(self.store.get('release_name',self.native.key(self.request))['phase'],'rejecting')
+        original_signature=pack_bindings.signature(self.source)
+        with self.writer.hold(allow_release_pending=True):self.native.recover(self.writer)
+        self.assertEqual(pack_bindings.signature(self.source),original_signature)
+        self.assertEqual(self.store.get('pack','a'*64)['members'][0]['signature'],original_signature)
+        self.assertFalse(self.target.exists());self.assertFalse(self.writer.fenced(release=True))
 
     def test_unowned_collision_and_stale_proposal_do_not_mutate(self):
         self.target.write_bytes(b'other')

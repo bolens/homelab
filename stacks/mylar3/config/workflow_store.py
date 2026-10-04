@@ -74,6 +74,16 @@ class Store:
     def create(self,kind,key,value):
         with self.connection() as db:
             return bool(db.execute('INSERT OR IGNORE INTO records VALUES (?,?,?,?)',(kind,str(key),json.dumps(value),self.clock())).rowcount)
+    def replace(self,kind,key,expected,value,*,verify=None):
+        """Do not let a report validated against an old record overwrite recovery."""
+        with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row=db.execute('SELECT value FROM records WHERE kind=? AND key=?',(kind,str(key))).fetchone()
+            if row is None or json.loads(row[0]) != expected:return False
+            if verify is not None:verify()
+            db.execute('UPDATE records SET value=?,updated=? WHERE kind=? AND key=?',
+                       (json.dumps(value),self.clock(),kind,str(key)))
+            return True
     def delete(self,kind,key):
         with self.connection() as db:db.execute('DELETE FROM records WHERE kind=? AND key=?',(kind,str(key)))
     def event(self,stage,outcome,issueid='',comicid='',name='',provider='',retry_at=None,key=None):

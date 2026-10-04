@@ -167,7 +167,11 @@ def bound_publisher(writer):
             raise ValueError('Tagger recovery state identity changed')
     finally:
         os.close(fd)
-    return Publisher(paths[1])
+    if __package__:
+        from .tagger_pack import Publisher as NativePublisher
+    else:
+        from tagger_pack import Publisher as NativePublisher
+    return NativePublisher(paths[1], writer.root.parent)
 
 
 def main(argv=None):

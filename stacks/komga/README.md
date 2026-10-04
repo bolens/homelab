@@ -590,7 +590,10 @@ catalog arrivals after metadata and reader analysis are ready. Native Mylar owns
 the same-folder no-overwrite publication and catalog journal under the shared
 writer lock. Interrupted publication fences every other media writer until its
 verified recovery succeeds. The worker reconciles uncertain acknowledgements
-through that journal rather than submitting the rename again. It verifies exact
+through that journal rather than submitting the rename again.
+Native publication also transfers existing confirmed DDL pack members through a
+durable owner/path/hash proof, including metadata rewrites in the combined pass.
+It preserves sidecars and leaves uncertain members for review. It verifies exact
 archive hashes, reader pages and the API user's read progress before removing its
 per-file temporary originals and restore copies. Compact receipts remain in
 `/state/release-naming`. Komga's verified unique-hash restoration carries all-user

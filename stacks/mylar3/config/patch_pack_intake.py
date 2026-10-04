@@ -87,6 +87,8 @@ def main(directory):
         path.write_text(source)
     (root / 'pack_intake.py').write_text(Path(__file__).with_name('pack_intake.py').read_text())
     (root / 'pack_catalog.py').write_text(Path(__file__).with_name('pack_catalog.py').read_text())
+    for name in ('pack_bindings.py', 'tagger_pack.py'):
+        (root / name).write_text(Path(__file__).with_name(name).read_text())
 
 
 if __name__ == '__main__':
