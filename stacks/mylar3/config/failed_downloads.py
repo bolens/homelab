@@ -11,7 +11,7 @@ def report_failed(issueid, comicid, release):
 
     database = db.DBConnection()
     issue = database.selectone(
-        "SELECT ComicID, Status FROM issues WHERE IssueID=?", [issueid]
+        "SELECT ComicID, Status, Location FROM issues WHERE IssueID=?", [issueid]
     ).fetchone()
     releases = database.select(
         "SELECT ID, PROVIDER, NZBName FROM nzblog WHERE IssueID=?", [issueid]
@@ -19,6 +19,7 @@ def report_failed(issueid, comicid, release):
     if (
         not issue
         or issue["Status"] in ("Downloaded", "Archived")
+        or issue["Location"]
         or str(issue["ComicID"]) != str(comicid)
         or len(releases) != 1
     ):
@@ -39,9 +40,34 @@ def report_failed(issueid, comicid, release):
     Failed.FailedProcessor(issueid=issueid, comicid=comicid, queue=result).Process()
     entry = result.get_nowait()[0]
     if entry["mode"] == "retry":
+        if (
+            str(entry.get("issueid")) != str(issueid)
+            or str(entry.get("comicid")) != str(comicid)
+            or entry.get("annchk") != "no"
+        ):
+            raise ValueError("Failed retry owner changed; review quarantine receipt")
+        changed = database.action(
+            "UPDATE issues SET Status='Wanted' WHERE IssueID=? AND ComicID=? "
+            "AND Status='Failed' AND (Location IS NULL OR Location='')",
+            [issueid, comicid],
+        )
+        if changed is None or changed.rowcount != 1:
+            raise ValueError(
+                "Failed retry ownership changed; review quarantine receipt"
+            )
+        current = database.selectone(
+            "SELECT ComicID, Status, Location FROM issues WHERE IssueID=?", [issueid]
+        ).fetchone()
+        if (
+            not current
+            or str(current["ComicID"]) != str(comicid)
+            or current["Status"] != "Wanted"
+            or current["Location"]
+        ):
+            raise ValueError("Retry catalog changed before search submission")
         workflow.release_failed(issueid)
         webserve.WebInterface().queueit(
-            mode="want_ann" if entry["annchk"] != "no" else "want",
+            mode="want",
             ComicID=entry["comicid"],
             IssueID=entry["issueid"],
             ComicName=entry["comicname"],

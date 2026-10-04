@@ -44,6 +44,26 @@ class TransactionTest(unittest.TestCase):
         )
         self.assertFalse(self.raw.in_transaction)
 
+    def test_guarded_retry_update_returns_committed_cursor_rowcount(self):
+        self.raw.execute(
+            "CREATE TABLE issues(IssueID TEXT, ComicID TEXT, Status TEXT, Location TEXT)"
+        )
+        self.raw.execute("INSERT INTO issues VALUES('1', '2', 'Failed', NULL)")
+        self.raw.commit()
+        query = (
+            "UPDATE issues SET Status='Wanted' WHERE IssueID=? AND ComicID=? "
+            "AND Status='Failed' AND (Location IS NULL OR Location='')"
+        )
+        changed = self.database.action(query, ["1", "2"])
+        self.assertEqual(changed.rowcount, 1)
+        self.assertFalse(self.raw.in_transaction)
+        self.assertEqual(
+            self.raw.execute("SELECT Status FROM issues").fetchall(), [("Wanted",)]
+        )
+        unchanged = self.database.action(query, ["1", "2"])
+        self.assertEqual(unchanged.rowcount, 0)
+        self.assertFalse(self.raw.in_transaction)
+
     def test_failed_commits_roll_back_before_retry(self):
         raw = self.raw
 
