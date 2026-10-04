@@ -340,10 +340,13 @@ source file is preserved. Added library metadata is allowed. Different editions,
 unmatched names, unsupported formats, symlinks, and files changing during a scan
 are retained. Library files are never removed by maintenance.
 
-If both archives contain root `ComicInfo.xml` and tagging changed only that
+If both ZIP archives contain root `ComicInfo.xml` and tagging changed only that
 metadata, cleanup first retains the complete original archive under private
 `maintenance/retained-originals` storage. Ordered page names and hashes and all
-other source files must still match. The receipt binds the verified retained
+other source files must still match.
+Publication identity fields, including issue, edition, date and catalog link,
+must also agree; malformed or ambiguous XML remains for review.
+The receipt binds the verified retained
 original and current library hashes before removing the completed download and
 confirming its import. Missing metadata, lost extras, insufficient storage, or
 an unverifiable recovery copy keep the download in place. Retained originals

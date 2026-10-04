@@ -12,6 +12,7 @@ import sqlite3
 import stat
 import subprocess
 import time
+import zipfile
 from pdf_conversion import Pending as PDFPending
 
 from normalize import archive_suffix, digest, identity, request, save, sync_directory
@@ -248,6 +249,18 @@ class Maintenance:
             if (not preserves(root_metadata_only, current)
                     or not all(any(row['name'].casefold() == 'comicinfo.xml'
                                    for row in info['other_files']) for info in (original, current))):
+                return False
+            from import_match import metadata
+            # Unsupported containers cannot provide bounded XML identity proof.
+            if not zipfile.is_zipfile(source) or not zipfile.is_zipfile(target):
+                return False
+            before_meta, after_meta = metadata(source), metadata(target)
+            identity_fields = ('Series', 'Number', 'Volume', 'Year', 'Month', 'Day', 'Format', 'Web',
+                               'Title', 'Publisher', 'Imprint', 'Count', 'AlternateSeries', 'AlternateNumber',
+                               'AlternateCount', 'ISBN', 'GTIN', 'ComicVineIssueID', 'ComicVineSeriesID',
+                               'Edition', 'Variant', 'Reprint', 'CoverOnly', 'ReleaseType', 'SeriesVersion')
+            if any(before_meta.get(key, '').strip() != after_meta.get(key, '').strip()
+                   for key in identity_fields):
                 return False
             if not self.idle():
                 return False

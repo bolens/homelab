@@ -140,6 +140,23 @@ class MaintenanceTest(unittest.TestCase):
         self.assertEqual(digest(Path(row['retained_original'])), row['sha256'])
         self.assertEqual(digest(target), target_hash)
 
+    def test_changed_publication_identity_metadata_is_retained(self):
+        fields=('Series','Number','Volume','Year','Format','Web','Publisher','ComicVineIssueID')
+        for field in fields:
+            with self.subTest(field=field):
+                source,target=self.changed_metadata_pair()
+                with zipfile.ZipFile(target,'w') as archive:
+                    archive.writestr('001.png',PNG)
+                    archive.writestr('ComicInfo.xml','<ComicInfo><'+field+'>Different</'+field+'></ComicInfo>')
+                self.assertFalse(self.m.remove_duplicate(source,target))
+                self.assertTrue(source.exists())
+
+    def test_nonzip_source_metadata_cannot_authorize_relaxed_cleanup(self):
+        source,target=self.changed_metadata_pair()
+        with patch('maintenance.zipfile.is_zipfile',return_value=False):
+            self.assertFalse(self.m.remove_duplicate(source,target))
+        self.assertTrue(source.exists())
+
     def test_changed_comicinfo_does_not_allow_missing_nonmetadata_extras(self):
         source, target = self.changed_metadata_pair()
         with zipfile.ZipFile(source, 'a') as archive:
