@@ -104,3 +104,34 @@ class Store:
         if before:clauses.append('id<?');args.append(int(before))
         query='SELECT * FROM events'+(' WHERE '+' AND '.join(clauses) if clauses else '')+' ORDER BY id DESC LIMIT 100'
         with self.connection() as db:return [dict(r) for r in db.execute(query,args)]
+
+
+def protected_snapshot(db):
+    """Versioned reviewed-bootstrap projection in a caller-owned transaction.
+
+    Event retention, observation deduplication, the library polling cursor and
+    registration intents do not change publication authority. All other record
+    keys and their complete decoded values participate, including unknown kinds.
+    The records.updated envelope is excluded; no nested value is stripped.
+    Writer must be acquired before LOCK by the eventual bootstrap adapter.
+    """
+    if not db.in_transaction:
+        raise ValueError('Bootstrap snapshot requires an existing transaction')
+    count, size = db.execute('SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) '
+                            'FROM records').fetchone()
+    if count > 100000 or size > 64 * 1024 ** 2:
+        raise ValueError('Workflow bootstrap snapshot exceeds bounds')
+    # Import here avoids changing Store construction or creating an authority DB.
+    if __package__:
+        from .publication_guard import canonical_digest, decode_json
+    else:
+        from publication_guard import canonical_digest, decode_json
+    records = []
+    for kind, key, raw in db.execute('SELECT kind,key,value FROM records ORDER BY kind,key'):
+        if (kind in ('observation', 'publication_intent')
+                or (kind == 'meta' and key == 'library_seen')):
+            continue
+        if not isinstance(kind, str) or not isinstance(key, str) or not isinstance(raw, str):
+            raise ValueError('Malformed workflow bootstrap record')
+        records.append([kind, key, decode_json(raw)])
+    return dict(version=1, count=len(records), digest=canonical_digest(records))
