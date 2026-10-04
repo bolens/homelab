@@ -17,14 +17,12 @@ if __package__:
     from .tagger_archive import directory_limits, regular, snapshot
     from .tagger_enrichment import supplements, validate
     from .tagger_metadata import MAX_XML
-    from .tagger_nfs import Publisher
 else:
     from media_writer import Writer, sync
     from tagger_adapter import fingerprint, TERMINAL
     from tagger_archive import directory_limits, regular, snapshot
     from tagger_enrichment import supplements, validate
     from tagger_metadata import MAX_XML
-    from tagger_nfs import Publisher
 
 
 def metadata(path):
