@@ -214,6 +214,38 @@ def collected(checker, value):
     return None
 
 
+def print_fields(checker, value):
+    """Read explicit print fields only after an exact registered-title match."""
+    if getattr(checker, 'comic_type', None) in ('GN', 'HC', 'TPB'):
+        return None
+    value, _ = scanner(value)
+    if re.search(r'\(\s*#', value):
+        return None
+    names = [checker.watchcomic or '']
+    names.extend(name for name in (getattr(checker, 'AlternateSearch', None) or '').split('##')
+                 if name and name != 'None' and '!!' not in name)
+    prefixes = []
+    for name in names:
+        words = re.findall(r'[^\W_]+', name)
+        if not words:
+            continue
+        prefix = r'^[\W_]*'+r'[\W_]*'.join(re.escape(word) for word in words)+r'(?!\w)'
+        matched = re.match(prefix, value, flags=re.I)
+        if matched:
+            prefixes.append((matched.end(), name))
+    if not prefixes:
+        return None
+    end, name = max(prefixes, key=lambda item: item[0])
+    match = re.fullmatch(r'(?:\.v([1-9]\d{0,2}))?\.([+-]?\d{3,}(?:\.\d+)?(?:\.[A-Za-z]+)?)'
+                         r'\.\(((?:19|20)\d{2})\)(?:\.\([^()]*\))*', value[end:])
+    if match:
+        years = re.findall(r'\(\s*((?:19|20)\d{2})\s*\)', value)
+        if any(year != match[3] for year in years):
+            return None
+        return dict(series=name, number=match[2], year=match[3], volume=match[1])
+    return None
+
+
 def release_number(value, checker=None):
     """Read a padded issue after excluding the verified catalog title."""
     names = [getattr(checker, 'watchcomic', None)]

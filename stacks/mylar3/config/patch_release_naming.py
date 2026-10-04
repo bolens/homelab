@@ -5,6 +5,14 @@ import sys
 from source_patches import replace_once
 
 MARKER = '# homelab-release-naming-v1'
+PRINT_FIELDS = '''        printed = release_naming.print_fields(self, modfilename)
+        if printed:
+            series_name = printed["series"]
+            series_name_decoded = unicodedata.normalize("NFKD", series_name)
+            issue_number = printed["number"]
+            issue_year = printed["year"]
+            issue_volume = printed["volume"]
+'''
 
 
 def api(source):
@@ -37,6 +45,8 @@ def api(source):
 
 def scanner(source):
     if MARKER in source:
+        if 'release_naming.print_fields(self, modfilename)' not in source:
+            source = replace_once(source, '        collected = release_naming.collected(self, modfilename)\n', PRINT_FIELDS+'        collected = release_naming.collected(self, modfilename)\n')
         old = 'release_naming.release_number(modfilename)'
         if old in source:
             return replace_once(source, old, 'release_naming.release_number(modfilename, self)')
@@ -44,7 +54,7 @@ def scanner(source):
     source = replace_once(source, '        scangroup = None\n',
                           '        '+MARKER+'\n        modfilename, scangroup = release_naming.scanner(modfilename)\n')
     source = replace_once(source, '        recovered = file_identity.single_volume_match(self, filename)\n',
-                          '        collected = release_naming.collected(self, modfilename)\n'
+                          PRINT_FIELDS+'        collected = release_naming.collected(self, modfilename)\n'
                           '        if collected:\n'
                           '            series_name = collected["series"]\n'
                           '            series_name_decoded = unicodedata.normalize("NFKD", series_name)\n'

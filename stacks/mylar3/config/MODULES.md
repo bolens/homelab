@@ -132,7 +132,9 @@ installation. It installs `release_naming.py`, primary-key versioned proposal,
 publication and status APIs, and the explicit final scanner-group/issue parser
 adapter. It excludes the longest matching catalog title or registered alias
 before reading a padded issue number, preserving numeric title suffixes and
-fractional issues. `native_writers.py` reconciles its journal before every other native
+fractional issues. An exact registered-title match also separates explicit print
+run, padded number and publication year before native matching; collected types
+retain their separate parser. `native_writers.py` reconciles its journal before every other native
 writer while `release-v1.pending` exists. `release-state-v1.identity` binds the
 workflow journal inode so missing recovery state cannot silently clear a fence.
 The identical shared `media_writer.py` copies also block the optional worker while

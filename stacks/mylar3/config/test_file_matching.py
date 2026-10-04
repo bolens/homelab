@@ -168,6 +168,31 @@ class NativeMatchingTest(unittest.TestCase):
             self.assertEqual(str(value['issue_number']).lower().replace(' ', '.').lstrip('0'), number.lstrip('0').lower())
             self.assertEqual(value['scangroup'], 'Son.of.Ultron-Empire')
 
+    def test_release_parser_upgrade_is_idempotent_for_legacy_marker(self):
+        from patch_release_naming import PRINT_FIELDS, scanner
+        source=(SOURCE/'filechecker.py').read_text()
+        self.assertEqual(scanner(source),source)
+        legacy=source.replace(PRINT_FIELDS,'').replace('release_naming.release_number(modfilename, self)',
+                                                        'release_naming.release_number(modfilename)')
+        self.assertNotEqual(legacy,source)
+        self.assertEqual(scanner(legacy),source)
+        self.assertEqual(scanner(scanner(legacy)),source)
+
+    def test_dotted_print_run_and_four_digit_issue_keep_publication_year(self):
+        for number in ('1019','1020'):
+            value=self.parse('Detective.Comics.v3.'+number+'.(2020).(Webrip)-The.Last.Kryptonian-DCP.cbz',
+                             'Detective Comics','Print')
+            self.assertIsNotNone(value)
+            self.assertEqual(value['series_name'],'Detective Comics')
+            self.assertEqual(value['issue_number'],number)
+            self.assertEqual(value['issue_year'],'2020')
+            self.assertEqual(value['series_volume'],'3')
+
+    def test_conflicting_dotted_print_year_remains_for_review(self):
+        value=self.parse('Detective.Comics.v3.1019.(2020).(2021).(Webrip)-Group.cbz',
+                         'Detective Comics','Print')
+        self.assertTrue(value is None or value['series_name']!='Detective Comics' or value['issue_year']!='2020')
+
     def test_dotted_numeric_title_cannot_become_part_of_issue_number(self):
         temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup)
         folder=Path(temp.name)

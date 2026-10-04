@@ -212,6 +212,30 @@ class NamingTest(unittest.TestCase):
         self.assertIsNone(self.native.collected(checker,value.replace('(GN)','(HC)')))
         self.assertIsNone(self.native.collected(checker,'Series.Name.v2.v005.(2020)'))
 
+    def test_explicit_print_fields_require_verified_series_and_shape(self):
+        checker=SimpleNamespace(comic_type='Print',watchcomic='Detective Comics',AlternateSearch=None)
+        value='Detective.Comics.v3.1019.(2020).(Webrip)-The.Last.Kryptonian-DCP'
+        self.assertEqual(self.native.print_fields(checker,value),dict(series='Detective Comics',number='1019',year='2020',volume='3'))
+        self.assertEqual(self.native.print_fields(checker,value.replace('.1019.','.1020.'))['year'],'2020')
+        self.assertIsNone(self.native.print_fields(checker,value.replace('Detective.Comics','Other.Series')))
+        self.assertIsNone(self.native.print_fields(checker,value.replace('.v3.','.v2020.')))
+        self.assertIsNone(self.native.print_fields(checker,value.replace('(2020)','(1019)')))
+        self.assertIsNone(self.native.print_fields(checker,value.replace('(Webrip)','(2021).(Webrip)')))
+        self.assertEqual(self.native.print_fields(checker,value.replace('(Webrip)','(2020).(Webrip)'))['year'],'2020')
+        self.assertIsNone(self.native.print_fields(checker,value.replace('.1019.','.19.')))
+        self.assertIsNone(self.native.print_fields(checker,value.replace('(Webrip)','(#1020).(Webrip)')))
+        checker.comic_type='GN'
+        self.assertIsNone(self.native.print_fields(checker,value))
+
+    def test_explicit_print_fields_preserve_numeric_titles_and_variants(self):
+        checker=SimpleNamespace(comic_type='Print',watchcomic='Series 2025',AlternateSearch='Other Series')
+        for number in ('001.5','001.MU','-001'):
+            value='Series.2025.'+number+'.(2020).(Digital)-Group'
+            self.assertEqual(self.native.print_fields(checker,value),dict(series='Series 2025',number=number,year='2020',volume=None))
+        self.assertEqual(self.native.print_fields(checker,'Other.Series.v2.001.(2020)')['series'],'Other Series')
+        checker.AlternateSearch='Other Series!!42'
+        self.assertIsNone(self.native.print_fields(checker,'Other.Series.v2.001.(2020)'))
+
     def test_padded_number_excludes_verified_numeric_title_prefix(self):
         checker=SimpleNamespace(watchcomic='Gargoyles Winter Special 2025', AlternateSearch=None)
         self.assertEqual(self.native.release_number('Gargoyles.Winter.Special.2025.001.(2025)',checker),'001')
