@@ -579,6 +579,12 @@ the regular issue merely because stale embedded metadata names that issue.
 A bracketed `#issue` block is omitted when it repeats the proven issue number;
 a conflicting number remains for review. Edition and variant blocks remain intact.
 Names help parsing; ComicInfo and exact catalog ownership still establish identity.
+Review entries stay held during ordinary ticks and restarts. The explicit
+`Naming.recovery_entry` operation requires a proven rejected native predecessor,
+both private hash/CRC-verified copies, unchanged ownership and reader evidence.
+Combined holds with shared hardlinks require an explicit fresh detached pair from the restore-verified backup; the old links remain intact.
+Its version-2 request retains `retry_of`; fresh preparation and the ordinary
+native/reader gates apply to the replacement without clearing old receipts.
 
 Set `"release_naming": {"enabled": true, "batch_size": 1}` in the private worker
 configuration after deploying matching Mylar and worker images. The default is

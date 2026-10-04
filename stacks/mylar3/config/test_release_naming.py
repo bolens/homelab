@@ -120,6 +120,58 @@ class NamingTest(unittest.TestCase):
         self.assertFalse(self.writer.fenced(release=True))
         self.assertEqual(self.store.get('release_name',self.native.key(self.request))['phase'],'rejected')
 
+    def rejected_request(self):
+        with patch.object(self.native,'parsed',side_effect=ValueError('wrong name')):
+            with self.assertRaises(ValueError):self.native.rename(self.request)
+        return dict(self.request,version=2,retry_of=self.native.key(self.request))
+
+    def test_explicit_replacement_retains_rejected_predecessor_and_is_idempotent(self):
+        retry=self.rejected_request(); parent=self.store.get('release_name',retry['retry_of'])
+        with self.assertRaises(ValueError):self.native.rename(self.request)
+        result=self.native.rename(retry)
+        self.assertEqual(result['phase'],'committed');self.assertNotEqual(result['key'],retry['retry_of'])
+        self.assertEqual(self.store.get('release_name',retry['retry_of']),parent)
+        self.assertEqual(self.native.rename(retry)['phase'],'committed')
+        self.assertEqual(self.target.read_bytes(),b'unchanged archive fixture')
+
+    def test_replacement_requires_rejected_matching_unchanged_source(self):
+        retry=self.rejected_request()
+        for changed in (dict(retry,retry_of='a'*64),dict(retry,issueid='9'),dict(retry,sha256='a'*64)):
+            with self.assertRaises(ValueError):self.native.rename(changed)
+        self.source.write_bytes(b'changed')
+        with self.assertRaises(ValueError):self.native.rename(retry)
+        self.assertFalse(self.target.exists());self.assertFalse(self.writer.fenced(release=True))
+
+    def test_replacement_revalidates_year_and_predecessor_evidence(self):
+        retry=self.rejected_request();self.info['year']='2021'
+        with self.assertRaises(ValueError):self.native.rename(retry)
+        self.info['year']='2020';self.native.rename(retry)
+        parent=self.store.get('release_name',retry['retry_of']);parent['extra']='changed'
+        self.store.set('release_name',retry['retry_of'],parent)
+        with self.assertRaises(ValueError):self.native.rename(retry)
+
+    def test_replacement_catalog_failure_recovers_without_replaying_predecessor(self):
+        retry=self.rejected_request();parent=self.store.get('release_name',retry['retry_of'])
+        with patch.object(self.database,'action',return_value=None):
+            with self.assertRaises(ValueError):self.native.rename(retry)
+        self.assertFalse(self.source.exists());self.assertTrue(self.writer.fenced(release=True))
+        with self.writer.hold(allow_release_pending=True):self.native.recover(self.writer)
+        self.assertEqual(self.native.rename(retry)['phase'],'committed')
+        self.assertEqual(self.store.get('release_name',retry['retry_of']),parent)
+
+    def test_interrupted_replacement_keeps_fence_on_parent_evidence_drift(self):
+        retry=self.rejected_request();parent=self.store.get('release_name',retry['retry_of'])
+        with patch.object(self.database,'action',return_value=None):
+            with self.assertRaises(ValueError):self.native.rename(retry)
+        changed=dict(parent,year='2021');self.store.set('release_name',retry['retry_of'],changed)
+        with self.writer.hold(allow_release_pending=True):
+            with self.assertRaises(ValueError):self.native.recover(self.writer)
+        self.assertTrue(self.writer.fenced(release=True))
+        self.assertEqual(self.store.get('release_name',self.native.key(retry))['phase'],'published')
+        self.store.set('release_name',retry['retry_of'],parent)
+        with self.writer.hold(allow_release_pending=True):self.native.recover(self.writer)
+        self.assertEqual(self.native.rename(retry)['phase'],'committed')
+
     def test_changed_target_keeps_recovery_fence(self):
         with patch.object(self.database,'action',return_value=None):
             with self.assertRaises(ValueError):self.native.rename(self.request)
