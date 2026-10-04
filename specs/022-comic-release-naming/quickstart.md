@@ -8,3 +8,18 @@
 6. Re-run the manifest to prove idempotence; retain audit receipts and unresolved originals. Remove only completed temporary preservation copies.
 
 The pack correction passed live acceptance in T022 at 931 completed publications, including all 13 Grimm issues and three overlapping 26/26-member records. T019/T023 bulk completion and T024 second-pass/final acceptance remain open; this canary does not establish full-library completion.
+
+Corrective naming images have passed source/image gates and publication, but have
+not been deployed during the user's pause on new privileged access. Keep the
+existing bulk helpers and independent-writer hold intact. After access resumes,
+use a fresh consistent backup and verified isolated restore before deploying the
+corrected native parser and matching worker. Reconcile all four held original
+receipts under exact ownership/preservation checks; do not blindly replay rejected
+naming requests. Finish the protected journal, credit-deferral and database checks
+before resuming independent writers or claiming final acceptance.
+
+Ordinary-user host/archive/reader and catalog audits are partial acceptance
+evidence. A separately admitted native proposal check is operational: it holds
+the shared writer guard and can reconcile pending journals. Record its ownership
+and idempotence results separately, without treating them as direct database or
+protected-journal verification.
