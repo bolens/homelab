@@ -1,0 +1,10 @@
+# Validation workflow
+
+1. Run `python3 -m unittest discover -s stacks/mylar3/config -p 'test_publication_guard.py'` and the worker’s equivalent focused suite. Verify matching independent payload vectors, registry census/restart controls and allowed/different/conflicting owner cases.
+2. Exercise actual patched native ordinary/annual/storyarc/oneoff paths with metadata enabled, disabled and Legacy selected. Assert the guard precedes scripts/tagging/placement/status writes and retained-review does not trigger failure/search replay.
+3. Run affected native rescan/tagging/naming/recovery/supplement and converter-backed worker import/pack/conversion/naming fixtures. Verify no submit, false confirmation or cleanup on conflict or unavailable evidence.
+4. Run `make ci-local`; require complete actual native and worker image gates on the reviewed PR head. Verify publication against the merged revision.
+5. When privileged access is permitted, coordinate all writers, take a scoped consistent backup and independently verify isolated restores. Deploy the matching native image held/uninitialized first, then authenticate and prepare/commit the exact reviewed epoch/bootstrap intent under writer exclusion with its verified backup attestation. Verify native data and protocol before deploying the matching held worker and admitting one exact reviewed correction. Uninitialized application status/bootstrap remains available while media mutations and pending replay stay held.
+6. Prove a retained known-payload conflict and a legitimate different payload. Reconcile exact existing wrong copies outside scanned libraries while preserving correct bytes/owners/readers and legitimate acquisition intent. Verify databases and fresh complete library scope before resuming workers or removing only accepted temporary copies.
+
+No live registration, repeat repair, privileged lifecycle action or final acceptance has occurred for this feature. The user’s current access restriction remains in force.

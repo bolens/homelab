@@ -1,3 +1,4 @@
+# Bounded read-only payload verification is image-bundled; correction enforcement is a separately gated migration.
 # Optional library metadata maintenance uses existing Activity settings and app state; both options default off.
 # Converted tagging jobs persist in the existing workflow journal; no additional mounts.
 # Optional DDL discovery uses existing authenticated settings; Requests remains default and owns archive transfers.
