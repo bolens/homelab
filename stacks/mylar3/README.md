@@ -935,6 +935,11 @@ updates that same catalog row. Its status remains unchanged. The inode, file
 permissions, owner and supported ACL/user attributes remain identical. Startup
 reconciles interrupted publication before admitting any media writer. An unresolved
 content or ownership contradiction retains `release-v1.pending` for review.
+An operator can explicitly replace a proven rejected attempt with a version-2
+request naming its exact `retry_of` predecessor. It creates a new journal while
+retaining the rejected record and requires unchanged source hash/inode/attributes
+and catalog ownership/year. Ordinary retry remains forbidden; deploy the matching
+worker and restore-verify retained state/copies before this guarded recovery.
 Confirmed pack members capture their exact catalog owner, old path, archive hash
 and file signature before publication. Naming and native metadata publication
 atomically transfer every matching pack member to the verified final file before

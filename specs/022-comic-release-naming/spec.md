@@ -53,7 +53,7 @@ Titles containing years, Unicode, punctuation and fractions; annual release vers
 - **FR-005**: Only unique existing ownership with consistent embedded identity may be renamed automatically. Supplements and uncataloged collections require explicit proven publication identity or remain for review.
 - **FR-006**: Planning MUST reject symlinks, unsafe paths, oversize metadata, contradictory IDs and case-insensitive collisions.
 - **FR-007**: Publication MUST preserve archive bytes and filesystem attributes; sidecars MUST remain attached or the operation MUST stop for review.
-- **FR-008**: All mutations MUST use existing writer coordination and durable receipts. Uncertain API acknowledgements MUST be reconciled rather than automatically replayed.
+- **FR-008**: All mutations MUST use existing writer coordination and durable receipts. Uncertain API acknowledgements MUST be reconciled rather than automatically replayed. Explicit recovery from a proven rejection MUST create a distinct predecessor-bound request, preserve the rejected journal, and revalidate original source hash/inode/attributes, active catalog ownership and reader/preservation evidence. Ordinary retries and daemon ticks MUST NOT release review entries.
 - **FR-009**: Mylar location/status ownership and reader readiness/progress MUST be verified before completion. Originals and backups MUST be retained until that proof succeeds.
 - **FR-010**: Bulk operation MUST support a read-only manifest, bounded application, source/catalog freshness checks, resumable outcomes and an idempotent second pass.
 - **FR-011**: New behavior MUST preserve disabled-policy compatibility and existing conversion, tagging, annual and pack recovery contracts.

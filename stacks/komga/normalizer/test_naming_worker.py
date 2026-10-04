@@ -36,6 +36,82 @@ class NamingWorkerTest(unittest.TestCase):
         self.assertEqual([c.args[0] for c in self.naming.api.call_args_list],['renameLibraryFile','releaseNamingStatus'])
         self.assertTrue((self.folder/'original.cbz').exists())
 
+    def rejected_fixture(self):
+        import shutil,zipfile
+        self.naming.rules['enabled']=True
+        with zipfile.ZipFile(self.source,'w') as archive:archive.writestr('page.jpg',b'page')
+        self.request['sha256']=digest(self.source)
+        parent=token(self.request);folder=self.naming.root/parent;folder.mkdir(mode=0o700)
+        reader=dict(id='old',hash='hash',pages=1,seriesid='series',libraryid='library',progress={'page':1})
+        old=dict(self.job,phase='review',key=parent,request=self.request,reader=reader)
+        save(folder/'receipt.json',old)
+        for name in ('original.cbz','restore.cbz'):shutil.copy2(self.source,folder/name)
+        proposal=dict(version=1,source=str(self.source),sha256=digest(self.source),issueid='1',comicid='2',
+                      series='Old',number='1',year='2020',type='Print',volume=None,group=None)
+        self.naming.reader_proof=Mock(return_value=reader)
+        self.naming.api.side_effect=lambda command,**values: {'phase':'rejected'} if command=='releaseNamingStatus' else proposal
+        return parent,folder,old
+
+    def test_explicit_recovery_prepares_new_copies_and_keeps_parent_review(self):
+        from media_writer import Writer
+        parent,folder,old=self.rejected_fixture();Writer(self.root/'writer',create=True)
+        before=(folder/'receipt.json').read_bytes()
+        with patch('naming_worker.all_books',return_value=[]):
+            entry=self.naming.recovery_entry(parent);child=self.naming.prepare(entry)
+        self.assertEqual(entry['request']['version'],2);self.assertEqual(entry['request']['retry_of'],parent)
+        self.assertNotEqual(child,folder)
+        self.assertEqual((folder/'receipt.json').read_bytes(),before)
+        self.assertEqual(digest(child/'restore.cbz'),old['request']['sha256'])
+        self.assertFalse(self.target.exists());self.assertTrue(self.source.exists())
+
+    def test_recovery_rejects_changed_or_linked_retained_copies(self):
+        parent,folder,_=self.rejected_fixture()
+        (folder/'restore.cbz').write_bytes(b'changed')
+        with self.assertRaises(ValueError):self.naming.recovery_entry(parent)
+        (folder/'restore.cbz').unlink();(folder/'restore.cbz').symlink_to(self.source)
+        with self.assertRaises(ValueError):self.naming.recovery_entry(parent)
+        self.assertFalse(self.target.exists())
+
+    def test_combined_linked_holds_require_explicit_detached_verified_copies(self):
+        import os,shutil
+        parent,folder,_=self.rejected_fixture()
+        joint=self.root/'combined';joint.mkdir(mode=0o700)
+        detached=self.root/'detached';detached.mkdir(mode=0o700)
+        for name in ('original.cbz','restore.cbz'):
+            os.link(folder/name,joint/name);shutil.copy2(joint/name,detached/name)
+        with self.assertRaises(ValueError):self.naming.recovery_entry(parent)
+        preservation=dict(original=str(detached/'original.cbz'),restore=str(detached/'restore.cbz'))
+        with patch('naming_worker.all_books',return_value=[]):entry=self.naming.recovery_entry(parent,preservation)
+        self.assertEqual(entry['preservation'],preservation)
+        self.assertEqual((folder/'original.cbz').stat().st_nlink,2)
+        self.assertEqual((detached/'original.cbz').stat().st_nlink,1)
+
+    def test_recovery_rejects_preservation_traversal_outside_state(self):
+        import shutil
+        parent,folder,_=self.rejected_fixture()
+        with tempfile.TemporaryDirectory(dir=self.root.parent) as outside:
+            for name in ('original.cbz','restore.cbz'):shutil.copy2(folder/name,Path(outside)/name)
+            traversal=self.root/'..'/Path(outside).name
+            copies=dict(original=str(traversal/'original.cbz'),restore=str(traversal/'restore.cbz'))
+            with self.assertRaises(ValueError):self.naming.recovery_entry(parent,copies)
+
+    def test_recovery_rejects_absent_native_parent_or_reader_progress_loss(self):
+        parent,_,_=self.rejected_fixture()
+        self.naming.api.side_effect=lambda command,**values:{'phase':'absent'}
+        with self.assertRaises(ValueError):self.naming.recovery_entry(parent)
+        parent,_,_=self.rejected_fixture_again(parent)
+
+    def rejected_fixture_again(self,parent):
+        # Reuse the held fixture to check a fresh reader proof without replacing receipts.
+        folder=self.naming.root/parent;old=json.loads((folder/'receipt.json').read_text())
+        proposal=dict(version=1,source=str(self.source),sha256=digest(self.source),issueid='1',comicid='2',
+                      series='Old',number='1',year='2020',type='Print',volume=None,group=None)
+        self.naming.api.side_effect=lambda command,**values:{'phase':'rejected'} if command=='releaseNamingStatus' else proposal
+        self.naming.reader_proof.return_value=dict(old['reader'],progress={'page':0})
+        with patch('naming_worker.all_books',return_value=[]):
+            with self.assertRaises(ValueError):self.naming.recovery_entry(parent)
+        return parent,folder,old
+
     def test_committed_journal_reconciles_and_reader_proof_removes_only_copies(self):
         self.publish();self.job['phase']='native-uncertain';save(self.folder/'receipt.json',self.job)
         self.naming.api.return_value={'phase':'committed'}

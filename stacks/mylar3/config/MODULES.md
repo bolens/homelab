@@ -139,3 +139,6 @@ writer while `release-v1.pending` exists. `release-state-v1.identity` binds the
 workflow journal inode so missing recovery state cannot silently clear a fence.
 The identical shared `media_writer.py` copies also block the optional worker while
 native rename recovery remains pending. No native catalog schema changes are required.
+Explicit version-2 replacements retain a rejected `retry_of` journal and bind
+its complete digest in the new receipt. Source inode/attributes/hash and native
+owner/status/year are revalidated; ordinary rejected-request replay stays blocked.

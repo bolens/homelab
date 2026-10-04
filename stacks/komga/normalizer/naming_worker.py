@@ -109,6 +109,63 @@ class Naming:
                 result.append(dict(source=str(path), phase='review', reason=reason))
         return dict(version=1, created_at=time.time(), entries=result)
 
+    def recovery_entry(self, predecessor, preservation=None):
+        """Explicitly replace a rejected attempt; ordinary ticks never call this."""
+        if (not self.rules['enabled'] or not isinstance(predecessor, str)
+                or len(predecessor) != 64 or any(c not in '0123456789abcdef' for c in predecessor)):
+            raise ValueError('Invalid rejected naming predecessor')
+        folder = self.root/predecessor
+        receipt = folder/'receipt.json'
+        if any(p.is_symlink() for p in (folder, receipt)):
+            raise ValueError('Linked rejected naming evidence')
+        info = folder.stat(); recorded = receipt.stat()
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700
+                or not stat.S_ISREG(recorded.st_mode) or recorded.st_uid != os.geteuid()
+                or recorded.st_nlink != 1 or recorded.st_mode & 0o022 or recorded.st_size > 2*1024*1024):
+            raise ValueError('Unsafe rejected naming evidence')
+        old = json.loads(receipt.read_text()); original = old['request']
+        if old['phase'] != 'review' or old['key'] != predecessor or token(original) != predecessor:
+            raise ValueError('Naming predecessor is not held for review')
+        path = Path(original['source'])
+        if not scoped_file(path, self.worker.roots) or digest(path) != original['sha256']:
+            raise ValueError('Rejected naming source changed')
+        preservation = preservation or dict(original=str(folder/'original.cbz'), restore=str(folder/'restore.cbz'))
+        if set(preservation) != {'original', 'restore'}:
+            raise ValueError('Expected both rejected naming copies')
+        copies = [Path(preservation[n]) for n in ('original', 'restore')]
+        if (any(not p.is_absolute() or '..' in p.parts for p in copies)
+                or copies[0] == copies[1] or copies[0].parent != copies[1].parent):
+            raise ValueError('Expected distinct copies in one private folder')
+        parent = copies[0].parent; saved = parent.stat()
+        if (not parent.resolve().is_relative_to(self.worker.state.resolve()) or not stat.S_ISDIR(saved.st_mode)
+                or any(p.is_symlink() for p in (parent, *parent.parents))
+                or saved.st_uid != os.geteuid() or stat.S_IMODE(saved.st_mode) != 0o700):
+            raise ValueError('Unsafe rejected preservation directory')
+        import zipfile
+        for copy in copies:
+            saved = copy.lstat()
+            if (not stat.S_ISREG(saved.st_mode) or saved.st_nlink != 1 or saved.st_uid != os.geteuid()
+                    or digest(copy) != original['sha256']):
+                raise ValueError('Rejected preservation copy changed')
+            with zipfile.ZipFile(copy) as archive:
+                if archive.testzip() is not None:raise ValueError('Rejected restore archive failed integrity')
+        if self.api('releaseNamingStatus', token=predecessor).get('phase') != 'rejected':
+            raise ValueError('Native naming predecessor is not rejected')
+        fresh = self.api('getReleaseNaming', source=str(path))
+        if type(fresh.get('version')) is not int or fresh['version'] != 1 or any(fresh[n] != original[n] for n in ('source','sha256','issueid','comicid')):
+            raise ValueError('Rejected naming owner changed')
+        reader = self.reader_proof(path, all_books(self.worker.reader)); before = old['reader']
+        if any(reader[n] != before[n] for n in ('id','hash','pages','seriesid','libraryid')):
+            raise ValueError('Rejected reader identity changed')
+        progress, current = before.get('progress'), reader.get('progress')
+        if progress and (not current or current.get('page',0) < progress.get('page',0)
+                         or (progress.get('completed') and not current.get('completed'))):
+            raise ValueError('Rejected reader progress changed')
+        request = {n:fresh[n] for n in ('version','source','sha256','issueid','comicid')}
+        request.update(version=2, retry_of=predecessor, target=render(fresh))
+        return dict(source=str(path), issueid=request['issueid'], comicid=request['comicid'], phase='planned',
+                    proposal=fresh, request=request, reader=reader, preservation=preservation)
+
     def prepare(self, entry):
         path = Path(entry['source'])
         if not scoped_file(path, self.worker.roots):raise ValueError('Release source scope changed')
@@ -117,9 +174,14 @@ class Naming:
             if folder.is_symlink() or not (folder/'receipt.json').is_file():
                 raise ValueError('Incomplete release preparation requires review')
             return folder
+        if request.get('version') == 2:
+            if self.recovery_entry(request.get('retry_of'), entry.get('preservation')) != entry:
+                raise ValueError('Rejected naming recovery plan is stale')
         fresh = self.api('getReleaseNaming', source=str(path))
         expected = {name:fresh[name] for name in ('version','source','sha256','issueid','comicid')}
         expected['target'] = render(fresh)
+        if request.get('version') == 2:
+            expected.update(version=2, retry_of=request['retry_of'])
         if fresh != entry['proposal'] or expected != request:
             raise ValueError('Release naming plan is stale')
         proof = self.reader_proof(path, all_books(self.worker.reader))

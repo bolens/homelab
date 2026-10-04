@@ -310,8 +310,22 @@ def reject(database, store, job):
     return dict(version=1, key=job['key'], phase='rejected')
 
 
+def rejected_predecessor(store, request):
+    predecessor = store.get('release_name', request['retry_of'])
+    if (not predecessor or predecessor.get('phase') != 'rejected'
+            or predecessor.get('key') != request['retry_of']
+            or key(predecessor['request']) != request['retry_of']
+            or any(predecessor['request'].get(f) != request[f] for f in ('source', 'sha256', 'issueid', 'comicid'))):
+        raise ValueError('Rejected release predecessor changed')
+    return predecessor
+
+
 def finish(database, store, job):
     from mylar.media_writer import sync
+    if job['request']['version'] == 2:
+        predecessor = rejected_predecessor(store, job['request'])
+        if job.get('predecessor_sha256') != key(predecessor):
+            raise ValueError('Rejected release evidence changed during recovery')
     if job['phase'] == 'rejecting':
         return reject(database, store, job)
     request = job['request']; source = Path(request['source']); target = source.with_name(request['target'])
@@ -415,8 +429,13 @@ def get(source):
 def rename(raw):
     from mylar import native_writers
     request = json.loads(raw) if isinstance(raw, str) else raw
-    if (not isinstance(request, dict) or set(request) != {'version', 'source', 'target', 'sha256', 'issueid', 'comicid'}
-            or type(request['version']) is not int or request['version'] != 1
+    fields = {'version', 'source', 'target', 'sha256', 'issueid', 'comicid'}
+    retry = isinstance(request, dict) and type(request.get('version')) is int and request['version'] == 2
+    if retry:
+        fields.add('retry_of')
+    if (not isinstance(request, dict) or set(request) != fields
+            or type(request['version']) is not int or request['version'] not in (1, 2)
+            or (retry and (not isinstance(request['retry_of'], str) or not re.fullmatch(r'[a-f0-9]{64}', request['retry_of'])))
             or any(not isinstance(request[f], str) for f in ('source', 'target', 'sha256', 'issueid', 'comicid'))
             or not re.fullmatch(r'[a-f0-9]{64}', request['sha256'])
             or not request['issueid'].isdecimal() or not request['comicid'].isdecimal()
@@ -425,11 +444,16 @@ def rename(raw):
         raise ValueError('Invalid release naming request')
     with native_writers.operation() as writer:
         database, store = services(); token = key(request)
+        predecessor = None
+        if retry:
+            predecessor = rejected_predecessor(store, request)
         previous = store.get('release_name', token)
         if previous:
             if previous['request'] != request:
                 raise ValueError('Release request changed')
             if previous['phase'] == 'committed':
+                if retry and previous.get('predecessor_sha256') != key(predecessor):
+                    raise ValueError('Rejected release evidence changed')
                 target = Path(request['source']).with_name(request['target'])
                 verified(target, previous)
                 row = catalog(database, target)['row']
@@ -441,11 +465,17 @@ def rename(raw):
         if any(info[f] != request[f] for f in ('source', 'sha256', 'issueid', 'comicid')):
             raise ValueError('Release naming proposal is stale')
         source = Path(request['source']); target = source.with_name(request['target'])
+        if retry:
+            verified(source, predecessor)
+            if any(info[f] != predecessor[f] for f in ('table', 'status', 'year')):
+                raise ValueError('Rejected release ownership changed')
         if any(p.name.casefold() == target.name.casefold() for p in source.parent.iterdir()):
             raise ValueError('Release destination already exists')
         identity, attributes = stamp(source)
         job = dict(key=token, request=request, stamp=identity, attributes=attributes,
                    table=info['table'], status=info['status'], year=info['year'], phase='prepared')
+        if retry:
+            job['predecessor_sha256'] = key(predecessor)
         from mylar import pack_bindings
         job['pack_bindings'] = pack_bindings.capture(store, source, target,
             catalog_owner={field: request[field] for field in ('issueid', 'comicid')})
