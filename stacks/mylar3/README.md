@@ -339,6 +339,14 @@ repopulates the search queue after a restart. Review queue depth before repeated
 forcing full searches, and use Activity's confirmed library imports to measure
 progress. Search matches and Snatched status do not prove acquisition.
 
+Verified failed-download recovery persists a regular issue as Wanted before
+submitting its manual replacement search. The update requires the exact failed
+issue/series owner and no library location; changed owners, imported files and
+annual misclassification remain for review. This preserves search eligibility
+if submission fails or the in-memory queue is lost on restart. Startup search,
+scheduled cutoff and RSS settings still govern when the replacement is sought;
+the failed release remains excluded.
+
 ## Activity and workflow controls
 
 Open **Activity** from Manage or the Queues menu. The authenticated `activity`
