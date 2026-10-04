@@ -56,7 +56,7 @@ def issue_number(value):
     return result
 
 
-def labels(source, group, issueid, year, kind=None):
+def labels(source, group, issueid, year, kind=None, number=None):
     """Keep release blocks; remove only proven group/year/import-marker fields."""
     result = []
     stem = Path(source).stem
@@ -69,6 +69,10 @@ def labels(source, group, issueid, year, kind=None):
         if re.fullmatch(r'(?:19|20)\d{2}', text):
             if text != year:
                 raise ValueError('Publication or edition year needs review')
+            continue
+        if number is not None and re.fullmatch(r'#[\s]*[+-]?\d+(?:\.\d+)?(?:[\s.]*[A-Za-z]+)?', text):
+            if issue_number(text[1:]) != issue_number(number):
+                raise ValueError('Conflicting release filename number')
             continue
         if kind in ('TPB', 'HC', 'GN') and text.casefold() == kind.casefold():
             continue
@@ -113,7 +117,7 @@ def render(proposal):
     else:
         parts.append(number)
     parts.append('('+year+')')
-    parts.extend('('+label+')' for label in labels(proposal['source'], group, proposal['issueid'], year, proposal['type']))
+    parts.extend('('+label+')' for label in labels(proposal['source'], group, proposal['issueid'], year, proposal['type'], proposal['number']))
     name = '.'.join(parts)+(('-'+dotted(group)) if group else '')+'.cbz'
     if len(name.encode('utf-8')) > 255 or Path(name).name != name:
         raise ValueError('Release filename exceeds filesystem limits')

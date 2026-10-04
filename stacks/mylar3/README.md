@@ -920,7 +920,8 @@ ComicInfo number, publication year and catalog identity. Primary-key-only versio
 `getReleaseNaming`, `renameLibraryFile` and `releaseNamingStatus` APIs share a durable
 workflow journal and the existing media writer lock. Final names use dotted
 separators and a hyphen before the scanner group. Explicit fractional and variant
-issue numbers survive native parsing; actual archive names and bytes are preserved
+issue numbers survive native parsing; numeric catalog-title suffixes stay separate
+from the padded issue field. Actual archive names and bytes are preserved
 during parser checks. A regular catalog issue without a filename year can use
 agreement between its embedded Year and stored issue date only when its exact
 ComicVine issue link is present. An explicit conflicting filename year, absent

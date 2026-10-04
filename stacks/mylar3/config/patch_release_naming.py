@@ -36,7 +36,11 @@ def api(source):
 
 
 def scanner(source):
-    if MARKER in source:return source
+    if MARKER in source:
+        old = 'release_naming.release_number(modfilename)'
+        if old in source:
+            return replace_once(source, old, 'release_naming.release_number(modfilename, self)')
+        return source
     source = replace_once(source, '        scangroup = None\n',
                           '        '+MARKER+'\n        modfilename, scangroup = release_naming.scanner(modfilename)\n')
     source = replace_once(source, '        recovered = file_identity.single_volume_match(self, filename)\n',
@@ -47,7 +51,7 @@ def scanner(source):
                           '            issue_number = issue_volume = collected["number"]\n'
                           '            issue_year = collected["year"]\n'
                           '            booktype = collected["kind"]\n'
-                          '        release_number = release_naming.release_number(modfilename)\n'
+                          '        release_number = release_naming.release_number(modfilename, self)\n'
                           '        if release_number is not None:\n            issue_number = release_number\n'
                           '        recovered = file_identity.single_volume_match(self, filename)\n')
     source = 'from mylar import release_naming\n'+source

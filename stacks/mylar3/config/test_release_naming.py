@@ -212,6 +212,17 @@ class NamingTest(unittest.TestCase):
         self.assertIsNone(self.native.collected(checker,value.replace('(GN)','(HC)')))
         self.assertIsNone(self.native.collected(checker,'Series.Name.v2.v005.(2020)'))
 
+    def test_padded_number_excludes_verified_numeric_title_prefix(self):
+        checker=SimpleNamespace(watchcomic='Gargoyles Winter Special 2025', AlternateSearch=None)
+        self.assertEqual(self.native.release_number('Gargoyles.Winter.Special.2025.001.(2025)',checker),'001')
+        checker.watchcomic='Gargoyles'
+        checker.AlternateSearch='Gargoyles Winter Special 2025!!42'
+        self.assertEqual(self.native.release_number('Gargoyles.Winter.Special.2025.001.(2025)',checker),'001')
+        checker.watchcomic='Series 2025'
+        checker.AlternateSearch=None
+        self.assertEqual(self.native.release_number('Series.2025.001.5.(2020)',checker),'001.5')
+        self.assertEqual(self.native.release_number('Series.2025.001.MU.(2020)',checker),'001.MU')
+
     def test_explicit_scanner_prefix_is_retained_and_legacy_source_is_split(self):
         self.assertEqual(self.native.release_group(Path('Series.001.(2020).(Digital)-Digital-Empire.cbz'),'Digital-Empire'),'Digital-Empire')
         self.assertEqual(self.native.release_group(Path('Series 001 (2020) (Digital-Empire).cbz'),'Digital-Empire'),'Empire')

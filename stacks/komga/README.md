@@ -576,6 +576,8 @@ hashes and unproven catalog owners require review. Existing folders remain uncha
 Unbracketed edition or variant annotations also require review, so rendering cannot
 silently drop a release distinction. A Deluxe Edition collection cannot fulfill
 the regular issue merely because stale embedded metadata names that issue.
+A bracketed `#issue` block is omitted when it repeats the proven issue number;
+a conflicting number remains for review. Edition and variant blocks remain intact.
 Names help parsing; ComicInfo and exact catalog ownership still establish identity.
 
 Set `"release_naming": {"enabled": true, "batch_size": 1}` in the private worker

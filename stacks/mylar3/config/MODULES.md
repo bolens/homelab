@@ -130,7 +130,9 @@ The coordinated `apply_preserved` entry point revalidates caller-owned original/
 `patch_release_naming.py` runs after file matching, writer coordination and workflow
 installation. It installs `release_naming.py`, primary-key versioned proposal,
 publication and status APIs, and the explicit final scanner-group/issue parser
-adapter. `native_writers.py` reconciles its journal before every other native
+adapter. It excludes the longest matching catalog title or registered alias
+before reading a padded issue number, preserving numeric title suffixes and
+fractional issues. `native_writers.py` reconciles its journal before every other native
 writer while `release-v1.pending` exists. `release-state-v1.identity` binds the
 workflow journal inode so missing recovery state cannot silently clear a fence.
 The identical shared `media_writer.py` copies also block the optional worker while

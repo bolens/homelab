@@ -168,6 +168,21 @@ class NativeMatchingTest(unittest.TestCase):
             self.assertEqual(str(value['issue_number']).lower().replace(' ', '.').lstrip('0'), number.lstrip('0').lower())
             self.assertEqual(value['scangroup'], 'Son.of.Ultron-Empire')
 
+    def test_dotted_numeric_title_cannot_become_part_of_issue_number(self):
+        temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup)
+        folder=Path(temp.name)
+        name='Gargoyles.Winter.Special.2025.001.(2025).(One.Shot).cbz'
+        (folder/name).write_bytes(b'parser fixture')
+        with patch.object(filechecker,'logger',Mock()), patch.object(mylar,'CONFIG',SimpleNamespace(
+                IGNORE_SEARCH_WORDS=[],CUSTOM_ISSUE_EXCEPTIONS=[],ANNUALS_ON=True,
+                FOLDER_SCAN_LOG_VERBOSE=False,ENFORCE_PERMS=False,ENABLE_TORRENTS=False,READ2FILENAME=False)):
+            checker=filechecker.FileChecker(dir=str(folder),watchcomic='Gargoyles Winter Special 2025',
+                                            comic_type='One-Shot',single_issue_number='1')
+            entries=checker.listFiles()['comiclist']
+        self.assertEqual(len(entries),1)
+        self.assertEqual(entries[0]['JusttheDigits'],'001')
+        self.assertEqual(entries[0]['ComicName'],'Gargoyles Winter Special 2025')
+
     def test_collected_release_preserves_distinct_series_and_issue_volumes(self):
         for kind in ('GN', 'TPB', 'HC'):
             value = self.parse('Series.Name.v2.v005.('+kind+').(2020).(Digital)-Group.cbz',
