@@ -13,7 +13,7 @@ Corrective naming images have passed source/image gates and publication, but hav
 not been deployed during the user's pause on new privileged access. Keep the
 existing bulk helpers and independent-writer hold intact. After access resumes,
 use a fresh consistent backup and verified isolated restore before deploying the
-corrected native parser and matching worker. Reconcile all four held original
+corrected native parser and matching worker. Reconcile every held original
 receipts under exact ownership/preservation checks; do not blindly replay rejected
 naming requests. Finish the protected journal, credit-deferral and database checks
 before resuming independent writers or claiming final acceptance.
