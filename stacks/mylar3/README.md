@@ -345,7 +345,9 @@ issue/series owner and no library location; changed owners, imported files and
 annual misclassification remain for review. This preserves search eligibility
 if submission fails or the in-memory queue is lost on restart. Startup search,
 scheduled cutoff and RSS settings still govern when the replacement is sought;
-the failed release remains excluded.
+the failed release remains excluded. Native scheduled searches already include
+Failed issues when both automatic failure settings are enabled; explicit Wanted
+status avoids depending on that conditional fallback.
 
 ## Activity and workflow controls
 
