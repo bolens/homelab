@@ -4,6 +4,7 @@ This foundation does not admit corrections or authorize publication. Registry,
 owner and writer admission must validate this evidence before any mutation.
 """
 
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -321,6 +322,179 @@ def inventory(path, *, tool_root=TOOL_ROOT):
         return value
     except (OSError, ValueError, TypeError, KeyError, UnicodeError, RecursionError) as error:
         raise Unavailable('Stable complete publication payload evidence unavailable') from error
+
+
+# Registry reads are deliberately independent of Store construction: Store opens
+# with O_CREAT, which must never recreate lost correction authority.
+REGISTRY_LIMIT = 512
+REGISTRY_BYTES = 32 * 1024 ** 2
+REGISTRY_KINDS = frozenset(('publication_attestation', 'publication_census'))
+
+
+def canonical_digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
+        separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
+
+
+def digest_value(value):
+    return isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) is not None
+
+
+def exact_owner(value):
+    fields = {'table', 'issueid', 'parentcomicid', 'releasecomicid'}
+    if (not isinstance(value, dict) or set(value) != fields
+            or value['table'] not in ('issues', 'annuals')
+            or any(not isinstance(value[key], str)
+                   or re.fullmatch('[1-9][0-9]{0,15}', value[key]) is None
+                   for key in fields - {'table'})
+            or (value['table'] == 'issues'
+                and value['parentcomicid'] != value['releasecomicid'])):
+        raise Unavailable('Invalid exact publication owner')
+    return value
+
+
+def attestation(value):
+    fields = {'version', 'epoch', 'prior_revision', 'inventory', 'allowed',
+              'rejected', 'evidence', 'observed', 'intent', 'created'}
+    if (not isinstance(value, dict) or set(value) != fields
+            or type(value['version']) is not int or value['version'] != 1
+            or not digest_value(value['epoch']) or not digest_value(value['intent'])
+            or type(value['prior_revision']) is not int or value['prior_revision'] < 0
+            or type(value['created']) is not int or value['created'] < 0):
+        raise Unavailable('Invalid correction attestation')
+    validate(value['inventory'])
+    owners = []
+    for kind in ('allowed', 'rejected'):
+        group = value[kind]
+        if not isinstance(group, list) or not group or len(group) > 8:
+            raise Unavailable('Correction requires bounded explicit owners')
+        owners.extend(canonical_digest(exact_owner(owner)) for owner in group)
+    if len(owners) > 8 or len(owners) != len(set(owners)):
+        raise Unavailable('Duplicate or contradictory correction owners')
+    evidence = value['evidence']
+    if (not isinstance(evidence, dict) or set(evidence) != {'sha256', 'description'}
+            or not digest_value(evidence['sha256'])
+            or not isinstance(evidence['description'], str)
+            or not 1 <= len(evidence['description'].encode('utf-8')) <= 2048):
+        raise Unavailable('Invalid reviewed evidence binding')
+    observed = value['observed']
+    if not isinstance(observed, list) or len(observed) != len(value['allowed']):
+        raise Unavailable('Missing observed correct-owner facts')
+    for owner, facts in zip(value['allowed'], observed):
+        if (not isinstance(facts, dict)
+                or set(facts) != {'owner', 'source_sha256', 'signature', 'catalog'}
+                or facts['owner'] != owner or not digest_value(facts['source_sha256'])
+                or not isinstance(facts['signature'], list)
+                or len(facts['signature']) != 9
+                or any(type(v) is not int or v < 0 for v in facts['signature'])
+                or not isinstance(facts['catalog'], dict) or not facts['catalog']):
+            raise Unavailable('Invalid observed correct-owner facts')
+    return canonical_digest(value)
+
+
+def complete_census(db):
+    """Validate all authority rows in one caller-owned SQLite read snapshot."""
+    count, size = db.execute("SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) "
+        "FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_'").fetchone()
+    if count > REGISTRY_LIMIT + 1 or size > REGISTRY_BYTES:
+        raise Unavailable('Correction census exceeds v1 bounds')
+    rows = db.execute("SELECT kind,key,value FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_' "
+                      'ORDER BY kind,key').fetchmany(REGISTRY_LIMIT + 2)
+    if len(rows) > REGISTRY_LIMIT + 1:
+        raise Unavailable('Correction census exceeds v1 bounds')
+    records, census, size = {}, None, 0
+    for kind, key, raw in rows:
+        if any(not isinstance(value, str) for value in (kind, key, raw)):
+            raise Unavailable('Malformed correction authority record')
+        size += len(raw.encode('utf-8'))
+        if size > REGISTRY_BYTES or kind not in REGISTRY_KINDS:
+            raise Unavailable('Unknown or oversized correction authority')
+        value = decode_json(raw)
+        if kind == 'publication_census':
+            if key != 'v1' or census is not None:
+                raise Unavailable('Ambiguous correction census')
+            census = value
+        else:
+            if not digest_value(key) or key != attestation(value):
+                raise Unavailable('Correction attestation digest mismatch')
+            records[key] = value
+    fields = {'version', 'epoch', 'revision', 'keys', 'digest'}
+    if (not isinstance(census, dict) or set(census) != fields
+            or type(census['version']) is not int or census['version'] != 1
+            or not digest_value(census['epoch'])
+            or type(census['revision']) is not int or census['revision'] < 0
+            or census['revision'] != len(records)
+            or census['keys'] != sorted(records)
+            or census['digest'] != canonical_digest(sorted(records))):
+        raise Unavailable('Missing or incomplete correction census')
+    revisions, payload_owners = set(), {}
+    for value in records.values():
+        if value['epoch'] != census['epoch']:
+            raise Unavailable('Foreign correction epoch')
+        revisions.add(value['prior_revision'])
+        payload = value['inventory']['payload']
+        allowed, rejected = payload_owners.setdefault(payload, (set(), set()))
+        allowed.update(canonical_digest(owner) for owner in value['allowed'])
+        rejected.update(canonical_digest(owner) for owner in value['rejected'])
+        if allowed & rejected:
+            raise Unavailable('Contradictory immutable correction history')
+    if revisions != set(range(census['revision'])):
+        raise Unavailable('Missing correction revision history')
+    return census, records
+
+
+def registry_snapshot(database, marker):
+    """Read existing authority only; prepared/missing state never admits media.
+
+    The eventual writer adapter must hold its Writer before calling this helper.
+    This function neither initializes nor recovers authority and never opens Store.
+    """
+    if __package__:
+        from .workflow_store import LOCK
+    else:
+        from workflow_store import LOCK
+    with LOCK:
+        return _registry_snapshot(database, marker)
+
+
+def _registry_snapshot(database, marker):
+    import sqlite3
+    database, marker = Path(database), Path(marker)
+    try:
+        with regular(database) as stream, regular(marker) as binding:
+            before = signature(os.fstat(stream.fileno()))
+            mark_before = signature(os.fstat(binding.fileno()))
+            for info in (before, mark_before):
+                if info[6] != os.geteuid() or stat.S_IMODE(info[5]) != 0o600 or info[8] != 1:
+                    raise Unavailable('Correction authority must be private and owned')
+            sidecars = [Path(str(database) + suffix) for suffix in ('-wal', '-shm', '-journal')]
+            header = stream.read(100)
+            if (len(header) != 100 or header[:16] != b'SQLite format 3\0'
+                    or header[18:20] != b'\x01\x01'
+                    or any(os.path.lexists(path) for path in sidecars)):
+                raise Unavailable('Correction authority requires complete rollback-journal state')
+            raw = binding.read(65537)
+            if len(raw) > 65536:
+                raise Unavailable('Oversized correction marker')
+            value = decode_json(raw.decode('utf-8'))
+            with closing(sqlite3.connect(database.as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
+                db.execute('BEGIN')
+                if db.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
+                    raise Unavailable('Unreadable correction database')
+                census, records = complete_census(db)
+            expected = dict(version=1, phase='final', census=census,
+                            database_identity=before[:2])
+            if canonical_digest(value) != canonical_digest(expected):
+                raise Unavailable('Correction marker does not bind complete final state')
+            if (signature(os.fstat(stream.fileno())) != before
+                    or signature(database.lstat()) != before
+                    or signature(os.fstat(binding.fileno())) != mark_before
+                    or signature(marker.lstat()) != mark_before
+                    or any(os.path.lexists(path) for path in sidecars)):
+                raise Unavailable('Correction authority changed during read')
+            return census, records
+    except (OSError, sqlite3.Error, UnicodeError, ValueError, TypeError, KeyError, RecursionError) as error:
+        raise Unavailable('Correction authority unavailable') from error
 
 
 if __name__ == '__main__':

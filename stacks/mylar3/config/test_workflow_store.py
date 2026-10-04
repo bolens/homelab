@@ -2,7 +2,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from workflow_store import Store
+from workflow_store import Store, protected_snapshot
 
 class StoreTest(unittest.TestCase):
     def setUp(self):
@@ -33,5 +33,42 @@ class StoreTest(unittest.TestCase):
         self.assertEqual(len(self.store.events()),1)
         (Path(self.tmp.name)/'workflow.sqlite').write_bytes(b'not a database')
         with self.assertRaises(Exception):self.store.events()
+
+class BootstrapProjectionTests(unittest.TestCase):
+    setUp = StoreTest.setUp
+    def snapshot(self):
+        with self.store.connection() as db:
+            db.execute('BEGIN')
+            return protected_snapshot(db)
+
+    def test_observations_events_intents_and_envelope_do_not_stale_review(self):
+        self.store.set('pack', '1', {'phase': 'imported', 'owners': ['123']})
+        baseline = self.snapshot()
+        self.store.event('library', 'Observed', key='new-observation')
+        self.store.set('meta', 'library_seen', ['123'])
+        self.store.set('publication_intent', 'reviewed-intent', {'accepted': False})
+        self.now += 10
+        self.store.set('pack', '1', {'phase': 'imported', 'owners': ['123']})
+        self.assertEqual(self.snapshot(), baseline)
+
+    def test_every_protected_add_remove_and_nested_change_stales_review(self):
+        self.store.set('pack', '1', {'phase': 'imported', 'owners': ['123']})
+        baseline = self.snapshot()
+        for kind in ('unknown-future-kind', 'handoff', 'dispatch', 'publication_attestation'):
+            self.store.set(kind, '1', {'phase': 'confirmed'})
+            self.assertNotEqual(self.snapshot(), baseline)
+            self.store.delete(kind, '1')
+            self.assertEqual(self.snapshot(), baseline)
+        self.store.set('pack', '1', {'phase': 'imported', 'owners': ['456']})
+        self.assertNotEqual(self.snapshot(), baseline)
+        self.store.delete('pack', '1')
+        self.assertNotEqual(self.snapshot(), baseline)
+
+    def test_transaction_required_and_duplicate_json_rejected(self):
+        with self.store.connection() as db:
+            with self.assertRaises(ValueError):protected_snapshot(db)
+            db.execute('INSERT INTO records VALUES (?,?,?,?)',
+                       ('pack', '1', '{"owner":"1","owner":"2"}', 0))
+        with self.assertRaises(ValueError):self.snapshot()
 
 if __name__=='__main__':unittest.main()

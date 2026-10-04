@@ -147,10 +147,15 @@ owner/status/year are revalidated; ordinary rejected-request replay stays blocke
 ## Read-only publication evidence foundation
 
 `publication_guard.py` currently owns bounded stable archive inventories and
-metadata-independent payload tokens only. It is retained under
+metadata-independent payload tokens, exact immutable attestation/census
+validation and read-only final-marker checks. `workflow_store.protected_snapshot`
+provides a complete versioned semantic projection for reviewed bootstrap;
+volatile observation/event history, `meta.library_seen`, registration intents and
+record update envelopes are excluded, while unknown record kinds stay protected.
+`publication_guard.py` is retained under
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including
 ZIP, RAR4, RAR5 and 7z controls; its own authored payload fixtures require no
-source-layout imports or network. Registry admission, native installation and
+source-layout imports or network. Initialization, durable registration/recovery, native installation and
 publication-path adapters are future tasks in feature 023. This foundation
 performs no correction registration or media publication.

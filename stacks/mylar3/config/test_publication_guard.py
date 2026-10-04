@@ -254,5 +254,211 @@ class ProcessLimits(unittest.TestCase):
             [sys.executable, '-c', 'raise SystemExit(1)'])
 
 
+
+class RegistryTests(unittest.TestCase):
+    def setUp(self):
+        import workflow_store
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        self.store = workflow_store.Store(self.root)
+        self.marker = self.root / 'publication-v1.json'
+        self.epoch = 'e' * 64
+
+    def record(self, revision=0):
+        owner = dict(table='annuals', issueid='123', parentcomicid='456', releasecomicid='789')
+        rejected = dict(table='issues', issueid='999', parentcomicid='888', releasecomicid='888')
+        row = dict(name='01.jpg', bytes=3, directory=False, sha256=hashlib.sha256(b'one').hexdigest())
+        inventory = dict(version=1, members=[row], pages=['01.jpg'],
+                         payload=guard.token([row], ['01.jpg']))
+        return dict(version=1, epoch=self.epoch, prior_revision=revision,
+            inventory=inventory, allowed=[owner], rejected=[rejected],
+            evidence=dict(sha256='a' * 64, description='Explicitly reviewed fixture'),
+            observed=[dict(owner=owner, source_sha256='b' * 64, signature=[1]*9,
+                           catalog=dict(Location='fixture.cbz', ComicLocation='/library'))],
+            intent='c' * 64, created=1)
+
+    def seed(self, values):
+        keys = []
+        for value in values:
+            key = guard.canonical_digest(value)
+            self.store.set('publication_attestation', key, value)
+            keys.append(key)
+        census = dict(version=1, epoch=self.epoch, revision=len(values), keys=sorted(keys),
+                      digest=guard.canonical_digest(sorted(keys)))
+        self.store.set('publication_census', 'v1', census)
+        self.marker.write_bytes(guard.compact(dict(version=1, phase='final', census=census,
+            database_identity=guard.signature(self.store.path.stat())[:2])))
+        self.marker.chmod(0o600)
+        return census
+
+    def read(self):
+        return guard.registry_snapshot(self.store.path, self.marker)
+
+    def test_existing_empty_registry_and_exact_annual_identity(self):
+        expected = self.seed([])
+        self.assertEqual(self.read(), (expected, {}))
+        expected = self.seed([self.record()])
+        census, records = self.read()
+        self.assertEqual(census, expected)
+        self.assertEqual(next(iter(records.values()))['allowed'][0]['releasecomicid'], '789')
+
+    def test_missing_authority_does_not_recreate_database(self):
+        self.seed([])
+        self.store.path.unlink()
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.assertFalse(self.store.path.exists())
+        self.marker.unlink()
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.assertFalse(self.store.path.exists())
+
+    def test_marker_loss_prepared_revision_mismatch_and_database_replacement(self):
+        self.seed([self.record()])
+        original = self.marker.read_bytes()
+        for mutation in ('missing', 'prepared', 'revision', 'foreign-epoch', 'identity'):
+            with self.subTest(mutation=mutation):
+                value = json.loads(original)
+                if mutation == 'missing':self.marker.unlink()
+                else:
+                    if mutation == 'prepared':value['phase'] = 'prepared'
+                    if mutation == 'revision':value['census']['revision'] += 1
+                    if mutation == 'foreign-epoch':value['census']['epoch'] = 'f'*64
+                    if mutation == 'identity':value['database_identity'][1] += 1
+                    self.marker.write_bytes(guard.compact(value))
+                with self.assertRaises(guard.Unavailable):self.read()
+                self.marker.write_bytes(original)
+                self.marker.chmod(0o600)
+        old = self.root / 'old.sqlite'
+        self.store.path.rename(old)
+        self.store.path.write_bytes(old.read_bytes())
+        self.store.path.chmod(0o600)
+        with self.assertRaises(guard.Unavailable):self.read()
+
+    def test_lost_changed_unknown_and_corrupt_records_hold(self):
+        self.seed([self.record()])
+        key = guard.canonical_digest(self.record())
+        with self.store.connection() as db:
+            db.execute("DELETE FROM records WHERE kind='publication_attestation'")
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.seed([self.record()])
+        value = self.record();value['evidence']['description'] = 'changed'
+        self.store.set('publication_attestation', key, value)
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.store.set('publication_attestation', key, self.record())
+        self.store.set('publication_unknown', 'x', {})
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.store.delete('publication_unknown', 'x')
+        with self.store.connection() as db:
+            db.execute("UPDATE records SET value='{' WHERE kind='publication_census'")
+        with self.assertRaises(guard.Unavailable):self.read()
+
+    def test_complete_coverage_ignores_recent_history_and_event_only_changes(self):
+        self.seed([self.record()])
+        for index in range(1005):self.store.set('unrelated', str(index), {})
+        self.store.event('library', 'fixture observation')
+        self.assertEqual(len(self.read()[1]), 1)
+        with patch.object(guard, 'REGISTRY_LIMIT', 0):
+            with self.assertRaises(guard.Unavailable):self.read()
+
+    def test_contradictory_history_revision_loss_and_foreign_epoch(self):
+        first = self.record();second = self.record(1)
+        second['allowed'], second['rejected'] = second['rejected'], second['allowed']
+        second['observed'][0]['owner'] = second['allowed'][0]
+        self.seed([first, second])
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.store.delete('publication_attestation', guard.canonical_digest(second))
+        for mutation in ('gap', 'epoch'):
+            second = self.record(1)
+            if mutation == 'gap':second['prior_revision'] = 3
+            else:second['epoch'] = 'f'*64
+            key = guard.canonical_digest(second)
+            self.seed([first, second])
+            with self.assertRaises(guard.Unavailable):self.read()
+            self.store.delete('publication_attestation', key)
+
+    def test_blob_value_corrupt_database_and_marker_boolean_hold(self):
+        import sqlite3
+        self.seed([])
+        with self.store.connection() as db:
+            db.execute("UPDATE records SET value=? WHERE kind='publication_census'",
+                       (sqlite3.Binary(b'{}'),))
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.seed([])
+        value = json.loads(self.marker.read_bytes());value['version'] = True
+        self.marker.write_bytes(guard.compact(value))
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.seed([])
+        self.store.path.write_bytes(b'corrupt database')
+        with self.assertRaises(guard.Unavailable):self.read()
+
+    def test_blob_namespace_and_combined_owner_bound(self):
+        import sqlite3
+        self.seed([])
+        with self.store.connection() as db:
+            db.execute('INSERT INTO records VALUES (?,?,?,?)',
+                (sqlite3.Binary(b'publication_attestation'), 'hidden', '{}', 0))
+        with self.assertRaises(guard.Unavailable):self.read()
+        value = self.record()
+        value['rejected'] = [dict(table='issues', issueid=str(n), parentcomicid='1',
+                                  releasecomicid='1') for n in range(1, 9)]
+        with self.assertRaises(guard.Unavailable):guard.attestation(value)
+
+    def test_wal_and_sidecar_paths_hold_without_creating_shm(self):
+        import sqlite3
+        self.seed([])
+        original = self.marker.read_bytes()
+        for suffix in ('-wal', '-shm', '-journal'):
+            path = Path(str(self.store.path) + suffix)
+            path.symlink_to(self.root / 'absent')
+            with self.assertRaises(guard.Unavailable):self.read()
+            self.assertTrue(path.is_symlink())
+            path.unlink()
+        db = sqlite3.connect(self.store.path)
+        try:
+            self.assertEqual(db.execute('PRAGMA journal_mode=WAL').fetchone(), ('wal',))
+            db.execute("INSERT INTO records VALUES ('other','x','{}',0)");db.commit()
+            clone = self.root / 'clone.sqlite'
+            clone.write_bytes(self.store.path.read_bytes());clone.chmod(0o600)
+            Path(str(clone)+'-wal').write_bytes(Path(str(self.store.path)+'-wal').read_bytes())
+            value = json.loads(original)
+            value['database_identity'] = guard.signature(clone.stat())[:2]
+            self.marker.write_bytes(guard.compact(value))
+            with self.assertRaises(guard.Unavailable):guard.registry_snapshot(clone, self.marker)
+            self.assertFalse(Path(str(clone)+'-shm').exists())
+        finally:
+            db.close()
+
+    def test_owner_strict_ascii_and_cross_table_shadow(self):
+        for owner in (dict(table='issues', issueid='0', parentcomicid='1', releasecomicid='1'),
+                      dict(table='issues', issueid='01', parentcomicid='1', releasecomicid='1'),
+                      dict(table='issues', issueid='１２３', parentcomicid='1', releasecomicid='1'),
+                      dict(table='issues', issueid='1', parentcomicid='2', releasecomicid='3')):
+            with self.assertRaises(guard.Unavailable):guard.exact_owner(owner)
+        value = self.record()
+        value['rejected'] = [dict(value['allowed'][0])]
+        with self.assertRaises(guard.Unavailable):guard.attestation(value)
+        value['rejected'][0]['table'] = 'issues'
+        value['rejected'][0]['releasecomicid'] = '456'
+        guard.attestation(value)
+
+    def test_private_marker_hardlink_symlink_and_duplicate_json_refusal(self):
+        self.seed([])
+        self.marker.chmod(0o644)
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.marker.chmod(0o600)
+        link = self.root / 'link';os.link(self.marker, link)
+        with self.assertRaises(guard.Unavailable):self.read()
+        link.unlink()
+        original = self.marker.read_bytes()
+        self.marker.unlink();self.marker.symlink_to(self.store.path)
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.marker.unlink()
+        self.marker.write_bytes(b'{"version":1,"version":1}')
+        self.marker.chmod(0o600)
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.marker.write_bytes(original)
+        self.assertEqual(self.read()[0]['revision'], 0)
+
+
 if __name__ == '__main__':
     unittest.main()
