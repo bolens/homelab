@@ -2,7 +2,7 @@
 
 **Input**: `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/publication-corrections.md` and `quickstart.md`.
 **Organization**: Setup → payload/state foundations → reviewed registration → all guarded publication paths → operational repeat reconciliation → final acceptance.
-**Format**: Sequential `TNNN`; `[US1]`–`[US3]` identify user-story tasks. Shared writers and delivery stay serialized. No live task is complete under the current privileged-access hold.
+**Format**: Sequential `TNNN`; `[US1]`–`[US3]` identify user-story tasks. Shared writers and delivery stay serialized. Privileged access was restored on 2026-10-04; live tasks still require their source, backup and acceptance prerequisites.
 
 ## Phase 1: Setup
 
@@ -55,7 +55,7 @@
 
 ## Dependencies and execution
 
-T001 → T002–T003 → T004–T005 → T006–T012 → T013–T015 → T016 reviewed delivery → T017 verified live rollout/reconciliation → T018 → T019. Task IDs follow execution order and delivery precedes live application. T017–T019 remain paused by the user’s no-privileged-access restriction.
+T001 → T002–T003 → T004–T005 → T006–T012 → T013–T015 → T016 reviewed delivery → T017 verified live rollout/reconciliation → T018 → T019. Task IDs follow execution order and delivery precedes live application. T017–T019 remain incomplete: access is available again, but T003–T016 correction registration and enforcement are not implemented.
 
 ## Parallel opportunities
 
@@ -63,12 +63,16 @@ Independent design/contract and failure-path reviews can inspect a frozen candid
 
 ## Implementation strategy
 
-Build the immutable reviewed-registration MVP first, then prove every publication boundary before claiming prevention. Keep existing-repeat repair separate from detection. Continue source/isolated/CI work while the user is away; preserve the operational hold and record all acceptance gaps honestly.
+Build the immutable reviewed-registration MVP first, then prove every publication boundary before claiming prevention. Keep existing-repeat repair separate from detection. Continue source and isolated checks while keeping the default worker held; record operational acceptance gaps explicitly.
 
 ## Evidence
 
-- Baseline PR #223 at `d0120332b5529e2f9d3c751a2e5ffce48b4945f6` fixes pack capture generations and aggregate evidence, not actual publication identity. Both image publications and all PR/main gates pass; runtime deployment remains held.
-- Read-only evidence shows five newly present Heavy Metal files repeat already corrected 1977 payloads under a newer-series claim. Current file/native path ownership and acquisition provenance require protected verification; the observed snatches are not an exact release-to-file chain. Existing correct files and private historical repair evidence remain retained.
-- T001: independent contract and failure reviews closed bootstrap/crash ordering, canonical page-token semantics and worker same-revision owner drift. Native-held-first rollout order and concrete legacy/manual/replay/writer-cycle boundaries are assigned. All 13 functional requirements and four success criteria map to ordered tasks; the 10-item spec-quality checklist passes. The payload foundation is recorded separately in T002; no registration, repeat relocation, rollout or final acceptance is claimed.
+- Baseline PR #223 at `d0120332b5529e2f9d3c751a2e5ffce48b4945f6` fixes pack capture generations and aggregate evidence, not actual publication identity. Both image publications and all PR/main gates pass; its native helper is now deployed and its worker container is recreated without startup, as recorded below.
+- Read-only evidence shows five newly present Heavy Metal files repeat already corrected 1977 payloads under a newer-series claim. Full current-library path ownership and exact acquisition provenance remain unverified; the observed snatches are not an exact release-to-file chain. Existing correct files and private historical repair evidence remain retained.
+- T001: independent contract and failure reviews closed bootstrap/crash ordering, canonical page-token semantics and worker same-revision owner drift. Native-held-first rollout order and concrete legacy/manual/replay/writer-cycle boundaries are assigned. All 13 functional requirements and four success criteria map to ordered tasks; the 10-item spec-quality checklist passes. The payload foundation is recorded separately in T002; no registration, repeat relocation or full-feature rollout/final acceptance is claimed.
 
-- T002 completed: isolated payload foundation has 17 passing controls without skips, including independently fixed payload vectors, authored RAR4/RAR5/7z payloads and corruption, ZIP directory-type disagreement, complete plain-TAR termination, held compressed wrappers, bounded source hashing and child output/timeouts. Peer findings on directory indicators, growing sources and compressed trailers were corrected. Both independent delta reviews are clear and staged `make ci-local` passes, including all repository checks and history secret scanning. The actual pinned native-image build gate passed all 17 payload controls without skips at source `3abbe7d` (PR #224, build job `111486330407`); the complete isolated Mylar image gate passed. A separate upstream-source selector failure was corrected by preserving the first native `FROM`; all checks on the corrected delivery head remain required before merge. No registry or publication-path integration is claimed.
+- T002 completed: isolated payload foundation has 17 passing controls without skips, including independently fixed payload vectors, authored RAR4/RAR5/7z payloads and corruption, ZIP directory-type disagreement, complete plain-TAR termination, held compressed wrappers, bounded source hashing and child output/timeouts. Peer findings on directory indicators, growing sources and compressed trailers were corrected. Both independent delta reviews are clear and staged `make ci-local` passes, including all repository checks and history secret scanning. The actual pinned native-image build gate passed all 17 payload controls without skips at source `3abbe7d` (PR #224, build job `111486330407`); the complete isolated Mylar image gate passed. A separate upstream-source selector failure was corrected by preserving the first native `FROM`; all checks on the corrected delivery head passed before PR #224 merged at `f6c6d8db131c3dfd7e8edc1e18d5506389fa6eb3`. GitHub/local/Gitea synchronization and native image publication passed. No registry or publication-path integration is claimed.
+
+- The resumed image-only backup passed independent verification: all 27,314 records match the complete recorded census and both backup/restore copies; 64 isolated database checks passed, preserving baseline IDs for 2,507 comics, 15,341 issues and 141 annuals. The verified baseline remains private. This proves image-rollout recoverability only; correction enforcement, unique current-library ownership and final cleanup acceptance remain open.
+
+- Access resumed on 2026-10-04; verified image rollout: Mylar is healthy on the published `f6c6d8` payload foundation with the reviewed native pack-generation helper; the `d012033` worker image is recreated without startup and remains held. Komga and NZBGet stayed healthy. Fresh post-rollout SQLite checks preserve every baseline ID, all comic/issue/annual path-binding fields and annual deletion flags, prior Downloaded statuses and the five correct 1977 Heavy Metal owners. All 15 requested archive hashes and attributes match before/after. The fresh workflow contains 35 pack records, all exactly unchanged by rollout; the additional record is outside the earlier 34-pack import acceptance and requires separate verification. Correction registration/enforcement, current-library owner validity, potential rename proposals, repeats, final acceptance and cleanup remain open. The operation backup remains retained while these gaps are unresolved.
