@@ -2,7 +2,7 @@
 
 **Feature Branch**: `codex/comic-release-naming`
 **Created**: 2026-10-03
-**Status**: Naming delivered; bulk and pack-evidence correction in progress
+**Status**: Naming and pack-evidence correction accepted; bulk and final acceptance in progress
 **Input**: Add release naming to comic normalization, then perform a bulk library pass. Use dots as separators and a hyphen before the release group. Preserve edition distinctions and additional verified identity information.
 
 ## User Scenarios & Testing
