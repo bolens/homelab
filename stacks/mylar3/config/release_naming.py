@@ -214,8 +214,22 @@ def collected(checker, value):
     return None
 
 
-def release_number(value):
-    """Read an explicit padded issue immediately before the publication year."""
+def release_number(value, checker=None):
+    """Read a padded issue after excluding the verified catalog title."""
+    names = [getattr(checker, 'watchcomic', None)]
+    names.extend(name.split('!!', 1)[0] for name in
+                 (getattr(checker, 'AlternateSearch', None) or '').split('##'))
+    prefixes = []
+    for name in names:
+        words = re.findall(r'[^\W_]+', name or '')
+        if not words:
+            continue
+        prefix = r'^[\W_]*'+r'[\W_]*'.join(re.escape(word) for word in words)+r'(?!\w)'
+        matched = re.match(prefix, value, flags=re.I)
+        if matched:
+            prefixes.append(matched.end())
+    if prefixes:
+        value = value[max(prefixes):]
     match = re.search(r'\.([+-]?\d{3,}(?:\.\d+)?(?:\.[A-Za-z]+)?)\.\((?:19|20)\d{2}\)', value)
     return match[1] if match else None
 

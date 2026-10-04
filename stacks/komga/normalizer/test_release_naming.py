@@ -46,6 +46,15 @@ class NamingTest(unittest.TestCase):
         with self.assertRaises(ValueError):render(self.proposal(series='bad\nname'))
         self.assertEqual(render(self.proposal(source='/comics/Series 1 [__123__] (2020).cbz', group=None)), 'Series.Name.001.(2020).cbz')
 
+    def test_redundant_hash_issue_block_is_removed_only_for_exact_number(self):
+        data=self.proposal(series='RWBY',number='7',year='2019',group='Glorith-HD',
+                           source='/comics/RWBY 2019-11-27 (#07) (digital) (Glorith-HD).cbz')
+        self.assertEqual(render(data),'RWBY.007.(2019).(digital)-Glorith-HD.cbz')
+        self.assertEqual(render(dict(data,source='/comics/'+render(data))),render(data))
+        with self.assertRaisesRegex(ValueError,'number'):
+            render(dict(data,source=data['source'].replace('#07','#08')))
+        self.assertIn('(Cover.B)',render(dict(data,source=data['source'].replace('#07','Cover B'))))
+
     def test_disabled_by_default_and_requires_coordination(self):
         self.assertFalse(policy({})['enabled'])
         with self.assertRaises(ValueError):policy({'release_naming':{'enabled':True}})
