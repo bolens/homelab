@@ -7,6 +7,8 @@
 5. Verify completed DDL pack evidence across both rename and metadata publication, including overlapping references and preserved sidecars. Then apply bounded bulk batches under coordinated writer access. Changed proposals remain for review.
 6. Refresh the supplement preview for canonical and later-intake archives excluded from the frozen combined candidates; publish only proven metadata additions through native preservation and ownership checks. Re-run the naming manifest to prove idempotence; retain audit receipts and unresolved originals. Remove only completed temporary preservation copies.
 
+The combined session processed all 2,867 planned files: 2,860 completed and seven retained naming holds. Full ordinary-user archive/reader and API-visible catalog baseline audits passed. Separate guarded native ownership and deployed-policy idempotence checks passed for all 2,860 completed files and both canonical files; those APIs may reconcile journals. These results do not include corrective deployment, held recovery, the canonical supplement gap or protected journal/database/credit-deferral acceptance.
+
 The pack correction passed live acceptance in T022 at 931 completed publications, including all 13 Grimm issues and three overlapping 26/26-member records. T019/T023 bulk completion and T024 second-pass/final acceptance remain open; this canary does not establish full-library completion.
 
 Corrective naming images have passed source/image gates and publication, but have
