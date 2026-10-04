@@ -1,5 +1,3 @@
-FROM ghcr.io/bolens/archiving-utils@sha256:9598b387e007054db0ef3a1c7b27374539c6d80161cfd226606a91019d80aac5 AS archive-verifier
-
 FROM lscr.io/linuxserver/mylar3:latest@sha256:5e255755b8d95f8574ba4e260569f4458dffeca623c85a41b200b2440ce3a07d AS tagger-build
 # The pinned final base already supplies ICU 70; compilation tools stay here.
 RUN apt-get update \
@@ -34,6 +32,8 @@ COPY ddl-sources.json /tmp/ddl-sources.json
 COPY config/fetch_tagger_sources.py /tmp/fetch_ddl_sources.py
 RUN python3 /tmp/fetch_ddl_sources.py /tmp/ddl-sources.json /opt/ddl-transport/sources
 COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
+
+FROM ghcr.io/bolens/archiving-utils@sha256:9598b387e007054db0ef3a1c7b27374539c6d80161cfd226606a91019d80aac5 AS archive-verifier
 
 FROM lscr.io/linuxserver/mylar3:latest@sha256:5e255755b8d95f8574ba4e260569f4458dffeca623c85a41b200b2440ce3a07d AS pdf-runtime
 # hadolint ignore=DL3008
