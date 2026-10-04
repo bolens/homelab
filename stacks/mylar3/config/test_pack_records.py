@@ -56,6 +56,111 @@ class RecordsTest(unittest.TestCase):
         record=next(r for r in self.store.all('pack',100) if r['ddl_id']=='22-1')
         self.assertEqual(record['source'],str(self.root/'Pack.v2.zip'))
 
+    def test_fallback_discovers_distinct_sources_for_the_same_ddl_id(self):
+        self.mylar.CONFIG.DDL_LOCATION=str(self.root)
+        old=self.root/'Original.__1127288__.zip';old.write_bytes(b'old content')
+        new=self.root/'Original.recovered-2.__1115810__.zip';new.write_bytes(b'new content')
+        old_key=hashlib.sha256(('378582\0'+str(old)).encode()).hexdigest()
+        old_record={'id':old_key,'ddl_id':'378582','source':str(old),'name':'Old pack',
+                    'phase':'confirmed','members':[],'inventory_complete':True,'cleanup_complete':True}
+        self.store.set('pack',old_key,old_record)
+        db=Mock();db.select.return_value=[{'id':'378582','pack':1,'filename':new.name,'series':'New pack'}]
+        self.mylar.db=SimpleNamespace(DBConnection=lambda:db)
+        new_key=hashlib.sha256(('378582\0'+str(new)).encode()).hexdigest()
+        self.module.work()
+        self.assertEqual(self.store.get('pack',new_key)['source'],str(new))
+        self.assertEqual(self.store.get('pack',old_key),old_record)
+        initial=self.store.get('pack',new_key)
+        self.module.work()
+        self.assertEqual(self.store.get('pack',new_key),initial)
+        self.assertEqual(len([r for r in self.store.all('pack') if r['ddl_id']=='378582']),2)
+
+    def test_evidence_requires_every_capture_regardless_of_update_order(self):
+        raw=b'pack credit'
+        complete={'id':self.key,'ddl_id':'1','source':'/private/old','name':'Old',
+                  'phase':'confirmed','inventory_complete':True,'members':[
+                      {'id':'b'*64,'name':'credit.txt','kind':'sidecar','phase':'preserved',
+                       'sidecar':base64.b64encode(raw).decode(),'sha256':hashlib.sha256(raw).hexdigest()}]}
+        incomplete=dict(complete,id='c'*64,source='/private/new',phase='review',
+                        inventory_complete=False,members=[{'id':'d'*64,'kind':'review','phase':'review','name':'New'}])
+        for first,second in ((complete,incomplete),(incomplete,complete)):
+            self.store.set('pack',first['id'],first);self.store.set('pack',second['id'],second)
+            self.assertEqual(self.module.evidence(['1']),{'1':('Pack member review (1/2 members)',False)})
+        # An empty new capture also prevents a blanket completion claim.
+        incomplete['members']=[];self.store.set('pack',incomplete['id'],incomplete)
+        self.assertEqual(self.module.evidence(['1']),{'1':('Pack member review (1/1 members)',False)})
+        complete['id']=incomplete['id'];self.store.set('pack',complete['id'],complete)
+        self.assertEqual(self.module.evidence(['1']),{'1':('Pack in library (2/2 members)',True)})
+
+    def test_reused_path_creates_a_generation_without_overwriting_history(self):
+        source=self.root/'pack.zip';source.write_bytes(b'first delivery')
+        first=self.module.discover('22',source,'Pack')
+        self.assertEqual(self.module.discover('22',source,'Pack'),first)
+        source.write_bytes(b'replacement delivery')
+        second=self.module.discover('22',source,'Pack')
+        self.assertNotEqual(first['id'],second['id'])
+        self.assertNotEqual(first['source_generation'],second['source_generation'])
+        self.assertEqual(self.store.get('pack',first['id']),first)
+        self.assertEqual(self.module.discover('22',source,'Pack'),second)
+
+    def test_companion_changes_and_legacy_sources_do_not_reuse_old_proof(self):
+        source=self.root/'pack.zip';source.write_bytes(b'archive')
+        first=self.module.discover('22',source,'Pack')
+        companion=source.with_suffix('');companion.mkdir()
+        (companion/'extra.txt').write_bytes(b'new member')
+        second=self.module.discover('22',source,'Pack')
+        self.assertNotEqual(first['source_generation'],second['source_generation'])
+        self.assertEqual(self.store.get('pack',first['id']),first)
+        # Legacy path ownership is retained, never silently promoted to proof
+        # of whatever bytes happen to occupy that path after an upgrade.
+        legacy=dict(second);legacy.pop('source_stamp');legacy.pop('source_generation')
+        self.store.set('pack',legacy['id'],legacy)
+        third=self.module.discover('22',source,'Pack')
+        self.assertNotEqual(third['id'],legacy['id'])
+        self.assertEqual(self.store.get('pack',legacy['id']),legacy)
+
+    def test_partial_cleanup_does_not_create_a_phantom_generation(self):
+        source=self.root/'pack';source.mkdir()
+        member=source/'one.cbz';member.write_bytes(b'one')
+        (source/'two.cbz').write_bytes(b'two')
+        original=self.module.discover('22',source,'Pack')
+        original['cleanup_started']=True;self.store.set('pack',original['id'],original)
+        member.unlink()
+        self.assertEqual(self.module.discover('22',source,'Pack'),original)
+        self.assertEqual(len([r for r in self.store.all('pack') if r['ddl_id']=='22']),1)
+
+    def test_generation_rejects_linked_sources_and_unstable_capture(self):
+        source=self.root/'pack';source.mkdir()
+        (source/'linked').symlink_to(self.library)
+        with self.assertRaises(ValueError):self.module.discover('22',source,'Pack')
+        (source/'linked').unlink()
+        with patch.object(self.module,'source_state',side_effect=['before','digest','after']):
+            with self.assertRaisesRegex(ValueError,'changed during capture'):
+                self.module.discover('22',source,'Pack')
+        self.assertFalse(any(r['ddl_id']=='22' for r in self.store.all('pack')))
+
+    def test_empty_retained_directory_is_not_a_new_delivery(self):
+        source=self.root/'pack';source.mkdir()
+        with self.assertRaisesRegex(ValueError,'no files'):self.module.discover('22',source,'Pack')
+        self.assertFalse(any(r['ddl_id']=='22' for r in self.store.all('pack')))
+
+    def test_fallback_and_native_capture_choose_the_same_dotted_source(self):
+        source=self.root/'Pack.v2';source.mkdir()
+        archive=source.with_name(source.name+'.zip');archive.write_bytes(b'pack')
+        first=self.module.discover('22',archive,'Pack')
+        self.mylar.CONFIG.DDL_LOCATION=str(self.root)
+        db=Mock();db.select.return_value=[{'id':'22','pack':1,'filename':source.name,'series':'Pack'}]
+        self.mylar.db=SimpleNamespace(DBConnection=lambda:db)
+        self.module.work()
+        self.assertEqual([r for r in self.store.all('pack') if r['ddl_id']=='22'],[first])
+
+    def test_generation_manifest_matches_shared_portable_vector(self):
+        # Worker tests assert this same literal without importing this stack.
+        expected='aa2a03cd127c3fbf56c9a89092535ff441a31c94ce628135619bc74f9c4e2fcd'
+        source=self.root/'pack.zip';source.write_bytes(b'archive')
+        companion=source.with_suffix('');companion.mkdir();(companion/'extra.txt').write_bytes(b'credit')
+        self.assertEqual(self.module.source_state(source,content=True),expected)
+
     def report(self,destination):
         member={'id':'b'*64,'name':'Test.cbz','kind':'issue','phase':'confirmed',
                 'destination':str(destination),'destination_sha256':hashlib.sha256(destination.read_bytes()).hexdigest()}

@@ -2,6 +2,7 @@
 import hashlib
 import base64
 import json
+import os
 from pathlib import Path
 import re
 import time
@@ -16,6 +17,82 @@ HEX = re.compile(r'[0-9a-f]{64}\Z')
 
 def is_pack(value):
     return value is True or str(value).lower() in ('1', 'true')
+
+
+def source_state(source, content=False):
+    """Bounded source version, including an extracted companion when present."""
+    source = Path(source)
+    roots = [("source", source)]
+    companion = source.with_suffix('') if source.suffix.lower() == '.zip' else None
+    if source.is_file() and companion is not None and companion.exists():
+        roots.append(("companion", companion))
+    entries = []; total = 0
+    for prefix, root in roots:
+        if any(p.is_symlink() for p in (root, *root.parents)):
+            raise ValueError('Linked pack source')
+        paths = [root]
+        if root.is_dir():
+            for folder, dirs, files in os.walk(root, followlinks=False):
+                paths.extend(Path(folder) / name for name in dirs + files)
+                if len(paths) > 4001:
+                    raise ValueError('Pack source exceeds limits')
+        for path in sorted(paths):
+            if path.is_symlink():
+                raise ValueError('Linked pack source')
+            info = path.stat()
+            name = prefix + '/' + str(path.relative_to(root))
+            if not path.is_file() and not path.is_dir():
+                raise ValueError('Unsupported pack source')
+            signature = [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns]
+            checksum = None
+            if path.is_file():
+                total += info.st_size
+                if total > 32 * 1024**3:
+                    raise ValueError('Pack source exceeds limits')
+                if content:
+                    digest = hashlib.sha256()
+                    with path.open('rb') as stream:
+                        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                            digest.update(chunk)
+                    after = path.stat()
+                    if signature != [after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns]:
+                        raise ValueError('Pack source changed')
+                    checksum = digest.hexdigest()
+            entries.append([name, 'file' if path.is_file() else 'directory', checksum if content else signature])
+    if not any(entry[1] == 'file' for entry in entries):
+        raise ValueError('Pack source has no files')
+    return hashlib.sha256(json.dumps(entries, separators=(',', ':')).encode()).hexdigest()
+
+
+def discover(ddl_id, source, name):
+    """Preserve each capture; path reuse never overwrites an earlier owner."""
+    store = workflow.store()
+    base = hashlib.sha256((ddl_id + '\0' + str(source)).encode()).hexdigest()
+    records = [r for r in store.active('pack', {'discovered', 'review', 'confirmed'})
+               if r['ddl_id'] == ddl_id and r['source'] == str(source)]
+    # Cleanup can be resumed after removing only part of a source. That is not
+    # a newly delivered generation; the worker retains its original receipt.
+    cleaning = next((r for r in records if r.get('cleanup_started') and not r.get('cleanup_complete')), None)
+    if cleaning:
+        return cleaning
+    stamp = source_state(source)
+    unchanged = next((r for r in records if r.get('source_stamp') == stamp), None)
+    if unchanged:
+        return unchanged
+    generation = source_state(source, content=True)
+    if source_state(source) != stamp:
+        raise ValueError('Pack source changed during capture')
+    legacy = sorted(r['id'] for r in records if not r.get('source_generation'))
+    key = base if not records else hashlib.sha256(
+        (base + '\0' + stamp + '\0' + generation + '\0' + json.dumps(legacy)).encode()).hexdigest()
+    record = {'id': key, 'ddl_id': ddl_id, 'source': str(source), 'name': label(name),
+              'source_stamp': stamp, 'source_generation': generation,
+              'phase': 'discovered', 'members': [], 'inventory_complete': False, 'created_at': time.time()}
+    store.create('pack', key, record)
+    current = store.get('pack', key)
+    if current.get('source_generation') != generation or current.get('source_stamp') != stamp:
+        raise ValueError('Pack generation identity conflict')
+    return current
 
 
 def capture(processor):
@@ -33,10 +110,8 @@ def capture(processor):
     source = Path(processor.nzb_folder)
     if source.is_dir() and source.with_name(source.name + '.zip').is_file():
         source = source.with_name(source.name + '.zip')
-    key = hashlib.sha256((ddl_id + '\0' + str(source)).encode()).hexdigest()
-    record = {'id': key, 'ddl_id': ddl_id, 'source': str(source), 'name': label(processor.nzb_name),
-              'phase': 'discovered', 'members': [], 'inventory_complete': False, 'created_at': time.time()}
-    workflow.store().create('pack', key, record)
+    record = discover(ddl_id, source, processor.nzb_name)
+    key = record['id']
     workflow.emit('processing', 'Pack handed to member verification', name=record['name'], key='pack:' + key)
     processor.queue.put([{'mode': 'stop'}])
     return True
@@ -46,22 +121,24 @@ def work():
     if workflow.policy().get('pack_automation'):
         import mylar
         from mylar import db
-        existing = {r['ddl_id'] for r in workflow.store().all('pack', 10000)}
         root = Path(mylar.CONFIG.DDL_LOCATION)
         for row in db.DBConnection().select("SELECT id,pack,filename,series FROM ddl_info WHERE status='Completed' ORDER BY updated_date DESC"):
-            ddl_id = str(row['id'])
-            if ddl_id in existing or not is_pack(row['pack']) or not row['filename']:
+            ddl_id = ddl_identifier(row['id'])
+            if not ddl_id or not is_pack(row['pack']) or not row['filename']:
                 continue
             name = Path(row['filename']).name
             source = root / name
             if not source.exists() and source.suffix.lower() == '.zip' and source.with_suffix('').is_dir():
                 source = source.with_suffix('')
+            if source.is_dir() and source.with_name(source.name + '.zip').is_file():
+                source = source.with_name(source.name + '.zip')
             if not source.exists() or source.is_symlink():
                 continue
-            key = hashlib.sha256((ddl_id + '\0' + str(source)).encode()).hexdigest()
-            workflow.store().create('pack', key, {'id': key, 'ddl_id': ddl_id, 'source': str(source),
-                'name': label(row['series']), 'phase': 'discovered', 'members': [],
-                'inventory_complete': False, 'created_at': time.time()})
+            try:
+                discover(ddl_id, source, row['series'])
+            except (OSError, ValueError):
+                # An unstable source cannot publish a new capture identity.
+                continue
     store = workflow.store()
     pending = [r for r in store.active('pack', {'discovered', 'review', 'confirmed'})
                if r['phase'] != 'confirmed' or not r.get('cleanup_complete')
@@ -133,7 +210,8 @@ def report(payload):
             member.update(destination=str(path), destination_sha256=expected, signature=signature)
         clean.append(member)
     old.update(members=clean, inventory_complete=value.get('inventory_complete') is True,
-               updated_at=time.time(), phase='review', cleanup_complete=bool(value.get('cleaned_at')))
+               updated_at=time.time(), phase='review', cleanup_complete=bool(value.get('cleaned_at')),
+               cleanup_started=bool(old.get('cleanup_started') or value.get('cleanup_verified_at')))
     if old['inventory_complete'] and clean and all(m['phase'] in ('confirmed', 'preserved') for m in clean):
         old['phase'] = 'confirmed'
     def verify_destinations():
@@ -188,5 +266,14 @@ def evidence(record_ids=None):
     if record_ids is not None:
         requested = {str(key) for key in record_ids}
         records = [r for r in records if r['ddl_id'] in requested]
-    return {r['ddl_id']: (('Pack in library' if r['complete'] else 'Pack member review') +
-                          ' (%d/%d members)' % (r['confirmed'], r['total']), r['complete']) for r in snapshot(records)}
+    grouped = {}
+    for record in snapshot(records):
+        group = grouped.setdefault(record['ddl_id'], {'complete': True, 'confirmed': 0, 'total': 0})
+        # Every capture retains its own member references. One completed capture
+        # cannot establish completion of another delivery sharing the DDL ID.
+        group['complete'] = group['complete'] and record['complete']
+        group['confirmed'] += record['confirmed']
+        group['total'] += record['total']
+    return {key: (('Pack in library' if group['complete'] else 'Pack member review') +
+                  ' (%d/%d members)' % (group['confirmed'], group['total']), group['complete'])
+            for key, group in grouped.items()}

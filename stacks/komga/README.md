@@ -526,6 +526,11 @@ Set `maintenance.pack_import` and `maintenance.auto_import` to `true`, then enab
 required. The default example leaves them disabled. The worker uses the existing
 shared cache and state mounts, accepts completed pack work through the primary-key
 API, and reports member outcomes to Activity's **Packs and extras** section.
+Each capture binds the source and any extracted companion folder to a bounded
+content manifest. The worker checks available sources before reusing an inventory
+receipt; replacement bytes or added members cannot inherit earlier completion.
+Legacy receipts require their original source hashes and member set to match.
+Deploy matching Mylar and worker images before resuming this workflow.
 
 Filename and metadata volume-year conflicts remain for review before catalog
 lookup; an issue publication year is not treated as a volume start year.
@@ -557,7 +562,10 @@ members remain in the source for review.
 Cleanup requires every inventoried member to be accounted for and fresh source
 and destination verification. Unconfirmed imports, changing files and missing
 library contents prevent removal. Completed member checks reuse unchanged file
-identities; cleanup rechecks full hashes. Pack records remain in Mylar after DDL
+identities; cleanup rechecks full hashes. The worker reports a verified cleanup
+intent before removing any source. Interrupted cleanup resumes under its existing
+receipt, preserving partial-removal history instead of creating a new generation.
+A rejected cleanup report prevents source removal. Pack records remain in Mylar after DDL
 queue history disappears. Preserve the whole worker state and Mylar data volume
 in backups. A replaced quarantine entry is labeled resolved while its original
 corrupt archive and retry history remain retained.
