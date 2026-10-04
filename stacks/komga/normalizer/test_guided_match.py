@@ -243,6 +243,27 @@ class GuidedTest(unittest.TestCase):
         self.assertEqual(self.m.mylar.call_args.kwargs['phase'],'review')
         self.assertEqual(len(self.force_calls()),1)
 
+    def test_metadata_preserved_confirmation_requires_intact_scoped_original(self):
+        command=self.command(); self.g.process(command)
+        target=self.library/self.source.name; target.write_bytes(self.source.read_bytes())
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE comics SET ComicLocation=?",(str(self.library),))
+            db.execute("UPDATE issues SET Status='Downloaded',Location=? WHERE IssueID='100'",(target.name,))
+        recovery=self.state/'retained-originals'/'one';recovery.mkdir(parents=True)
+        original=recovery/self.source.name;original.write_bytes(self.source.read_bytes())
+        receipt={'kind':'duplicate','phase':'removed','source':str(self.source),'destination':str(target),
+                 'sha256':digest(self.source),'destination_sha256':digest(target), 'retained_original':str(original)}
+        save(self.receipts/'verified.json',receipt);self.source.unlink()
+        record=json.loads(next(self.g.commands.glob('*.json')).read_text())
+        self.assertTrue(self.g.confirmed(record))
+        raw=original.read_bytes();original.write_bytes(b'changed')
+        self.assertFalse(self.g.confirmed(record))
+        original.unlink();self.assertFalse(self.g.confirmed(record))
+        outside=self.library/'original.cbz';outside.write_bytes(raw)
+        original.symlink_to(outside);self.assertFalse(self.g.confirmed(record))
+        receipt['retained_original']=str(outside);save(self.receipts/'verified.json',receipt)
+        self.assertFalse(self.g.confirmed(record))
+
     def test_annual_confirmation_requires_current_identity_and_verified_content(self):
         with closing(sqlite3.connect(self.db)) as db, db:
             db.executescript("""CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,Status TEXT,
