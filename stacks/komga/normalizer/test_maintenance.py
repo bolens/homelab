@@ -121,6 +121,140 @@ class MaintenanceTest(unittest.TestCase):
         self.assertFalse(self.m.remove_duplicate(source, target))
         self.assertTrue(source.exists())
 
+    def changed_metadata_pair(self):
+        source = self.comic(self.downloads, extra=True)
+        target = self.comic(self.library, extra=True)
+        with zipfile.ZipFile(target, 'w') as archive:
+            archive.writestr('001.png', PNG)
+            archive.writestr('ComicInfo.xml', '<ComicInfo><Tags>Updated</Tags></ComicInfo>')
+        return source, target
+
+    def test_changed_comicinfo_cleanup_retains_verified_original_archive(self):
+        source, target = self.changed_metadata_pair()
+        raw = source.read_bytes(); target_hash = digest(target)
+        self.assertTrue(self.m.remove_duplicate(source, target))
+        row = self.receipts()[0]
+        self.assertFalse(source.exists())
+        self.assertEqual(row['phase'], 'removed')
+        self.assertEqual(Path(row['retained_original']).read_bytes(), raw)
+        self.assertEqual(digest(Path(row['retained_original'])), row['sha256'])
+        self.assertEqual(digest(target), target_hash)
+
+    def test_changed_comicinfo_does_not_allow_missing_nonmetadata_extras(self):
+        source, target = self.changed_metadata_pair()
+        with zipfile.ZipFile(source, 'a') as archive:
+            archive.writestr('MetronInfo.xml', '<MetronInfo/>')
+        self.assertFalse(self.m.remove_duplicate(source, target))
+        self.assertTrue(source.exists())
+
+    def test_metadata_retention_storage_failure_keeps_source(self):
+        source, target = self.changed_metadata_pair()
+        with patch('maintenance.shutil.disk_usage', return_value=SimpleNamespace(free=0)):
+            with self.assertRaises(RuntimeError):
+                self.m.remove_duplicate(source, target)
+        self.assertTrue(source.exists())
+
+    def test_metadata_retention_busy_retry_reuses_verified_original(self):
+        source, target = self.changed_metadata_pair()
+        self.m.idle.return_value = False
+        self.assertFalse(self.m.remove_duplicate(source, target))
+        # Nothing should be copied while the native writer is busy.
+        self.assertFalse((self.m.state/'retained-originals').exists())
+        self.m.idle.return_value = True
+        self.assertTrue(self.m.remove_duplicate(source, target))
+
+    def test_metadata_retention_corrupt_existing_copy_keeps_source(self):
+        source, target = self.changed_metadata_pair()
+        import hashlib, os
+        key = hashlib.sha256(os.fsencode(source) + digest(source).encode()).hexdigest()
+        folder = self.m.state/'retained-originals'/key; folder.mkdir(parents=True)
+        (folder/source.name).write_bytes(b'changed')
+        with self.assertRaises(RuntimeError):
+            self.m.remove_duplicate(source, target)
+        self.assertTrue(source.exists())
+
+    def test_metadata_retention_copy_mutation_before_cleanup_keeps_source(self):
+        source, target = self.changed_metadata_pair()
+        calls = 0
+        def changed_copy():
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                next((self.m.state/'retained-originals').glob('*/*.cbz')).write_bytes(b'changed')
+            return True
+        self.m.idle.side_effect = changed_copy
+        with self.assertRaises(RuntimeError):
+            self.m.remove_duplicate(source, target)
+        self.assertTrue(source.exists())
+
+    def test_metadata_retention_linked_directory_keeps_source_without_external_writes(self):
+        source, target = self.changed_metadata_pair()
+        outside = self.state/'outside'; outside.mkdir()
+        (self.m.state/'retained-originals').symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(RuntimeError):
+            self.m.remove_duplicate(source, target)
+        self.assertTrue(source.exists())
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_changed_root_metadata_does_not_exempt_nested_metadata_extra(self):
+        source, target = self.changed_metadata_pair()
+        with zipfile.ZipFile(source, 'a') as archive:
+            archive.writestr('extras/ComicInfo.xml', '<OriginalExtra/>')
+        self.assertFalse(self.m.remove_duplicate(source, target))
+        self.assertTrue(source.exists())
+
+    def test_interrupted_original_copy_can_retry_with_unchanged_source(self):
+        source, target = self.changed_metadata_pair()
+        def interrupted(src, dst, length):
+            dst.write(b'partial');raise OSError('interrupted')
+        with patch('maintenance.shutil.copyfileobj', side_effect=interrupted):
+            with self.assertRaises(OSError):self.m.remove_duplicate(source, target)
+        self.assertTrue(source.exists())
+        staging=next((self.m.state/'retained-originals').glob('*/.copying'))
+        self.assertEqual(staging.stat().st_mode & 0o777, 0o600)
+        self.assertTrue(self.m.remove_duplicate(source, target))
+        self.assertFalse(staging.exists())
+        self.assertEqual(digest(Path(self.receipts()[0]['retained_original'])), self.receipts()[0]['sha256'])
+
+    def test_interrupted_copy_symlink_is_never_removed_or_followed(self):
+        source, target = self.changed_metadata_pair()
+        import hashlib, os
+        key=hashlib.sha256(os.fsencode(source)+digest(source).encode()).hexdigest()
+        folder=self.m.state/'retained-originals'/key;folder.mkdir(parents=True,mode=0o700)
+        outside=self.state/'outside';outside.write_bytes(b'keep')
+        (folder/'.copying').symlink_to(outside)
+        with self.assertRaises(RuntimeError):self.m.remove_duplicate(source,target)
+        self.assertTrue(source.exists());self.assertEqual(outside.read_bytes(),b'keep')
+
+    def interrupted_cleanup(self):
+        source, target = self.changed_metadata_pair()
+        from normalize import save as real_save
+        def interrupted(path, row):
+            if row.get('phase') == 'removed':raise OSError('acknowledgement interrupted')
+            return real_save(path, row)
+        with patch('maintenance.save', side_effect=interrupted):
+            with self.assertRaises(OSError):self.m.remove_duplicate(source, target)
+        self.assertFalse(source.exists())
+        receipt=next(self.m.receipts.glob('*.json'));row=json.loads(receipt.read_text())
+        self.assertEqual(row['phase'],'verified')
+        return source,target,receipt,row
+
+    def test_retained_cleanup_reconciles_lost_acknowledgement_without_replay(self):
+        source,target,receipt,row=self.interrupted_cleanup()
+        checksum=digest(target)
+        self.assertTrue(self.m.reconcile_retained_duplicate(receipt,row))
+        self.assertEqual(json.loads(receipt.read_text())['phase'],'removed')
+        self.assertEqual(digest(target),checksum)
+        self.assertFalse(source.exists())
+
+    def test_retained_cleanup_uncertain_target_or_original_stays_unconfirmed(self):
+        source,target,receipt,row=self.interrupted_cleanup()
+        before=target.read_bytes();target.write_bytes(b'changed')
+        self.assertFalse(self.m.reconcile_retained_duplicate(receipt,row))
+        target.write_bytes(before);Path(row['retained_original']).write_bytes(b'changed')
+        self.assertFalse(self.m.reconcile_retained_duplicate(receipt,row))
+        self.assertEqual(json.loads(receipt.read_text())['phase'],'verified')
+
     def test_busy_worker_and_mutation_block_deletion(self):
         source, target = self.comic(self.downloads), self.comic(self.library)
         self.m.idle.return_value = False

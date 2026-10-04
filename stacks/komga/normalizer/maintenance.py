@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import shutil
 import sqlite3
+import stat
 import subprocess
 import time
 from pdf_conversion import Pending as PDFPending
@@ -237,21 +238,36 @@ class Maintenance:
         if not scoped_file(source, self.roots) or not scoped_file(target, self.worker.roots):
             raise RuntimeError('Cleanup path is outside its scope or linked')
         source_id, target_id = identity(source), identity(target)
-        original = self.info(source)
-        if not preserves(original, self.info(target)):
-            return False
+        original, current = self.info(source), self.info(target)
+        metadata_changed = not preserves(original, current)
+        if metadata_changed:
+            # Native tagging may rewrite ComicInfo, but no other source payload
+            # may disappear. Keep the complete original archive before cleanup.
+            root_metadata_only = dict(original, other_files=[row for row in original['other_files']
+                                      if row['name'].casefold() != 'comicinfo.xml'])
+            if (not preserves(root_metadata_only, current)
+                    or not all(any(row['name'].casefold() == 'comicinfo.xml'
+                                   for row in info['other_files']) for info in (original, current))):
+                return False
+            if not self.idle():
+                return False
         source_hash, target_hash = digest(source), digest(target)
         job_id = hashlib.sha256(os.fsencode(source) + source_hash.encode()).hexdigest()
         receipt = self.receipts / (job_id + '.json')
         row = {'kind': 'duplicate', 'source': str(source), 'destination': str(target),
                'sha256': source_hash, 'destination_sha256': target_hash, 'phase': 'verified',
                'pages': original['page_count']}
+        if metadata_changed:
+            row['retained_original'] = str(self.retain_original(source, source_id, source_hash, job_id))
         save(receipt, row)
         if not self.idle():
             return False
         if (not scoped_file(source, self.roots) or not scoped_file(target, self.worker.roots)
                 or identity(source) != source_id or identity(target) != target_id
-                or digest(source) != source_hash or digest(target) != target_hash):
+                or digest(source) != source_hash or digest(target) != target_hash
+                or (metadata_changed and (Path(row['retained_original']).is_symlink()
+                    or any(p.is_symlink() for p in Path(row['retained_original']).parents)
+                    or digest(Path(row['retained_original'])) != source_hash))):
             raise RuntimeError('File changed before cleanup; source retained')
         source.unlink()
         sync_directory(source.parent)
@@ -261,6 +277,60 @@ class Maintenance:
             source.parent.rmdir()
         except OSError:
             pass
+        return True
+
+    def retain_original(self, source, fingerprint, checksum, job_id):
+        """Retain exact pre-tagging archive bytes; failed copies never authorize cleanup."""
+        folder = self.state / 'retained-originals' / job_id
+        if any(path.is_symlink() for path in (folder, folder.parent)):
+            raise RuntimeError('Original retention path is linked; source retained')
+        folder.parent.mkdir(exist_ok=True, mode=0o700)
+        folder.mkdir(exist_ok=True, mode=0o700)
+        sync_directory(folder.parent)
+        sync_directory(self.state)
+        destination = folder / source.name
+        if destination.is_symlink():
+            raise RuntimeError('Original retention file is linked; source retained')
+        if not destination.exists():
+            if shutil.disk_usage(self.state).free < source.stat().st_size * 2 + 128 * 1024**2:
+                raise RuntimeError('Insufficient original retention storage; source retained')
+            temporary = folder / '.copying'
+            if temporary.exists() or temporary.is_symlink():
+                previous = temporary.lstat()
+                if (not stat.S_ISREG(previous.st_mode) or previous.st_nlink != 1
+                        or previous.st_uid != os.geteuid() or stat.S_IMODE(previous.st_mode) != 0o600
+                        or identity(source) != fingerprint or digest(source) != checksum):
+                    raise RuntimeError('Interrupted original copy is unsafe; source retained')
+                temporary.unlink()
+                sync_directory(folder)
+            with source.open('rb') as src, temporary.open('xb') as dst:
+                os.chmod(temporary, 0o600)
+                shutil.copyfileobj(src, dst, 1024**2)
+                dst.flush()
+                os.fsync(dst.fileno())
+            if digest(temporary) != checksum:
+                raise RuntimeError('Original retention copy differs; source retained')
+            os.link(temporary, destination)
+            temporary.unlink()
+            sync_directory(folder)
+        if (not destination.is_file() or digest(destination) != checksum
+                or identity(source) != fingerprint or digest(source) != checksum):
+            raise RuntimeError('Original retention verification failed; source retained')
+        return destination
+
+    def reconcile_retained_duplicate(self, receipt, row):
+        """Finish a proven cleanup if acknowledgement was interrupted after unlink."""
+        source, target, original = (Path(row[key]) for key in ('source', 'destination', 'retained_original'))
+        if (source.exists() or source.is_symlink() or not source.is_absolute()
+                or '..' in source.parts or not any(source.is_relative_to(root) for root in self.roots)
+                or any(parent.is_symlink() for parent in source.parents)
+                or not scoped_file(target, self.worker.roots)
+                or not scoped_file(original, [self.state / 'retained-originals'])
+                or digest(original) != row['sha256']
+                or digest(target) != row['destination_sha256']):
+            return False
+        row['phase'] = 'removed'
+        save(receipt, row)
         return True
 
     def conversion_identities(self, paths):
@@ -350,6 +420,8 @@ class Maintenance:
                 row = json.loads(receipt.read_text())
                 if row['kind'] == 'quarantine' and row['phase'] in ('saved', 'quarantined'):
                     self.finish_quarantine(receipt, row)
+                elif row['kind'] == 'duplicate' and row['phase'] == 'verified' and row.get('retained_original'):
+                    self.reconcile_retained_duplicate(receipt, row)
                 elif row['phase'] == 'retry_unconfirmed':
                     errors.append('Quarantine retry needs review: ' + row['source'])
             for receipt in self.receipts.glob('*.json'):

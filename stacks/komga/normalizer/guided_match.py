@@ -181,6 +181,11 @@ class Guided:
                     and receipt.get('source') == source and receipt.get('sha256') == record.get('sha256')
                     and receipt.get('destination') == str(target)
                     and digest(target) == receipt.get('destination_sha256')):
+                if receipt.get('retained_original'):
+                    original = Path(receipt['retained_original'])
+                    if (not scoped_file(original, [self.m.state / 'retained-originals'])
+                            or digest(original) != receipt.get('sha256')):
+                        continue
                 return True
         return False
 

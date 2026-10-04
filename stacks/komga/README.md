@@ -340,6 +340,15 @@ source file is preserved. Added library metadata is allowed. Different editions,
 unmatched names, unsupported formats, symlinks, and files changing during a scan
 are retained. Library files are never removed by maintenance.
 
+If both archives contain root `ComicInfo.xml` and tagging changed only that
+metadata, cleanup first retains the complete original archive under private
+`maintenance/retained-originals` storage. Ordered page names and hashes and all
+other source files must still match. The receipt binds the verified retained
+original and current library hashes before removing the completed download and
+confirming its import. Missing metadata, lost extras, insufficient storage, or
+an unverifiable recovery copy keep the download in place. Retained originals
+are recovery records and are not automatically deleted.
+
 HTML responses saved as comics and confirmed decoder corruption are copied to `maintenance/quarantine` under
 `NORMALIZER_STATE_PATH`. The worker verifies its SHA-256 before removing the
 completed copy. Receipts record the source, recovery copy, and retry outcome.
