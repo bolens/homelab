@@ -932,5 +932,12 @@ updates that same catalog row. Its status remains unchanged. The inode, file
 permissions, owner and supported ACL/user attributes remain identical. Startup
 reconciles interrupted publication before admitting any media writer. An unresolved
 content or ownership contradiction retains `release-v1.pending` for review.
+Confirmed pack members capture their exact catalog owner, old path, archive hash
+and file signature before publication. Naming and native metadata publication
+atomically transfer every matching pack member to the verified final file before
+clearing the writer fence or removing publication copies. Sidecars and pack history
+remain intact. Concurrent stale reports cannot overwrite those transitions;
+unconfirmed, changed or foreign members remain for review. The offline combined
+metadata companion uses the same publication hook without initializing Mylar.
 Deploy matching images before enabling the policy. Backups, reader verification,
 bounded bulk application and rollback follow the owning Komga instructions.

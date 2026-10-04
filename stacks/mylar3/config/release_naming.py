@@ -244,8 +244,30 @@ def verified(path, job):
         raise ValueError('Release publication ownership changed; recovery requires review')
 
 
+def reject(database, store, job):
+    """Recover rejection without recreating an already retired target link."""
+    from mylar import pack_bindings
+    from mylar.media_writer import sync
+    request = job['request']; source = Path(request['source']); target = source.with_name(request['target'])
+    verified(source, job)
+    row = catalog(database, source)['row']
+    if (str(row['IssueID']) != request['issueid'] or str(row['ComicID']) != request['comicid']
+            or row['Status'] != job['status']):
+        raise ValueError('Rejected release owner changed')
+    if target.exists():
+        verified(target, job); target.unlink(); sync(source.parent)
+    verified(source, job)
+    intent = job.get('pack_bindings')
+    pack_bindings.finalize(store, dict(intent, destination=str(source)) if intent else None,
+                           request['sha256'], catalog_owner={field: request[field] for field in ('issueid', 'comicid')})
+    job['phase'] = 'rejected'; store.set('release_name', job['key'], job)
+    return dict(version=1, key=job['key'], phase='rejected')
+
+
 def finish(database, store, job):
     from mylar.media_writer import sync
+    if job['phase'] == 'rejecting':
+        return reject(database, store, job)
     request = job['request']; source = Path(request['source']); target = source.with_name(request['target'])
     if source.exists():
         verified(source, job)
@@ -271,8 +293,8 @@ def finish(database, store, job):
     except ValueError:
         if source.exists() and row['Location'] == source.name:
             verified(source, job); verified(target, job)
-            target.unlink(); sync(source.parent)
-            job['phase'] = 'rejected'; store.set('release_name', job['key'], job)
+            job['phase'] = 'rejecting'; store.set('release_name', job['key'], job)
+            reject(database, store, job)
         raise
     job['phase'] = 'linked'; store.set('release_name', job['key'], job)
     if source.exists():
@@ -287,6 +309,10 @@ def finish(database, store, job):
     current = catalog(database, target)
     if str(current['row']['IssueID']) != request['issueid']:
         raise ValueError('Release catalog acknowledgement changed')
+    from mylar import pack_bindings
+    pack_bindings.finalize(store, job.get('pack_bindings'), request['sha256'],
+                           catalog_owner={field: str(current['row'][native]) for field, native in
+                                          (('issueid', 'IssueID'), ('comicid', 'ComicID'))})
     job['phase'] = 'committed'; store.set('release_name', job['key'], job)
     return dict(version=1, key=job['key'], phase='committed', source=str(source), destination=str(target), sha256=request['sha256'])
 
@@ -328,7 +354,7 @@ def bind_store(writer, store):
 def recover(writer):
     database, store = services()
     bind_store(writer, store)
-    for job in store.active('release_name', {'prepared', 'linked', 'published'}):
+    for job in store.active('release_name', {'prepared', 'linked', 'published', 'rejecting'}):
         finish(database, store, job)
     writer.clear_release_pending()
 
@@ -374,6 +400,9 @@ def rename(raw):
         identity, attributes = stamp(source)
         job = dict(key=token, request=request, stamp=identity, attributes=attributes,
                    table=info['table'], status=info['status'], year=info['year'], phase='prepared')
+        from mylar import pack_bindings
+        job['pack_bindings'] = pack_bindings.capture(store, source, target,
+            catalog_owner={field: request[field] for field in ('issueid', 'comicid')})
         bind_store(writer, store)
         writer.mark_release_pending()
         if not store.create('release_name', token, job):

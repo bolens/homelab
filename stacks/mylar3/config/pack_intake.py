@@ -85,6 +85,7 @@ def report(payload):
     old = workflow.store().get('pack', key)
     if not old:
         raise ValueError('Unknown pack')
+    expected_record = json.loads(json.dumps(old))
     members = value.get('members')
     if not isinstance(members, list) or len(members) > 2000:
         raise ValueError('Invalid member inventory')
@@ -135,7 +136,18 @@ def report(payload):
                updated_at=time.time(), phase='review', cleanup_complete=bool(value.get('cleaned_at')))
     if old['inventory_complete'] and clean and all(m['phase'] in ('confirmed', 'preserved') for m in clean):
         old['phase'] = 'confirmed'
-    workflow.store().set('pack', key, old)
+    def verify_destinations():
+        # Recheck under the journal write transaction. A delayed HTTP report
+        # must not publish pre-mutation signatures after binding finalization.
+        for member in clean:
+            if member['kind'] != 'sidecar' and member['phase'] in ('confirmed', 'preserved'):
+                path = Path(member['destination'])
+                info = path.stat()
+                if (any(p.is_symlink() for p in (path, *path.parents))
+                        or member['signature'] != [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns]):
+                    raise ValueError('Library destination changed before report commit')
+    if not workflow.store().replace('pack', key, expected_record, old, verify=verify_destinations):
+        raise ValueError('Pack changed while report was being verified')
     return {'recorded': len(clean), 'phase': old['phase']}
 
 

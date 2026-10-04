@@ -49,3 +49,7 @@ reader state and owns cleanup. Failed or uncertain phases retain the shared set;
 metadata changes never trigger replay of the earlier naming request.
 
 No exceptions. A native journal is necessary because filesystem publication and SQLite location updates cannot be committed in one transaction. Reader restoration is independently asynchronous and must be proven before the worker reports completion.
+
+## Pack evidence across publication
+
+Live review at the completed 911-publication checkpoint found confirmed pack members still bound to their original destinations and file signatures. Preserve the strict presence check. Add a durable old-to-new binding intent to the native rename and metadata publication journals before mutation, then update all matching confirmed pack members after exact catalog/content validation and before clearing fences or deleting recovery copies. Atomic workflow-store updates and idempotent recovery must preserve unrelated records, sidecars, member states and cleanup history. Legacy journal compatibility must retain uncertain evidence rather than infer a transition. The standalone combined metadata companion must use the same native binding implementation.

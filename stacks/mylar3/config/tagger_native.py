@@ -7,7 +7,7 @@ import stat
 
 from .media_writer import sync
 from .tagger_adapter import TERMINAL
-from .tagger_nfs import Publisher
+from .tagger_pack import Publisher
 from .tagger_staging import Staging
 
 
@@ -47,7 +47,7 @@ def state(writer):
             raise ValueError('Tagger recovery state identity changed')
     finally:
         os.close(fd)
-    return Publisher(paths[1]), Staging(paths[2], paths[3])
+    return Publisher(paths[1], writer.root.parent), Staging(paths[2], paths[3])
 
 
 def recover(writer):

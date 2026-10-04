@@ -71,6 +71,30 @@ class RecordsTest(unittest.TestCase):
         self.assertFalse(self.module.snapshot()[0]['complete'])
         self.assertIn('review',self.module.evidence()['1'][0])
 
+    def test_report_cannot_overwrite_a_concurrent_pack_transition(self):
+        target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
+        self.module.report(self.report(target))
+        previous=self.store.get('pack',self.key)
+        replace=self.store.replace
+        def racing_replace(kind,key,expected,value,**options):
+            current=dict(previous,transition='new verified binding')
+            self.store.set(kind,key,current)
+            return replace(kind,key,expected,value,**options)
+        with patch.object(self.store,'replace',side_effect=racing_replace):
+            with self.assertRaises(ValueError):self.module.report(self.report(target))
+        self.assertEqual(self.store.get('pack',self.key)['transition'],'new verified binding')
+
+    def test_delayed_report_rechecks_file_inside_atomic_commit(self):
+        target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
+        replace=self.store.replace
+        previous=self.store.get('pack',self.key)
+        def delayed_replace(*args,**options):
+            target.write_bytes(b'foreign replacement after validation')
+            return replace(*args,**options)
+        with patch.object(self.store,'replace',side_effect=delayed_replace):
+            with self.assertRaises(ValueError):self.module.report(self.report(target))
+        self.assertEqual(self.store.get('pack',self.key),previous)
+
     def test_private_sidecar_is_verified_but_never_exposed_to_browser(self):
         data=b'original pack credit'
         member={'id':'c'*64,'name':'credits.txt','kind':'sidecar','phase':'preserved',
