@@ -154,6 +154,13 @@ class RecordsTest(unittest.TestCase):
         self.module.work()
         self.assertEqual([r for r in self.store.all('pack') if r['ddl_id']=='22'],[first])
 
+    def test_generation_manifest_matches_shared_portable_vector(self):
+        # Worker tests assert this same literal without importing this stack.
+        expected='aa2a03cd127c3fbf56c9a89092535ff441a31c94ce628135619bc74f9c4e2fcd'
+        source=self.root/'pack.zip';source.write_bytes(b'archive')
+        companion=source.with_suffix('');companion.mkdir();(companion/'extra.txt').write_bytes(b'credit')
+        self.assertEqual(self.module.source_state(source,content=True),expected)
+
     def report(self,destination):
         member={'id':'b'*64,'name':'Test.cbz','kind':'issue','phase':'confirmed',
                 'destination':str(destination),'destination_sha256':hashlib.sha256(destination.read_bytes()).hexdigest()}

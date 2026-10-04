@@ -53,24 +53,17 @@ class PackEvidenceTest(unittest.TestCase):
             previous['cleanup_verified_at']=1;receipt.write_text(json.dumps(previous));member.unlink()
             self.assertEqual(Packs.inventory(fake,record)[1],previous)
 
-    def test_native_and_worker_generation_manifests_agree(self):
-        import importlib.util
-        from unittest.mock import patch
-        from types import SimpleNamespace
-        import sys
-        native=Path(__file__).parents[2]/'mylar3'/'config'/'pack_intake.py'
-        spec=importlib.util.spec_from_file_location('pack_intake_fixture',native)
-        module=importlib.util.module_from_spec(spec)
-        with patch.dict(sys.modules,{'mylar':SimpleNamespace(workflow=None),
-                  'mylar.workflow_store':SimpleNamespace(identifier=None,ddl_identifier=None,label=None)}):
-            spec.loader.exec_module(module)
+    def test_generation_manifest_matches_shared_portable_vector(self):
+        # The native suite asserts this same literal vector independently.
+        # Worker images contain only flat /app files, without sibling Mylar code.
+        expected='aa2a03cd127c3fbf56c9a89092535ff441a31c94ce628135619bc74f9c4e2fcd'
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);source=root/'pack.zip';source.write_bytes(b'archive')
             companion=source.with_suffix('');companion.mkdir();(companion/'extra.txt').write_bytes(b'credit')
-            self.assertEqual(module.source_state(source,content=True),source_state(source,content=True))
+            self.assertEqual(source_state(source,content=True),expected)
             other=root/'mounted';other.mkdir();import shutil
             shutil.copyfile(source,other/source.name);shutil.copytree(companion,other/companion.name)
-            self.assertEqual(module.source_state(source,content=True),source_state(other/source.name,content=True))
+            self.assertEqual(source_state(other/source.name,content=True),expected)
 
     def test_full_issue_with_cover_count_is_not_a_supplement(self):
         self.assertEqual(kind(Path('Grimm Tales of Terror v2 005 (2016) (2 covers).cbz'),
