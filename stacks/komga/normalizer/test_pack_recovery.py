@@ -11,12 +11,67 @@ import zipfile
 
 from normalize import Normalizer
 from maintenance import Maintenance
-from pack_recovery import Packs, evidence, kind
+from pack_recovery import Packs, evidence, kind, source_state
 from import_match import catalog, match
 from test_normalize import PNG, TOOL
 
 
 class PackEvidenceTest(unittest.TestCase):
+    def test_reused_source_cannot_reuse_a_previous_inventory_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);source=root/'pack.zip';source.write_bytes(b'first')
+            state=root/'records';state.mkdir();owned=state/'fixture';owned.mkdir()
+            previous={'id':'fixture','members':[{'id':'old','phase':'confirmed'}],
+                      'source_generation':source_state(source,content=True)}
+            receipt=owned/'receipt.json';receipt.write_text(json.dumps(previous))
+            fake=SimpleNamespace(root=state,local=lambda value:source)
+            record={'id':'fixture','source':'/cache/pack.zip','source_generation':previous['source_generation']}
+            self.assertEqual(Packs.inventory(fake,record)[1],previous)
+            source.write_bytes(b'second')
+            with self.assertRaisesRegex(ValueError,'generation changed'):Packs.inventory(fake,record)
+            self.assertEqual(json.loads(receipt.read_text()),previous)
+            self.assertEqual(source.read_bytes(),b'second')
+            record['source_generation']=source_state(source,content=True)
+            with self.assertRaisesRegex(ValueError,'receipt generation differs'):
+                Packs.inventory(fake,record)
+
+    def test_legacy_directory_receipt_rejects_new_members(self):
+        from normalize import digest, identity
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);source=root/'pack';source.mkdir()
+            member=source/'one.cbz';member.write_bytes(b'first')
+            state=root/'records';state.mkdir();owned=state/'fixture';owned.mkdir()
+            previous={'id':'fixture','outer':None,'members':[{'source':str(member),
+                       'sha256':digest(member),'identity':identity(member)}]}
+            receipt=owned/'receipt.json';receipt.write_text(json.dumps(previous))
+            fake=SimpleNamespace(root=state,local=lambda value:source)
+            record={'id':'fixture','source':'/cache/pack'}
+            self.assertEqual(Packs.inventory(fake,record)[1],previous)
+            (source/'two.cbz').write_bytes(b'new member')
+            with self.assertRaisesRegex(ValueError,'inventory changed'):Packs.inventory(fake,record)
+            self.assertEqual(json.loads(receipt.read_text()),previous)
+            previous['cleanup_verified_at']=1;receipt.write_text(json.dumps(previous));member.unlink()
+            self.assertEqual(Packs.inventory(fake,record)[1],previous)
+
+    def test_native_and_worker_generation_manifests_agree(self):
+        import importlib.util
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        import sys
+        native=Path(__file__).parents[2]/'mylar3'/'config'/'pack_intake.py'
+        spec=importlib.util.spec_from_file_location('pack_intake_fixture',native)
+        module=importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules,{'mylar':SimpleNamespace(workflow=None),
+                  'mylar.workflow_store':SimpleNamespace(identifier=None,ddl_identifier=None,label=None)}):
+            spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);source=root/'pack.zip';source.write_bytes(b'archive')
+            companion=source.with_suffix('');companion.mkdir();(companion/'extra.txt').write_bytes(b'credit')
+            self.assertEqual(module.source_state(source,content=True),source_state(source,content=True))
+            other=root/'mounted';other.mkdir();import shutil
+            shutil.copyfile(source,other/source.name);shutil.copytree(companion,other/companion.name)
+            self.assertEqual(module.source_state(source,content=True),source_state(other/source.name,content=True))
+
     def test_full_issue_with_cover_count_is_not_a_supplement(self):
         self.assertEqual(kind(Path('Grimm Tales of Terror v2 005 (2016) (2 covers).cbz'),
                               {'page_count': 27}), 'issue')
@@ -206,6 +261,32 @@ class PackTest(unittest.TestCase):
         self.assertFalse(issue.exists());self.assertFalse(cover.exists())
         self.assertFalse(list(self.cache.glob('.mylar-pack-*/*.cbz')))
         self.assertTrue((receipt.parent/('sidecar-'+next(m['id'] for m in value['members'] if m['kind']=='sidecar'))).exists())
+        self.m.mylar.assert_called_once()
+        intent=json.loads(self.m.mylar.call_args.kwargs['report'])
+        self.assertTrue(intent['cleanup_verified_at'])
+        self.assertNotIn('cleaned_at',intent)
+
+    def test_cleanup_report_failure_preserves_all_source_files(self):
+        issue=self.archive(self.pack/'Test Comic 001 (2017).cbz')
+        receipt,value=self.packs.inventory(self.record)
+        for member in value['members']:self.packs.member(member,receipt.parent)
+        def rejected(command,**kwargs):
+            self.assertTrue(issue.exists())
+            self.assertTrue(json.loads(kwargs['report'])['cleanup_verified_at'])
+            raise RuntimeError('Cleanup intent rejected')
+        self.m.mylar.side_effect=rejected
+        with self.assertRaisesRegex(RuntimeError,'intent rejected'):self.packs.cleanup(receipt,value)
+        self.assertTrue(issue.exists())
+        self.assertNotIn('cleaned_at',json.loads(receipt.read_text()))
+
+    def test_resumed_cleanup_rejects_new_uninventoried_sources(self):
+        issue=self.archive(self.pack/'Test Comic 001 (2017).cbz')
+        receipt,value=self.packs.inventory(self.record)
+        for member in value['members']:self.packs.member(member,receipt.parent)
+        value['cleanup_verified_at']=1
+        extra=self.pack/'new.txt';extra.write_bytes(b'new delivery')
+        with self.assertRaisesRegex(ValueError,'uninventoried'):self.packs.cleanup(receipt,value)
+        self.assertTrue(issue.exists());self.assertTrue(extra.exists())
         self.m.mylar.assert_not_called()
 
     def test_annual_matches_parent_and_submits_once(self):

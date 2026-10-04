@@ -486,7 +486,12 @@ Enable **Verify pack members with the maintenance worker** in Activity only afte
 setting `maintenance.pack_import` and `maintenance.auto_import` to `true` in the
 matching worker configuration. Mylar hands new DDL packs to that worker before
 native anchor-based processing. Existing completed packs with retained sources
-are also inventoried. Keep both sides enabled together; disabling the worker
+are also inventoried. Discovery identifies each source path and content generation,
+including an extracted companion folder. Distinct deliveries sharing a DDL ID
+retain separate inventories. Reused paths receive new capture records without
+overwriting earlier member proofs. Legacy records without generation evidence
+remain intact and receive a separate current-source capture. Keep both sides
+enabled together; disabling the worker
 while leaving Mylar's setting on retains new packs pending worker recovery.
 
 Activity's **Packs and extras** section records each original format, catalog
@@ -497,7 +502,12 @@ whose saved file identities become stale return to the worker for destination ha
 verification, even when their sources and worker receipts are unavailable.
 Unchanged content can receive a fresh receipt after a remount. Changed content or
 incomplete destination proofs remain for review. DDL completion evidence
-is independent of the bounded recent-history display. Related cover
+is independent of the bounded recent-history display and requires every capture
+for that DDL ID to be complete. Displayed counts sum capture member references,
+including repeated members from separate deliveries. Source generation checks
+are bounded to 4,001 filesystem entries per source tree and 32 GiB across the
+source and companion; larger or unstable sources remain for review. Deploy both
+matching images before resuming pack automation. Related cover
 collections, short cover-only archives, named extras and alternate scans are kept
 in a sibling `Series - Extras` folder, without a regular issue identity. Legitimate
 short comics are not rejected merely for having few pages. Ambiguous relationships

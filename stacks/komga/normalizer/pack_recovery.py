@@ -52,6 +52,51 @@ def kind(path, info):
     return 'annual' if re.search(r'\bannual\b', name, re.I) else 'issue'
 
 
+def source_state(source, content=False):
+    """Bounded source version, including an extracted companion when present."""
+    source = Path(source)
+    roots = [("source", source)]
+    companion = source.with_suffix('') if source.suffix.lower() == '.zip' else None
+    if source.is_file() and companion is not None and companion.exists():
+        roots.append(("companion", companion))
+    entries = []; total = 0
+    for prefix, root in roots:
+        if any(p.is_symlink() for p in (root, *root.parents)):
+            raise ValueError('Linked pack source')
+        paths = [root]
+        if root.is_dir():
+            for folder, dirs, files in os.walk(root, followlinks=False):
+                paths.extend(Path(folder) / name for name in dirs + files)
+                if len(paths) > 4001:
+                    raise ValueError('Pack source exceeds limits')
+        for path in sorted(paths):
+            if path.is_symlink():
+                raise ValueError('Linked pack source')
+            info = path.stat()
+            name = prefix + '/' + str(path.relative_to(root))
+            if not path.is_file() and not path.is_dir():
+                raise ValueError('Unsupported pack source')
+            signature = [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns]
+            checksum = None
+            if path.is_file():
+                total += info.st_size
+                if total > 32 * 1024**3:
+                    raise ValueError('Pack source exceeds limits')
+                if content:
+                    digest = hashlib.sha256()
+                    with path.open('rb') as stream:
+                        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                            digest.update(chunk)
+                    after = path.stat()
+                    if signature != [after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns]:
+                        raise ValueError('Pack source changed')
+                    checksum = digest.hexdigest()
+            entries.append([name, 'file' if path.is_file() else 'directory', checksum if content else signature])
+    if not any(entry[1] == 'file' for entry in entries):
+        raise ValueError('Pack source has no files')
+    return hashlib.sha256(json.dumps(entries, separators=(',', ':')).encode()).hexdigest()
+
+
 class Packs:
     def __init__(self, maintenance):
         self.m = maintenance
@@ -78,9 +123,43 @@ class Packs:
         directory = self.root / record['id']
         directory.mkdir(exist_ok=True, mode=0o700)
         receipt = directory / 'receipt.json'
-        if receipt.exists():
-            return receipt, json.loads(receipt.read_text())
         source = self.local(record['source'])
+        previous = json.loads(receipt.read_text()) if receipt.exists() else None
+        # Partial cleanup is tied to the retained receipt. Remaining originals
+        # are checked by cleanup before it resumes; missing originals are expected.
+        cleaning = previous is not None and previous.get('cleanup_verified_at')
+        generation = None
+        if (previous and record.get('source_generation') and previous.get('source_generation')
+                and record['source_generation'] != previous['source_generation']):
+            raise ValueError('Pack receipt generation differs from capture')
+        if source.exists() and not cleaning:
+            generation = source_state(source, content=True)
+            expected = record.get('source_generation') or (previous or {}).get('source_generation')
+            if expected and generation != expected:
+                raise ValueError('Pack source generation changed')
+            if previous and not expected:
+                # Legacy receipts have no manifest. Their exact original hashes
+                # and member set still have to match before receipt reuse.
+                outer = previous.get('outer')
+                if outer and (identity(source) != outer['identity'] or digest(source) != outer['sha256']):
+                    raise ValueError('Legacy pack source changed')
+                roots = [source] if source.is_dir() else []
+                companion = source.with_suffix('') if source.suffix.lower() == '.zip' else None
+                if companion is not None and companion.is_dir():
+                    roots.append(companion)
+                expected_files = {Path(m['source']): m for m in previous['members']
+                                  if any(Path(m['source']).is_relative_to(root) for root in roots)}
+                actual_files = {p for root in roots for p in root.rglob('*') if p.is_file()}
+                if actual_files != set(expected_files) or any(
+                        identity(path) != member['identity'] or digest(path) != member['sha256']
+                        for path, member in expected_files.items()):
+                    raise ValueError('Legacy pack inventory changed')
+                if not outer and not roots:
+                    original = next((m for m in previous['members'] if m['source'] == str(source)), None)
+                    if not original or identity(source) != original['identity'] or digest(source) != original['sha256']:
+                        raise ValueError('Legacy single pack source changed')
+        if previous is not None:
+            return receipt, previous
         outer = None
         companion = source.with_suffix('') if source.suffix.lower() == '.zip' else None
         if companion is not None and (not companion.is_dir() or companion.is_symlink()):
@@ -146,7 +225,10 @@ class Packs:
             members.append({'id': token, 'name': path.name, 'source': str(path), 'identity': before,
                             'sha256': checksum, 'format': archive_suffix(path) or path.suffix,
                             'kind': 'review', 'phase': 'discovered'})
-        value = {'id': record['id'], 'source': str(source), 'outer': outer, 'inventory_complete': True,
+        if source_state(self.local(record['source']), content=True) != generation:
+            raise ValueError('Pack source changed during inventory')
+        value = {'id': record['id'], 'capture_source': str(self.local(record['source'])),
+                 'source_generation': generation, 'source': str(source), 'outer': outer, 'inventory_complete': True,
                  'members': members, 'created_at': time.time()}
         save(receipt, value)
         return receipt, value
@@ -369,8 +451,29 @@ class Packs:
             source = Path(outer['source'])
             if not scoped_file(source, self.m.roots) or identity(source) != outer['identity'] or digest(source) != outer['sha256']:
                 raise ValueError('Outer pack changed before cleanup')
+        # Resumed cleanup may have fewer original files, but must never remove
+        # a shared source after a new, uninventoried file has arrived there.
+        original = Path(value.get('capture_source') or
+                        (value['outer']['source'] if value.get('outer') else value['source']))
+        roots = [original] if original.is_dir() else []
+        companion = original.with_suffix('') if original.suffix.lower() == '.zip' else None
+        if companion is not None and companion.is_dir():
+            roots.append(companion)
+        owned = {Path(m['source']) for m in value['members']}
+        for root in roots:
+            if any(path.is_symlink() for path in (root, *root.parents)):
+                raise ValueError('Linked cleanup source')
+            for count, path in enumerate(root.rglob('*'), 1):
+                if count > 4000:
+                    raise ValueError('Cleanup source exceeds limits')
+                if path.is_symlink() or (path.is_file() and path not in owned):
+                    raise ValueError('Pack contains uninventoried sources before cleanup')
         value['cleanup_verified_at'] = time.time()
         save(receipt, value)
+        # Publish the cleanup intent before removing any source, so native
+        # discovery cannot interpret interrupted cleanup as a new delivery.
+        self.m.mylar('packReport', report=json.dumps(dict(value, members=[
+            {k: v for k, v in m.items() if k != 'original_metadata'} for m in value['members']])))
         for member in value['members']:
             source = Path(member['source'])
             if source.exists() and (scoped_file(source, self.m.roots) or scoped_file(source, [receipt.parent / 'extracted'])):
@@ -436,6 +539,9 @@ class Packs:
                 continue
             except Exception:
                 # Surface a failure through worker health; leave all originals in place.
+                if record.get('members'):
+                    # A failed refresh must not replace earlier member proofs.
+                    continue
                 failure = {'id': record['id'], 'inventory_complete': False,
                            'members': [{'id': hashlib.sha256((record['id'] + ':failure').encode()).hexdigest(),
                                         'name': record['name'], 'kind': 'review', 'phase': 'review',
