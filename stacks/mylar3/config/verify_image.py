@@ -9,6 +9,8 @@ import tempfile
 FIXES = Path(__file__).parent
 if Path('/opt/comictagger/bin/python').exists():
     assert Path('/opt/ddl-transport/bin/python').is_file(), 'Custom image is missing its required optional discovery runtime'
+    assert Path('/opt/archiving-utils/lib/archive_backend.py').is_file(), 'Custom image is missing its pinned archive verifier'
+    subprocess.run([sys.executable, str(FIXES / 'test_publication_guard.py')], check=True)
 with tempfile.TemporaryDirectory() as directory:
     source = Path(directory) / 'mylar'
     shutil.copytree('/app/mylar3/mylar', source)

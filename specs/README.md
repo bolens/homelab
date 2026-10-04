@@ -26,3 +26,5 @@ Installation validation alone does not establish feature completion.
 - [Reader metadata supplements](021-reader-metadata-supplement/spec.md): [plan](021-reader-metadata-supplement/plan.md), [tasks](021-reader-metadata-supplement/tasks.md).
 
 - [Verified comic release naming](022-comic-release-naming/spec.md): prospective [plan](022-comic-release-naming/plan.md), [tasks](022-comic-release-naming/tasks.md).
+
+- [Verified publication corrections](023-verified-publication-corrections/spec.md): prospective [plan](023-verified-publication-corrections/plan.md), [tasks](023-verified-publication-corrections/tasks.md).

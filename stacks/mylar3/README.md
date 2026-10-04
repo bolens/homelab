@@ -959,3 +959,30 @@ unconfirmed, changed or foreign members remain for review. The offline combined
 metadata companion uses the same publication hook without initializing Mylar.
 Deploy matching images before enabling the policy. Backups, reader verification,
 bounded bulk application and rollback follow the owning Komga instructions.
+
+
+## Publication correction evidence foundation
+
+The image bundles a read-only payload verifier from the same immutable
+archiving-utils artifact used by the matching normalizer, with distribution
+libarchive support. Its isolated build gate exercises ZIP, authored stored
+RAR4/RAR5 and 7z fixtures on the actual native Python runtime, including corrupt
+payload refusal. There is no runtime download, extraction, new mount, port or
+privilege. The copied artifact retains its license.
+
+The verifier bounds input and expanded bytes to 4 GiB, individual payload members
+to 512 MiB, metadata to 256 KiB and inventories to 4,096 members. It includes
+exact names, sizes and full byte hashes of every regular member, including
+sidecars and nested provenance, plus deterministic recognized page ordering.
+Only valid, unambiguous root ComicInfo XML or ComicBookInfo/1.0 JSON is excluded
+from the payload token. Empty directories remain audited separately. Corrupt,
+linked, encrypted, ambiguous, changing or unsupported archives are unavailable.
+Plain TAR requires complete termination; compressed TAR wrappers remain
+unavailable until their complete integrity can be verified.
+
+This foundation does not register corrections, authorize an import or change
+existing publication behavior. The prospective
+[correction plan](../../specs/023-verified-publication-corrections/plan.md) separately
+requires authenticated durable evidence and guards at every native and worker
+publication boundary. Its rollout must follow the restore-verified update
+workflow above; published verifier images alone do not establish prevention.

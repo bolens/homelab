@@ -1,3 +1,5 @@
+FROM ghcr.io/bolens/archiving-utils@sha256:9598b387e007054db0ef3a1c7b27374539c6d80161cfd226606a91019d80aac5 AS archive-verifier
+
 FROM lscr.io/linuxserver/mylar3:latest@sha256:5e255755b8d95f8574ba4e260569f4458dffeca623c85a41b200b2440ce3a07d AS tagger-build
 # The pinned final base already supplies ICU 70; compilation tools stay here.
 RUN apt-get update \
@@ -36,11 +38,12 @@ COPY ddl-NOTICES.md /opt/ddl-transport/NOTICES.md
 FROM lscr.io/linuxserver/mylar3:latest@sha256:5e255755b8d95f8574ba4e260569f4458dffeca623c85a41b200b2440ce3a07d AS pdf-runtime
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends poppler-utils \
+    && apt-get install -y --no-install-recommends poppler-utils libarchive13 \
     && rm -rf /var/lib/apt/lists/*
 
 FROM pdf-runtime AS checked
 ENV PYTHONDONTWRITEBYTECODE=1
+COPY --from=archive-verifier /opt/archiving-utils/ /opt/archiving-utils/
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
 COPY config/ /opt/mylar3-fixes/
@@ -53,6 +56,8 @@ LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
 COPY --from=checked /app/mylar3/mylar/ /app/mylar3/mylar/
 COPY --from=checked /app/mylar3/data/interfaces/default/ /app/mylar3/data/interfaces/default/
 COPY --from=checked /opt/mylar3-fixes/health.py /opt/mylar3-fixes/health.py
+COPY --from=checked /opt/mylar3-fixes/publication_guard.py /opt/mylar3-fixes/publication_guard.py
+COPY --from=archive-verifier /opt/archiving-utils/ /opt/archiving-utils/
 COPY --from=checked /opt/mylar3-fixes/tagger_runtime.py /opt/mylar3-fixes/tagger_metadata.py /opt/mylar3-fixes/tagger_cli.py /opt/mylar3-fixes/tagger_archive.py /opt/mylar3-fixes/tagger_adapter.py /opt/mylar3-fixes/
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/

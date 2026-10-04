@@ -142,3 +142,15 @@ native rename recovery remains pending. No native catalog schema changes are req
 Explicit version-2 replacements retain a rejected `retry_of` journal and bind
 its complete digest in the new receipt. Source inode/attributes/hash and native
 owner/status/year are revalidated; ordinary rejected-request replay stays blocked.
+
+
+## Read-only publication evidence foundation
+
+`publication_guard.py` currently owns bounded stable archive inventories and
+metadata-independent payload tokens only. It is retained under
+`/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
+`test_publication_guard.py` runs in the actual custom-image gate, including
+ZIP, RAR4, RAR5 and 7z controls; its own authored payload fixtures require no
+source-layout imports or network. Registry admission, native installation and
+publication-path adapters are future tasks in feature 023. This foundation
+performs no correction registration or media publication.
