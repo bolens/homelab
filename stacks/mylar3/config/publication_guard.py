@@ -491,6 +491,32 @@ def registry_snapshot(database, marker):
         return _registry_snapshot(database, marker)
 
 
+def authority_status(database, writer_root):
+    """Passive internal startup/status probe; no initialization or media replay.
+
+    Paths come from the native adapter, never a caller's arbitrary API path.
+    A zero-wait raw Writer precedes workflow LOCK. Every call checks current
+    authority; this result is advisory and must never become a cached admission.
+    """
+    if __package__:
+        from .media_writer import Busy, Writer
+    else:
+        from media_writer import Busy, Writer
+    try:
+        writer = Writer(writer_root, create=False)
+        with writer.hold(allow_pending=True, allow_tagger_pending=True,
+                         allow_release_pending=True, timeout=0):
+            census, _ = registry_snapshot(database, writer.root / 'publication-v1.json')
+            pending = writer.fenced() or writer.fenced(tagger=True) or writer.fenced(release=True)
+            return dict(version=1, state='held' if pending else 'ready',
+                        reason='media-pending' if pending else 'verified', census=census)
+    except Busy:
+        return dict(version=1, state='held', reason='writer-busy', census=None)
+    except (Unavailable, OSError, ValueError, TypeError):
+        # Avoid returning exception text, paths or retained evidence to status.
+        return dict(version=1, state='held', reason='authority-unavailable', census=None)
+
+
 def _registry_snapshot(database, marker):
     import sqlite3
     database, marker = Path(database), Path(marker)
