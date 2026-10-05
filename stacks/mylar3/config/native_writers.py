@@ -54,13 +54,25 @@ def operation(*, reconcile=False, startup=False):
             _LOCAL.depth = getattr(_LOCAL, 'depth', 0) + 1
             previous_startup=getattr(_LOCAL,'startup',False)
             _LOCAL.startup=startup
+            retained_review=False
             try:
-                yield writer
+                if publication:
+                    from .publication_native import Review
+                    try:yield writer
+                    except Review:
+                        retained_review=True
+                        raise
+                else:yield writer
             finally:
                 _LOCAL.depth -= 1
                 _LOCAL.startup=previous_startup
                 if publication:
-                    admission(writer,startup=startup)
+                    from .publication_guard import Unavailable
+                    try:admission(writer,startup=startup)
+                    except Unavailable:
+                        # Preserve the terminal refusal while held state still
+                        # denies the next operation. This grants no admission.
+                        if not retained_review:raise
                 elif outer and writer.fenced(tagger=True):
                     tagger_native.recover(writer)
 
@@ -181,7 +193,9 @@ def admission(writer, *, startup=False):
     if not getattr(writer.local[1],'depth',0):
         raise Unavailable('Raw Writer required before publication admission')
     census,_=registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
-    if any(writer.fenced(**args) for args in ({},{'tagger':True},{'release':True})):
+    import os
+    if (os.path.lexists(writer.root/'tagger-publication-v1.json')
+            or any(writer.fenced(**args) for args in ({},{'tagger':True},{'release':True}))):
         raise Unavailable('Explicit publication recovery is required')
     if not startup and not _STARTUP_COMPLETE:
         raise Unavailable('Native initialization requires restart after authority review')

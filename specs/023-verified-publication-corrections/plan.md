@@ -48,7 +48,7 @@ stacks/mylar3/
   Dockerfile
   config/publication_guard.py config/publication_api.py
   config/patch_publication_guard.py config/patch_publication_startup.py
-  config/publication_fresh.py config/publication_native.py
+  config/publication_fresh.py config/publication_native.py config/publication_transaction.py
   config/patch_publication_processing.py config/test_publication_native.py
   config/test_publication_guard.py config/test_publication_api.py
   config/test_publication_startup.py
@@ -68,3 +68,31 @@ stacks/komga/normalizer/
 ## Delivery and verification
 
 Implement and verify registration as the first independent story, then every publication boundary, then scoped repeat reconciliation. Source delivery may be split at coherent reviewed milestones; do not call prevention complete until all writer boundaries and matching images pass. Native-first rollout is coordinated and restore-verified; exact existing repeats seed only reviewed evidence. Feature 022 completion remains gated by current-library repair, final protected second pass, cleanup and worker resumption.
+
+## Owned tagging integration
+
+T007 introduces a private typed tagging intent and internal capability under the
+already admitted raw Writer. Ordinary operations and public advisory routes keep
+their pending-state hold; only the exact current job may revalidate its own fence
+and payload. Bind native tagger state-directory identities before producer use.
+Persist source/owner/policy/census and phase-specific publication evidence with its
+receipt. Recheck current authority and matched correct-owner archives before
+publication, pack finalization, cleanup and acknowledgement. Clear only the
+captured fence after durable verified terminal receipt; interruptions retain the
+typed hold and preservation copies for explicit review. This requires shared Publisher/NFS/
+handoff checkpoint work during T007; T009 subsequently covers its other direct
+consumers and reviewed source-to-target/derivative recovery. No generic nested
+fence bypass or automatic upgrade of unbound receipts is permitted. T010 must also
+hold a retained prepared tagging intent even when its pending marker is absent.
+Legacy copy/CLI/cleanup remains held before invocation in publication mode until
+its temporary state and fallback placement are bound to an owned adapter.
+
+Keep terminal witnesses under the existing private writer state. Bind their
+complete retained predecessor to the receipt's canonical intent digest, and bind
+terminal facts to a canonical proof in that same receipt before releasing the
+owned marker. Revalidate witness contents through both release boundaries.
+An exact closed receipt may then be read by a later job without replay or a
+remaining disposable output. Its epoch must still match current authority, its
+revision cannot exceed the current revision and its census keys must remain
+present. The receipt binds the complete original census; changed or unbound history stays
+held. These witnesses grant no current media mutation or recovery permission.

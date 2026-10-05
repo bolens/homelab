@@ -30,7 +30,8 @@ class BackendTest(unittest.TestCase):
     def setUp(self):
         self.config = SimpleNamespace(TAGGER_BACKEND='legacy')
         self.mylar = SimpleNamespace(CONFIG=self.config, tagger_backend=tagger_backend,
-                                     tagger_handoff=tagger_handoff, logger=Mock())
+                                     tagger_handoff=tagger_handoff, logger=Mock(),
+                                     native_writers=SimpleNamespace(publication_mode=lambda:False))
         context=patch.dict(sys.modules, {'mylar':self.mylar})
         context.start();self.addCleanup(context.stop)
 

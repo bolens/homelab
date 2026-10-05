@@ -144,7 +144,7 @@ def owner(root, issueid, comicid=None):
     return result
 
 
-def require(source, *, issueid=None, comicid=None):
+def require(source, *, issueid=None, comicid=None, transaction=None):
     """Check actual current source and complete authority before native mutation."""
     import mylar
     from mylar import native_writers
@@ -156,21 +156,31 @@ def require(source, *, issueid=None, comicid=None):
         writer=native_writers.owner()
         if not getattr(writer.local[1],'depth',0):
             raise guard.Unavailable('Native payload check requires raw Writer')
-        native_writers.admission(writer)
+        def admission():
+            if transaction is None:native_writers.admission(writer)
+            else:
+                if __package__:
+                    from .publication_transaction import admission as owned_admission
+                else:
+                    from publication_transaction import admission as owned_admission
+                owned_admission(transaction,writer)
+        admission()
         path=candidate(source)
         parent_binding=parents(path)
         actual=guard.inventory(path);payload=actual['payload']
         proposed=owner(mylar.DATA_DIR,issueid,comicid)
         from mylar.publication_api import Controller
         controller=Controller(mylar.DATA_DIR,[mylar.CONFIG.DESTINATION_DIR])
-        result=controller._check(dict(payload=payload,owner=proposed),writer)
+        value=dict(payload=payload,owner=proposed)
+        result=(controller._check(value,writer) if transaction is None else
+                controller._check(value,writer,transaction=transaction))
         if result['decision'] not in ('unknown','allowed'):
             raise Review('verified-correction',payload=payload)
         # Fresh owner observation can take time; never admit a replaced source.
         with guard.regular(path) as stream:after=guard.signature(os.fstat(stream.fileno()))
         if after!=actual['source_signature'] or parents(path)!=parent_binding:
             raise guard.Unavailable('Native payload source changed during admission')
-        native_writers.admission(writer)
+        admission()
         return dict(path=str(path),inventory=actual,decision=result['decision'],owner=proposed,
                     observed=result.get('observed',[]))
     except (guard.Unavailable,OSError,sqlite3.Error,ValueError,TypeError,KeyError):

@@ -4,6 +4,7 @@ import json
 import os
 import re
 import stat
+import uuid
 
 from .media_writer import sync
 from .tagger_adapter import TERMINAL
@@ -93,6 +94,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
         automatic_in_place=False, publication_token=None, expected_digest=None):
     import mylar
     from mylar import native_writers, tagger_handoff
+    from . import publication_native, publication_transaction
     from .tagger_lookup import lookup
     from .tagger_service import Service
     def failure():
@@ -117,6 +119,15 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
         api_key, base_url, interval = config.COMICVINE_API, config.COMICVINE_URL, config.CVAPI_RATE
         volume_enabled, year_volume, default_volume = config.CMTAG_VOLUME, config.CMTAG_START_YEAR_AS_VOLUME, config.SETDEFAULTVOLUME
         with native_writers.operation() as writer:
+            if native_writers.publication_mode():
+                # Direct producers must prove the actual archive before catalog
+                # lookup, recovery-state preparation or pending-fence writes.
+                try:
+                    publication_native.require(filename,issueid=issueid)
+                except publication_native.Review as review:
+                    from mylar import processing_guard
+                    processing_guard.retained(review,issueid=issueid)
+                    raise
             issueid, volumeid, tracked = catalog(issueid)
             volume = None
             if volume_enabled and tracked:
@@ -128,6 +139,42 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
                     if not re.fullmatch(r'[0-9]{1,4}', value):
                         return failure()
                     volume = value
+            if native_writers.publication_mode():
+                if (not policy['enabled'] or not policy['comicrack'] or policy['comicbooklover']
+                        or policy['conversion_only'] or not str(filename).lower().endswith('.cbz')):
+                    return failure()
+                try:
+                    publisher, staging = state(writer)
+                    token=publication_token or uuid.uuid4().hex
+                    captured=dict(policy,manualmeta=manualmeta,volume=volume,
+                        reading_order=readingorder,age_rating=agerating,volumeid=volumeid,
+                        expected_digest=expected_digest)
+                    with publication_transaction.tagging(writer,filename,issueid,token,captured,modern=True) as job:
+                        service=Service(publisher,staging.root,
+                            lambda **kwargs:lookup(api_key=api_key,base_url=base_url,interval=interval,**kwargs),
+                            tagger_handoff,job.coordinate,staging=staging,publication=job)
+                        result=service.tag(filename,issueid=issueid,volumeid=volumeid,manualmeta=manualmeta,
+                            volume=volume,reading_order=readingorder,age_rating=agerating,
+                            publication_token=publication_token,expected_digest=expected_digest,**policy)
+                        if manualmeta:
+                            if not isinstance(result,tagger_handoff.Published) or not result.valid_for(filename):
+                                raise publication_native.Review('tagging-terminal-handoff-unavailable')
+                            target=filename
+                        else:
+                            if not isinstance(result,str) or result=='fail':
+                                raise publication_native.Review('tagging-terminal-handoff-unavailable')
+                            target=result
+                        job.complete(publisher,staging,target)
+                        return result
+                except publication_native.Review as review:
+                    from mylar import processing_guard
+                    processing_guard.retained(review,issueid=issueid)
+                    raise
+                except (publication_native.guard.Unavailable,OSError,ValueError,TypeError,KeyError,RuntimeError):
+                    from mylar import processing_guard
+                    review=publication_native.Review('tagging-publication-unavailable')
+                    processing_guard.retained(review,issueid=issueid)
+                    raise review from None
             publisher, staging = state(writer)
             writer.mark_tagger_pending()
             service = Service(publisher, staging.root,
@@ -136,6 +183,9 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
             return service.tag(filename, issueid=issueid, volumeid=volumeid, manualmeta=manualmeta,
                                volume=volume, reading_order=readingorder, age_rating=agerating,
                                publication_token=publication_token, expected_digest=expected_digest, **policy)
+    except publication_native.Review:
+        if manualmeta:return tagger_handoff.Published('review')
+        raise
     except (OSError, ValueError, TypeError, KeyError, RuntimeError):
         mylar.logger.warn('Modern tagging could not complete; original and recovery state retained')
         return failure()

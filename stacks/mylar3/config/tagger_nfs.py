@@ -62,17 +62,21 @@ class Publisher(base.Publisher):
             raise ValueError('Publication ownership changed')
         # The private workspace belongs to this operation. Even a raced source is
         # retained; no existing library filename is replaced with the candidate.
+        self.correction_checkpoint(record)
         os.rename(source, displaced)
         base.sync(source.parent); base.sync(folder)
         base._checkpoint('after_displace')
         if not self.matches(displaced, record):
+            self.correction_checkpoint(record)
             self.restore_name(displaced, source)
             raise ValueError('Displaced source changed')
+        self.correction_checkpoint(record)
         os.link(output, source, follow_symlinks=False)
         base.sync(source.parent)
         base._checkpoint('after_link')
         if not self.matches(source, record, True, (2,)) or not self.matches(displaced, record):
             raise ValueError('Published ownership changed')
+        self.correction_checkpoint(record)
         output.unlink()
         base.sync(folder)
         base._checkpoint('after_unlink')
@@ -114,19 +118,23 @@ class Publisher(base.Publisher):
             displaced, output = folder/'displaced.cbz', folder/'verified.cbz'
             if displaced.exists() or displaced.is_symlink():
                 if not self.matches(displaced, record, links=(1, 2)):
+                    self.correction_checkpoint(record)
                     self.restore_name(displaced, source)
                     return self.finish(record, 'conflict', cleanup=False)
                 if not source.exists() and not source.is_symlink():
+                    self.correction_checkpoint(record)
                     self.restore_name(displaced, source)
                 if self.matches(source, record, links=(2,)):
                     # Crash before publication (or during rollback): restore the
                     # original inode, then finish without replaying a tagger write.
+                    self.correction_checkpoint(record)
                     displaced.unlink(); base.sync(folder); base.sync(source.parent)
                     return self.finish(record, 'failed')
                 if self.matches(source, record, True, (1, 2)):
                     if output.exists() or output.is_symlink():
                         if not self.matches(output, record, True, (2,)):
                             return self.finish(record, 'conflict', cleanup=False)
+                        self.correction_checkpoint(record)
                         output.unlink(); base.sync(folder)
                     base.sync(source.parent)
                     return self.finish(record, 'committed')
