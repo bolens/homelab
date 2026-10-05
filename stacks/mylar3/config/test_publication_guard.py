@@ -286,13 +286,28 @@ class RegistryTests(unittest.TestCase):
 
     def seed(self, values):
         keys = []
-        for value in values:
-            key = guard.canonical_digest(value)
-            self.store.set('publication_attestation', key, value)
-            keys.append(key)
-        census = dict(version=1, epoch=self.epoch, revision=len(values), keys=sorted(keys),
-                      digest=guard.canonical_digest(sorted(keys)))
-        self.store.set('publication_census', 'v1', census)
+        old = guard.empty_census(self.epoch)
+        with self.store.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            db.execute("DELETE FROM records WHERE kind='publication_attestation'")
+            db.execute("DELETE FROM records WHERE kind='publication_intent' AND key<>?", (self.initialization,))
+            for value in values:
+                body = {key: item for key, item in value.items() if key != 'intent'}
+                plan = dict(version=1, action='register', old=old,
+                            binding=self.state._binding(db), body=body)
+                value['intent'] = guard.canonical_digest(plan)
+                receipt = dict(plan=plan, accepted=True, outcome='committed')
+                key = guard.canonical_digest(value)
+                for kind, token, record in (('publication_intent', value['intent'], receipt),
+                                             ('publication_attestation', key, value)):
+                    db.execute('INSERT INTO records VALUES (?,?,?,?)',
+                               (kind, token, json.dumps(record), 0))
+                keys.append(key)
+                old = dict(version=1, epoch=self.epoch, revision=len(keys), keys=sorted(keys),
+                           digest=guard.canonical_digest(sorted(keys)))
+            census = old
+            db.execute("INSERT OR REPLACE INTO records VALUES ('publication_census','v1',?,0)",
+                       (json.dumps(census),))
         self.marker.write_bytes(guard.compact(self.state.final_marker(census, self.initialization)))
         self.marker.chmod(0o600)
         return census
@@ -340,13 +355,14 @@ class RegistryTests(unittest.TestCase):
         with self.assertRaises(guard.Unavailable):self.read()
 
     def test_lost_changed_unknown_and_corrupt_records_hold(self):
-        self.seed([self.record()])
-        key = guard.canonical_digest(self.record())
+        value = self.record();self.seed([value])
+        key = guard.canonical_digest(value)
         with self.store.connection() as db:
             db.execute("DELETE FROM records WHERE kind='publication_attestation'")
         with self.assertRaises(guard.Unavailable):self.read()
-        self.seed([self.record()])
-        value = self.record();value['evidence']['description'] = 'changed'
+        value = self.record();self.seed([value])
+        key = guard.canonical_digest(value)
+        value['evidence']['description'] = 'changed'
         self.store.set('publication_attestation', key, value)
         with self.assertRaises(guard.Unavailable):self.read()
         self.store.set('publication_attestation', key, self.record())
@@ -376,8 +392,8 @@ class RegistryTests(unittest.TestCase):
             second = self.record(1)
             if mutation == 'gap':second['prior_revision'] = 3
             else:second['epoch'] = 'f'*64
-            key = guard.canonical_digest(second)
             self.seed([first, second])
+            key = guard.canonical_digest(second)
             with self.assertRaises(guard.Unavailable):self.read()
             self.store.delete('publication_attestation', key)
 
@@ -464,6 +480,134 @@ class RegistryTests(unittest.TestCase):
         self.marker.write_bytes(original)
         self.assertEqual(self.read()[0]['revision'], 0)
 
+
+
+class RegistrationWitnessTests(unittest.TestCase):
+    setUp = RegistryTests.setUp
+    record = RegistryTests.record
+    seed = RegistryTests.seed
+    read = RegistryTests.read
+    # Reuse controlled registry fixtures, not live registration adapters.
+    def test_attestation_without_committed_receipt_holds(self):
+        self.seed([self.record()])
+        with self.store.connection() as db:
+            db.execute("DELETE FROM records WHERE kind='publication_intent' AND key<>?", (self.initialization,))
+        with self.assertRaises(guard.Unavailable):self.read()
+
+    def test_receipt_loss_envelope_rewrite_and_foreign_binding_hold(self):
+        self.seed([self.record()])
+        with self.store.connection() as db:
+            row = db.execute("SELECT key,value FROM records WHERE kind='publication_intent' AND key<>?", (self.initialization,)).fetchone()
+        self.assertIsNotNone(row)
+        key, raw = row;original = json.loads(raw)
+        for outcome in ('prepared','accepted','aborted'):
+            value = dict(original, outcome=outcome, accepted=outcome!='prepared')
+            self.store.set('publication_intent',key,value)
+            with self.assertRaises(guard.Unavailable):self.read()
+        self.store.set('publication_intent',key,original)
+        self.assertEqual(len(self.read()[1]),1)
+
+    def test_digest_order_has_no_attestation_intent_cycle(self):
+        value = self.record();self.seed([value])
+        receipt = self.store.get('publication_intent',value['intent'])
+        self.assertNotIn('intent',receipt['plan']['body'])
+        self.assertNotIn('new',receipt['plan'])
+        self.assertEqual(guard.canonical_digest(receipt['plan']),value['intent'])
+        materialized, census = guard.registration_effect(value['intent'],receipt['plan'])
+        self.assertEqual(materialized,value)
+        self.assertEqual(census,self.read()[0])
+
+    def test_complete_chain_and_large_history_are_read_without_pagination(self):
+        values = [self.record(index) for index in range(130)]
+        self.seed(values)
+        self.assertEqual(len(self.read()[1]),130)
+        key = values[50]['intent'];self.store.delete('publication_intent',key)
+        with self.assertRaises(guard.Unavailable):self.read()
+
+    def test_foreign_committed_state_bindings_hold(self):
+        import copy
+        original = self.state._binding
+        for field in ('database_identity', 'writer_identity', 'schema'):
+            def changed(db):
+                binding = copy.deepcopy(original(db))
+                if field == 'schema':binding[field] = 'f'*64
+                else:binding[field][-1] += 1
+                return binding
+            with patch.object(self.state, '_binding', changed):self.seed([self.record()])
+            with self.assertRaises(guard.Unavailable):self.read()
+        self.seed([self.record()])
+        self.assertEqual(len(self.read()[1]),1)
+
+    def test_orphan_committed_and_unfinished_intents_hold(self):
+        first, second = self.record(), self.record(1)
+        self.seed([first,second])
+        receipt = self.store.get('publication_intent',second['intent'])
+        self.seed([first])
+        self.store.set('publication_intent',second['intent'],receipt)
+        with self.assertRaises(guard.Unavailable):self.read()
+        for outcome in ('prepared', 'accepted', 'aborted'):
+            self.store.set('publication_intent',second['intent'],
+                           dict(receipt, outcome=outcome, accepted=outcome!='prepared'))
+            if outcome == 'accepted':
+                with self.assertRaises(guard.Unavailable):self.read()
+            else:self.assertEqual(len(self.read()[1]),1)
+
+    def test_registration_plan_strict_shape_and_census_bounds(self):
+        import copy
+        value = self.record();self.seed([value])
+        original = self.store.get('publication_intent',value['intent'])['plan']
+        for mutation in ('intent-cycle', 'new-cycle', 'action', 'version', 'epoch',
+                         'revision', 'duplicate-keys', 'boolean-revision', 'binding'):
+            plan = copy.deepcopy(original)
+            if mutation == 'intent-cycle':plan['body']['intent'] = value['intent']
+            if mutation == 'new-cycle':plan['new'] = self.read()[0]
+            if mutation == 'action':plan['action'] = 'unknown'
+            if mutation == 'version':plan['version'] = True
+            if mutation == 'epoch':plan['body']['epoch'] = 'f'*64
+            if mutation == 'revision':plan['body']['prior_revision'] = 1
+            if mutation == 'duplicate-keys':plan['old']['keys'] = ['a'*64]*2
+            if mutation == 'boolean-revision':plan['old']['revision'] = False
+            if mutation == 'binding':plan['binding']['writer_identity'] = [True]*4
+            with self.subTest(mutation=mutation), self.assertRaises(guard.Unavailable):
+                guard.registration_effect(guard.canonical_digest(plan),plan)
+        with self.assertRaises(guard.Unavailable):
+            guard.registration_effect('0'*64,original)
+
+    def test_valid_but_wrong_intermediate_census_prefix_holds(self):
+        first, second = self.record(), self.record(1)
+        census = self.seed([first, second])
+        old_token = second['intent'];old_key = guard.canonical_digest(second)
+        receipt = self.store.get('publication_intent', old_token)
+        receipt['plan']['old']['keys'] = ['f'*64]
+        receipt['plan']['old']['digest'] = guard.canonical_digest(['f'*64])
+        token = guard.canonical_digest(receipt['plan'])
+        materialized, _ = guard.registration_effect(token, receipt['plan'])
+        key = guard.canonical_digest(materialized)
+        self.store.delete('publication_intent', old_token)
+        self.store.delete('publication_attestation', old_key)
+        self.store.set('publication_intent', token, receipt)
+        self.store.set('publication_attestation', key, materialized)
+        census['keys'] = sorted([guard.canonical_digest(first), key])
+        census['digest'] = guard.canonical_digest(census['keys'])
+        self.store.set('publication_census', 'v1', census)
+        self.marker.write_bytes(guard.compact(self.state.final_marker(census, self.initialization)))
+        with self.assertRaises(guard.Unavailable):self.read()
+
+    def test_maximum_attestation_history_and_separate_receipt_bounds(self):
+        values = [self.record(index) for index in range(guard.REGISTRY_LIMIT)]
+        self.seed(values)
+        self.assertEqual(len(self.read()[1]),guard.REGISTRY_LIMIT)
+        with patch.object(guard,'REGISTRATION_INTENT_LIMIT',guard.REGISTRY_LIMIT-1):
+            with self.assertRaises(guard.Unavailable):self.read()
+        receipt = self.store.get('publication_intent',values[-1]['intent'])
+        with patch.object(guard,'REGISTRATION_BYTES',len(json.dumps(receipt).encode())-1):
+            with self.assertRaises(guard.Unavailable):self.read()
+        with patch.object(guard,'REGISTRY_BYTES',1024):
+            with self.assertRaises(guard.Unavailable):self.read()
+        plan = dict(receipt['plan'], old=self.read()[0],
+                    body=dict(receipt['plan']['body'],prior_revision=guard.REGISTRY_LIMIT))
+        with self.assertRaises(guard.Unavailable):
+            guard.registration_effect(guard.canonical_digest(plan),plan)
 
 
 class JournalRecoveryTests(unittest.TestCase):

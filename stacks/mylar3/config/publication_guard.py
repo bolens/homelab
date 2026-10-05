@@ -328,6 +328,8 @@ def inventory(path, *, tool_root=TOOL_ROOT):
 # with O_CREAT, which must never recreate lost correction authority.
 REGISTRY_LIMIT = 512
 REGISTRY_BYTES = 32 * 1024 ** 2
+REGISTRATION_INTENT_LIMIT = 640
+REGISTRATION_BYTES = 4 * 1024 ** 2
 REGISTRY_KINDS = frozenset(('publication_attestation', 'publication_census', 'publication_intent'))
 
 
@@ -396,13 +398,14 @@ def complete_census(db):
     """Validate all authority rows in one caller-owned SQLite read snapshot."""
     count, size = db.execute("SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) "
         "FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_'").fetchone()
-    if count > REGISTRY_LIMIT + INTENT_LIMIT + 1 or size > REGISTRY_BYTES:
+    if count > REGISTRY_LIMIT + INTENT_LIMIT + REGISTRATION_INTENT_LIMIT + 1 or size > REGISTRY_BYTES:
         raise Unavailable('Correction census exceeds v1 bounds')
     rows = db.execute("SELECT kind,key,value FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_' "
-                      'ORDER BY kind,key').fetchmany(REGISTRY_LIMIT + INTENT_LIMIT + 2)
-    if len(rows) > REGISTRY_LIMIT + INTENT_LIMIT + 1:
+                      'ORDER BY kind,key').fetchmany(REGISTRY_LIMIT + INTENT_LIMIT + REGISTRATION_INTENT_LIMIT + 2)
+    if len(rows) > REGISTRY_LIMIT + INTENT_LIMIT + REGISTRATION_INTENT_LIMIT + 1:
         raise Unavailable('Correction census exceeds v1 bounds')
-    records, census, size, intents = {}, None, 0, 0
+    records, census, size, intents = {}, None, 0, {}
+    intent_counts = {'bootstrap': 0, 'register': 0}
     for kind, key, raw in rows:
         if any(not isinstance(value, str) for value in (kind, key, raw)):
             raise Unavailable('Malformed correction authority record')
@@ -411,12 +414,16 @@ def complete_census(db):
             raise Unavailable('Unknown or oversized correction authority')
         value = decode_json(raw)
         if kind == 'publication_intent':
-            if len(raw.encode('utf-8')) > 65536:
-                raise Unavailable('Initialization receipt exceeds bounds')
-            intents += 1
-            if intents > INTENT_LIMIT:
-                raise Unavailable('Initialization intent history exceeds bounds')
-            bootstrap_record(key, value)
+            plan = intent_record(key, value)
+            action = plan['action']
+            limit = INTENT_LIMIT if action == 'bootstrap' else REGISTRATION_INTENT_LIMIT
+            byte_limit = 65536 if action == 'bootstrap' else REGISTRATION_BYTES
+            intent_counts[action] += 1
+            if intent_counts[action] > limit or len(raw.encode('utf-8')) > byte_limit:
+                raise Unavailable('Correction intent history exceeds bounds')
+            if value['outcome'] == 'accepted':
+                raise Unavailable('Unfinished correction intent blocks admission')
+            intents[key] = value
             continue
         if kind == 'publication_census':
             if key != 'v1' or census is not None:
@@ -430,15 +437,25 @@ def complete_census(db):
             records[key] = value
     if len(records) > REGISTRY_LIMIT:
         raise Unavailable('Correction attestation census exceeds bounds')
-    fields = {'version', 'epoch', 'revision', 'keys', 'digest'}
-    if (not isinstance(census, dict) or set(census) != fields
-            or type(census['version']) is not int or census['version'] != 1
-            or not digest_value(census['epoch'])
-            or type(census['revision']) is not int or census['revision'] < 0
-            or census['revision'] != len(records)
-            or census['keys'] != sorted(records)
-            or census['digest'] != canonical_digest(sorted(records))):
+    census_value(census)
+    if census['revision'] != len(records) or census['keys'] != sorted(records):
         raise Unavailable('Missing or incomplete correction census')
+    committed = {key: value for key, value in intents.items()
+                 if value['plan']['action'] == 'register' and value['outcome'] == 'committed'}
+    current = empty_census(census['epoch'])
+    witnessed = set()
+    for value in sorted(records.values(), key=lambda item: item['prior_revision']):
+        token = value['intent']
+        if token not in committed or token in witnessed:
+            raise Unavailable('Missing unique committed registration witness')
+        plan = committed[token]['plan']
+        materialized, new = registration_effect(token, plan)
+        if materialized != value or plan['old'] != current:
+            raise Unavailable('Incomplete registration revision chain')
+        witnessed.add(token)
+        current = new
+    if witnessed != set(committed) or current != census:
+        raise Unavailable('Orphan registration witness or incomplete census chain')
     revisions, payload_owners = set(), {}
     for value in records.values():
         if value['epoch'] != census['epoch']:
@@ -558,21 +575,7 @@ def empty_census(epoch):
     return dict(version=1, epoch=epoch, revision=0, keys=[], digest=canonical_digest([]))
 
 
-def bootstrap_record(key, value):
-    if (not isinstance(value, dict) or set(value) != {'plan', 'accepted', 'outcome'}
-            or type(value['accepted']) is not bool
-            or value['outcome'] not in ('prepared', 'accepted', 'committed', 'aborted')
-            or value['accepted'] != (value['outcome'] != 'prepared')):
-        raise Unavailable('Invalid initialization receipt')
-    plan = value['plan']
-    if (not isinstance(plan, dict)
-            or set(plan) != {'version', 'action', 'epoch', 'binding', 'backup', 'new'}
-            or type(plan['version']) is not int or plan['version'] != 1
-            or plan['action'] != 'bootstrap' or not digest_value(plan['epoch'])
-            or canonical_digest(plan['new']) != canonical_digest(empty_census(plan['epoch']))
-            or key != canonical_digest(plan)):
-        raise Unavailable('Invalid immutable initialization plan')
-    binding = plan['binding']
+def state_binding(binding):
     if (not isinstance(binding, dict)
             or set(binding) != {'database_identity', 'writer_identity', 'schema', 'workflow', 'pending'}
             or not digest_value(binding['schema'])):
@@ -595,6 +598,77 @@ def bootstrap_record(key, value):
         if stamp is not None and (not isinstance(stamp, list) or len(stamp) != 9
                 or any(type(item) is not int or item < 0 for item in stamp)):
             raise Unavailable('Invalid existing publication fence signature')
+    return binding
+
+
+def census_value(value):
+    fields = {'version', 'epoch', 'revision', 'keys', 'digest'}
+    if (not isinstance(value, dict) or set(value) != fields
+            or type(value['version']) is not int or value['version'] != 1
+            or not digest_value(value['epoch'])
+            or type(value['revision']) is not int or not 0 <= value['revision'] <= REGISTRY_LIMIT
+            or not isinstance(value['keys'], list)
+            or any(not digest_value(key) for key in value['keys'])
+            or value['keys'] != sorted(set(value['keys']))
+            or len(value['keys']) != value['revision']
+            or value['digest'] != canonical_digest(value['keys'])):
+        raise Unavailable('Missing or incomplete correction census')
+    return value
+
+
+def registration_effect(key, plan):
+    """Derive effects after hashing a plan, avoiding an intent/attestation cycle."""
+    if (not isinstance(plan, dict) or set(plan) != {'version', 'action', 'old', 'binding', 'body'}
+            or type(plan['version']) is not int or plan['version'] != 1
+            or plan['action'] != 'register' or not digest_value(key)
+            or key != canonical_digest(plan)):
+        raise Unavailable('Invalid immutable registration plan')
+    old = census_value(plan['old'])
+    state_binding(plan['binding'])
+    body = plan['body']
+    if (not isinstance(body, dict) or 'intent' in body
+            or body.get('epoch') != old['epoch']
+            or body.get('prior_revision') != old['revision']
+            or old['revision'] >= REGISTRY_LIMIT):
+        raise Unavailable('Invalid registration predecessor')
+    value = dict(body, intent=key)
+    record_key = attestation(value)
+    if record_key in old['keys']:
+        raise Unavailable('Duplicate registration effect')
+    keys = sorted(old['keys'] + [record_key])
+    new = dict(version=1, epoch=old['epoch'], revision=old['revision'] + 1,
+               keys=keys, digest=canonical_digest(keys))
+    return value, new
+
+
+def intent_record(key, value):
+    if (not isinstance(value, dict) or set(value) != {'plan', 'accepted', 'outcome'}
+            or type(value['accepted']) is not bool
+            or value['outcome'] not in ('prepared', 'accepted', 'committed', 'aborted')
+            or value['accepted'] != (value['outcome'] != 'prepared')
+            or not isinstance(value['plan'], dict)):
+        raise Unavailable('Invalid correction intent receipt')
+    if value['plan'].get('action') == 'bootstrap':
+        return bootstrap_record(key, value)
+    registration_effect(key, value['plan'])
+    return value['plan']
+
+
+def bootstrap_record(key, value):
+    if (not isinstance(value, dict) or set(value) != {'plan', 'accepted', 'outcome'}
+            or type(value['accepted']) is not bool
+            or value['outcome'] not in ('prepared', 'accepted', 'committed', 'aborted')
+            or value['accepted'] != (value['outcome'] != 'prepared')):
+        raise Unavailable('Invalid initialization receipt')
+    plan = value['plan']
+    if (not isinstance(plan, dict)
+            or set(plan) != {'version', 'action', 'epoch', 'binding', 'backup', 'new'}
+            or type(plan['version']) is not int or plan['version'] != 1
+            or plan['action'] != 'bootstrap' or not digest_value(plan['epoch'])
+            or canonical_digest(plan['new']) != canonical_digest(empty_census(plan['epoch']))
+            or key != canonical_digest(plan)):
+        raise Unavailable('Invalid immutable initialization plan')
+    state_binding(plan['binding'])
     backup = plan['backup']
     if (not isinstance(backup, dict)
             or set(backup) != {'manifest_sha256', 'restore_sha256', 'description'}
@@ -622,12 +696,14 @@ def initialization_witness(db, token, census, identity, writer):
     committed = []
     for key, raw in rows:
         value = decode_json(raw)
-        plan = bootstrap_record(key, value)
+        plan = intent_record(key, value)
         if value['outcome'] == 'accepted':
             raise Unavailable('Unfinished initialization blocks admission')
         if value['outcome'] == 'committed':
-            committed.append(key)
-            if (key != token or plan['epoch'] != census['epoch']
+            if plan['action'] == 'bootstrap':
+                committed.append(key)
+            epoch = plan['epoch'] if plan['action'] == 'bootstrap' else plan['old']['epoch']
+            if ((plan['action'] == 'bootstrap' and key != token) or epoch != census['epoch']
                     or plan['binding']['database_identity'] != identity
                     or plan['binding']['writer_identity'] != writer
                     or plan['binding']['schema'] != workflow_schema(db)):
