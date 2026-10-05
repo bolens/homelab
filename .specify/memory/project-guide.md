@@ -49,6 +49,11 @@ updates. Back up affected application state and verify the library in place. If
 an operation changes existing media, preserve those specific files first. Reserve
 full-library copies for major library changes.
 
+Before a large application-state backup, measure its size and verify free space
+on the destination filesystem for both the backup and isolated restore. Prefer
+disk storage for large snapshots: tmpfs output consumes memory and can exhaust a
+backup helper's container allowance even when its process uses little memory.
+
 ## Working through Spec Kit
 
 Use Spec Kit for new capabilities, architectural or security-sensitive changes,
