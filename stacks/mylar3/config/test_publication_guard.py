@@ -716,7 +716,7 @@ state.initialize(sys.argv[2],accepted_token=sys.argv[2],boundary=interrupt)
         self.assertEqual(state.snapshot()[0]['revision'],0)
 
     def test_forged_restoration_claims_never_open_original_sqlite(self):
-        recovery = self.recovery();token = recovery.prepare(self.token)
+        recovery = self.recovery();recovery.prepare(self.token)
         original = guard.private_json(recovery.marker)
         retained = self.writer.root/original['plan']['directory']/'receipt.json'
         for change in ({'records':'1'}, {'records':True}, {'events':5001},
@@ -738,7 +738,7 @@ state.initialize(sys.argv[2],accepted_token=sys.argv[2],boundary=interrupt)
         self.assertEqual(self.pair(),self.before)
 
     def test_malformed_capture_and_oversized_history_hold_before_modification(self):
-        recovery = self.recovery();token = recovery.prepare(self.token)
+        recovery = self.recovery();recovery.prepare(self.token)
         original = guard.private_json(recovery.marker)
         retained = self.writer.root/original['plan']['directory']/'receipt.json'
         for name, change in (('database', {'signature':[1,2]}),
