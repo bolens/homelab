@@ -302,17 +302,22 @@ class Tagging:
             raise native.Review('tagging-in-place-output-changed')
         transition={key:record[key] for key in IN_PLACE_FIELDS}
         self.check(self.writer)
-        self.value['publisher']['in_place']=json.loads(json.dumps(transition))
-        _write(self.path,self.value,exclusive=False)
-        self.evidence=guard.private_evidence(self.path)
-        record['correction_guard']=json.loads(json.dumps(self.value['publisher']))
-        # Intent precedes receipt. An interrupted binding remains held; it
-        # cannot admit another job or implicitly upgrade this receipt.
-        publisher.write(record)
-        self.in_place_publisher=publisher
-        self.value['in_place']=json.loads(json.dumps(transition))
-        _write(self.path,self.value,exclusive=False)
-        self.evidence=guard.private_evidence(self.path)
+        try:
+            self.value['publisher']['in_place']=json.loads(json.dumps(transition))
+            _write(self.path,self.value,exclusive=False)
+            self.evidence=guard.private_evidence(self.path)
+            record['correction_guard']=json.loads(json.dumps(self.value['publisher']))
+            # Intent precedes receipt. An interrupted binding remains held; it
+            # cannot admit another job or implicitly upgrade this receipt.
+            publisher.write(record)
+            self.in_place_publisher=publisher
+            self.value['in_place']=json.loads(json.dumps(transition))
+            _write(self.path,self.value,exclusive=False)
+            self.evidence=guard.private_evidence(self.path)
+        except (guard.Unavailable,OSError,ValueError,TypeError,KeyError):
+            # Ordinary tagger error recovery may clean a failed workspace.
+            # A partial correction binding requires its copies to remain.
+            raise native.Review('tagging-in-place-binding-unavailable') from None
 
     def in_place_source(self,path):
         """Observe the exact before/displaced/after file without replay."""

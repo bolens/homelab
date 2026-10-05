@@ -729,6 +729,45 @@ class ServicePublicationTests(unittest.TestCase):
         self.assertEqual(self.source.read_bytes(),original)
         self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
 
+    def interrupted_retained_binding(self,phase):
+        self.registered();before=self.incoming.read_bytes();original=self.source.read_bytes()
+        provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
+        write_intent=transaction._write;write_receipt=tagger_pack.Publisher.write
+        failed=[];stages=[]
+        def intent(path,value,*,exclusive):
+            binding=value.get('publisher',{}).get('in_place')
+            if not failed and binding is not None and ((phase=='intent' and value['in_place'] is None)
+                    or (phase=='activation' and value['in_place'] is not None)):
+                failed.append(phase);raise OSError('Injected binding durability failure')
+            return write_intent(path,value,exclusive=exclusive)
+        def receipt(publisher,record):
+            if not failed and phase=='receipt' and record.get('correction_guard',{}).get('in_place') is not None:
+                failed.append(phase);raise OSError('Injected receipt durability failure')
+            return write_receipt(publisher,record)
+        with patch.object(tagger_adapter,'save',side_effect=self.save_metadata),\
+                patch.object(transaction,'_write',side_effect=intent),\
+                patch.object(tagger_pack.Publisher,'write',new=receipt),\
+                patch.object(tagger_adapter,'_checkpoint',side_effect=stages.append):
+            result=self.native_tag(manual=True,overwrite=True,lookup=provider)
+        self.assertEqual(result.state,'review');self.assertEqual(failed,[phase])
+        self.assertNotIn('after_displace',stages)
+        self.assertEqual(self.incoming.read_bytes(),before);self.assertEqual(self.source.read_bytes(),original)
+        folder=next(self.incoming.parent.glob('.mylar-tag-*'))
+        self.assertEqual((folder/'original.cbz').read_bytes(),before)
+        self.assertTrue((folder/'verified.cbz').is_file())
+        self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
+        with self.writer.hold(allow_tagger_pending=True):
+            with self.assertRaises(guard.Unavailable):self.mylar.native_writers.admission(self.writer)
+
+    def test_retained_binding_intent_failure_preserves_both_archives_and_hold(self):
+        self.interrupted_retained_binding('intent')
+
+    def test_retained_binding_receipt_failure_preserves_both_archives_and_hold(self):
+        self.interrupted_retained_binding('receipt')
+
+    def test_retained_binding_activation_failure_preserves_both_archives_and_hold(self):
+        self.interrupted_retained_binding('activation')
+
     def test_actual_native_failed_lookup_retains_owned_intent_before_failure_fallback(self):
         self.registered();before=self.incoming.read_bytes()
         with self.assertRaises(native.Review):
