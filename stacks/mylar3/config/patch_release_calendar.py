@@ -9,9 +9,21 @@ from source_patches import replace_once, function_span
 MARKER = "# homelab-release-calendar-v1"
 
 
+def refresh_timestamp(source):
+    old="mylar.CONFIG.PULL_REFRESH = todaydate.strftime('%Y-%m-%d %H:%M:%S')"
+    new="mylar.CONFIG.PULL_REFRESH = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')"
+    original = function_span(source, "locg")
+    if original.count(old) == 1 and original.count(new) == 0:
+        source = replace_once(source, original, replace_once(original, old, new))
+    elif original.count(old) != 0 or original.count(new) != 1:
+        raise ValueError("Unexpected release refresh timestamp assignment")
+    ast.parse(source)
+    return source
+
+
 def patched(name, source):
     if MARKER in source:
-        return source
+        return refresh_timestamp(source) if name == "locg.py" else source
     if name == "helpers.py":
         original = function_span(source, "weekly_info")
         start = original.index(
@@ -59,6 +71,7 @@ def patched(name, source):
         source = replace_once(
             source, original, original[:start] + replacement + original[end:]
         )
+        source = refresh_timestamp(source)
     elif name == "__init__.py":
         source = replace_once(
             source,
