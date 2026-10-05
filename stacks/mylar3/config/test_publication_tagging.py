@@ -29,6 +29,10 @@ import publication_transaction as transaction
 import publication_guard as guard
 import converted_tagging
 
+requires_verifier=unittest.skipUnless(
+    (Path(cases.fixtures.TOOL_ROOT)/'lib/archive_backend.py').is_file(),
+    'offline archive verifier required; verified in the custom-image gate')
+
 
 @contextmanager
 def working_directory(path):
@@ -41,6 +45,7 @@ def working_directory(path):
         os.fchdir(original);os.close(original)
 
 
+@requires_verifier
 class BackendTests(unittest.TestCase):
     call=cases.AdmissionTests.call
     bootstrap=cases.AdmissionTests.bootstrap
@@ -193,6 +198,7 @@ class BackendTests(unittest.TestCase):
         self.assertTrue(self.incoming.exists());self.assertTrue(self.source.exists())
 
 
+@requires_verifier
 class DirectNativeTests(unittest.TestCase):
     setUp=BackendTests.setUp
     call=BackendTests.call
@@ -245,6 +251,7 @@ class DirectNativeTests(unittest.TestCase):
         self.assertFalse(self.writer.fenced(tagger=True))
 
 
+@requires_verifier
 class ConvertedTests(unittest.TestCase):
     setUp=BackendTests.setUp
     call=BackendTests.call
@@ -327,6 +334,7 @@ class ConvertedTests(unittest.TestCase):
 
 
 
+@requires_verifier
 class ServicePublicationTests(unittest.TestCase):
     setUp=BackendTests.setUp
     call=BackendTests.call
@@ -959,6 +967,7 @@ class ServicePublicationTests(unittest.TestCase):
         self.replay.assert_not_called()
 
 
+@requires_verifier
 class TransactionTests(unittest.TestCase):
     setUp=BackendTests.setUp
     call=BackendTests.call
