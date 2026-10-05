@@ -87,6 +87,14 @@ hold a retained prepared tagging intent even when its pending marker is absent.
 Legacy copy/CLI/cleanup remains held before invocation in publication mode until
 its temporary state and fallback placement are bound to an owned adapter.
 
+An in-place producer may replace only a retained copy outside the registered
+correction owner paths. Bind its
+complete NFS before/after file and workspace facts into both the owned intent and
+receipt before displacement. Preserve the current registered archives and complete
+payload/owner observations throughout. Passive proof uses only the already-bound
+in-process publisher; expired capabilities and lost state grant no initialization
+or replay. Registered catalog paths still require a later reviewed transition.
+
 Keep terminal witnesses under the existing private writer state. Bind their
 complete retained predecessor to the receipt's canonical intent digest, and bind
 terminal facts to a canonical proof in that same receipt before releasing the

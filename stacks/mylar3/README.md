@@ -1031,7 +1031,12 @@ owner, policy, correction census and recovery directories. Automatic temporary
 outputs and manual no-overwrite handoffs require terminal receipt verification
 before clearing only their own captured fence. Completed receipts retain a
 bound terminal witness for later reading; this never authorizes receipt replay.
-Changed or missing evidence keeps the job held. Changed in-place tagging and
+Changed or missing evidence keeps the job held. Manual metadata updates may
+replace a retained copy that is not a registered correction owner archive,
+including an eligible newly converted CBZ,
+while preserving registered originals. The job binds the exact before/after hashes,
+file identities, attributes and publication receipt before displacement; passive
+proof cannot recreate lost recovery state. Registered catalog archives and
 interrupted-job recovery still require the remaining correction work.
 When publication protection is active, Legacy tagging also remains held before
 its temporary copy or child process: its fallback cleanup is not yet bound to

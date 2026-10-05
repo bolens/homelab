@@ -1,5 +1,5 @@
 """Fresh tagging entry controls share real archive/registry/catalog fixtures."""
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 import ast
 import hashlib
 import json
@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import sqlite3
 import sys
 import types
 import uuid
@@ -20,6 +21,7 @@ import publication_native as native
 import tagger_backend
 import tagger_service
 import tagger_adapter
+import tagger_archive
 import tagger_pack
 import tagger_staging
 from tagger_cli import TagResult
@@ -28,6 +30,7 @@ import tagger_handoff
 import publication_transaction as transaction
 import publication_guard as guard
 import converted_tagging
+import workflow_store
 
 requires_verifier=unittest.skipUnless(
     (Path(cases.fixtures.TOOL_ROOT)/'lib/archive_backend.py').is_file(),
@@ -382,10 +385,10 @@ class ServicePublicationTests(unittest.TestCase):
                    age_rating=None,volumeid='456',expected_digest=None)
         value.update(options);return value
 
-    def native_tag(self, *, manual=False, overwrite=False, lookup=None, enabled=True):
+    def native_tag(self, *, manual=False, overwrite=False, lookup=None, enabled=True, action=None, catalog_volume="456"):
         """Run the actual native entry and state binding with real producers."""
         config=self.mylar.CONFIG
-        for name,value in dict(ENABLE_META=enabled,CT_TAG_CR=True,CT_TAG_CBL=False,
+        for name,value in dict(TAGGER_BACKEND="modern",ENABLE_META=enabled,CT_TAG_CR=True,CT_TAG_CBL=False,
                 CBR2CBZ_ONLY=False,CT_CBZ_OVERWRITE=overwrite,COMICVINE_API='fixture',
                 COMICVINE_URL='https://example.invalid',CVAPI_RATE=2,CMTAG_VOLUME=False,
                 CMTAG_START_YEAR_AS_VOLUME=False,SETDEFAULTVOLUME=False).items():
@@ -395,12 +398,18 @@ class ServicePublicationTests(unittest.TestCase):
         functions=[node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name in ('run','state')]
         namespace=dict(__package__='mylar',re=re,uuid=uuid,hashlib=hashlib,json=json,os=os,
                        stat=transaction.stat,sync=transaction.sync,Publisher=tagger_pack.Publisher,
-                       Staging=tagger_staging.Staging,catalog=lambda issueid:(issueid,'456',{}))
+                       Staging=tagger_staging.Staging,catalog=lambda issueid:(issueid,catalog_volume,{}))
         exec(compile(ast.Module(body=functions,type_ignores=[]),'actual-native-producer','exec'),namespace)
         provider=lookup or Mock(side_effect=AssertionError('no-overwrite must not query provider'))
         with patch.dict(sys.modules,{'mylar.publication_transaction':transaction,
                 'mylar.tagger_lookup':types.SimpleNamespace(lookup=provider),
-                'mylar.tagger_service':tagger_service}):
+                'mylar.tagger_service':tagger_service,
+                'mylar.tagger_archive':tagger_archive,'mylar.tagger_adapter':tagger_adapter,
+                'mylar.workflow_store':workflow_store}):
+            if action is not None:
+                with patch.object(self.mylar,'tagger_native',types.SimpleNamespace(
+                        run=namespace['run'],state=namespace['state'],catalog=namespace['catalog'])):
+                    return action()
             return namespace['run'](str(self.incoming.parent),filename=str(self.incoming),
                                      issueid='123',manualmeta=manual)
 
@@ -427,7 +436,8 @@ class ServicePublicationTests(unittest.TestCase):
         with self.assertRaises(guard.Unavailable),self.runtime.operation():self.fail('held operation admitted')
 
     def test_real_native_manual_review_crosses_owning_admission_without_unsupported_fallback(self):
-        self.registered();self.use_real_native_runtime();before=self.incoming.read_bytes()
+        self.registered();self.incoming=self.source
+        self.use_real_native_runtime();before=self.incoming.read_bytes()
         provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
         with patch.object(tagger_adapter,'save',side_effect=self.save_metadata):
             result=self.native_tag(manual=True,overwrite=True,lookup=provider)
@@ -609,12 +619,154 @@ class ServicePublicationTests(unittest.TestCase):
         self.assertFalse(transaction.present(self.writer));self.assertFalse(self.writer.fenced(tagger=True))
 
     def test_actual_native_changed_manual_publication_retains_before_displacement(self):
-        self.registered();before=self.incoming.read_bytes()
+        self.registered();self.incoming=self.source;before=self.incoming.read_bytes()
         provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
         with patch.object(tagger_adapter,'save',side_effect=self.save_metadata):
             result=self.native_tag(manual=True,overwrite=True,lookup=provider)
         self.assertEqual(result.state,'review');self.assertEqual(self.incoming.read_bytes(),before)
         self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
+
+    def test_manual_metadata_on_retained_copy_preserves_registered_archive(self):
+        self.registered();original=self.source.read_bytes();before=self.incoming.read_bytes()
+        provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
+        with patch.object(tagger_adapter,'save',side_effect=self.save_metadata):
+            result=self.native_tag(manual=True,overwrite=True,lookup=provider)
+        self.assertEqual(result.state,'committed');self.assertTrue(result.valid_for(self.incoming))
+        self.assertNotEqual(self.incoming.read_bytes(),before);self.assertEqual(self.source.read_bytes(),original)
+        self.assertFalse(transaction.present(self.writer));self.assertFalse(self.writer.fenced(tagger=True))
+        with self.writer.hold():
+            self.assertEqual(native.require(self.incoming,issueid='123')['inventory']['payload'],
+                             native.require(self.source,issueid='123')['inventory']['payload'])
+
+    def test_real_converted_followup_publishes_and_completes_once(self):
+        self.registered();original=self.source.read_bytes()
+        folder=self.library/'converted';folder.mkdir()
+        self.incoming=folder/'converted.cbz'
+        with zipfile.ZipFile(self.incoming,'w') as archive:
+            archive.writestr('01.jpg',b'distinct converted publication pages')
+        self.sql('ALTER TABLE comics ADD COLUMN AgeRating TEXT')
+        self.sql('INSERT INTO comics (ComicID,ComicLocation) VALUES (?,?)',('888',str(folder)))
+        self.sql('INSERT INTO issues VALUES (?,?,?,?)',('999','888',self.incoming.name,'Downloaded'))
+        self.sql('CREATE TABLE storyarcs (ComicID TEXT,IssueID TEXT,StoryArc TEXT,ReadingOrder TEXT)')
+        database=self.database
+        class Database:
+            def select(_,sql,args):
+                with closing(sqlite3.connect(database)) as db:
+                    db.row_factory=sqlite3.Row
+                    return db.execute(sql,args).fetchall()
+        self.mylar.db=types.SimpleNamespace(DBConnection=Database)
+        digest=guard.file_hash(self.incoming)[1]
+        key=converted_tagging.admit(json.dumps(dict(version=1,path=str(self.incoming),sha256=digest)),self.store)['key']
+        self.use_real_native_runtime()
+        queue=converted_tagging.Queue(self.store,converted_tagging.catalog,
+              self.runtime.operation,converted_tagging.inspect_archive,converted_tagging.tag,
+              converted_tagging.recover,lambda:True,publication=converted_tagging.publication)
+        provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
+        with patch.object(tagger_adapter,'save',side_effect=self.save_metadata):
+            self.native_tag(lookup=provider,action=queue.tick,catalog_volume="888")
+        job=self.store.get('converted_tag',key)
+        self.assertEqual((job['phase'],job['attempts']),('completed',1))
+        self.assertIsNotNone(tagger_archive.snapshot(self.incoming).xml)
+        self.assertEqual(self.source.read_bytes(),original)
+        self.assertFalse(transaction.present(self.writer));self.assertFalse(self.writer.fenced(tagger=True))
+        before=self.incoming.read_bytes();queue.tick()
+        self.assertEqual(self.incoming.read_bytes(),before)
+        self.assertEqual(self.store.get('converted_tag',key),job)
+
+    @unittest.skipUnless(Path('/opt/comictagger/bin/comictagger').is_file(),
+                         'pinned ComicTagger executable required; custom image gate')
+    def test_real_sdk_guarded_retained_copy_publication(self):
+        from test_modern_tagger import png
+        with zipfile.ZipFile(self.source,'w') as archive:
+            archive.writestr('01.png',png())
+            archive.writestr('02.png',png())
+            archive.writestr('extras/credit.txt',b'Preserve publication credit')
+            archive.writestr('ComicInfo.xml','<ComicInfo><Series>Original fixture</Series><Number>1</Number></ComicInfo>')
+        shutil.copy2(self.source,self.incoming)
+        self.registered();original=self.source.read_bytes()
+        provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
+        result=self.native_tag(manual=True,overwrite=True,lookup=provider)
+        self.assertEqual(result.state,'committed');self.assertTrue(result.valid_for(self.incoming))
+        self.assertEqual(self.source.read_bytes(),original)
+        self.assertEqual(tagger_archive.snapshot(self.incoming).xml is not None,True)
+        self.assertFalse(transaction.present(self.writer));self.assertFalse(self.writer.fenced(tagger=True))
+        with self.writer.hold():
+            self.assertEqual(native.require(self.incoming,issueid='123')['inventory']['payload'],
+                             native.require(self.source,issueid='123')['inventory']['payload'])
+
+    def test_expired_in_place_proof_does_not_recreate_lost_recovery_state(self):
+        self.registered();original=self.source.read_bytes();captured=[]
+        provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
+        def interrupted(stage):
+            if stage=='after_displace':
+                captured.append(transaction.current())
+                self.sql('UPDATE issues SET Location=? WHERE IssueID=?',('missing-owner.cbz','123'))
+        with patch.object(tagger_adapter,'save',side_effect=self.save_metadata),\
+                patch.object(tagger_adapter,'_checkpoint',side_effect=interrupted):
+            result=self.native_tag(manual=True,overwrite=True,lookup=provider)
+        self.assertEqual(result.state,'review');self.assertEqual(len(captured),1)
+        job=captured[0];journal=Path(job.value['recovery']['directories'][1][0])
+        shutil.rmtree(journal)
+        with self.writer.hold(allow_tagger_pending=True):
+            with self.assertRaises((native.Review,guard.Unavailable,OSError)):
+                job.proof(self.incoming,original=True)
+        self.assertFalse(journal.exists())
+        self.assertEqual(self.source.read_bytes(),original)
+        self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
+
+    def test_retained_copy_owner_drift_after_displacement_holds_before_link(self):
+        self.registered();before=self.incoming.read_bytes();original=self.source.read_bytes()
+        provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
+        def changed(stage):
+            if stage=='after_displace':self.sql('UPDATE issues SET Location=? WHERE IssueID=?',('missing-owner.cbz','123'))
+        with patch.object(tagger_adapter,'save',side_effect=self.save_metadata),\
+                patch.object(tagger_adapter,'_checkpoint',side_effect=changed):
+            result=self.native_tag(manual=True,overwrite=True,lookup=provider)
+        self.assertEqual(result.state,'review');self.assertFalse(self.incoming.exists())
+        folder=next(self.incoming.parent.glob('.mylar-tag-*'))
+        self.assertEqual((folder/'displaced.cbz').read_bytes(),before)
+        self.assertEqual((folder/'original.cbz').read_bytes(),before)
+        self.assertEqual(self.source.read_bytes(),original)
+        self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
+
+    def interrupted_retained_binding(self,phase):
+        self.registered();before=self.incoming.read_bytes();original=self.source.read_bytes()
+        provider=lambda **kwargs:types.SimpleNamespace(state='ok',metadata={'series':'Fixture Annual','issue':'1'})
+        write_intent=transaction._write;write_receipt=tagger_pack.Publisher.write
+        failed=[];stages=[]
+        def intent(path,value,*,exclusive):
+            binding=value.get('publisher',{}).get('in_place')
+            if not failed and binding is not None and ((phase=='intent' and value['in_place'] is None)
+                    or (phase=='activation' and value['in_place'] is not None)):
+                failed.append(phase);raise OSError('Injected binding durability failure')
+            return write_intent(path,value,exclusive=exclusive)
+        def receipt(publisher,record):
+            if not failed and phase=='receipt' and record.get('correction_guard',{}).get('in_place') is not None:
+                failed.append(phase);raise OSError('Injected receipt durability failure')
+            return write_receipt(publisher,record)
+        with patch.object(tagger_adapter,'save',side_effect=self.save_metadata),\
+                patch.object(transaction,'_write',side_effect=intent),\
+                patch.object(tagger_pack.Publisher,'write',new=receipt),\
+                patch.object(tagger_adapter,'_checkpoint',side_effect=stages.append):
+            result=self.native_tag(manual=True,overwrite=True,lookup=provider)
+        self.assertEqual(result.state,'review');self.assertEqual(failed,[phase])
+        self.assertNotIn('after_displace',stages)
+        self.assertEqual(self.incoming.read_bytes(),before);self.assertEqual(self.source.read_bytes(),original)
+        folder=next(self.incoming.parent.glob('.mylar-tag-*'))
+        self.assertEqual((folder/'original.cbz').read_bytes(),before)
+        self.assertTrue((folder/'verified.cbz').is_file())
+        self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
+        with self.writer.hold(allow_tagger_pending=True):
+            with self.assertRaises(guard.Unavailable):self.mylar.native_writers.admission(self.writer)
+
+    def test_retained_binding_intent_failure_preserves_both_archives_and_hold(self):
+        self.interrupted_retained_binding('intent')
+
+    def test_retained_binding_receipt_failure_preserves_both_archives_and_hold(self):
+        self.interrupted_retained_binding('receipt')
+
+    def test_retained_binding_activation_failure_preserves_both_archives_and_hold(self):
+        self.interrupted_retained_binding('activation')
 
     def test_actual_native_failed_lookup_retains_owned_intent_before_failure_fallback(self):
         self.registered();before=self.incoming.read_bytes()
