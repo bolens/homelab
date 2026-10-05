@@ -123,8 +123,36 @@ is held. Interrupted aborts finish their old final marker without resurrecting
 the token. The ordinary census check always holds accepted unfinished receipts.
 Only internal exact recovery may validate its own accepted receipt as pending.
 
-Process exits cover all seven registration write boundaries. A registration
-SQLite journal remains held without original database/journal changes. The
-existing `JournalRecovery` is bootstrap-only and cannot recover registration
-journals. Its registration extension, authentication, native observer and
-startup/publication integration remain required before live use.
+Process exits cover all seven registration write boundaries. Ordinary checks
+hold a registration SQLite journal without original database/journal changes.
+Explicit `RegistrationJournalRecovery` now supplies its independent recovery
+protocol. Authentication, the native observer and startup/publication integration
+remain required before live use.
+
+## Registration journal source implementation boundary
+
+`RegistrationJournalRecovery` uses the shared capture/restore/acceptance mechanics
+with exact `action=registration-journal` and `registration_token` receipt fields.
+The bootstrap route retains `action=bootstrap-journal` and `bootstrap_token`.
+Each route refuses the other type. Registration restoration verifies the exact
+accepted old intent, complete predecessor census/attestation/receipt chain and
+original initialization witness before original SQLite access. The original
+filesystem identities, schema, protected workflow and pending fences must match
+the reviewed registration. The prepared marker must bind that old census and
+the exact derived new census.
+
+The helper restores only the complete accepted predecessor, including every
+record envelope and event. It preserves the original database inode and media
+fences, retains independent proof, and permits no registration or media replay.
+A separate registration recovery call must freshly observe current facts to
+commit or explicitly abort. A changed interrupted rollback pair requires a new
+linked review proving the same complete independently restored contents.
+
+All authority-marker and recovery-receipt predecessor comparisons use canonical
+JSON equality. Boolean or floating-point values cannot alias integer protocol
+versions or identities. Controls cover genuine hot journals with an existing
+correction chain, seven recovery exits, interruption inside rollback, type-route
+separation, retained restore tampering and coherently rehashed missing prior
+records. Malformed boolean/float markers are refused before original files
+change across registration and both journal routes. No live recovery, native
+observer, API authentication or startup/publication integration is claimed.

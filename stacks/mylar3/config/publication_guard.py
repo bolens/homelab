@@ -338,6 +338,11 @@ def canonical_digest(value):
         separators=(',', ':'), allow_nan=False).encode('utf-8')).hexdigest()
 
 
+def same_json(left, right):
+    """Compare exact JSON types as well as values; bool/float cannot alias int."""
+    return canonical_digest(left) == canonical_digest(right)
+
+
 def digest_value(value):
     return isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) is not None
 
@@ -1095,7 +1100,7 @@ class RegistrationState(RegistryState):
         if not digest_value(initialization):
             raise Unavailable('Missing original initialization witness')
         census, records = self._validated(db, initialization, pending=pending)
-        if marker != self.final_marker(census, initialization):
+        if not same_json(marker, self.final_marker(census, initialization)):
             raise Unavailable('Registration requires exact complete final authority')
         return marker, census, records
 
@@ -1145,7 +1150,7 @@ class RegistrationState(RegistryState):
     def _commit_registration(self, db, token, record, prepared, boundary):
         value, new = registration_effect(token, record['plan'])
         db.execute('BEGIN IMMEDIATE')
-        if (self._read_marker() != prepared
+        if (not same_json(self._read_marker(), prepared)
                 or self._binding(db) != record['plan']['binding']):
             raise Unavailable('Accepted registration state changed')
         record = dict(record, outcome='committed')
@@ -1196,8 +1201,8 @@ class RegistrationState(RegistryState):
                     initialization = marker.get('initialization_intent')
                     census, _ = self._validated(db, initialization)
                     prepared = self._registration_prepared(token, record, initialization)
-                    if marker == self.final_marker(census, initialization):return census
-                    if marker != prepared or census != prepared['old']:
+                    if same_json(marker, self.final_marker(census, initialization)):return census
+                    if not same_json(marker, prepared) or census != prepared['old']:
                         raise Unavailable('Mixed aborted registration state')
                     db.commit()
                     self._publish_marker(self.final_marker(census, initialization),
@@ -1209,13 +1214,14 @@ class RegistrationState(RegistryState):
                 initialization = marker.get('initialization_intent')
                 prepared = self._registration_prepared(token, record, initialization)
                 census, _ = self._validated(db, initialization, pending=token)
-                if marker == self.final_marker(census, initialization) and record['outcome'] == 'committed':
+                if same_json(marker, self.final_marker(census, initialization)) and record['outcome'] == 'committed':
                     if abort:raise Unavailable('Committed registration cannot abort')
                     return registration_effect(token, record['plan'])[1]
-                if marker not in (prepared, self.final_marker(record['plan']['old'], initialization)):
+                if not any(same_json(marker, candidate) for candidate in
+                           (prepared, self.final_marker(record['plan']['old'], initialization))):
                     raise Unavailable('Missing or foreign prepared registration marker')
                 if record['outcome'] == 'committed':
-                    if abort or census != prepared['new'] or marker != prepared:
+                    if abort or census != prepared['new'] or not same_json(marker, prepared):
                         raise Unavailable('Mixed committed registration state')
                     db.commit()
                     return self._finish_registration(db, token, record, prepared, boundary)
@@ -1223,7 +1229,7 @@ class RegistrationState(RegistryState):
                     raise Unavailable('Mixed accepted registration state')
             if not abort:self._fresh(record['plan']['body'], observe)
             with self._session() as db:
-                if self._record(db, token) != record or self._read_marker() != marker:
+                if not same_json(self._record(db, token), record) or not same_json(self._read_marker(), marker):
                     raise Unavailable('Registration recovery changed')
                 census, _ = self._validated(db, initialization, pending=token)
                 if census != record['plan']['old']:
@@ -1231,7 +1237,7 @@ class RegistrationState(RegistryState):
                 if not abort and self._binding(db) != record['plan']['binding']:
                     raise Unavailable('Accepted registration facts are stale')
                 db.commit()
-                if marker != prepared:
+                if not same_json(marker, prepared):
                     self._publish_marker(prepared,'prepared',boundary,expected=marker)
                 if abort:
                     db.execute('BEGIN IMMEDIATE')
@@ -1250,6 +1256,9 @@ class JournalRecovery:
     primary-key API must authenticate preparation and exact-plan acceptance.
     These helpers never replay media operations or clear their pending fences.
     """
+    ACTION = 'bootstrap-journal'
+    TOKEN_FIELD = 'bootstrap_token'
+
     @state_errors
     def __init__(self, database, writer):
         self.database = Path(database)
@@ -1345,7 +1354,7 @@ class JournalRecovery:
             raise Unavailable('Recovered bootstrap facts differ from reviewed state')
         marker = dict(version=1, phase='prepared', intent=bootstrap_token, old=None, new=selected['new'],
             database_identity=binding['database_identity'], writer_identity=self.writer_binding)
-        if private_json(self.bootstrap_marker) != marker:
+        if not same_json(private_json(self.bootstrap_marker), marker):
             raise Unavailable('Prepared bootstrap marker does not match restored intent')
         return full_workflow_snapshot(db)
 
@@ -1389,7 +1398,7 @@ class JournalRecovery:
                 raise Unavailable('Recovery writer identity changed')
             if expected is None:
                 if os.path.lexists(path):raise Unavailable('Recovery receipt appeared')
-            elif private_json(path) != expected:
+            elif not same_json(private_json(path), expected):
                 raise Unavailable('Recovery receipt changed')
         check()
         raw = compact(value)
@@ -1409,9 +1418,9 @@ class JournalRecovery:
                 or not isinstance(value['plan'], dict) or canonical_digest(value['plan']) != token):
             raise Unavailable('Invalid exact recovery receipt')
         plan = value['plan']
-        if (set(plan) != {'version', 'action', 'bootstrap_token', 'capture', 'restored', 'directory', 'parent'}
+        if (set(plan) != {'version', 'action', self.TOKEN_FIELD, 'capture', 'restored', 'directory', 'parent'}
                 or plan['version'] != 1 or type(plan['version']) is not int
-                or plan['action'] != 'bootstrap-journal' or not digest_value(plan['bootstrap_token'])
+                or plan['action'] != self.ACTION or not digest_value(plan[self.TOKEN_FIELD])
                 or not isinstance(plan['directory'], str)
                 or not re.fullmatch(r'publication-recovery-[a-f0-9]{32}', plan['directory'])
                 or (plan['parent'] is not None and not digest_value(plan['parent']))
@@ -1462,7 +1471,7 @@ class JournalRecovery:
         if private_evidence(directory / 'restored.sqlite')['sha256'] != plan['restored']['sha256']:
             raise Unavailable('Retained isolated restoration changed')
         saved = private_json(directory / 'receipt.json')
-        if (set(saved) != {'plan', 'outcome'} or saved['plan'] != plan
+        if (set(saved) != {'plan', 'outcome'} or not same_json(saved['plan'], plan)
                 or saved['outcome'] not in ('verified', 'accepted', 'recovered')):
             raise Unavailable('Retained independent recovery receipt changed')
         restored = directory / 'restored.sqlite'
@@ -1471,7 +1480,7 @@ class JournalRecovery:
             db.execute('BEGIN')
             if db.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
                 raise Unavailable('Retained restoration integrity failed')
-            actual = self._old_state(db, plan['bootstrap_token'], plan['capture'])
+            actual = self._old_state(db, plan[self.TOKEN_FIELD], plan['capture'])
         expected = {key: value for key, value in plan['restored'].items() if key != 'sha256'}
         if actual != expected:
             raise Unavailable('Retained restoration differs from recovery plan')
@@ -1491,7 +1500,7 @@ class JournalRecovery:
                 if not digest_value(parent_token):raise Unavailable('Exact prior recovery token is required')
                 predecessor = self._receipt(parent_token)
                 if (predecessor['outcome'] != 'accepted'
-                        or predecessor['plan']['bootstrap_token'] != bootstrap_token):
+                        or predecessor['plan'][self.TOKEN_FIELD] != bootstrap_token):
                     raise Unavailable('Only an interrupted accepted recovery can be reviewed again')
                 self._retained(predecessor['plan'])
             elif os.path.lexists(self.marker):
@@ -1521,8 +1530,8 @@ class JournalRecovery:
             restored['sha256'] = private_evidence(directory / 'restored.sqlite')['sha256']
             sync(directory);boundary('restore-verified')
             if self._capture() != capture:raise Unavailable('Original recovery pair changed during restore verification')
-            plan = dict(version=1, action='bootstrap-journal', bootstrap_token=bootstrap_token,
-                        capture=capture, restored=restored, directory=directory.name, parent=parent_token)
+            plan = dict(version=1, action=self.ACTION, capture=capture, restored=restored,
+                        directory=directory.name, parent=parent_token, **{self.TOKEN_FIELD: bootstrap_token})
             value = dict(plan=plan, outcome='verified')
             self._publish(directory / 'receipt.json', value, expected=None)
             self._publish(self.marker, value, expected=predecessor);boundary('recovery-plan')
@@ -1553,7 +1562,7 @@ class JournalRecovery:
             if os.path.lexists(self.journal):
                 if self._capture() != capture:
                     raise Unavailable('Interrupted rollback pair needs a fresh isolated review')
-                actual = self._rollback(self.database, plan['bootstrap_token'], capture, boundary=boundary)
+                actual = self._rollback(self.database, plan[self.TOKEN_FIELD], capture, boundary=boundary)
                 boundary('original-recovered')
             else:
                 database_stamp(self.database)
@@ -1561,17 +1570,62 @@ class JournalRecovery:
                     db.execute('BEGIN')
                     if db.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
                         raise Unavailable('Recovered database integrity failed')
-                    actual = self._old_state(db, plan['bootstrap_token'], capture)
+                    actual = self._old_state(db, plan[self.TOKEN_FIELD], capture)
             expected = {key: value for key, value in plan['restored'].items() if key != 'sha256'}
             if actual != expected:raise Unavailable('Original recovery differs from independently restored contents')
             completed = dict(receipt, outcome='recovered')
             saved = private_json(directory / 'receipt.json')
-            if saved['plan'] != plan:raise Unavailable('Retained recovery receipt changed')
+            if not same_json(saved['plan'], plan):raise Unavailable('Retained recovery receipt changed')
             self._publish(directory / 'receipt.json', completed, expected=saved)
             self._publish(self.marker, completed, expected=receipt);boundary('completion-receipt')
-            if private_json(self.marker) != completed:raise Unavailable('Completion receipt changed')
+            if not same_json(private_json(self.marker), completed):raise Unavailable('Completion receipt changed')
             self.marker.unlink();sync(self.writer.root);boundary('recovery-cleared')
             return expected
+
+
+class RegistrationJournalRecovery(JournalRecovery):
+    """Explicit isolated rollback proof for one accepted registration predecessor.
+
+    Receipt types cannot cross bootstrap/registration recovery routes. Journal
+    recovery only restores the exact accepted old SQL state; it never completes
+    registration, bypasses fresh observation or replays media operations.
+    """
+    ACTION = 'registration-journal'
+    TOKEN_FIELD = 'registration_token'
+
+    def _old_state(self, db, registration_token, capture):
+        if __package__:
+            from .workflow_store import protected_snapshot
+        else:
+            from workflow_store import protected_snapshot
+        row = db.execute("SELECT value FROM records WHERE kind='publication_intent' AND key=? "
+                         "AND typeof(value)='text' AND length(CAST(value AS BLOB))<=?",
+                         (registration_token, REGISTRATION_BYTES)).fetchone()
+        if row is None:
+            raise Unavailable('Recovered registration receipt is missing')
+        record = decode_json(row[0]);plan = intent_record(registration_token, record)
+        if plan['action'] != 'register' or record['outcome'] != 'accepted':
+            raise Unavailable('Journal recovery requires the exact accepted registration')
+        binding = plan['binding']
+        identity = capture['database']['signature'][:2]
+        if (binding['database_identity'] != identity
+                or binding['writer_identity'] != self.writer_binding
+                or binding['schema'] != workflow_schema(db)
+                or binding['workflow'] != protected_snapshot(db)
+                or binding['pending'] != capture['pending']):
+            raise Unavailable('Recovered registration facts differ from reviewed predecessor')
+        marker = private_json(self.bootstrap_marker)
+        initialization = marker.get('initialization_intent')
+        census, _ = complete_census(db, pending=registration_token)
+        initialization_witness(db, initialization, census, identity, self.writer_binding,
+                               pending=registration_token)
+        _, new = registration_effect(registration_token, plan)
+        expected = dict(version=1, phase='prepared', intent=registration_token,
+                        old=plan['old'], new=new, initialization_intent=initialization,
+                        database_identity=identity, writer_identity=self.writer_binding)
+        if census != plan['old'] or not same_json(marker, expected):
+            raise Unavailable('Registration journal requires exact prepared old authority')
+        return full_workflow_snapshot(db)
 
 
 if __name__ == '__main__':

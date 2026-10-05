@@ -743,6 +743,31 @@ class RegistrationTransactionTests(unittest.TestCase):
         self.assertEqual(state.recover_registration(token,abort=True)['revision'],0)
         self.assertEqual(self.read()[0]['revision'],0)
 
+    def test_boolean_and_float_authority_markers_hold(self):
+        state=self.engine();token=state.prepare_registration(self.body(),observe=self.observe)
+        original=self.marker.read_bytes()
+        for version in (True,1.0):
+            value=json.loads(original);value['version']=version
+            self.marker.write_bytes(guard.compact(value))
+            before=self.store.path.read_bytes()
+            with self.assertRaises(guard.Unavailable):
+                state.register(token,accepted_token=token,observe=self.observe)
+            self.assertEqual(self.store.path.read_bytes(),before)
+            self.assertEqual(json.loads(self.marker.read_bytes())['version'],version)
+        self.marker.write_bytes(original)
+        def stop(stage):
+            if stage=='prepared-marker':raise RuntimeError('fixture')
+        with self.assertRaises(RuntimeError):
+            state.register(token,accepted_token=token,observe=self.observe,boundary=stop)
+        original=self.marker.read_bytes()
+        for version in (True,1.0):
+            value=json.loads(original);value['version']=version
+            self.marker.write_bytes(guard.compact(value));before=self.store.path.read_bytes()
+            with self.assertRaises(guard.Unavailable):state.recover_registration(token,abort=True)
+            self.assertEqual(self.store.path.read_bytes(),before)
+        self.marker.write_bytes(original)
+        self.assertEqual(state.recover_registration(token,abort=True)['revision'],0)
+
     def test_process_exits_and_exact_restart_controls(self):
         import subprocess
         for stage in ('intent-accepted','prepared-file','prepared-marker','sqlite-pending',
@@ -776,6 +801,174 @@ state.register(sys.argv[2],accepted_token=sys.argv[2],observe=observe,boundary=b
                     self.assertEqual(census['revision'],1)
                     self.assertEqual(fixture.read()[0],census)
                 finally:fixture.doCleanups()
+
+class RegistrationJournalTests(unittest.TestCase):
+    setUp_registry = RegistryTests.setUp
+    record = RegistryTests.record
+    read = RegistryTests.read
+    observe = RegistrationTransactionTests.observe
+
+    def setUp(self):
+        import subprocess
+        self.setUp_registry()
+        for index in range(12):self.store.set('pack',str(index),{'data':'x'*8192})
+        body={key:value for key,value in self.record().items() if key!='intent'}
+        state=guard.RegistrationState(self.store.path,self.writer)
+        first=state.prepare_registration(body,observe=self.observe)
+        state.register(first,accepted_token=first,observe=self.observe)
+        body['prior_revision']=1
+        body['observed'][0]['catalog']['fixture_padding']='x'*16384
+        self.token=state.prepare_registration(body,observe=self.observe)
+        script='''import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[3])
+from media_writer import Writer
+import publication_guard as guard
+state=guard.RegistrationState(Path(sys.argv[1])/'workflow.sqlite',Writer(Path(sys.argv[1])/'media-writer'))
+original=state._commit_registration
+def commit(db,*args):
+    db.execute('PRAGMA cache_size=1')
+    return original(db,*args)
+state._commit_registration=commit
+def observe(body):return {key:body[key] for key in ('inventory','observed')}
+def boundary(stage):
+    if stage=='sqlite-pending':os._exit(78)
+state.register(sys.argv[2],accepted_token=sys.argv[2],observe=observe,boundary=boundary)
+'''
+        result=subprocess.run([sys.executable,'-B','-c',script,str(self.root),self.token,
+            str(Path(guard.__file__).parent)],timeout=20,capture_output=True)
+        self.assertEqual(result.returncode,78,result.stderr.decode())
+        self.journal=Path(str(self.store.path)+'-journal')
+        self.assertEqual(self.journal.read_bytes()[:8],bytes.fromhex('d9d505f920a163d7'))
+        self.before=self.pair()
+
+    def pair(self):
+        return self.store.path.read_bytes(),self.journal.read_bytes(),self.marker.read_bytes()
+
+    def engine(self):return guard.RegistrationJournalRecovery(self.store.path,self.writer)
+
+    def test_verified_registration_journal_then_fresh_commit(self):
+        recovery=self.engine();identity=guard.signature(self.store.path.stat())[:2]
+        token=recovery.prepare(self.token)
+        self.assertEqual(self.pair(),self.before)
+        receipt=guard.private_json(recovery.marker)
+        self.assertEqual(receipt['plan']['action'],'registration-journal')
+        self.assertEqual(receipt['plan']['registration_token'],self.token)
+        self.assertNotIn('bootstrap_token',receipt['plan'])
+        with self.assertRaises(guard.Unavailable):recovery.commit(token,accepted_token='f'*64)
+        with self.assertRaises(guard.Unavailable):guard.JournalRecovery(self.store.path,self.writer).commit(token,accepted_token=token)
+        recovery.commit(token,accepted_token=token)
+        self.assertEqual(guard.signature(self.store.path.stat())[:2],identity)
+        self.assertFalse(self.journal.exists())
+        with self.assertRaises(guard.Unavailable):self.read()
+        state=guard.RegistrationState(self.store.path,self.writer)
+        self.assertEqual(state.recover_registration(self.token,observe=self.observe)['revision'],2)
+        self.assertEqual(self.read()[0]['revision'],2)
+        self.assertEqual(self.store.get('pack','0'),{'data':'x'*8192})
+
+    def test_bootstrap_route_refuses_registration_pair_unchanged(self):
+        with self.assertRaises(guard.Unavailable):guard.JournalRecovery(self.store.path,self.writer).prepare(self.token)
+        self.assertEqual(self.pair(),self.before)
+
+    def test_stale_source_and_retained_restore_tampering_hold(self):
+        recovery=self.engine();token=recovery.prepare(self.token)
+        receipt=guard.private_json(recovery.marker)
+        restored=self.writer.root/receipt['plan']['directory']/'restored.sqlite'
+        raw=restored.read_bytes();restored.write_bytes(raw[:-1]+bytes([raw[-1]^1]))
+        with self.assertRaises(guard.Unavailable):recovery.commit(token,accepted_token=token)
+        self.assertEqual(self.pair(),self.before)
+
+    def test_recovery_process_exits_reconcile_exact_registered_old_state(self):
+        import subprocess
+        for stage in ('capture-copied','restore-verified','recovery-plan','recovery-accepted',
+                      'original-recovered','completion-receipt','recovery-cleared'):
+            with self.subTest(stage=stage):
+                fixture=RegistrationJournalTests();fixture.setUp()
+                try:
+                    script='''import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[3])
+from media_writer import Writer
+import publication_guard as guard
+recovery=guard.RegistrationJournalRecovery(Path(sys.argv[1])/'workflow.sqlite',Writer(Path(sys.argv[1])/'media-writer'))
+def boundary(stage):
+    if stage==sys.argv[4]:os._exit(79)
+token=recovery.prepare(sys.argv[2],boundary=boundary)
+recovery.commit(token,accepted_token=token,boundary=boundary)
+'''
+                    result=subprocess.run([sys.executable,'-B','-c',script,str(fixture.root),fixture.token,
+                        str(Path(guard.__file__).parent),stage],timeout=20,capture_output=True)
+                    self.assertEqual(result.returncode,79,result.stderr.decode())
+                    recovery=fixture.engine()
+                    if recovery.marker.exists():
+                        token=guard.canonical_digest(guard.private_json(recovery.marker)['plan'])
+                        recovery.commit(token,accepted_token=token)
+                    elif fixture.journal.exists():
+                        token=recovery.prepare(fixture.token);recovery.commit(token,accepted_token=token)
+                    state=guard.RegistrationState(fixture.store.path,fixture.writer)
+                    self.assertEqual(state.recover_registration(fixture.token,abort=True)['revision'],1)
+                    self.assertEqual(fixture.read()[0]['revision'],1)
+                    self.assertEqual(fixture.store.get('pack','0'),{'data':'x'*8192})
+                finally:fixture.doCleanups()
+
+
+    def test_malformed_boolean_and_float_markers_hold_both_recovery_routes(self):
+        for fixture_type in (RegistrationJournalTests,JournalRecoveryTests):
+            fixture=fixture_type();fixture.setUp()
+            try:
+                original=fixture.pair()
+                for version in (True,1.0):
+                    marker=json.loads(original[2]);marker['version']=version
+                    fixture.marker.write_bytes(guard.compact(marker)) if hasattr(fixture,'marker') else fixture.state.marker.write_bytes(guard.compact(marker))
+                    before=fixture.pair()
+                    recovery=fixture.engine() if isinstance(fixture,RegistrationJournalTests) else guard.JournalRecovery(fixture.store.path,fixture.writer)
+                    with self.assertRaises(guard.Unavailable):recovery.prepare(fixture.token)
+                    self.assertEqual(fixture.pair(),before)
+            finally:fixture.doCleanups()
+
+    def test_lost_prior_authority_in_forged_restore_holds_original_pair(self):
+        import sqlite3
+        from contextlib import closing
+        recovery=self.engine();recovery.prepare(self.token)
+        receipt=guard.private_json(recovery.marker)
+        directory=self.writer.root/receipt['plan']['directory']
+        restored=directory/'restored.sqlite'
+        with closing(sqlite3.connect(restored)) as db:
+            db.execute("DELETE FROM records WHERE kind='publication_attestation'");db.commit()
+        receipt['plan']['restored']['sha256']=guard.private_evidence(restored)['sha256']
+        # Even coherent new file/receipt digests cannot replace prior authority.
+        (directory/'receipt.json').write_bytes(guard.compact(receipt))
+        recovery.marker.write_bytes(guard.compact(receipt))
+        forged=guard.canonical_digest(receipt['plan'])
+        with self.assertRaises(guard.Unavailable):recovery.commit(forged,accepted_token=forged)
+        self.assertEqual(self.pair(),self.before)
+
+    def test_registration_route_refuses_bootstrap_journal(self):
+        fixture=JournalRecoveryTests();fixture.setUp()
+        try:
+            before=fixture.pair()
+            recovery=guard.RegistrationJournalRecovery(fixture.store.path,fixture.writer)
+            with self.assertRaises(guard.Unavailable):recovery.prepare(fixture.token)
+            self.assertEqual(fixture.pair(),before)
+        finally:fixture.doCleanups()
+
+    def test_interrupted_rollback_requires_linked_fresh_review(self):
+        import subprocess
+        recovery=self.engine();token=recovery.prepare(self.token)
+        script="import os,sys\nfrom pathlib import Path\nsys.path.insert(0,sys.argv[3])\nfrom media_writer import Writer\nimport publication_guard as guard\nrecovery=guard.RegistrationJournalRecovery(Path(sys.argv[1])/'workflow.sqlite',Writer(Path(sys.argv[1])/'media-writer'))\ndef boundary(stage):\n    if stage=='rollback-pending':os._exit(80)\nrecovery.commit(sys.argv[2],accepted_token=sys.argv[2],boundary=boundary)\n"
+        result=subprocess.run([sys.executable,'-B','-c',script,str(self.root),token,
+            str(Path(guard.__file__).parent)],timeout=20,capture_output=True)
+        self.assertEqual(result.returncode,80,result.stderr.decode())
+        changed=self.pair()
+        with self.assertRaises(guard.Unavailable):recovery.commit(token,accepted_token=token)
+        self.assertEqual(self.pair(),changed)
+        renewed=recovery.prepare(self.token,parent_token=token)
+        self.assertNotEqual(renewed,token)
+        self.assertEqual(guard.private_json(recovery.marker)['plan']['parent'],token)
+        recovery.commit(renewed,accepted_token=renewed)
+        state=guard.RegistrationState(self.store.path,self.writer)
+        self.assertEqual(state.recover_registration(self.token,abort=True)['revision'],1)
+        self.assertEqual(self.read()[0]['revision'],1)
 
 
 class JournalRecoveryTests(unittest.TestCase):

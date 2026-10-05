@@ -72,6 +72,20 @@ Internal registration writes now follow explicit acceptance and prepared-marker,
 SQLite and final-marker durability. The trusted native observer, authentication
 and startup enforcement remain unimplemented at this source milestone.
 
+## Registration journal recovery receipt
+
+Typed `registration-journal` plans use `registration_token` and retain the same
+bounded private capture, independent restoration and explicit acceptance protocol
+as bootstrap journal recovery. The two receipt types cannot cross recovery
+routes. A restored registration predecessor must contain its accepted intent,
+complete prior correction chain and original committed bootstrap witness, with
+matching original database/writer/schema/workflow/fences and prepared marker.
+Recovery preserves all workflow records, envelopes and events. It restores only
+the accepted old state. Registration still requires separate fresh observation
+or explicit abort. Interrupted rollback requires a new linked isolated review.
+Authority markers and receipt predecessors compare canonical JSON so boolean
+and floating-point substitutions cannot alias integer protocol values.
+
 ## Guard proof
 
 Protocol version, registry revision/census, candidate full SHA/stable filesystem signature, payload digest, exact proposed owner and decision (`unknown`, `allowed`, `review`, `unavailable`). A worker proof is advisory; native final admission recomputes actual staged content. Missing owner for a known payload stays review. Cached proofs require unchanged source/signature/revision and fresh matched correct-owner evidence.
