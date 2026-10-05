@@ -262,8 +262,14 @@ class RegistryTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.store = workflow_store.Store(self.root)
-        self.marker = self.root / 'publication-v1.json'
+        from media_writer import Writer
+        self.writer = Writer(self.root / 'media-writer', create=True)
+        self.state = guard.RegistryState(self.store.path, self.writer)
+        self.marker = self.state.marker
         self.epoch = 'e' * 64
+        self.initialization = self.state.prepare_bootstrap(dict(manifest_sha256='a'*64,
+            restore_sha256='b'*64, description='Restored fixture'), epoch=self.epoch)
+        self.state.initialize(self.initialization, accepted_token=self.initialization)
 
     def record(self, revision=0):
         owner = dict(table='annuals', issueid='123', parentcomicid='456', releasecomicid='789')
@@ -287,8 +293,7 @@ class RegistryTests(unittest.TestCase):
         census = dict(version=1, epoch=self.epoch, revision=len(values), keys=sorted(keys),
                       digest=guard.canonical_digest(sorted(keys)))
         self.store.set('publication_census', 'v1', census)
-        self.marker.write_bytes(guard.compact(dict(version=1, phase='final', census=census,
-            database_identity=guard.signature(self.store.path.stat())[:2])))
+        self.marker.write_bytes(guard.compact(self.state.final_marker(census, self.initialization)))
         self.marker.chmod(0o600)
         return census
 
@@ -459,6 +464,232 @@ class RegistryTests(unittest.TestCase):
         self.marker.write_bytes(original)
         self.assertEqual(self.read()[0]['revision'], 0)
 
+
+
+class BootstrapTests(unittest.TestCase):
+    def setUp(self):
+        from media_writer import Writer
+        from workflow_store import Store
+        self.temp = tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.store = Store(self.root)
+        self.writer = Writer(self.root / 'media-writer', create=True)
+        self.state = guard.RegistryState(self.store.path, self.writer)
+        self.backup = dict(manifest_sha256='a'*64, restore_sha256='b'*64,
+                           description='Independently restored isolated fixture')
+
+    def prepare(self):
+        return self.state.prepare_bootstrap(self.backup, epoch='e'*64)
+
+    def test_explicit_acceptance_and_restart(self):
+        token = self.prepare()
+        self.assertFalse(self.state.marker.exists())
+        with self.assertRaises(guard.Unavailable):self.state.snapshot()
+        with self.assertRaises(guard.Unavailable):self.state.initialize(token, accepted_token='f'*64)
+        census = self.state.initialize(token, accepted_token=token)
+        self.assertEqual(census['revision'], 0)
+        self.assertEqual(census['epoch'], 'e'*64)
+        restarted = guard.RegistryState(self.store.path, self.writer)
+        self.assertEqual(restarted.snapshot(), (census, {}))
+        self.assertEqual(restarted.initialize(token, accepted_token=token), census)
+        with self.assertRaises(guard.Unavailable):self.prepare()
+
+    def test_stale_protected_facts_and_event_only_drift(self):
+        token = self.prepare()
+        self.store.set('pack', 'changed', {'phase': 'downloaded'})
+        with self.assertRaises(guard.Unavailable):self.state.initialize(token, accepted_token=token)
+        self.store.delete('pack', 'changed')
+        self.store.event('library', 'Observed', key='volatile')
+        self.store.set('meta', 'library_seen', ['123'])
+        self.assertEqual(self.state.initialize(token, accepted_token=token)['revision'], 0)
+
+    def test_crashes_at_every_durability_boundary(self):
+        stages = ('intent-accepted', 'prepared-file', 'prepared-marker',
+                  'sqlite-pending', 'sqlite-committed', 'final-file', 'final-marker')
+        for stage in stages:
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as directory:
+                from media_writer import Writer
+                from workflow_store import Store
+                store = Store(directory);writer = Writer(Path(directory)/'writer', create=True)
+                state = guard.RegistryState(store.path, writer)
+                token = state.prepare_bootstrap(self.backup, epoch='e'*64)
+                def interrupt(point):
+                    if point == stage:raise RuntimeError('Injected interruption')
+                with self.assertRaises(RuntimeError):state.initialize(token, accepted_token=token, boundary=interrupt)
+                restarted = guard.RegistryState(store.path, writer)
+                if stage in ('intent-accepted', 'prepared-file'):
+                    with self.assertRaises(guard.Unavailable):restarted.snapshot()
+                    restarted.initialize(token, accepted_token=token)
+                elif stage == 'final-marker':restarted.snapshot()
+                else:
+                    with self.assertRaises(guard.Unavailable):restarted.snapshot()
+                    restarted.recover_bootstrap(token)
+                self.assertEqual(restarted.snapshot()[0]['revision'], 0)
+
+    def test_abort_keeps_receipt_and_uninitialized_state(self):
+        token = self.prepare()
+        def interrupt(stage):
+            if stage == 'prepared-marker':raise RuntimeError('Injected interruption')
+        with self.assertRaises(RuntimeError):self.state.initialize(token, accepted_token=token, boundary=interrupt)
+        self.state.recover_bootstrap(token, abort=True)
+        self.assertFalse(self.state.marker.exists())
+        self.assertEqual(self.store.get('publication_intent', token)['outcome'], 'aborted')
+        with self.assertRaises(guard.Unavailable):self.state.initialize(token, accepted_token=token)
+        with self.assertRaises(guard.Unavailable):self.state.snapshot()
+
+    def test_missing_marker_or_census_never_rebootstraps(self):
+        token = self.prepare();self.state.initialize(token, accepted_token=token)
+        self.state.marker.unlink()
+        with self.assertRaises(guard.Unavailable):self.prepare()
+        with self.assertRaises(guard.Unavailable):self.state.recover_bootstrap(token)
+        self.store.delete('publication_census', 'v1')
+        with self.assertRaises(guard.Unavailable):self.prepare()
+
+    def test_review_receipt_and_current_writer_identity_required(self):
+        for backup in ({}, dict(self.backup, restore_sha256='invalid')):
+            with self.assertRaises(guard.Unavailable):self.state.prepare_bootstrap(backup, epoch='e'*64)
+        token = self.prepare()
+        original = self.writer.lock.read_bytes();self.writer.lock.rename(self.root/'old.lock')
+        self.writer.lock.write_bytes(original);self.writer.lock.chmod(0o600)
+        with self.assertRaises((guard.Unavailable, ValueError)):
+            self.state.initialize(token, accepted_token=token)
+
+
+    def test_real_process_death_at_durable_boundaries(self):
+        import subprocess
+        script = '''import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[4])
+import publication_guard as guard
+from media_writer import Writer
+state=guard.RegistryState(Path(sys.argv[1])/'workflow.sqlite',Writer(Path(sys.argv[1])/'writer'))
+def interrupt(stage):
+    if stage==sys.argv[2]:os._exit(73)
+state.initialize(sys.argv[3],accepted_token=sys.argv[3],boundary=interrupt)
+'''
+        from media_writer import Writer
+        from workflow_store import Store
+        for stage in ('intent-accepted', 'prepared-file', 'prepared-marker',
+                      'sqlite-pending', 'sqlite-committed', 'final-file', 'final-marker'):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as directory:
+                store = Store(directory);writer = Writer(Path(directory)/'writer', create=True)
+                state = guard.RegistryState(store.path, writer)
+                token = state.prepare_bootstrap(self.backup, epoch='e'*64)
+                result = subprocess.run([sys.executable, '-B', '-c', script, directory,
+                    stage, token, str(Path(guard.__file__).parent)], timeout=20, capture_output=True)
+                self.assertEqual(result.returncode, 73, result.stderr.decode())
+                if stage == 'sqlite-pending':
+                    journal = Path(str(store.path)+'-journal')
+                    self.assertTrue(journal.exists())
+                    before = store.path.read_bytes(), journal.read_bytes()
+                    with self.assertRaises(guard.Unavailable):guard.RegistryState(store.path, writer)
+                    with self.assertRaises(guard.Unavailable):guard.registry_snapshot(store.path, state.marker)
+                    self.assertEqual((store.path.read_bytes(), journal.read_bytes()), before)
+                    continue  # Explicit backup/journal recovery seam remains pending.
+                restarted = guard.RegistryState(store.path, writer)
+                if stage in ('intent-accepted', 'prepared-file'):
+                    restarted.initialize(token, accepted_token=token)
+                elif stage == 'final-marker':restarted.snapshot()
+                else:restarted.recover_bootstrap(token)
+                self.assertEqual(restarted.snapshot()[0]['revision'], 0)
+
+    def test_interrupted_abort_and_new_review(self):
+        token = self.prepare()
+        def interrupt(stage):
+            if stage in ('prepared-marker', 'abort-committed'):raise RuntimeError('Interrupted')
+        with self.assertRaises(RuntimeError):self.state.initialize(token, accepted_token=token, boundary=interrupt)
+        with self.assertRaises(RuntimeError):self.state.recover_bootstrap(token, abort=True, boundary=interrupt)
+        with self.assertRaises(guard.Unavailable):self.state.snapshot()
+        self.state.recover_bootstrap(token)
+        with self.assertRaises(guard.Unavailable):self.state.initialize(token, accepted_token=token)
+        new = self.state.prepare_bootstrap(self.backup, epoch='f'*64)
+        self.assertNotEqual(token, new)
+        self.assertEqual(self.state.initialize(new, accepted_token=new)['epoch'], 'f'*64)
+
+    def test_foreign_writer_database_marker_and_malformed_marker_hold(self):
+        token = self.prepare()
+        for raw in (b'[]', b'null', b'{"phase":"prepared"}'):
+            self.state.marker.write_bytes(raw);self.state.marker.chmod(0o600)
+            with self.assertRaises(guard.Unavailable):self.state.initialize(token, accepted_token=token)
+            self.state.marker.unlink()
+        old = self.root/'old.sqlite';self.store.path.rename(old)
+        self.store.path.write_bytes(old.read_bytes());self.store.path.chmod(0o600)
+        replacement = guard.RegistryState(self.store.path, self.writer)
+        with self.assertRaises(guard.Unavailable):replacement.initialize(token, accepted_token=token)
+
+    def test_existing_fences_are_preserved_and_bound_without_media_replay(self):
+        with self.writer.hold(allow_pending=True):self.writer.mark_pending()
+        before = self.writer.pending.read_bytes(), guard.signature(self.writer.pending.stat())
+        token = self.prepare()
+        self.state.initialize(token, accepted_token=token)
+        self.assertEqual((self.writer.pending.read_bytes(), guard.signature(self.writer.pending.stat())), before)
+        self.assertEqual(self.state.snapshot()[0]['revision'], 0)
+
+    def test_schema_and_committed_initialization_witness_loss_hold(self):
+        token = self.prepare();self.state.initialize(token, accepted_token=token)
+        with self.store.connection() as db:db.execute('DROP INDEX events_issue')
+        with self.assertRaises(guard.Unavailable):self.state.snapshot()
+        with self.store.connection() as db:db.execute('CREATE INDEX events_issue ON events(issueid,id)')
+        self.store.delete('publication_intent', token)
+        with self.assertRaises(guard.Unavailable):self.state.snapshot()
+        with self.assertRaises(guard.Unavailable):self.prepare()
+
+
+    def test_marker_loss_before_final_does_not_recreate_authority(self):
+        token = self.prepare()
+        def interrupt(stage):
+            if stage == 'sqlite-committed':self.state.marker.unlink()
+        with self.assertRaises(guard.Unavailable):
+            self.state.initialize(token, accepted_token=token, boundary=interrupt)
+        self.assertFalse(self.state.marker.exists())
+        with self.assertRaises(guard.Unavailable):self.state.snapshot()
+        with self.assertRaises(guard.Unavailable):self.state.recover_bootstrap(token)
+
+    def test_abort_cannot_clear_mixed_or_new_committed_authority(self):
+        token = self.prepare()
+        def interrupt(stage):
+            if stage == 'sqlite-committed':raise RuntimeError('Interrupted')
+        with self.assertRaises(RuntimeError):self.state.initialize(token, accepted_token=token, boundary=interrupt)
+        before = self.state.marker.read_bytes()
+        with self.assertRaises(guard.Unavailable):self.state.recover_bootstrap(token, abort=True)
+        self.assertEqual(self.state.marker.read_bytes(), before)
+        self.state.recover_bootstrap(token)
+        self.assertEqual(self.state.snapshot()[0]['revision'], 0)
+
+    def test_event_writer_finishes_without_lock_inversion(self):
+        import threading
+        token = self.prepare()
+        held, release, finished = threading.Event(), threading.Event(), threading.Event()
+        errors = []
+        def event_writer():
+            try:
+                with self.store.connection() as db:
+                    held.set()
+                    if not release.wait(3):raise RuntimeError('Fixture timeout')
+                    db.execute("INSERT INTO events(at,stage,outcome) VALUES (0,'library','Observed')")
+            except BaseException as error:errors.append(error)
+        def initializer():
+            try:self.state.initialize(token, accepted_token=token)
+            except BaseException as error:errors.append(error)
+            finally:finished.set()
+        first = threading.Thread(target=event_writer);second = threading.Thread(target=initializer)
+        first.start();self.assertTrue(held.wait(1));second.start()
+        try:self.assertFalse(finished.wait(.05))
+        finally:release.set();first.join(3);second.join(3)
+        self.assertFalse(first.is_alive());self.assertFalse(second.is_alive())
+        self.assertEqual(errors, [])
+        self.assertEqual(self.state.snapshot()[0]['revision'], 0)
+
+    def test_oversized_receipt_and_unknown_authority_hold(self):
+        token = self.prepare()
+        with self.store.connection() as db:
+            db.execute("UPDATE records SET value=? WHERE kind='publication_intent' AND key=?",
+                       (' '*65537, token))
+        with self.assertRaises(guard.Unavailable):self.state.initialize(token, accepted_token=token)
+        self.assertFalse(self.state.marker.exists())
+        self.store.delete('publication_intent', token)
+        self.store.set('publication_unknown', 'foreign', {})
+        with self.assertRaises(guard.Unavailable):self.prepare()
 
 if __name__ == '__main__':
     unittest.main()

@@ -8,6 +8,21 @@ Version, deterministic token, complete canonical regular-member inventory and di
 
 Version, monotonically increasing revision, exact attestation keys/count and canonical census digest. Read every required record without recent-history pagination. Registration/index/census changes share one SQLite transaction; the marker has a separate prepared → SQLite commit → final-marker durability protocol defined in the interface contract. Bind an immutable initialization epoch. Missing either side, mixed revisions or both absent on existing writer state require authenticated bootstrap/recovery and block media admission; no automatic empty fallback. Startup exposes initialization/status without replaying pending media until initialized. A matching rollback of both sides still requires independent backup/epoch evidence and explicit operational reconciliation.
 
+## Bootstrap receipt
+
+A `publication_intent` record contains an immutable digest-bound bootstrap plan
+and a finite acceptance/outcome envelope. The plan records the selected epoch,
+empty target census, existing database inode and writer root/lock identities,
+schema digest, protected workflow snapshot, unchanged pending-fence signatures
+and explicitly reviewed backup-manifest/independent-restore digests. At most
+128 plans of 65,536 bytes each are supported by the bootstrap foundation.
+Prepare stays unaccepted; explicit acceptance precedes the durable prepared
+marker. Outcomes move from prepared to accepted, then committed or aborted;
+aborted receipts cannot initialize again. The final marker references the sole
+committed initialization witness. Missing witness, foreign identities or changed
+schema holds admission. Later registration intents require their separate
+reviewed transition implementation.
+
 ## Registration intent
 
 Prepared immutable request/digest with exact reviewed evidence, current correct-owner/source bindings and expected registry revision. Prepare does not admit a correction. Commit is authenticated, explicitly accepts the exact intent token and recomputes current facts under writer exclusion. Stale intent stays uncommitted. Identical replay reconciles its existing attestation; changed evidence creates a new reviewed append-only transition.

@@ -144,7 +144,7 @@ its complete digest in the new receipt. Source inode/attributes/hash and native
 owner/status/year are revalidated; ordinary rejected-request replay stays blocked.
 
 
-## Read-only publication evidence foundation
+## Publication evidence and bootstrap foundations
 
 `publication_guard.py` currently owns bounded stable archive inventories and
 metadata-independent payload tokens, exact immutable attestation/census
@@ -156,6 +156,20 @@ record update envelopes are excluded, while unknown record kinds stay protected.
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including
 ZIP, RAR4, RAR5 and 7z controls; its own authored payload fixtures require no
-source-layout imports or network. Initialization, durable registration/recovery, native installation and
-publication-path adapters are future tasks in feature 023. This foundation
-performs no correction registration or media publication.
+source-layout imports or network.
+
+`RegistryState` adds explicit epoch preparation/acceptance and owned
+prepared-marker → SQLite census/witness → final-marker writes under the raw
+writer and workflow lock. Its digest-bound bootstrap plans preserve existing
+fences and bind database/writer identities, schema, the complete protected
+workflow projection and reviewed backup/restore attestations. Aborted intents
+are terminal. Final publication requires the unchanged prepared marker and
+complete committed census; missing state is held. The receipt history is bounded
+to 128 bootstrap plans of at most 65,536 bytes each.
+
+Real process-exit fixtures cover each write boundary. A process exit during an
+uncommitted SQLite write leaves a rollback journal and remains held without
+changing database/journal bytes. Authenticated isolated journal recovery,
+registration transitions, primary-key API/native installation and startup/media
+admission remain unfinished in feature 023. These source helpers perform no
+live correction registration or media publication during image startup.

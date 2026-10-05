@@ -4,7 +4,7 @@ This foundation does not admit corrections or authorize publication. Registry,
 owner and writer admission must validate this evidence before any mutation.
 """
 
-from contextlib import closing
+from contextlib import closing, contextmanager
 import hashlib
 import json
 import os
@@ -328,7 +328,7 @@ def inventory(path, *, tool_root=TOOL_ROOT):
 # with O_CREAT, which must never recreate lost correction authority.
 REGISTRY_LIMIT = 512
 REGISTRY_BYTES = 32 * 1024 ** 2
-REGISTRY_KINDS = frozenset(('publication_attestation', 'publication_census'))
+REGISTRY_KINDS = frozenset(('publication_attestation', 'publication_census', 'publication_intent'))
 
 
 def canonical_digest(value):
@@ -396,13 +396,13 @@ def complete_census(db):
     """Validate all authority rows in one caller-owned SQLite read snapshot."""
     count, size = db.execute("SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) "
         "FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_'").fetchone()
-    if count > REGISTRY_LIMIT + 1 or size > REGISTRY_BYTES:
+    if count > REGISTRY_LIMIT + INTENT_LIMIT + 1 or size > REGISTRY_BYTES:
         raise Unavailable('Correction census exceeds v1 bounds')
     rows = db.execute("SELECT kind,key,value FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_' "
-                      'ORDER BY kind,key').fetchmany(REGISTRY_LIMIT + 2)
-    if len(rows) > REGISTRY_LIMIT + 1:
+                      'ORDER BY kind,key').fetchmany(REGISTRY_LIMIT + INTENT_LIMIT + 2)
+    if len(rows) > REGISTRY_LIMIT + INTENT_LIMIT + 1:
         raise Unavailable('Correction census exceeds v1 bounds')
-    records, census, size = {}, None, 0
+    records, census, size, intents = {}, None, 0, 0
     for kind, key, raw in rows:
         if any(not isinstance(value, str) for value in (kind, key, raw)):
             raise Unavailable('Malformed correction authority record')
@@ -410,6 +410,14 @@ def complete_census(db):
         if size > REGISTRY_BYTES or kind not in REGISTRY_KINDS:
             raise Unavailable('Unknown or oversized correction authority')
         value = decode_json(raw)
+        if kind == 'publication_intent':
+            if len(raw.encode('utf-8')) > 65536:
+                raise Unavailable('Initialization receipt exceeds bounds')
+            intents += 1
+            if intents > INTENT_LIMIT:
+                raise Unavailable('Initialization intent history exceeds bounds')
+            bootstrap_record(key, value)
+            continue
         if kind == 'publication_census':
             if key != 'v1' or census is not None:
                 raise Unavailable('Ambiguous correction census')
@@ -417,7 +425,11 @@ def complete_census(db):
         else:
             if not digest_value(key) or key != attestation(value):
                 raise Unavailable('Correction attestation digest mismatch')
+            if key in records:
+                raise Unavailable('Duplicate correction attestation key')
             records[key] = value
+    if len(records) > REGISTRY_LIMIT:
+        raise Unavailable('Correction attestation census exceeds bounds')
     fields = {'version', 'epoch', 'revision', 'keys', 'digest'}
     if (not isinstance(census, dict) or set(census) != fields
             or type(census['version']) is not int or census['version'] != 1
@@ -473,8 +485,8 @@ def _registry_snapshot(database, marker):
                     or header[18:20] != b'\x01\x01'
                     or any(os.path.lexists(path) for path in sidecars)):
                 raise Unavailable('Correction authority requires complete rollback-journal state')
-            raw = binding.read(65537)
-            if len(raw) > 65536:
+            raw = binding.read(MARKER_BYTES + 1)
+            if len(raw) > MARKER_BYTES:
                 raise Unavailable('Oversized correction marker')
             value = decode_json(raw.decode('utf-8'))
             with closing(sqlite3.connect(database.as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
@@ -482,8 +494,17 @@ def _registry_snapshot(database, marker):
                 if db.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
                     raise Unavailable('Unreadable correction database')
                 census, records = complete_census(db)
+                if __package__:
+                    from .media_writer import Writer
+                else:
+                    from media_writer import Writer
+                current_writer = writer_identity(Writer(marker.parent, create=False))
+                if not isinstance(value, dict) or not digest_value(value.get('initialization_intent')):
+                    raise Unavailable('Missing initialization witness binding')
+                initialization_witness(db, value['initialization_intent'], census, before[:2], current_writer)
             expected = dict(version=1, phase='final', census=census,
-                            database_identity=before[:2])
+                            initialization_intent=value['initialization_intent'],
+                            database_identity=before[:2], writer_identity=current_writer)
             if canonical_digest(value) != canonical_digest(expected):
                 raise Unavailable('Correction marker does not bind complete final state')
             if (signature(os.fstat(stream.fileno())) != before
@@ -495,6 +516,397 @@ def _registry_snapshot(database, marker):
             return census, records
     except (OSError, sqlite3.Error, UnicodeError, ValueError, TypeError, KeyError, RecursionError) as error:
         raise Unavailable('Correction authority unavailable') from error
+
+
+
+INTENT_LIMIT = 128
+MARKER_BYTES = 131072
+
+
+def writer_identity(writer):
+    if __package__:
+        from .media_writer import checked_file
+    else:
+        from media_writer import checked_file
+    writer.validate_root()
+    fd = checked_file(writer.lock)
+    try:
+        info = os.fstat(fd)
+        lock = (info.st_dev, info.st_ino)
+        if lock != writer.lock_identity:
+            raise Unavailable('Writer lock identity changed')
+        return list(writer.root_identity) + list(lock)
+    finally:
+        os.close(fd)
+
+
+def database_stamp(path):
+    with regular(path) as stream:
+        info = signature(os.fstat(stream.fileno()))
+        header = stream.read(100)
+    if (info[6] != os.geteuid() or stat.S_IMODE(info[5]) != 0o600 or info[8] != 1
+            or len(header) != 100 or header[:16] != b'SQLite format 3\0'
+            or header[18:20] != b'\x01\x01'
+            or any(os.path.lexists(str(path) + suffix) for suffix in ('-wal', '-shm', '-journal'))):
+        raise Unavailable('Expected private complete rollback-journal database')
+    return info
+
+
+def empty_census(epoch):
+    return dict(version=1, epoch=epoch, revision=0, keys=[], digest=canonical_digest([]))
+
+
+def bootstrap_record(key, value):
+    if (not isinstance(value, dict) or set(value) != {'plan', 'accepted', 'outcome'}
+            or type(value['accepted']) is not bool
+            or value['outcome'] not in ('prepared', 'accepted', 'committed', 'aborted')
+            or value['accepted'] != (value['outcome'] != 'prepared')):
+        raise Unavailable('Invalid initialization receipt')
+    plan = value['plan']
+    if (not isinstance(plan, dict)
+            or set(plan) != {'version', 'action', 'epoch', 'binding', 'backup', 'new'}
+            or type(plan['version']) is not int or plan['version'] != 1
+            or plan['action'] != 'bootstrap' or not digest_value(plan['epoch'])
+            or canonical_digest(plan['new']) != canonical_digest(empty_census(plan['epoch']))
+            or key != canonical_digest(plan)):
+        raise Unavailable('Invalid immutable initialization plan')
+    binding = plan['binding']
+    if (not isinstance(binding, dict)
+            or set(binding) != {'database_identity', 'writer_identity', 'schema', 'workflow', 'pending'}
+            or not digest_value(binding['schema'])):
+        raise Unavailable('Invalid initialization state binding')
+    for field, count in (('database_identity', 2), ('writer_identity', 4)):
+        items = binding[field]
+        if (not isinstance(items, list) or len(items) != count
+                or any(type(item) is not int or item < 0 for item in items)):
+            raise Unavailable('Invalid initialization filesystem identity')
+    workflow = binding['workflow']
+    if (not isinstance(workflow, dict) or set(workflow) != {'version', 'count', 'digest'}
+            or type(workflow['version']) is not int or workflow['version'] != 1
+            or type(workflow['count']) is not int or not 0 <= workflow['count'] <= 100000
+            or not digest_value(workflow['digest'])):
+        raise Unavailable('Invalid protected workflow binding')
+    pending = binding['pending']
+    if not isinstance(pending, dict) or set(pending) != {'normalizer', 'tagger', 'release'}:
+        raise Unavailable('Invalid existing publication fence binding')
+    for stamp in pending.values():
+        if stamp is not None and (not isinstance(stamp, list) or len(stamp) != 9
+                or any(type(item) is not int or item < 0 for item in stamp)):
+            raise Unavailable('Invalid existing publication fence signature')
+    backup = plan['backup']
+    if (not isinstance(backup, dict)
+            or set(backup) != {'manifest_sha256', 'restore_sha256', 'description'}
+            or not digest_value(backup['manifest_sha256']) or not digest_value(backup['restore_sha256'])
+            or not isinstance(backup['description'], str)
+            or not 1 <= len(backup['description'].encode('utf-8')) <= 1024):
+        raise Unavailable('Reviewed restore evidence is required')
+    return plan
+
+
+def workflow_schema(db):
+    tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    columns = [tuple(row) for row in db.execute('PRAGMA table_info(records)')]
+    expected = [(0, 'kind', 'TEXT', 1, None, 1), (1, 'key', 'TEXT', 1, None, 2),
+                (2, 'value', 'TEXT', 1, None, 0), (3, 'updated', 'REAL', 1, None, 0)]
+    if (tables != {'events', 'records'} or columns != expected
+            or db.execute("SELECT count(*) FROM sqlite_master WHERE type IN ('view','trigger')").fetchone()[0]):
+        raise Unavailable('Unsupported workflow authority schema')
+    return canonical_digest([list(row) for row in db.execute(
+        'SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')])
+
+
+def initialization_witness(db, token, census, identity, writer):
+    rows = db.execute("SELECT key,value FROM records WHERE kind='publication_intent'").fetchall()
+    committed = []
+    for key, raw in rows:
+        value = decode_json(raw)
+        plan = bootstrap_record(key, value)
+        if value['outcome'] == 'accepted':
+            raise Unavailable('Unfinished initialization blocks admission')
+        if value['outcome'] == 'committed':
+            committed.append(key)
+            if (key != token or plan['epoch'] != census['epoch']
+                    or plan['binding']['database_identity'] != identity
+                    or plan['binding']['writer_identity'] != writer
+                    or plan['binding']['schema'] != workflow_schema(db)):
+                raise Unavailable('Foreign initialization witness')
+    if committed != [token]:
+        raise Unavailable('Missing unique committed initialization witness')
+
+
+def state_errors(function):
+    from functools import wraps
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        import sqlite3
+        try:
+            return function(*args, **kwargs)
+        except Unavailable:
+            raise
+        except (OSError, sqlite3.Error, ValueError, TypeError, KeyError, UnicodeError, RecursionError) as error:
+            raise Unavailable('Initialization state unavailable') from error
+    return wrapped
+
+
+class RegistryState:
+    """Explicit reviewed bootstrap only; no media recovery or API authorization.
+
+    The future primary-key adapter must authenticate acceptance. These methods
+    own Writer -> workflow LOCK -> SQLite, and never call ordinary native
+    operation/replay. Existing fences are bound and preserved, not cleared.
+    """
+    @state_errors
+    def __init__(self, database, writer):
+        self.database = Path(database)
+        self.writer = writer
+        self.identity = database_stamp(self.database)[:2]
+        self.writer_binding = writer_identity(writer)
+        self.marker = writer.root / 'publication-v1.json'
+
+    def _binding(self, db):
+        if __package__:
+            from .workflow_store import protected_snapshot
+        else:
+            from workflow_store import protected_snapshot
+        pending = {}
+        for name, path, args in (('normalizer', self.writer.pending, {}),
+                ('tagger', self.writer.tagger_pending, {'tagger': True}),
+                ('release', self.writer.release_pending, {'release': True})):
+            pending[name] = signature(path.lstat()) if self.writer.fenced(**args) else None
+        return dict(database_identity=self.identity, writer_identity=self.writer_binding,
+                    schema=workflow_schema(db), workflow=protected_snapshot(db), pending=pending)
+
+    @contextmanager
+    def _session(self):
+        import sqlite3
+        if __package__:
+            from .workflow_store import LOCK
+        else:
+            from workflow_store import LOCK
+        with self.writer.hold(allow_pending=True, allow_tagger_pending=True,
+                              allow_release_pending=True):
+            with LOCK:
+                if (database_stamp(self.database)[:2] != self.identity
+                        or writer_identity(self.writer) != self.writer_binding):
+                    raise Unavailable('Initialization filesystem identity changed')
+                with closing(sqlite3.connect(self.database.as_uri() + '?mode=rw', uri=True)) as db:
+                    db.execute('PRAGMA synchronous=FULL')
+                    db.execute('BEGIN IMMEDIATE')
+                    try:
+                        workflow_schema(db)
+                        if db.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
+                            raise Unavailable('Unreadable workflow database')
+                        yield db
+                    finally:
+                        db.rollback()
+                if database_stamp(self.database)[:2] != self.identity:
+                    raise Unavailable('Initialization database was replaced')
+
+    def _empty(self, db, *, own=None):
+        count, size = db.execute("SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_'").fetchone()
+        if count > INTENT_LIMIT or size > REGISTRY_BYTES:
+            raise Unavailable('Initialization authority exceeds bounds')
+        rows = db.execute("SELECT kind,key,value FROM records WHERE "
+                          "substr(CAST(kind AS TEXT),1,12)='publication_'").fetchmany(INTENT_LIMIT + 1)
+        if len(rows) > INTENT_LIMIT:
+            raise Unavailable('Initialization intent history exceeds bounds')
+        for kind, key, raw in rows:
+            if kind != 'publication_intent' or not isinstance(raw, str):
+                raise Unavailable('Existing correction authority cannot be reinitialized')
+            record = decode_json(raw);bootstrap_record(key, record)
+            if record['accepted'] and record['outcome'] != 'aborted' and (key != own or record['outcome'] != 'accepted'):
+                raise Unavailable('Prior accepted initialization requires exact recovery')
+
+    def _record(self, db, token):
+        row = db.execute("SELECT value FROM records WHERE kind='publication_intent' AND key=? AND typeof(value)='text' AND length(CAST(value AS BLOB))<=65536", (token,)).fetchone()
+        if row is None or not isinstance(row[0], str):
+            raise Unavailable('Missing initialization receipt')
+        value = decode_json(row[0]);plan = bootstrap_record(token, value)
+        if (plan['binding']['database_identity'] != self.identity
+                or plan['binding']['writer_identity'] != self.writer_binding):
+            raise Unavailable('Initialization receipt belongs to foreign state')
+        return value
+
+    def _save(self, db, token, record):
+        # Only the accepted/outcome envelope changes; the digest-bound plan does not.
+        original = self._record(db, token)
+        if canonical_digest(original['plan']) != canonical_digest(record['plan']):
+            raise Unavailable('Immutable initialization plan changed')
+        bootstrap_record(token, record)
+        transitions = {'prepared': {'accepted'}, 'accepted': {'accepted', 'committed', 'aborted'},
+                       'committed': {'committed'}, 'aborted': {'aborted'}}
+        if record['outcome'] not in transitions[original['outcome']]:
+            raise Unavailable('Initialization outcome is terminal')
+        db.execute("UPDATE records SET value=? WHERE kind='publication_intent' AND key=?",
+                   (compact(record).decode('utf-8'), token))
+
+    @state_errors
+    def prepare_bootstrap(self, backup, *, epoch):
+        with self._session() as db:
+            if os.path.lexists(self.marker):
+                raise Unavailable('Existing initialization marker requires reconciliation')
+            self._empty(db)
+            plan = dict(version=1, action='bootstrap', epoch=epoch, binding=self._binding(db),
+                        backup=backup, new=empty_census(epoch))
+            token = canonical_digest(plan)
+            record = dict(plan=plan, accepted=False, outcome='prepared')
+            bootstrap_record(token, record)
+            if db.execute("SELECT count(*) FROM records WHERE kind='publication_intent'").fetchone()[0] >= INTENT_LIMIT:
+                raise Unavailable('Initialization intent history exceeds bounds')
+            db.execute('INSERT OR IGNORE INTO records VALUES (?,?,?,?)',
+                ('publication_intent', token, compact(record).decode('utf-8'), time.time()))
+            if self._record(db, token) != record:
+                raise Unavailable('Initialization intent replay differs')
+            db.commit()
+            return token
+
+    def _prepared(self, token, plan):
+        return dict(version=1, phase='prepared', intent=token, old=None, new=plan['new'],
+                    database_identity=self.identity, writer_identity=self.writer_binding)
+
+    def final_marker(self, census, token):
+        return dict(version=1, phase='final', census=census, initialization_intent=token,
+                    database_identity=self.identity, writer_identity=self.writer_binding)
+
+    def _read_marker(self):
+        with regular(self.marker) as stream:
+            info = signature(os.fstat(stream.fileno()))
+            if info[6] != os.geteuid() or stat.S_IMODE(info[5]) != 0o600 or info[8] != 1:
+                raise Unavailable('Initialization marker must be private and owned')
+            raw = stream.read(MARKER_BYTES + 1)
+            if len(raw) > MARKER_BYTES:
+                raise Unavailable('Initialization marker exceeds bounds')
+            if signature(self.marker.lstat()) != info:
+                raise Unavailable('Initialization marker changed')
+        value = decode_json(raw.decode('utf-8'))
+        if not isinstance(value, dict):
+            raise Unavailable('Expected initialization marker object')
+        return value
+
+    def _publish_marker(self, value, phase, boundary, *, expected):
+        import secrets
+        if __package__:
+            from .media_writer import sync
+        else:
+            from media_writer import sync
+        self.writer.validate_root()
+        def check_previous():
+            if expected is None:
+                if os.path.lexists(self.marker):
+                    raise Unavailable('Initialization marker appeared unexpectedly')
+            elif canonical_digest(self._read_marker()) != canonical_digest(expected):
+                raise Unavailable('Initialization marker changed before publication')
+            if (database_stamp(self.database)[:2] != self.identity
+                    or writer_identity(self.writer) != self.writer_binding):
+                raise Unavailable('Initialization authority identity changed')
+        check_previous()
+        raw = compact(value)
+        if len(raw) > MARKER_BYTES:
+            raise Unavailable('Initialization marker exceeds bounds')
+        temporary = self.writer.root / ('.publication-v1-' + secrets.token_hex(16) + '.tmp')
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        try:
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(raw);stream.flush();os.fsync(stream.fileno())
+            boundary(phase + '-file')
+            check_previous()
+            os.replace(temporary, self.marker);sync(self.writer.root)
+            boundary(phase + '-marker')
+        finally:
+            if temporary.exists():temporary.unlink();sync(self.writer.root)
+
+    def _commit_census(self, db, token, record, boundary):
+        if database_stamp(self.database)[:2] != self.identity:
+            raise Unavailable('Initialization database was replaced')
+        db.execute('BEGIN IMMEDIATE')
+        record = dict(record, outcome='committed')
+        self._save(db, token, record)
+        db.execute('INSERT INTO records VALUES (?,?,?,?)',
+            ('publication_census', 'v1', compact(record['plan']['new']).decode('utf-8'), time.time()))
+        complete_census(db)
+        boundary('sqlite-pending')
+        db.commit();boundary('sqlite-committed')
+        return self._finalize(db, token, record, boundary)
+
+    def _finalize(self, db, token, record, boundary):
+        if database_stamp(self.database)[:2] != self.identity:
+            raise Unavailable('Initialization database was replaced')
+        db.execute('BEGIN')
+        census, _ = complete_census(db)
+        initialization_witness(db, token, census, self.identity, self.writer_binding)
+        if canonical_digest(census) != canonical_digest(record['plan']['new']):
+            raise Unavailable('Committed initialization census changed')
+        db.commit()
+        self._publish_marker(self.final_marker(census, token), 'final', boundary,
+                             expected=self._prepared(token, record['plan']))
+        return record['plan']['new']
+
+    @state_errors
+    def initialize(self, token, *, accepted_token, boundary=lambda _: None):
+        if not digest_value(token) or accepted_token != token:
+            raise Unavailable('Explicit exact reviewed initialization acceptance required')
+        with self._session() as db:
+            record = self._record(db, token)
+            if os.path.lexists(self.marker):
+                value = self._read_marker()
+                if value.get('phase') == 'final' and value.get('initialization_intent') == token:
+                    return _registry_snapshot(self.database, self.marker)[0]
+                raise Unavailable('Pending initialization requires exact recovery')
+            if record['outcome'] not in ('prepared', 'accepted'):
+                raise Unavailable('Initialization receipt is terminal')
+            self._empty(db, own=token)
+            if canonical_digest(self._binding(db)) != canonical_digest(record['plan']['binding']):
+                raise Unavailable('Reviewed initialization state is stale')
+            record = dict(record, accepted=True, outcome='accepted')
+            self._save(db, token, record);db.commit();boundary('intent-accepted')
+            self._publish_marker(self._prepared(token, record['plan']), 'prepared', boundary, expected=None)
+            return self._commit_census(db, token, record, boundary)
+
+    @state_errors
+    def recover_bootstrap(self, token, *, abort=False, boundary=lambda _: None):
+        if not digest_value(token) or type(abort) is not bool:
+            raise Unavailable('Invalid exact initialization recovery')
+        with self._session() as db:
+            record = self._record(db, token)
+            if not record['accepted']:
+                raise Unavailable('Unaccepted initialization cannot recover')
+            if record['outcome'] == 'aborted' and not os.path.lexists(self.marker):
+                self._empty(db, own=token)
+                return None
+            if canonical_digest(self._read_marker()) != canonical_digest(self._prepared(token, record['plan'])):
+                raise Unavailable('Missing or foreign prepared initialization marker')
+            count = db.execute("SELECT count(*) FROM records WHERE kind='publication_census'").fetchone()[0]
+            if count:
+                if abort:
+                    raise Unavailable('Committed initialization must finalize, not abort')
+                census, _ = complete_census(db)
+                if (record['outcome'] != 'committed'
+                        or canonical_digest(census) != canonical_digest(record['plan']['new'])):
+                    raise Unavailable('Mixed initialization state requires review')
+                db.commit()
+                return self._finalize(db, token, record, boundary)
+            self._empty(db, own=token)
+            if abort or record['outcome'] == 'aborted':
+                if record['outcome'] != 'aborted':
+                    self._save(db, token, dict(record, outcome='aborted'))
+                db.commit();boundary('abort-committed')
+                if __package__:
+                    from .media_writer import sync
+                else:
+                    from media_writer import sync
+                if canonical_digest(self._read_marker()) != canonical_digest(self._prepared(token, record['plan'])):
+                    raise Unavailable('Prepared initialization marker changed during abort')
+                self.marker.unlink();sync(self.writer.root);boundary('abort-marker')
+                return None
+            if canonical_digest(self._binding(db)) != canonical_digest(record['plan']['binding']):
+                raise Unavailable('Accepted initialization facts are stale')
+            db.commit()
+            return self._commit_census(db, token, record, boundary)
+
+    @state_errors
+    def snapshot(self):
+        with self.writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True):
+            return registry_snapshot(self.database, self.marker)
 
 
 if __name__ == '__main__':
