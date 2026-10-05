@@ -31,8 +31,11 @@ def issue_lock(issueid):
 
 def store():
     global _STORE
-    if _STORE is None:
-        import mylar
+    import mylar
+    if __package__:
+        from . import native_writers
+        with LOCK:_STORE=native_writers.existing_store(mylar.DATA_DIR,cached=_STORE)
+    elif _STORE is None:
         with LOCK:
             if _STORE is None:_STORE=Store(mylar.DATA_DIR)
     return _STORE
@@ -428,6 +431,15 @@ def observe_provider(function):
 
 
 def tick(queue):
+    if __package__:
+        from . import native_writers
+        if native_writers.publication_mode():
+            if native_writers.startup_status()['state'] != 'ready':return
+            with native_writers.operation():return _tick(queue)
+    return _tick(queue)
+
+
+def _tick(queue):
     global _STARTED,_LAST_TICK
     now=time.time()
     if now-_LAST_TICK<30:return

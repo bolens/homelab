@@ -45,6 +45,7 @@ PATCHES = (
     "patch_prowlarr_identity",
     "patch_release_naming",
     "patch_publication_guard",
+    "patch_publication_startup",
 )
 
 

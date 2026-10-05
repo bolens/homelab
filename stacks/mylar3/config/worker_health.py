@@ -5,6 +5,16 @@ import time
 
 
 def snapshot():
+    if __package__:
+        from . import native_writers
+        if native_writers.publication_mode():
+            status=native_writers.startup_status()
+            if status['state']!='ready':return dict(publication=status,time=time.time())
+            with native_writers.operation():return dict(_snapshot(),publication=status)
+    return _snapshot()
+
+
+def _snapshot():
     import mylar
     from mylar import db, queue_control, cooldown_health, workflow
     from mylar.queues import queue_info

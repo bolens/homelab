@@ -41,8 +41,8 @@ pending recovery marker blocks ordinary bootstrap. If a rollback interruption
 changes the pair, a new explicit review records the preceding accepted plan's
 digest and proves the same complete restored contents. Captures and completion
 receipts remain retained for operational acceptance and later scoped cleanup.
-Authentication is wired by the checked primary-key adapter. Ordinary startup
-exclusion requires its separate native integration tasks.
+Authentication is wired by the checked primary-key adapter. Startup exclusion
+is integrated separately from the remaining per-payload publication guards.
 
 ## Registration intent
 
@@ -99,6 +99,20 @@ and floating-point substitutions cannot alias integer protocol values.
 ## Guard proof
 
 Protocol version, registry revision/census, candidate full SHA/stable filesystem signature, payload digest, exact proposed owner and decision (`unknown`, `allowed`, `review`, `unavailable`). A worker proof is advisory; native final admission recomputes actual staged content. Missing owner for a known payload stays review. Cached proofs require unchanged source/signature/revision and fresh matched correct-owner evidence.
+
+## Fresh installation claim and startup admission
+
+The private version-1 fresh claim binds the existing owned root identity, reviewed
+epoch/backup evidence and exact bootstrap token. Its durable phases are `creating`,
+`prepared` and `native-creation-started`. The last phase consumes first native catalog
+creation permission before any native database write. Interrupted partial state stays
+held and cannot infer another fresh installation. Existing catalogs must remain owned,
+singly linked, complete readable rollback SQLite files with native base tables.
+
+Publication authority is checked under raw Writer before workflow LOCK on every
+native admission. Successful native initialization is a separate process-local startup
+condition. Registry acceptance requires restart before ordinary workers/API/UI admission.
+Passive health and explicit authenticated review do not create catalogs or replay media.
 
 ## Repeat reconciliation receipt
 

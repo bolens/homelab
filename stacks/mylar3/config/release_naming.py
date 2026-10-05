@@ -273,6 +273,11 @@ def key(request):
 def services():
     import mylar
     from mylar import db, workflow_store
+    if __package__:
+        from . import native_writers
+        if native_writers.publication_mode():
+            store=native_writers.existing_store(mylar.DATA_DIR)
+            return db.DBConnection(),store
     return db.DBConnection(), workflow_store.Store(mylar.DATA_DIR)
 
 

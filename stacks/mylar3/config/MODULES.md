@@ -21,6 +21,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | HTTP resume offsets | `patch_ddl_resume.py` | `test_ddl_resume.py` |
 | Requeued download state | `patch_ddl_requeue.py` | `test_ddl_requeue.py` |
 | Authenticated publication registration and advisory protocol | `patch_publication_guard.py` | `publication_api.py`, `publication_guard.py`, `test_publication_api.py`; follows writer, workflow and naming helper installation |
+| Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; last adapter after the authenticated publication API |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
 | Mirror failover and cooldown discovery | `patch_ddl_failover.py` | `ddl_failover.py`, `test_ddl_failover.py`, `test_ddl_failover_native.py`; follows discovery and queue adapters |
@@ -183,8 +184,13 @@ only the retained token. Status optionally summarizes an exact receipt through
 an existing immutable read-only connection. Responses exclude private manifests
 and descriptions; advisory checks retain current and historical matched-owner
 facts for worker revalidation. Digest-only advisory results cannot authorize
-native publication. Startup exclusion and publication boundary enforcement
-remain unfinished; installing the API does not enable those guarantees.
+native publication. The startup adapter activates publication mode before native
+database maintenance. Missing or invalid authority and pending media fences hold
+initialization, workers and ordinary HTTP/API requests without replay. Health and
+the authenticated publication controller remain available. Notification polling
+requires admission because it writes native notification records. Successful
+authority acceptance requires restart and successful native initialization before
+media admission. All per-payload publication boundaries remain unfinished.
 `publication_guard.py` is retained under
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including
@@ -248,5 +254,17 @@ witness against the original identities/schema/workflow/fences and exact
 prepared marker. Recovery restores only old SQL state. Fresh registration
 observation or explicit abort remains a separate step. Bootstrap receipts cannot
 cross the registration route. Canonical JSON comparisons reject boolean/float
-aliases in markers and retained receipt predecessors. Native observation and API authentication are installed; startup/publication
-enforcement remains unfinished.
+aliases in markers and retained receipt predecessors. Native observation, API
+authentication and startup exclusion are installed in source. Per-payload
+publication enforcement and matching live rollout remain unfinished.
+
+`publication_fresh.py` supplies explicit `prepare-fresh` only for an already owned,
+empty state root under early startup exclusion. Existing native/workflow catalogs,
+writer directories, claims or SQLite sidecars refuse this route. Preparation
+retains an exclusive private claim and partial state on failure. Exact bootstrap
+acceptance is still required. First native catalog creation consumes the accepted
+fresh claim before `dbcheck`; a crash cannot grant another creation attempt.
+Existing startup requires an owned regular readable native catalog with no pending
+SQLite sidecars. Missing or damaged native catalogs stay held for reviewed recovery.
+Workflow factories use existing-only SQLite under caller-owned admission. DDL
+retry state keeps its separate JSON Store and existing attempt/cooldown records.
