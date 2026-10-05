@@ -129,6 +129,17 @@ class RescanIdentityTest(unittest.TestCase):
             self.check(files)
         self.assertEqual(len(list(self.folder.iterdir())), 1)
 
+    def test_publication_boundary_receives_proposed_owner_before_corrections(self):
+        from file_identity import validate_rescan
+        from unittest.mock import Mock
+        files=self.files('Comic.015.cbz',number='15');before=repr(files)
+        boundary=Mock(side_effect=ValueError('retained publication review'))
+        with self.assertRaisesRegex(ValueError,'retained publication review'):
+            validate_rescan(self.database,self.series,files,publication=boundary)
+        claims,parent=boundary.call_args.args
+        self.assertEqual(str(claims[0][1]['IssueID']),'100');self.assertEqual(parent,self.series)
+        self.assertEqual(repr(files),before)
+
     def test_collection_edition_cannot_claim_regular_issue_with_stale_xml(self):
         for name in ('Comic 015 - The Deluxe Edition (2020).cbz', 'Comic.015.(2020).(Deluxe.Edition)-Group.cbz'):
             files = self.files(name, '<ComicInfo><Series>Comic</Series><Number>15</Number><Web>https://comicvine.gamespot.com/issue/4000-100/</Web></ComicInfo>')

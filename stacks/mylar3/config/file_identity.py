@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 
-def validate_rescan(database, series, file_lists, *, booktype=None):
+def validate_rescan(database, series, file_lists, *, booktype=None, publication=None):
     """Reject contradictory identities before native rescan can delete or reassign files."""
     comic_id = series["ComicID"]
     issues = database.select("SELECT * FROM issues WHERE ComicID=?", [comic_id])
@@ -27,6 +27,7 @@ def validate_rescan(database, series, file_lists, *, booktype=None):
     booktype = booktype or series["Type"]
     resolved_annuals = []
     resolved_numbers = []
+    publication_claims = []
 
     def field(row, key):
         return row[key] if key in row.keys() else None
@@ -200,6 +201,12 @@ def validate_rescan(database, series, file_lists, *, booktype=None):
                 explicit = set(re.findall(r"\b(?:v|vol\.?|volume)\s*(\d+)\b", path.stem, re.I))
                 if not version or explicit != {version[1]}:
                     raise ValueError("Rescan identity review required: ambiguous series volume")
+            publication_claims.append((path,numbered[0] if len(numbered)==1 else None))
+    # The native caller supplies its trusted publication boundary. Complete
+    # parsing first, then check every actual archive before exposing corrections
+    # that can drive native row assignment or deletion.
+    if publication is not None:
+        publication(publication_claims,series)
     # Publish parser corrections only after the complete rescan passes review.
     for entry, annual_id in resolved_annuals:
         entry['AnnualComicID'] = annual_id

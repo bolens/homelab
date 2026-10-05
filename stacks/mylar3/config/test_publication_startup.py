@@ -459,6 +459,35 @@ class NativeStartupSourceTests(unittest.TestCase):
         self.assertIsNone(self.native.publication_api_call(api)(types.SimpleNamespace(cmd='getIndex',data='OK')))
         self.assertEqual(entered,['web','api'])
 
+    def test_http_retained_review_is_consumed_only_at_outer_request_boundary(self):
+        self.authority();self.native.initialize_publication()
+        with self.native.operation(startup=True):self.native.complete_startup()
+        review=importlib.import_module('mylar.publication_native').Review
+        after=Mock()
+        @self.native.guard
+        def inner():raise review('private-specific-reason',payload='a'*64)
+        def web():
+            self.assertTrue(self.native.active())
+            try:inner()
+            except Exception:pass
+            after()
+            return 'false success'
+        result=self.native.publication_http(web)()
+        self.assertIn('requires review',result);self.assertIn('retained',result)
+        self.assertNotIn('private-specific-reason',result);self.assertNotIn('a'*64,result)
+        after.assert_not_called();self.assertFalse(self.native.active())
+
+    def test_api_retained_review_returns_native_failure_without_success_ack(self):
+        self.authority();self.native.initialize_publication()
+        with self.native.operation(startup=True):self.native.complete_startup()
+        review=importlib.import_module('mylar.publication_native').Review
+        failure=Mock(return_value='native failure response')
+        handler=types.SimpleNamespace(cmd='getIndex',data='OK',_failureResponse=failure)
+        def api(handler):raise review('private-specific-reason',payload='a'*64)
+        self.assertEqual(self.native.publication_api_call(api)(handler),'native failure response')
+        self.assertEqual(handler.data,'native failure response');failure.assert_called_once()
+        self.assertIn('review',failure.call_args.args[0]);self.assertFalse(self.native.active())
+
     def test_passive_stream_and_control_api_never_require_ordinary_admission(self):
         self.native.initialize_publication();called=Mock(return_value='passive')
         wrapped=self.native.publication_api_call(called)

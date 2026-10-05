@@ -66,6 +66,8 @@ def candidate(database, path):
 
 def update(database, row, path):
     # The caller holds the shared media writer. Compare catalog state as well.
+    from mylar import publication_rescan
+    publication_rescan.require_entry(path,row,dict(ComicID=row['ComicID']))
     database.action('UPDATE '+row['table']+' SET Location=?,Status=? '
                     'WHERE IssueID=? AND ComicID=? AND Location=? AND Status=?'+
                     (' AND COALESCE(Deleted,0)=0' if row['table']=='annuals' else ''),

@@ -360,7 +360,8 @@ class NativeBoundaryTests(unittest.TestCase):
         node=next(node for node in ast.walk(ast.parse(text))
                   if isinstance(node,ast.FunctionDef) and node.name==name)
         import processing_guard
-        namespace=dict(mylar=self.mylar,processing_guard=processing_guard,logger=Mock(),
+        import publication_mutation
+        namespace=dict(mylar=self.mylar,processing_guard=processing_guard,publication_mutation=publication_mutation,logger=Mock(),
                        os=os,shutil=shutil,errno=__import__('errno'),
                        native_writers=types.SimpleNamespace(guard=lambda function:function))
         exec(compile(ast.Module(body=[node],type_ignores=[]),'<actual native '+name+'>','exec'),namespace)
@@ -381,7 +382,8 @@ class NativeBoundaryTests(unittest.TestCase):
                 target=self.library/('mode-'+str(index)+'.cbz');obj=types.SimpleNamespace(valreturn=[])
                 def apply():
                     processing_guard.placement(obj,self.source,target,issueid='123',comicid='456',**options)
-                    return operation(str(self.source),str(target),**options)
+                    with patch.object(processing_guard._ACTIVE,'processor',obj,create=True):
+                        return operation(str(self.source),str(target),**options)
                 if held:
                     with self.assertRaises(native.Review):apply()
                     self.assertFalse(target.exists())
@@ -400,7 +402,8 @@ class NativeBoundaryTests(unittest.TestCase):
                 self.mylar.CONFIG.FILE_OPTS=action;obj=types.SimpleNamespace(valreturn=[])
                 def apply():
                     processing_guard.placement(obj,self.source,self.source,issueid='123',comicid='456')
-                    return operation(str(self.source),str(self.source))
+                    with patch.object(processing_guard._ACTIVE,'processor',obj,create=True):
+                        return operation(str(self.source),str(self.source))
                 if action=='softlink':
                     with self.assertRaises(native.Review):apply()
                 else:self.assertTrue(apply())
@@ -422,7 +425,8 @@ class NativeBoundaryTests(unittest.TestCase):
         with self.writer.hold():
             processing_guard.publication(obj,self.source,issueid='123',comicid='456')
             processing_guard.placement(obj,cached,target,issueid='123',comicid='456',one_off=True)
-            self.assertTrue(operation(str(cached),str(target),one_off=True))
+            with patch.object(processing_guard._ACTIVE,'processor',obj,create=True):
+                self.assertTrue(operation(str(cached),str(target),one_off=True))
             with self.assertRaises(native.Review):
                 tidyup(obj,str(cache),True,filename=self.source.name)
                 commit()

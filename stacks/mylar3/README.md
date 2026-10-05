@@ -129,6 +129,10 @@ preserve already imported issues and annuals. TalkHard pull-list navigation uses
 Wednesday release weeks across year boundaries, including valid week 53. Legacy
 and file-pull modes retain their existing stored week identities. Successful provider refreshes persist the current
 poll timestamp independently of the requested release week.
+When a weekly entry conflicts with the catalog release date, it remains held for
+release review. That conflict preserves the issue's existing Wanted or other
+catalog status. The weekly page labels it “Release needs review”; check the
+publisher's on-sale date and the issue identity before changing the series link.
 
 The image adds authenticated `getHealth` and `reportFailedDownload` API
 commands. Both require the primary API key. Keep Mylar's API enabled. The Docker

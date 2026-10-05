@@ -24,6 +24,19 @@ def guard_rescan(name, source):
             "    file_identity.validate_rescan(myDB, rescan, fca, booktype=booktype)\n"
             "    fcb = []\n    fc = {}\n",
         )
+    if name == 'updater.py':
+        call='    publication_rescan.validate_rescan(myDB, rescan, fca, booktype=booktype)\n'
+        marker='# homelab-rescan-publication-v2'
+        if marker not in source:
+            prior=('    file_identity.validate_rescan(myDB, rescan, fca, booktype=booktype)\n',
+                   '    file_identity.validate_rescan(myDB, rescan, fca, booktype=booktype, publication=publication_rescan.require_entries)\n')
+            matches=[value for value in prior if value in source]
+            if len(matches)!=1:raise ValueError('Expected one checked native rescan boundary')
+            source=replace_once(source,matches[0],'    '+marker+'\n'+call)
+            source=source.replace('    # homelab-rescan-publication-v1\n','',1)
+            if 'from mylar import publication_rescan\n' not in source:
+                source='from mylar import publication_rescan\n'+source
+        elif source.count(call)!=1:raise ValueError('Native rescan publication boundary changed')
     ast.parse(source)
     return source
 
@@ -91,6 +104,7 @@ def main(directory):
     shutil.copyfile(
         Path(__file__).with_name("file_identity.py"), root / "file_identity.py"
     )
+    shutil.copyfile(Path(__file__).with_name('publication_rescan.py'),root/'publication_rescan.py')
 
 
 if __name__ == "__main__":
