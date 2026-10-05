@@ -225,6 +225,9 @@ class Publisher:
                     return False
         return True
 
+    def correction_checkpoint(self,record,*,cleanup=False):
+        """Native correction-owning subclasses revalidate before mutation."""
+
     def finish(self, record, state, *, cleanup=True):
         if cleanup and state == 'committed':
             try:
@@ -244,6 +247,7 @@ class Publisher:
         self.write(record)  # Terminal state is durable before removing any copy.
         if cleanup and state in TERMINAL:
             folder = self.workspace(record)
+            self.correction_checkpoint(record,cleanup=True)
             shutil.rmtree(folder)
             sync(folder.parent)
             record['cleaned'] = True

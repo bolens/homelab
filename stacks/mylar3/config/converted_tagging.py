@@ -1,4 +1,5 @@
 """Durable missing-metadata follow-up for verified normalizer conversions."""
+from contextlib import nullcontext
 import hashlib
 import json
 from pathlib import Path
@@ -8,6 +9,13 @@ import time
 import uuid
 import zipfile
 import zlib
+
+if __package__:
+    from .publication_native import Review
+    from .publication_guard import Unavailable
+else:
+    from publication_native import Review
+    from publication_guard import Unavailable
 
 ACTIVE = ('queued', 'waiting-library', 'waiting-settings', 'tagging', 'retry')
 RUN = threading.Lock()
@@ -45,10 +53,11 @@ def admit(payload, journal=None):
 
 
 class Queue:
-    def __init__(self, journal, catalog, coordinate, inspect, tag, recover, settings, clock=time.time):
+    def __init__(self, journal, catalog, coordinate, inspect, tag, recover, settings, clock=time.time, *, publication=None):
         self.journal, self.catalog, self.coordinate = journal, catalog, coordinate
         self.inspect, self.tag, self.recover, self.settings = inspect, tag, recover, settings
         self.clock = clock
+        self.publication = publication
 
     def save(self, job, phase, reason, delay=0):
         job.update(phase=phase, reason=reason, retry_at=self.clock()+delay, updated_at=self.clock())
@@ -68,6 +77,8 @@ class Queue:
         try:
             with self.coordinate():
                 self.process(job)
+        except (Review, Unavailable):
+            self.save(job, 'review', 'Publication evidence requires review; source retained')
         except Exception:
             # Keep unknown ownership/recovery failures retryable, without spending
             # a publication attempt or clearing any native recovery marker.
@@ -89,9 +100,12 @@ class Queue:
             self.save(job, 'review', 'Catalog ownership changed; review required')
             return
         job.update(match)
+        if self.publication is not None:
+            self.publication(job)
         if job.get('token'):
             result = self.recover(job)
             if result in ('added', 'updated', 'unchanged'):
+                if self.publication is not None:self.publication(job)
                 self.save(job, 'completed', 'Metadata '+result+'; publication verified')
                 return
             if result not in (None, 'failed', 'timed_out', 'unsupported'):
@@ -105,11 +119,12 @@ class Queue:
         except (OSError, ValueError, zipfile.BadZipFile, zlib.error, EOFError):
             self.save(job, 'review', 'Converted archive is missing or invalid; review required')
             return
-        if has_metadata:
-            self.save(job, 'completed', 'Existing ComicInfo preserved; no automatic retag')
-            return
         if digest != job['sha256']:
             self.save(job, 'review', 'Converted archive changed; review required')
+            return
+        if has_metadata:
+            if self.publication is not None:self.publication(job)
+            self.save(job, 'completed', 'Existing ComicInfo preserved; no automatic retag')
             return
         if job['attempts'] >= 6:
             self.retry(job)
@@ -118,6 +133,7 @@ class Queue:
         self.save(job, 'tagging', 'Adding missing ComicInfo metadata')
         result = self.tag(job)
         if result in ('added', 'updated', 'unchanged'):
+            if self.publication is not None:self.publication(job)
             self.save(job, 'completed', 'Metadata '+result+'; publication verified')
         elif result in ('failed', 'timed_out'):
             self.retry(job)
@@ -161,6 +177,12 @@ def catalog(path, converted_sha256=None):
     if len(matches) > 1:
         raise ValueError('Ambiguous catalog ownership')
     if not matches and converted_sha256:
+        from mylar import native_writers
+        if native_writers.publication_mode():
+            from mylar import publication_native
+            # Reconciliation can mutate catalog paths. A missing exact owner
+            # cannot acquire registered payload authority through its filename.
+            publication_native.require(path)
         from mylar import converted_catalog
         if converted_catalog.reconcile(database, path, converted_sha256):
             return catalog(path)
@@ -176,6 +198,11 @@ def inspect_archive(path):
 
 def recover(job):
     from mylar import native_writers, tagger_native, tagger_handoff
+    publication(job)
+    if native_writers.publication_mode():
+        # Existing receipts confer no active capability. Typed explicit replay
+        # integration must precede any mutation-capable handoff capture.
+        raise Review('tagging-replay-unbound')
     publisher, _ = tagger_native.state(native_writers.owner())
     receipt = publisher.receipt(job['token'])
     if not receipt.exists() and not receipt.is_symlink():
@@ -184,6 +211,14 @@ def recover(job):
         return 'conflict'
     result = tagger_handoff.capture(publisher, job['token'])
     return result.metadata if result.valid_for(job['path']) else result.state
+
+
+def publication(job):
+    from mylar import native_writers
+    if native_writers.publication_mode():
+        from mylar import publication_native
+        return publication_native.require(job['path'],issueid=job.get('issueid'),
+                                          comicid=job.get('comicid'))
 
 
 def settings():
@@ -221,7 +256,12 @@ def poll():
     if not RUN.acquire(blocking=False):
         return
     try:
-        Queue(store(), catalog, native_writers.operation, inspect_archive, tag, recover, settings).tick()
+        # The production Store factory requires admitted native ownership.
+        # Keep it for selection, processing and durable review writes, including
+        # the queue's exception handlers; do not reacquire through held fences.
+        with native_writers.operation():
+            Queue(store(), catalog, nullcontext, inspect_archive, tag, recover, settings,
+                  publication=publication).tick()
     except Exception:
         mylar.logger.warn('Converted comic tagging state unavailable; retained for retry')
     finally:

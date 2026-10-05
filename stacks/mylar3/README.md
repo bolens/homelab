@@ -1026,7 +1026,18 @@ The guard uses the actual storyarc/oneoff operation settings, including forced
 copies, and checks the complete cache cleanup set before its first deletion.
 Unclassified cache files remain retained; changing entry sets or newly appearing
 originals invalidate cleanup admission. Same-path softlinks are also held.
-Naming, manual tagging, rescan and worker enforcement still require the remaining
+New Modern tagging jobs use a private transaction bound to the exact source,
+owner, policy, correction census and recovery directories. Automatic temporary
+outputs and manual no-overwrite handoffs require terminal receipt verification
+before clearing only their own captured fence. Completed receipts retain a
+bound terminal witness for later reading; this never authorizes receipt replay.
+Changed or missing evidence keeps the job held. Changed in-place tagging and
+interrupted-job recovery still require the remaining correction work.
+When publication protection is active, Legacy tagging also remains held before
+its temporary copy or child process: its fallback cleanup is not yet bound to
+an owned transaction. Outside publication mode, its existing behavior remains.
+
+Naming, rescan and worker enforcement still require the remaining
 correction tasks before live rollout or a prevention claim.
 
 Guards at every native and worker publication boundary remain unfinished in the

@@ -289,11 +289,18 @@ class Controller:
                           source_sha256=[item['source_sha256'] for item in body['observed']])
         return result
 
-    def _check(self, value, writer):
+    def _check(self, value, writer, *, transaction=None):
         census, records = guard.registry_snapshot(self.database, writer.root / 'publication-v1.json')
         result = dict(version=1, action='check', advisory=True, census=census,
                       owner=value['owner'], payload=value['payload'], decision='unknown')
-        if any(writer.fenced(**args) for args in ({}, {'tagger': True}, {'release': True})):
+        if transaction is not None:
+            if __package__:
+                from .publication_transaction import admission
+            else:
+                from publication_transaction import admission
+            admission(transaction,writer)
+        elif (os.path.lexists(writer.root/'tagger-publication-v1.json')
+                or any(writer.fenced(**args) for args in ({}, {'tagger': True}, {'release': True}))):
             result.update(decision='held', reason='media-pending');return result
         matches = [record for record in records.values() if record['inventory']['payload'] == value['payload']]
         if not matches:
