@@ -18,6 +18,31 @@ def store(root):
 
 
 class Publisher(NFSPublisher):
+    def backend_name(self):
+        job=self.publication_job()
+        if job is not None and job.value['policy'].get('backend')=='legacy':return 'legacy-1.3.5'
+        return super().backend_name()
+
+    def save_metadata(self,staged,metadata,**kwargs):
+        job=self.publication_job()
+        if job is None or job.value['policy'].get('backend')!='legacy':
+            return super().save_metadata(staged,metadata,**kwargs)
+        if __package__:
+            from . import tagger_legacy, publication_native as native
+        else:
+            import tagger_legacy
+            import publication_native as native
+        try:
+            record=self.read(job.value['token'])
+            if str(staged)!=str(self.workspace(record)/'tagged.cbz'):
+                raise native.Review('tagging-legacy-workspace-changed')
+            job.proof(staged)
+            result=tagger_legacy.save(staged,metadata,**kwargs)
+            job.proof(staged)
+            return result
+        except (OSError,ValueError,TypeError,KeyError):
+            raise native.Review('tagging-legacy-output-unavailable') from None
+
     def __init__(self, root, config_root):
         super().__init__(root)
         self.config_root = config_root
@@ -58,8 +83,19 @@ class Publisher(NFSPublisher):
         return super().tag(source,metadata,token=token,**kwargs)
 
     def write(self,record):
+        job=self.publication_job()
         self.correction_checkpoint(record)
-        return super().write(record)
+        try:
+            return super().write(record)
+        except (OSError,ValueError,TypeError,KeyError):
+            if job is None:raise
+            if __package__:
+                from .publication_native import Review
+            else:
+                from publication_native import Review
+            # A failed durable receipt is an interrupted owned job. Ordinary
+            # tagger recovery must not clean or advance its prepared copies.
+            raise Review('tagging-receipt-write-unavailable') from None
 
     def prepare_output(self,output,record):
         self.correction_checkpoint(record)

@@ -1032,15 +1032,31 @@ outputs and manual no-overwrite handoffs require terminal receipt verification
 before clearing only their own captured fence. Completed receipts retain a
 bound terminal witness for later reading; this never authorizes receipt replay.
 Changed or missing evidence keeps the job held. Manual metadata updates may
-replace a retained copy that is not a registered correction owner archive,
-including an eligible newly converted CBZ,
-while preserving registered originals. The job binds the exact before/after hashes,
+replace an eligible retained copy, newly converted CBZ or registered archive
+while preserving publication payload and catalog ownership. The job binds exact before/after hashes,
 file identities, attributes and publication receipt before displacement; passive
-proof cannot recreate lost recovery state. Registered catalog archives and
-interrupted-job recovery still require the remaining correction work.
-When publication protection is active, Legacy tagging also remains held before
-its temporary copy or child process: its fallback cleanup is not yet bound to
-an owned transaction. Outside publication mode, its existing behavior remains.
+proof cannot recreate lost recovery state. A registered catalog name may resolve
+only to this active job's verified before/displaced/after archive. Fresh complete
+catalog claims, physical identities and all other matched owner facts stay checked.
+Interrupted jobs with an exact immutable terminal witness can be explicitly
+prepared with `prepare-tagging-completion` and accepted with `complete-tagging`.
+Preparation requires reviewed backup and restore hashes. Completion rechecks the
+archive, attributes, receipt, staging, current owner and complete correction
+authority, then clears only the captured job's holds. A private completion ledger
+and separate pending marker retain admission across interrupted clearance. This
+operation never invokes a tagger or replays a media write. Earlier phases,
+missing witnesses and changed facts remain held for review.
+Owned publication receipt write failures return retained review before ordinary
+recovery or further cleanup. Available prepared and displaced originals stay
+retained, and the writer hold remains, including when a write reports failure
+after replacing its receipt.
+When publication protection is active, Legacy ComicRack tagging of CBZs uses the
+same owned transaction and the bundled 1.3.5 CLI with private configuration and
+offline explicit metadata. It never invokes upstream fallback cleanup or a Modern
+child. Unsupported conversion and ComicBookLover policies return unsupported
+before preparing a tagging intent, while native publication checks still enforce
+import eligibility. Metadata the older parser cannot represent stays in review.
+Outside publication mode, existing Legacy behavior remains.
 
 Naming, rescan and worker enforcement still require the remaining
 correction tasks before live rollout or a prevention claim.

@@ -24,7 +24,8 @@ IN_PLACE_FIELDS=('token','source','before','after','source_identity','candidate_
 
 
 def present(writer):
-    return os.path.lexists(writer.root/NAME)
+    return (os.path.lexists(writer.root/NAME)
+            or os.path.lexists(writer.root/'tagger-recovery-v1.pending'))
 
 
 def admission(capability,writer):
@@ -152,6 +153,7 @@ class Tagging:
             raise guard.Unavailable('Tagging capability has been closed')
         if (not writer.local[1].depth or guard.writer_identity(writer)!=self.value['writer']
                 or writer.root!=self.writer.root or self.value['phase'] not in ('fenced','completing')
+                or os.path.lexists(writer.root/'tagger-recovery-v1.pending')
                 or writer.fenced() or writer.fenced(release=True)
                 or (self.removed_fence_signature is None and (
                     not writer.fenced(tagger=True)
@@ -291,11 +293,10 @@ class Tagging:
         else:raise native.Review('tagging-source-missing')
 
     def bind_in_place(self,publisher,record,output):
-        """Bind only a retained copy; never displace a registered owner archive."""
+        """Bind a metadata-only transition before displacing the owned archive."""
         self.publisher_check(publisher,record)
         if (not self.value['policy']['manualmeta'] or self.value['in_place'] is not None
-                or record.get('state')!='publishing'
-                or any(item['catalog']['path']==self.value['source'] for item in self.value['observed'])):
+                or record.get('state')!='publishing'):
             raise native.Review('tagging-in-place-transition-unbound')
         self.proof(output)
         if not publisher.matches(output,record,True):
@@ -350,6 +351,72 @@ class Tagging:
             if publisher.matches(displaced,record,links=(1,2)):
                 return displaced,record['before']
         raise native.Review('tagging-in-place-source-changed')
+
+    def observation_path(self,path):
+        """Resolve only this job's exact catalog name to its verified NFS copy."""
+        path=Path(path)
+        if str(path)!=self.value['source'] or self.value['in_place'] is None:return path
+        return self.in_place_source(path)[0]
+
+    def observed_equal(self,observed):
+        """Project only the bound metadata transition; retain every catalog fact."""
+        expected=self.value['observed']
+        if self.value['in_place'] is None:return guard.same_json(observed,expected)
+        actual=json.loads(json.dumps(observed))
+        source,digest=self.in_place_source(self.value['source'])
+        stamp=list(guard.signature(source.lstat()))
+        for item in actual:
+            if item['catalog']['path']!=self.value['source']:continue
+            matches=[old for old in expected if guard.same_json(old['owner'],item['owner'])
+                     and guard.same_json(old['catalog'],item['catalog'])]
+            if (len(matches)!=1 or item['source_sha256']!=digest
+                    or not guard.same_json(item['signature'],stamp)):
+                return False
+            item['source_sha256']=matches[0]['source_sha256']
+            item['signature']=matches[0]['signature']
+        return guard.same_json(actual,expected)
+
+    def released_observation(self,before,current,handoff):
+        """Read exact terminal evidence after release; confer no replay permission."""
+        import mylar
+        from mylar import native_writers
+        if (self.value['phase']!='released' or self.pending_fd is not None
+                or not self.writer.local[1].depth or present(self.writer)
+                or any(self.writer.fenced(**args) for args in ({},{'tagger':True},{'release':True}))
+                or guard.writer_identity(self.writer)!=self.value['writer']
+                or before['path']!=self.value['source']
+                or before['inventory']['source_sha256']!=self.value['source_sha256']
+                or not guard.same_json(before['inventory']['source_signature'],self.value['source_signature'])
+                or not guard.same_json(before['owner'],self.value['owner'])
+                or not guard.same_json(before['observed'],self.value['observed'])
+                or history_identity(self.history)!=self.value['history']):
+            raise native.Review('tagging-released-proof-changed')
+        native_writers.admission(self.writer)
+        census,_=guard.registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',self.writer.root/'publication-v1.json')
+        terminal=self.value['completion'];witness=self.terminal_witness
+        expected=json.loads(json.dumps(self.value));expected['phase']='completing'
+        if (not guard.same_json(census,self.value['census']) or witness is None
+                or not guard.same_json(witness['value'],dict(version=1,kind='tagging-terminal-proof',job=expected))
+                or guard.private_evidence(Path(witness['path']))!=witness['evidence']
+                or not guard.same_json(guard.private_json(Path(witness['path'])),witness['value'])
+                or guard.private_evidence(Path(terminal['receipt']))!=terminal['receipt_evidence']
+                or not guard.same_json(guard.private_json(Path(terminal['receipt'])),terminal['record'])
+                or not handoff.valid_for(self.value['source'])
+                or handoff.digest!=terminal['sha256']
+                or current['inventory']['source_sha256']!=terminal['sha256']
+                or not guard.same_json(current['inventory']['source_signature'],terminal['signature'])):
+            raise native.Review('tagging-released-proof-changed')
+        observed=json.loads(json.dumps(current['observed']))
+        for item in observed:
+            if item['catalog']['path']!=self.value['source']:continue
+            matches=[old for old in before['observed'] if guard.same_json(old['owner'],item['owner'])
+                     and guard.same_json(old['catalog'],item['catalog'])]
+            if (len(matches)!=1 or item['source_sha256']!=terminal['sha256']
+                    or not guard.same_json(item['signature'],terminal['signature'])):
+                raise native.Review('tagging-released-owner-changed')
+            item['source_sha256']=matches[0]['source_sha256'];item['signature']=matches[0]['signature']
+        if not guard.same_json(observed,before['observed']):
+            raise native.Review('tagging-released-owner-changed')
 
     def publisher_cleanup(self,publisher,record):
         self.publisher_check(publisher,record)
@@ -503,7 +570,7 @@ class Tagging:
                               transaction=self)
         if (result['inventory']['payload']!=self.value['payload']
                 or not guard.same_json(result['owner'],owner)
-                or not guard.same_json(result['observed'],self.value['observed'])
+                or not self.observed_equal(result['observed'])
                 or (transitioned and result['inventory']['source_sha256']!=digest)
                 or (original and not transitioned and (result['path']!=self.value['source']
                     or result['inventory']['source_sha256']!=self.value['source_sha256']

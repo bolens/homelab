@@ -91,6 +91,12 @@ def _checkpoint(stage):
 
 
 class Publisher:
+    def backend_name(self):
+        return VERSION
+
+    def save_metadata(self,*args,**kwargs):
+        return save(*args,**kwargs)
+
     version = 1
 
     def __init__(self, directory):
@@ -411,7 +417,7 @@ class Publisher:
                 folder.mkdir(mode=0o700)
                 sync(folder.parent)
                 record = dict(version=self.version, token=token, source=str(source), request=request,
-                              backend=VERSION, before=before, source_identity=list(old.identity),
+                              backend=self.backend_name(), before=before, source_identity=list(old.identity),
                               permissions=[old.mode, old.uid, old.gid],
                               workspace=list(identity(folder.stat())[:2]), state='staged', cleaned=False)
                 record.update(security)
@@ -452,7 +458,7 @@ class Publisher:
                     record['metadata'] = repair(original, output)
                 else:
                     options = {'executable': executable} if executable else {}
-                    result = save(tagged, metadata, workdir=folder, **options)
+                    result = self.save_metadata(tagged, metadata, workdir=folder, **options)
                     if result.state != 'saved':
                         return self.finish(record, 'timed_out' if result.state == 'timed_out' else 'failed')
                     record['metadata'] = prepare(original, tagged, output, updates=updates, replace_fields=replace_fields)

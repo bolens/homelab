@@ -36,6 +36,7 @@ class Published:
     identity: tuple = field(default=(), repr=False)
     permissions: tuple = field(default=(), repr=False)
     attributes: tuple = field(default=(), repr=False)
+    publication: object = field(default=None, repr=False, compare=False)
 
     def valid_for(self, source):
         """Verify the exact expected caller source before bypassing native cleanup."""

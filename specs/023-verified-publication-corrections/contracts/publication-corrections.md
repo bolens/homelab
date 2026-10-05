@@ -243,9 +243,18 @@ state. Tokens, epochs and payload IDs are lowercase SHA-256 hex strings.
 | `recover-registration` | Exact accepted `token`, `mode` of `finish` or `abort` |
 | `prepare-journal` | `kind` of `bootstrap` or `registration`, accepted intent `token`; optional exact `parent_token` for interrupted recovery |
 | `recover-journal` | Same typed `kind`, exact prepared recovery `token` |
+| `prepare-tagging-completion` | `backup` with reviewed manifest/restore SHA-256 and description of at most 1,024 UTF-8 bytes |
+| `complete-tagging` | Exact prepared completion `token` |
 | `check` | Exact proposed `owner`, advisory `payload` digest |
 
 The native configuration supplies data paths and the destination library root.
+Tagging completion accepts only an interrupted job with an exact immutable
+terminal witness and matching receipt, archive, attributes, staging, owner and
+complete current correction authority. It never runs a producer or changes media.
+A private accepted ledger and pending hold span fence and intent removal;
+interrupted clearance requires the same exact token and fresh unchanged facts.
+Earlier or unwitnessed phases stay held for review. Responses expose job token,
+ledger phase and backup hashes, without private paths or backup descriptions.
 Preparation compares the complete reviewed census, observes actual allowed
 owners and requires their current payload to match the reviewed historical
 inventory. The SDK reobserves before preparing and before commit/recovery.
