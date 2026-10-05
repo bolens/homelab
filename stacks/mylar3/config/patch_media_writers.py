@@ -38,6 +38,46 @@ def guard_source(source, names):
     return source
 
 
+TRANSFERS = {
+    'webserve.py': (
+        ('shutil.move(srciss, renameiss[\'destination_dir\'])',
+         "publication_mutation.transfer(srciss, renameiss['destination_dir'], issueid=issue['IssueID'], comicid=cid)"),
+        ('shutil.copy2(issuePATH, dstPATH)',
+         "publication_mutation.transfer(issuePATH, dstPATH, issueid=IssueID, comicid=comicid, action='copy')"),
+    ),
+    'moveit.py': (('shutil.move(srcimp, dstimp)',
+                  'publication_mutation.transfer(srcimp, dstimp, comicid=comicid)'),),
+    'librarysync.py': (
+        ('shutil.move(orig_comlocation, dst_path)',
+         'publication_mutation.transfer(orig_comlocation, dst_path, comicid=watch_comicid)'),
+        ('myDB.upsert("issues", values, control)',
+         "publication_rescan.require_entry(watch_the_list['OriginalLocation'], issuechk, {'ComicID': watch_comicid})"),
+    ),
+}
+
+
+def mutation_source(source, filename):
+    """Install checked preflights at each actual native mutation boundary."""
+    pairs=TRANSFERS.get(filename,())
+    for call,check in pairs:
+        matches=[line for line in source.splitlines() if line.strip()==call]
+        if len(matches)!=1:raise ValueError('Expected one native mutation: '+call)
+        line=matches[0];indent=line[:len(line)-len(line.lstrip())]
+        guarded=indent+check+'\n'+line
+        if guarded not in source:source=replace_once(source,line,guarded)
+        if source.count(guarded)!=1:raise ValueError('Ambiguous native mutation guard')
+    if filename=='helpers.py':
+        call="    if action_op == 'copy' or (arc is True and any([action_op == 'copy', action_op == 'move'])):"
+        check="    publication_mutation.transfer(path, dst, action=('copy' if arc is True and action_op in ('copy','move') else action_op))\n\n"
+        if check+call not in source:source=replace_once(source,call,check+call)
+        if source.count(check+call)!=1:raise ValueError('Ambiguous native file policy guard')
+    if pairs or filename=='helpers.py':
+        imports='from mylar import publication_mutation, publication_rescan\n'
+        if imports not in source:source=replace_once(source,'import mylar\n','import mylar\n'+imports)
+    ast.parse(source)
+    return source
+
+
 def main(directory):
     root = Path(directory)
     changes = {}
@@ -52,10 +92,10 @@ def main(directory):
         ast.parse(source)
     changes[root/'__init__.py'] = source
     for name, names in GUARDS.items():
-        changes[root/name] = guard_source((root/name).read_text(), names)
+        changes[root/name] = mutation_source(guard_source((root/name).read_text(), names),name)
     for path, source in changes.items():
         path.write_text(source)
-    for name in ('media_writer.py', 'native_writers.py'):
+    for name in ('media_writer.py', 'native_writers.py', 'publication_mutation.py', 'publication_rescan.py'):
         (root/name).write_text(Path(__file__).with_name(name).read_text())
 
 

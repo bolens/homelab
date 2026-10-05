@@ -134,7 +134,7 @@ class NativeMatchingTest(unittest.TestCase):
         start = source.index("def forceRescan(")
         end = source.find("\ndef ", start + 1)
         rescan = source[start:end if end != -1 else None]
-        guard = rescan.index("file_identity.validate_rescan(myDB, rescan, fca, booktype=booktype)")
+        guard = rescan.index("publication_rescan.validate_rescan(myDB, rescan, fca, booktype=booktype)")
         self.assertLess(guard, rescan.index("    fcb = []"))
         self.assertLess(guard, rescan.index("d_issues.append"))
 

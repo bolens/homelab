@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 import converted_catalog as catalog
 import library_status
+import publication_rescan
 
 
 class CatalogTest(unittest.TestCase):
@@ -30,6 +31,7 @@ class CatalogTest(unittest.TestCase):
         self.inspector = Mock(return_value=(self.digest,False))
         self.jobs = []
         self.mylar = SimpleNamespace(library_status=library_status,db=SimpleNamespace(DBConnection=lambda:self.database),
+            publication_rescan=publication_rescan,native_writers=SimpleNamespace(publication_mode=lambda:False),
             workflow=SimpleNamespace(store=lambda:SimpleNamespace(active=lambda *a:self.jobs)),
             converted_tagging=SimpleNamespace(inspect_archive=self.inspector,catalog=lambda p:dict(issueid='2',comicid='1')))
         ctx=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.converted_tagging':self.mylar.converted_tagging})

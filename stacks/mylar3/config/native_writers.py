@@ -236,7 +236,11 @@ def publication_http(function):
         if _PUBLICATION and startup_status()['state']!='ready':
             return '<p>Media processing is held. Complete authenticated publication review, then restart Mylar.</p>'
         if _PUBLICATION:
-            with operation():return function(*args,**kwargs)
+            from .publication_native import Review
+            try:
+                with operation():return function(*args,**kwargs)
+            except Review:
+                return '<p>Publication identity requires review. Source and catalog are retained.</p>'
         return function(*args,**kwargs)
     return wrapped
 
@@ -245,6 +249,11 @@ def publication_api_call(function):
     @wraps(function)
     def wrapped(self,*args,**kwargs):
         if _PUBLICATION and self.data == 'OK' and self.cmd not in PASSIVE_API:
-            with operation():return function(self,*args,**kwargs)
+            from .publication_native import Review
+            try:
+                with operation():return function(self,*args,**kwargs)
+            except Review:
+                self.data=self._failureResponse('Publication identity requires review; source and catalog retained')
+                return self.data
         return function(self,*args,**kwargs)
     return wrapped

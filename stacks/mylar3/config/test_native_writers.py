@@ -2,6 +2,7 @@
 from importlib import import_module
 from pathlib import Path
 import queue
+import shutil
 import ast
 import os
 import sys
@@ -82,7 +83,8 @@ class NativeWriterTest(unittest.TestCase):
     @unittest.skipUnless(os.getenv('MYLAR_WORKFLOW_SOURCE'), 'Patched native source required')
     def test_patch_guards_all_declared_callers_and_recovers_before_database(self):
         from patch_media_writers import GUARDS, main
-        root=Path(os.environ['MYLAR_WORKFLOW_SOURCE'])
+        root=Path(self.temp.name)/'native-copy'
+        shutil.copytree(Path(os.environ['MYLAR_WORKFLOW_SOURCE']),root)
         before={p:p.read_bytes() for p in [root/'__init__.py', *(root/name for name in GUARDS)]}
         main(root)
         self.assertEqual(before,{p:p.read_bytes() for p in before})

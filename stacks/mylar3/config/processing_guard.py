@@ -45,6 +45,13 @@ def proposed(processor,field):
     return (getattr(processor,'_publication_owner',None) or {}).get(field)
 
 
+def current_owner():
+    """Internal caller context only; an unbound helper cannot invent an owner."""
+    processor=getattr(_ACTIVE,'processor',None)
+    owner=getattr(processor,'_publication_owner',None)
+    return None if owner is None else dict(owner)
+
+
 def relocation(processor, result, destination=None, *, action=None):
     """Hold existing registered source moves before any filesystem mutation.
 

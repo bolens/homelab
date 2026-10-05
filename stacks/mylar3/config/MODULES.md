@@ -46,6 +46,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Explicit catalog volume labels | `patch_catalog_volumes.py` | `catalog_volume.py`, `test_catalog_volumes.py` |
 | Story-arc search identities | `patch_story_arcs.py` | `story_arc_search.py`, `test_story_arc_search.py` |
 | Wednesday release weeks | `patch_release_calendar.py` | `release_calendar.py`, `test_release_calendar.py` |
+| Weekly release conflicts preserve wanted intent | `patch_weekly_identity.py` | `test_weekly_identity.py`; a mismatched feed entry cannot set a catalog issue to Skipped, and the weekly label explains that the release needs review |
 
 `source_patches.py` contains only build-time source-boundary checks. It must not
 be imported by the application. Existing marker strings remain stable where
@@ -201,6 +202,19 @@ through native processing acknowledgements without triggering failure search.
 Registered original relocation or deletion remains held until the later verified
 transition contract. Other native and worker publication boundaries remain
 unfinished.
+`publication_rescan.py` checks both parsed candidates and protected current
+catalog bindings before parser corrections or row updates, including empty scans
+and converted-archive repair. Retained review reaches the outer HTTP/API response
+without invoking native failure fallback or acknowledging completion.
+`publication_mutation.py` preflights actual manual renames, local downloads,
+library imports and file-operation policies before moves, copies, links or
+archival row updates. It checks exact payload eligibility and current unfiltered
+correction-participant paths, including physical aliases and existing targets.
+Copies to new destinations remain eligible; moving a catalog-bound protected
+original remains held until verified relocation is implemented. An unbound import
+cannot infer a known payload's owner from its filename. Tests:
+`test_publication_rescan.py`, `test_publication_mutation.py` and the owning native
+parser, converted-catalog and request suites.
 `publication_transaction.py` binds each new tagging job to its admitted Writer,
 source, policy, owner, correction census and captured pending-marker descriptor.
 Only its active private capability can coordinate the producer. Exact terminal
