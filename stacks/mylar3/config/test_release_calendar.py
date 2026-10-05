@@ -126,6 +126,40 @@ class CalendarTest(unittest.TestCase):
         self.assertEqual(scope["locg"](weeknumber=53, year=2026), {"status": "failure"})
         requests.get.assert_not_called()
 
+    def test_successful_provider_refresh_persists_current_poll_time(self):
+        from unittest.mock import Mock
+        source=patched("locg.py",(SOURCE/"locg.py").read_text())
+        node=next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name=="locg")
+        response=Mock(status_code=200)
+        response.json.return_value=[dict(series="Fixture",alias=None,issue="#1",publisher="Fixture",
+            shipdate="2025-12-31",coverdate="2025-12-31",comicid="456",issueid="123",
+            weeknumber=53,link=None,year=2025,volume=1,seriesyear=2025,type="Comic")]
+        requests=Mock();requests.get.return_value=response
+        config=SimpleNamespace(RELEASE_PROVIDER_URL="https://example.invalid",writeconfig=Mock())
+        checker=Mock();checker.dynamic_replace.return_value={"mod_seriesname":"Fixture"}
+        database=Mock()
+        scope=dict(datetime=datetime,release_calendar=release_calendar,requests=requests,logger=Mock(),
+            re=__import__('re'),ignored_publisher_check=lambda publisher:False,
+            db=SimpleNamespace(DBConnection=lambda:database),mylar=SimpleNamespace(CONFIG=config,
+                USER_AGENT="Mylar/1.0 (test)",filechecker=SimpleNamespace(FileChecker=lambda:checker)))
+        exec(compile(ast.Module(body=[node],type_ignores=[]),"locg.py","exec"),scope)
+        before=datetime.datetime.now().replace(microsecond=0)
+        result=scope["locg"](weeknumber=53,year=2025)
+        after=datetime.datetime.now().replace(microsecond=0)
+        self.assertEqual(result,{"status":"success","count":1,"weeknumber":53,"year":2025})
+        refreshed=datetime.datetime.strptime(config.PULL_REFRESH,'%Y-%m-%d %H:%M:%S')
+        self.assertLessEqual(before,refreshed);self.assertLessEqual(refreshed,after)
+        config.writeconfig.assert_called_once_with(values={"pull_refresh":config.PULL_REFRESH})
+        database.upsert.assert_called_once()
+        self.assertEqual(patched("locg.py",source),source)
+
+    def test_refresh_timestamp_rejects_duplicate_assignments(self):
+        source = patched("locg.py", (SOURCE / "locg.py").read_text())
+        assignment = "mylar.CONFIG.PULL_REFRESH = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')"
+        duplicate = source.replace(assignment, assignment + "\n            " + assignment)
+        with self.assertRaisesRegex(ValueError, "Unexpected release refresh"):
+            patched("locg.py", duplicate)
+
     def test_legacy_storage_and_lookup_keys_remain_unchanged(self):
         day = datetime.date(2024, 1, 3)
         app = SimpleNamespace(CONFIG=SimpleNamespace(ALT_PULL=1))
