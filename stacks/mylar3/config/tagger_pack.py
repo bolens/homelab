@@ -71,14 +71,8 @@ class Publisher(NFSPublisher):
         self.correction_checkpoint(record)
         job=self.publication_job()
         if job is not None:
-            # Registered in-place after-state transitions are not yet admitted.
-            # Hold before displacing the library name, retaining all copies.
             if job.value['policy']['manualmeta']:
-                if __package__:
-                    from .publication_native import Review
-                else:
-                    from publication_native import Review
-                raise Review('tagging-in-place-transition-unbound')
+                job.bind_in_place(self,record,output)
             job.proof(output)
         return super().publish(source,output,record)
 

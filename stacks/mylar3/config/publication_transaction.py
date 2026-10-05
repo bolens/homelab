@@ -19,6 +19,8 @@ else:
 
 NAME='tagger-publication-v1.json'
 _LOCAL=threading.local()
+IN_PLACE_FIELDS=('token','source','before','after','source_identity','candidate_identity',
+                 'permissions','attributes','workspace','publication')
 
 
 def present(writer):
@@ -122,7 +124,8 @@ class Tagging:
             writer=guard.writer_identity(writer),source=proof['path'],owner=proof['owner'],
             payload=proof['inventory']['payload'],source_sha256=proof['inventory']['source_sha256'],
             source_signature=list(proof['inventory']['source_signature']),census=census,
-            policy=policy,observed=proof['observed'],recovery=recovery,history=history,fence=None)
+            policy=policy,observed=proof['observed'],recovery=recovery,history=history,fence=None,
+            in_place=None)
         _write(self.path,self.value,exclusive=True)
         self.evidence=guard.private_evidence(self.path)
         writer.mark_tagger_pending()
@@ -145,6 +148,8 @@ class Tagging:
 
     def check(self,writer):
         import mylar
+        if type(self.pending_fd) is not int:
+            raise guard.Unavailable('Tagging capability has been closed')
         if (not writer.local[1].depth or guard.writer_identity(writer)!=self.value['writer']
                 or writer.root!=self.writer.root or self.value['phase'] not in ('fenced','completing')
                 or writer.fenced() or writer.fenced(release=True)
@@ -182,7 +187,7 @@ class Tagging:
                 or not guard.same_json(witness.get('version'),1)
                 or set(closed)!={'version','kind','phase','token','writer','source','owner','payload',
                     'source_sha256','source_signature','census','policy','observed','recovery',
-                    'history','fence','publisher','completion'}
+                    'history','fence','publisher','completion','in_place'}
                 or closed.get('phase')!='completing' or closed.get('token')!=token
                 or not guard.same_json(closed.get('writer'),self.value['writer'])
                 or not guard.same_json(closed.get('history'),self.value['history'])
@@ -192,13 +197,15 @@ class Tagging:
         census=guard.census_value(closed['census']);current=self.value['census']
         predecessor={key:value for key,value in closed.items() if key not in ('publisher','completion')}
         predecessor['phase']='fenced'
+        predecessor['in_place']=None
         binding=closed['publisher']
         if (not isinstance(binding,dict) or census['epoch']!=current['epoch']
                 or census['revision']>current['revision'] or not set(census['keys']).issubset(current['keys'])
                 or guard.canonical_digest(predecessor)!=binding.get('intent_sha256')
                 or not guard.same_json(binding.get('owner'),closed['owner'])
                 or not guard.same_json(binding.get('payload'),closed['payload'])
-                or not guard.same_json(binding.get('census'),census)):
+                or not guard.same_json(binding.get('census'),census)
+                or not guard.same_json(binding.get('in_place'),closed['in_place'])):
             raise native.Review('tagging-closed-history-changed')
         terminal=closed.get('completion')
         if (not isinstance(terminal,dict)
@@ -273,7 +280,8 @@ class Tagging:
         source=self.publisher_source(publisher,record['source'])
         if source.exists() or source.is_symlink():
             self.proof(source)
-        elif (not self.value['policy']['manualmeta'] and record.get('state')=='publishing'):
+        elif (record.get('state')=='publishing' and
+                (not self.value['policy']['manualmeta'] or self.value['in_place'] is not None)):
             # Only an uncatalogued owned staging name may be temporarily absent.
             # The original acquisition and all registered owner facts stay intact.
             displaced=publisher.workspace(record)/'displaced.cbz'
@@ -281,6 +289,62 @@ class Tagging:
                 raise native.Review('tagging-displaced-source-changed')
             self.proof(displaced)
         else:raise native.Review('tagging-source-missing')
+
+    def bind_in_place(self,publisher,record,output):
+        """Bind only a retained copy; never displace a registered owner archive."""
+        self.publisher_check(publisher,record)
+        if (not self.value['policy']['manualmeta'] or self.value['in_place'] is not None
+                or record.get('state')!='publishing'
+                or any(item['catalog']['path']==self.value['source'] for item in self.value['observed'])):
+            raise native.Review('tagging-in-place-transition-unbound')
+        self.proof(output)
+        if not publisher.matches(output,record,True):
+            raise native.Review('tagging-in-place-output-changed')
+        transition={key:record[key] for key in IN_PLACE_FIELDS}
+        self.check(self.writer)
+        self.value['publisher']['in_place']=json.loads(json.dumps(transition))
+        _write(self.path,self.value,exclusive=False)
+        self.evidence=guard.private_evidence(self.path)
+        record['correction_guard']=json.loads(json.dumps(self.value['publisher']))
+        # Intent precedes receipt. An interrupted binding remains held; it
+        # cannot admit another job or implicitly upgrade this receipt.
+        publisher.write(record)
+        self.in_place_publisher=publisher
+        self.value['in_place']=json.loads(json.dumps(transition))
+        _write(self.path,self.value,exclusive=False)
+        self.evidence=guard.private_evidence(self.path)
+
+    def in_place_source(self,path):
+        """Observe the exact before/displaced/after file without replay."""
+        if __package__:
+            from .tagger_pack import Publisher
+        else:
+            from tagger_pack import Publisher
+        source=Path(self.value['source'])
+        if Path(path).absolute()!=source:raise native.Review('tagging-source-changed')
+        self.check(self.writer)
+        publisher=getattr(self,'in_place_publisher',None)
+        if (type(publisher) is not Publisher
+                or str(publisher.root)!=self.value['recovery']['directories'][1][0]
+                or Path(publisher.config_root).absolute()!=self.writer.root.parent):
+            raise native.Review('tagging-in-place-producer-changed')
+        record=guard.private_json(publisher.receipt(self.value['token']))
+        transition={key:record[key] for key in IN_PLACE_FIELDS}
+        if (not guard.same_json(transition,self.value['in_place'])
+                or not guard.same_json(record.get('correction_guard'),self.value['publisher'])
+                or record.get('state') not in ('publishing','committed')
+                or not guard.same_json(self.value['publisher'].get('in_place'),transition)):
+            raise native.Review('tagging-in-place-receipt-changed')
+        if source.exists() or source.is_symlink():
+            if publisher.matches(source,record,links=(1,2)):
+                return source,record['before']
+            if publisher.matches(source,record,True,links=(1,2)):
+                return source,record['after']
+        elif record['state']=='publishing':
+            displaced=publisher.workspace(record)/'displaced.cbz'
+            if publisher.matches(displaced,record,links=(1,2)):
+                return displaced,record['before']
+        raise native.Review('tagging-in-place-source-changed')
 
     def publisher_cleanup(self,publisher,record):
         self.publisher_check(publisher,record)
@@ -428,12 +492,15 @@ class Tagging:
 
     def proof(self,path,*,original=False):
         owner=self.value['owner']
+        transitioned=original and self.value['in_place'] is not None
+        if transitioned:path,digest=self.in_place_source(path)
         result=native.require(path,issueid=None if owner is None else owner['issueid'],
                               transaction=self)
         if (result['inventory']['payload']!=self.value['payload']
                 or not guard.same_json(result['owner'],owner)
                 or not guard.same_json(result['observed'],self.value['observed'])
-                or (original and (result['path']!=self.value['source']
+                or (transitioned and result['inventory']['source_sha256']!=digest)
+                or (original and not transitioned and (result['path']!=self.value['source']
                     or result['inventory']['source_sha256']!=self.value['source_sha256']
                     or list(result['inventory']['source_signature'])!=self.value['source_signature']))):
             raise native.Review('tagging-source-changed',payload=result['inventory']['payload'])
