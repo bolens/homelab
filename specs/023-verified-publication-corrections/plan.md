@@ -48,7 +48,8 @@ stacks/mylar3/
   Dockerfile
   config/publication_guard.py config/publication_api.py
   config/patch_publication_guard.py config/patch_publication_startup.py
-  config/publication_fresh.py
+  config/publication_fresh.py config/publication_native.py
+  config/patch_publication_processing.py config/test_publication_native.py
   config/test_publication_guard.py config/test_publication_api.py
   config/test_publication_startup.py
   config/apply_patches.py config/verify_image.py config/MODULES.md

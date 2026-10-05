@@ -21,6 +21,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | HTTP resume offsets | `patch_ddl_resume.py` | `test_ddl_resume.py` |
 | Requeued download state | `patch_ddl_requeue.py` | `test_ddl_requeue.py` |
 | Authenticated publication registration and advisory protocol | `patch_publication_guard.py` | `publication_api.py`, `publication_guard.py`, `test_publication_api.py`; follows writer, workflow and naming helper installation |
+| Native payload admission and retained postprocessing review | `patch_publication_processing.py` (invoked by `patch_publication_guard.py`) | `publication_native.py`, `processing_guard.py`, `pp_monitor.py`, `test_publication_native.py`; checked actual native processing and acknowledgement branches |
 | Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; last adapter after the authenticated publication API |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
@@ -190,7 +191,15 @@ initialization, workers and ordinary HTTP/API requests without replay. Health an
 the authenticated publication controller remain available. Notification polling
 requires admission because it writes native notification records. Successful
 authority acceptance requires restart and successful native initialization before
-media admission. All per-payload publication boundaries remain unfinished.
+media admission. `publication_native.py` computes fresh complete candidate and
+matched-owner evidence locally under the caller's admitted raw writer. The
+processing adapter guards native scripts, taggers, duplicates, call-specific
+placement, the complete actual cleanup set and status/history writes. It
+preserves distinct payload eligibility and carries a terminal retained review
+through native processing acknowledgements without triggering failure search.
+Registered original relocation or deletion remains held until the later verified
+transition contract. Other native and worker publication boundaries remain
+unfinished.
 `publication_guard.py` is retained under
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including
