@@ -35,3 +35,23 @@ Remote advisory checks occur before the worker holds the shared writer. Under wr
 ## Rollout
 
 Deploy matching native first and worker second with writers held and independently restore-verified affected state. Seed only exact reviewed correction evidence. Prove conflict canary and legitimate different-payload canary, then scoped existing-repeat repair and fresh protected whole-library acceptance. Source publication and healthy containers alone do not complete live acceptance.
+
+## Bootstrap source implementation boundary
+
+The current bootstrap helpers serialize raw writer → workflow lock → existing
+SQLite transactions without ordinary native media replay. Typed immutable
+bootstrap plans have bounded acceptance/outcome envelopes; explicit accepted
+intent tokens bind the complete reviewed workflow/schema, physical database
+and writer identities, retained pending fences and backup/restore attestations.
+An aborted receipt stays terminal. A final marker requires its unchanged
+prepared predecessor and a unique committed initialization witness. Neither a
+missing marker nor a lost census is reconstructed as an empty registry.
+
+Actual process-exit controls exercise all durability boundaries. Recovery can
+reconcile supported prepared-old/prepared-new bootstrap states when SQLite has
+no sidecars. A process exit during an uncommitted SQLite write leaves a rollback
+journal; this foundation refuses it without changing either file. The required
+authenticated, isolated-restore-verified journal recovery seam is still pending,
+as are registration transitions, primary-key endpoints and startup/publication
+integration. This implementation boundary does not weaken the full feature’s
+recovery and acceptance requirements or complete T003.
