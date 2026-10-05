@@ -1,6 +1,7 @@
 """Payload refusal and preservation controls without live application state."""
 
 import hashlib
+from contextlib import closing
 import gzip
 import base64
 import io
@@ -281,7 +282,8 @@ class RegistryTests(unittest.TestCase):
             inventory=inventory, allowed=[owner], rejected=[rejected],
             evidence=dict(sha256='a' * 64, description='Explicitly reviewed fixture'),
             observed=[dict(owner=owner, source_sha256='b' * 64, signature=[1]*9,
-                           catalog=dict(Location='fixture.cbz', ComicLocation='/library'))],
+                           catalog=dict(version=1, location='fixture.cbz', comic_location='/library',
+                                        path='/library/fixture.cbz', status='Downloaded', deleted=0))],
             intent='c' * 64, created=1)
 
     def seed(self, values):
@@ -385,6 +387,7 @@ class RegistryTests(unittest.TestCase):
         first = self.record();second = self.record(1)
         second['allowed'], second['rejected'] = second['rejected'], second['allowed']
         second['observed'][0]['owner'] = second['allowed'][0]
+        second['observed'][0]['catalog']['deleted'] = None
         self.seed([first, second])
         with self.assertRaises(guard.Unavailable):self.read()
         self.store.delete('publication_attestation', guard.canonical_digest(second))
@@ -548,6 +551,214 @@ class PassiveStatusTests(unittest.TestCase):
             return guard.empty_census(self.epoch), {}
         with patch.object(guard, 'registry_snapshot', side_effect=snapshot):
             self.assertEqual(self.status()['state'], 'ready')
+
+
+class NativeObservationTests(unittest.TestCase):
+    def setUp(self):
+        import sqlite3
+        from media_writer import Writer
+        self.temp = tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name);self.library = self.root / 'library';self.library.mkdir()
+        self.source = self.library / 'Series.001.cbz'
+        with zipfile.ZipFile(self.source, 'w') as archive:
+            archive.writestr('01.jpg', b'actual page')
+            archive.writestr('ComicInfo.xml', b'<ComicInfo/>')
+        self.database = self.root / 'mylar.db'
+        with closing(sqlite3.connect(self.database)) as db:
+            db.executescript('CREATE TABLE comics (ComicID TEXT,ComicLocation TEXT,Status TEXT);'
+                'CREATE TABLE issues (IssueID TEXT,ComicID TEXT,Location TEXT,Status TEXT);'
+                'CREATE TABLE annuals (IssueID TEXT,ComicID TEXT,ReleaseComicID TEXT,Location TEXT,Status TEXT,Deleted INT);')
+            db.execute('INSERT INTO comics VALUES (?,?,?)', ('456', str(self.library), 'Paused'))
+            db.execute('INSERT INTO issues VALUES (?,?,?,?)', ('123', '456', self.source.name, 'Downloaded'))
+            db.commit()
+        self.writer = Writer(self.root / 'media-writer', create=True)
+        self.owner = dict(table='issues', issueid='123', parentcomicid='456', releasecomicid='456')
+
+    def sql(self, statement, args=()):
+        import sqlite3
+        with closing(sqlite3.connect(self.database)) as db:
+            db.execute(statement, args);db.commit()
+
+    def observe(self, owners=None):
+        with self.writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True):
+            return guard.observe_owners(self.database, self.writer, owners or [self.owner],
+                                        [self.library], tool_root=TOOL_ROOT)
+
+    def test_native_regular_observation_uses_actual_archive_and_raw_catalog(self):
+        before = (self.database.read_bytes(), self.source.read_bytes())
+        result = self.observe()
+        facts = result['observed'][0]
+        self.assertEqual(facts['owner'], self.owner)
+        self.assertEqual(facts['source_sha256'], hashlib.sha256(before[1]).hexdigest())
+        self.assertEqual(facts['signature'], guard.signature(self.source.stat()))
+        self.assertEqual(facts['catalog'], dict(version=1, comic_location=str(self.library),
+            location=self.source.name, path=str(self.source), status='Downloaded', deleted=None))
+        self.assertEqual(result['inventory']['pages'], ['01.jpg'])
+        self.assertEqual((self.database.read_bytes(), self.source.read_bytes()), before)
+        self.assertFalse(Path(str(self.database)+'-journal').exists())
+
+    def test_annual_release_parent_and_deletion_are_exact(self):
+        self.sql('DELETE FROM issues')
+        self.owner.update(table='annuals', releasecomicid='789')
+        self.sql('INSERT INTO annuals VALUES (?,?,?,?,?,?)', ('123','456','789',self.source.name,'Archived',0))
+        self.assertEqual(self.observe()['observed'][0]['catalog']['deleted'], 0)
+        self.sql('UPDATE annuals SET ReleaseComicID=?', ('999',))
+        with self.assertRaises(guard.Unavailable):self.observe()
+        self.sql('UPDATE annuals SET ReleaseComicID=?,Deleted=?', ('789',1))
+        with self.assertRaises(guard.Unavailable):self.observe()
+
+    def test_deleted_locationless_annual_shadow_still_blocks_regular_owner(self):
+        self.sql('INSERT INTO annuals VALUES (?,?,?,?,?,?)', ('123','999','999',None,'Wanted',1))
+        with self.assertRaises(guard.Unavailable):self.observe()
+
+    def test_duplicate_issue_parent_and_inactive_path_claims_hold(self):
+        for statement, args in (
+            ('INSERT INTO issues VALUES (?,?,?,?)', ('123','999',None,'Wanted')),
+            ('INSERT INTO comics VALUES (?,?,?)', ('456',str(self.library),'Inactive')),
+            ('INSERT INTO issues VALUES (?,?,?,?)', ('999','456',self.source.name,'Wanted'))):
+            with self.subTest(statement=statement):
+                self.sql(statement, args)
+                with self.assertRaises(guard.Unavailable):self.observe()
+                self.sql('DELETE FROM issues WHERE rowid > 1')
+                self.sql('DELETE FROM comics WHERE rowid > 1')
+
+    def test_deleted_other_annual_path_claim_is_not_filtered_away(self):
+        self.sql('INSERT INTO annuals VALUES (?,?,?,?,?,?)', ('999','456','789',self.source.name,'Wanted',1))
+        with self.assertRaises(guard.Unavailable):self.observe()
+
+    def test_file_and_folder_aliases_cannot_hide_conflicting_owners(self):
+        alias=self.library/'alias.cbz';alias.symlink_to(self.source)
+        self.sql('INSERT INTO issues VALUES (?,?,?,?)',('999','456',alias.name,'Wanted'))
+        with self.assertRaises(guard.Unavailable):self.observe()
+        self.sql('DELETE FROM issues WHERE IssueID=?',('999',));alias.unlink()
+        folder=self.library/'alias-folder';folder.symlink_to(self.library,target_is_directory=True)
+        self.sql('INSERT INTO comics VALUES (?,?,?)',('888',str(folder),'Inactive'))
+        self.sql('INSERT INTO annuals VALUES (?,?,?,?,?,?)',('999','888','888',self.source.name,'Wanted',1))
+        with self.assertRaises(guard.Unavailable):self.observe()
+
+    def test_hardlink_alias_claim_is_ambiguous_but_private_backup_link_is_not(self):
+        backup=self.root/'private-backup.cbz';os.link(self.source,backup)
+        self.assertEqual(self.observe()['observed'][0]['signature'][-1],2)
+        alias=self.library/'alias.cbz';os.link(self.source,alias)
+        self.sql('INSERT INTO issues VALUES (?,?,?,?)',('999','456',alias.name,'Wanted'))
+        with self.assertRaises(guard.Unavailable):self.observe()
+
+    def test_duplicate_unselected_parents_are_refused_before_expansion(self):
+        self.sql('INSERT INTO comics VALUES (?,?,?)',('888',str(self.library),'Inactive'))
+        self.sql('INSERT INTO comics VALUES (?,?,?)',('888',str(self.library),'Inactive'))
+        self.sql('INSERT INTO issues VALUES (?,?,?,?)',('999','888','unselected.cbz','Wanted'))
+        with patch.object(guard,'_catalog_path',wraps=guard._catalog_path) as projected:
+            with self.assertRaises(guard.Unavailable):self.observe()
+            self.assertLessEqual(projected.call_count,2)
+
+    def test_claim_identity_change_during_payload_check_is_held(self):
+        other=self.library/'other.cbz';other.write_bytes(self.source.read_bytes())
+        self.sql('INSERT INTO issues VALUES (?,?,?,?)',('999','456',other.name,'Wanted'))
+        original=guard.inventory
+        def changed(path,**kwargs):
+            result=original(path,**kwargs)
+            other.unlink();other.symlink_to(self.source)
+            return result
+        with patch.object(guard,'inventory',side_effect=changed):
+            with self.assertRaises(guard.Unavailable):self.observe()
+
+    def test_missing_or_unconfirmed_location_is_not_observation(self):
+        for status, location in (('Snatched',self.source.name), ('Downloaded',None), ('Downloaded','absent.cbz')):
+            self.sql('UPDATE issues SET Status=?,Location=?',(status, location))
+            with self.assertRaises(guard.Unavailable):self.observe()
+
+    def test_escape_unconfined_and_linked_sources_are_refused(self):
+        for location in ('../library/'+self.source.name, '/etc/passwd'):
+            self.sql('UPDATE issues SET Location=?',(location,))
+            with self.assertRaises(guard.Unavailable):self.observe()
+        self.sql('UPDATE issues SET Location=?',('linked.cbz',))
+        (self.library/'linked.cbz').symlink_to(self.source)
+        with self.assertRaises(guard.Unavailable):self.observe()
+        with self.assertRaises(guard.Unavailable):
+            with self.writer.hold():guard.observe_owners(self.database,self.writer,[self.owner],[])
+
+    def test_sidecars_and_missing_native_database_are_never_opened_or_created(self):
+        import sqlite3
+        for suffix in ('-journal','-wal','-shm'):
+            sidecar = Path(str(self.database)+suffix);sidecar.symlink_to(self.root/'absent')
+            before=self.database.read_bytes()
+            with patch.object(sqlite3,'connect',side_effect=AssertionError('opened')):
+                with self.assertRaises(guard.Unavailable):self.observe()
+            self.assertEqual(self.database.read_bytes(),before);sidecar.unlink()
+        self.database.unlink()
+        with self.assertRaises(guard.Unavailable):self.observe()
+        self.assertFalse(self.database.exists())
+
+    def test_raw_writer_is_required_before_any_catalog_open(self):
+        import sqlite3
+        with patch.object(sqlite3,'connect',side_effect=AssertionError('opened')):
+            with self.assertRaises(guard.Unavailable):
+                guard.observe_owners(self.database,self.writer,[self.owner],[self.library])
+
+    def test_catalog_or_source_change_during_inventory_holds(self):
+        original=guard.inventory
+        def changed(path, **kwargs):
+            result=original(path,**kwargs)
+            self.sql('UPDATE issues SET Status=?',('Wanted',))
+            return result
+        with patch.object(guard,'inventory',side_effect=changed):
+            with self.assertRaises(guard.Unavailable):self.observe()
+
+    def test_multiple_correct_owners_require_identical_payloads(self):
+        second = self.library / 'Series.002.cbz';second.write_bytes(self.source.read_bytes())
+        self.sql('INSERT INTO issues VALUES (?,?,?,?)', ('124','456',second.name,'Archived'))
+        owner = dict(self.owner, issueid='124')
+        self.assertEqual(len(self.observe([self.owner, owner])['observed']), 2)
+        with zipfile.ZipFile(second,'w') as archive:archive.writestr('01.jpg',b'different page')
+        with self.assertRaises(guard.Unavailable):self.observe([self.owner,owner])
+
+    def test_complete_row_and_byte_bounds_hold_without_source_changes(self):
+        before=(self.database.read_bytes(),self.source.read_bytes())
+        for name, limit in (('CATALOG_ROWS',1),('CATALOG_BYTES',1),('CATALOG_PATHS',1)):
+            with patch.object(guard,name,limit):
+                with self.assertRaises(guard.Unavailable):self.observe()
+        self.assertEqual((self.database.read_bytes(),self.source.read_bytes()),before)
+
+    def test_expired_shared_deadline_stops_before_archive_scan(self):
+        with patch.object(guard,'TIMEOUT',-1), patch.object(guard,'inventory') as scan:
+            with self.assertRaises(guard.Unavailable):self.observe()
+            scan.assert_not_called()
+
+    def test_excessive_path_depth_is_held_before_metadata_expansion(self):
+        self.sql('UPDATE issues SET Location=?',('/'.join(['nested']*64)+'.cbz',))
+        with patch.object(guard,'_claim_identity') as checked:
+            with self.assertRaises(guard.Unavailable):self.observe()
+            checked.assert_not_called()
+
+    def test_catalog_facts_reject_extra_fields_and_boolean_float_aliases(self):
+        facts=self.observe()['observed'][0]['catalog']
+        for change in ({'version':True},{'version':1.0},{'deleted':False},
+                       {'unknown':'unbounded'},{'path':'/elsewhere/archive.cbz'}):
+            with self.assertRaises(guard.Unavailable):guard.catalog_fact(dict(facts,**change),self.owner)
+        annual=dict(self.owner,table='annuals',releasecomicid='789')
+        for deleted in (False,0.0,1):
+            with self.assertRaises(guard.Unavailable):guard.catalog_fact(dict(facts,deleted=deleted),annual)
+
+    def test_registration_callback_reobserves_native_state_before_commit(self):
+        from workflow_store import Store
+        store=Store(self.root)
+        bootstrap=guard.RegistryState(store.path,self.writer)
+        token=bootstrap.prepare_bootstrap(dict(manifest_sha256='a'*64,restore_sha256='b'*64,
+            description='Independently restored fixture'),epoch='e'*64)
+        bootstrap.initialize(token,accepted_token=token)
+        state=guard.RegistrationState(store.path,self.writer)
+        observed=self.observe()
+        body=dict(version=1,epoch='e'*64,prior_revision=0,created=1,allowed=[self.owner],
+            rejected=[dict(self.owner,issueid='999')],evidence=dict(sha256='a'*64,
+            description='Reviewed exact wrong-publication payload'),**observed)
+        def fresh(body):
+            return guard.observe_owners(self.database,self.writer,body['allowed'],[self.library],tool_root=TOOL_ROOT)
+        intent=state.prepare_registration(body,observe=fresh)
+        self.sql('UPDATE issues SET Status=?',('Wanted',))
+        with self.assertRaises(guard.Unavailable):state.register(intent,accepted_token=intent,observe=fresh)
+        self.assertEqual(state.snapshot()[0]['revision'],0)
+        self.sql('UPDATE issues SET Status=?',('Downloaded',))
+        self.assertEqual(state.register(intent,accepted_token=intent,observe=fresh)['revision'],1)
 
 
 class RegistrationWitnessTests(unittest.TestCase):
@@ -792,6 +1003,7 @@ class RegistrationTransactionTests(unittest.TestCase):
         body=self.body(1)
         body['allowed'],body['rejected']=body['rejected'],body['allowed']
         body['observed'][0]['owner']=body['allowed'][0]
+        body['observed'][0]['catalog']['deleted']=None
         second=state.prepare_registration(body,observe=self.observe)
         with self.assertRaises(guard.Unavailable):
             state.register(second,accepted_token=second,observe=self.observe)
@@ -885,7 +1097,11 @@ class RegistrationJournalTests(unittest.TestCase):
         first=state.prepare_registration(body,observe=self.observe)
         state.register(first,accepted_token=first,observe=self.observe)
         body['prior_revision']=1
-        body['observed'][0]['catalog']['fixture_padding']='x'*16384
+        # Valid bounded inventory padding forces a genuine SQLite page spill.
+        members=body['inventory']['members'] + [dict(name='padding-%03d.txt'%index,
+            bytes=1,directory=False,sha256=hashlib.sha256(b'x').hexdigest()) for index in range(100)]
+        body['inventory']=dict(version=1,members=members,pages=['01.jpg'],
+                               payload=guard.token(members,['01.jpg']))
         self.token=state.prepare_registration(body,observe=self.observe)
         script='''import os,sys
 from pathlib import Path

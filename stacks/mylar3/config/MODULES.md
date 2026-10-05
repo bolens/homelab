@@ -162,6 +162,17 @@ LOCK. Default callers retain existing behavior until the focused adapter lands.
 before complete read-only authority validation. It reports fixed held reasons
 and preserves media fences without replay, initialization or cached admission.
 Zero timeout applies only to Writer acquisition, not the full snapshot check.
+`observe_owners` adds an internal fresh native observer under caller-owned raw
+Writer. It reads complete bounded rollback-journal catalog projections without
+filtering deleted or inactive conflicts. Exact issue/annual IDs, parent/release
+IDs and current lexical/physical path claims must be unique. All confined catalog
+claims receive bounded metadata checks and rechecks, rejecting symlink aliases
+and hardlink ownership conflicts without reading unselected archive payloads.
+Only exact selected sources receive full SHA/signature and payload inventories.
+Catalog changes, conflicting source payloads or stale sources hold the result.
+The strict observed catalog v1 retains raw folder/location, canonical path,
+status and annual deletion value. API authorization and production observer
+wiring remain separate work.
 `publication_guard.py` is retained under
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including
