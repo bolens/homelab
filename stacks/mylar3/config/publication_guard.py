@@ -305,10 +305,10 @@ def bounded_run(command, *, timeout=TIMEOUT, max_output=MAX_OUTPUT):
         process.stderr.close()
 
 
-def inventory(path, *, tool_root=TOOL_ROOT):
+def inventory(path, *, tool_root=TOOL_ROOT, deadline=None):
     """Return full source bindings and payload evidence; never an admission."""
     try:
-        deadline = time.monotonic() + TIMEOUT
+        deadline = time.monotonic() + TIMEOUT if deadline is None else deadline
         before, digest = file_hash(path, deadline=deadline)
         raw = bounded_run([sys.executable, '-I', str(Path(__file__).resolve()),
                            '--inventory', str(path), str(tool_root)],
@@ -329,6 +329,9 @@ def inventory(path, *, tool_root=TOOL_ROOT):
 REGISTRY_LIMIT = 512
 REGISTRY_BYTES = 32 * 1024 ** 2
 REGISTRATION_INTENT_LIMIT = 640
+CATALOG_ROWS = 100000
+CATALOG_BYTES = 64 * 1024 ** 2
+CATALOG_PATHS = 200000
 REGISTRATION_BYTES = 4 * 1024 ** 2
 REGISTRY_KINDS = frozenset(('publication_attestation', 'publication_census', 'publication_intent'))
 
@@ -358,6 +361,176 @@ def exact_owner(value):
                 and value['parentcomicid'] != value['releasecomicid'])):
         raise Unavailable('Invalid exact publication owner')
     return value
+
+
+def catalog_fact(value, owner):
+    """Exact v1 current catalog projection; raw values retain their meaning."""
+    fields = {'version', 'comic_location', 'location', 'path', 'status', 'deleted'}
+    if (not isinstance(value, dict) or set(value) != fields
+            or type(value['version']) is not int or value['version'] != 1
+            or any(not isinstance(value[key], str) or not 0 < len(value[key].encode('utf-8')) <= 4096
+                   or '\0' in value[key] or '\\' in value[key]
+                   for key in ('comic_location', 'location', 'path'))
+            or value['status'] not in ('Downloaded', 'Archived')
+            or (owner['table'] == 'issues' and value['deleted'] is not None)
+            or (owner['table'] == 'annuals' and value['deleted'] is not None
+                and (type(value['deleted']) is not int or value['deleted'] != 0))):
+        raise Unavailable('Invalid observed catalog facts')
+    folder, location, path = (Path(value[key]) for key in ('comic_location', 'location', 'path'))
+    if (not folder.is_absolute() or not path.is_absolute()
+            or any('..' in item.parts for item in (folder, location, path))
+            or str(folder / location) != value['path'] or not path.is_relative_to(folder)):
+        raise Unavailable('Unconfined observed catalog facts')
+    return value
+
+
+def _catalog_path(folder, location, roots):
+    # Lexical projection precedes bounded metadata checks; no archive reads here.
+    if any(not isinstance(value, str) or not 0 < len(value.encode('utf-8')) <= 4096
+           or '\0' in value or '\\' in value for value in (folder, location)):
+        raise Unavailable('Invalid native catalog path')
+    folder, location = Path(folder), Path(location)
+    path = folder / location
+    if (not folder.is_absolute() or '..' in folder.parts or '..' in location.parts or len(path.parts) > 64
+            or not path.is_relative_to(folder) or not any(path.is_relative_to(root) for root in roots)):
+        raise Unavailable('Native catalog path is outside configured library roots')
+    return path
+
+
+def _claim_identity(path):
+    try:info = path.lstat()
+    except FileNotFoundError:return None
+    if stat.S_ISLNK(info.st_mode):
+        raise Unavailable('Linked native catalog path claim')
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            None if stat.S_ISDIR(info.st_mode) else info.st_nlink)
+
+
+def observe_owners(database, writer, owners, library_roots, *, tool_root=TOOL_ROOT):
+    """Fresh internal native observation under caller-owned raw Writer.
+
+    Database/roots are trusted native configuration, not request paths. Read
+    complete bounded projections without filtering deleted/inactive conflicts.
+    Only selected exact current archives are read. No DBConnection or Store,
+    initialization, SQLite recovery, archive mutation or eligibility admission.
+    """
+    import sqlite3
+    try:
+        if not getattr(writer.local[1], 'depth', 0):
+            raise Unavailable('Raw Writer required before native observation')
+        writer_identity(writer)
+        database = Path(database)
+        if (not database.is_absolute() or database.parent != writer.root.parent
+                or not isinstance(owners, list) or not 1 <= len(owners) <= 8
+                or len({canonical_digest(exact_owner(owner)) for owner in owners}) != len(owners)
+                or not isinstance(library_roots, (list, tuple)) or not 1 <= len(library_roots) <= 8):
+            raise Unavailable('Invalid native observation scope')
+        roots = [Path(root) for root in library_roots]
+        if any(not root.is_absolute() or '..' in root.parts or not root.is_dir()
+               or any(path.is_symlink() for path in (root, *root.parents)) for root in roots):
+            raise Unavailable('Unsafe configured library root')
+        sidecars = [Path(str(database) + suffix) for suffix in ('-journal', '-wal', '-shm')]
+        with regular(database) as stream:
+            before = signature(os.fstat(stream.fileno()))
+            header = stream.read(100)
+            if (before[6] != os.geteuid() or before[8] != 1 or before[2] > 256 * 1024 ** 2
+                    or len(header) != 100 or header[:16] != b'SQLite format 3\0'
+                    or header[18:20] != b'\x01\x01' or any(os.path.lexists(path) for path in sidecars)):
+                raise Unavailable('Native catalog requires complete rollback-journal state')
+            rows, count, size = {}, 0, 0
+            deadline = time.monotonic() + TIMEOUT
+            with closing(sqlite3.connect(database.as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
+                db.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+                db.execute('BEGIN')
+                if db.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
+                    raise Unavailable('Unreadable native catalog')
+                for table, fields in (('comics', ('ComicID', 'ComicLocation')),
+                        ('issues', ('IssueID', 'ComicID', 'Location', 'Status')),
+                        ('annuals', ('IssueID', 'ComicID', 'ReleaseComicID', 'Location', 'Status', 'Deleted'))):
+                    if db.execute('SELECT type FROM sqlite_master WHERE name=?', (table,)).fetchall() != [('table',)]:
+                        raise Unavailable('Unsupported native catalog projection')
+                    total, bytes_used = db.execute('SELECT count(*),coalesce(sum(' +
+                        '+'.join('coalesce(length(CAST('+field+' AS BLOB)),0)' for field in fields) +
+                        '),0) FROM '+table).fetchone()
+                    count += total;size += bytes_used
+                    if count > CATALOG_ROWS or size > CATALOG_BYTES:
+                        raise Unavailable('Native catalog projection exceeds bounds')
+                    rows[table] = [dict(zip(fields, row)) for row in db.execute('SELECT '+','.join(fields)+' FROM '+table)]
+                    for row in rows[table]:
+                        if any(value is not None and not isinstance(value, str)
+                               for key, value in row.items() if key != 'Deleted'):
+                            raise Unavailable('Malformed native catalog projection')
+                        if table == 'annuals' and row['Deleted'] is not None and type(row['Deleted']) is not int:
+                            raise Unavailable('Malformed annual deletion flag')
+            def remaining():
+                if time.monotonic() >= deadline:
+                    raise Unavailable('Native observation timed out')
+            parents = {}
+            for row in rows['comics']:
+                remaining();parents.setdefault(row['ComicID'], []).append(row)
+            issues = [(table, row) for table in ('issues', 'annuals') for row in rows[table]]
+            claims, physical, identities = {}, {}, {}
+            identity_bytes = 0
+            for table, row in issues:
+                remaining()
+                if row['Location'] is None or row['Location'] == '':continue
+                parent = parents.get(row['ComicID'], [])
+                if len(parent) != 1:
+                    raise Unavailable('Missing or ambiguous native catalog parent')
+                path = _catalog_path(parent[0]['ComicLocation'], row['Location'], roots)
+                for component in (path, *path.parents):
+                    remaining()
+                    if component not in identities:
+                        identity_bytes += len(os.fsencode(component))
+                        if len(identities) >= CATALOG_PATHS or identity_bytes > CATALOG_BYTES:
+                            raise Unavailable('Native catalog path identities exceed bounds')
+                        identities[component] = _claim_identity(component)
+                claims.setdefault(str(path), []).append((table, row))
+                if identities[path] is not None:
+                    physical.setdefault(identities[path][:2], []).append((table, row))
+            observed, payload = [], None
+            for owner in owners:
+                remaining()
+                matched = [(table, row) for table, row in issues if row['IssueID'] == owner['issueid']]
+                if len(matched) != 1 or matched[0][0] != owner['table']:
+                    raise Unavailable('Ambiguous native issue/annual owner')
+                table, row = matched[0]
+                parent = parents.get(owner['parentcomicid'], [])
+                if (row['ComicID'] != owner['parentcomicid'] or len(parent) != 1
+                        or (table == 'annuals' and row['ReleaseComicID'] != owner['releasecomicid'])):
+                    raise Unavailable('Changed native parent/release owner')
+                path = _catalog_path(parent[0]['ComicLocation'], row['Location'], roots)
+                current_identity = identities.get(path)
+                if (len(claims.get(str(path), [])) != 1 or current_identity is None
+                        or len(physical.get(current_identity[:2], [])) != 1):
+                    raise Unavailable('Ambiguous native current path owner')
+                facts = dict(version=1, comic_location=parent[0]['ComicLocation'], location=row['Location'],
+                             path=str(path), status=row['Status'], deleted=row.get('Deleted'))
+                catalog_fact(facts, owner)
+                value = inventory(path, tool_root=tool_root, deadline=deadline)
+                current = {key: value[key] for key in ('version', 'members', 'pages', 'payload')}
+                if payload is not None and payload['payload'] != current['payload']:
+                    raise Unavailable('Correct owners have different publication payloads')
+                if payload is None:payload = current
+                observed.append(dict(owner=dict(owner), source_sha256=value['source_sha256'],
+                                     signature=value['source_signature'], catalog=facts))
+            if (signature(os.fstat(stream.fileno())) != before or signature(database.lstat()) != before
+                    or any(os.path.lexists(path) for path in sidecars)):
+                raise Unavailable('Native catalog changed during observation')
+            for facts in observed:
+                remaining()
+                path = Path(facts['catalog']['path'])
+                if (any(part.is_symlink() for part in (path, *path.parents))
+                        or signature(path.lstat()) != facts['signature']):
+                    raise Unavailable('Native correct source changed during observation')
+            for path, identity in identities.items():
+                remaining()
+                if _claim_identity(path) != identity:
+                    raise Unavailable('Native catalog path identity changed during observation')
+            writer_identity(writer)
+            return dict(inventory=payload, observed=observed)
+    except (OSError, sqlite3.Error, ValueError, TypeError, KeyError, UnicodeError, RecursionError) as error:
+        raise Unavailable('Fresh native correct-owner observation unavailable') from error
 
 
 def attestation(value):
@@ -394,8 +567,9 @@ def attestation(value):
                 or not isinstance(facts['signature'], list)
                 or len(facts['signature']) != 9
                 or any(type(v) is not int or v < 0 for v in facts['signature'])
-                or not isinstance(facts['catalog'], dict) or not facts['catalog']):
+                or not isinstance(facts['catalog'], dict)):
             raise Unavailable('Invalid observed correct-owner facts')
+        catalog_fact(facts['catalog'], owner)
     return canonical_digest(value)
 
 

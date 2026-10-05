@@ -69,8 +69,17 @@ Bounds are 512 attestations, 128 bootstrap receipts of at most 65,536 bytes each
 640 registration receipts of at most 4 MiB each, and 32 MiB across the complete
 publication namespace. Exhausted history holds without automatic pruning.
 Internal registration writes now follow explicit acceptance and prepared-marker,
-SQLite and final-marker durability. The trusted native observer, authentication
-and startup enforcement remain unimplemented at this source milestone.
+SQLite and final-marker durability. The internal native observer is implemented;
+production observer wiring, authentication and startup enforcement remain open.
+
+Observed catalog v1 contains exactly `version=1`, `comic_location`, `location`,
+canonical absolute `path`, `status` and `deleted`. Path strings are nonempty and
+at most 4,096 UTF-8 bytes. Status is Downloaded or Archived. Regular deletion is
+null; annual deletion retains its raw null or integer zero. Boolean/float aliases,
+extra fields, traversal and mismatched raw/canonical paths are invalid. The
+outer facts retain the exact owner tuple, full source SHA and nine-field signature.
+These facts are historical attestations; registration and publication still
+require fresh native observation.
 
 ## Registration journal recovery receipt
 

@@ -178,3 +178,42 @@ paths. Writer acquisition uses zero timeout; workflow LOCK and the complete
 snapshot can still wait. The result is advisory, never a cached permission to
 publish. Native startup gating, authenticated API routes and production helper
 installation remain required before this foundation changes live behavior.
+
+### Internal fresh native owner observation
+
+`observe_owners` requires caller-owned raw Writer before touching the catalog.
+The database and at most eight existing library roots come from trusted native
+configuration, never API filesystem parameters. The database must be an existing
+owned, singly linked regular rollback-journal file under the same configured
+data parent as Writer, with no journal/WAL/SHM sidecars. It is opened immutable
+and read-only, checked for readability and read in one transaction. All comics,
+issues and annuals participate without status/deletion filters or pagination.
+The combined projections are bounded to 100,000 rows and 64 MiB; the database
+input is bounded to 256 MiB.
+
+Every nonempty path claim requires exactly one parent and a configured-root
+confined path. Missing or duplicate parents, unconfined claims and malformed
+values hold rather than hide potential owners. A selected IssueID must occur
+exactly once across both issue tables, including deleted/locationless annual
+shadows. Parent and annual release IDs must match exactly. Paused parent series
+can retain a valid publication; selected issue status must be Downloaded or
+Archived and annual deletion must be null or integer zero.
+
+Lexical path checks alone cannot exclude aliases. Every claimed path and parent
+receives cached metadata-only identity checks. Symlink components hold; physical
+inode claims must also be unique. An uncatalogued private backup hardlink does
+not create another owner. Metadata identities are reread after selected archive
+verification. Path depth is at most 64 components, with at most 200,000 distinct
+metadata identities and 64 MiB of identity-path bytes. Single-parent validation
+precedes expansion, avoiding quadratic duplicate-parent growth. SQL, Python
+projection/metadata loops and selected archive inventories share the existing
+180-second cooperative deadline.
+
+Only selected exact correct-owner archives receive complete payload inventories
+and full source hashes. All allowed owners must have the same publication payload.
+Current catalog facts use the strict versioned shape in the data model. Native
+database/source signatures and all claim identities must remain unchanged after
+verification. No library tree walk, unselected archive payload read, schema
+write, automatic recovery, media mutation or initialization occurs. The internal
+observer is not API authentication or publication admission. Production API
+wiring, startup exclusion and all native/worker boundaries remain required.
