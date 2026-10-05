@@ -207,10 +207,24 @@ Only its active private capability can coordinate the producer. Exact terminal
 Publisher and Staging evidence precedes owned fence clearance. A canonical proof
 in the current receipt binds the private terminal witness, permitting historical
 reads without replaying an older token or requiring a consumed temporary output.
-Changed or unbound history remains held. Changed in-place tagging, interrupted
-job recovery and other direct Publisher consumers remain unfinished.
-Legacy invocation is held before copy/CLI/cleanup in publication mode until an
-owned adapter bounds its temporary state and fallback placement.
+Changed or unbound history remains held. Exact owned in-place metadata transitions
+retain payload and catalog ownership, including registered archive updates through
+fresh complete catalog claims and verified NFS before/displaced/after observation.
+`publication_tagging_recovery.py` explicitly completes only an exact witnessed
+terminal job after reviewed backup/restore attestation and fresh archive, receipt,
+owner and full authority checks. Its private ledger and separate hold span each
+clearance boundary; interrupted acceptance can resume without a media write or
+producer invocation. Earlier phases and uncertain facts remain held. Other
+direct Publisher consumers remain unfinished.
+Owned Publisher receipt write failures cross the caller as retained review,
+preserving prepared/displaced copies and admission holds without fallback replay.
+`tagger_legacy.py` bounds the bundled 1.3.5 offline ComicRack CLI to an exact owned
+CBZ workspace with private configuration and no conversion or upstream fallback
+cleanup. The producer binds Legacy policy and backend identity to the receipt,
+then rechecks actual payload after the child. Unsupported policies do not prepare
+an intent; uncertain or unrepresentable output retains review. A released private
+job can prove a changed registered metadata handoff through its exact immutable
+terminal witness and fresh owner observations, granting no replay permission.
 `publication_guard.py` is retained under
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including

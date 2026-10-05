@@ -195,6 +195,7 @@ def admission(writer, *, startup=False):
     census,_=registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
     import os
     if (os.path.lexists(writer.root/'tagger-publication-v1.json')
+            or os.path.lexists(writer.root/'tagger-recovery-v1.pending')
             or any(writer.fenced(**args) for args in ({},{'tagger':True},{'release':True}))):
         raise Unavailable('Explicit publication recovery is required')
     if not startup and not _STARTUP_COMPLETE:

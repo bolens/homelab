@@ -120,6 +120,9 @@ class Service:
                                   comicbooklover=comicbooklover, conversion_only=conversion_only,
                                   overwrite=overwrite, volume=volume, reading_order=reading_order,
                                   age_rating=age_rating, volumeid=volumeid, expected_digest=expected_digest)
+                    if self.publication.value['policy'].get('backend')=='legacy':
+                        if sys.modules['mylar'].CONFIG.TAGGER_BACKEND!='legacy':raise native.Review('tagging-policy-changed')
+                        policy['backend']='legacy'
                     if not guard.same_json(policy, self.publication.value['policy']):
                         raise native.Review('tagging-policy-changed')
                     # Only exact owned terminal witnesses allow historical reads.

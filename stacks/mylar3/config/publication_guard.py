@@ -406,7 +406,7 @@ def _claim_identity(path):
             None if stat.S_ISDIR(info.st_mode) else info.st_nlink)
 
 
-def observe_owners(database, writer, owners, library_roots, *, tool_root=TOOL_ROOT):
+def observe_owners(database, writer, owners, library_roots, *, tool_root=TOOL_ROOT, transaction=None):
     """Fresh internal native observation under caller-owned raw Writer.
 
     Database/roots are trusted native configuration, not request paths. Read
@@ -416,6 +416,14 @@ def observe_owners(database, writer, owners, library_roots, *, tool_root=TOOL_RO
     """
     import sqlite3
     try:
+        if transaction is not None:
+            if __package__:
+                from .publication_transaction import admission
+            else:
+                from publication_transaction import admission
+            admission(transaction,writer)
+        def archive_path(path):
+            return path if transaction is None else transaction.observation_path(path)
         if not getattr(writer.local[1], 'depth', 0):
             raise Unavailable('Raw Writer required before native observation')
         writer_identity(writer)
@@ -484,7 +492,7 @@ def observe_owners(database, writer, owners, library_roots, *, tool_root=TOOL_RO
                         identity_bytes += len(os.fsencode(component))
                         if len(identities) >= CATALOG_PATHS or identity_bytes > CATALOG_BYTES:
                             raise Unavailable('Native catalog path identities exceed bounds')
-                        identities[component] = _claim_identity(component)
+                        identities[component] = _claim_identity(archive_path(component))
                 claims.setdefault(str(path), []).append((table, row))
                 if identities[path] is not None:
                     physical.setdefault(identities[path][:2], []).append((table, row))
@@ -507,7 +515,7 @@ def observe_owners(database, writer, owners, library_roots, *, tool_root=TOOL_RO
                 facts = dict(version=1, comic_location=parent[0]['ComicLocation'], location=row['Location'],
                              path=str(path), status=row['Status'], deleted=row.get('Deleted'))
                 catalog_fact(facts, owner)
-                value = inventory(path, tool_root=tool_root, deadline=deadline)
+                value = inventory(archive_path(path), tool_root=tool_root, deadline=deadline)
                 current = {key: value[key] for key in ('version', 'members', 'pages', 'payload')}
                 if payload is not None and payload['payload'] != current['payload']:
                     raise Unavailable('Correct owners have different publication payloads')
@@ -519,14 +527,15 @@ def observe_owners(database, writer, owners, library_roots, *, tool_root=TOOL_RO
                 raise Unavailable('Native catalog changed during observation')
             for facts in observed:
                 remaining()
-                path = Path(facts['catalog']['path'])
+                path = archive_path(Path(facts['catalog']['path']))
                 if (any(part.is_symlink() for part in (path, *path.parents))
                         or signature(path.lstat()) != facts['signature']):
                     raise Unavailable('Native correct source changed during observation')
             for path, identity in identities.items():
                 remaining()
-                if _claim_identity(path) != identity:
+                if _claim_identity(archive_path(path)) != identity:
                     raise Unavailable('Native catalog path identity changed during observation')
+            if transaction is not None:admission(transaction,writer)
             writer_identity(writer)
             return dict(inventory=payload, observed=observed)
     except (OSError, sqlite3.Error, ValueError, TypeError, KeyError, UnicodeError, RecursionError) as error:
@@ -681,7 +690,9 @@ def authority_status(database, writer_root):
         with writer.hold(allow_pending=True, allow_tagger_pending=True,
                          allow_release_pending=True, timeout=0):
             census, _ = registry_snapshot(database, writer.root / 'publication-v1.json')
-            pending = writer.fenced() or writer.fenced(tagger=True) or writer.fenced(release=True)
+            pending = (writer.fenced() or writer.fenced(tagger=True) or writer.fenced(release=True)
+                       or os.path.lexists(writer.root/'tagger-publication-v1.json')
+                       or os.path.lexists(writer.root/'tagger-recovery-v1.pending'))
             return dict(version=1, state='held' if pending else 'ready',
                         reason='media-pending' if pending else 'verified', census=census)
     except Busy:

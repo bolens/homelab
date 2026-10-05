@@ -584,6 +584,15 @@ class NativeObservationTests(unittest.TestCase):
             return guard.observe_owners(self.database, self.writer, owners or [self.owner],
                                         [self.library], tool_root=TOOL_ROOT)
 
+    def test_catalog_transition_requires_the_exact_active_private_capability(self):
+        before=(self.database.read_bytes(),self.source.read_bytes())
+        with self.writer.hold():
+            for value in (True,{},object()):
+                with self.assertRaises(guard.Unavailable):
+                    guard.observe_owners(self.database,self.writer,[self.owner],[self.library],
+                                         tool_root=TOOL_ROOT,transaction=value)
+        self.assertEqual((self.database.read_bytes(),self.source.read_bytes()),before)
+
     def test_native_regular_observation_uses_actual_archive_and_raw_catalog(self):
         before = (self.database.read_bytes(), self.source.read_bytes())
         result = self.observe()

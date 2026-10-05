@@ -29,6 +29,8 @@ FIELDS = {
     'recover-registration': {'token', 'mode'},
     'prepare-journal': {'kind', 'token'},
     'recover-journal': {'kind', 'token'},
+    'prepare-tagging-completion': {'backup'},
+    'complete-tagging': {'token'},
     'check': {'owner', 'payload'},
 }
 
@@ -98,7 +100,7 @@ def request(raw):
         raise guard.Unavailable('Invalid recovery mode')
     if 'kind' in value and value['kind'] not in ('bootstrap', 'registration'):
         raise guard.Unavailable('Invalid journal recovery type')
-    if action in ('prepare-bootstrap','prepare-fresh'):
+    if action in ('prepare-bootstrap','prepare-fresh','prepare-tagging-completion'):
         backup = value['backup']
         if (not isinstance(backup, dict)
                 or set(backup) != {'manifest_sha256', 'restore_sha256', 'description'}
@@ -179,6 +181,20 @@ class Controller:
     def _dispatch(self, value, writer):
         action = value['action']
         result = dict(version=1, action=action)
+        if action in ('prepare-tagging-completion','complete-tagging'):
+            if __package__:
+                from .publication_tagging_recovery import Completion
+            else:
+                from publication_tagging_recovery import Completion
+            recovery=Completion(self,writer)
+            token=(recovery.prepare(value['backup']) if action=='prepare-tagging-completion' else value['token'])
+            result.update(token=token,outcome='prepared' if action=='prepare-tagging-completion'
+                          else recovery.complete(token))
+            row=recovery._read(token)
+            result['review']=dict(job=row['plan']['job']['token'],phase=row['phase'],
+                                  backup={key:row['plan']['backup'][key]
+                                          for key in ('manifest_sha256','restore_sha256')})
+            return result
         if action in ('prepare-journal', 'recover-journal'):
             cls = (guard.JournalRecovery if value['kind'] == 'bootstrap'
                    else guard.RegistrationJournalRecovery)
@@ -300,6 +316,7 @@ class Controller:
                 from publication_transaction import admission
             admission(transaction,writer)
         elif (os.path.lexists(writer.root/'tagger-publication-v1.json')
+                or os.path.lexists(writer.root/'tagger-recovery-v1.pending')
                 or any(writer.fenced(**args) for args in ({}, {'tagger': True}, {'release': True}))):
             result.update(decision='held', reason='media-pending');return result
         matches = [record for record in records.values() if record['inventory']['payload'] == value['payload']]
@@ -310,7 +327,9 @@ class Controller:
         if len(allowed) > 8:
             raise guard.Unavailable('Matched owners exceed bounds')
         owners = [allowed[key] for key in sorted(allowed)]
-        current = self.observe(writer, {'allowed': owners})
+        current = (self.observe(writer, {'allowed': owners}) if transaction is None else
+                   guard.observe_owners(self.native_database,writer,owners,self.roots,
+                                        tool_root=self.tool_root,transaction=transaction))
         if current['inventory']['payload'] != value['payload']:
             raise guard.Unavailable('Matched correct-owner payload changed')
         proposed = guard.canonical_digest(value['owner'])

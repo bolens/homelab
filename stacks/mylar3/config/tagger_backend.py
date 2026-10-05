@@ -52,17 +52,24 @@ def dispatch(legacy, *args, **kwargs):
             source=processing_guard.source(args[0],kwargs.get('filename'))
             before=publication_native.require(source,issueid=kwargs.get('issueid'))
             if selected == 'legacy':
-                # Legacy's world-writable temporary folder and fallback .BAD
-                # placement are not bounded by an owned publication job.
-                # Refuse before its first copy or child until that adapter exists.
-                raise publication_native.Review('tagging-legacy-transaction-required')
+                from mylar import tagger_native
+                owned_legacy=getattr(tagger_native,'run_legacy',None)
+                if not callable(owned_legacy):
+                    raise publication_native.Review('tagging-legacy-transaction-required')
             def same_payload(path):
                 current=publication_native.require(path,issueid=kwargs.get('issueid'))
                 if (current['inventory']['payload']!=before['inventory']['payload']
-                        or not publication_native.guard.same_json(current['owner'],before['owner'])
-                        or not publication_native.guard.same_json(current['observed'],before['observed'])):
+                        or not publication_native.guard.same_json(current['owner'],before['owner'])):
                     raise publication_native.Review('tagging-payload-changed',payload=current['inventory']['payload'])
-            result=execute()
+                if not publication_native.guard.same_json(current['observed'],before['observed']):
+                    if not isinstance(result,tagger_handoff.Published) or str(path)!=before['path']:
+                        raise publication_native.Review('tagging-owner-changed')
+                    from mylar import publication_transaction
+                    job=getattr(result,'publication',None)
+                    if type(job) is not publication_transaction.Tagging:
+                        raise publication_native.Review('tagging-owner-changed')
+                    job.released_observation(before,current,result)
+            result=owned_legacy(*args,**kwargs) if selected=='legacy' else execute()
             same_payload(source)
             # A temporary returned path is independently checked; a failure
             # sentinel must never stand in for a successful publication proof.
@@ -74,7 +81,7 @@ def dispatch(legacy, *args, **kwargs):
                 result=str(Path(result).absolute())
                 same_payload(result)
             return result
-    except (publication_native.guard.Unavailable,OSError,ValueError,TypeError,TimeoutError):
+    except (publication_native.guard.Unavailable,OSError,ValueError,TypeError,TimeoutError,ImportError):
         review=publication_native.Review()
         processing_guard.retained(review)
         if kwargs.get('manualmeta') is True:return tagger_handoff.Published('review')

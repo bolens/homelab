@@ -1,4 +1,4 @@
-"""Native policy and versioned recovery ownership for the opt-in modern backend."""
+"""Native policy and versioned recovery ownership for guarded metadata backends."""
 import hashlib
 import json
 import os
@@ -91,7 +91,7 @@ def catalog(issueid):
 
 def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
         filename=None, module=None, manualmeta=False, readingorder=None, agerating=None,
-        automatic_in_place=False, publication_token=None, expected_digest=None):
+        automatic_in_place=False, publication_token=None, expected_digest=None, backend='modern'):
     import mylar
     from mylar import native_writers, tagger_handoff
     from . import publication_native, publication_transaction
@@ -100,6 +100,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
     def failure():
         return tagger_handoff.Published('unsupported') if manualmeta else tagger_handoff.Failure('unsupported')
     try:
+        if backend not in ('modern','legacy') or (backend=='legacy' and not native_writers.publication_mode()):
+            return failure()
         if type(manualmeta) is not bool or not filename or (not manualmeta and not native_writers.active()):
             return failure()
         # Snapshot settings once. Caller-provided comversion can describe an annual's
@@ -149,6 +151,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
                     captured=dict(policy,manualmeta=manualmeta,volume=volume,
                         reading_order=readingorder,age_rating=agerating,volumeid=volumeid,
                         expected_digest=expected_digest)
+                    if backend=='legacy':captured['backend']='legacy'
                     with publication_transaction.tagging(writer,filename,issueid,token,captured,modern=True) as job:
                         service=Service(publisher,staging.root,
                             lambda **kwargs:lookup(api_key=api_key,base_url=base_url,interval=interval,**kwargs),
@@ -165,6 +168,9 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
                                 raise publication_native.Review('tagging-terminal-handoff-unavailable')
                             target=result
                         job.complete(publisher,staging,target)
+                        if manualmeta:
+                            from dataclasses import replace
+                            result=replace(result,publication=job)
                         return result
                 except publication_native.Review as review:
                     from mylar import processing_guard
@@ -187,5 +193,10 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
         if manualmeta:return tagger_handoff.Published('review')
         raise
     except (OSError, ValueError, TypeError, KeyError, RuntimeError):
-        mylar.logger.warn('Modern tagging could not complete; original and recovery state retained')
+        mylar.logger.warn('%s tagging could not complete; original and recovery state retained',backend.title())
         return failure()
+
+
+def run_legacy(*args,**kwargs):
+    """Publication mode uses an owned Legacy child, never upstream fallback cleanup."""
+    return run(*args,backend='legacy',**kwargs)
