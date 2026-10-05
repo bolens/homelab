@@ -23,6 +23,27 @@ committed initialization witness. Missing witness, foreign identities or changed
 schema holds admission. Later registration intents require their separate
 reviewed transition implementation.
 
+## Journal recovery receipt
+
+A private owned recovery marker records an immutable digest-bound plan and an
+outcome of verified, accepted or recovered. The plan binds the exact original
+database/journal/marker signatures and full hashes, writer identity, unchanged
+pending fences, bootstrap token and retained capture directory. Independently
+restored database bytes and complete SQL contents have separate digests. The
+SQL comparison includes all record values, update envelopes and event rows.
+Strict nested shapes, types, sizes and owned-file evidence are required before
+acceptance. The retained restored database is reread with full integrity and SQL
+equality checks before original SQLite access.
+
+Original database/journal inputs are bounded to 256 MiB each, with at most 128
+retained recovery directories. The original database inode is preserved. A
+pending recovery marker blocks ordinary bootstrap. If a rollback interruption
+changes the pair, a new explicit review records the preceding accepted plan's
+digest and proves the same complete restored contents. Captures and completion
+receipts remain retained for operational acceptance and later scoped cleanup.
+Authentication and ordinary startup exclusion require their separate API/native
+integration tasks.
+
 ## Registration intent
 
 Prepared immutable request/digest with exact reviewed evidence, current correct-owner/source bindings and expected registry revision. Prepare does not admit a correction. Commit is authenticated, explicitly accepts the exact intent token and recomputes current facts under writer exclusion. Stale intent stays uncommitted. Identical replay reconciles its existing attestation; changed evidence creates a new reviewed append-only transition.

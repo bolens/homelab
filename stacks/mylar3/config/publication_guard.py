@@ -473,6 +473,8 @@ def _registry_snapshot(database, marker):
     import sqlite3
     database, marker = Path(database), Path(marker)
     try:
+        if os.path.lexists(marker.parent / 'publication-recovery-v1.json'):
+            raise Unavailable('Explicit journal recovery is unfinished')
         with regular(database) as stream, regular(marker) as binding:
             before = signature(os.fstat(stream.fileno()))
             mark_before = signature(os.fstat(binding.fileno()))
@@ -686,6 +688,8 @@ class RegistryState:
         with self.writer.hold(allow_pending=True, allow_tagger_pending=True,
                               allow_release_pending=True):
             with LOCK:
+                if os.path.lexists(self.writer.root / 'publication-recovery-v1.json'):
+                    raise Unavailable('Explicit journal recovery is unfinished')
                 if (database_stamp(self.database)[:2] != self.identity
                         or writer_identity(self.writer) != self.writer_binding):
                     raise Unavailable('Initialization filesystem identity changed')
@@ -907,6 +911,382 @@ class RegistryState:
     def snapshot(self):
         with self.writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True):
             return registry_snapshot(self.database, self.marker)
+
+
+RECOVERY_BYTES = 256 * 1024 ** 2
+
+
+def private_evidence(path, *, limit=RECOVERY_BYTES):
+    """Bounded complete file evidence without opening SQLite."""
+    with regular(path) as stream:
+        info = signature(os.fstat(stream.fileno()))
+    if (info[6] != os.geteuid() or stat.S_IMODE(info[5]) != 0o600
+            or info[8] != 1 or not 0 < info[2] <= limit):
+        raise Unavailable('Recovery input must be bounded, private and owned')
+    stamp, digest = file_hash(path)
+    if stamp != info:
+        raise Unavailable('Recovery input changed')
+    return dict(signature=stamp, sha256=digest)
+
+
+def private_json(path):
+    evidence = private_evidence(path, limit=MARKER_BYTES)
+    with regular(path) as stream:
+        raw = stream.read(MARKER_BYTES + 1)
+    if hashlib.sha256(raw).hexdigest() != evidence['sha256']:
+        raise Unavailable('Recovery receipt changed while reading')
+    value = decode_json(raw.decode('utf-8'))
+    if not isinstance(value, dict):
+        raise Unavailable('Expected recovery receipt object')
+    return value
+
+
+def full_workflow_snapshot(db):
+    """Restoration equality includes volatile rows and physical SQL envelopes."""
+    if not db.in_transaction:
+        raise Unavailable('Recovery snapshot requires a transaction')
+    def bounds(table, fields):
+        expression = '+'.join('coalesce(length(CAST(' + field + ' AS BLOB)),0)' for field in fields)
+        return db.execute('SELECT count(*),coalesce(sum(' + expression + '),0) FROM ' + table).fetchone()
+    count, size = bounds('records', ('kind', 'key', 'value', 'updated'))
+    events, event_size = bounds('events', ('id', 'at', 'issueid', 'comicid', 'name', 'stage', 'provider', 'outcome', 'retry_at'))
+    if count > 100000 or size > 64 * 1024 ** 2 or events > 5000 or event_size > 16 * 1024 ** 2:
+        raise Unavailable('Complete restoration snapshot exceeds bounds')
+    records = [list(row) for row in db.execute('SELECT * FROM records ORDER BY kind,key')]
+    history = [list(row) for row in db.execute('SELECT * FROM events ORDER BY id')]
+    return dict(records=count, events=events,
+                digest=canonical_digest(dict(schema=workflow_schema(db), records=records, events=history)))
+
+
+class JournalRecovery:
+    """Explicit bootstrap-journal recovery with retained independent copies.
+
+    Ordinary authority checks remain read-only and refuse sidecars. A future
+    primary-key API must authenticate preparation and exact-plan acceptance.
+    These helpers never replay media operations or clear their pending fences.
+    """
+    @state_errors
+    def __init__(self, database, writer):
+        self.database = Path(database)
+        self.writer = writer
+        self.writer_binding = writer_identity(writer)
+        self.journal = Path(str(self.database) + '-journal')
+        self.bootstrap_marker = writer.root / 'publication-v1.json'
+        self.marker = writer.root / 'publication-recovery-v1.json'
+
+    @contextmanager
+    def _locked(self):
+        if __package__:
+            from .workflow_store import LOCK
+        else:
+            from workflow_store import LOCK
+        with self.writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True):
+            with LOCK:
+                if writer_identity(self.writer) != self.writer_binding:
+                    raise Unavailable('Recovery writer identity changed')
+                yield
+
+    def _fences(self):
+        result = {}
+        for name, path, args in (('normalizer', self.writer.pending, {}),
+                ('tagger', self.writer.tagger_pending, {'tagger': True}),
+                ('release', self.writer.release_pending, {'release': True})):
+            result[name] = signature(path.lstat()) if self.writer.fenced(**args) else None
+        return result
+
+    def _capture(self):
+        if any(os.path.lexists(str(self.database) + suffix) for suffix in ('-wal', '-shm')):
+            raise Unavailable('WAL state cannot use rollback-journal recovery')
+        database = private_evidence(self.database)
+        journal = private_evidence(self.journal)
+        with regular(self.database) as stream:
+            header = stream.read(100)
+        with regular(self.journal) as stream:
+            start = stream.read(28)
+            stream.seek(-8, os.SEEK_END);footer = stream.read(8)
+        magic = bytes.fromhex('d9d505f920a163d7')
+        if (len(header) != 100 or header[:16] != b'SQLite format 3\0'
+                or header[18:20] != b'\x01\x01' or journal['signature'][2] <= 512
+                or start[:8] not in (magic, b'\0'*8) or footer == magic):
+            raise Unavailable('Unsupported rollback journal or database header')
+        marker = private_evidence(self.bootstrap_marker, limit=MARKER_BYTES)
+        return dict(database=database, journal=journal, marker=marker,
+                    writer_identity=self.writer_binding, pending=self._fences())
+
+    def _copy(self, source, destination, evidence):
+        if private_evidence(source) != evidence:
+            raise Unavailable('Recovery copy source changed')
+        fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, 'wb') as target, regular(source) as stream:
+            remaining = evidence['signature'][2]
+            while remaining:
+                block = stream.read(min(1024 * 1024, remaining))
+                if not block:
+                    raise Unavailable('Recovery source shrank')
+                target.write(block);remaining -= len(block)
+            target.flush();os.fsync(target.fileno())
+        if (private_evidence(source) != evidence
+                or private_evidence(destination)['sha256'] != evidence['sha256']):
+            raise Unavailable('Independent recovery copy differs')
+
+    def _old_state(self, db, bootstrap_token, capture):
+        if __package__:
+            from .workflow_store import protected_snapshot
+        else:
+            from workflow_store import protected_snapshot
+        count, size = db.execute("SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_'").fetchone()
+        if count > INTENT_LIMIT or size > REGISTRY_BYTES:
+            raise Unavailable('Recovered initialization authority exceeds bounds')
+        selected = None
+        for kind, key, raw in db.execute("SELECT kind,key,value FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_'"):
+            if (kind != 'publication_intent' or not isinstance(raw, str)
+                    or len(raw.encode('utf-8')) > 65536):
+                raise Unavailable('Journal recovery requires exact old initialization state')
+            value = decode_json(raw);plan = bootstrap_record(key, value)
+            if key == bootstrap_token:
+                if value['outcome'] != 'accepted':
+                    raise Unavailable('Journal recovery requires an accepted bootstrap')
+                selected = plan
+            elif value['outcome'] not in ('prepared', 'aborted'):
+                raise Unavailable('Conflicting accepted initialization')
+        if selected is None:
+            raise Unavailable('Recovered bootstrap receipt is missing')
+        binding = selected['binding']
+        if (binding['database_identity'] != capture['database']['signature'][:2]
+                or binding['writer_identity'] != self.writer_binding
+                or binding['schema'] != workflow_schema(db)
+                or binding['workflow'] != protected_snapshot(db)
+                or binding['pending'] != capture['pending']):
+            raise Unavailable('Recovered bootstrap facts differ from reviewed state')
+        marker = dict(version=1, phase='prepared', intent=bootstrap_token, old=None, new=selected['new'],
+            database_identity=binding['database_identity'], writer_identity=self.writer_binding)
+        if private_json(self.bootstrap_marker) != marker:
+            raise Unavailable('Prepared bootstrap marker does not match restored intent')
+        return full_workflow_snapshot(db)
+
+    def _rollback(self, path, bootstrap_token, capture, *, boundary=lambda _: None):
+        import sqlite3
+        with closing(sqlite3.connect(path.as_uri() + '?mode=rw', uri=True, timeout=10)) as db:
+            db.execute('PRAGMA synchronous=FULL')
+            db.execute('BEGIN IMMEDIATE')
+            try:
+                boundary('rollback-opened')
+                if db.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
+                    raise Unavailable('Independent rollback restoration is corrupt')
+                before = self._old_state(db, bootstrap_token, capture)
+                # Force one atomic SQLite write so it also consumes a valid
+                # cold journal. Restore the exact receipt bytes in the same
+                # transaction, without changing its updated envelope.
+                raw = db.execute("SELECT value FROM records WHERE kind='publication_intent' AND key=?", (bootstrap_token,)).fetchone()[0]
+                db.execute("UPDATE records SET value=? WHERE kind='publication_intent' AND key=?", (raw + ' ', bootstrap_token))
+                db.execute("UPDATE records SET value=? WHERE kind='publication_intent' AND key=?", (raw, bootstrap_token))
+                if self._old_state(db, bootstrap_token, capture) != before:
+                    raise Unavailable('Recovery changed complete workflow contents')
+                boundary('rollback-pending')
+                db.commit()
+                boundary('rollback-committed')
+                db.execute('BEGIN')
+                after = self._old_state(db, bootstrap_token, capture)
+                db.commit()
+            finally:
+                db.rollback()
+        database_stamp(path)
+        return after
+
+    def _publish(self, path, value, *, expected):
+        import secrets
+        if __package__:
+            from .media_writer import sync
+        else:
+            from media_writer import sync
+        def check():
+            if writer_identity(self.writer) != self.writer_binding:
+                raise Unavailable('Recovery writer identity changed')
+            if expected is None:
+                if os.path.lexists(path):raise Unavailable('Recovery receipt appeared')
+            elif private_json(path) != expected:
+                raise Unavailable('Recovery receipt changed')
+        check()
+        raw = compact(value)
+        if len(raw) > MARKER_BYTES:raise Unavailable('Recovery receipt exceeds bounds')
+        temporary = path.parent / ('.publication-recovery-' + secrets.token_hex(16) + '.tmp')
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        try:
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(raw);stream.flush();os.fsync(stream.fileno())
+            check();os.replace(temporary, path);sync(path.parent)
+        finally:
+            if temporary.exists():temporary.unlink();sync(path.parent)
+
+    def _receipt(self, token):
+        value = private_json(self.marker)
+        if (set(value) != {'plan', 'outcome'} or value['outcome'] not in ('verified', 'accepted', 'recovered')
+                or not isinstance(value['plan'], dict) or canonical_digest(value['plan']) != token):
+            raise Unavailable('Invalid exact recovery receipt')
+        plan = value['plan']
+        if (set(plan) != {'version', 'action', 'bootstrap_token', 'capture', 'restored', 'directory', 'parent'}
+                or plan['version'] != 1 or type(plan['version']) is not int
+                or plan['action'] != 'bootstrap-journal' or not digest_value(plan['bootstrap_token'])
+                or not isinstance(plan['directory'], str)
+                or not re.fullmatch(r'publication-recovery-[a-f0-9]{32}', plan['directory'])
+                or (plan['parent'] is not None and not digest_value(plan['parent']))
+                or plan['capture']['writer_identity'] != self.writer_binding):
+            raise Unavailable('Foreign or malformed recovery plan')
+        capture = plan['capture']
+        if (not isinstance(capture, dict)
+                or set(capture) != {'database', 'journal', 'marker', 'writer_identity', 'pending'}
+                or not isinstance(capture['writer_identity'], list)
+                or any(type(item) is not int or item < 0 for item in capture['writer_identity'])
+                or not isinstance(capture['pending'], dict)
+                or set(capture['pending']) != {'normalizer', 'tagger', 'release'}):
+            raise Unavailable('Malformed recovery capture binding')
+        for stamp in capture['pending'].values():
+            if stamp is not None and (not isinstance(stamp, list) or len(stamp) != 9
+                    or any(type(item) is not int or item < 0 for item in stamp)):
+                raise Unavailable('Malformed retained fence signature')
+        for name in ('database', 'journal', 'marker'):
+            evidence = capture[name]
+            if (not isinstance(evidence, dict) or set(evidence) != {'signature', 'sha256'}
+                    or not digest_value(evidence['sha256'])
+                    or not isinstance(evidence['signature'], list) or len(evidence['signature']) != 9
+                    or any(type(item) is not int or item < 0 for item in evidence['signature'])):
+                raise Unavailable('Malformed recovery file evidence')
+            stamp = evidence['signature']
+            limit = MARKER_BYTES if name == 'marker' else RECOVERY_BYTES
+            if (not 0 < stamp[2] <= limit or stamp[6] != os.geteuid() or stamp[8] != 1
+                    or not stat.S_ISREG(stamp[5]) or stat.S_IMODE(stamp[5]) != 0o600):
+                raise Unavailable('Invalid recovery file evidence')
+        restored = plan['restored']
+        if (not isinstance(restored, dict) or set(restored) != {'records', 'events', 'digest', 'sha256'}
+                or type(restored['records']) is not int or not 0 <= restored['records'] <= 100000
+                or type(restored['events']) is not int or not 0 <= restored['events'] <= 5000
+                or not digest_value(restored['digest']) or not digest_value(restored['sha256'])):
+            raise Unavailable('Malformed independent restoration evidence')
+        return value
+
+    def _retained(self, plan):
+        import sqlite3
+        directory = self.writer.root / plan['directory']
+        info = directory.lstat()
+        if (not stat.S_ISDIR(info.st_mode) or directory.is_symlink()
+                or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700):
+            raise Unavailable('Recovery capture directory is unavailable')
+        for name, key in (('original.sqlite', 'database'), ('original.sqlite-journal', 'journal'), ('prepared.json', 'marker')):
+            if private_evidence(directory / name)['sha256'] != plan['capture'][key]['sha256']:
+                raise Unavailable('Retained independent recovery capture changed')
+        if private_evidence(directory / 'restored.sqlite')['sha256'] != plan['restored']['sha256']:
+            raise Unavailable('Retained isolated restoration changed')
+        saved = private_json(directory / 'receipt.json')
+        if (set(saved) != {'plan', 'outcome'} or saved['plan'] != plan
+                or saved['outcome'] not in ('verified', 'accepted', 'recovered')):
+            raise Unavailable('Retained independent recovery receipt changed')
+        restored = directory / 'restored.sqlite'
+        database_stamp(restored)
+        with closing(sqlite3.connect(restored.as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
+            db.execute('BEGIN')
+            if db.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
+                raise Unavailable('Retained restoration integrity failed')
+            actual = self._old_state(db, plan['bootstrap_token'], plan['capture'])
+        expected = {key: value for key, value in plan['restored'].items() if key != 'sha256'}
+        if actual != expected:
+            raise Unavailable('Retained restoration differs from recovery plan')
+        return directory
+
+    @state_errors
+    def prepare(self, bootstrap_token, *, boundary=lambda _: None, parent_token=None):
+        import secrets
+        if __package__:
+            from .media_writer import sync
+        else:
+            from media_writer import sync
+        if not digest_value(bootstrap_token):raise Unavailable('Exact bootstrap token is required')
+        with self._locked():
+            predecessor = None
+            if parent_token is not None:
+                if not digest_value(parent_token):raise Unavailable('Exact prior recovery token is required')
+                predecessor = self._receipt(parent_token)
+                if (predecessor['outcome'] != 'accepted'
+                        or predecessor['plan']['bootstrap_token'] != bootstrap_token):
+                    raise Unavailable('Only an interrupted accepted recovery can be reviewed again')
+                self._retained(predecessor['plan'])
+            elif os.path.lexists(self.marker):
+                raise Unavailable('Existing recovery requires reconciliation')
+            capture = self._capture()
+            if predecessor is not None:
+                prior = predecessor['plan']['capture']
+                if (capture['database']['signature'][:2] != prior['database']['signature'][:2]
+                        or capture['marker'] != prior['marker'] or capture['pending'] != prior['pending']):
+                    raise Unavailable('Interrupted recovery authority identity changed')
+            if sum(1 for _ in self.writer.root.glob('publication-recovery-*')) >= INTENT_LIMIT:
+                raise Unavailable('Retained journal recovery history exceeds bounds')
+            directory = self.writer.root / ('publication-recovery-' + secrets.token_hex(16))
+            directory.mkdir(mode=0o700);sync(self.writer.root)
+            for source, name, key in ((self.database, 'original.sqlite', 'database'),
+                    (self.journal, 'original.sqlite-journal', 'journal'),
+                    (self.bootstrap_marker, 'prepared.json', 'marker')):
+                self._copy(source, directory / name, capture[key])
+            sync(directory);boundary('capture-copied')
+            self._copy(directory / 'original.sqlite', directory / 'restored.sqlite', private_evidence(directory / 'original.sqlite'))
+            self._copy(directory / 'original.sqlite-journal', directory / 'restored.sqlite-journal', private_evidence(directory / 'original.sqlite-journal'))
+            restored = self._rollback(directory / 'restored.sqlite', bootstrap_token, capture)
+            if predecessor is not None:
+                expected = {key: value for key, value in predecessor['plan']['restored'].items() if key != 'sha256'}
+                if restored != expected:
+                    raise Unavailable('New isolated recovery differs from prior verified restoration')
+            restored['sha256'] = private_evidence(directory / 'restored.sqlite')['sha256']
+            sync(directory);boundary('restore-verified')
+            if self._capture() != capture:raise Unavailable('Original recovery pair changed during restore verification')
+            plan = dict(version=1, action='bootstrap-journal', bootstrap_token=bootstrap_token,
+                        capture=capture, restored=restored, directory=directory.name, parent=parent_token)
+            value = dict(plan=plan, outcome='verified')
+            self._publish(directory / 'receipt.json', value, expected=None)
+            self._publish(self.marker, value, expected=predecessor);boundary('recovery-plan')
+            return canonical_digest(plan)
+
+    @state_errors
+    def commit(self, token, *, accepted_token, boundary=lambda _: None):
+        import sqlite3
+        if __package__:
+            from .media_writer import sync
+        else:
+            from media_writer import sync
+        if not digest_value(token) or accepted_token != token:
+            raise Unavailable('Explicit exact recovery-plan acceptance is required')
+        with self._locked():
+            receipt = self._receipt(token);plan = receipt['plan'];capture = plan['capture']
+            directory = self._retained(plan)
+            if (private_evidence(self.bootstrap_marker, limit=MARKER_BYTES) != capture['marker']
+                    or self._fences() != capture['pending']):
+                raise Unavailable('Recovery marker or existing fences changed')
+            if receipt['outcome'] == 'verified':
+                if self._capture() != capture:raise Unavailable('Reviewed recovery inputs are stale')
+                accepted = dict(receipt, outcome='accepted')
+                self._publish(self.marker, accepted, expected=receipt)
+                receipt = accepted;boundary('recovery-accepted')
+            if private_evidence(self.database)['signature'][:2] != capture['database']['signature'][:2]:
+                raise Unavailable('Recovery database inode changed')
+            if os.path.lexists(self.journal):
+                if self._capture() != capture:
+                    raise Unavailable('Interrupted rollback pair needs a fresh isolated review')
+                actual = self._rollback(self.database, plan['bootstrap_token'], capture, boundary=boundary)
+                boundary('original-recovered')
+            else:
+                database_stamp(self.database)
+                with closing(sqlite3.connect(self.database.as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
+                    db.execute('BEGIN')
+                    if db.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
+                        raise Unavailable('Recovered database integrity failed')
+                    actual = self._old_state(db, plan['bootstrap_token'], capture)
+            expected = {key: value for key, value in plan['restored'].items() if key != 'sha256'}
+            if actual != expected:raise Unavailable('Original recovery differs from independently restored contents')
+            completed = dict(receipt, outcome='recovered')
+            saved = private_json(directory / 'receipt.json')
+            if saved['plan'] != plan:raise Unavailable('Retained recovery receipt changed')
+            self._publish(directory / 'receipt.json', completed, expected=saved)
+            self._publish(self.marker, completed, expected=receipt);boundary('completion-receipt')
+            if private_json(self.marker) != completed:raise Unavailable('Completion receipt changed')
+            self.marker.unlink();sync(self.writer.root);boundary('recovery-cleared')
+            return expected
 
 
 if __name__ == '__main__':
