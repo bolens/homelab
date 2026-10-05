@@ -41,8 +41,8 @@ pending recovery marker blocks ordinary bootstrap. If a rollback interruption
 changes the pair, a new explicit review records the preceding accepted plan's
 digest and proves the same complete restored contents. Captures and completion
 receipts remain retained for operational acceptance and later scoped cleanup.
-Authentication and ordinary startup exclusion require their separate API/native
-integration tasks.
+Authentication is wired by the checked primary-key adapter. Ordinary startup
+exclusion requires its separate native integration tasks.
 
 ## Registration intent
 
@@ -70,7 +70,8 @@ Bounds are 512 attestations, 128 bootstrap receipts of at most 65,536 bytes each
 publication namespace. Exhausted history holds without automatic pruning.
 Internal registration writes now follow explicit acceptance and prepared-marker,
 SQLite and final-marker durability. The internal native observer is implemented;
-production observer wiring, authentication and startup enforcement remain open.
+the authenticated controller now supplies native observation. Startup enforcement
+remains open.
 
 Observed catalog v1 contains exactly `version=1`, `comic_location`, `location`,
 canonical absolute `path`, `status` and `deleted`. Path strings are nonempty and

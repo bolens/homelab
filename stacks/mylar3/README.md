@@ -980,9 +980,16 @@ linked, encrypted, ambiguous, changing or unsupported archives are unavailable.
 Plain TAR requires complete termination; compressed TAR wrappers remain
 unavailable until their complete integrity can be verified.
 
-This foundation does not register corrections, authorize an import or change
-existing publication behavior. The prospective
-[correction plan](../../specs/023-verified-publication-corrections/plan.md) separately
-requires authenticated durable evidence and guards at every native and worker
-publication boundary. Its rollout must follow the restore-verified update
-workflow above; published verifier images alone do not establish prevention.
+The image also installs the primary-key-only POST `publicationControl` API for
+reviewed bootstrap, durable registration, explicit typed recovery and advisory
+checks. Its bounded protocol and exact acceptance tokens are documented in the
+[correction contract](../../specs/023-verified-publication-corrections/contracts/publication-corrections.md#authenticated-protocol-implementation).
+Native observations come from the configured library and actual Mylar catalog;
+requests cannot choose filesystem paths or supply current native proof.
+Status reads existing state without media replay or initialization.
+
+Startup exclusion and guards at every native and worker publication boundary
+remain unfinished in the [correction plan](../../specs/023-verified-publication-corrections/plan.md).
+The API does not authorize final import or change existing publication behavior.
+Rollout must follow the restore-verified update workflow above; published API
+images alone do not establish prevention.
