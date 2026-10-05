@@ -37,7 +37,27 @@ class NativeParserTest(unittest.TestCase):
   def loadsite(id,mainlink):
    (self.root/'html_cache'/('getcomics-'+id+'.html')).write_text(self.html);self.inject()
   self.owner=SimpleNamespace(issueid='42',comicid='7',oneoff=False,jd2=None,loadsite=loadsite)
- def call(self):return self.parse(self.owner,'123','https://fixture.invalid/release',None,dict(pack=False,pack_numbers=None,pack_issuelist=None),['GC-Main'])
+ def call(self,failed=None):return self.parse(self.owner,'123','https://fixture.invalid/release',None,dict(pack=False,pack_numbers=None,pack_issuelist=None),['GC-Main'] if failed is None else failed)
+ def test_missing_main_and_mirror_uses_next_available_preferred_provider(self):
+  self.html=HTML.replace('Fixture<br/>','Fixture SD-Digital<br/>')+'<p style="text-align: center;"><div class="aio-pulse"><a title="Pixeldrain Link" href="https://fixture.invalid/pixel">Pixel</a></div></p>'
+  self.mylar.CONFIG.DDL_PRIORITY_ORDER=['main','pixeldrain','mega']
+  self.assertTrue(self.call(['GC-Main','GC-Mirror'])['success'])
+  self.assertEqual(self.queue.get_nowait()['link_type'],'GC-Pixel')
+ def test_only_hd_links_without_upscaled_preference_do_not_crash(self):
+  self.html=HTML.replace('Fixture<br/>','Fixture HD-Digital<br/>')+'<p style="text-align: center;"><div class="aio-pulse"><a title="Pixeldrain Link" href="https://fixture.invalid/pixel">Pixel</a></div></p>'
+  self.assertTrue(self.call(['GC-Main','GC-Mirror'])['success'])
+  self.assertEqual(self.queue.get_nowait()['link_type'],'GC-Mega')
+ def test_unavailable_configured_preferences_return_failure_without_queue_write(self):
+  self.html=HTML.replace('Fixture<br/>','Fixture SD-Digital<br/>')+'<p style="text-align: center;"><div class="aio-pulse"><a title="Pixeldrain Link" href="https://fixture.invalid/pixel">Pixel</a></div></p>'
+  self.mylar.CONFIG.DDL_PRIORITY_ORDER=['main']
+  before=dict(self.db.selectone("SELECT * FROM ddl_info WHERE id='123'").fetchone())
+  result=self.call(['GC-Main','GC-Mirror'])
+  self.assertFalse(result['success']);self.assertTrue(self.queue.empty())
+  self.assertEqual(dict(self.db.selectone("SELECT * FROM ddl_info WHERE id='123'").fetchone()),before)
+ def test_available_preference_patch_is_checked_and_idempotent(self):
+  source=(Path(os.environ['MYLAR_WORKFLOW_SOURCE'])/'getcomics.py').read_text()
+  patched=patched_source(source);self.assertEqual(patched_source(patched),patched)
+  with self.assertRaises(ValueError):patched_source(patched.replace('series = link[\'series\']','series = \'changed\''))
  def test_native_field_contract_and_retry_preservation(self):
   columns={row[1] for row in self.db.connection.execute('PRAGMA table_info(ddl_info)')}
   self.assertTrue({'ID','series','year','filename','size','issueid','comicid','link','status',

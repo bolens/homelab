@@ -5,6 +5,22 @@ from contextvars import ContextVar
 _RETRY = ContextVar("ddl_retry", default=None)
 
 
+def preferred(links, priorities, upscaled):
+    """Select only present, already filtered links in configured provider order."""
+    groups = ('HD-Upscaled', 'HD-Digital', 'SD-Digital', 'normal') if upscaled else (
+        'SD-Digital', 'normal', 'HD-Digital', 'HD-Upscaled')
+    sites = {'main': ('download now', 'mirror download'), 'mega': ('mega',),
+             'pixeldrain': ('pixeldrain',), 'mediafire': ('mediafire',)}
+    for provider in priorities:
+        for group in groups:
+            for site in sites.get(provider, ()):
+                name = group + ':' + site
+                for link in links:
+                    if link.get('site_type') == name:
+                        return link
+    return None
+
+
 def excluded(site, failures):
     provider = {'main server':'GC-Main', 'download now':'GC-Main',
                 'mirror download':'GC-Mirror', 'mega':'GC-Mega',

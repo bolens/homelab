@@ -92,6 +92,13 @@ replacement priority over normal pack/single and age preferences. Main and Mirro
 remain distinct providers. Failed-provider history and the six-attempt budget
 survive mirror changes and restarts. Explicit manual restart resets the budget
 and failure history. Priority does not bypass pause, cooldown or intake limits.
+Mirror selection follows the configured provider order using only available,
+eligible links. Missing Main or Mirror links do not terminate the DDL worker;
+selection continues with the next available preferred provider. SD/Digital and
+HD variants retain the configured upscaled preference, with an available variant
+used when the preferred variant is absent. With multiple eligible links, no
+matching preference returns a normal lookup failure without writing a replacement
+queue entry. A lone eligible link keeps the native direct-selection behavior.
 
 When every queued provider is cooling down, Mylar checks releases in the configured
 queue order for a non-cooling mirror. It checks at most one release every five
