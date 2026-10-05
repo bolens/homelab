@@ -192,7 +192,18 @@ Registration history allows 640 receipts of at most 4 MiB each, alongside the
 bounded to 32 MiB. Historical owner observations still require fresh native
 validation before registration or admission.
 
-Registration transitions, primary-key API/native installation and startup/media
+Production registration integration, primary-key API/native installation and startup/media
 admission remain unfinished in feature 023. Authentication belongs to the future
 primary-key API. These source helpers perform no live initialization, recovery,
 correction registration or media publication during image startup.
+
+`RegistrationState` adds internal bounded preparation, exact token acceptance,
+atomic attestation/census/committed receipt writes and prepared/final markers.
+A trusted observer runs under the raw writer before workflow LOCK and must
+return the exact reviewed inventory and owner observations. This hook still
+needs its production native implementation and authenticated API. Accepted-old
+and prepared-old recovery require fresh observations to commit or explicit
+abort. Prepared-new recovery validates the complete committed chain. Abort
+restart retains terminal receipts. Registration journals remain held unchanged:
+the bootstrap-only `JournalRecovery` has not been extended for them. These
+internal methods are not exposed or executed during application startup.

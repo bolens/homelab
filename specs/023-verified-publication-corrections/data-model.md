@@ -68,8 +68,9 @@ and admission. Receipt shape alone does not authenticate an observation.
 Bounds are 512 attestations, 128 bootstrap receipts of at most 65,536 bytes each,
 640 registration receipts of at most 4 MiB each, and 32 MiB across the complete
 publication namespace. Exhausted history holds without automatic pruning.
-Registration writes, fresh owner observation and startup enforcement remain
-unimplemented at this source milestone.
+Internal registration writes now follow explicit acceptance and prepared-marker,
+SQLite and final-marker durability. The trusted native observer, authentication
+and startup enforcement remain unimplemented at this source milestone.
 
 ## Guard proof
 
