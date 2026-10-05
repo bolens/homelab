@@ -482,6 +482,74 @@ class RegistryTests(unittest.TestCase):
 
 
 
+class PassiveStatusTests(unittest.TestCase):
+    setUp = RegistryTests.setUp
+
+    def status(self):
+        return guard.authority_status(self.store.path, self.writer.root)
+
+    def test_verified_status_is_fresh_after_marker_loss(self):
+        self.assertEqual(self.status()['state'], 'ready')
+        self.marker.unlink()
+        self.assertEqual(self.status(), dict(version=1, state='held',
+            reason='authority-unavailable', census=None))
+        self.assertFalse(self.marker.exists())
+
+    def test_missing_root_and_database_are_not_recreated(self):
+        absent = self.root / 'absent'
+        self.assertEqual(guard.authority_status(absent / 'workflow.sqlite', absent / 'writer')['state'], 'held')
+        self.assertFalse(absent.exists())
+        self.store.path.unlink()
+        self.assertEqual(self.status()['state'], 'held')
+        self.assertFalse(self.store.path.exists())
+
+    def test_pending_fences_are_retained_without_replay(self):
+        with self.writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True):
+            self.writer.mark_pending();self.writer.mark_tagger_pending();self.writer.mark_release_pending()
+        paths = (self.writer.pending, self.writer.tagger_pending, self.writer.release_pending)
+        before = [path.read_bytes() for path in paths]
+        status = self.status()
+        self.assertEqual((status['state'], status['reason']), ('held', 'media-pending'))
+        self.assertEqual(status['census']['revision'], 0)
+        self.assertEqual([path.read_bytes() for path in paths], before)
+
+    def test_sidecar_status_never_opens_sqlite_or_changes_bytes(self):
+        from unittest.mock import patch
+        path = Path(str(self.store.path) + '-journal')
+        path.write_bytes(b'opaque retained journal')
+        before = (self.store.path.read_bytes(), path.read_bytes(), self.marker.read_bytes())
+        with patch('sqlite3.connect', side_effect=AssertionError('must not open')):
+            self.assertEqual(self.status()['state'], 'held')
+        self.assertEqual((self.store.path.read_bytes(), path.read_bytes(), self.marker.read_bytes()), before)
+
+    def test_lost_final_marker_does_not_autofinalize(self):
+        from unittest.mock import patch
+        self.marker.unlink()
+        # Complete SQLite authority with a lost final marker remains held.
+        with patch.object(guard.RegistryState, 'recover_bootstrap', side_effect=AssertionError('replayed')):
+            self.assertEqual(self.status()['state'], 'held')
+        self.assertFalse(self.marker.exists())
+
+    def test_busy_writer_returns_a_bounded_held_status(self):
+        import threading
+        result = []
+        with self.writer.hold():
+            thread = threading.Thread(target=lambda: result.append(self.status()))
+            thread.start();thread.join(2)
+            self.assertFalse(thread.is_alive())
+        self.assertEqual(result, [dict(version=1, state='held', reason='writer-busy', census=None)])
+
+    def test_raw_writer_precedes_snapshot_without_recovery_helpers(self):
+        from unittest.mock import patch
+        def snapshot(database, marker):
+            self.assertGreater(self.writer.local[1].depth, 0)
+            self.assertTrue(self.writer.local[1].allow_pending)
+            self.assertEqual(marker, self.marker)
+            return guard.empty_census(self.epoch), {}
+        with patch.object(guard, 'registry_snapshot', side_effect=snapshot):
+            self.assertEqual(self.status()['state'], 'ready')
+
+
 class RegistrationWitnessTests(unittest.TestCase):
     setUp = RegistryTests.setUp
     record = RegistryTests.record

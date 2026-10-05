@@ -152,6 +152,16 @@ validation and read-only final-marker checks. `workflow_store.protected_snapshot
 provides a complete versioned semantic projection for reviewed bootstrap;
 volatile observation/event history, `meta.library_seen`, registration intents and
 record update envelopes are excluded, while unknown record kinds stay protected.
+`Store(existing_only=True)` is an opt-in connection foundation: it opens only an
+existing private rollback-journal database, binds its inode and schema, and
+rechecks loss, replacement and sidecars on every connection. It never creates
+state, changes permissions or repairs schema. It does not validate correction
+authority; the future native caller must acquire raw Writer before workflow
+LOCK. Default callers retain existing behavior until the focused adapter lands.
+`authority_status` is a passive internal probe using the existing raw Writer
+before complete read-only authority validation. It reports fixed held reasons
+and preserves media fences without replay, initialization or cached admission.
+Zero timeout applies only to Writer acquisition, not the full snapshot check.
 `publication_guard.py` is retained under
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including

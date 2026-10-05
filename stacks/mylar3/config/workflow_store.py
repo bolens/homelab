@@ -29,8 +29,17 @@ def label(value,limit=160):
 
 
 class Store:
-    def __init__(self,root,clock=time.time):
-        self.path=Path(root)/'workflow.sqlite';self.clock=clock
+    def __init__(self,root,clock=time.time,*,existing_only=False):
+        if type(existing_only) is not bool:
+            raise ValueError('Invalid workflow opening policy')
+        self.path=Path(root).absolute()/'workflow.sqlite';self.clock=clock
+        self.existing_only=existing_only
+        self.identity=None;self.schema=None
+        if existing_only:
+            # This opt-in mode is a connection foundation, not authority admission.
+            # The native adapter must own raw Writer before entering workflow LOCK.
+            with self.connection():pass
+            return
         with self.connection() as db:
             db.executescript('''CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY, at REAL NOT NULL, issueid TEXT, comicid TEXT,
@@ -42,13 +51,32 @@ class Store:
     @contextmanager
     def connection(self):
         with LOCK:
-            fd=os.open(self.path,os.O_CREAT|os.O_RDWR,0o600);os.close(fd)
-            os.chmod(self.path,0o600)
-            db=sqlite3.connect(str(self.path),timeout=10)
+            if self.existing_only:
+                if __package__:
+                    from .publication_guard import database_stamp, workflow_schema
+                else:
+                    from publication_guard import database_stamp, workflow_schema
+                identity=database_stamp(self.path)[:2]
+                if self.identity is not None and self.identity != identity:
+                    raise ValueError('Workflow database was replaced')
+                db=sqlite3.connect(self.path.as_uri()+'?mode=rw',uri=True,timeout=10)
+            else:
+                fd=os.open(self.path,os.O_CREAT|os.O_RDWR,0o600);os.close(fd)
+                os.chmod(self.path,0o600)
+                db=sqlite3.connect(str(self.path),timeout=10)
             db.row_factory=sqlite3.Row
             try:
+                if self.existing_only:
+                    if database_stamp(self.path)[:2] != identity:
+                        raise ValueError('Workflow database changed during opening')
+                    schema=workflow_schema(db)
+                    if self.schema is not None and self.schema != schema:
+                        raise ValueError('Workflow schema changed')
+                    self.identity=identity;self.schema=schema
                 with db:yield db
             finally:db.close()
+            if self.existing_only and database_stamp(self.path)[:2] != self.identity:
+                raise ValueError('Workflow database changed during operation')
     def get(self,kind,key,default=None):
         with self.connection() as db:
             row=db.execute('SELECT value FROM records WHERE kind=? AND key=?',(kind,str(key))).fetchone()

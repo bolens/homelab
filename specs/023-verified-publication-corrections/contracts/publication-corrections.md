@@ -156,3 +156,25 @@ separation, retained restore tampering and coherently rehashed missing prior
 records. Malformed boolean/float markers are refused before original files
 change across registration and both journal routes. No live recovery, native
 observer, API authentication or startup/publication integration is claimed.
+
+### Existing-only connection and passive status foundations
+
+The internal `Store(existing_only=True)` mode preserves the existing private
+rollback-journal database. It runs no creation, permission change or schema DDL.
+Every connection checks the original inode, unchanged schema and absence of all
+journal/WAL/SHM sidecars, including dangling links, before normal SQLite access.
+The original inode must still match after opening and after the operation. A
+cached Store cannot silently recreate a lost database. This mode is not complete
+authority admission or exclusion against an uncoordinated filesystem adversary;
+the native adapter must acquire raw Writer before workflow LOCK. Default Store
+callers retain existing behavior until that adapter is installed.
+
+The internal `authority_status` probe acquires existing raw Writer before the
+read-only complete final-authority snapshot. It never constructs Store, creates
+state, initializes authority, recovers journals or replays media. Every call
+revalidates current authority. Pending media fences produce a held result and
+remain intact. Failures use fixed reason codes without exception text or private
+paths. Writer acquisition uses zero timeout; workflow LOCK and the complete
+snapshot can still wait. The result is advisory, never a cached permission to
+publish. Native startup gating, authenticated API routes and production helper
+installation remain required before this foundation changes live behavior.
