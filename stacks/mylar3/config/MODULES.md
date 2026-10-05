@@ -204,6 +204,16 @@ return the exact reviewed inventory and owner observations. This hook still
 needs its production native implementation and authenticated API. Accepted-old
 and prepared-old recovery require fresh observations to commit or explicit
 abort. Prepared-new recovery validates the complete committed chain. Abort
-restart retains terminal receipts. Registration journals remain held unchanged:
-the bootstrap-only `JournalRecovery` has not been extended for them. These
+restart retains terminal receipts. Registration journals require explicit `RegistrationJournalRecovery` and remain
+held unchanged during ordinary checks. These
 internal methods are not exposed or executed during application startup.
+
+`RegistrationJournalRecovery` reuses the retained capture/isolated restoration
+protocol through its distinct registration-journal receipt type. It verifies the
+accepted registration predecessor, complete prior chain and original bootstrap
+witness against the original identities/schema/workflow/fences and exact
+prepared marker. Recovery restores only old SQL state. Fresh registration
+observation or explicit abort remains a separate step. Bootstrap receipts cannot
+cross the registration route. Canonical JSON comparisons reject boolean/float
+aliases in markers and retained receipt predecessors. Production observation,
+API authentication and startup/publication enforcement remain unfinished.
