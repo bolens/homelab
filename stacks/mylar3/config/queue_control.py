@@ -113,6 +113,16 @@ class Store:
 
 def store():
     global _STORE
+    if __package__:
+        from . import native_writers
+        if native_writers.publication_mode() and not native_writers.active():
+            from .publication_guard import Unavailable
+            raise Unavailable('Outer native admission required before DDL retry state')
+        if native_writers.publication_mode() and _STORE is not None:
+            import mylar
+            if _STORE.root.absolute() != Path(mylar.DATA_DIR).absolute():
+                from .publication_guard import Unavailable
+                raise Unavailable('DDL retry state belongs to foreign state')
     if _STORE is None:
         import mylar
         _STORE = Store(mylar.DATA_DIR)

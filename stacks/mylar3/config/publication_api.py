@@ -5,6 +5,7 @@ from the native process configuration. This module never runs media replay.
 """
 from contextlib import closing
 import json
+import os
 import sqlite3
 import time
 from pathlib import Path
@@ -20,6 +21,7 @@ MAX_REQUEST = 4 * 1024 * 1024
 FIELDS = {
     'status': set(),
     'prepare-bootstrap': {'epoch', 'backup'},
+    'prepare-fresh': {'epoch', 'backup'},
     'initialize-bootstrap': {'token'},
     'recover-bootstrap': {'token', 'mode'},
     'prepare-registration': {'census', 'inventory', 'allowed', 'rejected', 'evidence', 'created'},
@@ -96,7 +98,7 @@ def request(raw):
         raise guard.Unavailable('Invalid recovery mode')
     if 'kind' in value and value['kind'] not in ('bootstrap', 'registration'):
         raise guard.Unavailable('Invalid journal recovery type')
-    if action == 'prepare-bootstrap':
+    if action in ('prepare-bootstrap','prepare-fresh'):
         backup = value['backup']
         if (not isinstance(backup, dict)
                 or set(backup) != {'manifest_sha256', 'restore_sha256', 'description'}
@@ -143,6 +145,15 @@ class Controller:
         action = value['action']
         if action == 'status':
             result = guard.authority_status(self.database, self.writer_root)
+            if 'token' not in value and os.path.lexists(self.root/'publication-fresh-v1.json'):
+                try:
+                    if __package__:
+                        from . import publication_fresh
+                    else:
+                        import publication_fresh
+                    value=dict(value,token=publication_fresh.prepared_token(self.root))
+                except (ValueError,OSError,RuntimeError):
+                    result['fresh'] = dict(outcome='unavailable')
             if 'token' in value:
                 try:
                     writer = Writer(self.writer_root, create=False)
@@ -152,6 +163,15 @@ class Controller:
                 except (ValueError, OSError, RuntimeError):
                     result['intent'] = dict(token=value['token'], outcome='unavailable')
             return result
+        if action == 'prepare-fresh':
+            if __package__:
+                from . import publication_fresh
+            else:
+                import publication_fresh
+            token=publication_fresh.prepare(self.root,value['backup'],epoch=value['epoch'])
+            writer=Writer(self.writer_root,create=False)
+            with writer.hold(allow_pending=True,allow_tagger_pending=True,allow_release_pending=True):
+                return dict(version=1,action=action,token=token,outcome='prepared',review=self.receipt(token,writer))
         writer = Writer(self.writer_root, create=False)
         with writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True):
             return self._dispatch(value, writer)

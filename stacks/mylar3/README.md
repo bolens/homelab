@@ -443,8 +443,9 @@ container health, and the DDL and post-processing pages. If data is missing or
 corrupt, stop writers and restore the verified backup and previous image. Remove
 temporary update backups only after preservation checks pass; retain routine backups.
 
-Mylar startup acquires the shared media-writer lock to reconcile interrupted
-publication before opening its API. Hold an external deployment guard only while
+Mylar startup checks publication authority before database maintenance and leaves
+pending media recovery held for explicit authenticated review. It does not replay
+interrupted publication automatically. Hold an external deployment guard only while
 quiescing Mylar and verifying its backup, then release it before starting either
 the updated or rollback image. Reacquire the guard after startup for preservation
 checks. Waiting for healthy startup while retaining the guard blocks startup until the
@@ -664,11 +665,11 @@ unknown or malformed receipts are retained without interpreting them as failed j
 The startup recovery API streams pending results, skips cleaned history without
 rehashing comics, and reports active locks as busy. Its caller must finish the scan
 and keep modern admission closed on conflicts, invalid receipts, I/O errors or busy
-jobs. Native startup performs this recovery before database maintenance and scans,
-including when the selected backend is Legacy.
+jobs. Publication-mode startup retains these pending jobs for explicit reviewed
+recovery before media admission, including when the selected backend is Legacy.
 Core helpers ship under `/opt/mylar3-fixes` and in Mylar's package. The lookup and
-service modules ship only in Mylar's package. Startup recovery runs before scans
-for either selected backend. Upgrading retains existing settings and defaults to Legacy.
+service modules ship only in Mylar's package. Reviewed recovery must finish before
+scans for either backend. Upgrading retains existing settings and defaults to Legacy.
 
 Runtime and Python build dependencies have exact versions and SHA-256 locks. Build
 tools stay outside the final image. ICU 70 comes from the pinned Ubuntu base. Package
@@ -988,8 +989,22 @@ Native observations come from the configured library and actual Mylar catalog;
 requests cannot choose filesystem paths or supply current native proof.
 Status reads existing state without media replay or initialization.
 
-Startup exclusion and guards at every native and worker publication boundary
-remain unfinished in the [correction plan](../../specs/023-verified-publication-corrections/plan.md).
-The API does not authorize final import or change existing publication behavior.
+The startup adapter holds media work before database maintenance when publication
+authority is missing, invalid or awaiting explicit recovery. Health and
+`publicationControl` remain available. Ordinary UI/API requests, notification
+polling, schedules and workflow ticks require admitted startup. After reviewed
+bootstrap acceptance, restart Mylar to complete native initialization. A failed
+database check retains the hold. Existing catalogs are never recreated after loss.
+
+A virgin installation uses explicit `prepare-fresh` with reviewed backup/restore
+evidence and exact bootstrap acceptance. This requires the primary API to be enabled
+and its 32-character primary key configured privately in `config.ini` before startup.
+The state root must already exist and contain no catalog, workflow registry, writer
+namespace, fresh claim or SQLite sidecar. Interrupted creation stays held for review.
+The first accepted creation permission is consumed before native catalog creation.
+
+Guards at every native and worker publication boundary remain unfinished in the
+[correction plan](../../specs/023-verified-publication-corrections/plan.md).
+The API does not authorize final import. Matching live rollout is still pending.
 Rollout must follow the restore-verified update workflow above; published API
 images alone do not establish prevention.

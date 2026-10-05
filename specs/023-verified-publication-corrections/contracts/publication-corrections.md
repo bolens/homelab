@@ -260,5 +260,21 @@ Advisory checks validate the complete authority and retain pending fences. Known
 payload checks freshly observe all distinct allowed owners, include current and
 historical matched owner facts and hold any unallowed owner or stale evidence.
 Unknown digests receive advisory `unknown` without archive reads. These responses
-cannot authorize final native publication. Startup exclusion, local worker
-revalidation and every media mutation boundary remain separate unfinished work.
+cannot authorize final native publication. The startup adapter enables existing-only
+admission before native database maintenance and holds ordinary web/API requests,
+notifications, schedules and ticks when authority or recovery is unavailable.
+Health and authenticated review remain passive. Authority acceptance alone does not
+release media work: successful native initialization after restart is required.
+Local worker revalidation and every media mutation boundary remain unfinished work.
+
+`prepare-fresh` accepts only protocol version, action, epoch and the same exact
+backup evidence fields as `prepare-bootstrap`. It is explicit creation for a virgin
+owned root under early startup exclusion. It refuses any existing native/workflow
+database, SQLite sidecar, writer directory or fresh claim. An exclusive private claim
+and created partial state remain retained on failure. No fallback infers a new epoch
+from state loss. Status can discover the exact prepared fresh token without creating
+state. `initialize-bootstrap` requires exact acceptance before authority is ready.
+The first native catalog creation consumes this exact committed fresh permission
+before native `dbcheck`. Existing installation startup requires an owned regular,
+readable native catalog with no pending sidecars. Missing or invalid native catalogs
+stay held without recreation, maintenance or worker startup.

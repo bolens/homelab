@@ -93,7 +93,7 @@ class NativeWriterTest(unittest.TestCase):
                 self.assertEqual(len(nodes),1)
                 self.assertEqual(sum(ast.unparse(d)=='native_writers.guard' for d in nodes[0].decorator_list),1)
         source=(root/'__init__.py').read_text()
-        self.assertLess(source.index('native_writers.initialize()'),source.index('# Initialize the database'))
+        self.assertLess(source.index('native_writers.initialize_publication()'),source.index('# Initialize the database'))
 
     def test_error_releases_manual_lock(self):
         @self.native.guard

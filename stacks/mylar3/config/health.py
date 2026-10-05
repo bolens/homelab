@@ -13,6 +13,9 @@ import urllib.request
 def assess(snapshot, previous, now, stall_seconds=900):
     errors = []
     observations = {}
+    if snapshot.get('publication',{}).get('state')=='held':
+        return dict(checked_at=now,observations={},
+                    errors=['Publication authority held; authenticated review and native restart required'])
     workflow = snapshot.get('workflow', {})
     if workflow and not workflow.get('valid'):
         errors.append('Workflow state is unavailable; review Activity and application logs')
