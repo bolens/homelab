@@ -50,8 +50,20 @@ missing marker nor a lost census is reconstructed as an empty registry.
 Actual process-exit controls exercise all durability boundaries. Recovery can
 reconcile supported prepared-old/prepared-new bootstrap states when SQLite has
 no sidecars. A process exit during an uncommitted SQLite write leaves a rollback
-journal; this foundation refuses it without changing either file. The required
-authenticated, isolated-restore-verified journal recovery seam is still pending,
-as are registration transitions, primary-key endpoints and startup/publication
-integration. This implementation boundary does not weaken the full feature’s
-recovery and acceptance requirements or complete T003.
+journal; ordinary checks refuse it without changing either file. Explicit
+`JournalRecovery` preparation captures retained private originals, independently
+restores a copy through SQLite and binds the complete restored SQL contents,
+including volatile event rows and update envelopes. It revalidates exact nested
+evidence, retained copies and restored integrity/contents before acceptance or
+original SQLite access. Exact plan acceptance permits SQLite to recover the
+original inode, followed by complete equality verification. Interrupted changed
+pairs require a new reviewed plan linked to the prior accepted plan and the same
+independent restoration. SQLite consumes journals through its transaction
+protocol. The helpers retain media fences and replay no media operations. A
+pending recovery marker holds ordinary bootstrap calls.
+
+Primary-key authentication, registration transitions, native installation and
+startup/publication integration remain pending. Existing `Store` startup is not
+yet gated against automatic SQLite recovery. This implementation boundary does
+not weaken the full feature's recovery and acceptance requirements or complete
+T003.

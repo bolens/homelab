@@ -169,7 +169,19 @@ to 128 bootstrap plans of at most 65,536 bytes each.
 
 Real process-exit fixtures cover each write boundary. A process exit during an
 uncommitted SQLite write leaves a rollback journal and remains held without
-changing database/journal bytes. Authenticated isolated journal recovery,
-registration transitions, primary-key API/native installation and startup/media
-admission remain unfinished in feature 023. These source helpers perform no
-live correction registration or media publication during image startup.
+changing database/journal bytes during ordinary checks.
+
+`JournalRecovery` prepares retained private database/journal/marker copies and
+verifies SQLite recovery on an independent copy. Its complete restoration
+snapshot includes every workflow record, update envelope and event row. Exact
+plan acceptance precedes SQLite recovery of the original inode. Capture and
+restoration evidence is fully revalidated before original SQLite access. The
+pending recovery marker blocks ordinary bootstrap calls. A changed interrupted
+pair requires a new reviewed plan linked to the prior accepted plan, with the
+same independently verified restored contents. Captures remain retained, with
+at most 128 recovery directories and 256 MiB per database/journal input.
+
+Registration transitions, primary-key API/native installation and startup/media
+admission remain unfinished in feature 023. Authentication belongs to the future
+primary-key API. These source helpers perform no live initialization, recovery,
+correction registration or media publication during image startup.

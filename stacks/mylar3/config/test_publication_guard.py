@@ -466,6 +466,297 @@ class RegistryTests(unittest.TestCase):
 
 
 
+class JournalRecoveryTests(unittest.TestCase):
+    def setUp(self):
+        from media_writer import Writer
+        from workflow_store import Store
+        import subprocess
+        self.temp = tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.store = Store(self.root)
+        self.writer = Writer(self.root / 'writer', create=True)
+        # Force real dirty-page spill, not only a cold journal left in cache.
+        for index in range(12):self.store.set('pack', str(index), {'payload': 'x'*8192})
+        self.state = guard.RegistryState(self.store.path, self.writer)
+        self.token = self.state.prepare_bootstrap(dict(manifest_sha256='a'*64,
+            restore_sha256='b'*64, description='Independent fixture restore'), epoch='e'*64)
+        script = '''import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[3])
+import publication_guard as guard
+from media_writer import Writer
+state=guard.RegistryState(Path(sys.argv[1])/'workflow.sqlite',Writer(Path(sys.argv[1])/'writer'))
+original=state._commit_census
+def commit(db,*args):
+    db.execute('PRAGMA cache_size=1')
+    return original(db,*args)
+state._commit_census=commit
+def interrupt(stage):
+    if stage=='sqlite-pending':os._exit(73)
+state.initialize(sys.argv[2],accepted_token=sys.argv[2],boundary=interrupt)
+'''
+        result = subprocess.run([sys.executable, '-B', '-c', script, str(self.root),
+            self.token, str(Path(guard.__file__).parent)], timeout=20, capture_output=True)
+        self.assertEqual(result.returncode, 73, result.stderr.decode())
+        self.journal = Path(str(self.store.path)+'-journal')
+        self.assertEqual(self.journal.read_bytes()[:8], bytes.fromhex('d9d505f920a163d7'))
+        self.before = self.pair()
+
+    def pair(self):
+        return self.store.path.read_bytes(), self.journal.read_bytes(), self.state.marker.read_bytes()
+
+    def recovery(self):
+        return guard.JournalRecovery(self.store.path, self.writer)
+
+    def test_verified_isolated_restore_and_explicit_acceptance(self):
+        recovery = self.recovery()
+        token = recovery.prepare(self.token)
+        self.assertEqual(self.pair(), self.before)
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token='f'*64)
+        self.assertEqual(self.pair(), self.before)
+        recovery.commit(token, accepted_token=token)
+        self.assertFalse(self.journal.exists())
+        self.assertFalse(recovery.marker.exists())
+        # The independent capture is retained and bootstrap is still held.
+        self.assertTrue(list(self.writer.root.glob('publication-recovery-*/receipt.json')))
+        restarted = guard.RegistryState(self.store.path, self.writer)
+        with self.assertRaises(guard.Unavailable):restarted.snapshot()
+        restarted.recover_bootstrap(self.token)
+        self.assertEqual(restarted.snapshot()[0]['revision'], 0)
+        for index in range(12):self.assertEqual(self.store.get('pack',str(index)), {'payload':'x'*8192})
+
+    def test_changed_original_or_capture_refuses_without_recovery(self):
+        recovery = self.recovery();token = recovery.prepare(self.token)
+        original = self.journal.read_bytes()
+        with self.journal.open('ab') as stream:stream.write(b'foreign')
+        changed = self.pair()
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+        self.assertEqual(self.pair(), changed)
+        self.journal.write_bytes(original)
+        # Even restoring the bytes does not restore the reviewed file signature.
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+        self.assertEqual(self.pair(), self.before)
+
+    def test_corrupt_journal_and_missing_marker_preserve_originals(self):
+        with self.journal.open('r+b') as stream:stream.write(b'INVALID!')
+        changed = self.pair()
+        with self.assertRaises(guard.Unavailable):self.recovery().prepare(self.token)
+        self.assertEqual(self.pair(), changed)
+        self.state.marker.unlink()
+        with self.assertRaises(guard.Unavailable):self.recovery().prepare(self.token)
+
+    def test_backup_tampering_blocks_application(self):
+        recovery = self.recovery();token = recovery.prepare(self.token)
+        capture = next(self.writer.root.glob('publication-recovery-*/original.sqlite'))
+        with capture.open('ab') as stream:stream.write(b'tamper')
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+        self.assertEqual(self.pair(), self.before)
+
+    def test_restart_after_each_real_recovery_process_exit(self):
+        import subprocess
+        script = '''import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[4])
+import publication_guard as guard
+from media_writer import Writer
+root=Path(sys.argv[1])
+recovery=guard.JournalRecovery(root/'workflow.sqlite',Writer(root/'writer'))
+def interrupt(stage):
+    if stage==sys.argv[2]:os._exit(74)
+if sys.argv[2] in ('capture-copied','restore-verified','recovery-plan'):
+    recovery.prepare(sys.argv[3],boundary=interrupt)
+else:
+    recovery.commit(sys.argv[3],accepted_token=sys.argv[3],boundary=interrupt)
+'''
+        # Copy the captured hot state while retaining the original bound inode
+        # by restoring its contents between cases, before reviewing each plan.
+        for stage in ('capture-copied', 'restore-verified', 'recovery-plan',
+                      'recovery-accepted', 'original-recovered', 'completion-receipt', 'recovery-cleared'):
+            with self.subTest(stage=stage):
+                recovery = self.recovery()
+                token = self.token if stage in ('capture-copied','restore-verified','recovery-plan') else recovery.prepare(self.token)
+                result = subprocess.run([sys.executable, '-B', '-c', script, str(self.root),
+                    stage, token, str(Path(guard.__file__).parent)], timeout=20, capture_output=True)
+                self.assertEqual(result.returncode, 74, result.stderr.decode())
+                if recovery.marker.exists():
+                    current = guard.private_json(recovery.marker)
+                    token = guard.canonical_digest(current['plan'])
+                    recovery.commit(token, accepted_token=token)
+                elif stage != 'recovery-cleared':
+                    token = recovery.prepare(self.token)
+                    recovery.commit(token, accepted_token=token)
+                self.assertFalse(recovery.marker.exists())
+                self.assertFalse(self.journal.exists())
+                # Keep exact original identities for the next independently
+                # reviewed fixture. Retained captures from prior cases remain.
+                self.store.path.write_bytes(self.before[0]);self.store.path.chmod(0o600)
+                self.journal.write_bytes(self.before[1]);self.journal.chmod(0o600)
+                self.state.marker.write_bytes(self.before[2]);self.state.marker.chmod(0o600)
+
+    def test_changed_marker_fence_and_malformed_receipt_hold(self):
+        recovery = self.recovery();token = recovery.prepare(self.token)
+        marker = self.state.marker.read_bytes()
+        self.state.marker.write_bytes(marker + b' ')
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+        self.assertTrue(self.journal.exists())
+        self.state.marker.write_bytes(marker)
+        recovery.marker.write_bytes(b'[]');recovery.marker.chmod(0o600)
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+        self.assertTrue(self.journal.exists())
+
+    def test_pending_fences_retained_and_changed_fence_blocks(self):
+        # An existing fence cannot be invented after bootstrap preparation.
+        self.writer.create_file(self.writer.pending)
+        original = self.pair()
+        with self.assertRaises(guard.Unavailable):self.recovery().prepare(self.token)
+        self.assertEqual(self.pair(), original)
+        self.assertTrue(self.writer.pending.exists())
+
+    def test_accepted_recovery_holds_ordinary_bootstrap_before_replay(self):
+        recovery = self.recovery();token = recovery.prepare(self.token)
+        def interrupt(stage):
+            if stage == 'original-recovered':raise RuntimeError('Interrupted after rollback')
+        with self.assertRaises(RuntimeError):recovery.commit(token, accepted_token=token, boundary=interrupt)
+        restarted = guard.RegistryState(self.store.path, self.writer)
+        with self.assertRaises(guard.Unavailable):restarted.recover_bootstrap(self.token)
+        with self.assertRaises(guard.Unavailable):restarted.snapshot()
+        recovery.commit(token, accepted_token=token)
+        restarted.recover_bootstrap(self.token)
+        self.assertEqual(restarted.snapshot()[0]['revision'], 0)
+
+    def test_real_exit_during_rollback_requires_new_verified_plan(self):
+        import subprocess
+        recovery = self.recovery();token = recovery.prepare(self.token)
+        script = '''import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[3])
+import publication_guard as guard
+from media_writer import Writer
+root=Path(sys.argv[1]);recovery=guard.JournalRecovery(root/'workflow.sqlite',Writer(root/'writer'))
+def interrupt(stage):
+    if stage=='rollback-pending':os._exit(75)
+recovery.commit(sys.argv[2],accepted_token=sys.argv[2],boundary=interrupt)
+'''
+        result = subprocess.run([sys.executable,'-B','-c',script,str(self.root),token,
+            str(Path(guard.__file__).parent)], timeout=20, capture_output=True)
+        self.assertEqual(result.returncode, 75, result.stderr.decode())
+        self.assertTrue(self.journal.exists())
+        interrupted = self.pair()
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+        self.assertEqual(self.pair(), interrupted)
+        replacement = recovery.prepare(self.token, parent_token=token)
+        self.assertNotEqual(replacement, token)
+        self.assertEqual(self.pair(), interrupted)
+        with self.assertRaises(guard.Unavailable):recovery.commit(replacement, accepted_token=token)
+        recovery.commit(replacement, accepted_token=replacement)
+        self.assertFalse(self.journal.exists())
+        self.assertEqual(len(list(self.writer.root.glob('publication-recovery-*/receipt.json'))), 2)
+        guard.RegistryState(self.store.path,self.writer).recover_bootstrap(self.token)
+        self.assertEqual(self.state.snapshot()[0]['revision'], 0)
+
+    def test_tampered_retained_receipt_blocks_before_original_sqlite_open(self):
+        recovery = self.recovery();token = recovery.prepare(self.token)
+        path = next(self.writer.root.glob('publication-recovery-*/receipt.json'))
+        path.write_text('{}');path.chmod(0o600)
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+        self.assertEqual(self.pair(), self.before)
+
+    def test_replacement_database_and_linked_capture_hold(self):
+        recovery = self.recovery();token = recovery.prepare(self.token)
+        old = self.root/'old.sqlite';self.store.path.rename(old)
+        self.store.path.write_bytes(old.read_bytes());self.store.path.chmod(0o600)
+        changed = self.pair()
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+        self.assertEqual(self.pair(), changed)
+        capture = next(self.writer.root.glob('publication-recovery-*/original.sqlite'))
+        os.link(capture,self.root/'linked.sqlite')
+        with self.assertRaises(guard.Unavailable):recovery.commit(token, accepted_token=token)
+
+    def test_contradictory_zero_header_journal_preserves_originals(self):
+        # The bootstrap has not committed its census. SQLite may legitimately
+        # leave a zero-header journal before dirty pages have been flushed.
+        with self.journal.open('r+b') as stream:stream.write(b'\0'*8)
+        # A zero-header journal with dirty database pages is contradictory and
+        # must hold on the independent copy, never mutate the originals.
+        original = self.pair()
+        with self.assertRaises(guard.Unavailable):self.recovery().prepare(self.token)
+        self.assertEqual(self.pair(), original)
+
+    def test_valid_cold_journal_has_independent_restore_and_recovery(self):
+        import subprocess
+        from media_writer import Writer
+        from workflow_store import Store
+        root = self.root/'cold';root.mkdir()
+        store = Store(root);writer = Writer(root/'writer',create=True)
+        state = guard.RegistryState(store.path,writer)
+        token = state.prepare_bootstrap(dict(manifest_sha256='a'*64,restore_sha256='b'*64,
+            description='Independent cold-journal fixture restore'),epoch='e'*64)
+        script = '''import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[3])
+import publication_guard as guard
+from media_writer import Writer
+root=Path(sys.argv[1]);state=guard.RegistryState(root/'workflow.sqlite',Writer(root/'writer'))
+def interrupt(stage):
+    if stage=='sqlite-pending':os._exit(76)
+state.initialize(sys.argv[2],accepted_token=sys.argv[2],boundary=interrupt)
+'''
+        result = subprocess.run([sys.executable,'-B','-c',script,str(root),token,
+            str(Path(guard.__file__).parent)],timeout=20,capture_output=True)
+        self.assertEqual(result.returncode,76,result.stderr.decode())
+        journal = Path(str(store.path)+'-journal')
+        self.assertEqual(journal.read_bytes()[:8],b'\0'*8)
+        before = store.path.read_bytes(),journal.read_bytes()
+        recovery = guard.JournalRecovery(store.path,writer)
+        reviewed = recovery.prepare(token)
+        self.assertEqual((store.path.read_bytes(),journal.read_bytes()),before)
+        recovery.commit(reviewed,accepted_token=reviewed)
+        self.assertFalse(journal.exists())
+        state.recover_bootstrap(token)
+        self.assertEqual(state.snapshot()[0]['revision'],0)
+
+    def test_forged_restoration_claims_never_open_original_sqlite(self):
+        recovery = self.recovery();recovery.prepare(self.token)
+        original = guard.private_json(recovery.marker)
+        retained = self.writer.root/original['plan']['directory']/'receipt.json'
+        for change in ({'records':'1'}, {'records':True}, {'events':5001},
+                       {'digest':'f'*64}, {'sha256':'invalid'}):
+            with self.subTest(change=change):
+                forged = json.loads(json.dumps(original))
+                forged['plan']['restored'].update(change)
+                raw = guard.compact(forged)
+                recovery.marker.write_bytes(raw);recovery.marker.chmod(0o600)
+                retained.write_bytes(raw);retained.chmod(0o600)
+                accepted = guard.canonical_digest(forged['plan'])
+                with self.assertRaises(guard.Unavailable):recovery.commit(accepted,accepted_token=accepted)
+                self.assertEqual(self.pair(),self.before)
+                self.assertEqual(guard.private_json(recovery.marker)['outcome'],'verified')
+        forged = json.loads(json.dumps(original));del forged['plan']['restored']['records']
+        raw = guard.compact(forged);recovery.marker.write_bytes(raw);retained.write_bytes(raw)
+        accepted = guard.canonical_digest(forged['plan'])
+        with self.assertRaises(guard.Unavailable):recovery.commit(accepted,accepted_token=accepted)
+        self.assertEqual(self.pair(),self.before)
+
+    def test_malformed_capture_and_oversized_history_hold_before_modification(self):
+        recovery = self.recovery();recovery.prepare(self.token)
+        original = guard.private_json(recovery.marker)
+        retained = self.writer.root/original['plan']['directory']/'receipt.json'
+        for name, change in (('database', {'signature':[1,2]}),
+                             ('journal', {'sha256':False}),
+                             ('marker', {'signature':[0]*9})):
+            with self.subTest(name=name):
+                forged = json.loads(json.dumps(original));forged['plan']['capture'][name].update(change)
+                raw = guard.compact(forged);recovery.marker.write_bytes(raw);retained.write_bytes(raw)
+                accepted = guard.canonical_digest(forged['plan'])
+                with self.assertRaises(guard.Unavailable):recovery.commit(accepted,accepted_token=accepted)
+                self.assertEqual(self.pair(),self.before)
+        recovery.marker.unlink()
+        for index in range(guard.INTENT_LIMIT):
+            (self.writer.root/('publication-recovery-test-'+str(index))).mkdir()
+        with self.assertRaises(guard.Unavailable):recovery.prepare(self.token)
+        self.assertEqual(self.pair(),self.before)
+
+
 class BootstrapTests(unittest.TestCase):
     def setUp(self):
         from media_writer import Writer
