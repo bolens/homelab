@@ -394,7 +394,7 @@ def attestation(value):
     return canonical_digest(value)
 
 
-def complete_census(db):
+def complete_census(db, *, pending=None):
     """Validate all authority rows in one caller-owned SQLite read snapshot."""
     count, size = db.execute("SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) "
         "FROM records WHERE substr(CAST(kind AS TEXT),1,12)='publication_'").fetchone()
@@ -421,7 +421,7 @@ def complete_census(db):
             intent_counts[action] += 1
             if intent_counts[action] > limit or len(raw.encode('utf-8')) > byte_limit:
                 raise Unavailable('Correction intent history exceeds bounds')
-            if value['outcome'] == 'accepted':
+            if value['outcome'] == 'accepted' and not (action == 'register' and key == pending):
                 raise Unavailable('Unfinished correction intent blocks admission')
             intents[key] = value
             continue
@@ -691,13 +691,13 @@ def workflow_schema(db):
         'SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')])
 
 
-def initialization_witness(db, token, census, identity, writer):
+def initialization_witness(db, token, census, identity, writer, *, pending=None):
     rows = db.execute("SELECT key,value FROM records WHERE kind='publication_intent'").fetchall()
     committed = []
     for key, raw in rows:
         value = decode_json(raw)
         plan = intent_record(key, value)
-        if value['outcome'] == 'accepted':
+        if value['outcome'] == 'accepted' and not (plan['action'] == 'register' and key == pending):
             raise Unavailable('Unfinished initialization blocks admission')
         if value['outcome'] == 'committed':
             if plan['action'] == 'bootstrap':
@@ -1032,6 +1032,215 @@ def full_workflow_snapshot(db):
     history = [list(row) for row in db.execute('SELECT * FROM events ORDER BY id')]
     return dict(records=count, events=events,
                 digest=canonical_digest(dict(schema=workflow_schema(db), records=records, events=history)))
+
+
+class RegistrationState(RegistryState):
+    """Explicit registration durability; trusted observations/authentication are adapters.
+
+    Observe runs under raw Writer before workflow LOCK. No ordinary media replay
+    occurs here. A production native observer and authenticated API are required
+    before these internal methods may be exposed.
+    """
+    def _record(self, db, token):
+        row = db.execute("SELECT value FROM records WHERE kind='publication_intent' AND key=? "
+                         "AND typeof(value)='text' AND length(CAST(value AS BLOB))<=?",
+                         (token, REGISTRATION_BYTES)).fetchone()
+        if row is None:
+            raise Unavailable('Missing registration receipt')
+        record = decode_json(row[0]);plan = intent_record(token, record)
+        if (plan['action'] != 'register'
+                or plan['binding']['database_identity'] != self.identity
+                or plan['binding']['writer_identity'] != self.writer_binding):
+            raise Unavailable('Foreign registration receipt')
+        return record
+
+    def _save(self, db, token, record):
+        original = self._record(db, token)
+        intent_record(token, record)
+        transitions = {'prepared': {'accepted'}, 'accepted': {'accepted', 'committed', 'aborted'},
+                       'committed': {'committed'}, 'aborted': {'aborted'}}
+        if (canonical_digest(original['plan']) != canonical_digest(record['plan'])
+                or record['outcome'] not in transitions[original['outcome']]):
+            raise Unavailable('Immutable or terminal registration receipt changed')
+        db.execute("UPDATE records SET value=? WHERE kind='publication_intent' AND key=?",
+                   (compact(record).decode('utf-8'), token))
+
+    def _hold(self):
+        return self.writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True)
+
+    def _fresh(self, body, observe):
+        if not callable(observe):
+            raise Unavailable('Fresh native registration observation is required')
+        # Separate copies prevent an observer from rewriting the reviewed request.
+        body_raw = compact(body)
+        if len(body_raw) > REGISTRATION_BYTES:
+            raise Unavailable('Registration request exceeds bounds')
+        frozen = decode_json(body_raw.decode('utf-8'))
+        attestation(dict(frozen, intent='0'*64))
+        observed = observe(decode_json(compact(frozen).decode('utf-8')))
+        raw = compact(observed)
+        if (len(raw) > REGISTRATION_BYTES or canonical_digest(observed)
+                != canonical_digest({key:frozen[key] for key in ('inventory', 'observed')})):
+            raise Unavailable('Reviewed native owner/archive observations changed')
+        return frozen
+
+    def _validated(self, db, initialization, *, pending=None):
+        census, records = complete_census(db, pending=pending)
+        initialization_witness(db, initialization, census, self.identity, self.writer_binding, pending=pending)
+        return census, records
+
+    def _current(self, db, *, pending=None):
+        marker = self._read_marker()
+        initialization = marker.get('initialization_intent')
+        if not digest_value(initialization):
+            raise Unavailable('Missing original initialization witness')
+        census, records = self._validated(db, initialization, pending=pending)
+        if marker != self.final_marker(census, initialization):
+            raise Unavailable('Registration requires exact complete final authority')
+        return marker, census, records
+
+    def _registration_prepared(self, token, record, initialization):
+        _, new = registration_effect(token, record['plan'])
+        return dict(version=1, phase='prepared', intent=token, old=record['plan']['old'], new=new,
+                    initialization_intent=initialization, database_identity=self.identity,
+                    writer_identity=self.writer_binding)
+
+    @state_errors
+    def prepare_registration(self, body, *, observe):
+        with self._hold():
+            body = self._fresh(body, observe)
+            with self._session() as db:
+                _, old, _ = self._current(db)
+                plan = dict(version=1, action='register', old=old, binding=self._binding(db), body=body)
+                token = canonical_digest(plan)
+                registration_effect(token, plan)
+                record = dict(plan=plan, accepted=False, outcome='prepared')
+                existing = db.execute("SELECT 1 FROM records WHERE kind='publication_intent' AND key=?", (token,)).fetchone()
+                if existing:
+                    if self._record(db, token) != record:
+                        raise Unavailable('Registration preparation replay differs')
+                    return token
+                if len(compact(record)) > REGISTRATION_BYTES:
+                    raise Unavailable('Registration receipt exceeds bounds')
+                count = sum(1 for (raw,) in db.execute("SELECT value FROM records WHERE kind='publication_intent'")
+                            if decode_json(raw)['plan']['action'] == 'register')
+                if count >= REGISTRATION_INTENT_LIMIT:
+                    raise Unavailable('Registration history exceeds bounds')
+                db.execute('INSERT INTO records VALUES (?,?,?,?)',
+                           ('publication_intent', token, compact(record).decode('utf-8'), time.time()))
+                complete_census(db)
+                db.commit()
+                return token
+
+    def _finish_registration(self, db, token, record, prepared, boundary):
+        db.execute('BEGIN')
+        census, _ = self._validated(db, prepared['initialization_intent'])
+        if census != prepared['new'] or record['outcome'] != 'committed':
+            raise Unavailable('Mixed committed registration state')
+        db.commit()
+        self._publish_marker(self.final_marker(census, prepared['initialization_intent']),
+                             'final', boundary, expected=prepared)
+        return census
+
+    def _commit_registration(self, db, token, record, prepared, boundary):
+        value, new = registration_effect(token, record['plan'])
+        db.execute('BEGIN IMMEDIATE')
+        if (self._read_marker() != prepared
+                or self._binding(db) != record['plan']['binding']):
+            raise Unavailable('Accepted registration state changed')
+        record = dict(record, outcome='committed')
+        self._save(db, token, record)
+        db.execute('INSERT INTO records VALUES (?,?,?,?)',
+                   ('publication_attestation', attestation(value), compact(value).decode('utf-8'), time.time()))
+        db.execute("UPDATE records SET value=? WHERE kind='publication_census' AND key='v1'",
+                   (compact(new).decode('utf-8'),))
+        self._validated(db, prepared['initialization_intent'])
+        boundary('sqlite-pending')
+        db.commit();boundary('sqlite-committed')
+        return self._finish_registration(db, token, record, prepared, boundary)
+
+    @state_errors
+    def register(self, token, *, accepted_token, observe, boundary=lambda _: None):
+        if not digest_value(token) or accepted_token != token:
+            raise Unavailable('Explicit exact registration acceptance required')
+        with self._hold():
+            with self._session() as db:
+                record = self._record(db, token)
+                self._current(db)
+                if record['outcome'] == 'committed':
+                    return registration_effect(token, record['plan'])[1]
+                if record['outcome'] != 'prepared':
+                    raise Unavailable('Registration requires exact recovery or is terminal')
+            self._fresh(record['plan']['body'], observe)
+            with self._session() as db:
+                record = self._record(db, token)
+                marker, census, _ = self._current(db)
+                if (record['outcome'] != 'prepared' or census != record['plan']['old']
+                        or self._binding(db) != record['plan']['binding']):
+                    raise Unavailable('Reviewed registration is stale')
+                record = dict(record, accepted=True, outcome='accepted')
+                self._save(db, token, record);db.commit();boundary('intent-accepted')
+                prepared = self._registration_prepared(token, record, marker['initialization_intent'])
+                self._publish_marker(prepared, 'prepared', boundary, expected=marker)
+                return self._commit_registration(db, token, record, prepared, boundary)
+
+    @state_errors
+    def recover_registration(self, token, *, abort=False, observe=None, boundary=lambda _: None):
+        if not digest_value(token) or type(abort) is not bool:
+            raise Unavailable('Invalid exact registration recovery')
+        with self._hold():
+            with self._session() as db:
+                record = self._record(db, token)
+                if record['outcome'] == 'aborted':
+                    marker = self._read_marker()
+                    initialization = marker.get('initialization_intent')
+                    census, _ = self._validated(db, initialization)
+                    prepared = self._registration_prepared(token, record, initialization)
+                    if marker == self.final_marker(census, initialization):return census
+                    if marker != prepared or census != prepared['old']:
+                        raise Unavailable('Mixed aborted registration state')
+                    db.commit()
+                    self._publish_marker(self.final_marker(census, initialization),
+                                         'abort', boundary, expected=prepared)
+                    return census
+                if record['outcome'] not in ('accepted','committed'):
+                    raise Unavailable('Unaccepted registration cannot recover')
+                marker = self._read_marker()
+                initialization = marker.get('initialization_intent')
+                prepared = self._registration_prepared(token, record, initialization)
+                census, _ = self._validated(db, initialization, pending=token)
+                if marker == self.final_marker(census, initialization) and record['outcome'] == 'committed':
+                    if abort:raise Unavailable('Committed registration cannot abort')
+                    return registration_effect(token, record['plan'])[1]
+                if marker not in (prepared, self.final_marker(record['plan']['old'], initialization)):
+                    raise Unavailable('Missing or foreign prepared registration marker')
+                if record['outcome'] == 'committed':
+                    if abort or census != prepared['new'] or marker != prepared:
+                        raise Unavailable('Mixed committed registration state')
+                    db.commit()
+                    return self._finish_registration(db, token, record, prepared, boundary)
+                if census != record['plan']['old']:
+                    raise Unavailable('Mixed accepted registration state')
+            if not abort:self._fresh(record['plan']['body'], observe)
+            with self._session() as db:
+                if self._record(db, token) != record or self._read_marker() != marker:
+                    raise Unavailable('Registration recovery changed')
+                census, _ = self._validated(db, initialization, pending=token)
+                if census != record['plan']['old']:
+                    raise Unavailable('Registration recovery census changed')
+                if not abort and self._binding(db) != record['plan']['binding']:
+                    raise Unavailable('Accepted registration facts are stale')
+                db.commit()
+                if marker != prepared:
+                    self._publish_marker(prepared,'prepared',boundary,expected=marker)
+                if abort:
+                    db.execute('BEGIN IMMEDIATE')
+                    record = dict(record,outcome='aborted');self._save(db,token,record)
+                    self._validated(db,initialization)
+                    db.commit();boundary('abort-committed')
+                    self._publish_marker(self.final_marker(census,initialization),'abort',boundary,expected=prepared)
+                    return census
+                return self._commit_registration(db,token,record,prepared,boundary)
 
 
 class JournalRecovery:

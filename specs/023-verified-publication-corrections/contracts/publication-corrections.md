@@ -62,7 +62,7 @@ independent restoration. SQLite consumes journals through its transaction
 protocol. The helpers retain media fences and replay no media operations. A
 pending recovery marker holds ordinary bootstrap calls.
 
-Primary-key authentication, registration transitions, native installation and
+Primary-key authentication, production registration integration, native installation and
 startup/publication integration remain pending. Existing `Store` startup is not
 yet gated against automatic SQLite recovery. This implementation boundary does
 not weaken the full feature's recovery and acceptance requirements or complete
@@ -92,6 +92,39 @@ The complete namespace is bounded to 512 attestations, 128 bootstrap receipts,
 namespace limit remains 32 MiB. Exhaustion holds without truncation or pruning.
 Fixtures cover the complete 512-attestation chain, absent/orphan/rewritten
 receipts, unfinished acceptance, foreign committed bindings and malformed plans.
-Registration writers, fresh native all-row owner/archive observations,
-authentication and startup/media enforcement remain pending. These passive
+Production fresh native all-row owner/archive observations, authentication and
+startup/media enforcement remain pending. These passive
 checks alone do not establish current owner validity or prevent live imports.
+
+## Registration transaction source implementation boundary
+
+Internal `RegistrationState` methods prepare a bounded immutable request,
+explicitly accept its exact token, publish the prepared marker, commit the
+attestation/census/receipt together, and publish the final marker. They preserve
+the original initialization witness and retain prior receipts. A committed replay
+validates the latest complete authority and returns its original derived result.
+Aborted tokens cannot register again.
+
+Preparation and an uncommitted registration require a trusted observation
+callback. It runs under the raw writer before the workflow lock and returns the
+complete current inventory and correct-owner observations. Separate copies of
+the reviewed body prevent callback mutation from changing the accepted request.
+Both returned fields must match the reviewed values exactly. Callback equality
+is an internal contract, not API authentication or a production native observer.
+The adapter must independently read confined archives and the complete native
+owner catalog. Those adapter controls remain pending.
+
+Exact accepted-old recovery handles an interruption before prepared-marker
+publication. Prepared-old recovery can commit only with fresh matching
+observations and unchanged protected workflow/fence bindings, or explicitly
+abort without publishing an attestation. Prepared-new recovery requires the
+complete committed chain before finalization. A missing, foreign or mixed marker
+is held. Interrupted aborts finish their old final marker without resurrecting
+the token. The ordinary census check always holds accepted unfinished receipts.
+Only internal exact recovery may validate its own accepted receipt as pending.
+
+Process exits cover all seven registration write boundaries. A registration
+SQLite journal remains held without original database/journal changes. The
+existing `JournalRecovery` is bootstrap-only and cannot recover registration
+journals. Its registration extension, authentication, native observer and
+startup/publication integration remain required before live use.

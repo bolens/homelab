@@ -609,6 +609,174 @@ class RegistrationWitnessTests(unittest.TestCase):
         with self.assertRaises(guard.Unavailable):
             guard.registration_effect(guard.canonical_digest(plan),plan)
 
+class RegistrationTransactionTests(unittest.TestCase):
+    setUp = RegistryTests.setUp
+    record = RegistryTests.record
+    read = RegistryTests.read
+
+    def engine(self):
+        return guard.RegistrationState(self.store.path, self.writer)
+
+    def body(self, revision=0):
+        return {key:value for key,value in self.record(revision).items() if key!='intent'}
+
+    def observe(self, body):
+        import copy
+        from workflow_store import LOCK
+        self.assertTrue(self.writer.local[1].depth)
+        self.assertFalse(LOCK._is_owned())
+        return copy.deepcopy({key:body[key] for key in ('inventory','observed')})
+
+    def test_prepare_commit_replay_and_complete_witness(self):
+        state = self.engine();body = self.body()
+        token = state.prepare_registration(body, observe=self.observe)
+        self.assertEqual(self.read()[0]['revision'],0)
+        self.assertEqual(token,state.prepare_registration(body,observe=self.observe))
+        census = state.register(token,accepted_token=token,observe=self.observe)
+        self.assertEqual(census['revision'],1)
+        self.assertEqual(census,self.read()[0])
+        self.assertEqual(census,state.register(token,accepted_token=token,observe=self.observe))
+        second = state.prepare_registration(self.body(1),observe=self.observe)
+        self.assertEqual(state.register(second,accepted_token=second,observe=self.observe)['revision'],2)
+        self.assertEqual(state.register(token,accepted_token=token,observe=self.observe),census)
+
+    def test_missing_acceptance_observer_and_changed_facts_hold(self):
+        state = self.engine();token=state.prepare_registration(self.body(),observe=self.observe)
+        for kwargs in ({'accepted_token':'f'*64,'observe':self.observe},
+                       {'accepted_token':token,'observe':None},
+                       {'accepted_token':token,'observe':lambda body: {}}):
+            with self.assertRaises(guard.Unavailable):state.register(token,**kwargs)
+        self.assertEqual(self.read()[0]['revision'],0)
+        self.assertEqual(self.store.get('publication_intent',token)['outcome'],'prepared')
+
+    def test_protected_workflow_drift_stales_plan(self):
+        state=self.engine();token=state.prepare_registration(self.body(),observe=self.observe)
+        self.store.set('future','owner',{'nested':1})
+        with self.assertRaises(guard.Unavailable):
+            state.register(token,accepted_token=token,observe=self.observe)
+        self.assertEqual(self.read()[0]['revision'],0)
+
+    def test_interrupted_old_state_abort_is_terminal(self):
+        state=self.engine();token=state.prepare_registration(self.body(),observe=self.observe)
+        def stop(stage):
+            if stage=='prepared-marker':raise RuntimeError('fixture interruption')
+        with self.assertRaises(RuntimeError):
+            state.register(token,accepted_token=token,observe=self.observe,boundary=stop)
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.assertEqual(state.recover_registration(token,abort=True)['revision'],0)
+        self.assertEqual(self.read()[0]['revision'],0)
+        with self.assertRaises(guard.Unavailable):
+            state.register(token,accepted_token=token,observe=self.observe)
+
+    def test_abort_restart_after_receipt_commit_and_marker_write(self):
+        for stage in ('abort-committed','abort-file','abort-marker'):
+            fixture=RegistrationTransactionTests();fixture.setUp()
+            try:
+                state=fixture.engine();token=state.prepare_registration(fixture.body(),observe=fixture.observe)
+                def stop_prepared(current):
+                    if current=='prepared-marker':raise RuntimeError('prepared fixture')
+                with self.assertRaises(RuntimeError):
+                    state.register(token,accepted_token=token,observe=fixture.observe,boundary=stop_prepared)
+                def stop_abort(current):
+                    if current==stage:raise RuntimeError('abort fixture')
+                with self.assertRaises(RuntimeError):state.recover_registration(token,abort=True,boundary=stop_abort)
+                self.assertEqual(state.recover_registration(token,abort=True)['revision'],0)
+                self.assertEqual(fixture.read()[0]['revision'],0)
+                with self.assertRaises(guard.Unavailable):
+                    state.register(token,accepted_token=token,observe=fixture.observe)
+            finally:fixture.doCleanups()
+
+    def test_stale_recovery_retains_marker_and_fences(self):
+        state=self.engine();token=state.prepare_registration(self.body(),observe=self.observe)
+        def stop(stage):
+            if stage=='prepared-marker':raise RuntimeError('fixture')
+        with self.assertRaises(RuntimeError):
+            state.register(token,accepted_token=token,observe=self.observe,boundary=stop)
+        marker=state.marker.read_bytes()
+        with self.assertRaises(guard.Unavailable):
+            state.recover_registration(token,observe=lambda body: {})
+        self.assertEqual(state.marker.read_bytes(),marker)
+        self.store.set('future','changed',{'owner':2})
+        with self.assertRaises(guard.Unavailable):
+            state.recover_registration(token,observe=self.observe)
+        self.assertEqual(state.marker.read_bytes(),marker)
+        self.assertEqual(state.recover_registration(token,abort=True)['revision'],0)
+        self.assertEqual(self.store.get('future','changed'),{'owner':2})
+
+    def test_missing_and_foreign_prepared_marker_hold(self):
+        state=self.engine();token=state.prepare_registration(self.body(),observe=self.observe)
+        def stop(stage):
+            if stage=='prepared-marker':raise RuntimeError('fixture')
+        with self.assertRaises(RuntimeError):
+            state.register(token,accepted_token=token,observe=self.observe,boundary=stop)
+        original=state.marker.read_bytes()
+        state.marker.unlink()
+        with self.assertRaises(guard.Unavailable):state.recover_registration(token,abort=True)
+        self.assertFalse(state.marker.exists())
+        value=json.loads(original);value['intent']='f'*64
+        state.marker.write_bytes(guard.compact(value));state.marker.chmod(0o600)
+        with self.assertRaises(guard.Unavailable):state.recover_registration(token,abort=True)
+        self.assertEqual(json.loads(state.marker.read_bytes()),value)
+
+    def test_contradictory_append_rolls_back_and_can_abort(self):
+        state=self.engine();first=state.prepare_registration(self.body(),observe=self.observe)
+        old=state.register(first,accepted_token=first,observe=self.observe)
+        body=self.body(1)
+        body['allowed'],body['rejected']=body['rejected'],body['allowed']
+        body['observed'][0]['owner']=body['allowed'][0]
+        second=state.prepare_registration(body,observe=self.observe)
+        with self.assertRaises(guard.Unavailable):
+            state.register(second,accepted_token=second,observe=self.observe)
+        with self.assertRaises(guard.Unavailable):self.read()
+        self.assertEqual(state.recover_registration(second,abort=True),old)
+        self.assertEqual(self.read()[0],old)
+        self.assertEqual(self.store.get('publication_intent',second)['outcome'],'aborted')
+
+    def test_namespace_cap_during_commit_rolls_back_and_can_abort(self):
+        state=self.engine();token=state.prepare_registration(self.body(),observe=self.observe)
+        with self.store.connection() as db:
+            size=db.execute("SELECT sum(length(CAST(value AS BLOB))) FROM records "
+                            "WHERE substr(kind,1,12)='publication_'").fetchone()[0]
+        with patch.object(guard,'REGISTRY_BYTES',size+100):
+            with self.assertRaises(guard.Unavailable):
+                state.register(token,accepted_token=token,observe=self.observe)
+        self.assertEqual(state.recover_registration(token,abort=True)['revision'],0)
+        self.assertEqual(self.read()[0]['revision'],0)
+
+    def test_process_exits_and_exact_restart_controls(self):
+        import subprocess
+        for stage in ('intent-accepted','prepared-file','prepared-marker','sqlite-pending',
+                      'sqlite-committed','final-file','final-marker'):
+            with self.subTest(stage=stage):
+                fixture = RegistrationTransactionTests();fixture.setUp()
+                try:
+                    state=fixture.engine();token=state.prepare_registration(fixture.body(),observe=fixture.observe)
+                    script='''import os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[3])
+from media_writer import Writer
+import publication_guard as guard
+state=guard.RegistrationState(Path(sys.argv[1])/'workflow.sqlite',Writer(Path(sys.argv[1])/'media-writer'))
+def observe(body):return {key:body[key] for key in ('inventory','observed')}
+def boundary(stage):
+    if stage==sys.argv[4]:os._exit(77)
+state.register(sys.argv[2],accepted_token=sys.argv[2],observe=observe,boundary=boundary)
+'''
+                    result=subprocess.run([sys.executable,'-c',script,str(fixture.root),token,
+                        str(Path(guard.__file__).parent),stage],timeout=20)
+                    self.assertEqual(result.returncode,77)
+                    if stage=='sqlite-pending':
+                        before=fixture.store.path.read_bytes()
+                        journal=Path(str(fixture.store.path)+'-journal');raw=journal.read_bytes()
+                        with self.assertRaises(guard.Unavailable):state.recover_registration(token,observe=fixture.observe)
+                        self.assertEqual(fixture.store.path.read_bytes(),before)
+                        self.assertEqual(journal.read_bytes(),raw)
+                        continue
+                    census=state.recover_registration(token,observe=fixture.observe)
+                    self.assertEqual(census['revision'],1)
+                    self.assertEqual(fixture.read()[0],census)
+                finally:fixture.doCleanups()
+
 
 class JournalRecoveryTests(unittest.TestCase):
     def setUp(self):
