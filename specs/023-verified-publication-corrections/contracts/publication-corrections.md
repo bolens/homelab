@@ -67,3 +67,31 @@ startup/publication integration remain pending. Existing `Store` startup is not
 yet gated against automatic SQLite recovery. This implementation boundary does
 not weaken the full feature's recovery and acceptance requirements or complete
 T003.
+
+## Registration witness source implementation boundary
+
+Read-only census validation understands exact typed registration receipts. The
+immutable plan contains `version`, `action=register`, `old`, `binding` and `body`.
+The attestation body excludes its intent token. Hash the plan, insert that token
+into the body, hash the resulting attestation, then derive the next census. This
+ordering avoids a circular digest dependency. A plan cannot embed its next
+census or the materialized attestation key.
+
+Every stored attestation requires exactly one matching committed registration
+receipt. Every committed registration receipt requires its exact attestation.
+Validate the entire old-census chain from the initialized empty epoch to the
+stored final census. Accepted unfinished receipts hold ordinary admission even
+when the marker remains final. Prepared and aborted receipts provide no
+attestation authority. Committed registration receipts must match the original
+database/writer identities and workflow schema, alongside the unique committed
+bootstrap witness.
+
+The complete namespace is bounded to 512 attestations, 128 bootstrap receipts,
+640 registration receipts and one census. Bootstrap receipts retain their
+65,536-byte limit. Registration receipts allow up to 4 MiB each. The aggregate
+namespace limit remains 32 MiB. Exhaustion holds without truncation or pruning.
+Fixtures cover the complete 512-attestation chain, absent/orphan/rewritten
+receipts, unfinished acceptance, foreign committed bindings and malformed plans.
+Registration writers, fresh native all-row owner/archive observations,
+authentication and startup/media enforcement remain pending. These passive
+checks alone do not establish current owner validity or prevent live imports.

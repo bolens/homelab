@@ -181,6 +181,17 @@ pair requires a new reviewed plan linked to the prior accepted plan, with the
 same independently verified restored contents. Captures remain retained, with
 at most 128 recovery directories and 256 MiB per database/journal input.
 
+Read-only census validation now requires an exact committed registration receipt
+for every attestation and the matching attestation for every committed receipt.
+Typed plans hash the attestation body without its intent first, then derive the
+materialized attestation and new census. The complete predecessor chain must
+match the final census. Accepted unfinished receipts hold admission. Committed
+receipts bind original database/writer identities and the workflow schema.
+Registration history allows 640 receipts of at most 4 MiB each, alongside the
+128 bootstrap receipts and 512 attestations. The aggregate namespace remains
+bounded to 32 MiB. Historical owner observations still require fresh native
+validation before registration or admission.
+
 Registration transitions, primary-key API/native installation and startup/media
 admission remain unfinished in feature 023. Authentication belongs to the future
 primary-key API. These source helpers perform no live initialization, recovery,

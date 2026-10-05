@@ -48,6 +48,29 @@ integration tasks.
 
 Prepared immutable request/digest with exact reviewed evidence, current correct-owner/source bindings and expected registry revision. Prepare does not admit a correction. Commit is authenticated, explicitly accepts the exact intent token and recomputes current facts under writer exclusion. Stale intent stays uncommitted. Identical replay reconciles its existing attestation; changed evidence creates a new reviewed append-only transition.
 
+Registration plan v1 contains exactly `version`, `action=register`, the complete
+`old` census, the original filesystem/schema/workflow/fence `binding`, and the
+attestation `body` without `intent`. Hash that plan first, insert its token as the
+attestation intent, then derive the attestation key and next census. Neither the
+materialized attestation key nor the next census participates in the plan hash.
+The receipt envelope contains only `plan`, `accepted` and `outcome`.
+
+Read-only validation requires one committed registration receipt per attestation
+and one attestation per committed registration receipt. Each plan's old census
+must equal the preceding complete census, starting with the initialized empty
+epoch. The derived final census must equal the stored census and final marker.
+Accepted unfinished receipts hold admission. Prepared and aborted receipts
+retain history but cannot authorize an attestation. Committed receipts also bind
+the original database/writer identities and current workflow schema. Historical
+workflow projections and owner observations require fresh checks at registration
+and admission. Receipt shape alone does not authenticate an observation.
+
+Bounds are 512 attestations, 128 bootstrap receipts of at most 65,536 bytes each,
+640 registration receipts of at most 4 MiB each, and 32 MiB across the complete
+publication namespace. Exhausted history holds without automatic pruning.
+Registration writes, fresh owner observation and startup enforcement remain
+unimplemented at this source milestone.
+
 ## Guard proof
 
 Protocol version, registry revision/census, candidate full SHA/stable filesystem signature, payload digest, exact proposed owner and decision (`unknown`, `allowed`, `review`, `unavailable`). A worker proof is advisory; native final admission recomputes actual staged content. Missing owner for a known payload stays review. Cached proofs require unchanged source/signature/revision and fresh matched correct-owner evidence.
