@@ -1003,6 +1003,24 @@ The state root must already exist and contain no catalog, workflow registry, wri
 namespace, fresh claim or SQLite sidecar. Interrupted creation stays held for review.
 The first accepted creation permission is consumed before native catalog creation.
 
+Native ordinary, annual, storyarc and oneoff postprocessing checks the actual
+archive and proposed catalog owner under the shared writer before scripts,
+tagging, duplicate handling, placement, cleanup and status changes. Discovery
+requires one complete, unlinked archive candidate; ambiguous directories and
+PDF candidates remain retained for review. Scripts invalidate earlier checks.
+Review is a terminal retained outcome, not an import acknowledgement or another
+failed-download search. Distinct payloads retain their existing eligibility.
+
+A registered correct archive stays at its current catalog path until a verified
+source-to-target transition is implemented. Native copy operations can preserve
+that path; moves, ordinary softlinks and deletion of that original remain held.
+The guard uses the actual storyarc/oneoff operation settings, including forced
+copies, and checks the complete cache cleanup set before its first deletion.
+Unclassified cache files remain retained; changing entry sets or newly appearing
+originals invalidate cleanup admission. Same-path softlinks are also held.
+Naming, manual tagging, rescan and worker enforcement still require the remaining
+correction tasks before live rollout or a prevention claim.
+
 Guards at every native and worker publication boundary remain unfinished in the
 [correction plan](../../specs/023-verified-publication-corrections/plan.md).
 The API does not authorize final import. Matching live rollout is still pending.

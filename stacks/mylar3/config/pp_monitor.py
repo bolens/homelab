@@ -72,7 +72,8 @@ def observe(function):
             try:
                 if token is not None:
                     modes = {row.get('mode') for row in getattr(self, 'valreturn', []) if isinstance(row, dict)}
-                    outcome = ('Processing raised an error; check logs' if error else
+                    outcome = ('Publication identity requires review; source retained' if 'review' in modes else
+                               'Processing raised an error; check logs' if error else
                                'Processing reported a failure' if 'fail' in modes else
                                'Handed off for another processing pass' if 'outside' in modes else
                                'Run finished; check confirmed imports below')
@@ -82,7 +83,8 @@ def observe(function):
                                      elapsed_seconds=max(0, int(time.monotonic() - value.pop('started_clock'))))
                         _RECENT.appendleft(value)
                     if value['ddl_id']:
-                        workflow.store().set('ddl_processing', value['ddl_id'], dict(value, phase='finished'))
+                        workflow.store().set('ddl_processing', value['ddl_id'],
+                                             dict(value, phase='review' if 'review' in modes else 'finished'))
                     workflow.emit('processing',outcome,issueid=value['issueid'],comicid=value['comicid'],name=value['name'])
             except Exception:
                 with _LOCK:

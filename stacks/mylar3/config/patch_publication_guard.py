@@ -46,9 +46,11 @@ def patched_source(source):
 def main(directory):
     root = Path(directory)
     source = patched_source((root / 'api.py').read_text())
-    for name in ('publication_api.py', 'publication_guard.py', 'publication_fresh.py'):
+    for name in ('publication_api.py', 'publication_guard.py', 'publication_fresh.py', 'publication_native.py'):
         (root / name).write_text(Path(__file__).with_name(name).read_text())
     (root / 'api.py').write_text(source)
+    from patch_publication_processing import main as patch_processing
+    patch_processing(root)
 
 
 if __name__ == '__main__':
