@@ -44,6 +44,7 @@ PATCHES = (
     "patch_comic_format_preference",
     "patch_prowlarr_identity",
     "patch_release_naming",
+    "patch_publication_guard",
 )
 
 

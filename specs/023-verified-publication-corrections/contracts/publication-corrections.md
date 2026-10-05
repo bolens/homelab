@@ -217,3 +217,48 @@ verification. No library tree walk, unselected archive payload read, schema
 write, automatic recovery, media mutation or initialization occurs. The internal
 observer is not API authentication or publication admission. Production API
 wiring, startup exclusion and all native/worker boundaries remain required.
+
+## Authenticated protocol implementation
+
+The checked native adapter installs `publicationControl` after all writer,
+workflow and naming helper installers. It requires enabled API configuration,
+the configured 32-character primary key, native normal-key classification, POST
+and exactly one `request` argument. SSE keys, disabled APIs, GET, JSONP and
+unknown arguments are denied before importing the controller or accessing state.
+
+The request is a JSON object with exact integer `version: 1` and `action`.
+It is limited to 4 MiB UTF-8, 16 nesting levels, 65,536 nodes and 20-character
+integer literals; duplicate keys, floats and nonfinite values are refused.
+Unknown fields and caller filesystem locations are refused before constructing
+state. Tokens, epochs and payload IDs are lowercase SHA-256 hex strings.
+
+| Action | Additional required request fields |
+|---|---|
+| `status` | None; optional exact `token` for an intent summary |
+| `prepare-bootstrap` | `epoch`, `backup` with manifest/restore SHA-256 and description of at most 1,024 UTF-8 bytes |
+| `initialize-bootstrap` | Exact prepared `token` |
+| `recover-bootstrap` | Exact `token`, `mode` of `finish` or `abort` |
+| `prepare-registration` | Complete reviewed `census`, historical `inventory`, explicit `allowed`/`rejected` owners, reviewed `evidence`, integer `created` |
+| `register` | Exact prepared `token` |
+| `recover-registration` | Exact accepted `token`, `mode` of `finish` or `abort` |
+| `prepare-journal` | `kind` of `bootstrap` or `registration`, accepted intent `token`; optional exact `parent_token` for interrupted recovery |
+| `recover-journal` | Same typed `kind`, exact prepared recovery `token` |
+| `check` | Exact proposed `owner`, advisory `payload` digest |
+
+The native configuration supplies data paths and the destination library root.
+Preparation compares the complete reviewed census, observes actual allowed
+owners and requires their current payload to match the reviewed historical
+inventory. The SDK reobserves before preparing and before commit/recovery.
+Prepare responses include exact token, immutable binding, census, owner tuples,
+payload, counts, evidence digest and current archive hashes. Status reads exact
+receipts through existing immutable read-only SQLite under raw Writer before
+workflow LOCK; it never creates state, opens a write transaction or replays media.
+Response outcomes come from durable receipts, including abort/replay. Private
+manifest member names, descriptions and recovery directory locations are omitted.
+
+Advisory checks validate the complete authority and retain pending fences. Known
+payload checks freshly observe all distinct allowed owners, include current and
+historical matched owner facts and hold any unallowed owner or stale evidence.
+Unknown digests receive advisory `unknown` without archive reads. These responses
+cannot authorize final native publication. Startup exclusion, local worker
+revalidation and every media mutation boundary remain separate unfinished work.

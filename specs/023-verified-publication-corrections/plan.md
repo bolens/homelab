@@ -46,9 +46,9 @@ specs/023-verified-publication-corrections/
   contracts/publication-corrections.md checklists/requirements.md
 stacks/mylar3/
   Dockerfile
-  config/publication_guard.py
+  config/publication_guard.py config/publication_api.py
   config/patch_publication_guard.py
-  config/test_publication_guard.py
+  config/test_publication_guard.py config/test_publication_api.py
   config/apply_patches.py config/verify_image.py config/MODULES.md
   config/{native_writers,workflow_store,processing_guard,tagger_backend,tagger_native,
           tagger_service,file_identity,converted_catalog,converted_tagging,
@@ -60,7 +60,7 @@ stacks/komga/normalizer/
   writer_cycle.py test_writer_cycle.py
 ```
 
-**Structure Decision**: Keep the correction authority in one focused native module/build adapter, and the worker protocol adapter in its independent Docker build context. Integrate checks into owning modules and actual native branch patches. Preserve existing owner/recovery contracts instead of introducing a new general processing framework.
+**Structure Decision**: Keep correction authority in the focused native SDK, authenticated protocol in its separate controller and checked build adapter, and the worker protocol adapter in its independent Docker build context. Integrate checks into owning modules and actual native branch patches. Preserve existing owner/recovery contracts instead of introducing a new general processing framework.
 
 ## Delivery and verification
 

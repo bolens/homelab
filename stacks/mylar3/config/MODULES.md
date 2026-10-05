@@ -20,6 +20,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Unnumbered issue parsing | `patch_unnumbered_issues.py` | `test_unnumbered_issues.py` |
 | HTTP resume offsets | `patch_ddl_resume.py` | `test_ddl_resume.py` |
 | Requeued download state | `patch_ddl_requeue.py` | `test_ddl_requeue.py` |
+| Authenticated publication registration and advisory protocol | `patch_publication_guard.py` | `publication_api.py`, `publication_guard.py`, `test_publication_api.py`; follows writer, workflow and naming helper installation |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
 | Mirror failover and cooldown discovery | `patch_ddl_failover.py` | `ddl_failover.py`, `test_ddl_failover.py`, `test_ddl_failover_native.py`; follows discovery and queue adapters |
@@ -171,8 +172,19 @@ and hardlink ownership conflicts without reading unselected archive payloads.
 Only exact selected sources receive full SHA/signature and payload inventories.
 Catalog changes, conflicting source payloads or stale sources hold the result.
 The strict observed catalog v1 retains raw folder/location, canonical path,
-status and annual deletion value. API authorization and production observer
-wiring remain separate work.
+status and annual deletion value. `publication_api.py` wires native observations
+into primary-key-only POST `publicationControl` requests. The checked adapter
+follows all writer/workflow helper installers. Strict bounded JSON rejects
+duplicate keys, unknown fields, float/boolean integer aliases, deep structures
+and caller filesystem locations before constructing state. Explicit bootstrap,
+registration and typed journal recovery never invoke media replay. Prepare binds
+the reviewed census and payload to fresh native facts; exact acceptance commits
+only the retained token. Status optionally summarizes an exact receipt through
+an existing immutable read-only connection. Responses exclude private manifests
+and descriptions; advisory checks retain current and historical matched-owner
+facts for worker revalidation. Digest-only advisory results cannot authorize
+native publication. Startup exclusion and publication boundary enforcement
+remain unfinished; installing the API does not enable those guarantees.
 `publication_guard.py` is retained under
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including
@@ -213,16 +225,16 @@ Registration history allows 640 receipts of at most 4 MiB each, alongside the
 bounded to 32 MiB. Historical owner observations still require fresh native
 validation before registration or admission.
 
-Production registration integration, primary-key API/native installation and startup/media
-admission remain unfinished in feature 023. Authentication belongs to the future
-primary-key API. These source helpers perform no live initialization, recovery,
-correction registration or media publication during image startup.
+The installed primary-key API now connects registration to the native observer
+and exact receipt operations. Startup/media admission enforcement remains
+unfinished in feature 023. These helpers perform no automatic initialization,
+recovery, correction registration or media publication during image startup.
 
 `RegistrationState` adds internal bounded preparation, exact token acceptance,
 atomic attestation/census/committed receipt writes and prepared/final markers.
 A trusted observer runs under the raw writer before workflow LOCK and must
-return the exact reviewed inventory and owner observations. This hook still
-needs its production native implementation and authenticated API. Accepted-old
+return the exact reviewed inventory and owner observations. The authenticated controller now supplies the native observer; it never accepts
+caller observations as current native proof. Accepted-old
 and prepared-old recovery require fresh observations to commit or explicit
 abort. Prepared-new recovery validates the complete committed chain. Abort
 restart retains terminal receipts. Registration journals require explicit `RegistrationJournalRecovery` and remain
@@ -236,5 +248,5 @@ witness against the original identities/schema/workflow/fences and exact
 prepared marker. Recovery restores only old SQL state. Fresh registration
 observation or explicit abort remains a separate step. Bootstrap receipts cannot
 cross the registration route. Canonical JSON comparisons reject boolean/float
-aliases in markers and retained receipt predecessors. Production observation,
-API authentication and startup/publication enforcement remain unfinished.
+aliases in markers and retained receipt predecessors. Native observation and API authentication are installed; startup/publication
+enforcement remains unfinished.
