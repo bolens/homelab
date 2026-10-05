@@ -1065,6 +1065,18 @@ Outside publication mode, existing Legacy behavior remains.
 Naming, rescan and worker enforcement still require the remaining
 correction tasks before live rollout or a prevention claim.
 
+When publication protection is active, direct SDK tagging and recovery require
+an exact owned native producer before reading or advancing a receipt. Direct NFS
+restore also binds the displaced archive and destination to that producer.
+Unbound naming, reader supplementation and nested metadata repair remain review
+holds before media changes or new publication intents and pending markers.
+Earlier naming journals
+cannot authorize a new correction-aware transition. Standalone supplementation
+also checks retained publication state, so a missing marker does not hide an
+existing correction census. These holds preserve evidence while the remaining
+naming transitions and reviewed derivative aliases are implemented. Outside
+publication mode, existing naming and metadata maintenance behavior is unchanged.
+
 Guards at every native and worker publication boundary remain unfinished in the
 [correction plan](../../specs/023-verified-publication-corrections/plan.md).
 The API does not authorize final import. Matching live rollout is still pending.

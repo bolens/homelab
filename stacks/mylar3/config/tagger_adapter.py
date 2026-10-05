@@ -17,6 +17,7 @@ from pathlib import Path
 import re
 import shutil
 import stat
+import sys
 import time
 import zipfile
 import zlib
@@ -86,6 +87,23 @@ def exchange(left, right):
         raise OSError(ctypes.get_errno(), 'Archive exchange failed')
 
 
+def publication_admission(publisher):
+    """Direct SDK calls cannot borrow a native owned publication capability."""
+    runtime=sys.modules.get('mylar')
+    writers=getattr(runtime,'native_writers',None)
+    if writers is None or not writers.publication_mode():return None
+    if __package__:
+        from .publication_transaction import current
+    else:
+        from publication_transaction import current
+    job=current()
+    source=Path(job.value['source'])
+    if not job.value['policy']['manualmeta']:
+        source=Path(job.value['recovery']['directories'][2][0])/('mylar_modern_'+job.value['token'])/source.name
+    job.publisher_source(publisher,source)
+    return job
+
+
 def _checkpoint(stage):
     """Failure-injection seam used by fixture subprocess crash tests."""
 
@@ -152,6 +170,7 @@ class Publisher:
         return value
 
     def write(self, value):
+        publication_admission(self)
         path = self.receipt(value['token'])
         temporary = path.with_suffix('.new')
         data = json.dumps(value, ensure_ascii=True, allow_nan=False).encode()
@@ -198,9 +217,10 @@ class Publisher:
         return self.security(source)
 
     def prepare_output(self, output, record):
-        pass
+        publication_admission(self)
 
     def publish(self, source, output, record):
+        publication_admission(self)
         exchange(source, output)
 
     def original_intact(self, record):
@@ -233,6 +253,7 @@ class Publisher:
 
     def correction_checkpoint(self,record,*,cleanup=False):
         """Native correction-owning subclasses revalidate before mutation."""
+        publication_admission(self)
 
     def finish(self, record, state, *, cleanup=True):
         if cleanup and state == 'committed':
@@ -261,6 +282,7 @@ class Publisher:
         return Result(state, record.get('metadata', '') if state in ('committed', 'unchanged') else '')
 
     def recover(self, token):
+        publication_admission(self)
         self.receipt(token)
         with self.lock('token:' + token):
             record = self.read(token)
@@ -275,6 +297,7 @@ class Publisher:
         Unknown receipts are retained, not guessed or overwritten. No native
         startup calls this method until other-writer coordination is installed.
         """
+        publication_admission(self)
         with os.scandir(self.root) as entries:
             for entry in entries:
                 if not entry.name.endswith('.json'):
@@ -350,6 +373,7 @@ class Publisher:
 
     def tag(self, source, metadata, *, token, updates=None, replace_fields=(), executable=None, preserve_existing=False,
             expected_digest=None, repair_nested=False, supplement=None):
+        publication_admission(self)
         if supplement is not None:
             if __package__:
                 from .tagger_enrichment import validate, supplements

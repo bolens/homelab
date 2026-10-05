@@ -36,6 +36,14 @@ class MaintenanceTest(unittest.TestCase):
         with zipfile.ZipFile(self.source,'a') as z:z.writestr('extra',b'changed')
         with patch.object(library,'source_version',side_effect=[[1,2,3,4,5],[1,2,3,4,6]]):self.worker.tick(True,False)
         self.assertFalse(self.store.all('converted_tag'))
+    def test_publication_review_does_not_spend_attempts_create_token_or_replay(self):
+        fixture(self.source);self.worker.tick(False,True)
+        with patch.object(library,'publication_review',side_effect=library.Review('fixture-held')):
+            self.worker.tick(False,True)
+        row=self.store.all('library_repair')[0]
+        self.assertEqual(row['phase'],'review');self.assertEqual(row['attempts'],0)
+        self.assertFalse(row.get('token'));self.repair.assert_not_called();self.recover.assert_not_called()
+
     def test_repair_resume_does_not_repeat_publication(self):
         fixture(self.source);self.worker.tick(False,True);self.assertEqual(len(self.store.all('library_repair')),1)
         self.repair.side_effect=KeyboardInterrupt()

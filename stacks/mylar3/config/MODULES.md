@@ -230,6 +230,14 @@ owner and full authority checks. Its private ledger and separate hold span each
 clearance boundary; interrupted acceptance can resume without a media write or
 producer invocation. Earlier phases and uncertain facts remain held. Other
 direct Publisher consumers remain unfinished.
+`tagger_adapter.py` also checks direct SDK entry and recovery before reading a
+receipt or creating a workspace. `tagger_nfs.py` binds direct no-clobber restore
+to the owned displaced source. `release_naming.py`, `tagger_supplement.py` and
+`library_metadata.py` hold unbound correction-aware maintenance before publication
+intents, fencing, replay or acknowledgement. Standalone supplementation checks existing
+publication history without creating or recovering SQLite state. Tests:
+`test_publication_maintenance.py` and the owning naming/metadata SDK suites.
+Safe naming transitions and reviewed derivative aliases remain unfinished.
 Owned Publisher receipt write failures cross the caller as retained review,
 preserving prepared/displaced copies and admission holds without fallback replay.
 `tagger_legacy.py` bounds the bundled 1.3.5 offline ComicRack CLI to an exact owned

@@ -7,6 +7,7 @@ until recovery completes. Version 2 receipts require this recovery implementatio
 import os
 from pathlib import Path
 import stat
+import sys
 
 if __package__:
     from . import tagger_adapter as base, tagger_attributes as attributes
@@ -46,6 +47,7 @@ class Publisher(base.Publisher):
         return self.matches(Path(record['source']), record)
 
     def prepare_output(self, output, record):
+        base.publication_admission(self)
         attributes.apply(output, record['attributes'])
         with regular(output) as stream:
             info = os.fstat(stream.fileno())
@@ -56,6 +58,7 @@ class Publisher(base.Publisher):
             raise ValueError('Source changed before publication')
 
     def publish(self, source, output, record):
+        base.publication_admission(self)
         folder = self.workspace(record)
         displaced = folder/'displaced.cbz'
         if displaced.exists() or displaced.is_symlink() or not self.original_intact(record):
@@ -83,6 +86,21 @@ class Publisher(base.Publisher):
 
     @staticmethod
     def restore_name(displaced, source):
+        # Direct restore callers need the same exact native transition as replay.
+        runtime=sys.modules.get('mylar');writers=getattr(runtime,'native_writers',None)
+        if writers is not None and writers.publication_mode():
+            if __package__:
+                from .publication_transaction import current
+                from .publication_native import Review
+            else:
+                from publication_transaction import current
+                from publication_native import Review
+            job=current();source=Path(source);displaced=Path(displaced)
+            expected=source.parent/('.mylar-tag-'+job.value['token'])/'displaced.cbz'
+            if (str(source)!=job.value['source'] or displaced!=expected
+                    or job.value['in_place'] is None
+                    or job.proof(displaced)['inventory']['source_sha256']!=job.value['source_sha256']):
+                raise Review('tagging-restore-transition-unbound')
         # Link is no-clobber even if another writer races the missing-name check.
         try:
             os.link(displaced, source, follow_symlinks=False)

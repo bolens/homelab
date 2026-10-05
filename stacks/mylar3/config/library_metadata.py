@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import stat
+import sys
 import time
 import uuid
 import zipfile
@@ -12,10 +13,14 @@ if __package__:
     from . import converted_tagging, metadata_repair, tagger_archive
     from .tagger_adapter import fingerprint
     from .workflow_store import label
+    from .publication_native import Review
+    from .publication_guard import Unavailable
 else:
     import converted_tagging, metadata_repair, tagger_archive
     from tagger_adapter import fingerprint
     from workflow_store import label
+    from publication_native import Review
+    from publication_guard import Unavailable
 
 ACTIVE = ('queued', 'repairing')
 ERRORS = (OSError, ValueError, RuntimeError, zipfile.BadZipFile, zlib.error, EOFError)
@@ -156,6 +161,7 @@ class Maintenance:
             job.update(phase=phase, reason=reason, updated_at=self.clock())
             self.journal.set('library_repair', job['key'], job)
         try:
+            publication_review(job)
             match = self.catalog(job['path'])
             if not match or any(match[k] != job[k] for k in ('issueid', 'comicid')):
                 raise ValueError('Catalog ownership changed')
@@ -176,12 +182,25 @@ class Maintenance:
             if result != 'updated':
                 raise ValueError('Repair publication requires review')
             save('completed', 'Nested metadata reconciled; source XML retained as provenance')
+        except (Review, Unavailable):
+            save('review', 'Publication evidence requires review; source and recovery evidence retained')
         except ERRORS:
             save('review', 'Repair could not be verified; source and recovery evidence retained')
 
 
+def publication_review(job):
+    runtime=sys.modules.get('mylar');writers=getattr(runtime,'native_writers',None)
+    if writers is None or not writers.publication_mode():return
+    from mylar import publication_native
+    publication_native.require(Path(job['path']),issueid=job['issueid'],comicid=job['comicid'])
+    # Moving nested provenance changes canonical member names. A direct
+    # repair journal cannot authorize an unreviewed derivative alias.
+    raise publication_native.Review('nested-metadata-derivative-unbound')
+
+
 def repair(job):
     from mylar import native_writers, tagger_native, tagger_handoff
+    publication_review(job)
     writer = native_writers.owner()
     publisher, _ = tagger_native.state(writer)
     writer.mark_tagger_pending()
@@ -206,6 +225,8 @@ def poll():
                 return
             Maintenance(workflow.store(), next_catalog, converted_tagging.catalog, repair,
                         converted_tagging.recover).tick(policy['library_missing_tags'], policy['library_nested_metadata'])
+    except (Review, Unavailable):
+        mylar.logger.warn('Library metadata publication requires review; existing files and recovery state retained')
     except Exception:
         mylar.logger.warn('Library metadata maintenance deferred; existing files and recovery state retained')
     finally:

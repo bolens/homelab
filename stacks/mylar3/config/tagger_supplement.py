@@ -8,6 +8,9 @@ from pathlib import Path
 import re
 import shutil
 import stat
+import sys
+import sqlite3
+import time
 import uuid
 import zipfile
 
@@ -48,8 +51,46 @@ def archives(roots):
                     yield path
 
 
+def publication_review(writer):
+    """An unbound maintenance caller cannot replay native correction state."""
+    runtime=sys.modules.get('mylar')
+    writers=getattr(runtime,'native_writers',None)
+    if writers is not None and writers.publication_mode():
+        from mylar.publication_native import Review
+        raise Review('reader-supplement-transition-unbound')
+    names=('publication-v1.json','tagger-publication-v1.json','tagger-recovery-v1.pending')
+    protected=any(os.path.lexists(writer.root/name) for name in names)
+    if protected:
+        raise ValueError('Reader supplementation requires bound native publication admission')
+    database=writer.root.parent/'workflow.sqlite'
+    if os.path.lexists(database):
+        if (database.is_symlink() or any(p.is_symlink() for p in database.parents)
+                or any(os.path.lexists(Path(str(database)+suffix)) for suffix in ('-journal','-wal','-shm'))):
+            raise ValueError('Supplement authority requires review')
+        before=database.stat()
+        if not stat.S_ISREG(before.st_mode) or before.st_uid!=os.geteuid() or before.st_nlink!=1:
+            raise ValueError('Supplement authority requires owned existing state')
+        if not 4096<=before.st_size<=256*1024**2:
+            raise ValueError('Supplement authority exceeds bounds')
+        connection=sqlite3.connect(database.absolute().as_uri()+'?mode=ro&immutable=1',uri=True)
+        try:
+            deadline=time.monotonic()+30
+            connection.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+            protected=protected or connection.execute(
+                "SELECT 1 FROM records WHERE substr(kind,1,12)='publication_' LIMIT 1").fetchone() is not None
+        except sqlite3.Error:
+            raise ValueError('Supplement authority is unreadable or exceeds verification time') from None
+        finally:connection.close()
+        if (database.stat()!=before
+                or any(os.path.lexists(Path(str(database)+suffix)) for suffix in ('-journal','-wal','-shm'))):
+            raise ValueError('Supplement authority changed during admission')
+    if protected:
+        raise ValueError('Reader supplementation requires bound native publication admission')
+
+
 def recover(writer, publisher):
     """Recover before enumeration: an interrupted publication can hide its source."""
+    publication_review(writer)
     with writer.hold(allow_tagger_pending=True, timeout=30):
         for result in publisher.recover_pending():
             if result.state not in TERMINAL:
@@ -60,6 +101,7 @@ def recover(writer, publisher):
 
 def apply(path, policy, writer, publisher, backup_root):
     """Back up, restore-verify, publish, and compare every non-metadata member."""
+    publication_review(writer)
     with writer.hold(allow_tagger_pending=True, timeout=30):
         recover(writer, publisher)
         if not supplements(metadata(path), policy):
@@ -88,6 +130,7 @@ def apply(path, policy, writer, publisher, backup_root):
 
 def _publish(path, policy, writer, publisher, old, before, security, token):
     """Publication half; callers own verified preservation and writer admission."""
+    publication_review(writer)
     additions = supplements(old.xml, policy)
     if not additions:
         return dict(state='unchanged', token=None, before=before, after=before,
@@ -125,6 +168,7 @@ def apply_preserved(path, policy, writer, publisher, original, restored, expecte
     if (any(p.is_symlink() for p in (folder, *folder.parents)) or not stat.S_ISDIR(info.st_mode)
             or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700):
         raise ValueError('Expected private owned preservation folder')
+    publication_review(writer)
     with writer.hold(allow_tagger_pending=True, timeout=30):
         recover(writer, publisher)
         if publisher.receipt(token).exists():
@@ -192,6 +236,7 @@ def main(argv=None):
             parser.error('Backup directory must be private, owned, and unlinked')
         writer = Writer(Path(args.config)/'media-writer')
         # Startup owns state creation/binding. Never create it during maintenance.
+        publication_review(writer)
         with writer.hold(allow_tagger_pending=True, timeout=30):
             publisher = bound_publisher(writer)
             recover(writer, publisher)

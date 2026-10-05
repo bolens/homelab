@@ -9,6 +9,15 @@ import stat
 from urllib.parse import urlsplit
 
 
+def publication_review(source, *, issueid, comicid):
+    """Old naming journals confer no correction-aware transition authority."""
+    from mylar import native_writers
+    if not native_writers.publication_mode():return
+    from mylar import publication_native
+    publication_native.require(Path(source),issueid=str(issueid),comicid=str(comicid))
+    raise publication_native.Review('release-name-transition-unbound')
+
+
 def regular(path, *, links=(1,)):
     path = Path(path)
     if (not path.is_absolute() or '..' in path.parts or str(path) != str(path.absolute())
@@ -139,6 +148,7 @@ def proposal(database, source):
     if path.suffix.lower() != '.cbz':
         raise ValueError('Release naming requires a verified CBZ')
     owner = catalog(database, path)
+    publication_review(path,issueid=owner['row']['IssueID'],comicid=owner['row']['ComicID'])
     entry, kind = parsed(database, owner['parent'], path)
     archive = tagger_archive.snapshot(path)
     if archive.xml is None:
@@ -299,6 +309,7 @@ def reject(database, store, job):
     """Recover rejection without recreating an already retired target link."""
     from mylar import pack_bindings
     from mylar.media_writer import sync
+    publication_review(job['request']['source'],issueid=job['request']['issueid'],comicid=job['request']['comicid'])
     request = job['request']; source = Path(request['source']); target = source.with_name(request['target'])
     verified(source, job)
     row = catalog(database, source)['row']
@@ -326,6 +337,9 @@ def rejected_predecessor(store, request):
 
 
 def finish(database, store, job):
+    request=job['request'];source=Path(request['source'])
+    publication_review(source if source.exists() else source.with_name(request['target']),
+                       issueid=request['issueid'],comicid=request['comicid'])
     from mylar.media_writer import sync
     if job['request']['version'] == 2:
         predecessor = rejected_predecessor(store, job['request'])
@@ -417,6 +431,9 @@ def bind_store(writer, store):
 
 
 def recover(writer):
+    from mylar import native_writers, publication_native
+    if native_writers.publication_mode():
+        raise publication_native.Review('release-name-recovery-unbound')
     database, store = services()
     bind_store(writer, store)
     for job in store.active('release_name', {'prepared', 'linked', 'published', 'rejecting'}):
@@ -460,6 +477,7 @@ def rename(raw):
                 if retry and previous.get('predecessor_sha256') != key(predecessor):
                     raise ValueError('Rejected release evidence changed')
                 target = Path(request['source']).with_name(request['target'])
+                publication_review(target,issueid=request['issueid'],comicid=request['comicid'])
                 verified(target, previous)
                 row = catalog(database, target)['row']
                 if str(row['IssueID']) != request['issueid'] or str(row['ComicID']) != request['comicid']:
@@ -476,6 +494,7 @@ def rename(raw):
                 raise ValueError('Rejected release ownership changed')
         if any(p.name.casefold() == target.name.casefold() for p in source.parent.iterdir()):
             raise ValueError('Release destination already exists')
+        publication_review(source,issueid=request['issueid'],comicid=request['comicid'])
         identity, attributes = stamp(source)
         job = dict(key=token, request=request, stamp=identity, attributes=attributes,
                    table=info['table'], status=info['status'], year=info['year'], phase='prepared')
@@ -505,4 +524,8 @@ def status(token):
     with native_writers.operation():
         _, store = services()
         job = store.get('release_name', token)
+        if job and job['phase']=='committed':
+            request=job['request']
+            publication_review(Path(request['source']).with_name(request['target']),
+                               issueid=request['issueid'],comicid=request['comicid'])
         return dict(version=1, key=token, phase=job['phase'] if job else 'absent')
