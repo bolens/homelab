@@ -127,7 +127,8 @@ to that issue. Edition words in the actual catalog title remain valid.
 Story-arc searches queue every eligible missing entry with its arc identity and
 preserve already imported issues and annuals. TalkHard pull-list navigation uses
 Wednesday release weeks across year boundaries, including valid week 53. Legacy
-and file-pull modes retain their existing stored week identities.
+and file-pull modes retain their existing stored week identities. Successful provider refreshes persist the current
+poll timestamp independently of the requested release week.
 
 The image adds authenticated `getHealth` and `reportFailedDownload` API
 commands. Both require the primary API key. Keep Mylar's API enabled. The Docker
