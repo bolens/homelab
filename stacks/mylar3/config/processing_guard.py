@@ -4,6 +4,7 @@ from contextlib import ExitStack
 import threading
 
 _RUN = threading.RLock()
+_ACTIVE = threading.local()
 
 
 def source(base, filename):
@@ -12,6 +13,16 @@ def source(base, filename):
     path=Path(base)
     if path.is_file() or filename is None:return str(path)
     return str(path/filename)
+
+
+def retained(review, processor=None, *, issueid=None):
+    """Record a lower-boundary review before the processing observer unwinds."""
+    processor=processor if processor is not None else getattr(_ACTIVE,'processor',None)
+    if processor is not None and not any(row.get('mode')=='review'
+            and row.get('reason')==review.reason and row.get('payload')==review.payload
+            for row in processor.valreturn):
+        processor.valreturn.append(dict(mode='review',retained=True,
+            reason=review.reason,payload=review.payload,issueid=issueid))
 
 
 def publication(processor, source, *, issueid=None, comicid=None):
@@ -26,8 +37,7 @@ def publication(processor, source, *, issueid=None, comicid=None):
     except Review as review:
         # Set the distinct outcome before unwinding the observer. Never encode
         # it as a legacy tagging failure or successful stopped processing run.
-        processor.valreturn.append(dict(mode='review',retained=True,
-            reason=review.reason,payload=review.payload,issueid=issueid))
+        retained(review,processor,issueid=issueid)
         raise
 
 
@@ -173,17 +183,26 @@ def run(function):
                     return None
                 with _RUN:
                     mylar.APILOCK = True
+                    previous=getattr(_ACTIVE,'processor',None)
+                    _ACTIVE.processor=self
                     try:
                         if pack_intake.capture(self):
                             return None
                         try:
                             return function(self, *args, **kwargs)
-                        except Review:
+                        except Review as review:
+                            retained(review,self)
                             from mylar import logger
                             logger.warn('Publication identity requires review; source retained')
-                            return self.queue.put(self.valreturn)
+                            self.queue.put(self.valreturn)
+                            raise
                     finally:
+                        _ACTIVE.processor=previous
                         mylar.APILOCK = False
+        except Review:
+            # Acknowledge under the Writer, then let the refusal cross every
+            # owning admission context before consuming it at this boundary.
+            return None
         finally:
             # Admission failures must complete a synchronous caller's queue too,
             # without clearing APILOCK belonging to another active processor.

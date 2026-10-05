@@ -22,6 +22,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Requeued download state | `patch_ddl_requeue.py` | `test_ddl_requeue.py` |
 | Authenticated publication registration and advisory protocol | `patch_publication_guard.py` | `publication_api.py`, `publication_guard.py`, `test_publication_api.py`; follows writer, workflow and naming helper installation |
 | Native payload admission and retained postprocessing review | `patch_publication_processing.py` (invoked by `patch_publication_guard.py`) | `publication_native.py`, `processing_guard.py`, `pp_monitor.py`, `test_publication_native.py`; checked actual native processing and acknowledgement branches |
+| Owned tagging publication and terminal evidence | `patch_publication_guard.py` | `publication_transaction.py`, `tagger_backend.py`, `tagger_native.py`, `tagger_service.py`, `tagger_pack.py`, `tagger_nfs.py`, `test_publication_tagging.py`; internal typed coordination, retained review and exact terminal completion |
 | Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; last adapter after the authenticated publication API |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
@@ -200,6 +201,16 @@ through native processing acknowledgements without triggering failure search.
 Registered original relocation or deletion remains held until the later verified
 transition contract. Other native and worker publication boundaries remain
 unfinished.
+`publication_transaction.py` binds each new tagging job to its admitted Writer,
+source, policy, owner, correction census and captured pending-marker descriptor.
+Only its active private capability can coordinate the producer. Exact terminal
+Publisher and Staging evidence precedes owned fence clearance. A canonical proof
+in the current receipt binds the private terminal witness, permitting historical
+reads without replaying an older token or requiring a consumed temporary output.
+Changed or unbound history remains held. Changed in-place tagging, interrupted
+job recovery and other direct Publisher consumers remain unfinished.
+Legacy invocation is held before copy/CLI/cleanup in publication mode until an
+owned adapter bounds its temporary state and fallback placement.
 `publication_guard.py` is retained under
 `/opt/mylar3-fixes`, with the immutable offline archiving-utils artifact.
 `test_publication_guard.py` runs in the actual custom-image gate, including

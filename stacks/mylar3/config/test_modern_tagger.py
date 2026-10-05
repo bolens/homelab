@@ -103,6 +103,8 @@ class ModernTaggerTest(unittest.TestCase):
         _, before = self.fixture()
         package = ModuleType('mylar'); package.__path__ = ['/app/mylar3/mylar']
         with patch.dict(sys.modules, {'mylar':package}):
+            package.native_writers = import_module('mylar.native_writers')
+            self.assertFalse(package.native_writers.publication_mode())
             service_module = import_module('mylar.tagger_service')
             adapter = import_module('mylar.tagger_adapter')
             handoff = import_module('mylar.tagger_handoff')

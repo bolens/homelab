@@ -61,10 +61,38 @@ class QueueTest(unittest.TestCase):
         self.queue.tick(); self.assertEqual(self.record(key)['phase'], 'waiting-settings')
         self.assertEqual(self.record(key)['attempts'], 0)
         self.settings.return_value = True; self.now += 61
-        self.inspect.return_value = ('b'*64, True)
+        self.inspect.return_value = ('a'*64, True)
         self.queue.tick(); self.assertEqual(self.record(key)['phase'], 'completed')
         self.assertIn('preserved', self.record(key)['reason'])
         self.tag.assert_not_called()
+
+    def test_changed_archive_with_comicinfo_requires_review(self):
+        key=self.add();self.inspect.return_value=('b'*64,True)
+        self.queue.tick()
+        self.assertEqual(self.record(key)['phase'],'review')
+        self.assertEqual(self.record(key)['attempts'],0)
+        self.assertNotIn('token',self.record(key));self.tag.assert_not_called()
+
+    def test_terminal_publication_review_precedes_replay_metadata_and_attempts(self):
+        from publication_native import Review
+        key=self.add();job=self.record(key);job['token']='b'*32
+        self.store.set('converted_tag',key,job)
+        self.queue.publication=Mock(side_effect=Review('verified-correction'))
+        self.queue.tick()
+        result=self.record(key)
+        self.assertEqual(result['phase'],'review');self.assertEqual(result['attempts'],0)
+        self.assertEqual(result['token'],'b'*32)
+        self.recover.assert_not_called();self.inspect.assert_not_called();self.tag.assert_not_called()
+        self.queue.tick();self.assertEqual(self.queue.publication.call_count,1)
+
+    def test_unavailable_publication_authority_does_not_become_ordinary_retry(self):
+        from publication_guard import Unavailable
+        key=self.add()
+        self.queue.coordinate=Mock(side_effect=Unavailable('private authority evidence'))
+        self.queue.tick();job=self.record(key)
+        self.assertEqual(job['phase'],'review');self.assertEqual(job['attempts'],0)
+        self.assertNotIn('token',job);self.assertNotIn('private authority',job['reason'])
+        self.catalog.assert_not_called();self.recover.assert_not_called();self.tag.assert_not_called()
 
     def test_restart_after_publication_uses_saved_token(self):
         key = self.add()
