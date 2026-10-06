@@ -515,7 +515,8 @@ class Packs:
     def cycle(self):
         if not self.m.settings.get('pack_import', False):
             return set()
-        work = self.m.mylar('packWork')
+        from maintenance import native_work
+        work = native_work(self.m,'packWork')
         if not work.get('enabled'):
             return set()
         protected = set()

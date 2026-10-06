@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import sqlite3
 from contextlib import closing
+from contextlib import contextmanager
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -20,15 +21,114 @@ class CoordinatedRecoveryTest(AuthorityFixture, unittest.TestCase):
     def setUp(self):
         AuthorityFixture.setUp(self)
         self.cache = self.root / 'cache'; self.cache.mkdir()
-        self.state = self.root / 'maintenance'; self.state.mkdir()
+        worker_state = self.root/'worker';worker_state.mkdir()
+        jobs = worker_state/'jobs';jobs.mkdir()
+        self.state = worker_state / 'maintenance'; self.state.mkdir()
         worker = SimpleNamespace(config={'writer_state':str(self.writer.root),
             'mylar':{'config_dir':str(self.config)},
-            'publication_roots':[{'native':str(self.native_root),'worker':str(self.library)}]})
+            'publication_roots':[{'native':str(self.native_root),'worker':str(self.library)}]},
+            state=worker_state,jobs=jobs)
         self.m = SimpleNamespace(worker=worker, state=self.state, roots=[self.library,self.cache],
             settings={'auto_import':True,'ddl_cache':str(self.cache),'mylar_ddl_cache':'/native-cache'},
             idle=Mock(return_value=True),mylar=Mock())
         self.match = {'issueid':'999','comicid':'888'}
         self.sql('INSERT INTO issues VALUES (?,?,?,?)', ('999','888',None,'Wanted'))
+
+    def prepared(self):
+        from writer_cycle import bind_state
+        source = self.archive('different.cbz',[('01.jpg',b'different')])
+        with self.writer.hold(),scope(self.m.worker,self.writer) as authority:
+            authority.tool_root=self.tool
+            bind_state(self.writer,self.m.worker)
+            self.assertEqual(submit(self.m,source,self.match),'ready')
+        self.m.mylar.assert_not_called()
+        receipt = next((self.state/'imports').glob('*.json'))
+        self.assertEqual(json.loads(receipt.read_text())['phase'],'prepared')
+        return source,receipt
+
+    def dispatch(self):
+        from import_recovery import dispatch_prepared
+        actual_scope=scope
+        @contextmanager
+        def portable(*args,**kwargs):
+            with actual_scope(*args,**kwargs) as authority:
+                authority.tool_root=self.tool
+                yield authority
+        with patch('publication_guard.scope',portable):return dispatch_prepared(self.m)
+
+    def native_api(self,command,**kwargs):
+        self.assertFalse(getattr(self.writer.local[1],'depth',0))
+        self.assertFalse(self.writer.fenced())
+        if command=='getHealth':
+            return {'queues':{'POST-PROCESS-QUEUE':{'alive':True,'size':0}},'processing':False,'workflow':{'valid':True,'publication_handoff':1}}
+        self.assertEqual(command,'forceProcess')
+        receipt=next((self.state/'imports').glob('*.json'))
+        record=json.loads(receipt.read_text())
+        self.assertEqual(record['phase'],'dispatching')
+        binding=json.loads(kwargs['publication_handoff'])
+        self.assertEqual(binding['source_sha256'],digest(Path(record['stage'])))
+        self.assertEqual(binding['owner']['issueid'],self.match['issueid'])
+        return {'submitted':True}
+
+    def test_prepared_import_dispatches_after_release_once_with_durable_before_network_intent(self):
+        source,receipt=self.prepared()
+        before=digest(source)
+        self.m.mylar.side_effect=self.native_api
+        self.assertEqual(self.dispatch(),1)
+        self.assertEqual(json.loads(receipt.read_text())['phase'],'submitted')
+        self.assertEqual(self.dispatch(),0)
+        self.assertEqual([c.args[0] for c in self.m.mylar.call_args_list].count('forceProcess'),1)
+        self.assertEqual(digest(source),before)
+
+    def test_missing_invalid_or_old_native_protocol_does_not_spend_prepared_attempt(self):
+        source,receipt=self.prepared();before=receipt.read_bytes()
+        for protocol in ({},{'valid':True,'publication_handoff':True},
+                         {'valid':False,'publication_handoff':1},{'valid':True,'publication_handoff':2}):
+            self.m.mylar.reset_mock()
+            self.m.mylar.side_effect=lambda command,**kwargs:dict(self.native_api(command,**kwargs),workflow=protocol)
+            self.assertEqual(self.dispatch(),0)
+            self.assertEqual(receipt.read_bytes(),before)
+            self.assertEqual([call.args[0] for call in self.m.mylar.call_args_list],['getHealth'])
+        self.assertTrue(source.exists())
+
+    def test_network_uncertainty_and_interruption_never_replay_dispatch(self):
+        source,receipt=self.prepared()
+        def timeout(command,**kwargs):
+            value=self.native_api(command,**kwargs)
+            if command=='forceProcess':raise TimeoutError('uncertain accepted request')
+            return value
+        self.m.mylar.side_effect=timeout
+        self.assertEqual(self.dispatch(),0)
+        self.assertEqual(json.loads(receipt.read_text())['phase'],'dispatching')
+        self.assertEqual(self.dispatch(),0)
+        self.assertEqual([c.args[0] for c in self.m.mylar.call_args_list].count('forceProcess'),1)
+        self.assertTrue(source.exists())
+
+    def test_prepared_binding_drift_preserves_prior_proof_and_never_submits(self):
+        source,receipt=self.prepared();before=receipt.read_bytes()
+        Path(json.loads(before)['stage']).write_bytes(b'changed stage')
+        self.m.mylar.side_effect=self.native_api
+        self.assertEqual(self.dispatch(),0)
+        self.assertEqual(receipt.read_bytes(),before)
+        self.assertEqual([c.args[0] for c in self.m.mylar.call_args_list],['getHealth'])
+        self.assertTrue(source.exists())
+
+    def test_new_census_and_pending_fence_do_not_spend_prepared_attempt(self):
+        source,receipt=self.prepared();before=receipt.read_bytes()
+        with self.writer.hold(allow_pending=True):self.writer.mark_pending()
+        self.m.mylar.side_effect=lambda cmd,**kw:{'queues':{'POST-PROCESS-QUEUE':{'alive':True,'size':0}},'processing':False,'workflow':{'valid':True,'publication_handoff':1}}
+        self.assertEqual(self.dispatch(),0);self.assertEqual(receipt.read_bytes(),before)
+        with self.writer.hold(allow_pending=True):self.writer.clear_pending()
+        self.seed(empty=True)
+        self.assertEqual(self.dispatch(),0);self.assertEqual(receipt.read_bytes(),before)
+        self.assertTrue(source.exists())
+
+    def test_prepared_receipt_is_private_and_cannot_replace_existing_proof(self):
+        from import_recovery import handoff_save
+        _,receipt=self.prepared();before=receipt.read_bytes()
+        self.assertEqual(receipt.stat().st_mode & 0o777,0o600)
+        with self.assertRaises(FileExistsError):handoff_save(receipt,{'replacement':True})
+        self.assertEqual(receipt.read_bytes(),before)
 
     def test_rejected_repeat_holds_before_stage_receipt_idle_or_submit(self):
         before = digest(self.candidate)

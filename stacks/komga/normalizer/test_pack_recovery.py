@@ -105,7 +105,7 @@ class PackEvidenceTest(unittest.TestCase):
                             'destination':'/library/Test.cbz','destination_sha256':'c'*64}]}
         api=Mock(side_effect=lambda command,**kwargs:{'enabled':True,'packs':[record]}
                  if command=='packWork' else {'phase':'confirmed'})
-        packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=api),
+        packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=api,worker=SimpleNamespace(config={})),
                               local=lambda value:Path(value),inventory=Mock(),changed=False)
         Packs.cycle(packs)
         packs.inventory.assert_not_called()
@@ -121,7 +121,7 @@ class PackEvidenceTest(unittest.TestCase):
             if command=='packWork':return {'enabled':True,'packs':[record]}
             raise RuntimeError('Destination proof rejected')
         calls=Mock(side_effect=api)
-        packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=calls),
+        packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=calls,worker=SimpleNamespace(config={})),
                               local=lambda value:Path(value),inventory=Mock(),changed=False)
         Packs.cycle(packs)
         self.assertEqual(calls.call_count,2)

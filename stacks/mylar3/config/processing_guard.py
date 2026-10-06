@@ -32,6 +32,11 @@ def publication(processor, source, *, issueid=None, comicid=None):
         from publication_native import require, Review
     try:
         result=require(source,issueid=issueid,comicid=comicid)
+        bound=getattr(processor,'_publication_handoff',None)
+        if bound is not None and (result is None
+                or result['inventory']['payload']!=bound['payload']
+                or result['owner']!=bound['owner']):
+            raise Review('queued-import-handoff-changed')
         if result is not None:processor._publication_owner=result['owner']
         return result
     except Review as review:
@@ -167,9 +172,9 @@ def run(function):
         from mylar import pack_intake, native_writers
         from mylar.media_writer import Busy
         if __package__:
-            from .publication_native import Review
+            from .publication_native import Review, resume_handoff
         else:
-            from publication_native import Review
+            from publication_native import Review, resume_handoff
         try:
             # Always acquire the shared writer first: a guarded rescan can call
             # processing synchronously. Reversing these locks deadlocks callers.
@@ -192,10 +197,12 @@ def run(function):
                     mylar.APILOCK = True
                     previous=getattr(_ACTIVE,'processor',None)
                     _ACTIVE.processor=self
+                    self._publication_handoff=None
                     try:
-                        if pack_intake.capture(self):
-                            return None
                         try:
+                            self._publication_handoff=resume_handoff(self)
+                            if pack_intake.capture(self):
+                                return None
                             return function(self, *args, **kwargs)
                         except Review as review:
                             retained(review,self)
@@ -204,6 +211,7 @@ def run(function):
                             self.queue.put(self.valreturn)
                             raise
                     finally:
+                        self._publication_handoff=None
                         _ACTIVE.processor=previous
                         mylar.APILOCK = False
         except Review:
