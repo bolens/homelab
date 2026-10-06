@@ -51,6 +51,11 @@ AIL is resource-intensive and typically needs **>6GB RAM**. The default CPU imag
 the several-GB CUDA/NVIDIA/Triton runtime. The optional GPU image retains it for
 accelerated OCR.
 
+The runtime image defaults OpenBLAS, OpenMP, MKL and NumExpr to one thread per
+worker. AIL starts many worker processes; unrestricted numerical thread pools can
+exhaust the container's process limit during startup. Operators can override the
+corresponding `*_NUM_THREADS` environment variables when sizing larger deployments.
+
 ## Using AIL 7.x (official build)
 
 Official releases (e.g. **v7.0**) are not published as images; this stack builds from the [official repo](https://github.com/ail-project/ail-framework). The official image and this compose file use **/opt/AIL** for data paths.
