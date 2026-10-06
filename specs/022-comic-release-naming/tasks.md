@@ -253,3 +253,43 @@ Deliver US1 as the opt-in naming MVP, verify US2 recovery gates, then roll out U
 - Larger guided/pack batch image acceptance: the final frozen native V4 image passes 1,037 test executions across all 70 reliability suites without skips, including the fresh API-patch migration, 50 publication controls, all 115 tagging controls and the bundled Legacy/Modern runtimes. The final worker V4 image passes all 281 tests without skips, and its 19 installed production modules match frozen source. Full local CI and source lint pass. Qualified self-review closed restart reconciliation, real source-root/private extraction mapping, native catalog drift, immutable dispatch bytes, delayed terminal identity/inventory downgrade, malformed history and traversal checks. All eight installed native handoff/authority modules also match frozen source. Source delivery remains pending. Independent feature acceptance, T009–T012 remaining integrations and live rollout remain open. No live media, registry or worker activation ran.
 
 - Next larger implementation batch: extend T011 duplicate cleanup and interrupted receipt recovery together, binding current source/target payloads, native catalog ownership, complete correction census and immutable receipt predecessors before retention, unlink or terminal acknowledgement. Add source/target/census drift, protected-original, prior-proof replacement and interrupted cleanup controls. T011/T012 remain unchecked until their complete boundary requirements pass; this batch does not authorize worker activation.
+
+- Guided/pack source delivery: PR #252 merged as `2426a42b76e261bcc98cc841ecf3499b7e377e5e`; reviewed and merged trees match and original branch protection is restored. The accepted frozen native gate has 1,037 executions across 70 suites, with eight installed native modules matching source; the worker has 281 tests and 19 installed modules without skips or source differences. GitHub CI was waived by the user. No live rollout, registration, media mutation or worker activation occurred.
+
+- Parallel larger batch: separate agents own conversion, naming and reader notification boundaries, with one parent integration/Git writer. Duplicate cleanup now binds exact current native target ownership, complete census and all catalog path/physical-original absence, retains an exclusive original, and uses immutable private CAS receipts. Source/owner/census drift and lost unlink acknowledgements are held. Independent review found and closed an unregistered catalog-original hardlink gap. Naming preparation now binds its reader/publication/preservation facts; conversion paths without typed relocation or reviewed PDF lineage stay retained. Reader notifications use durable outside-writer handoffs and fresh owner/source/census checks. Full combined host/image/repository acceptance remains pending. T009–T012 stay unchecked while their remaining positive publication/recovery contracts are implemented.
+
+2026-10-06 parallel implementation checkpoint: separate file owners implemented
+worker duplicate protection and retained unlink acknowledgement, immutable pre-lock
+reader observations, reader notification handoff, naming/conversion boundaries,
+and typed maintenance diagnostics; native owned rename and preserved root
+ComicInfo publication have positive controls. Full worker host suite passed
+376 tests with 72 converter/runtime skips. Container gates caught standalone
+private-source leakage and an ambiguous workflow patch anchor; fixes and new
+frozen image gates are in progress. Neither failed candidate is accepted. The
+combined metadata/rename runtime route, derivative transitions, final complete
+feature review and live acceptance remain open; task checkboxes are unchanged.
+
+2026-10-06 verified source milestone: the final isolated worker image passed
+377 tests without skips; all 21 installed production modules match its frozen
+source. Repository validation and full local CI passed. Source commit `8f23324`
+and history synchronization `5c90148` preserve the same reviewed tree; PR #253
+remains a draft until the final native image and installed parity pass. Native
+focused controls passed: 20 owned rename, 28 metadata maintenance, 33 naming/API
+and 12 enrichment controls. Independent terminal-witness and unchanged-source
+race findings are closed. The legacy tagging host regression passed 115 tests
+with three binary-only skips; the actual image must run them without skips.
+
+The next implementation runs in separate worktrees with explicit ownership:
+combined rename/unchanged-hash reader restoration/root metadata orchestration;
+native-owned lossless container conversion and worker acknowledgement; private
+read-only correction-plan tooling. Shared authority and manifests have one
+integration owner. No live writer is released and no full task is checked off
+from these partial source milestones.
+
+2026-10-06 final image acceptance for PR #253: the isolated native image passed
+1,082 test executions across 72 suites without skips, including its actual
+Legacy and Modern binaries. All 19 checked installed native modules match the
+unchanged frozen source. The worker passed 377 tests without skips with exact
+21-module parity. Earlier failed or superseded candidates are not accepted.
+The reviewed source milestone is ready for delivery with the user's hosted-CI
+waiver; complete feature, combined-route, derivative and live gates remain open.

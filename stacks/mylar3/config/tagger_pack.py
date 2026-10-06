@@ -71,6 +71,18 @@ class Publisher(NFSPublisher):
 
     def tag(self,source,metadata,*,token,**kwargs):
         job=self.publication_job()
+        if job is not None and job.value['policy'].get('role')=='preserved-supplement':
+            if __package__:
+                from . import publication_guard as guard, publication_native as native
+            else:
+                import publication_guard as guard
+                import publication_native as native
+            policy=job.value['policy']
+            if (metadata or set(kwargs)!={'expected_digest','supplement'}
+                    or token!=job.value['token']
+                    or kwargs['expected_digest']!=policy['expected_digest']
+                    or not guard.same_json(kwargs['supplement'],policy['supplement'])):
+                raise native.Review('supplement-producer-policy-changed')
         if job is not None:
             expected=job.publisher_source(self,source)
             if token!=job.value['token']:

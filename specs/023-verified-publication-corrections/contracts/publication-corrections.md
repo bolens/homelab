@@ -356,8 +356,9 @@ the actual shared stage before recording an attempt and again before processing.
 A prepared receipt may reconstruct a lost local guided command record after fresh
 source/stage validation. An uncertain attempted submission cannot be replayed.
 
-`maintenance_handoff` version 1 accepts only `packCatalog`, `packReport` and
-`workflowAcknowledge`. Its strict envelope contains version, token, command,
+`maintenance_handoff` version 1 accepts `packCatalog`, `packReport`,
+`workflowAcknowledge` and `reportImportProblems`. The last command additionally
+requires the separately advertised integer `maintenance_reports` version 1. Its strict envelope contains version, token, command,
 arguments digest, complete census and at most 4,000 source observations. Each
 observation names a confined native path, prepared SHA-256, optional exact
 issue/parent and a boolean current-catalog confirmation requirement. Boolean
@@ -386,6 +387,63 @@ physical aliases before metadata or placement changes. It preserves member bytes
 creates temporary archives exclusively, and rechecks source/target proof before
 recording preservation. Registered-owner confirmation requires the attested
 archive payload until a reviewed derivative lineage exists. Historical supplement
-cleanup, standalone duplicate/recovery integration, remaining mutation paths and
-complete T011/live acceptance remain required. No retained proof grants replay or
+cleanup, remaining reporting/mutation paths and complete T011/live acceptance
+remain required. No retained proof grants replay or
 HTTP under Writer. The live worker stays held until feature acceptance.
+
+
+### Worker duplicate and reader boundaries
+
+Coordinated duplicate cleanup resolves the actual target's unique current native
+catalog owner, checks both archives against that owner and the full correction
+census, and observes every catalog path and physical archive claim before removing
+a download. Registered and unregistered current originals, including deleted or
+inactive claims and physical aliases, remain protected. Page equality or a reader
+READY state alone never grants cleanup.
+
+Before unlink, retain the exact exclusive private original and bind every receipt
+fact except its finite phase to an immutable digest. Existing receipts cannot be
+refreshed into new permission. Recheck source/target/catalog/census, retained copy
+and receipt predecessor before deletion. A lost deletion acknowledgement can
+advance only with the missing original name, unchanged exact retained bytes and
+fresh identical owner/target/census proof. Legacy unbound receipts stay held.
+Corrupt archives cannot supply complete inventory and need reviewed owned
+quarantine evidence before coordinated deletion or retry reporting.
+
+Reader scan, analyze and metadata-refresh notifications use private typed CAS
+receipts. Preparation observes exact current source/target/owner/census under
+Writer; dispatch records uncertainty before HTTP outside Writer and repeats those
+facts and the reader route after acknowledgement. New pending native tagging,
+repair or worker publication work revokes a prepared or in-flight notification.
+Native paths map through trusted roots before comparison. Lost replies are
+retained without automatic replay, and a scan acknowledgement does not confirm
+publication. Positive coordinated conversion and PDF/member-name lineage remain
+held until their separate owned relocation/derivative contracts exist.
+
+### Owned rename, root metadata and maintenance reports
+
+Native release naming now captures an exact owned source, immutable job facts,
+current catalog owner and complete correction census before any link, catalog
+update or source retirement. The archive bytes stay unchanged. Every checkpoint
+revalidates those facts and the captured fence. Terminal history must be durable
+before clearance; interrupted jobs remain held rather than replaying a move.
+Standalone or historical naming intents cannot acquire this capability.
+
+Preserved root ComicInfo supplementation uses an exact native producer bound to
+the source, two private distinct verified copies, metadata and current owner.
+Only root metadata may change; page payload, member names and catalog ownership
+must survive. The producer returns a verified publication receipt. These helper
+controls do not establish an operational combined-pass route. Nested metadata
+repair, member-name derivatives and interrupted replay still require their own
+reviewed transitions.
+
+Maintenance reports use the typed handoff after writer release. Their exact
+versioned binding includes report, processing, guidance and an integer observation
+time in a five-minute bucket, valid for at most fifteen minutes. Native admission
+precedes diagnostic, guidance or import state writes. Import readiness and guided
+proposals require fresh actual source and catalog evidence. Private source paths
+are removed from public report arguments. Caller statuses cannot claim completed
+imports or conversions. Uncertain guided attempts are retained across later
+observation buckets without repeating their proposal. Old native capabilities
+leave reports prepared; bounded request selection prevents a stale request from
+starving an independently valid request.

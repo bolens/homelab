@@ -10,12 +10,22 @@ from urllib.parse import urlsplit
 
 
 def publication_review(source, *, issueid, comicid):
-    """Old naming journals confer no correction-aware transition authority."""
+    """Read current facts; positive mutation requires an owned rename capability."""
     from mylar import native_writers
     if not native_writers.publication_mode():return
     from mylar import publication_native
-    publication_native.require(Path(source),issueid=str(issueid),comicid=str(comicid))
-    raise publication_native.Review('release-name-transition-unbound')
+    from mylar.publication_rename import current
+    publication_native.require(Path(source),issueid=str(issueid),comicid=str(comicid), transaction=current())
+
+
+def publication_checkpoint(job):
+    from mylar import native_writers
+    if not native_writers.publication_mode():return
+    from mylar import publication_native
+    from mylar.publication_rename import current
+    capability=current()
+    if capability is None:raise publication_native.Review('release-name-transition-unbound')
+    capability.checkpoint(job)
 
 
 def regular(path, *, links=(1,)):
@@ -311,15 +321,17 @@ def reject(database, store, job):
     from mylar.media_writer import sync
     publication_review(job['request']['source'],issueid=job['request']['issueid'],comicid=job['request']['comicid'])
     request = job['request']; source = Path(request['source']); target = source.with_name(request['target'])
+    publication_checkpoint(job)
     verified(source, job)
     row = catalog(database, source)['row']
     if (str(row['IssueID']) != request['issueid'] or str(row['ComicID']) != request['comicid']
             or row['Status'] != job['status']):
         raise ValueError('Rejected release owner changed')
     if target.exists():
-        verified(target, job); target.unlink(); sync(source.parent)
+        verified(target, job); publication_checkpoint(job); target.unlink(); sync(source.parent)
     verified(source, job)
     intent = job.get('pack_bindings')
+    publication_checkpoint(job)
     pack_bindings.finalize(store, dict(intent, destination=str(source)) if intent else None,
                            request['sha256'], catalog_owner={field: request[field] for field in ('issueid', 'comicid')})
     job['phase'] = 'rejected'; store.set('release_name', job['key'], job)
@@ -338,6 +350,7 @@ def rejected_predecessor(store, request):
 
 def finish(database, store, job):
     request=job['request'];source=Path(request['source'])
+    publication_checkpoint(job)
     publication_review(source if source.exists() else source.with_name(request['target']),
                        issueid=request['issueid'],comicid=request['comicid'])
     from mylar.media_writer import sync
@@ -355,7 +368,9 @@ def finish(database, store, job):
     else:
         if not source.exists():
             raise ValueError('Release publication paths missing; recovery requires review')
+        publication_checkpoint(job)
         os.link(source, target, follow_symlinks=False); sync(source.parent)
+        publication_checkpoint(job)
     try:
         owner = catalog(database, source)
     except ValueError:
@@ -377,9 +392,12 @@ def finish(database, store, job):
         raise
     job['phase'] = 'linked'; store.set('release_name', job['key'], job)
     if source.exists():
+        publication_checkpoint(job)
         source.unlink(); sync(source.parent)
+        publication_checkpoint(job)
     job['phase'] = 'published'; store.set('release_name', job['key'], job)
     if row['Location'] != target.name:
+        publication_checkpoint(job)
         result = database.action('UPDATE '+job['table']+' SET Location=?,ComicSize=? WHERE IssueID=? AND ComicID=? AND Location=? AND Status=?',
                                  [target.name, target.stat().st_size, request['issueid'], request['comicid'], source.name, job['status']])
         if result is None or result.rowcount != 1:
@@ -389,6 +407,7 @@ def finish(database, store, job):
     if str(current['row']['IssueID']) != request['issueid']:
         raise ValueError('Release catalog acknowledgement changed')
     from mylar import pack_bindings
+    publication_checkpoint(job)
     pack_bindings.finalize(store, job.get('pack_bindings'), request['sha256'],
                            catalog_owner={field: str(current['row'][native]) for field, native in
                                           (('issueid', 'IssueID'), ('comicid', 'ComicID'))})
@@ -474,6 +493,9 @@ def rename(raw):
             if previous['request'] != request:
                 raise ValueError('Release request changed')
             if previous['phase'] == 'committed':
+                if native_writers.publication_mode():
+                    from mylar.publication_rename import terminal
+                    terminal(writer,previous)
                 if retry and previous.get('predecessor_sha256') != key(predecessor):
                     raise ValueError('Rejected release evidence changed')
                 target = Path(request['source']).with_name(request['target'])
@@ -504,6 +526,25 @@ def rename(raw):
         job['pack_bindings'] = pack_bindings.capture(store, source, target,
             catalog_owner={field: request[field] for field in ('issueid', 'comicid')})
         bind_store(writer, store)
+        if native_writers.publication_mode():
+            from mylar import publication_native
+            from mylar.publication_rename import Rename
+            capability=Rename(writer,job)
+            job['publication_binding']=capability.binding
+            with capability.owned():
+                try:
+                    if not store.create('release_name',token,job):
+                        raise publication_native.Review('rename-journal-already-exists')
+                    result=finish(database,store,job)
+                    capability.complete(job)
+                except ValueError:
+                    if job['phase']=='rejected':
+                        capability.complete(job)
+                        raise
+                    raise publication_native.Review('rename-transition-interrupted') from None
+                except (OSError,TypeError,KeyError):
+                    raise publication_native.Review('rename-transition-interrupted') from None
+            return result
         writer.mark_release_pending()
         if not store.create('release_name', token, job):
             raise ValueError('Release journal already exists')
@@ -521,10 +562,13 @@ def status(token):
     if not isinstance(token, str) or not re.fullmatch(r'[a-f0-9]{64}', token):
         raise ValueError('Invalid release journal token')
     from mylar import native_writers
-    with native_writers.operation():
+    with native_writers.operation() as writer:
         _, store = services()
         job = store.get('release_name', token)
         if job and job['phase']=='committed':
+            if native_writers.publication_mode():
+                from mylar.publication_rename import terminal
+                terminal(writer,job)
             request=job['request']
             publication_review(Path(request['source']).with_name(request['target']),
                                issueid=request['issueid'],comicid=request['comicid'])

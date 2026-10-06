@@ -106,6 +106,7 @@ class ScanBatch:
 
     def catalog(self):
         paths = {}
+        self.matches = {}
         with closing(sqlite3.connect((self.config_dir/'mylar.db').as_uri()+'?mode=ro', uri=True)) as db:
             for table in ('issues', 'annuals'):
                 sql = ('SELECT i.IssueID,i.ComicID,c.ComicLocation,i.Location FROM '+table+
@@ -116,11 +117,21 @@ class ScanBatch:
                     if not folder or not location:
                         continue
                     root, path = Path(folder), Path(folder)/location
+                    if self.worker.config.get('writer_state') is not None:
+                        mappings = self.worker.config.get('publication_roots', [])
+                        matches = [(Path(row['native']), Path(row['worker'])) for row in mappings
+                                   if path.is_relative_to(Path(row['native']))]
+                        if len(matches) != 1:
+                            continue
+                        native, worker_root = matches[0]
+                        path = worker_root/path.relative_to(native)
+                        root = worker_root/root.relative_to(native)
                     if (not root.is_absolute() or '..' in path.parts or not path.is_relative_to(root)
                             or not any(path.is_relative_to(r) for r in self.worker.roots)):
                         continue
                     key = hashlib.sha256(json.dumps([table, str(issue), str(comic), str(path)]).encode()).hexdigest()
                     paths.setdefault(str(path), {})[key] = str(path)
+                    self.matches[key] = dict(issueid=str(issue), comicid=str(comic))
         return {key: path for owners in paths.values() if len(owners) == 1 for key, path in owners.items()}
 
     def blocked(self):
@@ -132,8 +143,18 @@ class ScanBatch:
         with closing(sqlite3.connect((self.config_dir/'workflow.sqlite').as_uri()+'?mode=ro', uri=True)) as db:
             for (raw,) in db.execute("SELECT value FROM records WHERE kind IN ('converted_tag','library_repair')"):
                 job = json.loads(raw)
-                if job.get('phase') != 'completed' and job.get('path'):
-                    paths.add(job['path'])
+                if not isinstance(job, dict) or not isinstance(job.get('phase'), str):
+                    raise ValueError('Malformed native reader-blocking work')
+                if job['phase'] != 'completed':
+                    if not isinstance(job.get('path'), str) or not job['path']:
+                        raise ValueError('Pending native work has no bound archive path')
+                    path = Path(job['path'])
+                    if not path.is_absolute() or '..' in path.parts:
+                        raise ValueError('Pending native work has an unsafe archive path')
+                    if self.worker.config.get('writer_state') is not None:
+                        from publication_guard import current
+                        path = current(self.worker).mapped(path)
+                    paths.add(str(path))
         return paths
 
     def status(self, error=None):
@@ -205,6 +226,8 @@ class ScanBatch:
                         row['ready_at'] = None
                 except (OSError, ValueError, ET.ParseError, zipfile.BadZipFile, RuntimeError, EOFError, zlib.error):
                     row['ready_at'] = None
+            if self.worker.config.get('writer_state') is not None:
+                self.prepare_notifications()
             save(self.path, state)
             self.status()
             return True
@@ -212,8 +235,41 @@ class ScanBatch:
             self.status('Readiness check failed: '+type(exc).__name__)
             return False
 
+    def prepare_notifications(self):
+        """Bind current catalog owners while collection still owns Writer."""
+        from reader_handoff import queue
+        state, now = self.state, self.clock()
+        ready = {key:row for key,row in state['pending'].items()
+                 if key in self.validated and row.get('ready_at') is not None}
+        if (not ready or now < state['next_allowed'] or
+                (len(ready) < self.rules['batch_size'] and
+                 now-min(row['ready_at'] for row in ready.values()) < self.rules['max_wait_seconds'])):
+            return
+        groups = {}
+        for key, row in ready.items():
+            roots = [root for root in self.worker.roots if Path(row['path']).is_relative_to(root)]
+            if len(roots) != 1:
+                raise ValueError('Reader addition has no unique worker library root')
+            groups.setdefault(roots[0], []).append(key)
+        for folder, keys in groups.items():
+            bindings = [dict(source=ready[key]['path'], target=ready[key]['path'],
+                             match=self.matches[key]) for key in keys]
+            result = queue(self.worker, 'library_scan', bindings, folder=folder)
+            # Pace durable preparation, including ambiguous network outcomes.
+            state['next_allowed'] = now+self.rules['min_interval_seconds']
+            if result == {'acknowledged':True}:
+                for key in keys:
+                    del state['pending'][key]
+                state['last_requested'] = now
+                state.pop('last_error', None)
+                state['next_allowed'] = now+self.rules['min_interval_seconds']
+
     def dispatch(self):
         """Request only affected libraries after releasing media writer ownership."""
+        if self.worker.config.get('writer_state') is not None:
+            from reader_handoff import dispatch
+            dispatch(self.worker)
+            return
         state, now = self.state, self.clock()
         ready = {key: row for key, row in state['pending'].items() if row.get('ready_at') is not None}
         if (not ready or now < state['next_allowed'] or

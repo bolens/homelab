@@ -109,13 +109,23 @@ the adapter never guesses a mapping or creates a missing mount. A missing marker
 incomplete census or missing mapping holds work. Initialize the matching native
 authority through its restore-verified review protocol before worker admission.
 Preparation preserves existing configuration and does not initialize authority.
+Reader notifications now prepare bounded source/target/owner/census receipts under
+the shared writer and dispatch scan/analyze/metadata refresh outside it. Changed
+archives, owner/census or new native/worker publication work retain the request.
+An uncertain reply is not automatically replayed. Coordinated conversion paths
+without exact owned relocation or reviewed derivative lineage remain held.
 
 Mylar HTTP calls are refused while the shared writer is held, including through
 a different local lock registry. This prevents a guarded native API handler from
 waiting for the calling worker's own lock. Local candidate checks remain under
 exclusion; remote work must follow outside it and native final import must check
 fresh evidence again. Fresh local owner/source checks now cover common/guided import, pack confirmation
-and confirmed-comic pack cleanup. Historical supplement cleanup remains held for
+and confirmed-comic pack cleanup. Ordinary duplicate cleanup additionally binds
+the target's current exact native owner and protects all native catalog paths and
+physical originals, including unregistered/deleted claims. It retains an exact
+private original and immutable CAS receipt before unlink; changed proof or lost
+acknowledgement stays held until fresh guarded reconciliation. Historical
+supplement cleanup remains held for
 reviewed derivative ownership. Coordinated common imports now persist a private
 prepared receipt with exact source/stage bytes, native owner and complete census.
 Dispatch requires native handoff protocol support from authenticated health.

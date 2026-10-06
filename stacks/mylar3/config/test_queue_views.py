@@ -42,6 +42,37 @@ class ViewsTest(unittest.TestCase):
         namespace[node.name](obj,report='[]');self.assertEqual(obj.data,'denied')
         self.assertFalse((self.root/'import-problems.json').exists())
 
+    def test_report_handoff_migration_precedes_guidance_processing_and_is_idempotent(self):
+        from patch_pp_monitor import api as processing_api
+        from patch_workflow import api as workflow_api
+        value=api((SOURCE/'api.py').read_text())
+        value=processing_api(workflow_api(value))
+        migrated=api(value)
+        self.assertEqual(api(migrated),migrated)
+        node=next(n for n in ast.walk(ast.parse(migrated)) if isinstance(n,ast.FunctionDef) and n.name=='_reportImportProblems')
+        calls=[ast.unparse(n.func) for n in ast.walk(node) if isinstance(n,ast.Call)]
+        self.assertIn('worker_handoff.admit',calls)
+        body=next(n for n in node.body if isinstance(n,ast.Try)).body
+        self.assertEqual(ast.unparse(body[1].value.func),'worker_handoff.admit')
+        with self.assertRaises(ValueError):api(migrated.replace("'reportImportProblems', {key:","'packReport', {key:",1))
+
+    def test_primary_stale_handoff_refusal_precedes_every_report_side_effect(self):
+        value=api((SOURCE/'api.py').read_text())
+        node=next(n for n in ast.walk(ast.parse(value)) if isinstance(n,ast.FunctionDef) and n.name=='_reportImportProblems')
+        self.mylar.CONFIG=SimpleNamespace(API_ENABLED=True,API_KEY='primary')
+        self.mylar.import_problems=SimpleNamespace(report=MagicMock())
+        self.mylar.worker_handoff=SimpleNamespace(admit=MagicMock(side_effect=ValueError('stale source')))
+        self.mylar.workflow_web=SimpleNamespace(report_guidance=MagicMock())
+        self.mylar.archive_monitor=SimpleNamespace(report=MagicMock())
+        namespace={'mylar':self.mylar};exec(compile(ast.Module(body=[node],type_ignores=[]),'<api>','exec'),namespace)
+        obj=SimpleNamespace(apikey='primary',_failureResponse=lambda x:'retained',_successResponse=lambda x:x)
+        namespace[node.name](obj,report='[]',processing='[]',guidance='[]',report_binding='{}',maintenance_handoff='stale')
+        self.assertEqual(obj.data,'retained')
+        self.mylar.import_problems.report.assert_not_called()
+        self.mylar.workflow_web.report_guidance.assert_not_called()
+        self.mylar.archive_monitor.report.assert_not_called()
+        self.mylar.worker_handoff.admit.assert_called_once()
+
     def test_template_escapes_report_values(self):
         if Path('/app/mylar3/lib').is_dir():
             sys.path.insert(0, '/app/mylar3/lib')

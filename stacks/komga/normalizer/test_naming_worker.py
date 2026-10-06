@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 from naming_worker import Naming, token
+from publication_guard import Unavailable
 from normalize import digest, save
 
 
@@ -16,13 +17,18 @@ class NamingWorkerTest(unittest.TestCase):
         self.target=self.root/'Old.001.(2020).cbz'
         self.worker=SimpleNamespace(config={'mylar':{'config_dir':str(self.root)},'writer_state':str(self.root/'writer')},
                                      state=self.root,roots=[self.root],reader=Mock())
-        self.naming=Naming(self.worker);self.folder=self.naming.root/'job';self.folder.mkdir()
+        from media_writer import Writer
+        Writer(self.root/'writer',create=True)
+        self.naming=Naming(self.worker)
         self.request=dict(version=1,source=str(self.source),target=self.target.name,sha256=digest(self.source),issueid='1',comicid='2')
+        self.folder=self.naming.root/token(self.request);self.folder.mkdir(mode=0o700)
         self.book=dict(id='new',url=str(self.target),libraryId='library',seriesId='series',deleted=False,fileHash='hash',
                        media={'status':'READY','pagesCount':20},readProgress={'page':7,'completed':False})
         self.job=dict(source=str(self.source),phase='prepared',request=self.request,key=token(self.request),reader=dict(libraryid='library',hash='hash',pages=20,progress={'page':7,'completed':False}))
         save(self.folder/'receipt.json',self.job)
         (self.folder/'original.cbz').write_bytes(b'original');(self.folder/'restore.cbz').write_bytes(b'original')
+        self.naming.publication=Mock(return_value=None)
+        self.naming.scan=Mock(side_effect=lambda folder,job:self.worker.reader.call('/api/v1/libraries/'+job['reader']['libraryid']+'/scan', {}))
         self.naming.api=Mock()
         self.naming.catalog=Mock(return_value={'issues:1':dict(issueid='1',comicid='2',source=str(self.target))})
 
@@ -31,7 +37,7 @@ class NamingWorkerTest(unittest.TestCase):
     def test_uncertain_native_mutation_is_never_replayed(self):
         self.naming.api.side_effect=TimeoutError()
         self.assertEqual(self.naming.advance(self.folder)['phase'],'native-uncertain')
-        self.naming.api.side_effect=None;self.naming.api.return_value={'phase':'absent'}
+        self.naming.api.side_effect=None;self.naming.api.return_value={'phase':'absent','version':1,'key':self.job['key']}
         self.assertEqual(self.naming.advance(self.folder)['phase'],'review')
         self.assertEqual([c.args[0] for c in self.naming.api.call_args_list],['renameLibraryFile','releaseNamingStatus'])
         self.assertTrue((self.folder/'original.cbz').exists())
@@ -114,7 +120,7 @@ class NamingWorkerTest(unittest.TestCase):
 
     def test_committed_journal_reconciles_and_reader_proof_removes_only_copies(self):
         self.publish();self.job['phase']='native-uncertain';save(self.folder/'receipt.json',self.job)
-        self.naming.api.return_value={'phase':'committed'}
+        self.naming.api.return_value={'phase':'committed','version':1,'key':self.job['key']}
         with patch('naming_worker.all_books',return_value=[self.book]):
             result=self.naming.advance(self.folder)
         self.assertEqual(result['phase'],'done');self.assertEqual(self.target.read_bytes(),b'original')
@@ -224,11 +230,13 @@ class NamingWorkerTest(unittest.TestCase):
             self.assertEqual(self.naming.apply(dict(version=1,entries=[]))[0]['phase'],'reader-pending')
         self.naming.prepare.assert_not_called()
         job=dict(self.job,phase='done');save(self.folder/'receipt.json',job)
-        destination=self.naming.root/token(self.request);destination.mkdir();save(destination/'receipt.json',job)
+        destination=self.naming.root/token(self.request);destination.mkdir(mode=0o700,exist_ok=True);save(destination/'receipt.json',job)
         self.assertEqual(self.naming.apply(dict(version=1,entries=[dict(phase='planned',request=self.request)])),[])
         self.naming.prepare.assert_not_called()
 
     def test_stale_manifest_does_not_create_preservation_or_native_mutation(self):
+        import shutil
+        shutil.rmtree(self.folder)
         entry=dict(source=str(self.source),request=self.request,proposal={'old':'proposal'},reader={})
         self.naming.api.return_value=dict(version=1,source=str(self.source),sha256=digest(self.source),issueid='1',comicid='2',
                                           series='Changed',number='1',year='2020',type='Print',volume=None,group=None)
@@ -243,6 +251,174 @@ class NamingWorkerTest(unittest.TestCase):
                                           series='Old',number='1',year='2020',type='Print',volume=None,group=None)
         with patch('naming_worker.all_books',return_value=[]):result=self.naming.plan()
         self.assertEqual(result['entries'][0]['phase'],'unchanged')
+
+    def prepare_fixture(self):
+        import zipfile
+        with zipfile.ZipFile(self.source, 'w') as archive:
+            archive.writestr('page.jpg', b'page')
+        self.request['sha256'] = digest(self.source)
+        proposal = dict(version=1, source=str(self.source), sha256=digest(self.source), issueid='1', comicid='2',
+                        series='Old', number='1', year='2020', type='Print', volume=None, group=None)
+        self.naming.api.return_value = proposal
+        self.naming.reader_proof = Mock(return_value=self.job['reader'])
+        return dict(source=str(self.source), request=self.request, proposal=proposal, reader=self.job['reader'])
+
+    def test_wrong_current_owner_holds_before_any_preservation(self):
+        entry = self.prepare_fixture()
+        self.naming.publication.side_effect = ValueError('Rejected publication owner')
+        with patch('naming_worker.all_books', return_value=[]):
+            with self.assertRaises(ValueError):self.naming.prepare(entry)
+        self.assertFalse((self.naming.root/token(self.request)).exists())
+        self.assertEqual(list(self.naming.root.glob('*.preparing-*')), [])
+        self.assertTrue(self.source.exists())
+
+    def test_authority_drift_during_copy_keeps_source_and_incomplete_evidence(self):
+        entry = self.prepare_fixture()
+        before = {'census':'original'}
+        self.naming.publication.side_effect = [before, before, {'census':'changed'}]
+        with patch('naming_worker.all_books', return_value=[]):
+            with self.assertRaises(ValueError):self.naming.prepare(entry)
+        self.assertFalse((self.naming.root/token(self.request)).exists())
+        self.assertTrue(self.source.exists())
+        copies = list(self.naming.root.glob('*.preparing-*'))
+        self.assertEqual(len(copies), 1)
+        self.assertEqual(digest(copies[0]/'restore.cbz'), digest(self.source))
+
+    def test_prepared_ownership_drift_never_submits_native_mutation(self):
+        self.job['publication'] = {'census':'old'}
+        save(self.folder/'receipt.json', self.job)
+        self.naming.publication.return_value = {'census':'new'}
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.naming.api.assert_not_called()
+        self.assertEqual(json.loads((self.folder/'receipt.json').read_text())['phase'], 'prepared')
+
+    def test_matching_bytes_cannot_replace_preservation_identity(self):
+        self.job['preservation_facts'] = self.naming.copies(self.folder, self.request)
+        save(self.folder/'receipt.json', self.job)
+        kept = self.folder/'restore.cbz'
+        kept.rename(self.folder/'foreign-before.cbz')
+        kept.write_bytes(b'original')
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.naming.api.assert_not_called()
+        self.assertTrue((self.folder/'original.cbz').exists())
+
+    def test_changed_or_linked_copy_blocks_reader_completion(self):
+        self.publish();self.job['phase'] = 'reader-pending';save(self.folder/'receipt.json', self.job)
+        kept = self.folder/'restore.cbz';kept.unlink();kept.symlink_to(self.target)
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.assertTrue(kept.is_symlink());self.assertTrue((self.folder/'original.cbz').exists())
+        self.assertEqual(self.target.read_bytes(), b'original')
+
+    def test_changed_catalog_before_cleanup_retains_both_copies(self):
+        self.publish();self.job['phase'] = 'reader-pending';save(self.folder/'receipt.json', self.job)
+        self.naming.publication.side_effect = [{'census':'old'}, {'census':'changed'}]
+        with patch('naming_worker.all_books', return_value=[self.book]):
+            with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.assertTrue((self.folder/'restore.cbz').exists());self.assertTrue((self.folder/'original.cbz').exists())
+        self.assertEqual(json.loads((self.folder/'receipt.json').read_text())['phase'], 'reader-pending')
+
+    def test_reader_library_or_duplicate_hash_blocks_cleanup(self):
+        self.publish();self.job['phase'] = 'reader-pending';save(self.folder/'receipt.json', self.job)
+        for books in ([dict(self.book, libraryId='foreign')], [self.book, dict(self.book,id='duplicate',deleted=True)]):
+            with patch('naming_worker.all_books', return_value=books):
+                with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.assertTrue((self.folder/'restore.cbz').exists())
+
+    def test_unsafe_receipt_target_is_rejected_before_native_or_reader_calls(self):
+        self.job['request']['target'] = '../foreign.cbz'
+        self.job['key'] = token(self.job['request']);save(self.folder/'receipt.json', self.job)
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.naming.api.assert_not_called();self.worker.reader.call.assert_not_called()
+
+    def test_linked_receipt_and_boolean_protocol_never_recover(self):
+        receipt = self.folder/'receipt.json';receipt.rename(self.folder/'saved.json');receipt.symlink_to(self.folder/'saved.json')
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        receipt.unlink();self.job['request']['version'] = True;self.job['key'] = token(self.job['request']);save(receipt,self.job)
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.naming.api.assert_not_called()
+
+    def test_interrupted_preparation_folders_are_never_removed_by_other_completion(self):
+        self.publish();self.job['phase'] = 'reader-pending';save(self.folder/'receipt.json', self.job)
+        orphan = self.naming.root/('.'+self.job['key']+'.preparing-foreign');orphan.mkdir(mode=0o700)
+        (orphan/'original.cbz').write_bytes(b'foreign evidence')
+        with patch('naming_worker.all_books', return_value=[self.book]):
+            self.assertEqual(self.naming.advance(self.folder)['phase'], 'done')
+        self.assertTrue((orphan/'original.cbz').exists())
+
+    def test_scan_uses_exact_catalog_destination_in_durable_handoff(self):
+        from contextlib import nullcontext
+        import sys
+        self.publish();self.job['phase'] = 'reader-pending'
+        self.naming.authority = Mock(return_value=nullcontext())
+        queue = Mock(return_value=None)
+        with patch.dict(sys.modules, {'reader_handoff':SimpleNamespace(queue=queue)}):
+            self.assertIsNone(Naming.scan(self.naming,self.folder,self.job))
+        queue.assert_called_once_with(self.worker, 'library_scan', [dict(source=str(self.target), target=str(self.target),
+            match={'issueid':'1','comicid':'2'})], folder=self.target.parent)
+        self.assertNotIn('scan_at', self.job)
+        self.worker.reader.call.assert_not_called()
+
+    def test_reader_calls_are_refused_under_writer_before_receipt_transition(self):
+        from media_writer import Writer
+        with Writer(self.root/'writer').hold():
+            with self.assertRaises(Unavailable):self.naming.advance(self.folder)
+        self.assertEqual(json.loads((self.folder/'receipt.json').read_text())['phase'],'prepared')
+        self.naming.api.assert_not_called();self.worker.reader.call.assert_not_called()
+
+    def test_publication_requires_exact_target_owner_before_confirmation(self):
+        from contextlib import nullcontext
+        authority = Mock();authority.target_match.return_value = {'issueid':'9','comicid':'2'}
+        self.naming.authority = Mock(return_value=nullcontext(authority))
+        with self.assertRaises(ValueError):Naming.publication(self.naming,self.source,self.request)
+        authority.confirmation_check.assert_not_called()
+        authority.target_match.return_value = {'issueid':'1','comicid':'2'}
+        expected = {'current':'complete-census-and-source'};authority.confirmation_check.return_value = expected
+        self.assertEqual(Naming.publication(self.naming,self.source,self.request), expected)
+        authority.confirmation_check.assert_called_once_with(self.source,self.source,{'issueid':'1','comicid':'2'})
+
+    def test_catalog_maps_native_paths_before_source_admission(self):
+        import sqlite3
+        from contextlib import closing
+        with closing(sqlite3.connect(self.root/'mylar.db')) as db:
+            db.executescript("CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);"
+                             "CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Location TEXT,Status TEXT);"
+                             "CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,Location TEXT,Status TEXT,Deleted INTEGER);")
+            db.execute('INSERT INTO comics VALUES (?,?)',('2','/native/comics'))
+            db.execute('INSERT INTO issues VALUES (?,?,?,?)',('1','2',self.source.name,'Downloaded'))
+            db.commit()
+        authority = Mock();authority.mapped.return_value = self.source
+        result = self.naming.catalog_rows(authority)
+        self.assertEqual(result, {'issues:1':dict(issueid='1',comicid='2',source=str(self.source))})
+        authority.mapped.assert_called_once_with('/native/comics/'+self.source.name)
+
+    def test_reader_catalog_bounds_and_false_protocol_do_not_truncate_proof(self):
+        from naming_worker import all_books
+        self.worker.reader.call.return_value = dict(content=[],last='false')
+        with self.assertRaises(ValueError):all_books(self.worker.reader)
+        self.worker.reader.call.return_value = dict(content=[{}]*501,last=True)
+        with self.assertRaises(ValueError):all_books(self.worker.reader)
+
+    def test_foreign_native_status_keeps_uncertain_attempt_and_originals(self):
+        self.job['phase'] = 'native-uncertain';save(self.folder/'receipt.json',self.job)
+        self.naming.api.return_value = dict(version=1,key='f'*64,phase='committed')
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.assertEqual(json.loads((self.folder/'receipt.json').read_text())['phase'],'native-uncertain')
+        self.assertTrue((self.folder/'original.cbz').exists())
+
+    def test_replacing_prepared_proof_without_its_original_binding_is_held(self):
+        self.job.update(publication={'census':'old'}, preservation_facts=self.naming.copies(self.folder,self.request))
+        self.job['preparation_binding'] = self.naming.preparation_binding(self.job)
+        self.job['publication'] = {'census':'new'}
+        save(self.folder/'receipt.json',self.job)
+        self.naming.publication.return_value = {'census':'new'}
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.naming.publication.assert_not_called();self.naming.api.assert_not_called()
+        self.assertTrue((self.folder/'restore.cbz').exists())
+
+    def test_legacy_publication_fields_without_preparation_binding_remain_held(self):
+        self.job['publication'] = {'census':'old'};save(self.folder/'receipt.json',self.job)
+        with self.assertRaises(ValueError):self.naming.advance(self.folder)
+        self.naming.api.assert_not_called()
 
 
 if __name__ == '__main__':unittest.main()

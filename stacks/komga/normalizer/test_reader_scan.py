@@ -40,6 +40,10 @@ class ScanTest(unittest.TestCase):
             'writer_state':str(self.root/'writer'), 'mylar':{'config_dir':str(self.mylar)}},
             roots=[self.media], state=self.state, jobs=self.jobs, reader=SimpleNamespace(call=Mock(side_effect=request)))
         self.scan = ScanBatch(self.worker, clock=lambda:self.now)
+        # These legacy batching vectors do not initialize publication authority.
+        self.coordination_policy = patch('reader_scan.policy', side_effect=lambda config:policy(dict(config, writer_state=str(self.root/'writer'))))
+        self.coordination_policy.start(); self.addCleanup(self.coordination_policy.stop)
+        self.worker.config['writer_state'] = None
 
     def cycle(self, advance=0):
         self.now += advance

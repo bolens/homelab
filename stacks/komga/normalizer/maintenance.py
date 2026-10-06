@@ -12,6 +12,7 @@ import sqlite3
 import stat
 import subprocess
 import time
+import threading
 import zipfile
 from pdf_conversion import Pending as PDFPending
 
@@ -44,6 +45,8 @@ def release_key(value):
 
 def scoped_file(path, roots):
     """Reject links in every component, including links inside a mounted root."""
+    if not path.is_absolute() or '..' in path.parts:
+        return False
     for root in roots:
         if path.is_relative_to(root):
             current = path
@@ -112,11 +115,42 @@ class Maintenance:
     def prepare(self):
         from publication_guard import NativeBatch
         values = {}
+        self.reader_snapshot=None
         if time.time() - self.last_run >= self.settings.get('interval_seconds',300):
             for command in ('getHealth','workflowCommands',*(['packWork'] if self.settings.get('pack_import',False) else [])):
                 try:values[command] = self.mylar(command)
                 except Exception:values[command] = None
+            if self.worker.config.get('writer_state') is not None:
+                from publication_guard import remote_unlocked,evidence,Unavailable
+                remote_unlocked(self.worker)
+                snapshot=getattr(self.worker,'reader_snapshot',None)
+                if snapshot is None:
+                    books=self.worker.reader.books()
+                    if not isinstance(books,dict) or len(books)>evidence.CATALOG_ROWS:
+                        raise Unavailable('Maintenance reader observation exceeds bounds')
+                    books={key:{name:row.get(name) for name in ('id','seriesId','media','readProgress')}
+                           for key,row in books.items()}
+                    raw=evidence.compact(books)
+                    if len(raw)>evidence.CATALOG_BYTES:
+                        raise Unavailable('Maintenance reader observation exceeds bounds')
+                    snapshot=(threading.get_ident(),time.monotonic(),raw)
+                self.reader_snapshot=snapshot
         return NativeBatch(self.worker,values)
+
+    def reader_books(self):
+        if self.worker.config.get('writer_state') is None:
+            return self.worker.reader.books()
+        from publication_guard import current,evidence,Unavailable
+        current(self.worker)
+        snapshot=getattr(self,'reader_snapshot',None)
+        if (not isinstance(snapshot,tuple) or len(snapshot)!=3
+                or snapshot[0]!=threading.get_ident() or time.monotonic()-snapshot[1]>120
+                or not isinstance(snapshot[2],bytes) or len(snapshot[2])>evidence.CATALOG_BYTES):
+            raise Unavailable('Owned current maintenance reader snapshot required')
+        books=evidence.decode_json(snapshot[2])
+        if not isinstance(books,dict) or len(books)>evidence.CATALOG_ROWS:
+            raise Unavailable('Maintenance reader observation exceeds bounds')
+        return books
 
     def dispatch(self):
         from import_recovery import dispatch_prepared
@@ -204,6 +238,9 @@ class Maintenance:
         return {Path(name).name for row in rows for name in row if name}
 
     def quarantine(self, path, fingerprint):
+        if self.worker.config.get('writer_state') is not None:
+            from publication_guard import Unavailable
+            raise Unavailable('Corrupt archive needs reviewed owned quarantine evidence')
         if not scoped_file(path, self.roots) or identity(path) != fingerprint:
             raise RuntimeError('Archive changed before quarantine')
         checksum = digest(path)
@@ -242,6 +279,9 @@ class Maintenance:
         self.finish_quarantine(receipt, row)
 
     def finish_quarantine(self, receipt, row):
+        if self.worker.config.get('writer_state') is not None:
+            from publication_guard import Unavailable
+            raise Unavailable('Legacy quarantine cannot replay in coordinated publication mode')
         path = Path(row['source'])
         if digest(Path(row['destination'])) != row['sha256']:
             raise RuntimeError('Quarantine recovery copy changed')
@@ -262,9 +302,56 @@ class Maintenance:
             row['phase'] = 'retry_queued' if response['mode'] == 'retry' else 'retry_stopped'
             save(receipt, row)
 
+    def duplicate_proof(self, source, target, *, expected=None):
+        from publication_guard import current, evidence, Unavailable
+        if self.worker.config.get('writer_state') is None:
+            return None
+        value = current(self.worker).cleanup_check(source,target,
+            match=expected['match'] if expected else None)
+        if expected is not None and not evidence.same_json(value,expected):
+            raise Unavailable('Duplicate cleanup proof changed; source retained')
+        return value
+
+    def duplicate_receipt(self, receipt):
+        from import_recovery import handoff_read
+        if not receipt.exists() and not receipt.is_symlink():
+            return None
+        if self.worker.config.get('writer_state') is not None:
+            record,signature=handoff_read(receipt)
+            from publication_guard import evidence, Unavailable
+            required={'kind','source','destination','sha256','destination_sha256','phase','pages',
+                      'publication','retained_original','binding'}
+            if (not isinstance(record,dict) or set(record)!=required or record['kind']!='duplicate'
+                    or record['phase'] not in ('verified','removed')
+                    or type(record['pages']) is not int or record['pages']<=0
+                    or not isinstance(record['source'],str) or not isinstance(record['sha256'],str)
+                    or hashlib.sha256(os.fsencode(record['source'])+record['sha256'].encode()).hexdigest()!=receipt.stem
+                    or evidence.canonical_digest({key:record[key] for key in sorted(required-{'phase','binding'})})!=record['binding']):
+                raise Unavailable('Duplicate receipt immutable plan changed')
+            return record,signature
+        if receipt.is_symlink():
+            raise RuntimeError('Linked duplicate receipt; source retained')
+        return json.loads(receipt.read_text()), None
+
+    def save_duplicate(self, receipt, row, previous=None):
+        from publication_guard import evidence
+        from import_recovery import handoff_save
+        if self.worker.config.get('writer_state') is not None:
+            body={key:value for key,value in row.items() if key not in ('phase','binding')}
+            # Bind every immutable fact while allowing only the phase to advance.
+            row['binding']=evidence.canonical_digest({key:body[key] for key in sorted(body)})
+            return handoff_save(receipt,row,expected=previous)
+        if previous is not None and not evidence.same_json(json.loads(receipt.read_text()),previous[0]):
+            raise RuntimeError('Duplicate receipt changed; source retained')
+        if previous is None and (receipt.exists() or receipt.is_symlink()):
+            raise RuntimeError('Prior duplicate receipt must not be replaced')
+        save(receipt,row)
+
     def remove_duplicate(self, source, target):
+        from publication_guard import evidence
         if not scoped_file(source, self.roots) or not scoped_file(target, self.worker.roots):
             raise RuntimeError('Cleanup path is outside its scope or linked')
+        proof = self.duplicate_proof(source,target)
         source_id, target_id = identity(source), identity(target)
         original, current = self.info(source), self.info(target)
         metadata_changed = not preserves(original, current)
@@ -297,30 +384,57 @@ class Maintenance:
         row = {'kind': 'duplicate', 'source': str(source), 'destination': str(target),
                'sha256': source_hash, 'destination_sha256': target_hash, 'phase': 'verified',
                'pages': original['page_count']}
-        if metadata_changed:
-            row['retained_original'] = str(self.retain_original(source, source_id, source_hash, job_id))
-        save(receipt, row)
+        if proof is not None:
+            row['publication'] = proof
+        previous = self.duplicate_receipt(receipt)
+        if previous is not None:
+            # A prior proof, terminal result or legacy receipt is never refreshed
+            # into a new authorization simply because the source still exists.
+            expected = dict(previous[0]); expected.pop('retained_original',None); expected.pop('binding',None)
+            from publication_guard import evidence
+            if not evidence.same_json(expected,row):
+                raise RuntimeError('Prior duplicate proof differs; source retained')
+        self.duplicate_proof(source,target,expected=proof)
+        if metadata_changed or proof is not None:
+            row['retained_original'] = str(self.retain_original(source, source_id, source_hash, job_id,
+                check=lambda:self.duplicate_proof(source,target,expected=proof)))
+        self.duplicate_proof(source,target,expected=proof)
+        if previous is None:
+            self.save_duplicate(receipt,row)
+        elif not evidence.same_json({key:value for key,value in previous[0].items() if key!='binding'},row):
+            raise RuntimeError('Retained original proof differs; source retained')
+        prepared = self.duplicate_receipt(receipt)
         if not self.idle():
             return False
         if (not scoped_file(source, self.roots) or not scoped_file(target, self.worker.roots)
                 or identity(source) != source_id or identity(target) != target_id
                 or digest(source) != source_hash or digest(target) != target_hash
-                or (metadata_changed and (Path(row['retained_original']).is_symlink()
+                or ((metadata_changed or proof is not None) and (Path(row['retained_original']).is_symlink()
                     or any(p.is_symlink() for p in Path(row['retained_original']).parents)
                     or digest(Path(row['retained_original'])) != source_hash))):
             raise RuntimeError('File changed before cleanup; source retained')
+        if proof is not None:
+            self.private_original(Path(row['retained_original']),source_hash)
+        self.duplicate_proof(source,target,expected=proof)
+        fresh_receipt=self.duplicate_receipt(receipt)
+        from publication_guard import evidence
+        if (fresh_receipt is None or fresh_receipt[1]!=prepared[1]
+                or not evidence.same_json(fresh_receipt[0],prepared[0])):
+            raise RuntimeError('Duplicate receipt changed before cleanup')
         source.unlink()
         sync_directory(source.parent)
         row['phase'] = 'removed'
-        save(receipt, row)
+        self.save_duplicate(receipt,row,prepared)
         try:
-            source.parent.rmdir()
+            if source.parent not in self.roots:
+                source.parent.rmdir()
         except OSError:
             pass
         return True
 
-    def retain_original(self, source, fingerprint, checksum, job_id):
+    def retain_original(self, source, fingerprint, checksum, job_id, check=lambda:None):
         """Retain exact pre-tagging archive bytes; failed copies never authorize cleanup."""
+        check()
         folder = self.state / 'retained-originals' / job_id
         if any(path.is_symlink() for path in (folder, folder.parent)):
             raise RuntimeError('Original retention path is linked; source retained')
@@ -341,8 +455,10 @@ class Maintenance:
                         or previous.st_uid != os.geteuid() or stat.S_IMODE(previous.st_mode) != 0o600
                         or identity(source) != fingerprint or digest(source) != checksum):
                     raise RuntimeError('Interrupted original copy is unsafe; source retained')
+                check()
                 temporary.unlink()
                 sync_directory(folder)
+            check()
             with source.open('rb') as src, temporary.open('xb') as dst:
                 os.chmod(temporary, 0o600)
                 shutil.copyfileobj(src, dst, 1024**2)
@@ -350,16 +466,36 @@ class Maintenance:
                 os.fsync(dst.fileno())
             if digest(temporary) != checksum:
                 raise RuntimeError('Original retention copy differs; source retained')
+            check()
             os.link(temporary, destination)
+            check()
             temporary.unlink()
             sync_directory(folder)
         if (not destination.is_file() or digest(destination) != checksum
                 or identity(source) != fingerprint or digest(source) != checksum):
             raise RuntimeError('Original retention verification failed; source retained')
+        check()
         return destination
+
+    def private_original(self, path, checksum):
+        from publication_guard import evidence, Unavailable
+        if not scoped_file(path,[self.state/'retained-originals']):
+            raise Unavailable('Retained original is outside private scope')
+        with evidence.regular(path) as stream:
+            before=evidence.signature(os.fstat(stream.fileno()))
+            if (before[6]!=os.geteuid() or before[8]!=1 or stat.S_IMODE(before[5])!=0o600):
+                raise Unavailable('Retained original is not private and exclusive')
+        signature,sha=evidence.file_hash(path)
+        if signature!=before or sha!=checksum:
+            raise Unavailable('Retained original changed')
 
     def reconcile_retained_duplicate(self, receipt, row):
         """Finish a proven cleanup if acknowledgement was interrupted after unlink."""
+        previous = self.duplicate_receipt(receipt)
+        from publication_guard import evidence
+        if (previous is None or not evidence.same_json(previous[0],row)
+                or row.get('kind')!='duplicate' or row.get('phase') != 'verified'):
+            return False
         source, target, original = (Path(row[key]) for key in ('source', 'destination', 'retained_original'))
         if (source.exists() or source.is_symlink() or not source.is_absolute()
                 or '..' in source.parts or not any(source.is_relative_to(root) for root in self.roots)
@@ -369,8 +505,27 @@ class Maintenance:
                 or digest(original) != row['sha256']
                 or digest(target) != row['destination_sha256']):
             return False
-        row['phase'] = 'removed'
-        save(receipt, row)
+        if self.worker.config.get('writer_state') is not None:
+            from publication_guard import current, evidence, Unavailable
+            expected = row.get('publication')
+            if not isinstance(expected,dict):
+                raise Unavailable('Legacy cleanup has no owned publication proof')
+            self.private_original(original,row['sha256'])
+            fresh = current(self.worker).cleanup_check(original,target,match=expected['match'])
+            # Only the retained witness path/inode differs after unlink. Its
+            # bytes, payload, census, owner and complete target proof must match.
+            observed = fresh['confirmation']['source']
+            historical = expected['confirmation']['source']
+            observed['source'] = historical['source']
+            observed['inventory']['source_signature'] = historical['inventory']['source_signature']
+            if not evidence.same_json(fresh,expected):
+                raise Unavailable('Interrupted cleanup proof changed; retained')
+        if (source.exists() or source.is_symlink() or digest(original)!=row['sha256']
+                or digest(target)!=row['destination_sha256']):
+            return False
+        complete = dict(row,phase='removed')
+        self.save_duplicate(receipt,complete,previous)
+        row.update(complete)
         return True
 
     def conversion_identities(self, paths):
@@ -481,7 +636,7 @@ class Maintenance:
                     problems.append({'name': Path(row['source']).name, 'kind': 'quarantine_resolved' if resolved else 'retry_unconfirmed' if row['phase']=='retry_unconfirmed' else 'quarantine',
                                      'phase': row['phase'], 'issueid': match.get('issueid', ''), 'comicid': match.get('comicid', '')})
             protected_ddl = self.pending_ddl_names()
-            books = self.worker.reader.books()
+            books = self.reader_books()
             candidates = {}
             for name, book in books.items():
                 path = Path(name)
@@ -507,6 +662,7 @@ class Maintenance:
                         continue
                     if now - since < self.settings.get('settle_seconds', 600):
                         continue
+                    problem_start=len(problems)
                     try:
                         self.info(path)
                         for target in ([] if path.suffix.lower() == '.pdf' else candidates.get(name_key(path.stem), [])):
@@ -538,16 +694,27 @@ class Maintenance:
                     except PDFPending:
                         problems.append({'name': path.name, 'kind': 'pdf_rendering'})
                     except CorruptArchive:
-                        self.quarantine(path, fingerprint)
-                        problems.append({'name': path.name, 'kind': 'quarantine'})
+                        if self.worker.config.get('writer_state') is not None:
+                            problems.append({'name':path.name,'kind':'validation'})
+                            warnings.append('Corrupt archive retained for owned review')
+                        else:
+                            self.quarantine(path, fingerprint)
+                            problems.append({'name': path.name, 'kind': 'quarantine'})
                     except (ValueError, FileNotFoundError):
                         warnings.append('Retained for review: ' + str(path))
                         problems.append({'name': path.name, 'kind': 'validation'})
                     except Exception:
                         errors.append('Maintenance failed for ' + str(path))
                         problems.append({'name': path.name, 'kind': 'failed'})
+                    finally:
+                        if self.worker.config.get('writer_state') is not None:
+                            for row in problems[problem_start:]:row['_source']=str(path)
             extra = {'guidance': json.dumps(guidance.proposals)} if guidance.available else {}
-            self.mylar('reportImportProblems', report=json.dumps(problems[:500]), processing=json.dumps(self.conversion_report()), **extra)
+            if self.worker.config.get('writer_state') is not None:
+                from maintenance_report import prepare
+                prepare(self,problems[:500],self.conversion_report(),guidance.proposals if guidance.available else [])
+            else:
+                self.mylar('reportImportProblems', report=json.dumps(problems[:500]), processing=json.dumps(self.conversion_report()), **extra)
             save(status, {'checked_at': time.time(), 'state': 'checked', 'errors': errors, 'warnings': warnings})
         except Exception:
             save(status, {'checked_at': time.time(), 'state': 'failed',

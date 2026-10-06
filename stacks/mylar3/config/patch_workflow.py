@@ -101,18 +101,47 @@ def server(source):
     ast.parse(source);return source
 
 
+def workflow_commands(source):
+    """Extend only the module's literal API dispatch whitelist."""
+    nodes=[node for node in ast.parse(source).body if isinstance(node,ast.Assign)
+           and any(isinstance(target,ast.Name) and target.id=='cmd_list' for target in node.targets)]
+    if (len(nodes)!=1 or len(nodes[0].targets)!=1 or not isinstance(nodes[0].value,ast.List)
+            or any(not isinstance(item,ast.Constant) or not isinstance(item.value,str)
+                   for item in nodes[0].value.elts)):
+        raise ValueError('Expected one literal API command whitelist')
+    entries=nodes[0].value.elts;names=[item.value for item in entries]
+    if len(set(names))!=len(names) or names.count('reportImportProblems')!=1:
+        raise ValueError('API command whitelist changed')
+    added=('workflowCommands','workflowAcknowledge')
+    present=[name in names for name in added]
+    if all(present):return source
+    if any(present):raise ValueError('Incomplete workflow command whitelist')
+    anchor=entries[names.index('reportImportProblems')]
+    # AST columns count UTF-8 bytes, including on non-ASCII upstream lines.
+    lines=source.splitlines(keepends=True)
+    raw=lines[anchor.end_lineno-1].encode('utf-8')
+    lines[anchor.end_lineno-1]=(raw[:anchor.end_col_offset]
+        +b", 'workflowCommands', 'workflowAcknowledge'"+raw[anchor.end_col_offset:]).decode('utf-8')
+    result=''.join(lines);ast.parse(result);return result
+
+
 def api(source):
+    source=workflow_commands(source)
     if MARKER in source:
         old="            result = workflow_web.acknowledge(kwargs.get('command_id'), kwargs.get('phase'), kwargs.get('reason', ''))"
         new="            from mylar import worker_handoff\n            worker_handoff.admit(kwargs.get('maintenance_handoff'), 'workflowAcknowledge', {key: kwargs.get(key, '') for key in ('command_id', 'phase', 'reason', 'command_binding')})\n"+old
-        if old in source and 'worker_handoff.admit' not in source:source=replace_once(source,old,new)
+        handlers=[node for node in ast.walk(ast.parse(source)) if isinstance(node,ast.FunctionDef)
+                  and node.name=='_workflowAcknowledge']
+        if len(handlers)!=1:raise ValueError('Expected one workflow acknowledgement endpoint')
+        guarded=any(isinstance(node,ast.Call) and ast.unparse(node.func)=='worker_handoff.admit'
+                    for node in ast.walk(handlers[0]))
+        if old in source and not guarded:source=replace_once(source,old,new)
         ast.parse(source)
         return source
     source='from mylar import workflow\n'+source
     source=replace_once(source,'    def _forceProcess(self, **kwargs):','    @workflow.force_process\n    def _forceProcess(self, **kwargs):')
     source=replace_once(source,"            mylar.PP_QUEUE.put({'nzb_name':    self.nzb_name,", "            workflow.processing_put(mylar.PP_QUEUE, {'nzb_name':    self.nzb_name,")
     source=replace_once(source,"                                'download_info': None})", "                                'download_info': None}, kwargs.get('workflow_command'))")
-    source=replace_once(source,"'reportImportProblems',", "'reportImportProblems', 'workflowCommands', 'workflowAcknowledge',")
     source=replace_once(source,'    def _getHealth(self, **kwargs):','''    # homelab-workflow-v1
     def _workflowCommands(self, **kwargs):
         if not mylar.CONFIG.API_ENABLED or self.apikey != mylar.CONFIG.API_KEY:

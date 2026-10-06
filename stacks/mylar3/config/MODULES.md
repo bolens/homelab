@@ -23,6 +23,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Authenticated publication registration and advisory protocol | `patch_publication_guard.py` | `publication_api.py`, `publication_guard.py`, `test_publication_api.py`; follows writer, workflow and naming helper installation |
 | Native payload admission and retained postprocessing review | `patch_publication_processing.py` (invoked by `patch_publication_guard.py`) | `publication_native.py`, `processing_guard.py`, `pp_monitor.py`, `test_publication_native.py`; checked actual native processing and acknowledgement branches |
 | Owned tagging publication and terminal evidence | `patch_publication_guard.py` | `publication_transaction.py`, `tagger_backend.py`, `tagger_native.py`, `tagger_service.py`, `tagger_pack.py`, `tagger_nfs.py`, `test_publication_tagging.py`; internal typed coordination, retained review and exact terminal completion |
+| Owned release rename and root metadata | `patch_publication_guard.py` | `publication_rename.py`, `release_naming.py`, `tagger_supplement.py`, `publication_transaction.py`; `test_publication_rename.py`, `test_publication_maintenance.py`; immutable source/owner/census checkpoints and retained interruption holds |
 | Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; last adapter after the authenticated publication API |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
@@ -30,7 +31,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | DDL progress | `patch_queue_progress.py` | `queue_progress.py`, `test_queue_progress.py` |
 | DDL release labels | `patch_queue_labels.py` | `test_queue_progress.py`; follows queue ordering, retains linked issue identity |
 | Queue policy and execution ordering | `patch_ddl_schedule.py` | `ddl_schedule.py`, `test_queue_schedule.py` |
-| Queue diagnostics and import problems | `patch_queue_views.py` | `import_problems.py`, `test_queue_views.py` |
+| Queue diagnostics and import problems | `patch_queue_views.py` | `import_problems.py`, `worker_handoff.py`, `test_queue_views.py`, `test_worker_reports.py`; typed fresh diagnostic reports admitted before writes |
 | Cooldown search fallback | `patch_search_cooldown.py` | `test_search_cooldown.py`, `test_search_fallback.py` |
 | Prowlarr release identity and legacy failure isolation | `patch_prowlarr_identity.py` | `prowlarr_identity.py`, `test_prowlarr_identity.py` |
 | Post-processing ownership and annual identity | `patch_postprocessing.py` | `processing_guard.py`, `test_pack_intake.py`, `test_file_matching.py` |

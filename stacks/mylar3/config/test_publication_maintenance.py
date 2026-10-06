@@ -145,6 +145,8 @@ class FreshMaintenanceProofTests(unittest.TestCase):
     def setUp(self):
         native_cases.AdmissionTests.setUp(self)
         self.mylar.publication_native=publication_native
+        self.rename_import=patch.dict(sys.modules,{'mylar.publication_rename':rename_cases.owned})
+        self.rename_import.start();self.addCleanup(self.rename_import.stop)
 
     def test_wrong_owner_naming_retains_archive_catalog_and_workflow(self):
         self.registered();self.sql('INSERT INTO issues VALUES (?,?,?,?)',('999','888',None,'Snatched'))
@@ -169,6 +171,162 @@ class FreshMaintenanceProofTests(unittest.TestCase):
         with self.writer.hold(),self.assertRaises(publication_native.Review):
             release_naming.publication_review(self.incoming,issueid='123',comicid='456')
         self.assertEqual(self.incoming.read_bytes(),before);self.assertFalse(self.writer.fenced(release=True))
+
+
+
+
+# Genuine authority and Publisher controls for the explicitly bound combined pass.
+from contextlib import contextmanager
+import shutil
+from tagger_archive import snapshot
+import publication_guard as correction_guard
+import publication_transaction as correction_transaction
+import tagger_pack as native_pack
+import test_publication_rename as rename_cases
+import test_publication_tagging as tagging_cases
+
+
+@unittest.skipUnless((Path(native_cases.fixtures.TOOL_ROOT)/'lib/archive_backend.py').is_file(),
+                     'offline native archive verifier required')
+class PreservedSupplementTests(unittest.TestCase):
+    call=rename_cases.RenameTests.call
+    bootstrap=rename_cases.RenameTests.bootstrap
+    prepare=rename_cases.RenameTests.prepare
+    registered=rename_cases.RenameTests.registered
+    connection=rename_cases.RenameTests.connection
+
+    def setUp(self):
+        rename_cases.RenameTests.setUp(self)
+        @contextmanager
+        def operation():
+            with self.writer.hold(allow_tagger_pending=True,allow_release_pending=True):
+                self.runtime.admission(self.writer)
+                yield self.writer
+        self.runtime.operation=operation
+        self.mylar.tagger_pack=native_pack
+        self.mylar.publication_transaction=correction_transaction
+        self.mylar.publication_guard=correction_guard
+        self.mylar.release_naming=release_naming
+        aliases={'mylar.tagger_pack':native_pack,'mylar.publication_transaction':correction_transaction,
+                 'mylar.publication_guard':correction_guard,'mylar.release_naming':release_naming}
+        context=patch.dict(sys.modules,aliases);context.start();self.addCleanup(context.stop)
+        paths,_=tagging_cases.TransactionTests.recovery_state(self)
+        self.publisher=native_pack.Publisher(paths[1],self.root)
+        with zipfile.ZipFile(self.source) as archive:
+            members={name:archive.read(name) for name in archive.namelist() if name!='ComicInfo.xml'}
+        with zipfile.ZipFile(self.source,'w') as archive:
+            for name,value in members.items():archive.writestr(name,value)
+            archive.writestr('ComicInfo.xml','<ComicInfo><Series>Publication</Series><Number>1</Number></ComicInfo>')
+        copies=self.root/'combined-copies';copies.mkdir(mode=0o700)
+        self.original=copies/'original.cbz';self.restored=copies/'restore.cbz'
+        for copy in (self.original,self.restored):shutil.copy2(self.source,copy)
+        self.before=tagger_adapter.fingerprint(self.source)
+        self.policy={'AgeRating':'Teen'}
+
+    def apply(self):
+        return tagger_supplement.apply_preserved(self.source,self.policy,self.writer,self.publisher,
+            self.original,self.restored,self.before,'a'*32)
+
+    def test_unknown_current_owner_root_metadata_pass_preserves_exact_payload_and_pair(self):
+        from tagger_archive import snapshot
+        old=snapshot(self.source)
+        result=self.apply();new=snapshot(self.source)
+        self.assertEqual(result['state'],'committed');self.assertTrue(result['payloads_verified'])
+        self.assertNotEqual(result['before'],result['after'])
+        self.assertEqual((old.members,old.attributes,old.mode,old.uid,old.gid),
+                         (new.members,new.attributes,new.mode,new.uid,new.gid))
+        for copy in (self.original,self.restored):self.assertEqual(tagger_adapter.fingerprint(copy),self.before)
+        self.assertFalse(self.writer.fenced(tagger=True));self.assertFalse(correction_transaction.present(self.writer))
+        self.assertEqual(correction_guard.private_json(self.publisher.receipt('a'*32))['state'],'committed')
+
+    def test_registered_allowed_metadata_pass_keeps_correction_census_and_members(self):
+        prepared=self.prepare(self.call('status')['census']);self.call('register',token=prepared['token'])
+        census=self.call('status')['census'];self.assertEqual(self.apply()['state'],'committed')
+        self.assertEqual(self.call('status')['census'],census)
+        self.assertEqual(tagger_adapter.fingerprint(self.original),self.before)
+
+    def test_changed_or_linked_pair_prevents_producer_receipt_and_source_mutation(self):
+        self.restored.write_bytes(b'changed retained archive')
+        with self.assertRaises(publication_native.Review):self.apply()
+        self.assertEqual(tagger_adapter.fingerprint(self.source),self.before)
+        self.assertEqual(list(self.publisher.root.glob('*.json')),[])
+        self.assertFalse(self.writer.fenced(tagger=True))
+
+    def test_pair_drift_during_producer_staging_holds_and_retains_original(self):
+        def drift(point):
+            if point=='staged':self.restored.write_bytes(b'changed retained archive')
+        with patch('tagger_adapter._checkpoint',side_effect=drift),self.assertRaises(publication_native.Review):self.apply()
+        self.assertTrue(self.original.exists());self.assertTrue(correction_transaction.present(self.writer))
+        self.assertTrue(self.writer.fenced(tagger=True));self.assertEqual(tagger_adapter.fingerprint(self.source),self.before)
+
+    def test_caller_policy_drift_cannot_change_captured_supplement_output(self):
+        def drift(point):
+            if point=='staged':self.policy['AgeRating']='Mature 17+'
+        with patch('tagger_adapter._checkpoint',side_effect=drift):self.assertEqual(self.apply()['state'],'committed')
+        self.assertIn(b'<AgeRating>Teen</AgeRating>',snapshot(self.source).xml)
+        self.assertTrue(self.original.exists());self.assertTrue(self.restored.exists())
+        self.assertFalse(correction_transaction.present(self.writer))
+
+    def test_catalog_status_drift_before_exchange_holds_without_false_completion(self):
+        def drift(point):
+            if point=='before_exchange':
+                with self.connection() as db:db.execute('UPDATE issues SET Status=?',('Wanted',))
+        with patch('tagger_adapter._checkpoint',side_effect=drift),self.assertRaises(publication_native.Review):self.apply()
+        self.assertTrue(self.original.exists());self.assertTrue(correction_transaction.present(self.writer))
+        self.assertTrue(self.writer.fenced(tagger=True))
+
+    def test_terminal_clear_interruption_retains_pair_and_exact_native_intent(self):
+        with (patch.object(correction_transaction.Tagging,'verify_completion',side_effect=publication_native.Review('interrupted terminal proof')),
+              self.assertRaises(publication_native.Review)):self.apply()
+        self.assertTrue(self.original.exists());self.assertTrue(self.restored.exists())
+        self.assertTrue(correction_transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
+
+    def test_foreign_registered_owner_payload_is_held_before_supplement_intent(self):
+        prepared=self.prepare(self.call('status')['census']);self.call('register',token=prepared['token'])
+        with self.connection() as db:
+            db.execute('INSERT INTO comics(ComicID,ComicLocation) VALUES (?,?)',('888',str(self.library)))
+            db.execute('UPDATE issues SET ComicID=?',('888',))
+        with self.assertRaises(publication_native.Review):self.apply()
+        self.assertEqual(tagger_adapter.fingerprint(self.source),self.before)
+        self.assertFalse(correction_transaction.present(self.writer));self.assertTrue(self.original.exists())
+
+    def test_replaced_pending_fence_during_staging_is_held_without_exchange(self):
+        def drift(point):
+            if point=='staged':
+                moved=self.writer.root/'captured-pending';self.writer.tagger_pending.rename(moved)
+                self.writer.tagger_pending.write_bytes(b'foreign fence')
+        with patch('tagger_adapter._checkpoint',side_effect=drift),self.assertRaises(publication_native.Review):self.apply()
+        self.assertEqual(tagger_adapter.fingerprint(self.source),self.before)
+        self.assertTrue(correction_transaction.present(self.writer));self.assertEqual(self.writer.tagger_pending.read_bytes(),b'foreign fence')
+        self.assertTrue(self.original.exists());self.assertTrue(self.restored.exists())
+
+    def test_preservation_hardlink_is_never_accepted_as_independent_restore(self):
+        import os
+        self.restored.unlink();os.link(self.original,self.restored)
+        with self.assertRaises(publication_native.Review):self.apply()
+        self.assertEqual(tagger_adapter.fingerprint(self.source),self.before)
+        self.assertFalse(correction_transaction.present(self.writer));self.assertTrue(self.original.exists())
+
+    def test_no_additions_rechecks_current_source_before_verified_unchanged(self):
+        self.policy={};actual=tagger_supplement.snapshot
+        def changed(path,*args,**kwargs):
+            saved=actual(path,*args,**kwargs)
+            if Path(path)==self.restored:
+                with zipfile.ZipFile(self.source) as archive:
+                    members={name:archive.read(name) for name in archive.namelist()}
+                members['ComicInfo.xml']=b'<ComicInfo><Series>Publication</Series><Number>1</Number><Title>Changed</Title></ComicInfo>'
+                with zipfile.ZipFile(self.source,'w') as archive:
+                    for name,value in members.items():archive.writestr(name,value)
+            return saved
+        with patch.object(tagger_supplement,'snapshot',side_effect=changed),self.assertRaises(publication_native.Review):self.apply()
+        self.assertTrue(self.original.exists());self.assertTrue(self.restored.exists())
+        self.assertFalse(correction_transaction.present(self.writer));self.assertNotEqual(tagger_adapter.fingerprint(self.source),self.before)
+
+    def test_no_additions_verified_unchanged_has_no_publication_replay_or_fence(self):
+        self.policy={};result=self.apply()
+        self.assertEqual(result['state'],'unchanged');self.assertTrue(result['payloads_verified']);self.assertIsNone(result['token'])
+        self.assertEqual(tagger_adapter.fingerprint(self.source),self.before)
+        self.assertFalse(correction_transaction.present(self.writer));self.assertFalse(self.writer.fenced(tagger=True))
 
 
 if __name__=='__main__':unittest.main()

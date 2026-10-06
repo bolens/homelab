@@ -49,6 +49,22 @@ class CycleTest(AuthorityFixture, unittest.TestCase):
         self.maintenance.prepare.assert_called_once();self.maintenance.dispatch.assert_called_once()
         adapter.mylar.assert_not_called()
 
+    def test_reader_snapshot_is_prepared_before_writer_and_collection_has_authority(self):
+        def prepare():self.assertFalse(getattr(self.owner.local[1],'depth',0))
+        def collect():
+            self.assertEqual(current(self.worker).writer.root,self.owner.root)
+            self.assertTrue(getattr(self.owner.local[1],'depth',0));return False
+        self.worker.prepare_cycle=Mock(side_effect=prepare)
+        self.worker.scan_batch=SimpleNamespace(collect=Mock(side_effect=collect))
+        self.assertTrue(cycle(self.worker))
+        self.worker.prepare_cycle.assert_called_once();self.worker.scan_batch.collect.assert_called_once()
+
+    def test_reader_prefetch_failure_preserves_state_and_does_not_enter_cycle(self):
+        self.worker.prepare_cycle=Mock(side_effect=RuntimeError('reader unavailable'))
+        with self.assertRaises(RuntimeError):cycle(self.worker)
+        self.worker.cycle.assert_not_called();self.assertFalse(self.owner.fenced())
+        self.assertFalse((self.owner.root/'normalizer-state-v1.identity').exists())
+
     def test_missing_authority_refuses_even_prelock_remote_collection(self):
         self.marker.unlink();self.maintenance.prepare=Mock()
         with self.assertRaises(Unavailable):cycle(self.worker,self.maintenance)
@@ -251,7 +267,8 @@ class CycleTest(AuthorityFixture, unittest.TestCase):
     def test_scan_collects_under_lock_and_dispatches_after_release(self):
         def collect():
             self.assertEqual(self.owner.local[1].depth, 1)
-            self.assertFalse(self.owner.fenced())
+            self.assertTrue(self.owner.fenced())
+            self.assertEqual(current(self.worker).writer.root,self.owner.root)
             return True
         def dispatch():
             self.assertEqual(self.owner.local[1].depth, 0)

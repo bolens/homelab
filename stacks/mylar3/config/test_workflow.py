@@ -417,6 +417,8 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(value['guided_handoff'],1)
         self.assertIs(type(value['maintenance_handoff']),int)
         self.assertEqual(value['maintenance_handoff'],1)
+        self.assertIs(type(value['maintenance_reports']),int)
+        self.assertEqual(value['maintenance_reports'],1)
 
     def guided_submission(self):
         proposal=self.proposal();command=web.confirm_import(proposal['source_token'],proposal['version'],'10')
@@ -565,9 +567,10 @@ class WorkflowTest(unittest.TestCase):
 
     def test_existing_workflow_api_migrates_typed_acknowledgement_idempotently(self):
         import patch_workflow
-        original="""class Api:
+        original="""cmd_list = ['getHealth', 'reportImportProblems', 'workflowCommands', 'workflowAcknowledge']
+class Api:
     # homelab-workflow-v1
-    def acknowledge(self, **kwargs):
+    def _workflowAcknowledge(self, **kwargs):
         try:
             result = workflow_web.acknowledge(kwargs.get('command_id'), kwargs.get('phase'), kwargs.get('reason', ''))
         except ValueError:
@@ -577,6 +580,48 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(patch_workflow.api(changed),changed)
         self.assertLess(changed.index('worker_handoff.admit'),changed.index('result = workflow_web.acknowledge'))
         self.assertIn("kwargs.get('maintenance_handoff')",changed)
+
+    def test_fresh_workflow_patch_targets_whitelist_with_existing_report_guard(self):
+        import patch_workflow
+        from patch_queue_views import report_api
+        source="""cmd_list = ['getHealth', 'reportImportProblems', 'other']
+class Api:
+    def _forceProcess(self, **kwargs):
+            mylar.PP_QUEUE.put({'nzb_name':    self.nzb_name,
+                                'download_info': None})
+    def _reportImportProblems(self, **kwargs):
+        if self.apikey != mylar.CONFIG.API_KEY:
+            return
+        try:
+            result = import_problems.report(kwargs.get('report'))
+        except ValueError:
+            return
+    def _getHealth(self, **kwargs):
+        pass
+"""
+        guarded=report_api(source)
+        self.assertEqual(guarded.count("'reportImportProblems',"),2)
+        changed=patch_workflow.api(guarded)
+        self.assertEqual(patch_workflow.api(changed),changed)
+        self.assertEqual(report_api(changed),changed)
+        nodes=ast.parse(changed)
+        commands=next(node.value for node in nodes.body if isinstance(node,ast.Assign))
+        self.assertEqual(ast.literal_eval(commands),['getHealth','reportImportProblems','workflowCommands','workflowAcknowledge','other'])
+        report=next(node for node in ast.walk(nodes) if isinstance(node,ast.FunctionDef) and node.name=='_reportImportProblems')
+        body=next(node for node in report.body if isinstance(node,ast.Try)).body
+        self.assertEqual(ast.unparse(body[1].value.func),'worker_handoff.admit')
+        self.assertLess(changed.index('if self.apikey'),changed.index("'reportImportProblems', {key:"))
+        # A report guard must not hide a missing acknowledgement guard on upgrade.
+        legacy=changed.replace("            from mylar import worker_handoff\n            worker_handoff.admit(kwargs.get('maintenance_handoff'), 'workflowAcknowledge', {key: kwargs.get(key, '') for key in ('command_id', 'phase', 'reason', 'command_binding')})\n",'')
+        self.assertEqual(patch_workflow.api(legacy),changed)
+
+    def test_workflow_whitelist_rejects_ambiguous_or_partial_dispatch(self):
+        from patch_workflow import workflow_commands
+        for source in ("cmd_list = commands", "cmd_list=['reportImportProblems','reportImportProblems']",
+                       "cmd_list=['reportImportProblems','workflowCommands']",
+                       "cmd_list=['reportImportProblems']\ncmd_list=['other']",
+                       "cmd_list=['other']", "alias=cmd_list=['reportImportProblems']"):
+            with self.subTest(source=source),self.assertRaises(ValueError):workflow_commands(source)
 
     def test_native_patch_is_idempotent_and_preserves_return_contract(self):
         import patch_workflow
