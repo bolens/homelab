@@ -124,8 +124,16 @@ records the attempt, releases the lock and submits to native Mylar. Uncertain
 requests remain retained for review and are never automatically replayed. Native
 Mylar independently checks its actual stage at submission and processing time.
 Health and pending-work reads use a bounded immutable batch gathered before the
-cycle lock. Missing batch results hold that work. Guided acknowledgement, pack
-report/catalog handoff, remaining mutation paths and live acceptance are unfinished.
+cycle lock. Missing batch results hold that work. Guided imports bind the exact
+command and source version to native queue admission; a separate remote claim
+cannot leave a staged import stranded. Pack catalog requests, verification
+reports and guided acknowledgements use typed durable requests dispatched
+outside the writer. Native Mylar independently verifies shared sources, current
+catalog destinations and command bindings before recording an attempt. Lost
+responses remain review holds. Pack cleanup waits for its acknowledged report,
+and delayed reports cannot erase verified members. Extras placement rejects
+registered payloads and protected originals before changing metadata. Remaining
+mutation paths, reviewed derivative transitions and live acceptance are unfinished.
 Keep the worker held until those contracts and matching image/live acceptance
 are complete; this source change does not establish full prevention.
 

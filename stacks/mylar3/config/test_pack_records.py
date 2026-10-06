@@ -25,7 +25,8 @@ class RecordsTest(unittest.TestCase):
         self.root=Path(temp.name);self.library=self.root/'library';self.library.mkdir()
         self.store=Store(self.root)
         self.workflow=SimpleNamespace(store=lambda:self.store,policy=lambda:{'pack_automation':True},emit=Mock())
-        self.mylar=SimpleNamespace(workflow=self.workflow,CONFIG=SimpleNamespace(DESTINATION_DIR=str(self.library)))
+        self.mylar=SimpleNamespace(workflow=self.workflow,CONFIG=SimpleNamespace(DESTINATION_DIR=str(self.library)),
+                                  worker_handoff=SimpleNamespace(admit=Mock(return_value=None)))
         self.modules=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.workflow_store':sys.modules['workflow_store']})
         self.modules.start();self.addCleanup(self.modules.stop)
         self.module=load('pack_intake')
@@ -175,6 +176,22 @@ class RecordsTest(unittest.TestCase):
         target.write_bytes(b'replaced')
         self.assertFalse(self.module.snapshot()[0]['complete'])
         self.assertIn('review',self.module.evidence()['1'][0])
+
+    def test_delayed_reports_cannot_erase_members_or_cleanup_or_verified_destinations(self):
+        target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
+        payload=json.loads(self.report(target));payload['cleaned_at']=1
+        self.module.report(json.dumps(payload));before=self.store.get('pack',self.key)
+        for change in ({'members':[]},{'members':[dict(payload['members'][0],phase='ready')]},
+                       {'members':[dict(payload['members'][0],phase='preserved')]},
+                       {'members':[dict(payload['members'][0],issueid='999')]},
+                       {'members':[dict(payload['members'][0],kind='supplement')]},
+                       {'members':[dict(payload['members'][0],destination_sha256='0'*64)]}):
+            with self.assertRaises(ValueError):self.module.report(json.dumps(dict(payload,**change)))
+            self.assertEqual(self.store.get('pack',self.key),before)
+        payload.pop('cleaned_at');payload['inventory_complete']=False
+        self.module.report(json.dumps(payload))
+        self.assertEqual(self.store.get('pack',self.key)['phase'],'confirmed')
+        self.assertTrue(self.store.get('pack',self.key)['cleanup_complete'])
 
     def test_report_cannot_overwrite_a_concurrent_pack_transition(self):
         target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')

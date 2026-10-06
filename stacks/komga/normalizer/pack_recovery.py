@@ -110,6 +110,10 @@ class Packs:
         self.db = Path(self.worker.config['mylar'].get('config_dir', '/mylar')) / 'mylar.db'
         self.changed = False
 
+    def report(self, value):
+        from native_handoff import report
+        return report(self.m, value)
+
     def local(self, remote):
         source = Path(remote)
         if not self.remote.is_absolute() or not source.is_relative_to(self.remote) or '..' in source.parts:
@@ -275,7 +279,8 @@ class Packs:
         rows = [r for r in rows if title(r[1]) in names and str(r[2]) == points['year']]
         if len(rows) != 1:
             return None
-        folder = Path(rows[0][3] or '')
+        from publication_guard import catalog_path
+        folder = catalog_path(self.worker,rows[0][3] or '')
         if not folder.is_absolute() or not any(folder.is_relative_to(root) for root in self.worker.roots):
             return None
         return rows[0]
@@ -285,11 +290,17 @@ class Packs:
             current = issue_state(database, matched)
             parent = database.execute('SELECT ComicLocation FROM comics WHERE ComicID=?', [matched['comicid']]).fetchone()
             if current and current[0] in ('Downloaded', 'Archived') and current[1] and parent and parent[0]:
-                path = Path(parent[0]) / current[1]
+                from publication_guard import catalog_path
+                path = catalog_path(self.worker,Path(parent[0]) / current[1])
                 return path if scoped_file(path, self.worker.roots) else None
         return None
 
     def preserve_extra(self, source, member, points, info, comicid=None):
+        authority=None
+        if self.worker.config.get('writer_state') is not None:
+            from publication_guard import current
+            authority=current(self.worker)
+            source_proof=authority.unowned_check(source)
         if comicid is None:
             parent = self.parent(points)
         else:
@@ -300,7 +311,9 @@ class Packs:
             parent = rows[0] if len(rows) == 1 else None
         if not parent:
             raise ValueError('Related series is not uniquely established')
-        folder = Path(parent[3]).with_name(Path(parent[3]).name + ' - Extras')
+        from publication_guard import catalog_path
+        parent_path=catalog_path(self.worker,parent[3])
+        folder = parent_path.with_name(parent_path.name + ' - Extras')
         if folder.is_symlink() or any(p.is_symlink() for p in folder.parents):
             raise ValueError('Linked supplement destination')
         # The configured library must still be mounted; never make a replacement root.
@@ -318,7 +331,7 @@ class Packs:
             root = ET.Element('ComicInfo')
             for key, value in meta.items():
                 ET.SubElement(root, key).text = value
-            with zipfile.ZipFile(source) as original, zipfile.ZipFile(temporary, 'w', compression=zipfile.ZIP_DEFLATED) as output:
+            with zipfile.ZipFile(source) as original, zipfile.ZipFile(temporary, 'x', compression=zipfile.ZIP_DEFLATED) as output:
                 for entry in original.infolist():
                     if Path(entry.filename).name.lower() != 'comicinfo.xml':
                         with original.open(entry) as reader, output.open(entry, 'w') as writer:
@@ -328,12 +341,25 @@ class Packs:
                 raise ValueError('Supplement preservation failed')
             with temporary.open('rb') as stream:
                 os.fsync(stream.fileno())
+            if authority is not None:
+                from publication_guard import evidence,Unavailable
+                if not evidence.same_json(source_proof,authority.unowned_check(source)):
+                    raise Unavailable('Supplement source or authority changed')
+                candidate=authority.unowned_check(temporary)
+                if candidate['inventory']['payload']!=source_proof['inventory']['payload']:
+                    raise Unavailable('Supplement member bytes changed')
             os.link(temporary, target)
             temporary.unlink()
             sync_directory(folder)
             self.changed = True
         if not preserves(info, self.m.info(target), metadata_changed=True):
             raise ValueError('Existing supplement differs')
+        if authority is not None:
+            from publication_guard import evidence,Unavailable
+            target_proof=authority.unowned_check(target)
+            if (not evidence.same_json(source_proof,authority.unowned_check(source))
+                    or target_proof['inventory']['payload']!=source_proof['inventory']['payload']):
+                raise Unavailable('Supplement publication no longer matches source')
         member.update(kind='supplement', phase='preserved', comicid=str(parent[0]), destination=str(target),
                       destination_sha256=digest(target), destination_identity=identity(target), reason='Related supplement preserved')
 
@@ -388,7 +414,12 @@ class Packs:
             parent = self.parent(points)
             if parent:
                 points['parentid'] = str(parent[0])
-            result = self.m.mylar('packCatalog', evidence=json.dumps(points))
+            from native_handoff import request, guard
+            result = request(self.m,'packCatalog',{'evidence':json.dumps(points),
+                'catalog_attempt':str(previous.get('attempts',0)+1)},[guard(prepared)])
+            if result is None:
+                member.update(phase='discovered',reason='Catalog handoff prepared; original retained')
+                return
             member['catalog_result'] = result
             if result.get('phase') == 'ready':
                 matched = {k: result[k] for k in ('issueid', 'comicid')}
@@ -485,12 +516,16 @@ class Packs:
                     raise ValueError('Cleanup source exceeds limits')
                 if path.is_symlink() or (path.is_file() and path not in owned):
                     raise ValueError('Pack contains uninventoried sources before cleanup')
-        value['cleanup_verified_at'] = time.time()
+        value.setdefault('cleanup_verified_at', time.time())
         save(receipt, value)
         # Publish the cleanup intent before removing any source, so native
         # discovery cannot interpret interrupted cleanup as a new delivery.
-        self.m.mylar('packReport', report=json.dumps(dict(value, members=[
-            {k: v for k, v in m.items() if k != 'original_metadata'} for m in value['members']])))
+        result=self.report(dict(value, members=[
+            {k: v for k, v in m.items() if k != 'original_metadata'} for m in value['members']]))
+        if self.worker.config.get('writer_state') is not None and (
+                not isinstance(result,dict) or result.get('phase')!='confirmed'
+                or type(result.get('recorded')) is not int or result['recorded']!=len(value['members'])):
+            return  # Native cleanup intent must be durably acknowledged first.
         for member in value['members']:
             source = Path(member['source'])
             if source.exists() and (scoped_file(source, self.m.roots) or scoped_file(source, [receipt.parent / 'extracted'])):
@@ -531,7 +566,7 @@ class Packs:
                 # Mylar rechecks the stored destination hashes before refreshing
                 # stale signatures. Rejected proofs retain the original history.
                 try:
-                    self.m.mylar('packReport', report=json.dumps(dict(record, cleaned_at=time.time())))
+                    self.report(dict(record, cleaned_at=time.time()))
                 except Exception:
                     pass
                 continue
@@ -548,11 +583,11 @@ class Packs:
                     save(receipt, value)
                     if self.m.import_submitted:
                         break
-                self.m.mylar('packReport', report=json.dumps(dict(value, members=[{k: v for k, v in m.items() if k != 'original_metadata'} for m in value['members']])))
+                self.report(dict(value, members=[{k: v for k, v in m.items() if k != 'original_metadata'} for m in value['members']]))
                 if not value.get('cleaned_at'):
                     self.cleanup(receipt, value)
                     if value.get('cleaned_at'):
-                        self.m.mylar('packReport', report=json.dumps(dict(value, members=[{k: v for k, v in m.items() if k != 'original_metadata'} for m in value['members']])))
+                        self.report(dict(value, members=[{k: v for k, v in m.items() if k != 'original_metadata'} for m in value['members']]))
             except PDFPending:
                 continue
             except Exception:
@@ -564,7 +599,7 @@ class Packs:
                            'members': [{'id': hashlib.sha256((record['id'] + ':failure').encode()).hexdigest(),
                                         'name': record['name'], 'kind': 'review', 'phase': 'review',
                                         'reason': 'Pack inventory or report failed; source retained'}]}
-                self.m.mylar('packReport', report=json.dumps(failure))
+                self.report(failure)
                 continue
             if self.m.import_submitted:
                 break

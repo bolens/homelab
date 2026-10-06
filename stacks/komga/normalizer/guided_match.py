@@ -153,11 +153,33 @@ class Guided:
         return {'source_token': token, 'version': version}
 
     def acknowledge(self, file, record, phase, reason=''):
+        if self.m.worker.config.get('writer_state') is not None:
+            from native_handoff import request,guard
+            guards=[]
+            if phase=='confirmed':
+                if not self.confirmed(record):raise ValueError('Guided confirmation needs current receipt')
+                database=Path(self.m.worker.config['mylar']['config_dir'])/'mylar.db'
+                with closing(sqlite3.connect(database.as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
+                    current=issue_state(db,record)
+                    parent=db.execute('SELECT ComicLocation FROM comics WHERE ComicID=?',(record['comicid'],)).fetchone()
+                if not current or not parent or current[0]!='Downloaded':raise ValueError('Guided target changed')
+                target=Path(current[1]) if Path(current[1]).is_absolute() else Path(parent[0])/current[1]
+                from publication_guard import catalog_path
+                target=catalog_path(self.m.worker,target)
+                guards=[guard(target,{key:record[key] for key in ('issueid','comicid')},target)]
+            binding={key:record[key] for key in ('id','source_token','version','issueid','comicid')}
+            result=request(self.m,'workflowAcknowledge',dict(command_id=record['id'],phase=phase,
+                reason=reason,command_binding=json.dumps(binding)),guards)
+            if result is None:return False
+            if (not isinstance(result,dict) or result.get('id')!=record['id'] or result.get('phase')!=phase):
+                raise ValueError('Guided acknowledgement did not confirm the exact command')
         if phase == 'submitted' and 'submitted_at' not in record:
             record['submitted_at'] = time.time()
         record.update(phase=phase, reason=reason)
         save(file, record)
-        self.m.mylar('workflowAcknowledge', command_id=record['id'], phase=phase, reason=reason)
+        if self.m.worker.config.get('writer_state') is None:
+            self.m.mylar('workflowAcknowledge', command_id=record['id'], phase=phase, reason=reason)
+        return True
 
     def confirmed(self, record):
         """A removed-source receipt proves content, but must also belong to this issue."""
@@ -173,6 +195,8 @@ class Guided:
             return False
         target = Path(row[1]) if Path(row[1]).is_absolute() else Path(row[2]) / row[1]
         from maintenance import scoped_file
+        from publication_guard import catalog_path
+        target=catalog_path(self.m.worker,target)
         if not scoped_file(target, self.m.worker.roots):
             return False
         for file in self.m.receipts.glob('*.json'):
@@ -211,6 +235,18 @@ class Guided:
         file = self.commands / (command['id'] + '.json')
         if file.exists():
             record = json.loads(file.read_text())
+            if self.m.worker.config.get('writer_state') is not None:
+                if any(record.get(key)!=command.get(key) for key in ('id','source_token','version','issueid','comicid')):
+                    return
+                if record['phase']=='prepared':
+                    if command.get('phase') in ('claimed','submitted'):
+                        from publication_guard import import_check
+                        import_check(self.m.worker,Path(record['source']),{key:record[key] for key in ('issueid','comicid')})
+                        record.update(phase=command['phase'],submitted_at=time.time())
+                        save(file,record)
+                    return
+                if record['phase'] in ('confirmed','rejected'):return
+                if record['phase']=='submitted' and not self.confirmed(record) and time.time()-record.get('submitted_at',0)<1800:return
             if record['phase'] in ('submitted', 'review', 'claimed') and self.confirmed(record):
                 self.acknowledge(file, record, 'confirmed')
             elif (record['phase'] == 'claimed' or
@@ -241,6 +277,13 @@ class Guided:
                 or digest(source) != proposal['sha256']):
             self.acknowledge(file, record, 'rejected', 'changed_source')
             return
+        if self.m.worker.config.get('writer_state') is not None and command.get('phase')!='queued':
+            if command.get('phase') in ('claimed','submitted'):
+                from publication_guard import import_check
+                import_check(self.m.worker,source,{key:record[key] for key in ('issueid','comicid')})
+                record.update(submitted_at=time.time())
+                save(file,record)
+            return
         rows = [r for r in self.rows() if str(r[0]) == str(command.get('issueid')) and str(r[1]) == str(command.get('comicid'))]
         if len(rows) != 1 or rows[0][2] in ('Downloaded', 'Archived'):
             self.acknowledge(file, record, 'rejected', 'issue_unavailable')
@@ -249,7 +292,16 @@ class Guided:
         if source.name in self.m.pending_ddl_names() or (source.suffix.casefold() not in ('.cbz', '.cbr') and not pdf):
             self.acknowledge(file, record, 'rejected', 'source_unavailable')
             return
-        if not self.m.idle() or self.m.import_submitted:
+        coordinated=self.m.worker.config.get('writer_state') is not None
+        reconciling=False
+        if coordinated:
+            from import_recovery import handoff_read
+            key=hashlib.sha256(os.fsencode(source)+proposal['sha256'].encode()+record['id'].encode()).hexdigest()
+            receipt=self.m.state/'imports'/(key+'.json')
+            if receipt.exists():
+                previous,_=handoff_read(receipt)
+                reconciling=isinstance(previous,dict) and previous.get('phase')=='prepared'
+        if not reconciling and (not self.m.idle() or self.m.import_submitted):
             return
         from pdf_conversion import Pending
         try:
@@ -262,8 +314,18 @@ class Guided:
         from publication_guard import import_check
         import_check(self.m.worker, source,
                      {'issueid': str(rows[0][0]), 'comicid': str(rows[0][1])})
-        self.acknowledge(file, record, 'claimed')
+        coordinated=self.m.worker.config.get('writer_state') is not None
+        if not coordinated:self.acknowledge(file, record, 'claimed')
         result = submit(self.m, source, {'issueid': str(rows[0][0]), 'comicid': str(rows[0][1])}, explicit=True,
-                        expected_identity=proposal['identity'], expected_sha256=proposal['sha256'], workflow_command=record['id'],reviewed_source=record.get('reviewed_source') is True)
+                        expected_identity=proposal['identity'], expected_sha256=proposal['sha256'], workflow_command=record['id'],reviewed_source=record.get('reviewed_source') is True,
+                        guided_binding={key:record[key] for key in ('id','source_token','version','issueid','comicid')} if coordinated else None)
+        if coordinated and result=='ready':
+            key=hashlib.sha256(os.fsencode(source)+proposal['sha256'].encode()+record['id'].encode()).hexdigest()
+            from import_recovery import handoff_read
+            path=self.m.state/'imports'/(key+'.json')
+            if path.exists() and handoff_read(path)[0]['phase']=='prepared':
+                record.update(phase='prepared')
+                save(file,record)
+            return
         phase = 'submitted' if result == 'import_queued' else 'review'
         self.acknowledge(file, record, phase, '' if phase == 'submitted' else 'unconfirmed')

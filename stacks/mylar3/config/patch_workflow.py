@@ -102,7 +102,12 @@ def server(source):
 
 
 def api(source):
-    if MARKER in source:return source
+    if MARKER in source:
+        old="            result = workflow_web.acknowledge(kwargs.get('command_id'), kwargs.get('phase'), kwargs.get('reason', ''))"
+        new="            from mylar import worker_handoff\n            worker_handoff.admit(kwargs.get('maintenance_handoff'), 'workflowAcknowledge', {key: kwargs.get(key, '') for key in ('command_id', 'phase', 'reason', 'command_binding')})\n"+old
+        if old in source and 'worker_handoff.admit' not in source:source=replace_once(source,old,new)
+        ast.parse(source)
+        return source
     source='from mylar import workflow\n'+source
     source=replace_once(source,'    def _forceProcess(self, **kwargs):','    @workflow.force_process\n    def _forceProcess(self, **kwargs):')
     source=replace_once(source,"            mylar.PP_QUEUE.put({'nzb_name':    self.nzb_name,", "            workflow.processing_put(mylar.PP_QUEUE, {'nzb_name':    self.nzb_name,")
@@ -122,6 +127,8 @@ def api(source):
             return
         from mylar import workflow_web
         try:
+            from mylar import worker_handoff
+            worker_handoff.admit(kwargs.get('maintenance_handoff'), 'workflowAcknowledge', {key: kwargs.get(key, '') for key in ('command_id', 'phase', 'reason', 'command_binding')})
             result = workflow_web.acknowledge(kwargs.get('command_id'), kwargs.get('phase'), kwargs.get('reason', ''))
         except (ValueError, TypeError, KeyError):
             self.data = self._failureResponse('Invalid workflow acknowledgement')
@@ -150,7 +157,7 @@ def main(directory):
         p=root/name;p.write_text(patch(p.read_text()))
     for name in ('base.html','manage.html','queue_management.html','import_problems.html','post_processing.html'):
         p=templates/name;p.write_text(template(name,p.read_text()))
-    for name in ('workflow_store.py','workflow.py','workflow_web.py','workflow_nzb.py','library_status.py'):
+    for name in ('workflow_store.py','workflow.py','workflow_web.py','workflow_nzb.py','library_status.py','worker_handoff.py'):
         (root/name).write_text(Path(__file__).with_name(name).read_text())
     (templates/'workflow.html').write_text(Path(__file__).with_name('workflow.html').read_text())
     print('Workflow native boundaries, authenticated actions and navigation verified')

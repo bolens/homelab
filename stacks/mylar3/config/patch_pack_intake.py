@@ -37,8 +37,14 @@ def search(source):
 def api(source):
     marker = '# homelab-pack-api-v1'
     if marker in source:
+        for old,new in (("pack_intake.report(kwargs.get('report'))",
+                         "pack_intake.report(kwargs.get('report'), kwargs.get('maintenance_handoff'))"),
+                        ("pack_catalog.resolve(kwargs.get('evidence'))",
+                         "pack_catalog.resolve(kwargs.get('evidence'), kwargs.get('maintenance_handoff'), kwargs.get('catalog_attempt'))")):
+            if old in source:source=replace_once(source,old,new)
+        ast.parse(source)
         return source
-    source = replace_once(source, "'workflowAcknowledge',", "'workflowAcknowledge', 'packWork', 'packReport', 'packCatalog',")
+    source = replace_once(source, "'workflowCommands', 'workflowAcknowledge',", "'workflowCommands', 'workflowAcknowledge', 'packWork', 'packReport', 'packCatalog',")
     source = replace_once(source, '    def _getHealth(self, **kwargs):', """    # homelab-pack-api-v1
     def _packWork(self, **kwargs):
         if not mylar.CONFIG.API_ENABLED or self.apikey != mylar.CONFIG.API_KEY:
@@ -53,7 +59,7 @@ def api(source):
             return
         from mylar import pack_intake
         try:
-            result = pack_intake.report(kwargs.get('report'))
+            result = pack_intake.report(kwargs.get('report'), kwargs.get('maintenance_handoff'))
         except (ValueError, KeyError, TypeError):
             self.data = self._failureResponse('Invalid pack report')
         else:
@@ -65,7 +71,7 @@ def api(source):
             return
         from mylar import pack_catalog
         try:
-            result = pack_catalog.resolve(kwargs.get('evidence'))
+            result = pack_catalog.resolve(kwargs.get('evidence'), kwargs.get('maintenance_handoff'), kwargs.get('catalog_attempt'))
         except (ValueError, KeyError, TypeError):
             self.data = self._failureResponse('Invalid catalog evidence')
         else:

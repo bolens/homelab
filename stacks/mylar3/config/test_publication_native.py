@@ -1,15 +1,18 @@
 """Native admission controls use genuine registry/catalog/archive fixtures."""
 from pathlib import Path
 import ast
+import importlib.util
+import json
 import os
 import shutil
+import sqlite3
 import sys
 import tempfile
 import types
 import unittest
 from unittest.mock import patch
 from unittest.mock import Mock
-from contextlib import contextmanager
+from contextlib import contextmanager,closing
 import zipfile
 
 import publication_native as native
@@ -169,6 +172,104 @@ class AdmissionTests(unittest.TestCase):
     def registered(self):
         prepared=self.prepare();self.call('register',token=prepared['token'])
         return prepared
+
+    def maintenance_gateway(self):
+        self.mylar.__path__=[str(Path(__file__).parent)]
+        self.mylar.CONFIG.CACHE_DIR=str(self.root)
+        self.mylar.publication_guard=guard;self.mylar.publication_native=native
+        self.mylar.workflow=types.SimpleNamespace(store=lambda:self.store)
+        spec=importlib.util.spec_from_file_location('worker_handoff_fixture',Path(__file__).with_name('worker_handoff.py'))
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        self.mylar.worker_handoff=module
+        actual=guard.observe_owners
+        def observed(*args,**kwargs):
+            kwargs['tool_root']=fixtures.TOOL_ROOT
+            return actual(*args,**kwargs)
+        context=patch.object(guard,'observe_owners',side_effect=observed);context.start();self.addCleanup(context.stop)
+        return module
+
+    def maintenance_report(self):
+        if not (self.writer.root/'publication-v1.json').exists():self.bootstrap()
+        payload=json.dumps({'id':'b'*64,'members':[{'id':'c'*64,'kind':'issue','phase':'confirmed',
+            'issueid':'123','comicid':'456','destination':str(self.source),
+            'destination_sha256':guard.file_hash(self.source)[1]}]})
+        arguments={'report':payload}
+        with self.writer.hold():census=guard.registry_snapshot(self.store.path,self.writer.root/'publication-v1.json')[0]
+        packet=dict(version=1,token='d'*64,command='packReport',arguments_sha256=guard.canonical_digest(arguments),census=census,
+            sources=[dict(path=str(self.source),sha256=guard.file_hash(self.source)[1],
+                          match={'issueid':'123','comicid':'456'},confirmation=True)])
+        return arguments,packet
+
+    def test_native_maintenance_requires_actual_catalog_destination_and_is_at_most_once(self):
+        gateway=self.maintenance_gateway();arguments,packet=self.maintenance_report()
+        with self.writer.hold():
+            self.assertEqual(gateway.admit(json.dumps(packet),'packReport',arguments),'d'*64)
+            with self.assertRaises(ValueError):gateway.admit(json.dumps(packet),'packReport',arguments)
+        self.assertIsNotNone(self.store.get('worker_maintenance_attempt','d'*64))
+
+    def test_native_maintenance_refuses_forged_scope_digest_owner_census_and_prior_proof(self):
+        gateway=self.maintenance_gateway();arguments,packet=self.maintenance_report()
+        before=guard.file_hash(self.source)
+        for change in ({'census':dict(packet['census'],revision=99)},
+                       {'sources':[dict(packet['sources'][0],sha256='0'*64)]},
+                       {'sources':[dict(packet['sources'][0],path='/outside/comic.cbz')]},
+                       {'sources':[dict(packet['sources'][0],match={'issueid':'999','comicid':'456'})]},
+                       {'sources':[]}):
+            with self.writer.hold(),self.assertRaises(ValueError):gateway.admit(json.dumps(dict(packet,**change)),'packReport',arguments)
+            self.assertIsNone(self.store.get('worker_maintenance_attempt','d'*64))
+            self.assertEqual(guard.file_hash(self.source),before)
+
+    def test_native_maintenance_holds_catalog_change_after_destination_observation(self):
+        gateway=self.maintenance_gateway();arguments,packet=self.maintenance_report()
+        original=guard.observe_owners
+        def changed(*args,**kwargs):
+            result=original(*args,**kwargs)
+            with closing(sqlite3.connect(self.root/'mylar.db')) as database:
+                database.execute("UPDATE issues SET Status='Wanted'");database.commit()
+            return result
+        with self.writer.hold(),patch.object(guard,'observe_owners',side_effect=changed),self.assertRaises(ValueError):
+            gateway.admit(json.dumps(packet),'packReport',arguments)
+        self.assertIsNone(self.store.get('worker_maintenance_attempt','d'*64))
+
+    def test_catalog_handoff_uses_actual_filename_bracket_evidence_before_attempt(self):
+        gateway=self.maintenance_gateway();self.bootstrap()
+        source=self.root/'Test #1 (2024) [digital].cbz'
+        with zipfile.ZipFile(source,'w') as archive:archive.writestr('01.jpg',b'new comic')
+        arguments={'evidence':json.dumps({'series':'Test','number':'1','year':'2024','edition':'Digital'}),'catalog_attempt':'1'}
+        with self.writer.hold():census=guard.registry_snapshot(self.store.path,self.writer.root/'publication-v1.json')[0]
+        packet=dict(version=1,token='e'*64,command='packCatalog',arguments_sha256=guard.canonical_digest(arguments),census=census,
+            sources=[dict(path=str(source),sha256=guard.file_hash(source)[1],match=None,confirmation=False)])
+        wrong=dict(arguments,evidence=json.dumps({'series':'Wrong','number':'1','year':'2024','edition':'Digital'}))
+        with self.writer.hold(),self.assertRaises(ValueError):
+            gateway.admit(json.dumps(dict(packet,arguments_sha256=guard.canonical_digest(wrong))),'packCatalog',wrong)
+        self.assertIsNone(self.store.get('worker_maintenance_attempt','e'*64))
+        with self.writer.hold():self.assertEqual(gateway.admit(json.dumps(packet),'packCatalog',arguments),'e'*64)
+
+    def test_catalog_cannot_assign_an_unowned_registered_payload(self):
+        self.registered();gateway=self.maintenance_gateway()
+        arguments={'evidence':json.dumps({'series':'Test','number':'1','year':'2024'}),'catalog_attempt':'1'}
+        with self.writer.hold():census=guard.registry_snapshot(self.store.path,self.writer.root/'publication-v1.json')[0]
+        packet=dict(version=1,token='e'*64,command='packCatalog',arguments_sha256=guard.canonical_digest(arguments),census=census,
+            sources=[dict(path=str(self.incoming),sha256=guard.file_hash(self.incoming)[1],match=None,confirmation=False)])
+        with self.writer.hold(),self.assertRaises(ValueError):gateway.admit(json.dumps(packet),'packCatalog',arguments)
+        self.assertIsNone(self.store.get('worker_maintenance_attempt','e'*64))
+
+    def test_native_maintenance_missing_or_false_protocol_spends_no_attempt(self):
+        gateway=self.maintenance_gateway();arguments,packet=self.maintenance_report()
+        for raw in (None,'{}',json.dumps(dict(packet,version=True)),json.dumps(dict(packet,arguments_sha256='0'*64))):
+            with self.writer.hold(),self.assertRaises(ValueError):gateway.admit(raw,'packReport',arguments)
+        self.assertIsNone(self.store.get('worker_maintenance_attempt','d'*64))
+
+    def test_guided_acknowledgement_requires_exact_choice_and_fresh_catalog_confirmation(self):
+        gateway=self.maintenance_gateway();_,packet=self.maintenance_report()
+        binding=dict(id='a'*32,source_token='b'*32,version='c'*64,issueid='123',comicid='456')
+        self.store.set('command',binding['id'],dict(binding,phase='submitted',dispatched=True))
+        arguments=dict(command_id=binding['id'],phase='confirmed',reason='',command_binding=json.dumps(binding))
+        packet.update(command='workflowAcknowledge',arguments_sha256=guard.canonical_digest(arguments))
+        for changed in (dict(packet,sources=[]),dict(packet,command='packReport')):
+            with self.writer.hold(),self.assertRaises(ValueError):gateway.admit(json.dumps(changed),'workflowAcknowledge',arguments)
+            self.assertIsNone(self.store.get('worker_maintenance_attempt','d'*64))
+        with self.writer.hold():self.assertEqual(gateway.admit(json.dumps(packet),'workflowAcknowledge',arguments),'d'*64)
 
     def handoff(self, **changes):
         import json

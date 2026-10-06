@@ -107,6 +107,7 @@ class PackEvidenceTest(unittest.TestCase):
                  if command=='packWork' else {'phase':'confirmed'})
         packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=api,worker=SimpleNamespace(config={})),
                               local=lambda value:Path(value),inventory=Mock(),changed=False)
+        packs.report=lambda value:Packs.report(packs,value)
         Packs.cycle(packs)
         packs.inventory.assert_not_called()
         payload=json.loads(api.call_args.kwargs['report'])
@@ -123,6 +124,7 @@ class PackEvidenceTest(unittest.TestCase):
         calls=Mock(side_effect=api)
         packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=calls,worker=SimpleNamespace(config={})),
                               local=lambda value:Path(value),inventory=Mock(),changed=False)
+        packs.report=lambda value:Packs.report(packs,value)
         Packs.cycle(packs)
         self.assertEqual(calls.call_count,2)
         self.assertEqual(record['members'][0]['phase'],'confirmed')

@@ -169,6 +169,23 @@ class Authority:
         except (OSError, ValueError, TypeError, KeyError, IndexError) as error:
             raise Unavailable('Current worker publication evidence unavailable') from error
 
+    def unowned_check(self, source):
+        """Absent catalog identity cannot authorize a registered payload."""
+        before = self.admission()
+        inventory = evidence.inventory(Path(source), tool_root=self.tool_root)
+        for row in before[1].values():
+            for observed in row['observed']:
+                if (Path(source)==self.mapped(observed['catalog']['path'])
+                        or inventory['source_signature'][:2]==observed['signature'][:2]):
+                    raise Unavailable('Registered path or physical archive has no unowned permission')
+        if any(row['inventory']['payload'] == inventory['payload'] for row in before[1].values()):
+            raise Unavailable('Registered payload requires an exact current owner')
+        signature, checksum = evidence.file_hash(source)
+        if (signature != inventory['source_signature'] or checksum != inventory['source_sha256']
+                or not evidence.same_json(before, self.admission())):
+            raise Unavailable('Unowned source or authority changed')
+        return dict(version=1, source=str(source), inventory=inventory, census=before[0])
+
     def import_check(self, source, match):
         """Resolve the proposed unfiltered native owner anew at each boundary."""
         if (not isinstance(match, dict) or set(match) != {'issueid', 'comicid'}
@@ -192,6 +209,10 @@ class Authority:
         source_proof = self.import_check(source, match)
         target_proof = self.import_check(target, match)
         owner = source_proof['authority']['owner']
+        for record in self.admission()[1].values():
+            if any(evidence.same_json(owner,allowed) for allowed in record['allowed']):
+                if target_proof['inventory']['payload']!=record['inventory']['payload']:
+                    raise Unavailable('Registered owner archive changed outside reviewed lineage')
         signature = evidence.signature(self.catalog.lstat())
         observed = evidence.observe_owners(self.catalog, self.writer, [owner],
             [native for native, _ in self.mappings], tool_root=self.tool_root,
@@ -225,6 +246,13 @@ def import_check(worker, source, match):
     if worker.config.get('writer_state') is None:
         return None
     return current(worker).import_check(source, match)
+
+
+def catalog_path(worker, path):
+    """Translate only native catalog paths through the active owned mapping."""
+    path=Path(path)
+    if worker.config.get('writer_state') is None:return path
+    return current(worker).mapped(str(path))
 
 
 def confirmation_check(worker, source, target, match):

@@ -152,10 +152,12 @@ def work():
 
 
 
-def report(payload):
+def report(payload, handoff=None):
     if not isinstance(payload, str) or len(payload) > 2000000:
         raise ValueError('Pack report exceeds limit')
     value = json.loads(payload)
+    from mylar import worker_handoff
+    worker_handoff.admit(handoff,'packReport',{'report':payload})
     key = value.get('id', '')
     if not HEX.fullmatch(key):
         raise ValueError('Invalid pack identity')
@@ -166,6 +168,9 @@ def report(payload):
     members = value.get('members')
     if not isinstance(members, list) or len(members) > 2000:
         raise ValueError('Invalid member inventory')
+    previous_members={row['id']:row for row in old['members']}
+    if not set(previous_members)<= {row.get('id') for row in members}:
+        raise ValueError('Pack report cannot erase prior member evidence')
     clean = []
     seen = set()
     for row in members:
@@ -173,6 +178,15 @@ def report(payload):
         if not HEX.fullmatch(token) or token in seen or row.get('kind') not in KINDS or row.get('phase') not in PHASES:
             raise ValueError('Invalid pack member')
         seen.add(token)
+        previous_member=previous_members.get(token,{})
+        if previous_member.get('phase') in ('confirmed','preserved'):
+            if (row.get('phase')!=previous_member.get('phase')
+                    or row.get('kind')!=previous_member.get('kind')
+                    or any(identifier(row.get(key))!=identifier(previous_member.get(key)) for key in ('issueid','comicid'))
+                    or row.get('destination')!=previous_member.get('destination')
+                    or row.get('destination_sha256')!=previous_member.get('destination_sha256')
+                    or (row.get('kind')=='sidecar' and row.get('sha256')!=previous_member.get('sha256'))):
+                raise ValueError('Delayed report cannot replace verified member evidence')
         member = {k: row[k] for k in ('id', 'kind', 'phase')}
         member.update(name=label(row.get('name'), 255), reason=label(row.get('reason', '')),
                       format=label(row.get('format', ''), 20), issueid=identifier(row.get('issueid')),
@@ -209,8 +223,8 @@ def report(payload):
                     raise ValueError('Library destination changed')
             member.update(destination=str(path), destination_sha256=expected, signature=signature)
         clean.append(member)
-    old.update(members=clean, inventory_complete=value.get('inventory_complete') is True,
-               updated_at=time.time(), phase='review', cleanup_complete=bool(value.get('cleaned_at')),
+    old.update(members=clean, inventory_complete=bool(old.get('inventory_complete') or value.get('inventory_complete') is True),
+               updated_at=time.time(), phase='review', cleanup_complete=bool(old.get('cleanup_complete') or value.get('cleaned_at')),
                cleanup_started=bool(old.get('cleanup_started') or value.get('cleanup_verified_at')))
     if old['inventory_complete'] and clean and all(m['phase'] in ('confirmed', 'preserved') for m in clean):
         old['phase'] = 'confirmed'

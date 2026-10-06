@@ -3,6 +3,7 @@ from functools import wraps
 import hashlib
 import inspect
 import json
+import re
 from pathlib import Path
 import shutil
 import threading
@@ -176,7 +177,9 @@ def processing_put(queue,item,command_id=None):
             if not row or row['issueid']!=iid or row['comicid']!=identifier(item.get('comicid')) or row['phase']!='claimed' or row.get('dispatched'):
                 raise ValueError('Guided import has already been submitted or needs review')
             admit_import(iid,command_id)
-            row.update(dispatched=True,updated_at=time.time());store().set('command',command_id,row)
+            row.update(dispatched=True,updated_at=time.time())
+            if proof is not None:row.update(phase='submitted')
+            store().set('command',command_id,row)
         elif import_owner(iid) or (reservation(iid) and reservation(iid)['phase'] not in ('accepted','review')):
             raise ValueError('Issue is reserved for another workflow')
         queue.put(item)
@@ -570,6 +573,13 @@ def force_process(function):
         import mylar
         command=kwargs.get('workflow_command')
         handoff=kwargs.get('publication_handoff')
+        guided=kwargs.get('guided_handoff')
+        if command and handoff is None:
+            from mylar import native_writers
+            if native_writers.publication_mode():
+                self.data=self._failureResponse('Typed guided handoff required');return
+        if guided is not None and (not command or handoff is None):
+            self.data=self._failureResponse('Exact guided publication handoff required');return
         if (command or handoff is not None) and (not mylar.CONFIG.API_ENABLED or self.apikey!=mylar.CONFIG.API_KEY or 'apc_version' in kwargs):
             self.data=self._failureResponse('Primary API key and queue submission required');return
         try:
@@ -579,6 +589,23 @@ def force_process(function):
                     raise ValueError('Nested publication handoff refused')
                 from mylar import publication_native
                 proof=publication_native.import_handoff(handoff,kwargs)
+                if command:
+                    if not isinstance(guided,str) or not 0<len(guided.encode())<=2048:
+                        raise ValueError('Exact guided command binding required')
+                    binding=publication_native.guard.decode_json(guided)
+                    fields={'id','source_token','version','issueid','comicid'}
+                    row=store().get('command',command)
+                    if (not isinstance(binding,dict) or set(binding)!=fields or binding['id']!=command
+                            or not all(isinstance(binding[key],str) for key in fields)
+                            or not re.fullmatch('[a-f0-9]{32}',binding['id'])
+                            or not re.fullmatch('[a-f0-9]{32}',binding['source_token'])
+                            or not re.fullmatch('[a-f0-9]{64}',binding['version'])
+                            or not row or any(binding[key]!=row.get(key) for key in fields)
+                            or row['phase']!='queued' or row.get('dispatched')
+                            or binding['issueid']!=proof['owner']['issueid']
+                            or binding['comicid']!=proof['owner']['parentcomicid']):
+                        raise ValueError('Guided command changed or already attempted')
+                    admit_import(binding['issueid'],command)
                 # This record is an at-most-once attempt, never correction
                 # authority. Keep it outside the protected publication namespace.
                 with store().connection() as database:
@@ -595,6 +622,14 @@ def force_process(function):
                             raise ValueError('Native owner already has an import attempt requiring review')
                     database.execute('INSERT INTO records VALUES (?,?,?,?)',
                         ('worker_import_attempt',proof['token'],json.dumps(proof),time.time()))
+                if command:
+                    from mylar import queue_control
+                    with issue_lock(binding['issueid']),queue_control._LOCK,LOCK:
+                        current=store().get('command',command)
+                        if current!=row:raise ValueError('Guided command changed before claim')
+                        admit_import(binding['issueid'],command)
+                        current.update(phase='claimed',updated_at=time.time())
+                        store().set('command',command,current)
             if proof is None:return function(self,**kwargs)
             _CONTEXT.publication_handoff=proof
             try:return function(self,**kwargs)
@@ -607,7 +642,7 @@ def force_process(function):
 def state_health():
     try:
         store().get('policy','current')
-        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1}
+        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1}
     except Exception:return {'valid':False,'observer_errors':_OBSERVER_ERRORS}
 
 

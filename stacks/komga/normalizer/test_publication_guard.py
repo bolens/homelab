@@ -107,6 +107,23 @@ class WorkerEvidenceTests(AuthorityFixture, unittest.TestCase):
         with self.writer.hold():
             return self.authority.import_check(source or self.candidate, match or {'issueid':'123','comicid':'456'})
 
+    def test_unowned_proof_holds_registered_payload_path_and_physical_alias(self):
+        with self.writer.hold(),self.assertRaises(Unavailable):
+            self.authority.unowned_check(self.candidate)
+        changed=self.archive('changed.cbz',[('01.jpg',b'changed')])
+        self.source.write_bytes(changed.read_bytes())
+        alias=self.library/'alias.cbz';os.link(self.source,alias)
+        for source in (self.source,alias):
+            with self.writer.hold(),self.subTest(source=source.name),self.assertRaises(Unavailable):
+                self.authority.unowned_check(source)
+        with self.writer.hold():self.authority.unowned_check(changed)
+
+    def test_confirmation_holds_changed_registered_owner_archive_without_lineage(self):
+        changed=self.archive('changed.cbz',[('01.jpg',b'changed')])
+        self.source.write_bytes(changed.read_bytes())
+        with self.writer.hold(),self.assertRaises(Unavailable):
+            self.authority.confirmation_check(changed,self.source,{'issueid':'123','comicid':'456'})
+
     def test_import_owner_is_resolved_from_current_unfiltered_native_rows(self):
         result = self.import_check()
         self.assertEqual(result['authority']['owner'], self.owner)
