@@ -50,10 +50,17 @@ def cycle(normalizer, maintenance=None):
         raise ValueError('writer_state must name an existing shared state directory')
     writer=Writer(root)
     try:
+        prepare = getattr(maintenance,'prepare',None) if maintenance else None
+        native_batch = None
+        if prepare:
+            # Prove authority without writing state before any remote work.
+            with writer.hold(allow_pending=True,timeout=0),scope(normalizer,writer):
+                pass
+            native_batch = prepare()
         with writer.hold(allow_pending=True,timeout=0):
             # Fence before any work: Komga may keep writing after an API timeout
             # or process crash. The worker alone reconciles and clears this marker.
-            with scope(normalizer,writer):
+            with scope(normalizer,writer,native_batch=native_batch):
                 bind_state(writer,normalizer)
                 writer.mark_pending()
                 normalizer.cycle()
@@ -67,7 +74,10 @@ def cycle(normalizer, maintenance=None):
             # starve completed additions. collect excludes their receipt paths.
             scan_ready = bool(scans and scans.collect())
         try:
-            if not pending:refresh_completed(normalizer)
+            if not pending:
+                dispatch = getattr(maintenance,'dispatch',None) if maintenance else None
+                if dispatch:dispatch()
+                refresh_completed(normalizer)
         finally:
             if scan_ready:scans.dispatch()
         naming = getattr(normalizer, 'naming', None)
