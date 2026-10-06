@@ -43,6 +43,11 @@ updates:
           - "*"
 
   - package-ecosystem: "docker-compose"
+    # Internal gateway/shield releases are not intended for self-hosted Stoat.
+    # Continue monitoring later releases; review their self-hosting guidance.
+    ignore:
+      - dependency-name: "ghcr.io/stoatchat/*"
+        versions: ["v0.15.6", "v0.15.7"]
     directories:
       - "/stacks/*"
     schedule:

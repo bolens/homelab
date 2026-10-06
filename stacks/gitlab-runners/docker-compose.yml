@@ -2,7 +2,7 @@ services:
   gitlab-runner:
     labels:
       logging: "true"
-    image: gitlab/gitlab-runner:latest@sha256:74209bd51542dc0cb8aa584f103b34c857ff240c3a275559af307c1cb1efbe4f
+    image: gitlab/gitlab-runner:latest@sha256:77d03a5c881ff8f97381de4f96a66c080733eeab9c9cf502bd19916a18969113
     container_name: gitlab-runner
     restart: unless-stopped
     cpus: 4.0

@@ -1,6 +1,6 @@
 services:
   picard:
-    image: jlesage/musicbrainz-picard:latest@sha256:4bafd2aedffd844f53c1727932aaa52ad6614d51d22dd9f73a3565665ea4728e
+    image: jlesage/musicbrainz-picard:latest@sha256:e35aeaf7f17b3e1f29d9472070d3b97248c3c4f230b2f5adc6f67c20321fb782
     container_name: picard
     restart: unless-stopped
     cpus: 2.0

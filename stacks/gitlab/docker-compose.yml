@@ -2,7 +2,7 @@ services:
   gitlab:
     labels:
       logging: "true"
-    image: gitlab/gitlab-ce:latest@sha256:f63df4c43029fe91db370609c0b40a1e3585cebd06e3e9637d93a9a3030eb86e
+    image: gitlab/gitlab-ce:latest@sha256:9b33b45b9f42d176bada85ee5ecb81ddab7e506c435f44cd582206e284b2809c
     container_name: gitlab
     hostname: "${GITLAB_HOSTNAME:-gitlab.yourdomain.com}"
     restart: unless-stopped

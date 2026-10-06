@@ -2,7 +2,7 @@ services:
   thelounge:
     labels:
       logging: "true"
-    image: thelounge/thelounge:latest@sha256:3cc53915661c923e89769f61185db89ad7a2ab682d1fe20b48e8ab287fd753d3
+    image: thelounge/thelounge:latest@sha256:bae46016776b0a18639dcaff69a103b3bbee9cbb40e86cd24fb278eccc6bac7b
     container_name: thelounge
     restart: unless-stopped
     cpus: 1.0
