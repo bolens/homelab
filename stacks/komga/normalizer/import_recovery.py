@@ -73,6 +73,8 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     if ((expected_identity is not None and before != expected_identity)
             or (expected_sha256 is not None and checksum != expected_sha256)):
         raise RuntimeError('Confirmed source changed; original retained')
+    from publication_guard import import_check
+    import_check(maintenance.worker, source, match)
     key = hashlib.sha256(os.fsencode(source) + checksum.encode() + (workflow_command or '').encode()).hexdigest()
     receipts = maintenance.state / 'imports'
     receipts.mkdir(exist_ok=True, mode=0o700)
@@ -117,6 +119,8 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
             raise RuntimeError('Recovery copy changed; originals retained')
         if pdf and maintenance.info(source) != maintenance.info(target):
             raise RuntimeError('PDF import pages changed; original retained')
+        import_check(maintenance.worker, source, match)
+        import_check(maintenance.worker, target, match)
     except Exception:
         # This newly owned stage has no receipt or external submission yet.
         target.unlink(missing_ok=True)
@@ -133,6 +137,9 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
         target.unlink()
         stage.rmdir()
         return 'import_review'
+    # Recompute rather than use the earlier result as publication permission.
+    import_check(maintenance.worker, source, match)
+    import_check(maintenance.worker, target, match)
     record = {'source': str(source), 'identity': before, 'sha256': checksum, 'stage': str(target),
               'match': match, 'workflow_command':workflow_command, 'phase': 'unconfirmed', 'submitted_at': time.time()}
     maintenance.import_attempts = None

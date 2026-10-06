@@ -904,6 +904,46 @@ def initialization_witness(db, token, census, identity, writer, *, pending=None)
     if committed != [token]:
         raise Unavailable('Missing unique committed initialization witness')
 
+import sqlite3
+
+def catalog_owner(root, issueid, comicid=None):
+    """Resolve unfiltered cross-table identity; synthetic IDs confer no owner."""
+    if not isinstance(issueid,str) or re.fullmatch('[1-9][0-9]{0,15}',issueid) is None:
+        return None
+    database=Path(root).absolute()/'mylar.db'
+    with regular(database) as stream:
+        before=signature(os.fstat(stream.fileno()));header=stream.read(100)
+        if (before[6]!=os.geteuid() or before[8]!=1 or not 4096<=before[2]<=256*1024**2
+                or len(header)!=100 or header[:16]!=b'SQLite format 3\0'
+                or header[18:20]!=b'\x01\x01'):
+            raise Unavailable('Incomplete native owner catalog')
+    sidecars=[Path(str(database)+suffix) for suffix in ('-journal','-wal','-shm')]
+    if any(os.path.lexists(path) for path in sidecars):
+        raise Unavailable('Native owner catalog requires recovery')
+    rows=[];deadline=time.monotonic()+TIMEOUT
+    with closing(sqlite3.connect(database.as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
+        db.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+        db.execute('BEGIN')
+        if db.execute('PRAGMA quick_check').fetchall()!=[('ok',)]:
+            raise Unavailable('Unreadable native owner catalog')
+        for table,columns in (('issues','IssueID,ComicID'),('annuals','IssueID,ComicID,ReleaseComicID')):
+            if db.execute('SELECT count(*) FROM '+table).fetchone()[0]>CATALOG_ROWS:
+                raise Unavailable('Native owner rows exceed bounds')
+            matches=db.execute('SELECT '+columns+' FROM '+table+' WHERE IssueID=? LIMIT 3',(issueid,)).fetchall()
+            for row in matches:
+                rows.append(dict(table=table,issueid=row[0],parentcomicid=row[1],
+                                 releasecomicid=row[1] if table=='issues' else row[2]))
+        db.rollback()
+    if (signature(database.lstat())!=before
+            or any(os.path.lexists(path) for path in sidecars)):
+        raise Unavailable('Native owner catalog changed')
+    if not rows:return None
+    if len(rows)!=1:raise Unavailable('Shadowed native publication owner')
+    result=exact_owner(rows[0])
+    if comicid is not None and str(comicid)!=result['parentcomicid']:
+        raise Unavailable('Native proposed parent differs from catalog')
+    return result
+
 if __name__ == '__main__':
     import resource
     sys.path.insert(0, str(Path(__file__).resolve().parent))

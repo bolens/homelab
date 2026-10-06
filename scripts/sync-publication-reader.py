@@ -77,6 +77,12 @@ def outputs():
     reader = reader.replace(old_deadline, '            deadline = time.monotonic() + TIMEOUT if deadline is None else deadline\n')
     assert not any(isinstance(node, ast.Name) and node.id in {'transaction', 'admission'}
                    for node in ast.walk(ast.parse(reader)))
+    # Exact read-only native owner resolution includes deleted and locationless
+    # shadows. Never infer annual release ownership from worker metadata.
+    owner = definitions('publication_native.py', {'owner'})
+    assert owner.startswith('def owner(')
+    owner = owner.replace('def owner(', 'def catalog_owner(', 1).replace('guard.', '')
+    reader += '\nimport sqlite3\n\n' + owner
     main = source[source.index("if __name__ == '__main__':"):]
     metadata = 'import re\nimport xml.etree.ElementTree as ET\n\n' + definitions(
         'tagger_metadata.py', {'MAX_XML', 'ComicTree', 'parse'})

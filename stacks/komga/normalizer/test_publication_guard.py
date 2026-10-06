@@ -103,6 +103,88 @@ class AuthorityFixture:
 
 
 class WorkerEvidenceTests(AuthorityFixture, unittest.TestCase):
+    def import_check(self, source=None, match=None):
+        with self.writer.hold():
+            return self.authority.import_check(source or self.candidate, match or {'issueid':'123','comicid':'456'})
+
+    def test_import_owner_is_resolved_from_current_unfiltered_native_rows(self):
+        result = self.import_check()
+        self.assertEqual(result['authority']['owner'], self.owner)
+        self.assertEqual(result['authority']['decision'], 'allowed')
+
+    def test_import_proposed_parent_cannot_be_omitted_or_coerced(self):
+        for parent in (None,True,456,'0','456x','1'*17):
+            with self.writer.hold(),self.subTest(parent=parent),self.assertRaises(Unavailable):
+                self.authority.import_check(self.candidate,{'issueid':'123','comicid':parent})
+
+    def test_unknown_pack_confirmation_requires_current_unique_catalog_path(self):
+        self.seed(empty=True)
+        match = {'issueid':'123','comicid':'456'}
+        with self.writer.hold():
+            self.authority.confirmation_check(self.candidate,self.source,match)
+            # Identical bytes at an unbound path cannot replace catalog proof.
+            with self.assertRaises(Unavailable):
+                self.authority.confirmation_check(self.source,self.candidate,match)
+        self.sql('INSERT INTO annuals VALUES (?,?,?,?,?,?)',('777','456','789',self.source.name,'Skipped',1))
+        with self.writer.hold(),self.assertRaises(Unavailable):
+            self.authority.confirmation_check(self.candidate,self.source,match)
+
+    def test_unknown_pack_confirmation_holds_after_owner_becomes_wanted(self):
+        self.seed(empty=True)
+        self.sql("UPDATE issues SET Status='Wanted'")
+        with self.writer.hold(),self.assertRaises(Unavailable):
+            self.authority.confirmation_check(self.candidate,self.source,{'issueid':'123','comicid':'456'})
+
+    def test_pack_confirmation_rejects_catalog_drift_after_observation(self):
+        self.seed(empty=True)
+        original = evidence.observe_owners
+        def changed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            self.sql("UPDATE issues SET Location='candidate.cbz'")
+            return result
+        with self.writer.hold(),patch.object(evidence,'observe_owners',side_effect=changed),self.assertRaises(Unavailable):
+            self.authority.confirmation_check(self.candidate,self.source,{'issueid':'123','comicid':'456'})
+
+    def test_import_owner_shadow_and_missing_owner_hold_even_unknown_payload(self):
+        different = self.archive('different.cbz', [('01.jpg', b'different')])
+        self.sql('INSERT INTO annuals VALUES (?,?,?,?,?,?)', ('123','456','789',None,'Skipped',1))
+        with self.assertRaises(Unavailable):self.import_check(different)
+        self.sql('DELETE FROM annuals')
+        self.sql('DELETE FROM issues')
+        with self.assertRaises(Unavailable):self.import_check(different)
+
+    def test_import_parent_and_annual_release_are_exact_native_facts(self):
+        with self.assertRaises(Unavailable):self.import_check(match={'issueid':'123','comicid':'999'})
+        self.sql('INSERT INTO annuals VALUES (?,?,?,?,?,?)', ('777','456','789',None,'Wanted',0))
+        different = self.archive('different.cbz', [('01.jpg', b'different')])
+        result = self.import_check(different, {'issueid':'777','comicid':'456'})
+        self.assertEqual(result['authority']['owner'], dict(table='annuals',issueid='777',parentcomicid='456',releasecomicid='789'))
+
+    def test_import_owner_change_after_candidate_observation_holds(self):
+        original = self.authority.check
+        def changed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            self.sql("UPDATE issues SET ComicID='999'")
+            return result
+        with patch.object(self.authority, 'check', side_effect=changed), self.assertRaises(Unavailable):
+            self.import_check()
+
+    def test_import_catalog_journal_refuses_before_unknown_result(self):
+        different = self.archive('different.cbz', [('01.jpg', b'different')])
+        Path(str(self.catalog)+'-journal').touch()
+        with self.assertRaises(Unavailable):self.import_check(different)
+
+    def test_import_authority_change_during_final_owner_read_holds(self):
+        original = evidence.catalog_owner
+        calls = []
+        def changed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            calls.append(True)
+            if len(calls) == 2:self.seed(empty=True)
+            return result
+        with patch.object(evidence,'catalog_owner',side_effect=changed),self.assertRaises(Unavailable):
+            self.import_check()
+
     def test_correct_copy_is_allowed_with_complete_fresh_facts(self):
         result = self.check()
         self.assertEqual(result['authority']['decision'], 'allowed')

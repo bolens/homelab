@@ -7,6 +7,7 @@ never a reusable permission. Native final import must independently enforce it.
 from contextlib import contextmanager
 import os
 from pathlib import Path
+import re
 import threading
 import time
 
@@ -139,6 +140,45 @@ class Authority:
         except (OSError, ValueError, TypeError, KeyError, IndexError) as error:
             raise Unavailable('Current worker publication evidence unavailable') from error
 
+    def import_check(self, source, match):
+        """Resolve the proposed unfiltered native owner anew at each boundary."""
+        if (not isinstance(match, dict) or set(match) != {'issueid', 'comicid'}
+                or any(not isinstance(value, str) or re.fullmatch('[1-9][0-9]{0,15}',value) is None
+                       for value in match.values())):
+            raise Unavailable('Exact proposed import identity required')
+        before = self.admission()
+        owner = evidence.catalog_owner(self.config, match['issueid'], match['comicid'])
+        if owner is None:
+            raise Unavailable('Proposed native import owner missing')
+        result = self.check(source, owner)
+        if not evidence.same_json(owner, evidence.catalog_owner(
+                self.config, match['issueid'], match['comicid'])):
+            raise Unavailable('Proposed native import owner changed')
+        if not evidence.same_json(before, self.admission()):
+            raise Unavailable('Correction authority changed during import binding')
+        return result
+
+    def confirmation_check(self, source, target, match):
+        """A pack destination must still be this owner's unique catalog archive."""
+        source_proof = self.import_check(source, match)
+        target_proof = self.import_check(target, match)
+        owner = source_proof['authority']['owner']
+        signature = evidence.signature(self.catalog.lstat())
+        observed = evidence.observe_owners(self.catalog, self.writer, [owner],
+            [native for native, _ in self.mappings], tool_root=self.tool_root,
+            path_mapper=self.mapped)
+        if (self.mapped(observed['observed'][0]['catalog']['path']) != Path(target)
+                or any(proof['inventory']['payload'] != observed['inventory']['payload']
+                       for proof in (source_proof, target_proof))):
+            raise Unavailable('Pack confirmation is not the current owner archive')
+        for path, before in ((source,source_proof),(target,target_proof)):
+            if not evidence.same_json(before,self.import_check(path,match)):
+                raise Unavailable('Pack confirmation source or authority changed')
+        if (evidence.signature(self.catalog.lstat()) != signature
+                or any(os.path.lexists(str(self.catalog)+suffix) for suffix in ('-journal','-wal','-shm'))):
+            raise Unavailable('Pack confirmation catalog changed')
+        return dict(source=source_proof,target=target_proof,observed=observed)
+
 
 def current(worker):
     """Only the coordinator's current thread may use its owned local adapter."""
@@ -149,6 +189,19 @@ def current(worker):
     if not getattr(authority.writer.local[1], 'depth', 0):
         raise Unavailable('Worker writer exclusion was released')
     return authority
+
+
+def import_check(worker, source, match):
+    """Standalone compatibility never waives configured coordination ownership."""
+    if worker.config.get('writer_state') is None:
+        return None
+    return current(worker).import_check(source, match)
+
+
+def confirmation_check(worker, source, target, match):
+    if worker.config.get('writer_state') is None:
+        return None
+    return current(worker).confirmation_check(source,target,match)
 
 
 def remote_unlocked(worker):
