@@ -411,9 +411,13 @@ class Packs:
                 or (actual_edition != 'Digital' and landscape(prepared))):
             member.update(phase='review', reason='Edition evidence conflicts; verify digital versus print identity')
             return
+        from publication_guard import import_check
+        import_check(self.worker, prepared, matched)
         member.update(**matched)
         target = self.destination(matched)
         if target:
+            from publication_guard import confirmation_check
+            confirmation_check(self.worker, prepared, target, matched)
             if preserves(info, self.m.info(target), metadata_changed=True):
                 member.update(phase='confirmed', destination=str(target), destination_sha256=digest(target), destination_identity=identity(target), reason='Library content verified')
             else:
@@ -429,6 +433,19 @@ class Packs:
             return
         if not self.m.idle():
             return
+        # Historical verification is not permission to delete a current repeat.
+        # Recheck all members before writing intent or removing any source.
+        if self.worker.config.get('writer_state') is not None:
+            from publication_guard import confirmation_check, Unavailable
+            for member in value['members']:
+                if member['kind'] == 'sidecar':
+                    continue
+                if member['phase'] != 'confirmed':
+                    raise Unavailable('Supplement cleanup requires reviewed derivative ownership')
+                match = {key:member.get(key) for key in ('issueid','comicid')}
+                source = Path(member['source'])
+                target = Path(member['destination'])
+                confirmation_check(self.worker, source if source.exists() else target, target, match)
         # Verify every destination and every source before removing any source.
         for member in value['members']:
             source = Path(member['source'])

@@ -114,8 +114,10 @@ Mylar HTTP calls are refused while the shared writer is held, including through
 a different local lock registry. This prevents a guarded native API handler from
 waiting for the calling worker's own lock. Local candidate checks remain under
 exclusion; remote work must follow outside it and native final import must check
-fresh evidence again. Per-source mutation boundaries and durable remote command
-handoff are unfinished. Keep the worker held until those contracts and matching
+fresh evidence again. Fresh local owner/source checks now cover common/guided import, pack confirmation
+and confirmed-comic pack cleanup. Historical supplement cleanup remains held for
+reviewed derivative ownership. Remaining mutation boundaries, durable import
+receipt bindings and remote command handoff are unfinished. Keep the worker held until those contracts and matching
 image/live acceptance are complete; this source cycle guard is not full prevention.
 
 A separate tagger recovery marker also blocks worker admission after Mylar crashes.

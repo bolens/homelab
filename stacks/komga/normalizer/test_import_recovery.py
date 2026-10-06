@@ -12,6 +12,95 @@ import zipfile
 from import_match import match
 from import_recovery import submit, previous_attempt, issue_state, staging_name
 from normalize import digest
+from test_publication_guard import AuthorityFixture
+from publication_guard import scope, Unavailable
+
+
+class CoordinatedRecoveryTest(AuthorityFixture, unittest.TestCase):
+    def setUp(self):
+        AuthorityFixture.setUp(self)
+        self.cache = self.root / 'cache'; self.cache.mkdir()
+        self.state = self.root / 'maintenance'; self.state.mkdir()
+        worker = SimpleNamespace(config={'writer_state':str(self.writer.root),
+            'mylar':{'config_dir':str(self.config)},
+            'publication_roots':[{'native':str(self.native_root),'worker':str(self.library)}]})
+        self.m = SimpleNamespace(worker=worker, state=self.state, roots=[self.library,self.cache],
+            settings={'auto_import':True,'ddl_cache':str(self.cache),'mylar_ddl_cache':'/native-cache'},
+            idle=Mock(return_value=True),mylar=Mock())
+        self.match = {'issueid':'999','comicid':'888'}
+        self.sql('INSERT INTO issues VALUES (?,?,?,?)', ('999','888',None,'Wanted'))
+
+    def test_rejected_repeat_holds_before_stage_receipt_idle_or_submit(self):
+        before = digest(self.candidate)
+        with self.writer.hold(), scope(self.m.worker,self.writer) as authority:
+            authority.tool_root = self.tool
+            with self.assertRaises(Unavailable):submit(self.m,self.candidate,self.match)
+        self.assertFalse((self.state/'imports').exists())
+        self.assertFalse(list(self.cache.iterdir()))
+        self.m.idle.assert_not_called();self.m.mylar.assert_not_called()
+        self.assertEqual(digest(self.candidate),before)
+
+    def test_rejected_repeat_cannot_replace_prior_receipt_or_use_its_old_proof(self):
+        receipts = self.state/'imports';receipts.mkdir()
+        prior = receipts/'prior.json';prior.write_text('{"retained":"original proof"}\n')
+        before = prior.read_bytes()
+        with self.writer.hold(), scope(self.m.worker,self.writer) as authority:
+            authority.tool_root = self.tool
+            with self.assertRaises(Unavailable):submit(self.m,self.candidate,self.match)
+        self.assertEqual(prior.read_bytes(),before)
+        self.assertEqual(list(receipts.iterdir()),[prior])
+        self.m.mylar.assert_not_called()
+
+    def test_configured_import_outside_owned_scope_holds_before_any_stage(self):
+        with self.assertRaises(Unavailable):submit(self.m,self.candidate,self.match)
+        self.assertFalse((self.state/'imports').exists())
+        self.assertFalse(list(self.cache.iterdir()))
+        self.m.mylar.assert_not_called()
+
+    def test_old_pack_confirmation_cannot_acknowledge_or_delete_rejected_repeat(self):
+        from pack_recovery import Packs
+        adapter = SimpleNamespace(m=self.m,worker=self.m.worker,cache=self.cache)
+        receipt = self.state/'pack.json'
+        receipt.write_text('{"retained":"prior verification"}\n')
+        before = receipt.read_bytes()
+        value = {'members':[dict(kind='comic',phase='confirmed',source=str(self.candidate),
+                    destination=str(self.source),**self.match)]}
+        with self.writer.hold(), scope(self.m.worker,self.writer) as authority:
+            authority.tool_root = self.tool
+            with self.assertRaises(Unavailable):Packs.cleanup(adapter,receipt,value)
+        self.assertTrue(self.candidate.exists());self.assertTrue(self.source.exists())
+        self.assertEqual(receipt.read_bytes(),before)
+        self.m.mylar.assert_not_called()
+
+    def test_old_supplement_cleanup_is_held_until_derivative_owner_is_reviewed(self):
+        from pack_recovery import Packs
+        adapter = SimpleNamespace(m=self.m,worker=self.m.worker,cache=self.cache)
+        receipt = self.state/'pack.json';receipt.write_text('original proof')
+        value = {'members':[dict(kind='supplement',phase='preserved',source=str(self.candidate),
+                    destination=str(self.source))]}
+        with self.writer.hold(), scope(self.m.worker,self.writer), self.assertRaises(Unavailable):
+            Packs.cleanup(adapter,receipt,value)
+        self.assertEqual(receipt.read_text(),'original proof')
+        self.assertTrue(self.candidate.exists());self.m.mylar.assert_not_called()
+
+    def test_authority_drift_during_copy_removes_only_new_unsubmitted_stage(self):
+        import shutil
+        source = self.archive('different.cbz', [('01.jpg',b'different')])
+        before = digest(source)
+        original = shutil.copyfile
+        def changed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            self.marker.unlink()
+            return result
+        with self.assertRaises(Unavailable):
+            with self.writer.hold(), scope(self.m.worker,self.writer) as authority:
+                authority.tool_root = self.tool
+                with patch('import_recovery.shutil.copyfile',side_effect=changed):
+                    submit(self.m,source,self.match)
+        self.assertEqual(digest(source),before)
+        self.assertFalse(list(self.cache.iterdir()))
+        self.assertFalse(list((self.state/'imports').iterdir()))
+        self.m.mylar.assert_not_called()
 
 
 class RecoveryTest(unittest.TestCase):

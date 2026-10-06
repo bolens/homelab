@@ -326,3 +326,30 @@ The first native catalog creation consumes this exact committed fresh permission
 before native `dbcheck`. Existing installation startup requires an owned regular,
 readable native catalog with no pending sidecars. Missing or invalid native catalogs
 stay held without recreation, maintenance or worker startup.
+
+### Worker import boundary progress
+
+The local adapter resolves the proposed native owner from the exact read-only
+`publication_native.owner` definition: unfiltered cross-table identity, annual
+release ID, bounded immutable catalog reads, stable signatures and no journal/WAL
+uncertainty. Proposed issue and parent IDs must be explicit strings; missing or
+coerced parents cannot disable validation. It checks the complete current census
+and source against that owner, then repeats owner and authority validation.
+
+Common import submission checks before creating a stage or receipt, after copying
+both original and stage, and immediately before saving its attempted submission.
+Guided claiming checks before acknowledgement. Pack member confirmation checks
+both candidate and existing target before replacing verification facts. Even an
+unregistered target requires fresh all-row evidence that it remains this exact
+owner's unique Downloaded/Archived catalog archive; an old hash alone cannot
+authorize an unbound path or changed status. Pack
+cleanup rechecks every confirmed comic before writing cleanup intent, reporting or
+deleting any original; old supplement cleanup stays held until its derivative
+ownership contract is reviewed. On failed copy validation only the newly created,
+unsubmitted copy is removed, preserving its original and prior receipts.
+
+These are source boundary checks, not durable command handoff or complete T011
+acceptance. Import receipts still need typed correction/source/owner bindings for
+remote dispatch and recovery; standalone duplicate cleanup and the remaining
+report/Extras branches remain required. No retained proof authorizes replay,
+no HTTP runs under writer exclusion, and live worker activation remains held.

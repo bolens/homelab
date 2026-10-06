@@ -258,6 +258,9 @@ class Guided:
         if identity(source) != proposal['identity'] or digest(source) != proposal['sha256']:
             self.acknowledge(file, record, 'rejected', 'changed_source')
             return
+        from publication_guard import import_check
+        import_check(self.m.worker, source,
+                     {'issueid': str(rows[0][0]), 'comicid': str(rows[0][1])})
         self.acknowledge(file, record, 'claimed')
         result = submit(self.m, source, {'issueid': str(rows[0][0]), 'comicid': str(rows[0][1])}, explicit=True,
                         expected_identity=proposal['identity'], expected_sha256=proposal['sha256'], workflow_command=record['id'],reviewed_source=record.get('reviewed_source') is True)
