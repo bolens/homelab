@@ -1,5 +1,8 @@
 """Incremental discovery and durable repair queue fixtures."""
 from pathlib import Path
+from contextlib import nullcontext
+from types import SimpleNamespace
+import sys
 import tempfile
 import unittest
 from unittest.mock import Mock,patch
@@ -64,6 +67,56 @@ class MaintenanceTest(unittest.TestCase):
         self.worker.tick(True,True);self.assertFalse(self.store.all('converted_tag'));self.source.unlink()
         with zipfile.ZipFile(self.source,'w') as z:z.writestr('page.jpg',b'page');z.writestr('folder/ComicInfo.xml',NESTED)
         self.worker.tick(True,True);self.assertFalse(self.store.all('library_repair'))
+        self.assertEqual(self.store.all('library_observation')[0]['phase'],'review')
+        self.assertFalse(self.store.all('converted_tag'))
+        self.repair.assert_not_called();self.recover.assert_not_called()
+    def test_rootless_promotion_validator_does_not_authorize_automatic_discovery(self):
+        with zipfile.ZipFile(self.source,'w') as z:
+            z.writestr('page.jpg',b'page');z.writestr('folder/ComicInfo.xml',NESTED)
+        before=self.source.read_bytes()
+        with zipfile.ZipFile(self.source) as z:
+            self.assertEqual(library.metadata_repair.layout(z)[0],'folder/ComicInfo.xml')
+        self.assertEqual(library.classify(self.source),'rootless')
+        self.worker.tick(False,True);self.worker.tick(False,True)
+        self.assertFalse(self.store.all('library_repair'))
+        self.assertFalse(self.store.all('converted_tag'))
+        self.assertEqual(self.source.read_bytes(),before)
+        self.assertEqual(self.store.all('library_observation')[0]['phase'],'review')
+        self.repair.assert_not_called();self.recover.assert_not_called()
+    def test_retained_rootless_job_cannot_recover_or_spend_attempt(self):
+        with zipfile.ZipFile(self.source,'w') as z:
+            z.writestr('page.jpg',b'page');z.writestr('folder/ComicInfo.xml',NESTED)
+        before=self.source.read_bytes()
+        job=dict(version=1,path=str(self.source),sha256=library.fingerprint(self.source),
+                 issueid='1',comicid='2',key='retained',phase='repairing',
+                 attempts=1,token='retained-token',updated_at=self.now)
+        self.store.create('library_repair',job['key'],job)
+        self.worker.tick(False,True)
+        held=self.store.get('library_repair',job['key'])
+        self.assertEqual(held['phase'],'review');self.assertEqual(held['attempts'],1)
+        self.assertEqual(held['token'],'retained-token')
+        self.assertEqual(self.source.read_bytes(),before)
+        self.repair.assert_not_called();self.recover.assert_not_called()
+    def test_explicit_reviewed_derivative_uses_owned_route_without_discovery_job(self):
+        import publication_guard
+        with zipfile.ZipFile(self.source,'w') as z:
+            z.writestr('page.jpg',b'page');z.writestr('folder/ComicInfo.xml',NESTED)
+        self.worker.tick(False,True)
+        writer=object();operation=Mock(side_effect=lambda:nullcontext(writer))
+        producer=SimpleNamespace(publish=Mock(return_value={'state':'committed'}),
+                                 status=Mock(return_value={'state':'committed'}))
+        runtime=SimpleNamespace(native_writers=SimpleNamespace(operation=operation),
+                                publication_derivative=producer,publication_guard=publication_guard)
+        token='a'*64
+        with patch.dict(sys.modules,{'mylar':runtime}):
+            self.assertEqual(library.reviewed_derivative(token),{'state':'committed'})
+            self.assertEqual(library.reviewed_derivative(token,status=True),{'state':'committed'})
+            with self.assertRaises(library.Unavailable):library.reviewed_derivative('unreviewed')
+        producer.publish.assert_called_once_with(writer,token)
+        producer.status.assert_called_once_with(writer,token)
+        self.assertEqual(operation.call_count,2)
+        self.assertFalse(self.store.all('library_repair'))
+        self.repair.assert_not_called();self.recover.assert_not_called()
     def test_review_rechecks_catalog_without_file_change(self):
         self.catalog.return_value=None;self.worker.tick(True,False)
         self.assertEqual(self.store.all('library_observation')[0]['phase'],'review')

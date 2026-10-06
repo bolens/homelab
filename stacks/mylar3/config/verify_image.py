@@ -1,5 +1,6 @@
 """Run inside a candidate image without live mounts, networking, or app startup."""
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 import os
 import shutil
 import subprocess
@@ -7,6 +8,19 @@ import sys
 import tempfile
 
 FIXES = Path(__file__).parent
+# These owning suites use independent temporary database/media/cache roots.
+# Shared-source patch and legacy suites remain serialized.
+OWNING_SUITES = ('test_publication_conversion.py', 'test_publication_reconcile.py',
+    'test_publication_lineage.py', 'test_publication_derivative.py',
+    'test_reviewed_derivative.py', 'test_combined_publication.py',
+    'test_combined_cleanup.py', 'test_closed_supplement.py')
+
+
+def owning_suite(test, environment):
+    return subprocess.run([sys.executable, str(FIXES / test)],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        env=environment)
+
 if Path('/opt/comictagger/bin/python').exists():
     assert Path('/opt/ddl-transport/bin/python').is_file(), 'Custom image is missing its required optional discovery runtime'
     assert Path('/opt/archiving-utils/lib/archive_backend.py').is_file(), 'Custom image is missing its pinned archive verifier'
@@ -22,7 +36,30 @@ with tempfile.TemporaryDirectory() as directory:
     for test in ('test_ddl_status.py', 'test_ddl_responses.py', 'test_ddl_exhaustion.py', 'test_tagger_timeout.py', 'test_ddl_mirror_retries.py', 'test_health.py', 'test_unnumbered_issues.py', 'test_ddl_resume.py', 'test_ddl_requeue.py', 'test_queue_progress.py', 'test_queue_control.py', 'test_verified_transfer.py', 'test_queue_views.py', 'test_search_fallback.py', 'test_search_cooldown.py', 'test_prowlarr_identity.py', 'test_pp_monitor.py', 'test_archive_monitor.py', 'test_ddl_ui.py', 'test_pack_intake.py', 'test_database_transactions.py', 'test_catalog_volumes.py', 'test_story_arc_search.py', 'test_release_calendar.py', 'test_file_matching.py', 'test_tagger_handoff.py', 'test_tagger_backend.py'):
         subprocess.run([sys.executable, str(FIXES / test), str(source)], check=True)
     for test in ('test_release_naming.py', 'test_publication_rename.py', 'test_publication_conversion.py', 'test_publication_reconcile.py', 'test_publication_lineage.py', 'test_publication_derivative.py', 'test_reviewed_derivative.py', 'test_combined_publication.py', 'test_combined_cleanup.py', 'test_closed_supplement.py', 'test_worker_reports.py', 'test_publication_maintenance.py', 'test_file_identity.py', 'test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py', 'test_pack_records.py', 'test_pack_bindings.py', 'test_pack_catalog.py', 'test_queue_schedule.py', 'test_tagger_runtime.py', 'test_tagger_metadata.py', 'test_tagger_enrichment.py', 'test_tagger_archive.py', 'test_tagger_adapter.py', 'test_tagger_nfs.py', 'test_tagger_volume_cache.py', 'test_tagger_lookup.py', 'test_tagger_service.py', 'test_media_writer.py', 'test_native_writers.py', 'test_tagger_staging.py', 'test_tagger_native.py', 'test_converted_tagging.py', 'test_converted_catalog.py', 'test_library_metadata.py', 'test_metadata_repair.py', 'test_ddl_transport.py', 'test_ddl_failover.py', 'test_ddl_failover_native.py', 'test_comic_format_preference.py', 'test_publication_api.py', 'test_publication_startup.py'):
+        if test in OWNING_SUITES:
+            continue
         subprocess.run([sys.executable, str(FIXES / test)], check=True,env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
+    environment = dict(os.environ, MYLAR_WORKFLOW_SOURCE=str(source), PYTHONDONTWRITEBYTECODE='1')
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = [(test, executor.submit(owning_suite, test, environment)) for test in OWNING_SUITES]
+        results = []
+        for test, future in futures:
+            try:
+                results.append((test, future.result(), None))
+            except Exception as error:
+                results.append((test, None, error))
+    # Await and report every child before admitting the subsequent package gates.
+    for test, result, error in results:
+        print('Owning image suite: ' + test, flush=True)
+        if error is not None:
+            print(type(error).__name__ + ': ' + str(error), flush=True)
+        else:
+            print(result.stdout, end='', flush=True)
+    for test, result, error in results:
+        if error is not None:
+            raise error
+        if result.returncode:
+            raise subprocess.CalledProcessError(result.returncode, [sys.executable, str(FIXES / test)])
     # Import the full patched package: native Mylar owns queue_schedule as a
     # function used to start and stop worker pools. Both upstream and built
     # image verification must exercise this same freshly patched source.
