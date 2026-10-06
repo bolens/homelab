@@ -2,7 +2,7 @@
 
 # AIL 7's Python 3.10 environment and native runtime package names require Jammy.
 # Migrate the Python and native ABI contracts together before changing releases.
-FROM ubuntu:22.04@sha256:b1066385161d28ddf6bc7e7b28a9170eec11484c821d1a5150d176cbde41d7f7 AS native_builder
+FROM ubuntu:25.10@sha256:7cc5e35f6567ee8c66d2abb4aab0fd866669e6207c237c3a8f0947a5c7f17092 AS native_builder
 
 ARG tz_buildtime=Europe/Rome
 ENV TZ=$tz_buildtime
