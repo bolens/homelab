@@ -1044,15 +1044,20 @@ version and selected issue/series to queue admission. The native queue owns the
 claimed/submitted transition, retaining an interrupted attempt for review.
 Authenticated health separately advertises `guided_handoff` and
 `maintenance_handoff` version 1. Typed maintenance requests cover pack catalog
-lookup, pack verification reports and guided acknowledgements. They verify the
+lookup, pack verification reports, guided acknowledgements and maintenance
+diagnostics. Maintenance diagnostics also require `maintenance_reports` version
+1 and a fresh exact report binding. They verify the
 actual shared archive, complete correction census and current catalog owner
 before storing an attempt. A positive acknowledgement needs the current catalog
 archive; caller-provided status alone cannot establish import completion.
 Verified pack members and completed cleanup survive delayed reports. These
 protocols do not admit naming or derivative transitions that still require review.
 
-A registered correct archive stays at its current catalog path until a verified
-source-to-target transition is implemented. Native copy operations can preserve
+A registered correct archive can change its catalog filename through an exact
+native owned rename that preserves archive bytes and rechecks the current owner,
+complete correction census and captured fence at each checkpoint. Interrupted
+renames remain held for review. Other source-to-target transitions require
+separate verified ownership. Native copy operations can preserve
 that path; moves, ordinary softlinks and deletion of that original remain held.
 The guard uses the actual storyarc/oneoff operation settings, including forced
 copies, and checks the complete cache cleanup set before its first deletion.
@@ -1096,8 +1101,11 @@ correction tasks before live rollout or a prevention claim.
 When publication protection is active, direct SDK tagging and recovery require
 an exact owned native producer before reading or advancing a receipt. Direct NFS
 restore also binds the displaced archive and destination to that producer.
-Unbound naming, reader supplementation and nested metadata repair remain review
-holds before media changes or new publication intents and pending markers.
+Unbound naming, standalone reader supplementation and nested metadata repair
+remain review holds before media changes or new publication intents and pending
+markers. Exact native owned naming and preserved root ComicInfo supplementation
+have positive publication controls; the operational combined-pass route still
+requires integration and acceptance.
 Earlier naming journals
 cannot authorize a new correction-aware transition. Standalone supplementation
 also checks retained publication state, so a missing marker does not hide an

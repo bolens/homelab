@@ -36,7 +36,7 @@ def server(source):
 
 def api(source):
     if MARKER in source:
-        return source
+        return report_api(source)
     source = replace_once(source, "'getHealth', 'reportFailedDownload',", "'getHealth', 'reportFailedDownload', 'reportImportProblems',")
     source = replace_once(source, '    def _getHealth(self, **kwargs):', '''    # homelab-queue-views-v1
     def _reportImportProblems(self, **kwargs):
@@ -53,7 +53,29 @@ def api(source):
 
     def _getHealth(self, **kwargs):''')
     ast.parse(source)
-    return source
+    return report_api(source)
+
+
+def report_api(source):
+    marker='# homelab-maintenance-report-handoff-v1'
+    nodes=[node for node in ast.walk(ast.parse(source)) if isinstance(node,ast.FunctionDef) and node.name=='_reportImportProblems']
+    if len(nodes)!=1:raise ValueError('Expected one import diagnostic report endpoint')
+    node=nodes[0]
+    attempts=[item for item in node.body if isinstance(item,ast.Try)]
+    if len(attempts)!=1:raise ValueError('Diagnostic report admission boundary changed')
+    attempt=attempts[0]
+    if marker in source:
+        calls=[item for item in ast.walk(attempt) if isinstance(item,ast.Call) and ast.unparse(item.func)=='worker_handoff.admit']
+        expected=ast.parse("worker_handoff.admit(kwargs.get('maintenance_handoff'), 'reportImportProblems', {key: kwargs.get(key, '') for key in ('report', 'processing', 'guidance', 'report_binding')})").body[0]
+        if (len(calls)!=1 or len(attempt.body)<2 or not isinstance(attempt.body[0],ast.ImportFrom)
+                or attempt.body[0].module!='mylar' or ast.dump(attempt.body[1])!=ast.dump(expected)):
+            raise ValueError('Diagnostic report handoff guard changed')
+        return source
+    lines=source.splitlines(keepends=True)
+    prefix=' '*attempt.body[0].col_offset
+    addition=prefix+marker+'\n'+prefix+'from mylar import worker_handoff\n'+prefix+"worker_handoff.admit(kwargs.get('maintenance_handoff'), 'reportImportProblems', {key: kwargs.get(key, '') for key in ('report', 'processing', 'guidance', 'report_binding')})\n"
+    lines.insert(attempt.body[0].lineno-1,addition)
+    result=''.join(lines);ast.parse(result);return result
 
 
 def template(source):

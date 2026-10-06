@@ -65,6 +65,9 @@ def page_count(source, maximum):
 
 def derivative(worker, source):
     """Return a checked CBZ, retaining a durable PDF independently of imports."""
+    if worker.config.get('writer_state') is not None:
+        from publication_guard import Unavailable
+        raise Unavailable('PDF conversion needs reviewed source-to-rendered payload lineage')
     from normalize import digest, identity, save, sync_directory
     from PIL import Image
     options = policy(worker.config)

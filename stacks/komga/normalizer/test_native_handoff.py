@@ -59,6 +59,45 @@ class HandoffTest(AuthorityFixture,unittest.TestCase):
         with self.writer.hold(),self.portable(self.m.worker,self.writer):
             self.assertEqual(request(self.m,'packCatalog',self.arguments,[guard(self.source)])['phase'],'ready')
 
+    def test_old_native_report_capability_keeps_prepared_request_unspent(self):
+        with self.writer.hold(),self.portable(self.m.worker,self.writer):
+            self.assertIsNone(request(self.m,'reportImportProblems',{'report':'[]','processing':'[]','guidance':'[]',
+                'report_binding':json.dumps({'version':1,'observed_at':int(__import__('time').time()//300)*300,
+                                           'report':[],'processing':[],'guidance':[]})},[]))
+        path=next((self.m.state/'native-handoffs').glob('*.json'));before=path.read_bytes()
+        for flag in (None,True,1.0,2):
+            self.m.mylar.return_value={'workflow':{'valid':True,'maintenance_handoff':1,'maintenance_reports':flag}}
+            self.assertEqual(self.execute(),0);self.assertEqual(path.read_bytes(),before)
+        def accepted(command,**kwargs):
+            self.assertFalse(getattr(self.writer.local[1],'depth',0))
+            if command=='getHealth':return {'workflow':{'valid':True,'maintenance_handoff':1,'maintenance_reports':1}}
+            self.assertEqual(command,'reportImportProblems');return {'accepted':0}
+        self.m.mylar.side_effect=accepted
+        self.assertEqual(self.execute(),1);self.assertEqual(json.loads(path.read_text())['phase'],'complete')
+
+    def test_malformed_health_keeps_prepared_request_unspent(self):
+        path=self.prepare();before=path.read_bytes()
+        for value in (None,[], 'invalid', True):
+            self.m.mylar.return_value={'workflow':value}
+            self.assertEqual(self.execute(),0)
+            self.assertEqual(path.read_bytes(),before)
+            self.assertFalse(self.writer.fenced())
+        self.assertTrue(all(call.args==('getHealth',) for call in self.m.mylar.call_args_list))
+
+    def test_stale_prepared_request_does_not_starve_a_different_current_source(self):
+        with self.writer.hold(),self.portable(self.m.worker,self.writer):
+            request(self.m,'packCatalog',self.arguments,[guard(self.source)])
+            other=self.archive('fresh.cbz',[('01.jpg',b'fresh')])
+            request(self.m,'packCatalog',dict(self.arguments,catalog_attempt='2'),[guard(other)])
+        self.source.write_bytes(b'changed')
+        def api(command,**kwargs):
+            if command=='getHealth':return {'workflow':{'valid':True,'maintenance_handoff':1}}
+            self.assertFalse(getattr(self.writer.local[1],'depth',0));return {'phase':'ready'}
+        self.m.mylar.side_effect=api
+        self.assertEqual(self.execute(),1)
+        phases=[json.loads(path.read_text())['phase'] for path in (self.m.state/'native-handoffs').glob('*.json')]
+        self.assertEqual(sorted(phases),['complete','prepared'])
+
     def test_lost_response_is_retained_and_not_replayed_after_source_or_census_change(self):
         path=self.prepare()
         def timeout(command,**kwargs):

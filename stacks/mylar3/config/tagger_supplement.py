@@ -168,6 +168,9 @@ def apply_preserved(path, policy, writer, publisher, original, restored, expecte
     if (any(p.is_symlink() for p in (folder, *folder.parents)) or not stat.S_ISDIR(info.st_mode)
             or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700):
         raise ValueError('Expected private owned preservation folder')
+    runtime=sys.modules.get('mylar');writers=getattr(runtime,'native_writers',None)
+    if writers is not None and writers.publication_mode():
+        return owned_preserved(path,validate(policy),writer,publisher,original,restored,expected_digest,token)
     publication_review(writer)
     with writer.hold(allow_tagger_pending=True, timeout=30):
         recover(writer, publisher)
@@ -187,6 +190,76 @@ def apply_preserved(path, policy, writer, publisher, original, restored, expecte
                     (old.members, old.comment, old.xml, old.attributes)):
                 raise ValueError('Caller restore archive differs from source')
         return _publish(path, validate(policy), writer, publisher, old, expected_digest, security, token)
+
+
+def owned_preserved(path,policy,writer,publisher,original,restored,expected_digest,token):
+    """Exact native supplement role; root metadata only, retained pair stays intact."""
+    policy=json.loads(json.dumps(policy))
+    import mylar
+    from mylar import native_writers,publication_native as native,publication_guard as guard
+    from mylar import publication_transaction,release_naming,tagger_pack
+    if (not callable(getattr(native_writers,'operation',None)) or type(publisher) is not tagger_pack.Publisher):
+        raise native.Review('supplement-producer-unbound')
+    try:
+        with native_writers.operation() as actual_writer:
+            if guard.writer_identity(actual_writer)!=guard.writer_identity(writer):
+                raise native.Review('supplement-writer-changed')
+            publication_transaction.state_evidence(writer)
+            if (Path(publisher.config_root).absolute()!=writer.root.parent
+                    or publisher.root!=writer.root.parent/'modern-tagger-v2/journal-v2'
+                    or publisher.receipt(token).exists() or publisher.receipt(token).is_symlink()):
+                raise native.Review('supplement-publication-token-unbound')
+            database,_=release_naming.services();catalog=release_naming.catalog(database,path)
+            issueid=str(catalog['row']['IssueID']);comicid=str(catalog['row']['ComicID'])
+            proof=native.require(path,issueid=issueid,comicid=comicid)
+            old=snapshot(path);security=publisher.security(path)
+            census=guard.registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')[0]
+            selected=guard.observe_owners(Path(mylar.DATA_DIR)/'mylar.db',writer,[proof['owner']],
+                                         [mylar.CONFIG.DESTINATION_DIR])['observed']
+            if proof['inventory']['source_sha256']!=expected_digest:
+                raise native.Review('supplement-source-changed')
+            pair={}
+            for name,copy in (('original',original),('restore',restored)):
+                signature,checksum=guard.file_hash(copy)
+                saved=snapshot(copy)
+                if (checksum!=expected_digest or signature[6]!=os.geteuid() or signature[8]!=1
+                        or (saved.members,saved.comment,saved.xml,saved.attributes)!=
+                           (old.members,old.comment,old.xml,old.attributes)):
+                    raise native.Review('supplement-preservation-changed')
+                pair[name]=dict(path=str(copy),signature=signature)
+            publication_transaction.preserved_pair(pair,expected_digest)
+            additions=supplements(old.xml,policy)
+            if not additions:
+                fresh=native.require(path,issueid=issueid,comicid=comicid)
+                signature,digest=guard.file_hash(path)
+                observed=guard.observe_owners(Path(mylar.DATA_DIR)/'mylar.db',writer,[proof['owner']],
+                                             [mylar.CONFIG.DESTINATION_DIR])['observed']
+                current=guard.registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')[0]
+                if (digest!=expected_digest or not guard.same_json(signature,proof['inventory']['source_signature'])
+                        or fresh['inventory']['source_sha256']!=expected_digest
+                        or not guard.same_json(fresh['owner'],proof['owner'])
+                        or not guard.same_json(observed,selected) or not guard.same_json(current,census)
+                        or publisher.security(path)!=security or snapshot(path).identity!=old.identity):
+                    raise native.Review('supplement-unchanged-source-changed')
+                return dict(state='unchanged',token=None,before=expected_digest,after=expected_digest,
+                            fields=[],payloads_verified=True)
+            captured=dict(role='preserved-supplement',manualmeta=True,supplement=policy,preservation=pair,
+                          expected_digest=expected_digest,owner_observed=selected)
+            with publication_transaction.tagging(writer,path,issueid,token,captured,modern=True) as job:
+                result=publisher.tag(path,{},token=token,supplement=policy,expected_digest=expected_digest)
+                if result.state not in ('committed','unchanged'):
+                    raise native.Review('supplement-terminal-publication-required')
+                new=snapshot(path)
+                if ((old.members,old.comment,old.mode,old.uid,old.gid,old.attributes)!=
+                        (new.members,new.comment,new.mode,new.uid,new.gid,new.attributes)
+                        or publisher.security(path)!=security or supplements(new.xml,policy)):
+                    raise native.Review('supplement-preservation-verification-failed')
+                job.complete(publisher,None,path)
+                return dict(state=result.state,token=token,journal=str(publisher.receipt(token)),
+                            before=expected_digest,after=fingerprint(path),fields=sorted(additions),
+                            payloads_verified=True)
+    except (guard.Unavailable,OSError,ValueError,TypeError,KeyError):
+        raise native.Review('supplement-owned-evidence-unavailable') from None
 
 
 def bound_publisher(writer):

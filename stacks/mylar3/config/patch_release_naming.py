@@ -16,7 +16,21 @@ PRINT_FIELDS = '''        printed = release_naming.print_fields(self, modfilenam
 
 
 def api(source):
-    if MARKER in source:return source
+    if MARKER in source:
+        lines=source.splitlines(keepends=True)
+        methods=[node for node in ast.walk(ast.parse(source)) if isinstance(node,ast.FunctionDef)
+                 and node.name in ('_getReleaseNaming','_renameLibraryFile','_releaseNamingStatus')]
+        if len(methods)!=3:raise ValueError('Release naming API methods changed')
+        for node in sorted(methods,key=lambda node:node.lineno,reverse=True):
+            block=''.join(lines[node.lineno-1:node.end_lineno])
+            if 'except publication_native.Review:' not in block:
+                block=replace_once(block,'        from mylar import release_naming\n',
+                    '        from mylar import release_naming, publication_native\n')
+                block=replace_once(block,'        except (ValueError, TypeError):\n',
+                    "        except publication_native.Review:\n            self.data = self._failureResponse('Release naming needs review')\n        except (ValueError, TypeError):\n")
+                lines[node.lineno-1:node.end_lineno]=[block]
+        source=''.join(lines);ast.parse(source)
+        return source
     source = replace_once(source, "'getVersion', 'checkGithub'", "'getReleaseNaming', 'renameLibraryFile', 'releaseNamingStatus', 'getVersion', 'checkGithub'")
     methods = []
     for command, call in [('getReleaseNaming', "get(kwargs.get('source'))"),
@@ -26,9 +40,11 @@ def api(source):
         if not mylar.CONFIG.API_ENABLED or self.apikey != mylar.CONFIG.API_KEY:
             self.data = self._failureResponse('Primary API key required')
             return
-        from mylar import release_naming
+        from mylar import release_naming, publication_native
         try:
             result = release_naming.CALL
+        except publication_native.Review:
+            self.data = self._failureResponse('Release naming needs review')
         except (ValueError, TypeError):
             self.data = self._failureResponse('Release naming needs review')
         except Exception:

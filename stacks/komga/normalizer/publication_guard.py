@@ -204,6 +204,127 @@ class Authority:
             raise Unavailable('Correction authority changed during import binding')
         return result
 
+    def catalog_absence(self, source, inventory):
+        """No current native path or physical archive may be discarded."""
+        from contextlib import closing
+        import sqlite3
+        source = Path(source)
+        census = self.admission()
+        before = evidence.signature(self.catalog.lstat())
+        sidecars = [str(self.catalog)+suffix for suffix in ('-journal','-wal','-shm')]
+        if any(os.path.lexists(path) for path in sidecars):
+            raise Unavailable('Uncataloged check requires stable native catalog')
+        rows = {};count = size = 0
+        deadline = time.monotonic()+evidence.TIMEOUT
+        with closing(sqlite3.connect(self.catalog.as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
+            db.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+            if db.execute('PRAGMA quick_check').fetchall()!=[('ok',)]:
+                raise Unavailable('Uncataloged check requires readable native catalog')
+            for table,fields in (('comics',('ComicID','ComicLocation')),
+                    ('issues',('IssueID','ComicID','Location')),
+                    ('annuals',('IssueID','ComicID','Location'))):
+                total,bytes_used = db.execute('SELECT count(*),coalesce(sum('+
+                    '+'.join('coalesce(length(CAST('+field+' AS BLOB)),0)' for field in fields)+
+                    '),0) FROM '+table).fetchone()
+                count+=total;size+=bytes_used
+                if count>evidence.CATALOG_ROWS or size>evidence.CATALOG_BYTES:
+                    raise Unavailable('Uncataloged projection exceeds bounds')
+                rows[table]=[dict(zip(fields,row)) for row in db.execute('SELECT '+','.join(fields)+' FROM '+table)]
+                if any(value is not None and not isinstance(value,str) for row in rows[table] for value in row.values()):
+                    raise Unavailable('Malformed uncataloged projection')
+        parents = {}
+        for row in rows['comics']:parents.setdefault(row['ComicID'],[]).append(row['ComicLocation'])
+        for row in rows['issues']+rows['annuals']:
+            if time.monotonic()>=deadline:raise Unavailable('Uncataloged observation timed out')
+            if not row['Location']:continue
+            parent=parents.get(row['ComicID'],[])
+            if len(parent)!=1:raise Unavailable('Ambiguous uncataloged path parent')
+            path=evidence._catalog_path(parent[0],row['Location'],[root for root,_ in self.mappings])
+            mapped=self.mapped(path)
+            for component in (mapped,*mapped.parents):evidence._claim_identity(component)
+            physical=evidence._claim_identity(mapped)
+            if (mapped==source or (physical is not None and list(physical[:2])==inventory['source_signature'][:2])):
+                raise Unavailable('Native catalog relocation requires an exact owned handoff')
+        signature,checksum=evidence.file_hash(source)
+        if (evidence.signature(self.catalog.lstat())!=before or any(os.path.lexists(path) for path in sidecars)
+                or signature!=inventory['source_signature'] or checksum!=inventory['source_sha256']
+                or not evidence.same_json(census,self.admission())):
+            raise Unavailable('Uncataloged source/catalog authority changed')
+        return before
+
+    def uncataloged_check(self, source):
+        """Require full current catalog path/physical absence before relocation."""
+        source=Path(source)
+        if not any(source.is_relative_to(mapped) for _,mapped in self.mappings):
+            raise Unavailable('Uncataloged source is outside mapped library')
+        proof=self.unowned_check(source)
+        signature=self.catalog_absence(source,proof['inventory'])
+        fresh=self.unowned_check(source)
+        if (evidence.signature(self.catalog.lstat())!=signature
+                or any(os.path.lexists(str(self.catalog)+suffix) for suffix in ('-journal','-wal','-shm'))
+                or not evidence.same_json(proof,fresh)):
+            raise Unavailable('Uncataloged source/catalog authority changed')
+        return dict(proof,catalog_signature=signature)
+
+    def target_match(self, target):
+        """Resolve an actual mapped catalog path, never a filename suggestion."""
+        from contextlib import closing
+        import sqlite3
+        target = Path(target)
+        native = [root / target.relative_to(mapped) for root, mapped in self.mappings
+                  if target.is_relative_to(mapped)]
+        if len(native) != 1:
+            raise Unavailable('Duplicate target has no unique native mapping')
+        self.admission()
+        before = evidence.signature(self.catalog.lstat())
+        if any(os.path.lexists(str(self.catalog)+suffix) for suffix in ('-journal','-wal','-shm')):
+            raise Unavailable('Duplicate target catalog requires recovery')
+        matches = []
+        deadline = time.monotonic() + evidence.TIMEOUT
+        with closing(sqlite3.connect(self.catalog.as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
+            db.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+            for table in ('comics','issues','annuals'):
+                if db.execute('SELECT count(*) FROM '+table).fetchone()[0] > evidence.CATALOG_ROWS:
+                    raise Unavailable('Duplicate target catalog exceeds bounds')
+            for table in ('issues','annuals'):
+                matches.extend(db.execute('SELECT i.IssueID,i.ComicID FROM '+table+
+                    " i JOIN comics c ON c.ComicID=i.ComicID WHERE (CASE WHEN substr(i.Location,1,1)='/' "
+                    "THEN i.Location ELSE rtrim(c.ComicLocation,'/') || '/' || i.Location END)=? LIMIT 3",
+                    (str(native[0]),)).fetchall())
+        if (len(matches)!=1 or evidence.signature(self.catalog.lstat())!=before
+                or any(os.path.lexists(str(self.catalog)+suffix) for suffix in ('-journal','-wal','-shm'))):
+            raise Unavailable('Duplicate target has no stable unique catalog owner')
+        match = dict(issueid=matches[0][0],comicid=matches[0][1])
+        # The unfiltered owner/observer below rejects deleted, shadowed,
+        # inactive, malformed or physical-alias claims independently.
+        self.import_check(target,match)
+        if (evidence.signature(self.catalog.lstat())!=before
+                or any(os.path.lexists(str(self.catalog)+suffix) for suffix in ('-journal','-wal','-shm'))):
+            raise Unavailable('Duplicate target catalog changed after owner binding')
+        return match
+
+    def cleanup_check(self, source, target, *, match=None):
+        """Bind eligible duplicate bytes to the current catalog publication."""
+        before = self.admission()
+        source, target = Path(source), Path(target)
+        source_signature = evidence.signature(source.lstat())
+        if source_signature[:2] == evidence.signature(target.lstat())[:2]:
+            raise Unavailable('Catalog original or physical alias cannot be cleaned')
+        for row in before[1].values():
+            for observed in row['observed']:
+                if (source == self.mapped(observed['catalog']['path'])
+                        or source_signature[:2] == observed['signature'][:2]):
+                    raise Unavailable('Protected catalog original cannot be cleaned')
+        resolved = self.target_match(target)
+        if match is not None and not evidence.same_json(match,resolved):
+            raise Unavailable('Duplicate cleanup owner changed')
+        proof = self.confirmation_check(source,target,resolved)
+        self.catalog_absence(source,proof['source']['inventory'])
+        if (not evidence.same_json(proof,self.confirmation_check(source,target,resolved))
+                or not evidence.same_json(before,self.admission())):
+            raise Unavailable('Duplicate cleanup authority changed')
+        return dict(version=1,match=resolved,confirmation=proof)
+
     def confirmation_check(self, source, target, match):
         """A pack destination must still be this owner's unique catalog archive."""
         source_proof = self.import_check(source, match)

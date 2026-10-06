@@ -45,7 +45,7 @@ class NamingTest(unittest.TestCase):
         before=(self.source.read_bytes(),list(self.store.all('release_name')))
         with patch.object(native_writers,'publication_mode',return_value=True),patch.object(publication_native,'require',return_value={}) as require,self.assertRaises(publication_native.Review):
             self.native.rename(self.request)
-        require.assert_called_once_with(self.source,issueid='1',comicid='2')
+        require.assert_called_once_with(self.source,issueid='1',comicid='2',transaction=None)
         self.assertEqual(before,(self.source.read_bytes(),list(self.store.all('release_name'))))
         self.assertFalse(self.target.exists());self.assertFalse(self.writer.fenced(release=True))
 
@@ -392,18 +392,23 @@ class ApiTest(unittest.TestCase):
         from patch_release_naming import api
         source = "class Api:\n    allowed = ['getVersion', 'checkGithub']\n    def _getVersion(self, **kwargs): pass\n"
         patched = api(source); self.assertEqual(api(patched), patched)
+        prior=patched.replace('from mylar import release_naming, publication_native','from mylar import release_naming').replace("        except publication_native.Review:\n            self.data = self._failureResponse('Release naming needs review')\n",'')
+        self.assertEqual(api(prior),patched)
         namespace = {'mylar':SimpleNamespace(CONFIG=SimpleNamespace(API_ENABLED=True, API_KEY='primary'))}
         exec(compile(patched, '<fixture>', 'exec'), namespace)
         endpoint = namespace['Api']()
         endpoint._failureResponse = lambda message:dict(success=False,error=message)
         endpoint._successResponse = lambda data:dict(success=True,data=data)
         functions = SimpleNamespace(get=Mock(return_value={'version':1}),rename=Mock(return_value={'version':1}),status=Mock(return_value={'version':1}))
-        with patch.dict(sys.modules, {'mylar':SimpleNamespace(release_naming=functions)}):
+        with patch.dict(sys.modules, {'mylar':SimpleNamespace(release_naming=functions,publication_native=SimpleNamespace(Review=importlib.import_module('publication_native').Review))}):
             for method, function in [('_getReleaseNaming',functions.get),('_renameLibraryFile',functions.rename),('_releaseNamingStatus',functions.status)]:
                 endpoint.apikey='read-only';getattr(endpoint,method)(source='path',naming='{}',token='token')
                 function.assert_not_called();self.assertFalse(endpoint.data['success'])
                 endpoint.apikey='primary';getattr(endpoint,method)(source='path',naming='{}',token='token')
                 self.assertTrue(endpoint.data['success'])
+                function.side_effect=importlib.import_module('publication_native').Review('/private/path api-key')
+                getattr(endpoint,method)(source='path',naming='{}',token='token')
+                self.assertEqual(endpoint.data,dict(success=False,error='Release naming needs review'))
                 function.side_effect=RuntimeError('/private/path api-key')
                 getattr(endpoint,method)(source='path',naming='{}',token='token')
                 self.assertNotIn('/private',str(endpoint.data))

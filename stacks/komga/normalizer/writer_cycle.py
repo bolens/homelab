@@ -5,7 +5,7 @@ import os
 import stat
 import time
 from media_writer import Writer, Busy, sync
-from publication_guard import scope
+from publication_guard import scope, evidence, Unavailable
 
 
 def bind_state(writer, normalizer):
@@ -51,16 +51,19 @@ def cycle(normalizer, maintenance=None):
     writer=Writer(root)
     try:
         prepare = getattr(maintenance,'prepare',None) if maintenance else None
+        prepare_cycle=getattr(normalizer,'prepare_cycle',None)
         native_batch = None
-        if prepare:
+        if prepare or prepare_cycle:
             # Prove authority without writing state before any remote work.
             with writer.hold(allow_pending=True,timeout=0),scope(normalizer,writer):
                 pass
-            native_batch = prepare()
+            if prepare_cycle:prepare_cycle()
+            if prepare:native_batch = prepare()
         with writer.hold(allow_pending=True,timeout=0):
             # Fence before any work: Komga may keep writing after an API timeout
             # or process crash. The worker alone reconciles and clears this marker.
-            with scope(normalizer,writer,native_batch=native_batch):
+            with scope(normalizer,writer,native_batch=native_batch) as authority:
+                cycle_census=authority.admission()
                 bind_state(writer,normalizer)
                 writer.mark_pending()
                 normalizer.cycle()
@@ -68,11 +71,12 @@ def cycle(normalizer, maintenance=None):
                 bind_state(writer,normalizer)
                 pending=any(json.loads(path.read_text())['phase']!='done'
                             for path in normalizer.jobs.glob('*/receipt.json'))
+                if not evidence.same_json(cycle_census,authority.admission()):
+                    raise Unavailable('Publication authority changed before reader collection')
+                scans = getattr(normalizer, 'scan_batch', None)
+                # Collection needs the owned current publication authority.
+                scan_ready = bool(scans and scans.collect())
             if not pending:writer.clear_pending()
-            scans = getattr(normalizer, 'scan_batch', None)
-            # Readiness is per path: unrelated asynchronous conversions must not
-            # starve completed additions. collect excludes their receipt paths.
-            scan_ready = bool(scans and scans.collect())
         try:
             if not pending:
                 dispatch = getattr(maintenance,'dispatch',None) if maintenance else None
@@ -80,9 +84,13 @@ def cycle(normalizer, maintenance=None):
                 refresh_completed(normalizer)
         finally:
             if scan_ready:scans.dispatch()
+        if not pending:
+            from reader_handoff import dispatch as reader_dispatch
+            reader_dispatch(normalizer)
         naming = getattr(normalizer, 'naming', None)
         if not pending and naming:
             naming.tick()  # Native rename owns the writer; call only after releasing our lock.
+            reader_dispatch(normalizer)
         return True
     except Busy:
         # A busy lock is normal contention. Preserve errors and pending counts,

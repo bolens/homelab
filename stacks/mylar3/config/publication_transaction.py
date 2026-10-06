@@ -30,6 +30,13 @@ def present(writer):
 
 def admission(capability,writer):
     """A boolean, deserialized intent or unrelated scope grants no permission."""
+    if __package__:
+        from .publication_rename import Rename, admitted
+    else:
+        from publication_rename import Rename, admitted
+    if type(capability) is Rename:
+        admitted(capability,writer)
+        return
     if not isinstance(capability,Tagging) or getattr(_LOCAL,'tagging',None) is not capability:
         raise guard.Unavailable('Exact active tagging transaction required')
     capability.check(writer)
@@ -102,6 +109,31 @@ def terminal_digest(result):
     return guard.canonical_digest(value)
 
 
+def preserved_pair(value, checksum):
+    """Recheck detached retained originals at every supplement boundary."""
+    if not isinstance(value,dict) or set(value)!={'original','restore'}:
+        raise guard.Unavailable('Both preserved supplement copies required')
+    paths=[]
+    for row in value.values():
+        if not isinstance(row,dict) or set(row)!={'path','signature'} or not isinstance(row['path'],str):
+            raise guard.Unavailable('Exact preserved supplement copy facts required')
+        path=Path(row['path'])
+        if (not path.is_absolute() or '..' in path.parts
+                or any(p.is_symlink() for p in (path,*path.parents))):
+            raise guard.Unavailable('Confined preserved supplement copies required')
+        folder=path.parent.lstat()
+        if (not stat.S_ISDIR(folder.st_mode) or folder.st_uid!=os.geteuid()
+                or stat.S_IMODE(folder.st_mode)!=0o700):
+            raise guard.Unavailable('Private retained supplement folder required')
+        signature,digest=guard.file_hash(path)
+        if (signature[6]!=os.geteuid() or signature[8]!=1 or digest!=checksum
+                or not guard.same_json(signature,row['signature'])):
+            raise guard.Unavailable('Preserved supplement copy changed')
+        paths.append(path)
+    if paths[0]==paths[1] or paths[0].parent!=paths[1].parent:
+        raise guard.Unavailable('Distinct retained supplement copies required')
+
+
 class Tagging:
     """Created only before the fence under uninterrupted admitted raw Writer."""
     def __init__(self,writer,source,issueid,token,policy,*,modern=False):
@@ -116,6 +148,23 @@ class Tagging:
         census,_=guard.registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
         # Capture a canonical policy copy, never a caller-mutated dictionary.
         policy=json.loads(json.dumps(policy,sort_keys=True,allow_nan=False))
+        if policy.get('role') is not None:
+            if (policy.get('role')!='preserved-supplement' or not modern or policy.get('manualmeta') is not True
+                    or set(policy)!={'role','manualmeta','supplement','preservation','expected_digest','owner_observed'}
+                    or policy['expected_digest']!=proof['inventory']['source_sha256']):
+                raise guard.Unavailable('Exact preserved supplement producer policy required')
+            if __package__:
+                from .tagger_enrichment import validate
+            else:
+                from tagger_enrichment import validate
+            validate(policy['supplement'])
+            preserved_pair(policy['preservation'],policy['expected_digest'])
+            selected=guard.observe_owners(Path(mylar.DATA_DIR)/'mylar.db',writer,[proof['owner']],
+                                         [mylar.CONFIG.DESTINATION_DIR])['observed']
+            if (selected[0]['catalog']['path']!=proof['path']
+                    or selected[0]['source_sha256']!=policy['expected_digest']
+                    or not guard.same_json(selected,policy['owner_observed'])):
+                raise guard.Unavailable('Supplement source is not the current catalog archive')
         recovery=state_evidence(writer) if modern else None
         self.history=writer.root/'tagger-completed-v1'
         self.history.mkdir(mode=0o700,exist_ok=True)
@@ -169,6 +218,8 @@ class Tagging:
         census,_=guard.registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
         if not guard.same_json(census,self.value['census']):
             raise guard.Unavailable('Tagging correction authority changed')
+        if self.value['policy'].get('role')=='preserved-supplement':
+            preserved_pair(self.value['policy']['preservation'],self.value['policy']['expected_digest'])
         if self.value['recovery'] is not None and not guard.same_json(
                 state_evidence(writer),self.value['recovery']):
             raise guard.Unavailable('Tagging recovery state changed')
@@ -358,9 +409,9 @@ class Tagging:
         if str(path)!=self.value['source'] or self.value['in_place'] is None:return path
         return self.in_place_source(path)[0]
 
-    def observed_equal(self,observed):
+    def observed_equal(self,observed,*,expected=None):
         """Project only the bound metadata transition; retain every catalog fact."""
-        expected=self.value['observed']
+        expected=self.value['observed'] if expected is None else expected
         if self.value['in_place'] is None:return guard.same_json(observed,expected)
         actual=json.loads(json.dumps(observed))
         source,digest=self.in_place_source(self.value['source'])
@@ -576,6 +627,12 @@ class Tagging:
                     or result['inventory']['source_sha256']!=self.value['source_sha256']
                     or list(result['inventory']['source_signature'])!=self.value['source_signature']))):
             raise native.Review('tagging-source-changed',payload=result['inventory']['payload'])
+        if self.value['policy'].get('role')=='preserved-supplement':
+            import mylar
+            selected=guard.observe_owners(Path(mylar.DATA_DIR)/'mylar.db',self.writer,[owner],
+                                         [mylar.CONFIG.DESTINATION_DIR],transaction=self)['observed']
+            if not self.observed_equal(selected,expected=self.value['policy']['owner_observed']):
+                raise native.Review('supplement-current-owner-changed')
         return result
 
 

@@ -2,12 +2,13 @@
 import json
 from pathlib import Path
 import re
+import sqlite3
 import time
 import zipfile
 
 from mylar import publication_guard as guard, publication_native, native_writers, workflow
 
-COMMANDS = frozenset(('packCatalog','packReport','workflowAcknowledge'))
+COMMANDS = frozenset(('packCatalog','packReport','workflowAcknowledge','reportImportProblems'))
 
 
 def catalog_evidence(path, value):
@@ -51,6 +52,148 @@ def confirmation(path, match, proof):
     if (observed['observed'][0]['catalog']['path']!=str(path)
             or observed['inventory']['payload']!=proof['inventory']['payload']):
         raise ValueError('Confirmation is not the current catalog archive')
+
+
+
+def report_admission(arguments, sources):
+    """Validate every visible claim before report/guidance writes or events."""
+    from mylar import import_problems
+    if not isinstance(arguments,dict) or set(arguments)!={'report','processing','guidance','report_binding'}:
+        raise ValueError('Exact typed report arguments required')
+    values={}
+    for key,limit in (('report',200000),('processing',60000),('guidance',180000),('report_binding',200000)):
+        if not isinstance(arguments[key],str) or len(arguments[key])>limit:raise ValueError('Report exceeds bound')
+        values[key]=guard.decode_json(arguments[key])
+    report,processing,guidance,binding=(values[key] for key in ('report','processing','guidance','report_binding'))
+    if (not isinstance(report,list) or len(report)>500 or not isinstance(processing,list) or len(processing)>50
+            or not isinstance(guidance,list) or len(guidance)>50 or not isinstance(binding,dict)
+            or set(binding)!={'version','observed_at','report','processing','guidance'}
+            or type(binding['version']) is not int or binding['version']!=1
+            or type(binding['observed_at']) is not int or binding['observed_at']%300
+            or not 0<=time.time()-binding['observed_at']<=900
+            or any(not isinstance(binding[key],list) for key in ('report','processing','guidance'))
+            or binding['processing']):raise ValueError('Invalid typed diagnostic report')
+    claims={}
+    for row in binding['report']:
+        if (not isinstance(row,dict) or set(row)!={'index','path','match','confirmation'}
+                or type(row['index']) is not int or not 0<=row['index']<len(report)
+                or row['index'] in claims or type(row['confirmation']) is not bool):raise ValueError('Invalid report source binding')
+        observed=sources.get(row['path'])
+        if not observed or any(not guard.same_json(row[key],observed[0][key]) for key in ('match','confirmation')):
+            raise ValueError('Report source lacks actual native proof')
+        claims[row['index']]=row
+    diagnostics={'import_review','pdf_rendering','unmatched','validation','quarantine','retry_unconfirmed','failed'}
+    for index,row in enumerate(report):
+        if (not isinstance(row,dict) or not set(row)<={'name','kind','phase','issueid','comicid'}
+                or row.get('kind') not in import_problems.ACTIONS or row.get('phase','')!=''
+                or not display(row.get('name'),255)):raise ValueError('Invalid sanitized diagnostic')
+        if row['kind'] in diagnostics:
+            if index in claims or row.get('issueid') or row.get('comicid'):raise ValueError('Diagnostic cannot assert publication identity')
+        else:
+            claim=claims.get(index)
+            if (claim is None or row['name']!=Path(claim['path']).name
+                    or claim['match']!={key:row.get(key) for key in ('issueid','comicid')}
+                    or row['kind'] not in ('ready','import_unsupported')):
+                raise ValueError('Positive report requires fresh actual source proof')
+    formats={'CBR','CBZ','CB7','CBT','ZIP','RAR','7Z','TAR','TAR.GZ','TGZ','TAR.BZ2','TBZ2','TAR.XZ','TXZ','TAR.ZST','TZST',
+             'CBT.TAR.ZST','CBT.TAR.GZ','CBT.TAR.BZ2','CBT.TAR.XZ','CBT.ZST','CBT.BZ2','CBT.GZ','CBT.XZ','CBA','ACE','UNKNOWN'}
+    for row in processing:
+        if (not isinstance(row,dict) or set(row)!={'name','original_format','original_container','phase'}
+                or row['phase']!='failed' or not display(row['name'],160) or '?' in row['name']
+                or row['original_format'] not in formats
+                or row['original_container'] not in ('ZIP','RAR','7Z','TAR','GZIP','BZIP2','XZ','ZSTD','Unknown')):
+            raise ValueError('Conversion completion requires reviewed relocation proof')
+    proposal_claims={}
+    for row in binding['guidance']:
+        if (not isinstance(row,dict) or set(row)!={'source_token','version','path'}
+                or row['source_token'] in proposal_claims):raise ValueError('Invalid guidance source binding')
+        proposal_claims[row['source_token']]=row
+    if len(proposal_claims)!=len(guidance):raise ValueError('Missing or extra guided source')
+    seen_guidance=set()
+    for row in guidance:
+        if (not isinstance(row,dict) or not set(row)<={'source_token','version','name','candidates','evidence','alias_scope','requires_review'}
+                or not re.fullmatch('[a-f0-9]{32}',str(row.get('source_token','')))
+                or row['source_token'] in seen_guidance
+                or not re.fullmatch('[a-f0-9]{64}',str(row.get('version',''))) or not display(row.get('name'),255)
+                or not isinstance(row.get('candidates'),list) or len(row['candidates'])>8
+                or not isinstance(row.get('evidence'),list) or len(row['evidence'])>6
+                or any(not report_text(item,200) for item in row['evidence'])
+                or ('requires_review' in row and type(row['requires_review']) is not bool)):raise ValueError('Invalid guided proposal')
+        seen_guidance.add(row['source_token'])
+        claim=proposal_claims.get(row['source_token']); observed=sources.get(claim['path']) if claim else None
+        if (not claim or claim['version']!=row['version'] or not observed or observed[0]['match'] is not None
+                or observed[0]['confirmation'] or Path(claim['path']).name!=row['name']):raise ValueError('Guidance lacks actual unowned source')
+        signature=observed[1]['inventory']['source_signature'];checksum=observed[0]['sha256']
+        import hashlib
+        version=hashlib.sha256(json.dumps([[signature[1],signature[2],signature[3]],checksum]).encode()).hexdigest()
+        if version!=row['version']:raise ValueError('Guided source generation changed')
+        guidance_catalog(Path(claim['path']),row)
+
+
+def report_text(value,limit):
+    return isinstance(value,str) and len(value)<=limit and '://' not in value and not any(ord(c)<32 or ord(c)==127 for c in value)
+
+
+def display(value,limit):
+    return (isinstance(value,str) and 0<len(value)<=limit and '://' not in value
+            and '/' not in value and '\\' not in value and not any(ord(c)<32 or ord(c)==127 for c in value))
+
+
+def guidance_catalog(path, proposal):
+    """Reconstruct source evidence and each current candidate independently."""
+    import mylar
+    from mylar import pack_catalog, tagger_metadata
+    from contextlib import closing
+    import sqlite3
+    meta={}
+    if zipfile.is_zipfile(path):
+        with zipfile.ZipFile(path) as archive:
+            entries=[row for row in archive.infolist() if Path(row.filename).name.casefold()=='comicinfo.xml']
+            if len(entries)>1 or (entries and entries[0].file_size>262144):raise ValueError('Ambiguous guided metadata')
+            if entries:
+                for child in tagger_metadata.parse(archive.read(entries[0])):
+                    if child.tag in meta:raise ValueError('Repeated guided metadata field')
+                    meta[child.tag]=child.text or ''
+    clean=re.sub(r'\[__\d+__\]','',path.stem).strip()
+    parsed=re.fullmatch(r'(.+?)\s+#?(\d+(?:\.\d+)?)\s+\(((?:19|20)\d{2})\)(?:\s+\([^)]*\))*',clean)
+    points=[]
+    if parsed:points.append((parsed[1],parsed[2],parsed[3],'filename'))
+    if meta.get('Series') and meta.get('Number'):
+        year=meta.get('Volume','');points.append((meta['Series'],meta['Number'],year if re.fullmatch(r'(19|20)\d{2}',year) else '','metadata'))
+    ids=re.findall(r'\[__(\d+)__\]',path.name)+re.findall(r'https?://(?:www\.)?comicvine\.gamespot\.com/[^\s<>]*?4000-(\d+)(?:/|\b)',meta.get('Web',''))
+    expected=[('%s: %s #%s%s'%(origin,series,issue,' ('+year+')' if year else ''))[:200] for series,issue,year,origin in points][:6]
+    if proposal['evidence']!=expected:raise ValueError('Guided display evidence differs from actual source')
+    scoped={(pack_catalog.title(series),year) for series,issue,year,_ in points if year and pack_catalog.number(issue) is not None}
+    alias=None
+    if len(scoped)==1 and len({pack_catalog.number(p[1]) for p in points})==1:
+        series,year=next(iter(scoped))
+        if series and len(series)<=160 and all(pack_catalog.title(p[0])==series for p in points):alias={'series':series,'year':year}
+    if proposal.get('alias_scope')!=alias:raise ValueError('Guided alias scope differs from actual evidence')
+    deadline=time.monotonic()+guard.TIMEOUT
+    with closing(sqlite3.connect((Path(mylar.DATA_DIR)/'mylar.db').as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
+        db.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+        for choice in proposal['candidates']:
+            if (not isinstance(choice,dict) or set(choice)!={'issueid','comicid','title','year','number','status','agrees','conflicts'}
+                    or any(not report_text(choice[key],200) for key in ('issueid','comicid','title','year','number','status'))
+                    or any(not isinstance(choice[key],list) or len(choice[key])>6
+                           or any(not report_text(item,200) for item in choice[key]) for key in ('agrees','conflicts'))):raise ValueError('Invalid guided candidate')
+            owner=publication_native.owner(Path(mylar.DATA_DIR),choice['issueid'],choice['comicid'])
+            if owner is None:raise ValueError('Guided catalog owner unavailable')
+            if owner['table']=='annuals':
+                rows=db.execute('SELECT IssueID,ComicID,Status,Issue_Number,ReleaseComicName,substr(IssueDate,1,4) FROM annuals WHERE IssueID=? AND ComicID=?',(choice['issueid'],choice['comicid'])).fetchall()
+            else:
+                rows=db.execute('SELECT i.IssueID,i.ComicID,i.Status,i.Issue_Number,c.ComicName,c.ComicYear FROM issues i JOIN comics c ON c.ComicID=i.ComicID WHERE i.IssueID=? AND i.ComicID=?',(choice['issueid'],choice['comicid'])).fetchall()
+            if len(rows)!=1:raise ValueError('Guided catalog candidate changed')
+            row=rows[0];agrees=[];conflicts=[]
+            for series,issue,year,origin in points:
+                for label,equal in ((origin+' series',pack_catalog.title(series)==pack_catalog.title(row[4])),
+                        (origin+' issue',pack_catalog.number(issue)==pack_catalog.number(row[3])),
+                        (origin+' year',not year or year==str(row[5]))):
+                    (agrees if equal else conflicts).append(label)
+            if ids:(agrees if set(ids)=={str(row[0])} else conflicts).append('explicit issue ID')
+            expected=dict(issueid=str(row[0]),comicid=str(row[1]),title=str(row[4])[:160],year=str(row[5])[:4],
+                          number=str(row[3])[:20],status=str(row[2])[:30],agrees=agrees[:6],conflicts=conflicts[:6])
+            if not guard.same_json(expected,choice):raise ValueError('Guided candidate facts changed')
 
 
 def admit(raw, command, arguments):
@@ -117,6 +260,8 @@ def admit(raw, command, arguments):
                 if row['phase']=='confirmed' and (not observed[0]['confirmation'] or observed[0]['match']!=
                         {key:str(row.get(key,'')) for key in ('issueid','comicid')}):
                     raise ValueError('Report owner differs from verified catalog')
+        elif command=='reportImportProblems':
+            report_admission(arguments,sources)
         else:
             row=workflow.store().get('command',arguments.get('command_id'))
             binding=guard.decode_json(arguments['command_binding'])
@@ -147,5 +292,5 @@ def admit(raw, command, arguments):
             database.execute('INSERT INTO records VALUES (?,?,?,?)',
                 ('worker_maintenance_attempt',value['token'],json.dumps(attempt),time.time()))
         return value['token']
-    except (publication_native.Review,guard.Unavailable,OSError,TypeError,KeyError,ValueError,zipfile.BadZipFile):
+    except (publication_native.Review,guard.Unavailable,OSError,TypeError,KeyError,ValueError,sqlite3.Error,zipfile.BadZipFile):
         raise ValueError('Maintenance publication requires review') from None

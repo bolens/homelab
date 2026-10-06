@@ -642,7 +642,7 @@ def force_process(function):
 def state_health():
     try:
         store().get('policy','current')
-        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1}
+        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
     except Exception:return {'valid':False,'observer_errors':_OBSERVER_ERRORS}
 
 

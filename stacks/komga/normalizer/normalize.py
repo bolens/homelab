@@ -230,7 +230,91 @@ class Normalizer:
                         continue
                     yield path
 
+    def conversion_source(self, path):
+        """Fresh unknown-payload authority before preserving or converting media."""
+        if self.config.get('writer_state') is None:
+            return None
+        from publication_guard import current, Unavailable
+        path = Path(path)
+        if (not path.is_absolute() or '..' in path.parts
+                or not any(path.is_relative_to(root) for root in self.roots)
+                or any(item.is_symlink() for item in (path, *path.parents))):
+            raise Unavailable('Conversion source is outside trusted library roots')
+        if path.suffix.lower() == '.pdf':
+            raise Unavailable('PDF conversion needs reviewed source-to-rendered payload lineage')
+        return current(self).uncataloged_check(path)
+
+    def conversion_check(self, job, *, published=False):
+        """A receipt binds the preserved predecessor, output and complete census."""
+        if self.config.get('writer_state') is None:
+            return
+        from publication_guard import current, Unavailable
+        import publication_evidence as evidence
+        if not isinstance(job, dict):
+            raise Unavailable('Invalid conversion receipt')
+        binding = job.get('publication_binding')
+        if (not isinstance(binding, dict) or set(binding) != {'version', 'source', 'destination',
+                'original', 'prepared', 'source_hash', 'output_hash', 'inventory', 'sidecars',
+                'source_identity', 'reader_prepared', 'book', 'proof'}
+                or type(binding['version']) is not int or binding['version'] != 1
+                or job.get('publication_token') != evidence.canonical_digest(binding)
+                or any(binding[key] != job.get(key) for key in
+                       ('source', 'destination', 'original', 'prepared', 'source_hash', 'output_hash',
+                        'inventory', 'sidecars', 'source_identity', 'reader_prepared', 'book'))):
+            raise Unavailable('Conversion receipt has no exact immutable publication binding')
+        if (any(not isinstance(job.get(key), str) for key in
+                ('source', 'destination', 'original', 'prepared', 'source_hash', 'output_hash'))
+                or any(re.fullmatch('[0-9a-f]{64}',job[key]) is None for key in ('source_hash','output_hash'))
+                or not isinstance(binding['proof'],dict)
+                or not isinstance(binding['proof'].get('inventory'),dict)
+                or binding['proof'].get('source') != job['source']
+                or binding['proof']['inventory'].get('source_sha256') != job['source_hash']):
+            raise Unavailable('Malformed conversion predecessor binding')
+        source, destination = Path(job['source']), Path(job['destination'])
+        suffix = archive_suffix(source)
+        if (suffix is None or destination != source.with_name(source.name[:-len(suffix)] + '.cbz')
+                or not source.is_absolute() or '..' in source.parts
+                or not any(source.is_relative_to(root) for root in self.roots)):
+            raise Unavailable('Conversion receipt destination changed')
+        directory = self.jobs / hashlib.sha256(os.fsencode(source) + b'\0' + job['source_hash'].encode()).hexdigest()
+        if (Path(job['original']) != directory / ('original' + archive_suffix(source))
+                or Path(job['prepared']) != directory / 'prepared' / destination.name):
+            raise Unavailable('Conversion private predecessor path changed')
+        authority = current(self)
+        proof = binding['proof']
+        if not evidence.same_json(authority.admission()[0], proof.get('census')):
+            raise Unavailable('Conversion correction census changed')
+        for path, checksum in ((Path(job['original']), job['source_hash']),
+                               (Path(job['prepared']), job['output_hash'])):
+            if any(item.is_symlink() for item in (path, *path.parents)):
+                raise Unavailable('Linked conversion predecessor or prepared output')
+            private = path.stat(follow_symlinks=False)
+            if private.st_nlink != 1 or private.st_uid != os.geteuid():
+                raise Unavailable('Conversion predecessor or output has a physical alias')
+            actual = evidence.inventory(path, tool_root=authority.tool_root)
+            if (actual['source_sha256'] != checksum
+                    or actual['payload'] != proof['inventory']['payload']):
+                raise Unavailable('Conversion predecessor or exact member payload changed')
+        if source.exists():
+            if not evidence.same_json(self.conversion_source(source), proof):
+                raise Unavailable('Conversion source or authority changed since preparation')
+        elif not published:
+            raise Unavailable('Conversion source disappeared before publication')
+        if published:
+            target = self.conversion_source(destination)
+            if (target['inventory']['source_sha256'] != job['output_hash']
+                    or target['inventory']['payload'] != proof['inventory']['payload']
+                    or not evidence.same_json(target['census'], proof['census'])):
+                raise Unavailable('Conversion destination no longer binds the predecessor')
+        if not evidence.same_json(authority.admission()[0], proof['census']):
+            raise Unavailable('Conversion authority changed during receipt verification')
+
     def prepare(self, path, books):
+        path = Path(path)
+        source_proof = self.conversion_source(path)
+        if source_proof is not None and books.get(str(path)):
+            from publication_guard import Unavailable
+            raise Unavailable('Reader-owned conversion requires reviewed outside-writer relocation')
         original_identity = identity(path)
         if original_identity[1] > self.config.get('max_expanded_bytes', 2147483648):
             raise ValueError('Source archive exceeds the configured size limit')
@@ -244,17 +328,31 @@ class Normalizer:
         job_id = hashlib.sha256(os.fsencode(path) + b'\0' + source_hash.encode()).hexdigest()
         directory = self.jobs / job_id
         receipt = directory / 'receipt.json'
+        if source_proof is not None:
+            from publication_guard import Unavailable
+            paths = (directory, receipt, directory / 'receipt.new', directory / 'prepared',
+                     directory / 'prepared' / name, directory / ('original' + archive_suffix(path)),
+                     directory / 'original.pending')
+            if any(item.is_symlink() for value in paths for item in (value, *value.parents)):
+                raise Unavailable('Linked conversion recovery state')
+            if receipt.exists() and (not receipt.is_file() or receipt.stat().st_size > 2097152):
+                raise Unavailable('Invalid conversion recovery receipt')
         if receipt.exists():
+            self.conversion_check(json.loads(receipt.read_text()))
             return receipt
-        directory.mkdir(exist_ok=True)
+        directory.mkdir(exist_ok=True, mode=0o700)
         original = directory / ('original' + archive_suffix(path))
         prepared_dir = directory / 'prepared'
         prepared_dir.mkdir(exist_ok=True)
         prepared = prepared_dir / name
         if not original.exists():
             pending = directory / 'original.pending'
+            if source_proof is not None and pending.exists():
+                raise RuntimeError('Interrupted conversion preservation requires review')
             pending.unlink(missing_ok=True)
             shutil.copy2(path, pending)
+            if source_proof is not None:
+                pending.chmod(0o600)
             if digest(pending) != source_hash:
                 raise RuntimeError('Source changed while saving the recovery copy')
             with pending.open('rb') as stream:
@@ -271,6 +369,10 @@ class Normalizer:
             self.convert_tool('comic-to-cbz', '--apply', '--output', prepared, original)
         if self.info(prepared) != before:
             raise RuntimeError('Converted archive member inventory differs')
+        if source_proof is not None:
+            private = prepared.stat(follow_symlinks=False)
+            if private.st_nlink != 1 or private.st_uid != os.geteuid():
+                raise RuntimeError('Aliased conversion preparation requires review')
         os.chmod(prepared, path.stat().st_mode & 0o777)
         if identity(path) != original_identity or digest(path) != source_hash:
             raise RuntimeError('Source changed during conversion')
@@ -289,10 +391,21 @@ class Normalizer:
                    sidecars=sidecars, book=book, phase='prepared',
                    reader_prepared=str(Path(self.config.get('reader_state', '/normalizer-state')) /
                                        prepared.relative_to(self.state)))
+        if source_proof is not None:
+            import publication_evidence as evidence
+            binding = dict(version=1, **{key: job[key] for key in ('source', 'destination',
+                'original', 'prepared', 'source_hash', 'output_hash', 'inventory', 'sidecars',
+                'source_identity', 'reader_prepared', 'book')}, proof=source_proof)
+            job.update(publication_binding=binding, publication_token=evidence.canonical_digest(binding))
+            self.conversion_check(job)
         save(receipt, job)
         return receipt
 
     def publish(self, job):
+        self.conversion_check(job)
+        if self.config.get('writer_state') is not None:
+            from publication_guard import Unavailable
+            raise Unavailable('Conversion publication requires reviewed typed catalog and reader relocation')
         source, destination = Path(job['source']), Path(job['destination'])
         if identity(source) != job['source_identity'] or digest(source) != job['source_hash']:
             raise RuntimeError('Source changed before publication')
@@ -309,6 +422,7 @@ class Normalizer:
             os.chmod(temporary, mode)
             if digest(temporary) != job['output_hash'] or digest(source) != job['source_hash']:
                 raise RuntimeError('Publication verification failed')
+            self.conversion_check(job)
             if destination == source:
                 os.replace(temporary, destination)
             else:
@@ -317,12 +431,17 @@ class Normalizer:
                 sync_directory(source.parent)
                 if digest(source) != job['source_hash']:
                     raise RuntimeError('Source changed after publication; retained both files')
+                self.conversion_check(job, published=True)
                 source.unlink()
             sync_directory(source.parent)
         finally:
             temporary.unlink(missing_ok=True)
 
     def refresh_mylar(self, job):
+        from publication_guard import remote_unlocked, Unavailable
+        remote_unlocked(self)
+        if self.config.get('writer_state') is not None:
+            raise Unavailable('Converted catalog notification requires a typed predecessor handoff')
         settings = self.config.get('mylar')
         if not settings:
             return
@@ -353,6 +472,10 @@ class Normalizer:
 
     def tagging_status(self, job):
         """Duplicate admission reads durable status without rescan or retagging."""
+        from publication_guard import remote_unlocked, Unavailable
+        remote_unlocked(self)
+        if self.config.get('writer_state') is not None:
+            raise Unavailable('Converted tagging requires a typed predecessor handoff')
         settings = self.config.get('mylar') or {}
         parser = configparser.ConfigParser()
         parser.read(Path(settings.get('config_dir', '/mylar'))/'config.ini')
@@ -378,6 +501,10 @@ class Normalizer:
 
     def refresh_tagged(self, job):
         """Request idempotent reader metadata refresh after verified Mylar completion."""
+        from publication_guard import remote_unlocked, Unavailable
+        remote_unlocked(self)
+        if self.config.get('writer_state') is not None:
+            raise Unavailable('Converted reader notification requires a typed predecessor handoff')
         if not (self.config.get('mylar') or {}).get('refresh_reader_after_tagging', False):
             job.pop('mylar_tag_pending', None)
             job['mylar_reader_refresh'] = 'disabled'
@@ -402,6 +529,10 @@ class Normalizer:
         source, destination = Path(job['source']), Path(job['destination'])
         # Resolve a crash after publication before doing any further mutation.
         published = destination.is_file() and digest(destination) == job['output_hash']
+        self.conversion_check(job, published=published)
+        if self.config.get('writer_state') is not None:
+            from publication_guard import Unavailable
+            raise Unavailable('Conversion recovery retains its source until typed relocation is verified')
         if job['phase'] == 'prepared' and not published:
             if job['book'] and source != destination:
                 if identity(source) != job['source_identity'] or digest(source) != job['source_hash']:
@@ -423,7 +554,9 @@ class Normalizer:
                 return
             if digest(source) != job['source_hash']:
                 raise RuntimeError('Source changed; refusing cleanup')
+            self.conversion_check(job, published=True)
             source.unlink()
+            sync_directory(source.parent)
         if job['phase'] in ('prepared', 'submitted'):
             job['phase'] = 'refresh'
             save(receipt, job)
@@ -465,9 +598,49 @@ class Normalizer:
         print(json.dumps({'event': 'converted', 'source': job['source'],
                           'pages': job['inventory']['page_count']}), flush=True)
 
+    def prepare_cycle(self):
+        """Collect one immutable bounded reader observation before writer exclusion."""
+        if self.config.get('writer_state') is None:
+            return
+        from publication_guard import remote_unlocked, Unavailable
+        import publication_evidence as evidence
+        remote_unlocked(self)
+        self.reader_snapshot = None
+        books = self.reader.books()
+        if not isinstance(books, dict) or len(books) > evidence.CATALOG_ROWS:
+            raise Unavailable('Reader snapshot exceeds bounded library observation')
+        # Reader responses include large optional metadata. Preserve only the
+        # native upgrade/recovery facts that this worker actually consumes.
+        projection = {}
+        for path, book in books.items():
+            if not isinstance(path, str) or not isinstance(book, dict):
+                raise Unavailable('Malformed reader library observation')
+            projection[path] = {key: book[key] for key in
+                                ('id', 'seriesId', 'media', 'readProgress') if key in book}
+        raw = evidence.compact(projection)
+        if len(raw) > evidence.CATALOG_BYTES:
+            raise Unavailable('Reader snapshot exceeds bounded library observation')
+        self.reader_snapshot = (threading.get_ident(), time.monotonic(), raw)
+
     def cycle(self):
         self.errors = []
-        books = self.reader.books()  # No media mutation while reader state is unavailable.
+        coordinated = self.config.get('writer_state') is not None
+        if coordinated:
+            from publication_guard import current, Unavailable
+            import publication_evidence as evidence
+            current(self).admission()
+            snapshot = getattr(self, 'reader_snapshot', None)
+            self.reader_snapshot = None
+            if (not isinstance(snapshot, tuple) or len(snapshot) != 3
+                    or snapshot[0] != threading.get_ident()
+                    or not 0 <= time.monotonic() - snapshot[1] <= 120
+                    or not isinstance(snapshot[2], bytes) or len(snapshot[2]) > evidence.CATALOG_BYTES):
+                raise Unavailable('Fresh outside-writer reader snapshot required')
+            books = evidence.decode_json(snapshot[2])
+            if not isinstance(books, dict):
+                raise Unavailable('Invalid immutable reader snapshot')
+        else:
+            books = self.reader.books()  # No media mutation while reader state is unavailable.
         pending_sources = set()
         for receipt in sorted(self.jobs.glob('*/receipt.json')):
             job = json.loads(receipt.read_text())
@@ -487,8 +660,11 @@ class Normalizer:
             try:
                 # Let the reader register formats it already recognizes first. This
                 # ensures its native upgrade operation transfers existing user state.
-                books = self.reader.books()
+                if not coordinated:
+                    books = self.reader.books()
                 if path.suffix.lower() in ('.cbr', '.rar', '.zip', '.pdf') and str(path) not in books:
+                    if coordinated:
+                        raise Unavailable('Unindexed conversion needs a typed reader discovery handoff')
                     self.reader.scan()
                     continue
                 self.advance(self.prepare(path, books), books)

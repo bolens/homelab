@@ -1,5 +1,5 @@
 """Typed durable maintenance requests; no HTTP while the worker owns Writer."""
-import hashlib
+import bisect
 import json
 from pathlib import Path
 import re
@@ -9,7 +9,7 @@ from import_recovery import handoff_read, handoff_save
 from normalize import digest, identity
 from publication_guard import current, evidence, scope, Unavailable, remote_unlocked
 
-COMMANDS = frozenset(('packCatalog', 'packReport', 'workflowAcknowledge'))
+COMMANDS = frozenset(('packCatalog', 'packReport', 'workflowAcknowledge', 'reportImportProblems'))
 
 
 def native_path(maintenance, path):
@@ -149,14 +149,30 @@ def dispatch(maintenance):
     paths=sorted(root.glob('*.json'))
     if len(paths)>4096:raise Unavailable('Maintenance handoff count exceeds bound')
     writer=Writer(worker.config['writer_state'],create=False)
-    for path in paths:
+    # Bounded round-robin inspection prevents one retained stale request from
+    # starving unrelated current work; this cursor grants no permission.
+    offset=bisect.bisect_right([path.name for path in paths],getattr(maintenance,'handoff_cursor',''))
+    paths=paths[offset:]+paths[:offset]
+    health=None
+    for path in paths[:32]:
+        maintenance.handoff_cursor=path.name
         try:
             old,_=handoff_read(path)
             if not isinstance(old,dict):raise Unavailable('Malformed maintenance history requires review')
             if old.get('phase')!='prepared':continue
-            health=maintenance.mylar('getHealth').get('workflow',{})
-            if (health.get('valid') is not True or type(health.get('maintenance_handoff')) is not int
+            if health is None:
+                try:health=maintenance.mylar('getHealth').get('workflow',{})
+                except Exception:return 0
+            if (not isinstance(health,dict) or health.get('valid') is not True or type(health.get('maintenance_handoff')) is not int
                     or health['maintenance_handoff']!=1):return 0
+            if (old.get('command')=='reportImportProblems'
+                    and (type(health.get('maintenance_reports')) is not int or health['maintenance_reports']!=1)):
+                continue  # Old native builds must not spend the prepared attempt.
+            if old.get('command')=='reportImportProblems':
+                report=evidence.decode_json(old['arguments']['report_binding'])
+                timestamp=report.get('observed_at')
+                if type(timestamp) is not int or not 0<=time.time()-timestamp<=900:
+                    continue  # Retain expired diagnostics without spending an attempt.
             with writer.hold(timeout=0),scope(worker,writer):
                 bind_state(writer,worker)
                 record,signature=handoff_read(path)
@@ -168,6 +184,10 @@ def dispatch(maintenance):
                         or not evidence.same_json(record['proof'],checks(maintenance,record['guards']))):
                     raise Unavailable('Maintenance handoff source, binding or authority changed')
                 binding=packet(maintenance,record,path.stem)
+                if record['command']=='reportImportProblems':
+                    timestamp=evidence.decode_json(record['arguments']['report_binding']).get('observed_at')
+                    if type(timestamp) is not int or not 0<=time.time()-timestamp<=900:
+                        continue
                 attempted=dict(record,phase='dispatching',submitted_at=time.time())
                 handoff_save(path,attempted,expected=(record,signature))
             try:result=maintenance.mylar(record['command'],maintenance_handoff=json.dumps(binding),**record['arguments'])
@@ -180,5 +200,6 @@ def dispatch(maintenance):
                     raise Unavailable('Maintenance handoff changed before acknowledgement')
                 handoff_save(path,dict(attempted,phase='complete',result=result),expected=(old,signature))
             return 1
-        except (Busy,Unavailable,OSError,ValueError,TypeError,KeyError):return 0
+        except Busy:return 0
+        except (Unavailable,OSError,ValueError,TypeError,KeyError):continue
     return 0
