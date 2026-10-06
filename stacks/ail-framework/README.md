@@ -51,6 +51,11 @@ AIL is resource-intensive and typically needs **>6GB RAM**. The default CPU imag
 the several-GB CUDA/NVIDIA/Triton runtime. The optional GPU image retains it for
 accelerated OCR.
 
+The runtime image defaults OpenBLAS, OpenMP, MKL and NumExpr to one thread per
+worker. AIL starts many worker processes; unrestricted numerical thread pools can
+exhaust the container's process limit during startup. Operators can override the
+corresponding `*_NUM_THREADS` environment variables when sizing larger deployments.
+
 ## Using AIL 7.x (official build)
 
 Official releases (e.g. **v7.0**) are not published as images; this stack builds from the [official repo](https://github.com/ail-project/ail-framework). The official image and this compose file use **/opt/AIL** for data paths.
@@ -60,7 +65,9 @@ Official releases (e.g. **v7.0**) are not published as images; this stack builds
 The native builder stays on Ubuntu 22.04 because its cleanup and runtime packages
 use Python 3.10 and Jammy library names. Upgrading the Ubuntu release requires
 updating those paths, package names, and Python dependency locks together, then
-verifying the complete CPU image build and native application startup. The custom
+verifying the complete CPU image build and native application startup. Dependabot
+refreshes the selected Ubuntu release digest; release changes require that
+reviewed migration. The custom
 image CI builds Lacus and Tor; it does not build the AIL application image. Installed Python package test directories are retained because QReader imports NumPy testing helpers during normal startup.
 
 1. **Build both variants.** Native compilation is shared by BuildKit; build the

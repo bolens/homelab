@@ -37,6 +37,11 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
+    # Ubuntu release changes require reviewed package and ABI migration.
+    # Continue receiving immutable digest refreshes on the selected release.
+    ignore:
+      - dependency-name: "ubuntu"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     groups:
       docker-images:
         patterns:
