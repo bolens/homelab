@@ -11,6 +11,7 @@ from media_writer import Busy
 from writer_cycle import cycle
 from test_publication_guard import AuthorityFixture
 from publication_guard import current, Unavailable
+from publication_guard import NativeBatch
 
 
 class CycleTest(AuthorityFixture, unittest.TestCase):
@@ -24,6 +25,43 @@ class CycleTest(AuthorityFixture, unittest.TestCase):
             'publication_roots':[{'native':str(self.native_root),'worker':str(self.library)}]},
             jobs=self.jobs,state=self.state,cycle=Mock())
         self.maintenance=SimpleNamespace(cycle=Mock())
+
+    def test_native_work_is_collected_before_lock_and_dispatches_after_fence_clearance(self):
+        from maintenance import native_work
+        adapter=SimpleNamespace(worker=self.worker,mylar=Mock())
+        def prepare():
+            self.assertFalse(getattr(self.owner.local[1],'depth',0))
+            batch=NativeBatch(self.worker,{'getHealth':{'processing':False}})
+            with self.assertRaises(AttributeError):batch.raw=b'{}'
+            return batch
+        def work():
+            value=native_work(adapter,'getHealth');value['processing']=True
+            self.assertFalse(native_work(adapter,'getHealth')['processing'])
+            with self.assertRaises(Unavailable):native_work(adapter,'forceProcess')
+        def dispatch():
+            self.assertFalse(getattr(self.owner.local[1],'depth',0))
+            self.assertFalse(self.owner.fenced())
+            with self.assertRaises(Unavailable):current(self.worker)
+        self.maintenance.prepare=Mock(side_effect=prepare)
+        self.maintenance.dispatch=Mock(side_effect=dispatch)
+        self.maintenance.cycle.side_effect=work
+        self.assertTrue(cycle(self.worker,self.maintenance))
+        self.maintenance.prepare.assert_called_once();self.maintenance.dispatch.assert_called_once()
+        adapter.mylar.assert_not_called()
+
+    def test_missing_authority_refuses_even_prelock_remote_collection(self):
+        self.marker.unlink();self.maintenance.prepare=Mock()
+        with self.assertRaises(Unavailable):cycle(self.worker,self.maintenance)
+        self.maintenance.prepare.assert_not_called();self.assertFalse(self.owner.fenced())
+
+    def test_pending_conversion_does_not_dispatch_prepared_imports(self):
+        def pending():
+            job=self.jobs/'one';job.mkdir();(job/'receipt.json').write_text('{"phase":"converting"}')
+        self.worker.cycle.side_effect=pending
+        self.maintenance.prepare=Mock(return_value=NativeBatch(self.worker,{}))
+        self.maintenance.dispatch=Mock()
+        self.assertTrue(cycle(self.worker,self.maintenance))
+        self.maintenance.dispatch.assert_not_called();self.assertTrue(self.owner.fenced())
 
     def test_authority_is_owned_only_during_complete_cycle(self):
         def check():

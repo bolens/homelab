@@ -22,6 +22,17 @@ class CorruptArchive(ValueError):
     pass
 
 
+def native_work(maintenance, command):
+    """Only read-side work uses this cycle's prefetched replies under Writer."""
+    if maintenance.worker.config.get('writer_state') is None:
+        return maintenance.mylar(command)
+    from publication_guard import current, NativeBatch, Unavailable
+    batch = current(maintenance.worker).native_batch
+    if type(batch) is not NativeBatch:
+        raise Unavailable('Pre-lock native work collection required')
+    return batch.read(maintenance.worker,command)
+
+
 def name_key(value):
     value = re.sub(r'#\d+$', '', value).split('(')[0].casefold()
     return re.sub(r'\d+', lambda m: str(int(m[0])), re.sub(r'[^a-z0-9]', '', value))
@@ -94,9 +105,22 @@ class Maintenance:
         return result['data']
 
     def idle(self):
-        value = self.mylar('getHealth')
+        value = native_work(self,'getHealth')
         queue = value['queues'].get('POST-PROCESS-QUEUE', {})
         return queue.get('alive') and queue.get('size') == 0 and not value['processing']
+
+    def prepare(self):
+        from publication_guard import NativeBatch
+        values = {}
+        if time.time() - self.last_run >= self.settings.get('interval_seconds',300):
+            for command in ('getHealth','workflowCommands',*(['packWork'] if self.settings.get('pack_import',False) else [])):
+                try:values[command] = self.mylar(command)
+                except Exception:values[command] = None
+        return NativeBatch(self.worker,values)
+
+    def dispatch(self):
+        from import_recovery import dispatch_prepared
+        return dispatch_prepared(self)
 
     def info(self, path):
         fingerprint = identity(path)

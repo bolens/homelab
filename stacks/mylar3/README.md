@@ -1023,6 +1023,22 @@ PDF candidates remain retained for review. Scripts invalidate earlier checks.
 Review is a terminal retained outcome, not an import acknowledgement or another
 failed-download search. Distinct payloads retain their existing eligibility.
 
+Coordinated worker imports include a constrained `publication_handoff` in the
+primary authenticated `forceProcess` request. Native Mylar verifies the actual
+staged archive, exact native owner and complete current correction census under
+its writer before queue admission. It records a durable submission attempt and
+carries native-generated evidence into the processing queue. Another token for
+the same exact native owner also stays held until attempt-history review. Processing checks
+the stage again before capture or tagging and records a separate processing
+attempt. Later publication checks require the same payload and owner. Root
+metadata changes may preserve payload identity; substituted pages or owners
+remain retained for review. Missing or changed evidence and repeated attempts
+never create correction authority or trigger another failed-download search.
+These attempt records stay outside the protected correction registry namespace.
+Authenticated health advertises handoff version 1 only with readable workflow
+state. Workers retain prepared receipts if that capability is absent or invalid.
+Deploy matching worker and native images before admitting this handoff.
+
 A registered correct archive stays at its current catalog path until a verified
 source-to-target transition is implemented. Native copy operations can preserve
 that path; moves, ordinary softlinks and deletion of that original remain held.

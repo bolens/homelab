@@ -102,6 +102,36 @@ class TerminalTests(unittest.TestCase):
         self.assertIn('source retained',events[-1][1])
         self.assertNotIn('finished',events[-1][1]);self.assertNotIn('raised an error',events[-1][1])
 
+    def test_queued_handoff_refusal_precedes_pack_capture_and_processing(self):
+        import queue
+        import processing_guard
+        mutate=Mock();capture=Mock(return_value=False)
+        @contextmanager
+        def operation():yield None
+        mylar=types.ModuleType('mylar');mylar.APILOCK=False
+        mylar.native_writers=types.SimpleNamespace(operation=operation)
+        mylar.pack_intake=types.SimpleNamespace(capture=capture);mylar.logger=Mock()
+        obj=types.SimpleNamespace(queue=queue.Queue(),valreturn=[],download_info={})
+        wrapped=processing_guard.run(mutate)
+        modules={'mylar':mylar,'mylar.media_writer':types.SimpleNamespace(Busy=RuntimeError)}
+        with patch.dict(sys.modules,modules),patch.object(native,'resume_handoff',side_effect=native.Review('queued-import-handoff-changed')):
+            wrapped(obj)
+        capture.assert_not_called();mutate.assert_not_called()
+        self.assertEqual(obj.queue.get()[0]['mode'],'review')
+        self.assertIsNone(obj._publication_handoff);self.assertFalse(mylar.APILOCK)
+
+    def test_bound_processing_refuses_payload_or_owner_substitution(self):
+        import processing_guard
+        obj=types.SimpleNamespace(valreturn=[],_publication_handoff=dict(payload='a'*64,owner={'issueid':'123'}))
+        for result in (None,dict(inventory={'payload':'b'*64},owner={'issueid':'123'}),
+                       dict(inventory={'payload':'a'*64},owner={'issueid':'999'})):
+            with patch.object(native,'require',return_value=result),self.assertRaises(native.Review):
+                processing_guard.publication(obj,'fixture',issueid='123')
+        result=dict(inventory={'payload':'a'*64},owner={'issueid':'123'})
+        with patch.object(native,'require',return_value=result):
+            self.assertEqual(processing_guard.publication(obj,'fixture',issueid='123'),result)
+
+
 
 @unittest.skipUnless((Path(fixtures.TOOL_ROOT)/'lib/archive_backend.py').is_file(),
                      'offline archive verifier required')
@@ -139,6 +169,102 @@ class AdmissionTests(unittest.TestCase):
     def registered(self):
         prepared=self.prepare();self.call('register',token=prepared['token'])
         return prepared
+
+    def handoff(self, **changes):
+        import json
+        with self.writer.hold():
+            proof=native.require(self.incoming,issueid='123',comicid='456')
+            census,_=guard.registry_snapshot(self.store.path,self.writer.root/'publication-v1.json')
+        # Use a private directory with exactly one archive as the remote stage.
+        stage=self.root/'handoff-stage';stage.mkdir(exist_ok=True)
+        import shutil
+        target=stage/self.incoming.name;shutil.copyfile(self.incoming,target)
+        request=dict(version=1,token='a'*64,source_sha256=proof['inventory']['source_sha256'],
+                     payload=proof['inventory']['payload'],owner=proof['owner'],census=census)
+        request.update(changes)
+        return json.dumps(request),dict(nzb_folder=str(stage),nzb_name=target.name,
+                                      issueid='123',comicid='456',ddl='True')
+
+    def test_native_handoff_checks_actual_bytes_owner_and_census_before_admission(self):
+        self.registered();raw,values=self.handoff()
+        with self.writer.hold():
+            proof=native.import_handoff(raw,values)
+        self.assertEqual(proof['token'],'a'*64)
+        self.assertEqual(proof['owner'],self.owner)
+
+    def test_native_handoff_refuses_wrong_bytes_census_owner_or_ambiguous_stage(self):
+        self.registered()
+        for change in ({'source_sha256':'b'*64},{'payload':'b'*64},
+                       {'owner':dict(table='issues',issueid='999',parentcomicid='888',releasecomicid='888')},
+                       {'census':guard.empty_census('c'*64)}):
+            raw,values=self.handoff(**change)
+            with self.writer.hold(),self.subTest(change=change),self.assertRaises(ValueError):
+                native.import_handoff(raw,values)
+        raw,values=self.handoff()
+        (Path(values['nzb_folder'])/'second.cbz').write_bytes(self.incoming.read_bytes())
+        with self.writer.hold(),self.assertRaises(ValueError):native.import_handoff(raw,values)
+
+    def test_native_handoff_ledger_blocks_repeat_before_queue_and_is_not_authority(self):
+        import workflow_store
+        self.registered();raw,values=self.handoff()
+        with self.writer.hold():
+            before,_=guard.registry_snapshot(self.store.path,self.writer.root/'publication-v1.json')
+        self.mylar.publication_native=native
+        self.mylar.library_status=types.SimpleNamespace()
+        self.mylar.CONFIG.API_ENABLED=True;self.mylar.CONFIG.API_KEY='fixture'
+        module=types.ModuleType('isolated_workflow_handoff')
+        with patch.dict(sys.modules,{'mylar.workflow_store':workflow_store}):
+            exec(compile(Path(__file__).with_name('workflow.py').read_text(),'workflow.py','exec'),module.__dict__)
+        client=types.SimpleNamespace(apikey='fixture',_failureResponse=lambda reason:{'success':False},data=None)
+        queued=Mock(return_value='queued')
+        wrapped=module.force_process(queued)
+        with self.writer.hold(),patch.object(module,'store',return_value=self.store):
+            self.assertEqual(wrapped(client,publication_handoff=raw,**values),'queued')
+            wrapped(client,publication_handoff=raw,**values)
+            self.assertEqual(client.data,{'success':False})
+            import json
+            second=json.loads(raw);second['token']='b'*64
+            wrapped(client,publication_handoff=json.dumps(second),**values)
+            self.assertEqual(client.data,{'success':False})
+            self.assertIsNone(self.store.get('worker_import_attempt','b'*64))
+            census,_=guard.registry_snapshot(self.store.path,self.writer.root/'publication-v1.json')
+        queued.assert_called_once()
+        self.assertEqual(census,before)
+        self.assertTrue(self.store.get('worker_import_attempt','a'*64))
+
+    def test_queued_handoff_rechecks_actual_stage_and_immutable_ledger(self):
+        self.registered();raw,values=self.handoff()
+        processor=types.SimpleNamespace(**values,download_info=None)
+        with self.writer.hold():proof=native.import_handoff(raw,values)
+        processor.download_info={'publication_handoff':proof}
+        self.store.set('worker_import_attempt',proof['token'],proof)
+        workflow=types.SimpleNamespace(store=lambda:self.store)
+        self.mylar.workflow=workflow
+        with patch.dict(sys.modules,{'mylar.workflow':workflow}),self.writer.hold():
+            self.assertEqual(native.resume_handoff(processor),proof)
+            with self.assertRaises(native.Review):native.resume_handoff(processor)
+            changed=dict(proof,payload='b'*64)
+            processor.download_info={'publication_handoff':changed}
+            with self.assertRaises(native.Review):native.resume_handoff(processor)
+            processor.download_info={'publication_handoff':proof}
+            path=Path(proof['source'])
+            with zipfile.ZipFile(path,'w') as archive:archive.writestr('replacement.jpg',b'changed pages')
+            with self.assertRaises(native.Review):native.resume_handoff(processor)
+        self.assertEqual(self.store.get('worker_import_attempt',proof['token']),proof)
+
+    def test_native_handoff_primary_authentication_precedes_decoder_and_queue(self):
+        import workflow_store
+        self.mylar.library_status=types.SimpleNamespace()
+        self.mylar.CONFIG.API_ENABLED=True;self.mylar.CONFIG.API_KEY='fixture'
+        self.mylar.publication_native=native
+        module=types.ModuleType('isolated_workflow_handoff')
+        with patch.dict(sys.modules,{'mylar.workflow_store':workflow_store}):
+            exec(compile(Path(__file__).with_name('workflow.py').read_text(),'workflow.py','exec'),module.__dict__)
+        client=types.SimpleNamespace(apikey='wrong',_failureResponse=lambda reason:{'success':False})
+        queued=Mock()
+        with patch.object(native,'import_handoff') as decoder:
+            module.force_process(queued)(client,publication_handoff='invalid')
+        decoder.assert_not_called();queued.assert_not_called()
 
     def check(self,issueid='123',comicid='456'):
         with self.writer.hold():return native.require(self.incoming,issueid=issueid,comicid=comicid)

@@ -185,3 +185,90 @@ def require(source, *, issueid=None, comicid=None, transaction=None):
                     observed=result.get('observed',[]))
     except (guard.Unavailable,OSError,sqlite3.Error,ValueError,TypeError,KeyError):
         raise Review(payload=payload) from None
+
+
+def import_handoff(raw, values):
+    """Sender bindings constrain fresh native evidence; they grant no authority."""
+    import mylar
+    from mylar import native_writers
+    try:
+        if (not native_writers.publication_mode() or not native_writers.active()
+                or not isinstance(raw,str) or not 0 < len(raw.encode()) <= 4096):
+            raise guard.Unavailable('Current native publication admission required')
+        request = guard.decode_json(raw)
+        fields = {'version','token','source_sha256','payload','owner','census'}
+        if (not isinstance(request,dict) or set(request) != fields
+                or type(request['version']) is not int or request['version'] != 1
+                or any(not isinstance(request[key],str) or re.fullmatch('[a-f0-9]{64}',request[key]) is None
+                       for key in ('token','source_sha256','payload'))):
+            raise guard.Unavailable('Invalid native import handoff')
+        expected_owner = guard.exact_owner(request['owner'])
+        guard.census_value(request['census'])
+        issueid,comicid = values.get('issueid'),values.get('comicid')
+        if (any(not isinstance(value,str) or re.fullmatch('[1-9][0-9]{0,15}',value) is None
+                for value in (issueid,comicid)) or values.get('ddl') != 'True'):
+            raise guard.Unavailable('Exact queued DDL import required')
+        folder = values.get('nzb_folder');name = values.get('nzb_name')
+        if (not isinstance(folder,str) or not Path(folder).is_absolute() or '..' in Path(folder).parts
+                or not isinstance(name,str) or Path(name).name != name or name in ('.','..')):
+            raise guard.Unavailable('Invalid native handoff stage')
+        writer = native_writers.owner()
+        native_writers.admission(writer)
+        # Some test/runtime adapters return only after validating; read the
+        # complete existing namespace independently rather than trust a probe.
+        current,_ = guard.registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
+        if not guard.same_json(current,request['census']):
+            raise guard.Unavailable('Native handoff census changed')
+        proof = require(folder,issueid=issueid,comicid=comicid)
+        if (proof is None or proof['path'] != str(Path(folder)/name)
+                or not guard.same_json(proof['owner'],expected_owner)
+                or proof['inventory']['source_sha256'] != request['source_sha256']
+                or proof['inventory']['payload'] != request['payload']):
+            raise guard.Unavailable('Native handoff bytes or owner differ')
+        checksum = guard.file_hash(proof['path'])
+        current,_ = guard.registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
+        if (checksum != (proof['inventory']['source_signature'],request['source_sha256'])
+                or not guard.same_json(owner(mylar.DATA_DIR,issueid,comicid),expected_owner)
+                or not guard.same_json(current,request['census'])):
+            raise guard.Unavailable('Native handoff changed during observation')
+        native_writers.admission(writer)
+        return dict(version=1,token=request['token'],source=proof['path'],owner=expected_owner,
+            source_sha256=request['source_sha256'],payload=request['payload'],census=current,
+            inventory_sha256=guard.canonical_digest(proof['inventory']))
+    except (Review,guard.Unavailable,OSError,sqlite3.Error,ValueError,TypeError,KeyError):
+        raise ValueError('Publication import handoff requires review') from None
+
+
+def resume_handoff(processor):
+    """Reobserve a queued handoff under the processing Writer before any work."""
+    import json
+    info=getattr(processor,'download_info',None)
+    if not isinstance(info,dict) or 'publication_handoff' not in info:return None
+    try:
+        proof=info['publication_handoff']
+        fields={'version','token','source','owner','source_sha256','payload','census','inventory_sha256'}
+        if (set(info)!={'publication_handoff'} or not isinstance(proof,dict)
+                or set(proof)!=fields or type(proof['version']) is not int or proof['version']!=1
+                or any(not isinstance(proof[key],str) or re.fullmatch('[a-f0-9]{64}',proof[key]) is None
+                       for key in ('token','source_sha256','payload','inventory_sha256'))):
+            raise ValueError('Invalid queued handoff')
+        # The attempt ledger is not correction authority. Its exact immutable
+        # record prevents substituted queue evidence and missing-state replay.
+        from mylar import workflow
+        stored=workflow.store().get('worker_import_attempt',proof['token'])
+        if stored is None or not guard.same_json(stored,proof):
+            raise ValueError('Queued handoff ledger differs')
+        request={key:proof[key] for key in ('version','token','source_sha256','payload','owner','census')}
+        values=dict(nzb_folder=processor.nzb_folder,nzb_name=processor.nzb_name,
+            issueid=processor.issueid,comicid=processor.comicid,ddl=str(processor.ddl))
+        current=import_handoff(json.dumps(request),values)
+        if not guard.same_json(current,proof):
+            raise ValueError('Queued handoff stage changed')
+        with workflow.store().connection() as database:
+            if database.execute("SELECT 1 FROM records WHERE kind='worker_import_processing' AND key=?",(proof['token'],)).fetchone():
+                raise ValueError('Queued handoff processing already attempted')
+            database.execute('INSERT INTO records VALUES (?,?,?,?)',
+                ('worker_import_processing',proof['token'],json.dumps(proof),time.time()))
+        return current
+    except (guard.Unavailable,OSError,sqlite3.Error,ValueError,TypeError,KeyError):
+        raise Review('queued-import-handoff-changed') from None

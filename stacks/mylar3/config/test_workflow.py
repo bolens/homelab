@@ -408,6 +408,42 @@ class WorkflowTest(unittest.TestCase):
         with self.assertRaises(ValueError):workflow.set_policy({'auto_handoff':'true'})
         with patch.object(workflow,'store',side_effect=OSError('private')):workflow.emit('search','Started')
         self.assertGreater(workflow._OBSERVER_ERRORS,0)
+    def test_healthy_workflow_advertises_native_handoff_version(self):
+        value=workflow.state_health()
+        self.assertTrue(value['valid'])
+        self.assertIs(type(value['publication_handoff']),int)
+        self.assertEqual(value['publication_handoff'],1)
+
+    def test_native_queue_handoff_binds_exact_item_and_clears_thread_context(self):
+        proof={'token':'a'*64,'source':'/fixture/stage/comic.cbz',
+               'owner':{'issueid':'10','parentcomicid':'20','releasecomicid':'20','table':'issues'}}
+        app.CONFIG.API_ENABLED=True;app.CONFIG.API_KEY='fixture'
+        native=SimpleNamespace(import_handoff=Mock(return_value=proof),guard=importlib.import_module('mylar.publication_guard'))
+        app.publication_native=native
+        client=SimpleNamespace(apikey='fixture',_failureResponse=lambda reason:{'success':False})
+        item=dict(issueid='10',comicid='20',nzb_folder='/fixture/stage',nzb_name='comic.cbz',download_info=None)
+        def submit(client,**kwargs):workflow.processing_put(app.PP_QUEUE,item)
+        with patch.dict(sys.modules,{'mylar.publication_native':native}):
+            workflow.force_process(submit)(client,publication_handoff='fixture')
+        queued=app.PP_QUEUE.get_nowait()
+        self.assertEqual(queued['download_info'],{'publication_handoff':proof})
+        self.assertIsNone(getattr(workflow._CONTEXT,'publication_handoff',None))
+        self.assertIsNone(item['download_info'])
+        workflow._CONTEXT.publication_handoff=proof
+        try:
+            for changed in (dict(item,comicid='99'),dict(item,nzb_name='other.cbz'),dict(item,download_info={})):
+                with self.assertRaises(ValueError):workflow.processing_put(app.PP_QUEUE,changed)
+        finally:workflow._CONTEXT.publication_handoff=None
+        self.assertTrue(app.PP_QUEUE.empty())
+        workflow.store().set('worker_import_attempt','c'*64,dict(proof,owner=None))
+        native.import_handoff.return_value=dict(proof,token='d'*64,owner=dict(proof['owner'],issueid='11'))
+        queued=Mock()
+        with patch.dict(sys.modules,{'mylar.publication_native':native}):
+            workflow.force_process(queued)(client,publication_handoff='fixture')
+        queued.assert_not_called()
+        self.assertEqual(client.data,{'success':False})
+        self.assertIsNone(workflow.store().get('worker_import_attempt','d'*64))
+
     def test_terminal_history_does_not_hide_pending_owner(self):
         p=self.proposal();cmd=web.confirm_import(p['source_token'],p['version'],'10')
         for n in range(1002):workflow.store().set('command',str(n),{'id':str(n),'phase':'confirmed'})

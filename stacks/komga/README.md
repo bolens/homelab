@@ -116,9 +116,18 @@ waiting for the calling worker's own lock. Local candidate checks remain under
 exclusion; remote work must follow outside it and native final import must check
 fresh evidence again. Fresh local owner/source checks now cover common/guided import, pack confirmation
 and confirmed-comic pack cleanup. Historical supplement cleanup remains held for
-reviewed derivative ownership. Remaining mutation boundaries, durable import
-receipt bindings and remote command handoff are unfinished. Keep the worker held until those contracts and matching
-image/live acceptance are complete; this source cycle guard is not full prevention.
+reviewed derivative ownership. Coordinated common imports now persist a private
+prepared receipt with exact source/stage bytes, native owner and complete census.
+Dispatch requires native handoff protocol support from authenticated health.
+After recovery fences clear, it rechecks those bindings under the writer,
+records the attempt, releases the lock and submits to native Mylar. Uncertain
+requests remain retained for review and are never automatically replayed. Native
+Mylar independently checks its actual stage at submission and processing time.
+Health and pending-work reads use a bounded immutable batch gathered before the
+cycle lock. Missing batch results hold that work. Guided acknowledgement, pack
+report/catalog handoff, remaining mutation paths and live acceptance are unfinished.
+Keep the worker held until those contracts and matching image/live acceptance
+are complete; this source change does not establish full prevention.
 
 A separate tagger recovery marker also blocks worker admission after Mylar crashes.
 Only Mylar may reconcile and clear that marker; worker recovery cannot bypass it.
