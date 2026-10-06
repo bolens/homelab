@@ -91,6 +91,18 @@ while either writer can run. Recovery or rollback must preserve pending markers
 until asynchronous upgrades are verified complete. Existing installations keep
 legacy worker behavior when `writer_state` is null or absent.
 
+The source publication verifier reads the complete native correction census and
+registration witnesses through the existing read-only configuration mount. Under
+the shared writer it rechecks the candidate and every matched correct archive,
+including all-row annual/deleted conflicts and physical path aliases. Its trusted
+internal adapter requires explicit native-to-worker media root mappings and proves
+that both config and coordination mounts refer to the same writer state. It makes
+no API calls or registry writes. The worker Docker context contains generated
+read-only native evidence definitions, checked by repository validation; regenerate
+them with `python3 scripts/sync-publication-reader.py` after native reader changes.
+This source foundation is not yet connected to the worker cycle or mutation
+boundaries. It does not enable live prevention or provide an activation setting.
+
 A separate tagger recovery marker also blocks worker admission after Mylar crashes.
 Only Mylar may reconcile and clear that marker; worker recovery cannot bypass it.
 Mylar's startup recovers publication before scans even when Legacy is selected.

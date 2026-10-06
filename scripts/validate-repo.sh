@@ -33,6 +33,7 @@ run_optional_check() {
 
 echo "Compiling Python helpers..."
 python3 -m compileall -q scripts
+python3 scripts/sync-publication-reader.py --check
 
 echo "Parsing Compose YAML..."
 python3 scripts/ci-parse-composes.py
