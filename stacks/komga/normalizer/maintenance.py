@@ -76,6 +76,8 @@ class Maintenance:
                     raise ValueError('Download, library, and recovery roots must not overlap')
 
     def mylar(self, command, **parameters):
+        from publication_guard import remote_unlocked
+        remote_unlocked(self.worker)
         settings = self.worker.config['mylar']
         parser = configparser.ConfigParser()
         parser.read(Path(settings.get('config_dir', '/mylar')) / 'config.ini')

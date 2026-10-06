@@ -4,22 +4,85 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
-from media_writer import Writer, Busy
+from media_writer import Busy
 from writer_cycle import cycle
+from test_publication_guard import AuthorityFixture
+from publication_guard import current, Unavailable
 
 
-class CycleTest(unittest.TestCase):
+class CycleTest(AuthorityFixture, unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
-        self.root=Path(self.temp.name);self.state=self.root/'worker';self.state.mkdir()
+        AuthorityFixture.setUp(self)
+        self.state=self.root/'worker';self.state.mkdir()
         self.jobs=self.state/'jobs';self.jobs.mkdir()
-        self.owner=Writer(self.root/'shared',create=True)
-        self.worker=SimpleNamespace(config={'writer_state':str(self.owner.root)},jobs=self.jobs,state=self.state,cycle=Mock())
+        self.owner=self.writer
+        self.worker=SimpleNamespace(config={'writer_state':str(self.owner.root),
+            'mylar':{'config_dir':str(self.config)},
+            'publication_roots':[{'native':str(self.native_root),'worker':str(self.library)}]},
+            jobs=self.jobs,state=self.state,cycle=Mock())
         self.maintenance=SimpleNamespace(cycle=Mock())
+
+    def test_authority_is_owned_only_during_complete_cycle(self):
+        def check():
+            authority=current(self.worker)
+            authority.tool_root=self.tool
+            self.assertEqual(authority.check(self.candidate,self.native_owner)['authority']['decision'],'allowed')
+        self.worker.cycle.side_effect=check
+        self.maintenance.cycle.side_effect=lambda:self.assertTrue(current(self.worker).writer.local[1].depth)
+        self.assertTrue(cycle(self.worker,self.maintenance))
+        with self.assertRaises(Unavailable):current(self.worker)
+
+    def test_missing_authority_refuses_before_state_identity_or_fence(self):
+        self.marker.unlink()
+        before=self.workflow.read_bytes()
+        with self.assertRaises(Unavailable):cycle(self.worker,self.maintenance)
+        self.worker.cycle.assert_not_called();self.maintenance.cycle.assert_not_called()
+        self.assertFalse(self.owner.fenced())
+        self.assertFalse((self.owner.root/'normalizer-state-v1.identity').exists())
+        self.assertEqual(before,self.workflow.read_bytes())
+
+    def test_missing_mapping_refuses_before_worker_or_fence(self):
+        self.worker.config.pop('publication_roots')
+        with self.assertRaises(Unavailable):cycle(self.worker,self.maintenance)
+        self.worker.cycle.assert_not_called();self.assertFalse(self.owner.fenced())
+
+    def test_changed_authority_after_cycle_preserves_fence_and_skips_notifications(self):
+        self.worker.cycle.side_effect=lambda:self.marker.unlink()
+        self.worker.scan_batch=Mock()
+        with self.assertRaises(Unavailable):cycle(self.worker)
+        self.assertTrue(self.owner.fenced());self.worker.scan_batch.collect.assert_not_called()
+        with self.assertRaises(Unavailable):current(self.worker)
+
+    def test_coherent_different_census_also_preserves_fence(self):
+        self.worker.cycle.side_effect=lambda:self.seed(empty=True)
+        with self.assertRaises(Unavailable):cycle(self.worker)
+        self.assertTrue(self.owner.fenced())
+        with self.assertRaises(Unavailable):current(self.worker)
+
+    def test_native_http_is_refused_before_credentials_or_network(self):
+        from maintenance import Maintenance
+        adapter=SimpleNamespace(worker=self.worker)
+        self.worker.cycle.side_effect=lambda:Maintenance.mylar(adapter,'getHealth')
+        with patch('maintenance.request') as request, self.assertRaises(Unavailable):cycle(self.worker)
+        request.assert_not_called();self.assertTrue(self.owner.fenced())
+
+    def test_direct_owned_writer_also_refuses_native_http(self):
+        from maintenance import Maintenance
+        adapter=SimpleNamespace(worker=self.worker)
+        with self.owner.hold(),patch('maintenance.request') as request,self.assertRaises(Unavailable):
+            Maintenance.mylar(adapter,'forceProcess')
+        request.assert_not_called()
+
+    def test_different_local_registry_cannot_hide_held_physical_flock(self):
+        import media_writer
+        from maintenance import Maintenance
+        adapter=SimpleNamespace(worker=self.worker)
+        with self.owner.hold(),patch.dict(media_writer._REGISTRY,{},clear=True),patch('maintenance.request') as request:
+            with self.assertRaises(Unavailable):Maintenance.mylar(adapter,'getHealth')
+        request.assert_not_called()
 
     def test_naming_reconciles_native_fence_before_ordinary_writer_admission(self):
         with self.owner.hold(allow_release_pending=True):self.owner.mark_release_pending()

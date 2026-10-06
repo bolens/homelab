@@ -1,5 +1,6 @@
 # Komga – comics and manga server. Web UI and OPDS (e.g. Tachiyomi).
 # Access via Caddy only (no host port).
+# Publication-aware worker coordination uses existing overrides/mounts; see README.
 
 services:
   komga:

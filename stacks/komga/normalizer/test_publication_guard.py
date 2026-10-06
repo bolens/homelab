@@ -14,7 +14,7 @@ import publication_evidence as evidence
 from publication_guard import Authority, Unavailable
 
 
-class WorkerEvidenceTests(unittest.TestCase):
+class AuthorityFixture:
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -32,6 +32,7 @@ class WorkerEvidenceTests(unittest.TestCase):
         self.source = self.archive('correct.cbz', [('01.jpg', b'one')])
         self.candidate = self.archive('candidate.cbz', [('01.jpg', b'one')])
         self.owner = dict(table='issues', issueid='123', parentcomicid='456', releasecomicid='456')
+        self.native_owner = self.owner
         self.rejected = dict(table='issues', issueid='999', parentcomicid='888', releasecomicid='888')
         self.native_root = Path('/native-comics')
         self.authority = Authority(self.config, self.writer,
@@ -72,10 +73,10 @@ class WorkerEvidenceTests(unittest.TestCase):
                 initial = evidence.canonical_digest(plan)
                 rows = [('publication_intent', initial, dict(plan=plan, accepted=True, outcome='committed'))]
                 if not empty:
-                    observed = evidence.observe_owners(self.catalog, self.writer, [self.owner], [self.native_root],
+                    observed = evidence.observe_owners(self.catalog, self.writer, [self.native_owner], [self.native_root],
                         tool_root=self.tool, path_mapper=self.authority.mapped)
                     body = dict(version=1, epoch=census['epoch'], prior_revision=0,
-                        inventory=observed['inventory'], allowed=[self.owner], rejected=[self.rejected],
+                        inventory=observed['inventory'], allowed=[self.native_owner], rejected=[self.rejected],
                         evidence=dict(sha256='c'*64, description='Reviewed fixture'), observed=observed['observed'], created=1)
                     registration = dict(version=1, action='register', old=census, binding=binding, body=body)
                     token = evidence.canonical_digest(registration)
@@ -100,6 +101,8 @@ class WorkerEvidenceTests(unittest.TestCase):
         with closing(sqlite3.connect(self.catalog)) as db:
             db.execute(statement, parameters); db.commit()
 
+
+class WorkerEvidenceTests(AuthorityFixture, unittest.TestCase):
     def test_correct_copy_is_allowed_with_complete_fresh_facts(self):
         result = self.check()
         self.assertEqual(result['authority']['decision'], 'allowed')

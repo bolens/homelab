@@ -4,14 +4,17 @@ This adapter does not register corrections, recover native state or call APIs.
 Every mutation boundary must call check again; a returned snapshot is evidence,
 never a reusable permission. Native final import must independently enforce it.
 """
+from contextlib import contextmanager
 import os
 from pathlib import Path
+import threading
 import time
 
 import publication_evidence as evidence
-from media_writer import Writer
+from media_writer import Writer, Busy
 
 Unavailable = evidence.Unavailable
+_ACTIVE = threading.local()
 
 
 class Authority:
@@ -135,3 +138,56 @@ class Authority:
             return dict(version=1, source=str(source), inventory=inventory, authority=result)
         except (OSError, ValueError, TypeError, KeyError, IndexError) as error:
             raise Unavailable('Current worker publication evidence unavailable') from error
+
+
+def current(worker):
+    """Only the coordinator's current thread may use its owned local adapter."""
+    value = getattr(_ACTIVE, 'value', None)
+    if value is None or value[0] is not worker or type(value[1]) is not Authority:
+        raise Unavailable('Owned worker publication cycle required')
+    authority = value[1]
+    if not getattr(authority.writer.local[1], 'depth', 0):
+        raise Unavailable('Worker writer exclusion was released')
+    return authority
+
+
+def remote_unlocked(worker):
+    """Reject HTTP before a guarded native handler waits for our own Writer."""
+    value = getattr(_ACTIVE, 'value', None)
+    if value is not None:
+        raise Unavailable('Native API work must occur outside shared writer exclusion')
+    # Also cover direct callers holding the configured Writer without scope.
+    root = worker.config.get('writer_state')
+    if root is not None:
+        writer = Writer(root, create=False)
+        if getattr(writer.local[1], 'depth', 0):
+            raise Unavailable('Native API work must occur outside shared writer exclusion')
+        # A second bind spelling can have a separate Python registry entry but
+        # the same flock inode. Probe and release, never retain it across HTTP.
+        try:
+            with writer.hold(allow_pending=True, allow_tagger_pending=True,
+                             allow_release_pending=True, timeout=0):
+                pass
+        except Busy:
+            raise Unavailable('Native API work waits for shared writer release') from None
+
+
+@contextmanager
+def scope(worker, writer):
+    """Bind complete authority before journals/fences and recheck before clear."""
+    if getattr(_ACTIVE, 'value', None) is not None:
+        raise Unavailable('Nested worker publication cycle is unavailable')
+    settings = worker.config.get('mylar') or {}
+    if not isinstance(settings, dict):
+        raise Unavailable('Trusted Mylar configuration required')
+    authority = Authority(settings.get('config_dir', '/mylar'), writer,
+                          worker.config.get('publication_roots'))
+    before = authority.admission()
+    _ACTIVE.value = (worker, authority)
+    try:
+        yield authority
+        after = authority.admission()
+        if not evidence.same_json(before, after):
+            raise Unavailable('Correction authority changed during worker cycle')
+    finally:
+        _ACTIVE.value = None

@@ -100,8 +100,23 @@ that both config and coordination mounts refer to the same writer state. It make
 no API calls or registry writes. The worker Docker context contains generated
 read-only native evidence definitions, checked by repository validation; regenerate
 them with `python3 scripts/sync-publication-reader.py` after native reader changes.
-This source foundation is not yet connected to the worker cycle or mutation
-boundaries. It does not enable live prevention or provide an activation setting.
+Coordinated cycles validate complete authority before writing recovery bindings or
+fences and recheck it before clearing the fence. They require explicit
+`publication_roots` in the private normalizer configuration, for example
+`[{"native":"/data/comics","worker":"/data/comics"}]` when those are the actual
+native and worker library roots. Include every configured native library root;
+the adapter never guesses a mapping or creates a missing mount. A missing marker,
+incomplete census or missing mapping holds work. Initialize the matching native
+authority through its restore-verified review protocol before worker admission.
+Preparation preserves existing configuration and does not initialize authority.
+
+Mylar HTTP calls are refused while the shared writer is held, including through
+a different local lock registry. This prevents a guarded native API handler from
+waiting for the calling worker's own lock. Local candidate checks remain under
+exclusion; remote work must follow outside it and native final import must check
+fresh evidence again. Per-source mutation boundaries and durable remote command
+handoff are unfinished. Keep the worker held until those contracts and matching
+image/live acceptance are complete; this source cycle guard is not full prevention.
 
 A separate tagger recovery marker also blocks worker admission after Mylar crashes.
 Only Mylar may reconcile and clear that marker; worker recovery cannot bypass it.

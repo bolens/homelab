@@ -299,9 +299,21 @@ fence, but cannot bypass native recovery. This adapter performs no remote calls,
 authority writes or journal recovery. Returned evidence cannot be cached as
 permission: each final mutation still needs fresh enforcement.
 
-This foundation is not yet wired into `writer_cycle` or mutation callers. It does
-not complete T010–T012 or authorize live worker activation. Independent portable
-vectors and same-revision drift controls precede actual worker-image acceptance.
+The coordinated `writer_cycle` now binds this local authority before recovery
+identity/fence writes and rechecks the complete namespace before fence clearance.
+It requires explicit `publication_roots` mappings in private configuration.
+Uninitialized/missing authority or mapping holds; there is no marker-based fallback
+to an empty registry. Thread-owned scope gives subsequent mutation callers the
+exact current adapter only while their shared Writer is held.
+
+Native Mylar HTTP is refused before credential/config access when that thread owns
+the writer. A zero-time physical lock probe also covers separate local registries
+for the same flock inode, and releases before HTTP. This probe reads existing state,
+creates no protocol files and never clears or replays any fence. It cannot authorize
+publication or waive native final checks. Per-source mutation callers and durable
+remote command handoff remain unfinished T011–T012 work, so the worker stays held
+through matching image and live acceptance. Complete-cycle missing/changed-authority
+and physical-lock refusal controls supplement the independent portable vectors.
 
 `prepare-fresh` accepts only protocol version, action, epoch and the same exact
 backup evidence fields as `prepare-bootstrap`. It is explicit creation for a virgin
