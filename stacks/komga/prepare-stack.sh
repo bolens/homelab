@@ -11,3 +11,4 @@ prepare_stack_ensure_dir_from_env "KOMGA_COMICS_PATH" "${MEDIA_ROOT:-/srv/media}
 prepare_stack_ensure_dir_from_env "KOMGA_MANGA_PATH" "${MEDIA_ROOT:-/srv/media}/manga" require-existing
 prepare_stack_end
 # KOMGA_IMAGE remains an explicit operator override; preparation never deploys it.
+# Publication-aware worker mappings/authority are reviewed separately; see prepare-coordination.sh.

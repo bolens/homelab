@@ -16,4 +16,5 @@ prepare_stack_msg "Set the Komga API key in normalizer.json. Verify PUID/PGID ow
 prepare_stack_msg "Optional reader_scan batching in normalizer.json requires Mylar shared writer coordination; see README. Existing config is preserved."
 prepare_stack_msg "Optional pdf_conversion in normalizer.json retains original PDFs and renders bounded CBZ reading copies; existing configuration is preserved."
 prepare_stack_msg "Optional release_naming preserves verified release labels and reader progress; deploy matching Mylar/worker images before enabling. Existing configuration is preserved."
+prepare_stack_msg "With writer coordination, publication-aware images require explicit publication_roots mappings and initialized native authority. Existing configuration is preserved; no authority initialization or worker activation occurs here."
 prepare_stack_end

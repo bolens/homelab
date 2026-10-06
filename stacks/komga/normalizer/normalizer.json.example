@@ -5,6 +5,7 @@
   ],
   "state": "/state",
   "writer_state": null,
+  "publication_roots": [],
   "reader_state": "/normalizer-state",
   "poll_seconds": 60,
   "settle_seconds": 120,

@@ -5,6 +5,7 @@ import os
 import stat
 import time
 from media_writer import Writer, Busy, sync
+from publication_guard import scope
 
 
 def bind_state(writer, normalizer):
@@ -52,13 +53,14 @@ def cycle(normalizer, maintenance=None):
         with writer.hold(allow_pending=True,timeout=0):
             # Fence before any work: Komga may keep writing after an API timeout
             # or process crash. The worker alone reconciles and clears this marker.
-            bind_state(writer,normalizer)
-            writer.mark_pending()
-            normalizer.cycle()
-            if maintenance:maintenance.cycle()
-            bind_state(writer,normalizer)
-            pending=any(json.loads(path.read_text())['phase']!='done'
-                        for path in normalizer.jobs.glob('*/receipt.json'))
+            with scope(normalizer,writer):
+                bind_state(writer,normalizer)
+                writer.mark_pending()
+                normalizer.cycle()
+                if maintenance:maintenance.cycle()
+                bind_state(writer,normalizer)
+                pending=any(json.loads(path.read_text())['phase']!='done'
+                            for path in normalizer.jobs.glob('*/receipt.json'))
             if not pending:writer.clear_pending()
             scans = getattr(normalizer, 'scan_batch', None)
             # Readiness is per path: unrelated asynchronous conversions must not
