@@ -9,7 +9,7 @@ services:
   gluetun:
     labels:
       logging: "true"
-    image: qmcgaw/gluetun:latest@sha256:89e3cbe22e0d6f09a18d3e86269392fd9f7f08e8991040741e577f8f127cdfe4
+    image: qmcgaw/gluetun:latest@sha256:2733bb22b27e3efa7a9f2cef9057ec12791b8b225793fcd3dbfd0508404dfc25
     container_name: gluetun
     cap_add:
       - NET_ADMIN
