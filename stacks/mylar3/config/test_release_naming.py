@@ -40,6 +40,36 @@ class NamingTest(unittest.TestCase):
         patch.object(native_writers,'owner',return_value=self.writer).start()
         self.target=self.source.with_name(self.request['target'])
 
+    def test_publication_naming_holds_before_journal_fence_or_file_mutation(self):
+        from mylar import native_writers, publication_native
+        before=(self.source.read_bytes(),list(self.store.all('release_name')))
+        with patch.object(native_writers,'publication_mode',return_value=True),patch.object(publication_native,'require',return_value={}) as require,self.assertRaises(publication_native.Review):
+            self.native.rename(self.request)
+        require.assert_called_once_with(self.source,issueid='1',comicid='2')
+        self.assertEqual(before,(self.source.read_bytes(),list(self.store.all('release_name'))))
+        self.assertFalse(self.target.exists());self.assertFalse(self.writer.fenced(release=True))
+
+    def test_publication_replay_cannot_acknowledge_a_legacy_committed_journal(self):
+        result=self.native.rename(self.request)
+        from mylar import native_writers, publication_native
+        with patch.object(native_writers,'publication_mode',return_value=True),patch.object(publication_native,'require',return_value={}),self.assertRaises(publication_native.Review):
+            self.native.rename(self.request)
+        self.assertEqual(self.store.get('release_name',result['key'])['phase'],'committed')
+        self.assertTrue(self.target.exists());self.assertFalse(self.writer.fenced(release=True))
+
+    def test_publication_status_cannot_confirm_a_legacy_naming_receipt(self):
+        result=self.native.rename(self.request)
+        from mylar import native_writers, publication_native
+        with patch.object(native_writers,'publication_mode',return_value=True),patch.object(publication_native,'require',return_value={}),self.assertRaises(publication_native.Review):
+            self.native.status(result['key'])
+        self.assertTrue(self.target.exists());self.assertFalse(self.writer.fenced(release=True))
+
+    def test_direct_publication_recovery_holds_before_store_binding_or_fence_clearance(self):
+        from mylar import native_writers, publication_native
+        with patch.object(native_writers,'publication_mode',return_value=True),patch.object(self.native,'services') as services,self.assertRaises(publication_native.Review):
+            self.native.recover(self.writer)
+        services.assert_not_called();self.assertFalse(self.writer.fenced(release=True))
+
     def test_commit_and_idempotent_acknowledgement_preserve_inode(self):
         inode=self.source.stat().st_ino; original=self.source.read_bytes()
         result=self.native.rename(self.request)
