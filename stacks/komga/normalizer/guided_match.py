@@ -191,7 +191,8 @@ class Guided:
 
     def poll(self):
         try:
-            payload = self.m.mylar('workflowCommands')
+            from maintenance import native_work
+            payload = native_work(self.m,'workflowCommands')
             if not isinstance(payload, dict) or not isinstance(payload.get('commands'), list) or not isinstance(payload.get('aliases'), list):
                 return
             self.available = True

@@ -5,6 +5,7 @@ Every mutation boundary must call check again; a returned snapshot is evidence,
 never a reusable permission. Native final import must independently enforce it.
 """
 from contextlib import contextmanager
+from dataclasses import dataclass
 import os
 from pathlib import Path
 import re
@@ -16,6 +17,33 @@ from media_writer import Writer, Busy
 
 Unavailable = evidence.Unavailable
 _ACTIVE = threading.local()
+
+
+@dataclass(frozen=True,slots=True)
+class NativeBatch:
+    """Bounded read-side replies collected before exclusion, never permission."""
+    worker: object
+    thread: int
+    raw: bytes
+    COMMANDS = frozenset(('getHealth','workflowCommands','packWork'))
+
+    def __init__(self, worker, values):
+        if not isinstance(values,dict) or not set(values) <= self.COMMANDS:
+            raise Unavailable('Invalid native work batch')
+        object.__setattr__(self,'worker',worker)
+        object.__setattr__(self,'thread',threading.get_ident())
+        object.__setattr__(self,'raw',evidence.compact(values))
+        if len(self.raw) > evidence.MAX_OUTPUT:
+            raise Unavailable('Native work batch exceeds bounds')
+
+    def read(self, worker, command):
+        if (worker is not self.worker or self.thread != threading.get_ident()
+                or command not in self.COMMANDS):
+            raise Unavailable('Owned native work batch required')
+        values = evidence.decode_json(self.raw)
+        if command not in values or values[command] is None:
+            raise Unavailable('Native work snapshot unavailable')
+        return values[command]
 
 
 class Authority:
@@ -49,6 +77,7 @@ class Authority:
             self.mappings.append((native, worker))
         self.database = self.config / 'workflow.sqlite'
         self.catalog = self.config / 'mylar.db'
+        self.native_batch = None
 
     def mapped(self, path):
         path = Path(path)
@@ -226,7 +255,7 @@ def remote_unlocked(worker):
 
 
 @contextmanager
-def scope(worker, writer):
+def scope(worker, writer, *, native_batch=None):
     """Bind complete authority before journals/fences and recheck before clear."""
     if getattr(_ACTIVE, 'value', None) is not None:
         raise Unavailable('Nested worker publication cycle is unavailable')
@@ -235,6 +264,10 @@ def scope(worker, writer):
         raise Unavailable('Trusted Mylar configuration required')
     authority = Authority(settings.get('config_dir', '/mylar'), writer,
                           worker.config.get('publication_roots'))
+    if native_batch is not None:
+        if type(native_batch) is not NativeBatch or native_batch.worker is not worker:
+            raise Unavailable('Exact current native work batch required')
+        authority.native_batch = native_batch
     before = authority.admission()
     _ACTIVE.value = (worker, authority)
     try:
