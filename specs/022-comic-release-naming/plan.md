@@ -36,17 +36,16 @@ Deploy compatible native and worker images with naming disabled first. Verify ba
 
 ## Complexity Tracking
 
-The user requested a combined bulk pass after the naming pilot. A bounded private
-coordinator can retain the two existing naming preservation copies through links
-within private state, then finish the reader move before metadata admission. It
-never links the library file. A completed naming receipt can precede its temporary
-copy cleanup; reconcile exact owned links before admitting metadata. The native
-`apply_preserved` supplement entry point independently validates fresh source and
-both retained copies, shares the ordinary publication/completeness verifier and
-returns a durable token and before/after hashes. The coordinator journals that
-token first, rebinds exact-path credit deferrals, verifies final catalog/payload/
-reader state and owns cleanup. Failed or uncertain phases retain the shared set;
-metadata changes never trigger replay of the earlier naming request.
+The user requested a combined bulk pass after the naming pilot. The worker
+coordinates one native detached original/restore pair. Native preparation binds
+exact naming and metadata policy; the worker completes reader restoration at the
+unchanged archive hash before requesting root metadata publication. Closed native
+lineage binds the returned token and before/after hashes. Rebind operation-owned
+exact-path credit deferrals through these receipts, then verify final catalog,
+payload and reader state. Explicit typed native cleanup captures independent
+producer history and current facts before retiring only that private pair.
+Failed or uncertain phases retain a hold; serialized receipts cannot create
+publication or cleanup rights, and metadata changes never replay an earlier rename.
 
 No exceptions. A native journal is necessary because filesystem publication and SQLite location updates cannot be committed in one transaction. Reader restoration is independently asynchronous and must be proven before the worker reports completion.
 

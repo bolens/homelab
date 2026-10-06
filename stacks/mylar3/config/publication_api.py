@@ -27,6 +27,10 @@ FIELDS = {
     'prepare-registration': {'census', 'inventory', 'allowed', 'rejected', 'evidence', 'created'},
     'register': {'token'},
     'recover-registration': {'token', 'mode'},
+    'prepare-derivative': {'lineage', 'created'},
+    'prepare-lineage': {'request'},
+    'adopt-derivative': {'token'},
+    'recover-derivative': {'token', 'mode'},
     'prepare-journal': {'kind', 'token'},
     'recover-journal': {'kind', 'token'},
     'prepare-tagging-completion': {'backup'},
@@ -125,6 +129,20 @@ def request(raw):
             raise guard.Unavailable('Invalid reviewed registration')
     if action == 'check':
         guard.exact_owner(value['owner'])
+    if action == 'prepare-derivative':
+        if __package__:
+            from .publication_derivative import plan_value
+        else:
+            from publication_derivative import plan_value
+        plan_value(value['lineage'])
+        if type(value['created']) is not int or value['created']<0:
+            raise guard.Unavailable('Exact derivative review time required')
+    if action == 'prepare-lineage':
+        if __package__:
+            from .publication_lineage import validate
+        else:
+            from publication_lineage import validate
+        validate(value['request'])
     return value
 
 
@@ -216,6 +234,20 @@ class Controller:
             return result
         if action == 'check':
             return self._check(value, writer)
+        if action == 'prepare-lineage':
+            from mylar import native_writers, publication_native
+            if __package__:
+                from . import publication_lineage, publication_derivative
+            else:
+                import publication_lineage, publication_derivative
+            try:
+                with native_writers.operation() as active:
+                    publication_derivative.prepared_scope(value['request'])
+                    plan=publication_lineage.prepare(active,value['request'])
+            except publication_native.Review:
+                raise guard.Unavailable('Reviewed lineage preparation requires current-source review') from None
+            result.update(lineage=plan,outcome='reviewed',executable=False)
+            return result
         if action.endswith('bootstrap'):
             state = guard.RegistryState(self.database, writer)
             if action == 'prepare-bootstrap':
@@ -232,7 +264,38 @@ class Controller:
             result['outcome'] = result['review']['outcome']
             return result
         state = guard.RegistrationState(self.database, writer)
-        observe = lambda body: self.observe(writer, body)
+        if __package__:
+            from . import publication_derivative
+        else:
+            import publication_derivative
+        observe = lambda body: (publication_derivative.registration_observe(writer,body)
+                                if body.get('version')==2 else self.observe(writer, body))
+        if action in ('prepare-derivative','adopt-derivative','recover-derivative'):
+            if action=='prepare-derivative':
+                from mylar import native_writers, publication_native
+                try:
+                    with native_writers.operation() as active:
+                        token=publication_derivative.prepare(active,value['lineage'],value['created'],self.database)
+                except publication_native.Review:
+                    raise guard.Unavailable('Reviewed derivative preparation requires current-source review') from None
+                result.update(token=token,outcome='prepared')
+            else:
+                token=value['token']
+                with state._session() as db:
+                    record=state._record(db,token)
+                if record['plan']['body'].get('version')!=2:
+                    raise guard.Unavailable('Derivative route requires an exact derivative intent')
+                census=(state.register(token,accepted_token=token,observe=observe) if action=='adopt-derivative'
+                        else state.recover_registration(token,abort=value['mode']=='abort',observe=observe))
+                result.update(token=token,outcome='aborted' if census is None else 'committed',census=census)
+            result['review']=self.receipt(token,writer)
+            result['outcome']=result['review']['outcome']
+            return result
+        if action in ('register','recover-registration'):
+            with state._session() as db:
+                record=state._record(db,value['token'])
+            if record['plan']['body'].get('version')!=1:
+                raise guard.Unavailable('Ordinary registration route cannot consume a derivative intent')
         if action == 'prepare-registration':
             census, _ = state.snapshot()
             if not guard.same_json(census, value['census']):
@@ -306,7 +369,8 @@ class Controller:
         return result
 
     def _check(self, value, writer, *, transaction=None):
-        census, records = guard.registry_snapshot(self.database, writer.root / 'publication-v1.json')
+        snapshot=guard.registry_snapshot if transaction is not None else guard.media_snapshot
+        census, records = snapshot(self.database, writer.root / 'publication-v1.json')
         result = dict(version=1, action='check', advisory=True, census=census,
                       owner=value['owner'], payload=value['payload'], decision='unknown')
         if transaction is not None:
@@ -316,10 +380,20 @@ class Controller:
                 from publication_transaction import admission
             admission(transaction,writer)
         elif (os.path.lexists(writer.root/'tagger-publication-v1.json')
+                or os.path.lexists(writer.root/'nested-derivative-v1.json')
                 or os.path.lexists(writer.root/'tagger-recovery-v1.pending')
                 or any(writer.fenced(**args) for args in ({}, {'tagger': True}, {'release': True}))):
             result.update(decision='held', reason='media-pending');return result
-        matches = [record for record in records.values() if record['inventory']['payload'] == value['payload']]
+        if any(record['version']==2 for record in records.values()):
+            if __package__:
+                from .publication_derivative import matches as family_matches, families
+            else:
+                from publication_derivative import matches as family_matches, families
+            matches=list(family_matches(records,value['payload']).values())
+            family_index,_=families(records)
+        else:
+            matches = [record for record in records.values() if record['inventory']['payload'] == value['payload']]
+            family_index={}
         if not matches:
             return result
         allowed = {guard.canonical_digest(owner):owner for record in matches for owner in record['allowed']}
@@ -327,11 +401,21 @@ class Controller:
         if len(allowed) > 8:
             raise guard.Unavailable('Matched owners exceed bounds')
         owners = [allowed[key] for key in sorted(allowed)]
-        current = (self.observe(writer, {'allowed': owners}) if transaction is None else
-                   guard.observe_owners(self.native_database,writer,owners,self.roots,
-                                        tool_root=self.tool_root,transaction=transaction))
-        if current['inventory']['payload'] != value['payload']:
-            raise guard.Unavailable('Matched correct-owner payload changed')
+        if family_index:
+            current={'observed':[]}
+            for owner in owners:
+                observed=guard.observe_owners(self.native_database,writer,[owner],self.roots,
+                    tool_root=self.tool_root,transaction=transaction)
+                if (family_index.get(observed['inventory']['payload'])!=family_index.get(value['payload'])
+                        or family_index.get(value['payload']) is None):
+                    raise guard.Unavailable('Matched exact derivative owner lineage changed')
+                current['observed'].extend(observed['observed'])
+        else:
+            current = (self.observe(writer, {'allowed': owners}) if transaction is None else
+                       guard.observe_owners(self.native_database,writer,owners,self.roots,
+                                            tool_root=self.tool_root,transaction=transaction))
+            if current['inventory']['payload'] != value['payload']:
+                raise guard.Unavailable('Matched correct-owner payload changed')
         proposed = guard.canonical_digest(value['owner'])
         result.update(decision='allowed' if proposed in allowed and proposed not in rejected else 'held',
                       reason='verified-correction', matched=sorted(guard.attestation(record) for record in matches),

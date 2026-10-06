@@ -543,6 +543,12 @@ def observe_owners(database, writer, owners, library_roots, *, tool_root=TOOL_RO
 
 
 def attestation(value):
+    if isinstance(value,dict) and type(value.get('version')) is int and value['version']==2:
+        if __package__:
+            from .publication_derivative import attestation as derivative_attestation
+        else:
+            from publication_derivative import attestation as derivative_attestation
+        return derivative_attestation(value)
     fields = {'version', 'epoch', 'prior_revision', 'inventory', 'allowed',
               'rejected', 'evidence', 'observed', 'intent', 'created'}
     if (not isinstance(value, dict) or set(value) != fields
@@ -657,6 +663,12 @@ def complete_census(db, *, pending=None):
             raise Unavailable('Contradictory immutable correction history')
     if revisions != set(range(census['revision'])):
         raise Unavailable('Missing correction revision history')
+    if any(value['version']==2 for value in records.values()):
+        if __package__:
+            from .publication_derivative import families
+        else:
+            from publication_derivative import families
+        families(records)
     return census, records
 
 
@@ -689,9 +701,10 @@ def authority_status(database, writer_root):
         writer = Writer(writer_root, create=False)
         with writer.hold(allow_pending=True, allow_tagger_pending=True,
                          allow_release_pending=True, timeout=0):
-            census, _ = registry_snapshot(database, writer.root / 'publication-v1.json')
+            census, _ = media_snapshot(database, writer.root / 'publication-v1.json')
             pending = (writer.fenced() or writer.fenced(tagger=True) or writer.fenced(release=True)
                        or os.path.lexists(writer.root/'tagger-publication-v1.json')
+                       or os.path.lexists(writer.root/'nested-derivative-v1.json')
                        or os.path.lexists(writer.root/'tagger-recovery-v1.pending'))
             return dict(version=1, state='held' if pending else 'ready',
                         reason='media-pending' if pending else 'verified', census=census)
@@ -756,6 +769,170 @@ def _registry_snapshot(database, marker):
 
 INTENT_LIMIT = 128
 MARKER_BYTES = 131072
+
+
+def _cleanup_admission(database):
+    """Passive exact terminal ledgers; unfinished pre-intent CAS remains a hold.
+
+    This read confers no producer authority and never reads private copies or
+    reconstructs transactions. Combined reader phases remain separately scoped.
+    """
+    from contextlib import closing
+    import base64
+    import os
+    import sqlite3
+
+    def exact(value, fields):
+        if not isinstance(value, dict) or set(value) != set(fields):
+            raise Unavailable('Malformed native attempt retained')
+
+    def path(value):
+        if (not isinstance(value, str) or not value or len(value.encode()) > 4096
+                or '\0' in value or '\\' in value or not Path(value).is_absolute()
+                or '..' in Path(value).parts):
+            raise Unavailable('Malformed native attempt path')
+        return Path(value)
+
+    def state(value, *, private=False):
+        exact(value, ('signature', 'attributes', 'sha256'))
+        sig = value['signature']
+        if (not isinstance(sig, list) or len(sig) != 9
+                or any(type(item) is not int or item < 0 for item in sig)
+                or not stat.S_ISREG(sig[5]) or sig[8] != 1
+                or not digest_value(value['sha256'])
+                or (private and (sig[6] != os.geteuid() or stat.S_IMODE(sig[5]) != 0o600))):
+            raise Unavailable('Malformed native attempt file state')
+        attrs = value['attributes']
+        if not isinstance(attrs, dict) or len(attrs) > 64:
+            raise Unavailable('Malformed native attempt attributes')
+        total = 0
+        for name, encoded in attrs.items():
+            if (not isinstance(name, str) or '\0' in name or len(name.encode()) > 255
+                    or not (name.startswith('user.') or name in ('system.nfs4_acl', 'system.posix_acl_access'))
+                    or not isinstance(encoded, str) or len(encoded) > 4 * ((65536 + 2) // 3)):
+                raise Unavailable('Malformed native attempt attributes')
+            decoded = base64.b64decode(encoded, validate=True)
+            if len(decoded) > 65536 or base64.b64encode(decoded).decode('ascii') != encoded:
+                raise Unavailable('Malformed native attempt attributes')
+            total += len(decoded)
+        if total > 131072:
+            raise Unavailable('Oversized native attempt attributes')
+
+    def producer(kind, key, value):
+        fields = ('version', 'token', 'binding', 'request', 'phase', 'result')
+        exact(value, (*fields, 'states') if kind == 'owned_conversion' else (*fields, 'original_state'))
+        if (type(value['version']) is not int or value['version'] != 1
+                or value['token'] != key or not digest_value(key)
+                or not digest_value(value['binding']) or value['phase'] != 'committed'):
+            raise Unavailable('Unfinished native attempt requires explicit review')
+        request, result = value['request'], value['result']
+        if kind == 'owned_conversion':
+            exact(request, ('version', 'source', 'target', 'prepared', 'issueid', 'comicid',
+                            'source_sha256', 'output_sha256', 'inventory_sha256', 'census'))
+            source = path(request['source']);path(request['prepared'])
+            if (source.suffix.lower() not in ('.cbr', '.cb7', '.7z')
+                    or request['target'] != source.stem + '.cbz'
+                    or len(request['target'].encode()) > 255
+                    or any(not isinstance(request[name], str) or re.fullmatch('[1-9][0-9]{0,15}', request[name]) is None
+                           for name in ('issueid', 'comicid'))
+                    or any(not digest_value(request[name]) for name in ('source_sha256', 'output_sha256', 'inventory_sha256'))):
+                raise Unavailable('Malformed conversion attempt request')
+            exact(value['states'], ('original', 'target'))
+            state(value['states']['original'], private=True);state(value['states']['target'])
+            if (value['states']['original']['sha256'] != request['source_sha256']
+                    or value['states']['target']['sha256'] != request['output_sha256']):
+                raise Unavailable('Conversion terminal state differs from request')
+            exact(result, ('version', 'token', 'phase', 'source', 'destination', 'sha256', 'inventory_sha256', 'witness'))
+            if (result['phase'] != 'committed' or result['source'] != request['source']
+                    or result['destination'] != str(source.with_name(request['target']))
+                    or result['sha256'] != request['output_sha256']
+                    or result['inventory_sha256'] != request['inventory_sha256']):
+                raise Unavailable('Conversion terminal result differs from request')
+        else:
+            exact(request, ('version', 'plan_path', 'plan_sha256', 'backup', 'census', 'repair'))
+            path(request['plan_path'])
+            if (request['repair'] != 'retain-and-clear-exact-false-location'
+                    or not digest_value(request['plan_sha256'])):
+                raise Unavailable('Malformed repeat attempt request')
+            exact(request['backup'], ('manifest_path', 'manifest_sha256', 'restore_receipt_path', 'restore_receipt_sha256'))
+            for name in ('manifest_path', 'restore_receipt_path'):path(request['backup'][name])
+            for name in ('manifest_sha256', 'restore_receipt_sha256'):
+                if not digest_value(request['backup'][name]):raise Unavailable('Malformed repeat backup digest')
+            state(value['original_state'], private=True)
+            exact(result, ('version', 'token', 'phase', 'requires_review', 'source', 'owner', 'witness',
+                           'acquisition_provenance', 'failed_release_binding'))
+            path(result['source']);exact_owner(result['owner'])
+            if (result['phase'] != 'retained-review' or result['requires_review'] is not True
+                    or result['acquisition_provenance'] is not None or result['failed_release_binding'] is not None):
+                raise Unavailable('Malformed repeat terminal result')
+        census_value(request['census'])
+        if (type(request['version']) is not int or request['version'] != 1
+                or canonical_digest(request) != key or len(compact(request)) > MAX_OUTPUT
+                or type(result['version']) is not int or result['version'] != 1
+                or result['token'] != key or not digest_value(result['witness'])):
+            raise Unavailable('Malformed native attempt terminal binding')
+
+    database = Path(database)
+    with regular(database) as stream:
+        before = signature(os.fstat(stream.fileno()))
+        if before[6] != os.geteuid() or stat.S_IMODE(before[5]) != 0o600 or before[8] != 1:
+            raise Unavailable('Private exclusive cleanup database required')
+        if any(os.path.lexists(str(database) + suffix) for suffix in ('-journal', '-wal', '-shm')):
+            raise Unavailable('Cleanup state requires database recovery')
+        with closing(sqlite3.connect(database.as_uri() + '?mode=ro&immutable=1', uri=True)) as db:
+            deadline = time.monotonic() + TIMEOUT
+            db.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+            where = "CAST(kind AS TEXT) IN ('combined_cleanup','owned_conversion','retained_repeat')"
+            count, size = db.execute('SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) FROM records WHERE ' + where).fetchone()
+            if count > 100000 or size > 64 * 1024**2:
+                raise Unavailable('Cleanup history exceeds admission bounds')
+            rows = db.execute('SELECT kind,key,value,typeof(kind),typeof(key),typeof(value) FROM records WHERE ' + where)
+            for kind, key, raw, kind_type, key_type, value_type in rows:
+                if (kind_type != 'text' or key_type != 'text' or value_type != 'text'
+                        or not isinstance(key, str) or not isinstance(raw, str)
+                        or len(raw.encode('utf-8')) > (4096 if kind == 'combined_cleanup' else MAX_OUTPUT)):
+                    raise Unavailable('Malformed cleanup attempt retained')
+                value = decode_json(raw)
+                if kind != 'combined_cleanup':
+                    producer(kind, key, value)
+                elif (not isinstance(value, dict) or set(value) != {'version','kind','token','phase','binding','attempt_digest','terminal_digest'}
+                        or type(value['version']) is not int or value['version'] != 1
+                        or value['kind'] != 'combined_cleanup' or value['phase'] != 'complete'
+                        or value['token'] != key
+                        or any(not digest_value(value[name]) for name in ('token','binding','attempt_digest','terminal_digest'))):
+                    raise Unavailable('Uncertain cleanup requires explicit review')
+        if (signature(os.fstat(stream.fileno())) != before or signature(database.lstat()) != before
+                or any(os.path.lexists(str(database) + suffix) for suffix in ('-journal', '-wal', '-shm'))):
+            raise Unavailable('Cleanup state changed during admission')
+
+
+def cleanup_admission(database):
+    import sqlite3
+    try:
+        return _cleanup_admission(database)
+    except Unavailable:
+        raise
+    except (OSError, ValueError, TypeError, KeyError, sqlite3.Error):
+        raise Unavailable('Cleanup attempt evidence unavailable') from None
+
+
+def media_snapshot(database, marker):
+    """One incarnation across complete authority and pending cleanup admission."""
+    try:
+        database,marker=Path(database),Path(marker)
+        with regular(database) as dbfile,regular(marker) as markfile:
+            before=signature(os.fstat(dbfile.fileno()));mark=signature(os.fstat(markfile.fileno()))
+            result=registry_snapshot(database,marker)
+            cleanup_admission(database)
+            if (signature(os.fstat(dbfile.fileno()))!=before or signature(database.lstat())!=before
+                    or signature(os.fstat(markfile.fileno()))!=mark or signature(marker.lstat())!=mark
+                    or any(os.path.lexists(str(database)+suffix) for suffix in ('-journal','-wal','-shm'))):
+                raise Unavailable('Publication state changed between admission proofs')
+            return result
+    except Unavailable:
+        raise
+    except (OSError,ValueError,TypeError,KeyError):
+        raise Unavailable('Publication admission evidence unavailable') from None
 
 
 def writer_identity(writer):
@@ -849,6 +1026,9 @@ def registration_effect(key, plan):
         raise Unavailable('Invalid registration predecessor')
     value = dict(body, intent=key)
     record_key = attestation(value)
+    if (body.get('version') == 2
+            and not same_json(body['lineage']['plan']['request']['census'], old)):
+        raise Unavailable('Derivative reviewed census differs from registration predecessor')
     if record_key in old['keys']:
         raise Unavailable('Duplicate registration effect')
     keys = sorted(old['keys'] + [record_key])

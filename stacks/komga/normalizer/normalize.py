@@ -616,7 +616,7 @@ class Normalizer:
             if not isinstance(path, str) or not isinstance(book, dict):
                 raise Unavailable('Malformed reader library observation')
             projection[path] = {key: book[key] for key in
-                                ('id', 'seriesId', 'media', 'readProgress') if key in book}
+                                ('id', 'seriesId', 'media', 'readProgress', 'fileHash') if key in book}
         raw = evidence.compact(projection)
         if len(raw) > evidence.CATALOG_BYTES:
             raise Unavailable('Reader snapshot exceeds bounded library observation')
@@ -641,6 +641,9 @@ class Normalizer:
                 raise Unavailable('Invalid immutable reader snapshot')
         else:
             books = self.reader.books()  # No media mutation while reader state is unavailable.
+        if coordinated:
+            from conversion_handoff import collect
+            collect(self, books)
         pending_sources = set()
         for receipt in sorted(self.jobs.glob('*/receipt.json')):
             job = json.loads(receipt.read_text())
@@ -662,6 +665,10 @@ class Normalizer:
                 # ensures its native upgrade operation transfers existing user state.
                 if not coordinated:
                     books = self.reader.books()
+                if coordinated and path.suffix.lower() in ('.cbr', '.cb7', '.7z'):
+                    from conversion_handoff import prepare
+                    prepare(self, path, books)
+                    continue
                 if path.suffix.lower() in ('.cbr', '.rar', '.zip', '.pdf') and str(path) not in books:
                     if coordinated:
                         raise Unavailable('Unindexed conversion needs a typed reader discovery handoff')

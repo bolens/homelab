@@ -642,7 +642,54 @@ def force_process(function):
 def state_health():
     try:
         store().get('policy','current')
-        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
+        result = {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
+        try:
+            from mylar import api, combined_publication, publication_conversion
+            from mylar.publication_transaction import closed_supplement
+        except ImportError:
+            return result
+        if (callable(getattr(api.Api, '_combinedPublication', None))
+                and callable(getattr(combined_publication, 'execute', None))
+                and callable(closed_supplement)):
+            result['combined_publication'] = 1
+        if (callable(getattr(api.Api, '_commitConvertedArchive', None))
+                and callable(getattr(api.Api, '_convertedArchiveStatus', None))
+                and callable(getattr(publication_conversion, 'commit', None))
+                and callable(getattr(publication_conversion, 'status', None))):
+            result['owned_conversion'] = 1
+        try:
+            from mylar import publication_reconcile
+        except ImportError:
+            pass
+        else:
+            if (callable(getattr(api.Api, '_commitRetainedRepeat', None))
+                    and callable(getattr(api.Api, '_retainedRepeatStatus', None))
+                    and callable(getattr(publication_reconcile, 'commit', None))
+                    and callable(getattr(publication_reconcile, 'status', None))):
+                result['retained_repeat'] = 1
+        try:
+            from mylar import combined_cleanup
+        except ImportError:
+            pass
+        else:
+            if (result.get('combined_publication') == 1
+                    and callable(getattr(combined_cleanup, 'clean', None))
+                    and callable(getattr(combined_cleanup, 'retired_supplement', None))
+                    and callable(getattr(combined_cleanup, 'resolve', None))):
+                result['combined_cleanup'] = 1
+        try:
+            from mylar import publication_derivative, publication_lineage, library_metadata
+        except ImportError:
+            pass
+        else:
+            if (callable(getattr(api.Api, '_commitReviewedDerivative', None))
+                    and callable(getattr(api.Api, '_reviewedDerivativeStatus', None))
+                    and callable(getattr(publication_derivative, 'publish', None))
+                    and callable(getattr(publication_derivative, 'status', None))
+                    and callable(getattr(publication_lineage, 'prepare', None))
+                    and callable(getattr(library_metadata, 'reviewed_derivative', None))):
+                result['reviewed_derivative'] = 1
+        return result
     except Exception:return {'valid':False,'observer_errors':_OBSERVER_ERRORS}
 
 

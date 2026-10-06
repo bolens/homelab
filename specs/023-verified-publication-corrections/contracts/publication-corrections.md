@@ -36,6 +36,58 @@ Remote advisory checks occur before the worker holds the shared writer. Under wr
 
 Deploy matching native first and worker second with writers held and independently restore-verified affected state. Seed only exact reviewed correction evidence. Prove conflict canary and legitimate different-payload canary, then scoped existing-repeat repair and fresh protected whole-library acceptance. Source publication and healthy containers alone do not complete live acceptance.
 
+## Reviewed repeat retention
+
+The primary-key POST `commitRetainedRepeat` route accepts a private exact plan
+path and digest, independently verified backup/restore evidence, the complete
+current census, and `repair=retain-and-clear-exact-false-location`. Prepare a new
+plan against the current census after registration; do not refresh an old proof.
+Native admission independently proves the registered wrong owner, every matched
+correct publication, complete catalog and exact source. Its typed live owner
+retains the wrong archive outside scanned roots before unlinking its exact
+incarnation and conditionally clearing only the false `Location`.
+
+`retainedRepeatStatus` validates terminal retention without repeating mutation.
+It preserves `Status`, `ComicSize`, wanted intent and correct-publication bytes.
+The result remains `requires_review=true`: acquisition or failed-release
+provenance is not reconstructed from comic metadata. Restoring wanted state
+requires separate actual history or explicit reviewed operator policy. Missing,
+changed or uncertain source, catalog, census, backup or receipt retains a hold.
+
+## Explicit reviewed nested derivative
+
+Read-only lineage preparation binds the current correct source, complete member
+and page inventories, exact nested `ComicInfo.xml` to adjacent
+`SourceMetadata.xml` mapping, reviewed private preparation, retained original
+and independent restore, catalog and complete current census. Rootless archives
+may add only the deterministically promoted root `ComicInfo.xml`; existing root
+metadata is merged without losing nested provenance. Unrelated member bytes,
+headers, order, pages and archive comment remain preserved.
+
+Authenticated `publicationControl` action `prepare-lineage` accepts the exact
+reviewed lineage request and returns its immutable plan under native writer
+exclusion without adopting it or changing media. Preparation is confined to the
+configured private cache stage. Actions `prepare-derivative`,
+`adopt-derivative` and `recover-derivative` use the existing durable registration
+protocol. Adoption precedes media mutation, publishes an exact version-2
+attestation, binds the full reviewed census to its immutable predecessor, and
+inherits every allowed/rejected owner from all prior family relations. A
+relation cannot join preexisting families or create a cycle. Unknown originals
+allow only the reviewed current owner. Both original and derivative payloads
+remain protected. Matching native and worker readers independently verify these
+relations; fresh current owners may contain either reviewed variant.
+
+The separate primary-key POST `commitReviewedDerivative` route accepts only the
+exact committed adoption token. Its typed live native owner uses confined
+private preparation, proves current source/catalog/census again, publishes the
+reviewed archive and conditionally updates size while preserving status and
+ownership. `reviewedDerivativeStatus` validates the immutable completed witness
+without repeating publication. Uncertain intents hold ordinary startup and
+worker admission even if a fence is missing. Automatic nested discovery and
+direct SDK repair cannot manufacture adoption or consume arbitrary aliases.
+Retained originals are not retired by this route; conclusive cleanup requires
+separate acceptance.
+
 ## Bootstrap source implementation boundary
 
 The current bootstrap helpers serialize raw writer → workflow lock → existing
@@ -417,8 +469,7 @@ facts and the reader route after acknowledgement. New pending native tagging,
 repair or worker publication work revokes a prepared or in-flight notification.
 Native paths map through trusted roots before comparison. Lost replies are
 retained without automatic replay, and a scan acknowledgement does not confirm
-publication. Positive coordinated conversion and PDF/member-name lineage remain
-held until their separate owned relocation/derivative contracts exist.
+publication. Current-owned lossless conversion without an existing reader book uses exact native relocation and unchanged full inventories. Reader-owned originals, PDF derivatives, changed member names and legacy recovery jobs remain held until their separate continuity/derivative contracts exist.
 
 ### Owned rename, root metadata and maintenance reports
 
@@ -432,10 +483,7 @@ Standalone or historical naming intents cannot acquire this capability.
 Preserved root ComicInfo supplementation uses an exact native producer bound to
 the source, two private distinct verified copies, metadata and current owner.
 Only root metadata may change; page payload, member names and catalog ownership
-must survive. The producer returns a verified publication receipt. These helper
-controls do not establish an operational combined-pass route. Nested metadata
-repair, member-name derivatives and interrupted replay still require their own
-reviewed transitions.
+must survive. The producer returns a verified publication receipt. The combined native route binds an immutable private preparation to those copies, exact rename history and the worker's unchanged-hash reader restoration before metadata admission. Lost metadata responses reconcile the closed tagging witness, never the old rename hash. Nested metadata repair and member-name derivatives still require their own reviewed transitions.
 
 Maintenance reports use the typed handoff after writer release. Their exact
 versioned binding includes report, processing, guidance and an integer observation
@@ -447,3 +495,18 @@ imports or conversions. Uncertain guided attempts are retained across later
 observation buckets without repeating their proposal. Old native capabilities
 leave reports prepared; bounded request selection prevents a stale request from
 starving an independently valid request.
+
+
+### Private correction-plan preparation
+
+`scripts/prepare-publication-corrections.py` reads explicitly reviewed private scope and review JSON and writes a private, exclusive plan. It does not call Mylar or execute registration, repeat relocation, catalog repair or cleanup. Supply `--scope-file`, `--review-file` and `--output`; the output parent must already be a private directory. Diagnostics contain only readiness and a plan digest.
+
+The version-1 scope contains `config_dir`, `library_roots` and `tool_root`. The reviewed document contains the exact complete `census`, explicit `allowed` and `rejected` owners, `correct` owner/path/SHA-256 observations, optional `repeat`, private `evidence` and `backup`, and integer `created`. Backup proof names a manifest and independent restore receipt with their SHA-256 values. The manifest binds source/backup/restore files for each required role; copies must be physically distinct, outside the library, intact and database-readable. Current native catalog, complete census, actual archives, private evidence and backup files are reread under existing writer exclusion. No acquisition or failed-release provenance is inferred.
+
+The resulting `registration_request` uses the existing `prepare-registration` protocol. A later register operation requires the exact token returned by native preparation. Every plan remains `executable=false`. Optional repeat observations carry `fresh-native-retention-review-required`; they authorize no source retirement or catalog changes.
+
+Ordinary startup and advisory admission also hold unfinished or malformed private
+conversion and retained-repeat records when a crash preceded their filesystem
+intent. Passive terminal ledger validation cannot reconstruct a publication
+capability. Combined-publication phases waiting for reader restoration retain
+their separate bounded coordination protocol.

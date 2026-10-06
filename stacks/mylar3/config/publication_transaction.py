@@ -25,6 +25,7 @@ IN_PLACE_FIELDS=('token','source','before','after','source_identity','candidate_
 
 def present(writer):
     return (os.path.lexists(writer.root/NAME)
+            or os.path.lexists(writer.root/'nested-derivative-v1.json')
             or os.path.lexists(writer.root/'tagger-recovery-v1.pending'))
 
 
@@ -37,9 +38,54 @@ def admission(capability,writer):
     if type(capability) is Rename:
         admitted(capability,writer)
         return
-    if not isinstance(capability,Tagging) or getattr(_LOCAL,'tagging',None) is not capability:
-        raise guard.Unavailable('Exact active tagging transaction required')
-    capability.check(writer)
+    if isinstance(capability,Tagging) and getattr(_LOCAL,'tagging',None) is capability:
+        capability.check(writer)
+        return
+    try:
+        if __package__:
+            from .publication_conversion import Conversion, admitted as conversion_admitted
+        else:
+            from publication_conversion import Conversion, admitted as conversion_admitted
+    except ImportError:
+        pass
+    else:
+        if type(capability) is Conversion:
+            conversion_admitted(capability,writer)
+            return
+    try:
+        if __package__:
+            from .publication_derivative import Derivative, admitted as derivative_admitted
+        else:
+            from publication_derivative import Derivative, admitted as derivative_admitted
+    except ImportError:
+        pass
+    else:
+        if type(capability) is Derivative:
+            derivative_admitted(capability,writer)
+            return
+    try:
+        if __package__:
+            from .publication_reconcile import Reconcile, admitted as reconcile_admitted
+        else:
+            from publication_reconcile import Reconcile, admitted as reconcile_admitted
+    except ImportError:
+        pass
+    else:
+        if type(capability) is Reconcile:
+            reconcile_admitted(capability,writer)
+            return
+    try:
+        if __package__:
+            from .combined_cleanup import Cleanup, admitted as cleanup_admitted
+        else:
+            from combined_cleanup import Cleanup, admitted as cleanup_admitted
+    except ImportError:
+        pass
+    else:
+        if type(capability) is Cleanup:
+            cleanup_admitted(capability,writer)
+            return
+    raise guard.Unavailable('Exact active publication transaction required')
 
 
 def current():
@@ -649,3 +695,151 @@ def tagging(writer,source,issueid,token,policy,*,modern=False):
         job.pending_fd=None
         # Completion/clearance is deliberately a separate verified producer
         # action. Every incomplete scope retains both typed intent and fence.
+
+
+def closed_supplement(writer, *, token, source, before_sha256, owner, payload, census, preservation, policy):
+    """Read exact closed root-metadata evidence; grant no publication rights."""
+    import mylar
+    from mylar import native_writers
+    try:
+        native_writers.admission(writer)
+        if (not native_writers.active() or native_writers.owner().root!=writer.root
+                or not writer.local[1].depth or present(writer)
+                or any(writer.fenced(**flags) for flags in ({},{'tagger':True},{'release':True}))
+                or not isinstance(token,str) or not re.fullmatch('[0-9a-f]{32}',token)):
+            raise guard.Unavailable('Closed supplement requires fresh native exclusion')
+        source=Path(source)
+        if not source.is_absolute() or '..' in source.parts:
+            raise guard.Unavailable('Exact closed supplement source required')
+        owner=guard.exact_owner(owner);census=guard.census_value(census)
+        history=writer.root/'tagger-completed-v1'
+        history_before=history_identity(history)
+        recovery=state_evidence(writer)
+        witness_path=history/(token+'.json')
+        witness_before=guard.private_evidence(witness_path)
+        witness=guard.private_json(witness_path)
+        if (not isinstance(witness,dict) or set(witness)!={'version','kind','job'}
+                or type(witness['version']) is not int or witness['version']!=1
+                or witness['kind']!='tagging-terminal-proof' or not isinstance(witness['job'],dict)):
+            raise guard.Unavailable('Exact closed supplement witness required')
+        job=witness['job']
+        fields={'version','kind','phase','token','writer','source','owner','payload','source_sha256',
+                'source_signature','census','policy','observed','recovery','history','fence','publisher',
+                'completion','in_place'}
+        if (set(job)!=fields or type(job['version']) is not int or job['version']!=1
+                or job['kind']!='tagging' or job['phase']!='completing' or job['token']!=token
+                or job['source']!=str(source) or job['source_sha256']!=before_sha256
+                or job['payload']!=payload or not guard.same_json(job['owner'],owner)
+                or not guard.same_json(job['census'],census)
+                or not guard.same_json(job['writer'],guard.writer_identity(writer))
+                or not guard.same_json(job['history'],history_before)
+                or not guard.same_json(job['recovery'],recovery)):
+            raise guard.Unavailable('Closed supplement job changed')
+        captured=job['policy']
+        if (not isinstance(captured,dict)
+                or set(captured)!={'role','manualmeta','supplement','preservation','expected_digest','owner_observed'}
+                or captured['role']!='preserved-supplement' or captured['manualmeta'] is not True
+                or captured['expected_digest']!=before_sha256
+                or not guard.same_json(captured['supplement'],policy)
+                or not guard.same_json(captured['preservation'],preservation)):
+            raise guard.Unavailable('Closed supplement policy or copies changed')
+        preserved_pair(preservation,before_sha256)
+        predecessor={key:value for key,value in job.items() if key not in ('publisher','completion')}
+        predecessor.update(phase='fenced',in_place=None)
+        binding=job['publisher'];terminal=job['completion']
+        if (not isinstance(binding,dict) or guard.canonical_digest(predecessor)!=binding.get('intent_sha256')
+                or not guard.same_json(binding.get('owner'),owner)
+                or binding.get('payload')!=payload or not guard.same_json(binding.get('census'),census)
+                or not guard.same_json(binding.get('in_place'),job['in_place'])
+                or not isinstance(terminal,dict)
+                or set(terminal)!={'target','sha256','signature','receipt','receipt_evidence','record','stage'}
+                or terminal['target']!=str(source) or terminal['stage'] is not None):
+            raise guard.Unavailable('Closed supplement publication binding changed')
+        receipt=Path(recovery['directories'][1][0])/(token+'.json')
+        record=guard.private_json(receipt)
+        if (terminal['receipt']!=str(receipt)
+                or guard.private_evidence(receipt)!=terminal['receipt_evidence']
+                or not guard.same_json(record,terminal['record'])
+                or record.get('token')!=token or record.get('source')!=str(source)
+                or record.get('state') not in ('committed','unchanged') or record.get('cleaned') is not True
+                or record.get('before')!=before_sha256
+                or record.get('after' if record['state']=='committed' else 'before')!=terminal['sha256']
+                or not guard.same_json(record.get('correction_guard'),binding)
+                or not guard.same_json(record.get('terminal_proof'),dict(version=1,digest=terminal_digest(terminal)))):
+            raise guard.Unavailable('Closed supplement terminal receipt changed')
+        catalog=Path(mylar.DATA_DIR)/'mylar.db'
+        catalog_signature=guard.signature(catalog.lstat())
+        current=native.require(source,issueid=owner['issueid'],comicid=owner['parentcomicid'])
+        inventory=current['inventory']
+        fresh_census,_=guard.registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
+        if (inventory['source_sha256']!=terminal['sha256'] or inventory['payload']!=payload
+                or not guard.same_json(inventory['source_signature'],terminal['signature'])
+                or not guard.same_json(current['owner'],owner) or not guard.same_json(fresh_census,census)):
+            raise guard.Unavailable('Closed supplement source or authority changed')
+        selected=guard.observe_owners(Path(mylar.DATA_DIR)/'mylar.db',writer,[owner],
+                                      [mylar.CONFIG.DESTINATION_DIR])['observed']
+        normalized=json.loads(json.dumps(selected))
+        expected=captured['owner_observed']
+        if len(normalized)!=1 or len(expected)!=1 or normalized[0]['catalog']['path']!=str(source):
+            raise guard.Unavailable('Closed supplement current catalog archive changed')
+        if (normalized[0]['source_sha256']!=terminal['sha256']
+                or not guard.same_json(normalized[0]['signature'],terminal['signature'])):
+            raise guard.Unavailable('Closed supplement selected archive changed')
+        normalized[0]['source_sha256']=expected[0]['source_sha256']
+        normalized[0]['signature']=expected[0]['signature']
+        if not guard.same_json(normalized,expected):
+            raise guard.Unavailable('Closed supplement current catalog facts changed')
+        observed=json.loads(json.dumps(current['observed']))
+        for row in observed:
+            if row['catalog']['path']!=str(source):continue
+            matches=[old for old in job['observed'] if guard.same_json(old['owner'],row['owner'])
+                     and guard.same_json(old['catalog'],row['catalog'])]
+            if (len(matches)!=1 or row['source_sha256']!=terminal['sha256']
+                    or not guard.same_json(row['signature'],terminal['signature'])):
+                raise guard.Unavailable('Closed supplement catalog changed')
+            row['source_sha256']=matches[0]['source_sha256'];row['signature']=matches[0]['signature']
+        if (not guard.same_json(observed,job['observed']) or history_identity(history)!=history_before
+                or guard.private_evidence(witness_path)!=witness_before
+                or not guard.same_json(guard.private_json(witness_path),witness)
+                or guard.private_evidence(receipt)!=terminal['receipt_evidence']
+                or not guard.same_json(guard.private_json(receipt),record)
+                or not guard.same_json(state_evidence(writer),recovery)):
+            raise guard.Unavailable('Closed supplement evidence changed during reading')
+        preserved_pair(preservation,before_sha256);native_writers.admission(writer)
+        final=native.require(source,issueid=owner['issueid'],comicid=owner['parentcomicid'])
+        selected_final=guard.observe_owners(Path(mylar.DATA_DIR)/'mylar.db',writer,[owner],
+                                            [mylar.CONFIG.DESTINATION_DIR])['observed']
+        if not guard.same_json(final,current) or not guard.same_json(selected_final,selected):
+            raise guard.Unavailable('Closed supplement final publication facts changed')
+        preserved_pair(preservation,before_sha256)
+        if (history_identity(history)!=history_before
+                or guard.private_evidence(witness_path)!=witness_before
+                or not guard.same_json(guard.private_json(witness_path),witness)
+                or guard.private_evidence(receipt)!=terminal['receipt_evidence']
+                or not guard.same_json(guard.private_json(receipt),record)
+                or not guard.same_json(state_evidence(writer),recovery)
+                or guard.signature(source.lstat())!=terminal['signature']
+                or guard.signature(catalog.lstat())!=catalog_signature
+                or any(os.path.lexists(Path(str(catalog)+suffix)) for suffix in ('-journal','-wal','-shm'))):
+            raise guard.Unavailable('Closed supplement final retained evidence changed')
+        native_writers.admission(writer)
+        if present(writer) or any(writer.fenced(**flags) for flags in ({},{'tagger':True},{'release':True})):
+            raise guard.Unavailable('Closed supplement admission changed during reading')
+        return dict(version=1,token=token,source=str(source),before=before_sha256,after=terminal['sha256'],
+                    owner=owner,payload=payload,census=census,receipt_digest=terminal_digest(terminal),
+                    witness_digest=guard.canonical_digest(witness))
+    except (guard.Unavailable,OSError,ValueError,TypeError,KeyError):
+        raise native.Review('closed-supplement-evidence-unavailable') from None
+
+
+def closed_retired_supplement(writer, *, cleanup_token, source, owner, payload, census, lineage):
+    """Read accepted cleanup lineage; missing preservation never grants replay."""
+    try:
+        if __package__:
+            from .combined_cleanup import retired_supplement
+        else:
+            from combined_cleanup import retired_supplement
+        return retired_supplement(writer, cleanup_token=cleanup_token, source=source,
+                                  owner=owner, payload=payload, census=census, lineage=lineage)
+    except (ImportError, guard.Unavailable, OSError, ValueError, TypeError, KeyError):
+        raise native.Review('retired-supplement-lineage-unavailable') from None

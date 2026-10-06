@@ -9,6 +9,7 @@ prepare_stack_copy_caddy
 prepare_stack_ensure_docker_network "ingress-public"
 prepare_stack_ensure_dir_from_env "KOMGA_COMICS_PATH" "${MEDIA_ROOT:-/srv/media}/comics" require-existing
 prepare_stack_ensure_dir_from_env "KOMGA_MANGA_PATH" "${MEDIA_ROOT:-/srv/media}/manga" require-existing
+prepare_stack_msg "Protected lossless conversion and combined rename-before-metadata require matching Mylar/worker images and verified rollout; existing settings stay preserved."
 prepare_stack_end
 # KOMGA_IMAGE remains an explicit operator override; preparation never deploys it.
 # Publication-aware worker mappings/authority are reviewed separately; see prepare-coordination.sh.

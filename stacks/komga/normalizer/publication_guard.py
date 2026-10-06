@@ -105,11 +105,11 @@ class Authority:
             raise Unavailable('Native config and writer mounts differ')
         if (self.writer.fenced(tagger=True) or self.writer.fenced(release=True)
                 or any(os.path.lexists(self.writer.root / name) for name in
-                       ('tagger-publication-v1.json', 'tagger-recovery-v1.pending'))):
+                       ('tagger-publication-v1.json', 'nested-derivative-v1.json', 'tagger-recovery-v1.pending'))):
             raise Unavailable('Native publication recovery remains pending')
         if self.writer.fenced() and not getattr(local, 'allow_pending', False):
             raise Unavailable('Worker recovery ownership required')
-        return evidence.registry_snapshot(self.database, self.writer.root / 'publication-v1.json')
+        return evidence.media_snapshot(self.database, self.writer.root / 'publication-v1.json')
 
     def check(self, source, owner, *, advisory=None):
         """Recompute source, complete authority and every matched correct owner."""
@@ -119,8 +119,12 @@ class Authority:
             census, records = self.admission()
             source = Path(source)
             inventory = evidence.inventory(source, tool_root=self.tool_root, deadline=deadline)
-            matches = [record for record in records.values()
-                       if record['inventory']['payload'] == inventory['payload']]
+            from publication_derivative_evidence import families
+            payload_index, payload_groups = families(records)
+            family = payload_index.get(inventory['payload'])
+            matches = (list(payload_groups.get(family, {}).values())
+                       if any(record['version']==2 for record in records.values()) else
+                       [record for record in records.values() if record['inventory']['payload']==inventory['payload']])
             result = dict(version=1, action='check', advisory=True, census=census,
                           owner=owner, payload=inventory['payload'], decision='unknown')
             catalog_signature = None
@@ -134,12 +138,14 @@ class Authority:
                 # Native roots need not exist at their native spelling here.
                 # The generated reader checks only their mapped counterparts.
                 catalog_signature = evidence.signature(self.catalog.lstat())
-                observed = evidence.observe_owners(self.catalog, self.writer,
-                    [allowed[key] for key in sorted(allowed)],
-                    [native for native, _ in self.mappings], tool_root=self.tool_root,
-                    path_mapper=self.mapped, deadline=deadline)
-                if observed['inventory']['payload'] != inventory['payload']:
-                    raise Unavailable('Correct archive payload changed')
+                observed = {'observed': []}
+                for key in sorted(allowed):
+                    owner_proof = evidence.observe_owners(self.catalog, self.writer,
+                        [allowed[key]], [native for native, _ in self.mappings],
+                        tool_root=self.tool_root, path_mapper=self.mapped, deadline=deadline)
+                    if payload_index.get(owner_proof['inventory']['payload']) != family:
+                        raise Unavailable('Correct archive payload changed outside reviewed lineage')
+                    observed['observed'].extend(owner_proof['observed'])
                 proposed = evidence.canonical_digest(owner)
                 result.update(decision='allowed' if proposed in allowed and proposed not in rejected else 'held',
                     reason='verified-correction', matched=sorted(evidence.attestation(record) for record in matches),
@@ -178,7 +184,9 @@ class Authority:
                 if (Path(source)==self.mapped(observed['catalog']['path'])
                         or inventory['source_signature'][:2]==observed['signature'][:2]):
                     raise Unavailable('Registered path or physical archive has no unowned permission')
-        if any(row['inventory']['payload'] == inventory['payload'] for row in before[1].values()):
+        from publication_derivative_evidence import families
+        index, _ = families(before[1])
+        if inventory['payload'] in index:
             raise Unavailable('Registered payload requires an exact current owner')
         signature, checksum = evidence.file_hash(source)
         if (signature != inventory['source_signature'] or checksum != inventory['source_sha256']

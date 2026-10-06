@@ -186,15 +186,21 @@ def startup_catalog(writer):
     fresh._replace(root,claim,dict(claim,phase='native-creation-started'))
 
 
+def cleanup_admission(database):
+    from .publication_guard import cleanup_admission as check
+    return check(database)
+
+
 def admission(writer, *, startup=False):
     """Validate full current authority under raw Writer before workflow LOCK."""
     import mylar
-    from .publication_guard import registry_snapshot, Unavailable
+    from .publication_guard import media_snapshot, Unavailable
     if not getattr(writer.local[1],'depth',0):
         raise Unavailable('Raw Writer required before publication admission')
-    census,_=registry_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
+    census,_=media_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
     import os
     if (os.path.lexists(writer.root/'tagger-publication-v1.json')
+            or os.path.lexists(writer.root/'nested-derivative-v1.json')
             or os.path.lexists(writer.root/'tagger-recovery-v1.pending')
             or any(writer.fenced(**args) for args in ({},{'tagger':True},{'release':True}))):
         raise Unavailable('Explicit publication recovery is required')

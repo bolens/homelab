@@ -420,6 +420,52 @@ class WorkflowTest(unittest.TestCase):
         self.assertIs(type(value['maintenance_reports']),int)
         self.assertEqual(value['maintenance_reports'],1)
 
+    def test_publication_capabilities_require_installed_routes_and_owners(self):
+        api = SimpleNamespace(Api=SimpleNamespace())
+        combined = SimpleNamespace(execute=lambda _: None)
+        conversion = SimpleNamespace(commit=lambda _: None, status=lambda _: None)
+        with patch.object(app, 'api', api, create=True), \
+                patch.object(app, 'combined_publication', combined, create=True), \
+                patch.object(app, 'publication_conversion', conversion, create=True):
+            value = workflow.state_health()
+            self.assertNotIn('combined_publication', value)
+            self.assertNotIn('owned_conversion', value)
+            api.Api._combinedPublication = lambda _: None
+            api.Api._commitConvertedArchive = lambda _: None
+            api.Api._convertedArchiveStatus = lambda _: None
+            value = workflow.state_health()
+            self.assertEqual(value['combined_publication'], 1)
+            self.assertEqual(value['owned_conversion'], 1)
+            conversion.status = None
+            self.assertNotIn('owned_conversion', workflow.state_health())
+            repeat = SimpleNamespace(commit=lambda _: None, status=lambda _: None)
+            cleanup = SimpleNamespace(clean=lambda _: None, retired_supplement=lambda _: None, resolve=lambda _: None)
+            with patch.object(app, 'publication_reconcile', repeat, create=True), \
+                    patch.object(app, 'combined_cleanup', cleanup, create=True):
+                self.assertNotIn('retained_repeat', workflow.state_health())
+                api.Api._commitRetainedRepeat = lambda _: None
+                api.Api._retainedRepeatStatus = lambda _: None
+                value = workflow.state_health()
+                self.assertEqual(value['retained_repeat'], 1)
+                self.assertEqual(value['combined_cleanup'], 1)
+                self.assertIs(type(value['combined_cleanup']), int)
+                repeat.status = None
+                self.assertNotIn('retained_repeat', workflow.state_health())
+                cleanup.resolve = None
+                self.assertNotIn('combined_cleanup', workflow.state_health())
+            derivative = SimpleNamespace(publish=lambda _: None, status=lambda _: None)
+            lineage = SimpleNamespace(prepare=lambda _: None)
+            metadata = SimpleNamespace(reviewed_derivative=lambda _: None)
+            with patch.object(app, 'publication_derivative', derivative, create=True), \
+                    patch.object(app, 'publication_lineage', lineage, create=True), \
+                    patch.object(app, 'library_metadata', metadata, create=True):
+                self.assertNotIn('reviewed_derivative', workflow.state_health())
+                api.Api._commitReviewedDerivative = lambda _: None
+                api.Api._reviewedDerivativeStatus = lambda _: None
+                self.assertEqual(workflow.state_health()['reviewed_derivative'], 1)
+                lineage.prepare = None
+                self.assertNotIn('reviewed_derivative', workflow.state_health())
+
     def guided_submission(self):
         proposal=self.proposal();command=web.confirm_import(proposal['source_token'],proposal['version'],'10')
         binding={key:command[key] for key in ('id','source_token','version','issueid','comicid')}

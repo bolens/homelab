@@ -301,6 +301,23 @@ class CycleTest(AuthorityFixture, unittest.TestCase):
         self.worker.scan_batch.dispatch.assert_called_once()
         self.assertFalse(self.owner.fenced())
 
+    def test_owned_conversion_dispatch_precedes_scans_and_is_outside_writer(self):
+        from types import ModuleType
+        module = ModuleType('conversion_handoff')
+        events = []
+        def dispatch(worker):
+            self.assertIs(worker, self.worker)
+            self.assertFalse(self.owner.fenced())
+            self.assertFalse(getattr(self.owner.local[1], 'depth', 0))
+            with self.assertRaises(Unavailable):current(worker)
+            events.append('conversion')
+        module.dispatch = dispatch
+        self.worker.scan_batch = SimpleNamespace(collect=Mock(return_value=True),
+            dispatch=lambda: events.append('scan'))
+        with patch.dict(sys.modules, {'conversion_handoff': module}):
+            self.assertTrue(cycle(self.worker))
+        self.assertEqual(events, ['conversion', 'scan'])
+
     def test_missing_protocol_never_runs_writers(self):
         self.worker.config={'writer_state':str(self.root/'absent')}
         with self.assertRaises(FileNotFoundError):cycle(self.worker,self.maintenance)

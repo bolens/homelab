@@ -5,9 +5,311 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
+from contextlib import contextmanager
 from naming_worker import Naming, token
 from publication_guard import Unavailable
 from normalize import digest, save
+
+
+class CombinedWorkerTests(unittest.TestCase):
+    """Separate lineage is required after an unchanged-hash reader move."""
+    def setUp(self):
+        import combined_handoff
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.source = self.root/'Old.cbz'
+        self.target = self.root/'Old.001.(2020).cbz'
+        self.source.write_bytes(b'before')
+        self.sha = digest(self.source)
+        self.owner = dict(table='issues', issueid='1', parentcomicid='2', releasecomicid='2')
+        self.census = dict(epoch='epoch', revision=1, keys=[])
+        self.request = dict(version=1, source=str(self.source), target=self.target.name,
+                            sha256=self.sha, issueid='1', comicid='2')
+        self.before = self.proof(self.sha)
+        self.reader = dict(id='old', hash='old-reader-hash', pages=2, libraryid='lib',
+                           seriesid='series', progress={'page':1})
+        self.entry = dict(phase='planned', source=str(self.source), request=self.request, reader=self.reader)
+        self.worker = SimpleNamespace(state=self.root, config={}, reader=Mock())
+        @contextmanager
+        def authority():
+            yield SimpleNamespace(mappings=[(self.root, self.root)])
+        self.naming = SimpleNamespace(worker=self.worker, authority=authority,
+            publication=Mock(return_value=self.before), reader_proof=Mock(return_value=self.reader), api=Mock())
+        self.joint = combined_handoff.Combined(self.naming)
+        self.scan = patch.object(self.joint,'scan')
+        self.scan_mock = self.scan.start()
+        self.addCleanup(self.scan.stop)
+        self.book = dict(id='moved', url=str(self.target), deleted=False, fileHash=self.reader['hash'],
+            libraryId='lib', seriesId='series', media={'status':'READY','pagesCount':2}, readProgress={'page':1})
+        self.books = patch('naming_worker.all_books', return_value=[self.book])
+        self.books.start()
+        self.addCleanup(self.books.stop)
+        self.hash = patch('naming_worker.reader_hash', return_value=self.reader['hash'])
+        self.hash_mock=self.hash.start()
+        self.addCleanup(self.hash.stop)
+        self.folder = self.joint.prepare(self.entry, {}, 'b'*64)
+        self.job = self.joint.read(self.folder)
+        self.native = dict(version=1, protocol='combined-root-v1', token=self.job['native_token'],
+            binding='c'*64, request=self.job['request'], owner=self.owner, payload='payload', census=self.census,
+            before=self.sha, after=self.sha, lineage='d'*64, phase='prepared')
+
+    def proof(self, checksum):
+        return dict(source=dict(authority=dict(owner=self.owner,census=self.census),
+                                inventory=dict(payload='payload',source_sha256=checksum)))
+
+    def write(self, phase, native=None):
+        self.job.update(phase=phase)
+        if native is not None:
+            self.job['native'] = native
+        save(self.folder/'receipt.json', self.job)
+
+    def renamed(self):
+        self.source.rename(self.target)
+        self.native.update(phase='renamed',lineage='e'*64)
+        self.write('reader-move-pending',dict(self.native))
+        self.naming.api.return_value = dict(self.native)
+
+    def test_reader_pending_first_receipt_does_not_starve_later_status_recovery(self):
+        import combined_handoff
+        other_source = self.root/'Other.cbz'
+        other_source.write_bytes(b'before')
+        other_request = dict(self.request, source=str(other_source), target='Other.001.cbz')
+        other_entry = dict(self.entry, source=str(other_source), request=other_request)
+        other_folder = self.joint.prepare(other_entry, {}, 'b'*64)
+        first, later = sorted([self.folder, other_folder])
+        jobs = {folder:self.joint.read(folder) for folder in (first, later)}
+        replies = {}
+        for folder, job in jobs.items():
+            native = dict(self.native, token=job['native_token'], request=job['request'])
+            if folder == first:
+                source = Path(job['entry']['request']['source'])
+                source.rename(source.with_name(job['entry']['request']['target']))
+                native.update(phase='renamed',lineage='e'*64)
+                job.update(phase='reader-move-pending',native=native)
+            else:
+                job.update(phase='prepare-uncertain')
+            replies[job['native_token']] = native
+            save(folder/'receipt.json',job)
+        self.naming.api.side_effect = lambda command, **values: replies[json.loads(values['request'])['arguments']['token']]
+        with patch('naming_worker.all_books',return_value=[]):
+            self.assertTrue(self.joint.reconcile())
+            self.assertEqual(self.joint.read(first)['phase'],'reader-move-pending')
+            # The daemon constructs a new Combined for each tick.
+            next_tick = combined_handoff.Combined(self.naming)
+            self.assertTrue(next_tick.reconcile())
+        self.assertEqual(self.joint.read(later)['phase'],'native-prepared')
+        self.assertEqual(self.naming.api.call_count,2)
+        self.assertEqual(self.naming._combined_cursor,later.name)
+
+    def test_error_receipt_rotation_is_retained_for_next_tick(self):
+        import combined_handoff
+        other_source = self.root/'Other.cbz';other_source.write_bytes(b'before')
+        other_request = dict(self.request,source=str(other_source),target='Other.001.cbz')
+        other_folder = self.joint.prepare(dict(self.entry,source=str(other_source),request=other_request),{},'b'*64)
+        first,later = sorted([self.folder,other_folder])
+        self.naming.api.side_effect = RuntimeError('unavailable')
+        with self.assertRaises(RuntimeError):self.joint.reconcile()
+        self.assertEqual(self.naming._combined_cursor,first.name)
+        self.naming.api.side_effect = None;self.naming.api.return_value = {}
+        self.assertTrue(combined_handoff.Combined(self.naming).reconcile())
+        self.assertEqual(self.naming._combined_cursor,later.name)
+        self.assertEqual(self.joint.read(first)['phase'],'prepared')
+        self.assertEqual(self.joint.read(later)['phase'],'prepared')
+
+    def test_missing_feature_keeps_prepared_without_native_copy_or_mutation_request(self):
+        self.naming.api.return_value = {'combined_publication':False}
+        self.assertEqual(self.joint.advance(self.folder)['phase'],'prepared')
+        self.naming.api.assert_called_once_with('getHealth')
+        self.assertTrue(self.source.exists())
+
+    def test_old_reader_path_or_hash_blocks_metadata_submission(self):
+        self.renamed()
+        self.book['url']=str(self.source)
+        self.assertEqual(self.joint.advance(self.folder)['phase'],'reader-move-pending')
+        self.assertEqual(self.naming.api.call_count,1)
+        self.scan_mock.assert_called_once()
+        self.book['url']=str(self.target);self.book['fileHash']='wrong'
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        self.assertEqual(self.naming.api.call_count,2)
+
+    def test_verified_move_is_durable_before_metadata_http_and_uncertainty_never_replays(self):
+        self.renamed()
+        def request(command,**kwargs):
+            value=json.loads(kwargs['request'])
+            if value['action']=='status':return dict(self.native)
+            self.assertEqual(self.joint.read(self.folder)['phase'],'metadata-uncertain')
+            self.assertEqual(value['arguments']['reader_move']['sha256'],self.sha)
+            raise RuntimeError('lost metadata response')
+        self.naming.api.side_effect=request
+        with self.assertRaises(RuntimeError):self.joint.advance(self.folder)
+        self.assertEqual(self.joint.read(self.folder)['phase'],'metadata-uncertain')
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        actions=[json.loads(call.kwargs['request'])['action'] for call in self.naming.api.call_args_list]
+        self.assertEqual(actions,['status','metadata','status'])
+
+    def test_final_fresh_native_lineage_is_required_even_with_matching_reader_and_payload(self):
+        self.renamed()
+        self.native.update(phase='complete',after=self.sha,lineage='f'*64)
+        self.write('reader-final-pending',dict(self.native))
+        self.naming.api.return_value=dict(self.native,lineage='0'*64)
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        self.assertEqual(self.joint.read(self.folder)['phase'],'reader-final-pending')
+
+    def test_terminal_descendant_preserves_original_prepared_proof(self):
+        self.renamed()
+        self.target.write_bytes(b'after metadata');after=digest(self.target)
+        self.native.update(phase='complete',after=after,lineage='f'*64)
+        self.write('reader-final-pending',dict(self.native))
+        self.naming.api.return_value=dict(self.native)
+        self.naming.publication.return_value=self.proof(after)
+        self.book['fileHash']='new-reader-hash';self.hash_mock.return_value='new-reader-hash'
+        result=self.joint.advance(self.folder)
+        self.assertEqual(result['phase'],'done')
+        self.assertEqual(result['before'],self.before)
+        self.assertEqual(result['final_publication']['source']['inventory']['source_sha256'],after)
+
+    def test_changed_policy_and_unverified_credits_cannot_refresh_preparation(self):
+        with self.assertRaises(ValueError):self.joint.prepare(self.entry,{'AgeRating':'Teen'},'b'*64)
+        receipt=self.folder/'receipt.json';job=self.joint.read(self.folder)
+        job['policy']={'AgeRating':'Teen'};save(receipt,job)
+        with self.assertRaises(ValueError):self.joint.read(self.folder)
+
+    def test_network_callback_cannot_overwrite_new_receipt_facts(self):
+        def request(command,**kwargs):
+            if command=='getHealth':return {'combined_publication':1}
+            retained=self.joint.read(self.folder);retained['review']='new independent review'
+            save(self.folder/'receipt.json',retained)
+            return dict(self.native)
+        self.naming.api.side_effect=request
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        kept=self.joint.read(self.folder)
+        self.assertEqual(kept['phase'],'prepare-uncertain')
+        self.assertEqual(kept['review'],'new independent review')
+        self.assertTrue(self.source.exists())
+
+    def test_before_rename_source_hash_drift_retains_prepared_native_job(self):
+        self.write('native-prepared',dict(self.native))
+        self.source.write_bytes(b'changed archive')
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        self.assertEqual(self.joint.read(self.folder)['phase'],'native-prepared')
+        self.naming.api.assert_not_called()
+
+    def test_http_never_runs_under_actual_shared_writer(self):
+        from media_writer import Writer
+        from publication_guard import Unavailable
+        writer=Writer(self.root/'shared-writer',create=True)
+        self.worker.config['writer_state']=str(writer.root)
+        with writer.hold(),self.assertRaises(Unavailable):self.joint.api('status',token=self.job['native_token'])
+        self.naming.api.assert_not_called()
+
+    def test_pretag_reader_hash_waits_for_metadata_refresh_without_false_completion(self):
+        self.renamed();self.target.write_bytes(b'after metadata');after=digest(self.target)
+        self.native.update(phase='complete',after=after,lineage='f'*64)
+        self.write('reader-final-pending',dict(self.native))
+        self.naming.api.return_value=dict(self.native);self.naming.publication.return_value=self.proof(after)
+        self.hash_mock.return_value='new-reader-hash'
+        self.assertEqual(self.joint.advance(self.folder)['phase'],'reader-final-pending')
+        self.scan_mock.assert_called_once()
+        self.assertNotIn('final_reader',self.joint.read(self.folder))
+
+    def test_final_notification_uses_known_restored_book_metadata_refresh(self):
+        self.renamed();job=self.joint.read(self.folder)
+        job.update(phase='reader-final-pending',reader_move={'bookid':'restored-book'})
+        with patch('reader_handoff.queue') as queue:
+            self.scan.stop();self.joint.scan(job)
+            queue.assert_called_once_with(self.worker,'metadata_refresh',[
+                dict(source=str(self.target),target=str(self.target),match={'issueid':'1','comicid':'2'})],
+                book_id='restored-book')
+
+    def cleanup_job(self):
+        self.renamed();self.native.update(phase='complete',after=self.sha,lineage='f'*64)
+        self.job['reader_move']=self.joint.ready(dict(self.job,native=self.native),self.sha,moved=False)
+        self.write('done',dict(self.native))
+        self.job=self.joint.read(self.folder)
+
+    def test_old_image_keeps_done_pair_acceptance_unspent(self):
+        self.cleanup_job();self.naming.api.return_value={'combined_cleanup':False}
+        self.assertEqual(self.joint.advance(self.folder)['phase'],'done')
+        self.naming.api.assert_called_once_with('getHealth')
+
+    def test_cleanup_request_is_durable_before_http_and_lost_response_is_status_only(self):
+        self.cleanup_job()
+        def request(command,**kwargs):
+            if command=='getHealth':return {'combined_cleanup':1}
+            value=json.loads(kwargs['request'])
+            if value['action']=='status':return dict(self.native)
+            self.assertEqual(value['action'],'cleanup')
+            self.assertEqual(self.joint.read(self.folder)['phase'],'cleanup-uncertain')
+            self.assertEqual(value['arguments']['reader']['sha256'],self.sha)
+            raise RuntimeError('lost cleanup response')
+        self.naming.api.side_effect=request
+        with self.assertRaises(RuntimeError):self.joint.advance(self.folder)
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        actions=[json.loads(call.kwargs['request'])['action'] for call in self.naming.api.call_args_list if call.args[0]!='getHealth']
+        self.assertEqual(actions,['status','cleanup','status'])
+        self.assertEqual(self.joint.read(self.folder)['phase'],'cleanup-uncertain')
+
+    def test_actual_reader_and_native_retirement_complete_without_replacing_before_proof(self):
+        self.cleanup_job()
+        def request(command,**kwargs):
+            if command=='getHealth':return {'combined_cleanup':1}
+            value=json.loads(kwargs['request'])
+            if value['action']=='status':return dict(self.native)
+            from publication_evidence import canonical_digest
+            return dict(self.native,cleanup=dict(version=1,phase='complete',token=canonical_digest(value['arguments']),digest='a'*64))
+        self.naming.api.side_effect=request
+        result=self.joint.advance(self.folder)
+        self.assertEqual(result['phase'],'cleanup-complete');self.assertEqual(result['before'],self.before)
+        self.assertEqual(result['final_reader']['hash'],self.reader['hash'])
+
+    def test_cleanup_http_callback_cannot_overwrite_new_receipt(self):
+        self.cleanup_job()
+        def request(command,**kwargs):
+            if command=='getHealth':return {'combined_cleanup':1}
+            value=json.loads(kwargs['request'])
+            if value['action']=='status':return dict(self.native)
+            from publication_evidence import canonical_digest
+            retained=self.joint.read(self.folder);retained['review']='new cleanup review'
+            save(self.folder/'receipt.json',retained)
+            return dict(self.native,cleanup=dict(version=1,phase='complete',token=canonical_digest(value['arguments']),digest='a'*64))
+        self.naming.api.side_effect=request
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        retained=self.joint.read(self.folder)
+        self.assertEqual(retained['phase'],'cleanup-uncertain');self.assertEqual(retained['review'],'new cleanup review')
+
+    def test_cleanup_false_reader_and_boolean_terminal_versions_cannot_complete(self):
+        self.cleanup_job();self.book['fileHash']='foreign'
+        self.naming.api.side_effect=lambda command,**kwargs: {'combined_cleanup':1} if command=='getHealth' else dict(self.native)
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        self.assertEqual(self.joint.read(self.folder)['phase'],'done')
+        self.book['fileHash']=self.reader['hash']
+        def response(command,**kwargs):
+            if command=='getHealth':return {'combined_cleanup':1}
+            value=json.loads(kwargs['request'])
+            if value['action']=='status':return dict(self.native)
+            from publication_evidence import canonical_digest
+            return dict(self.native,cleanup=dict(version=True,phase='complete',token=canonical_digest(value['arguments']),digest='a'*64))
+        self.naming.api.side_effect=response
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        self.assertEqual(self.joint.read(self.folder)['phase'],'cleanup-uncertain')
+
+    def test_completed_cleanup_reapplication_requires_current_reader_and_native_proof(self):
+        self.cleanup_job();closed={}
+        def request(command,**kwargs):
+            if command=='getHealth':return {'combined_cleanup':1}
+            value=json.loads(kwargs['request'])
+            if value['action']=='status':return dict(self.native,**({'cleanup':closed} if closed else {}))
+            from publication_evidence import canonical_digest
+            closed.update(version=1,phase='complete',token=canonical_digest(value['arguments']),digest='a'*64)
+            return dict(self.native,cleanup=dict(closed))
+        self.naming.api.side_effect=request
+        self.assertEqual(self.joint.advance(self.folder)['phase'],'cleanup-complete')
+        self.assertEqual(self.joint.advance(self.folder)['phase'],'cleanup-complete')
+        self.book['media']['status']='UNKNOWN'
+        with self.assertRaises(ValueError):self.joint.advance(self.folder)
+        actions=[json.loads(call.kwargs['request'])['action'] for call in self.naming.api.call_args_list if call.args[0]!='getHealth']
+        self.assertEqual(actions.count('cleanup'),1)
 
 
 class NamingWorkerTest(unittest.TestCase):

@@ -39,6 +39,34 @@ class RepairTest(unittest.TestCase):
         xml=repair.metadata.parse(after.xml);self.assertEqual(xml.findtext('Notes'),'root notes');self.assertEqual(xml.findtext('Genre'),'Fantasy')
         with zipfile.ZipFile(self.source) as z:self.assertEqual(z.read('original/SourceMetadata.xml'),NESTED.encode())
         self.assertEqual(self.publisher.recover(TOKEN).state,'committed');self.assertFalse(list(self.root.glob('.mylar-tag-*')))
+    def test_only_nested_metadata_promotes_root_and_retains_exact_provenance(self):
+        nested = NESTED.replace('</ComicInfo>', '<Pages><Page Image="99"/></Pages><StoryArc>Unproved</StoryArc></ComicInfo>')
+        with zipfile.ZipFile(self.source, 'w', compression=8) as z:
+            z.writestr('001.jpg', b'page');z.writestr('extra.txt', b'extra')
+            z.writestr('original/ComicInfo.xml', nested);z.comment = b'original comment'
+        before = archive.snapshot(self.source, allow_nested_metadata=True)
+        output = self.root/'promoted.cbz'
+        self.assertEqual(repair.prepare(self.source, output), 'updated')
+        after = archive.snapshot(output)
+        self.assertEqual(after.members, tuple((name.replace('original/ComicInfo.xml', 'original/SourceMetadata.xml'), size, digest) for name, size, digest in before.members))
+        self.assertEqual(after.attributes[:-1], tuple((name.replace('original/ComicInfo.xml', 'original/SourceMetadata.xml'), *row) for name, *row in before.attributes))
+        self.assertEqual(after.xml, repair.promote(nested.encode()))
+        root = repair.metadata.parse(after.xml)
+        self.assertEqual(root.findtext('Series'), 'fixture')
+        self.assertIsNone(root.find('Pages'));self.assertIsNone(root.find('StoryArc'))
+        with zipfile.ZipFile(output) as z:self.assertEqual(z.read('original/SourceMetadata.xml'), nested.encode())
+        self.assertEqual(after.comment, before.comment)
+
+    def test_rootless_ambiguous_nested_copies_or_identity_are_refused(self):
+        for names, xml in ((['one/ComicInfo.xml', 'two/ComicInfo.xml'], NESTED),
+                           (['comicinfo.xml'], NESTED),
+                           (['one/ComicInfo.xml'], '<ComicInfo><Series>Fixture</Series></ComicInfo>')):
+            with zipfile.ZipFile(self.source, 'w') as z:
+                z.writestr('001.jpg', b'page')
+                for name in names:z.writestr(name, xml)
+            with self.assertRaises(ValueError):repair.prepare(self.source, self.root/'held.cbz')
+            self.assertFalse((self.root/'held.cbz').exists())
+
     def test_default_inspection_remains_strict(self):
         with self.assertRaises(ValueError):archive.snapshot(self.source)
         self.assertEqual(self.publisher.tag(self.source,{},token=TOKEN).state,'failed')

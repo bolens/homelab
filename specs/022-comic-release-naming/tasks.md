@@ -62,7 +62,7 @@
 
 ## Dependencies and execution
 
-Setup T001–T003 → foundations T004–T007 → US1 T008–T011 → US2 T012–T013 → US3 T014–T023 → final acceptance T024. T015 review/delivery and T016 verified rollout precede live bulk admission. T017–T018 identity corrections are verified. T019 began with a verified combined canary and remains open until the entire eligible pass finishes. The worker portions of live-discovered T020–T021 passed before resumed T019/T023 admission at the 559-publication checkpoint. T020–T021 are accepted; the additional native retry-durability rollout passed at the completed 772-publication checkpoint before further combined admission. T022 passed reviewed delivery, verified native rollout and the Grimm pack canary at 931 completed publications before further T019/T023 admission. T024 depends on T019–T023 acceptance; interrupted or uncertain copies remain retained.
+Setup T001–T003 → foundations T004–T007 → US1 T008–T011 → US2 T012–T013 → US3 T014–T023 → final acceptance T024. T015 review/delivery and T016 verified rollout precede live bulk admission. T017–T018 identity corrections are verified. T019 began with a verified combined canary and remains open until the entire eligible pass finishes. The worker portions of live-discovered T020–T021 passed before resumed T019/T023 admission at the 559-publication checkpoint. T020–T021 are accepted; the additional native retry-durability rollout passed at the completed 772-publication checkpoint before further combined admission. T022 passed reviewed delivery, verified native rollout and the Grimm pack canary at 931 completed publications before further T019/T023 admission. Resumed T019/T023 and T024 also require spec 023 T009–T016 enforcement/image/delivery gates and T017/T018 coordinated current-library acceptance. T024 depends on T019–T023 acceptance; interrupted or uncertain copies remain retained.
 
 Task IDs now follow execution order. Earlier appended-task references were updated consistently in the retained evidence: former T019→T017, T021→T018, T020→T019, T022→T020, T023→T021, T017→T022 and T018→T023. This ordering correction preserves completed history and does not claim these later corrections were planned before discovery.
 
@@ -72,7 +72,7 @@ Task IDs now follow execution order. Earlier appended-task references were updat
 - US2: native journal and worker acknowledgement/fence tests can run independently after their implementation is frozen.
 - US3: read-only contract review and isolated failure-path review can run independently against one fixed candidate after T014 or a discovered repair. Live archive, catalog, reader and Git writes stay serialized under the designated coordinator.
 
-No implementation task is marked `[P]`: the remaining tasks depend on the same coordinated media state or delivery gates. Independent final review is required for substantive PRs; parallel implementation is not needed.
+No implementation task is marked `[P]`: the remaining tasks depend on the same coordinated media state or delivery gates. The user authorized parallel implementation through bounded units in separate worktrees. Each unit has one source owner and frozen dependency handoffs; shared manifests, contracts, generators, Git and live state retain one integration owner. Independent final review is required for substantive PRs.
 
 ## Implementation strategy
 
@@ -268,3 +268,37 @@ private-source leakage and an ambiguous workflow patch anchor; fixes and new
 frozen image gates are in progress. Neither failed candidate is accepted. The
 combined metadata/rename runtime route, derivative transitions, final complete
 feature review and live acceptance remain open; task checkboxes are unchanged.
+
+2026-10-06 verified source milestone: the final isolated worker image passed
+377 tests without skips; all 21 installed production modules match its frozen
+source. Repository validation and full local CI passed. Source commit `8f23324`
+and history synchronization `5c90148` preserve the same reviewed tree; PR #253
+remains a draft until the final native image and installed parity pass. Native
+focused controls passed: 20 owned rename, 28 metadata maintenance, 33 naming/API
+and 12 enrichment controls. Independent terminal-witness and unchanged-source
+race findings are closed. The legacy tagging host regression passed 115 tests
+with three binary-only skips; the actual image must run them without skips.
+
+The next implementation runs in separate worktrees with explicit ownership:
+combined rename/unchanged-hash reader restoration/root metadata orchestration;
+native-owned lossless container conversion and worker acknowledgement; private
+read-only correction-plan tooling. Shared authority and manifests have one
+integration owner. No live writer is released and no full task is checked off
+from these partial source milestones.
+
+2026-10-06 final image acceptance for PR #253: the isolated native image passed
+1,082 test executions across 72 suites without skips, including its actual
+Legacy and Modern binaries. All 19 checked installed native modules match the
+unchanged frozen source. The worker passed 377 tests without skips with exact
+21-module parity. Earlier failed or superseded candidates are not accepted.
+The reviewed source milestone is ready for delivery with the user's hosted-CI
+waiver; complete feature, combined-route, derivative and live gates remain open.
+
+
+- Coordinated continuation: PR #253 merged at `6cac5816676500c81edb8f559ab433e50a5a93ba`; GitHub, Gitea and the clean local main checkout match, and branch protection is restored. Separate worktrees now own the combined rename-before-metadata route, native-owned lossless conversion, and private correction plans/reviewed derivative lineage. The parent owns shared authority/API/installation, task evidence and Git integration. The combined pass retains its native original/restore pair; conversion publication preserves member/page inventories and requires exact current native ownership. Independent controls verified changed-source refusal immediately before retirement and final retained-original/witness refusal before acknowledgement. A bounded correction-plan tool passes 14 isolated controls but grants no mutation rights or repeat-repair completion. Shared installation and the next actual image gates remain pending; host skips do not count as image acceptance. No task checkbox, live worker hold, registry, media or deployment changed.
+
+- Next larger batch source checkpoint: the combined native route passes 22 owning controls without skips and its worker passes 46; independent final-read/lost-acknowledgement review passes five native and three worker controls. The lossless native conversion route passes 23 owning controls without skips, its worker conversion/legacy handoff passes 44, and actual archive conversion passes an additional RAR control. Parent integration passes 31 shared-writer controls and 14 private-plan controls. Scoped source snapshots (217 native files and 45 worker files) are running preliminary actual image gates. Retained-repeat reconciliation, reviewed derivative adoption and explicit conclusive cleanup are separate ongoing agent units and are excluded from those snapshots. Final integrated images, full repository checks, source delivery and live acceptance remain pending; task checkboxes and live holds remain unchanged.
+
+- Coordinated larger-batch integration checkpoint: corrected conversion passes 26 native controls after independent review found and reproduced mutable capability redirection; the earlier preliminary native image is superseded and cannot be deployed. Retained-repeat reconciliation passes 18 owning controls plus four independent adversarial controls, preserving the correct publication and clearing only the proved false location; status and wanted-intent repair remain separately reviewed. Combined rename/metadata and cleanup pass 32 native controls; the final cleanup revision passes 13, and the worker passes 52. Read-only derivative-family validation passes 16 independent literal and actual catalog/archive vectors with no native imports. Rootless nested metadata promotion passes nine preservation controls. Startup now holds unresolved cleanup records even before a filesystem intent exists (43 host controls, seven native-source/runtime skips requiring the image gate). Shared manifests, derivative adoption integration, final matching images, full local validation and live acceptance remain in progress; none of these partial milestones completes a full remaining task.
+
+- Final integration review checkpoint: the isolated worker candidate passed 437 tests without skips. Review then reproduced a crash before the first filesystem intent in both conversion and retained-repeat producers: an unfinished private CAS remains while ordinary startup can still admit work. A separate agent is implementing exact unfinished-record holds; matching images must be rebuilt after this change. Independent review also verified final database/marker replacement, privacy and SQLite namespace controls before ordinary admission. Combined rename/reader/metadata phases remain separate from these unfinished conversion/repeat holds. Final source delivery and live acceptance remain pending; no task is marked complete from these intermediate checks.

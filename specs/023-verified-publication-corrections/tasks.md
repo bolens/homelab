@@ -55,7 +55,7 @@
 
 ## Dependencies and execution
 
-T001 → T002–T003 → T004–T005 → T006–T012 → T013–T015 → T016 reviewed delivery → T017 verified live rollout/reconciliation → T018 → T019. Task IDs follow execution order and delivery precedes live application. T017–T019 remain incomplete: access is available again, but T006–T016 publication enforcement/delivery are unfinished. T003 startup exclusion has passed corrected-source reviews and the isolated native image gate. T004–T005 authenticated registration and isolated installation verification are complete; they do not complete startup admission or prevention.
+T001 → T002–T003 → T004–T005 → T006–T012 → T013–T015 → T016 reviewed delivery → T017 verified live rollout/reconciliation → T018 → T019. Task IDs follow execution order and delivery precedes live application. T017–T019 remain incomplete: access is available again, but T009–T016 remaining publication enforcement and reviewed delivery are unfinished. T003 startup exclusion has passed corrected-source reviews and the isolated native image gate. T004–T005 authenticated registration and isolated installation verification are complete; they do not complete startup admission or prevention.
 
 ## Parallel opportunities
 
@@ -184,3 +184,37 @@ private-source leakage and an ambiguous workflow patch anchor; fixes and new
 frozen image gates are in progress. Neither failed candidate is accepted. The
 combined metadata/rename runtime route, derivative transitions, final complete
 feature review and live acceptance remain open; task checkboxes are unchanged.
+
+2026-10-06 verified source milestone: the final isolated worker image passed
+377 tests without skips; all 21 installed production modules match its frozen
+source. Repository validation and full local CI passed. Source commit `8f23324`
+and history synchronization `5c90148` preserve the same reviewed tree; PR #253
+remains a draft until the final native image and installed parity pass. Native
+focused controls passed: 20 owned rename, 28 metadata maintenance, 33 naming/API
+and 12 enrichment controls. Independent terminal-witness and unchanged-source
+race findings are closed. The legacy tagging host regression passed 115 tests
+with three binary-only skips; the actual image must run them without skips.
+
+The next implementation runs in separate worktrees with explicit ownership:
+combined rename/unchanged-hash reader restoration/root metadata orchestration;
+native-owned lossless container conversion and worker acknowledgement; private
+read-only correction-plan tooling. Shared authority and manifests have one
+integration owner. No live writer is released and no full task is checked off
+from these partial source milestones.
+
+2026-10-06 final image acceptance for PR #253: the isolated native image passed
+1,082 test executions across 72 suites without skips, including its actual
+Legacy and Modern binaries. All 19 checked installed native modules match the
+unchanged frozen source. The worker passed 377 tests without skips with exact
+21-module parity. Earlier failed or superseded candidates are not accepted.
+The reviewed source milestone is ready for delivery with the user's hosted-CI
+waiver; complete feature, combined-route, derivative and live gates remain open.
+
+
+- Coordinated continuation: PR #253 merged at `6cac5816676500c81edb8f559ab433e50a5a93ba`; GitHub, Gitea and the clean local main checkout match, and branch protection is restored. Separate worktrees now own the combined rename-before-metadata route, native-owned lossless conversion, and private correction plans/reviewed derivative lineage. The parent owns shared authority/API/installation, task evidence and Git integration. The combined pass retains its native original/restore pair; conversion publication preserves member/page inventories and requires exact current native ownership. Independent controls verified changed-source refusal immediately before retirement and final retained-original/witness refusal before acknowledgement. A bounded correction-plan tool passes 14 isolated controls but grants no mutation rights or repeat-repair completion. Shared installation and the next actual image gates remain pending; host skips do not count as image acceptance. No task checkbox, live worker hold, registry, media or deployment changed.
+
+- Next larger batch source checkpoint: the combined native route passes 22 owning controls without skips and its worker passes 46; independent final-read/lost-acknowledgement review passes five native and three worker controls. The lossless native conversion route passes 23 owning controls without skips, its worker conversion/legacy handoff passes 44, and actual archive conversion passes an additional RAR control. Parent integration passes 31 shared-writer controls and 14 private-plan controls. Scoped source snapshots (217 native files and 45 worker files) are running preliminary actual image gates. Retained-repeat reconciliation, reviewed derivative adoption and explicit conclusive cleanup are separate ongoing agent units and are excluded from those snapshots. Final integrated images, full repository checks, source delivery and live acceptance remain pending; task checkboxes and live holds remain unchanged.
+
+- Coordinated larger-batch integration checkpoint: corrected conversion passes 26 native controls after independent review found and reproduced mutable capability redirection; the earlier preliminary native image is superseded and cannot be deployed. Retained-repeat reconciliation passes 18 owning controls plus four independent adversarial controls, preserving the correct publication and clearing only the proved false location; status and wanted-intent repair remain separately reviewed. Combined rename/metadata and cleanup pass 32 native controls; the final cleanup revision passes 13, and the worker passes 52. Read-only derivative-family validation passes 16 independent literal and actual catalog/archive vectors with no native imports. Rootless nested metadata promotion passes nine preservation controls. Startup now holds unresolved cleanup records even before a filesystem intent exists (43 host controls, seven native-source/runtime skips requiring the image gate). Shared manifests, derivative adoption integration, final matching images, full local validation and live acceptance remain in progress; none of these partial milestones completes a full remaining task.
+
+- Final integration review checkpoint: the isolated worker candidate passed 437 tests without skips. Review then reproduced a crash before the first filesystem intent in both conversion and retained-repeat producers: an unfinished private CAS remains while ordinary startup can still admit work. A separate agent is implementing exact unfinished-record holds; matching images must be rebuilt after this change. Independent review also verified final database/marker replacement, privacy and SQLite namespace controls before ordinary admission. Combined rename/reader/metadata phases remain separate from these unfinished conversion/repeat holds. Final source delivery and live acceptance remain pending; no task is marked complete from these intermediate checks.

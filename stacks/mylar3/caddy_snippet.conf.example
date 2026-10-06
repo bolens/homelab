@@ -40,3 +40,4 @@ mylar3.example.com {
 	}
 }
 # PDF download validation and normalizer handoff use existing routes; no additional ingress.
+# Combined publication and owned conversion use authenticated existing API routes.

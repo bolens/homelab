@@ -34,3 +34,4 @@ networks:
 
 volumes:
   komga_config:
+# Protected conversion and combined publication use the existing optional coordination overrides.

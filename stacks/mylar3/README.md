@@ -1104,8 +1104,7 @@ restore also binds the displaced archive and destination to that producer.
 Unbound naming, standalone reader supplementation and nested metadata repair
 remain review holds before media changes or new publication intents and pending
 markers. Exact native owned naming and preserved root ComicInfo supplementation
-have positive publication controls; the operational combined-pass route still
-requires integration and acceptance.
+have positive publication controls. The primary-key POST `combinedPublication` route journals exact private preparation, completes the rename and requires the worker's unchanged-hash reader restoration before applying preserved root metadata. Lost metadata acknowledgements validate closed tagging lineage rather than replaying the old rename. Originals remain retained until separate cleanup acceptance. After fresh native and reader acceptance, `combined_cleanup=1` enables the explicit combined-pass cleanup request. Its native owner binds independent producer history and current archive, catalog and complete census before retiring only its private original/restore pair. Uncertain cleanup, conversion and retained-repeat records hold ordinary startup even if no filesystem intent was written. Completed status observes immutable terminal proof without recreating files; completed ledger records alone never grant mutation rights. Matching image and live acceptance are still required.
 Earlier naming journals
 cannot authorize a new correction-aware transition. Standalone supplementation
 also checks retained publication state, so a missing marker does not hide an
@@ -1118,3 +1117,20 @@ Guards at every native and worker publication boundary remain unfinished in the
 The API does not authorize final import. Matching live rollout is still pending.
 Rollout must follow the restore-verified update workflow above; published API
 images alone do not establish prevention.
+
+
+The primary-key `commitConvertedArchive` POST route publishes only a current-owned lossless container with identical member names, bytes and page order. Native Mylar owns target creation, conditional catalog relocation and original retirement under the shared writer. `convertedArchiveStatus` only observes durable terminal proof; uncertain requests cannot replay publication. Existing reader-owned sources, PDF derivatives, changed member names and legacy recovery jobs remain held. Workflow advertises `owned_conversion=1` and `combined_publication=1` only when their native modules and API routes are installed. These capabilities do not grant authority to caller-supplied records.
+
+For explicit correction review, [the private plan tool](../../scripts/prepare-publication-corrections.py) verifies actual owner/archive/census and independent backup/restore evidence without changing Mylar or media. Its output is private and `executable=false`; registration still requires native preparation, and retained-repeat reconciliation requires a fresh current-census plan and explicit native acceptance. The primary-key `commitRetainedRepeat` POST route retains an exact registered wrong copy outside the scanned library before conditionally clearing its proved false catalog location. `retainedRepeatStatus` is passive; it preserves status and wanted intent for separate acquisition-history review. It never overwrites the correct archive or invents failed-release provenance. See [the input and readiness contract](../../specs/023-verified-publication-corrections/contracts/publication-corrections.md#private-correction-plan-preparation).
+
+Reviewed nested metadata correction uses an explicit adopted relation, including
+an exact original/derivative inventory and independently verified private backup.
+The read-only `publicationControl` `prepare-lineage` action prepares the exact
+reviewed request against current native state. Its prepare/adopt/recover
+derivative actions protect both
+payload variants and inherit all prior correct and rejected owners. Only the
+primary-key POST `commitReviewedDerivative` route publishes the exact adopted
+token; `reviewedDerivativeStatus` observes its completed proof. Workflow exposes
+`reviewed_derivative=1` only with the installed producer, lineage, consumer and
+routes. Ordinary discovery retains nested archives for review. Matching source,
+image gates and live acceptance are required before using this correction.

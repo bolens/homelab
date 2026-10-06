@@ -198,6 +198,16 @@ def publication_review(job):
     raise publication_native.Review('nested-metadata-derivative-unbound')
 
 
+def reviewed_derivative(token, *, status=False):
+    """Explicit adopted lineage only; ordinary discovery cannot mint a token."""
+    from mylar import native_writers, publication_derivative, publication_guard
+    if not publication_guard.digest_value(token) or type(status) is not bool:
+        raise Unavailable('Exact adopted derivative token required')
+    with native_writers.operation() as writer:
+        action=publication_derivative.status if status else publication_derivative.publish
+        return action(writer,token)
+
+
 def repair(job):
     from mylar import native_writers, tagger_native, tagger_handoff
     publication_review(job)

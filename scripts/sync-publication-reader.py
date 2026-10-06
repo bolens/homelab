@@ -41,7 +41,7 @@ def outputs():
     names = set(('Unavailable compact signature regular file_hash object_pairs decode_json metadata '
                  'safe_name token natural_key validate scan bounded_run inventory canonical_digest same_json '
                  'digest_value exact_owner catalog_fact _catalog_path _claim_identity observe_owners attestation '
-                 'complete_census registry_snapshot _registry_snapshot writer_identity empty_census state_binding '
+                 'media_snapshot cleanup_admission _cleanup_admission complete_census registry_snapshot _registry_snapshot writer_identity empty_census state_binding '
                  'census_value registration_effect intent_record bootstrap_record workflow_schema '
                  'initialization_witness').split())
     names.update(('MAX_MEMBERS MAX_BYTES MAX_MEMBER MAX_METADATA MAX_OUTPUT TIMEOUT TOOL_ROOT METADATA '
@@ -50,6 +50,8 @@ def outputs():
     imports = ''.join(ast.get_source_segment(source, node) + '\n' for node in tree.body
                       if isinstance(node, (ast.Import, ast.ImportFrom)))
     reader = imports + '\n' + definitions('publication_guard.py', names)
+    reader = reader.replace('from .publication_derivative import', 'from .publication_derivative_evidence import')
+    reader = reader.replace('from publication_derivative import', 'from publication_derivative_evidence import')
     reader = reader.replace('from .tagger_metadata import parse', 'from .publication_metadata import parse')
     reader = reader.replace('from tagger_metadata import parse', 'from publication_metadata import parse')
     reader = reader.replace('from tagger_archive import directory_limits', 'from publication_zip import directory_limits')
@@ -73,8 +75,14 @@ def outputs():
     reader = reader.replace(old_roots, '''or not archive_path(root).is_dir()
                or any(path.is_symlink() for path in (archive_path(root), *archive_path(root).parents))''')
     old_deadline = '            deadline = time.monotonic() + TIMEOUT\n'
-    assert reader.count(old_deadline) == 1
-    reader = reader.replace(old_deadline, '            deadline = time.monotonic() + TIMEOUT if deadline is None else deadline\n')
+    observe_start = reader.index('def observe_owners(')
+    observe_end = reader.find('\ndef ', observe_start + 1)
+    if observe_end < 0:
+        observe_end = len(reader)
+    observation = reader[observe_start:observe_end]
+    assert observation.count(old_deadline) == 1
+    observation = observation.replace(old_deadline, '            deadline = time.monotonic() + TIMEOUT if deadline is None else deadline\n')
+    reader = reader[:observe_start] + observation + reader[observe_end:]
     assert not any(isinstance(node, ast.Name) and node.id in {'transaction', 'admission'}
                    for node in ast.walk(ast.parse(reader)))
     # Exact read-only native owner resolution includes deleted and locationless
