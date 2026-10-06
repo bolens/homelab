@@ -51,6 +51,16 @@ Linkwarden connects to its private search service at
 `http://linkwarden-meilisearch:7700`. Keep this unique hostname when other
 Meilisearch instances share an external network with Linkwarden.
 
+## Search dependency upgrades
+
+The private Meilisearch database in `lw_meili_151_data` requires an explicit
+version migration. Follow the [Meilisearch upgrade procedure](../meilisearch/README.md#upgrades)
+for this service and volume before recreating it with a new image. Verify isolated
+restore and migration, then check index settings, document counts and Linkwarden
+searches before accepting the update. Preserve PostgreSQL, bookmark/archive
+volumes and API keys; a dependency-only update should recreate only the affected
+search service after its data checks pass.
+
 ## Notes
 
 - After changing `stack.env`, run `docker compose --env-file stack.env down && docker compose --env-file stack.env up -d` (restart is not enough for env changes).

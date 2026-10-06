@@ -8,6 +8,16 @@ Self-hosted, user-first chat platform (channels, DMs, threads, media, voice) com
 **Docker image:** https://github.com/stoatchat/api/pkgs/container/api  
 **Releases:** https://github.com/stoatchat/self-hosted/releases  
 
+## Release updates
+
+Keep the backend services on a release intended for self-hosting. Upstream marks
+[v0.15.6](https://github.com/stoatchat/stoatchat/releases/tag/v0.15.6) as gateway
+testing unsuitable for self-hosters and
+[v0.15.7](https://github.com/stoatchat/stoatchat/releases/tag/v0.15.7) as an internal
+shield update. Dependabot excludes those two backend releases while continuing
+to monitor subsequent versions. Upgrade the coupled backend services together
+only after reviewing the selected release and verifying application state.
+
 ## Quick start
 
 1. **Generate Stoat config in `/home/youruser/.config/stoat`**
