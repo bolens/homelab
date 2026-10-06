@@ -102,9 +102,18 @@ def previous_attempt(maintenance, source):
     return None
 
 
-def submit(maintenance, source, match, explicit=False, expected_identity=None, expected_sha256=None, workflow_command=None, reviewed_source=False):
+def submit(maintenance, source, match, explicit=False, expected_identity=None, expected_sha256=None, workflow_command=None, reviewed_source=False, guided_binding=None):
     from maintenance import scoped_file
     settings = maintenance.settings
+    if maintenance.worker.config.get('writer_state') is not None and workflow_command is not None:
+        if (not isinstance(guided_binding,dict)
+                or set(guided_binding)!={'id','source_token','version','issueid','comicid'}
+                or guided_binding['id']!=workflow_command
+                or any(guided_binding[key]!=match[key] for key in ('issueid','comicid'))
+                or not re.fullmatch('[a-f0-9]{32}',str(workflow_command))
+                or not re.fullmatch('[a-f0-9]{32}',str(guided_binding['source_token']))
+                or not re.fullmatch('[a-f0-9]{64}',str(guided_binding['version']))):
+            raise ValueError('Exact guided claim dependency required')
     if not explicit and not settings.get('auto_import', False):
         return 'ready'
     cache = Path(settings.get('ddl_cache', ''))
@@ -128,8 +137,18 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     receipts.mkdir(exist_ok=True, mode=0o700)
     receipt = receipts / (key + '.json')
     if receipt.exists():
-        record = json.loads(receipt.read_text())
+        record = (handoff_read(receipt)[0] if maintenance.worker.config.get('writer_state') is not None
+                  else json.loads(receipt.read_text()))
         if record.get('match') != match:
+            return 'import_review'
+        if workflow_command is not None and record.get('phase')=='prepared':
+            from publication_guard import evidence
+            if (record.get('workflow_command')==workflow_command
+                    and record.get('identity')==before and record.get('sha256')==checksum
+                    and evidence.same_json(record.get('guided_binding'),guided_binding)
+                    and evidence.same_json(record['publication']['source'],import_check(maintenance.worker,source,match))
+                    and evidence.same_json(record['publication']['stage'],import_check(maintenance.worker,Path(record['stage']),match))):
+                return 'ready'
             return 'import_review'
         if record['phase'] == 'submitted' and time.time() - record['submitted_at'] < 1800:
             return 'import_queued'
@@ -193,7 +212,12 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     maintenance.import_attempts = None
     if maintenance.worker.config.get('writer_state') is not None:
         if workflow_command is not None:
-            raise ValueError('Guided handoff requires durable claim dependency')
+            if (not isinstance(guided_binding,dict)
+                    or set(guided_binding)!={'id','source_token','version','issueid','comicid'}
+                    or guided_binding['id']!=workflow_command
+                    or any(guided_binding[key]!=match[key] for key in ('issueid','comicid'))):
+                raise ValueError('Exact guided claim dependency required')
+            record['guided_binding']=guided_binding
         record.pop('submitted_at')
         record.update(phase='prepared',prepared_at=time.time(),remote_folder=str(remote/stage.name),
                       publication=dict(version=1,source=source_proof,stage=stage_proof))
@@ -241,6 +265,8 @@ def dispatch_prepared(maintenance):
             protocol = health.get('workflow',{})
             if (protocol.get('valid') is not True or type(protocol.get('publication_handoff')) is not int
                     or protocol['publication_handoff'] != 1):return 0
+            if record.get('workflow_command') is not None and (
+                    type(protocol.get('guided_handoff')) is not int or protocol['guided_handoff']!=1):return 0
             queue = health['queues'].get('POST-PROCESS-QUEUE',{})
             if not queue.get('alive') or queue.get('size') != 0 or health['processing']:return 0
             with writer.hold(timeout=0),scope(worker,writer) as authority:
@@ -248,14 +274,24 @@ def dispatch_prepared(maintenance):
                 record, signature = handoff_read(path)
                 fields = {'source','identity','sha256','stage','match','workflow_command','phase',
                           'prepared_at','remote_folder','publication'}
+                guided=record.get('workflow_command')
+                if guided is not None:fields.add('guided_binding')
                 if (not isinstance(record,dict) or set(record) != fields or record['phase'] != 'prepared'
-                        or record['workflow_command'] is not None or not isinstance(record['prepared_at'],(int,float))
+                        or not isinstance(record['prepared_at'],(int,float))
                         or type(record['prepared_at']) is bool):
                     raise Unavailable('Unsupported import handoff receipt')
+                if guided is not None:
+                    binding=record['guided_binding']
+                    if (not isinstance(guided,str) or not re.fullmatch('[a-f0-9]{32}',guided)
+                            or not isinstance(binding,dict) or set(binding)!={'id','source_token','version','issueid','comicid'}
+                            or binding['id']!=guided or any(binding[key]!=record['match'][key] for key in ('issueid','comicid'))
+                            or not re.fullmatch('[a-f0-9]{32}',str(binding['source_token']))
+                            or not re.fullmatch('[a-f0-9]{64}',str(binding['version']))):
+                        raise Unavailable('Malformed guided command dependency')
                 source,target = Path(record['source']),Path(record['stage'])
                 cache = Path(maintenance.settings['ddl_cache'])
                 remote = Path(maintenance.settings['mylar_ddl_cache'])
-                key = hashlib.sha256(os.fsencode(source)+record['sha256'].encode()).hexdigest()
+                key = hashlib.sha256(os.fsencode(source)+record['sha256'].encode()+(guided or '').encode()).hexdigest()
                 expected_stage = cache/('.mylar-recovery-'+key)
                 if (path.name != key+'.json' or not scoped_file(source,maintenance.roots)
                         or cache not in maintenance.roots or not remote.is_absolute() or '..' in remote.parts
@@ -280,7 +316,8 @@ def dispatch_prepared(maintenance):
             # Native independently checks its actual stage, owner and census.
             try:
                 maintenance.mylar('forceProcess',nzb_name=target.name,nzb_folder=record['remote_folder'],
-                    ddl='True',publication_handoff=json.dumps(command),**record['match'])
+                    ddl='True',publication_handoff=json.dumps(command),**record['match'],
+                    **({'workflow_command':guided,'guided_handoff':json.dumps(binding)} if guided is not None else {}))
             except Exception:
                 return 0  # Dispatching is durable uncertain review, never auto-retry.
             with writer.hold(timeout=0),scope(worker,writer) as authority:

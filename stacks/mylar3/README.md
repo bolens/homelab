@@ -1039,6 +1039,18 @@ Authenticated health advertises handoff version 1 only with readable workflow
 state. Workers retain prepared receipts if that capability is absent or invalid.
 Deploy matching worker and native images before admitting this handoff.
 
+Guided requests additionally bind the exact command, source token, proposal
+version and selected issue/series to queue admission. The native queue owns the
+claimed/submitted transition, retaining an interrupted attempt for review.
+Authenticated health separately advertises `guided_handoff` and
+`maintenance_handoff` version 1. Typed maintenance requests cover pack catalog
+lookup, pack verification reports and guided acknowledgements. They verify the
+actual shared archive, complete correction census and current catalog owner
+before storing an attempt. A positive acknowledgement needs the current catalog
+archive; caller-provided status alone cannot establish import completion.
+Verified pack members and completed cleanup survive delayed reports. These
+protocols do not admit naming or derivative transitions that still require review.
+
 A registered correct archive stays at its current catalog path until a verified
 source-to-target transition is implemented. Native copy operations can preserve
 that path; moves, ordinary softlinks and deletion of that original remain held.

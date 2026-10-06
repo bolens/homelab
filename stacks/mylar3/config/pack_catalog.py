@@ -25,7 +25,7 @@ def number(value):
         return None
 
 
-def resolve(payload):
+def resolve(payload, handoff=None, catalog_attempt=None):
     if not isinstance(payload, str) or len(payload) > 4000:
         raise ValueError('Invalid catalog request')
     evidence = json.loads(payload)
@@ -41,6 +41,8 @@ def resolve(payload):
     if edition not in ('', 'Digital', 'Print'):
         raise ValueError('Invalid edition')
     normalized = dict(series=name, year=year, number=str(number(num)), issueid=issueid, parentid=parentid, edition=edition)
+    from mylar import worker_handoff
+    worker_handoff.admit(handoff,'packCatalog',{'evidence':payload,'catalog_attempt':catalog_attempt})
     key = hashlib.sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest()
     from mylar import db, cv, mb, importer
     with _LOCK:

@@ -327,7 +327,7 @@ before native `dbcheck`. Existing installation startup requires an owned regular
 readable native catalog with no pending sidecars. Missing or invalid native catalogs
 stay held without recreation, maintenance or worker startup.
 
-### Worker import boundary progress
+### Worker import and maintenance boundaries
 
 The local adapter resolves the proposed native owner from the exact read-only
 `publication_native.owner` definition: unfiltered cross-table identity, annual
@@ -338,7 +338,9 @@ and source against that owner, then repeats owner and authority validation.
 
 Common import submission checks before creating a stage or receipt, after copying
 both original and stage, and immediately before saving its attempted submission.
-Guided claiming checks before acknowledgement. Pack member confirmation checks
+Guided submission binds the exact native command, source token, proposal version
+and selected issue/parent to native queue admission. The queue owns the
+claimed/submitted transition. Pack member confirmation checks
 both candidate and existing target before replacing verification facts. Even an
 unregistered target requires fresh all-row evidence that it remains this exact
 owner's unique Downloaded/Archived catalog archive; an old hash alone cannot
@@ -348,8 +350,42 @@ deleting any original; old supplement cleanup stays held until its derivative
 ownership contract is reviewed. On failed copy validation only the newly created,
 unsubmitted copy is removed, preserving its original and prior receipts.
 
-These are source boundary checks, not durable command handoff or complete T011
-acceptance. Import receipts still need typed correction/source/owner bindings for
-remote dispatch and recovery; standalone duplicate cleanup and the remaining
-report/Extras branches remain required. No retained proof authorizes replay,
-no HTTP runs under writer exclusion, and live worker activation remains held.
+Coordinated import receipts bind original/staged bytes, exact owner, current
+census and optional guided command before dispatch. Native independently checks
+the actual shared stage before recording an attempt and again before processing.
+A prepared receipt may reconstruct a lost local guided command record after fresh
+source/stage validation. An uncertain attempted submission cannot be replayed.
+
+`maintenance_handoff` version 1 accepts only `packCatalog`, `packReport` and
+`workflowAcknowledge`. Its strict envelope contains version, token, command,
+arguments digest, complete census and at most 4,000 source observations. Each
+observation names a confined native path, prepared SHA-256, optional exact
+issue/parent and a boolean current-catalog confirmation requirement. Boolean
+protocol versions are invalid. Authenticated health advertises this capability
+separately from `guided_handoff` and `publication_handoff`.
+
+The worker prepares private requests under Writer, durably records dispatching
+before releasing Writer for HTTP, then accepts a result only after the same full
+local proof is revalidated. Native checks actual archive evidence, source bytes,
+complete census, current catalog binding and any guided command choice before
+recording its at-most-once maintenance attempt. Native catalog drift invalidates
+admission. Attempt records grant no correction authority. Lost responses retain
+sources and history for review without automatic replay, including after source
+or census changes. Old protocols retain prepared work.
+
+Pack catalog evidence must agree with the actual shared archive's metadata and
+filename. Reports require actual shared destinations, matching hashes and exact
+current catalog owners for confirmed issues. Receipt-owned extracted originals
+remain private local witnesses and must match their shared destination's payload.
+A delayed report cannot erase members, replace verified phase/kind/owner/path/hash,
+or clear completed inventory and cleanup. Cleanup waits for the native report's
+durable exact acknowledgement, then rechecks all originals and destinations.
+
+Extras placement rejects registered payloads and protected catalog paths or
+physical aliases before metadata or placement changes. It preserves member bytes,
+creates temporary archives exclusively, and rechecks source/target proof before
+recording preservation. Registered-owner confirmation requires the attested
+archive payload until a reviewed derivative lineage exists. Historical supplement
+cleanup, standalone duplicate/recovery integration, remaining mutation paths and
+complete T011/live acceptance remain required. No retained proof grants replay or
+HTTP under Writer. The live worker stays held until feature acceptance.

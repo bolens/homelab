@@ -413,6 +413,53 @@ class WorkflowTest(unittest.TestCase):
         self.assertTrue(value['valid'])
         self.assertIs(type(value['publication_handoff']),int)
         self.assertEqual(value['publication_handoff'],1)
+        self.assertIs(type(value['guided_handoff']),int)
+        self.assertEqual(value['guided_handoff'],1)
+        self.assertIs(type(value['maintenance_handoff']),int)
+        self.assertEqual(value['maintenance_handoff'],1)
+
+    def guided_submission(self):
+        proposal=self.proposal();command=web.confirm_import(proposal['source_token'],proposal['version'],'10')
+        binding={key:command[key] for key in ('id','source_token','version','issueid','comicid')}
+        proof={'token':'a'*64,'source':'/fixture/stage/comic.cbz',
+               'owner':{'issueid':'10','parentcomicid':'20','releasecomicid':'20','table':'issues'}}
+        native=SimpleNamespace(import_handoff=Mock(return_value=proof),guard=importlib.import_module('mylar.publication_guard'))
+        app.publication_native=native;app.CONFIG.API_ENABLED=True;app.CONFIG.API_KEY='fixture'
+        client=SimpleNamespace(apikey='fixture',_failureResponse=lambda reason:{'success':False})
+        arguments=dict(publication_handoff='fixture',workflow_command=command['id'],guided_handoff=json.dumps(binding))
+        item=dict(issueid='10',comicid='20',nzb_folder='/fixture/stage',nzb_name='comic.cbz',download_info=None)
+        return command,native,client,arguments,item
+
+    def test_guided_handoff_claims_and_queues_once_without_separate_acknowledgement(self):
+        command,native,client,arguments,item=self.guided_submission()
+        def submit(client,**kwargs):workflow.processing_put(app.PP_QUEUE,item,kwargs['workflow_command'])
+        with patch.dict(sys.modules,{'mylar.publication_native':native}):
+            workflow.force_process(submit)(client,**arguments)
+            row=workflow.store().get('command',command['id'])
+            self.assertEqual(row['phase'],'submitted');self.assertTrue(row['dispatched'])
+            self.assertEqual(app.PP_QUEUE.qsize(),1)
+            workflow.force_process(submit)(client,**arguments)
+        self.assertEqual(app.PP_QUEUE.qsize(),1)
+        self.assertEqual(client.data,{'success':False})
+
+    def test_guided_handoff_stale_choice_or_missing_dependency_spends_nothing(self):
+        command,native,client,arguments,item=self.guided_submission();submit=Mock()
+        for binding in ({},{'id':command['id']},dict(json.loads(arguments['guided_handoff']),version='f'*64)):
+            with patch.dict(sys.modules,{'mylar.publication_native':native}):
+                workflow.force_process(submit)(client,**dict(arguments,guided_handoff=json.dumps(binding)))
+            self.assertEqual(workflow.store().get('command',command['id'])['phase'],'queued')
+            self.assertIsNone(workflow.store().get('worker_import_attempt','a'*64))
+        submit.assert_not_called();self.assertTrue(app.PP_QUEUE.empty())
+
+    def test_guided_queue_failure_retains_spent_attempt_and_never_replays(self):
+        command,native,client,arguments,item=self.guided_submission()
+        queue=Mock();queue.put.side_effect=RuntimeError('queue interruption')
+        def submit(client,**kwargs):workflow.processing_put(queue,item,kwargs['workflow_command'])
+        with patch.dict(sys.modules,{'mylar.publication_native':native}):
+            with self.assertRaises(RuntimeError):workflow.force_process(submit)(client,**arguments)
+            self.assertIsNotNone(workflow.store().get('worker_import_attempt','a'*64))
+            workflow.force_process(submit)(client,**arguments)
+        self.assertEqual(queue.put.call_count,1)
 
     def test_native_queue_handoff_binds_exact_item_and_clears_thread_context(self):
         proof={'token':'a'*64,'source':'/fixture/stage/comic.cbz',
@@ -515,6 +562,21 @@ class WorkflowTest(unittest.TestCase):
         workflow._LAST_TICK=0;workflow.tick(app.SEARCH_QUEUE)
         self.assertEqual(self.status(),'Completed')
         self.assertEqual(workflow.store().get('handoff','10')['phase'],'completed')
+
+    def test_existing_workflow_api_migrates_typed_acknowledgement_idempotently(self):
+        import patch_workflow
+        original="""class Api:
+    # homelab-workflow-v1
+    def acknowledge(self, **kwargs):
+        try:
+            result = workflow_web.acknowledge(kwargs.get('command_id'), kwargs.get('phase'), kwargs.get('reason', ''))
+        except ValueError:
+            return
+"""
+        changed=patch_workflow.api(original)
+        self.assertEqual(patch_workflow.api(changed),changed)
+        self.assertLess(changed.index('worker_handoff.admit'),changed.index('result = workflow_web.acknowledge'))
+        self.assertIn("kwargs.get('maintenance_handoff')",changed)
 
     def test_native_patch_is_idempotent_and_preserves_return_contract(self):
         import patch_workflow

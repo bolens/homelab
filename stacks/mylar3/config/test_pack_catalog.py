@@ -26,7 +26,8 @@ class CatalogTest(unittest.TestCase):
         self.cv.pulldetails.return_value=parseString('<response><description/></response>')
         self.importer=Mock()
         self.mylar=SimpleNamespace(workflow=SimpleNamespace(store=lambda:self.store,policy=lambda:{'pack_automation':True}),
-                                  db=SimpleNamespace(DBConnection=lambda:self.db),cv=self.cv,mb=Mock(),importer=self.importer)
+                                  db=SimpleNamespace(DBConnection=lambda:self.db),cv=self.cv,mb=Mock(),importer=self.importer,
+                                  worker_handoff=SimpleNamespace(admit=Mock(return_value=None)))
         patcher=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.workflow_store':sys.modules['workflow_store']})
         patcher.start();self.addCleanup(patcher.stop)
         self.module=load('pack_catalog')

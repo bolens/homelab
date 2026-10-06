@@ -130,6 +130,61 @@ class CoordinatedRecoveryTest(AuthorityFixture, unittest.TestCase):
         with self.assertRaises(FileExistsError):handoff_save(receipt,{'replacement':True})
         self.assertEqual(receipt.read_bytes(),before)
 
+    def guided(self):
+        from guided_match import Guided
+        self.sql('ALTER TABLE comics ADD COLUMN ComicName TEXT')
+        self.sql('ALTER TABLE comics ADD COLUMN ComicYear TEXT')
+        self.sql("UPDATE comics SET ComicName='Other',ComicYear='2023'")
+        self.sql('ALTER TABLE issues ADD COLUMN Issue_Number TEXT')
+        self.sql('ALTER TABLE issues ADD COLUMN IssueDate TEXT')
+        self.sql('ALTER TABLE annuals ADD COLUMN Issue_Number TEXT')
+        self.sql('ALTER TABLE annuals ADD COLUMN IssueDate TEXT')
+        self.sql('ALTER TABLE annuals ADD COLUMN ReleaseComicName TEXT')
+        self.sql('INSERT INTO comics(ComicID,ComicLocation,ComicName,ComicYear) VALUES (?,?,?,?)',
+                 ('888',str(self.native_root),'Test','2024'))
+        self.sql("UPDATE issues SET Issue_Number='1',IssueDate='2024-01-01' WHERE IssueID='999'")
+        self.m.pending_ddl_names=Mock(return_value=set());self.m.info=Mock();self.m.import_submitted=False
+        source=self.archive('Test #1 (2024).cbz',[('01.jpg',b'new guided comic')])
+        guided=Guided(self.m);guided.available=True
+        with self.writer.hold(),scope(self.m.worker,self.writer) as authority:
+            authority.tool_root=self.tool;proposal=guided.propose(source)
+        command=dict(proposal,id='a'*32,issueid='999',comicid='888',phase='queued',save_alias=False)
+        return guided,source,command
+
+    def test_guided_preparation_and_native_claim_dispatch_are_one_source_bound_handoff(self):
+        guided,source,command=self.guided()
+        with self.writer.hold(),scope(self.m.worker,self.writer) as authority:
+            authority.tool_root=self.tool;guided.process(command)
+        self.m.mylar.assert_not_called()
+        path=guided.commands/(command['id']+'.json')
+        self.assertEqual(json.loads(path.read_text())['phase'],'prepared')
+        def native(command_name,**kwargs):
+            result=self.native_api(command_name,**kwargs)
+            if command_name=='getHealth':result['workflow']['guided_handoff']=1
+            else:
+                self.assertEqual(kwargs['workflow_command'],command['id'])
+                self.assertEqual(json.loads(kwargs['guided_handoff']),{key:command[key] for key in ('id','source_token','version','issueid','comicid')})
+            return result
+        self.m.mylar.side_effect=native
+        self.assertEqual(self.dispatch(),1)
+        with self.writer.hold(),scope(self.m.worker,self.writer) as authority:
+            authority.tool_root=self.tool;guided.process(dict(command,phase='submitted'))
+        self.assertEqual(json.loads(path.read_text())['phase'],'submitted')
+        self.assertTrue(source.exists());self.assertEqual(self.dispatch(),0)
+
+    def test_guided_restart_after_stage_receipt_reconciles_without_recopy_or_ack_claim(self):
+        guided,source,command=self.guided()
+        with self.writer.hold(),scope(self.m.worker,self.writer) as authority:
+            authority.tool_root=self.tool;guided.process(command)
+        path=guided.commands/(command['id']+'.json');path.unlink()
+        receipt=next((self.state/'imports').glob('*.json'));before=receipt.read_bytes()
+        with self.writer.hold(),scope(self.m.worker,self.writer) as authority:
+            authority.tool_root=self.tool;guided.process(command)
+        self.assertEqual(receipt.read_bytes(),before)
+        self.assertEqual(len(list(self.cache.iterdir())),1)
+        self.assertEqual(json.loads(path.read_text())['phase'],'prepared')
+        self.m.mylar.assert_not_called();self.assertTrue(source.exists())
+
     def test_rejected_repeat_holds_before_stage_receipt_idle_or_submit(self):
         before = digest(self.candidate)
         with self.writer.hold(), scope(self.m.worker,self.writer) as authority:

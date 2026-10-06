@@ -21,6 +21,34 @@ SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 and not sys.argv[1].startswi
 
 
 class ProcessingTest(unittest.TestCase):
+    def test_existing_pack_api_migrates_typed_catalog_and_reports_idempotently(self):
+        from patch_pack_intake import api
+        original="""class Api:
+    # homelab-pack-api-v1
+    def report(self, **kwargs):
+        return pack_intake.report(kwargs.get('report'))
+    def catalog(self, **kwargs):
+        return pack_catalog.resolve(kwargs.get('evidence'))
+"""
+        changed=api(original)
+        self.assertEqual(api(changed),changed)
+        self.assertIn("pack_intake.report(kwargs.get('report'), kwargs.get('maintenance_handoff'))",changed)
+        self.assertIn("kwargs.get('catalog_attempt')",changed)
+
+    def test_fresh_pack_patch_targets_command_list_after_typed_workflow_handler(self):
+        from patch_pack_intake import api
+        original="""class Api:
+    commands = ['workflowCommands', 'workflowAcknowledge',]
+    def acknowledge(self):
+        worker_handoff.admit(None, 'workflowAcknowledge', {})
+    def _getHealth(self, **kwargs):
+        return {}
+"""
+        changed=api(original)
+        self.assertEqual(api(changed),changed)
+        self.assertIn("commands = ['workflowCommands', 'workflowAcknowledge', 'packWork', 'packReport', 'packCatalog',]",changed)
+        self.assertIn("worker_handoff.admit(None, 'workflowAcknowledge', {})",changed)
+
     def test_empty_error_and_success_release_owned_lock(self):
         mylar = SimpleNamespace(APILOCK=False, native_writers=SimpleNamespace(operation=lambda:nullcontext()), pack_intake=SimpleNamespace(capture=Mock(return_value=False)))
         for error in (False, True):

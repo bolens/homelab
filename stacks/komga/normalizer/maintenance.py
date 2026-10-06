@@ -120,7 +120,8 @@ class Maintenance:
 
     def dispatch(self):
         from import_recovery import dispatch_prepared
-        return dispatch_prepared(self)
+        from native_handoff import dispatch
+        return dispatch_prepared(self)+dispatch(self)
 
     def info(self, path):
         fingerprint = identity(path)
