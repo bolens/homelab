@@ -3,6 +3,13 @@
 ARG BASE_IMAGE=ail-framework:7.0-cpu-build
 FROM ${BASE_IMAGE}
 
+# AIL launches many numerical worker processes. Bound each worker's native
+# thread pool so startup fits the stack's CPU and process limits.
+ENV OPENBLAS_NUM_THREADS=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1
+
 # Redis 5 bundled by AIL does not implement RESP3's HELLO command.
 # redis-py 8 defaults to RESP3, so retain the compatible RESP2-era client.
 COPY requirements-runtime.txt /tmp/requirements-runtime.txt
