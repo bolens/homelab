@@ -2,6 +2,7 @@
 from functools import wraps
 import hashlib
 import inspect
+import json
 from pathlib import Path
 import shutil
 import threading
@@ -156,6 +157,15 @@ def admit_import(issueid,command_id=None):
 def processing_put(queue,item,command_id=None):
     """Atomic final admission, with a durable receipt before a guided queue write."""
     from mylar import queue_control
+    proof=getattr(_CONTEXT,'publication_handoff',None)
+    if proof is not None:
+        from pathlib import Path
+        if (str(item.get('issueid'))!=proof['owner']['issueid']
+                or str(item.get('comicid'))!=proof['owner']['parentcomicid']
+                or str(Path(item.get('nzb_folder',''))/item.get('nzb_name',''))!=proof['source']
+                or item.get('download_info') is not None):
+            raise ValueError('Queued import differs from verified native handoff')
+        item=dict(item,download_info={'publication_handoff':proof})
     iid=identifier(item.get('issueid'))
     if not iid:
         if command_id:raise ValueError('Guided imports require a regular issue ID')
@@ -559,9 +569,36 @@ def force_process(function):
     def wrapped(self,**kwargs):
         import mylar
         command=kwargs.get('workflow_command')
-        if command and (not mylar.CONFIG.API_ENABLED or self.apikey!=mylar.CONFIG.API_KEY or 'apc_version' in kwargs):
+        handoff=kwargs.get('publication_handoff')
+        if (command or handoff is not None) and (not mylar.CONFIG.API_ENABLED or self.apikey!=mylar.CONFIG.API_KEY or 'apc_version' in kwargs):
             self.data=self._failureResponse('Primary API key and queue submission required');return
-        try:return function(self,**kwargs)
+        try:
+            proof=None
+            if handoff is not None:
+                if getattr(_CONTEXT,'publication_handoff',None) is not None:
+                    raise ValueError('Nested publication handoff refused')
+                from mylar import publication_native
+                proof=publication_native.import_handoff(handoff,kwargs)
+                # This record is an at-most-once attempt, never correction
+                # authority. Keep it outside the protected publication namespace.
+                with store().connection() as database:
+                    if database.execute("SELECT count(*) FROM records WHERE kind='worker_import_attempt'").fetchone()[0]>=4096:
+                        raise ValueError('Import attempt history requires retention review')
+                    if database.execute("SELECT 1 FROM records WHERE kind='worker_import_attempt' AND key=?",(proof['token'],)).fetchone():
+                        raise ValueError('Import handoff already attempted')
+                    for row in database.execute("SELECT value FROM records WHERE kind='worker_import_attempt'"):
+                        previous=json.loads(row[0])
+                        if not isinstance(previous,dict) or set(previous)!=set(proof):
+                            raise ValueError('Import attempt history is malformed')
+                        previous_owner=publication_native.guard.exact_owner(previous.get('owner'))
+                        if previous_owner==proof['owner']:
+                            raise ValueError('Native owner already has an import attempt requiring review')
+                    database.execute('INSERT INTO records VALUES (?,?,?,?)',
+                        ('worker_import_attempt',proof['token'],json.dumps(proof),time.time()))
+            if proof is None:return function(self,**kwargs)
+            _CONTEXT.publication_handoff=proof
+            try:return function(self,**kwargs)
+            finally:_CONTEXT.publication_handoff=None
         except ValueError:
             self.data=self._failureResponse('Issue is reserved or import submission needs review')
     return wrapped
@@ -570,7 +607,7 @@ def force_process(function):
 def state_health():
     try:
         store().get('policy','current')
-        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused']}
+        return {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1}
     except Exception:return {'valid':False,'observer_errors':_OBSERVER_ERRORS}
 
 
