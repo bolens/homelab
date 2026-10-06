@@ -6,7 +6,7 @@ name: netbird
 
 services:
   dashboard:
-    image: netbirdio/dashboard:latest@sha256:fa2d8b02a81761e4d2a22df4041d13316b7635f1e93273eafeb53d4991e55b5a
+    image: netbirdio/dashboard:latest@sha256:70e0fc6dd3b7758148d182fb55ecd8d4f9ce01e9bba56c9389224e0b8354009d
     container_name: netbird-dashboard
     restart: unless-stopped
     labels:

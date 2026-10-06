@@ -11,7 +11,7 @@ services:
     labels:
       logging: "true"
     container_name: camofox-browser
-    image: ghcr.io/jo-inc/camofox-browser:latest@sha256:3cc29763d3c784ae71a7d56853a12c43e100ff2f13da1e2eb88322b08e12d6a0
+    image: ghcr.io/jo-inc/camofox-browser:latest@sha256:cff2c1432b609bde9c9d0b91e5b924dae0799d3c7bc9d468c0bc949325beaf2a
     env_file:
       - stack.env
       - path: ../../shared.env

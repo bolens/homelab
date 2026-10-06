@@ -2,7 +2,7 @@ services:
   databasus:
     labels:
       logging: "true"
-    image: databasus/databasus:latest@sha256:3c814cdb4de830232c0fa8b3e0dfbe3ae39f685e7e8bd3effdf3b989c9e5d74d
+    image: databasus/databasus:latest@sha256:2e9aec567de7ed3f0c8f360ea72abe6a8425704d9272232dae4325ad920b9204
     container_name: databasus
     restart: unless-stopped
     cpus: 2.0
