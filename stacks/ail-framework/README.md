@@ -60,7 +60,9 @@ Official releases (e.g. **v7.0**) are not published as images; this stack builds
 The native builder stays on Ubuntu 22.04 because its cleanup and runtime packages
 use Python 3.10 and Jammy library names. Upgrading the Ubuntu release requires
 updating those paths, package names, and Python dependency locks together, then
-verifying the complete CPU image build and native application startup. The custom
+verifying the complete CPU image build and native application startup. Dependabot
+refreshes the selected Ubuntu release digest; release changes require that
+reviewed migration. The custom
 image CI builds Lacus and Tor; it does not build the AIL application image. Installed Python package test directories are retained because QReader imports NumPy testing helpers during normal startup.
 
 1. **Build both variants.** Native compilation is shared by BuildKit; build the
