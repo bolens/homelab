@@ -184,3 +184,28 @@ private-source leakage and an ambiguous workflow patch anchor; fixes and new
 frozen image gates are in progress. Neither failed candidate is accepted. The
 combined metadata/rename runtime route, derivative transitions, final complete
 feature review and live acceptance remain open; task checkboxes are unchanged.
+
+2026-10-06 verified source milestone: the final isolated worker image passed
+377 tests without skips; all 21 installed production modules match its frozen
+source. Repository validation and full local CI passed. Source commit `8f23324`
+and history synchronization `5c90148` preserve the same reviewed tree; PR #253
+remains a draft until the final native image and installed parity pass. Native
+focused controls passed: 20 owned rename, 28 metadata maintenance, 33 naming/API
+and 12 enrichment controls. Independent terminal-witness and unchanged-source
+race findings are closed. The legacy tagging host regression passed 115 tests
+with three binary-only skips; the actual image must run them without skips.
+
+The next implementation runs in separate worktrees with explicit ownership:
+combined rename/unchanged-hash reader restoration/root metadata orchestration;
+native-owned lossless container conversion and worker acknowledgement; private
+read-only correction-plan tooling. Shared authority and manifests have one
+integration owner. No live writer is released and no full task is checked off
+from these partial source milestones.
+
+2026-10-06 final image acceptance for PR #253: the isolated native image passed
+1,082 test executions across 72 suites without skips, including its actual
+Legacy and Modern binaries. All 19 checked installed native modules match the
+unchanged frozen source. The worker passed 377 tests without skips with exact
+21-module parity. Earlier failed or superseded candidates are not accepted.
+The reviewed source milestone is ready for delivery with the user's hosted-CI
+waiver; complete feature, combined-route, derivative and live gates remain open.
