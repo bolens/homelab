@@ -25,7 +25,7 @@ EXTRA = re.compile(r'\b(ashcan|sketchbook|extras?|director[\W_]*s cut|preview|ar
 FILENAME = re.compile(r'(.+?)\s+#?(\d+(?:\.\d+)?)\s+\(((?:19|20)\d{2})\)(?:\s*\([^)]*\)|\s*\[[^]]*\])*')
 
 
-def evidence(path):
+def evidence(path, rows=None):
     meta = metadata(path)
     clean = re.sub(r'\[__\d+__\]', '', path.stem).strip()
     parsed = FILENAME.fullmatch(clean)
@@ -35,7 +35,11 @@ def evidence(path):
     name = meta.get('Series') or (parsed[1] if parsed else '')
     num = meta.get('Number') or (parsed[2] if parsed else '')
     year = meta.get('Volume') if re.fullmatch(r'(19|20)\d{2}', meta.get('Volume', '')) else (parsed[3] if parsed else meta.get('Year', ''))
-    if parsed and ((meta.get('Series') and title(meta['Series']) != title(parsed[1]))
+    # A filename ordinal may agree with a base Series field only when the
+    # existing catalog matcher proves one current explicit ComicVersion.
+    # Unknown volumes never lose their ordinal on the catalog-addition path.
+    ordinal_match = rows is not None and match(path, None, rows) is not None
+    if parsed and ((meta.get('Series') and title(meta['Series']) != title(parsed[1]) and not ordinal_match)
                    or (meta.get('Number') and number(meta['Number']) != number(parsed[2]))
                    or (re.fullmatch(r'(19|20)\d{2}', meta.get('Volume', '')) and meta['Volume'] != parsed[3]
                        and meta.get('Year') != parsed[3])):
@@ -113,6 +117,27 @@ class Packs:
     def report(self, value):
         from native_handoff import report
         return report(self.m, value)
+
+    def refresh_cleaned(self, record):
+        """Revalidate native member paths through the exact owned mapping.
+
+        A cleaned capture has no original/worker receipt to load. Its native
+        destinations are not worker paths, even when typical mounts coincide.
+        The ordinary typed report still proves current owner, archive and
+        complete census before it may refresh a stale native signature.
+        """
+        value = json.loads(json.dumps(record))
+        if self.m.worker.config.get('writer_state') is not None:
+            from publication_guard import catalog_path
+            for member in value.get('members', []):
+                if member.get('kind') != 'sidecar' and member.get('phase') in ('confirmed', 'preserved'):
+                    target = catalog_path(self.m.worker, member['destination'])
+                    if (not scoped_file(target, self.m.worker.roots)
+                            or digest(target) != member.get('destination_sha256')):
+                        raise ValueError('Cleaned pack destination changed; original proof retained')
+                    member['destination'] = str(target)
+        value['cleaned_at'] = time.time()
+        return self.report(value)
 
     def local(self, remote):
         source = Path(remote)
@@ -396,13 +421,13 @@ class Packs:
                 member.update(kind='sidecar', phase='review', reason='Non-comic pack member retained for review')
             return
         prepared, info = self.prepared(member, directory)
-        points = evidence(prepared)
-        if member['kind'] == 'supplement':
-            self.preserve_extra(prepared, member, points, info)
-            return
         rows = catalog(self.db)
         # Include downloaded identities for comparison before considering another import.
         eligible = [tuple(list(r[:2]) + ['Wanted'] + list(r[3:])) for r in rows]
+        points = evidence(prepared, eligible)
+        if member['kind'] == 'supplement':
+            self.preserve_extra(prepared, member, points, info)
+            return
         matched = match(prepared, self.db, eligible)
         if not matched and not member.get('catalog_attempted') and points['series'] and number(points['number']) is not None:
             member['catalog_attempted'] = True
@@ -566,7 +591,7 @@ class Packs:
                 # Mylar rechecks the stored destination hashes before refreshing
                 # stale signatures. Rejected proofs retain the original history.
                 try:
-                    self.report(dict(record, cleaned_at=time.time()))
+                    self.refresh_cleaned(record)
                 except Exception:
                     pass
                 continue
@@ -574,12 +599,21 @@ class Packs:
                 protected.add(self.local(record['source']))
                 receipt, value = self.inventory(record)
                 for member in value['members']:
+                    retained = json.loads(json.dumps(member)) if member.get('phase') in ('confirmed', 'preserved') else None
                     try:
                         self.member(member, receipt.parent)
+                        member.pop('verification_review', None)
                     except PDFPending:
                         member.update(phase='discovered', reason='PDF saved; waiting for page rendering')
                     except Exception:
-                        member.update(phase='review', reason='Member validation or import needs review; source retained')
+                        if retained is not None:
+                            # A failed current check is not permission to erase
+                            # historical verified destination/owner evidence.
+                            # Reports and cleanup still require fresh proofs.
+                            member.clear()
+                            member.update(retained, verification_review='Current member proof needs review; original verification retained')
+                        else:
+                            member.update(phase='review', reason='Member validation or import needs review; source retained')
                     save(receipt, value)
                     if self.m.import_submitted:
                         break

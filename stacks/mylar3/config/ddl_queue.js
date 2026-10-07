@@ -50,7 +50,7 @@ function ajaxcallit(mode,id,confirmed) {
     $('#ddl_action_notice').text('Sending request…');
     $.ajax({url:'ddl_requeue',data:{mode:mode,id:id},dataType:'json',timeout:15000})
     .done(function(data){$('#ddl_action_notice').text(data && data.status===true && !data.error ? data.message || 'Request accepted.' : 'The request was not confirmed. Refresh and check the item before retrying.');})
-    .fail(function(){$('#ddl_action_notice').text('The request could not be confirmed. Refresh and check the item before retrying.');})
+    .fail(function(xhr){$('#ddl_action_notice').text(xhr && xhr.status===409 ? 'This entry is held or changed. Review its NZB handoff in Activity, then refresh before removing it.' : 'The request could not be confirmed. Refresh and check the item before retrying.');})
     .always(function(){ddlMutating=false;ddlActionsEnabled();ddlRowActionsEnabled();activecheck();});
 }
 function ddlRowActions(full) {
@@ -62,7 +62,7 @@ function ddlRowActions(full) {
     var box=$('<div>').addClass('ddl_row_actions');
     $.each(actions,function(_,a){$('<button type="button">').attr({'data-ddl-mode':a[0],'data-ddl-id':String(full[5])}).text(a[1]).appendTo(box);});
     var prompt=$('<span>').addClass('ddl_remove_prompt').prop('hidden',ddlRemoveId!==String(full[5]));
-    $('<span>').text('Remove entry?').appendTo(prompt);
+    $('<span>').text(status==='NZB handoff' ? 'Remove DDL entry? Pending NZB searches are cancelled. Accepted NZB downloads continue. Uncertain handoffs require Activity review.' : 'Remove entry?').appendTo(prompt);
     $('<button type="button" data-ddl-confirm="remove">').text('Remove').appendTo(prompt);
     $('<button type="button" data-ddl-confirm="cancel">').text('Cancel').appendTo(prompt);
     box.children().prop('hidden',ddlRemoveId===String(full[5]));

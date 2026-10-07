@@ -383,6 +383,12 @@ keeps it held. Partial files and retry history remain. Automatic waiting-age han
 default; enabling it starts with a two-hour waiting threshold and considers at most
 one eligible issue per scheduler cycle.
 
+**Remove** cancels a handoff that is still queued for NZB search and removes its
+DDL row. A stale queued search cannot submit it afterward. If the NZB client has
+already accepted the handoff, Remove clears only the DDL row; the downstream job
+continues. Searching or uncertain submissions stay held for review in Activity.
+Removal retains partial files, issue status and downstream download history.
+
 Confirmed mirror exhaustion also triggers one last NZB-only search for an eligible
 failed single issue, independently of the waiting-age setting. It requires an
 enabled, unblocked NZB indexer and NZBGet or SABnzbd, and waits for intake capacity

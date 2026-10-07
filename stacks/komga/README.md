@@ -591,7 +591,9 @@ Deploy matching Mylar and worker images before resuming this workflow.
 Filename and metadata volume-year conflicts remain for review before catalog
 lookup; an issue publication year is not treated as a volume start year.
 Filename volume ordinals such as `v2` match only an explicitly matching catalog
-`ComicVersion`; they are never discarded to guess between volumes. Full issues
+`ComicVersion`; they are never discarded to guess between volumes. A unique
+existing catalog match can prove an ordinal even when ComicInfo omits it;
+unknown versions and competing matches remain for review. Full issues
 with a cover-count annotation such as `(2 covers)` remain regular comics, while
 short cover-only archives and named cover collections remain supplements.
 
@@ -627,8 +629,10 @@ in backups. A replaced quarantine entry is labeled resolved while its original
 corrupt archive and retry history remain retained.
 
 Cleaned packs with stale Mylar file identities use authenticated destination hash
-revalidation without requiring retained sources or worker receipts. Rejected
-proofs preserve their original history and remain for review.
+revalidation without requiring retained sources or worker receipts. Worker report
+refresh translates recorded destinations through the configured native/worker
+mount mappings and checks their full hashes and current catalog ownership.
+Rejected proofs preserve their original history and remain for review.
 
 ## Verified release naming
 

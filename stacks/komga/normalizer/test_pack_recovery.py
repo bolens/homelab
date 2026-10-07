@@ -14,6 +14,7 @@ from maintenance import Maintenance
 from pack_recovery import Packs, evidence, kind, source_state
 from import_match import catalog, match
 from test_normalize import PNG, TOOL
+from test_publication_guard import AuthorityFixture
 
 
 class PackEvidenceTest(unittest.TestCase):
@@ -98,6 +99,18 @@ class PackEvidenceTest(unittest.TestCase):
                 connection.execute("UPDATE comics SET ComicVersion='v2'")
             self.assertEqual(catalog(database)[0][7], 'v2')
 
+    def test_ordinal_metadata_agrees_only_after_unique_current_catalog_match(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'Grimm Tales of Terror v2 001 (2015).cbz'
+            with zipfile.ZipFile(path, 'w') as archive:
+                archive.writestr('ComicInfo.xml', '<ComicInfo><Series>Grimm Tales of Terror</Series>'
+                                 '<Number>1</Number><Volume>2015</Volume></ComicInfo>')
+            row = ('503788', '85478', 'Wanted', '1', '2015-10-01', 'Grimm Tales of Terror', '2015', 'v2')
+            self.assertEqual(evidence(path, [row])['series'], 'Grimm Tales of Terror')
+            for rows in (None, [], [row[:-1] + ('v3',)], [row, ('999', '888') + row[2:]]):
+                with self.subTest(rows=rows), self.assertRaisesRegex(ValueError, 'Filename and metadata disagree'):
+                    evidence(path, rows)
+
     def test_cleaned_pack_revalidation_preserves_history_without_sources(self):
         record={'id':'a'*64,'source':'/cache/removed.zip','phase':'confirmed',
                 'cleanup_complete':True,'inventory_complete':True,
@@ -108,6 +121,7 @@ class PackEvidenceTest(unittest.TestCase):
         packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=api,worker=SimpleNamespace(config={})),
                               local=lambda value:Path(value),inventory=Mock(),changed=False)
         packs.report=lambda value:Packs.report(packs,value)
+        packs.refresh_cleaned=lambda value:Packs.refresh_cleaned(packs,value)
         Packs.cycle(packs)
         packs.inventory.assert_not_called()
         payload=json.loads(api.call_args.kwargs['report'])
@@ -125,10 +139,33 @@ class PackEvidenceTest(unittest.TestCase):
         packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=calls,worker=SimpleNamespace(config={})),
                               local=lambda value:Path(value),inventory=Mock(),changed=False)
         packs.report=lambda value:Packs.report(packs,value)
+        packs.refresh_cleaned=lambda value:Packs.refresh_cleaned(packs,value)
         Packs.cycle(packs)
         self.assertEqual(calls.call_count,2)
         self.assertEqual(record['members'][0]['phase'],'confirmed')
         packs.inventory.assert_not_called()
+
+    def test_failed_member_refresh_retains_verified_history_and_never_cleans(self):
+        with tempfile.TemporaryDirectory() as directory:
+            receipt=Path(directory)/'receipt.json'
+            original=dict(id='b'*64,kind='issue',phase='confirmed',issueid='123',comicid='456',
+                destination='/library/verified.cbz',destination_sha256='c'*64,reason='Library content verified')
+            value=dict(id='a'*64,members=[dict(original)])
+            record=dict(id='a'*64,source='/cache/retained.zip',phase='review',members=[dict(original)])
+            api=Mock(return_value={'enabled':True,'packs':[record]})
+            def failed(member,directory):
+                member['destination']='/foreign/replacement.cbz'
+                raise ValueError('Current proof unavailable')
+            packs=SimpleNamespace(m=SimpleNamespace(settings={'pack_import':True},mylar=api,
+                worker=SimpleNamespace(config={}),import_submitted=False),local=lambda p:Path(p),
+                inventory=lambda r:(receipt,value),member=failed,
+                report=Mock(side_effect=ValueError('Native report holds missing proof')),cleanup=Mock(),changed=False)
+            Packs.cycle(packs)
+            saved=json.loads(receipt.read_text())['members'][0]
+            self.assertEqual({key:saved[key] for key in original},original)
+            self.assertIn('verification_review',saved)
+            packs.cleanup.assert_not_called()
+            self.assertEqual(record['members'][0],original)
 
     def test_disabled_pdf_keeps_page_archive_with_pdf_extra_as_single_comic(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -235,6 +272,20 @@ class PackTest(unittest.TestCase):
         with patch('pack_recovery.time.time',return_value=9000):self.packs.member(member,receipt.parent)
         self.assertEqual(self.m.mylar.call_count,2)
         self.assertTrue(Path(member['source']).is_file())
+
+    def test_ordinal_member_reaches_exact_existing_owner_without_catalog_request(self):
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute('ALTER TABLE comics ADD COLUMN ComicVersion')
+            db.execute("UPDATE comics SET ComicName='Grimm Tales of Terror',ComicYear='2015',ComicVersion='v2'")
+            db.execute("UPDATE issues SET IssueDate='2015-10-01'")
+        source = self.archive(self.pack/'Grimm Tales of Terror v2 001 (2015).cbz', meta=
+            '<ComicInfo><Series>Grimm Tales of Terror</Series><Number>1</Number><Volume>2015</Volume></ComicInfo>')
+        receipt, value = self.packs.inventory(self.record)
+        self.packs.member(value['members'][0], receipt.parent)
+        member = value['members'][0]
+        self.assertEqual((member['phase'], member['issueid'], member['comicid']), ('confirmed', '100', '10'))
+        self.assertTrue(source.is_file())
+        self.m.mylar.assert_not_called()
 
     def test_mixed_pack_keeps_cover_separate_and_cleans_only_verified_sources(self):
         issue=self.archive(self.pack/'Test Comic 001 (2017).cbz')
@@ -416,6 +467,58 @@ class PackTest(unittest.TestCase):
         self.assertEqual(len(value['members']),1)
         self.packs.member(value['members'][0],receipt.parent)
         self.assertEqual(value['members'][0]['phase'],'confirmed')
+
+
+class CleanedPackAuthorityTest(AuthorityFixture, unittest.TestCase):
+    def setUp(self):
+        AuthorityFixture.setUp(self)
+        from normalize import digest
+        state=self.root/'worker-state'
+        state.mkdir()
+        maintenance=state/'maintenance'
+        maintenance.mkdir()
+        cache=self.root/'shared-cache'
+        cache.mkdir()
+        worker=SimpleNamespace(state=state,roots=[self.library],config={
+            'writer_state':str(self.writer.root),
+            'publication_roots':[{'native':str(self.native_root),'worker':str(self.library)}],
+            'mylar':{'config_dir':str(self.config)}})
+        self.m=SimpleNamespace(worker=worker,state=maintenance,roots=[cache],
+            settings={'ddl_cache':str(cache),'mylar_ddl_cache':'/native-cache'},mylar=Mock())
+        self.record=dict(id='c'*64,ddl_id='1',source='/native-cache/removed.zip',phase='confirmed',
+            inventory_complete=True,cleanup_complete=True,members=[dict(id='d'*64,kind='issue',phase='confirmed',
+                issueid='123',comicid='456',destination=str(self.native_root/self.source.name),
+                destination_sha256=digest(self.source),signature=[0,0,0,0,0])])
+        from native_handoff import report
+        self.packs=SimpleNamespace(m=self.m,report=lambda value:report(self.m,value))
+
+    def refresh(self):
+        from publication_guard import scope
+        with self.writer.hold(),scope(self.m.worker,self.writer) as authority:
+            authority.tool_root=self.tool
+            return Packs.refresh_cleaned(self.packs,self.record)
+
+    def test_cleaned_native_paths_prepare_report_only_with_actual_current_owner(self):
+        before=json.dumps(self.record,sort_keys=True)
+        self.assertIsNone(self.refresh())
+        job=json.loads(next((self.m.state/'native-handoffs').glob('*.json')).read_text())
+        self.assertEqual(job['phase'],'prepared')
+        self.assertEqual(job['guards'][0]['source'],str(self.source))
+        packet=json.loads(job['arguments']['report'])
+        self.assertEqual(packet['members'][0]['destination'],self.record['members'][0]['destination'])
+        self.assertEqual(json.dumps(self.record,sort_keys=True),before)
+        self.m.mylar.assert_not_called()
+
+    def test_cleaned_report_holds_wrong_owner_changed_archive_and_unmapped_path(self):
+        from publication_guard import Unavailable
+        original=self.record['members'][0].copy()
+        for changes in ({'issueid':'999','comicid':'888'}, {'destination':'/foreign/correct.cbz'},
+                        {'destination_sha256':'0'*64}):
+            self.record['members'][0]=dict(original,**changes)
+            with self.subTest(changes=changes),self.assertRaises((Unavailable,ValueError)):
+                self.refresh()
+        self.assertFalse((self.m.state/'native-handoffs').exists())
+        self.m.mylar.assert_not_called()
 
 
 if __name__=='__main__':unittest.main()

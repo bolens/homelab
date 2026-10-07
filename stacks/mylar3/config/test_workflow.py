@@ -680,4 +680,140 @@ class Api:
         self.assertIn('not manual and not workflow.in_handoff(issueid)',changed)
         with self.assertRaises(ValueError):patch_workflow.search('def replaced():pass')
 
+    def accepted_handoff(self):
+        owner=self.handoff()
+        return workflow.set_handoff(owner,'accepted','Downloader confirmed')
+
+    def remove_ddl(self,legacy=None):
+        class HTTPError(Exception):
+            def __init__(self,status,message):self.status=status;super().__init__(message)
+        with patch.dict(sys.modules,{'cherrypy':SimpleNamespace(HTTPError=HTTPError)}):
+            return workflow.guard_requeue(legacy or Mock())(None,'remove',id='1')
+
+    def test_confirmed_handoff_remove_preserves_downstream_and_original(self):
+        owner=self.accepted_handoff()
+        archive=Path(self.tmp.name)/'original.cbz';archive.write_bytes(b'protected archive')
+        self.conn.execute("INSERT INTO nzblog VALUES ('10','fixture')")
+        app.NZB_QUEUE.put({'issueid':'10','NZBID':'client-accepted'})
+        legacy=Mock(side_effect=AssertionError('Legacy removal must not run'))
+        response=json.loads(self.remove_ddl(legacy))
+        self.assertIs(response['status'],True)
+        self.assertIsNone(self.conn.execute('SELECT * FROM ddl_info').fetchone())
+        self.assertEqual(workflow.reservation('10'),owner)
+        self.assertEqual(archive.read_bytes(),b'protected archive')
+        self.assertEqual(app.NZB_QUEUE.qsize(),1)
+        self.assertEqual(self.conn.execute('SELECT count(*) FROM nzblog').fetchone()[0],1)
+        self.assertEqual(self.conn.execute('SELECT Status FROM issues').fetchone()[0],'Snatched')
+        workflow._STORE=Store(self.tmp.name)
+        self.assertIs(json.loads(self.remove_ddl(legacy))['status'],True)
+        sender=Mock(return_value={'status':True})
+        self.assertFalse(workflow.sender(sender,'10')['status']);sender.assert_not_called()
+        self.assertEqual(workflow.store().get('ddl_handoff_removal','1')['phase'],'removed')
+
+    def test_pending_handoff_remove_cancels_search_before_submission(self):
+        self.handoff();item=app.SEARCH_QUEUE.get_nowait()
+        response=json.loads(self.remove_ddl())
+        self.assertIn('cancelled before submission',response['message'])
+        self.assertIsNone(self.conn.execute('SELECT * FROM ddl_info').fetchone())
+        self.assertEqual(workflow.store().get('handoff','10')['phase'],'released')
+        self.assertFalse(workflow.reservation('10'))
+        workflow._STORE=Store(self.tmp.name)
+        workflow.queue_item(item,app.SEARCH_QUEUE)
+        app.search.searchforissue.assert_not_called()
+        self.assertIs(json.loads(self.remove_ddl())['status'],True)
+
+    def test_pending_handoff_delete_failure_retains_cancelled_search_proof(self):
+        self.handoff();item=app.SEARCH_QUEUE.get_nowait();real=DB.action
+        def interrupted(database,query,args=()):
+            if query.startswith('DELETE FROM ddl_info'):raise OSError('interrupted')
+            return real(database,query,args)
+        with patch.object(DB,'action',interrupted),self.assertRaises(OSError):self.remove_ddl()
+        self.assertEqual(self.status(),'NZB handoff')
+        self.assertEqual(workflow.store().get('handoff','10')['phase'],'released')
+        workflow.queue_item(item,app.SEARCH_QUEUE);app.search.searchforissue.assert_not_called()
+        self.assertIs(json.loads(self.remove_ddl())['status'],True)
+
+    def test_uncertain_handoff_remove_never_changes_row_or_calls_legacy(self):
+        row=self.handoff()
+        for phase in ('searching','dispatching','review'):
+            workflow.set_handoff(row,phase,'Needs proof')
+            legacy=Mock()
+            with self.subTest(phase=phase),self.assertRaises(Exception) as caught:
+                self.remove_ddl(legacy)
+            self.assertEqual(caught.exception.status,409)
+            self.assertEqual(self.status(),'NZB handoff');legacy.assert_not_called()
+            self.assertIsNone(workflow.store().get('ddl_handoff_removal','1'))
+
+    def test_removal_delete_lost_ack_recovers_without_resubmission(self):
+        self.accepted_handoff()
+        real=Store.replace
+        def interrupted(journal,kind,*args,**kwargs):
+            if kind=='ddl_handoff_removal':raise OSError('lost acknowledgement')
+            return real(journal,kind,*args,**kwargs)
+        with patch.object(Store,'replace',interrupted),self.assertRaises(OSError):self.remove_ddl()
+        self.assertIsNone(self.conn.execute('SELECT * FROM ddl_info').fetchone())
+        self.assertEqual(workflow.store().get('ddl_handoff_removal','1')['phase'],'prepared')
+        workflow._STORE=Store(self.tmp.name)
+        self.assertIs(json.loads(self.remove_ddl())['status'],True)
+        self.assertEqual(workflow.reservation('10')['phase'],'accepted')
+
+    def test_removal_prepared_crash_retries_exact_row_but_holds_changed_provenance(self):
+        self.accepted_handoff()
+        real=DB.action
+        def interrupted(database,query,args=()):
+            if query.startswith('DELETE FROM ddl_info'):raise OSError('interrupted before deletion')
+            return real(database,query,args)
+        with patch.object(DB,'action',interrupted),self.assertRaises(OSError):self.remove_ddl()
+        self.assertEqual(self.status(),'NZB handoff')
+        self.conn.execute("UPDATE ddl_info SET mainlink='https://example.com/different'")
+        with self.assertRaises(Exception) as caught:self.remove_ddl()
+        self.assertEqual(caught.exception.status,409);self.assertEqual(self.status(),'NZB handoff')
+        self.conn.execute("UPDATE ddl_info SET mainlink='https://example.com/release'")
+        self.assertIs(json.loads(self.remove_ddl())['status'],True)
+
+    def test_removal_conditional_delete_holds_concurrent_row_replacement(self):
+        self.accepted_handoff();real=DB.action
+        def replaced(database,query,args=()):
+            if query.startswith('DELETE FROM ddl_info'):
+                self.conn.execute("UPDATE ddl_info SET mainlink='https://example.com/foreign'")
+            return real(database,query,args)
+        with patch.object(DB,'action',replaced),self.assertRaises(Exception) as caught:self.remove_ddl()
+        self.assertEqual(caught.exception.status,409);self.assertEqual(self.status(),'NZB handoff')
+        self.assertEqual(workflow.store().get('ddl_handoff_removal','1')['phase'],'prepared')
+
+    def test_removed_receipt_cannot_delete_reused_native_id_or_changed_owner(self):
+        owner=self.accepted_handoff();self.remove_ddl()
+        self.conn.execute("INSERT INTO ddl_info VALUES ('1','10','20','Example #1','0','NZB handoff','DDL(GetComics)','2026-01-01 00:00','GC-Main','https://example.com/release')")
+        with self.assertRaises(Exception) as caught:self.remove_ddl()
+        self.assertEqual(caught.exception.status,409);self.assertEqual(self.status(),'NZB handoff')
+        self.conn.execute('DELETE FROM ddl_info')
+        workflow.store().set('handoff','10',dict(owner,id='b'*32))
+        with self.assertRaises(Exception) as caught:self.remove_ddl()
+        self.assertEqual(caught.exception.status,409)
+
+    def test_ordinary_remove_delegates_and_removed_handoff_receipt_is_strict(self):
+        legacy=Mock(return_value='native result')
+        self.assertEqual(self.remove_ddl(legacy),'native result');legacy.assert_called_once()
+        self.accepted_handoff();self.remove_ddl()
+        old=workflow.store().get('ddl_handoff_removal','1')
+        for invalid in (dict(old,version=True),dict(old,phase='accepted'),dict(old,unexpected=True)):
+            workflow.store().set('ddl_handoff_removal','1',invalid)
+            with self.assertRaises(Exception) as caught:self.remove_ddl()
+            self.assertEqual(caught.exception.status,409)
+
+    def test_handoff_removal_prompt_explains_pending_vs_accepted(self):
+        source=(Path(__file__).parent/'ddl_queue.js').read_text()
+        self.assertIn("status==='NZB handoff'",source)
+        self.assertIn('Pending NZB searches are cancelled. Accepted NZB downloads continue.',source)
+        self.assertIn('Uncertain handoffs require Activity review.',source)
+        self.assertIn('xhr.status===409',source)
+        self.assertIn("if (mode==='remove' && !confirmed) return;",source)
+
+    def test_orphan_nzb_handoff_label_does_not_prove_safe_removal(self):
+        self.conn.execute("UPDATE ddl_info SET status='NZB handoff'")
+        legacy=Mock()
+        with self.assertRaises(Exception) as caught:self.remove_ddl(legacy)
+        self.assertEqual(caught.exception.status,409);legacy.assert_not_called()
+        self.assertEqual(self.status(),'NZB handoff')
+
 if __name__=='__main__':unittest.main()
