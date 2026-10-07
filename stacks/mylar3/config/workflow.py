@@ -545,15 +545,121 @@ def ddl_finished(item,result):
          issueid=item.get('issueid'),comicid=item.get('comicid'),name=item.get('series'),provider=item.get('link_type'),retry_at=retry)
 
 
+def _ddl_row_digest(row):
+    # Bind every native column, including private release provenance, without
+    # copying URLs or paths into the removal receipt or public response.
+    return hashlib.sha256(json.dumps(dict(row),sort_keys=True,separators=(',',':'),
+                                     allow_nan=False).encode()).hexdigest()
+
+
+def remove_handoff_ddl(ddl_id,row,receipt=None):
+    """Retire queued/accepted DDL rows; preserve any accepted NZB ownership.
+
+    Caller owns issue -> queue -> workflow locks. No downloader, media, issue,
+    or processing operation belongs to this action. A prepared receipt allows
+    recovery after native DELETE or its acknowledgement was interrupted.
+    """
+    from mylar import db
+    ddl_id=ddl_identifier(ddl_id)
+    if not ddl_id:raise ValueError('Invalid DDL entry')
+    journal=store()
+    receipt=journal.get('ddl_handoff_removal',ddl_id) if receipt is None else receipt
+    if receipt is not None:
+        keys={'version','ddl_id','issueid','comicid','handoff_id','row_digest','handoff_phase','phase'}
+        if (type(receipt) is not dict or set(receipt)!=keys
+                or type(receipt['version']) is not int or receipt['version']!=1
+                or receipt['ddl_id']!=ddl_id
+                or not identifier(receipt['issueid']) or not identifier(receipt['comicid'])
+                or not re.fullmatch(r'[a-f0-9]{32}',str(receipt['handoff_id']))
+                or not re.fullmatch(r'[a-f0-9]{64}',str(receipt['row_digest']))
+                or receipt['handoff_phase'] not in ('queued','accepted')
+                or receipt['phase'] not in ('prepared','removed')):
+            raise ValueError('DDL removal receipt requires review')
+        iid=receipt['issueid']
+    elif row is not None:
+        iid=str(row['issueid'])
+    else:raise ValueError('DDL handoff entry unavailable')
+    owner=journal.get('handoff',iid)
+    allowed={'queued','accepted'} if receipt is None else ({'queued','released'} if receipt['handoff_phase']=='queued' else {'accepted','completed'})
+    if (not owner or owner.get('phase') not in allowed
+            or not re.fullmatch(r'[a-f0-9]{32}',str(owner.get('id')))
+            or not identifier(owner.get('issueid')) or not identifier(owner.get('comicid'))
+            or import_owner(iid) or dispatch_owner(iid)
+            or str(owner.get('ddl_id'))!=ddl_id or str(owner.get('issueid'))!=iid
+            or (receipt is not None and (owner.get('id')!=receipt['handoff_id']
+                or str(owner.get('comicid'))!=receipt['comicid']))):
+        raise ValueError('Confirm the NZB handoff in Activity before removing this entry')
+    if row is not None:
+        if (owner['phase'] not in ('queued','accepted','released') or str(row['issueid'])!=iid
+                or str(row['comicid'])!=str(owner['comicid'])
+                or row['status']!='NZB handoff' or str(row['pack']) not in ('0','False')
+                or row['site']!='DDL(GetComics)'):
+            raise ValueError('DDL handoff entry changed; review required')
+        digest=_ddl_row_digest(row)
+        if receipt is not None and (receipt['row_digest']!=digest or receipt['phase']=='removed'):
+            raise ValueError('DDL entry was replaced; review required')
+        if receipt is None:
+            receipt={'version':1,'ddl_id':ddl_id,'issueid':iid,'comicid':str(owner['comicid']),
+                     'handoff_id':owner['id'],'row_digest':digest,'handoff_phase':owner['phase'],'phase':'prepared'}
+            if not journal.create('ddl_handoff_removal',ddl_id,receipt):
+                raise ValueError('DDL removal state changed; refresh before retrying')
+        if receipt['handoff_phase']=='queued' and owner['phase']=='queued':
+            cancelled=dict(owner,phase='released',reason='Operator removed pending DDL handoff',updated_at=time.time())
+            if not journal.replace('handoff',iid,owner,cancelled):
+                raise ValueError('DDL handoff changed; removal requires review')
+            owner=cancelled
+        # Conditional deletion protects even against an out-of-process row edit.
+        columns=list(dict(row))
+        if not all(re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*',key) for key in columns):
+            raise ValueError('Unsupported DDL row schema')
+        if journal.get('ddl_handoff_removal',ddl_id)!=receipt or journal.get('handoff',iid)!=owner:
+            raise ValueError('DDL handoff state changed; review required')
+        db.DBConnection().action('DELETE FROM ddl_info WHERE '+
+            ' AND '.join('"'+key+'" IS ?' for key in columns),[row[key] for key in columns])
+        remaining=db.DBConnection().selectone('SELECT * FROM ddl_info WHERE id=?',[ddl_id]).fetchone()
+        if remaining is not None:raise ValueError('DDL entry changed; removal was not confirmed')
+    if receipt is None:raise ValueError('DDL removal proof unavailable')
+    if receipt['handoff_phase']=='queued' and owner['phase']=='queued':
+        cancelled=dict(owner,phase='released',reason='Operator removed pending DDL handoff',updated_at=time.time())
+        if not journal.replace('handoff',iid,owner,cancelled):
+            raise ValueError('DDL handoff changed; removal requires review')
+        owner=cancelled
+    if journal.get('handoff',iid)!=owner:
+        raise ValueError('DDL handoff changed; removal requires review')
+    if receipt['phase']=='prepared':
+        if not journal.replace('ddl_handoff_removal',ddl_id,receipt,dict(receipt,phase='removed')):
+            raise ValueError('DDL removal state changed; refresh before retrying')
+    complete=dict(receipt,phase='removed')
+    if journal.get('ddl_handoff_removal',ddl_id)!=complete or journal.get('handoff',iid)!=owner:
+        raise ValueError('DDL removal acknowledgement changed; review required')
+    if db.DBConnection().selectone('SELECT * FROM ddl_info WHERE id=?',[ddl_id]).fetchone() is not None:
+        raise ValueError('DDL entry reappeared; review required')
+    message=('DDL entry removed. Pending NZB handoff cancelled before submission.'
+             if receipt['handoff_phase']=='queued' else
+             'DDL entry removed. The NZB download continues; its handoff reservation is retained.')
+    return json.dumps({'status':True,'message':message})
+
+
 def guard_requeue(function):
     @wraps(function)
     def wrapped(self,mode,id=None,issueid=None):
         from mylar import db,queue_control
         import cherrypy
-        with queue_control._LOCK,LOCK:
-            row=db.DBConnection().selectone('SELECT issueid FROM ddl_info WHERE id=?',[id]).fetchone() if id else None
-            iid=str(row['issueid']) if row else issueid
-            if reservation(iid) or import_owner(iid) or dispatch_owner(iid):raise cherrypy.HTTPError(409,'This issue is reserved for NZB handoff; review it in Activity')
+        # Match request_handoff/sender lock order, including the missing-row
+        # acknowledgement recovery case, whose issue is retained in the receipt.
+        raw=db.DBConnection().selectone('SELECT * FROM ddl_info WHERE id=?',[id]).fetchone() if id else None
+        receipt=store().get('ddl_handoff_removal',id) if id and mode=='remove' else None
+        iid=str(raw['issueid']) if raw else (receipt.get('issueid') if type(receipt) is dict else issueid)
+        with issue_lock(iid),queue_control._LOCK,LOCK:
+            row=db.DBConnection().selectone('SELECT * FROM ddl_info WHERE id=?',[id]).fetchone() if id else None
+            if row is not None and str(row['issueid'])!=str(iid):
+                raise cherrypy.HTTPError(409,'DDL entry changed; refresh before retrying')
+            owner=reservation(iid)
+            if mode=='remove' and id and (receipt is not None or owner or (row is not None and row['status']=='NZB handoff')):
+                try:return remove_handoff_ddl(id,row)
+                except ValueError as exc:raise cherrypy.HTTPError(409,str(exc)) from None
+            if owner or import_owner(iid) or dispatch_owner(iid):
+                raise cherrypy.HTTPError(409,'This issue is reserved for NZB handoff; review it in Activity')
             return function(self,mode,id=id,issueid=issueid)
     return wrapped
 

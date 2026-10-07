@@ -8,6 +8,12 @@ Gather forensic artifacts from disk images or a live system into a single archiv
 
 ## Building the image
 
+The image uses Python 3.13 on Debian Bookworm. The pinned `dissect-target==3.25.1`
+uses Python 3.13 pathlib/glob internals and cannot start on Python 3.14. Keep this
+runtime until a Dissect update supports Python 3.14; verify the CLI before
+changing the base. Image builds check package compatibility with `pip check` and
+run `acquire --help`, which exercises the Dissect imports.
+
 To build and push the image to your registry (e.g. Harbor):
 
 ```bash
