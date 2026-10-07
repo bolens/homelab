@@ -68,6 +68,109 @@ class ExistingAdmissionTests(unittest.TestCase):
         self.assertFalse(self.native.active());self.assertEqual(store.path.read_bytes(),before)
         self.tagger.recover.assert_not_called();self.release.recover.assert_not_called()
 
+    def test_cleanup_cas_without_intent_holds_startup_and_preserves_state(self):
+        store,writer=self.authority()
+        for record in ({'phase':'attempted'}, {'phase':'complete'}, None):
+            with self.subTest(record=record):
+                store.set('combined_cleanup','d'*64,record)
+                before=store.path.read_bytes()
+                self.assertFalse((writer.root/'tagger-publication-v1.json').exists())
+                self.assertEqual(self.native.initialize_publication()['state'],'held')
+                with self.assertRaises(self.guard.Unavailable):
+                    with self.native.operation(startup=True):self.native.complete_startup()
+                self.assertEqual(self.native.startup_status()['state'],'held')
+                self.assertEqual(store.path.read_bytes(),before)
+                store.delete('combined_cleanup','d'*64)
+
+    def test_complete_cleanup_cas_does_not_recreate_private_pair(self):
+        store,writer=self.authority()
+        record=dict(version=1,kind='combined_cleanup',token='d'*64,phase='complete',
+                    binding='e'*64,attempt_digest='f'*64,terminal_digest='a'*64)
+        store.set('combined_cleanup',record['token'],record)
+        with store.connection() as db:
+            import json
+            db.executemany('INSERT INTO records VALUES (?,?,?,?)',
+                [('combined_cleanup',format(i,'064x'),json.dumps(dict(record,token=format(i,'064x'))),1) for i in range(200)])
+        before=store.path.read_bytes()
+        self.assertEqual(self.activate()['state'],'ready')
+        self.assertEqual(store.path.read_bytes(),before)
+        self.assertFalse((writer.root/'combined-cleanup-v1').exists())
+
+    def test_cleanup_read_cannot_admit_relaxed_database_privacy(self):
+        store,_=self.authority();self.activate()
+        actual=self.guard.cleanup_admission
+        entered=[]
+        def changed(database):
+            store.path.chmod(0o644)
+            return actual(database)
+        with patch.object(self.guard,'cleanup_admission',side_effect=changed),self.assertRaises(self.guard.Unavailable):
+            with self.native.operation():entered.append(True)
+        self.assertEqual(entered,[])
+
+    def test_cleanup_read_cannot_admit_replaced_database(self):
+        import shutil
+        store,writer=self.authority();self.activate()
+        actual=self.guard.cleanup_admission
+        target=store.path;entered=[]
+        def changed(database):
+            replacement=target.with_name(target.name+'.replacement')
+            shutil.copyfile(target,replacement);replacement.chmod(0o600)
+            replacement.replace(target)
+            return actual(database)
+        with patch.object(self.guard,'cleanup_admission',side_effect=changed),self.assertRaises(self.guard.Unavailable):
+            with self.native.operation():entered.append(True)
+        self.assertEqual(entered,[])
+
+    def test_cleanup_read_cannot_admit_replaced_marker(self):
+        import shutil
+        _,writer=self.authority();self.activate()
+        actual=self.guard.cleanup_admission
+        target=writer.root/'publication-v1.json';entered=[]
+        def changed(database):
+            replacement=target.with_name(target.name+'.replacement')
+            shutil.copyfile(target,replacement);replacement.chmod(0o600)
+            replacement.replace(target)
+            return actual(database)
+        with patch.object(self.guard,'cleanup_admission',side_effect=changed),self.assertRaises(self.guard.Unavailable):
+            with self.native.operation():entered.append(True)
+        self.assertEqual(entered,[])
+
+    def test_blob_cleanup_namespace_or_key_is_not_ignored(self):
+        import sqlite3,json
+        store,_=self.authority()
+        for kind,key in ((sqlite3.Binary(b'combined_cleanup'),'d'*64),('combined_cleanup',sqlite3.Binary(b'd'*64))):
+            with store.connection() as db:
+                db.execute('INSERT INTO records VALUES (?,?,?,?)',(kind,key,json.dumps({'phase':'attempted'}),1))
+            before=store.path.read_bytes()
+            self.assertEqual(self.native.initialize_publication()['state'],'held')
+            self.assertEqual(store.path.read_bytes(),before)
+            with store.connection() as db:db.execute('DELETE FROM records WHERE kind=? AND key=?',(kind,key))
+
+    def test_blob_producer_namespace_and_key_hold_before_any_intent(self):
+        import sqlite3,json
+        store,writer=self.authority()
+        for namespace in ('owned_conversion','retained_repeat'):
+            for kind,key in ((sqlite3.Binary(namespace.encode()),'d'*64),
+                             (namespace,sqlite3.Binary(b'd'*64))):
+                with self.subTest(namespace=namespace,kind=kind):
+                    with store.connection() as db:
+                        db.execute('INSERT INTO records VALUES (?,?,?,?)',
+                                   (kind,key,json.dumps({'phase':'prepared'}),1))
+                    before=store.path.read_bytes()
+                    self.assertEqual(self.native.initialize_publication()['state'],'held')
+                    self.assertEqual(store.path.read_bytes(),before)
+                    self.assertFalse(writer.release_pending.exists())
+                    with store.connection() as db:
+                        db.execute('DELETE FROM records WHERE kind=? AND key=?',(kind,key))
+
+    def test_other_multistep_and_derivative_namespaces_do_not_gain_generic_hold(self):
+        store,_=self.authority()
+        store.set('combined_publication','d'*64,{'phase':'waiting-reader'})
+        store.set('nested_derivative','e'*64,{'phase':'committed'})
+        before=store.path.read_bytes()
+        self.assertEqual(self.activate()['state'],'ready')
+        self.assertEqual(store.path.read_bytes(),before)
+
     def test_each_operation_revalidates_lost_marker_and_does_not_recreate(self):
         self.authority();self.activate()
         (self.root/'media-writer/publication-v1.json').unlink()
@@ -538,6 +641,127 @@ class NativeStartupSourceTests(unittest.TestCase):
             workflow.tick(pending);store.assert_not_called();connect.assert_not_called()
         self.assertFalse(workflow._STARTED);self.assertEqual(workflow._LAST_TICK,0)
         self.assertTrue(pending.empty());self.assertEqual(list(self.root.iterdir()),[])
+
+
+class PreIntentProducerAdmissionTests(unittest.TestCase):
+    """Actual producer CAS precedes NAME; no media or ledger reconstruction."""
+    def fixture(self, kind):
+        if kind == 'owned_conversion':
+            import test_publication_conversion as fixtures
+            import publication_conversion as producer
+            case = fixtures.ConversionTests()
+        else:
+            import test_publication_reconcile as fixtures
+            import publication_reconcile as producer
+            case = fixtures.ReconcileTests()
+        case.setUp();self.addCleanup(case.doCleanups)
+        import importlib.util
+        name = 'mylar.pre_intent_admission'
+        spec = importlib.util.spec_from_file_location(name, Path(__file__).with_name('native_writers.py'))
+        actual = importlib.util.module_from_spec(spec);spec.loader.exec_module(actual)
+        return case, producer, actual
+
+    def held(self, case, actual):
+        import publication_guard as guard
+        before = case.store.path.read_bytes();entered = []
+        self.assertEqual(actual.initialize_publication()['state'], 'held')
+        with case.writer.hold(), self.assertRaises(guard.Unavailable):
+            actual.admission(case.writer, startup=True);entered.append(True)
+        self.assertEqual(entered, []);self.assertEqual(case.store.path.read_bytes(), before)
+
+    def crash(self, kind):
+        import publication_guard as guard
+        import publication_transaction as transaction
+        case, producer, actual = self.fixture(kind)
+        source = case.source if kind == 'owned_conversion' else case.repeat
+        before = source.read_bytes()
+        write = producer._write
+        def failed(path, *args, **kwargs):
+            if Path(path) == case.writer.root / transaction.NAME and kwargs.get('exclusive') is True:
+                raise OSError('isolated crash before intent')
+            return write(path, *args, **kwargs)
+        with patch.object(producer, '_write', side_effect=failed), self.assertRaises(OSError):
+            producer.commit(case.request)
+        token = guard.canonical_digest(case.request)
+        self.assertEqual(case.store.get(kind, token)['phase'], 'prepared')
+        self.assertFalse((case.writer.root / transaction.NAME).exists())
+        self.assertFalse(case.writer.release_pending.exists())
+        self.assertEqual(source.read_bytes(), before)
+        self.held(case, actual)
+        with self.assertRaises(ValueError):producer.commit(case.request)
+        self.assertEqual(source.read_bytes(), before)
+
+    def test_actual_conversion_crash_before_name_holds_without_mutation(self):
+        self.crash('owned_conversion')
+
+    def test_actual_repeat_crash_before_name_holds_without_mutation(self):
+        self.crash('retained_repeat')
+
+    def complete(self, kind):
+        import publication_guard as guard
+        case, producer, actual = self.fixture(kind)
+        answer = producer.commit(case.request)
+        token = guard.canonical_digest(case.request)
+        self.assertEqual(case.store.get(kind, token)['phase'], 'committed')
+        before = case.store.path.read_bytes()
+        self.assertEqual(actual.initialize_publication()['state'], 'ready')
+        with case.writer.hold():actual.admission(case.writer, startup=True)
+        self.assertEqual(case.store.path.read_bytes(), before)
+        self.assertEqual(producer.status(token), answer)
+        return case, producer, actual, token
+
+    def test_actual_completed_conversion_remains_passive_and_does_not_replay(self):
+        case, producer, actual, token = self.complete('owned_conversion')
+        before = case.target.read_bytes()
+        with self.assertRaises(ValueError):producer.commit(case.request)
+        self.assertEqual(case.target.read_bytes(), before)
+        case.store.set('owned_conversion', token, dict(case.store.get('owned_conversion', token), phase='published'))
+        self.held(case, actual)
+
+    def test_actual_completed_repeat_remains_review_without_replay(self):
+        case, producer, actual, token = self.complete('retained_repeat')
+        self.assertTrue(producer.status(token)['requires_review'])
+        before = case.source.read_bytes()
+        with self.assertRaises(ValueError):producer.commit(case.request)
+        self.assertEqual(case.source.read_bytes(), before)
+        case.store.set('retained_repeat', token, dict(case.store.get('retained_repeat', token), phase='retained-review'))
+        self.held(case, actual)
+
+    def malformed(self, kind):
+        import copy
+        case, _, actual, token = self.complete(kind)
+        record = case.store.get(kind, token)
+        def replaced(path, value):
+            result = copy.deepcopy(record);where = result
+            for key in path[:-1]:where = where[key]
+            where[path[-1]] = value
+            return result
+        variants = [None, {}, dict(record, extra=True), replaced(('version',), True),
+                    replaced(('token',), 'a' * 64), replaced(('binding',), 'wrong'),
+                    replaced(('request', 'version'), 1.0), replaced(('result', 'witness'), None),
+                    replaced(('request', 'census', 'revision'), True)]
+        if kind == 'owned_conversion':
+            variants += [replaced(('states', 'original', 'signature',), [0] * 9),
+                         replaced(('states', 'target', 'sha256'), 'a' * 64),
+                         replaced(('result', 'destination'), '/foreign/output.cbz'),
+                         replaced(('states', 'original', 'attributes'), {'user.x': 'not-base64'})]
+        else:
+            variants += [replaced(('original_state', 'signature'), [0] * 9),
+                         replaced(('result', 'requires_review'), 1),
+                         replaced(('result', 'owner', 'issueid'), '0'),
+                         replaced(('result', 'acquisition_provenance'), 'invented'),
+                         replaced(('request', 'backup', 'manifest_sha256'), 'wrong')]
+        for value in variants:
+            with self.subTest(kind=kind, value=value):
+                case.store.set(kind, token, value);self.held(case, actual)
+        case.store.set(kind, token, record)
+        with case.writer.hold():actual.admission(case.writer, startup=True)
+
+    def test_malformed_completed_conversion_receipts_are_held(self):
+        self.malformed('owned_conversion')
+
+    def test_malformed_completed_repeat_receipts_are_held(self):
+        self.malformed('retained_repeat')
 
 
 if __name__=='__main__':unittest.main()

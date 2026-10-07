@@ -6,7 +6,7 @@
 
 **Status**: Prospective specification; implementation and operational acceptance pending
 
-**Input**: User request: “verify all other comics now and fix the issues that caused things to get out of whack.” Further privileged access is paused while the user is away.
+**Input**: User request: “verify all other comics now and fix the issues that caused things to get out of whack.” Privileged access is available under the scoped backup, independent restore and coordinated rollout requirements.
 
 ## User Scenarios & Testing
 

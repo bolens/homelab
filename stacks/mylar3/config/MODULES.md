@@ -24,7 +24,10 @@ Mylar's package; adapters and tests stay in the build stage.
 | Native payload admission and retained postprocessing review | `patch_publication_processing.py` (invoked by `patch_publication_guard.py`) | `publication_native.py`, `processing_guard.py`, `pp_monitor.py`, `test_publication_native.py`; checked actual native processing and acknowledgement branches |
 | Owned tagging publication and terminal evidence | `patch_publication_guard.py` | `publication_transaction.py`, `tagger_backend.py`, `tagger_native.py`, `tagger_service.py`, `tagger_pack.py`, `tagger_nfs.py`, `test_publication_tagging.py`; internal typed coordination, retained review and exact terminal completion |
 | Owned release rename and root metadata | `patch_publication_guard.py` | `publication_rename.py`, `release_naming.py`, `tagger_supplement.py`, `publication_transaction.py`; `test_publication_rename.py`, `test_publication_maintenance.py`; immutable source/owner/census checkpoints and retained interruption holds |
-| Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; last adapter after the authenticated publication API |
+| Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; follows the authenticated publication API, refuses pending media intents and uncertain cleanup records |
+| Reviewed retained repeat reconciliation | `patch_publication_reconcile.py` | `publication_reconcile.py`, `test_publication_reconcile.py`; exact registered conflict, private independently verified retention and conditional false-location removal; wanted intent remains separately reviewed |
+| Conclusive combined-pass preservation cleanup | `patch_combined_publication.py` | `combined_cleanup.py`, `test_combined_cleanup.py`; independently captured producer history, current archive/owner/census and final reader acceptance, at-most-once private-pair retirement and passive terminal acknowledgement |
+| Explicit reviewed nested-metadata derivative | `patch_publication_derivative.py` | `publication_lineage.py`, `publication_derivative.py`, `library_metadata.py`; lineage/adoption/producer/consumer controls, complete inherited owner claims and retained originals; ordinary discovery does not authorize member-name changes |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
 | Mirror failover and cooldown discovery | `patch_ddl_failover.py` | `ddl_failover.py`, `test_ddl_failover.py`, `test_ddl_failover_native.py`; follows discovery and queue adapters |
@@ -325,3 +328,10 @@ Existing startup requires an owned regular readable native catalog with no pendi
 SQLite sidecars. Missing or damaged native catalogs stay held for reviewed recovery.
 Workflow factories use existing-only SQLite under caller-owned admission. DDL
 retry state keeps its separate JSON Store and existing attempt/cooldown records.
+
+
+## Combined publication and owned conversion
+
+`patch_combined_publication.py` installs the primary-key POST `combinedPublication` route after publication authority. `combined_publication.py` owns private preparation and the finite rename → unchanged-hash reader restoration → preserved root metadata sequence. `publication_transaction.closed_supplement` validates closed metadata lineage without creating or replaying a tagging transaction. Private originals remain retained; final cleanup requires separate acceptance.
+
+`patch_publication_conversion.py` installs primary-key `commitConvertedArchive` and passive `convertedArchiveStatus`. `publication_conversion.py` owns exact live conversion admission, unchanged member/page inventories, private original retention, exclusive target publication, conditional catalog relocation and durable terminal acknowledgement. Its controls use actual archive verification and current native ownership. PDF and member-name derivatives remain held. Both routes are installed and tested by the image gate before workflow capabilities are advertised.

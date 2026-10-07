@@ -423,6 +423,9 @@ class Naming:
 
     def apply(self, manifest, limit=1):
         remote_unlocked(self.worker)
+        if manifest.get('kind') == 'combined-root-v1':
+            from combined_handoff import Combined
+            return Combined(self).apply(manifest, limit)
         if (type(manifest.get('version')) is not int or manifest.get('version') != 1
                 or not isinstance(manifest.get('entries'), list) or type(limit) is not int or not 1 <= limit <= 100):
             raise ValueError('Invalid release naming manifest or batch limit')
@@ -453,6 +456,9 @@ class Naming:
     def reconcile(self):
         """Ask the native owner to recover before ordinary writer admission."""
         remote_unlocked(self.worker)
+        if (self.worker.state/'combined-release-v1').exists():
+            from combined_handoff import Combined
+            Combined(self).reconcile()
         for receipt in sorted(self.root.glob('*/receipt.json')):
             if receipt.parent.name.startswith('.'):continue
             job = self.read_receipt(receipt.parent)
@@ -466,6 +472,10 @@ class Naming:
 
     def tick(self):
         remote_unlocked(self.worker)
+        if (self.worker.state/'combined-release-v1').exists():
+            from combined_handoff import Combined
+            if Combined(self).reconcile():
+                return
         # Complete existing work before accepting another rename or reader scan.
         for receipt in sorted(self.root.glob('*/receipt.json')):
             if receipt.parent.name.startswith('.'):continue

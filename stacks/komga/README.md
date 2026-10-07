@@ -693,3 +693,8 @@ reader scans that could overlap the pass. Rollback requires restoring affected
 paths/catalog and compatible reader state while writers are stopped. Preserve
 unresolved receipts, originals and pending markers, and never deploy an older image
 while a release naming transaction remains pending.
+
+
+With initialized publication protection, eligible lossless conversion uses a private prepared handoff and native Mylar publication. Dispatch runs after releasing the shared writer and before unrelated reader scans. An uncertain commit uses passive native status; fresh current owner, source, complete census and terminal proof precede reader notification. Completion requires a unique ready reader book with the exact target hash and page count. Existing reader-owned sources, unsupported PDF/member derivatives and old jobs remain held.
+
+The coordinated combined rename/metadata pass binds one native original/restore pair to exact policy and naming facts. It renames first, verifies reader restoration at the unchanged archive hash, then requests native root metadata publication. New metadata hashes are accepted only through closed native lineage. Private native copies stay retained pending final cleanup acceptance. Matching `combined_cleanup=1` support permits only explicit retirement after fresh native and reader proof; an uncertain request uses passive status and cannot repeat deletion. The worker independently validates adopted nested-metadata families, preserving inherited rejected owners across original and derivative payloads. Deploy matching native and worker images with verified backups before enabling either path; final protected-library acceptance remains pending.

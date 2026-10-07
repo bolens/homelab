@@ -51,11 +51,22 @@ def merge(root_xml, nested_xml):
     return metadata.reconcile(root_xml, ET.tostring(nested, encoding='utf-8'))
 
 
+def promote(nested_xml):
+    """Promote validated identity; keep unproved page/arc associations in provenance."""
+    root = metadata.parse(nested_xml)
+    issue_identity(root)
+    for child in list(root):
+        if child.tag in ('Pages', 'StoryArc', 'StoryArcNumber', 'SeriesGroup'):
+            root.remove(child)
+    return ET.tostring(root, encoding='utf-8')
+
+
 def layout(z):
     names = z.namelist()
     copies = [n for n in names if PurePosixPath(n).name.casefold() == 'comicinfo.xml']
-    if len(copies) != 2 or 'ComicInfo.xml' not in copies:
-        raise ValueError('Expected exactly one root and one nested ComicInfo')
+    rooted = 'ComicInfo.xml' in copies
+    if not ((rooted and len(copies) == 2) or (not rooted and len(copies) == 1)):
+        raise ValueError('Expected one unambiguous nested ComicInfo and at most one root')
     nested = next(n for n in copies if n != 'ComicInfo.xml')
     if '/' not in nested:
         raise ValueError('Case-variant root metadata requires review')
@@ -71,7 +82,8 @@ def layout(z):
         if len(extra) < size+4 or kind == 0x7075:
             raise ValueError('Unsupported renamed-member path attributes')
         extra = extra[size+4:]
-    return nested, target, merge(z.read('ComicInfo.xml'), z.read(nested))
+    raw = z.read(nested)
+    return nested, target, merge(z.read('ComicInfo.xml'), raw) if rooted else promote(raw)
 
 
 def prepare(original, output):
@@ -91,6 +103,10 @@ def prepare(original, output):
                         item.filename = target
                     with source.open(info) as reader, dest.open(item, 'w') as writer:
                         shutil.copyfileobj(reader, writer, 1024*1024)
+            if old.xml is None:
+                root_info = copy.copy(source.getinfo(nested))
+                root_info.filename = 'ComicInfo.xml'
+                dest.writestr(root_info, merged)
         if archive.identity(os.fstat(stream.fileno())) != old.identity:
             raise ValueError('Source changed during repair')
     os.chmod(output, old.mode)
@@ -98,6 +114,9 @@ def prepare(original, output):
     verified = archive.snapshot(output)
     expected = tuple((target if n == nested else n, size, digest) for n, size, digest in old.members)
     attributes = tuple((target if row[0] == nested else row[0], *row[1:]) for row in old.attributes)
+    if old.xml is None:
+        nested_attributes = next(row for row in old.attributes if row[0] == nested)
+        attributes += (('ComicInfo.xml', *nested_attributes[1:]),)
     if (verified.members != expected or verified.comment != old.comment or verified.xml != merged
             or verified.attributes != attributes or verified.mode != old.mode
             or verified.uid != old.uid or verified.gid != old.gid):

@@ -60,3 +60,4 @@ networks:
 volumes:
   mylar3_config:
 # PDF validation is image-bundled; optional raster conversion belongs to the normalizer.
+# Native-owned conversion and combined root metadata reuse existing config/cache/media mounts.

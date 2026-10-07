@@ -93,7 +93,7 @@ complete NFS before/after file and workspace facts into both the owned intent an
 receipt before displacement. Preserve the current registered archives and complete
 payload/owner observations throughout. Passive proof uses only the already-bound
 in-process publisher; expired capabilities and lost state grant no initialization
-or replay. Registered catalog paths still require a later reviewed transition.
+or replay. Registered catalog paths require an explicitly adopted exact derivative relation and a typed producer; the new reviewed transition preserves original payload protection and every inherited owner claim. Unadopted SDK or automatic nested repair remains held.
 
 Keep terminal witnesses under the existing private writer state. Bind their
 complete retained predecessor to the receipt's canonical intent digest, and bind

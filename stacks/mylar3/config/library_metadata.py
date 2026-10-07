@@ -59,6 +59,11 @@ def classify(path):
                 return 'missing'
             if len(copies) == 1 and copies[0].filename == 'ComicInfo.xml':
                 return 'tagged'
+            # The explicit derivative producer may promote a reviewed nested
+            # copy. Its structural validator does not authorize discovery to
+            # create an ordinary repair job for a rootless archive.
+            if not any(info.filename == 'ComicInfo.xml' for info in copies):
+                return 'rootless'
             metadata_repair.layout(z)
             return 'nested'
 
@@ -149,6 +154,8 @@ class Maintenance:
                     saved = self.journal.get('library_repair', jobkey)
                     phase, reason = saved['phase'], saved['reason']
                 self.observe(path, version, policy, phase, reason)
+            elif state == 'rootless':
+                self.observe(path, version, policy, 'review', 'Nested-only metadata requires explicit reviewed derivative lineage')
             elif state == 'alternate':
                 self.observe(path, version, policy, 'review', 'Alternate metadata preserved; automatic tagging skipped')
             else:
@@ -165,6 +172,10 @@ class Maintenance:
             match = self.catalog(job['path'])
             if not match or any(match[k] != job[k] for k in ('issueid', 'comicid')):
                 raise ValueError('Catalog ownership changed')
+            # Also hold jobs retained by an older discovery implementation,
+            # before recovery or spending a publication attempt.
+            if classify(job['path']) == 'rootless':
+                raise ValueError('Nested-only metadata requires explicit reviewed derivative lineage')
             if job.get('token'):
                 result = self.recover(job)
                 if result == 'updated':
@@ -196,6 +207,16 @@ def publication_review(job):
     # Moving nested provenance changes canonical member names. A direct
     # repair journal cannot authorize an unreviewed derivative alias.
     raise publication_native.Review('nested-metadata-derivative-unbound')
+
+
+def reviewed_derivative(token, *, status=False):
+    """Explicit adopted lineage only; ordinary discovery cannot mint a token."""
+    from mylar import native_writers, publication_derivative, publication_guard
+    if not publication_guard.digest_value(token) or type(status) is not bool:
+        raise Unavailable('Exact adopted derivative token required')
+    with native_writers.operation() as writer:
+        action=publication_derivative.status if status else publication_derivative.publish
+        return action(writer,token)
 
 
 def repair(job):

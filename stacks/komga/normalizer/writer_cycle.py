@@ -79,6 +79,8 @@ def cycle(normalizer, maintenance=None):
             if not pending:writer.clear_pending()
         try:
             if not pending:
+                from conversion_handoff import dispatch as conversion_dispatch
+                conversion_dispatch(normalizer)
                 dispatch = getattr(maintenance,'dispatch',None) if maintenance else None
                 if dispatch:dispatch()
                 refresh_completed(normalizer)
