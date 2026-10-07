@@ -44,6 +44,12 @@ over missing mounts, service changes, or destructive volume removal.
 For Mylar-only updates, keep NZBGet and Komga running. Scope backups and any writer
 coordination to the affected state and follow the Mylar stack's update instructions.
 Do not reuse a multi-service rollout script for a single-service UI change.
+Validate private operational helpers in the selected application’s actual Python
+runtime before protected execution. Host-only tests do not prove container runtime
+compatibility; use portable streaming hashes when the runtime lacks
+`hashlib.file_digest`. Keep runtime compatibility checks separate from live data
+acceptance.
+
 Do not copy the entire comic library for routine interface, image or configuration
 updates. Back up affected application state and verify the library in place. If
 an operation changes existing media, preserve those specific files first. Reserve
