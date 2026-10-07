@@ -13,7 +13,7 @@
 5. When privileged access is permitted, coordinate all writers, take a scoped consistent backup and independently verify isolated restores. Deploy the matching native image held/uninitialized first, then authenticate and prepare/commit the exact reviewed epoch/bootstrap intent under writer exclusion with its verified backup attestation. Verify native data and protocol before deploying the matching held worker and admitting one exact reviewed correction. Uninitialized application status/bootstrap remains available while media mutations and pending replay stay held.
 6. Prove a retained known-payload conflict and a legitimate different payload. Reconcile exact existing wrong copies outside scanned libraries while preserving correct bytes/owners/readers and legitimate acquisition intent. Verify databases and fresh complete library scope before resuming workers or removing only accepted temporary copies.
 
-The payload foundation image is deployed; live correction registration, integrated guard rollout, repeat repair and final acceptance remain incomplete. Privileged access is available again; source enforcement and restore-verified operational prerequisites remain incomplete.
+The payload foundation image is deployed; live correction registration, integrated guard rollout, repeat repair and final acceptance remain incomplete. Privileged access is available again; source enforcement passes actual-image acceptance; reviewed delivery and restore-verified operational prerequisites remain incomplete.
 
 ## Exact retained-repeat sequence
 

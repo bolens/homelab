@@ -1108,12 +1108,12 @@ have positive publication controls. The primary-key POST `combinedPublication` r
 Earlier naming journals
 cannot authorize a new correction-aware transition. Standalone supplementation
 also checks retained publication state, so a missing marker does not hide an
-existing correction census. These holds preserve evidence while the remaining
-naming transitions and reviewed derivative aliases are implemented. Outside
+existing correction census. These holds preserve evidence for transitions without current native ownership
+and explicit reviewed derivative lineage. Outside
 publication mode, existing naming and metadata maintenance behavior is unchanged.
 
-Guards at every native and worker publication boundary remain unfinished in the
-[correction plan](../../specs/023-verified-publication-corrections/plan.md).
+Native and worker publication guards pass source and actual-image acceptance in
+the [correction plan](../../specs/023-verified-publication-corrections/plan.md).
 The API does not authorize final import. Matching live rollout is still pending.
 Rollout must follow the restore-verified update workflow above; published API
 images alone do not establish prevention.

@@ -363,8 +363,8 @@ the writer. A zero-time physical lock probe also covers separate local registrie
 for the same flock inode, and releases before HTTP. This probe reads existing state,
 creates no protocol files and never clears or replays any fence. It cannot authorize
 publication or waive native final checks. Per-source mutation callers and durable
-remote command handoff remain unfinished T011–T012 work, so the worker stays held
-through matching image and live acceptance. Complete-cycle missing/changed-authority
+remote command handoffs pass source and actual-image acceptance. The worker stays
+held through reviewed delivery, matching rollout and live acceptance. Complete-cycle missing/changed-authority
 and physical-lock refusal controls supplement the independent portable vectors.
 
 `prepare-fresh` accepts only protocol version, action, epoch and the same exact
@@ -439,8 +439,8 @@ physical aliases before metadata or placement changes. It preserves member bytes
 creates temporary archives exclusively, and rechecks source/target proof before
 recording preservation. Registered-owner confirmation requires the attested
 archive payload until a reviewed derivative lineage exists. Historical supplement
-cleanup, remaining reporting/mutation paths and complete T011/live acceptance
-remain required. No retained proof grants replay or
+cleanup for unbound legacy receipts remains held; reviewed delivery and complete
+live acceptance remain required. No retained proof grants replay or
 HTTP under Writer. The live worker stays held until feature acceptance.
 
 
