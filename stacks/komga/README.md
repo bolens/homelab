@@ -714,3 +714,9 @@ routes. Physical repair requires exclusive custody, native ownership and fresh
 reader acceptance under the
 [archive repair contract](../../specs/024-verified-archive-repair/contracts/archive-repair.md);
 matching diagnostic images alone do not provide that authority.
+
+The worker also refuses ordinary authority and Writer admission while native
+negative-retirement pending state is present or inaccessible. Existing recovery
+flags do not waive this hold. Native archive preparation/status builds private
+repair evidence only, so the worker cannot submit or clean up an archive from that
+result. Owning repair adoption and complete reader/native acceptance remain separate.

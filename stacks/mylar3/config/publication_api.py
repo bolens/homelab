@@ -20,6 +20,8 @@ else:
 MAX_REQUEST = 4 * 1024 * 1024
 FIELDS = {
     'status': set(),
+    'prepare-archive-repair': {'owner','operation_id'},
+    'archive-repair-status': {'owner','operation_id'},
     'prepare-bootstrap': {'epoch', 'backup'},
     'prepare-fresh': {'epoch', 'backup'},
     'initialize-bootstrap': {'token'},
@@ -127,6 +129,10 @@ def request(raw):
                 or not isinstance(evidence['description'], str)
                 or not 1 <= len(evidence['description'].encode('utf-8')) <= 2048):
             raise guard.Unavailable('Invalid reviewed registration')
+    if action in ('prepare-archive-repair','archive-repair-status'):
+        guard.exact_owner(value['owner'])
+        if not guard.digest_value(value['operation_id']):
+            raise guard.Unavailable('Invalid exact archive operation')
     if action == 'check':
         guard.exact_owner(value['owner'])
     if action == 'prepare-derivative':
@@ -183,6 +189,14 @@ class Controller:
                 except (ValueError, OSError, RuntimeError):
                     result['intent'] = dict(token=value['token'], outcome='unavailable')
             return result
+        if action in ('prepare-archive-repair','archive-repair-status'):
+            if __package__:
+                from . import publication_archive_prepare_routes
+            else:
+                import publication_archive_prepare_routes
+            writer=Writer(self.writer_root,create=False)
+            with writer.hold(timeout=0):
+                return publication_archive_prepare_routes.dispatch(self,writer,value)
         if action == 'prepare-fresh':
             if __package__:
                 from . import publication_fresh

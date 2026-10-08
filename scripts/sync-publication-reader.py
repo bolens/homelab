@@ -38,7 +38,7 @@ def outputs():
     source = (NATIVE / 'publication_guard.py').read_text()
     tree = ast.parse(source)
     # Everything before the mutation/recovery classes is evidence or validation.
-    names = set(('Unavailable compact signature regular file_hash object_pairs decode_json metadata '
+    names = set(('Unavailable ordinary_root ordinary_purpose compact signature regular file_hash object_pairs decode_json metadata '
                  'safe_name token natural_key validate scan bounded_run inventory canonical_digest same_json '
                  'digest_value exact_owner catalog_fact _catalog_path _claim_identity observe_owners attestation '
                  'media_snapshot cleanup_admission _cleanup_admission complete_census registry_snapshot _registry_snapshot writer_identity empty_census state_binding '

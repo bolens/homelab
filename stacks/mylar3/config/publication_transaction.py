@@ -35,6 +35,7 @@ def admission(capability,writer):
         from .publication_rename import Rename, admitted
     else:
         from publication_rename import Rename, admitted
+    guard.ordinary_purpose(writer)
     if type(capability) is Rename:
         admitted(capability,writer)
         return

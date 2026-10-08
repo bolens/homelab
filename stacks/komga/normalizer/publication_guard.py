@@ -109,6 +109,7 @@ class Authority:
         return matches.pop()
 
     def admission(self):
+        evidence.ordinary_purpose(self.writer)
         local = self.writer.local[1]
         if not getattr(local, 'depth', 0):
             raise Unavailable('Caller-owned shared writer required')
@@ -124,7 +125,9 @@ class Authority:
             raise Unavailable('Native publication recovery remains pending')
         if self.writer.fenced() and not getattr(local, 'allow_pending', False):
             raise Unavailable('Worker recovery ownership required')
-        return evidence.media_snapshot(self.database, self.writer.root / 'publication-v1.json')
+        result=evidence.media_snapshot(self.database, self.writer.root / 'publication-v1.json')
+        evidence.ordinary_purpose(self.writer)
+        return result
 
     def check(self, source, owner, *, advisory=None):
         """Recompute source, complete authority and every matched correct owner."""
@@ -195,6 +198,7 @@ class Authority:
                 raise Unavailable('Native advisory no longer matches local evidence')
             if result['decision'] not in ('allowed', 'unknown'):
                 raise Unavailable('Verified publication correction requires review')
+            evidence.ordinary_purpose(self.writer)
             return dict(version=1, source=str(source), inventory=inventory, authority=result)
         except ArchiveDiagnosticUnavailable:
             raise

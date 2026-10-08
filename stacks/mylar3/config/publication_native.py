@@ -158,6 +158,7 @@ def require(source, *, issueid=None, comicid=None, transaction=None):
         if not getattr(writer.local[1],'depth',0):
             raise guard.Unavailable('Native payload check requires raw Writer')
         def admission():
+            guard.ordinary_purpose(writer)
             if transaction is None:native_writers.admission(writer)
             else:
                 if __package__:
