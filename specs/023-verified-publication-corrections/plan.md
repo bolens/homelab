@@ -104,3 +104,15 @@ remaining disposable output. Its epoch must still match current authority, its
 revision cannot exceed the current revision and its census keys must remain
 present. The receipt binds the complete original census; changed or unbound history stays
 held. These witnesses grant no current media mutation or recovery permission.
+
+## Prospective aggregate recovery dependency
+
+T020–T027 precede remaining live acceptance while retaining the original task
+history. Native `publication_negative_batch.py` owns the immutable five-source
+marker, complete shared-parent phase projection, exact staged reservations,
+rollback and terminal closure. `publication_reader_phase.py` owns stopped-reader
+scope, main/tasks raw restore custody, typed SQL comparison and exact forward/reverse
+transaction boundaries. Native/worker ordinary admission and archive PREPARE
+refuse the new pending marker without a generic bypass. Installers and selected
+image tests must verify exact classes and module provenance before use. Fresh
+operational reader and NFS evidence remain separate from portable source tests.
