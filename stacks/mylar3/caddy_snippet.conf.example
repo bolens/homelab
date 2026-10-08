@@ -1,3 +1,4 @@
+# Read-only RAR verification uses image-bundled libarchive 3.8.9; no extra runtime configuration.
 # Bounded read-only payload verification is image-bundled; correction enforcement is a separately gated migration.
 # Optional library metadata maintenance uses existing Activity settings and app state; both options default off.
 # Converted tagging uses the existing primary-key Mylar API and authenticated monitor; no new ingress.
