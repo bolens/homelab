@@ -3,6 +3,7 @@
 SDK import-resolution is substituted for host tests only. These are not actual
 installed-image gates, reader/adoption proof, or operational capability tests.
 """
+import inspect
 import hashlib
 import importlib
 import os
@@ -349,6 +350,18 @@ class Controls(unittest.TestCase):
    if not fired and any(frame.function=='close_passive' and frame.code_context and
          'self._modules[2].ordinary_purpose' in frame.code_context[0] for frame in inspect.stack()):
     (writer.root/'negative-retirement-v1.pending').write_bytes(b'fixture');fired.append(True)
+   return result
+  with self.writer.hold():
+   preparation=self.prepare()
+   with patch.object(g,'ordinary_purpose',side_effect=late),self.assertRaises(m.Held):preparation.close_passive()
+  self.assertTrue(fired)
+
+ def test_terminal_successor_after_last_semantic_callback_holds(self):
+  real=g.ordinary_purpose;fired=[]
+  def late(writer):
+   result=real(writer)
+   if not fired and any(frame.function=='close_passive' and frame.code_context and 'self._modules[2].ordinary_purpose' in frame.code_context[0] for frame in inspect.stack()):
+    (writer.root/'negative-retirement-v1.terminal-pending').write_bytes(b'fixture');fired.append(True)
    return result
   with self.writer.hold():
    preparation=self.prepare()

@@ -12,7 +12,7 @@ import stat
 import time
 import zipfile
 
-CORE_SHA='9c35fc380fe826f30bb0097faa6d8187e7cf647d943ac0a84d6841f068a7b1a5'
+CORE_SHA='2c8a33ef2e373524b33054d237ee2c8df6f15f5b2b71f60a2f0fc4fe69d55741'
 MAX_OPERATIONS=8
 MAX_STAGE_BYTES=4*1024**3
 NAMES={'intent.json','original.arc','restored-original.arc','prepared.cbz','preparation.json'}
@@ -78,7 +78,7 @@ def terminal(c,w,m,snapshot,root_signature,files,nodes,claims,g):
             try:os.lstat(str(db)+suffix)
             except FileNotFoundError:continue
             raise m.Held('terminal-companion')
-    for name in ('negative-retirement-v1.pending','normalizer-v1.pending','tagger-v2.pending','release-v1.pending',
+    for name in ('negative-retirement-v1.pending','negative-retirement-v1.terminal-pending','normalizer-v1.pending','tagger-v2.pending','release-v1.pending',
                  'tagger-publication-v1.json','nested-derivative-v1.json','tagger-recovery-v1.pending'):
         try:os.lstat(w.root/name)
         except FileNotFoundError:continue

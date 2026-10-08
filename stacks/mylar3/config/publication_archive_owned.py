@@ -305,7 +305,7 @@ class RepairPreparation:
                 try:os.lstat(str(db)+suffix)
                 except FileNotFoundError:continue
                 raise Held('terminal-companion')
-        for name in ('negative-retirement-v1.pending','normalizer-v1.pending','tagger-v2.pending','release-v1.pending',
+        for name in ('negative-retirement-v1.pending','negative-retirement-v1.terminal-pending','normalizer-v1.pending','tagger-v2.pending','release-v1.pending',
                      'tagger-publication-v1.json','nested-derivative-v1.json','tagger-recovery-v1.pending'):
             try:os.lstat(self._writer.root/name)
             except FileNotFoundError:continue

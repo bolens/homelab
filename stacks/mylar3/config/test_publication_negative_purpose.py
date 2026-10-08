@@ -105,4 +105,34 @@ class NativeControls(unittest.TestCase):
    with patch.object(native.guard,'inventory',side_effect=AssertionError('must not inventory')),self.assertRaises(native.native.Review) as held:native.native.require(c.incoming,issueid='123',comicid='456')
   self.assertIsNone(held.exception.archive_diagnostic)
 
+
+
+class TerminalWriterControls(WriterControls):
+ def setUp(self):
+  marker=patch(__name__+'.NAME','negative-retirement-v1.terminal-pending');marker.start();self.addCleanup(marker.stop)
+  super().setUp()
+ def test_terminal_after_last_fenced_callback_never_yields(self):
+  real=self.writer.fenced
+  def changed(**kwargs):
+   result=real(**kwargs)
+   if kwargs.get('release'):self.marker.write_bytes(b'fixture')
+   return result
+  with patch.object(self.writer,'fenced',side_effect=changed),self.assertRaises(writers.Busy):
+   with self.writer.hold(timeout=0):self.fail('late terminal hold admitted')
+ def test_old_marker_absent_successor_still_holds(self):
+  original=self.writer.root/'negative-retirement-v1.pending';original.write_bytes(b'old')
+  self.marker.write_bytes(b'clear-ready');writers.sync(self.writer.root);original.unlink();writers.sync(self.writer.root)
+  with self.assertRaises(writers.Busy):
+   with self.writer.hold(timeout=0):self.fail('crash window admitted')
+
+class TerminalOwningControls(OwningControls):
+ def setUp(self):
+  marker=patch(__name__+'.NAME','negative-retirement-v1.terminal-pending');marker.start();self.addCleanup(marker.stop)
+  super().setUp()
+
+class TerminalNativeControls(NativeControls):
+ def setUp(self):
+  marker=patch(__name__+'.NAME','negative-retirement-v1.terminal-pending');marker.start();self.addCleanup(marker.stop)
+  super().setUp()
+
 if __name__=='__main__':unittest.main()
