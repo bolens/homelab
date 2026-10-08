@@ -344,3 +344,15 @@ hashes or member content. The pure ZIP32 directory spelling handler verifies
 preservation in disposable controls; returned bytes grant no publication rights.
 Native preparation and reader-backed adoption require the separate
 [archive repair contract](../../../specs/024-verified-archive-repair/contracts/archive-repair.md).
+
+
+`publication_archive_owned.py` and `publication_archive_prepare_routes.py` install
+primary-key `publicationControl` PREPARE and passive status for the strict lossless
+ZIP repair. They use the current catalog, existing Writer and exclusive private
+custody; every execution/adoption/reader grant remains false. Partial evidence
+retains review without replay. No archive repair adoption action is installed.
+Any `negative-retirement-v1.pending` marker denies ordinary Writer entry, native
+startup/admission, worker evidence and repair preparation/status, including
+malformed or inaccessible markers. Existing recovery flags do not bypass it.
+Only the future aggregate's exact typed continuation may carry its already held
+Writer through a phase; these modules do not install that continuation.

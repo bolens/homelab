@@ -117,3 +117,18 @@ Passive health and explicit authenticated review do not create catalogs or repla
 ## Repeat reconciliation receipt
 
 Exact incorrect/correct paths and before/after hashes/attributes; restore-verified original and isolated-copy evidence; correction token and native owner comparison; retained duplicate destination outside scanned libraries; reader/native/catalog acceptance. It never invents a release failure or clears unrelated acquisition intent.
+
+## Prospective negative aggregate
+
+An immutable batch binds five exact source/owner/payload preparations, one complete
+census/catalog, original complete shared-parent namespaces, retained original/restore
+custody, one existing held Writer/thread and one verified stopped-reader lifetime.
+Each member has a finite original/staged/retired phase and exact inode alias count.
+A durable aggregate marker and per-member intent/receipt records retain unknown
+interruption states. The reader envelope binds physical main/tasks pairs, schema,
+all typed tables and eleven affected rows, with exactly five approved BOOK rows' `DELETED_DATE` and `LAST_MODIFIED_DATE`
+changes and their exact reversal. Terminal clearance requires the complete batch,
+not independently completed-looking member receipts. An exact root-owned terminal
+successor hold becomes durable before aggregate-marker removal; ordinary and
+startup admission refuse unresolved successor state until its owning terminal
+phase durably acknowledges completion.

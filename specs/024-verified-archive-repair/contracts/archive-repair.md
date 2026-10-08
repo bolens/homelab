@@ -12,9 +12,27 @@ Insert one slash in each local/central name and adjust only necessary lengths/of
 
 ## Native preparation
 
-An authenticated primary-key request identifies a confined source and exact owner. Under existing-only Writer and Controller, resolve actual current catalog ownership and generate the exceptional witness from real bytes; bind full correction census and every matched current owner. Exactly one captured original may use exceptional inventory inside this operation; all other archives retain ordinary checks.
+The existing authenticated primary-key POST `publicationControl` adapter accepts `prepare-archive-repair` or `archive-repair-status` with exactly `version`, `action`, `owner` and a lowercase SHA-shaped `operation_id`. The current native catalog supplies the sole confined source. Requests cannot provide a path, witness, receipt or adoption flag. Under existing-only Writer and Controller, resolve actual current catalog ownership and generate the exceptional witness from real bytes; bind full correction census and every matched current owner. Exactly one captured original may use exceptional inventory inside this operation; all other archives retain ordinary checks.
 
 Write exclusive private staged bytes and distinct preservation/restore custody outside scanned roots, fsync and independently verify every readback and physical fact. Seal source/stage/custody/catalog/census/writer facts before returning immutable non-executable preparation. Missing/linked/aliased/stale state stays held; no caller receipt creates authority.
+
+### Preparation/status source integration
+
+Preparation creates an exclusive private operation directory with intent, original,
+independently restored original, repaired bytes and immutable preparation. Status
+recomputes current source/catalog/census, original/restore custody, member CRCs and
+exact derivative bytes. Missing operations return missing; partial retained evidence
+returns review without a token, completion, overwrite or replay. Both actions use
+an ordinary existing-only Writer. Every native, adoption, publication and reader
+grant remains false.
+
+The managed namespace is bounded to eight operations and 4 GiB retained bytes,
+with 512 MiB per source and existing archive member/expanded/deadline limits.
+Bind admitted directory/file descriptors for reads, exclusive private creation and
+readback. Any negative-retirement pending marker holds these purposes, including
+malformed, aliased or inaccessible state. No serialized proof or recovery flag
+bypasses ordinary admission. Preparation/status source installation does not install
+the dedicated consumer described below.
 
 ## Dedicated consumer
 

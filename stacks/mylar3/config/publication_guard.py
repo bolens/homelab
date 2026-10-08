@@ -35,6 +35,21 @@ class Unavailable(ValueError):
     """Required complete stable evidence is unavailable; retain the source."""
 
 
+def ordinary_root(root):
+    """Fail closed for any negative retirement marker; never a phase consumer."""
+    if __package__:
+        from .media_writer import deny_negative_phase
+    else:
+        from media_writer import deny_negative_phase
+    try:deny_negative_phase(root)
+    except (OSError,RuntimeError,ValueError):
+        raise Unavailable('Negative retirement phase requires review') from None
+
+
+def ordinary_purpose(writer):
+    ordinary_root(writer.root)
+
+
 def compact(value):
     return json.dumps(value, ensure_ascii=False, separators=(',', ':'),
                       allow_nan=False).encode('utf-8')
@@ -920,6 +935,7 @@ def media_snapshot(database, marker):
     """One incarnation across complete authority and pending cleanup admission."""
     try:
         database,marker=Path(database),Path(marker)
+        ordinary_root(marker.parent)
         with regular(database) as dbfile,regular(marker) as markfile:
             before=signature(os.fstat(dbfile.fileno()));mark=signature(os.fstat(markfile.fileno()))
             result=registry_snapshot(database,marker)
@@ -928,6 +944,7 @@ def media_snapshot(database, marker):
                     or signature(os.fstat(markfile.fileno()))!=mark or signature(marker.lstat())!=mark
                     or any(os.path.lexists(str(database)+suffix) for suffix in ('-journal','-wal','-shm'))):
                 raise Unavailable('Publication state changed between admission proofs')
+            ordinary_root(marker.parent)
             return result
     except Unavailable:
         raise

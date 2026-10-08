@@ -194,9 +194,10 @@ def cleanup_admission(database):
 def admission(writer, *, startup=False):
     """Validate full current authority under raw Writer before workflow LOCK."""
     import mylar
-    from .publication_guard import media_snapshot, Unavailable
+    from .publication_guard import media_snapshot, Unavailable, ordinary_purpose
     if not getattr(writer.local[1],'depth',0):
         raise Unavailable('Raw Writer required before publication admission')
+    ordinary_purpose(writer)
     census,_=media_snapshot(Path(mylar.DATA_DIR)/'workflow.sqlite',writer.root/'publication-v1.json')
     import os
     if (os.path.lexists(writer.root/'tagger-publication-v1.json')
@@ -206,6 +207,7 @@ def admission(writer, *, startup=False):
         raise Unavailable('Explicit publication recovery is required')
     if not startup and not _STARTUP_COMPLETE:
         raise Unavailable('Native initialization requires restart after authority review')
+    ordinary_purpose(writer)
     return census
 
 

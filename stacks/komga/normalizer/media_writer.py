@@ -20,6 +20,21 @@ class Busy(RuntimeError):
     pass
 
 
+def deny_negative_phase(root):
+    """Ordinary purpose never enters a durable negative retirement phase.
+
+    Only a missing marker is absence. Present, malformed, linked or inaccessible
+    markers all hold; no marker read, recovery flag or caller receipt grants use.
+    """
+    try:
+        os.lstat(Path(root)/'negative-retirement-v1.pending')
+    except FileNotFoundError:
+        return
+    except OSError:
+        raise Busy('Negative retirement phase requires review') from None
+    raise Busy('Negative retirement phase requires review')
+
+
 def sync(directory):
     fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
     try:os.fsync(fd)
@@ -99,6 +114,7 @@ class Writer:
         fd=None
         try:
             if getattr(local,'depth',0):
+                self.validate_root();deny_negative_phase(self.root)
                 if (allow_pending and not local.allow_pending) or (allow_tagger_pending and not local.allow_tagger_pending) or (allow_release_pending and not local.allow_release_pending):
                     raise ValueError('Nested writer cannot gain recovery authority')
                 local.depth+=1
@@ -110,6 +126,7 @@ class Writer:
             while True:
                 try:
                     fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+                    self.validate_root();deny_negative_phase(self.root)
                     info=os.fstat(fd);current=self.lock.lstat()
                     if (info.st_dev,info.st_ino)!=(current.st_dev,current.st_ino) or (info.st_dev,info.st_ino)!=self.lock_identity:
                         raise ValueError('Media writer lock changed')

@@ -1160,3 +1160,14 @@ results use the existing conversion path. Native preparation, exclusive derivati
 custody and reader-backed adoption remain required by the
 [archive repair contract](../../specs/024-verified-archive-repair/contracts/archive-repair.md).
 This capability does not establish live rollout or complete library acceptance.
+
+The source also installs primary-key-only POST `publicationControl` actions
+`prepare-archive-repair` and `archive-repair-status`. Requests contain only
+`version`, `action`, exact `owner` and a lowercase SHA-shaped `operation_id`.
+Current catalog ownership supplies the source. Preparation verifies private repaired
+bytes and separate original/restore custody. Status rechecks current facts and
+retains incomplete operations without replay. Both actions retain false publication,
+adoption and reader grants. They cannot replace a library file or confirm import.
+Any `negative-retirement-v1.pending` state holds ordinary native/worker processing
+and these preparation/status actions. The dedicated owning recovery consumer and
+live acceptance remain required before repair adoption or writer release.

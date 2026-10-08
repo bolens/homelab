@@ -78,7 +78,10 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - **FR-010**: Hold uncertain checks when required state, stable archive inventory or owner evidence is unavailable or malformed.
 - **FR-011**: Reconcile existing wrong duplicates only after a scoped consistent backup and independent isolated restore verification; preserve the correct archive and compare recorded owners before any catalog changes.
 - **FR-012**: Preserve existing reader safeguards and historical evidence; the user deferred a separate additional reading-progress audit.
-- **FR-013**: Distinguish source delivery, published images, live rollout, per-file proof and whole-library acceptance. Privileged rollout remains deferred under the user’s current access restriction.
+- **FR-013**: Distinguish source delivery, published images, live rollout, per-file proof and whole-library acceptance. Live rollout requires authorized privileged access and completed backup, restore and owning recovery prerequisites.
+
+- **FR-014**: Reader-owned repeat retirement must bind one complete finite native batch and the continuously verified stopped reader, preserve unrelated namespace/catalog/reader facts, and support exact rollback with retained originals and independently verified restore custody.
+- **FR-015**: Durable negative-retirement pending state must hold every ordinary native, worker and archive preparation purpose until the exact owning aggregate proves terminal acceptance. Unknown interruptions cannot grant replay or clear the hold.
 
 ### Key Entities
 

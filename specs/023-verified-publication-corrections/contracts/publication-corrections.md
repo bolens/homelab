@@ -510,3 +510,46 @@ conversion and retained-repeat records when a crash preceded their filesystem
 intent. Passive terminal ledger validation cannot reconstruct a publication
 capability. Combined-publication phases waiting for reader restoration retain
 their separate bounded coordination protocol.
+
+## Prospective aggregate negative retirement
+
+This extends reviewed repeat retention for a stopped reader with five exact native
+sources. It is an implementation prerequisite, not an installed or live grant.
+The owning aggregate binds all five source/correct-owner/payload preparations,
+current complete catalog/census, the same existing Writer/thread and continuously
+verified stopped-reader parent invocation. A private fsynced
+`negative-retirement-v1.pending` marker binds one immutable aggregate intent.
+Ordinary native, worker and archive preparation admission holds for valid,
+malformed or inaccessible marker state. Serialized receipts and generic
+allow-pending flags cannot grant continuation.
+
+The source transitions are finite: one original alias, exact original/private
+target aliases, then one retained private alias. Capture complete original parent
+namespaces and project only the five approved participants. Shared parents must
+account for every approved transition without adopting an unrelated file change.
+Bytes, dev/ino/size/mtime/mode/uid/gid and xattrs remain bound. New ctime/nlink facts
+are captured only at verified owned transitions. Complete catalog claim and
+ancestor absence facts close directly after the last semantic callback and before
+each syscall.
+
+The reader phase carries the verified main/tasks pair, schema, eleven affected
+rows, all-table typed fingerprints and independently verified raw restore custody.
+All five staged native reservations precede exact reader SQL commit. Only the
+five approved BOOK rows' `DELETED_DATE` and `LAST_MODIFIED_DATE` cells may change. Before commit, rollback removes
+only exact staged aliases. After commit, exact SQL reversal precedes no-overwrite
+source restoration. Unknown crash or lost-response state retains the marker and
+originals without automatic replay.
+
+Aggregate completion requires all five retired sources, matching committed
+reader state, preserved proper owners, current complete census/catalog and durable
+exact phase receipts. Before removing the aggregate marker, exclusively create and fsync an exact
+root-owned terminal pending hold recognized by every ordinary purpose and startup
+check. This successor hold spans marker removal, parent fsync and durable terminal
+receipt acknowledgement. A crash or lost acknowledgement at any boundary keeps
+ordinary processing held; a private journal outside the Writer root alone cannot
+provide that exclusion. Only the exact owning terminal phase can remove either
+hold after its matching durable proof, under the same held Writer. Unknown or
+foreign state is retained without automatic replay. A stopped owning parent separately verifies
+service profile, databases and references before restart. Actual installed-image
+checks, fresh full reader backup/restore and real NFS hardlink/fsync proof are
+required before this protocol is executable.
