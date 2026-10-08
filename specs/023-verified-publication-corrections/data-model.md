@@ -128,4 +128,7 @@ A durable aggregate marker and per-member intent/receipt records retain unknown
 interruption states. The reader envelope binds physical main/tasks pairs, schema,
 all typed tables and eleven affected rows, with exactly five approved BOOK rows' `DELETED_DATE` and `LAST_MODIFIED_DATE`
 changes and their exact reversal. Terminal clearance requires the complete batch,
-not independently completed-looking member receipts.
+not independently completed-looking member receipts. An exact root-owned terminal
+successor hold becomes durable before aggregate-marker removal; ordinary and
+startup admission refuse unresolved successor state until its owning terminal
+phase durably acknowledges completion.

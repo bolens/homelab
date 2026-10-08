@@ -542,8 +542,14 @@ originals without automatic replay.
 
 Aggregate completion requires all five retired sources, matching committed
 reader state, preserved proper owners, current complete census/catalog and durable
-exact phase receipts. Only the owned marker can then be removed and its parent
-fsynced under the same held Writer. A stopped owning parent separately verifies
+exact phase receipts. Before removing the aggregate marker, exclusively create and fsync an exact
+root-owned terminal pending hold recognized by every ordinary purpose and startup
+check. This successor hold spans marker removal, parent fsync and durable terminal
+receipt acknowledgement. A crash or lost acknowledgement at any boundary keeps
+ordinary processing held; a private journal outside the Writer root alone cannot
+provide that exclusion. Only the exact owning terminal phase can remove either
+hold after its matching durable proof, under the same held Writer. Unknown or
+foreign state is retained without automatic replay. A stopped owning parent separately verifies
 service profile, databases and references before restart. Actual installed-image
 checks, fresh full reader backup/restore and real NFS hardlink/fsync proof are
 required before this protocol is executable.

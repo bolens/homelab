@@ -113,6 +113,8 @@ marker, complete shared-parent phase projection, exact staged reservations,
 rollback and terminal closure. `publication_reader_phase.py` owns stopped-reader
 scope, main/tasks raw restore custody, typed SQL comparison and exact forward/reverse
 transaction boundaries. Native/worker ordinary admission and archive PREPARE
-refuse the new pending marker without a generic bypass. Installers and selected
+refuse the new pending marker without a generic bypass. A durable root-owned
+terminal successor hold must precede aggregate-marker removal and span final
+receipt acknowledgement, including crash and lost-response boundaries. Installers and selected
 image tests must verify exact classes and module provenance before use. Fresh
 operational reader and NFS evidence remain separate from portable source tests.

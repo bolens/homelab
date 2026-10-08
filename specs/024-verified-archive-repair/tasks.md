@@ -26,9 +26,9 @@ Goal: independently verified private repaired bytes and original custody bound t
 
 Independent test: exact supported preparation succeeds without library/catalog mutation; source/custody/catalog/census drift and uncertainty remain held.
 
-- [ ] T008 [US2] Implement trusted exceptional witness production and immutable preparation in `stacks/mylar3/config/publication_archive_owned.py` and owning tests; bind existing Controller/Writer, exact source, complete catalog/census and current allowed/rejected owner policy without ordinary-reader exceptions outside this source.
-- [ ] T009 [US2] Implement exclusive private derivative/custody creation, fsync/readback and preservation sealing in `publication_archive_owned.py`; prove 512 MiB source and existing member/expanded/metadata/deadline limits, physical aliases, late changes and interrupted preparation.
-- [ ] T010 [US2] Add authenticated primary-key preparation/status integration in `stacks/mylar3/config/publication_api.py` and owning tests; confined exact inputs, immutable token and false execution/adoption grants remain explicit.
+- [x] T008 [US2] Implement trusted exceptional witness production and immutable preparation in `stacks/mylar3/config/publication_archive_owned.py` and owning tests; bind existing Controller/Writer, exact source, complete catalog/census and current allowed/rejected owner policy without ordinary-reader exceptions outside this source.
+- [x] T009 [US2] Implement exclusive private derivative/custody creation, fsync/readback and preservation sealing in `publication_archive_owned.py`; prove 512 MiB source and existing member/expanded/metadata/deadline limits, physical aliases, late changes and interrupted preparation.
+- [x] T010 [US2] Add authenticated primary-key preparation/status integration in `stacks/mylar3/config/publication_api.py` and owning tests; confined exact inputs, immutable token and false execution/adoption grants remain explicit.
 
 ## Phase 5: US3 — Owned publication and recovery (P2)
 
@@ -80,3 +80,5 @@ Deliver truthful diagnostics first while implementing the separate owning capabi
 - Final-boundary correction (2026-10-08): independent review reproduces a late inactive catalog alias after ordinary-purpose checks. The corrected source moves all semantic callbacks before the complete direct claim/absence closure. Both regressions now retain review, and the 100-control source gate passes. The corrected native runtime and full worker image gates remain pending.
 
 - Corrected source gate (2026-10-08): independent review repeats both late catalog-alias and late negative-marker faults and verifies terminal refusal after the complete final direct closure. All 102 native host controls pass without skips, staged local CI passes, and the full worker image passes 504 controls without skips. The corrected native installed-image build is waiting for OS authentication. T008–T010 remain open until that gate passes. No live repair or writer release ran.
+
+- US2 installed-image acceptance (2026-10-08): the corrected native image passes 298 selected controls across nine suites without skips, including all 102 preparation/routes/purpose controls and the genuine installed Controller/Writer factory check. The final worker image passes all 504 controls without skips; its read-only non-root smoke verifies 28 runtime module hashes, zero effective capabilities and diagnostic-only repair classification. Exact native and worker image identities are retained privately. This completes T008–T010 for preparation/status only. Adoption, aggregate reader/native recovery, live rollout and current-library acceptance remain unfinished. Current-main test fixture compatibility is being checked separately before source merge.
