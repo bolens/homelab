@@ -643,6 +643,8 @@ class NativeStartupSourceTests(unittest.TestCase):
         self.assertTrue(pending.empty());self.assertEqual(list(self.root.iterdir()),[])
 
 
+@unittest.skipUnless((Path(os.environ.get('ARCHIVING_UTILS_ROOT', '/opt/archiving-utils')) /
+                      'lib/archive_backend.py').is_file(), 'offline native archive verifier required')
 class PreIntentProducerAdmissionTests(unittest.TestCase):
     """Actual producer CAS precedes NAME; no media or ledger reconstruction."""
     def fixture(self, kind):

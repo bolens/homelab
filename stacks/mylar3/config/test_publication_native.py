@@ -165,8 +165,10 @@ class AdmissionTests(unittest.TestCase):
             return original_inventory(path,**kwargs)
         context=patch.object(guard,'inventory',side_effect=inventory)
         context.start();self.addCleanup(context.stop)
-        context=patch.object(api,'Controller',side_effect=lambda root,roots:
-                             original_controller(root,roots,tool_root=fixtures.TOOL_ROOT))
+        def controller(root,roots,**kwargs):
+            kwargs.setdefault('tool_root',fixtures.TOOL_ROOT)
+            return original_controller(root,roots,**kwargs)
+        context=patch.object(api,'Controller',side_effect=controller)
         context.start();self.addCleanup(context.stop)
 
     def registered(self):

@@ -17,8 +17,11 @@ import publication_api as api
 import publication_derivative as derivative
 import publication_guard as guard
 import test_publication_lineage as fixtures
+from test_publication_guard import TOOL_ROOT
 
 
+@unittest.skipUnless((Path(TOOL_ROOT) / 'lib/archive_backend.py').is_file(),
+                     'offline native archive verifier required')
 class DerivativeTests(unittest.TestCase):
     def setUp(self):
         fixtures.LineageTests.setUp(self)
