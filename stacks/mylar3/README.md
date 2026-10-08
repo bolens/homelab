@@ -983,9 +983,17 @@ bounded bulk application and rollback follow the owning Komga instructions.
 ## Publication correction evidence foundation
 
 The image bundles a read-only payload verifier from the same immutable
-archiving-utils artifact used by the matching normalizer, with distribution
-libarchive support. Its isolated build gate exercises ZIP, authored stored
-RAR4/RAR5 and 7z fixtures on the actual native Python runtime, including corrupt
+archiving-utils artifact used by the matching normalizer, with source-built
+libarchive 3.8.9. The official release tarball is SHA-256 pinned in the Dockerfile.
+The build uses the same pinned base as the runtime, runs upstream library tests
+and keeps compilers and development headers in a separate stage. The runtime
+selects the shared library under `/opt/libarchive` and verifies its loaded version
+and path during the build. Its upstream license is retained at
+`/opt/libarchive/share/licenses/COPYING`. Update the release URL, digest and loader
+version assertion together, then verify compressed RAR decoding and the complete
+native image gate before rollout.
+
+The native image gate exercises ZIP, authored stored RAR4/RAR5 and 7z fixtures on the actual native Python runtime, including corrupt
 payload refusal. There is no runtime download, extraction, new mount, port or
 privilege. The copied artifact retains its license.
 

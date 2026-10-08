@@ -17,6 +17,6 @@ prepare_stack_msg "DDL discovery defaults to Requests; optional Curl is selected
 prepare_stack_msg "Converted metadata follow-up requires matching Mylar first, shared writer coordination, Modern ComicRack tagging, and private mylar.tag_converted opt-in. Existing settings are preserved."
 prepare_stack_msg "Optional library metadata discovery and nested-copy repair are configured in Activity. Both default off and require Modern ComicRack tagging; no additional preparation is needed."
 prepare_stack_msg "Optional PDF-to-CBZ rendering is configured on the matching normalizer; deploy Mylar before enabling it. Existing settings are preserved."
-prepare_stack_msg "Read-only payload verification is bundled in the image and needs no extra mounts or preparation. Correction registration and publication enforcement remain a separately gated migration; this foundation does not repair media."
+prepare_stack_msg "Read-only payload verification, including pinned libarchive 3.8.9, is bundled in the image and needs no extra mounts or preparation. Correction registration and publication enforcement remain a separately gated migration; this foundation does not repair media."
 prepare_stack_msg "Protected lossless conversion and combined root metadata require matching native/worker images and verified rollout; preparation does not activate them."
 prepare_stack_end
