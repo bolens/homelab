@@ -28,3 +28,5 @@ Installation validation alone does not establish feature completion.
 - [Verified comic release naming](022-comic-release-naming/spec.md): prospective [plan](022-comic-release-naming/plan.md), [tasks](022-comic-release-naming/tasks.md).
 
 - [Verified publication corrections](023-verified-publication-corrections/spec.md): prospective [plan](023-verified-publication-corrections/plan.md), [tasks](023-verified-publication-corrections/tasks.md).
+
+- [Music integrity guards](024-music-integrity-guards/spec.md): [plan](024-music-integrity-guards/plan.md), [tasks](024-music-integrity-guards/tasks.md), [validation](024-music-integrity-guards/validation.md).

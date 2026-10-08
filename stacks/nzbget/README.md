@@ -38,6 +38,20 @@ High-performance Usenet downloader. NZBGet handles NZB downloads from Usenet pro
        `UnpackMusicTar`. Keep the category's built-in **Unpack** option enabled
        for RAR and 7-Zip releases.
 
+Before downloading music, protect audio and cue extensions from NZBGet's built-in
+post-download and post-unpack renaming. Under **Settings → Download Queue**, add
+these extensions to **RenameIgnoreExt**, preserving any existing entries:
+
+```text
+.flac,.mp3,.m4a,.aac,.ogg,.opus,.wav,.aif,.aiff,.alac,.ape,.wma,.mka,.cue
+```
+
+Alternatively, disable **PostDownloadRename** and **RenameAfterUnpack** if their
+renaming is not needed for other categories. The built-in renamer runs before
+post-processing extensions. It can rename multiple obfuscated music tracks to
+one release filename, overwriting earlier tracks before this extension starts.
+These settings are described in [NZBGet's configuration reference](https://github.com/nzbgetcom/nzbget/blob/develop/nzbget.conf).
+
 The bundled `UnpackMusicTar` post-processing extension extracts ZIP and
 tar-family music releases that NZBGet's built-in unpacker reports as "Nothing
 to unpack." Extracted folder trees are flattened into the release directory,
@@ -63,6 +77,30 @@ Recognized images and PDF booklets, including files without extensions, flow
 through the normal cleanup rules. Unknown files
 are retained. Cleanup removes a file with a sidecar extension only when its
 content is a recognized image or PDF document, or the entire file is readable text.
+Scene `.nfo` files containing CP437 box art are also recognised when all other
+content is printable ASCII or ordinary text whitespace. The fallback is limited
+to `.nfo`, drawing glyphs and the CP437 black square; unsupported binary content
+remains protected.
+Binary `.srr` recovery sidecars are recognised by the ReScene marker and valid
+bounded application header. Unknown or malformed binary files with that suffix
+remain retained, and cue references continue to protect files from cleanup.
+
+Zero-byte files with known audio extensions always fail validation before
+cleanup or publication, even without track totals, with cleanup disabled, or
+when optional audio decoding verification is off. Originals, archives and
+sidecars remain available for repair. Empty unknown files are retained.
+
+Local M3U-style playlists also provide completeness evidence when FLAC track
+totals are absent. Existing local references establish the relationship; for
+obfuscated files, numbered artist/title entries must match every surviving
+track in one tagged, cue-free FLAC album/disc. Matching tolerates eight-digit
+hexadecimal scene suffixes and featured-artist labels. Repeated ancillary
+MusicBrainz tags do not invalidate album/track metadata; conflicting values
+used for album identity or track positions remain ambiguous. Missing entries stop processing
+before cleanup. Complete recognised lists, including extensionless files, are
+removed during cleanup. Unknown, ambiguous, remote and unsafe M3U lists stay
+retained. Recognition accepts UTF-8 lists up to 1 MiB with local audio paths;
+it does not fetch URLs or infer completeness from unrelated text.
 Cue sheets are retained because album-image releases need them to identify
 individual tracks. The extension does not split album images into track files.
 Cue `FILE` references are updated when tracks move or gain extensions. Quoted
@@ -103,6 +141,41 @@ archives are also discarded, unless a cue references the conflicting file.
 All supported archives, including nested ones,
 must succeed before the result is published or any original archive is removed.
 
+Failed, warning or deleted NZBGet downloads are skipped with exit code 95 before
+cleanup, extraction or publication. Legacy PAR repair and unpack failure statuses
+are also respected. This preserves diagnostic sidecars and archives for repair.
+Manual runs without NZBGet status information keep the normal processing path.
+Failure of an earlier unrelated extension does not by itself block processing.
+
+Tagged FLAC tracks are checked within album/album-artist and disc groups. Disc
+numbers and numbered disc folder ancestry keep repeated track numbering on
+separate discs independent. Missing tracks, duplicate numbers, conflicting totals
+or invalid numbers in a group with known totals fail before cleanup or publication.
+The check includes albums with several surviving tracks, not just a lone file.
+External cue references, embedded FLAC cues and embedded `CUESHEET` comments exempt
+album images from track-file counting.
+
+This check uses bounded metadata reads. Untagged files, absent numeric totals and
+other formats cannot establish completeness. Totals are interpreted per disc;
+ambiguous tags, intentionally partial downloads or album-wide totals spread across
+discs may require manual correction. Already overwritten tracks require a backup
+or a new download; rerunning this extension cannot recover their audio.
+
+Under **Settings → Extension Manager → Unpack Music Tar**, set **VerifyAudio** to
+`yes` to decode recognised audio before cleanup and publication. The default is
+`no`; the option requires `ffmpeg` in NZBGet's runtime. All audio streams in each
+recognised audio file are decoded to a null output without rewriting the source.
+An unavailable decoder, decoding error, empty output or ten-minute per-file timeout
+fails safely and retains originals and archives. Unchanged releases are checked
+when verification is enabled. Unknown files and video-only formats are not decoded;
+this is a decoding check, not proof that all originally released samples are present.
+
+Preview supports the same check:
+
+```bash
+python3 stacks/nzbget/scripts/UnpackMusicTar/main.py --preview "/path/to/music/release" --verify-audio
+```
+
 The extension rejects symlinks and special files in the release, concurrent
 instances, files changed by another writer during preparation, and missing
 download directories. It also refuses to clean a release down to zero files.
@@ -140,7 +213,7 @@ interrupted before publication; verify the originals before removing it.
 
 The explicit commands exit with `0` on success, `1` on processing or recovery
 failure, and `2` for invalid command arguments. Running without arguments keeps
-NZBGet's category handling and post-processing exit codes (93/94).
+NZBGet's category handling and post-processing exit codes (93/94/95).
 
 The regression suite runs as part of `make validate`. To run it alone:
 
