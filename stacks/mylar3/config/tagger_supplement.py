@@ -81,7 +81,11 @@ def publication_review(writer):
         except sqlite3.Error:
             raise ValueError('Supplement authority is unreadable or exceeds verification time') from None
         finally:connection.close()
-        if (database.stat()!=before
+        after=database.stat()
+        # Immutable SQLite reads can update atime; retain every mutation binding.
+        fields=('st_dev','st_ino','st_mode','st_nlink','st_uid','st_gid','st_size',
+                'st_mtime_ns','st_ctime_ns')
+        if (any(getattr(after,name)!=getattr(before,name) for name in fields)
                 or any(os.path.lexists(Path(str(database)+suffix)) for suffix in ('-journal','-wal','-shm'))):
             raise ValueError('Supplement authority changed during admission')
     if protected:

@@ -8,7 +8,7 @@ import sqlite3
 import tempfile
 import shutil
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -48,6 +48,32 @@ class BindingsTest(unittest.TestCase):
 
     def records(self):
         return self.store.active('pack', {'confirmed'})
+
+    def test_supplement_admission_ignores_read_access_time_only(self):
+        writer = Writer(self.root/'media-writer', create=True)
+        database = self.root/'workflow.sqlite'
+        original_stat = Path.stat
+        fields = ('st_dev', 'st_ino', 'st_mode', 'st_nlink', 'st_uid', 'st_gid',
+                  'st_size', 'st_mtime_ns', 'st_ctime_ns', 'st_atime_ns')
+        for changed in fields:
+            with self.subTest(changed=changed):
+                calls = []
+                def observed(path, *args, **kwargs):
+                    value = original_stat(path, *args, **kwargs)
+                    if path != database:
+                        return value
+                    calls.append(value)
+                    if len(calls) == 1:
+                        return value
+                    result = {name:getattr(value, name) for name in fields}
+                    result[changed] += 1
+                    return SimpleNamespace(**result)
+                with patch.object(Path, 'stat', observed):
+                    if changed == 'st_atime_ns':
+                        tagger_supplement.publication_review(writer)
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'authority changed'):
+                            tagger_supplement.publication_review(writer)
 
     def test_same_path_metadata_rewrite_rebinds_three_packs_and_replays(self):
         before = self.records()
