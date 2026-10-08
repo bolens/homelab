@@ -2,6 +2,9 @@
 
 import importlib.util
 import json
+import os
+import subprocess
+import tempfile
 from pathlib import Path
 import unittest
 
@@ -66,6 +69,67 @@ class ImageSelectionTests(unittest.TestCase):
         published = {image["dockerfile"] for image in self.images}
         self.assertFalse(published & excluded)
         self.assertEqual(dockerfiles, published | excluded)
+
+
+class MylarInstalledGateTests(unittest.TestCase):
+    """Exercise the workflow shell without a Docker daemon or image pulls."""
+
+    def invoke(self, failed_command=None):
+        workflow = (ROOT / ".github/workflows/repository-validation.yml").read_text()
+        section = workflow.split("  mylar-image:\n", 1)[1].split("  comic-maintenance:\n", 1)[0]
+        body = section.split("        run: |\n", 1)[1]
+        script = "\n".join(line[10:] for line in body.splitlines() if line.strip())
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            stack = root / "stacks/mylar3"
+            stack.mkdir(parents=True)
+            (stack / "Dockerfile").write_bytes((ROOT / "stacks/mylar3/Dockerfile").read_bytes())
+            log = root / "calls.jsonl"
+            docker = root / "docker"
+            docker.write_text("""#!/usr/bin/env python3
+import json,os,sys
+args=sys.argv[1:]
+body=sys.stdin.read() if args[0]=='build' else ''
+with open(os.environ['CI_GATE_LOG'],'a') as output:
+ output.write(json.dumps([args,body])+'\\n')
+if args[0]==os.environ.get('CI_GATE_FAIL'):sys.exit(13)
+""")
+            docker.chmod(0o755)
+            verifier = stack / "verify-image.sh"
+            verifier.write_text("""#!/usr/bin/env python3
+import json,os,sys
+with open(os.environ['CI_GATE_LOG'],'a') as output:
+ output.write(json.dumps([['verify',*sys.argv[1:]],''])+'\\n')
+assert sys.argv[1]=='mylar-ci-installed'
+""")
+            verifier.chmod(0o755)
+            result = subprocess.run(["bash", "-euo", "pipefail", "-c", script], cwd=root,
+                                    env=dict(os.environ, PATH=str(root) + os.pathsep + os.environ['PATH'],
+                                             CI_GATE_LOG=str(log), CI_GATE_FAIL=failed_command or ""),
+                                    text=True, capture_output=True)
+            calls = [json.loads(line) for line in log.read_text().splitlines()]
+            return result, calls
+
+    def test_base_source_is_installed_before_exact_origin_gate(self):
+        result, calls = self.invoke()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([call[0][0] for call in calls], ['pull', 'build', 'verify'])
+        self.assertIn('@sha256:', calls[0][0][1])
+        self.assertIn('--network=none', calls[1][0])
+        self.assertIn('FROM ' + calls[0][0][1] + '\n', calls[1][1])
+        self.assertIn('COPY config/ /opt/mylar3-fixes/', calls[1][1])
+        self.assertIn('apply_patches.py /app/mylar3/mylar', calls[1][1])
+        self.assertEqual(calls[2][0], ['verify', 'mylar-ci-installed'])
+
+    def test_failed_pull_never_builds_or_verifies(self):
+        result, calls = self.invoke('pull')
+        self.assertEqual(result.returncode, 13)
+        self.assertEqual([call[0][0] for call in calls], ['pull'])
+
+    def test_failed_install_never_runs_verifier(self):
+        result, calls = self.invoke('build')
+        self.assertEqual(result.returncode, 13)
+        self.assertEqual([call[0][0] for call in calls], ['pull', 'build'])
 
 
 if __name__ == "__main__":

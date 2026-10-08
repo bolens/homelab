@@ -88,7 +88,14 @@ jobs:
           image=$(awk '$1 == "FROM" {print $2; exit}' stacks/mylar3/Dockerfile)
           [[ "$image" == *@sha256:* ]]
           docker pull "$image"
-          stacks/mylar3/verify-image.sh "$image"
+          # The exact-origin gate requires current helpers installed at the
+          # application path; a pristine upstream base has none of them.
+          docker build --network=none --file - --tag mylar-ci-installed stacks/mylar3 <<EOF
+          FROM $image
+          COPY config/ /opt/mylar3-fixes/
+          RUN --network=none python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar
+          EOF
+          stacks/mylar3/verify-image.sh mylar-ci-installed
 
   comic-maintenance:
     runs-on: ubuntu-latest
