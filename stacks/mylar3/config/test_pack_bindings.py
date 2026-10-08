@@ -60,7 +60,7 @@ class BindingsTest(unittest.TestCase):
                 calls = []
                 def observed(path, *args, **kwargs):
                     value = original_stat(path, *args, **kwargs)
-                    if path != database:
+                    if path != database or kwargs.get('follow_symlinks') is False:
                         return value
                     calls.append(value)
                     if len(calls) == 1:
@@ -69,6 +69,8 @@ class BindingsTest(unittest.TestCase):
                     result[changed] += 1
                     return SimpleNamespace(**result)
                 with patch.object(Path, 'stat', observed):
+                    # Older pathlib uses stat(follow_symlinks=False) for is_symlink.
+                    database.stat(follow_symlinks=False)
                     if changed == 'st_atime_ns':
                         tagger_supplement.publication_review(writer)
                     else:
