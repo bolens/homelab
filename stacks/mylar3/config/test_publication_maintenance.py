@@ -1,5 +1,7 @@
 """Direct maintenance cannot mutate before publication ownership is bound."""
 import importlib
+from contextlib import closing
+import os
 from pathlib import Path
 import sys
 import sqlite3
@@ -121,6 +123,80 @@ class DirectMaintenanceTests(unittest.TestCase):
             tagger_supplement.recover(writer,Mock())
         writer.hold.assert_not_called();self.assertEqual(database.read_bytes(),before)
         self.assertFalse(Path(str(database)+'-journal').exists())
+
+    def test_read_access_time_does_not_change_supplement_authority(self):
+        writer=MagicMock();writer.root=self.root/'writer';writer.root.mkdir()
+        database=self.root/'workflow.sqlite'
+        with closing(sqlite3.connect(database)) as connection,connection:
+            connection.execute('CREATE TABLE records(kind,key,value)')
+        before=database.stat()
+        os.utime(database,ns=(0,before.st_mtime_ns))
+        before=database.stat()
+        with patch.dict(sys.modules,{'mylar':None}):
+            tagger_supplement.publication_review(writer)
+        after=database.stat()
+        for key in ('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns',
+                    'st_mode','st_uid','st_gid','st_nlink'):
+            self.assertEqual(getattr(before,key),getattr(after,key))
+        self.assertFalse(Path(str(database)+'-journal').exists())
+
+    def test_supplement_history_mode_drift_still_holds(self):
+        writer=MagicMock();writer.root=self.root/'writer';writer.root.mkdir()
+        database=self.root/'workflow.sqlite'
+        with closing(sqlite3.connect(database)) as connection,connection:
+            connection.execute('CREATE TABLE records(kind,key,value)')
+        connect=sqlite3.connect
+        def changed(*args,**kwargs):
+            connection=connect(*args,**kwargs)
+            database.chmod(database.stat().st_mode ^ 0o100)
+            return connection
+        with patch.dict(sys.modules,{'mylar':None}), \
+                patch.object(tagger_supplement.sqlite3,'connect',side_effect=changed), \
+                self.assertRaisesRegex(ValueError,'changed during admission'):
+            tagger_supplement.publication_review(writer)
+        writer.hold.assert_not_called()
+
+    def test_supplement_history_parent_replacement_after_close_holds(self):
+        root=self.root/'config';root.mkdir()
+        writer=MagicMock();writer.root=root/'writer';writer.root.mkdir()
+        database=root/'workflow.sqlite'
+        with closing(sqlite3.connect(database)) as connection,connection:
+            connection.execute('CREATE TABLE records(kind,key,value)')
+        connect=sqlite3.connect
+        class Connection:
+            def __init__(self,connection):self.connection=connection
+            def __getattr__(self,name):return getattr(self.connection,name)
+            def close(self):
+                self.connection.close()
+                moved=self_root/'moved';root.rename(moved);root.symlink_to(moved,target_is_directory=True)
+        self_root=self.root
+        def changed(*args,**kwargs):return Connection(connect(*args,**kwargs))
+        with patch.dict(sys.modules,{'mylar':None}), \
+                patch.object(tagger_supplement.sqlite3,'connect',side_effect=changed), \
+                self.assertRaisesRegex(ValueError,'parents changed during admission'):
+            tagger_supplement.publication_review(writer)
+        writer.hold.assert_not_called()
+
+    def test_supplement_transient_foreign_history_cannot_hide_publication_rows(self):
+        root=self.root/'config';root.mkdir()
+        writer=MagicMock();writer.root=root/'writer';writer.root.mkdir()
+        database=root/'workflow.sqlite'
+        with closing(sqlite3.connect(database)) as connection,connection:
+            connection.execute('CREATE TABLE records(kind,key,value)')
+            connection.execute("INSERT INTO records VALUES ('publication_census','current','{}')")
+        foreign=self.root/'foreign';foreign.mkdir()
+        with closing(sqlite3.connect(foreign/'workflow.sqlite')) as connection,connection:
+            connection.execute('CREATE TABLE records(kind,key,value)')
+        connect=sqlite3.connect
+        def changed(*args,**kwargs):
+            moved=self.root/'retained';root.rename(moved);root.symlink_to(foreign,target_is_directory=True)
+            try:return connect(*args,**kwargs)
+            finally:root.unlink();moved.rename(root)
+        with patch.dict(sys.modules,{'mylar':None}), \
+                patch.object(tagger_supplement.sqlite3,'connect',side_effect=changed), \
+                self.assertRaises(ValueError):
+            tagger_supplement.publication_review(writer)
+        writer.hold.assert_not_called()
 
     def test_missing_marker_cannot_hide_existing_publication_history_from_standalone_apply(self):
         writer=MagicMock();writer.root=self.root/'writer';writer.root.mkdir()

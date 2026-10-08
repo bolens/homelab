@@ -1148,3 +1148,15 @@ token; `reviewedDerivativeStatus` observes its completed proof. Workflow exposes
 `reviewed_derivative=1` only with the installed producer, lineage, consumer and
 routes. Ordinary discovery retains nested archives for review. Matching source,
 image gates and live acceptance are required before using this correction.
+
+
+Archive diagnostics retain failed ordinary inventory as review and expose a fixed
+status and reason in postprocessing output and history. `archive_diagnostics=1`
+advertises installed diagnostic functions only. Bounded stable-source reads keep
+original bytes intact. The pure ZIP32 handler can prove preservation for one empty
+directory entry missing its slash; diagnostics do not write its derivative or
+permit import. RAR/7z results require separate decoder verification, and PDF
+results use the existing conversion path. Native preparation, exclusive derivative
+custody and reader-backed adoption remain required by the
+[archive repair contract](../../specs/024-verified-archive-repair/contracts/archive-repair.md).
+This capability does not establish live rollout or complete library acceptance.

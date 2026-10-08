@@ -700,8 +700,10 @@ class Maintenance:
                         else:
                             self.quarantine(path, fingerprint)
                             problems.append({'name': path.name, 'kind': 'quarantine'})
-                    except (ValueError, FileNotFoundError):
-                        warnings.append('Retained for review: ' + str(path))
+                    except (ValueError, FileNotFoundError) as error:
+                        from publication_guard import ArchiveDiagnosticUnavailable
+                        warnings.append(str(error) if isinstance(error,ArchiveDiagnosticUnavailable) else
+                                        'Retained for review: ' + str(path))
                         problems.append({'name': path.name, 'kind': 'validation'})
                     except Exception:
                         errors.append('Maintenance failed for ' + str(path))

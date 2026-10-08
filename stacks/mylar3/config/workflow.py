@@ -750,6 +750,17 @@ def state_health():
         store().get('policy','current')
         result = {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
         try:
+            from mylar import publication_archive_diagnostics as diagnostics
+            from mylar import publication_archive_repair as archive_repair
+        except ImportError:
+            pass
+        else:
+            if all(callable(getattr(module, name, None)) for module, name in (
+                    (diagnostics, 'diagnose'), (diagnostics, 'public_summary'),
+                    (diagnostics, 'display'), (archive_repair, 'classify'),
+                    (archive_repair, 'dispatch'))):
+                result['archive_diagnostics'] = 1
+        try:
             from mylar import api, combined_publication, publication_conversion
             from mylar.publication_transaction import closed_supplement
         except ImportError:

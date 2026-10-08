@@ -28,3 +28,5 @@ Installation validation alone does not establish feature completion.
 - [Verified comic release naming](022-comic-release-naming/spec.md): prospective [plan](022-comic-release-naming/plan.md), [tasks](022-comic-release-naming/tasks.md).
 
 - [Verified publication corrections](023-verified-publication-corrections/spec.md): prospective [plan](023-verified-publication-corrections/plan.md), [tasks](023-verified-publication-corrections/tasks.md).
+
+- [Verified archive repair](024-verified-archive-repair/spec.md): prospective [plan](024-verified-archive-repair/plan.md), [contract](024-verified-archive-repair/contracts/archive-repair.md), [tasks](024-verified-archive-repair/tasks.md). Diagnostics and prepared copies do not establish adoption or live acceptance.
