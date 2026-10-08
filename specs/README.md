@@ -30,3 +30,5 @@ Installation validation alone does not establish feature completion.
 - [Verified publication corrections](023-verified-publication-corrections/spec.md): prospective [plan](023-verified-publication-corrections/plan.md), [tasks](023-verified-publication-corrections/tasks.md).
 
 - [Verified archive repair](024-verified-archive-repair/spec.md): prospective [plan](024-verified-archive-repair/plan.md), [contract](024-verified-archive-repair/contracts/archive-repair.md), [tasks](024-verified-archive-repair/tasks.md). Diagnostics and prepared copies do not establish adoption or live acceptance.
+
+- [Music integrity guards](025-music-integrity-guards/spec.md): [plan](025-music-integrity-guards/plan.md), [tasks](025-music-integrity-guards/tasks.md), [validation](025-music-integrity-guards/validation.md).

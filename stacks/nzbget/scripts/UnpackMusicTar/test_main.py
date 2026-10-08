@@ -3,6 +3,8 @@ import errno
 import io
 import json
 import os
+import shutil
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -218,7 +220,7 @@ class UnpackMusicArchiveTest(unittest.TestCase):
             with zipfile.ZipFile(archive, "w") as output:
                 output.writestr("Release/Artwork/cover.jpg", b"cover")
                 output.writestr("Release/release.cue", b"cue")
-                output.writestr("Release/release.m3u", b"playlist")
+                output.writestr("Release/release.m3u", b"CD 1/Audio/01.flac\nCD2/02.flac\n")
                 output.writestr("Release/release.sfv", b"checksums")
                 output.writestr("Release/release.srr", b"metadata")
                 output.writestr("Release/notes.TXT", b"notes")
@@ -257,8 +259,8 @@ class UnpackMusicArchiveTest(unittest.TestCase):
             release.mkdir()
             (release / "01.flac").write_bytes(b"audio")
             (release / "folder.jpg").write_bytes(b"cover")
-            (release / "release.m3u").write_bytes(b"playlist")
-            (release / "stream.M3U8").write_bytes(b"playlist")
+            (release / "release.m3u").write_bytes(b"01.flac\n")
+            (release / "stream.M3U8").write_bytes(b"Disc 01/Audio/02.flac\n")
             (release / "rip.LOG").write_bytes(b"log")
             (release / "art.PNG").write_bytes(b"art")
             (release / "rip.AccuRip").write_bytes(b"verification")
@@ -328,6 +330,406 @@ class MusicProcessingSeamTest(unittest.TestCase):
     def setUp(self) -> None:
         self.enterContext(contextlib.redirect_stdout(io.StringIO()))
         self.enterContext(contextlib.redirect_stderr(io.StringIO()))
+
+    @staticmethod
+    def tagged_flac(tags: dict[str, str], *, embedded_cue: bool = False) -> bytes:
+        def field(value: bytes) -> bytes:
+            return len(value).to_bytes(4, "little") + value
+        comments = field(b"fixture") + len(tags).to_bytes(4, "little")
+        comments += b"".join(field(f"{key}={value}".encode()) for key, value in tags.items())
+        streaminfo = b"\x00\x00\x00\x22" + bytes(34)
+        comment_header = bytes([4 if embedded_cue else 132]) + len(comments).to_bytes(3, "big")
+        cue = b"\x85\x00\x00\x01\x00" if embedded_cue else b""
+        return b"fLaC" + streaminfo + comment_header + comments + cue + b"audio fixture"
+
+    def test_lone_track_from_album_fails_before_cleanup_or_publication(self) -> None:
+        for tags in ({"TRACK": "9", "TRACKTOTAL": "10"}, {"TRACKNUMBER": "09/10"},
+                     {"TRACKNUMBER": "1", "TOTALTRACKS": "10"}):
+            with self.subTest(tags=tags), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "Release.flac").write_bytes(self.tagged_flac(tags))
+                (root / "notes.nfo").write_text("release notes")
+                before = self.snapshot(root)
+                with mock.patch.object(main, "publish") as publish:
+                    self.assertEqual(self.run_main(root), main.FAILURE)
+                    publish.assert_not_called()
+                self.assertEqual(self.snapshot(root), before)
+                self.assertFalse(any(root.glob(".unpack-music-*")))
+                with self.assertRaisesRegex(ValueError, "track .* of 10"):
+                    main.preview(root)
+
+    def test_complete_obfuscated_album_retains_all_ten_tracks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for track in range(1, 11):
+                (root / f"{track:032x}.flac").write_bytes(self.tagged_flac({"TRACK": str(track), "TRACKTOTAL": "10"}))
+            before = self.snapshot(root)
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual(self.snapshot(root), before)
+
+    def test_single_tracks_and_album_images_are_not_rejected(self) -> None:
+        for kind in ("single", "untagged", "cue", "embedded", "comment-cue"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tags = {} if kind == "untagged" else {"TRACK": "1", "TRACKTOTAL": "1" if kind == "single" else "10"}
+                if kind == "comment-cue":
+                    tags["CUESHEET"] = 'FILE "Release.flac" WAVE'
+                (root / "Release.flac").write_bytes(self.tagged_flac(tags, embedded_cue=kind == "embedded"))
+                if kind == "cue":
+                    (root / "Release.cue").write_text('FILE "Release.flac" WAVE\n TRACK 01 AUDIO\n')
+                self.assertEqual(self.run_main(root), main.SUCCESS)
+                self.assertTrue((root / "Release.flac").exists())
+
+    def test_invalid_flac_metadata_does_not_invent_missing_tracks(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for payload in (b"fLaC", b"fLaC\x84\xff\xff\xff", self.tagged_flac({"TRACK": "9", "TRACKTOTAL": "unknown"})):
+                (root / "Release.flac").write_bytes(payload)
+                self.assertEqual(self.run_main(root), main.SUCCESS)
+
+    def test_unsuccessful_downloads_skip_before_any_processing(self) -> None:
+        statuses = [
+            {"NZBPP_TOTALSTATUS": status} for status in ("FAILURE", "WARNING", "DELETED")
+        ] + [{"NZBPP_STATUS": "FAILURE/PAR"}, {"NZBPP_PARSTATUS": "1", "NZBPP_UNPACKSTATUS": "2"},
+             {"NZBPP_PARSTATUS": "3"}, {"NZBPP_PARSTATUS": "4"}, {"NZBPP_UNPACKSTATUS": "1"},
+             {"NZBPP_UNPACKSTATUS": "3"}, {"NZBPP_UNPACKSTATUS": "4"}]
+        for status in statuses:
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "notes.nfo").write_text("diagnostic notes")
+                before = self.snapshot(root)
+                environment = {"NZBPP_CATEGORY": "music", "NZBPP_FINALDIR": str(root), **status}
+                with mock.patch.dict(os.environ, environment, clear=True), mock.patch.object(main, "process_release") as process:
+                    self.assertEqual(main.main(), main.SKIPPED)
+                    process.assert_not_called()
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_successful_and_unspecified_statuses_keep_processing(self) -> None:
+        for status in ({}, {"NZBPP_TOTALSTATUS": "SUCCESS", "NZBPP_STATUS": "SUCCESS/ALL",
+                            "NZBPP_PARSTATUS": "2", "NZBPP_UNPACKSTATUS": "0", "NZBPP_SCRIPTSTATUS": "FAILURE"}):
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "track.flac").write_bytes(b"fLaC\x00audio")
+                with mock.patch.dict(os.environ, {"NZBPP_CATEGORY": "music", "NZBPP_FINALDIR": str(root), **status}, clear=True):
+                    self.assertEqual(main.main(), main.SUCCESS)
+
+    def test_partial_duplicate_and_conflicting_albums_fail_without_cleanup(self) -> None:
+        variants = [((1, 10), (9, 10)), ((1, 2), (1, 2)), ((1, 2), (2, 3)), ((1, 2), (0, 2))]
+        for tracks in variants:
+            with self.subTest(tracks=tracks), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                for index, (track, total) in enumerate(tracks):
+                    (root / f"hash-{index}.flac").write_bytes(self.tagged_flac(
+                        {"TRACK": str(track), "TRACKTOTAL": str(total), "ALBUM": "Album"}))
+                (root / "notes.nfo").write_text("diagnostic notes")
+                before = self.snapshot(root)
+                self.assertEqual(self.run_main(root), main.FAILURE)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_partial_album_archive_is_preserved(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with zipfile.ZipFile(root / "release.zip", "w") as output:
+                for track in (1, 9):
+                    output.writestr(f"Release/{track}.flac", self.tagged_flac(
+                        {"TRACK": str(track), "TRACKTOTAL": "10", "ALBUM": "Album"}))
+                output.writestr("Release/notes.nfo", "diagnostic notes")
+            before = self.snapshot(root)
+            self.assertEqual(self.run_main(root), main.FAILURE)
+            self.assertEqual(self.snapshot(root), before)
+            self.assertFalse(any(root.glob(".unpack-music-*")))
+
+    def test_completeness_keeps_separate_discs_albums_and_artists(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for album, artist, disc in (("Same Album", "A", "01/2"), ("Same Album", "A", "2/2"),
+                                        ("Same Album", "B", "1"), ("Other Album", "A", "1")):
+                for track in (1, 2):
+                    name = f"{album}-{artist}-{disc.replace('/', '-')}-{track}.flac"
+                    (root / name).write_bytes(self.tagged_flac({"TRACKNUMBER": str(track), "TRACKTOTAL": "2",
+                                                               "ALBUM": album, "ALBUMARTIST": artist, "DISCNUMBER": disc}))
+            before = self.snapshot(root)
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual(self.snapshot(root), before)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for disc in ("CD 1 - Originals", "CD 2 - Remixes"):
+                (root / disc).mkdir()
+                for track in (1, 2):
+                    (root / disc / f"{track}.flac").write_bytes(self.tagged_flac({"TRACK": str(track), "TRACKTOTAL": "2"}))
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual(len(list(root.rglob("*.flac"))), 4)
+
+    def test_verification_failure_missing_tool_and_timeout_preserve_release(self) -> None:
+        for kind in ("missing", "failure", "timeout"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "obfuscated.nfo").write_bytes(b"fLaC\x00damaged audio")
+                (root / "notes.nfo").write_text("diagnostic notes")
+                before = self.snapshot(root)
+                result = subprocess.CompletedProcess([], 1 if kind == "failure" else 0)
+                side_effect = subprocess.TimeoutExpired("ffmpeg", 600) if kind == "timeout" else None
+                with mock.patch.object(main.shutil, "which", return_value=None if kind == "missing" else "/ffmpeg"), \
+                     mock.patch.object(main.subprocess, "run", return_value=result, side_effect=side_effect), \
+                     self.assertRaises(ValueError):
+                    main.process_release(root, verify_audio=True)
+                self.assertEqual(self.snapshot(root), before)
+                self.assertFalse(any(root.glob(".unpack-music-*")))
+
+    def test_verification_checks_unchanged_release_once_and_maps_all_audio(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "track.flac").write_bytes(b"fLaC\x00audio")
+            with mock.patch.object(main.shutil, "which", return_value="/ffmpeg"), \
+                 mock.patch.object(main.subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as run, \
+                 mock.patch.object(main, "publish") as publish:
+                main.process_release(root, verify_audio=True)
+                publish.assert_not_called()
+                run.assert_called_once()
+                command = run.call_args.args[0]
+                self.assertEqual(command[command.index("-map") + 1], "0:a")
+                self.assertIn("-xerror", command)
+                self.assertIn("-nostdin", command)
+                self.assertEqual(command[command.index("-protocol_whitelist") + 1], "file,pipe")
+
+    def test_cp437_scene_nfo_cleanup_preserves_media_and_unknown_binary(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            art = "┌─────┐\r\n│ ■ Artist: Fixture ■ │\r\n└─────┘\r\n".encode("cp437")
+            (root / "release.nfo").write_bytes(art)
+            (root / "unknown.nfo").write_bytes(art + b"\xffbinary")
+            (root / "control.nfo").write_bytes(art + b"\x00binary")
+            (root / "audio.nfo").write_bytes(b"fLaC\x00audio")
+            (root / "art.txt").write_bytes(art)
+            self.assertTrue(main.disposable(root / "release.nfo"))
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertFalse((root / "release.nfo").exists())
+            for name in ("unknown.nfo", "control.nfo", "art.txt"):
+                self.assertTrue((root / name).exists())
+            self.assertEqual((root / "audio.nfo.flac").read_bytes(), b"fLaC\x00audio")
+
+    def test_empty_audio_without_totals_preserves_release(self) -> None:
+        for suffix in sorted(main.AUDIO_SUFFIXES):
+            with self.subTest(suffix=suffix), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / f"empty{suffix.upper()}").write_bytes(b"")
+                (root / "release.nfo").write_text("evidence")
+                before = {path.name: path.read_bytes() for path in root.iterdir()}
+                self.assertEqual(self.run_main(root), main.FAILURE)
+                self.assertEqual(before, {path.name: path.read_bytes() for path in root.iterdir()})
+                with self.assertRaisesRegex(ValueError, "empty audio file"):
+                    main.plan_tree(root, cleanup=False, extensions=False, flatten=False)
+
+    def test_empty_audio_archive_and_cue_remain_untouched(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root / "release.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("Release/image.flac", b"")
+                output.writestr("Release/image.cue", 'FILE "image.flac" WAVE\n')
+            (root / "release.nfo").write_text("evidence")
+            before = {path.name: path.read_bytes() for path in root.iterdir()}
+            self.assertEqual(self.run_main(root), main.FAILURE)
+            self.assertEqual(before, {path.name: path.read_bytes() for path in root.iterdir()})
+
+    def test_empty_unknown_and_sidecar_files_do_not_trigger_audio_guard(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "audio.flac").write_bytes(b"fLaC\x00audio")
+            (root / "unknown").write_bytes(b"")
+            (root / "empty.nfo").write_bytes(b"")
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertTrue((root / "unknown").exists())
+            self.assertFalse((root / "empty.nfo").exists())
+
+    def test_playlist_without_track_totals_detects_obfuscated_partial_album(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for track in (1, 2, 5):
+                (root / f"hash-{track}.flac").write_bytes(self.tagged_flac({
+                    "ALBUM": "Fixture", "ARTIST": "Artist", "TITLE": f"Song {track}", "TRACKNUMBER": str(track)}))
+            (root / "hashed-list").write_text("".join(f"{track:02d}-artist-song_{track}.flac\n" for track in range(1, 15)))
+            (root / "release.nfo").write_text("evidence")
+            before = {path.name: path.read_bytes() for path in root.iterdir()}
+            self.assertEqual(self.run_main(root), main.FAILURE)
+            self.assertEqual(before, {path.name: path.read_bytes() for path in root.iterdir()})
+
+    def test_complete_obfuscated_playlist_is_cleaned_without_renaming_audio(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for track, title in ((1, "Song (Mix - Edit)"), (2, "Song (A & B Remix)")):
+                (root / f"hash-{track}.flac").write_bytes(self.tagged_flac({
+                    "ALBUM": "Fixture", "ARTIST": "Artist", "TITLE": title, "TRACKNUMBER": str(track)}))
+            (root / "hashed-list").write_text("01-artist-song_(mix_edit).flac\n02-artist-song_(a_and_b_remix).flac\n")
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual({path.name for path in root.iterdir()}, {"hash-1.flac", "hash-2.flac"})
+
+    def test_hashed_scene_playlist_and_repeated_musicbrainz_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for track in (1, 2):
+                tags = {"ALBUM": "Fixture", "ALBUMARTIST": "Artist", "ARTIST": "Artist feat. Guest",
+                        "TITLE": f"Song {track}", "TRACKNUMBER": str(track), "TRACKTOTAL": "2"}
+                # Build valid separate comments for the multi-valued field.
+                values = [f"{key}={value}".encode() for key, value in tags.items() if key != "MUSICBRAINZ_ARTISTID"]
+                values += [b"MUSICBRAINZ_ARTISTID=first", b"MUSICBRAINZ_ARTISTID=second", b"ARTISTS=Artist", b"ARTISTS=Guest"]
+                data = (4).to_bytes(4, "little") + b"test" + len(values).to_bytes(4, "little")
+                data += b"".join(len(value).to_bytes(4, "little") + value for value in values)
+                payload = b"fLaC\x84" + len(data).to_bytes(3, "big") + data
+                (root / f"hash-{track}.flac").write_bytes(payload)
+                self.assertEqual(main.flac_album_metadata(root / f"hash-{track}.flac")[0]['TRACKTOTAL'], '2')
+            (root / "release.m3u").write_text("01-artist_guest-song_1-1234abcd.flac\n02-artist_guest-song_2-deadbeef.flac\n")
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertFalse((root / "release.m3u").exists())
+
+    def test_partial_playlist_inside_archive_preserves_original_archive_and_sidecars(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            archive = root / "release.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("Release/01.flac", b"fLaC\x00audio")
+                output.writestr("Release/release.m3u", "01.flac\n02.flac\n")
+            (root / "release.nfo").write_text("evidence")
+            before = {path.name: path.read_bytes() for path in root.iterdir()}
+            self.assertEqual(self.run_main(root), main.FAILURE)
+            self.assertEqual(before, {path.name: path.read_bytes() for path in root.iterdir()})
+
+    def test_exact_playlist_multidisc_and_missing_reference(self) -> None:
+        for missing in (False, True):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                for disc in (1, 2):
+                    (root / f"CD{disc}").mkdir()
+                    if disc == 1 or not missing:
+                        (root / f"CD{disc}" / "01.flac").write_bytes(b"fLaC\x00audio")
+                (root / "release.m3u8").write_text("#EXTM3U\nCD1\\01.flac\nCD2/01.flac\n", encoding="utf-8-sig")
+                before = {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+                self.assertEqual(self.run_main(root), main.FAILURE if missing else main.SUCCESS)
+                if missing:
+                    self.assertEqual(before, {str(p.relative_to(root)): p.read_bytes() for p in root.rglob('*') if p.is_file()})
+                else:
+                    self.assertFalse((root / "release.m3u8").exists())
+
+    def test_unsafe_or_unrelated_playlists_are_retained(self) -> None:
+        cases = ("https://example.invalid/one.flac\n", "../one.flac\n", "/one.flac\n",
+                 "one.flac\none.flac\n", "one.flac\nunknown text\n", "missing.flac\n")
+        for text in cases:
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "audio.flac").write_bytes(b"fLaC\x00audio")
+                for name in ("list", "list.m3u"):
+                    (root / name).write_text(text)
+                self.assertEqual(self.run_main(root), main.SUCCESS)
+                for name in ("list", "list.m3u"):
+                    self.assertEqual((root / name).read_text(), text)
+
+    def test_conflicting_archive_playlists_preserve_both_original_archives(self) -> None:
+        for suffix in (".m3u", ".m3u8", ".txt"):
+            with self.subTest(suffix=suffix), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                for index, text in enumerate(("unrelated.flac\n", "one.flac\nmissing.flac\n")):
+                    with tarfile.open(root / f"release-{index}.tar", "w") as output:
+                        payloads = {f"Release/list{suffix}": text.encode(), f"Release/{index}.flac": b"fLaC\x00audio"}
+                        if index == 1:
+                            payloads['Release/one.flac'] = b"fLaC\x00audio"
+                        for name, payload in payloads.items():
+                            member = tarfile.TarInfo(name)
+                            member.size = len(payload)
+                            output.addfile(member, io.BytesIO(payload))
+                before = self.snapshot(root)
+                self.assertEqual(self.run_main(root), main.FAILURE)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_aif_extension_and_disguised_image_remain_preserved(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            payloads = {'song.aif': b'FORM\x00\x00\x00\x00AIFFaudio', 'cover.aif': b'\x89PNG\r\n\x1a\nimage'}
+            for name, payload in payloads.items():
+                (root / name).write_bytes(payload)
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual(self.snapshot(root), payloads)
+
+    def test_cue_referenced_playlist_text_stays_protected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "list").write_text("missing1.flac\nmissing2.flac\n")
+            (root / "release.cue").write_text('FILE "list" BINARY\n')
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertTrue((root / "list").exists())
+
+    def test_binary_srr_header_cleanup_preserves_unknown_and_disguised_audio(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            name = b"pyReScene Auto 0.5"
+            header = b"iii\x01\x00" + (9 + len(name)).to_bytes(2, "little") + len(name).to_bytes(2, "little") + name
+            (root / "release.SRR").write_bytes(header + b"\x00binary metadata")
+            (root / "minimal.srr").write_bytes(b"iii\x00\x00\x07\x00")
+            (root / "unknown.srr").write_bytes(b"\x00unknown binary")
+            (root / "truncated.srr").write_bytes(header[:-1])
+            (root / "bad-size.srr").write_bytes(b"iii\x01\x00\x09\x00\x01\x00")
+            (root / "bad-flags.srr").write_bytes(b"iii\x02\x00\x07\x00")
+            (root / "audio.srr").write_bytes(b"fLaC\x00audio")
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            for filename in ("release.SRR", "minimal.srr"):
+                self.assertFalse((root / filename).exists())
+            for filename in ("unknown.srr", "truncated.srr", "bad-size.srr", "bad-flags.srr"):
+                self.assertTrue((root / filename).exists())
+            self.assertEqual((root / "audio.srr.flac").read_bytes(), b"fLaC\x00audio")
+
+    def test_cue_referenced_binary_srr_stays_protected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            payload = b"iii\x00\x00\x07\x00"
+            (root / "release.srr").write_bytes(payload)
+            (root / "release.cue").write_text('FILE "release.srr" BINARY\n')
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual((root / "release.srr").read_bytes(), payload)
+
+    def test_cp437_nfo_cue_reference_stays_protected(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            payload = "┌──┐\r\n│ Fixture │\r\n└──┘".encode("cp437")
+            (root / "release.nfo").write_bytes(payload)
+            (root / "release.cue").write_text('FILE "release.nfo" BINARY\n')
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual((root / "release.nfo").read_bytes(), payload)
+
+    def test_nzbget_verification_option_and_preview_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with mock.patch.dict(os.environ, {"NZBPP_CATEGORY": "music", "NZBPP_FINALDIR": str(root),
+                                              "NZBPO_VERIFYAUDIO": "yes"}, clear=True), \
+                 mock.patch.object(main, "process_release") as process:
+                self.assertEqual(main.main(), main.SUCCESS)
+                process.assert_called_once_with(root, verify_audio=True)
+            with mock.patch.object(main, "preview") as preview:
+                self.assertEqual(main.cli(["--preview", str(root), "--verify-audio"]), 0)
+                preview.assert_called_once_with(root, verify_audio=True)
+            with self.assertRaises(SystemExit):
+                main.cli(["--recover", str(root), "--verify-audio"])
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "optional ffmpeg unavailable")
+    def test_real_audio_verification_rejects_damaged_archive_without_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            good = root / "generated.flac"
+            subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-f", "lavfi", "-i", "sine=duration=0.1", str(good)], check=True)
+            payload = good.read_bytes()
+            main.process_release(root, verify_audio=True)
+            self.assertEqual(good.read_bytes(), payload)
+            main.preview(root, verify_audio=True)
+            good.unlink()
+            archive = root / "release.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("Release/01.flac", b"fLaC" + bytes(64))
+                output.writestr("Release/notes.nfo", "diagnostic notes")
+            before = self.snapshot(root)
+            with self.assertRaisesRegex(ValueError, "decoding verification failed"):
+                main.process_release(root, verify_audio=True)
+            self.assertEqual(self.snapshot(root), before)
+            with self.assertRaisesRegex(ValueError, "decoding verification failed"):
+                main.preview(root, verify_audio=True)
+            self.assertEqual(self.snapshot(root), before)
 
     def run_main(self, root: Path) -> int:
         with mock.patch.dict(os.environ, {"NZBPP_CATEGORY": "music", "NZBPP_FINALDIR": str(root)}, clear=True):

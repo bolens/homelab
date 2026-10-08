@@ -13,8 +13,11 @@ import publication_guard as guard
 import publication_lineage as lineage
 import publication_native as native
 import test_publication_rename as fixtures
+from test_publication_guard import TOOL_ROOT
 
 
+@unittest.skipUnless((Path(TOOL_ROOT) / 'lib/archive_backend.py').is_file(),
+                     'offline native archive verifier required')
 class LineageTests(unittest.TestCase):
     connection = fixtures.RenameTests.connection
     call = fixtures.RenameTests.call
