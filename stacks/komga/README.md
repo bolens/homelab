@@ -702,3 +702,15 @@ while a release naming transaction remains pending.
 With initialized publication protection, eligible lossless conversion uses a private prepared handoff and native Mylar publication. Dispatch runs after releasing the shared writer and before unrelated reader scans. An uncertain commit uses passive native status; fresh current owner, source, complete census and terminal proof precede reader notification. Completion requires a unique ready reader book with the exact target hash and page count. Existing reader-owned sources, unsupported PDF/member derivatives and old jobs remain held.
 
 The coordinated combined rename/metadata pass binds one native original/restore pair to exact policy and naming facts. It renames first, verifies reader restoration at the unchanged archive hash, then requests native root metadata publication. New metadata hashes are accepted only through closed native lineage. Private native copies stay retained pending final cleanup acceptance. Matching `combined_cleanup=1` support permits only explicit retirement after fresh native and reader proof; an uncertain request uses passive status and cannot repeat deletion. The worker independently validates adopted nested-metadata families, preserving inherited rejected owners across original and derivative payloads. Deploy matching native and worker images with verified backups before enabling either path; final protected-library acceptance remains pending.
+
+
+The worker reports fixed archive diagnostic status and reason only after ordinary
+inventory refusal. It preserves the source and keeps the refusal terminal; no
+diagnostic result permits import, retry, quarantine or publication. The matching
+native `archive_diagnostics=1` capability describes installed diagnostics only.
+The native and worker builds share exact pure ZIP preservation modules and
+controls. Decoder verification and PDF conversion keep their existing separate
+routes. Physical repair requires exclusive custody, native ownership and fresh
+reader acceptance under the
+[archive repair contract](../../specs/024-verified-archive-repair/contracts/archive-repair.md);
+matching diagnostic images alone do not provide that authority.

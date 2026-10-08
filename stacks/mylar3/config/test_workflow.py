@@ -408,6 +408,34 @@ class WorkflowTest(unittest.TestCase):
         with self.assertRaises(ValueError):workflow.set_policy({'auto_handoff':'true'})
         with patch.object(workflow,'store',side_effect=OSError('private')):workflow.emit('search','Started')
         self.assertGreater(workflow._OBSERVER_ERRORS,0)
+    def test_archive_diagnostics_capability_requires_installed_functions(self):
+        diagnostics = importlib.import_module('mylar.publication_archive_diagnostics')
+        repair = importlib.import_module('mylar.publication_archive_repair')
+        value = workflow.state_health()
+        self.assertTrue(value['valid'])
+        self.assertEqual(value['archive_diagnostics'], 1)
+        self.assertNotIn('archive_repair', value)
+        self.assertNotIn('archive_adoption', value)
+        for module, name in ((diagnostics, 'diagnose'), (diagnostics, 'public_summary'),
+                             (diagnostics, 'display'), (repair, 'classify'),
+                             (repair, 'dispatch')):
+            with self.subTest(name=name), patch.object(module, name, None):
+                self.assertNotIn('archive_diagnostics', workflow.state_health())
+
+    def test_archive_diagnostics_survives_unrelated_optional_import_failure(self):
+        import builtins
+        original = builtins.__import__
+        def imports(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == 'mylar' and fromlist and 'combined_publication' in fromlist:
+                raise ImportError('optional combined modules absent')
+            return original(name, globals, locals, fromlist, level)
+        with patch.object(builtins, '__import__', side_effect=imports):
+            value = workflow.state_health()
+        self.assertTrue(value['valid'])
+        self.assertEqual(value['archive_diagnostics'], 1)
+        self.assertNotIn('combined_publication', value)
+        self.assertNotIn('archive_repair', value)
+
     def test_healthy_workflow_advertises_native_handoff_version(self):
         value=workflow.state_health()
         self.assertTrue(value['valid'])

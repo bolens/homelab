@@ -51,26 +51,21 @@ class BindingsTest(unittest.TestCase):
 
     def test_supplement_admission_ignores_read_access_time_only(self):
         writer = Writer(self.root/'media-writer', create=True)
-        database = self.root/'workflow.sqlite'
-        original_stat = Path.stat
+        original_stat = os.fstat
         fields = ('st_dev', 'st_ino', 'st_mode', 'st_nlink', 'st_uid', 'st_gid',
                   'st_size', 'st_mtime_ns', 'st_ctime_ns', 'st_atime_ns')
         for changed in fields:
             with self.subTest(changed=changed):
                 calls = []
-                def observed(path, *args, **kwargs):
-                    value = original_stat(path, *args, **kwargs)
-                    if path != database or kwargs.get('follow_symlinks') is False:
-                        return value
+                def observed(fd):
+                    value = original_stat(fd)
                     calls.append(value)
                     if len(calls) == 1:
                         return value
                     result = {name:getattr(value, name) for name in fields}
                     result[changed] += 1
                     return SimpleNamespace(**result)
-                with patch.object(Path, 'stat', observed):
-                    # Older pathlib uses stat(follow_symlinks=False) for is_symlink.
-                    database.stat(follow_symlinks=False)
+                with patch.object(tagger_supplement.os, 'fstat', observed):
                     if changed == 'st_atime_ns':
                         tagger_supplement.publication_review(writer)
                     else:

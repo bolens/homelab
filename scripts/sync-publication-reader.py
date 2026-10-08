@@ -96,9 +96,16 @@ def outputs():
         'tagger_metadata.py', {'MAX_XML', 'ComicTree', 'parse'})
     zipper = 'import os\nimport struct\n\n' + definitions(
         'tagger_archive.py', {'MAX_MEMBERS', 'MAX_UNPACKED', 'MAX_DIRECTORY', 'directory_limits'})
-    return {'publication_evidence.py': HEADER + reader + '\n' + main,
-            'publication_metadata.py': HEADER + metadata,
-            'publication_zip.py': HEADER + zipper}
+    result = {'publication_evidence.py': HEADER + reader + '\n' + main,
+              'publication_metadata.py': HEADER + metadata,
+              'publication_zip.py': HEADER + zipper}
+    # These pure/read-only modules and disposable controls are byte-exact peers.
+    # Prefixing a generated header would change their preservation commitments.
+    for name in ('publication_archive_layout.py', 'publication_archive_derivative.py',
+                 'publication_archive_repair.py', 'publication_archive_diagnostics.py',
+                 'test_publication_archive_repair.py', 'test_publication_archive_diagnostics.py'):
+        result[name] = (NATIVE / name).read_text()
+    return result
 
 
 def main():

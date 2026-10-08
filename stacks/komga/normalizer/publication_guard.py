@@ -19,6 +19,21 @@ Unavailable = evidence.Unavailable
 _ACTIVE = threading.local()
 
 
+class ArchiveDiagnosticUnavailable(Unavailable):
+    """Terminal ordinary-inventory refusal with read-only diagnostic codes."""
+    def __init__(self, diagnostic):
+        message='Current worker publication evidence unavailable'
+        safe=None
+        try:
+            from publication_archive_diagnostics import public_summary, display
+            safe=public_summary(diagnostic)
+            if safe is not None:message=display(safe)
+        except Exception:
+            pass
+        super().__init__(message)
+        self.archive_diagnostic=safe
+
+
 @dataclass(frozen=True,slots=True)
 class NativeBatch:
     """Bounded read-side replies collected before exclusion, never permission."""
@@ -118,7 +133,16 @@ class Authority:
             owner = evidence.exact_owner(owner)
             census, records = self.admission()
             source = Path(source)
-            inventory = evidence.inventory(source, tool_root=self.tool_root, deadline=deadline)
+            try:
+                inventory = evidence.inventory(source, tool_root=self.tool_root, deadline=deadline)
+            except evidence.Unavailable:
+                diagnostic=None
+                try:
+                    from publication_archive_diagnostics import diagnose
+                    diagnostic=diagnose(source,evidence,time.monotonic()+evidence.TIMEOUT)
+                except Exception:
+                    pass  # Diagnostic availability cannot change terminal refusal.
+                raise ArchiveDiagnosticUnavailable(diagnostic) from None
             from publication_derivative_evidence import families
             payload_index, payload_groups = families(records)
             family = payload_index.get(inventory['payload'])
@@ -172,6 +196,8 @@ class Authority:
             if result['decision'] not in ('allowed', 'unknown'):
                 raise Unavailable('Verified publication correction requires review')
             return dict(version=1, source=str(source), inventory=inventory, authority=result)
+        except ArchiveDiagnosticUnavailable:
+            raise
         except (OSError, ValueError, TypeError, KeyError, IndexError) as error:
             raise Unavailable('Current worker publication evidence unavailable') from error
 

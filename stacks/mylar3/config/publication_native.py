@@ -19,10 +19,11 @@ class Review(BaseException):
     Only the outer processing runner consumes this signal. It must never become
     a tagger failure, retry/search request or successful import acknowledgement.
     """
-    def __init__(self, reason='publication-unavailable', *, payload=None):
+    def __init__(self, reason='publication-unavailable', *, payload=None, archive_diagnostic=None):
         super().__init__('Publication identity requires review')
         self.reason=reason
         self.payload=payload
+        self.archive_diagnostic=archive_diagnostic
 
 
 EXTENSIONS=frozenset(('.cbz','.cbr','.cb7','.cbt','.zip','.rar','.7z','.tar'))
@@ -167,7 +168,20 @@ def require(source, *, issueid=None, comicid=None, transaction=None):
         admission()
         path=candidate(source)
         parent_binding=parents(path)
-        actual=guard.inventory(path);payload=actual['payload']
+        try:
+            actual=guard.inventory(path)
+        except guard.Unavailable:
+            diagnostic=None
+            try:
+                if __package__:
+                    from .publication_archive_diagnostics import diagnose
+                else:
+                    from publication_archive_diagnostics import diagnose
+                diagnostic=diagnose(path,guard,time.monotonic()+guard.TIMEOUT)
+            except Exception:
+                pass  # Diagnostic availability cannot change terminal refusal.
+            raise Review('archive-verification-refused',archive_diagnostic=diagnostic) from None
+        payload=actual['payload']
         proposed=owner(mylar.DATA_DIR,issueid,comicid)
         from mylar.publication_api import Controller
         controller=Controller(mylar.DATA_DIR,[mylar.CONFIG.DESTINATION_DIR])
