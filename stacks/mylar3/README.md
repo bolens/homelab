@@ -164,8 +164,11 @@ Before changing the image, pull the candidate explicitly, then run:
 
 The gate copies public application source inside an isolated container, applies
 all build-time patches, and runs DDL, tagging-timeout, and health regressions. It has
-no network or live configuration mounts. Repository CI runs the same gate against
-the pinned image. A source mismatch fails the gate and requires patch review.
+no network or live configuration mounts. Repository CI installs the current public
+patches in a disposable layer over the pinned upstream image before running this
+gate, so fresh interpreter checks exercise the actual application module paths.
+The full custom-image build also runs the gate with its installed dependencies.
+A source mismatch fails the gate and requires patch review.
 After deployment, also check `/check_ActiveDDL`, queue progress, and library data
 preservation. The offline gate cannot verify a download provider's availability.
 
