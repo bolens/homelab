@@ -1171,6 +1171,9 @@ Current catalog ownership supplies the source. Preparation verifies private repa
 bytes and separate original/restore custody. Status rechecks current facts and
 retains incomplete operations without replay. Both actions retain false publication,
 adoption and reader grants. They cannot replace a library file or confirm import.
-Any `negative-retirement-v1.pending` state holds ordinary native/worker processing
-and these preparation/status actions. The dedicated owning recovery consumer and
+Either `negative-retirement-v1.pending` or
+`negative-retirement-v1.terminal-pending` holds ordinary native/worker processing
+and these preparation/status actions. The terminal successor keeps processing
+held across retirement-marker removal and durable acknowledgement. Missing files
+are the only absence condition; malformed or inaccessible markers still hold. The dedicated owning recovery consumer and
 live acceptance remain required before repair adoption or writer release.

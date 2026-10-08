@@ -30,4 +30,11 @@ class Controls(AuthorityFixture,unittest.TestCase):
    result=real(*args,**kw);(self.writer.root/NAME).write_bytes(b'{}');fired.append(True);return result
   with self.writer.hold(),patch.object(evidence,'inventory',side_effect=late),self.assertRaises(Unavailable):self.authority.check(self.candidate,self.owner)
   self.assertTrue(fired)
+
+
+class TerminalControls(Controls):
+ def setUp(self):
+  marker=patch(__name__+'.NAME','negative-retirement-v1.terminal-pending');marker.start();self.addCleanup(marker.stop)
+  super().setUp()
+
 if __name__=='__main__':unittest.main()

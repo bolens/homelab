@@ -3,6 +3,7 @@
 Host tests substitute SDK module resolution, not authority, catalog or leases.
 Installed-image route and primary-key adapter placement remain separate gates.
 """
+import inspect
 import json
 from pathlib import Path
 import sys
@@ -202,5 +203,15 @@ class Controls(unittest.TestCase):
   def record(c,m,deadline):observed.append(deadline);return real(c,m,deadline)
   with patch.object(route,'namespace',side_effect=record):self.call()
   self.assertGreaterEqual(len(observed),3);self.assertTrue(all(v==observed[0] for v in observed))
+
+ def test_terminal_successor_after_last_semantic_callback_holds(self):
+  real=self.case.modules[2].ordinary_purpose;fired=[]
+  def late(writer):
+   result=real(writer)
+   if not fired and any(frame.function=='terminal' for frame in inspect.stack()):
+    (writer.root/'negative-retirement-v1.terminal-pending').write_bytes(b'fixture');fired.append(True)
+   return result
+  with patch.object(self.case.modules[2],'ordinary_purpose',side_effect=late),self.assertRaisesRegex(ValueError,'^Owned archive preparation requires review$'):self.call()
+  self.assertTrue(fired)
 
 if __name__=='__main__':unittest.main()

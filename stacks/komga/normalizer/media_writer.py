@@ -26,13 +26,11 @@ def deny_negative_phase(root):
     Only a missing marker is absence. Present, malformed, linked or inaccessible
     markers all hold; no marker read, recovery flag or caller receipt grants use.
     """
-    try:
-        os.lstat(Path(root)/'negative-retirement-v1.pending')
-    except FileNotFoundError:
-        return
-    except OSError:
-        raise Busy('Negative retirement phase requires review') from None
-    raise Busy('Negative retirement phase requires review')
+    for name in ('negative-retirement-v1.pending','negative-retirement-v1.terminal-pending'):
+        try:os.lstat(Path(root)/name)
+        except FileNotFoundError:continue
+        except OSError:raise Busy('Negative retirement phase requires review') from None
+        raise Busy('Negative retirement phase requires review')
 
 
 def sync(directory):
@@ -135,6 +133,7 @@ class Writer:
                 except BlockingIOError:pass
                 if time.monotonic()>=deadline:raise Busy('Media writer active or normalizer recovery pending')
                 time.sleep(min(0.05,max(0,deadline-time.monotonic())))
+            deny_negative_phase(self.root)
             local.depth=1;local.allow_pending=allow_pending;local.allow_tagger_pending=allow_tagger_pending;local.allow_release_pending=allow_release_pending
             try:yield self
             finally:local.depth=0;local.allow_pending=False;local.allow_tagger_pending=False;local.allow_release_pending=False
