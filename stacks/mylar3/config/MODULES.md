@@ -22,6 +22,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Requeued download state | `patch_ddl_requeue.py` | `test_ddl_requeue.py` |
 | Authenticated publication registration and advisory protocol | `patch_publication_guard.py` | `publication_api.py`, `publication_guard.py`, `test_publication_api.py`; follows writer, workflow and naming helper installation |
 | Native payload admission and retained postprocessing review | `patch_publication_processing.py` (invoked by `patch_publication_guard.py`) | `publication_native.py`, `processing_guard.py`, `pp_monitor.py`, `test_publication_native.py`; checked actual native processing and acknowledgement branches |
+| Retained archive diagnostics and pure preservation proof | `patch_publication_guard.py` | `publication_archive_layout.py`, `publication_archive_derivative.py`, `publication_archive_repair.py`, `publication_archive_diagnostics.py`; pure preservation, stable-source and owning observer tests; ordinary inventory refusal remains review |
 | Owned tagging publication and terminal evidence | `patch_publication_guard.py` | `publication_transaction.py`, `tagger_backend.py`, `tagger_native.py`, `tagger_service.py`, `tagger_pack.py`, `tagger_nfs.py`, `test_publication_tagging.py`; internal typed coordination, retained review and exact terminal completion |
 | Owned release rename and root metadata | `patch_publication_guard.py` | `publication_rename.py`, `release_naming.py`, `tagger_supplement.py`, `publication_transaction.py`; `test_publication_rename.py`, `test_publication_maintenance.py`; immutable source/owner/census checkpoints and retained interruption holds |
 | Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; follows the authenticated publication API, refuses pending media intents and uncertain cleanup records |
@@ -335,3 +336,11 @@ retry state keeps its separate JSON Store and existing attempt/cooldown records.
 `patch_combined_publication.py` installs the primary-key POST `combinedPublication` route after publication authority. `combined_publication.py` owns private preparation and the finite rename → unchanged-hash reader restoration → preserved root metadata sequence. `publication_transaction.closed_supplement` validates closed metadata lineage without creating or replaying a tagging transaction. Private originals remain retained; final cleanup requires separate acceptance.
 
 `patch_publication_conversion.py` installs primary-key `commitConvertedArchive` and passive `convertedArchiveStatus`. `publication_conversion.py` owns exact live conversion admission, unchanged member/page inventories, private original retention, exclusive target publication, conditional catalog relocation and durable terminal acknowledgement. Its controls use actual archive verification and current native ownership. PDF and member-name derivatives remain held. Both routes are installed and tested by the image gate before workflow capabilities are advertised.
+
+Archive diagnostics run only after ordinary inventory refuses the same source.
+`archive_diagnostics=1` advertises installed diagnostic functions. Fixed status
+and reason text reaches retained postprocessing history without source paths,
+hashes or member content. The pure ZIP32 directory spelling handler verifies
+preservation in disposable controls; returned bytes grant no publication rights.
+Native preparation and reader-backed adoption require the separate
+[archive repair contract](../../../specs/024-verified-archive-repair/contracts/archive-repair.md).

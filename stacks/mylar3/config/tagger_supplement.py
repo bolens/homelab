@@ -51,6 +51,12 @@ def archives(roots):
                     yield path
 
 
+def authority_signature(info):
+    # Read access time can advance during SQLite verification without a mutation.
+    return (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
+            info.st_mode,info.st_uid,info.st_gid,info.st_nlink)
+
+
 def publication_review(writer):
     """An unbound maintenance caller cannot replay native correction state."""
     runtime=sys.modules.get('mylar')
@@ -67,21 +73,38 @@ def publication_review(writer):
         if (database.is_symlink() or any(p.is_symlink() for p in database.parents)
                 or any(os.path.lexists(Path(str(database)+suffix)) for suffix in ('-journal','-wal','-shm'))):
             raise ValueError('Supplement authority requires review')
-        before=database.stat()
+        parents={}
+        for parent in database.parents:
+            info=parent.lstat()
+            if not stat.S_ISDIR(info.st_mode):
+                raise ValueError('Supplement authority requires existing unlinked parents')
+            parents[parent]=(info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid)
+        before=database.lstat()
         if not stat.S_ISREG(before.st_mode) or before.st_uid!=os.geteuid() or before.st_nlink!=1:
             raise ValueError('Supplement authority requires owned existing state')
         if not 4096<=before.st_size<=256*1024**2:
             raise ValueError('Supplement authority exceeds bounds')
-        connection=sqlite3.connect(database.absolute().as_uri()+'?mode=ro&immutable=1',uri=True)
+        fd=os.open(database,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
         try:
-            deadline=time.monotonic()+30
-            connection.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
-            protected=protected or connection.execute(
-                "SELECT 1 FROM records WHERE substr(kind,1,12)='publication_' LIMIT 1").fetchone() is not None
-        except sqlite3.Error:
-            raise ValueError('Supplement authority is unreadable or exceeds verification time') from None
-        finally:connection.close()
-        if (database.stat()!=before
+            if authority_signature(os.fstat(fd))!=authority_signature(before):
+                raise ValueError('Supplement authority changed before read')
+            connection=sqlite3.connect(Path('/proc/self/fd/'+str(fd)).as_uri()+'?mode=ro&immutable=1',uri=True)
+            try:
+                deadline=time.monotonic()+30
+                connection.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+                protected=protected or connection.execute(
+                    "SELECT 1 FROM records WHERE substr(kind,1,12)='publication_' LIMIT 1").fetchone() is not None
+            except sqlite3.Error:
+                raise ValueError('Supplement authority is unreadable or exceeds verification time') from None
+            finally:connection.close()
+            if authority_signature(os.fstat(fd))!=authority_signature(before):
+                raise ValueError('Supplement authority changed during admission')
+        finally:os.close(fd)
+        for parent,identity in parents.items():
+            info=parent.lstat()
+            if (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid)!=identity:
+                raise ValueError('Supplement authority parents changed during admission')
+        if (authority_signature(database.lstat())!=authority_signature(before)
                 or any(os.path.lexists(Path(str(database)+suffix)) for suffix in ('-journal','-wal','-shm'))):
             raise ValueError('Supplement authority changed during admission')
     if protected:

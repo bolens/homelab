@@ -21,8 +21,18 @@ def retained(review, processor=None, *, issueid=None):
     if processor is not None and not any(row.get('mode')=='review'
             and row.get('reason')==review.reason and row.get('payload')==review.payload
             for row in processor.valreturn):
-        processor.valreturn.append(dict(mode='review',retained=True,
-            reason=review.reason,payload=review.payload,issueid=issueid))
+        row=dict(mode='review',retained=True,reason=review.reason,payload=review.payload,issueid=issueid)
+        if review.reason == 'archive-verification-refused':
+            try:
+                if __package__:
+                    from .publication_archive_diagnostics import public_summary
+                else:
+                    from publication_archive_diagnostics import public_summary
+                diagnostic=public_summary(getattr(review,'archive_diagnostic',None))
+                if diagnostic is not None:row['archive_diagnostic']=diagnostic
+            except Exception:
+                pass  # Reporting cannot release the original review.
+        processor.valreturn.append(row)
 
 
 def publication(processor, source, *, issueid=None, comicid=None):

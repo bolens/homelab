@@ -37,6 +37,24 @@ def item_info(item):
             'issueid': identifier(item.get('issueid')), 'comicid': identifier(item.get('comicid'))}
 
 
+def archive_review(rows):
+    try:
+        if __package__:
+            from .publication_archive_diagnostics import public_summary, display
+        else:
+            from publication_archive_diagnostics import public_summary, display
+        values = []
+        for row in islice(rows,64):
+            if (type(row) is dict and row.get('mode') == 'review' and row.get('retained') is True and
+                    row.get('reason') == 'archive-verification-refused'):
+                value = public_summary(row.get('archive_diagnostic'))
+                if value is not None and value not in values:values.append(value)
+        if len(values) == 1:return values[0],display(values[0])
+    except Exception:
+        pass
+    return None,None
+
+
 def observer_error():
     global _ERRORS
     with _LOCK:
@@ -77,8 +95,11 @@ def observe(function):
                                'Processing reported a failure' if 'fail' in modes else
                                'Handed off for another processing pass' if 'outside' in modes else
                                'Run finished; check confirmed imports below')
+                    archive_diagnostic,archive_outcome=archive_review(getattr(self,'valreturn',[]))
+                    if 'review' in modes and archive_outcome is not None:outcome=archive_outcome
                     with _LOCK:
                         value = _ACTIVE.pop(token)
+                        if archive_diagnostic is not None:value['archive_diagnostic']=archive_diagnostic
                         value.update(outcome=outcome, finished_at=time.time(),
                                      elapsed_seconds=max(0, int(time.monotonic() - value.pop('started_clock'))))
                         _RECENT.appendleft(value)
