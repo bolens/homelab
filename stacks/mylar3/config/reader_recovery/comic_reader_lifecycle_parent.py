@@ -21,6 +21,7 @@ _CORES = weakref.WeakKeyDictionary()
 _GENERATED = weakref.WeakKeyDictionary()
 _PHASES = weakref.WeakKeyDictionary()
 _PROJECTORS = weakref.WeakKeyDictionary()
+_OUTPUT_NODES = weakref.WeakKeyDictionary()
 
 DOCKER = ('pkexec', '/usr/bin/docker', '--host', 'unix:///run/docker.sock')
 MAX = 64 * 1024**2
@@ -196,7 +197,7 @@ class Paths:
 
 
 def command_template(provider, phase, input_path):
-    need(phase in ('backup', 'prepare', 'execute') and digest(provider['sha256']), 'phase-command')
+    need(phase in ('backup', 'prepare', 'execute', 'verify-terminal') and digest(provider['sha256']), 'phase-command')
     return ['/lsiopy/bin/python3', '-I', '-B', str(absolute(provider['path'])),
             '--phase', phase, '--input', str(absolute(input_path)),
             '--input-sha256', '<INPUT_SHA256>', '--source-sha256', provider['sha256']]
@@ -362,7 +363,7 @@ class LifecycleParent:
         self.producer = pinned_module(plan['producer'])
         need(callable(getattr(self.producer, 'produce', None)), 'producer-interface')
         self.observer = pinned_module(plan['observer'])
-        need(callable(getattr(self.observer, 'observe', None)), 'observer-interface')
+        need(callable(getattr(self.observer, 'observe_mapped_with_originals', None)), 'observer-interface')
         self.baselines = {}
         for key in ('reader', 'held_native', 'held_worker'):
             expected = plan[key]
@@ -438,6 +439,8 @@ class LifecycleParent:
         files = dict(self.files); nodes = dict(self.nodes)
         files.update({p: tuple(v['signature9']) for p, v in self.generated.items()})
         nodes[str(self.op)] = self.op_fact
+        for path,fact in _OUTPUT_NODES.get(self,{}).items():
+            need(path not in nodes or nodes[path]==fact,'output-node-original-conflict');nodes[path]=fact
         self.left()
         for value in (self.plan_ref, self.source_ref, self.plan['provider'],
                       self.plan['producer'], self.plan['observer'], self.plan['sdk_map']):
@@ -475,6 +478,8 @@ class LifecycleParent:
                        parent_plan=copy.deepcopy(self.plan_ref), parent_source=copy.deepcopy(self.source_ref),
                        context=copy.deepcopy(context))
         expected_files = dict(self.files); expected_nodes = dict(self.nodes)
+        for path,fact in _OUTPUT_NODES.get(self,{}).items():
+            need(path not in expected_nodes or expected_nodes[path]==fact,'producer-output-node-conflict');expected_nodes[path]=fact
         result = self.producer.produce(phase, request, watch=self.continuous)
         need(type(result) is dict and set(result) == {'version', 'phase', 'nonce', 'evidence'}
              and type(result['version']) is int and result['version'] == 1
@@ -484,10 +489,20 @@ class LifecycleParent:
         return output
 
     def phase_input(self, phase, payload, custody_context=None):
+        need(phase in ('backup', 'prepare', 'execute', 'verify-terminal'), 'finite-parent-phase')
+        action_phase = 'execute' if phase == 'verify-terminal' else phase
+        if phase == 'verify-terminal':
+            need(custody_context is not None and 'terminal_manifest' in custody_context
+                 and payload.get('terminal_manifest') == self.mapping.child_ref(custody_context['terminal_manifest']),
+                 'terminal-phase-manifest-binding')
+            need(payload.get('execute_ack')==self.mapping.child_ref(custody_context['execute_ack']),'terminal-phase-execute-ACK-binding')
         host_path = self.op / (phase + '-input.json')
         phase_directory = self.op / phase
-        phase_directory.mkdir(mode=0o700); self.sync(self.op)
-        phase_fact = tuple(five(os.lstat(phase_directory)))
+        phase_directory.mkdir(mode=0o700)
+        info=os.lstat(phase_directory);phase_fact=tuple(five(info))
+        need(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode)==0o700 and info.st_uid==os.geteuid(),'phase-directory-intended-metadata')
+        _OUTPUT_NODES.setdefault(self,{})[str(phase_directory)]=phase_fact
+        self.sync(self.op)
         provider = self.mapping.child_ref(self.plan['provider'])
         command = command_template(provider, phase, self.mapping.child(host_path))
         value = dict(payload, version=1, nonce=self.plan['nonce'], action='negative-five',
@@ -495,7 +510,7 @@ class LifecycleParent:
                      operation=self.mapping.child(phase_directory), selected_image=self.plan['selected_image'],
                      sdk_map=self.mapping.child_ref(self.plan['sdk_map']),
                      admission_source_sha256=self.plan['admission_source_sha256'],
-                     **({} if phase == 'backup' else {'action_input': self.mapping.child_ref(self.plan['action_inputs'][phase])}),
+                     **({} if phase == 'backup' else {'action_input': self.mapping.child_ref(self.plan['action_inputs'][action_phase])}),
                      native=copy.deepcopy(self.plan['native']), bounds=copy.deepcopy(self.plan['bounds']),
                      seconds=max(1, int(self.left())))
         input_ref = self.emit(phase + '-input.json', value)
@@ -686,7 +701,7 @@ class LifecycleParent:
             # Reinspect after producer callbacks; stale snapshots never close.
             self.continuous(); need(same_runtime(self.inspect(cid), current), 'late-child-profile')
             if message['type'] == 'birth-commit':
-                need(phase in ('prepare', 'execute'), 'birth-purpose')
+                need(phase in ('prepare', 'execute', 'verify-terminal'), 'birth-purpose')
                 return self.accept_birth(phase, input_ref, actual, message,
                                          {**fresh, 'reader': observed['reader']}, current)
             response = encode({**message, 'type': 'observation', 'reader': observed['reader'],
@@ -739,8 +754,30 @@ class LifecycleParent:
              and all(s.get(k) is False for k in ('Paused', 'Restarting', 'Dead', 'OOMKilled'))
              and (not exited or s['ExitCode'] == 0), 'child-final-state')
 
+    def terminal_mapper(self):
+        # Freeze source-bound mount spelling before observer/copy callbacks.
+        mounts = tuple((row['host'], row['child'], row['write']) for row in self.plan['mounts'])
+        host_roots = tuple(Path(host) for host, child, write in mounts)
+        source_root = Path(self.source_ref['path']).parent
+        paths = Paths([dict(host=host, child=child, write=write) for host, child, write in mounts])
+        def mapped(value):
+            path = absolute(str(value))
+            if any(path == root or root in path.parents for root in (*host_roots, source_root)):
+                return str(path)
+            host = paths.host(str(path))
+            need(paths.child(host) == str(path), 'terminal-host-path-roundtrip')
+            return host
+        return mapped
+
     def execute(self):
+        operation_path = str(self.op); operation_original = tuple(self.op_fact)
         try:
+            mapper = self.terminal_mapper()
+            # Checked producer implementation availability is required BEFORE
+            # any stop/execute; callable presence creates no runtime authority.
+            need(all(callable(getattr(self.producer, name, None)) for name in
+                     ('terminal_observation', 'terminal_phase_custody')), 'terminal-producer-implementation-required')
+            need(callable(getattr(self.observer, 'observe_mapped_with_originals', None)), 'terminal-observer-implementation-required')
             self.phase = 'stopping'
             self.emit('stop-intent.json', dict(id=self.plan['reader']['id'], automatic_replay=False))
             self.left(); result = self.engine.run(['stop', '--timeout', '60', self.plan['reader']['id']], self.left())
@@ -766,21 +803,62 @@ class LifecycleParent:
                     nfs = self.produce('nfs-ready', dict(input=inp, command=command, context=context))
                     need(set(nfs) == {'evidence'}, 'nfs-producer-schema'); read(nfs['evidence'])
                 reports[phase] = self.child_phase(phase, inp, command)
-            terminal = self.produce('terminal-observation', dict(operation=str(self.op), reports=reports, observations=self.continuous()))
-            need(set(terminal) == {'manifest', 'files9', 'nodes5', 'absent'}, 'terminal-producer-schema')
-            need(bool(terminal['files9']) and bool(terminal['nodes5']), 'terminal-vectors-required')
-            files = {str(absolute(k)): tuple(v) for k, v in terminal['files9'].items()}
-            nodes = {str(absolute(k)): tuple(v) for k, v in terminal['nodes5'].items()}
-            absent = tuple(str(absolute(k)) for k in terminal['absent'])
-            result = self.observer.observe(terminal['manifest'], source_sha256=self.plan['observer']['sha256'])
-            need(result['outcome'] in ('observed-forward', 'observed-rollback')
+            execute_ack = copy.deepcopy(self.generated[str(self.op/'execute-ack.json')])
+            terminal = self.produce('terminal-observation', dict(
+                backup=backup, controls=controls['controls'], observations=self.continuous(),
+                execute_action=self.plan['action_inputs']['execute'], execute_ack=execute_ack))
+            need(set(terminal) == {'manifest', 'outcome'} and terminal['outcome'] in
+                 ('observed-forward', 'observed-rollback'), 'terminal-producer-schema')
+            read(terminal['manifest'])
+            context = dict(backup=backup, controls=controls['controls'], observations=self.continuous(),
+                           terminal_manifest=terminal['manifest'], execute_ack=execute_ack)
+            payload = dict(controls={k: self.mapping.child_ref(v) for k, v in controls['controls'].items()},
+                           terminal_manifest=self.mapping.child_ref(terminal['manifest']), execute_ack=self.mapping.child_ref(execute_ack))
+            inp, command = self.phase_input('verify-terminal', payload, context)
+            # Fresh selected child/birth independently verifies factual state;
+            # neither its six-field ACK nor its report grants resume.
+            self.child_phase('verify-terminal', inp, command)
+            result, originals = self.observer.observe_mapped_with_originals(
+                terminal['manifest'], source_sha256=self.plan['observer']['sha256'], path_mapper=mapper)
+            need(result['outcome'] == terminal['outcome']
                  and all(result[k] is False for k in ('publication_acceptance', 'mutation_authority',
                          'reader_resume_authority', 'recovery_capability', 'application_quiescence_verified')),
                  'observer-factual-outcome')
-            self.emit('resume-intent.json', dict(reader=self.plan['reader']['id'], factual_observation=result,
-                                                automatic_replay=False, publication_acceptance=False))
+            need(set(originals) == {'files', 'nodes', 'absent', 'censuses'}
+                 and originals['files'] and originals['nodes'], 'observer-original-vectors')
+            # Primitive snapshots precede emit/copy/engine/deadline callbacks.
+            files = {str(k): tuple(v) for k, v in originals['files'].items()}
+            nodes = {str(k): tuple(v) for k, v in originals['nodes'].items()}
+            absent = tuple(str(k) for k in originals['absent'])
+            censuses = tuple((str(k), tuple(v)) for k, v in originals['censuses'].items())
+            for group, admitted in ((files, self.files), (nodes, self.nodes)):
+                for path, vector in admitted.items():
+                    vector = tuple(vector)
+                    if path in group and group[path] != vector:
+                        raise Held('resume-original-conflict')
+                    group[path] = vector
+            for path, ref in self.generated.items():
+                vector = tuple(ref['signature9'])
+                if path in files and files[path] != vector:
+                    raise Held('resume-generated-conflict')
+                files[path] = vector
+            for path,fact in _OUTPUT_NODES.get(self,{}).items():
+                if path in nodes and nodes[path]!=fact:raise Held('resume-output-node-conflict')
+                nodes[path]=fact
+            if operation_path in nodes and nodes[operation_path] != operation_original:
+                raise Held('resume-operation-original-conflict')
+            nodes[operation_path] = operation_original
+            intent = self.emit('resume-intent.json', dict(reader=self.plan['reader']['id'], factual_observation=result,
+                                                         automatic_replay=False, publication_acceptance=False))
+            intent_path = intent['path']; intent_original = tuple(intent['signature9'])
+            if intent_path in files and files[intent_path] != intent_original:
+                raise Held('resume-intent-original-conflict')
+            files[intent_path] = intent_original
             self.continuous(); seconds = self.left()
             # All semantic/engine/producer callbacks have completed.
+            for path, expected in censuses:
+                if tuple(sorted(os.listdir(path))) != expected:
+                    raise Held('resume-namespace-final')
             for path, expected in nodes.items():
                 z = os.lstat(path)
                 if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != expected:

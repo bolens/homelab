@@ -34,11 +34,21 @@ def decode(raw):
   return d
  return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda _:(_ for _ in ()).throw(Held('json-number')))
 class Observation:
- def __init__(self):
+ def __init__(self,path_mapper=None):
+  self.path_mapper=path_mapper;self.mappings={}
   self.files={};self.nodes={};self.absent=set();self.censuses={};self.end=time.monotonic()+120;self.bytes=0
   self.code_sha256=sha(self.raw(Path(__file__).absolute()))
+ def path(self,p):
+  p=Path(p)
+  if self.path_mapper is None:return p
+  original=str(p)
+  value=Path(self.path_mapper(original))
+  need(value.is_absolute() and '..' not in value.parts,'mapped-absolute-path')
+  need(str(self.path_mapper(str(value)))==str(value),'mapped-idempotent-path')
+  old=self.mappings.setdefault(original,str(value));need(old==str(value),'mapped-original-path-CAS')
+  return value
  def admit(self,p):
-  p=Path(p);need(p.is_absolute() and '..' not in p.parts,'absolute-path')
+  p=self.path(p);need(p.is_absolute() and '..' not in p.parts,'absolute-path')
   for q in (p.parent,*p.parent.parents):
    v=five(os.lstat(q));need(stat.S_ISDIR(v[2]),'linked-ancestor');need(q not in self.nodes or self.nodes[q]==v,'ancestor-drift');self.nodes[q]=v
   return p
@@ -122,8 +132,8 @@ class Observation:
    try:os.lstat(p)
    except FileNotFoundError:continue
    raise Held('final-absence')
-def _observe(manifest_ref,*,source_sha256):
- o=Observation();need(o.code_sha256==source_sha256,'observer-source-pin');manifest=o.ref(manifest_ref)
+def _observe(manifest_ref,*,source_sha256,path_mapper=None):
+ o=Observation(path_mapper);need(o.code_sha256==source_sha256,'observer-source-pin');manifest=o.ref(manifest_ref)
  need(type(manifest) is dict and set(manifest)=={'version','preimage','clear_ready','cleared','restore_main','restore_tasks','current_main','current_tasks','writer_root'},'input-schema')
  need(type(manifest['version']) is int and manifest['version']==1,'input-version')
  # Missing preimage is a durable producer gap, not a synthesized authorization.
@@ -158,7 +168,7 @@ def _observe(manifest_ref,*,source_sha256):
    actual=o.fact(str(base)+suffix);need(actual==fact,'accepted-restored-pair')
  plan=o.ref(pre['reviewed_plan']);ids=plan['active_wrong_ids'];need(len(ids)==5 and len(set(ids))==5,'five-BOOK-IDs')
  before=o.database(manifest['restore_main']['path']);tasks=o.database(manifest['restore_tasks']['path'])
- for ref in (manifest['restore_main'],manifest['restore_tasks']):need(o.files[Path(ref['path'])]==ref['signature9'] and sha(o.raw(ref['path']))==ref['sha256'],'accepted-restore-exact')
+ for ref in (manifest['restore_main'],manifest['restore_tasks']):need(o.files[o.path(ref['path'])]==ref['signature9'] and sha(o.raw(ref['path']))==ref['sha256'],'accepted-restore-exact')
  before_rows=plan['before_rows'];after_rows=plan['after_rows'];need(set(before_rows)==set(after_rows) and all(before['books'].get(k)==v for k,v in before_rows.items()),'eleven-before-CAS')
  need(len(before_rows)==11 and before['tables']['BOOK']['columns'][2]=='LAST_MODIFIED_DATE' and before['tables']['BOOK']['columns'][11]=='DELETED_DATE','eleven-reviewed-rows')
  for key in before_rows:
@@ -213,7 +223,7 @@ def _observe(manifest_ref,*,source_sha256):
    for path,expected in projection.get(group,{}).items():
     if expected is None:o.missing(path)
     else:
-     q=Path(path);o.admit(q/'observed-child');actual=five(os.lstat(q));need(actual==expected,'native-claim-ancestor')
+     q=Path(path);o.admit(q/'observed-child');actual=five(os.lstat(o.path(q)));need(actual==expected,'native-claim-ancestor')
  writer=Path(manifest['writer_root'])
  for name in _KEY_NAMES:o.missing(writer/name)
  for path in pre['native_paths'].values():
@@ -221,7 +231,7 @@ def _observe(manifest_ref,*,source_sha256):
  phase_paths=ready['phase_receipts'];need(bool(phase_paths),'durable-phase-receipts-required')
  phase_parent={Path(path).parent for path in phase_paths};need(len(phase_parent)==1,'single-phase-journal');o.journal(next(iter(phase_parent)),{Path(path).name for path in phase_paths})
  for path,record in phase_paths.items():
-  raw=o.raw(path);need(sha(raw)==record[1] and o.files[Path(path)]==record[0],'owning-phase-receipt')
+  raw=o.raw(path);need(sha(raw)==record[1] and o.files[o.path(path)]==record[0],'owning-phase-receipt')
  result={'version':1,'outcome':'observed-forward' if forward else 'observed-rollback','five_book_two_cell_transitions_verified':True,'all_unrelated_tables_verified':True,'native_file_bytes_unchanged':True,'publication_acceptance':False,'mutation_authority':False,'reader_resume_authority':False,'recovery_capability':False,'application_quiescence_verified':False}
  originals=dict(files={str(p):tuple(v) for p,v in o.files.items()},nodes={str(p):tuple(v) for p,v in o.nodes.items()},absent=tuple(map(str,o.absent)),censuses={str(p):tuple(sorted(v)) for p,v in o.censuses.items()})
  o.close();return result,originals
@@ -233,3 +243,8 @@ def observe_with_originals(manifest_ref,*,source_sha256):
  """Fresh factual observation plus original vectors; no recovered capability."""
  return _observe(manifest_ref,source_sha256=source_sha256)
 if __name__=='__main__':print(json.dumps(dict(executable=False,publication_acceptance=False,reader_resume_authority=False,missing='root-pinned complete preimage observation and explicit refs; no live defaults')))
+
+def observe_mapped_with_originals(manifest_ref,*,source_sha256,path_mapper):
+ """Source-bound host geometry observation only; original9 are never relabelled."""
+ need(callable(path_mapper),'exact-host-mapping-required')
+ return _observe(manifest_ref,source_sha256=source_sha256,path_mapper=path_mapper)

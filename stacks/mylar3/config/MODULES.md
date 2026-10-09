@@ -23,7 +23,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Authenticated publication registration and advisory protocol | `patch_publication_guard.py` | `publication_api.py`, `publication_guard.py`, `test_publication_api.py`; follows writer, workflow and naming helper installation |
 | Native payload admission and retained postprocessing review | `patch_publication_processing.py` (invoked by `patch_publication_guard.py`) | `publication_native.py`, `processing_guard.py`, `pp_monitor.py`, `test_publication_native.py`; checked actual native processing and acknowledgement branches |
 | Retained archive diagnostics and pure preservation proof | `patch_publication_guard.py` | `publication_archive_layout.py`, `publication_archive_derivative.py`, `publication_archive_repair.py`, `publication_archive_diagnostics.py`; pure preservation, stable-source and owning observer tests; ordinary inventory refusal remains review |
-| Same-payload archive repair and review dispatch | `patch_publication_guard.py` | `publication_archive_reader.py`, `publication_archive_adoption.py`, `publication_archive_dispatch.py`, `publication_archive_verifier.py`, `publication_reader_lifecycle.py`, `publication_native_configured_scope.py`; portable adoption, lifecycle, configured-scope and owning API controls; genuine owning child and terminal acceptance remain required |
+| Same-payload archive repair and review dispatch | `patch_publication_guard.py` | `publication_archive_reader.py`, `publication_archive_adoption.py`, `publication_archive_dispatch.py`, `publication_archive_verifier.py`, `publication_archive_rollback.py`, `publication_reader_lifecycle.py`, `publication_native_configured_scope.py`; portable adoption, lifecycle, configured-scope and owning API controls; genuine owning child and terminal acceptance remain required |
 | Owned tagging publication and terminal evidence | `patch_publication_guard.py` | `publication_transaction.py`, `tagger_backend.py`, `tagger_native.py`, `tagger_service.py`, `tagger_pack.py`, `tagger_nfs.py`, `test_publication_tagging.py`; internal typed coordination, retained review and exact terminal completion |
 | Owned release rename and root metadata | `patch_publication_guard.py` | `publication_rename.py`, `release_naming.py`, `tagger_supplement.py`, `publication_transaction.py`; `test_publication_rename.py`, `test_publication_maintenance.py`; immutable source/owner/census checkpoints and retained interruption holds |
 | Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; follows the authenticated publication API, refuses pending media intents and uncertain cleanup records |
@@ -352,12 +352,22 @@ Native preparation and reader-backed adoption require the separate
 primary-key `publicationControl` PREPARE and passive status for the strict lossless
 ZIP repair. They use the current catalog, existing Writer and exclusive private
 custody; every execution/adoption/reader grant remains false. Partial evidence
-retains review without replay. No archive repair adoption action is installed.
+retains review without replay. Adoption request/status actions queue review only;
+connected owning adoption remains held.
 Any `negative-retirement-v1.pending` marker denies ordinary Writer entry, native
 startup/admission, worker evidence and repair preparation/status, including
 malformed or inaccessible markers. Existing recovery flags do not bypass it.
 Only the future aggregate's exact typed continuation may carry its already held
 Writer through a phase; these modules do not install that continuation.
+
+The exact reversed adoption can be consumed by
+`publication_archive_rollback.from_reversed(...).clear()` under its original
+Writer and reader lifetime. Its durable terminal successor precedes marker
+removal and remains held after unknown acknowledgements. The independent
+`verify_rollback_existing` checks original source, catalog and reader state,
+with type-sensitive rollback receipt joins. `archive_repair_rollback=1`
+advertises these installed functions only; import, reader-index and publication
+acceptance remain separate. Saved receipts cannot recreate the typed consumer.
 
 ## Prospective reader cohort installation
 
@@ -395,10 +405,16 @@ and its fresh proof producers are independently accepted.
 
 The host-only recovery tree also contains the continuous lifecycle parent,
 fresh native process/evidence producer and schema1 phase-custody composer.
-The private-copy gate runs 282 recovery checks in isolated suite processes,
+The private-copy gate runs 334 recovery checks in isolated suite processes,
 including explicit predecessor fixtures and the current provider command
 contract. Original reader pair signatures are carried unchanged; the actual
 child lifecycle validates its own kernel facts. No new pair protocol or
 namespace assumption supplies authority. The parent pin remains unset;
 independent terminal/NFS producers and actual protected integration remain
 required. These tools add no runtime package module or permanent mount.
+
+The terminal observation producer retains the original owning execute ACK and
+report references through fresh observation and terminal custody. Its exclusive
+private outputs retain their original inode and mode through final checks. Both
+forward and rollback layouts remain factual observations; owning runtime proof
+and publication acceptance are separate gates.

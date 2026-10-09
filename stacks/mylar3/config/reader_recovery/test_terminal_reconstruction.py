@@ -89,4 +89,16 @@ class Controls(unittest.TestCase):
             with self.assertRaisesRegex(provider.Held,'terminal-exact-lifecycle'):
                 provider.verify_terminal_existing({},receipt,{'publication_reader_lifecycle':life})
 
+class LayoutControls(unittest.TestCase):
+ def test_forward_literal_layout(self):
+  directory,missing=provider.terminal_layout({'batch_journal':'/private/execute/batch'},{'kind':'five-retired-negative-clear-ready'},{'kind':'five-retired-negative-cleared'},Path('/private/execute'))
+  self.assertEqual(str(directory),'/private/execute/batch.terminal-v1');self.assertEqual(missing,('/private/execute/batch.rollback-terminal-v1',))
+ def test_rollback_literal_layout(self):
+  directory,missing=provider.terminal_layout({'batch_journal':'/private/execute/batch'},{'kind':'five-restored-negative-rollback-clear-ready'},{'kind':'five-restored-negative-rollback-cleared'},Path('/private/execute'))
+  self.assertEqual(str(directory),'/private/execute/batch.rollback-terminal-v1');self.assertEqual(missing,('/private/execute/batch.terminal-v1',))
+ def test_unknown_or_mixed_kind_not_completion(self):
+  for kind in ('caller-success','five-restored-negative-rollback-clear-ready'):
+   with self.assertRaisesRegex(provider.Held,'finite-owning-kind'):provider.terminal_layout({'batch_journal':'/private/execute/batch'},{'kind':kind},{'kind':'five-retired-negative-cleared'},Path('/private/execute'))
+ def test_escaping_batch_not_layout(self):
+  with self.assertRaisesRegex(provider.Held,'batch-path'):provider.terminal_layout({'batch_journal':'/private/execute/../batch'},{'kind':'five-retired-negative-clear-ready'},{'kind':'five-retired-negative-cleared'},Path('/private/execute'))
 if __name__=='__main__':unittest.main()

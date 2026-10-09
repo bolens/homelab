@@ -1192,6 +1192,14 @@ exchange retains the original, preserves every reader reference and limits the
 catalog change to the owned archive size. Runtime installation, terminal recovery
 and live adoption must pass the feature 024 acceptance gates before use.
 
+For an exact owning repair that has successfully reversed, the typed rollback
+consumer clears its pending marker only after original archive, catalog and
+reader verification. A durable successor retains the hold across uncertain
+unlink or acknowledgement. A separate fresh rollback verifier observes the
+original state without reconstructing a mutation capability.
+`archive_repair_rollback=1` advertises code availability; it does not confirm
+reader indexing, ordinary import or live repair acceptance.
+
 The image also installs the canonical negative-retirement reader cohort through
 `patch_publication_reader_cohort.py`. Build checks verify exact module bytes and
 shared SDK identities, while mechanical tests use separate temporary fixtures.
@@ -1213,3 +1221,9 @@ their group-write permission bits (config 0644, entry point 0755). The installed
 cohort verifier checks both boundaries before accepting configured native scope.
 Standalone recovery loads Mylar’s fixed bundled-library directory alongside the
 canonical package; the selected image remains the dependency provenance boundary.
+
+The host terminal producer joins the original owning execute ACK, report and
+terminal references before writing its private observation manifest. The fresh
+child retains those references and independently checks current reader pairs;
+it does not refresh the original backup custody. These source controls do not
+release publication holds or establish live import acceptance.

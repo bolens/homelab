@@ -8,10 +8,12 @@ from pathlib import Path
 import stat
 import subprocess
 import time
+import types
 
 PROBE_SHA = '77325f0a7fd14b6e2e1a1f91aaf4c66cb53b5e2fd4cffdd34453642002afd1ec'
 SCOPE_SHA = '6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608'
-PRODUCER_SHA = 'b12dd6b81b1b581baa4fc09db700559b738d66c19071b079ab5cf2bb80c182c9'
+PRODUCER_SHA = '592504b1da1d1da94f88e2e20c0bceb848db65cd5555e62825b5984e728c13f3'
+TERMINAL_PRODUCER_SHA = 'fdc25243525c811cd753dec8c74b2cd4920d181100cece3554cc55b64e049f04'
 MAX = 1024*1024
 class Held(ValueError): pass
 
@@ -212,8 +214,10 @@ def reader_pair_birth_request(request,*,watch):
 def phase_custody(request, *, watch):
     """Prebirth proposals; actual child lifecycle must check every supplied9."""
     ctx=request['context']
-    need(type(ctx) is dict and set(ctx)=={'backup','controls','observations','phase','invocation','stage'}
-         and ctx['phase'] in ('prepare','execute') and ctx['stage']=='prebirth','custody-context')
+    terminal=ctx.get('phase')=='verify-terminal'
+    expected_keys={'backup','controls','observations','phase','invocation','stage'}|({'terminal_manifest','execute_ack'} if terminal else set())
+    need(type(ctx) is dict and set(ctx)==expected_keys
+         and ctx['phase'] in ('prepare','execute','verify-terminal') and ctx['stage']=='prebirth','custody-context')
     roles={'stopped_runtime','backup_ack','backup_manifest','backup_acceptance','rows','schema','reviewed_plan','timestamp_evidence','custody'}
     need(type(ctx['controls']) is dict and set(ctx['controls'])==roles,'custody-nine-roles')
     # Capture every declared role ancestor before any source/JSON/import callback.
@@ -235,7 +239,7 @@ def phase_custody(request, *, watch):
         for node in ([p,*p.parents] if stat.S_ISDIR(original.st_mode) else p.parents):
             z=os.lstat(node);need(stat.S_ISDIR(z.st_mode),'custody-declared-parent')
             old=admission.nodes.setdefault(str(node),five(z));need(old==five(z),'custody-declared-parent-CAS')
-    for ref in [request['parent_plan'],request['parent_source'],*ctx['controls'].values()]:
+    for ref in [request['parent_plan'],request['parent_source'],*ctx['controls'].values(),*([ctx['terminal_manifest'],ctx['execute_ack']] if terminal else [])]:
         need(type(ref) is dict and set(ref)=={'path','sha256','signature9'},'custody-ref')
         p=Path(ref['path']);need(p.is_absolute() and '..' not in p.parts,'custody-path')
         for node in p.parents:
@@ -250,7 +254,7 @@ def phase_custody(request, *, watch):
     stopped=controls['stopped_runtime'];runtime=expected['observations']['reader']
     need(set(stopped)=={'version','kind','nonce','observed','container'} and stopped['version']==1
          and stopped['kind']=='root-owned-reader-stopped-observation' and stopped['nonce']==request['nonce']
-         and type(stopped['observed']) is int and 0<=time.time()-stopped['observed']<=120
+         and type(stopped['observed']) is int and 0<=time.time()-stopped['observed'] and (terminal or time.time()-stopped['observed']<=120)
          and stopped['container']==runtime,'custody-fresh-stop')
     state=runtime['State'];need(state['Status']=='exited' and state['Running'] is False and type(state['Pid']) is int and state['Pid']==0
          and all(state.get(k) is False for k in ('Paused','Restarting','Dead','OOMKilled')),'custody-stopped-state')
@@ -272,9 +276,14 @@ def phase_custody(request, *, watch):
     custody=controls['custody'];need(set(custody)=={'restore_root','pairs','reader_root','current_pairs'},'custody-pairs')
     # Immutable admitted primitive snapshots precede every copying/mapping
     # callback. Mutable decoded JSON is never a terminal physical baseline.
+    terminal_originals=None
+    terminal_pairs=None
+    if terminal:
+        module=o.module('comic_terminal_observation_producer.py',TERMINAL_PRODUCER_SHA)
+        terminal_pairs,terminal_originals=module.current_pairs(request,watch=watch,adapter=types.SimpleNamespace(**globals()),reads=o,plan=plan)
     admitted_pairs=[]
     for role,key in (('current','current_pairs'),('restore','pairs')):
-        pair=custody[key];need(set(pair)=={'database.sqlite','tasks.sqlite'},'custody-original-two-databases')
+        pair=terminal_pairs if terminal and role=='current' else custody[key];need(set(pair)=={'database.sqlite','tasks.sqlite'},'custody-original-two-databases')
         databases=[]
         for name,facts in pair.items():
             need('' in facts and set(facts)<= {'','-wal','-shm'} and ('-wal' in facts)==('-shm' in facts),'custody-original-companions')
@@ -302,7 +311,7 @@ def phase_custody(request, *, watch):
          and all(not scratch.is_relative_to(r) and not r.is_relative_to(scratch) for r in roots)
          and stat.S_IMODE(os.lstat(scratch).st_mode)==0o700,'custody-disjoint-roots')
     # This rehashes actual SQLite files, with original full9 and missing companions.
-    reader_pair_birth_request(request,watch=watch)
+    if not terminal:reader_pair_birth_request(request,watch=watch)
     # Preserve supplied signatures verbatim; child must actually compare its own
     # os.lstat values. No namespace assumption and no signature relabelling.
     inv=expected['invocation'];need(set(inv)=={'input_path','input_sha256','parent_sha256','provider_sha256','command','nonce'}
@@ -316,6 +325,8 @@ def phase_custody(request, *, watch):
          and value['selected_image']==plan['selected_image'] and value['version']==1,'custody-exact-command')
     mapped_controls={name:dict(ref,path=mapping.child(ref['path'])) for name,ref in ctx['controls'].items()}
     need(value['controls']==mapped_controls,'custody-input-nine-role-join')
+    if terminal:need(value.get('execute_ack')==dict(ctx['execute_ack'],path=mapping.child(ctx['execute_ack']['path'])),'custody-input-execute-ACK')
+    if terminal:need(value.get('terminal_manifest')==dict(ctx['terminal_manifest'],path=mapping.child(ctx['terminal_manifest']['path'])),'custody-input-terminal-manifest')
     native=plan['native'];need(set(native)=={'data','roots'} and len(native['roots'])==1,'custody-native-scope')
     config_path=str(Path(native['data'])/'config.ini');config_host=scope.projection(expected['observations']['held_native']['Mounts'],config_path)
     need(mapping.child(config_host)==config_path,'custody-config-geometry');config=o.raw(config_host)
@@ -332,7 +343,9 @@ def phase_custody(request, *, watch):
               parent_source=dict(request['parent_source'],path=mapping.child(request['parent_source']['path'])),
               birth_source=dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256=plan['birth_source_sha256']),
               config=dict(path=config_path,sha256=hashlib.sha256(config).hexdigest()),worker_library=worker_library,selected_image=plan['selected_image'])
-    result=copy.deepcopy(dict(reader=reader,proofs=ctx['controls'],birth_seed=seed))
+    proofs=dict(ctx['controls'])
+    if terminal:proofs.update(terminal_observation=ctx['terminal_manifest'],execute_ack=ctx['execute_ack'])
+    result=copy.deepcopy(dict(reader=reader,proofs=proofs,birth_seed=seed))
     files=tuple(o.files.items())+tuple(directory_originals.items());nodes=tuple(o.nodes.items())
     # Carry the original pair signatures and absences through the very last
     # watch/mapping/deadline callback; never adopt callback-produced baselines.
@@ -345,7 +358,15 @@ def phase_custody(request, *, watch):
                 path=str(root/(name+suffix))
                 if suffix in originals:files+=((path,originals[suffix]),)
                 else:missing.append(path)
+    terminal_censuses=()
+    if terminal:
+        files+=tuple((str(p),tuple(v)) for p,v in terminal_originals['files'].items())
+        nodes+=tuple((str(p),tuple(v)) for p,v in terminal_originals['nodes'].items())
+        missing.extend(map(str,terminal_originals['absent']))
+        terminal_censuses=tuple((str(p),frozenset(v)) for p,v in terminal_originals['censuses'].items())
     current_observations(watch,expected['observations'],'custody-final-runtime');deadline(request)
+    for path,names in terminal_censuses:
+        if frozenset(os.listdir(path))!=names:raise Held('custody-terminal-census')
     for path,stamp in nodes:
         z=os.lstat(path)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=stamp:raise Held('custody-final-node')
@@ -358,13 +379,30 @@ def phase_custody(request, *, watch):
         raise Held('custody-final-absence')
     return result
 
+def terminal_observation(request,*,watch):
+    o=Reads();module=o.module('comic_terminal_observation_producer.py',TERMINAL_PRODUCER_SHA)
+    files=tuple(o.files.items());nodes=tuple(o.nodes.items())
+    result=module.produce(request,watch=watch,adapter=types.SimpleNamespace(**globals()))
+    for path,fact in nodes:
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('terminal-loader-parent')
+    for path,fact in files:
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=fact:raise Held('terminal-loader-source')
+    return result
+
+def terminal_phase_custody(request,*,watch):
+    need(request['context'].get('phase')=='verify-terminal','custody-terminal-only')
+    return phase_custody(request,watch=watch)
+
 def produce(phase,request,*,watch):
     need(type(request) is dict and set(request)=={'version','phase','nonce','operation','deadline_monotonic','parent_plan','parent_source','context'}
          and type(request['version']) is int and request['version']==1 and request['phase']==phase,'adapter-request');deadline(request)
     if phase=='native-observation':evidence=native_observation(request,watch=watch)
     elif phase=='backup-controls':
         o=Reads();module=o.module('comic_reader_proof_producer.py',PRODUCER_SHA);return module.produce(phase,request,watch=watch)
+    elif phase=='terminal-observation':evidence=terminal_observation(request,watch=watch)
     elif phase=='phase-custody':
-        evidence=phase_custody(request,watch=watch)
+        evidence=terminal_phase_custody(request,watch=watch) if request['context'].get('phase')=='verify-terminal' else phase_custody(request,watch=watch)
     else:raise Held('adapter-owning-'+phase+'-required')
     return dict(version=1,phase=phase,nonce=request['nonce'],evidence=evidence)

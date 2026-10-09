@@ -113,7 +113,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "42eb1135c86fe35774160000ce14b06ae9f59d67e17895ebf00f397ed095790f"
+      "tracked_source_sha256": "328d1ee229cf1257ef787cca1d61c35ab39aace12ddcdfef3e2368941de6e039"
     },
     "publication_archive_derivative": {
       "owning_adapters": [
@@ -156,6 +156,18 @@
         "patch_publication_guard.py"
       ],
       "tracked_source_sha256": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee"
+    },
+    "publication_archive_rollback": {
+      "owning_adapters": [
+        "patch_publication_guard.py"
+      ],
+      "tracked_source_sha256": "675081c87096fc97021c3e72bcb8f7ce975836313849efdb6293af9ffbc99d04"
+    },
+    "publication_archive_verifier": {
+      "owning_adapters": [
+        "patch_publication_guard.py"
+      ],
+      "tracked_source_sha256": "36538aa99d73f89b276d36ae21f5b4c0b3cc3904d8c5714fa8916e2f84ef263a"
     },
     "publication_conversion": {
       "owning_adapters": [
@@ -360,7 +372,7 @@
       "owning_adapters": [
         "patch_workflow.py"
       ],
-      "tracked_source_sha256": "49d84086b50b27c86aa6b0e0f6c16ebdbb35201bcd436bd4be33afe411a0bb2e"
+      "tracked_source_sha256": "ff124a6f56830c5c5220e9d8da0a9dd4f1c47d394075b5fba804d5ac4a8ce1df"
     },
     "workflow_nzb": {
       "owning_adapters": [
