@@ -28,7 +28,7 @@ DISK_SHA = 'c469c8add49e93fef63616f07a67e46ca012a56ac61de7f2cba3ed629cdccaa1'
 COORDINATOR_SOURCE = Path('/app/mylar3/mylar/publication_reader_native_coordinator.py')
 COORDINATOR_SHA = 'e54130e689c4a2b28fa269e104a72f966a94882295fd9c70a2d471bad4be6611'
 LIFECYCLE_SOURCE=Path('/app/mylar3/mylar/publication_reader_lifecycle.py')
-LIFECYCLE_SHA='ef4521bd9ef78c5b78130cb7706afe5557c570870325e3ec055ca7c51c931d74'
+LIFECYCLE_SHA='7b0eb1636ee39cc9c3fc924f3899a75ac32d4290f4f46822cc4904bbcc85f500'
 _KEY = object()
 _INVOCATION_SEALS=weakref.WeakKeyDictionary()
 _READER_SEALS=weakref.WeakKeyDictionary()
@@ -421,13 +421,6 @@ class StoppedReaderAdmission:
         self.close_passive();return self.binding
 
 
-def verify_reader_native_pair(lifecycle,prep,pair):
-    original=copy.deepcopy(prep.revalidate())
-    wrong=lifecycle.native_url(original['source'])
-    correct=lifecycle.native_url(original['counterpart'])
-    check(wrong==pair['wrong_url'] and correct==pair['correct_url'],'reader-native-path-correspondence')
-    check(prep.revalidate()==original,'reader-native-proof-after-URL-callbacks')
-
 def admit_child(invocation,coordinator,native_preparations):
     check(PARENT_SHA is not None and NEGATIVE_SHA is not None,'owning-producer-not-installed')
     check(type(invocation) is CheckedChildInvocation,'typed-invocation')
@@ -464,11 +457,11 @@ def admit_child(invocation,coordinator,native_preparations):
           and acceptance.get('image')==state.get('Image'),'verified-reader-custody-chain')
     manifest=documents['backup_manifest'];rows=documents['rows']
     check(manifest.get('kind')=='verified-reader-backup-copies'
-          and manifest.get('source_sha256')=='86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd'
+          and manifest.get('source_sha256')=='b60ed13b2c1611a0712f6c902d3ae70999ad69be2460a10d4af0533c6733c2a2'
           and manifest.get('primitives_sha256')=='e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'
           and manifest.get('backup_verified') is False and manifest.get('final_ack_required') is True
           and rows.get('kind')=='reader-restored-eleven-row-observation'
-          and rows.get('source_sha256')=='a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d'
+          and rows.get('source_sha256')=='f6b03a162bc4f34dfa1e8f754491d658557fb264bcc7e4ec01247c504155822d'
           and rows.get('backup_manifest_sha256')==doc['controls']['backup_manifest']['sha256']
           and rows.get('schema_sha256')==doc['controls']['schema']['sha256'],'backup-rows-provenance')
     schema=documents['schema'];reviewed=documents['reviewed_plan']
@@ -502,8 +495,15 @@ def admit_child(invocation,coordinator,native_preparations):
           and config[0].get('Source')==doc['reader_root'],'current-reader-config-root')
     # Explicit negative source/correct URL mapping is required in the reviewed
     # plan; no issue-wide blacklist or inferred owner is created here.
+    from urllib.parse import unquote,urlsplit
     for prep,pair in zip(native_preparations,reviewed['pairs']):
-        verify_reader_native_pair(invocation._lifecycle,prep,pair)
+        proof=prep.revalidate()
+        def exact_file_url(value):
+            u=urlsplit(value)
+            check(u.scheme=='file' and not u.netloc and not u.query and not u.fragment,'reader-file-url')
+            return str(canonical(unquote(u.path)))
+        check(proof['source']==exact_file_url(pair['wrong_url'])
+              and proof['counterpart']==exact_file_url(pair['correct_url']),'reader-native-path-correspondence')
     invocation.close_passive();coordinator.revalidate()
     return StoppedReaderAdmission(_KEY,invocation,coordinator,native_preparations,disk,schema,plan)
 
