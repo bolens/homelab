@@ -92,9 +92,18 @@ def observed_worker(row):
  profile=static(row);state=row['State'];check(state.get('Status')=='created' and state.get('Running') is False and type(state.get('Pid')) is int and state['Pid']==0 and all(state.get(k) is False for k in ('Paused','Restarting','Dead','OOMKilled')),'scope-worker-created')
  return dict(inspect=profile,state=copy.deepcopy(state))
 def data_from_argv(argv):
- # Supported actual unique Mylar process. Unknown config/directory aliases hold.
- check(argv.count('/app/mylar3/Mylar.py')==1 and argv.count('--datadir')==1 and not any(x in ('--config','-c','-d') or x.startswith('--config=') or x.startswith('--datadir=') for x in argv),'scope-supported-launch')
- i=argv.index('--datadir');check(i+1<len(argv),'scope-data-argument');return str(absolute(argv[i+1]))
+ # Reject abbreviations and aliases: the pinned upstream argparse parser
+ # accepts --conf and --dat, which could override the observed default scope.
+ check(type(argv) is list and len(argv)>=4 and argv[1]=='/app/mylar3/Mylar.py' and argv.count('--datadir')==1,'scope-supported-launch')
+ flags={'--nolaunch','--quiet','-q','--verbose','-v','--noweekly','-w','--ignoreupdate','-iu','--safe'}
+ valued={'--datadir','--port','-p','--pidfile'};seen=set();data=None;i=2
+ while i<len(argv):
+  arg=argv[i]
+  if arg in flags:i+=1;continue
+  check(arg in valued and arg not in seen and i+1<len(argv) and type(argv[i+1]) is str and not argv[i+1].startswith('-'),'scope-supported-launch');seen.add(arg)
+  if arg=='--datadir':data=str(absolute(argv[i+1]))
+  i+=2
+ check(data is not None,'scope-data-argument');return data
 def destination(raw):
  parser=configparser.ConfigParser(interpolation=None,strict=True);parser.read_string(raw.decode('utf-8'))
  check(not parser.defaults() and parser.has_section('General') and parser.has_option('General','destination_dir'),'scope-config-selection')
@@ -140,10 +149,11 @@ class NativeConfiguredScope:
   from json import dumps
   return hashlib.sha256(dumps(dict(custody=id(self._custody),thread=self._thread,ref=self._ref,native=self._native,worker=self._worker,mounts=self._mounts,binding=self._binding,files={str(k):v for k,v in self._files.items()},nodes={str(k):v for k,v in self._nodes.items()}),sort_keys=True,allow_nan=False).encode()).hexdigest()
  def revalidate(self):
-  check(threading.get_ident()==self._thread and self._core()==self._seal==_SEALS.get(self),'scope-sealed-lifetime');files,nodes=copy.deepcopy(self._files),copy.deepcopy(self._nodes)
+  expected=_SEALS.get(self)
+  check(threading.get_ident()==self._thread and self._core()==self._seal==_SEALS.get(self)==expected and expected is not None,'scope-sealed-lifetime');files,nodes=copy.deepcopy(self._files),copy.deepcopy(self._nodes)
   observation=self._custody.native_observation();check(observed_native(observation['native'])==self._native and observed_worker(observation['worker'])==self._worker and observation['child_mounts']==self._mounts,'scope-fresh-native-worker-child')
   for p,v in files.items():bounded_read(p, self._ref['sha256'] if p==Path(self._ref['path']) else self._sha(p),v,nodes)
-  check(self._core()==self._seal==_SEALS.get(self),'scope-sealed-after-callbacks')
+  check(self._core()==self._seal==_SEALS.get(self)==expected,'scope-sealed-after-callbacks')
   for p,v in nodes.items():
    z=os.lstat(p)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=v:raise Held('scope-terminal-ancestor')

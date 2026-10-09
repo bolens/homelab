@@ -137,4 +137,15 @@ class Controls(unittest.TestCase):
    return raw
   with patch.object(m,'bounded_read',changed),self.assertRaises(m.Held):x.revalidate()
   self.assertTrue(fired)
+ def test_native_callback_cannot_refresh_binding_and_registry(self):
+  x=self.make();real=self.custody.native_observation;fired=[]
+  def changed():
+   response=real();x._binding['roots']=['/foreign'];x._seal=x._core();m._SEALS[x]=x._seal;fired.append(True);return response
+  with patch.object(self.custody,'native_observation',changed),self.assertRaises(m.Held):x.revalidate()
+  self.assertTrue(fired)
+ def test_argv_abbreviated_config_and_datadir_are_refused(self):
+  for arg in ('--conf','--conf=/foreign','--dat','--dat=/foreign'):
+   with self.subTest(arg=arg),self.assertRaises(m.Held):m.data_from_argv(['python3','/app/mylar3/Mylar.py','--datadir',str(self.data),arg,'/foreign'])
+ def test_explicit_supported_launch_flags(self):
+  self.assertEqual(m.data_from_argv(['python3','/app/mylar3/Mylar.py','--quiet','--datadir',str(self.data),'--nolaunch','--port','8090']),str(self.data))
 if __name__=='__main__':unittest.main()

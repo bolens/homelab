@@ -19,7 +19,7 @@ import threading
 import time
 from urllib.parse import unquote,urlsplit
 import weakref
-_KEY=object();_SEALS=weakref.WeakKeyDictionary()
+_KEY=object();_SEALS=weakref.WeakKeyDictionary();_PIPE_SEALS=weakref.WeakKeyDictionary()
 MAX=64*1024**2
 FRAME_MAX=1024**2
 class Held(ValueError):pass
@@ -83,9 +83,17 @@ class ParentPipe:
  """Inherited non-TTY selected Docker child pipes, finite fresh challenges."""
  def __init__(self):
   require(stat.S_ISFIFO(os.fstat(0).st_mode) and stat.S_ISFIFO(os.fstat(1).st_mode),'lifecycle-inherited-pipes')
-  self.input=0;self.output=1;self.seq=0;self.thread=threading.get_ident();self.facts=(five(os.fstat(0)),five(os.fstat(1)))
+  self.input=0;self.output=1;self.seq=0;self.thread=threading.get_ident();self.facts=(tuple(five(os.fstat(0))),tuple(five(os.fstat(1))))
+  _PIPE_SEALS[self]=(self.input,self.output,self.thread,self.facts)
+ def binding(self):
+  expected=_PIPE_SEALS.get(self)
+  require(expected is not None and (self.input,self.output,self.thread,self.facts)==expected and threading.get_ident()==expected[2],'lifecycle-original-pipe')
+  for descriptor,fact in zip(expected[:2],expected[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('lifecycle-original-pipe-FD')
+  return expected
  def challenge(self,nonce,input_sha,parent_sha):
-  require(threading.get_ident()==self.thread and (five(os.fstat(self.input)),five(os.fstat(self.output)))==self.facts,'lifecycle-pipe-thread');self.seq+=1;token=secrets.token_hex(32)
+  original=self.binding();self.seq+=1;token=secrets.token_hex(32)
   raw=encoded(dict(protocol='reader-lifecycle-pipe-v1',type='challenge',nonce=nonce,input_sha256=input_sha,parent_sha256=parent_sha,sequence=self.seq,challenge=token))+b'\n'
   count=0
   while count<len(raw):count+=os.write(self.output,raw[count:])
@@ -95,13 +103,13 @@ class ParentPipe:
    ready=select.select([self.input],[],[],max(0,end-time.monotonic()))[0];require(bool(ready),'lifecycle-parent-unavailable')
    b=os.read(self.input,1);require(bool(b),'lifecycle-parent-closed');buf.extend(b)
   value=decoded(buf);base={'protocol','type','sequence','challenge','nonce','input_sha256','parent_sha256','reader','child_source_sha256','child_image'};require(set(value) in (base,base|{'native','worker','child_mounts'}),'lifecycle-pipe-schema');require(value['protocol']=='reader-lifecycle-pipe-v1' and value['type']=='observation' and value['sequence']==self.seq and value['challenge']==token and value['nonce']==nonce and value['input_sha256']==input_sha and value['parent_sha256']==parent_sha,'lifecycle-pipe-response')
-  require((five(os.fstat(self.input)),five(os.fstat(self.output)))==self.facts,'lifecycle-pipe-descriptor-CAS')
+  require(self.binding()==original,'lifecycle-pipe-descriptor-CAS')
   return value
 class StoppedReaderCustody:
  """Source-pinned parent invocation + continuously checked inherited channel."""
  def __init__(self,key,input_path,input_sha,nonce,parent_sha,argv,channel):
   require(key is _KEY and type(channel) is ParentPipe,'lifecycle-owning-factory')
-  require(all(type(x) is str and len(x)==64 and all(c in '0123456789abcdef' for c in x) for x in (input_sha,nonce,parent_sha)),'lifecycle-digests');self.channel=channel;self.thread=threading.get_ident();self.input=canonical(input_path);self.input_sha=input_sha;self.nonce=nonce;self.parent_sha=parent_sha;self.command=tuple(argv)
+  require(all(type(x) is str and len(x)==64 and all(c in '0123456789abcdef' for c in x) for x in (input_sha,nonce,parent_sha)),'lifecycle-digests');self.channel=channel;self.channel_seal=channel.binding();self.thread=threading.get_ident();self.input=canonical(input_path);self.input_sha=input_sha;self.nonce=nonce;self.parent_sha=parent_sha;self.command=tuple(argv)
   self.files={};self.nodes={};self.absent=[]
   raw,self.files[self.input]=read(self.input,input_sha);invocation=decoded(raw)
   self.control=self.input.with_suffix('.lifecycle.json');raw,self.files[self.control]=read(self.control);doc=decoded(raw)
@@ -129,8 +137,12 @@ class StoppedReaderCustody:
    for node in (Path(p),*Path(p).parents) if Path(p).is_dir() else Path(p).parents:
     node=canonical(node);fact=five(node.lstat());require(stat.S_ISDIR(fact[2]),'lifecycle-directory-type');self.nodes[node]=fact
   self.core=self._core();_SEALS[self]=self.core;self.observed=None;self.revalidate_stopped();self.vectors()
- def _core(self):return hashlib.sha256(encoded(dict(command=self.command,paths=[str(self.input),str(self.control),str(self.config_root),str(self.main),str(self.tasks),str(self.restore_root),str(self.scratch)],deadline=self.deadline,backup_manifest=self.backup_manifest,backup_acceptance=self.backup_acceptance,input_sha=self.input_sha,nonce=self.nonce,parent_sha=self.parent_sha,thread=self.thread,channel=id(self.channel),reader=self.reader,invocation=self.invocation,proofs=self.proofs,files={str(p):v for p,v in self.files.items()},reader_files={str(p):v for p,v in self.reader_files.items()},nodes={str(p):v for p,v in self.nodes.items()},absent=list(map(str,self.absent)),reader_absent=list(map(str,self.reader_absent))))).hexdigest()
+ def _core(self):return hashlib.sha256(encoded(dict(command=self.command,paths=[str(self.input),str(self.control),str(self.config_root),str(self.main),str(self.tasks),str(self.restore_root),str(self.scratch)],deadline=self.deadline,backup_manifest=self.backup_manifest,backup_acceptance=self.backup_acceptance,input_sha=self.input_sha,nonce=self.nonce,parent_sha=self.parent_sha,thread=self.thread,channel=id(self.channel),channel_seal=self.channel_seal,reader=self.reader,invocation=self.invocation,proofs=self.proofs,files={str(p):v for p,v in self.files.items()},reader_files={str(p):v for p,v in self.reader_files.items()},nodes={str(p):v for p,v in self.nodes.items()},absent=list(map(str,self.absent)),reader_absent=list(map(str,self.reader_absent))))).hexdigest()
+ def _sealed(self,expected):
+  require(self.channel.binding()==self.channel_seal,'lifecycle-original-channel')
+  require(expected is not None and self._core()==self.core==_SEALS.get(self)==expected and threading.get_ident()==self.thread and time.monotonic()<self.deadline,'lifecycle-custody-lifetime')
  def revalidate_stopped(self):
+  expected=_SEALS.get(self);self._sealed(expected)
   files=copy.deepcopy(self.files);nodes=copy.deepcopy(self.nodes);absent=tuple(self.absent);base=copy.deepcopy(self.reader['runtime']);provider=self.reader['child_source_sha256'];image=self.reader['child_image']
   require(self._core()==self.core==_SEALS.get(self) and threading.get_ident()==self.thread and time.monotonic()<self.deadline,'lifecycle-custody-lifetime')
   observation=self.channel.challenge(self.nonce,self.input_sha,self.parent_sha)
@@ -138,6 +150,7 @@ class StoppedReaderCustody:
   require(all(state[k]==base[k] for k in ('Id','Image','Name','Path','Args','Config','HostConfig','Mounts')) and state['State']==base['State'] and state['State']['Running'] is False and state['State']['Pid']==0 and state['State']['Status']=='exited','lifecycle-continuous-reader-stop')
   require(observation['child_source_sha256']==provider and observation['child_image']==image,'lifecycle-selected-child')
   self.observed=copy.deepcopy(state);self.extended_observation=copy.deepcopy(observation);passive(files,nodes,absent)
+  self._sealed(expected)
   for path,fact in nodes.items():
    z=os.lstat(path)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=fact:raise Held('lifecycle-ancestor-final')
@@ -150,8 +163,10 @@ class StoppedReaderCustody:
    raise Held('lifecycle-absence-final')
 
  def control_vectors(self):
+  expected=_SEALS.get(self);self._sealed(expected)
   files,nodes,absent=copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent)
   self.revalidate_stopped();passive(files,nodes,absent)
+  self._sealed(expected)
   for path,fact in nodes.items():
    z=os.lstat(path)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=fact:raise Held('lifecycle-ancestor-final')
@@ -164,8 +179,10 @@ class StoppedReaderCustody:
    raise Held('lifecycle-absence-final')
   return files,nodes,absent
  def vectors(self):
+  expected=_SEALS.get(self);self._sealed(expected)
   files,nodes,absent={**copy.deepcopy(self.files),**copy.deepcopy(self.reader_files)},copy.deepcopy(self.nodes),tuple([*self.absent,*self.reader_absent])
   self.revalidate_stopped();passive(files,nodes,absent)
+  self._sealed(expected)
   for path,fact in nodes.items():
    z=os.lstat(path)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=fact:raise Held('lifecycle-ancestor-final')
@@ -179,8 +196,10 @@ class StoppedReaderCustody:
   return files,nodes,absent
  @property
  def runtime(self):
+  expected=_SEALS.get(self);self._sealed(expected)
   files,nodes,absent=copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent)
   self.revalidate_stopped();result=copy.deepcopy(self.observed);passive(files,nodes,absent)
+  self._sealed(expected)
   for path,fact in nodes.items():
    z=os.lstat(path)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=fact:raise Held('lifecycle-runtime-ancestor-final')
@@ -193,9 +212,11 @@ class StoppedReaderCustody:
    raise Held('lifecycle-runtime-absence-final')
   return result
  def invocation_binding(self):
+  expected=_SEALS.get(self);self._sealed(expected)
   result=dict(input_path=str(self.input),input_sha256=self.input_sha,parent_sha256=self.parent_sha,provider_sha256=self.reader['child_source_sha256'],command=list(self.command),nonce=self.nonce)
   files,nodes,absent=copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent)
   self.revalidate_stopped();passive(files,nodes,absent)
+  self._sealed(expected)
   for path,fact in nodes.items():
    z=os.lstat(path)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=fact:raise Held('lifecycle-binding-ancestor-final')
@@ -209,10 +230,12 @@ class StoppedReaderCustody:
   return result
  def native_observation(self):
   """Fresh extended parent challenge; a reader-only frame never supplies native scope."""
+  expected=_SEALS.get(self);self._sealed(expected)
   files,nodes,absent=copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent)
   self.revalidate_stopped();value=copy.deepcopy(self.extended_observation)
   require(all(k in value for k in ('native','worker','child_mounts')),'lifecycle-native-observation-required')
   passive(files,nodes,absent)
+  self._sealed(expected)
   for path,fact in nodes.items():
    z=os.lstat(path)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=fact:raise Held('lifecycle-native-ancestor-final')
@@ -225,9 +248,12 @@ class StoppedReaderCustody:
    raise Held('lifecycle-native-absence-final')
   return value
  def native_proof(self):
-  self.revalidate_stopped();require('native_scope' in self.proofs,'lifecycle-native-proof-required')
+  expected=_SEALS.get(self);self._sealed(expected)
+  require('native_scope' in self.proofs,'lifecycle-native-proof-required')
   result=copy.deepcopy(self.proofs['native_scope']);files,nodes,absent=copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent)
+  self.revalidate_stopped()
   passive(files,nodes,absent)
+  self._sealed(expected)
   for path,fact in nodes.items():
    z=os.lstat(path)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=fact:raise Held('lifecycle-native-ancestor-final')
@@ -241,6 +267,7 @@ class StoppedReaderCustody:
   return result
  def native_url(self,source):
   """Return the UNIQUE actually observed stored URL at inspected mount geometry."""
+  expected=_SEALS.get(self);self._sealed(expected)
   self.vectors();source=canonical(source)
   module=importlib.import_module('mylar.publication_native_configured_scope')
   require(Path(module.__file__)==Path('/app/mylar3/mylar/publication_native_configured_scope.py'),'lifecycle-installed-native-scope')
@@ -252,7 +279,17 @@ class StoppedReaderCustody:
    if mount['Type']=='bind' and (host==Path(mount['Source']) or Path(mount['Source']) in host.parents) and mount['Destination'].startswith('/data/'):
     matches.append((len(Path(mount['Source']).parts),Path(mount['Destination'])/host.relative_to(Path(mount['Source']))))
   require(bool(matches),'lifecycle-native-reader-mapping');depth=max(item[0] for item in matches);selected=[item[1] for item in matches if item[0]==depth]
-  require(len(selected)==1,'lifecycle-native-reader-mapping');mapped=str(selected[0]);pair=self.reader['current_pairs']['database.sqlite'];before=self.vectors();scope_files,scope_nodes=scope.vectors();found=set()
+  require(len(selected)==1,'lifecycle-native-reader-mapping');mapped=str(selected[0]);destinations=[]
+  # A source projection is valid only if the reader resolves that destination
+  # back to the same host file; a nested bind/volume can otherwise shadow it.
+  for mount in self.reader['runtime']['Mounts']:
+   destination=Path(mount['Destination']);physical=Path(mount['Source'])
+   require(destination.is_absolute() and physical.is_absolute() and str(destination)==mount['Destination'] and str(physical)==mount['Source'] and '..' not in destination.parts and '..' not in physical.parts,'lifecycle-reader-mount-spelling')
+   if selected[0]==destination or destination in selected[0].parents:
+    require(mount['Type']=='bind' or mount['Type']=='volume' and mount.get('Driver')=='local','lifecycle-reader-mount-type')
+    destinations.append((len(destination.parts),physical/selected[0].relative_to(destination)))
+  require(bool(destinations),'lifecycle-reader-destination-mapping');depth=max(x[0] for x in destinations);resolved=[x[1] for x in destinations if x[0]==depth]
+  require(len(resolved)==1 and resolved[0]==host,'lifecycle-reader-destination-shadow');pair=self.reader['current_pairs']['database.sqlite'];before=self.vectors();scope_files,scope_nodes=scope.vectors();found=set()
   for path,value in scope_files.items():require(path not in before[0] or before[0][path]==value,'lifecycle-scope-file-conflict');before[0][path]=copy.deepcopy(value)
   for path,value in scope_nodes.items():require(path not in before[1] or before[1][path]==value,'lifecycle-scope-node-conflict');before[1][path]=copy.deepcopy(value)
   with tempfile.TemporaryDirectory(prefix='reader-url-observation-',dir=self.scratch) as folder:
@@ -275,6 +312,7 @@ class StoppedReaderCustody:
      count+=1;require(count<=2000000 and type(url) is str,'lifecycle-URL-bound');parsed=urlsplit(url)
      if parsed.scheme=='file' and not parsed.netloc and not parsed.query and not parsed.fragment and unquote(parsed.path,encoding='utf-8',errors='strict')==mapped:found.add(url)
   require(len(found)==1,'lifecycle-unique-observed-native-URL');result=next(iter(found));files,nodes,absent=before;scope.revalidate();self.revalidate_stopped();passive(files,nodes,absent)
+  self._sealed(expected)
   for path,fact in nodes.items():
    z=os.lstat(path)
    if [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]!=fact:raise Held('lifecycle-ancestor-final')

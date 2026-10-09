@@ -1,5 +1,6 @@
 """Disposable custody controls; fake parent observations are NOT runtime proof."""
 import copy
+from contextlib import closing
 import hashlib
 import importlib.util
 import json
@@ -27,6 +28,7 @@ class Tests(unittest.TestCase):
   self.reader={'config_root':str(self.config),'restore_root':str(self.restore),'scratch':str(self.scratch),'backup_manifest':self.manifest,'backup_acceptance':self.acceptance,'restore_pairs':self.pairs(self.restore),'current_pairs':self.pairs(self.config),'runtime':self.state,'child_source_sha256':'3'*64,'child_image':'sha256:'+'4'*64}
   self.doc={'version':1,'kind':'owning-reader-pipe-custody','nonce':self.nonce,'input_sha256':self.input['sha256'],'command':['fixture'],'parent_source':self.parent,'reader':self.reader,'proofs':{'manifest':self.manifest,'acceptance':self.acceptance},'deadline_seconds':60}
   self.write('input.lifecycle.json',m.encoded(self.doc));self.channel=m.ParentPipe.__new__(m.ParentPipe);self.channel.thread=threading.get_ident();self.channel.seq=0
+  readfd,writefd=os.pipe();self.addCleanup(os.close,readfd);self.addCleanup(os.close,writefd);self.channel.input=readfd;self.channel.output=writefd;self.channel.facts=(tuple(m.five(os.fstat(readfd))),tuple(m.five(os.fstat(writefd))));m._PIPE_SEALS[self.channel]=(readfd,writefd,self.channel.thread,self.channel.facts)
   self.response={'reader':copy.deepcopy(self.state),'child_source_sha256':'3'*64,'child_image':'sha256:'+'4'*64}
   self.mock=patch.object(m.ParentPipe,'challenge',lambda *args:copy.deepcopy(self.response));self.mock.start();self.addCleanup(self.mock.stop);self.addCleanup(self.tmp.cleanup)
   class Scope:
@@ -167,6 +169,41 @@ class Tests(unittest.TestCase):
  def test_more_specific_reader_mount_selects_stored_URL(self):
   self.state['Mounts'].append({'Type':'bind','Source':str(self.root),'Destination':'/data/broad'});self.write('input.lifecycle.json',m.encoded(self.doc));self.response['reader']=copy.deepcopy(self.state)
   self.assertEqual(self.make().native_url(self.source),'file:///data/library/a%20comic.cbz')
+ def test_parent_callback_cannot_substitute_or_reseal_native_proof(self):
+  for reseal in (False,True):
+   with self.subTest(reseal=reseal):
+    c=self.make();real=m.ParentPipe.challenge;foreign=self.write('foreign-proof.json',b'{}')
+    def changed(*args):
+     response=real(*args);c.proofs['native_scope']=foreign
+     if reseal:c.core=c._core();m._SEALS[c]=c.core
+     return response
+    with patch.object(m.ParentPipe,'challenge',changed),self.assertRaises(m.Held):c.native_proof()
+ def test_last_passive_callback_cannot_refresh_control_proof(self):
+  c=self.make();real=m.passive;foreign=self.write('foreign-proof.json',b'{}');fired=[]
+  def changed(*args):
+   real(*args)
+   if not fired:c.proofs['native_scope']=foreign;c.core=c._core();m._SEALS[c]=c.core;fired.append(True)
+  with patch.object(m,'passive',changed),self.assertRaises(m.Held):c.control_vectors()
+  self.assertTrue(fired)
+ def test_channel_callback_cannot_refresh_admitted_descriptor_identity(self):
+  c=self.make();real=m.ParentPipe.challenge;readfd,writefd=os.pipe();self.addCleanup(os.close,readfd);self.addCleanup(os.close,writefd)
+  def changed(*args):
+   response=real(*args);self.channel.input=readfd;self.channel.output=writefd;self.channel.facts=(tuple(m.five(os.fstat(readfd))),tuple(m.five(os.fstat(writefd))));m._PIPE_SEALS[self.channel]=(readfd,writefd,self.channel.thread,self.channel.facts);return response
+  with patch.object(m.ParentPipe,'challenge',changed),self.assertRaises(m.Held):c.revalidate_stopped()
+ def test_reader_destination_overmount_refuses_wrong_host(self):
+  sub=self.library/'sub';sub.mkdir();source=sub/self.source.name;source.write_bytes(b'comic');foreign=self.root/'foreign-reader';foreign.mkdir();(foreign/self.source.name).write_bytes(b'foreign')
+  self.state['Mounts'].append({'Type':'bind','Source':str(foreign),'Destination':'/data/library/sub'})
+  with closing(sqlite3.connect(self.config/'database.sqlite')) as db,db:db.execute('UPDATE BOOK SET URL=?',('file:///data/library/sub/a%20comic.cbz',))
+  self.reader['current_pairs']=self.pairs(self.config);self.write('input.lifecycle.json',m.encoded(self.doc));self.response['reader']=copy.deepcopy(self.state)
+  with self.assertRaisesRegex(m.Held,'destination-shadow'):self.make().native_url(source)
+ def test_reader_destination_duplicate_refuses_ambiguity(self):
+  self.state['Mounts'].append({'Type':'bind','Source':str(self.root),'Destination':'/data/library'});self.write('input.lifecycle.json',m.encoded(self.doc));self.response['reader']=copy.deepcopy(self.state)
+  with self.assertRaisesRegex(m.Held,'destination-shadow'):self.make().native_url(self.source)
+ def test_matching_more_specific_reader_destination_stays_valid(self):
+  sub=self.library/'sub';sub.mkdir();source=sub/self.source.name;source.write_bytes(b'comic');self.state['Mounts'].append({'Type':'bind','Source':str(sub),'Destination':'/data/library/sub'})
+  with closing(sqlite3.connect(self.config/'database.sqlite')) as db,db:db.execute('UPDATE BOOK SET URL=?',('file:///data/library/sub/a%20comic.cbz',))
+  self.reader['current_pairs']=self.pairs(self.config);self.write('input.lifecycle.json',m.encoded(self.doc));self.response['reader']=copy.deepcopy(self.state)
+  self.assertEqual(self.make().native_url(source),'file:///data/library/sub/a%20comic.cbz')
 class PipeTests(unittest.TestCase):
  def child(self,mode):
   code="import importlib.util; s=importlib.util.spec_from_file_location('m',%r);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);m.ParentPipe().challenge('a'*64,'b'*64,'c'*64)" % str(P)
@@ -180,6 +217,10 @@ class PipeTests(unittest.TestCase):
   if mode=='challenge':response['challenge']='0'*64
   if mode!='closed':process.stdin.write(m.encoded(response)+b'\n');process.stdin.flush()
   process.stdin.close();process.stdin=None;out,err=process.communicate(timeout=5);return process.returncode,out,err
+ def test_actual_inherited_pipe_redirection_is_refused(self):
+  code="import importlib.util,os; s=importlib.util.spec_from_file_location('m',%r);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);c=m.ParentPipe();r,w=os.pipe();c.input=r;c.output=w;c.facts=(tuple(m.five(os.fstat(r))),tuple(m.five(os.fstat(w))));c.challenge('a'*64,'b'*64,'c'*64)" % str(P)
+  result=subprocess.run([sys.executable,'-I','-B','-c',code],input=b'',stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=5)
+  self.assertNotEqual(result.returncode,0);self.assertIn(b'lifecycle-original-pipe',result.stderr);self.assertEqual(result.stdout,b'')
  def test_extended_inherited_pipe_positive(self):self.assertEqual(self.child('extended')[0],0)
  def test_partial_native_frame_refused(self):self.assertNotEqual(self.child('partial-native')[0],0)
  def test_fresh_inherited_pipe_positive(self):self.assertEqual(self.child('fresh')[0],0)
