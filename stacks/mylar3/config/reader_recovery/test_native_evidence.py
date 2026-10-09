@@ -42,6 +42,27 @@ class ProbeTests(unittest.TestCase):
     def test_actual_proc_and_daemon_output(self):
         value=self.run_probe();self.assertEqual(value['process']['start_ticks'],987);self.assertEqual(value['process']['pid'],123)
         self.assertNotIn('k'*32,json.dumps(value));self.assertEqual(value['config']['sha256'],hashlib.sha256(self.config.read_bytes()).hexdigest())
+    def test_native_saved_boolean_spellings(self):
+        self.config.write_text(self.config.read_text().replace('api_enabled=1','api_enabled=True').replace('enable_https=0','enable_https=False'))
+        self.assertEqual(self.run_probe()['process']['pid'],123)
+    def test_saved_false_api_never_contacts_daemon(self):
+        self.config.write_text(self.config.read_text().replace('api_enabled=1','api_enabled=False'))
+        with self.assertRaises(p.Held):self.run_probe(lambda *args:self.fail('disabled API contacted'))
+    def test_saved_true_https_never_contacts_daemon(self):
+        self.config.write_text(self.config.read_text().replace('enable_https=0','enable_https=True'))
+        with self.assertRaises(p.Held):self.run_probe(lambda *args:self.fail('HTTPS contacted'))
+    def test_unknown_api_boolean_never_contacts_daemon(self):
+        original=self.config.read_text()
+        for value in ('yes','on','2','unknown',''):
+            with self.subTest(value=value):
+                self.config.write_text(original.replace('api_enabled=1','api_enabled='+value))
+                with self.assertRaises(p.Held):self.run_probe(lambda *args:self.fail('unknown API contacted'))
+    def test_unknown_https_boolean_never_contacts_daemon(self):
+        original=self.config.read_text()
+        for value in ('no','off','2','unknown',''):
+            with self.subTest(value=value):
+                self.config.write_text(original.replace('enable_https=0','enable_https='+value))
+                with self.assertRaises(p.Held):self.run_probe(lambda *args:self.fail('unknown HTTPS contacted'))
     def test_literal_unsupported_password_never_http_or_output(self):
         argv=self.argv+['--password','k'*32]
         (self.proc/'123'/'cmdline').write_bytes(b'\0'.join(x.encode() for x in argv)+b'\0')

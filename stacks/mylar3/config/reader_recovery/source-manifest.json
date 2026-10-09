@@ -1,10 +1,10 @@
 {
   "files": {
     "CONTRACT-terminal.md": {
-      "sha256": "9ca371b5b3bd98b871c95701e173d1f2cba15b344c2263e58c5705d6ac1f3670"
+      "sha256": "5973203039d782168b97be1bc05e36cfa5b2fde9bdb6412eea0ab1da01714731"
     },
     "README.md": {
-      "sha256": "9205ce0ba0d8aca8e34c8e9c199002bfd9aee43251e1ec875b7934f220913965"
+      "sha256": "ffceed9b0d8fd75d6c1f7201f4cd4ae61235eaab8faf9007d7b210e7e2e704a4"
     },
     "_negative_reader_fixtures/fixture_comic_komga_five_book_softdelete_v1.py": {
       "sha256": "560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5"
@@ -102,14 +102,20 @@
     "_reader_parent_fixtures/fixture_scope.py": {
       "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608"
     },
+    "_terminal_reconstruction_fixtures/CONTRACT-installed-terminal.md": {
+      "sha256": "f9c74f9d93352dc4de90d11127b9be108704193ccf96cbb9ef5f225370a81ff8"
+    },
+    "_terminal_reconstruction_fixtures/installed_terminal_cli.py": {
+      "sha256": "3201c31ca3fc7f35c16a87d3d0e05ff0405fce91aafab23b34ce2ebe4cb6385d"
+    },
     "_terminal_reconstruction_fixtures/publication_reader_lifecycle.py": {
       "sha256": "ef4521bd9ef78c5b78130cb7706afe5557c570870325e3ec055ca7c51c931d74"
     },
     "comic_native_evidence_adapter.py": {
-      "sha256": "bb4d08d815930a2efeee5ccb170802072d4f22b17c7345b126e7d22d0867d67f"
+      "sha256": "cfd72ce7dbdd2dc2a0e54779af0ac065873925912367cfa005b75723fa036082"
     },
     "comic_native_process_probe.py": {
-      "sha256": "7faf1fa091e3974829d12eb05b93a5628ff7e57de63e238b981884a1dcf4100e"
+      "sha256": "77325f0a7fd14b6e2e1a1f91aaf4c66cb53b5e2fd4cffdd34453642002afd1ec"
     },
     "comic_negative_reader_action.py": {
       "sha256": "f606926a0b4e3c46ca34c688d8087a61a625e648ae9990bc961a80a0199395f1"
@@ -145,7 +151,7 @@
       "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608"
     },
     "test_native_evidence.py": {
-      "sha256": "e47b2ab0cfb4182422be3cae8efb73c7a9e3c61bc3236c80c8a6f5f92aa5a08d"
+      "sha256": "89915063e9df4c4006ba16cc632c77bfb3fa0f5c5d6bd95d28e8930c881af3c2"
     },
     "test_negative_reader_action.py": {
       "sha256": "be6eab8011b31ebfa368db4a3fdd66664a2481a779a321776458b1422e80182e"
