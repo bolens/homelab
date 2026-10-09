@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 FIXES=Path(__file__).resolve().parent
-SUITES=(('test_negative_reader_action.py',33),('test_negative_reader_partial_rollback.py',13),('test_negative_reader_preimage.py',7),('test_negative_terminal_observer.py',18),('test_reader_proof_producer.py',10),('test_reader_proof_admission.py',52),('test_reader_proof_timestamp_summary.py',13),('test_reader_lifecycle_parent.py',65),('test_native_evidence.py',34),('test_reader_phase_custody.py',25),('test_terminal_reconstruction.py',7))
+SUITES=(('test_negative_reader_action.py',33),('test_negative_reader_partial_rollback.py',13),('test_negative_reader_preimage.py',7),('test_negative_terminal_observer.py',18),('test_reader_proof_producer.py',10),('test_reader_proof_admission.py',52),('test_reader_proof_timestamp_summary.py',13),('test_reader_lifecycle_parent.py',65),('test_native_evidence.py',39),('test_reader_phase_custody.py',25),('test_terminal_reconstruction.py',7))
 MAX_FILES=128
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass

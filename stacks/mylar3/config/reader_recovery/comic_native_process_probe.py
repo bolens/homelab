@@ -112,10 +112,14 @@ def capture(request,*,proc=Path('/proc'),transport=health,clock=time.monotonic):
         values = [parser.get(s,key,raw=True) for s in parser.sections() if parser.has_option(s,key)]
         if not values and default is not None: return default
         need(len(values) == 1,'probe-config-unique'); return values[0]
-    key = one('api_key'); need(len(key)==32 and one('api_enabled') == '1','probe-primary-enabled')
+    def boolean(key,default=None):
+        value=one(key,default).casefold()
+        need(value in ('0','1','false','true'),'probe-config-boolean')
+        return value in ('1','true')
+    key = one('api_key'); need(len(key)==32 and boolean('api_enabled'),'probe-primary-enabled')
     port = one('http_port'); need(port.isdecimal() and 1<=int(port)<=65535,'probe-port')
     prefix = one('http_root',''); need(not prefix or prefix.startswith('/') and all(x not in prefix for x in ('?','#','\\','://')) and '..' not in prefix.split('/'),'probe-prefix')
-    need(one('enable_https','0') == '0','probe-unsupported-https')
+    need(not boolean('enable_https','0'),'probe-unsupported-https')
     pins = request['module_pins']; need(set(pins)=={'/app/mylar3/mylar/worker_health.py','/app/mylar3/mylar/native_writers.py'},'probe-daemon-origin-roles')
     for path,digest in pins.items(): need(hashlib.sha256(reads.read(path)).hexdigest()==digest,'probe-daemon-origin-pin')
     remaining = end-clock(); need(remaining > 0,'probe-expired')
