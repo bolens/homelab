@@ -1191,3 +1191,10 @@ queue receipts cannot reconstruct that custody. Their dedicated same-payload
 exchange retains the original, preserves every reader reference and limits the
 catalog change to the owned archive size. Runtime installation, terminal recovery
 and live adoption must pass the feature 024 acceptance gates before use.
+
+The image also installs the canonical negative-retirement reader cohort through
+`patch_publication_reader_cohort.py`. Build checks verify exact module bytes and
+shared SDK identities, while mechanical tests use separate temporary fixtures.
+The cohort adds no settings, mounts, ports or privileges. Owning reader admission
+remains held until the reviewed lifecycle parent and current producer pins are
+installed and connected runtime, NFS and live terminal verification pass.

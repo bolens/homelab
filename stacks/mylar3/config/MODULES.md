@@ -29,6 +29,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; follows the authenticated publication API, refuses pending media intents and uncertain cleanup records |
 | Reviewed retained repeat reconciliation | `patch_publication_reconcile.py` | `publication_reconcile.py`, `test_publication_reconcile.py`; exact registered conflict, private independently verified retention and conditional false-location removal; wanted intent remains separately reviewed |
 | Conclusive combined-pass preservation cleanup | `patch_combined_publication.py` | `combined_cleanup.py`, `test_combined_cleanup.py`; independently captured producer history, current archive/owner/census and final reader acceptance, at-most-once private-pair retirement and passive terminal acknowledgement |
+| Prospective canonical negative retirement and reader custody | `patch_publication_reader_cohort.py` | `publication_reader_cohort.json` pins the 24 canonical helpers; portable source controls and fresh installed origin/hash/type checks remain in the build stage; owning admission stays held while parent pin is absent |
 | Explicit reviewed nested-metadata derivative | `patch_publication_derivative.py` | `publication_lineage.py`, `publication_derivative.py`, `library_metadata.py`; lineage/adoption/producer/consumer controls, complete inherited owner claims and retained originals; ordinary discovery does not authorize member-name changes |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
@@ -357,3 +358,27 @@ startup/admission, worker evidence and repair preparation/status, including
 malformed or inaccessible markers. Existing recovery flags do not bypass it.
 Only the future aggregate's exact typed continuation may carry its already held
 Writer through a phase; these modules do not install that continuation.
+
+## Prospective reader cohort installation
+
+`patch_publication_reader_cohort.py` follows the existing adapters and installs
+21 new runtime helpers, checking the unchanged archive-owned, lifecycle and
+configured-scope helpers already installed by publication authority.
+`publication_reader_cohort.json` pins all 24 exact canonical package files. The
+catalog helper is installed as `mylar.publication_negative_catalog`; package
+imports share the existing guard, mutation, API and Writer module identities.
+All additional SDK closure helpers retain their existing owning adapters.
+
+`run_publication_reader_controls.py` runs each portable mechanical suite in a
+separate process on an isolated source copy. The immutable namespace kernel
+requires its explicit local fixture actor at UID 1000; a root build drops only
+these children to that identity and gives their private kernel copy mode 0600.
+The installed-source gate retains its original image identity. `fixtures/` and the portable marker are build-only inputs;
+no fixture or test is installed in Mylar's runtime package.
+`verify_publication_reader_cohort.py` uses a fresh isolated interpreter to check
+actual installed origins, exact bytes, embedded dependency hashes, namespace
+kernel loading, SDK identities and the SQL function alias. This source and
+identity proof grants no owning execution or publication acceptance.
+`publication_reader_admission.PARENT_SHA` remains `None`; the owning parent,
+provider/terminal acceptance, actual connected factories and NFS/reader
+acceptance remain separately reviewed requirements.
