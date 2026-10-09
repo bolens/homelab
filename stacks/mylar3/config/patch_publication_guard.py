@@ -46,7 +46,7 @@ def patched_source(source):
 def main(directory):
     root = Path(directory)
     source = patched_source((root / 'api.py').read_text())
-    for name in ('publication_api.py', 'publication_guard.py', 'publication_fresh.py', 'publication_native.py', 'publication_transaction.py', 'publication_rename.py', 'publication_tagging_recovery.py', 'publication_archive_layout.py', 'publication_archive_derivative.py', 'publication_archive_repair.py', 'publication_archive_diagnostics.py', 'publication_archive_owned.py', 'publication_archive_prepare_routes.py', 'publication_archive_reader.py', 'publication_archive_adoption.py', 'publication_archive_dispatch.py', 'publication_archive_verifier.py', 'publication_reader_lifecycle.py', 'publication_native_configured_scope.py'):
+    for name in ('publication_api.py', 'publication_guard.py', 'publication_fresh.py', 'publication_native.py', 'publication_transaction.py', 'publication_rename.py', 'publication_tagging_recovery.py', 'publication_archive_layout.py', 'publication_archive_derivative.py', 'publication_archive_repair.py', 'publication_archive_diagnostics.py', 'publication_archive_owned.py', 'publication_archive_prepare_routes.py', 'publication_archive_reader.py', 'publication_archive_adoption.py', 'publication_archive_dispatch.py', 'publication_archive_verifier.py', 'publication_archive_rollback.py', 'publication_reader_lifecycle.py', 'publication_native_configured_scope.py'):
         (root / name).write_text(Path(__file__).with_name(name).read_text())
     (root / 'api.py').write_text(source)
     from patch_publication_processing import main as patch_processing

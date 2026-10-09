@@ -38,6 +38,8 @@ class Tests(unittest.TestCase):
    def execute(x):self.events.append('execute');x.phase='terminal'
   self.aggregate=Aggregate()
   preimage=patch.object(m,'persist_preimage',return_value={'fixture_only':True});preimage.start();self.addCleanup(preimage.stop)
+  # Orchestration doubles only; this does not exercise owning receipt capture.
+  terminalrefs=patch.object(m,'owning_terminal_refs',return_value={'fixture_only':True});terminalrefs.start();self.addCleanup(terminalrefs.stop)
   def admission(*args,**kwargs):self.events.append('invocation');self.invocation=m.decode(Path(args[0]).read_bytes());return object()
   self.modules={'publication_native_configured_scope':SimpleNamespace(NativeConfiguredScope=Scope,from_checked_parent=lambda l:self.scope),'publication_reader_admission':SimpleNamespace(PARENT_SHA=self.plan['parent_sha256'],enter_checked_child=admission,admit_child=lambda *a:SimpleNamespace(binding={'fixture_only':True})),'publication_reader_native_coordinator':SimpleNamespace(from_held_existing=lambda *a:self.coordinator),'publication_negative':SimpleNamespace(prepare_existing=prep),'publication_reader_phase':SimpleNamespace(from_admission=lambda a:reader),'publication_negative_batch':SimpleNamespace(prepare_existing=lambda *a:self.events.append('batch-marker') or object()),'publication_negative_batch_transition':SimpleNamespace(from_prepared=lambda *a:object()),'publication_negative_aggregate':SimpleNamespace(NegativeReaderAggregate=Aggregate,from_staged_preparation=lambda *a:self.aggregate)}
  def ref(self,name,value):

@@ -143,4 +143,28 @@ class Controls(unittest.TestCase):
   with patch.object(m.Observation,'ref',new=changed):
    with self.assertRaisesRegex(m.Held,'ancestor-drift|final-ancestor'):self.go()
   self.assertTrue(fired)
+class MappedControls(Controls):
+ # Reuse real SQLite setup; only these explicit mapping controls are collected.
+ def mapped(self):
+  self.pre['restore_main']['path']='/child/restore/database.sqlite';self.pre['restore_tasks']['path']='/child/restore/tasks.sqlite'
+  self.commit['main']='/child/current/database.sqlite';self.commit['tasks']='/child/current/tasks.sqlite'
+  self.pre_ref=self.write(self.root/'preimage.json',self.pre);self.refresh_terminal()
+  self.manifest['current_main']='/child/current/database.sqlite';self.manifest['current_tasks']='/child/current/tasks.sqlite'
+  self.manifest_ref=self.write(self.root/'input.json',self.manifest)
+  def mapper(value):
+   for original,actual in (('/child/current',str(self.current)),('/child/restore',str(self.restore))):
+    if value==original or value.startswith(original+'/'):return actual+value[len(original):]
+   return value
+  return mapper
+ def test_mapped_actual_kernel_facts_no_relabel(self):
+  mapper=self.mapped();result,originals=m.observe_mapped_with_originals(self.manifest_ref,source_sha256=hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest(),path_mapper=mapper)
+  self.assertEqual(result['outcome'],'observed-forward');self.assertIn(str(self.current/'database.sqlite'),originals['files']);self.assertFalse(result['reader_resume_authority'])
+ def test_mapped_kernel_signature_mismatch_refused(self):
+  mapper=self.mapped();path=self.current/'database.sqlite';raw=path.read_bytes();path.unlink();path.write_bytes(raw);path.chmod(0o600)
+  with self.assertRaisesRegex(m.Held,'current-reader-pair'):m.observe_mapped_with_originals(self.manifest_ref,source_sha256=hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest(),path_mapper=mapper)
+ def test_nonidempotent_mapper_refused(self):
+  with self.assertRaisesRegex(m.Held,'mapped-idempotent'):m.observe_mapped_with_originals(self.manifest_ref,source_sha256=hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest(),path_mapper=lambda value:value+'/foreign')
+# Prevent duplicate inherited original controls in this second class.
+for _name in tuple(Controls.__dict__):
+ if _name.startswith('test_'):setattr(MappedControls,_name,None)
 if __name__=='__main__':unittest.main()

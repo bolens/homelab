@@ -144,7 +144,7 @@ class RepairAdoption:
             o.check(g._claim_identity(path)==expected,'repair-complete-claim')
     def close(self):
         self._life();self.reader.revalidate();self._native()
-        for p,v in ((self.source,self._source_attrs if self._phase in ('prepared','reversed') else self._stage_attrs),(self.stage,self._stage_attrs if self._phase in ('prepared','reversed') else self._source_attrs)):
+        for p,v in ((self.source,self._source_attrs if self._phase in ('prepared','reversed','rollback-complete') else self._stage_attrs),(self.stage,self._stage_attrs if self._phase in ('prepared','reversed','rollback-complete') else self._source_attrs)):
             o.check(o.attributes(p)==v,'repair-access-attributes')
         o.check(set(os.listdir(self.source.parent))==self._source_names,'repair-source-parent-census');o.check(set(os.listdir(self.root))==self._names,'repair-root-census')
         o.check(set(os.listdir(self.journal))=={p.name for p in self._files if p.parent==self.journal},'repair-journal-census')
@@ -357,14 +357,101 @@ class RepairAdoption:
         except BaseException:
             if not os.path.lexists(terminal):o.write(terminal,successor,self._nodes[w.root])
             self._phase='uncertain';self._seal();raise o.Held('repair-final-unknown-retain-successor') from None
+    def complete_reversed(self):
+        """Consume only the exact reversed phase; never accept a serialized receipt.
+
+        Reader indexing remains separately observable. This accepts archive and
+        exact existing reader references, not general current-library admission.
+        """
+        self.close();o.check(self._phase=='reversed','repair-rollback-complete-phase');p=self.preparation;w=p._writer
+        raw=o.read_checked(self.source,self._files[self.source],512*1024**2+2,p._deadline)
+        o.check(hashlib.sha256(raw).hexdigest()==p._binding['source']['sha256'],'repair-rollback-original-bytes')
+        plan=p._modules[4].classify(raw,p._modules[2],p._deadline)
+        o.check(plan['status']=='repair-candidate','repair-rollback-supported-original')
+        witness=o.witness(raw,p._binding['source'],plan,p._modules,p._deadline)
+        o.check(witness==p._binding['exceptional_witness'],'repair-rollback-original-witness')
+        with o.checked_stream(p._controller.native_database,self._files[p._controller.native_database]) as fd,closing(sqlite3.connect('file:/proc/self/fd/'+str(fd.fileno())+'?mode=ro&immutable=1',uri=True)) as db:
+            o.check(snapshot(db,p._deadline)==self._before,'repair-rollback-full-native-preimage')
+        self.reader.revalidate();self.close()
+        terminal=w.root/TERMINAL;pending=w.root/PENDING
+        successor=o.compact({'version':1,'purpose':'archive-repair-rollback-terminal','operation_id':p._binding['operation_id'],'owner':self._owner,'source_sha256':self._contents[self.source],'reader_all_tables':self.reader.binding['all_tables_sha256']})
+        try:
+            # A write may be durable before its caller receives the result. Keep
+            # every marker on an unknown initial successor/intent response.
+            o.write(terminal,successor,self._nodes[w.root]);self._files[terminal]=o.signature(terminal);self._contents[terminal]=hashlib.sha256(successor).hexdigest();self._absent.remove(terminal);self._seal()
+            self._record('rollback-complete-intent.json',{'version':1,'phase':'original-native-and-reader-preimage-verified','source_sha256':self._contents[self.source],'reader_all_tables':self.reader.binding['all_tables_sha256'],'publication_acceptance':False})
+            self.close()
+        except BaseException:
+            self._phase='uncertain';self._seal();raise o.Held('repair-rollback-successor-unknown-retain-markers') from None
+        try:
+            # A durable terminal successor exists before the first marker unlink.
+            with o.directory_fd(w.root,self._nodes[w.root]) as fd:
+                direct(self._files,self._nodes,self._absent)
+                o.check(o.stat9(os.stat(PENDING,dir_fd=fd,follow_symlinks=False))==self._files[pending],'repair-pending-unlink-CAS')
+                for path,value in {**self._files,**self._dirs}.items():
+                    info=os.lstat(path)
+                    if [info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,info.st_mode,info.st_uid,info.st_gid,info.st_nlink]!=value:raise o.Held('repair-inline-file')
+                for path,value in self._nodes.items():
+                    info=os.lstat(path)
+                    if [info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid]!=value:raise o.Held('repair-inline-node')
+                for path in self._absent:
+                    try:os.lstat(path)
+                    except FileNotFoundError:continue
+                    raise o.Held('repair-inline-absence')
+                for path,value in self._claims.items():
+                    if path==self.source:value=(self._files[path][0],self._files[path][1],self._files[path][5],self._files[path][6],self._files[path][7],self._files[path][8])
+                    try:info=os.lstat(path)
+                    except FileNotFoundError:
+                        if value is not None:raise o.Held('repair-inline-claim')
+                        continue
+                    if (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,None if info.st_mode & 0o170000==0o040000 else info.st_nlink)!=value:raise o.Held('repair-inline-claim')
+                os.unlink(PENDING,dir_fd=fd);os.fsync(fd)
+            del self._files[pending];del self._contents[pending];self._absent.add(pending);self._seal()
+            self._record('rollback-complete.json',{'version':1,'phase':'rollback-complete','operation_id':p._binding['operation_id'],'source_sha256':self._contents[self.source],'reader_reference_preservation':True,'publication_acceptance':False})
+            self.close()
+        except BaseException:
+            self._phase='uncertain';self._seal();raise o.Held('repair-rollback-pending-unknown-retain-successor') from None
+        # The complete receipt is durable before clearing its successor. Any
+        # unknown response restores only our absent successor, never foreign data.
+        try:
+            with o.directory_fd(w.root,self._nodes[w.root]) as fd:
+                direct(self._files,self._nodes,self._absent)
+                o.check(o.stat9(os.stat(TERMINAL,dir_fd=fd,follow_symlinks=False))==self._files[terminal],'repair-terminal-unlink-CAS')
+                for path,value in {**self._files,**self._dirs}.items():
+                    info=os.lstat(path)
+                    if [info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,info.st_mode,info.st_uid,info.st_gid,info.st_nlink]!=value:raise o.Held('repair-inline-file')
+                for path,value in self._nodes.items():
+                    info=os.lstat(path)
+                    if [info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid]!=value:raise o.Held('repair-inline-node')
+                for path in self._absent:
+                    try:os.lstat(path)
+                    except FileNotFoundError:continue
+                    raise o.Held('repair-inline-absence')
+                for path,value in self._claims.items():
+                    if path==self.source:value=(self._files[path][0],self._files[path][1],self._files[path][5],self._files[path][6],self._files[path][7],self._files[path][8])
+                    try:info=os.lstat(path)
+                    except FileNotFoundError:
+                        if value is not None:raise o.Held('repair-inline-claim')
+                        continue
+                    if (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,None if info.st_mode & 0o170000==0o040000 else info.st_nlink)!=value:raise o.Held('repair-inline-claim')
+                os.unlink(TERMINAL,dir_fd=fd);os.fsync(fd)
+            del self._files[terminal];del self._contents[terminal];self._absent.add(terminal);self._phase='rollback-complete';self._seal();self.close()
+        except BaseException:
+            if not os.path.lexists(terminal):o.write(terminal,successor,self._nodes[w.root])
+            self._phase='uncertain';self._seal();raise o.Held('repair-terminal-unknown-retain-successor') from None
+        try:return self.binding
+        except BaseException:
+            if not os.path.lexists(terminal):o.write(terminal,successor,self._nodes[w.root])
+            self._phase='uncertain';self._seal();raise o.Held('repair-final-unknown-retain-successor') from None
     @property
     def binding(self):
         value={'version':1,'kind':'same-path-owned-archive-repair','phase':self._phase,'operation_id':self.preparation._binding['operation_id'],'owner':copy.deepcopy(self._owner),'source':str(self.source),'reader_reference_preservation':True,'reader_index_acceptance':False,'native_archive_installed':self._phase in ('installed','complete'),'repair_accepted':self._phase=='complete','receipt':copy.deepcopy(self._receipt),'publication_acceptance':False,'ordinary_import_grant':False}
+        if self._phase=='rollback-complete':value['rollback_verified']=True
         self.close();return value
 
 def prepare_existing(preparation,lease,retention_root):
     installed();o.check(type(preparation) is o.RepairPreparation and type(lease) is reader.RepairReaderLease,'exact-repair-types')
-    prep=preparation;implementation_paths=[Path(__file__),Path(reader.__file__)];implementation_nodes=o.ancestors(implementation_paths);implementation_files={p:o.fact(p,4*1024**2,prep._deadline) for p in implementation_paths};prep.revalidate();lease.revalidate()
+    prep=preparation;implementation_paths=[Path(__file__),Path(reader.__file__),Path(__file__).with_name('publication_archive_rollback.py')];implementation_nodes=o.ancestors(implementation_paths);implementation_files={p:o.fact(p,4*1024**2,prep._deadline) for p in implementation_paths};prep.revalidate();lease.revalidate()
     source=Path(prep._binding['source']['path']);o.check(source.suffix.lower()=='.cbz','repair-supported-CBZ-same-path');o.check(lease.source==source,'reader-native-same-path');o.check(set(lease.binding['page_names'])==set(prep._binding['exceptional_witness']['virtual_original_inventory']['pages']),'reader-source-page-bijection')
     root=o.canonical(retention_root);nodes=copy.deepcopy(prep._nodes);o.merge_nodes(nodes,implementation_nodes);o.merge_nodes(nodes,o.ancestors([root,source]));nodes[root]=o.stat5(os.lstat(root));o.check(stat.S_IMODE(os.lstat(root).st_mode)==0o700 and os.lstat(root).st_uid==os.geteuid(),'repair-private-retention')
     o.check(all(not root.is_relative_to(r) and not r.is_relative_to(root) for r in map(Path,prep._controller.roots)) and os.lstat(root).st_dev==os.lstat(source).st_dev,'repair-retention-same-FS-outside-library')

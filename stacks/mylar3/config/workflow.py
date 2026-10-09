@@ -761,6 +761,15 @@ def state_health():
                     (archive_repair, 'dispatch'))):
                 result['archive_diagnostics'] = 1
         try:
+            from mylar import publication_archive_rollback, publication_archive_verifier
+        except ImportError:
+            pass
+        else:
+            if (callable(getattr(publication_archive_rollback, 'from_reversed', None))
+                    and callable(getattr(publication_archive_verifier, 'verify_rollback_existing', None))):
+                # Code availability only; no reader/native acceptance grant.
+                result['archive_repair_rollback'] = 1
+        try:
             from mylar import api, combined_publication, publication_conversion
             from mylar.publication_transaction import closed_supplement
         except ImportError:

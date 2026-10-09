@@ -53,8 +53,8 @@ def load_provider(path,expected):
     return module
 
 
-PROVIDER_SHA='f606926a0b4e3c46ca34c688d8087a61a625e648ae9990bc961a80a0199395f1'
-OBSERVER_SHA='e8ccb3c39ab35a51c5d869f69e89e986d133ef17f35482c55a43370f65cea12b'
+PROVIDER_SHA='8c3db53acb9366fe24348440e855aebeb04fe193f2dfab9ad5bd61f39837dfc9'
+OBSERVER_SHA='ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04'
 BIRTH_SHA='28dfcb92ec2f0267ecf97ac05f12136ee9ff2fbe242ea20d155c399567e610ef'
 LIFE_SHA='ef4521bd9ef78c5b78130cb7706afe5557c570870325e3ec055ca7c51c931d74'
 SCOPE_SHA='6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608'
@@ -136,12 +136,15 @@ def fixture(root,args,provider,modules):
     cleared=private(terminal/'cleared.json',encoded(dict(kind='five-retired-negative-cleared',binding_sha256='a'*64,clear_ready_sha256=ready['sha256'])))
     manifest=private(execution/'terminal-observation-manifest.json',encoded(dict(version=1,preimage=preimage,clear_ready=ready,cleared=cleared,restore_main=restore_main,restore_tasks=restore_tasks,current_main=str(root/'current'/'database.sqlite'),current_tasks=str(root/'current'/'tasks.sqlite'),writer_root=str(writer.root))))
     action=private(execution/'action-input.json',encoded(dict(members=intended,targets=targets,batch_journal=str(phases),start_journal=str(execution/'start.json'),commit_journal=str(execution/'commit.json'),operation=str(execution))))
+    # Synthetic durable execute declarations, never an owning aggregate capability.
+    execution_report=private(execution/'execute-report.json',encoded(dict(kind='negative-five-owning-terminal-observation',phase='execute',nonce='a'*64,final_ack_required=True,provider_continuity_verified=False,publication_acceptance=False,reader_resume_authority=False,preimage=preimage,terminal_refs=dict(version=1,outcome='observed-forward',binding_sha256='a'*64,clear_ready=ready,cleared=cleared))))
+    execute_ack=private(execution.parent/'execute-ack.json',encoded(dict(nonce='a'*64,phase='execute',source_sha256=PROVIDER_SHA,report=execution_report,publication_acceptance=False,reader_resume_authority=False)))
     # This independent observer check proves fixture consistency, not execution provenance.
     assert observer.observe(manifest,source_sha256=OBSERVER_SHA)['outcome']=='observed-forward'
     parent_source=private(root/'synthetic-parent.py',Path(__file__).read_bytes())
     inp=root/'verify-terminal-input.json';nonce='a'*64
     template=[sys.executable,'-I','-B',args.provider,'--phase','verify-terminal','--input',str(inp),'--input-sha256','<INPUT_SHA256>','--source-sha256',PROVIDER_SHA]
-    plan=dict(action='negative-five',command_template=template,operation=str(verification),sdk_map=dict(path=args.sdk_map,sha256=args.sdk_sha256),nonce=nonce,parent_sha256=parent_source['sha256'],selected_image=args.selected_image,admission_source_sha256=json.loads(Path(args.sdk_map).read_bytes())['publication_reader_admission.py'],controls=controls,action_input=action,terminal_manifest=manifest)
+    plan=dict(action='negative-five',command_template=template,operation=str(verification),sdk_map=dict(path=args.sdk_map,sha256=args.sdk_sha256),nonce=nonce,parent_sha256=parent_source['sha256'],selected_image=args.selected_image,admission_source_sha256=json.loads(Path(args.sdk_map).read_bytes())['publication_reader_admission.py'],controls=controls,action_input=action,terminal_manifest=manifest,execute_ack=execute_ack)
     input_ref=private(inp,encoded(plan));command=[input_ref['sha256'] if x=='<INPUT_SHA256>' else x for x in template]
     def mount(path,destination):return dict(Type='bind',Source=str(path),Destination=str(destination),RW=False)
     mounts=[mount(root/'native',root/'native'),mount(root/'library',root/'library')]
@@ -154,7 +157,7 @@ def fixture(root,args,provider,modules):
     invocation=dict(input_path=input_ref['path'],input_sha256=input_ref['sha256'],parent_sha256=parent_source['sha256'],provider_sha256=PROVIDER_SHA,command=command,nonce=nonce)
     seed=private(inp.with_suffix('.birth.json'),encoded(dict(version=1,kind='selected-child-native-scope-birth',invocation=invocation,parent_source=parent_source,birth_source=dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256=BIRTH_SHA),config={k:config[k] for k in ('path','sha256')},worker_library='/data/comics',selected_image=args.selected_image)))
     observation=dict(reader=runtime,native=native_observation,worker=worker,child_mounts=mounts,child_source_sha256=PROVIDER_SHA,child_image=args.selected_image)
-    sidecar=dict(version=1,kind='owning-reader-pipe-custody',nonce=nonce,input_sha256=input_ref['sha256'],command=command,parent_source=parent_source,reader=reader,proofs=dict(controls,terminal_observation=manifest),deadline_seconds=120)
+    sidecar=dict(version=1,kind='owning-reader-pipe-custody',nonce=nonce,input_sha256=input_ref['sha256'],command=command,parent_source=parent_source,reader=reader,proofs=dict(controls,terminal_observation=manifest,execute_ack=execute_ack),deadline_seconds=120)
     return command,input_ref,seed,observation,sidecar,verification
 
 

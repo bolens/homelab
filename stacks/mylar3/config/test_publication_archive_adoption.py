@@ -344,7 +344,7 @@ class FreshVerifierBoundaryV2(unittest.TestCase):
   import inspect
   def late(*args):
    real(*args)
-   if inspect.stack()[1].function=='verify_existing':
+   if inspect.stack()[1].function=='_verify':
     count.append(1)
     if len(count)==2:shadow.symlink_to(self.c.source)
   with patch.object(r,'direct',late),self.assertRaises(o.Held):self.verify()

@@ -129,7 +129,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(command[-3], value['sha256'])
         self.assertFalse((self.operation / 'backup-input.lifecycle.json').exists())
 
-    def prebirth(self):
+    def prebirth(self, phase='prepare'):
         def produce(phase, context):
             seed = dict(version=1, kind='selected-child-native-scope-birth', invocation=context['invocation'],
                         parent_source=self.parent.mapping.child_ref(self.source),
@@ -138,7 +138,13 @@ class Tests(unittest.TestCase):
                         selected_image=self.parent.plan['selected_image'])
             return dict(reader=dict(config_root='/config'), proofs={}, birth_seed=seed)
         self.parent.produce = produce
-        return self.parent.phase_input('prepare', dict(controls={}), dict(backup={}))
+        payload=dict(controls={}); context=dict(backup={})
+        if phase == 'verify-terminal':
+            payload['terminal_manifest']=self.parent.mapping.child_ref(self.proof)
+            context['terminal_manifest']=self.proof
+            payload['execute_ack']=self.parent.mapping.child_ref(self.proof)
+            context['execute_ack']=self.proof
+        return self.parent.phase_input(phase, payload, context)
 
     def test_real_seed_after_actual_input_before_sidecar(self):
         value, command = self.prebirth()
@@ -204,7 +210,7 @@ class Tests(unittest.TestCase):
         self.continuous_fixture()
         rows = copy.deepcopy(x.baselines)
         x.continuous = lambda: copy.deepcopy(rows)
-        input_ref, actual = self.prebirth() if phase == 'prepare' else x.phase_input('backup', dict(runtime={}))
+        input_ref, actual = self.prebirth(phase) if phase in ('prepare','verify-terminal') else x.phase_input('backup', dict(runtime={}))
         state = dict(FinishedAt='',StartedAt='start',ExitCode=0,Error='',Status='created', Running=False, Pid=0, Paused=False, Restarting=False, Dead=False, OOMKilled=False)
         cid = '4' * 64
         row = dict(Id=cid, Name='fixture', Image=x.plan['selected_image'], Path='/lsiopy/bin/python3', Args=actual[1:],
@@ -231,13 +237,13 @@ class Tests(unittest.TestCase):
                 observed = p.decode(callback(message))
                 self.assertEqual(observed['child_mounts'], row['Mounts'])
                 self.assertIn('native', observed); self.assertIn('worker', observed)
-                if phase == 'prepare' and not skip_birth:
+                if phase in ('prepare','verify-terminal') and not skip_birth:
                     pending = p._PHASES[x][phase]
                     body = dict(version=1, kind='existing-native-configured-scope', invocation=pending['invocation'],
                                 native=observed['native'], worker=observed['worker'], child_mounts=observed['child_mounts'],
                                 config=dict(path='/data/config.ini', sha256='f'*64), config_module={}, main_module={},
                                 worker_library='/library', tool_root='/opt/archiving-utils', ancestors={'/':[1,2,16877,1000,1000]})
-                    proof = fixture_ref(self.operation/'prepare-input.native-scope.json', p.encode(body))
+                    proof = fixture_ref(self.operation/(phase+'-input.native-scope.json'), p.encode(body))
                     message.update(type='birth-commit', sequence=3 if bad_sequence else 2,
                                    birth=dict(source_sha256='e'*64, seed_sha256=pending['seed_ref']['sha256'],
                                               native_scope=x.mapping.child_ref(proof)))
@@ -512,6 +518,11 @@ class Tests(unittest.TestCase):
         p._CORES[x] = x.core
         return values
 
+    def test_original_phase_directory_replacement_refused(self):
+        self.prebirth();self.continuous_fixture();directory=self.operation/'prepare'
+        directory.rename(self.operation/'prepare.retained');directory.mkdir(mode=0o700)
+        with self.assertRaisesRegex(p.Held,'ancestor-final'):p.LifecycleParent.continuous(self.parent)
+
     def test_genuine_continuous_health_logs_only_allowed(self):
         values = self.continuous_fixture()
         for value in values.values(): value['State']['Health'] = dict(Status='unhealthy',FailingStreak=9,Log=[{'End':'later'}])
@@ -575,6 +586,213 @@ class Tests(unittest.TestCase):
         with self.assertRaisesRegex(p.Held, 'no-replay-or-resume'): x.execute()
         self.assertFalse(any(args[0] == 'start' for args in calls))
         self.assertEqual(x.phase, 'uncertain')
+
+
+class SchedulingTests(unittest.TestCase):
+    setUp = Tests.setUp
+    prebirth = Tests.prebirth
+    continuous_fixture = Tests.continuous_fixture
+    # Explicit parent engine/child/observer doubles; actual portable phase-input,
+    # source-ref read, fsync/exclusive output and final kernel vectors are used.
+    def schedule(self, outcome='observed-forward', fault=None):
+        x=self.parent; calls=[]; contexts=[]
+        x.plan['reader']=dict(id='1'*64)
+        x.plan['observer']=self.proof
+        controls={role:fixture_ref(self.root/(role+'.json'), b'{}') for role in p.ROLES}
+        manifest=fixture_ref(self.root/'terminal-manifest.json', b'{}')
+        claims=self.root/'claims';claims.mkdir(mode=0o700)
+        originals=dict(files={self.source['path']:tuple(self.source['signature9'])},
+                       nodes={str(claims):tuple(p.five(claims.lstat()))}, absent=[str(claims/'shadow')],
+                       censuses={str(claims):()})
+        rights=dict(publication_acceptance=False,mutation_authority=False,reader_resume_authority=False,
+                    recovery_capability=False,application_quiescence_verified=False)
+        class Engine:
+            def run(_,args,seconds):
+                calls.append(tuple(args))
+                if args[0]=='start':self.assertIn('verify-terminal', [c[1] for c in contexts if c[0]=='child'])
+                return ('1'*64).encode()
+        x.engine=Engine();x.producer=types.SimpleNamespace(terminal_observation=lambda:None,terminal_phase_custody=lambda:None)
+        def observe(ref,source_sha256,path_mapper):
+            self.assertEqual(ref,manifest)
+            if fault=='observer':raise p.Held('observer-held')
+            return dict(outcome=outcome,**rights),originals
+        x.observer=types.SimpleNamespace(observe_mapped_with_originals=observe)
+        row=dict(Id='1'*64,Image=x.plan['selected_image'],Name='reader',Path='/init',Args=[],
+                 Config={},HostConfig={},NetworkSettings={},State=dict(Running=False,Paused=False,Pid=0),Mounts=[])
+        x.baselines=dict(reader=row)
+        def continuous():
+            if fault=='late-source' and (self.operation/'resume-intent.json').exists():Path(self.source['path']).chmod(0o640)
+            if fault=='late-claim' and (self.operation/'resume-intent.json').exists():(claims/'shadow').write_bytes(b'x')
+            if fault=='late-census' and (self.operation/'resume-intent.json').exists():(claims/'other').write_bytes(b'x')
+            return dict(reader=row)
+        x.continuous=continuous
+        x.inspect=lambda cid:dict(row,State=dict(Running=True,Paused=False,Pid=2))
+        def produce(phase,context):
+            contexts.append((phase,context))
+            if phase=='backup-controls':return dict(controls=controls)
+            if phase=='nfs-ready':return dict(evidence=self.proof)
+            if phase=='terminal-observation':
+                self.assertEqual(set(context),{'backup','controls','observations','execute_action','execute_ack'})
+                self.assertEqual(context['controls'],controls);self.assertEqual(context['execute_action'],self.action)
+                return dict(manifest=manifest,outcome=outcome,**({'reader_resume_authority':True} if fault=='producer-grant' else {}))
+            self.assertEqual(phase,'phase-custody')
+            if context['phase']=='verify-terminal':
+                self.assertEqual(context['terminal_manifest'],manifest)
+                self.assertEqual(context['controls'],controls)
+            else:self.assertNotIn('terminal_manifest',context)
+            seed=dict(version=1,kind='selected-child-native-scope-birth',invocation=context['invocation'],
+                      parent_source=x.mapping.child_ref(self.source),
+                      birth_source=dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256='e'*64),
+                      config=dict(path='/data/config.ini',sha256='f'*64),worker_library='/library',selected_image=x.plan['selected_image'])
+            return dict(reader={},proofs={},birth_seed=seed)
+        x.produce=produce
+        def child(phase,inp,command):
+            contexts.append(('child',phase))
+            if phase=='verify-terminal':
+                doc=p.decode(p.read(inp))
+                self.assertEqual(doc['action_input'],x.mapping.child_ref(self.action))
+                self.assertEqual(doc['operation'],'/operation/verify-terminal')
+                self.assertEqual(doc['terminal_manifest'],x.mapping.child_ref(manifest))
+                self.assertEqual(doc['controls'],{k:x.mapping.child_ref(v) for k,v in controls.items()})
+                self.assertEqual(command[-3],inp['sha256'])
+                if fault=='verify-ACK':raise p.Held('lost-verifier-ACK')
+            if phase=='execute':x.emit('execute-ack.json',dict(fixture='explicit scheduling double'))
+            return dict(factual_only=True)
+        x.child_phase=child
+        x.core=p.encode(dict(plan=x.plan,files=x.files,nodes=x.nodes,source=x.source_ref,input=x.plan_ref,
+                            engine=id(x.engine),thread=x.thread,deadline=x.deadline));p._CORES[x]=x.core
+        return x,calls,contexts,claims
+
+    def test_verify_terminal_real_pipe_birth_and_readonly_profile(self):
+        x,inp,command,calls=Tests.child_fixture(self,phase='verify-terminal')
+        x.child_phase('verify-terminal',inp,command)
+        self.assertIn('create',calls)
+        self.assertTrue(p._PHASES[x]['verify-terminal']['accepted'])
+        self.assertNotIn('execute',p._PHASES[x])
+
+    def test_schedule_forward_fresh_verify_then_observer_then_start(self):
+        x,calls,contexts,_=self.schedule();x.execute()
+        self.assertEqual([v for k,v in contexts if k=='child'],['backup','prepare','execute','verify-terminal'])
+        self.assertEqual([a[0] for a in calls],['stop','start'])
+        self.assertEqual(set(x.plan['action_inputs']),{'prepare','execute'})
+
+    def test_schedule_rollback_same_original_execute_input(self):
+        x,calls,_,_=self.schedule('observed-rollback');x.execute();self.assertEqual(calls[-1][0],'start')
+
+    def test_missing_terminal_implementation_no_stop_or_execute(self):
+        x,calls,_,_=self.schedule();del x.producer.terminal_phase_custody
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual(calls,[])
+
+    def test_lost_verify_ack_no_restart(self):
+        x,calls,_,_=self.schedule(fault='verify-ACK')
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual([a[0] for a in calls],['stop'])
+
+    def test_host_observer_refusal_no_restart(self):
+        x,calls,_,_=self.schedule(fault='observer')
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual([a[0] for a in calls],['stop'])
+
+    def test_last_continuous_original_source_change_no_restart(self):
+        x,calls,_,_=self.schedule(fault='late-source')
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual([a[0] for a in calls],['stop'])
+        self.assertEqual(Path(self.source['path']).stat().st_mode & 0o777,0o640)
+
+    def test_last_continuous_absent_claim_change_no_restart(self):
+        x,calls,_,claims=self.schedule(fault='late-claim')
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual([a[0] for a in calls],['stop'])
+
+    def test_last_continuous_full_census_change_no_restart(self):
+        x,calls,_,claims=self.schedule(fault='late-census')
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual([a[0] for a in calls],['stop'])
+
+    def test_literal_last_deadline_changes_intent_no_restart(self):
+        x,calls,_,_=self.schedule();realwatch=x.continuous;realleft=x.left;done=[];fired=[]
+        def watch():
+            result=realwatch()
+            if (x.op/'resume-intent.json').exists():done.append(True)
+            return result
+        def left():
+            result=realleft()
+            if done and not fired:(x.op/'resume-intent.json').chmod(0o640);fired.append(True)
+            return result
+        x.continuous=watch;x.left=left
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual(fired,[True]);self.assertEqual([a[0] for a in calls],['stop'])
+        self.assertEqual(x.phase,'uncertain')
+
+    def test_last_deadline_changes_operation_no_restart(self):
+        x,calls,_,_=self.schedule();real=x.left;fired=[]
+        def left():
+            result=real()
+            if (x.op/'resume-intent.json').exists() and not fired:x.op.chmod(0o750);fired.append(True)
+            return result
+        x.left=left
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual(fired,[True]);self.assertEqual([a[0] for a in calls],['stop'])
+
+    def test_host_mapper_leaves_admitted_host_paths_unchanged(self):
+        mapper=self.parent.terminal_mapper()
+        self.assertEqual(mapper(self.source['path']),self.source['path'])
+        self.assertEqual(mapper(str(self.operation/'execute'/'proof.json')),str(self.operation/'execute'/'proof.json'))
+
+    def test_host_mapper_projects_child_and_roundtrips(self):
+        mapper=self.parent.terminal_mapper()
+        self.assertEqual(mapper('/operation/execute/proof.json'),str(self.operation/'execute'/'proof.json'))
+        self.assertEqual(mapper('/fixture/provider.py'),self.provider['path'])
+
+    def test_host_mapper_refuses_unmapped_and_noncanonical_paths(self):
+        mapper=self.parent.terminal_mapper()
+        for path in ('/unmounted/proof.json','/operation/../proof.json'):
+            with self.assertRaises(p.Held):mapper(path)
+
+    def test_host_observer_receives_finite_mapper(self):
+        x,calls,_,_=self.schedule();real=x.observer.observe_mapped_with_originals;fired=[]
+        def observe(*args,**kwargs):
+            mapper=kwargs['path_mapper'];self.assertEqual(mapper('/operation/execute/file'),str(x.op/'execute'/'file'))
+            fired.append(True);return real(*args,**kwargs)
+        x.observer.observe_mapped_with_originals=observe;x.execute()
+        self.assertEqual(fired,[True]);self.assertEqual(calls[-1][0],'start')
+
+    def test_last_resume_emit_change_no_restart(self):
+        x,calls,_,_=self.schedule();real=x.emit;fired=[]
+        def emit(name,value):
+            result=real(name,value)
+            if name=='resume-intent.json':Path(self.source['path']).chmod(0o640);fired.append(True)
+            return result
+        x.emit=emit
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual(fired,[True]);self.assertEqual([a[0] for a in calls],['stop'])
+
+    def test_last_observer_original_execute_directory_change_no_restart(self):
+        x,calls,_,_=self.schedule();real=x.observer.observe_mapped_with_originals
+        def changed(*args,**kwargs):
+            value=real(*args,**kwargs);(x.op/'execute').chmod(0o750);return value
+        x.observer.observe_mapped_with_originals=changed
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual([a[0] for a in calls],['stop'])
+
+    def test_independent_observer_outcome_mismatch_no_restart(self):
+        x,calls,_,_=self.schedule();real=x.observer.observe_mapped_with_originals
+        def observe(*args,**kwargs):
+            result,originals=real(*args,**kwargs);result['outcome']='observed-rollback';return result,originals
+        x.observer.observe_mapped_with_originals=observe
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual([a[0] for a in calls],['stop'])
+
+    def test_verify_terminal_manifest_input_must_match_custody(self):
+        with self.assertRaisesRegex(p.Held,'terminal-phase-manifest-binding'):
+            self.parent.phase_input('verify-terminal',dict(terminal_manifest=self.action),dict(terminal_manifest=self.proof))
+        self.assertFalse((self.operation/'verify-terminal').exists())
+
+    def test_extra_producer_grant_refused(self):
+        x,calls,_,_=self.schedule(fault='producer-grant')
+        with self.assertRaises(p.Held):x.execute()
+        self.assertEqual([a[0] for a in calls],['stop'])
 
 
 if __name__ == '__main__':

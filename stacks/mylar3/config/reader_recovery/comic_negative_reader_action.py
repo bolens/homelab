@@ -17,7 +17,8 @@ import types
 BACKUP_SHA='86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd'
 PRIMITIVES_SHA='e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'
 ROWS_SHA='a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d'
-OBSERVER_SHA='e8ccb3c39ab35a51c5d869f69e89e986d133ef17f35482c55a43370f65cea12b'
+TERMINAL_PRODUCER_SHA = 'fdc25243525c811cd753dec8c74b2cd4920d181100cece3554cc55b64e049f04'
+OBSERVER_SHA='ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04'
 MAX=64*1024**2
 ROOT=Path('/app/mylar3/mylar')
 LIB=Path('/app/mylar3/lib')
@@ -255,6 +256,17 @@ def execute_or_rollback(aggregate,modules):
  need(result['marker_cleared'] is True and result['publication_acceptance'] is False,'action-terminal-observation')
  return 'negative-five-owning-terminal-observation',result
 
+def owning_terminal_refs(aggregate,modules):
+ term=aggregate.terminal;rollback=aggregate.phase=='rollback-terminal'
+ expected=modules['publication_negative_batch_rollback_terminal'].RollbackClearance if rollback else modules['publication_negative_batch_terminal'].TerminalClearance
+ need(type(term) is expected,'terminal-original-owning-type');term.status()
+ need(set(term.receipts)=={'clear-ready.json','cleared.json'},'terminal-original-owning-receipts')
+ binding=term.core
+ refs={name:dict(path=str(term.directory/name),signature9=list(fact),sha256=sha) for name,(fact,sha) in term.receipts.items()}
+ for ref in refs.values():checked(ref)
+ term.status();need(term.core==binding,'terminal-original-owning-binding')
+ return dict(version=1,outcome='observed-rollback' if rollback else 'observed-forward',binding_sha256=binding,clear_ready=refs['clear-ready.json'],cleared=refs['cleared.json'])
+
 def purpose_existing(plan,lifecycle,modules,*,execute):
  """No caller native DATA/roots; checked configured scope owns exact SDK pair."""
  operation,operation_nodes=operation_directory(plan['operation'],lifecycle)
@@ -288,9 +300,17 @@ def purpose_existing(plan,lifecycle,modules,*,execute):
   reservation=modules['publication_negative_batch_transition'].from_prepared(batch,action['targets'])
   aggregate=modules['publication_negative_aggregate'].from_staged_preparation(reservation,action['start_journal'],action['commit_journal'])
   kind,result=execute_or_rollback(aggregate,modules)
+  terminal_refs=owning_terminal_refs(aggregate,modules)
   # SAME genuine terminal objects, whether forward or verified rollback.
   coordinator.close_owned_terminal(aggregate);raw_controls(controls,control_nodes)
-  return dict(version=1,kind=kind,terminal=result,preimage=preimage,publication_acceptance=False,reader_resume_authority=False)
+  return dict(version=1,kind=kind,terminal=result,preimage=preimage,terminal_refs=terminal_refs,publication_acceptance=False,reader_resume_authority=False)
+
+def terminal_layout(action,ready,cleared,terminal_operation):
+ batch=Path(action['batch_journal']);need(batch.is_absolute() and '..' not in batch.parts and batch.is_relative_to(terminal_operation),'terminal-batch-path')
+ layouts=((batch.parent/(batch.name+'.terminal-v1'),'five-retired-negative-clear-ready','five-retired-negative-cleared'),(batch.parent/(batch.name+'.rollback-terminal-v1'),'five-restored-negative-rollback-clear-ready','five-restored-negative-rollback-cleared'))
+ chosen=[row for row in layouts if ready['kind']==row[1] and cleared['kind']==row[2]]
+ need(len(chosen)==1,'terminal-finite-owning-kind')
+ return chosen[0][0],tuple(str(row[0]) for row in layouts if row[0]!=chosen[0][0])
 
 def verify_terminal_existing(plan,lifecycle,modules):
  """Fresh factual terminal reconstruction; never recover a mutation lifetime."""
@@ -324,9 +344,16 @@ def verify_terminal_existing(plan,lifecycle,modules):
  need(manifest['current_main']==str(lifecycle.main) and manifest['current_tasks']==str(lifecycle.tasks) and manifest['writer_root']==str(writer.root),'terminal-configured-current-roots')
  need(manifest['restore_main']['path']==str(lifecycle.restore_root/'database.sqlite') and manifest['restore_tasks']['path']==str(lifecycle.restore_root/'tasks.sqlite'),'terminal-configured-restore-roots')
  need(Path(manifest['preimage']['path'])==terminal_operation/'terminal-observation-preimage.json','terminal-fixed-preimage')
- directory=Path(action['batch_journal']).parent/(Path(action['batch_journal']).name+'.terminal-v1')
- need(directory.is_relative_to(terminal_operation) and manifest['clear_ready']['path']==str(directory/'clear-ready.json') and manifest['cleared']['path']==str(directory/'cleared.json'),'terminal-fixed-owning-receipts')
- pre=document(manifest['preimage']);ready=document(manifest['clear_ready']);document(manifest['cleared'])
+ ack=plan.get('execute_ack');need(type(ack) is dict and lifecycle.proofs.get('execute_ack')==ack,'terminal-parent-original-execute-ACK')
+ helper_path=Path(__file__).with_name('comic_terminal_observation_producer.py').absolute()
+ raw,fact,parents=checked(dict(path=str(helper_path),sha256=TERMINAL_PRODUCER_SHA));merge(files,{helper_path:fact},'terminal-producer-file-conflict');merge(nodes,parents,'terminal-producer-node-conflict')
+ helper=types.ModuleType('checked_terminal_original_evidence');helper.__file__=str(helper_path);exec(compile(raw,str(helper_path),'exec'),helper.__dict__)
+ evidence=helper.execute_evidence(ack,read_ref=document,to_host=lambda path:str(path),to_child=lambda path:str(path),execute=terminal_operation,nonce=plan['nonce'],provider_sha=lifecycle.invocation_binding()['provider_sha256'],action=action)
+ need(all(manifest[name]==evidence[name] for name in ('preimage','clear_ready','cleared')),'terminal-original-execute-evidence')
+ pre=document(manifest['preimage']);ready=document(manifest['clear_ready']);cleared=document(manifest['cleared'])
+ directory,missing_layouts=terminal_layout(action,ready,cleared,terminal_operation)
+ need(manifest['clear_ready']['path']==str(directory/'clear-ready.json') and manifest['cleared']['path']==str(directory/'cleared.json'),'terminal-fixed-owning-receipts')
+ absent.update(missing_layouts)
  need(pre['backup_controls']==plan['controls'] and pre['reviewed_plan']==plan['controls']['reviewed_plan'],'terminal-original-backup-controls')
  need(pre['native_paths']==dict(workflow=str(controller.database),catalog=str(controller.native_database),publication=str(writer.root/'publication-v1.json')),'terminal-configured-native-paths')
  need(len(pre['native'])==len(ready['members'])==5 and pre['census']==scope.binding['census'],'terminal-five-original-members-and-fresh-census')
