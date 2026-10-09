@@ -122,7 +122,7 @@ class Observation:
    try:os.lstat(p)
    except FileNotFoundError:continue
    raise Held('final-absence')
-def observe(manifest_ref,*,source_sha256):
+def _observe(manifest_ref,*,source_sha256):
  o=Observation();need(o.code_sha256==source_sha256,'observer-source-pin');manifest=o.ref(manifest_ref)
  need(type(manifest) is dict and set(manifest)=={'version','preimage','clear_ready','cleared','restore_main','restore_tasks','current_main','current_tasks','writer_root'},'input-schema')
  need(type(manifest['version']) is int and manifest['version']==1,'input-version')
@@ -223,5 +223,13 @@ def observe(manifest_ref,*,source_sha256):
  for path,record in phase_paths.items():
   raw=o.raw(path);need(sha(raw)==record[1] and o.files[Path(path)]==record[0],'owning-phase-receipt')
  result={'version':1,'outcome':'observed-forward' if forward else 'observed-rollback','five_book_two_cell_transitions_verified':True,'all_unrelated_tables_verified':True,'native_file_bytes_unchanged':True,'publication_acceptance':False,'mutation_authority':False,'reader_resume_authority':False,'recovery_capability':False,'application_quiescence_verified':False}
- o.close();return result
+ originals=dict(files={str(p):tuple(v) for p,v in o.files.items()},nodes={str(p):tuple(v) for p,v in o.nodes.items()},absent=tuple(map(str,o.absent)),censuses={str(p):tuple(sorted(v)) for p,v in o.censuses.items()})
+ o.close();return result,originals
+
+def observe(manifest_ref,*,source_sha256):
+ result,_originals=_observe(manifest_ref,source_sha256=source_sha256);return result
+
+def observe_with_originals(manifest_ref,*,source_sha256):
+ """Fresh factual observation plus original vectors; no recovered capability."""
+ return _observe(manifest_ref,source_sha256=source_sha256)
 if __name__=='__main__':print(json.dumps(dict(executable=False,publication_acceptance=False,reader_resume_authority=False,missing='root-pinned complete preimage observation and explicit refs; no live defaults')))

@@ -17,10 +17,9 @@ import types
 BACKUP_SHA='86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd'
 PRIMITIVES_SHA='e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'
 ROWS_SHA='a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d'
-OBSERVER_SHA='e8ccb3c39ab35a51c5d869f69e89e986d133ef17f35482c55a43370f65cea12b'
+OBSERVER_SHA='586791149f6bae273fb6fdc80f03d8621086a590571e859d474ee268b9a1015d'
 MAX=64*1024**2
 ROOT=Path('/app/mylar3/mylar')
-LIB=Path('/app/mylar3/lib')
 class Held(ValueError):pass
 def need(v,r):
  if not v:raise Held(r)
@@ -89,34 +88,15 @@ def actual_command(plan,args,argv):
  return expected
 
 def sdk(ref):
- raw,map_fact,map_nodes=checked(ref)
- # The map itself and its first original ancestors are part of SDK custody.
- # Later source reads may add facts, but can never refresh an admitted one.
- facts={Path(ref['path']):list(map_fact)};nodes={path:list(value) for path,value in map_nodes.items()}
- mapping=sdk_map(decode(raw))
- names=('publication_api','media_writer','publication_guard','publication_negative','publication_reader_native_coordinator','publication_reader_admission','publication_reader_lifecycle','publication_reader_phase','publication_reader_disk','publication_negative_batch','publication_negative_batch_transition','publication_negative_aggregate','publication_native_configured_scope','publication_native_scope_birth','publication_reader_sql_start','publication_reader_sql_commit','publication_reader_wal_phase','publication_reader_sql_custody','publication_negative_batch_terminal','publication_negative_batch_rollback_terminal','publication_negative_phase','publication_negative_batch_projection','publication_negative_namespace','publication_negative_namespace_kernel','publication_reader_softdelete','publication_reader_sql_transition','publication_archive_owned')
- need({'__init__.py',*[n+'.py' for n in names]}.issubset(mapping),'action-all-components-before-operation')
+ raw,_,_=checked(ref);mapping=sdk_map(decode(raw))
+ names=('publication_api','media_writer','publication_guard','publication_negative','publication_reader_native_coordinator','publication_reader_admission','publication_reader_lifecycle','publication_reader_phase','publication_reader_disk','publication_negative_batch','publication_negative_batch_transition','publication_negative_aggregate','publication_native_configured_scope','publication_reader_sql_start','publication_reader_sql_commit','publication_reader_wal_phase','publication_reader_sql_custody','publication_negative_batch_terminal','publication_negative_batch_rollback_terminal','publication_negative_phase','publication_negative_batch_projection','publication_negative_namespace','publication_negative_namespace_kernel','publication_reader_softdelete','publication_reader_sql_transition','publication_archive_owned')
+ need({'__init__.py',*[n+'.py' for n in names]}.issubset(mapping),'action-all-components-before-operation');facts={};nodes={}
  for name,digest in mapping.items():
-  path=ROOT/name;_,fact,parents=checked(dict(path=str(path),sha256=digest),False)
-  need(path not in facts or facts[path]==fact,'action-sdk-file-conflict');facts[path]=list(fact)
-  for parent,value in parents.items():
-   need(parent not in nodes or nodes[parent]==value,'action-sdk-ancestor-conflict');nodes[parent]=list(value)
- # Match the pinned Mylar bootstrap and installed cohort verifier. The fixed
- # bundled dependency directory is an immutable selected-image input, not map
- # authority or an arbitrary caller dependency tree. Preserve its ancestors.
- for path in (LIB,*LIB.parents):
-  z=os.lstat(path);need(stat.S_ISDIR(z.st_mode),'action-bundled-directory')
-  fact=five(z);need(path not in nodes or nodes[path]==fact,'action-bundled-ancestor-conflict');nodes[path]=fact
- expected_files=tuple((str(path),tuple(fact)) for path,fact in facts.items());expected_nodes=tuple((str(path),tuple(fact)) for path,fact in nodes.items())
- sys.path.insert(0,str(LIB));sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT.parent));modules={name:importlib.import_module('mylar.'+name) for name in names}
+  _,facts[ROOT/name],parents=checked(dict(path=str(ROOT/name),sha256=digest),False);nodes.update(parents)
+ sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT.parent));modules={name:importlib.import_module('mylar.'+name) for name in names}
  package=importlib.import_module('mylar');need(Path(package.__file__)==ROOT/'__init__.py','action-package-origin')
  for name,module in modules.items():need(Path(module.__file__)==ROOT/(name+'.py'),'action-module-origin')
- for path,fact in expected_nodes:
-  z=os.lstat(path)
-  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('action-sdk-ancestor-final')
- for path,fact in expected_files:
-  z=os.lstat(path)
-  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=fact:raise Held('action-sdk-terminal-CAS')
+ for path,fact in facts.items():need(nine(path.lstat())==fact,'action-sdk-terminal-CAS')
  return modules,facts,nodes
 
 def backup(plan,watch):
@@ -292,88 +272,12 @@ def purpose_existing(plan,lifecycle,modules,*,execute):
   coordinator.close_owned_terminal(aggregate);raw_controls(controls,control_nodes)
   return dict(version=1,kind=kind,terminal=result,preimage=preimage,publication_acceptance=False,reader_resume_authority=False)
 
-def verify_terminal_existing(plan,lifecycle,modules):
- """Fresh factual terminal reconstruction; never recover a mutation lifetime."""
- need(type(lifecycle) is modules['publication_reader_lifecycle'].StoppedReaderCustody,'terminal-exact-lifecycle')
- original_files,original_nodes,original_absent=lifecycle.vectors()
- scope=modules['publication_native_configured_scope'].from_checked_parent(lifecycle)
- need(type(scope) is modules['publication_native_configured_scope'].NativeConfiguredScope,'terminal-exact-scope')
- scope_files,scope_nodes=scope.vectors();controller,writer=scope.controller_writer()
- need(type(controller) is modules['publication_api'].Controller and type(writer) is modules['media_writer'].Writer,'terminal-exact-sdk')
- operation,operation_nodes=operation_directory(plan['operation'],lifecycle)
- need(operation.name=='verify-terminal','terminal-fixed-verification-stage')
- terminal_operation,terminal_nodes=operation_directory(operation.parent/'execute',lifecycle)
- for root in (*controller.roots,writer.root):
-  for private in (operation,terminal_operation):need(private!=Path(root) and private not in Path(root).parents and Path(root) not in private.parents,'terminal-operation-outside-native')
- # The fresh trusted parent must admit the exact complete observation manifest.
- # A prior execution report, terminal receipt or caller completion bit cannot.
- ref=plan.get('terminal_manifest')
- need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and lifecycle.proofs.get('terminal_observation')==ref,'terminal-parent-admitted-manifest')
- need(Path(ref['path'])==terminal_operation/'terminal-observation-manifest.json','terminal-fixed-manifest')
- files={};nodes={};absent=set(map(str,original_absent))
- def merge(dst,values,reason):
-  for p,fact in values.items():
-   p=Path(p);fact=list(fact);need(p not in dst or dst[p]==fact,reason);dst[p]=fact
- merge(files,original_files,'terminal-original-file-conflict');merge(files,scope_files,'terminal-scope-file-conflict')
- merge(nodes,original_nodes,'terminal-original-node-conflict');merge(nodes,scope_nodes,'terminal-scope-node-conflict');merge(nodes,operation_nodes,'terminal-operation-node-conflict');merge(nodes,terminal_nodes,'terminal-execution-node-conflict')
- def document(reference):
-  raw,fact,parents=checked(reference);merge(files,{Path(reference['path']):fact},'terminal-control-file-conflict');merge(nodes,parents,'terminal-control-node-conflict');return decode(raw)
- manifest=document(ref);action=document(plan['action_input'])
- need(type(manifest) is dict and set(manifest)=={'version','preimage','clear_ready','cleared','restore_main','restore_tasks','current_main','current_tasks','writer_root'},'terminal-manifest-schema')
- need(type(action) is dict and set(action)=={'members','targets','batch_journal','start_journal','commit_journal','operation'} and len(action['members'])==len(action['targets'])==5 and Path(action['operation'])==terminal_operation,'terminal-action-schema')
- need(manifest['current_main']==str(lifecycle.main) and manifest['current_tasks']==str(lifecycle.tasks) and manifest['writer_root']==str(writer.root),'terminal-configured-current-roots')
- need(manifest['restore_main']['path']==str(lifecycle.restore_root/'database.sqlite') and manifest['restore_tasks']['path']==str(lifecycle.restore_root/'tasks.sqlite'),'terminal-configured-restore-roots')
- need(Path(manifest['preimage']['path'])==terminal_operation/'terminal-observation-preimage.json','terminal-fixed-preimage')
- directory=Path(action['batch_journal']).parent/(Path(action['batch_journal']).name+'.terminal-v1')
- need(directory.is_relative_to(terminal_operation) and manifest['clear_ready']['path']==str(directory/'clear-ready.json') and manifest['cleared']['path']==str(directory/'cleared.json'),'terminal-fixed-owning-receipts')
- pre=document(manifest['preimage']);ready=document(manifest['clear_ready']);document(manifest['cleared'])
- need(pre['backup_controls']==plan['controls'] and pre['reviewed_plan']==plan['controls']['reviewed_plan'],'terminal-original-backup-controls')
- need(pre['native_paths']==dict(workflow=str(controller.database),catalog=str(controller.native_database),publication=str(writer.root/'publication-v1.json')),'terminal-configured-native-paths')
- need(len(pre['native'])==len(ready['members'])==5 and pre['census']==scope.binding['census'],'terminal-five-original-members-and-fresh-census')
- need(ready['phase_receipts'] and all(Path(path).parent==Path(action['batch_journal']) for path in ready['phase_receipts']),'terminal-fixed-phase-journal')
- for intended,target,bound,member in zip(action['members'],action['targets'],pre['native'],ready['members']):
-  need(bound['source']==intended['source']==member['source'] and bound['counterpart']==intended['counterpart'] and bound['owner']==intended['owner'] and member['target']==target,'terminal-reviewed-member-join')
-  need(set(bound['file_facts'])=={intended['source'],intended['counterpart'],intended['retained'],intended['restore']},'terminal-exact-original-custody-paths')
-  need(any(Path(intended['source']).is_relative_to(Path(root)) and Path(intended['counterpart']).is_relative_to(Path(root)) for root in controller.roots),'terminal-configured-library-members')
- for reference in plan['controls'].values():document(reference)
- # Compile exact observer bytes from the immutable provider-adjacent source;
- # this module defines no SDK classes and cannot alias installed identities.
- observer_path=Path(__file__).with_name('comic_negative_terminal_observer.py').absolute()
- raw,fact,parents=checked(dict(path=str(observer_path),sha256=OBSERVER_SHA));merge(files,{observer_path:fact},'terminal-observer-file-conflict');merge(nodes,parents,'terminal-observer-node-conflict')
- observer=types.ModuleType('checked_terminal_observer');observer.__file__=str(observer_path);exec(compile(raw,str(observer_path),'exec'),observer.__dict__)
- result,observed=observer.observe_with_originals(ref,source_sha256=OBSERVER_SHA)
- need(result['outcome'] in ('observed-forward','observed-rollback') and all(result[k] is False for k in ('publication_acceptance','mutation_authority','reader_resume_authority','recovery_capability','application_quiescence_verified')),'terminal-factual-only-result')
- merge(files,observed['files'],'terminal-observed-file-conflict');merge(nodes,observed['nodes'],'terminal-observed-node-conflict');absent.update(observed['absent'])
- expected=dict(files={str(p):tuple(v) for p,v in files.items()},nodes={str(p):tuple(v) for p,v in nodes.items()},absent=tuple(absent),censuses=observed['censuses'])
- scope.revalidate();lifecycle.revalidate_stopped();raw_terminal_originals(expected)
- return result,expected
-
-def raw_terminal_originals(originals):
- # No JSON, copy, semantic or inherited parent callback follows this closure.
- for path,names in originals['censuses'].items():
-  if set(os.listdir(path))!=set(names):raise Held('terminal-original-census-final')
- for path,fact in originals['nodes'].items():
-  z=os.lstat(path)
-  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(fact):raise Held('terminal-original-node-final')
- for path,fact in originals['files'].items():
-  z=os.lstat(path)
-  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(fact):raise Held('terminal-original-file-final')
- for path in originals['absent']:
-  try:os.lstat(path)
-  except FileNotFoundError:continue
-  raise Held('terminal-original-absence-final')
-
-def born_lifecycle(modules,args,plan):
- """Same original argv/token/pipe; invoked only after complete checked SDK load."""
- token=modules['publication_native_scope_birth'].from_checked_parent(args.input,args.input_sha256,plan['nonce'],parent_sha=plan['parent_sha256'],argv=list(sys.orig_argv))
- return modules['publication_reader_lifecycle'].from_birth(token)
-
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--phase',choices=('backup','prepare','execute','verify-terminal'),required=True);parser.add_argument('--input',required=True);parser.add_argument('--input-sha256',required=True);parser.add_argument('--source-sha256',required=True);args=parser.parse_args()
  need(sys.dont_write_bytecode,'action-bytecode-off');own=Path(__file__).absolute();_,source_fact,source_nodes=checked(dict(path=str(own),sha256=args.source_sha256));inp=Path(args.input);raw,input_fact,input_nodes=checked(dict(path=str(inp),sha256=args.input_sha256));plan=decode(raw);need(plan['action']=='negative-five','action-purpose')
- # A fresh terminal phase only reconstructs factual original custody; it does
- # not recover an aggregate, reservation, SQL or Writer lifetime.
- terminal_originals=None
+ # There is no installed factory to recover a reservation/terminal class from a
+ # prior process receipt. A standalone verification request stays held.
+ need(args.phase!='verify-terminal','action-terminal-recovery-factory-not-implemented')
  actual_command(plan,args,sys.orig_argv)
  operation,operation_nodes=operation_directory(plan['operation']);_,map_fact,map_nodes=checked(plan['sdk_map']);modules,sdk_files,sdk_nodes=sdk(plan['sdk_map']);sdk_files[Path(plan['sdk_map']['path'])]=map_fact;sdk_nodes.update(map_nodes);files={**sdk_files,own:source_fact,inp:input_fact};nodes={**sdk_nodes,**source_nodes,**input_nodes,**operation_nodes}
  if args.phase=='backup':
@@ -382,23 +286,13 @@ def main():
    observed=pipe.challenge(plan['nonce'],args.input_sha256,plan['parent_sha256']);need(observed['reader']==plan['runtime'] and observed['child_source_sha256']==args.source_sha256 and observed['child_image']==plan['selected_image'],'action-parent-continuity')
   result=backup(plan,watch)
  else:
-  lifecycle=born_lifecycle(modules,args,plan)
+  lifecycle=modules['publication_reader_lifecycle'].from_checked_parent(args.input,args.input_sha256,plan['nonce'],parent_sha=plan['parent_sha256'],argv=list(sys.orig_argv))
   binding=lifecycle.invocation_binding();need(binding['provider_sha256']==args.source_sha256,'action-own-provider-source')
   plan['provider_input']=dict(path=str(inp),sha256=args.input_sha256)
   mapping_raw,_,_=checked(plan['sdk_map']);mapping=decode(mapping_raw);need(plan['admission_source_sha256']==mapping['publication_reader_admission.py'],'action-admission-pin-map')
-  if args.phase=='verify-terminal':result,terminal_originals=verify_terminal_existing(plan,lifecycle,modules)
-  else:result=purpose_existing(plan,lifecycle,modules,execute=args.phase=='execute')
-  watch=lifecycle.revalidate_stopped
- # Immutable observation vectors precede report/serialization/watch/helpers.
- terminal_files=tuple((path,tuple(fact)) for path,fact in terminal_originals['files'].items()) if terminal_originals is not None else ()
- terminal_nodes=tuple((path,tuple(fact)) for path,fact in terminal_originals['nodes'].items()) if terminal_originals is not None else ()
- terminal_absent=tuple(terminal_originals['absent']) if terminal_originals is not None else ()
- terminal_censuses=tuple((path,tuple(names)) for path,names in terminal_originals['censuses'].items()) if terminal_originals is not None else ()
+  result=purpose_existing(plan,lifecycle,modules,execute=args.phase=='execute');watch=lifecycle.revalidate_stopped
  result.update(phase=args.phase,nonce=plan['nonce'],provider_continuity_verified=False,final_ack_required=True);ref=write(operation/(args.phase+'-report.json'),result,expected_nodes=operation_nodes);watch()
  frame=encoded(dict(type='ACK',ack=dict(nonce=plan['nonce'],phase=args.phase,source_sha256=args.source_sha256,report=ref,publication_acceptance=False,reader_resume_authority=False)))+b'\n'
- # Close complete observational originals before the final provider/source
- # kernel loops; no replaceable terminal helper follows those source loops.
- if terminal_originals is not None:raw_terminal_originals(terminal_originals)
  # Original provider/input/installed code vectors close after all callbacks.
  for path,fact in nodes.items():
   z=os.lstat(path)
@@ -409,19 +303,5 @@ def main():
  # Output binds intended bytes and incarnation, never a caller completion grant.
  z=os.lstat(ref['path'])
  if [z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]!=ref['signature9']:raise Held('action-terminal-report')
- # The last terminal helper may not refresh or bypass observational originals.
- # Complete inline kernel closure follows all helpers and source/report loops.
- for path,names in terminal_censuses:
-  if set(os.listdir(path))!=set(names):raise Held('terminal-ACK-census-final')
- for path,fact in terminal_nodes:
-  z=os.lstat(path)
-  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('terminal-ACK-node-final')
- for path,fact in terminal_files:
-  z=os.lstat(path)
-  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=fact:raise Held('terminal-ACK-file-final')
- for path in terminal_absent:
-  try:os.lstat(path)
-  except FileNotFoundError:continue
-  raise Held('terminal-ACK-absence-final')
  os.write(1,frame)
 if __name__=='__main__':main()
