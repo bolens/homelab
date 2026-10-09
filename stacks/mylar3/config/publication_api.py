@@ -22,6 +22,8 @@ FIELDS = {
     'status': set(),
     'prepare-archive-repair': {'owner','operation_id'},
     'archive-repair-status': {'owner','operation_id'},
+    'request-archive-repair-adoption': {'owner','operation_id'},
+    'archive-repair-adoption-status': {'owner','operation_id'},
     'prepare-bootstrap': {'epoch', 'backup'},
     'prepare-fresh': {'epoch', 'backup'},
     'initialize-bootstrap': {'token'},
@@ -129,7 +131,7 @@ def request(raw):
                 or not isinstance(evidence['description'], str)
                 or not 1 <= len(evidence['description'].encode('utf-8')) <= 2048):
             raise guard.Unavailable('Invalid reviewed registration')
-    if action in ('prepare-archive-repair','archive-repair-status'):
+    if action in ('prepare-archive-repair','archive-repair-status','request-archive-repair-adoption','archive-repair-adoption-status'):
         guard.exact_owner(value['owner'])
         if not guard.digest_value(value['operation_id']):
             raise guard.Unavailable('Invalid exact archive operation')
@@ -189,6 +191,14 @@ class Controller:
                 except (ValueError, OSError, RuntimeError):
                     result['intent'] = dict(token=value['token'], outcome='unavailable')
             return result
+        if action in ('request-archive-repair-adoption','archive-repair-adoption-status'):
+            if __package__:
+                from . import publication_archive_dispatch
+            else:
+                import publication_archive_dispatch
+            writer=Writer(self.writer_root,create=False)
+            with writer.hold(timeout=0):
+                return publication_archive_dispatch.dispatch(self,writer,value)
         if action in ('prepare-archive-repair','archive-repair-status'):
             if __package__:
                 from . import publication_archive_prepare_routes

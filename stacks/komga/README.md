@@ -720,3 +720,14 @@ negative-retirement pending state is present or inaccessible. Existing recovery
 flags do not waive this hold. Native archive preparation/status builds private
 repair evidence only, so the worker cannot submit or clean up an archive from that
 result. Owning repair adoption and complete reader/native acceptance remain separate.
+
+Explicit archive repair review requests use `Maintenance.enqueue_archive_repair`
+with the exact native owner and prepared operation ID. The worker retains private
+intent, attempt and acknowledgement records under its existing state directory.
+Periodic dispatch releases Writer before contacting Mylar and rotates through
+bounded batches so older review jobs cannot starve later jobs. A failed HTTP call
+retains its attempt and leaves other maintenance work runnable; subsequent checks
+use passive native status. Invalid journal or acknowledgement evidence remains a
+refusal. A queued review is never an import or cleanup acknowledgement. This
+transport adds no mount, setting, port or privilege; actual native adoption and
+reader preservation require their separate checked recovery route.

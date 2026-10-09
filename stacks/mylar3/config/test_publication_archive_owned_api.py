@@ -31,6 +31,17 @@ class Controls(unittest.TestCase):
   op=self.case.root/('archive-repair-'+self.operation_id);before={x.name:core.signature(x) for x in op.iterdir()}
   r=self.call('archive-repair-status');self.assertEqual(r['token'],p['token']);self.assertEqual(r['outcome'],'prepared')
   self.assertEqual({x.name:core.signature(x) for x in op.iterdir()},before);self.assertEqual(self.case.source.read_bytes(),source);self.assertEqual(self.case.database.read_bytes(),db)
+ def test_adoption_routes_hold_real_writer_before_dispatch(self):
+  calls=[]
+  def dispatched(controller,writer,value):
+   core.writer_pair(controller,writer,self.case.modules)
+   calls.append(value['action'])
+   return {'outcome':'queued-review','mutation_authority':False}
+  module=types.ModuleType('publication_archive_dispatch');module.dispatch=dispatched
+  with patch.dict(sys.modules,{'publication_archive_dispatch':module}):
+   for action in ('request-archive-repair-adoption','archive-repair-adoption-status'):
+    self.assertFalse(self.call(action)['mutation_authority'])
+  self.assertEqual(calls,['request-archive-repair-adoption','archive-repair-adoption-status'])
  def test_no_path_or_witness_fields(self):
   for fields in ({'source':'/foreign'},{'witness':{}},{'observed':[]},{'token':'a'*64},{'reader_preserved':True}):
    with self.assertRaises(ValueError):api.request(json.dumps(dict(version=1,action='prepare-archive-repair',owner=self.owner,operation_id=self.operation_id,**fields)))
