@@ -21,16 +21,17 @@ class Busy(RuntimeError):
 
 
 def deny_negative_phase(root):
-    """Ordinary purpose never enters a durable negative retirement phase.
+    """Ordinary purpose never enters a durable correction or repair phase.
 
     Only a missing marker is absence. Present, malformed, linked or inaccessible
     markers all hold; no marker read, recovery flag or caller receipt grants use.
     """
-    for name in ('negative-retirement-v1.pending','negative-retirement-v1.terminal-pending'):
+    for name in ('negative-retirement-v1.pending','negative-retirement-v1.terminal-pending',
+                 'archive-repair-v1.pending','archive-repair-v1.terminal-pending'):
         try:os.lstat(Path(root)/name)
         except FileNotFoundError:continue
-        except OSError:raise Busy('Negative retirement phase requires review') from None
-        raise Busy('Negative retirement phase requires review')
+        except OSError:raise Busy('Media correction phase requires review') from None
+        raise Busy('Media correction phase requires review')
 
 
 def sync(directory):
