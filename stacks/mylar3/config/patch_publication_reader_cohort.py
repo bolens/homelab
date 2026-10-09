@@ -9,6 +9,10 @@ import sys
 import tempfile
 
 FIXES = Path(__file__).parent
+ADMISSION_PREDECESSORS = (
+    '01da4c355b804576e0a1b99a6e165cb47d607c511682945a9c47e3036064cfc7',
+    'd321a2c0196af570b8a38bfea40fedff1c61b7cb9a1d4183fcc630bd4235fbef',
+)
 
 
 def source_bytes(path, expected):
@@ -46,9 +50,21 @@ def main(directory):
                 source_bytes(destination, row['sha256'])
             except ValueError:
                 predecessor = row.get('owned_predecessor_sha256')
-                if name != 'publication_reader_admission' or predecessor != '01da4c355b804576e0a1b99a6e165cb47d607c511682945a9c47e3036064cfc7':
+                if name != 'publication_reader_admission' or predecessor not in ADMISSION_PREDECESSORS:
                     raise ValueError('Unknown installed reader predecessor: ' + name)
-                source_bytes(destination, predecessor)
+                # Manifest names the immediate accepted preimage; the fixed
+                # legacy route remains available only for these exact bytes.
+                candidates = (predecessor,) + tuple(p for p in ADMISSION_PREDECESSORS if p != predecessor)
+                for accepted in candidates:
+                    try:
+                        source_bytes(destination, accepted)
+                    except ValueError as refusal:
+                        last_refusal = refusal
+                        continue
+                    predecessor = accepted
+                    break
+                else:
+                    raise last_refusal
                 info = destination.lstat()
                 if (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns, info.st_mode, info.st_uid, info.st_gid, info.st_nlink) != original9:
                     raise ValueError('Owned predecessor changed during initial validation')

@@ -387,8 +387,11 @@ callbacks; the returned vectors grant no import, reader-index or resume right.
 ## Prospective reader cohort installation
 
 `patch_publication_reader_cohort.py` follows the existing adapters and installs
-21 new runtime helpers, checking the unchanged archive-owned, lifecycle and
-configured-scope helpers already installed by publication authority.
+21 reader runtime helpers, checking the archive-owned, lifecycle and
+configured-scope helpers already installed by publication authority. The lifecycle
+retains original preparation file and directory facts through its same-custody
+binding. Admission upgrades accept only the exact reviewed legacy and immediate
+predecessor bytes; unknown implementations remain refused.
 `publication_reader_cohort.json` pins all 25 exact canonical package files. The
 catalog helper is installed as `mylar.publication_negative_catalog`; package
 imports share the existing guard, mutation, API and Writer module identities.
@@ -420,7 +423,7 @@ and its fresh proof producers are independently accepted.
 
 The host-only recovery tree also contains the continuous lifecycle parent,
 fresh native process/evidence producer and schema1 phase-custody composer.
-The private-copy gate runs 482 recovery checks in isolated suite processes,
+The private-copy gate runs 493 recovery checks in isolated suite processes,
 including explicit predecessor fixtures and the current provider command
 contract. Original reader pair signatures are carried unchanged; the actual
 child lifecycle validates its own kernel facts. No new pair protocol or

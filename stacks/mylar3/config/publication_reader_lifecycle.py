@@ -351,3 +351,96 @@ def from_birth(birth):
  passive(files,nodes)
  consumed=birth.consume();require(consumed==(binding,files,nodes,sidecar,channel),'lifecycle-original-birth-consumption')
  return StoppedReaderCustody(_KEY,binding['input_path'],binding['input_sha256'],binding['nonce'],binding['parent_sha256'],binding['command'],channel,birth_original=(files,nodes))
+
+_ARCHIVE_BINDINGS=weakref.WeakKeyDictionary()
+
+def _archive_components():
+ scope=importlib.import_module('mylar.publication_native_configured_scope')
+ owned=importlib.import_module('mylar.publication_archive_owned')
+ for module,name in ((scope,'publication_native_configured_scope.py'),(owned,'publication_archive_owned.py')):
+  source=Path(module.__file__)
+  require(source==Path('/app/mylar3/mylar')/name and source.resolve()==source,'archive-binding-installed-component')
+ source=Path(__file__)
+ require(source==Path('/app/mylar3/mylar/publication_reader_lifecycle.py') and source.resolve()==source,'archive-binding-installed-lifecycle')
+ return scope,owned
+
+def bind_archive_preparation(custody,scope,owner,operation_id):
+ """Add only original parent-bound stage facts to this exact owning custody.
+
+ No directory is freshly admitted as an original. The regular parent proof must
+ retain the actual original metadata hash/full9 and completed directory full9.
+ Same-byte incarnation or namespace differences Hold. No mutation object,
+ Writer lifetime, reader/index/import/resume or publication right is created.
+ """
+ implementation=Path(__file__);z=os.lstat(implementation)
+ implementation_original=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+ implementation_nodes={}
+ for p in implementation.parents:
+  z=os.lstat(p);implementation_nodes[p]=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+ require(type(custody) is StoppedReaderCustody,'archive-binding-exact-custody')
+ expected=_SEALS.get(custody);custody._sealed(expected)
+ require(custody not in _ARCHIVE_BINDINGS,'archive-binding-one-use')
+ old_files={p:tuple(v) for p,v in custody.files.items()};old_nodes={p:tuple(v) for p,v in custody.nodes.items()}
+ old_reader={p:tuple(v) for p,v in custody.reader_files.items()};old_absent=tuple([*custody.absent,*custody.reader_absent])
+ sm,o=_archive_components();require(type(scope) is sm.NativeConfiguredScope and scope._custody is custody,'archive-binding-exact-scope')
+ invocation=copy.deepcopy(custody.invocation)
+ require(invocation.get('action')=='archive-one' and invocation.get('owner')==owner and invocation.get('operation_id')==operation_id,'archive-binding-original-action')
+ require(type(operation_id) is str and len(operation_id)==64 and all(x in '0123456789abcdef' for x in operation_id),'archive-binding-operation')
+ require(custody.command.count('--phase')==1 and custody.command.index('--phase')+1<len(custody.command),'archive-binding-phase')
+ phase=custody.command[custody.command.index('--phase')+1]
+ require(phase in ('execute','verify-terminal'),'archive-binding-finite-phase')
+ role='archive_execution_originals' if phase=='verify-terminal' else 'archive_preparation_originals'
+ ref=copy.deepcopy(custody.proofs.get(role));require(type(ref) is dict and set(ref)=={'path','sha256','signature9'},'archive-binding-parent-original-proof')
+ proof=Path(ref['path']);require(old_files.get(proof)==tuple(ref['signature9']),'archive-binding-admitted-proof')
+ scope.revalidate();custody.revalidate_stopped();controller,writer=scope.controller_writer();modules=o.sdk()
+ require(type(controller) is modules[0].Controller and type(writer) is modules[1].Writer and scope._custody is custody,'archive-binding-derived-controller')
+ require(modules[2].exact_owner(owner)==owner,'archive-binding-exact-owner')
+ deadline=custody.deadline;source_fact=o.fact(implementation,1024**2,deadline)
+ require(tuple(source_fact['signature9'])==implementation_original,'archive-binding-original-implementation')
+ sdk_ref=invocation['sdk_map'];sdk_raw,sdk_fact=read(sdk_ref['path'],sdk_ref['sha256']);mapping=decoded(sdk_raw)
+ require(old_files.get(Path(sdk_ref['path']))==tuple(sdk_fact),'archive-binding-original-SDK-map')
+ require(mapping.get('publication_reader_lifecycle.py')==source_fact['sha256'],'archive-binding-original-SDK-source')
+ raw,proof_fact=read(ref['path'],ref['sha256']);require(tuple(proof_fact)==old_files[proof],'archive-binding-original-proof9');doc=decoded(raw)
+ keys={'version','kind','owner','operation_id','preparation','preparation_directory9','publication_acceptance','mutation_authority'}
+ if phase=='verify-terminal':keys|={'baseline','reader'}
+ require(type(doc) is dict and set(doc)==keys and type(doc['version']) is int and doc['version']==1 and doc['kind']==('archive-one-original-custody' if phase=='verify-terminal' else 'archive-one-original-preparation') and doc['owner']==owner and doc['operation_id']==operation_id and doc['publication_acceptance'] is False and doc['mutation_authority'] is False,'archive-binding-original-document')
+ stage=controller.root/('archive-repair-'+operation_id);metadata=stage/'preparation.json';declared=doc['preparation'];directory=doc['preparation_directory9']
+ require(type(declared) is dict and set(declared)=={'path','sha256','signature9'} and declared['path']==str(metadata),'archive-binding-derived-metadata')
+ for value in (declared['signature9'],directory):require(type(value) is list and len(value)==9 and all(type(x) is int for x in value),'archive-binding-original-nine')
+ require(type(declared['sha256']) is str and len(declared['sha256'])==64 and all(x in '0123456789abcdef' for x in declared['sha256']),'archive-binding-original-hash')
+ require(stat.S_ISDIR(directory[5]) and stat.S_IMODE(directory[5])==0o700 and directory[6]==os.geteuid(),'archive-binding-original-private-directory')
+ try:stage_fact=nine(os.lstat(stage))
+ except OSError:raise Held('archive-binding-original-directory-unavailable') from None
+ require(stage_fact==directory,'archive-binding-original-directory-incarnation')
+ _,metadata_fact=read(str(metadata),declared['sha256']);require(metadata_fact==declared['signature9'],'archive-binding-original-metadata-incarnation')
+ new_files=dict(old_files)
+ for p,value in ((implementation,tuple(source_fact['signature9'])),(Path(sdk_ref['path']),tuple(sdk_fact)),(metadata,tuple(declared['signature9'])),(stage,tuple(directory))):
+  require(p not in new_files or new_files[p]==value,'archive-binding-original-file-conflict');new_files[p]=value
+ new_nodes=dict(old_nodes)
+ for p,value in implementation_nodes.items():
+  require(p not in new_nodes or new_nodes[p]==value,'archive-binding-original-source-node-conflict');new_nodes[p]=value
+ for p,value in o.ancestors([implementation,Path(sdk_ref['path']),metadata,stage]).items():
+  value=tuple(value);require(p not in new_nodes or new_nodes[p]==value,'archive-binding-original-node-conflict');new_nodes[p]=value
+ require(new_nodes.get(stage)==tuple(directory[i] for i in (0,1,5,6,7)),'archive-binding-original-directory-node')
+ for p,value in old_reader.items():require(p not in new_files or new_files[p]==value,'archive-binding-original-reader-conflict')
+ files=tuple((str(p),v) for p,v in {**new_files,**old_reader}.items());nodes=tuple((str(p),v) for p,v in new_nodes.items())
+ try:
+  custody.revalidate_stopped();scope.revalidate();custody._sealed(expected)
+  custody.files={p:list(v) for p,v in new_files.items()};custody.nodes={p:list(v) for p,v in new_nodes.items()}
+  seal=custody._core();custody.core=seal;_SEALS[custody]=seal
+  custody._sealed(seal);scope.revalidate();custody.revalidate_stopped();_ARCHIVE_BINDINGS[custody]=True;custody._sealed(seal)
+  if time.monotonic()>=deadline:raise Held('archive-binding-final-deadline')
+  for path,value in nodes:
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-binding-final-node')
+  for path,value in files:
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-binding-final-file')
+  for path in old_absent:
+   try:os.lstat(path)
+   except FileNotFoundError:continue
+   raise Held('archive-binding-final-absence')
+  return custody
+ except BaseException:
+  _SEALS.pop(custody,None)
+  raise Held('archive-binding-uncertain-custody-invalidated') from None

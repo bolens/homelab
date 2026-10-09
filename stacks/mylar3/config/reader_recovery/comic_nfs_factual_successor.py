@@ -145,3 +145,53 @@ def nfs_ready(owner,request,*,watch):
         except FileNotFoundError:continue
         raise Held('nfs-ready-cleanup-absence')
     return result
+
+ARCHIVE_ROLES=frozenset({'stopped_runtime','backup_ack','backup_manifest','backup_acceptance','schema','reader_snapshot','archive_request','custody'})
+
+def nfs_ready_archive(owner,request,*,watch):
+    """Distinct archive-only one-use fact; default negative-five route unchanged."""
+    g,r=record(owner,'stopped')
+    need(owner.plan.get('kind')=='reviewed-archive-one-lifecycle-protocol','archive-nfs-default-disabled')
+    need(watch.__self__ is owner and watch.__func__ is type(owner).continuous,'archive-nfs-owning-watch')
+    need(set(request)=={'version','phase','nonce','operation','deadline_monotonic','parent_plan','parent_source','context'} and type(request['version']) is int and request['version']==1 and request['phase']=='archive-nfs-ready' and request['nonce']==owner.plan['nonce'] and request['operation']==str(owner.op) and type(request['deadline_monotonic']) is float and request['deadline_monotonic']==owner.deadline and request['parent_plan']==owner.plan_ref and request['parent_source']==owner.source_ref,'archive-nfs-request-binding')
+    before=originals(owner,r['canary']);files=dict(before[0]);nodes=dict(before[1])
+    for p,v in g.get('_OUTPUT_NODES',{}).get(owner,{}).items():
+        need(p not in nodes or nodes[p]==tuple(v),'archive-nfs-output-node-conflict');nodes[p]=tuple(v)
+    context=request['context'];need(set(context)=={'input','command','context'},'archive-nfs-context')
+    ctx=context['context'];need(set(ctx)=={'backup','controls','archive_scopes','observations'} and set(ctx['controls'])==ARCHIVE_ROLES,'archive-nfs-eight-roles')
+    inp=context['input'];need(inp==owner.generated.get(str(owner.op/'execute-input.json')),'archive-nfs-original-execute-input')
+    refs=[*ctx['controls'].values(),ctx['archive_scopes'],owner.plan['producer_inputs']['archive_request']]
+    for ref in refs:
+        need(type(ref)==dict and set(ref)=={'path','sha256','signature9'} and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(v) is int for v in ref['signature9']),'archive-nfs-original-reference')
+        p=ref['path'];fact=tuple(ref['signature9']);need(p not in files or files[p]==fact,'archive-nfs-original-file-conflict');files[p]=fact
+        for path,value in g['parents'](Path(p)).items():
+            value=tuple(value);need(path not in nodes or nodes[path]==value,'archive-nfs-original-node-conflict');nodes[path]=value
+    for ref in refs:g['read'](ref)
+    doc=g['decode'](g['read'](inp));original=g['decode'](g['read'](owner.plan['producer_inputs']['archive_request']))
+    need(type(original) is dict and set(original)=={'version','owner','operation_id'} and type(original['version']) is int and original['version']==1,'archive-nfs-original-owner-request')
+    expected=['/lsiopy/bin/python3','-I','-B',owner.mapping.child(owner.plan['provider']['path']),'--phase','execute','--input',owner.mapping.child(inp['path']),'--input-sha256',inp['sha256'],'--source-sha256',owner.plan['provider']['sha256']]
+    need(context['command']==expected and doc['action']=='archive-one' and doc['owner']==original['owner'] and doc['operation_id']==original['operation_id'],'archive-nfs-exact-owner-command')
+    need(doc['controls']=={k:owner.mapping.child_ref(v) for k,v in ctx['controls'].items()} and doc['archive_scopes']==owner.mapping.child_ref(ctx['archive_scopes']),'archive-nfs-original-input-controls')
+    current=watch();rows={row['Name']:row for row in r['canary'].current(stopped=True)}
+    for key,row in current.items():need(g['same_runtime'](row,r['stopped'][key]) and g['same_runtime'](rows[row['Name']],row),'archive-nfs-stopped-continuity')
+    facts=dict(version=1,kind='archive-one-owning-active-to-stopped-nfs-facts',nonce=request['nonce'],execute_input=copy.deepcopy(inp),command=list(expected),owner=copy.deepcopy(original['owner']),operation_id=original['operation_id'],canary_source=copy.deepcopy(r['canary_source']),mount=copy.deepcopy(r['canary'].mount),device=r['canary'].device,canary=copy.deepcopy(r['canary'].binding),stopped=copy.deepcopy(current['reader']),canary_writer_lease_released=True,continuous_action_lock=False,actual_library_platform_verified=False,native_grant=False,publication_authority=False,reader_resume_authority=False)
+    r['phase']='archive-ready-uncertain';r['seal']=seal(owner,r)
+    output=owner.emit('archive-nfs-ready.json',facts)
+    r['execute']=copy.deepcopy(inp);r['phase']='consumed';r['seal']=seal(owner,r)
+    result=dict(version=1,phase='archive-nfs-ready',nonce=request['nonce'],evidence=dict(evidence=copy.deepcopy(output)))
+    files[output['path']]=tuple(output['signature9'])
+    file_items=tuple(files.items());node_items=tuple(nodes.items())
+    r['canary'].close();owner.continuous();owner.left()
+    for p,v in before[2]:
+        if frozenset(os.listdir(p))!=v:raise Held('archive-nfs-final-census')
+    for p,v in node_items:
+        z=os.lstat(p)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('archive-nfs-final-node')
+    for p,v in file_items:
+        z=os.lstat(p)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('archive-nfs-final-file')
+    for p in before[3]:
+        try:os.lstat(p)
+        except FileNotFoundError:continue
+        raise Held('archive-nfs-final-cleanup-absence')
+    return result

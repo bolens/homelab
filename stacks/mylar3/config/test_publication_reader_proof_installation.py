@@ -28,6 +28,34 @@ class Controls(unittest.TestCase):
   self.install();before={p.name:p.stat().st_ino for p in self.package.iterdir()};self.install();self.assertEqual(before,{p.name:p.stat().st_ino for p in self.package.iterdir()})
  def test_exact_owned_admission_predecessor_replaced(self):
   p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_predecessor.py',p);old=p.stat().st_ino;self.install();self.assertNotEqual(p.stat().st_ino,old);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
+ def accepted(self):
+  p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_accepted.py',p);return p
+ def test_current_accepted_immediate_predecessor_replaced(self):
+  p=self.accepted();original=p.stat().st_ino;self.assertEqual(self.manifest['modules']['publication_reader_admission']['owned_predecessor_sha256'],sha(p));self.install();self.assertNotEqual(p.stat().st_ino,original);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
+ def test_current_accepted_first_ast_drift_not_rebaselined(self):
+  target=self.accepted();raw=target.read_bytes();real=m.ast.parse;fired=[]
+  def late(data,*args,**kwargs):
+   result=real(data,*args,**kwargs)
+   if data==raw and not fired:target.chmod(0o640);fired.append(True)
+   return result
+  with patch.object(m.ast,'parse',side_effect=late),self.assertRaisesRegex(ValueError,'changed'):self.install()
+  self.assertTrue(fired);self.assertEqual(target.read_bytes(),raw)
+ def test_current_accepted_final_callback_bytes_drift_not_overwritten(self):
+  target=self.accepted();real=m.source_bytes;calls=[]
+  def late(path,expected):
+   result=real(path,expected)
+   if path==target:
+    calls.append(True)
+    if len(calls)==2:target.write_bytes(b'foreign after final callback')
+   return result
+  with patch.object(m,'source_bytes',side_effect=late),self.assertRaisesRegex(ValueError,'changed'):self.install()
+  self.assertEqual(len(calls),2);self.assertEqual(target.read_bytes(),b'foreign after final callback')
+ def test_known_current_bytes_do_not_allow_unknown_declared_route(self):
+  p=self.accepted();old=p.read_bytes();self.manifest['modules']['publication_reader_admission']['owned_predecessor_sha256']='b'*64;(self.fixes/'publication_reader_cohort.json').write_text(json.dumps(self.manifest))
+  self.assertRaisesRegex(ValueError,'Unknown installed reader predecessor',self.install);self.assertEqual(p.read_bytes(),old)
+ def test_unrelated_module_cannot_use_admission_allowlist(self):
+  name=next(n for n in self.manifest['modules'] if n!='publication_reader_admission');row=self.manifest['modules'][name];row['owned_predecessor_sha256']=m.ADMISSION_PREDECESSORS[1];(self.fixes/'publication_reader_cohort.json').write_text(json.dumps(self.manifest));target=self.package/row['filename'];shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_accepted.py',target)
+  self.assertRaisesRegex(ValueError,'Unknown installed reader predecessor',self.install);self.assertEqual(sha(target),m.ADMISSION_PREDECESSORS[1])
  def test_unknown_admission_preserved_and_refused(self):
   p=self.package/'publication_reader_admission.py';p.write_bytes(b'foreign');self.assertRaisesRegex(ValueError,'source pin changed',self.install);self.assertEqual(p.read_bytes(),b'foreign')
  def test_predecessor_link_refused(self):

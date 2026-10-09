@@ -43,12 +43,12 @@ class Controls(unittest.TestCase):
   # A real isolated trivial suite mutates only this synthetic source.
   script=self.tree/'test_stub.py';script.write_text("from pathlib import Path\nimport unittest\nclass T(unittest.TestCase):\n def test_one(self):Path("+repr(str(self.source))+ ").write_bytes(b'foreign')\nif __name__=='__main__':unittest.main()\n");manifest=json.loads((self.tree/'source-manifest.json').read_text());manifest['files']['test_stub.py']={'sha256':digest(script)};(self.tree/'source-manifest.json').write_text(json.dumps(manifest))
   with patch.object(m,'SUITES',(('test_stub.py',1),)),self.assertRaisesRegex(m.Held,'Original source file drift'):m.run(self.fixes)
- def test_real482_public644_closure_passes_no_source_changes(self):
+ def test_real493_public644_closure_passes_no_source_changes(self):
   # Exact current public files, no ignored config copied.
   actual=self.root/'actual';actual.mkdir();manifest=json.loads((PUBLIC/'reader_recovery/source-manifest.json').read_bytes());tree=actual/'reader_recovery';tree.mkdir()
   for name in manifest['files']:
    dst=tree/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/'reader_recovery'/name,dst);dst.chmod(0o644)
   shutil.copyfile(PUBLIC/'reader_recovery/source-manifest.json',tree/'source-manifest.json')
   for name in ('publication_reader_cohort.json','publication_reader_admission.py'):shutil.copyfile(PUBLIC/name,actual/name)
-  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],482);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],493);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
 if __name__=='__main__':unittest.main()
