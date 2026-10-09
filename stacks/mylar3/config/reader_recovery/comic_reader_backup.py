@@ -132,7 +132,18 @@ def run(args):
   s=os.lstat(p);current=[s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns,s.st_mode,s.st_uid,s.st_gid,s.st_nlink];check(current==expected,'terminal-file')
  for p,expected in {**final_ancestors,**forbidden_dirs}.items():
   s=os.lstat(p);check([s.st_dev,s.st_ino,s.st_mode,s.st_uid,s.st_gid]==expected,'terminal-ancestor')
- return dict(backup_verified=True,manifest_sha256=sha(payload),files=count,bytes=total,application_quiescence_verified=False,mutation_authority=False,publication_acceptance=False)
+ # Carry actual owning completion originals into the immediate caller;
+ # no caller captures a new output incarnation after the algorithm returns.
+ result=dict(backup_verified=True,manifest_sha256=sha(payload),files=count,bytes=total,application_quiescence_verified=False,mutation_authority=False,publication_acceptance=False,
+             original_vectors={'files':[(str(p),tuple(v)) for p,v in direct.items()], 'nodes':[(str(p),tuple(v)) for p,v in {**final_ancestors,**forbidden_dirs}.items()]})
+ file_items=tuple((p,tuple(v)) for p,v in direct.items());node_items=tuple((p,tuple(v)) for p,v in {**final_ancestors,**forbidden_dirs}.items())
+ for p,expected in node_items:
+  z=os.lstat(p)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=expected:raise Held('archive-backup-helper-final-node')
+ for p,expected in file_items:
+  z=os.lstat(p)
+  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=expected:raise Held('archive-backup-helper-final-file')
+ return result
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--backup',action='store_true')
  for name in ('input','input-sha256','source-sha256'):p.add_argument('--'+name)

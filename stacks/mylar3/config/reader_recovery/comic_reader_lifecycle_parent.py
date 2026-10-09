@@ -28,6 +28,7 @@ MAX = 64 * 1024**2
 ROLES = frozenset(('stopped_runtime', 'backup_ack', 'backup_manifest',
                   'backup_acceptance', 'rows', 'schema', 'reviewed_plan',
                   'timestamp_evidence', 'custody'))
+ARCHIVE_ROLES=frozenset(('stopped_runtime','backup_ack','backup_manifest','backup_acceptance','schema','reader_snapshot','archive_request','custody'))
 FALSE_RIGHTS = ('publication_acceptance', 'reader_resume_authority')
 
 
@@ -322,12 +323,15 @@ class LifecycleParent:
         self.thread = threading.get_ident()
         self.plan_ref = copy.deepcopy(plan_ref); self.source_ref = copy.deepcopy(source_ref)
         plan = decode(read(plan_ref)); read(source_ref)
-        need(type(plan) is dict and set(plan) == {'version', 'kind', 'nonce', 'seconds',
+        archive=type(plan) is dict and plan.get('kind')=='reviewed-archive-one-lifecycle-protocol'
+        base_keys={'version', 'kind', 'nonce', 'seconds',
              'operation', 'reader', 'held_native', 'held_worker', 'selected_image',
              'provider', 'producer', 'observer', 'sdk_map', 'mounts', 'native',
-             'action_inputs', 'producer_inputs', 'birth_source_sha256', 'scope_projection', 'bounds', 'admission_source_sha256', 'nfs'}, 'plan-schema')
-        need(plan['version'] == 9 and type(plan['version']) is int
-             and plan['kind'] == 'reviewed-negative-five-lifecycle-protocol'
+             'action_inputs', 'producer_inputs', 'birth_source_sha256', 'scope_projection', 'bounds', 'admission_source_sha256', 'nfs'}
+        if archive:base_keys=(base_keys-{'action_inputs','admission_source_sha256'})|{'action','backup_provider'}
+        need(type(plan) is dict and set(plan)==base_keys,'plan-schema')
+        need(plan['version'] == (10 if archive else 9) and type(plan['version']) is int
+             and plan['kind'] == ('reviewed-archive-one-lifecycle-protocol' if archive else 'reviewed-negative-five-lifecycle-protocol')
              and digest(plan['nonce']) and type(plan['seconds']) is int
              and 1 <= plan['seconds'] <= 3600, 'plan-kind')
         need(re.fullmatch('sha256:[0-9a-f]{64}', plan['selected_image']) is not None,
@@ -342,31 +346,59 @@ class LifecycleParent:
         need(stat.S_ISDIR(parent.st_mode) and parent.st_uid == os.geteuid()
              and stat.S_IMODE(parent.st_mode) == 0o700, 'operation-parent-private')
         self.files = {}; self.nodes = parents(self.op); self.generated = {}
+        # Admit every archive role ancestor before any source/evidence read callback.
+        if archive:
+            for ref in (plan['backup_provider'], plan['observer'], *plan['producer_inputs'].values()):
+                for node, value in parents(Path(ref['path'])).items():
+                    need(node not in self.nodes or self.nodes[node] == value, 'archive-input-original-node')
+                    self.nodes[node] = value
         for value in (plan_ref, source_ref, plan['provider'], plan['sdk_map'], plan['observer']):
             read(value); self.files[value['path']] = tuple(value['signature9'])
-            self.nodes.update(parents(Path(value['path'])))
+            for node,value in parents(Path(value['path'])).items():
+                need(node not in self.nodes or self.nodes[node]==value,'parent-original-ancestor-conflict');self.nodes[node]=value
         need(plan['producer'] is not None, 'fresh-proof-producer-required')
         read(plan['producer']); self.files[plan['producer']['path']] = tuple(plan['producer']['signature9'])
-        self.nodes.update(parents(Path(plan['producer']['path'])))
-        need(type(plan['action_inputs']) is dict and set(plan['action_inputs']) == {'prepare', 'execute'}, 'phase-action-refs')
-        actions = {}
-        for phase, action_ref in plan['action_inputs'].items():
-            actions[phase] = decode(read(action_ref))
-            self.files[action_ref['path']] = tuple(action_ref['signature9'])
-            self.nodes.update(parents(Path(action_ref['path'])))
-            need(actions[phase]['operation'] == self.mapping.child(self.op / phase), 'phase-action-operation')
-        need(actions['prepare']['members'] == actions['execute']['members']
-             and actions['prepare']['targets'] == actions['execute']['targets'], 'same-five-phase-actions')
-        for producer_ref in producer_inputs(plan['producer_inputs']).values():
-            self.files[producer_ref['path']] = tuple(producer_ref['signature9'])
-            self.nodes.update(parents(Path(producer_ref['path'])))
+        for node,value in parents(Path(plan['producer']['path'])).items():
+            need(node not in self.nodes or self.nodes[node]==value,'parent-original-ancestor-conflict');self.nodes[node]=value
+        if archive:
+            need(plan['action']=='archive-one' and set(plan['producer_inputs'])=={'archive_request','archive_scopes'},'archive-only-plan')
+            request=decode(read(plan['producer_inputs']['archive_request']))
+            need(type(request) is dict and set(request)=={'version','owner','operation_id'} and type(request['version']) is int and request['version']==1 and digest(request['operation_id']),'archive-owner-request')
+            for ref in (plan['backup_provider'],plan['observer'],*plan['producer_inputs'].values()):
+                for node,value in parents(Path(ref['path'])).items():
+                    need(node not in self.nodes or self.nodes[node]==value,'archive-input-original-node');self.nodes[node]=value
+                read(ref);need(ref['path'] not in self.files or self.files[ref['path']]==tuple(ref['signature9']),'archive-input-original-file');self.files[ref['path']]=tuple(ref['signature9'])
+            scopes=decode(read(plan['producer_inputs']['archive_scopes']))
+            need(type(scopes) is dict and set(scopes)=={'version','scratch','retention_root'} and type(scopes['version']) is int and scopes['version']==1,'archive-private-scope-input')
+            writable={str(self.op),self.mapping.host(plan['native']['data']),*[self.mapping.host(x) for x in plan['native']['roots']],scopes['scratch'],scopes['retention_root']}
+            need(all(not row['write'] or row['host'] in writable for row in plan['mounts']),'archive-finite-writable-host-scope')
+            # Immutable image code cannot be overlaid by any declared child mount.
+            for row in plan['mounts']:
+                child=absolute(row['child'])
+                need(not any(child == protected or child in protected.parents or protected in child.parents for protected in map(Path, ('/app', '/lsiopy', '/usr', '/lib', '/lib64', '/bin', '/sbin', '/opt/archiving-utils', '/etc'))),'archive-image-overlay')
+        else:
+            need(type(plan['action_inputs']) is dict and set(plan['action_inputs']) == {'prepare', 'execute'}, 'phase-action-refs')
+            actions = {}
+            for phase, action_ref in plan['action_inputs'].items():
+                actions[phase] = decode(read(action_ref))
+                self.files[action_ref['path']] = tuple(action_ref['signature9'])
+                for node,value in parents(Path(action_ref['path'])).items():
+                    need(node not in self.nodes or self.nodes[node]==value,'parent-original-ancestor-conflict');self.nodes[node]=value
+                need(actions[phase]['operation'] == self.mapping.child(self.op / phase), 'phase-action-operation')
+            need(actions['prepare']['members'] == actions['execute']['members']
+                 and actions['prepare']['targets'] == actions['execute']['targets'], 'same-five-phase-actions')
+            for producer_ref in producer_inputs(plan['producer_inputs']).values():
+                self.files[producer_ref['path']] = tuple(producer_ref['signature9'])
+                for node,value in parents(Path(producer_ref['path'])).items():
+                    need(node not in self.nodes or self.nodes[node]==value,'parent-original-ancestor-conflict');self.nodes[node]=value
         need(digest(plan['birth_source_sha256']), 'installed-birth-pin-required')
         mapping = decode(read(plan['sdk_map']))
         need(mapping.get('publication_native_scope_birth.py') == plan['birth_source_sha256'], 'birth-pin-SDK-map')
         projection_ref = plan['scope_projection']; read(projection_ref)
         need(mapping.get('publication_native_configured_scope.py') == projection_ref['sha256'], 'scope-projection-SDK-pin')
         self.files[projection_ref['path']] = tuple(projection_ref['signature9'])
-        self.nodes.update(parents(Path(projection_ref['path'])))
+        for node,value in parents(Path(projection_ref['path'])).items():
+            need(node not in self.nodes or self.nodes[node]==value,'parent-original-ancestor-conflict');self.nodes[node]=value
         projection = pinned_module(projection_ref)
         need(callable(getattr(projection, 'observed_native', None)), 'scope-projection-interface')
         _PROJECTORS[self] = projection.observed_native
@@ -385,10 +417,10 @@ class LifecycleParent:
             read(ref);self.files[ref['path']]=tuple(ref['signature9'])
         final(dict(self.files),dict(self.nodes),())
         nfs_module=pinned_module(plan['nfs']['adapter'])
-        need(all(callable(getattr(nfs_module,name,None)) for name in ('preflight','run_active','stop_owned','nfs_ready')),'nfs-implementation-required')
+        need(all(callable(getattr(nfs_module,name,None)) for name in (('preflight','run_active','stop_owned','nfs_ready_archive') if archive else ('preflight','run_active','stop_owned','nfs_ready'))),'nfs-implementation-required')
         _NFS_ADAPTERS[self]=nfs_module
         self.observer = pinned_module(plan['observer'])
-        need(callable(getattr(self.observer, 'observe_mapped_with_originals', None)), 'observer-interface')
+        need(callable(getattr(self.observer, 'partition', None) if archive else getattr(self.observer, 'observe_mapped_with_originals', None)), 'observer-interface')
         self.baselines = {}
         for key in ('reader', 'held_native', 'held_worker'):
             expected = plan[key]
@@ -497,7 +529,7 @@ class LifecycleParent:
 
     def produce(self, phase, context):
         need(phase in ('native-observation', 'backup-controls', 'phase-custody',
-                       'nfs-ready', 'terminal-observation'), 'producer-phase')
+                       'nfs-ready', 'archive-nfs-ready', 'terminal-observation'), 'producer-phase')
         request = dict(version=1, phase=phase, nonce=self.plan['nonce'],
                        operation=str(self.op), deadline_monotonic=self.deadline,
                        parent_plan=copy.deepcopy(self.plan_ref), parent_source=copy.deepcopy(self.source_ref),
@@ -505,9 +537,9 @@ class LifecycleParent:
         expected_files = dict(self.files); expected_nodes = dict(self.nodes)
         for path,fact in _OUTPUT_NODES.get(self,{}).items():
             need(path not in expected_nodes or expected_nodes[path]==fact,'producer-output-node-conflict');expected_nodes[path]=fact
-        if phase=='nfs-ready':
+        if phase in ('nfs-ready','archive-nfs-ready'):
             module=_NFS_ADAPTERS.get(self);need(module is not None,'nfs-owning-module-required')
-            result=module.nfs_ready(self,request,watch=self.continuous)
+            result=(module.nfs_ready_archive if phase=='archive-nfs-ready' else module.nfs_ready)(self,request,watch=self.continuous)
         else:result = self.producer.produce(phase, request, watch=self.continuous)
         need(type(result) is dict and set(result) == {'version', 'phase', 'nonce', 'evidence'}
              and type(result['version']) is int and result['version'] == 1
@@ -517,6 +549,7 @@ class LifecycleParent:
         return output
 
     def phase_input(self, phase, payload, custody_context=None):
+        if self.plan.get('action')=='archive-one':return self.archive_phase_input(phase,payload,custody_context)
         need(phase in ('backup', 'prepare', 'execute', 'verify-terminal'), 'finite-parent-phase')
         action_phase = 'execute' if phase == 'verify-terminal' else phase
         if phase == 'verify-terminal':
@@ -625,6 +658,8 @@ class LifecycleParent:
         z = os.lstat(host_path)
         host_ref = dict(path=str(host_path), sha256=child_ref['sha256'], signature9=nine(z))
         raw = read(host_ref); document = decode(raw)
+        if self.plan.get('action')=='archive-one':
+            self.generated[host_ref['path']]=copy.deepcopy(host_ref);_GENERATED[self]=encode(self.generated)
         need(set(document) == {'version', 'kind', 'invocation', 'native', 'worker', 'child_mounts', 'config',
                                'config_module', 'main_module', 'worker_library', 'tool_root', 'ancestors'}
              and document['version'] == 1 and type(document['version']) is int
@@ -645,7 +680,7 @@ class LifecycleParent:
         lifecycle = dict(path=self.mapping.child(sidecar_ref['path']), sha256=sidecar_ref['sha256'])
         response = {**message, 'type': 'birth-accepted', 'birth': birth, 'lifecycle': lifecycle,
                     'execution_authority': False, 'publication_acceptance': False, **fresh,
-                    'child_source_sha256': self.plan['provider']['sha256'], 'child_image': self.plan['selected_image']}
+                    'child_source_sha256': self.phase_provider(phase)['sha256'], 'child_image': self.plan['selected_image']}
         response = encode(copy.deepcopy(response)) + b'\n'
         need(len(response) <= MAX, 'birth-response-bound')
         expected_files = {host_ref['path']: tuple(host_ref['signature9']),
@@ -675,6 +710,9 @@ class LifecycleParent:
         _PHASES[self][phase]['accepted'] = True
         return response
 
+    def phase_provider(self,phase):
+        return self.plan['backup_provider'] if self.plan.get('action')=='archive-one' and phase=='backup' else self.plan['provider']
+
     def child_phase(self, phase, input_ref, actual):
         self.continuous(); name = 'reader-' + phase + '-' + self.plan['nonce'][:16]
         command = actual[1:]
@@ -684,8 +722,9 @@ class LifecycleParent:
                 '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--pids-limit', '32',
                 '--memory', '2g', '--memory-swap', '2g', '--env', 'PYTHONDONTWRITEBYTECODE=1',
                 '--entrypoint', '/lsiopy/bin/python3']
+        if self.plan.get('action')=='archive-one' and phase=='backup':args.extend(['--env','TMPDIR='+self.mapping.child(self.op/'backup')])
         for row in mounts:
-            write = row['write'] and phase == 'execute'
+            write = self.phase_write(row,phase)
             # Only private operation/scratch may be writable during backup/preparation.
             if Path(self.op) == Path(row['host']):
                 write = True
@@ -695,8 +734,7 @@ class LifecycleParent:
         self.emit(phase + '-create-intent.json', dict(command=args, automatic_replay=False))
         self.continuous(); cid = self.engine.run(args, self.left()).decode().strip()
         need(digest(cid), 'child-create-ACK'); created = self.inspect(cid)
-        expected_mounts = sorted((r['host'], r['child'], r['write'] and phase == 'execute'
-                                  or Path(self.op) == Path(r['host'])) for r in mounts)
+        expected_mounts = sorted((r['host'], r['child'], self.phase_write(r,phase)) for r in mounts)
         need(created['Config']['Labels'] == {'com.homelab.reader.lifecycle': name}, 'child-exact-label')
         self.profile(created, cid, command, expected_mounts, False)
         child_static = static(created); sequence = 0
@@ -733,7 +771,7 @@ class LifecycleParent:
                 return self.accept_birth(phase, input_ref, actual, message,
                                          {**fresh, 'reader': observed['reader']}, current)
             response = encode({**message, 'type': 'observation', 'reader': observed['reader'],
-                               'child_source_sha256': self.plan['provider']['sha256'],
+                               'child_source_sha256': self.phase_provider(phase)['sha256'],
                                'child_image': self.plan['selected_image'], **fresh}) + b'\n'
             need(len(response) <= MAX, 'challenge-response-bound')
             self.continuous(); need(same_runtime(self.inspect(cid), current), 'challenge-final-child')
@@ -750,7 +788,7 @@ class LifecycleParent:
         ack = self.engine.interactive(cid, challenge, self.left())
         if phase != 'backup':
             need(_PHASES.get(self, {}).get(phase, {}).get('accepted') is True, 'child-ACK-before-birth')
-        report_ref = validate_ack(ack, phase, self.plan['nonce'], self.plan['provider']['sha256'])
+        report_ref = validate_ack(ack, phase, self.plan['nonce'], self.phase_provider(phase)['sha256'])
         exited = self.inspect(cid)
         need(static(exited) == child_static, 'child-final-static')
         self.profile(exited, cid, command, expected_mounts, True)
@@ -758,6 +796,8 @@ class LifecycleParent:
         need(report_ref['path'] == self.mapping.child(self.op / phase / (phase + '-report.json')), 'fixed-report-child-path')
         host_ref = {**report_ref, 'path': self.mapping.host(report_ref['path'])}
         report = decode(read(host_ref))
+        if self.plan.get('action')=='archive-one':
+            self.generated[host_ref['path']]=copy.deepcopy(host_ref);_GENERATED[self]=encode(self.generated)
         need(report['phase'] == phase and report['nonce'] == self.plan['nonce']
              and report['final_ack_required'] is True and report['provider_continuity_verified'] is False,
              'report-factual-only')
@@ -797,7 +837,129 @@ class LifecycleParent:
             return host
         return mapped
 
+    def archive_phase_input(self,phase,payload,custody_context):
+        need(phase in ('backup','execute','verify-terminal'),'archive-finite-phase')
+        host_path=self.op/(phase+'-input.json');directory=self.op/phase
+        directory.mkdir(mode=0o700);fact=tuple(five(os.lstat(directory)))
+        need((fact[2]&0o777)==0o700 and fact[3]==os.geteuid(),'archive-phase-private')
+        _OUTPUT_NODES.setdefault(self,{})[str(directory)]=fact;self.sync(self.op)
+        provider=self.mapping.child_ref(self.phase_provider(phase));command=command_template(provider,phase,self.mapping.child(host_path))
+        value=dict(payload,version=1,nonce=self.plan['nonce'],action='archive-one-backup' if phase=='backup' else 'archive-one',parent_sha256=self.source_ref['sha256'],command_template=command,operation=self.mapping.child(directory),selected_image=self.plan['selected_image'],sdk_map=self.mapping.child_ref(self.plan['sdk_map']))
+        if phase=='backup':value.update(native=copy.deepcopy(self.plan['native']),bounds=copy.deepcopy(self.plan['bounds']),seconds=max(1,int(self.left())))
+        else:
+            request=decode(read(self.plan['producer_inputs']['archive_request']))
+            value.update(owner=request['owner'],operation_id=request['operation_id'])
+        ref=self.emit(phase+'-input.json',value);actual=actual_command(command,ref['sha256'])
+        if phase!='backup':
+            need(custody_context is not None,'archive-phase-custody-required')
+            invocation=dict(input_path=self.mapping.child(ref['path']),input_sha256=ref['sha256'],parent_sha256=self.source_ref['sha256'],provider_sha256=self.plan['provider']['sha256'],command=actual,nonce=self.plan['nonce'])
+            supplied=self.produce('phase-custody',dict(custody_context,phase=phase,invocation=invocation,stage='prebirth'))
+            need(set(supplied)=={'reader','proofs','birth_seed'} and 'native_scope' not in supplied['proofs'] and 'archive_sdk_map' in supplied['proofs'],'archive-owning-prebirth-custody')
+            need(supplied['proofs']['archive_sdk_map']==self.plan['sdk_map'],'archive-original-SDK-proof')
+            seed=copy.deepcopy(supplied['birth_seed'])
+            need(set(seed)=={'version','kind','invocation','parent_source','birth_source','config','worker_library','selected_image'} and type(seed['version']) is int and seed['version']==1 and seed['kind']=='selected-child-native-scope-birth' and seed['invocation']==invocation and seed['parent_source']==self.mapping.child_ref(self.source_ref) and seed['birth_source']==dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256=self.plan['birth_source_sha256']) and seed['selected_image']==self.plan['selected_image'],'archive-prebirth-source-binding')
+            seedref=self.emit(phase+'-input.birth.json',seed)
+            _PHASES[self][phase]=dict(phase=phase,input=copy.deepcopy(ref),invocation=invocation,reader=copy.deepcopy(supplied['reader']),proofs={k:self.mapping.child_ref(v) for k,v in supplied['proofs'].items()},seed=seed,seed_ref=seedref,accepted=False)
+        need(tuple(five(os.lstat(directory)))==fact,'archive-phase-original-directory')
+        return ref,actual
+
+    def phase_write(self,row,phase):
+        if Path(row['host'])==self.op:return True
+        if self.plan.get('action')!='archive-one':return row['write'] and phase=='execute'
+        if phase=='execute':return row['write']
+        if phase=='verify-terminal':
+            scope=decode(read(self.plan['producer_inputs']['archive_scopes']))
+            return row['write'] and row['host']==scope['scratch']
+        return False
+
+    def execute_archive(self):
+        try:
+            nfs=_NFS_ADAPTERS.get(self);need(nfs is not None,'archive-NFS-owner-required')
+            need(callable(getattr(self.observer,'partition',None)),'archive-terminal-vector-implementation')
+            for ref in (self.plan['backup_provider'],self.plan['observer']):read(ref)
+            for ref in (self.plan['provider'],self.plan['backup_provider']):
+                module=pinned_module(ref);need(getattr(module,'PARENT_SOURCE_SHA',None)==self.source_ref['sha256'],'archive-reviewed-parent-pin-required-before-stop')
+            nfs.preflight(self);nfs.run_active(self);observed=nfs.stop_owned(self)
+            runtime=copy.deepcopy(observed['reader'])
+            for mount in runtime['Mounts']:
+                if mount['Type']=='bind':need(self.mapping.child(mount['Source'])==mount['Source'],'archive-backup-host-canonical-bind')
+            inp,cmd=self.phase_input('backup',dict(runtime=runtime));backup=self.child_phase('backup',inp,cmd)
+            backup=dict(backup,manifest={**backup['manifest'],'path':self.mapping.host(backup['manifest']['path'])},restore_root=self.mapping.host(backup['restore_root']))
+            # Child backup control refs use canonical HOST mount spelling. No
+            # copied HOST inode is asserted as a CHILD inode at birth.
+            controls=self.produce('backup-controls',dict(backup=backup,observations=observed))
+            need(set(controls)=={'controls','archive_scopes'} and set(controls['controls'])==ARCHIVE_ROLES,'archive-eight-neutral-roles')
+            for ref in (*controls['controls'].values(),controls['archive_scopes']):read(ref)
+            context=dict(backup=backup,controls=controls['controls'],archive_scopes=controls['archive_scopes'],observations=self.continuous())
+            payload=dict(controls={k:self.mapping.child_ref(v) for k,v in controls['controls'].items()},archive_scopes=self.mapping.child_ref(controls['archive_scopes']))
+            inp,cmd=self.phase_input('execute',payload,context)
+            ready=self.produce('archive-nfs-ready',dict(input=inp,command=cmd,context=context));need(set(ready)=={'evidence'},'archive-NFS-finite-facts');read(ready['evidence'])
+            report=self.child_phase('execute',inp,cmd)
+            request=decode(read(self.plan['producer_inputs']['archive_request']))
+            need(report['kind']=='archive-one-owning-execute-observation' and report['owner']==request['owner'] and report['operation_id']==request['operation_id'] and report['outcome'] in ('observed-forward','observed-rollback'),'archive-execute-owning-result')
+            need(all(report[k] is False for k in ('reader_index_acceptance','ordinary_import_grant','publication_acceptance','mutation_authority','automatic_replay')),'archive-execute-false-rights')
+            originals=report['originals'];expected=self.mapping.child(self.op/'execute'/'execution-originals.json')
+            need(type(originals) is dict and originals['path']==expected,'archive-original-fixed-execute-record')
+            original_host={**originals,'path':self.mapping.host(originals['path'])};read(original_host)
+            # ACK/report/record remain original references, never status-derived.
+            ack=copy.deepcopy(self.generated[str(self.op/'execute-ack.json')]);ackvalue=decode(read(ack));reportref=ackvalue['report'];hostreport={**reportref,'path':self.mapping.host(reportref['path'])}
+            need(decode(read(hostreport))==report,'archive-original-execute-report')
+            context.update(observations=self.continuous(),execution_originals=original_host)
+            payload['execution_originals']=self.mapping.child_ref(original_host)
+            inp,cmd=self.phase_input('verify-terminal',payload,context)
+            verified=self.child_phase('verify-terminal',inp,cmd)
+            need(verified['owner']==request['owner'] and verified['operation_id']==request['operation_id'] and verified['originals']==originals and verified['baseline']==report['baseline'] and verified['outcome']==report['outcome'],'archive-fresh-terminal-original-join')
+            sdk=decode(read(self.plan['sdk_map']));phaseproof=self.op/'verify-terminal-input.native-scope.json'
+            scope_ref=self.generated.get(str(phaseproof))
+            # accept_birth retains the independent HOST proof ref after exact
+            # selected-child/source/mount/config-module observation joins.
+            need(scope_ref is not None,'archive-original-accepted-native-scope')
+            native=decode(read(scope_ref));image_sources={native[k]['path']:native[k] for k in ('config_module','main_module')}
+            mapper=self.terminal_mapper()
+            vectors=self.observer.partition(verified,path_mapper=mapper,sdk_map=sdk,mounts=copy.deepcopy(self.plan['mounts']),image_sources=image_sources)
+            files={str(k):tuple(v) for k,v in vectors['files'].items()};nodes={str(k):tuple(v) for k,v in vectors['nodes'].items()};claims=tuple((str(k),None if v is None else tuple(v)) for k,v in vectors['claims'].items());absent=tuple(vectors['absent']);names=tuple((str(k),tuple(v)) for k,v in vectors['censuses'].items())
+            for ref in (original_host,ack,hostreport):
+                need(ref['path'] not in files or files[ref['path']]==tuple(ref['signature9']),'archive-terminal-original-ref-conflict');files[ref['path']]=tuple(ref['signature9'])
+            for group,original in ((files,self.files),(nodes,self.nodes)):
+                for path,value in original.items():
+                    value=tuple(value);need(path not in group or group[path]==value,'archive-terminal-original-control-conflict');group[path]=value
+            for path,ref in self.generated.items():
+                value=tuple(ref['signature9']);need(path not in files or files[path]==value,'archive-terminal-generated-conflict');files[path]=value
+            for path,value in _OUTPUT_NODES.get(self,{}).items():
+                need(path not in nodes or nodes[path]==value,'archive-terminal-phase-node-conflict');nodes[path]=value
+            need(str(self.op) not in nodes or nodes[str(self.op)]==self.op_fact,'archive-operation-original-conflict');nodes[str(self.op)]=self.op_fact
+            intent=self.emit('resume-intent.json',dict(reader=self.plan['reader']['id'],outcome=verified['outcome'],child_image_vectors=dict(files=vectors['child_image_files'],nodes=vectors['child_image_nodes']),reader_index_acceptance=False,publication_acceptance=False,automatic_replay=False))
+            files[intent['path']]=tuple(intent['signature9'])
+            self.continuous();seconds=self.left()
+            # Last semantic, source, engine and mapping callbacks have finished.
+            for path,expected_names in names:
+                if tuple(sorted(os.listdir(path)))!=expected_names:raise Held('archive-resume-census')
+            for path,value in nodes.items():
+                z=os.lstat(path)
+                if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-resume-node')
+            for path,value in files.items():
+                z=os.lstat(path)
+                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-resume-file')
+            for path,value in claims:
+                try:z=os.lstat(path)
+                except FileNotFoundError:
+                    if value is not None:raise Held('archive-resume-missing-claim')
+                    continue
+                actual=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+                if value is None or actual!=value or (z.st_mode&0o170000)==0o040000:raise Held('archive-resume-claim')
+            for path in absent:
+                try:os.lstat(path)
+                except FileNotFoundError:continue
+                raise Held('archive-resume-absence')
+            resumed=self.engine.run(['start',self.plan['reader']['id']],seconds).decode().strip();need(resumed==self.plan['reader']['id'],'archive-resume-ACK-unknown')
+            current=self.inspect(resumed);need(static(current)==static(self.baselines['reader']) and current['State']['Running'] is True and current['State']['Paused'] is False and current['State']['Pid']>0,'archive-compatible-reader-resume')
+            self.phase='complete'
+            return self.emit('complete.json',dict(version=1,action='archive-one',outcome='parent-complete',reader_index_acceptance=False,ordinary_import_grant=False,publication_acceptance=False,automatic_replay=False))
+        except BaseException:
+            self.phase='uncertain';raise Held('archive-parent-uncertain-hold-no-replay-or-resume') from None
+
     def execute(self):
+        if self.plan.get('action')=='archive-one':return self.execute_archive()
         operation_path = str(self.op); operation_original = tuple(self.op_fact)
         try:
             mapper = self.terminal_mapper()

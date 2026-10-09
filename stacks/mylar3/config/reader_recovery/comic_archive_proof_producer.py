@@ -10,7 +10,7 @@ import time
 import comic_archive_repair_action as a
 
 HERE=Path(__file__).resolve().parent
-PINS={'comic_reader_backup.py':'86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd','comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_archive_repair_action.py':'a8a752940834cf08d016e8167e0639e2f3633f3a834ded996838f4c859541709','publication_native_configured_scope.py':'6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608'}
+PINS={'comic_reader_backup.py':'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3','comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_archive_repair_action.py':'2a1dcdbe933190eb8bdf96cea9278561348262eade58069ea737ec92c9d795d1','publication_native_configured_scope.py':'6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608'}
 ROLES=a.ROLES
 Held=a.Held
 need=a.need
@@ -96,6 +96,7 @@ def context(request,watch,extra,*,trees=()):
  need(callable(watch) and getattr(watch,'__self__',None) is not None and getattr(watch,'__func__',None) is not None and watch.__func__.__name__=='continuous' and Path(watch.__func__.__code__.co_filename).absolute()==Path(request['parent_source']['path']),'archive-producer-parent-watch')
  declared=[Path(__file__),*map(lambda n:HERE/n,PINS),request['parent_plan']['path'],request['parent_source']['path'],*extra]
  o=Originals(declared,trees);o.ref(request['parent_source'],json_value=False);plan=o.ref(request['parent_plan'])
+ o.ref(plan['sdk_map']) # Original source-bound ref9/hash, before watch/module/copy callbacks.
  need(plan['nonce']==request['nonce'] and plan['operation']==request['operation'] and plan['action']=='archive-one','archive-producer-original-plan')
  need(set(plan['producer_inputs'])=={'archive_request','archive_scopes'},'archive-producer-distinct-inputs')
  for name,ref in plan['producer_inputs'].items():o.admit(ref['path'])
@@ -150,7 +151,13 @@ def private_scopes(o,scopes,observations,restore):
 def backup_controls(request,*,watch):
  ctx=request['context'];need(type(ctx) is dict and set(ctx)=={'backup','observations'},'archive-producer-backup-context')
  backup=ctx['backup'];config=stopped(ctx['observations']['reader']);restore=Path(backup['restore_root']);manifest_path=Path(backup['manifest']['path'])
- o,plan,owner,scopes,source=context(request,watch,[config,restore,manifest_path,manifest_path.parent/'backup'/'config'],trees=(config,restore,manifest_path.parent/'backup'/'config'))
+ # Original completion leaves are exported by the checked backup algorithm,
+ # not recaptured after its return. CHILD->HOST keeps untouched nine values;
+ # actual HOST kernel must match them, otherwise this invocation holds.
+ completed=tuple((str(path),tuple(value)) for path,value in backup['backup_helper_ack']['original_vectors']['files'])
+ need(getattr(watch,'__self__',None) is not None and hasattr(watch.__self__,'mapping'),'archive-producer-owning-mapping');mapping=watch.__self__.mapping;completion=tuple((mapping.host(path),value) for path,value in completed)
+ o,plan,owner,scopes,source=context(request,watch,[config,restore,manifest_path,manifest_path.parent/'backup'/'config',*[path for path,value in completion]],trees=(config,restore,manifest_path.parent/'backup'/'config'))
+ for path,value in completion:o.record(path,value)
  expected=copy.deepcopy(ctx['observations']);private_scopes(o,scopes,expected,restore);runtime(watch,expected)
  manifest=o.ref(backup['manifest']);need(type(manifest['version']) is int and manifest['version']==1 and manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']==PINS['comic_reader_backup.py'] and manifest['primitives_sha256']==PINS['comic_reader_backup_primitives.py'] and manifest['backup_verified'] is False and manifest['final_ack_required'] is True,'archive-producer-neutral-backup-source')
  need(backup['backup_helper_ack']['manifest_sha256']==backup['manifest']['sha256'] and backup['backup_helper_ack']['backup_verified'] is True,'archive-producer-actual-helper-ACK')
@@ -225,7 +232,7 @@ def phase_custody(request,*,watch):
   result=mapping.child(str(path));need(mapping.host(result)==str(path),'archive-producer-path-roundtrip');return result
  def refchild(ref):return dict(ref,path=child(ref['path']))
  generated_scopes=o.ref(ctx['archive_scopes']);need(same(generated_scopes,{'version':1,'scratch':child(scopes['scratch']),'retention_root':child(scopes['retention_root'])}),'archive-producer-original-scopes')
- proofs=copy.deepcopy(ctx['controls']);proofs['archive_scopes']=copy.deepcopy(ctx['archive_scopes'])
+ proofs=copy.deepcopy(ctx['controls']);proofs['archive_scopes']=copy.deepcopy(ctx['archive_scopes']);o.ref(plan['sdk_map']);proofs['archive_sdk_map']=copy.deepcopy(plan['sdk_map'])
  if ctx['phase']=='verify-terminal':
   ref=ctx['execution_originals'];original=a.original_execution(o.ref(ref),owner);baseline=original['baseline'];baseline_host=mapping.host(baseline['path']);need(mapping.child(baseline_host)==baseline['path'],'archive-producer-original-baseline-roundtrip');baseline_ref=dict(baseline,path=baseline_host);o.ref(baseline_ref);proofs['archive_execution_originals']=copy.deepcopy(ref)
   # Lifecycle also needs the ORIGINAL baseline path in its immutable proof map.
@@ -239,7 +246,7 @@ def phase_custody(request,*,watch):
  command=['/lsiopy/bin/python3','-I','-B',child(plan['provider']['path']),'--phase',ctx['phase'],'--input',inv['input_path'],'--input-sha256',inv['input_sha256'],'--source-sha256',inv['provider_sha256']]
  expected_input={'version','action','command_template','operation','sdk_map','nonce','parent_sha256','selected_image','controls','archive_scopes','owner','operation_id'}|({'execution_originals'} if ctx['phase']=='verify-terminal' else set())
  need(set(input_doc)==expected_input and type(input_doc['version']) is int and input_doc['version']==1 and same(a.owner_request({'version':1,'owner':input_doc['owner'],'operation_id':input_doc['operation_id']}),owner) and input_doc['parent_sha256']==inv['parent_sha256'] and input_doc['selected_image']==plan['selected_image'],'archive-producer-exact-action-join')
- need(inv['command']==command and input_doc['command_template']==command[:9]+['<INPUT_SHA256>']+command[10:] and input_doc['nonce']==request['nonce'] and input_doc['action']=='archive-one' and input_doc['controls']=={k:refchild(v) for k,v in ctx['controls'].items()} and input_doc['archive_scopes']==refchild(ctx['archive_scopes']),'archive-producer-exact-child-input')
+ need(inv['command']==command and input_doc['command_template']==command[:9]+['<INPUT_SHA256>']+command[10:] and input_doc['nonce']==request['nonce'] and input_doc['action']=='archive-one' and input_doc['controls']=={k:refchild(v) for k,v in ctx['controls'].items()} and input_doc['archive_scopes']==refchild(ctx['archive_scopes']) and input_doc['sdk_map']==refchild(plan['sdk_map']),'archive-producer-exact-child-input')
  if ctx['phase']=='verify-terminal':need(input_doc['execution_originals']==refchild(ctx['execution_originals']),'archive-producer-original-execute-input')
  native=plan['native'];need(set(native)=={'data','roots'} and len(native['roots'])==1,'archive-producer-native-geometry')
  scope=module('publication_native_configured_scope.py',o);config_child=str(Path(native['data'])/'config.ini');config_host=scope.projection(expected['held_native']['Mounts'],config_child)

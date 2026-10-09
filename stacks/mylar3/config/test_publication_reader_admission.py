@@ -21,7 +21,7 @@ def load(name, path):
     return module
 m = load('admission_fixture', str(_PORTABLE_ROOT / 'publication_reader_admission.py'))
 assert Path(m.__file__).resolve() == _PORTABLE_ROOT / 'publication_reader_admission.py'
-assert hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() == '933d68d60a29474f9b4c0b9bc1060fd9ae04fbebc839355cf542b66c3421b862'
+assert hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() == '43260df4e950f56758a0f965c6cb006bf29ffce9f8275e5d08d0a215a6f91071'
 d = load('disk_fixture', str(_PORTABLE_ROOT / 'fixtures/comic_komga_stopped_reader_disk_v3.py'))
 f = load('kernel_fixture', str(_PORTABLE_ROOT / 'test_publication_reader_softdelete.py'))
 
@@ -621,8 +621,8 @@ class GeometryControls(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'after-URL-callbacks'):m.verify_reader_native_pair(self.life,self.prep,self.pair)
     def test_portable_source_pins_not_historical(self):
         raw=Path(m.__file__).read_text()
-        self.assertIn('86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd',raw)
-        self.assertIn('a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d',raw)
+        self.assertIn('f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3',raw)
+        self.assertIn('ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a',raw)
         self.assertNotIn('b60ed13b2c1611a0712f6c902d3ae70999ad69be2460a10d4af0533c6733c2a2',raw)
         self.assertEqual(m.NEGATIVE_SHA,'85615fc4403982153adae10d2b72248f877e712f16329c16fdb2a2e6742d3d41')
         self.assertEqual(m.LIFECYCLE_SHA,'2335f450a8998ce2155fffc05f496ed3f7ac42b8521de11bd142911f6fbc7ebe')
