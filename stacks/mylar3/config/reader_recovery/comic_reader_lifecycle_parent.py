@@ -265,6 +265,8 @@ def stopped(row):
     state = row['State']
     need(state['Running'] is False and state['Pid'] == 0 and state['Status'] == 'exited'
          and all(state.get(k) is False for k in ('Paused', 'Restarting', 'Dead', 'OOMKilled')), 'reader-not-stopped')
+_NFS_ADAPTERS=weakref.WeakKeyDictionary()
+
 class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
  def run(self,args,seconds):
@@ -272,6 +274,14 @@ class ScopedDocker:
   try:r=subprocess.run([*DOCKER,*args],capture_output=True,timeout=seconds,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except (OSError,subprocess.TimeoutExpired):raise Held('engine-ACK-unknown-no-replay') from None
   need(len(r.stdout)<=MAX and len(r.stderr)<=MAX and r.returncode==0,'engine-command-held');return r.stdout
+ def canary(self,args,**kwargs):
+  # Only the separately source-pinned diagnostic parent uses this transport.
+  need(type(args) is list and (args[:len(DOCKER)]==DOCKER and args[len(DOCKER)] in ('create','inspect','start','exec')
+       or args[:2]==['findmnt','--json']), 'nfs-engine-command')
+  need(set(kwargs)<={'input','capture_output','timeout','check'} and kwargs.get('capture_output') is True
+       and kwargs.get('check') is False and 0<kwargs.get('timeout',0)<=900,'nfs-engine-call-shape')
+  try:return subprocess.run(args,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},**kwargs)
+  except (OSError,subprocess.TimeoutExpired):raise Held('nfs-engine-ACK-unknown') from None
  def interactive(self,cid,handler,seconds):
   end=time.monotonic()+seconds
   try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
@@ -315,8 +325,8 @@ class LifecycleParent:
         need(type(plan) is dict and set(plan) == {'version', 'kind', 'nonce', 'seconds',
              'operation', 'reader', 'held_native', 'held_worker', 'selected_image',
              'provider', 'producer', 'observer', 'sdk_map', 'mounts', 'native',
-             'action_inputs', 'producer_inputs', 'birth_source_sha256', 'scope_projection', 'bounds', 'admission_source_sha256'}, 'plan-schema')
-        need(plan['version'] == 8 and type(plan['version']) is int
+             'action_inputs', 'producer_inputs', 'birth_source_sha256', 'scope_projection', 'bounds', 'admission_source_sha256', 'nfs'}, 'plan-schema')
+        need(plan['version'] == 9 and type(plan['version']) is int
              and plan['kind'] == 'reviewed-negative-five-lifecycle-protocol'
              and digest(plan['nonce']) and type(plan['seconds']) is int
              and 1 <= plan['seconds'] <= 3600, 'plan-kind')
@@ -362,6 +372,21 @@ class LifecycleParent:
         _PROJECTORS[self] = projection.observed_native
         self.producer = pinned_module(plan['producer'])
         need(callable(getattr(self.producer, 'produce', None)), 'producer-interface')
+        need(type(plan['nfs']) is dict and set(plan['nfs'])=={'adapter','active_parent','active_input'},'nfs-finite-plan-required')
+        # Capture every NFS source ancestor before the first source read callback.
+        nfs_nodes={}
+        for ref in plan['nfs'].values():
+            for node,value in parents(Path(ref['path'])).items():
+                need(node not in nfs_nodes or nfs_nodes[node]==value,'nfs-parent-original-conflict');nfs_nodes[node]=value
+        for node,value in nfs_nodes.items():
+            need(node not in self.nodes or self.nodes[node]==value,'nfs-parent-original-conflict');self.nodes[node]=value
+        for ref in plan['nfs'].values():
+            need(ref['path'] not in self.files or self.files[ref['path']]==tuple(ref['signature9']),'nfs-source-original-conflict')
+            read(ref);self.files[ref['path']]=tuple(ref['signature9'])
+        final(dict(self.files),dict(self.nodes),())
+        nfs_module=pinned_module(plan['nfs']['adapter'])
+        need(all(callable(getattr(nfs_module,name,None)) for name in ('preflight','run_active','stop_owned','nfs_ready')),'nfs-implementation-required')
+        _NFS_ADAPTERS[self]=nfs_module
         self.observer = pinned_module(plan['observer'])
         need(callable(getattr(self.observer, 'observe_mapped_with_originals', None)), 'observer-interface')
         self.baselines = {}
@@ -480,7 +505,10 @@ class LifecycleParent:
         expected_files = dict(self.files); expected_nodes = dict(self.nodes)
         for path,fact in _OUTPUT_NODES.get(self,{}).items():
             need(path not in expected_nodes or expected_nodes[path]==fact,'producer-output-node-conflict');expected_nodes[path]=fact
-        result = self.producer.produce(phase, request, watch=self.continuous)
+        if phase=='nfs-ready':
+            module=_NFS_ADAPTERS.get(self);need(module is not None,'nfs-owning-module-required')
+            result=module.nfs_ready(self,request,watch=self.continuous)
+        else:result = self.producer.produce(phase, request, watch=self.continuous)
         need(type(result) is dict and set(result) == {'version', 'phase', 'nonce', 'evidence'}
              and type(result['version']) is int and result['version'] == 1
              and result['phase'] == phase and result['nonce'] == self.plan['nonce'], 'producer-result-schema')
@@ -778,11 +806,11 @@ class LifecycleParent:
             need(all(callable(getattr(self.producer, name, None)) for name in
                      ('terminal_observation', 'terminal_phase_custody')), 'terminal-producer-implementation-required')
             need(callable(getattr(self.observer, 'observe_mapped_with_originals', None)), 'terminal-observer-implementation-required')
-            self.phase = 'stopping'
-            self.emit('stop-intent.json', dict(id=self.plan['reader']['id'], automatic_replay=False))
-            self.left(); result = self.engine.run(['stop', '--timeout', '60', self.plan['reader']['id']], self.left())
-            need(result.decode().strip() == self.plan['reader']['id'], 'stop-ACK-unknown')
-            observed = self.continuous(); self.stop_state = copy.deepcopy(observed['reader']['State'])
+            nfs_module=_NFS_ADAPTERS.get(self)
+            need(nfs_module is not None,'nfs-owning-module-required')
+            nfs_module.preflight(self)  # implementation and source evidence before stop
+            nfs_module.run_active(self) # owning running-reader canary, no receipt reconstruction
+            observed=nfs_module.stop_owned(self)
             runtime = copy.deepcopy(observed['reader'])
             # Provider backup sees canonical host config roots also mounted in child.
             for mount in runtime['Mounts']:

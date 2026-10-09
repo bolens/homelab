@@ -1,0 +1,452 @@
+"""Persistent DDL attempts, progress, provider cooldowns, and restart recovery."""
+import hashlib
+import json
+import math
+import os
+import re
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+import threading
+import time
+
+ATTEMPT_LIMIT = 6
+COOLDOWN_SECONDS = 900
+_LOCK = threading.RLock()
+_STORE = None
+
+
+class Store:
+    def __init__(self, root, clock=time.time):
+        self.root = Path(root)
+        self.path = self.root / 'ddl-control.json'
+        self.clock = clock
+        self.data = {'version': 1, 'items': {}, 'providers': {}}
+        if self.path.exists():
+            self.data = json.loads(self.path.read_text())
+            if self.data.get('version') != 1 or not isinstance(self.data.get('items'), dict) or not isinstance(self.data.get('providers'), dict):
+                raise ValueError('DDL control state needs recovery')
+
+    def save(self):
+        temporary = self.path.with_suffix('.new')
+        with temporary.open('w') as output:
+            os.chmod(temporary, 0o600)
+            json.dump(self.data, output)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, self.path)
+
+    def record(self, item):
+        key = str(item['id'])
+        # A changed mirror does not grant a fresh attempt budget.
+        release = hashlib.sha256((str(item.get('mainlink')) + ':' + str(item.get('issueid'))).encode()).hexdigest()
+        value = self.data['items'].get(key)
+        if value is None or value['release'] != release:
+            value = {'release': release, 'attempts': 0, 'bytes': 0, 'high_water': 0,
+                     'last_progress': None, 'sample_time': self.clock(), 'speed': 0,
+                     'reason': '', 'completed': False}
+            self.data['items'][key] = value
+        return value
+
+    def begin(self, item):
+        value = self.record(item)
+        provider = str(item.get('link_type') or 'GC-Main')
+        value['provider'] = provider
+        if value['completed']:
+            return 'completed'
+        if value['attempts'] >= ATTEMPT_LIMIT:
+            value['reason'] = 'Retry limit reached; review this release before restarting'
+            self.save()
+            return 'exhausted'
+        remaining = self.data['providers'].get(provider, {}).get('until', 0) - self.clock()
+        if remaining > 0:
+            value['reason'] = 'Provider cooling down'
+            self.save()
+            return 'cooldown'
+        value['attempts'] += 1
+        value['started'] = self.clock()
+        value['sample_time'] = self.clock()
+        value['speed'] = 0
+        value['reason'] = 'Downloading' if value['attempts'] == 1 else 'Retrying download'
+        self.save()
+        return 'ready'
+
+    def observe(self, key, size, active=True):
+        value = self.data['items'].get(str(key))
+        if value is None:
+            return
+        now = self.clock()
+        elapsed = now - value.get('sample_time', now)
+        if elapsed < 1:
+            return
+        previous = value.get('bytes', 0)
+        value['speed'] = max(0, size - previous) / elapsed if active else 0
+        if size > previous:
+            value['last_progress'] = now
+        value['bytes'] = size
+        value['high_water'] = max(size, value.get('high_water', 0))
+        value['sample_time'] = now
+
+    def finish(self, item, success, reason=None):
+        value = self.record(item)
+        provider = str(item.get('link_type') or 'GC-Main')
+        state = self.data['providers'].setdefault(provider, {'failures': 0, 'until': 0})
+        if success:
+            value['completed'] = True
+            value['reason'] = 'Downloaded; handed to post-processing'
+            value['speed'] = 0
+            state.update(failures=0, until=0)
+        else:
+            state['failures'] += 1
+            value['failed_providers'] = list(dict.fromkeys(value.get('failed_providers', []) + [provider]))
+            value['reason'] = reason or 'Download failed; checking another mirror'
+            if state['failures'] >= 2 or reason == 'Provider rate limit':
+                state['until'] = self.clock() + COOLDOWN_SECONDS
+        self.save()
+
+    def reset(self, key):
+        value = self.data['items'].get(str(key))
+        if value:
+            value.update(failed_providers=[], attempts=0, completed=False, reason='Manual retry requested')
+            value.pop('retry_stopped', None)
+            self.save()
+
+
+def store():
+    global _STORE
+    if __package__:
+        from . import native_writers
+        if native_writers.publication_mode() and not native_writers.active():
+            from .publication_guard import Unavailable
+            raise Unavailable('Outer native admission required before DDL retry state')
+        if native_writers.publication_mode() and _STORE is not None:
+            import mylar
+            if _STORE.root.absolute() != Path(mylar.DATA_DIR).absolute():
+                from .publication_guard import Unavailable
+                raise Unavailable('DDL retry state belongs to foreign state')
+    if _STORE is None:
+        import mylar
+        _STORE = Store(mylar.DATA_DIR)
+    return _STORE
+
+
+def reset(key):
+    with _LOCK:
+        store().reset(key)
+
+
+
+def stop_retry(item, result=None, lookup_failed=False):
+    """Retain why discovery stopped, independently of the transfer attempt budget."""
+    with _LOCK:
+        state = store()
+        value = state.record(item)
+        result = result or {}
+        if lookup_failed:
+            stopped = 'lookup_failed'
+        elif result.get('_queue_reason') == 'Alternate mirror changed pack layout; review release':
+            stopped = 'layout_changed'
+        else:
+            stopped = 'mirrors_exhausted'
+        value['retry_stopped'] = stopped
+        state.save()
+
+
+def failed_mirrors(value):
+    return len({name.replace('GC_Mirror', 'GC-Mirror')
+                for name in value.get('failed_providers', [])})
+
+
+def failure_reason(value):
+    if value.get('attempts', 0) >= ATTEMPT_LIMIT:
+        return 'Retry limit reached; review this release before restarting'
+    stopped = value.get('retry_stopped')
+    if stopped == 'lookup_failed':
+        return 'Mirror lookup failed repeatedly; automatic retries stopped'
+    if stopped == 'layout_changed':
+        return 'Alternate mirror changed pack layout; review release'
+    count = failed_mirrors(value)
+    if stopped == 'mirrors_exhausted':
+        if count:
+            return 'All %s available %s failed; try another release' % (count, 'mirror' if count == 1 else 'mirrors')
+        return 'No usable mirrors found; try another release'
+    # Old records lack a terminal discovery receipt. Do not invent a total.
+    prefix = ('%s %s failed' % (count, 'mirror' if count == 1 else 'mirrors')) if count else 'Download failed'
+    return prefix + '; automatic retries stopped; review mirrors'
+
+
+def search_order(order, nzbproviders):
+    """Prefer available NZB searches while every known GetComics host is cooling."""
+    lowered = {name.casefold() for name in order}
+    if ('ddl(getcomics)' not in lowered
+            or lowered.intersection(('ddl(external)', 'airdcpp'))):
+        return order
+    nzb_names = {name.casefold() for name in nzbproviders}
+    nzbs = [name for name in order if name.casefold() in nzb_names]
+    if not nzbs:
+        return order
+    try:
+        with _LOCK:
+            state = store()
+            known = [row for name, row in state.data['providers'].items()
+                     if name in ('GC-Main', 'GC-Mirror', 'GC_Mirror',
+                                 'GC-Mega', 'GC-Media', 'GC-Pixel')]
+            now = state.clock()
+            if not known or any(row.get('until', 0) <= now for row in known):
+                return order
+    except (OSError, ValueError, TypeError, AttributeError):
+        # Optional ordering must not turn damaged DDL state into an NZB outage.
+        # The existing queue/health paths still report invalid control state.
+        return order
+    return nzbs + [name for name in order if name.casefold() not in nzb_names]
+
+
+def clear_active(key):
+    import mylar
+    mylar.DDL_QUEUED[:] = [value for value in mylar.DDL_QUEUED if str(value) != str(key)]
+
+
+def begin(item, queue):
+    from mylar import db, helpers
+    database = db.DBConnection()
+    current = database.selectone('SELECT status FROM ddl_info WHERE id=?', [item['id']]).fetchone()
+    if not current or current['status'] not in ('Queued', 'Downloading'):
+        clear_active(item['id'])
+        return False
+    with _LOCK:
+        decision = store().begin(item)
+    if decision in ('exhausted', 'completed'):
+        status = 'Completed' if decision == 'completed' else 'Failed'
+        database.upsert('ddl_info', {'status': status}, {'id': item['id']})
+        clear_active(item['id'])
+        if decision == 'exhausted':
+            helpers.reverse_the_pack_snatch(item['id'], item['comicid'])
+        return False
+    if decision == 'cooldown':
+        database.upsert('ddl_info', {'status': 'Queued'}, {'id': item['id']})
+        clear_active(item['id'])
+        queue.put(item)
+        time.sleep(1)
+        return False
+    return True
+
+
+def finish(item, result):
+    with _LOCK:
+        store().finish(item, bool(result.get('success')), result.get('_queue_reason'))
+    if not result.get('success'):
+        clear_active(item['id'])
+
+
+def recover(queue, record_id=None):
+    """Recover startup state, or restore one queued record during normal operation."""
+    import mylar
+    from mylar import db
+    database = db.DBConnection()
+    with queue.mutex:
+        pending = {str(item['id']) for item in queue.queue if isinstance(item, dict)}
+    if record_id is None:
+        rows = database.select("SELECT * FROM ddl_info WHERE status IN ('Queued', 'Downloading') ORDER BY CASE status WHEN 'Downloading' THEN 0 ELSE 1 END, updated_date")
+    else:
+        rows = database.select("SELECT * FROM ddl_info WHERE id=? AND status='Queued'", [str(record_id)])
+    for row in rows:
+        key = str(row['id'])
+        if key in pending:
+            continue
+        item = {name: row[name] for name in ('id', 'link', 'mainlink', 'series', 'year', 'size', 'comicid',
+                                             'issueid', 'link_type', 'filename', 'site', 'remote_filesize')}
+        item.update(oneoff=False, comicinfo=None, packinfo=None, resume=None)
+        if row['filename'] and row['link_type'] in (None, 'GC-Main', 'GC-Mirror') and mylar.CONFIG.DDL_AUTORESUME:
+            final = Path(mylar.CONFIG.DDL_LOCATION) / Path(row['filename']).name
+            partial = final.with_name(final.name + '.part')
+            candidate = partial if partial.is_file() else final
+            if candidate.is_file() and not candidate.is_symlink():
+                size = candidate.stat().st_size
+                try:
+                    total = int(row['remote_filesize'] or 0)
+                except (TypeError, ValueError):
+                    total = 0
+                if size > 0 and (total <= 0 or size < total):
+                    item['resume'] = size
+        database.upsert('ddl_info', {'status': 'Queued'}, {'id': row['id']})
+        clear_active(row['id'])
+        queue.put(item)
+        pending.add(key)
+
+
+def byte_count(row, directory):
+    from mylar.queue_progress import received_bytes
+    return received_bytes(row, directory) or 0
+
+
+
+def pack_numbers(value):
+    """Only explicit integer issue lists/ranges establish complete pack membership."""
+    if not isinstance(value, str) or len(value) > 512 or not re.fullmatch(r'\s*#?\d+(?:\s*-\s*#?\d+)?(?:\s*[, +]\s*#?\d+(?:\s*-\s*#?\d+)?)*\s*', value):
+        return None
+    numbers = set()
+    for first, last in re.findall(r'#?(\d+)(?:\s*-\s*#?(\d+))?', value):
+        first, last = int(first), int(last or first)
+        if last < first or last - first > 5000:
+            return None
+        numbers.update(range(first, last + 1))
+        if len(numbers) > 5000:
+            return None
+    return numbers or None
+
+
+def library_present(folder, location, status):
+    from mylar.library_status import present
+    return present(folder, location, status)
+
+
+def import_evidence(database):
+    rows = database.select("""
+        SELECT d.id, d.pack, d.issues, d.comicid, c.ComicLocation,
+               i.Status AS issue_status, i.Location
+        FROM ddl_info d LEFT JOIN comics c ON c.ComicID=d.comicid
+        LEFT JOIN issues i ON i.IssueID=d.issueid AND i.ComicID=d.comicid WHERE d.status='Completed'
+          AND NOT EXISTS (SELECT 1 FROM annuals a WHERE a.IssueID=d.issueid)
+        UNION ALL
+        SELECT d.id, d.pack, d.issues, d.comicid, c.ComicLocation,
+               i.Status AS issue_status, i.Location
+        FROM ddl_info d LEFT JOIN comics c ON c.ComicID=d.comicid
+        JOIN annuals i ON i.IssueID=d.issueid AND i.ComicID=d.comicid WHERE d.status='Completed' AND COALESCE(i.Deleted,0)=0
+    """)
+    result, members = {}, {}
+    for row in rows:
+        key = str(row['id'])
+        linked = library_present(row['ComicLocation'], row['Location'], row['issue_status'])
+        if str(row['pack']).lower() not in ('1','true'):
+            if linked:
+                result[key] = ('Post-processed; in library', True)
+            continue
+        numbers = pack_numbers(row['issues'])
+        if numbers is None:
+            result[key] = ('Linked issue in library; pack membership unconfirmed' if linked else
+                           'Pack membership unconfirmed; review imports', False)
+            continue
+        comicid = str(row['comicid'])
+        if comicid not in members:
+            found = {}
+            for issue in database.select('SELECT Issue_Number, Status, Location FROM issues WHERE ComicID=?', [comicid]):
+                try:
+                    number = Decimal(str(issue['Issue_Number']))
+                    if not number.is_finite() or number != number.to_integral_value():
+                        continue
+                except InvalidOperation:
+                    continue
+                found.setdefault(int(number), []).append(issue)
+            members[comicid] = found
+        count = 0
+        for number in numbers:
+            matches = members[comicid].get(number, [])
+            if len(matches) == 1 and library_present(row['ComicLocation'], matches[0]['Location'], matches[0]['Status']):
+                count += 1
+        complete = count == len(numbers)
+        result[key] = (('Pack in library' if complete else 'Pack import incomplete') +
+                       ' (%d/%d issues)' % (count, len(numbers)), complete)
+    return result
+
+
+def diagnostics(rows):
+    import mylar
+    # Download completion is distinct from import completion. Read current issue
+    # state on each poll so imports completed after finish() are visible too.
+    from mylar import db, workflow
+    paused = workflow.policy()['ddl_paused']
+    evidence = import_evidence(db.DBConnection())
+    from mylar import pack_intake
+    evidence.update(pack_intake.evidence([row['id'] for row in rows if row['status'] == 'Completed']))
+    from mylar import pp_monitor
+    names = set()
+    completed_ids = []
+    for row in rows:
+        if row['status'] == 'Completed':
+            path = Path(row['filename'] or '')
+            names.add(path.name)
+            if path.suffix.lower() == '.zip':
+                names.add(path.stem)
+            completed_ids.append(str(row['id']))
+    processing = pp_monitor.ddl_states(names, completed_ids)
+    def processing_reason(row):
+        key = str(row['id'])
+        imported, complete = evidence.get(key, ('', False))
+        if complete:
+            return imported
+        path = Path(row['filename'] or '')
+        filename = path.name
+        aliases = {filename}
+        if path.suffix.lower() == '.zip':
+            aliases.add(path.stem)
+        def matches(item):
+            if item.get('ddl_id'):
+                return item['ddl_id'] == key
+            return bool(filename) and len(filename) < 160 and item['name'] in aliases
+        # Never match a truncated observer-name prefix.
+        if filename:
+            for stage, label in (('active', 'Post-processing now'),
+                                 ('waiting', 'Downloaded; awaiting post-processing')):
+                if any(matches(item) for item in processing[stage]):
+                    return label + ('; ' + imported if imported else '')
+            for item in processing['recent']:
+                if matches(item):
+                    outcome = item.get('outcome', '')
+                    label = ('Processing failed; review import' if 'error' in outcome or 'failure' in outcome else
+                             'Processing handed off; queue entry unconfirmed' if 'Handed off' in outcome else
+                             'Processing finished; review import')
+                    return label + ('; ' + imported if imported else '')
+        return imported or 'Downloaded; import not confirmed (not known to be queued)'
+    result = {}
+    with _LOCK:
+        state = store()
+        now = state.clock()
+        for row in rows:
+            key = str(row['id'])
+            value = state.data['items'].get(key, {})
+            active = row['status'] == 'Downloading'
+            if active:
+                state.observe(key, byte_count(row, mylar.CONFIG.DDL_LOCATION))
+            elapsed = now - value.get('sample_time', now)
+            speed = value.get('speed', 0) if active and elapsed <= 15 else 0
+            last = value.get('last_progress')
+            provider = (row['link_type'] if 'link_type' in row.keys() else None) or value.get('provider') or 'GC-Main'
+            cooldown = max(0, math.ceil(state.data['providers'].get(provider, {}).get('until', 0) - now))
+            finished = row['status'] == 'Completed'
+            attempts = value.get('attempts', 0)
+            retry_eligible = row['status'] == 'Queued' and not paused and attempts < ATTEMPT_LIMIT
+            reason = processing_reason(row) if finished else value.get('reason', '')
+            if row['status'] == 'Failed':
+                reason = failure_reason(value)
+            if row['status'] == 'Queued':
+                if attempts >= ATTEMPT_LIMIT:
+                    reason = 'Retry limit reached; review this release before restarting'
+                elif paused:
+                    reason = 'New downloads paused'
+                elif cooldown:
+                    reason = 'Provider cooling down'
+                else:
+                    reason = 'Queued; waiting for download slot'
+            result[key] = {'finished': finished, 'bytes': value.get('bytes', 0), 'speed': round(speed),
+                           'last_progress_seconds': int(now - last) if last is not None else None,
+                           'attempts': attempts, 'attempt_limit': ATTEMPT_LIMIT,
+                           'mirrors_failed': failed_mirrors(value), 'reason': reason,
+                           'cooldown_seconds': cooldown if retry_eligible else 0}
+        state.save()
+    return result
+
+
+def useful_progress():
+    with _LOCK:
+        values = store().data['items'].values()
+        return [sum(v.get('high_water', 0) for v in values), sum(bool(v.get('completed')) for v in values)]
+
+
+def rate_limited(key):
+    with _LOCK:
+        state = store()
+        value = state.data['items'].get(str(key))
+        if value:
+            provider = value.get('provider', 'GC-Main')
+            state.data['providers'][provider] = {'failures': 2, 'until': state.clock() + COOLDOWN_SECONDS}
+            value['reason'] = 'Provider rate limit'
+            state.save()

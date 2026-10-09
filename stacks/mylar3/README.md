@@ -1212,7 +1212,11 @@ captures metadata in the selected child and hands the original inherited pipe
 to lifecycle custody. Public recovery tools under `config/reader_recovery/` are
 for checked temporary source mounts; they are absent from the final image.
 Their backup producer, provider and terminal observer require current source
-pins and separately accepted parent custody. Parent admission stays disabled
+pins and separately accepted parent custody. The dedicated archive provider
+uses the existing owning preparation, adoption and rollback APIs. Its portable
+NFS bridge derives paths from the complete original mount table and refuses
+shadowed configuration or Writer paths. Local fixture checks do not establish
+actual NFS support or live import acceptance. Parent admission stays disabled
 while protected process observations, child database-pair facts and live
 backup/NFS/terminal acceptance remain unfinished.
 

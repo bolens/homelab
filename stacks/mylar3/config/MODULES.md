@@ -369,6 +369,21 @@ with type-sensitive rollback receipt joins. `archive_repair_rollback=1`
 advertises these installed functions only; import, reader-index and publication
 acceptance remain separate. Saved receipts cannot recreate the typed consumer.
 
+The separate canonical `publication_archive_preparation_existing.from_existing`
+factory derives one completed stage from the exact Controller, owner and operation
+ID. Genuine stopped custody must carry the original preparation metadata full9
+and completed stage directory full9. The factory independently recomputes the
+source witness, derivative, restore, catalog, census and policy before constructing
+the actual owning `RepairPreparation`; saved JSON supplies no authority. Missing
+historical directory provenance, changed incarnations and partial stages stay
+held. This installs no API replay, new operation, Writer bypass or acceptance grant.
+
+The independent archive verifier also returns factual vectors for forward or
+rollback observation: original files, ancestors, catalog claims, namespace
+censuses and required absences. This includes every other comic examined by the
+ownership policy. The verifier closes those original facts after all semantic
+callbacks; the returned vectors grant no import, reader-index or resume right.
+
 ## Prospective reader cohort installation
 
 `patch_publication_reader_cohort.py` follows the existing adapters and installs
@@ -405,7 +420,7 @@ and its fresh proof producers are independently accepted.
 
 The host-only recovery tree also contains the continuous lifecycle parent,
 fresh native process/evidence producer and schema1 phase-custody composer.
-The private-copy gate runs 334 recovery checks in isolated suite processes,
+The private-copy gate runs 482 recovery checks in isolated suite processes,
 including explicit predecessor fixtures and the current provider command
 contract. Original reader pair signatures are carried unchanged; the actual
 child lifecycle validates its own kernel facts. No new pair protocol or

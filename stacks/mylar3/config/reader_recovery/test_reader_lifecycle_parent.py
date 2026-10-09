@@ -626,6 +626,11 @@ class SchedulingTests(unittest.TestCase):
             if fault=='late-census' and (self.operation/'resume-intent.json').exists():(claims/'other').write_bytes(b'x')
             return dict(reader=row)
         x.continuous=continuous
+        # Explicit NFS boundary double for retained terminal scheduling controls.
+        def owned_stop(owner):
+            owner.phase='stopping';owner.emit('stop-intent.json',dict(id=owner.plan['reader']['id'],automatic_replay=False))
+            owner.engine.run(['stop','--timeout','60',owner.plan['reader']['id']],owner.left());observed=owner.continuous();owner.stop_state=copy.deepcopy(observed['reader']['State']);return observed
+        p._NFS_ADAPTERS[x]=types.SimpleNamespace(preflight=lambda owner:None,run_active=lambda owner:None,stop_owned=owned_stop)
         x.inspect=lambda cid:dict(row,State=dict(Running=True,Paused=False,Pid=2))
         def produce(phase,context):
             contexts.append((phase,context))

@@ -139,6 +139,12 @@
       ],
       "tracked_source_sha256": "c46add9ed2b57c1f44ec4fe23db73189b77925bea01a247df9333b526bd95168"
     },
+    "publication_archive_preparation_existing": {
+      "owning_adapters": [
+        "patch_publication_guard.py"
+      ],
+      "tracked_source_sha256": "46cc1d1274d334afe7354189a62fe92d314eaf45d7ef860aaf37ecc3800b2d11"
+    },
     "publication_archive_prepare_routes": {
       "owning_adapters": [
         "patch_publication_guard.py"
@@ -167,7 +173,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "36538aa99d73f89b276d36ae21f5b4c0b3cc3904d8c5714fa8916e2f84ef263a"
+      "tracked_source_sha256": "b451cedca2f11b818b3ea0f83b119cf3ffe4a89e0e4092bab80ca8c06d37c666"
     },
     "publication_conversion": {
       "owning_adapters": [
