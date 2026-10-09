@@ -9,8 +9,8 @@ import subprocess
 import sys
 import tempfile
 FIXES=Path(__file__).resolve().parent
-SUITES=(('test_negative_reader_action.py',33),('test_negative_reader_partial_rollback.py',13),('test_negative_reader_preimage.py',7),('test_negative_terminal_observer.py',21),('test_reader_proof_producer.py',10),('test_reader_proof_admission.py',52),('test_reader_proof_timestamp_summary.py',13),('test_reader_lifecycle_parent.py',86),('test_native_evidence.py',39),('test_reader_phase_custody.py',25),('test_terminal_reconstruction.py',11),('test_terminal_observation_producer.py',19),('test_terminal_phase_custody.py',5))
-MAX_FILES=128
+SUITES=(('test_negative_reader_action.py',33),('test_negative_reader_partial_rollback.py',13),('test_negative_reader_preimage.py',7),('test_negative_terminal_observer.py',21),('test_reader_proof_producer.py',10),('test_reader_proof_admission.py',52),('test_reader_proof_timestamp_summary.py',13),('test_reader_lifecycle_parent.py',86),('test_native_evidence.py',39),('test_reader_phase_custody.py',25),('test_terminal_reconstruction.py',11),('test_terminal_observation_producer.py',19),('test_terminal_phase_custody.py',5),('test_archive_repair_protocol.py',28),('test_archive_repair_flow.py',12),('test_nfs_current_source.py',35),('test_hardlink_nfs_probe.py',29),('test_nfs_factual_successor.py',13),('test_nfs_public_geometry.py',9),('test_archive_proof_producer.py',22))
+MAX_FILES=256
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass
 def sig(z):return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)

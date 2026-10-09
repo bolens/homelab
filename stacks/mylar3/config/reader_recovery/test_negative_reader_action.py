@@ -173,18 +173,18 @@ from pathlib import Path
 assert sys.dont_write_bytecode
 source=Path(sys.argv[1]);mode=sys.argv[2]
 spec=importlib.util.spec_from_file_location('provider_fresh',source);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-assert not any(n=='mylar' or n.startswith('mylar.') or n=='bencode' for n in sys.modules)
+assert not any(n=='mylar' or n.startswith('mylar.') or n=='comic_fixture_bundled_dependency' for n in sys.modules)
 with tempfile.TemporaryDirectory() as temp:
  root=Path(temp);app=root/'app';app.mkdir();sdk=app/'mylar';sdk.mkdir();lib=app/'lib';lib.mkdir()
  # Explicit fixture path substitution; no sys.modules mocks or preload.
  m.ROOT=sdk;m.LIB=lib
  names=next(ast.literal_eval(n.value) for f in ast.parse(source.read_text()).body if isinstance(f,ast.FunctionDef) and f.name=='sdk' for n in f.body if isinstance(n,ast.Assign) and any(isinstance(x,ast.Name) and x.id=='names' for x in n.targets))
- (sdk/'__init__.py').write_text('import bencode\nassert bencode.VALUE == "physical-bundled-import"\n')
- (lib/'bencode.py').write_text('VALUE="physical-bundled-import"\n')
+ (sdk/'__init__.py').write_text('import comic_fixture_bundled_dependency\nassert comic_fixture_bundled_dependency.VALUE == "physical-bundled-import"\n')
+ (lib/'comic_fixture_bundled_dependency.py').write_text('VALUE="physical-bundled-import"\n')
  for name in names:(sdk/(name+'.py')).write_text('# physical fixture module\n')
  mapping={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sdk.iterdir()};control=root/'sdk-map.json';control.write_text(json.dumps(mapping));control.chmod(0o600)
  ref=dict(path=str(control),sha256=hashlib.sha256(control.read_bytes()).hexdigest())
- if mode=='missing':(lib/'bencode.py').unlink()
+ if mode=='missing':(lib/'comic_fixture_bundled_dependency.py').unlink()
  if mode=='symlink':lib.rename(app/'foreign');lib.symlink_to(app/'foreign',target_is_directory=True)
  original_checked=m.checked;changed=[]
  def checked(ref,private=True):
@@ -216,9 +216,9 @@ with tempfile.TemporaryDirectory() as temp:
   if mode=='map-leaf':assert str(error)=='action-sdk-terminal-CAS',str(error)
   print(json.dumps({'held':True,'mode':mode}));sys.exit(0)
  assert mode=='positive',mode
- assert Path(sys.modules['bencode'].__file__)==lib/'bencode.py'
+ assert Path(sys.modules['comic_fixture_bundled_dependency'].__file__)==lib/'comic_fixture_bundled_dependency.py'
  assert set(modules)==set(names) and lib in nodes
- print(json.dumps({'genuine_fresh_import':True,'bytecode_off':sys.dont_write_bytecode,'bundled_origin':str(Path(sys.modules['bencode'].__file__).relative_to(root))}))
+ print(json.dumps({'genuine_fresh_import':True,'bytecode_off':sys.dont_write_bytecode,'bundled_origin':str(Path(sys.modules['comic_fixture_bundled_dependency'].__file__).relative_to(root))}))
 '''
   result=subprocess.run([sys.executable,'-I','-B','-c',driver,str(P),mode],capture_output=True,text=True)
   self.assertEqual(result.returncode,0,result.stdout+result.stderr)

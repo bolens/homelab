@@ -1,0 +1,202 @@
+"""Native policy and versioned recovery ownership for guarded metadata backends."""
+import hashlib
+import json
+import os
+import re
+import stat
+import uuid
+
+from .media_writer import sync
+from .tagger_adapter import TERMINAL
+from .tagger_pack import Publisher
+from .tagger_staging import Staging
+
+
+def state(writer):
+    """Bind recovery directories before admitting any publication or scanner."""
+    root = writer.root.parent/'modern-tagger-v2'
+    paths = (root, root/'journal-v2', root/'staging', root/'staging-receipts')
+    binding = writer.root/'tagger-state-v2.identity'
+    bound = binding.exists() or binding.is_symlink()
+    identities = []
+    for path in paths:
+        if any(p.is_symlink() for p in (path, *path.parents)):
+            raise ValueError('Linked tagger recovery state')
+        if not bound and not writer.fenced(tagger=True):
+            path.mkdir(mode=0o700, exist_ok=True)
+            sync(path.parent)
+        info = path.lstat()
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) != 0o700):
+            raise ValueError('Expected private tagger recovery state')
+        identities.append((info.st_dev, info.st_ino))
+    expected = (hashlib.sha256(json.dumps(identities).encode()).hexdigest()+'\n').encode()
+    if not bound:
+        if writer.fenced(tagger=True):
+            raise ValueError('Pending tagger recovery has no bound state')
+        fd = os.open(binding, os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW, 0o600)
+        try:
+            os.write(fd, expected); os.fsync(fd)
+        finally:
+            os.close(fd)
+        sync(writer.root)
+    fd = os.open(binding, os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        info = os.fstat(fd)
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.geteuid()
+                or stat.S_IMODE(info.st_mode) != 0o600 or os.read(fd, 66) != expected):
+            raise ValueError('Tagger recovery state identity changed')
+    finally:
+        os.close(fd)
+    return Publisher(paths[1], writer.root.parent), Staging(paths[2], paths[3])
+
+
+def recover(writer):
+    publisher, staging = state(writer)
+    # Invalid receipts and unresolved publication conflicts keep all admission shut.
+    writer.mark_tagger_pending()
+    for result in publisher.recover_pending():
+        if result.state not in TERMINAL:
+            raise ValueError('Tagger publication recovery requires review')
+    retained = staging.recover()
+    writer.clear_tagger_pending()
+    if retained:
+        import mylar
+        mylar.logger.warn('Modern tagger retained %s uncertain staging copies for review', retained)
+
+
+def catalog(issueid):
+    """Annual metadata belongs to its release volume, never its parent series."""
+    from mylar import db
+    from .tagger_lookup import identifier
+    issueid = identifier(issueid)
+    database = db.DBConnection()
+    issues = database.select('SELECT ComicID FROM issues WHERE IssueID=?', [issueid])
+    annuals = database.select('SELECT ReleaseComicID, Deleted FROM annuals WHERE IssueID=?', [issueid])
+    volumes = {identifier(row['ComicID']) for row in issues}
+    volumes.update(identifier(row['ReleaseComicID']) for row in annuals if not row['Deleted'])
+    if any(row['Deleted'] for row in annuals) or len(volumes) > 1:
+        raise ValueError('Ambiguous or deleted issue')
+    if not volumes:
+        arcs = database.select('SELECT ComicID FROM storyarcs WHERE IssueID=?', [issueid])
+        volumes = {identifier(row['ComicID']) for row in arcs}
+    if len(volumes) != 1:
+        raise ValueError('No unique catalog volume')
+    volumeid = volumes.pop()
+    rows = database.select('SELECT ComicVersion, ComicYear FROM comics WHERE ComicID=?', [volumeid])
+    if len(rows) > 1:
+        raise ValueError('Ambiguous tracked volume')
+    return issueid, volumeid, dict(rows[0]) if rows else {}
+
+
+def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
+        filename=None, module=None, manualmeta=False, readingorder=None, agerating=None,
+        automatic_in_place=False, publication_token=None, expected_digest=None, backend='modern'):
+    import mylar
+    from mylar import native_writers, tagger_handoff
+    from . import publication_native, publication_transaction
+    from .tagger_lookup import lookup
+    from .tagger_service import Service
+    def failure():
+        return tagger_handoff.Published('unsupported') if manualmeta else tagger_handoff.Failure('unsupported')
+    try:
+        if backend not in ('modern','legacy') or (backend=='legacy' and not native_writers.publication_mode()):
+            return failure()
+        if type(manualmeta) is not bool or not filename or (not manualmeta and not native_writers.active()):
+            return failure()
+        # Snapshot settings once. Caller-provided comversion can describe an annual's
+        # parent series, so derive the optional volume override from its release ID.
+        config = mylar.CONFIG
+        if type(automatic_in_place) is not bool or (automatic_in_place and
+                (not manualmeta or getattr(config, 'TAGGER_BACKEND', 'legacy') != 'modern')):
+            return failure()
+        if not manualmeta and any(getattr(config, name, 'move') not in ('copy', 'move')
+                                  for name in ('FILE_OPTS', 'ARC_FILEOPS')):
+            # A native softlink would reference disposable staging. Preserve the
+            # original import path until link-based placement has its own receipt.
+            return failure()
+        policy = dict(enabled=bool((manualmeta and not automatic_in_place) or config.ENABLE_META), comicrack=bool(config.CT_TAG_CR),
+                      comicbooklover=bool(config.CT_TAG_CBL), conversion_only=bool(config.CBR2CBZ_ONLY),
+                      overwrite=False if automatic_in_place else bool(config.CT_CBZ_OVERWRITE))
+        api_key, base_url, interval = config.COMICVINE_API, config.COMICVINE_URL, config.CVAPI_RATE
+        volume_enabled, year_volume, default_volume = config.CMTAG_VOLUME, config.CMTAG_START_YEAR_AS_VOLUME, config.SETDEFAULTVOLUME
+        with native_writers.operation() as writer:
+            if native_writers.publication_mode():
+                # Direct producers must prove the actual archive before catalog
+                # lookup, recovery-state preparation or pending-fence writes.
+                try:
+                    publication_native.require(filename,issueid=issueid)
+                except publication_native.Review as review:
+                    from mylar import processing_guard
+                    processing_guard.retained(review,issueid=issueid)
+                    raise
+            issueid, volumeid, tracked = catalog(issueid)
+            volume = None
+            if volume_enabled and tracked:
+                value = tracked.get('ComicYear' if year_volume else 'ComicVersion')
+                if value in (None, '', 'None'):
+                    value = '1' if default_volume and not year_volume else None
+                if value is not None:
+                    value = re.sub(r'^v', '', str(value), flags=re.I)
+                    if not re.fullmatch(r'[0-9]{1,4}', value):
+                        return failure()
+                    volume = value
+            if native_writers.publication_mode():
+                if (not policy['enabled'] or not policy['comicrack'] or policy['comicbooklover']
+                        or policy['conversion_only'] or not str(filename).lower().endswith('.cbz')):
+                    return failure()
+                try:
+                    publisher, staging = state(writer)
+                    token=publication_token or uuid.uuid4().hex
+                    captured=dict(policy,manualmeta=manualmeta,volume=volume,
+                        reading_order=readingorder,age_rating=agerating,volumeid=volumeid,
+                        expected_digest=expected_digest)
+                    if backend=='legacy':captured['backend']='legacy'
+                    with publication_transaction.tagging(writer,filename,issueid,token,captured,modern=True) as job:
+                        service=Service(publisher,staging.root,
+                            lambda **kwargs:lookup(api_key=api_key,base_url=base_url,interval=interval,**kwargs),
+                            tagger_handoff,job.coordinate,staging=staging,publication=job)
+                        result=service.tag(filename,issueid=issueid,volumeid=volumeid,manualmeta=manualmeta,
+                            volume=volume,reading_order=readingorder,age_rating=agerating,
+                            publication_token=publication_token,expected_digest=expected_digest,**policy)
+                        if manualmeta:
+                            if not isinstance(result,tagger_handoff.Published) or not result.valid_for(filename):
+                                raise publication_native.Review('tagging-terminal-handoff-unavailable')
+                            target=filename
+                        else:
+                            if not isinstance(result,str) or result=='fail':
+                                raise publication_native.Review('tagging-terminal-handoff-unavailable')
+                            target=result
+                        job.complete(publisher,staging,target)
+                        if manualmeta:
+                            from dataclasses import replace
+                            result=replace(result,publication=job)
+                        return result
+                except publication_native.Review as review:
+                    from mylar import processing_guard
+                    processing_guard.retained(review,issueid=issueid)
+                    raise
+                except (publication_native.guard.Unavailable,OSError,ValueError,TypeError,KeyError,RuntimeError):
+                    from mylar import processing_guard
+                    review=publication_native.Review('tagging-publication-unavailable')
+                    processing_guard.retained(review,issueid=issueid)
+                    raise review from None
+            publisher, staging = state(writer)
+            writer.mark_tagger_pending()
+            service = Service(publisher, staging.root,
+                lambda **kwargs: lookup(api_key=api_key, base_url=base_url, interval=interval, **kwargs),
+                tagger_handoff, native_writers.operation, staging=staging)
+            return service.tag(filename, issueid=issueid, volumeid=volumeid, manualmeta=manualmeta,
+                               volume=volume, reading_order=readingorder, age_rating=agerating,
+                               publication_token=publication_token, expected_digest=expected_digest, **policy)
+    except publication_native.Review:
+        if manualmeta:return tagger_handoff.Published('review')
+        raise
+    except (OSError, ValueError, TypeError, KeyError, RuntimeError):
+        mylar.logger.warn('%s tagging could not complete; original and recovery state retained',backend.title())
+        return failure()
+
+
+def run_legacy(*args,**kwargs):
+    """Publication mode uses an owned Legacy child, never upstream fallback cleanup."""
+    return run(*args,backend='legacy',**kwargs)

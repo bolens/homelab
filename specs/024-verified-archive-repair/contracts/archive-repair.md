@@ -45,3 +45,31 @@ No remote calls under Writer. Reader preparation/acknowledgement follows writer 
 Measure, consistently back up and independently restore all affected application state and specific originals before live adoption. Retain compatible rollback image/configuration. Compare actual files, catalog/census and reader behavior against baseline; retain custody on inconclusive results. Prune only conclusively superseded operation-owned copies after required acceptance and the one-verified-backup retention rule.
 
 Install exact native/worker diagnostic modules and verify selected runtimes. Advertise diagnostics separately from preparation/adoption and only when actually installed. Features 022/023 still gate general writer release on complete current-library acceptance. A new process does not inherit a process-local startup hold.
+
+## Existing completed preparation factory
+
+`mylar.publication_archive_preparation_existing.from_existing(controller, writer,
+owner, operation_id, custody)` accepts only exact installed Controller, held
+Writer and stopped-reader custody types. It derives the fixed completed stage;
+no caller path or saved receipt can select or authorize reads. Original custody
+must retain both `preparation.json` full9 and completed stage directory full9.
+Historical stages lacking either original vector remain held.
+
+The factory checks every original control, ancestor, claim, source attribute,
+catalog/census, policy, exceptional witness, derivative and independent restore
+against the canonical saved metadata before creating the actual owning typed
+preparation. Constructor and custody callbacks precede the last raw closure.
+Same-byte replacement, new pending state, partial or unknown state remains held.
+It does not rerun exclusive preparation, create an operation, bypass the Writer,
+add an API replay action or grant reader/publication acceptance. Actual installed
+custody production and namespace compatibility require separate runtime evidence.
+
+## Independent terminal facts
+
+The forward and rollback verifier vector APIs return the existing factual
+summary plus original full file and ancestor signatures, catalog claims, closed
+namespace membership and required absences. Retain all other-owner sources
+examined by policy, including their original content hashes and full signatures.
+A consumer must carry the original vectors across later report, custody and
+watch callbacks and close them again before acknowledgement. These facts do not
+construct adoption, authorize replay or prove reader indexing or ordinary import.
