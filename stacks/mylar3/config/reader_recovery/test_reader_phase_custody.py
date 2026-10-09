@@ -28,8 +28,8 @@ class Controls(unittest.TestCase):
   controls=self.req['context']['controls'];self.values['reader']['State'].update(Paused=False,Restarting=False,Dead=False,OOMKilled=False)
   self.values['reader']['Mounts']=[dict(Type='bind',Source=str(self.current),Destination='/config',RW=True)]
   self.put('stopped_runtime',dict(version=1,kind='root-owned-reader-stopped-observation',nonce='a'*64,observed=int(time.time()),container=self.values['reader']))
-  self.put('backup_manifest',dict(kind='verified-reader-backup-copies',source_sha256='86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd',primitives_sha256='e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'))
-  self.put('rows',dict(kind='reader-restored-eleven-row-observation',source_sha256='a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d',backup_manifest_sha256=controls['backup_manifest']['sha256'],schema_sha256=controls['schema']['sha256']))
+  self.put('backup_manifest',dict(kind='verified-reader-backup-copies',source_sha256='f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3',primitives_sha256='e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'))
+  self.put('rows',dict(kind='reader-restored-eleven-row-observation',source_sha256='ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a',backup_manifest_sha256=controls['backup_manifest']['sha256'],schema_sha256=controls['schema']['sha256']))
   self.put('reviewed_plan',dict(timestamp_encoding_evidence_sha256=controls['timestamp_evidence']['sha256']))
   self.put('backup_acceptance',dict(kind='stopped-reader-full-backup-acceptance',backup_verified=False,final_ack_required=True,container_id=self.values['reader']['Id'],image=self.values['reader']['Image']))
   self.put('backup_ack',dict(backup_verified=True,targeted_eleven_row_observation_verified=True,acceptance_sha256=controls['backup_acceptance']['sha256'],backup_manifest_sha256=controls['backup_manifest']['sha256'],rows_report_sha256=controls['rows']['sha256'],repair_authority=False,mutation_authority=False,publication_acceptance=False,automatic_restart=False))

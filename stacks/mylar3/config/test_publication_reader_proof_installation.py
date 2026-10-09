@@ -91,4 +91,19 @@ class Controls(unittest.TestCase):
   self.assertLess(source.index('modules,sdk_files,sdk_nodes=sdk('),source.index('lifecycle=born_lifecycle(modules,args,plan)'));birth=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='born_lifecycle');body=ast.get_source_segment((ROOT/'reader_recovery/comic_negative_reader_action.py').read_text(),birth);self.assertIn("return modules['publication_reader_lifecycle'].from_birth(token)",body);self.assertIn('argv=list(sys.orig_argv)',body);self.assertNotIn('sys.orig_argv=',source)
  def test_producer_exact_new_provider_pin(self):
   p=ROOT/'reader_recovery/comic_reader_proof_producer.py';tree=ast.parse(p.read_text());pins=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='PINS' for t in n.targets));self.assertEqual(pins['comic_negative_reader_action.py'],sha(ROOT/'reader_recovery/comic_negative_reader_action.py'))
+ def backup_predecessor(self):
+  p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_backup_predecessor.py',p);return p
+ def test_actual_backup_helper_predecessor_exact_upgrade(self):
+  p=self.backup_predecessor();original=p.stat().st_ino;self.assertEqual(sha(p),m.ADMISSION_PREDECESSORS[2]);self.install();self.assertNotEqual(p.stat().st_ino,original);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
+ def test_backup_helper_predecessor_ast_drift_refused(self):
+  p=self.backup_predecessor();raw=p.read_bytes();real=m.ast.parse;fired=[]
+  def late(value,*args,**kwargs):
+   result=real(value,*args,**kwargs)
+   if value==raw and not fired:p.chmod(0o640);fired.append(True)
+   return result
+  with patch.object(m.ast,'parse',side_effect=late),self.assertRaisesRegex(ValueError,'changed'):self.install()
+  self.assertTrue(fired);self.assertEqual(p.read_bytes(),raw)
+ def test_historical_accepted_source_never_relabeled(self):
+  self.assertEqual(sha(ROOT/'reader_proof_install_fixtures/admission_accepted.py'),'d321a2c0196af570b8a38bfea40fedff1c61b7cb9a1d4183fcc630bd4235fbef')
+  self.assertNotEqual(sha(ROOT/'reader_proof_install_fixtures/admission_backup_predecessor.py'),sha(ROOT/'publication_reader_admission.py'))
 if __name__=='__main__':unittest.main()

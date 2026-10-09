@@ -10,13 +10,16 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 493 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Eight owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not release the live hold.
+The private-copy runner executes 539 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Eight owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not release the live hold.
 
 The distinct `comic_archive_repair_action.py` tool and pure protocol builder
 use eight archive-only control roles. One held Writer owns preparation, reader
 lease and adoption. Independent verification retains the original preparation
 file and completed-directory identities. The archive parent pin remains disabled;
-neutral backup production, parent scheduling, reader indexing and durable
-import acceptance are separate gates. See [the archive contract](CONTRACT-archive-repair.md).
+The same lifecycle parent now has a finite archive-only branch with a neutral
+backup child, original control vectors and terminal verification before resume.
+It refuses interpreter and tool overlays, including read-only mounts. Installed
+composition, protected backup/NFS execution, reader indexing and durable import
+acceptance remain separate gates. See [the parent contract](CONTRACT-archive-parent.md). See [the archive contract](CONTRACT-archive-repair.md).
 
 The NFS host prerequisite runs a newly owned exact hardlink canary while the reader is active, closes cleanup and releases its existing Writer lease, then owns the finite reader-stop successor. Its process-local factual object cannot be reconstructed from a receipt. HOST media and DATA paths come from inspected bind/config projections; private source-cohort inputs and operational receipts are excluded from this closure. The action child acquires a separate existing Writer and repeats current admission checks. The canary, bridge and source tests grant no library, import or reader-resume rights. See [the NFS factual contract](CONTRACT-nfs-factual.md).

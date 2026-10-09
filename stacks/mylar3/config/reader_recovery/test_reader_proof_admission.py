@@ -385,8 +385,8 @@ class GeometryControls(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'after-URL-callbacks'):m.verify_reader_native_pair(self.life,self.prep,self.pair)
     def test_portable_source_pins_not_historical(self):
         raw=Path(m.__file__).read_text()
-        self.assertIn('86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd',raw)
-        self.assertIn('a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d',raw)
+        self.assertIn('f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3',raw)
+        self.assertIn('ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a',raw)
         self.assertNotIn('b60ed13b2c1611a0712f6c902d3ae70999ad69be2460a10d4af0533c6733c2a2',raw)
         self.assertEqual(m.NEGATIVE_SHA,'85615fc4403982153adae10d2b72248f877e712f16329c16fdb2a2e6742d3d41')
         self.assertEqual(m.LIFECYCLE_SHA,'2335f450a8998ce2155fffc05f496ed3f7ac42b8521de11bd142911f6fbc7ebe')

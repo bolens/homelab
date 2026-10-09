@@ -353,6 +353,11 @@ def main():
  token=modules['publication_native_scope_birth'].from_checked_parent(args.input,args.input_sha256,plan['nonce'],parent_sha=plan['parent_sha256'],argv=list(sys.orig_argv));custody=modules['publication_reader_lifecycle'].from_birth(token);scope=modules['publication_native_configured_scope'].from_checked_parent(custody)
  operation,opnodes=operation_directory(plan['operation'],custody);merge(nodes,opnodes,'repair-original-output-ancestor')
  result,vectors=(execute_one if args.phase=='execute' else verify_one)(plan,modules,custody,scope)
+ if args.phase=='verify-terminal':
+  # Private factual export only; actual typed verifier produced these originals.
+  vectors['censuses']=tuple((p,n) for p,n in vectors['censuses'] if p!=str(operation))+((str(operation),(args.phase+'-report.json',)),)
+  result['original_vectors']={key:[[path,None if value is None else list(value)] for path,value in vectors[key]] for key in ('files','nodes','claims','censuses')}
+  result['original_vectors']['absent']=list(vectors['absent'])
  result.update(phase=args.phase,nonce=plan['nonce'],final_ack_required=True,provider_continuity_verified=False)
  names=('execution-originals.json',) if args.phase=='execute' else ()
  reference=emit(operation,args.phase+'-report.json',result,names)

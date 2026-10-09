@@ -41,7 +41,7 @@ class Controls(unittest.TestCase):
   parent=self.root/'parent.py';parent.write_text('''import copy\nfrom pathlib import Path\ndef same_runtime(a,b):return a==b\nclass Mapping:\n def __init__(self,pairs):self.pairs=pairs\n def child(self,value):\n  for host,child in self.pairs:\n   if value==host or value.startswith(host+"/"):return child+value[len(host):]\n  return value\n def host(self,value):\n  for host,child in self.pairs:\n   if value==child or value.startswith(child+"/"):return host+value[len(child):]\n  return value\nclass Parent:\n def continuous(self):return copy.deepcopy(self.observations)\n''');parent.chmod(0o600)
   sp=importlib.util.spec_from_file_location('parent_fixture',parent);m=importlib.util.module_from_spec(sp);sp.loader.exec_module(m);self.parent=m.Parent();self.parent.observations=self.observations;self.parent.mapping=m.Mapping([(str(self.native),'/config/mylar'),(str(self.library),'/comics')])
   self.parentref={'path':str(parent),'sha256':hashlib.sha256(parent.read_bytes()).hexdigest(),'signature9':a.nine(parent.stat())}
-  self.plan=ref(self.root/'parent-plan.json',{'action':'archive-one','nonce':'b'*64,'operation':str(self.operation),'producer_inputs':{'archive_request':self.archive_request,'archive_scopes':self.scopes},'provider':{'path':str(HERE/'comic_archive_repair_action.py'),'sha256':p.PINS['comic_archive_repair_action.py']},'native':{'data':'/config/mylar','roots':['/comics']},'selected_image':'sha256:'+'c'*64,'birth_source_sha256':'d'*64})
+  self.sdkmap=ref(self.root/'sdk-map.json',{});self.plan=ref(self.root/'parent-plan.json',{'action':'archive-one','nonce':'b'*64,'operation':str(self.operation),'producer_inputs':{'archive_request':self.archive_request,'archive_scopes':self.scopes},'sdk_map':self.sdkmap,'provider':{'path':str(HERE/'comic_archive_repair_action.py'),'sha256':p.PINS['comic_archive_repair_action.py']},'native':{'data':'/config/mylar','roots':['/comics']},'selected_image':'sha256:'+'c'*64,'birth_source_sha256':'d'*64})
   inp=ref(self.root/'backup-input.json',{'version':1,'kind':'approved-komga-reader-backup','approved_scope':True,'config_root':str(self.config),'retention_files':[],'forbidden_roots':[str(self.forbidden)],'output_root':str(self.root/'full-backup'),'max_files':100,'max_bytes':10**7,'deadline_seconds':60})
   ack=self.backupmod.run(types.SimpleNamespace(input=Path(inp['path']),input_sha256=inp['sha256'],source_sha256=p.PINS['comic_reader_backup.py']))
   manifest=self.root/'full-backup/manifest.json';self.backup={'manifest':{'path':str(manifest),'sha256':hashlib.sha256(manifest.read_bytes()).hexdigest(),'signature9':a.nine(manifest.stat())},'restore_root':str(self.root/'full-backup/restore/config'),'backup_helper_ack':ack}
@@ -50,9 +50,24 @@ class Controls(unittest.TestCase):
  def phase(self):
   result=self.go()['evidence'];request=copy.deepcopy(self.request);request['phase']='phase-custody'
   controls=result['controls'];input_path=self.root/'execute-input.json';provider=str(HERE/'comic_archive_repair_action.py');command=['/lsiopy/bin/python3','-I','-B',provider,'--phase','execute','--input',str(input_path),'--input-sha256','<INPUT_SHA256>','--source-sha256',p.PINS['comic_archive_repair_action.py']]
-  doc={'version':1,'action':'archive-one','nonce':'b'*64,'controls':controls,'archive_scopes':result['archive_scopes'],'command_template':command,'operation':str(self.operation/'execute'),'sdk_map':self.plan,'parent_sha256':self.parentref['sha256'],'selected_image':'sha256:'+'c'*64,'owner':OWNER,'operation_id':'a'*64};iref=a.write(input_path,doc);actual=[iref['sha256'] if x=='<INPUT_SHA256>' else x for x in command]
+  doc={'version':1,'action':'archive-one','nonce':'b'*64,'controls':controls,'archive_scopes':result['archive_scopes'],'command_template':command,'operation':str(self.operation/'execute'),'sdk_map':self.sdkmap,'parent_sha256':self.parentref['sha256'],'selected_image':'sha256:'+'c'*64,'owner':OWNER,'operation_id':'a'*64};iref=a.write(input_path,doc);actual=[iref['sha256'] if x=='<INPUT_SHA256>' else x for x in command]
   inv={'input_path':str(input_path),'input_sha256':iref['sha256'],'command':actual,'nonce':'b'*64,'parent_sha256':self.parentref['sha256'],'provider_sha256':p.PINS['comic_archive_repair_action.py']}
   request['context']={'backup':self.backup,'controls':controls,'archive_scopes':result['archive_scopes'],'observations':copy.deepcopy(self.observations),'phase':'execute','invocation':inv,'stage':'prebirth'};return request
+ def test_original_SDK_map_proof_retained(self):
+  request=self.phase();result=p.produce('phase-custody',request,watch=self.parent.continuous)['evidence'];self.assertEqual(result['proofs']['archive_sdk_map'],self.sdkmap)
+ def test_input_SDK_map_mismatch_held(self):
+  request=self.phase();inv=request['context']['invocation'];path=Path(inv['input_path']);value=json.loads(path.read_bytes());value['sdk_map']=a.write(self.root/'foreign-map.json',{})
+  raw=a.encoded(value);path.write_bytes(raw);new=hashlib.sha256(raw).hexdigest();inv['input_sha256']=new;inv['command'][9]=new
+  with self.assertRaises(p.Held):p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_first_runtime_SDK_map_incarnation_never_refreshes(self):
+  original=p.runtime;fired=[]
+  def callback(watch,expected):
+   result=original(watch,expected)
+   if not fired:
+    fired.append(True);path=Path(self.sdkmap['path']);path.chmod(0o640);path.chmod(0o600)
+   return result
+  with patch.object(p,'runtime',side_effect=callback),self.assertRaises(p.Held):self.go()
+  self.assertTrue(fired)
  def test_real_neutral_full_backup_eight_roles(self):
   result=self.go()['evidence'];self.assertEqual(set(result['controls']),a.ROLES);self.assertNotIn('rows',result['controls']);self.assertNotIn('timestamp_evidence',result['controls'])
   snapshot=json.loads(Path(result['controls']['reader_snapshot']['path']).read_bytes());self.assertEqual(snapshot['databases']['config:database.sqlite']['tables']['BOOK']['rows'],2);self.assertFalse(snapshot['reader_sql_mutation'])
@@ -65,7 +80,7 @@ class Controls(unittest.TestCase):
   path=Path(self.plan['path']);value=json.loads(path.read_bytes());value['producer_inputs']['reviewed_selection']=self.archive_request;raw=a.encoded(value);path.write_bytes(raw);self.plan.update(sha256=hashlib.sha256(raw).hexdigest(),signature9=a.nine(path.stat()))
   with self.assertRaises(p.Held):self.go()
  def test_real_phase_different_worker_destination(self):
-  request=self.phase();result=p.produce('phase-custody',request,watch=self.parent.continuous)['evidence'];self.assertEqual(result['birth_seed']['worker_library'],'/data/comics');self.assertEqual(result['reader']['config_root'],str(self.config));self.assertEqual(set(result['proofs']),set(a.ROLES)|{'archive_scopes'})
+  request=self.phase();result=p.produce('phase-custody',request,watch=self.parent.continuous)['evidence'];self.assertEqual(result['birth_seed']['worker_library'],'/data/comics');self.assertEqual(result['reader']['config_root'],str(self.config));self.assertEqual(set(result['proofs']),set(a.ROLES)|{'archive_scopes','archive_sdk_map'})
  def test_original_current_content_change_refused(self):
   with sqlite3.connect(self.config/'database.sqlite') as db:db.execute('UPDATE BOOK SET ID="foreign"')
   with self.assertRaises((p.Held,self.backupmod.Held)):self.go()

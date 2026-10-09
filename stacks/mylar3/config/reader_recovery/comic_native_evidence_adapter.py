@@ -12,7 +12,7 @@ import types
 
 PROBE_SHA = '77325f0a7fd14b6e2e1a1f91aaf4c66cb53b5e2fd4cffdd34453642002afd1ec'
 SCOPE_SHA = '6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608'
-PRODUCER_SHA = '592504b1da1d1da94f88e2e20c0bceb848db65cd5555e62825b5984e728c13f3'
+PRODUCER_SHA = '0edb99518f2808e0a3a4ac1ef4c0369a865482d17a9cf60bbfc4bae3b906f26d'
 TERMINAL_PRODUCER_SHA = 'fdc25243525c811cd753dec8c74b2cd4920d181100cece3554cc55b64e049f04'
 MAX = 1024*1024
 class Held(ValueError): pass
@@ -267,9 +267,9 @@ def phase_custody(request, *, watch):
     need(acceptance['kind']=='stopped-reader-full-backup-acceptance' and acceptance['backup_verified'] is False
          and acceptance['final_ack_required'] is True and acceptance['container_id']==runtime['Id']
          and acceptance['image']==runtime['Image'],'custody-backup-pending')
-    need(manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']=='86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd'
+    need(manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']=='f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3'
          and manifest['primitives_sha256']=='e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0'
-         and rows['kind']=='reader-restored-eleven-row-observation' and rows['source_sha256']=='a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d'
+         and rows['kind']=='reader-restored-eleven-row-observation' and rows['source_sha256']=='ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a'
          and rows['backup_manifest_sha256']==ctx['controls']['backup_manifest']['sha256']
          and rows['schema_sha256']==ctx['controls']['schema']['sha256'],'custody-source-joins')
     need(controls['reviewed_plan']['timestamp_encoding_evidence_sha256']==ctx['controls']['timestamp_evidence']['sha256'],'custody-reviewed-timestamp')
