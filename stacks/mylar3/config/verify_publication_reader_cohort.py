@@ -60,6 +60,7 @@ def main():
     assert lifecycle.BIRTH_SOURCE == Path(birth.__file__)
     assert birth.life is lifecycle
     assert callable(lifecycle.from_birth) and callable(birth.from_checked_parent)
+    assert callable(lifecycle.bind_archive_preparation)
     assert modules['publication_reader_sql_transition'].sql_five_transition is modules['publication_reader_phase'].sql_five_transition
     print('Installed prospective reader source/origin/type proof passed; owning admission remains held')
 

@@ -148,6 +148,7 @@ def installed(modules):
 def exact_pair(modules,custody,scope):
  installed(modules)
  need(type(custody) is modules['publication_reader_lifecycle'].StoppedReaderCustody and type(scope) is modules['publication_native_configured_scope'].NativeConfiguredScope and scope._custody is custody,'repair-exact-parent-scope')
+ need(callable(getattr(modules['publication_reader_lifecycle'],'bind_archive_preparation',None)),'repair-archive-binding-factory-required')
  custody.revalidate_stopped();scope.revalidate();controller,writer=scope.controller_writer()
  need(type(controller) is modules['publication_api'].Controller and type(writer) is modules['media_writer'].Writer,'repair-exact-existing-pair')
  need(writer.root==controller.writer_root,'repair-same-existing-writer')
@@ -241,7 +242,9 @@ def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention):
  owner=modules['publication_guard'].exact_owner(request['owner']);need(owner==request['owner'],'repair-exact-owner')
  stage=controller.root/('archive-repair-'+request['operation_id'])
  if not os.path.lexists(stage):prep=core.prepare_existing(controller,writer,owner,request['operation_id'])
- else:prep=modules['publication_archive_preparation_existing'].from_existing(controller,writer,owner,request['operation_id'],custody)
+ else:
+  bound=modules['publication_reader_lifecycle'].bind_archive_preparation(custody,scope,owner,request['operation_id']);need(bound is custody,'repair-same-original-bound-custody')
+  prep=modules['publication_archive_preparation_existing'].from_existing(controller,writer,owner,request['operation_id'],custody)
  need(type(prep) is core.RepairPreparation and prep._controller is controller and prep._writer is writer,'repair-exact-original-preparation')
  original=prep.revalidate();source=Path(original['source']['path'])
  # The actual catalog-derived source is the sole input; no caller path or URL.
@@ -283,7 +286,9 @@ def original_execution(value,plan):
 
 def verify_one(plan,modules,custody,scope):
  controller,writer=exact_pair(modules,custody,scope);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
- control_join(plan,custody);ref=plan['execution_originals']
+ control_join(plan,custody)
+ bound=modules['publication_reader_lifecycle'].bind_archive_preparation(custody,scope,plan['owner'],plan['operation_id']);need(bound is custody,'repair-same-original-bound-custody')
+ ref=plan['execution_originals']
  need(custody.proofs.get('archive_execution_originals')==ref,'repair-parent-original-execute-evidence')
  raw,fact,parents=checked(ref);original=original_execution(decode(raw),plan)
  baseline=Path(original['baseline']['path']);expected=retention/('adopt-'+plan['operation_id'])/'journal'/'baseline.json';need(baseline==expected,'repair-source-derived-baseline')

@@ -14,9 +14,9 @@ rollback=f.load('publication_archive_rollback');verifier=f.load('publication_arc
 
 class Flow(unittest.TestCase):
  def setUp(self):
-  self.case=f.Tests('runTest');self.case.setUp();self.addCleanup(self.case.doCleanups);c=self.case.c
+  self.bind_calls=[];self.case=f.Tests('runTest');self.case.setUp();self.addCleanup(self.case.doCleanups);c=self.case.c
   self.modules={m.__name__.split('.')[-1]:m for m in c.modules}
-  self.modules.update(publication_archive_owned=f.o,publication_archive_reader=f.r,publication_archive_adoption=f.a,publication_archive_rollback=rollback,publication_reader_lifecycle=types.SimpleNamespace(StoppedReaderCustody=f.Stopped),publication_archive_verifier=verifier)
+  self.modules.update(publication_archive_owned=f.o,publication_archive_reader=f.r,publication_archive_adoption=f.a,publication_archive_rollback=rollback,publication_reader_lifecycle=types.SimpleNamespace(StoppedReaderCustody=f.Stopped,bind_archive_preparation=self.fixture_bind),publication_archive_verifier=verifier)
   class FixtureScope:
    def __init__(sl,custody):sl._custody=custody
    def revalidate(sl):self.case.life.revalidate_stopped()
@@ -37,6 +37,9 @@ class Flow(unittest.TestCase):
   self.plan['archive_scopes']=scope_ref;self.case.life.proofs=dict(self.plan['controls'],archive_scopes=scope_ref);self.case.life.backup_manifest=self.plan['controls']['backup_manifest'];self.case.life.backup_acceptance=self.plan['controls']['backup_acceptance']
   for module,name in ((p,'installed'),(rollback,'installed'),(verifier,'installed')):
    patcher=patch.object(module,name);patcher.start();self.addCleanup(patcher.stop)
+ def fixture_bind(self,custody,scope,owner,operation_id):
+  # Explicit lifecycle-only host wrapper; actual sealed transition has its own owning suite.
+  self.bind_calls.append((custody,scope,owner,operation_id));return custody
  def cap(self):
   return p.prepare_one(self.plan,self.modules,self.case.life,self.scope,self.case.c.controller,self.case.c.writer,self.case.scratch,self.case.retention)
  def test_actual_forward_reader_and_custody(self):
@@ -119,6 +122,13 @@ class Flow(unittest.TestCase):
   self.modules['publication_archive_preparation_existing']=types.SimpleNamespace(from_existing=existing)
   with patch.object(f.o,'prepare_existing',side_effect=AssertionError('must not replay')),self.assertRaises(f.o.Held):self.cap()
   self.assertEqual(len(calls),1);self.assertEqual(self.case.c.source.read_bytes(),self.case.original)
+ def test_fresh_execution_skips_existing_binding(self):
+  self.cap();self.assertEqual(self.bind_calls,[])
+ def test_verify_invokes_same_existing_custody_binding(self):
+  self.verify_forward();self.assertEqual(len(self.bind_calls),1);self.assertIs(self.bind_calls[0][0],self.case.life)
+ def test_missing_binding_preflight_before_preparation(self):
+  self.modules['publication_reader_lifecycle'].bind_archive_preparation=None
+  with patch.object(f.o,'prepare_existing',side_effect=AssertionError('must not prepare')),self.assertRaisesRegex(p.Held,'factory-required'):p.execute_one(self.plan,self.modules,self.case.life,self.scope)
  def test_uncertain_cap_not_automatically_reversed(self):
   cap=self.cap();cap._phase='uncertain';cap._seal()
   with self.assertRaises(p.Held):p.rollback_owned(cap,self.modules)
