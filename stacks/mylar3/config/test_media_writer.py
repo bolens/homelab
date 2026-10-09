@@ -6,6 +6,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 from media_writer import Writer, Busy
 
@@ -87,6 +88,32 @@ class WriterTest(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):Writer(self.root,create=True)
             self.assertFalse(self.owner.lock.exists())
         finally:child.kill();child.wait(5);child.stdout.close()
+
+    def test_repair_holds_refuse_recovery_flags_and_malformed_entries(self):
+        for name in ('archive-repair-v1.pending','archive-repair-v1.terminal-pending'):
+            marker=self.root/name
+            for kind in ('file','directory','broken-link'):
+                with self.subTest(name=name,kind=kind):
+                    if kind=='file':marker.write_bytes(b'not a grant')
+                    elif kind=='directory':marker.mkdir()
+                    else:marker.symlink_to(self.root/'absent')
+                    try:
+                        with self.assertRaises(Busy):
+                            with self.owner.hold(allow_pending=True,allow_tagger_pending=True,allow_release_pending=True,timeout=0):pass
+                    finally:
+                        if kind=='directory':marker.rmdir()
+                        else:marker.unlink()
+
+    def test_repair_terminal_created_after_last_fence_prevents_entry(self):
+        real=self.owner.fenced;fired=[];entered=[]
+        def late(*args,**kwargs):
+            result=real(*args,**kwargs)
+            if kwargs.get('release') and not fired:
+                (self.root/'archive-repair-v1.terminal-pending').write_bytes(b'pending');fired.append(True)
+            return result
+        with patch.object(self.owner,'fenced',side_effect=late),self.assertRaises(Busy):
+            with self.owner.hold(timeout=0):entered.append(True)
+        self.assertTrue(fired);self.assertFalse(entered)
 
     def test_missing_peer_root_never_created(self):
         missing=Path(self.temp.name)/'missing'

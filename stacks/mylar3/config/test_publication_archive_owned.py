@@ -368,4 +368,18 @@ class Controls(unittest.TestCase):
    with patch.object(g,'ordinary_purpose',side_effect=late),self.assertRaises(m.Held):preparation.close_passive()
   self.assertTrue(fired)
 
+ def test_repair_hold_after_last_semantic_callback_refuses_preparation(self):
+  for name in ('archive-repair-v1.pending','archive-repair-v1.terminal-pending'):
+   with self.subTest(name=name):
+    real=g.ordinary_purpose;fired=[];marker=self.writer.root/name
+    def late(writer):
+     result=real(writer)
+     if not fired and any(frame.function=='close_passive' and frame.code_context and 'self._modules[2].ordinary_purpose' in frame.code_context[0] for frame in inspect.stack()):
+      marker.write_bytes(b'pending');fired.append(True)
+     return result
+    with self.writer.hold():
+     preparation=self.prepare()
+     with patch.object(g,'ordinary_purpose',side_effect=late),self.assertRaises(m.Held):preparation.close_passive()
+    self.assertTrue(fired);marker.unlink();self.operation_id='2'*64
+
 if __name__=='__main__':unittest.main()

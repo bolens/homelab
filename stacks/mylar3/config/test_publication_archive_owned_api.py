@@ -214,4 +214,17 @@ class Controls(unittest.TestCase):
   with patch.object(self.case.modules[2],'ordinary_purpose',side_effect=late),self.assertRaisesRegex(ValueError,'^Owned archive preparation requires review$'):self.call()
   self.assertTrue(fired)
 
+ def test_repair_hold_after_last_route_callback_refuses_status(self):
+  self.call()
+  for name in ('archive-repair-v1.pending','archive-repair-v1.terminal-pending'):
+   with self.subTest(name=name):
+    real=self.case.modules[2].ordinary_purpose;fired=[];marker=self.case.writer.root/name
+    def late(writer):
+     result=real(writer)
+     if not fired and any(frame.function=='terminal' for frame in inspect.stack()):
+      marker.write_bytes(b'pending');fired.append(True)
+     return result
+    with patch.object(self.case.modules[2],'ordinary_purpose',side_effect=late),self.assertRaisesRegex(ValueError,'^Owned archive preparation requires review$'):self.call('archive-repair-status')
+    self.assertTrue(fired);marker.unlink()
+
 if __name__=='__main__':unittest.main()
