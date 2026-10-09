@@ -364,7 +364,7 @@ Writer through a phase; these modules do not install that continuation.
 `patch_publication_reader_cohort.py` follows the existing adapters and installs
 21 new runtime helpers, checking the unchanged archive-owned, lifecycle and
 configured-scope helpers already installed by publication authority.
-`publication_reader_cohort.json` pins all 24 exact canonical package files. The
+`publication_reader_cohort.json` pins all 25 exact canonical package files. The
 catalog helper is installed as `mylar.publication_negative_catalog`; package
 imports share the existing guard, mutation, API and Writer module identities.
 All additional SDK closure helpers retain their existing owning adapters.
@@ -392,3 +392,13 @@ existing isolated image gate. The canonical birth helper is installed with the
 reader cohort; checked SDK source/origin identity and the same inherited pipe
 remain mandatory. Admission retains a null parent pin until the owning parent
 and its fresh proof producers are independently accepted.
+
+The host-only recovery tree also contains the continuous lifecycle parent,
+fresh native process/evidence producer and schema1 phase-custody composer.
+The private-copy gate runs 277 recovery checks in isolated suite processes,
+including explicit predecessor fixtures and the current provider command
+contract. Original reader pair signatures are carried unchanged; the actual
+child lifecycle validates its own kernel facts. No new pair protocol or
+namespace assumption supplies authority. The parent pin remains unset;
+independent terminal/NFS producers and actual protected integration remain
+required. These tools add no runtime package module or permanent mount.
