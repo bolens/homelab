@@ -47,6 +47,19 @@ def main():
     assert admission.PARENT_SHA is manifest['parent_sha256'] is None
     assert admission.NEGATIVE_SHA == manifest['modules']['publication_negative']['sha256']
     assert admission.LIFECYCLE_SHA == manifest['modules']['publication_reader_lifecycle']['sha256']
+    scope = modules['publication_native_configured_scope']
+    # The pinned upstream image ships these sources group-writable. Preserve
+    # their bytes while proving the image build closes that source boundary.
+    for filename, digest, mode in ((scope.CONFIG_PATH, scope.CONFIG_SHA, 0o644),
+                                   (scope.MAIN_PATH, scope.MAIN_SHA, 0o755)):
+        path = Path(filename)
+        assert path.lstat().st_uid == 0 and stat.S_IMODE(path.lstat().st_mode) == mode
+        scope.bounded_read(path, digest, scope.nine(path.lstat()), scope.ancestors([path]))
+    lifecycle = modules['publication_reader_lifecycle']
+    birth = modules['publication_native_scope_birth']
+    assert lifecycle.BIRTH_SOURCE == Path(birth.__file__)
+    assert birth.life is lifecycle
+    assert callable(lifecycle.from_birth) and callable(birth.from_checked_parent)
     assert modules['publication_reader_sql_transition'].sql_five_transition is modules['publication_reader_phase'].sql_five_transition
     print('Installed prospective reader source/origin/type proof passed; owning admission remains held')
 

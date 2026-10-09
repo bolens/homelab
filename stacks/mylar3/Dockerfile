@@ -83,12 +83,15 @@ COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
 COPY config/ /opt/mylar3-fixes/
 RUN --network=none python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
+    && chmod 0644 /app/mylar3/mylar/config.py \
+    && chmod 0755 /app/mylar3/Mylar.py \
     && python3 /opt/mylar3-fixes/verify_image.py
 
 FROM pdf-runtime
 LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
       org.opencontainers.image.title="Mylar comic automation"
 COPY --from=checked /app/mylar3/mylar/ /app/mylar3/mylar/
+RUN chmod 0755 /app/mylar3/Mylar.py
 COPY --from=checked /app/mylar3/data/interfaces/default/ /app/mylar3/data/interfaces/default/
 COPY --from=checked /opt/mylar3-fixes/health.py /opt/mylar3-fixes/health.py
 COPY --from=checked /opt/mylar3-fixes/publication_guard.py /opt/mylar3-fixes/publication_guard.py

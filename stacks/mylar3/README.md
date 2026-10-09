@@ -1198,3 +1198,18 @@ shared SDK identities, while mechanical tests use separate temporary fixtures.
 The cohort adds no settings, mounts, ports or privileges. Owning reader admission
 remains held until the reviewed lifecycle parent and current producer pins are
 installed and connected runtime, NFS and live terminal verification pass.
+
+The reader recovery cohort also installs the canonical scope-birth helper. It
+captures metadata in the selected child and hands the original inherited pipe
+to lifecycle custody. Public recovery tools under `config/reader_recovery/` are
+for checked temporary source mounts; they are absent from the final image.
+Their backup producer, provider and terminal observer require current source
+pins and separately accepted parent custody. Parent admission stays disabled
+while protected process observations, child database-pair facts and live
+backup/NFS/terminal acceptance remain unfinished.
+
+The image build preserves the pinned upstream config/main source bytes and closes
+their group-write permission bits (config 0644, entry point 0755). The installed
+cohort verifier checks both boundaries before accepting configured native scope.
+Standalone recovery loads Mylar’s fixed bundled-library directory alongside the
+canonical package; the selected image remains the dependency provenance boundary.

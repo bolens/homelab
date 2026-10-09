@@ -15,7 +15,7 @@ SUITES = (
     'test_publication_negative_batch_terminal.py', 'test_publication_negative_batch_transition.py',
     'test_publication_negative_namespace.py', 'test_publication_negative_namespace_kernel.py',
     'test_publication_negative_phase.py', 'test_publication_reader_admission.py',
-    'test_publication_reader_lifecycle.py', 'test_publication_reader_native_coordinator.py',
+    'test_publication_reader_lifecycle.py', 'test_publication_native_scope_birth.py', 'test_publication_reader_proof_installation.py', 'test_publication_reader_native_coordinator.py',
     'test_publication_reader_phase.py', 'test_publication_reader_softdelete.py',
     'test_publication_reader_sql_commit.py', 'test_publication_reader_sql_custody.py',
     'test_publication_reader_sql_start.py', 'test_publication_reader_wal_phase.py',
@@ -52,6 +52,9 @@ def main():
                 cwd=controls, env=environment, timeout=90,
                 preexec_fn=fixture_identity if os.geteuid() == 0 else None)
 
+        subprocess.run([sys.executable, '-I', '-B', str(controls / 'run_reader_recovery_controls.py')],
+            check=True, cwd=controls, timeout=120,
+            preexec_fn=fixture_identity if os.geteuid() == 0 else None)
 
 if __name__ == '__main__':
     main()

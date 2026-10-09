@@ -387,6 +387,11 @@
       "filename": "publication_native_configured_scope.py",
       "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608"
     },
+    "publication_native_scope_birth": {
+      "already_installed": false,
+      "filename": "publication_native_scope_birth.py",
+      "sha256": "28dfcb92ec2f0267ecf97ac05f12136ee9ff2fbe242ea20d155c399567e610ef"
+    },
     "publication_negative": {
       "already_installed": false,
       "filename": "publication_negative.py",
@@ -445,7 +450,8 @@
     "publication_reader_admission": {
       "already_installed": false,
       "filename": "publication_reader_admission.py",
-      "sha256": "01da4c355b804576e0a1b99a6e165cb47d607c511682945a9c47e3036064cfc7"
+      "owned_predecessor_sha256": "01da4c355b804576e0a1b99a6e165cb47d607c511682945a9c47e3036064cfc7",
+      "sha256": "d321a2c0196af570b8a38bfea40fedff1c61b7cb9a1d4183fcc630bd4235fbef"
     },
     "publication_reader_disk": {
       "already_installed": false,
@@ -455,7 +461,7 @@
     "publication_reader_lifecycle": {
       "already_installed": true,
       "filename": "publication_reader_lifecycle.py",
-      "sha256": "7b0eb1636ee39cc9c3fc924f3899a75ac32d4290f4f46822cc4904bbcc85f500"
+      "sha256": "ef4521bd9ef78c5b78130cb7706afe5557c570870325e3ec055ca7c51c931d74"
     },
     "publication_reader_native_coordinator": {
       "already_installed": false,

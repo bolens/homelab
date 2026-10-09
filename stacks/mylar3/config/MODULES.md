@@ -29,7 +29,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; follows the authenticated publication API, refuses pending media intents and uncertain cleanup records |
 | Reviewed retained repeat reconciliation | `patch_publication_reconcile.py` | `publication_reconcile.py`, `test_publication_reconcile.py`; exact registered conflict, private independently verified retention and conditional false-location removal; wanted intent remains separately reviewed |
 | Conclusive combined-pass preservation cleanup | `patch_combined_publication.py` | `combined_cleanup.py`, `test_combined_cleanup.py`; independently captured producer history, current archive/owner/census and final reader acceptance, at-most-once private-pair retirement and passive terminal acknowledgement |
-| Prospective canonical negative retirement and reader custody | `patch_publication_reader_cohort.py` | `publication_reader_cohort.json` pins the 24 canonical helpers; portable source controls and fresh installed origin/hash/type checks remain in the build stage; owning admission stays held while parent pin is absent |
+| Prospective canonical negative retirement and reader custody | `patch_publication_reader_cohort.py` | `publication_reader_cohort.json` pins the 25 canonical helpers; portable source controls and fresh installed origin/hash/type checks remain in the build stage; owning admission stays held while parent pin is absent |
 | Explicit reviewed nested-metadata derivative | `patch_publication_derivative.py` | `publication_lineage.py`, `publication_derivative.py`, `library_metadata.py`; lineage/adoption/producer/consumer controls, complete inherited owner claims and retained originals; ordinary discovery does not authorize member-name changes |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
@@ -382,3 +382,13 @@ identity proof grants no owning execution or publication acceptance.
 `publication_reader_admission.PARENT_SHA` remains `None`; the owning parent,
 provider/terminal acceptance, actual connected factories and NFS/reader
 acceptance remain separately reviewed requirements.
+
+The read-only scoped reader recovery provider, terminal observer, proof producer,
+backup/rows/schema primitives and their predecessor fixtures live under
+`reader_recovery/`. They are host tools and temporary source mounts for a
+selected child; the final image does not install them in Mylar or add a mount.
+`run_reader_recovery_controls.py` tests this explicit source closure during the
+existing isolated image gate. The canonical birth helper is installed with the
+reader cohort; checked SDK source/origin identity and the same inherited pipe
+remain mandatory. Admission retains a null parent pin until the owning parent
+and its fresh proof producers are independently accepted.

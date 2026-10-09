@@ -21,7 +21,7 @@ def load(name, path):
     return module
 m = load('admission_fixture', str(_PORTABLE_ROOT / 'publication_reader_admission.py'))
 assert Path(m.__file__).resolve() == _PORTABLE_ROOT / 'publication_reader_admission.py'
-assert hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() == '01da4c355b804576e0a1b99a6e165cb47d607c511682945a9c47e3036064cfc7'
+assert hashlib.sha256(Path(m.__file__).read_bytes()).hexdigest() == 'd321a2c0196af570b8a38bfea40fedff1c61b7cb9a1d4183fcc630bd4235fbef'
 d = load('disk_fixture', str(_PORTABLE_ROOT / 'fixtures/comic_komga_stopped_reader_disk_v3.py'))
 f = load('kernel_fixture', str(_PORTABLE_ROOT / 'test_publication_reader_softdelete.py'))
 
@@ -588,5 +588,45 @@ class AdmissionTests(unittest.TestCase):
         with patch.object(m, 'check', side_effect=late), self.assertRaises(m.Held):
             context.close_passive()
         self.assertTrue(fired)
+class GeometryControls(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
+        self.source=self.root/'source.cbz';self.correct=self.root/'proper.cbz';self.source.write_bytes(b'original');self.correct.write_bytes(b'original')
+        self.pair={'wrong_url':'file:/reader/comics/wrong.cbz','correct_url':'file:/reader/comics/proper.cbz'}
+        class Prep:
+            def revalidate(inner):return {'source':str(self.source),'counterpart':str(self.correct),'files':{str(p):[list(m.sig(p)),hashlib.sha256(p.read_bytes()).hexdigest()] for p in (self.source,self.correct)}}
+        self.prep=Prep()
+        class Life:
+            def native_url(inner,path):return self.pair['wrong_url'] if path==str(self.source) else self.pair['correct_url']
+        self.life=Life()
+    def test_native_host_reader_distinct_spelling_accepted(self):
+        m.verify_reader_native_pair(self.life,self.prep,self.pair)
+    def test_wrong_observed_stored_URI_refused(self):
+        with self.assertRaisesRegex(ValueError,'path-correspondence'):m.verify_reader_native_pair(self.life,self.prep,dict(self.pair,wrong_url='file:/guessed/wrong.cbz'))
+    def test_source_mode_changed_during_second_URL_observation_refused(self):
+        real=self.life.native_url
+        def changed(path):
+            result=real(path)
+            if path==str(self.correct):self.source.chmod(0o640)
+            return result
+        self.life.native_url=changed
+        with self.assertRaisesRegex(ValueError,'after-URL-callbacks'):m.verify_reader_native_pair(self.life,self.prep,self.pair)
+    def test_samebytes_inode_replaced_during_URL_refused(self):
+        real=self.life.native_url
+        def changed(path):
+            result=real(path)
+            if path==str(self.correct):raw=self.source.read_bytes();self.source.rename(self.root/'retained');self.source.write_bytes(raw)
+            return result
+        self.life.native_url=changed
+        with self.assertRaisesRegex(ValueError,'after-URL-callbacks'):m.verify_reader_native_pair(self.life,self.prep,self.pair)
+    def test_portable_source_pins_not_historical(self):
+        raw=Path(m.__file__).read_text()
+        self.assertIn('86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd',raw)
+        self.assertIn('a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d',raw)
+        self.assertNotIn('b60ed13b2c1611a0712f6c902d3ae70999ad69be2460a10d4af0533c6733c2a2',raw)
+        self.assertEqual(m.NEGATIVE_SHA,'85615fc4403982153adae10d2b72248f877e712f16329c16fdb2a2e6742d3d41')
+        self.assertEqual(m.LIFECYCLE_SHA,'ef4521bd9ef78c5b78130cb7706afe5557c570870325e3ec055ca7c51c931d74')
+        self.assertIsNone(m.PARENT_SHA)
+
 if __name__ == '__main__':
     unittest.main()

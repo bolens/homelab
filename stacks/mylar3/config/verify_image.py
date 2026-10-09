@@ -62,7 +62,8 @@ with tempfile.TemporaryDirectory() as directory:
             raise error
         if result.returncode:
             raise subprocess.CalledProcessError(result.returncode, [sys.executable, str(FIXES / test)])
-    # Prospective cohort source mechanics remain separate from installed proof.
+    # Prospective cohort and scoped host-tool controls remain separate from
+    # installed identity proof and from parent/lifecycle operational acceptance.
     subprocess.run([sys.executable, '-B', str(FIXES / 'run_publication_reader_controls.py')], check=True)
     subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'verify_publication_reader_cohort.py')], check=True)
     # Import the full patched package: native Mylar owns queue_schedule as a

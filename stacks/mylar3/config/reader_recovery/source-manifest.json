@@ -1,0 +1,144 @@
+{
+  "files": {
+    "README.md": {
+      "sha256": "e8866bb96ebb9daa2c0da198d4b40975e8700f78e4bbef24529240258a2e5b01"
+    },
+    "_negative_reader_fixtures/fixture_comic_komga_five_book_softdelete_v1.py": {
+      "sha256": "560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5"
+    },
+    "_negative_reader_fixtures/fixture_comic_komga_reader_preservation_parent_v1.py": {
+      "sha256": "89c49c912812615196b8371d393826a63cf711b462f5628e5008dc217354eca8"
+    },
+    "_negative_reader_fixtures/fixture_comic_komga_stopped_reader_admission_v3.py": {
+      "sha256": "fac1192f457f8433aa2a6e41970fd543ab35b8969a70379acdf5fdbaa50dfc8f"
+    },
+    "_negative_reader_fixtures/fixture_comic_komga_stopped_reader_disk_v3.py": {
+      "sha256": "aa68a7301331155a4b26e6529d4910c53595ac1c50906d7c704b6d69f3d1e768"
+    },
+    "_negative_reader_fixtures/fixture_comic_reader_native_coordinator_v4.py": {
+      "sha256": "7bd0b0ab4902758b1304fe6751bb35b4e18d1b94c935b5635ffe518af2af3fa5"
+    },
+    "_negative_reader_fixtures/fixture_publication_negative_aggregate_v5.py": {
+      "sha256": "503395cac0331f04530447584104ab92204a25d75901785422c50ca0341558db"
+    },
+    "_negative_reader_fixtures/fixture_publication_negative_v4.py": {
+      "sha256": "b3ee99a5a4ca389c5ad7c0c176c8b5914f5908b57cf0857dc83dc800e6faa449"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_admission_v11.py": {
+      "sha256": "9b24bf7ad4cbcafda37bbf1a19cf7e2d231b4c78b889d2faee1df2a8c6616c6c"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_phase_v1.py": {
+      "sha256": "b0a640d66278794e0a5800b8bd6686e647c3ffc506c1dd31e4cc09366ab1fb18"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_phase_v10.py": {
+      "sha256": "2f284cfa83852197b15aa4da7072d210ff9cf54a7ea75a53591e9601196a7ca6"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_phase_v6.py": {
+      "sha256": "6525979ac3c38a98fde109678f85713e39d1efc993d906c3bde222387c2da05c"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_phase_v9.py": {
+      "sha256": "e26c600de691d965f59e9c8ef21b3abd7bfe5c3d5da402b7b98408e9f7c17ecd"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_sql_commit_v4.py": {
+      "sha256": "ce63754a8b489a0c4d9f2d217cfeeebf7e6bf60824702dbb7299cc45dafc03c0"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_sql_custody_v5.py": {
+      "sha256": "12eb6fdb159194eb197647aa9b057759994e601219f89174d6735c190f9fc4ff"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_sql_custody_v6.py": {
+      "sha256": "25f5ff02c466bc7e54daa0912695c4430bebc8f6eedc290945cb4b8317351efe"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_sql_start_v4.py": {
+      "sha256": "4204a10225085d38237420e17cfa0b00bf5bf790ba7c0eae351383facdd0cce5"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_wal_phase_v4.py": {
+      "sha256": "bf01c5b3fe5c4a85eae37f23f73fdd178db39d223c568a9b6272c0df8d54a393"
+    },
+    "_negative_reader_fixtures/fixture_publication_reader_wal_phase_v5.py": {
+      "sha256": "572420d3ea6ad2930be25aeb98f5b02bf9ef70de24a7e37cef7d6df5b60046a2"
+    },
+    "_negative_reader_fixtures/fixture_test_comic_komga_five_book_softdelete_v1.py": {
+      "sha256": "1fce51f04cc79c104c15443ebfb8c8d7a2769132c4adcfe3595ed1063dfbbc3b"
+    },
+    "_negative_reader_fixtures/fixture_test_comic_komga_stopped_reader_admission_v3.py": {
+      "sha256": "4d7f4fa5b68015b4fcda14aaed6df9e9899931c4cec38862b2a8ec44136a3f4b"
+    },
+    "_negative_reader_fixtures/fixture_test_publication_reader_admission_v11.py": {
+      "sha256": "d74e23f7c4edc16439b87ea4f6e600c84be531616830fb9e8e627514a0fe6174"
+    },
+    "_negative_reader_fixtures/fixture_test_publication_reader_phase_v6.py": {
+      "sha256": "2b991ea6ebd90782164f82b6686cb3302165a4114befaf4bf1fc189091517ff1"
+    },
+    "_negative_reader_fixtures/fixture_test_publication_reader_sql_commit_v4.py": {
+      "sha256": "c3d79f1de1f9651d2db6c1ffd3aa95022ceef190ad61cc94008102c3bf2941dd"
+    },
+    "_negative_reader_fixtures/fixture_test_publication_reader_sql_custody_v5.py": {
+      "sha256": "ff639a57a90acea5afdab2c944bebbc4569674502a5c9fca8cc2291f2bcd27b4"
+    },
+    "_negative_reader_fixtures/fixture_test_publication_reader_sql_start_v4.py": {
+      "sha256": "f9943cefaf99d8ffad781c626e4087957965c9fb5d4f7f7fce20f44a9de3dc00"
+    },
+    "_proof_producer_fixtures/fixture_comic_komga_five_book_softdelete_v1.py": {
+      "sha256": "560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5"
+    },
+    "_proof_producer_fixtures/fixture_comic_komga_stopped_reader_disk_v3.py": {
+      "sha256": "aa68a7301331155a4b26e6529d4910c53595ac1c50906d7c704b6d69f3d1e768"
+    },
+    "_proof_producer_fixtures/fixture_test_comic_komga_five_book_softdelete_v1.py": {
+      "sha256": "1fce51f04cc79c104c15443ebfb8c8d7a2769132c4adcfe3595ed1063dfbbc3b"
+    },
+    "comic_negative_reader_action.py": {
+      "sha256": "a9fac1d739a86638dd3255c0bc723988b899da920a73a21c3a3f07d4d4707850"
+    },
+    "comic_negative_terminal_observer.py": {
+      "sha256": "586791149f6bae273fb6fdc80f03d8621086a590571e859d474ee268b9a1015d"
+    },
+    "comic_reader_backup.py": {
+      "sha256": "86010fb80eb75eceecd9d1a399ed55adfd6490cf955abb472ffbbb6271fad5cd"
+    },
+    "comic_reader_backup_primitives.py": {
+      "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
+    },
+    "comic_reader_proof_producer.py": {
+      "sha256": "ee9665ec806cfb87352f2bd6b55c70abcd877a38a5c259083394739fc83feb15"
+    },
+    "comic_reader_rows.py": {
+      "sha256": "a5901ba8e006c1ed6e335a96bd6bbc3c099e393b3f167378f7d7cf7dca49178d"
+    },
+    "comic_reader_schema.py": {
+      "sha256": "e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7"
+    },
+    "comic_reader_softdelete.py": {
+      "sha256": "560b4ef9d3ed609af1f0dedb261c031e54fcae0a34e0ef8e297973fed735d9b5"
+    },
+    "comic_reader_timestamp_summary.py": {
+      "sha256": "e952ea060ca20e244d2ed1c7707b06bf1c7ed931fddfe51a0e2a7a75c54590e6"
+    },
+    "test_negative_reader_action.py": {
+      "sha256": "be6eab8011b31ebfa368db4a3fdd66664a2481a779a321776458b1422e80182e"
+    },
+    "test_negative_reader_partial_rollback.py": {
+      "sha256": "7745315f85536300b9e91b8b5a02441a66d7300f7b86beeca271282a3645f700"
+    },
+    "test_negative_reader_preimage.py": {
+      "sha256": "c82e1abfe487f41a19b097d58910a51bcb8802f51f96a42382564cca90767d95"
+    },
+    "test_negative_terminal_observer.py": {
+      "sha256": "b5974a3bd92612c746da219ae2b713bc484feec188eb65316c471fd655683805"
+    },
+    "test_reader_proof_admission.py": {
+      "sha256": "3981b10f22094c0070c5a589a100d50e6408feb954e1d73d84644b13e7552540"
+    },
+    "test_reader_proof_producer.py": {
+      "sha256": "4c1ac31b013e2d813d4888a96c234366af28a6c49746468978e2892359a0bbab"
+    },
+    "test_reader_proof_timestamp_summary.py": {
+      "sha256": "1822d91f5e0f865cc4e8e16232539a62f29e9bf261de77f462734d45d507d324"
+    }
+  },
+  "installed_mylar_modules": false,
+  "kind": "host-scoped-reader-recovery-sources",
+  "publication_acceptance": false,
+  "reader_resume_authority": false,
+  "version": 1
+}
