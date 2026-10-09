@@ -1179,3 +1179,15 @@ and these preparation/status actions. The terminal successor keeps processing
 held across retirement-marker removal and durable acknowledgement. Missing files
 are the only absence condition; malformed or inaccessible markers still hold. The dedicated owning recovery consumer and
 live acceptance remain required before repair adoption or writer release.
+
+Archive repair adoption requests use the existing primary-key-only
+`publicationControl` POST with `request-archive-repair-adoption` or
+`archive-repair-adoption-status`, version 1, exact owner and operation ID. The
+request records a bounded review job under the existing Writer. Its response
+reports `queued-review`; it grants no mutation, import or cleanup rights.
+The installed reader and adoption modules require a continuously checked owning
+child with the actual configured native roots and stopped reader custody. Saved
+queue receipts cannot reconstruct that custody. Their dedicated same-payload
+exchange retains the original, preserves every reader reference and limits the
+catalog change to the owned archive size. Runtime installation, terminal recovery
+and live adoption must pass the feature 024 acceptance gates before use.

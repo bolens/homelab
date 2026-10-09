@@ -15,7 +15,7 @@ OWNING_SUITES = ('test_publication_conversion.py', 'test_publication_reconcile.p
     'test_reviewed_derivative.py', 'test_combined_publication.py',
     'test_combined_cleanup.py', 'test_closed_supplement.py', 'test_publication_archive_repair.py',
     'test_publication_archive_diagnostics.py', 'test_publication_archive_admission.py',
-    'test_publication_archive_owned.py', 'test_publication_archive_owned_api.py', 'test_publication_negative_purpose.py')
+    'test_publication_archive_owned.py', 'test_publication_archive_owned_api.py', 'test_publication_archive_adoption.py', 'test_publication_reader_lifecycle.py', 'test_publication_native_configured_scope.py', 'test_publication_negative_purpose.py')
 
 
 def owning_suite(test, environment):

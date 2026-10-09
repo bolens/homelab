@@ -152,10 +152,20 @@ class Maintenance:
             raise Unavailable('Maintenance reader observation exceeds bounds')
         return books
 
+    def enqueue_archive_repair(self, owner, operation_id):
+        # Explicit primary-key request only; no source path/reader receipt/grant.
+        from archive_repair_handoff import enqueue
+        return enqueue(self.worker, owner, operation_id)
+
+    def archive_repair_status(self, owner, operation_id):
+        from archive_repair_handoff import status
+        return status(self.worker, owner, operation_id)
+
     def dispatch(self):
         from import_recovery import dispatch_prepared
         from native_handoff import dispatch
-        return dispatch_prepared(self)+dispatch(self)
+        from archive_repair_handoff import dispatch as repair_dispatch
+        return dispatch_prepared(self)+dispatch(self)+repair_dispatch(self.worker)
 
     def info(self, path):
         fingerprint = identity(path)
