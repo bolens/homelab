@@ -796,7 +796,7 @@
   },
   {
     "path": "run_standalone_controls.py",
-    "sha256": "4494a2e8fa2cef11c7087ac96423d278bd7bb639238b0c6e14e8666c99515ee9",
+    "sha256": "27712331484f936d775e08dd71e88b53a5df0b483584ca4648089371eebf049b",
     "target": "run_standalone_controls.py"
   },
   {

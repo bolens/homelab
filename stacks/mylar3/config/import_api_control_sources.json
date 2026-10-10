@@ -633,7 +633,7 @@
   },
   {
     "path": "run_standalone_controls.py",
-    "sha256": "4494a2e8fa2cef11c7087ac96423d278bd7bb639238b0c6e14e8666c99515ee9"
+    "sha256": "27712331484f936d775e08dd71e88b53a5df0b483584ca4648089371eebf049b"
   },
   {
     "path": "source_patches.py",
@@ -641,7 +641,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "6a746953246a80a504e7de863baab79098a23aebab6e27196e272b24538f7b16"
+    "sha256": "3ddeb19a2dd44d37911afa123d2ff6611a84d13446d43d093de83ccfc2c691c4"
   },
   {
     "path": "story_arc_search.py",

@@ -522,4 +522,4 @@ Both image lanes run six copy controls. The custom-backend lane requires all
 crypto bridge changes only private test copies; the public Arch host source
 stays unchanged. The offline verifier supplies a private disposable HOME under
 `/run/authenticated-fixtures` without changing the runtime activation policy.
-The checked build stage uses a bounded 256 MiB temporary filesystem for its test journals, preserving the same directory-link semantics used by the offline image gate. The mount exists only during verification. The host package still requires separate reviewed root provisioning.
+The checked build stage keeps installation root-owned, then runs its verifier as UID/GID 1000 with supplementary groups cleared. Test journals use a bounded 256 MiB temporary filesystem and a separate private 64 MiB HOME, matching the directory and ownership semantics of the offline image gate. These mounts exist only during verification. The host package still requires separate reviewed root provisioning.

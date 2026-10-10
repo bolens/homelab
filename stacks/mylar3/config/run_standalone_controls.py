@@ -80,11 +80,11 @@ def main():
             sys.stdout.write(result.stdout);sys.stderr.write(result.stderr)
             found=re.search(r'Ran (\d+) tests? in',result.stderr)
             if result.returncode or found is None or int(found.group(1))!=count or 'skipped=' in result.stderr:raise ValueError('Standalone owning suite count/failure/skip')
-        run([sys.executable,'-I','-B','-c',"import sys,unittest;sys.path.insert(0,'.');r=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromName('test_publication_standalone_installation'));raise SystemExit(not r.wasSuccessful())"],7)
+        run([sys.executable,'-I','-B','-c',"import os,sys,unittest;sys.path.insert(0,os.getcwd());r=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromName('test_publication_standalone_installation'));raise SystemExit(not r.wasSuccessful())"],7)
         run([sys.executable,'-I','-B',str(private/'test_standalone_gate.py')],2)
         for name,count in HOST:run([sys.executable,'-I','-B',str(private/'reader_recovery'/name)],count)
         if args.family=='all':
-            run([sys.executable,'-I','-B','-c',"import sys,unittest;sys.path.insert(0,'.');r=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(['test_publication_retained_standalone','test_standalone_pack_report_deny','test_standalone_resources']));raise SystemExit(not r.wasSuccessful())"],56)
+            run([sys.executable,'-I','-B','-c',"import os,sys,unittest;sys.path.insert(0,os.getcwd());r=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(['test_publication_retained_standalone','test_standalone_pack_report_deny','test_standalone_resources']));raise SystemExit(not r.wasSuccessful())"],56)
         else:print('Native standalone 56 controls unproved: optional archive backend absent.',flush=True)
     # Last subprocess/output/temp cleanup helpers precede complete original public closure.
     for path,expected in nodes.items():
