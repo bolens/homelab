@@ -101,6 +101,8 @@ def placement(processor,source,destination,*,issueid=None,comicid=None,
         action='copy' if multiple is True else mylar.CONFIG.ARC_FILEOPS
     if arc is True and action in ('copy','move'):action='copy'
     relocation(processor,result,destination,action=action)
+    if not any((arc,one_off)):
+        _import_call(processor,'begin',result,destination)
 
 
 def displacement(processor,source):
@@ -133,6 +135,10 @@ def cleanup_scope(processor,odir=None,del_nzbdir=False,sub_path=None,
         from . import publication_native as native
     else:
         import publication_native as native
+    if not cacheonly:
+        ordinary_import_history=_import_history()
+        if ordinary_import_history.supported(processor):
+            _import_call(processor,'cleanup_ready')
     targets=[];scopes={}
     def snapshot(path):
         return native.scope_snapshot(path) if os.path.lexists(path) else None
@@ -221,6 +227,8 @@ def run(function):
                             self.queue.put(self.valreturn)
                             raise
                     finally:
+                        ordinary_import_history=_import_history()
+                        ordinary_import_history.forget(self)
                         self._publication_handoff=None
                         _ACTIVE.processor=previous
                         mylar.APILOCK = False
@@ -235,3 +243,42 @@ def run(function):
             if queue is not None and queue.empty():
                 queue.put([{'mode': 'stop'}])
     return wrapped
+
+
+def _import_call(processor,name,*args,**kwargs):
+    ordinary_import_history=_import_history()
+    if __package__:
+        from . import publication_native
+    else:
+        import publication_native
+    try:
+        return getattr(ordinary_import_history,name)(processor,*args,**kwargs)
+    except (OSError,ValueError,TypeError,KeyError) as error:
+        review=publication_native.Review('ordinary-import-unconfirmed')
+        retained(review,processor)
+        raise review from error
+    except Exception as error:
+        # Unknown admission or commit outcomes cannot release source cleanup.
+        review=publication_native.Review('ordinary-import-unconfirmed')
+        retained(review,processor)
+        raise review from error
+
+
+def defer_import_cleanup(processor,method,*args,**kwargs):
+    return _import_call(processor,'defer_cleanup',method,*args,**kwargs)
+
+
+def import_success(processor,destination,*,issueid,comicid):
+    return _import_call(processor,'complete',destination,issueid=issueid,comicid=comicid)
+
+
+def import_file_ops(processor,method,source,destination):
+    return _import_call(processor,'file_ops',method,source,destination)
+
+
+def _import_history():
+    if __package__:
+        from . import ordinary_import_history
+    else:
+        import ordinary_import_history
+    return ordinary_import_history

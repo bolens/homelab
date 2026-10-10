@@ -93,6 +93,9 @@ def cycle(normalizer, maintenance=None):
         if not pending and naming:
             naming.tick()  # Native rename owns the writer; call only after releasing our lock.
             reader_dispatch(normalizer)
+        if not pending and maintenance:
+            from ordinary_import_observation import post_cycle
+            post_cycle(maintenance)  # fresh originals only after ALL current producers
         return True
     except Busy:
         # A busy lock is normal contention. Preserve errors and pending counts,

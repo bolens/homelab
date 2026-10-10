@@ -126,6 +126,13 @@ def main(directory):
         Path(__file__).with_name("processing_guard.py").read_text()
     )
 
+    (root / "ordinary_import_history.py").write_text(
+        Path(__file__).with_name("ordinary_import_history.py").read_text()
+    )
+    (root / "ordinary_import_continuity.py").write_text(
+        Path(__file__).with_name("ordinary_import_continuity.py").read_text()
+    )
+
 
 if __name__ == "__main__":
     main(sys.argv[1])

@@ -25,6 +25,11 @@ def dispatch(controller,writer,value):
     o.check(type(value) is dict and set(value)=={'version','action','owner','operation_id'} and type(value['version']) is int and value['version']==1,'repair-request-shape')
     owner=g.exact_owner(value['owner']);key=value['operation_id'];o.check(type(key) is str and re.fullmatch('[0-9a-f]{64}',key),'repair-operation-id')
     o.check(value['action'] in ('request-archive-repair-adoption','archive-repair-adoption-status'),'repair-action')
+    if value['action']=='request-archive-repair-adoption':
+        from mylar import publication_archive_history as history
+        # This explicit ordinary queue admission precedes root backup/custody.
+        # Selected execute/verify children never initialize or refresh it.
+        history.initialize(controller,writer)
     deadline=time.monotonic()+g.TIMEOUT;nodes=o.ancestors([controller.database,controller.native_database]);census,records=g.media_snapshot(controller.database,writer.root/'publication-v1.json')
     native,claims,more=o.catalog(controller,owner,g,deadline);o.merge_nodes(nodes,more)
     store=_store(controller);old=store.get(KIND,key)
@@ -40,7 +45,18 @@ def dispatch(controller,writer,value):
     after=o.fact(controller.database,256*1024**2,deadline)
     o.check(store.get(KIND,key)==old and o.fact(controller.database,256*1024**2,deadline)==after,'repair-queue-readback')
     # No arbitrary exception text, source path, or capability leaves this adapter.
+    history_vectors=None
+    if value['action']=='archive-repair-adoption-status':
+        from mylar import publication_archive_history as history
+        try: observed=history.status(controller,writer,owner,key,with_vectors=True)
+        except FileNotFoundError: observed=None
+        if observed is not None:
+            historical=observed['summary']
+            o.check(historical['owner']==owner and historical['operation_id']==key and historical['ordinary_import_grant'] is False and historical['publication_acceptance'] is False,'repair-history-passive-join')
+            if historical['outcome'] in ('terminal-observed','rollback-observed'):
+                history_vectors=observed['original_vectors']
     result={'version':1,'operation_id':key,'owner':owner,'outcome':old['phase'],'root_scoped_child_required':True,'reader_preservation_verified':False,'mutation_authority':False,'publication_acceptance':False}
+    if history_vectors is not None: result['outcome']=historical['outcome']
     for p,v in claims.items():o.check(g._claim_identity(p)==v,'repair-queue-claim')
     g.ordinary_purpose(writer)
     for db in (controller.database,controller.native_database):
@@ -57,7 +73,75 @@ def dispatch(controller,writer,value):
         try:os.lstat(writer.root/name)
         except FileNotFoundError:continue
         raise o.Held('repair-queue-terminal-purpose')
+    original_files = ((controller.database, tuple(after['signature9'])),
+                      (controller.native_database, tuple(native['file']['signature9'])))
+    original_nodes = tuple((p, tuple(v)) for p, v in nodes.items())
+    original_claims = tuple((p, None if v is None else tuple(v)) for p, v in claims.items())
+    original_absent = tuple(str(db) + suffix for db in
+                            (controller.database, controller.native_database)
+                            for suffix in ('-wal', '-shm', '-journal')) + tuple(
+                                writer.root / name for name in
+                                (*adoption.OTHER_PENDING, adoption.PENDING, adoption.TERMINAL))
     reader.direct({controller.database:after['signature9'],controller.native_database:native['file']['signature9']},nodes,set())
+    # All queue branches retain admitted facts past the last replaceable helper.
+    for p, expected in original_files:
+        info = os.lstat(p)
+        if (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns,
+                info.st_mode, info.st_uid, info.st_gid, info.st_nlink) != expected:
+            raise o.Held('repair-queue-final-file')
+    for p, expected in original_nodes:
+        info = os.lstat(p)
+        if (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid) != expected:
+            raise o.Held('repair-queue-final-node')
+    for p, expected in original_claims:
+        try:
+            info = os.lstat(p)
+        except FileNotFoundError:
+            if expected is not None:
+                raise o.Held('repair-queue-final-claim')
+            continue
+        actual = (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+                  None if info.st_mode & 0o170000 == 0o040000 else info.st_nlink)
+        if actual != expected:
+            raise o.Held('repair-queue-final-claim')
+    for p in original_absent:
+        try:
+            os.lstat(p)
+        except FileNotFoundError:
+            continue
+        raise o.Held('repair-queue-final-absence')
+
+    if history_vectors is not None:
+        # Complete raw originals after the last replaceable passive helper.
+        for current, census in history_vectors['namespaces']:
+            if tuple(sorted(os.listdir(current))) != tuple(census):
+                raise o.Held('archive-history-status-census-final')
+        for current, expected in history_vectors['nodes5']:
+            info = os.lstat(current)
+            if (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid) != tuple(expected):
+                raise o.Held('archive-history-status-node-final')
+        for current, expected in history_vectors['files9']:
+            info = os.lstat(current)
+            if (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns,
+                    info.st_mode, info.st_uid, info.st_gid, info.st_nlink) != tuple(expected):
+                raise o.Held('archive-history-status-file-final')
+        for current in history_vectors['absent']:
+            try:
+                os.lstat(current)
+            except FileNotFoundError:
+                continue
+            raise o.Held('archive-history-status-absence-final')
+        for current, expected in history_vectors['claims']:
+            try:
+                info = os.lstat(current)
+            except FileNotFoundError:
+                if expected is not None:
+                    raise o.Held('archive-history-status-missing-claim-final')
+                continue
+            if (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+                    None if info.st_mode & 0o170000 == 0o040000 else info.st_nlink) != (
+                        None if expected is None else tuple(expected)):
+                raise o.Held('archive-history-status-claim-final')
     return result
 
 def consume_existing(preparation,lease,retention_root):

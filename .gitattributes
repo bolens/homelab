@@ -7,6 +7,11 @@
 stacks/lidarr/patches/*.patch text eol=lf whitespace=-blank-at-eol
 stacks/readarr/*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 *.py text eol=lf
+# Preserve whitespace in the imported Mylar migration fixture.
+stacks/mylar3/config/test_fixtures/ordinary_import/PostProcessor.py whitespace=-blank-at-eol
+# Preserve the exact checked public API fixture bytes, including their final blank line.
+stacks/mylar3/config/import_api_fixtures/api_predecessor.py whitespace=-blank-at-eof
+stacks/komga/normalizer/ordinary_observation_fixtures/native/api.py whitespace=-blank-at-eof
 *.sh text eol=lf
 *.yaml text eol=lf
 *.yml text eol=lf

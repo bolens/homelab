@@ -1,0 +1,1 @@
+Build-check source data only. Native API fixture uses exact accepted public predecessor 0fade189 plus both owning hooks. Worker remote responses are explicitly synthetic; no native SDK imports/types or installed/network acceptance. Final image excludes this directory.

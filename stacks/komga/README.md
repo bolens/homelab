@@ -683,6 +683,39 @@ python3 /app/normalize.py --naming-plan /state/release-naming-plan.json
 python3 /app/normalize.py --naming-apply /state/release-naming-plan.json --naming-limit 1
 ```
 
+For a combined rename/root-metadata plan, supply an explicit reviewed supplement
+preview through the same planning command:
+
+```sh
+python3 /app/normalize.py --naming-plan /state/combined-plan.json --naming-reviewed-preview /state/reviewed-supplements.json
+python3 /app/normalize.py --naming-apply /state/combined-plan.json --naming-limit 1
+```
+
+The private preview is a version-1 JSON object with `policy` (the exact verified
+native supplement policy) and `reviews`. Each review has an absolute worker-side
+`source`, its actual `source_sha256`, `status: "verified"`, the SHA-256 `evidence`
+of its reviewed credit/supplement evidence, and `additions`, the proven per-field
+additions from that preview. Use existing native supplementation rules to review
+additions. Planning requires installed `combined_preview=1` support and joins every
+approved additions map exactly to a fresh source/hash/policy-bound native preview.
+Native derivation uses the existing supplement rules; planning does not approve
+credits. Omit
+unresolved credit deferrals and other unreviewed sources; they remain held in the
+resulting manifest. A preview cannot register ownership or authorize publication.
+
+Canonical names with nonempty approved additions retain the exact native naming
+proposal/request and ready reader proof in the combined manifest. Canonical
+files with empty approved additions remain unchanged and make no publication
+request. Unsupported or mismatched additions remain held. Preparation reobserves
+the native preview and complete current owner/census before creating any native
+preservation pair, and binds that proof and the approved additions into the
+immutable job. The input is bounded to 16 MiB and 10,000 unique source reviews; duplicate
+JSON keys and unverified reviews are rejected. Apply rechecks source, reader,
+policy and native publication authority. Native publication still verifies
+unchanged-hash reader restoration before root metadata writes, and uncertain
+responses use status without replay. The option does not enable the daemon or
+change deployment configuration, mounts, networks or privileges.
+
 Review the private manifest first. Apply validates fresh ownership, source and reader
 state and verifies an isolated per-file preservation copy before publication. Run
 again to continue a bounded batch. Reader restoration is asynchronous; the daemon
@@ -731,3 +764,5 @@ use passive native status. Invalid journal or acknowledgement evidence remains a
 refusal. A queued review is never an import or cleanup acknowledgement. This
 transport adds no mount, setting, port or privilege; actual native adoption and
 reader preservation require their separate checked recovery route.
+
+The source includes a disabled ordinary-import continuity observer for owned rename and preserved metadata changes. During a marked maintenance cycle it collects selectors only; after all cycle work it obtains fresh strict admission, makes the authenticated native request outside the writer hold, and immediately verifies the original response bytes and complete mapped file/control facts. This observation remains process-local. It cannot complete a durable pack report, authorize retained-source cleanup, restore a lost witness after restart or grant reader acceptance. Matching native/worker images and actual transport acceptance are required before activation; existing mounts, ports, settings and privileges are unchanged.

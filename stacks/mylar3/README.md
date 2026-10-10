@@ -176,8 +176,10 @@ preservation. The offline gate cannot verify a download provider's availability.
 
 The image includes queue control. The queue table
 shows received bytes, recent speed, seconds since progress, attempts, and cooldown
-status. Completed individual issues show **Post-processed; in library** once Mylar
-records them as Downloaded or Archived and their recorded library file exists. The **Download / import status** column keeps completed items clear of retry
+status. Completed individual issues show **Post-processed; ordinary import acknowledged**
+only after the native importer records a durable acknowledgement for that exact
+DDL delivery and its current owner, payload and destination. A Downloaded record
+or an existing library file alone leaves import unconfirmed. The **Download / import status** column keeps completed items clear of retry
 notation. Their download attempt count remains available in a tooltip, with no
 provider cooldown.
 Queued labels follow the current pause setting and provider cooldown deadline,
@@ -195,7 +197,10 @@ downloads stranded by an older image need a verified resubmission of the retaine
 archive. Pack downloads are not marked imported based on one member issue. Explicit
 integer issue lists and ranges show how many members have a Downloaded or Archived
 record and a nonempty library file. Missing files and ambiguous membership prevent
-a fully imported label. Without a verified member inventory, unspecified annuals, collected editions, and
+a fully imported label. Presence counts remain separate from exact member delivery
+acknowledgements. Pack confirmation and source cleanup require each comic member
+to retain its original ordinary import token. Without a verified member inventory,
+unspecified annuals, collected editions, and
 unknown member lists remain unconfirmed. Finished processing runs also use the existing retained
 Activity journal, and new runs retain their exact DDL ID and processing receipt.
 A restart or newer processing activity does not turn a finished pack back into a
@@ -265,7 +270,11 @@ new scan or replacement search. Ambiguous imports with candidate proposals link
 to Activity for explicit issue selection; viewing the report never assigns an
 issue or deletes files. It uses the existing Mylar login and ingress.
 
-`ddl-control.json` and `import-problems.json` live in Mylar's existing data directory.
+`ddl-control.json`, `import-problems.json` and the private
+`ordinary-import-v1.sqlite` live in Mylar's existing data directory. The separate
+import history retains one-use attempts and acknowledgements without changing
+the workflow journal. Unknown or interrupted evidence remains held; lost responses
+use passive verification rather than resubmission.
 Back them up with the application database and configuration. Invalid control state
 fails visibly instead of silently resetting attempt budgets. No new public port,
 Docker access, credentials, or media mount is required.
@@ -1040,6 +1049,22 @@ PDF candidates remain retained for review. Scripts invalidate earlier checks.
 Review is a terminal retained outcome, not an import acknowledgement or another
 failed-download search. Distinct payloads retain their existing eligibility.
 
+Owned release renames and preserved metadata writes retain the original import
+acknowledgement through separate terminal history. Prepare the private
+`ordinary-import-continuity-v1` directory before the operation's consistent backup
+and protected proof capture. Include it and `ordinary-import-v1.sqlite` in backup
+and restore checks. Actual producer completion records the original pending
+receipt and terminal evidence; passive reads cannot initialize history or replay
+an operation. Missing original acknowledgement, changed receipts or uncertain
+terminal evidence keep the item in review.
+
+Archive repair requests also prepare the private `archive-history-v1` journal
+under the existing native Writer before queue admission. Include that journal in
+the operation’s consistent backup and restore verification before protected
+execution. Its preparation, execution and independent verification records are
+factual observations; they do not confirm ordinary import or authorize replay,
+reader indexing or service resume. Passive status cannot create the journal.
+
 Coordinated worker imports include a constrained `publication_handoff` in the
 primary authenticated `forceProcess` request. Native Mylar verifies the actual
 staged archive, exact native owner and complete current correction census under
@@ -1199,6 +1224,8 @@ unlink or acknowledgement. A separate fresh rollback verifier observes the
 original state without reconstructing a mutation capability.
 `archive_repair_rollback=1` advertises code availability; it does not confirm
 reader indexing, ordinary import or live repair acceptance.
+
+`publication_retained_delivery.py` is installed but disabled. It can create a fresh, bounded acceptance of a preserved existing target after an actual catalog event; it never creates a historical ordinary import acknowledgement. Current evidence is bound to the producing process. The source adds disabled primary-key POST `retainedDeliveryFinalize` and `retainedDeliveryStatus` hooks, with strict ordinary-purpose admission and typed response closure after serialization and writer release. Restart provenance, worker receipt consumption and matching installed semantic acceptance remain unfinished. It grants no placement, cleanup, Wanted-state or reader-index rights.
 
 The image also installs the canonical negative-retirement reader cohort through
 `patch_publication_reader_cohort.py`. Build checks verify exact module bytes and

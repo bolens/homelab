@@ -80,7 +80,7 @@ class NamingTest(unittest.TestCase):
         self.assertEqual(self.native.rename(self.request)['key'],result['key'])
         self.assertFalse(self.writer.fenced(release=True))
 
-    def test_verified_rename_preserves_all_overlapping_pack_confirmations(self):
+    def test_legacy_rename_rebinds_members_without_fabricating_import_ack(self):
         import base64
         import hashlib
         from mylar import pack_intake
@@ -97,15 +97,15 @@ class NamingTest(unittest.TestCase):
             self.store.set('pack', key, dict(id=key, ddl_id=key[0], phase='confirmed',
                            name='Original pack', inventory_complete=True, cleanup_complete=True,
                            members=[dict(member), dict(sidecar)]))
-        self.assertTrue(all(row['complete'] for row in pack_intake.snapshot()))
+        self.assertTrue(all(not row['complete'] for row in pack_intake.snapshot()))
         self.native.rename(self.request)
-        self.assertTrue(all(row['complete'] for row in pack_intake.snapshot()))
+        self.assertTrue(all(not row['complete'] for row in pack_intake.snapshot()))
         for record in self.store.active('pack', {'confirmed'}):
             self.assertEqual(record['members'][0]['destination'], str(self.target))
             self.assertEqual(record['members'][1], sidecar)
             self.assertTrue(record['cleanup_complete'])
         self.native.rename(self.request)
-        self.assertTrue(all(row['complete'] for row in pack_intake.snapshot()))
+        self.assertTrue(all(not row['complete'] for row in pack_intake.snapshot()))
 
     def test_catalog_failure_recovers_without_old_source_path(self):
         with patch.object(self.database,'action',return_value=None):

@@ -109,6 +109,227 @@ class CombinedTests(unittest.TestCase):
         self.assertEqual(guard.file_hash(folder/'restore.cbz')[1],self.before)
         self.assertFalse(self.writer.fenced(tagger=True));self.assertFalse(self.writer.fenced(release=True))
 
+    def test_canonical_same_name_actual_metadata_addition_preserves_payload_reader_and_pair(self):
+        from tagger_archive import snapshot
+        canonical=self.source.with_name('Publication.001.(2020).cbz')
+        self.source.rename(canonical);self.source=canonical;self.target=canonical
+        with self.connection() as database:
+            database.execute('UPDATE issues SET Location=? WHERE IssueID=?',
+                             (canonical.name,self.request['issueid']))
+        self.request.update(source=str(canonical),target=canonical.name)
+        self.info.update(self.request)
+        self.value.update(naming=dict(self.request),policy={'AgeRating':'Teen'})
+        proof=combined.execute(json.dumps(dict(version=1,action='preview',
+            arguments=dict(naming=self.request,policy=self.value['policy']))))
+        self.assertEqual(proof['additions'],{'AgeRating':'Teen'})
+        self.value.update(preview=proof,approved_additions=dict(proof['additions']))
+        old=snapshot(canonical)
+        first=self.admitted();renamed=combined.rename(first['token'])
+        self.assertEqual(renamed['phase'],'renamed')
+        self.assertEqual(guard.file_hash(canonical)[1],self.before)
+        with self.assertRaises(native.Review):combined.metadata(first['token'],None)
+        wrong=dict(self.move(first),sha256='0'*64)
+        with self.assertRaises(native.Review):combined.metadata(first['token'],wrong)
+        result=combined.metadata(first['token'],self.move(first))
+        self.assertEqual(result['phase'],'complete');self.assertNotEqual(result['after'],self.before)
+        new=snapshot(canonical)
+        self.assertIn(b'<AgeRating>Teen</AgeRating>',new.xml)
+        self.assertEqual((old.members,old.attributes,old.mode,old.uid,old.gid),
+                         (new.members,new.attributes,new.mode,new.uid,new.gid))
+        folder=self.writer.root/'combined-publication-v1'/first['token']
+        for name in ('original','restore'):
+            self.assertEqual(guard.file_hash(folder/(name+'.cbz'))[1],self.before)
+        self.assertEqual(guard.private_json(folder/'receipt.json')['reader_move']['sha256'],self.before)
+        with self.connection() as database:
+            row=database.execute('SELECT Location,Status FROM issues WHERE IssueID=?',
+                                 (self.request['issueid'],)).fetchone()
+        self.assertEqual(tuple(row),(canonical.name,'Downloaded'))
+        with patch.object(self.mylar.tagger_supplement,'apply_preserved',side_effect=AssertionError('No metadata replay')):
+            self.assertEqual(combined.status(first['token']),result)
+            self.assertEqual(combined.metadata(first['token'],None),result)
+
+    def test_native_preview_is_readonly_and_uses_actual_enrichment_derivation(self):
+        paths=[self.source,self.root/'mylar.db',self.store.path,self.writer.lock,self.writer.root/'publication-v1.json']
+        before={str(path):guard.file_hash(path) for path in paths}
+        value=combined.execute(json.dumps(dict(version=1,action='preview',
+            arguments=dict(naming=self.request,policy={'AgeRating':'Teen'}))))
+        self.assertEqual(value['protocol'],'combined-preview-v1')
+        self.assertEqual(value['additions'],{'AgeRating':'Teen'})
+        self.assertEqual(value['request'],self.request)
+        self.assertEqual(value['binding'],guard.canonical_digest({k:v for k,v in value.items() if k!='binding'}))
+        self.assertEqual(before,{str(path):guard.file_hash(path) for path in paths})
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+
+    def test_unsupported_or_mismatched_approved_additions_hold_before_native_copies(self):
+        self.value['policy']={'AgeRating':'Teen'}
+        proof=combined.preview(dict(naming=self.request,policy=self.value['policy']))
+        for additions in ({'UnsupportedField':'not native derived'},{'AgeRating':'Everyone'}):
+            value=dict(self.value,preview=proof,approved_additions=additions)
+            with self.subTest(additions=additions),self.assertRaises(native.Review):combined.prepare(value)
+            self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+        forged=json.loads(json.dumps(proof));forged['additions']={'UnsupportedField':'not native derived'}
+        forged['binding']=guard.canonical_digest({k:v for k,v in forged.items() if k!='binding'})
+        with self.assertRaises(native.Review):
+            combined.prepare(dict(self.value,preview=forged,approved_additions=forged['additions']))
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+
+    def test_native_preview_final_private_observation_source_change_cannot_ack(self):
+        actual=guard.writer_identity;calls=[]
+        def changed(writer):
+            result=actual(writer)
+            caller=sys._getframe(1)
+            while caller.f_code.co_filename.endswith('/unittest/mock.py'):caller=caller.f_back
+            if caller.f_code.co_name=='preview_observation':
+                calls.append(result)
+                if len(calls)==3:self.source.write_bytes(b'changed during final private observation')
+            return result
+        with patch.object(guard,'writer_identity',side_effect=changed),self.assertRaises(native.Review):
+            combined.preview(dict(naming=self.request,policy={'AgeRating':'Teen'}))
+        self.assertEqual(len(calls),3)
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+
+    def test_native_preview_final_digest_source_change_cannot_ack(self):
+        actual=guard.canonical_digest;fired=[]
+        def changed(value):
+            result=actual(value)
+            caller=sys._getframe(1)
+            while caller.f_code.co_filename.endswith('/unittest/mock.py'):caller=caller.f_back
+            if caller.f_code.co_name=='preview_observation':
+                original=self.source.read_bytes()
+                self.source.write_bytes(b'X'+original[1:]);fired.append(True)
+            return result
+        with patch.object(guard,'canonical_digest',side_effect=changed),self.assertRaises(native.Review):
+            combined.preview(dict(naming=self.request,policy={'AgeRating':'Teen'}))
+        self.assertEqual(fired,[True])
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+
+    def test_native_preview_final_signature_source_change_cannot_ack(self):
+        actual=guard.signature;fired=[]
+        def changed(value):
+            result=actual(value)
+            caller=sys._getframe(1)
+            while caller.f_code.co_filename.endswith('/unittest/mock.py'):caller=caller.f_back
+            if caller.f_code.co_name=='preview_observation' and caller.f_locals.get('source')==self.source:
+                original=self.source.read_bytes()
+                self.source.write_bytes(b'X'+original[1:]);fired.append(True)
+            return result
+        with patch.object(guard,'signature',side_effect=changed),self.assertRaises(native.Review):
+            combined.preview(dict(naming=self.request,policy={'AgeRating':'Teen'}))
+        self.assertEqual(fired,[True])
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+
+    def test_native_preview_final_digest_control_namespace_and_ancestor_changes_hold(self):
+        for kind in ('control','companion','pending','ancestor','lock'):
+            with self.subTest(kind=kind):
+                actual=guard.canonical_digest;fired=[];undo=[]
+                def changed(value):
+                    result=actual(value)
+                    caller=sys._getframe(1)
+                    while caller.f_code.co_filename.endswith('/unittest/mock.py'):caller=caller.f_back
+                    if caller.f_code.co_name=='preview_observation':
+                        if kind=='control':
+                            path=self.writer.root/'publication-v1.json';old=path.read_bytes()
+                            path.write_bytes(b'X'+old[1:]);undo.append(lambda:path.write_bytes(old))
+                        elif kind in ('companion','pending'):
+                            path=(Path(self.mylar.DATA_DIR)/'workflow.sqlite-wal' if kind=='companion'
+                                  else self.writer.root/'release-v1.pending')
+                            path.write_bytes(b'late pending');undo.append(path.unlink)
+                        elif kind=='ancestor':
+                            path=self.source.parent;old=path.stat().st_mode&0o777
+                            path.chmod(old^0o100);undo.append(lambda:path.chmod(old))
+                        else:
+                            path=self.writer.lock;old=path.stat().st_mode&0o777
+                            path.chmod(old^0o100);undo.append(lambda:path.chmod(old))
+                        fired.append(True)
+                    return result
+                try:
+                    with patch.object(guard,'canonical_digest',side_effect=changed),self.assertRaises(native.Review):
+                        combined.preview(dict(naming=self.request,policy={'AgeRating':'Teen'}))
+                    self.assertEqual(fired,[True])
+                    self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+                finally:
+                    for restore in undo:restore()
+
+    def test_native_preview_early_proposal_source_attributes_cannot_be_resealed(self):
+        naming=combined.modules()[4];actual=naming.proposal;fired=[]
+        def changed(*args,**kwargs):
+            result=actual(*args,**kwargs)
+            self.source.chmod(0o640);fired.append(True)
+            return result
+        with patch.object(naming,'proposal',side_effect=changed),self.assertRaises(native.Review):
+            combined.preview(dict(naming=self.request,policy={'AgeRating':'Teen'}))
+        self.assertEqual(fired,[True])
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+
+    def test_native_preview_first_admission_source_and_controls_cannot_be_resealed(self):
+        writers=combined.modules()[1]
+        for path in (self.source,Path(self.mylar.DATA_DIR)/'mylar.db',
+                     Path(self.mylar.DATA_DIR)/'workflow.sqlite',self.writer.root/'publication-v1.json'):
+            with self.subTest(path=path.name):
+                actual=writers.admission;fired=[];mode=path.stat().st_mode&0o777
+                def changed(writer):
+                    result=actual(writer)
+                    caller=sys._getframe(1)
+                    while caller.f_code.co_filename.endswith('/unittest/mock.py'):caller=caller.f_back
+                    if caller.f_code.co_name=='preview_observation' and not fired:
+                        path.chmod(mode^0o040);fired.append(True)
+                    return result
+                try:
+                    with patch.object(writers,'admission',side_effect=changed),self.assertRaises(native.Review):
+                        combined.preview(dict(naming=self.request,policy={'AgeRating':'Teen'}))
+                    self.assertEqual(fired,[True])
+                    self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+                finally:path.chmod(mode)
+
+    def test_native_reviewed_preview_census_drift_cannot_prepare(self):
+        self.value['policy']={'AgeRating':'Teen'}
+        proof=combined.preview(dict(naming=self.request,policy=self.value['policy']))
+        census=self.store.get('publication_census','v1');census['revision']+=1
+        self.store.set('publication_census','v1',census)
+        with self.assertRaises(native.Review):
+            combined.prepare(dict(self.value,preview=proof,approved_additions=proof['additions']))
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+
+    def test_empty_policy_publisher_preview_rejects_unsupported_approval(self):
+        import zipfile
+        with zipfile.ZipFile(self.source) as archive:
+            members={name:archive.read(name) for name in archive.namelist() if name!='ComicInfo.xml'}
+        with zipfile.ZipFile(self.source,'w') as archive:
+            for name,value in members.items():archive.writestr(name,value)
+            archive.writestr('ComicInfo.xml','<ComicInfo><Series>Publication</Series><Number>1</Number><Publisher>Example</Publisher></ComicInfo>')
+        self.request['sha256']=guard.file_hash(self.source)[1];self.info.update(self.request)
+        value=dict(self.value,naming=dict(self.request,target=self.source.name))
+        proof=combined.preview(dict(naming=value['naming'],policy={}))
+        self.assertEqual(proof['additions'],{'SeriesGroup':'Publisher: Example'})
+        for wrong in ({'UnsupportedField':'not native derived'},{}):
+            with self.subTest(approved=wrong),self.assertRaises(native.Review):
+                combined.prepare(dict(value,preview=proof,approved_additions=wrong))
+            self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+        accepted=combined.prepare(dict(value,preview=proof,approved_additions=proof['additions']))
+        self.assertEqual(accepted['phase'],'prepared')
+        self.assertEqual(guard.file_hash(self.source)[1],self.request['sha256'])
+
+    def test_native_empty_canonical_preview_never_creates_publication_or_pair(self):
+        self.value['naming']=dict(self.request,target=self.source.name)
+        proof=combined.preview(dict(naming=self.value['naming'],policy={}))
+        self.assertEqual(proof['additions'],{})
+        with self.assertRaises(native.Review):
+            combined.prepare(dict(self.value,preview=proof,approved_additions={}))
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+        self.assertEqual(guard.file_hash(self.source)[1],self.before)
+        self.assertFalse(self.writer.fenced(tagger=True));self.assertFalse(self.writer.fenced(release=True))
+
+    def test_native_preview_source_and_current_catalog_drift_hold_preparation(self):
+        self.value['policy']={'AgeRating':'Teen'}
+        proof=combined.preview(dict(naming=self.request,policy=self.value['policy']))
+        with self.connection() as database:
+            database.execute('UPDATE issues SET Status=? WHERE IssueID=?',('Archived',self.request['issueid']))
+        with self.assertRaises(native.Review):combined.prepare(dict(self.value,preview=proof,approved_additions=proof['additions']))
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+        self.source.write_bytes(b'changed actual source')
+        with self.assertRaises(native.Review):combined.preview(dict(naming=self.request,policy=self.value['policy']))
+        self.assertFalse((self.writer.root/'combined-publication-v1').exists())
+
     def test_already_named_publication_still_requires_reader_proof_before_metadata(self):
         self.value['naming']=dict(self.request,target=self.source.name)
         first=self.admitted();combined.rename(first['token'])
@@ -119,6 +340,8 @@ class CombinedTests(unittest.TestCase):
 
     def test_lost_metadata_completion_reconciles_closed_tagging_without_old_rename_ack_or_replay(self):
         self.value['policy']={'AgeRating':'Teen'}
+        proof=combined.preview(dict(naming=self.request,policy=self.value['policy']))
+        self.value.update(preview=proof,approved_additions=proof['additions'])
         first=self.admitted();combined.rename(first['token'])
         actual=combined.save
         def lost(folder,job,**kwargs):

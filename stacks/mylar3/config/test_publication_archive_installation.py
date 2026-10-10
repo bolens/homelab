@@ -19,7 +19,7 @@ modules=real_sdk()
 assert routes.module() is core
 assert callable(api.Api._publicationControl)
 fixes=Path(sys.argv[1])
-for name in ('publication_archive_owned','publication_archive_preparation_existing','publication_archive_prepare_routes','publication_api','media_writer','publication_guard','publication_archive_repair','publication_archive_derivative','publication_archive_layout','publication_archive_reader','publication_archive_adoption','publication_archive_dispatch','publication_archive_verifier','publication_archive_rollback','publication_reader_lifecycle','publication_native_configured_scope'):
+for name in ('publication_archive_owned','publication_archive_preparation_existing','publication_archive_prepare_routes','publication_api','media_writer','publication_guard','publication_archive_repair','publication_archive_derivative','publication_archive_layout','publication_archive_reader','publication_archive_adoption','publication_archive_dispatch','publication_archive_verifier','publication_archive_rollback','publication_archive_history','publication_reader_lifecycle','publication_native_configured_scope'):
  installed=__import__('mylar.'+name,fromlist=[name])
  assert Path(installed.__file__)==Path('/app/mylar3/mylar')/(name+'.py')
  assert Path(installed.__file__).read_bytes()==(fixes/(name+'.py')).read_bytes(),name
@@ -33,7 +33,12 @@ from unittest.mock import patch
 case=tests.Controls();case.setUp()
 try:
  with patch.object(core,'sdk',side_effect=real_sdk):
+  from mylar import publication_archive_history as history
+  with case.case.writer.hold(timeout=0):history.initialize(case.case.controller,case.case.writer)
   prepared=case.call();observed=case.call('archive-repair-status')
+  with case.case.writer.hold(timeout=0):
+   factual=history.status(case.case.controller,case.case.writer,case.owner,case.operation_id)
+   assert factual['outcome']=='prepared' and factual['ordinary_import_grant'] is False
   assert prepared['outcome']==observed['outcome']=='prepared'
   assert prepared['token']==observed['token']
   assert prepared['adoption_authority'] is False

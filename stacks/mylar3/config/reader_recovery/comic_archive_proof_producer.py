@@ -10,7 +10,7 @@ import time
 import comic_archive_repair_action as a
 
 HERE=Path(__file__).resolve().parent
-PINS={'comic_reader_backup.py':'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3','comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_archive_repair_action.py':'2a1dcdbe933190eb8bdf96cea9278561348262eade58069ea737ec92c9d795d1','publication_native_configured_scope.py':'6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608'}
+PINS={'comic_reader_backup.py':'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3','comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_archive_repair_action.py':'38a73d2ab08cb2139181987b494efac1b27e66c2c41190f85adffb91c9d12594','publication_native_configured_scope.py':'6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608'}
 ROLES=a.ROLES
 Held=a.Held
 need=a.need

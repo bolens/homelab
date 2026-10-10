@@ -33,6 +33,10 @@ import publication_tagging_recovery as recovery
 import publication_guard as guard
 import converted_tagging
 import workflow_store
+import ordinary_import_continuity
+import ordinary_import_history
+import publication_rename
+import media_writer
 
 requires_verifier=unittest.skipUnless(
     (Path(cases.fixtures.TOOL_ROOT)/'lib/archive_backend.py').is_file(),
@@ -70,7 +74,15 @@ class BackendTests(unittest.TestCase):
         def operation():
             with self.writer.hold(allow_tagger_pending=True):yield self.writer
         self.runtime.operation=operation
-        context=patch.dict(sys.modules,{'mylar.publication_native':native})
+        # Expose the actual host modules under the application's canonical names.
+        # No delivery history or continuity capability is manufactured here.
+        modules={'publication_native':native,'publication_guard':guard,
+                 'ordinary_import_continuity':ordinary_import_continuity,
+                 'ordinary_import_history':ordinary_import_history,
+                 'publication_rename':publication_rename,
+                 'publication_transaction':transaction,'media_writer':media_writer}
+        for name,module in modules.items():setattr(self.mylar,name,module)
+        context=patch.dict(sys.modules,{'mylar.'+name:module for name,module in modules.items()})
         context.start();self.addCleanup(context.stop)
 
     def dispatch(self,*,manual=False,issueid='123'):

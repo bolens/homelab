@@ -10,13 +10,13 @@ from unittest.mock import patch
 HERE=Path(__file__).resolve().parent;sys.path.insert(0,str(HERE));sys.path.insert(0,str(HERE/'_archive_repair_fixtures'))
 import comic_archive_repair_action as p
 import test_publication_archive_adoption as f
-rollback=f.load('publication_archive_rollback');verifier=f.load('publication_archive_verifier')
+rollback=f.load('publication_archive_rollback');verifier=f.load('publication_archive_verifier');history=f.load('publication_archive_history')
 
 class Flow(unittest.TestCase):
  def setUp(self):
   self.bind_calls=[];self.case=f.Tests('runTest');self.case.setUp();self.addCleanup(self.case.doCleanups);c=self.case.c
   self.modules={m.__name__.split('.')[-1]:m for m in c.modules}
-  self.modules.update(publication_archive_owned=f.o,publication_archive_reader=f.r,publication_archive_adoption=f.a,publication_archive_rollback=rollback,publication_reader_lifecycle=types.SimpleNamespace(StoppedReaderCustody=f.Stopped,bind_archive_preparation=self.fixture_bind),publication_archive_verifier=verifier)
+  self.modules.update(publication_archive_owned=f.o,publication_archive_reader=f.r,publication_archive_adoption=f.a,publication_archive_rollback=rollback,publication_reader_lifecycle=types.SimpleNamespace(StoppedReaderCustody=f.Stopped,bind_archive_preparation=self.fixture_bind),publication_archive_verifier=verifier,publication_archive_history=history)
   class FixtureScope:
    def __init__(sl,custody):sl._custody=custody
    def revalidate(sl):self.case.life.revalidate_stopped()
@@ -26,6 +26,8 @@ class Flow(unittest.TestCase):
   self.case.scratch=self.private_root/'scratch';self.case.scratch.mkdir(mode=0o700)
   self.case.retention=self.private_root/'retention';self.case.retention.mkdir(mode=0o700)
   self.scope=FixtureScope(self.case.life);self.case.life.scratch=self.case.scratch
+  history.initialize(c.controller,c.writer) # Fixture preflight BEFORE any owning preparation/custody capture.
+  patcher=patch.object(history,'_bind',self.fixture_history_bind);patcher.start();self.addCleanup(patcher.stop)
   # Original backup declarations are fixture-only. Real full table preservation
   # and restored equality are still independently executed by the repair lease.
   self.output=self.private_root/'provider-output';self.output.mkdir(mode=0o700);control=self.private_root/'provider-controls';control.mkdir(mode=0o700)
@@ -40,6 +42,16 @@ class Flow(unittest.TestCase):
  def fixture_bind(self,custody,scope,owner,operation_id):
   # Explicit lifecycle-only host wrapper; actual sealed transition has its own owning suite.
   self.bind_calls.append((custody,scope,owner,operation_id));return custody
+ def fixture_history_bind(self,controller,writer,custody,scope,owner,operation_id,baseline):
+  # Explicit predecessor lifecycle/origin wrapper; not installed proof. Original
+  # parent execution declarations are still retained and compared by provider.
+  ref=custody.proofs['archive_execution_originals'];original=p.decode(Path(ref['path']).read_bytes())
+  self.assertEqual(original['owner'],owner);self.assertEqual(original['operation_id'],operation_id)
+  files,nodes,absent=custody.vectors()
+  files[Path(ref['path'])]=ref['signature9']
+  return {'files9':[(str(k),tuple(v)) for k,v in files.items()],
+          'nodes5':[(str(k),tuple(v)) for k,v in nodes.items()],
+          'absent':[str(k) for k in absent],'namespaces':[],'claims':[]}, original
  def cap(self):
   return p.prepare_one(self.plan,self.modules,self.case.life,self.scope,self.case.c.controller,self.case.c.writer,self.case.scratch,self.case.retention)
  def test_actual_forward_reader_and_custody(self):
@@ -95,7 +107,7 @@ class Flow(unittest.TestCase):
    result=real(*args,**kw)
    with sqlite3.connect(self.case.life.main) as db:db.execute('UPDATE refs SET PAGE=99')
    return result
-  with patch.object(verifier,'verify_existing_with_vectors',side_effect=late),self.assertRaises(p.Held):self.verify_forward()
+  with patch.object(verifier,'verify_existing_with_vectors',side_effect=late),self.assertRaises((p.Held,f.o.Held)):self.verify_forward()
  def test_lost_complete_ack_no_replay(self):
   real=f.a.RepairAdoption.complete
   def lost(cap):real(cap);raise OSError('fixture lost ACK')

@@ -6,7 +6,7 @@ import sys
 MARKER='# homelab-publication-processing-v1'
 
 
-def patched_source(source):
+def _publication_source(source):
     if MARKER in source:
         if source.count(MARKER)!=1:
             raise ValueError('Native publication processing guards changed')
@@ -19,7 +19,7 @@ def patched_source(source):
         for node in sorted(owned,key=lambda value:value.lineno,reverse=True):
             del lines[node.lineno-1:node.end_lineno]
         clean=''.join(lines).replace(MARKER+'\n','',1)
-        if patched_source(clean)!=source:
+        if _publication_source(clean)!=source:
             raise ValueError('Native publication guard arguments or placement changed')
         return source
     tree=ast.parse(source);parents={child:node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
@@ -141,5 +141,51 @@ def main(directory):
              root/'process.py':patched_process((root/'process.py').read_text())}
     for path,source in changes.items():path.write_text(source)
 
+
+
+
+# The wrapper migrates both unpatched and exact v1 native processing sources.
+IMPORT_MARKER='# homelab-ordinary-import-completion-v1'
+IMPORT_HOOK='                processing_guard.import_success(self, dst, issueid=issueid, comicid=comicid)\n'
+IMPORT_FILE_OP='helpers.file_ops(src, dst)'
+IMPORT_FILE_COPY='processing_guard.import_file_ops(self, helpers.file_ops, src, dst)'
+IMPORT_CLEANUPS=(
+    'self.tidyup(odir, True, filename=os.path.basename(orig_filename))',
+    'self.tidyup(odir, True, subpath, filename=os.path.basename(orig_filename))')
+
+
+def patched_source(source):
+    if IMPORT_MARKER in source:
+        if source.count(IMPORT_MARKER)!=1 or source.count(IMPORT_HOOK)!=1:
+            raise ValueError('Ordinary import completion boundary changed')
+        clean=source.replace(IMPORT_MARKER+'\n','',1).replace(IMPORT_HOOK,'',1)
+        if clean.count(IMPORT_FILE_COPY)!=2:raise ValueError('Ordinary file placement changed')
+        clean=clean.replace(IMPORT_FILE_COPY,IMPORT_FILE_OP)
+        for original in IMPORT_CLEANUPS:
+            replacement=original.replace('self.tidyup(',
+                'processing_guard.defer_import_cleanup(self, self.tidyup, ',1)
+            if clean.count(replacement)!=1:raise ValueError('Import cleanup boundary changed')
+            clean=clean.replace(replacement,original,1)
+        if patched_source(clean)!=source:raise ValueError('Ordinary import hook moved')
+        return source
+    source=_publication_source(source)
+    if source.count(IMPORT_FILE_OP)!=2:raise ValueError('Ordinary file placement changed')
+    source=source.replace(IMPORT_FILE_OP,IMPORT_FILE_COPY)
+    anchor='                myDB.upsert(updatetable, newVal, ctrlVal)\n'
+    if source.count(anchor)!=1:raise ValueError('Ordinary catalog success boundary changed')
+    source=source.replace(anchor,anchor+IMPORT_HOOK,1)
+    for original in IMPORT_CLEANUPS:
+        if source.count(original)!=1:raise ValueError('Ordinary source cleanup boundary changed')
+        source=source.replace(original,original.replace('self.tidyup(',
+            'processing_guard.defer_import_cleanup(self, self.tidyup, ',1),1)
+    source=IMPORT_MARKER+'\n'+source
+    tree=ast.parse(source)
+    hook=next(n for n in ast.walk(tree) if isinstance(n,ast.Expr)
+              and isinstance(n.value,ast.Call) and ast.unparse(n.value.func)=='processing_guard.import_success')
+    parents={child:node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
+    body=parents[hook].body;index=body.index(hook)
+    if index==0 or ast.unparse(body[index-1])!='myDB.upsert(updatetable, newVal, ctrlVal)':
+        raise ValueError('Ordinary catalog success hook is not adjacent')
+    return source
 
 if __name__=='__main__':main(sys.argv[1])

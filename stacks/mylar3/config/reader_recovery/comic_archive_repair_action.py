@@ -87,7 +87,7 @@ def sdk(ref):
  # Later source reads may add facts, but can never refresh an admitted one.
  facts={Path(ref['path']):list(map_fact)};nodes={path:list(value) for path,value in map_nodes.items()}
  mapping=sdk_map(decode(raw))
- names=('publication_api','media_writer','publication_guard','publication_derivative','publication_archive_layout','publication_archive_repair','publication_archive_derivative','publication_archive_owned','publication_archive_reader','publication_archive_adoption','publication_archive_rollback','publication_archive_preparation_existing','publication_archive_verifier','publication_reader_lifecycle','publication_native_configured_scope','publication_native_scope_birth')
+ names=('publication_api','media_writer','publication_guard','publication_derivative','publication_archive_layout','publication_archive_repair','publication_archive_derivative','publication_archive_owned','publication_archive_reader','publication_archive_adoption','publication_archive_rollback','publication_archive_preparation_existing','publication_archive_verifier','publication_archive_history','publication_reader_lifecycle','publication_native_configured_scope','publication_native_scope_birth')
  need({'__init__.py',*[n+'.py' for n in names]}.issubset(mapping),'action-all-components-before-operation')
  for name,digest in mapping.items():
   path=ROOT/name;_,fact,parents=checked(dict(path=str(path),sha256=digest),False)
@@ -234,14 +234,20 @@ def rollback_owned(cap,modules):
  if cap._phase=='installed':cap.reverse()
  consumer=modules['publication_archive_rollback'].from_reversed(cap)
  need(type(consumer) is modules['publication_archive_rollback'].RepairRollbackTerminal,'repair-exact-rollback-terminal')
- result=consumer.clear();vectors=terminal_vectors(cap,modules);close_vectors(vectors)
+ result=consumer.clear();history_ref=modules['publication_archive_history'].executed(cap);vectors=terminal_vectors(cap,modules)
+ original=modules['publication_archive_history'].record_vectors(history_ref)
+ recorded=seal_vectors(dict(original['files9']),dict(original['nodes5']),original['absent'],dict(original['claims']),dict(original['namespaces']))
+ for field in vectors:vectors[field]+=recorded[field]
+ close_vectors(vectors)
  return result,vectors
 
 def prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention):
  core=modules['publication_archive_owned'];request=control_join(plan,custody)
  owner=modules['publication_guard'].exact_owner(request['owner']);need(owner==request['owner'],'repair-exact-owner')
  stage=controller.root/('archive-repair-'+request['operation_id'])
- if not os.path.lexists(stage):prep=core.prepare_existing(controller,writer,owner,request['operation_id'])
+ if not os.path.lexists(stage):
+  prep=core.prepare_existing(controller,writer,owner,request['operation_id'])
+  modules['publication_archive_history'].prepared(prep)
  else:
   bound=modules['publication_reader_lifecycle'].bind_archive_preparation(custody,scope,owner,request['operation_id']);need(bound is custody,'repair-same-original-bound-custody')
   prep=modules['publication_archive_preparation_existing'].from_existing(controller,writer,owner,request['operation_id'],custody)
@@ -259,12 +265,16 @@ def execute_one(plan,modules,custody,scope):
  operation,opnodes=operation_directory(plan['operation'],custody);need(not os.listdir(operation),'repair-exclusive-output-operation')
  for root in (*controller.roots,controller.root,retention,scratch):need(operation!=Path(root) and operation not in Path(root).parents and Path(root) not in operation.parents,'repair-output-disjoint')
  with writer.hold(timeout=0):
+  modules['publication_archive_history'].directory(controller,writer) # Explicit pre-backup initialization prerequisite.
   scope.revalidate();cap=prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention)
   baseline=cap.journal/'baseline.json';prep_path=cap.preparation._operation/'preparation.json'
   original={'version':1,'kind':'archive-one-original-custody','owner':copy.deepcopy(plan['owner']),'operation_id':plan['operation_id'],'baseline':{'path':str(baseline),'signature9':list(cap._files[baseline]),'sha256':cap._contents[baseline]},'preparation':{'path':str(prep_path),'signature9':list(cap.preparation._files[prep_path]['signature9']),'sha256':cap.preparation._files[prep_path]['sha256']},'preparation_directory9':list(cap.preparation._directory),'reader':cap.reader.binding,'publication_acceptance':False,'mutation_authority':False}
   originals=emit(operation,'execution-originals.json',original,());cap.close()
   # Errors never reconstruct or replay a cap; uncertain native phase is retained.
-  cap.install();cap.complete();vectors=terminal_vectors(cap,modules)
+  cap.install();cap.complete();history_ref=modules['publication_archive_history'].executed(cap);vectors=terminal_vectors(cap,modules)
+  history_vectors=modules['publication_archive_history'].record_vectors(history_ref)
+  history_seal=seal_vectors(dict(history_vectors['files9']),dict(history_vectors['nodes5']),history_vectors['absent'],dict(history_vectors['claims']),dict(history_vectors['namespaces']))
+  for field in vectors:vectors[field]+=history_seal[field]
   vectors['files']+=((originals['path'],tuple(originals['signature9'])),)
   vectors['nodes']+=tuple((str(p),tuple(v)) for p,v in opnodes.items())
   vectors['censuses']+=((str(operation),('execution-originals.json',)),)
@@ -308,12 +318,12 @@ def verify_one(plan,modules,custody,scope):
  reverse=frozenset({'baseline.json','install-intent.json','installed.json','reverse-intent.json','reversed.json','rollback-complete-intent.json','rollback-complete.json'})
  need(names in (forward,reverse),'repair-finite-terminal-journal');rollback=names==reverse
  with writer.hold(timeout=0):
-  verifier=modules['publication_archive_verifier'];require_terminal_observers(modules)
-  observed=(verifier.verify_rollback_existing_with_vectors if rollback else verifier.verify_existing_with_vectors)(controller,writer,custody,baseline,scratch)
-  need(type(observed) is dict and set(observed)=={'summary','original_vectors'},'repair-actual-observation-shape')
+  require_terminal_observers(modules)
+  observed=modules['publication_archive_history'].observe_terminal(controller,writer,custody,scope,plan['owner'],plan['operation_id'],baseline,scratch,rollback=rollback,with_vectors=True)
+  need(type(observed) is dict and set(observed)=={'summary','original_vectors','history'},'repair-actual-observation-shape')
   result=observed['summary'];v=observed['original_vectors']
   need(type(v) is dict and set(v)=={'files9','nodes5','absent','namespaces','claims'},'repair-complete-observation-vectors')
-  vectors=seal_vectors(v['files9'],v['nodes5'],v['absent'],v['claims'],v['namespaces'])
+  vectors=seal_vectors(dict(v['files9']),dict(v['nodes5']),v['absent'],dict(v['claims']),dict(v['namespaces']))
   # A factual observer cannot refresh the preparation/stage preimages.
   present=dict(vectors['files'])
   for path,value in original_files:need(path not in present or present[path]==value,'repair-verifier-original-file-conflict')

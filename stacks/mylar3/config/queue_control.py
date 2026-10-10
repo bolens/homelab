@@ -302,13 +302,15 @@ def library_present(folder, location, status):
 def import_evidence(database):
     rows = database.select("""
         SELECT d.id, d.pack, d.issues, d.comicid, c.ComicLocation,
-               i.Status AS issue_status, i.Location
+               i.Status AS issue_status, i.Location, i.IssueID AS issueid,
+               'issues' AS owner_table, i.ComicID AS parentcomicid, i.ComicID AS releasecomicid
         FROM ddl_info d LEFT JOIN comics c ON c.ComicID=d.comicid
         LEFT JOIN issues i ON i.IssueID=d.issueid AND i.ComicID=d.comicid WHERE d.status='Completed'
           AND NOT EXISTS (SELECT 1 FROM annuals a WHERE a.IssueID=d.issueid)
         UNION ALL
         SELECT d.id, d.pack, d.issues, d.comicid, c.ComicLocation,
-               i.Status AS issue_status, i.Location
+               i.Status AS issue_status, i.Location, i.IssueID AS issueid,
+               'annuals' AS owner_table, i.ComicID AS parentcomicid, i.ReleaseComicID AS releasecomicid
         FROM ddl_info d LEFT JOIN comics c ON c.ComicID=d.comicid
         JOIN annuals i ON i.IssueID=d.issueid AND i.ComicID=d.comicid WHERE d.status='Completed' AND COALESCE(i.Deleted,0)=0
     """)
@@ -318,7 +320,16 @@ def import_evidence(database):
         linked = library_present(row['ComicLocation'], row['Location'], row['issue_status'])
         if str(row['pack']).lower() not in ('1','true'):
             if linked:
-                result[key] = ('Post-processed; in library', True)
+                owner={'table':row['owner_table'],'issueid':str(row['issueid']),
+                       'parentcomicid':str(row['parentcomicid']),'releasecomicid':str(row['releasecomicid'])}
+                destination=str(Path(row['ComicLocation']).absolute()/row['Location'])
+                acknowledged=False
+                try:
+                    from mylar import ordinary_import_history
+                    acknowledged=ordinary_import_history.confirmed_ddl(key,owner,destination)
+                except (ImportError,OSError,ValueError,TypeError):pass
+                result[key] = ('Post-processed; ordinary import acknowledged' if acknowledged else
+                               'Downloaded; import not confirmed (archive present)', acknowledged)
             continue
         numbers = pack_numbers(row['issues'])
         if numbers is None:
@@ -342,9 +353,9 @@ def import_evidence(database):
             matches = members[comicid].get(number, [])
             if len(matches) == 1 and library_present(row['ComicLocation'], matches[0]['Location'], matches[0]['Status']):
                 count += 1
-        complete = count == len(numbers)
-        result[key] = (('Pack in library' if complete else 'Pack import incomplete') +
-                       ' (%d/%d issues)' % (count, len(numbers)), complete)
+        # Current archives prove presence, not delivery of this pack generation.
+        result[key] = ('Pack archives present; delivery acknowledgements unconfirmed'+
+                       ' (%d/%d issues)' % (count, len(numbers)), False)
     return result
 
 

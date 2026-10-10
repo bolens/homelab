@@ -156,6 +156,11 @@ def report(payload, handoff=None):
     if not isinstance(payload, str) or len(payload) > 2000000:
         raise ValueError('Pack report exceeds limit')
     value = json.loads(payload)
+    # This namespace belongs only to the live native retained finalizer.
+    if value.get('phase')=='retained-accepted' or value.get('record_kind')=='retained_delivery_final' or any(k in value for k in ('retained_finalization','retained_delivery_final','fresh_retained_acceptance')) or any(
+            any(k in m for k in ('retained_finalization','retained_delivery_final','fresh_retained_acceptance'))
+            or m.get('phase')=='retained-accepted' for m in value.get('members',[]) if isinstance(m,dict)):
+        raise ValueError('Reserved native retained finalization')
     from mylar import worker_handoff
     worker_handoff.admit(handoff,'packReport',{'report':payload})
     key = value.get('id', '')
@@ -164,6 +169,8 @@ def report(payload, handoff=None):
     old = workflow.store().get('pack', key)
     if not old:
         raise ValueError('Unknown pack')
+    if any(m.get('retained_finalization') or m.get('phase')=='retained-accepted' for m in old['members']):
+        raise ValueError('Native retained capture cannot be rewritten by worker report')
     expected_record = json.loads(json.dumps(old))
     members = value.get('members')
     if not isinstance(members, list) or len(members) > 2000:
@@ -222,11 +229,21 @@ def report(payload, handoff=None):
                 if actual != expected or signature != [after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns]:
                     raise ValueError('Library destination changed')
             member.update(destination=str(path), destination_sha256=expected, signature=signature)
+        if member['kind']!='sidecar' and member['phase']=='confirmed':
+            from mylar import ordinary_import_history,publication_native
+            ordinary_token=row.get('ordinary_import_token','')
+            owner=publication_native.owner(__import__('mylar').DATA_DIR,member['issueid'],member['comicid'])
+            if (not HEX.fullmatch(ordinary_token) or owner is None
+                    or not ordinary_import_history.confirmed_token(ordinary_token,owner,member['destination'])):
+                raise ValueError('Pack member lacks exact ordinary import acknowledgement')
+            if previous_member.get('ordinary_import_token') not in (None,ordinary_token):
+                raise ValueError('Pack acknowledgement changed')
+            member['ordinary_import_token']=ordinary_token
         clean.append(member)
     old.update(members=clean, inventory_complete=bool(old.get('inventory_complete') or value.get('inventory_complete') is True),
                updated_at=time.time(), phase='review', cleanup_complete=bool(old.get('cleanup_complete') or value.get('cleaned_at')),
                cleanup_started=bool(old.get('cleanup_started') or value.get('cleanup_verified_at')))
-    if old['inventory_complete'] and clean and all(m['phase'] in ('confirmed', 'preserved') for m in clean):
+    if old['inventory_complete'] and clean and all((m['phase']=='confirmed' and m['kind']!='sidecar') or (m['kind']=='sidecar' and m['phase']=='preserved') for m in clean):
         old['phase'] = 'confirmed'
     def verify_destinations():
         # Recheck under the journal write transaction. A delayed HTTP report
@@ -265,8 +282,22 @@ def snapshot(records=None):
             row = {k: v for k, v in original.items() if k not in ('destination', 'destination_sha256', 'signature', 'sidecar', 'sha256')}
             if row['phase'] in ('confirmed', 'preserved') and not member_present(original):
                 row.update(phase='review', reason='Library file changed or is missing')
+            if row['kind']!='sidecar' and row['phase']=='confirmed':
+                from mylar import ordinary_import_history,publication_native
+                token=original.get('ordinary_import_token','')
+                acknowledged=False
+                if isinstance(token,str) and HEX.fullmatch(token):
+                    from mylar import publication_guard
+                    try:
+                        owner=publication_native.owner(__import__('mylar').DATA_DIR,original['issueid'],original['comicid'])
+                        acknowledged=owner is not None and ordinary_import_history.confirmed_token(token,owner,original['destination'])
+                    except (publication_native.Review,publication_guard.Unavailable,OSError,ValueError,KeyError,TypeError):
+                        # Passive observation retains members and their original evidence.
+                        acknowledged=False
+                if not acknowledged:
+                    row.update(phase='review',reason='Ordinary import acknowledgement missing or changed')
             members.append(row)
-        confirmed = sum(m['phase'] in ('confirmed', 'preserved') for m in members)
+        confirmed = sum((m['phase']=='confirmed' and m['kind']!='sidecar') or (m['kind']=='sidecar' and m['phase']=='preserved') for m in members)
         result.append({'id': record['id'], 'ddl_id': record['ddl_id'], 'name': record['name'],
                        'inventory_complete': record['inventory_complete'], 'members': members,
                        'confirmed': confirmed, 'total': len(members),

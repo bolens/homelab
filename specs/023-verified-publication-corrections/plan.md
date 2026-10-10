@@ -107,8 +107,10 @@ held. These witnesses grant no current media mutation or recovery permission.
 
 ## Prospective aggregate recovery dependency
 
-T020–T027 precede remaining live acceptance while retaining the original task
-history. Native `publication_negative_batch.py` owns the immutable five-source
+T020–T025 and T028 source review precede T026 integration and T029 current
+combined runtime acceptance. These gates precede the held rollout in T017;
+T027 then supplies fresh live aggregate evidence before T017 reconciliation
+and T018–T019 acceptance and cleanup. Original task IDs and history remain. Native `publication_negative_batch.py` owns the immutable five-source
 marker, complete shared-parent phase projection, exact staged reservations,
 rollback and terminal closure. `publication_reader_phase.py` owns stopped-reader
 scope, main/tasks raw restore custody, typed SQL comparison and exact forward/reverse

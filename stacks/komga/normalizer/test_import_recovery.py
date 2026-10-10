@@ -466,7 +466,7 @@ class RecoveryTest(unittest.TestCase):
         with closing(sqlite3.connect(self.db)) as db, db:
             db.execute("UPDATE issues SET Status='Downloaded',Location='Test Comic 001.cbz'")
         self.assertIsNone(match(self.source,self.db))
-        self.assertEqual(previous_attempt(self.m,self.source)[0],'import_cleanup')
+        self.assertEqual(previous_attempt(self.m,self.source)[0],'import_review')
 
     def test_second_filename_for_same_issue_requires_review(self):
         submit(self.m,self.source,{'issueid':'100','comicid':'10'})

@@ -128,6 +128,12 @@ def acknowledge(command_id,phase,reason=''):
                  'submitted':{'submitted','review','confirmed'},'review':{'review','confirmed'},'confirmed':{'confirmed'},'rejected':{'rejected'}}
         if phase not in allowed[row['phase']]:raise ValueError('Import command transition requires review')
         if phase=='claimed':workflow.admit_import(row['issueid'],command_id)
+        if phase=='confirmed':
+            from mylar import ordinary_import_history
+            if not ordinary_import_history.confirmed_guided(row):
+                raise ValueError('Exact ordinary import acknowledgement required')
+            if store.get('command',command_id)!=row:
+                raise ValueError('Guided command changed during acknowledgement')
         if row['phase']!=phase:
             workflow.emit('matching','Guided import '+phase,issueid=row['issueid'],comicid=row['comicid'])
         row.update(phase=phase,reason=REASONS[reason],updated_at=time.time());store.set('command',command_id,row)
