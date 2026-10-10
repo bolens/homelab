@@ -282,4 +282,31 @@ class Round(Tests):
   with patch.object(self.m,'archive_terminal_original_vectors',late),self.assertRaises(self.m.Held):self.m.consume_archive_terminal_release(witness,self.life,self.scope,cap)
   self.assertTrue(fired)
 
+class WorkerRoles(Tests):
+ def roles(self,cap):
+  sys.path.insert(0,str(Path(__file__).parent/'reader_recovery'))
+  import comic_archive_repair_action as action
+  return action.worker_original_roles(cap,{'publication_archive_adoption':a,'publication_reader_lifecycle':self.m},self.life,self.scope)
+ def test_live_canonical_four_original_role_export(self):
+  cap=self.live();roles=self.roles(cap);original=self.m.archive_terminal_original_vectors(self.life,self.scope,cap)['terminal']
+  self.assertEqual(set(roles),{'archive','catalog','authority','marker','catalog_native_target'})
+  for name in ('archive','catalog','authority','marker'):
+   self.assertEqual(roles[name]['signature9'],list(dict(original['files'])[roles[name]['path']]))
+   self.assertEqual(roles[name]['sha256'],dict(original['hashes'])[roles[name]['path']])
+  self.assertEqual(roles['catalog_native_target'],str(cap.source))
+ def test_saved_role_cap_cannot_mint_originals(self):
+  self.live()
+  sys.path.insert(0,str(Path(__file__).parent/'reader_recovery'))
+  import comic_archive_repair_action as action
+  with self.assertRaises(action.Held):self.roles({})
+ def test_late_original_source_replacement_holds_role_export(self):
+  cap=self.live();query=self.m.archive_terminal_original_vectors;fired=[]
+  def late(*args):
+   result=query(*args)
+   if not fired:
+    q=cap.source.with_name('replacement-source');q.write_bytes(cap.source.read_bytes());q.chmod(cap.source.stat().st_mode&0o777);os.replace(q,cap.source);fired.append(True)
+   return result
+  with patch.object(self.m,'archive_terminal_original_vectors',late),self.assertRaises(self.m.Held):self.roles(cap)
+  self.assertTrue(fired)
+
 if __name__=='__main__':unittest.main()

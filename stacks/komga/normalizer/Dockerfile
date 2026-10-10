@@ -11,7 +11,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY *.py /app/
 COPY ordinary_observation_fixtures/ /app/ordinary_observation_fixtures/
 USER 1000:1000
-RUN python3 -m unittest discover -s /app -p 'test_*.py'
+# Fault controls mutate only their private source copy, never the installed tree.
+RUN test_root="$(mktemp -d)" \
+    && cp -R /app/. "${test_root}/" \
+    && python3 -m unittest discover -s "${test_root}" -p 'test_*.py' \
+    && rm -rf "${test_root}"
 
 FROM runtime
 LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \

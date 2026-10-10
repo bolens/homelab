@@ -295,6 +295,27 @@ def same_child_observation(cap,modules,custody,scope,scratch):
  return observed,vectors
 
 
+def worker_original_roles(cap,modules,custody,scope):
+ # Caller has the actual canonical cap; no saved report or owner selector can
+ # manufacture these original Controller/Writer/terminal-registry bindings.
+ life=modules['publication_reader_lifecycle'];adoption=modules['publication_archive_adoption']
+ need(type(cap) is adoption.RepairAdoption and cap.reader.custody is custody,'worker-actual-live-cap')
+ original=life.archive_terminal_original_vectors(custody,scope,cap)['terminal']
+ files=dict(original['files']);hashes=dict(original['hashes'])
+ controller=cap.preparation._controller;writer=cap.preparation._writer
+ paths={'archive':str(cap.source),'catalog':str(controller.native_database),'authority':str(controller.database),'marker':str(writer.root/'publication-v1.json')}
+ roles={}
+ for name,path in paths.items():
+  need(path in files and path in hashes and type(hashes[path]) is str and re.fullmatch('[0-9a-f]{64}',hashes[path]) and tuple(files[path])[5]&0o170000==0o100000,'worker-original-role-missing')
+  roles[name]={'path':path,'signature9':list(files[path]),'sha256':hashes[path]}
+ roles['catalog_native_target']=paths['archive']
+ # Only detached original rows survive callbacks. A second owning query must
+ # return exactly the same live terminal record before normal final closure.
+ again=life.archive_terminal_original_vectors(custody,scope,cap)['terminal']
+ need(again==original and str(cap.source)==paths['archive'] and cap.preparation._controller is controller and cap.preparation._writer is writer,'worker-original-role-query-drift')
+ return roles
+
+
 def original_execution(value,plan):
  expected={'version','kind','owner','operation_id','baseline','preparation','preparation_directory9','reader','publication_acceptance','mutation_authority'}
  need(type(value) is dict and set(value)==expected and type(value['version']) is int and value['version']==1 and value['kind']=='archive-one-original-custody' and value['publication_acceptance'] is False and value['mutation_authority'] is False,'repair-original-execute-schema')
@@ -543,7 +564,9 @@ def execute_same_child(plan,modules,custody,scope,source_files,source_nodes,args
   vectors['nodes']+=tuple((str(p),tuple(v)) for p,v in opnodes.items())
   vectors['censuses']=tuple((p,n) for p,n in vectors['censuses'] if p!=str(operation))+((str(operation),('execute-report.json','execution-originals.json','terminal-report.json')),)
   outcome='observed-rollback' if cap._phase=='rollback-complete' else 'observed-forward'
+  worker_roles=worker_original_roles(cap,modules,custody,scope)
   terminal={'version':1,'kind':'archive-one-independent-terminal-observation','outcome':outcome,'owner':copy.deepcopy(plan['owner']),'operation_id':plan['operation_id'],'originals':originals,'baseline':original['baseline'],'independent_observation':observed['summary'],'history':observed['history'],'execute_history':execute_history,'reader_index_acceptance':False,'ordinary_import_grant':False,'publication_acceptance':False,'mutation_authority':False,'automatic_replay':False,'phase':'execute','nonce':plan['nonce'],'final_ack_required':True,'provider_continuity_verified':False}
+  terminal['worker_roles']=worker_roles
   terminal['original_vectors']={key:[[path,None if value is None else list(value)] for path,value in vectors[key]] for key in ('files','nodes','claims','censuses')};terminal['original_vectors']['absent']=list(vectors['absent'])
   terminal_ref=emit(operation,'terminal-report.json',terminal,('execution-originals.json',))
   evidence={'version':1,'kind':'archive-one-owning-execute-observation','outcome':outcome,'owner':copy.deepcopy(plan['owner']),'operation_id':plan['operation_id'],'originals':originals,'baseline':original['baseline'],'execute_history':execute_history,'terminal_report':terminal_ref,'repair_bytes_verified':True,'reader_reference_preservation':True,'reader_index_acceptance':False,'ordinary_import_grant':False,'publication_acceptance':False,'mutation_authority':False,'automatic_replay':False,'phase':'execute','nonce':plan['nonce'],'final_ack_required':True,'provider_continuity_verified':False}

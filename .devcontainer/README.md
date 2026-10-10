@@ -8,7 +8,10 @@ packages. Setup installs dependencies from this checkout's lockfiles and runs
 `bash .devcontainer/post-create.sh` after changing dependency lockfiles.
 
 Includes Docker CLI/Compose, YAML validation, Python and the locked
-Markdown/site tools. No host Docker socket is mounted. Compose rendering works
+Markdown/site tools. Markdownlint runs from `/workspace/node_modules/.bin` after
+`post-create.sh` installs the root lockfile; the image does not install a separate
+global Markdownlint dependency tree. The root `package.json` owns the scoped
+security overrides for its transitive TOML parser and math renderer. No host Docker socket is mounted. Compose rendering works
 offline with tracked examples. Image builds or deployments require an
 explicitly configured disposable engine. Do not use production stack
 environment files for tests.

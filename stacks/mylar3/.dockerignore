@@ -39,6 +39,9 @@ config/reader_recovery/**
 !config/reader_recovery/_archive_repair_fixtures/
 config/reader_recovery/_archive_repair_fixtures/**
 !config/reader_recovery/_archive_repair_fixtures/*.py
+!config/reader_recovery/_archive_worker_fixtures/
+config/reader_recovery/_archive_worker_fixtures/**
+!config/reader_recovery/_archive_worker_fixtures/archive_terminal_observation.py
 !config/reader_recovery/_negative_reader_fixtures/
 config/reader_recovery/_negative_reader_fixtures/**
 !config/reader_recovery/_negative_reader_fixtures/*.py

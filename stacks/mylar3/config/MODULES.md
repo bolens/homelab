@@ -448,7 +448,7 @@ and its fresh proof producers are independently accepted.
 
 The host-only recovery tree also contains the continuous lifecycle parent,
 fresh native process/evidence producer and schema1 phase-custody composer.
-The private-copy gate runs 539 recovery checks in isolated suite processes,
+The private-copy gate runs 588 recovery checks in isolated suite processes,
 including explicit predecessor fixtures and the current provider command
 contract. Original reader pair signatures are carried unchanged; the actual
 child lifecycle validates its own kernel facts. No new pair protocol or

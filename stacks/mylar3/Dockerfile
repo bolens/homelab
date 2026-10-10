@@ -77,7 +77,8 @@ RUN printf '%s\n' /opt/libarchive/lib > /etc/ld.so.conf.d/00-homelab-libarchive.
     && python3 -c "import ctypes,ctypes.util; p=ctypes.util.find_library('archive'); assert p; lib=ctypes.CDLL(p); lib.archive_version_number.restype=ctypes.c_int; assert lib.archive_version_number()==3008009; assert any('/opt/libarchive/lib/libarchive.so.' in line for line in open('/proc/self/maps'))"
 
 FROM pdf-runtime AS checked
-ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    ARCHIVING_UTILS_ROOT=/opt/archiving-utils
 COPY --from=archive-verifier /opt/archiving-utils/ /opt/archiving-utils/
 COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/

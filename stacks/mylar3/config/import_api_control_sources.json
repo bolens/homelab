@@ -569,7 +569,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "3bdb3e4f01892d3e5de996a96d447647356089b16fe9998a0bb75b2e95b26020"
+    "sha256": "2739121ad08a1ef53fe2ab6ea6fe1f167fe17a37ff011cdd57d4d02a7e11e522"
   },
   {
     "path": "source_patches.py",
@@ -1001,7 +1001,7 @@
   },
   {
     "path": "test_publication_archive_same_child.py",
-    "sha256": "d88ccf3f53b20a92d8d6767aaa6da6a9e6442effba4b823f2547a2a8bfa6847a"
+    "sha256": "9e6a05aafd6db91a2e7ef7671fec46ae2ca1a0980834f37b221ee8469abc17c4"
   },
   {
     "path": "test_publication_archive_terminal_originals.py",
