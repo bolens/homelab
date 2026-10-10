@@ -15,8 +15,8 @@ python3 "$repo_dir/scripts/run-private-comic-controls.py" inventory mylar "$sour
 chmod 0644 "$source_map"
 docker image inspect "$1" >/dev/null
 docker run --rm --pull=never --network=none --read-only --user=1000:1000 \
-  --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=64 --memory=256m \
-  --tmpfs /tmp:rw,size=64m,mode=1777 \
+  --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=64 --memory=512m \
+  --tmpfs /tmp:rw,size=256m,mode=1777 \
   -e PYTHONDONTWRITEBYTECODE=1 \
   --mount "type=bind,src=$script_dir/config,dst=/fixes,readonly" \
   --mount "type=bind,src=$repo_dir/scripts/run-private-comic-controls.py,dst=/ci-controls.py,readonly" \
