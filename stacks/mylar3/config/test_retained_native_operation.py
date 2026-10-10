@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 import unittest
 from unittest.mock import patch
+from test_publication_api import TOOL_ROOT
 import test_publication_retained_finalize as fixture
 
 class Controls(unittest.TestCase):
@@ -26,16 +27,22 @@ class Controls(unittest.TestCase):
   self.n.initialize_publication()
   with self.n.operation(startup=True) as writer:self.n.startup_catalog(writer);self.n.complete_startup()
  def raw(self):return json.dumps(self.c.body)
+ @unittest.skipUnless((Path(TOOL_ROOT)/'lib/archive_backend.py').is_file(),
+                      'public archive backend required for retained native producer')
  def test_native_accept_and_passive_wrappers_use_real_ordinary_writer(self):
   source=self.c.case.original.read_bytes();target=self.c.case.target.read_bytes()
   answer=self.native.accept_retained_delivery(self.raw())
   status=self.native.retained_delivery_status(self.raw());self.assertEqual(answer['outcome'],status['outcome'])
   self.assertEqual(self.native.retained_delivery_status(self.raw(),answer['ack']),status)
   self.assertEqual(self.c.case.original.read_bytes(),source);self.assertEqual(self.c.case.target.read_bytes(),target)
+ @unittest.skipUnless((Path(TOOL_ROOT)/'lib/archive_backend.py').is_file(),
+                      'public archive backend required for retained native producer')
  def test_native_finalize_and_passive_wrappers_complete_exact_member(self):
   answer=self.native.finalize_retained_delivery(self.raw());self.assertEqual(answer,self.native.retained_finalization_status(self.raw()))
   self.assertEqual(answer['outcome'],'fresh-retained-backend-finalized');self.assertFalse(answer['ordinary_import_grant']);self.assertFalse(answer['cleanup_grant'])
   with self.assertRaises((fixture.o.Held,FileExistsError)):self.native.finalize_retained_delivery(self.raw())
+ @unittest.skipUnless((Path(TOOL_ROOT)/'lib/archive_backend.py').is_file(),
+                      'public archive backend required for retained native producer')
  def test_native_annual_finalize_preserves_distinct_release_and_status(self):
   with sqlite3.connect(self.c.c.native_database) as db:
    db.execute('DELETE FROM issues');db.execute('INSERT INTO annuals VALUES(?,?,?,?,?,?)',('123','456','789',self.c.case.target.name,'Archived',0))

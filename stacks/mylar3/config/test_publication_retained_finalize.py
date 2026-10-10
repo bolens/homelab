@@ -12,6 +12,7 @@ import tempfile
 import threading
 import unittest
 from unittest.mock import patch
+from test_publication_api import TOOL_ROOT
 
 import test_publication_retained_delivery as fixture
 import workflow_store
@@ -19,6 +20,8 @@ r=fixture.r;o=fixture.o;p=fixture.p
 f=importlib.import_module('mylar.publication_retained_finalize')
 
 
+@unittest.skipUnless((Path(TOOL_ROOT)/'lib/archive_backend.py').is_file(),
+                     'public archive backend required for retained finalization')
 class Finalize(unittest.TestCase):
     def setUp(self):
         self.case=fixture.Retained('runTest');self.case.setUp();self.addCleanup(self.case.doCleanups)
