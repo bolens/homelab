@@ -1717,6 +1717,194 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(main.cli(["--recover", str(workspace)]), 0)
             self.assertEqual(self.snapshot(root), original)
 
+    def test_cleanup_only_retains_last_file(self) -> None:
+        for extract in (False, True):
+            with self.subTest(extract=extract), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                marker = root / "marker"
+                marker.write_bytes(b"~^newz[NZB]~\n")
+                before = self.snapshot(root)
+                with self.assertRaisesRegex(ValueError, "no files would remain"):
+                    main.process_release(root, extract=extract)
+                self.assertEqual(self.snapshot(root), before)
+                with self.assertRaisesRegex(ValueError, "no files would remain"):
+                    main.remove_unwanted_files(root)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_retained_playlists_follow_flattening_and_extension_repairs(self) -> None:
+        for mode in ("flatten", "extensions", "protected"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "Release/Audio").mkdir(parents=True)
+                (root / "Release/Audio/one").write_bytes(b"fLaC" + bytes(32))
+                (root / "Release/list.m3u").write_text("Audio/one.flac\r\n")
+                if mode == "protected":
+                    (root / "Release/album.cue").write_text('FILE "list.m3u" BINARY\n')
+                    main.process_release(root)
+                    playlist = root / "list.m3u"
+                elif mode == "extensions":
+                    main.add_missing_extensions(root)
+                    playlist = root / "Release/list.m3u"
+                else:
+                    # Repair first so flatten-only input has a resolvable reference.
+                    main.add_missing_extensions(root)
+                    main.flatten_existing_tree(root)
+                    playlist = root / "list.m3u"
+                entries = main.playlist_entries(playlist)
+                self.assertIsNotNone(entries)
+                self.assertEqual(len(entries), 1)
+                self.assertEqual((playlist.parent / entries[0]).read_bytes(), b"fLaC" + bytes(32))
+                self.assertTrue(playlist.read_bytes().endswith(b"\r\n"))
+                before = self.snapshot(root)
+                if mode == "protected":
+                    main.process_release(root)
+                elif mode == "extensions":
+                    main.add_missing_extensions(root)
+                else:
+                    main.flatten_existing_tree(root)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_unresolved_retained_playlist_preserves_paths(self) -> None:
+        for text in ("../Audio/one.flac\n", "../Audio/one.flac\nunknown notes\n"):
+            with self.subTest(text=text), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "Release/Audio").mkdir(parents=True)
+                (root / "Release/Lists").mkdir()
+                audio = root / "Release/Audio/one.flac"
+                audio.write_bytes(b"fLaC" + bytes(32))
+                (root / "Release/Lists/list.m3u").write_text(text)
+                before = self.snapshot(root)
+                main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_partial_extensionless_playlist_keeps_paths_in_cleanup_disabled_helpers(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "Release/Audio").mkdir(parents=True)
+            (root / "Release/Audio/one.flac").write_bytes(b"fLaC" + bytes(32))
+            (root / "Release/list").write_text("Audio/one.flac\nAudio/missing.flac\n")
+            before = self.snapshot(root)
+            main.flatten_existing_tree(root)
+            self.assertEqual(self.snapshot(root), before)
+
+    def completed_cleanup_workspace(self, root: Path) -> Path:
+        (root / "Release").mkdir()
+        (root / "Release/one.flac").write_bytes(b"fLaC" + bytes(32))
+        (root / "notes.txt").write_text("notes")
+        rmtree = main.shutil.rmtree
+        def partial_cleanup(path: Path, *args, **kwargs):
+            if Path(path).name == "originals":
+                (Path(path) / "0").unlink()
+                raise OSError("injected partial backup cleanup failure")
+            return rmtree(path, *args, **kwargs)
+        with mock.patch.object(main.shutil, "rmtree", partial_cleanup), self.assertRaises(OSError):
+            main.process_release(root)
+        workspace = next(root.glob(".unpack-music-*"))
+        self.assertEqual(json.loads((workspace / "recovery.json").read_text())["state"], "published")
+        return workspace
+
+    def test_completed_publication_cleanup_resumes_without_restoring_deleted_sidecars(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            workspace = self.completed_cleanup_workspace(root)
+            self.assertEqual(main.cli(["--recover", str(workspace)]), 0)
+            self.assertFalse(workspace.exists())
+            self.assertEqual(self.snapshot(root), {"one.flac": b"fLaC" + bytes(32)})
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+
+    def test_completed_cleanup_refuses_changed_missing_and_symlink_outputs(self) -> None:
+        for kind in ("changed", "missing", "symlink"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                workspace = self.completed_cleanup_workspace(root)
+                output = root / "one.flac"
+                if kind == "changed":
+                    output.write_bytes(b"external change")
+                elif kind == "missing":
+                    output.unlink()
+                else:
+                    output.unlink()
+                    output.symlink_to(root / "notes.txt")
+                with self.assertRaises((OSError, ValueError)):
+                    main.recover(workspace)
+                self.assertTrue((workspace / "recovery.json").exists())
+                self.assertTrue((workspace / "originals").exists())
+
+    def test_completion_record_failure_keeps_originals_recoverable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "Release").mkdir()
+            (root / "Release/one.flac").write_bytes(b"fLaC" + bytes(32))
+            before = self.snapshot(root)
+            replace = Path.replace
+            def failed_record(source: Path, target: Path) -> Path:
+                if source.name == "recovery.json.new":
+                    raise OSError("injected completion-record failure")
+                return replace(source, target)
+            with mock.patch.object(Path, "replace", failed_record), self.assertRaises(OSError):
+                main.process_release(root)
+            workspace = next(root.glob(".unpack-music-*"))
+            main.recover(workspace)
+            self.assertEqual(self.snapshot(root), before)
+
+    def test_empty_workspace_after_final_cleanup_failure_is_recoverable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "Release").mkdir()
+            (root / "Release/one.flac").write_bytes(b"fLaC" + bytes(32))
+            rmdir = Path.rmdir
+            def failed_rmdir(path: Path) -> None:
+                if path.name.startswith(".unpack-music-"):
+                    raise OSError("injected final directory cleanup failure")
+                return rmdir(path)
+            with mock.patch.object(Path, "rmdir", failed_rmdir), self.assertRaises(OSError):
+                main.process_release(root)
+            workspace = next(root.glob(".unpack-music-*"))
+            self.assertEqual(list(workspace.iterdir()), [])
+            main.recover(workspace)
+            self.assertEqual(self.snapshot(root), {"one.flac": b"fLaC" + bytes(32)})
+
+    def test_playlist_comments_survive_helper_and_strict_rewriting(self) -> None:
+        for strict in (False, True):
+            with self.subTest(strict=strict), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "Release").mkdir()
+                (root / "Release/#one.mp3").write_bytes(b"ID3audio")
+                text = b"#one.mp3\r\n./#one.mp3\r\n"
+                (root / "Release/list.m3u").write_bytes(text)
+                if strict:
+                    main.process_release(root, require_completeness=True)
+                else:
+                    main.flatten_existing_tree(root)
+                self.assertEqual((root / "list.m3u").read_bytes(), text)
+                self.assertEqual(main.playlist_entries(root / "list.m3u"), [main.PurePosixPath("#one.mp3")])
+                main.process_release(root, require_completeness=True)
+                self.assertEqual((root / "list.m3u").read_bytes(), text)
+
+    def test_restored_originals_cleanup_is_resumable_after_backup_directory_removal(self) -> None:
+        for interrupt in (False, True):
+            with self.subTest(interrupt=interrupt), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                workspace, original = self.interrupted_workspace(root)
+                rmtree = main.shutil.rmtree
+                def failed_cleanup(path: Path, *args, **kwargs):
+                    result = rmtree(path, *args, **kwargs)
+                    if Path(path).name == "originals":
+                        if interrupt:
+                            raise KeyboardInterrupt()
+                        raise OSError("injected failure after original-backup directory removal")
+                    return result
+                with mock.patch.object(main.shutil, "rmtree", failed_cleanup), self.assertRaises(
+                        KeyboardInterrupt if interrupt else OSError):
+                    main.recover(workspace)
+                journal = json.loads((workspace / "recovery.json").read_text())
+                self.assertEqual(journal["state"], "restored")
+                for name, payload in original.items():
+                    self.assertEqual((root / name).read_bytes(), payload)
+                self.assertFalse((workspace / "originals").exists())
+                main.recover(workspace)
+                self.assertEqual(self.snapshot(root), original)
+
     def test_preview_and_recovery_cli_need_explicit_paths(self) -> None:
         with self.assertRaises(SystemExit) as result:
             main.cli(["--recover"])

@@ -608,13 +608,12 @@ def playlist_title(value: str) -> str:
 
 def check_playlists(files: list[Path], protected: set[Path],
                     covered: set[Path] | None = None,
-                    references: dict[Path, dict[PurePosixPath, Path]] | None = None) -> set[Path]:
+                    references: dict[Path, dict[PurePosixPath, Path]] | None = None,
+                    validate: bool = True) -> set[Path]:
     recognised = set()
     audio = [path for path in files if detected_suffix(path) in AUDIO_SUFFIXES
              or path.suffix.casefold() in AUDIO_SUFFIXES]
     for playlist in files:
-        if playlist in protected:
-            continue
         entries = playlist_entries(playlist)
         if entries is None:
             continue
@@ -637,11 +636,13 @@ def check_playlists(files: list[Path], protected: set[Path],
                 references[playlist] = {entry: next(iter(available[entry.as_posix().casefold()])) for entry in entries}
             recognised.add(playlist)
             continue
+        if playlist in protected:
+            continue
         # Obfuscated files can still be related through numbered artist/title
         # entries, but only for one fully tagged, cue-free FLAC album/disc.
         candidates = [path for path in audio if path.parent == playlist.parent]
         if not candidates or any(path in protected or detected_suffix(path) != ".flac" for path in candidates):
-            if any(exact):
+            if validate and any(exact):
                 raise ValueError(f"incomplete playlist: {playlist.name}; missing audio entries; retaining all files")
             continue
         identities = set()
@@ -669,6 +670,8 @@ def check_playlists(files: list[Path], protected: set[Path],
         else:
             if len(identities) == 1 and len(set(matched)) == len(candidates):
                 if len(matched) != len(entries):
+                    if not validate:
+                        continue
                     raise ValueError(f"incomplete playlist: {playlist.name}; {len(matched)} of {len(entries)} tracks present; retaining all files")
                 if references is not None:
                     references[playlist] = {entries[index]: path for path, index in zip(candidates, matched)}
@@ -676,7 +679,7 @@ def check_playlists(files: list[Path], protected: set[Path],
                     covered.update(candidates)
                 recognised.add(playlist)
                 continue
-        if any(exact):
+        if validate and any(exact):
             raise ValueError(f"incomplete playlist: {playlist.name}; missing audio entries; retaining all files")
     return recognised
 
@@ -693,7 +696,13 @@ def plan_tree(root: Path, *, flatten: bool = True,
     proven = check_album_tracks(files, protected, root) if cleanup or require_completeness else set()
     covered: set[Path] = set()
     playlist_refs: dict[Path, dict[PurePosixPath, Path]] = {}
-    playlists = check_playlists(files, protected, covered, playlist_refs) if cleanup or require_completeness else set()
+    playlists = check_playlists(files, protected, covered, playlist_refs, validate=cleanup or require_completeness)
+    available_names = {target.as_posix().casefold() for path in files for target in (path, extension_target(path))}
+    if any(path not in playlist_refs and (path.suffix.casefold() in {".m3u", ".m3u8"}
+           or any((path.parent / entry).as_posix().casefold() in available_names
+                  for entry in playlist_entries(path) or [])) for path in files):
+        # Unknown retained playlists may contain references we cannot safely rewrite.
+        flatten = extensions = False
     if require_completeness:
         unresolved = [path for path in files if (detected_suffix(path) in AUDIO_SUFFIXES
                       or path.suffix.casefold() in AUDIO_SUFFIXES) and path not in proven | covered]
@@ -744,25 +753,26 @@ def plan_tree(root: Path, *, flatten: bool = True,
             raise ValueError("output filename conflicts with the private recovery workspace prefix")
     check_targets(list(plans.values()), root)
     rewritten = {}
-    if require_completeness:
-        for playlist, refs in playlist_refs.items():
-            raw = playlist.read_bytes()
-            encoding = "utf-8-sig" if raw.startswith(b"\xef\xbb\xbf") else "utf-8"
-            lines = []
-            for line in raw.decode(encoding).splitlines(keepends=True):
-                entry = PurePosixPath(line.strip().replace("\\", "/"))
-                if entry in refs:
-                    relative = os.path.relpath(plans[refs[entry]], plans[playlist].parent).replace(os.sep, "/")
-                    rendered = "./" + relative if relative.startswith("#") or relative != relative.strip() else relative
-                    reference = playlist_reference(rendered)
-                    if reference is None or reference.as_posix() != relative:
-                        raise ValueError(f"filename cannot be represented in a playlist: {playlist.name}")
-                    ending = line[len(line.rstrip("\r\n")):]
-                    line = rendered + ending
-                lines.append(line)
-            content = "".join(lines).encode(encoding)
-            if content != raw:
-                rewritten[playlist] = content
+    for playlist, refs in playlist_refs.items():
+        if playlist not in plans:
+            continue
+        raw = playlist.read_bytes()
+        encoding = "utf-8-sig" if raw.startswith(b"\xef\xbb\xbf") else "utf-8"
+        lines = []
+        for line in raw.decode(encoding).splitlines(keepends=True):
+            entry = playlist_reference(line)
+            if entry in refs:
+                relative = os.path.relpath(plans[refs[entry]], plans[playlist].parent).replace(os.sep, "/")
+                rendered = "./" + relative if relative.startswith("#") or relative != relative.strip() else relative
+                reference = playlist_reference(rendered)
+                if reference is None or reference.as_posix() != relative:
+                    raise ValueError(f"filename cannot be represented in a playlist: {playlist.name}")
+                ending = line[len(line.rstrip("\r\n")):]
+                line = rendered + ending
+            lines.append(line)
+        content = "".join(lines).encode(encoding)
+        if content != raw:
+            rewritten[playlist] = content
     for cue, (encoding, text, refs) in cues.items():
         def replace(match: re.Match[str]) -> str:
             name = match.group("quoted") or match.group("plain")
@@ -899,6 +909,45 @@ def publish(stage: Path, root: Path, originals: list[Path], scratch: Path,
             saved_path.rename(original)
         raise
 
+    mark_completed(scratch, "published")
+
+
+def mark_completed(workspace: Path, state: str) -> None:
+    """Persist verified completion before deleting any recovery data."""
+    record = workspace / "recovery.json"
+    journal = json.loads(record.read_text(encoding="utf-8"))
+    paths, hashes = (("targets", "target_hashes") if state == "published"
+                    else ("originals", "original_hashes"))
+    completed = journal_paths(journal[paths], journal[hashes], workspace.parent)
+    if any(not target.is_file() or file_hash(target) != digest for target, digest in completed.items()):
+        raise ValueError("completed file checksum mismatch; retaining recovery files")
+    journal["state"] = state
+    pending = workspace / "recovery.json.new"
+    with pending.open("w", encoding="utf-8") as stream:
+        json.dump(journal, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+    pending.replace(record)
+    descriptor = os.open(workspace, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def cleanup_workspace(workspace: Path) -> None:
+    """Keep the recovery journal until every other workspace entry is removed."""
+    record = workspace / "recovery.json"
+    for path in workspace.iterdir():
+        if path == record:
+            continue
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+    record.unlink(missing_ok=True)
+    workspace.rmdir()
+
 
 def process_release(directory: Path, *, extract: bool = True, flatten: bool = True,
                     extensions: bool = True, cleanup: bool = True, verify_audio: bool = False,
@@ -925,7 +974,7 @@ def process_locked(root: Path, *, extract: bool, flatten: bool, extensions: bool
     if not extract or not any(is_archive(path) for path in originals):
         initial_plan = plan_tree(root, flatten=flatten, extensions=extensions, cleanup=cleanup,
                                  require_completeness=require_completeness)
-        if extract and cleanup and not initial_plan.targets:
+        if cleanup and not initial_plan.targets:
             raise ValueError("no files would remain after music cleanup; retaining the original release")
         if verify_audio:
             verify_audio_files(initial_plan)
@@ -958,7 +1007,7 @@ def process_locked(root: Path, *, extract: bool, flatten: bool, extensions: bool
             verify_audio_files(plan)
         normalize_tree(stage, scratch, flatten=flatten, extensions=extensions, cleanup=cleanup, plan=plan)
         retained = len(tree_files(stage))
-        if extract and cleanup and not retained:
+        if cleanup and not retained:
             raise ValueError("no files would remain after music cleanup; retaining the original release")
         current = tree_files(root, exclude=scratch)
         if current != originals or any(file_state(path) != baseline[path] for path in current):
@@ -969,7 +1018,7 @@ def process_locked(root: Path, *, extract: bool, flatten: bool, extensions: bool
         # A failed rollback retains private original files for manual recovery.
         backup = scratch / "originals"
         if published or not backup.exists() or not any(backup.iterdir()):
-            shutil.rmtree(scratch)
+            cleanup_workspace(scratch)
         else:
             print(f"[ERROR] Recovery files retained at {scratch}", file=sys.stderr)
     for parent in sorted((path for path in root.rglob("*") if path.is_dir()),
@@ -1099,6 +1148,10 @@ def recover(workspace: Path) -> None:
     try:
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
         tree_files(workspace)
+        if not any(workspace.iterdir()):
+            workspace.rmdir()
+            print("[INFO] Empty recovery workspace removed")
+            return
         record = workspace / "recovery.json"
         if record.stat().st_size > 16 * 1024**2:
             raise ValueError("recovery journal is too large")
@@ -1107,6 +1160,16 @@ def recover(workspace: Path) -> None:
             raise ValueError("legacy or incomplete recovery journal; manual recovery is required")
         originals = journal_paths(journal.get("originals"), journal.get("original_hashes"), root)
         outputs = journal_paths(journal.get("targets"), journal.get("target_hashes"), root)
+        state = journal.get("state", "pending")
+        if state not in ("pending", "published", "restored"):
+            raise ValueError("invalid recovery publication state")
+        if state in ("published", "restored"):
+            completed = outputs if state == "published" else originals
+            if any(not target.is_file() or file_hash(target) != digest for target, digest in completed.items()):
+                raise ValueError("completed file checksum mismatch; retaining recovery workspace")
+            cleanup_workspace(workspace)
+            print(f"[INFO] {state.capitalize()} cleanup complete: {len(completed)} files verified")
+            return
         backup = workspace / "originals"
         slots = {str(index) for index in range(len(originals))}
         if not backup.is_dir() or any(path.name not in slots
@@ -1173,7 +1236,8 @@ def recover(workspace: Path) -> None:
                     raise ValueError("output changed during recovery rollback; retaining workspace")
                 saved.rename(target)
             raise
-        shutil.rmtree(workspace)
+        mark_completed(workspace, "restored")
+        cleanup_workspace(workspace)
         print(f"[INFO] Recovery complete: {len(originals)} original files verified and restored")
     finally:
         os.close(descriptor)
