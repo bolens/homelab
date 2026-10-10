@@ -283,6 +283,26 @@ def is_srr_sidecar(path: Path) -> bool:
         return size >= 9 and int.from_bytes(rest[:2], "little") == size - 9
 
 
+def is_album_info_sidecar(path: Path) -> bool:
+    """Recognise bounded posting metadata, never arbitrary extensionless text."""
+    if not re.fullmatch(r"(?:[a-z0-9]{1,32}_)?album_info", path.name, re.IGNORECASE):
+        return False
+    with path.open("rb") as stream:
+        raw = stream.read(65537)
+    if not raw or len(raw) > 65536:
+        return False
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return False
+    if any(not char.isprintable() and char not in "\t\r\n\f" for char in text):
+        return False
+    return (all(re.search(r"^[ \t]*" + field + r"[ \t]*:[ \t]*\S[^\r\n]*\r?$", text,
+                          re.IGNORECASE | re.MULTILINE) for field in ("Album", "Artist"))
+            and re.search(r"^[ \t]*Tracklist[ \t]*:[ \t]*\r?$", text, re.IGNORECASE | re.MULTILINE) is not None
+            and re.search(r"^[ \t]*\d{1,3}[ .)-]+\S[^\r\n]*\r?$", text, re.MULTILINE) is not None)
+
+
 def disposable(path: Path) -> bool:
     suffix = path.suffix.casefold()
     if suffix not in KNOWN_MEDIA_SUFFIXES | {".cue", ".m3u", ".m3u8"}:
@@ -290,6 +310,8 @@ def disposable(path: Path) -> bool:
         with path.open("rb") as stream:
             if stream.read(15) in {b"~^newz[NZB]~", b"~^newz[NZB]~\n", b"~^newz[NZB]~\r\n"}:
                 return True
+    if not suffix and is_album_info_sidecar(path):
+        return detected_suffix(path) is None and playlist_entries(path) is None
     if suffix not in UNWANTED_SUFFIXES:
         return False
     # Playlist disposal needs the whole release, including files from later
