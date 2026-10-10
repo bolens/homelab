@@ -4,7 +4,7 @@
   "homepage": "https://nzbget.com/documentation/post-processing-scripts/",
   "kind": "POST-PROCESSING",
   "displayName": "Unpack Music Tar",
-  "version": "1.24",
+  "version": "1.25",
   "author": "homelab",
   "license": "MIT",
   "about": "Safely extracts ZIP and tar-family archives for the music category.",
@@ -34,6 +34,7 @@
     "Reconciles nonempty track/disc tag aliases, rejects declared missing discs, and preserves album folder boundaries when flattening would merge independent groups.",
     "Optional RequireCompleteness rejects audio without a known track count, complete covering local playlist or cue-image evidence; retains playlists and updates their paths for repeatable processing.",
     "Requires distinct resolved playlist audio paths, applies reconciled metadata to obfuscated playlist matching, and confines disc grouping to the selected release tree.",
+    "Recognises exact short newzNZB posting-marker payloads without relying on filenames, preserving named audio/video, cue and M3U files, cue references and unknown text.",
     "Runs only for the music category and removes archives after successful extraction."
   ],
   "options": [

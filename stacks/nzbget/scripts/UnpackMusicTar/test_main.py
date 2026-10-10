@@ -96,6 +96,48 @@ class UnpackMusicArchiveTest(unittest.TestCase):
                     for name, payload in tracks.items():
                         self.assertEqual((root / name).read_bytes(), payload)
 
+    def test_exact_posting_markers_are_cleaned_after_audio_is_retained(self) -> None:
+        for ending in (b"", b"\n", b"\r\n"):
+            for archive in (False, True):
+                with self.subTest(ending=ending, archive=archive), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    name = "Release.xpost.hash [newzNZB] [16_23] - yEnc 13 (1_1)"
+                    files = {name: b"~^newz[NZB]~" + ending, "one.flac": b"fLaC" + bytes(32)}
+                    if archive:
+                        with zipfile.ZipFile(root / "release.zip", "w") as output:
+                            for filename, payload in files.items():
+                                output.writestr(filename, payload)
+                    else:
+                        for filename, payload in files.items():
+                            (root / filename).write_bytes(payload)
+                    main.process_release(root)
+                    self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, {"one.flac": files["one.flac"]})
+                    main.process_release(root)
+
+    def test_posting_marker_cleanup_preserves_near_matches_media_and_cues(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            exact = b"~^newz[NZB]~\n"
+            files = {"prefix-only": exact + b"extra", "near-match": b"~^newz[NZB]~ \n",
+                     "arbitrary-text": b"posting notes\n", "audio.mp3": exact,
+                     "marker.cue": exact, "unknown.m3u": exact, "unknown.m3u8": exact,
+                     "cue-target": exact, "protected.cue": b'FILE "cue-target" BINARY\n'}
+            for filename, payload in files.items():
+                (root / filename).write_bytes(payload)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, files)
+
+    def test_marker_only_release_fails_without_deleting_original(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            marker = root / "obfuscated-posting-marker"
+            marker.write_bytes(b"~^newz[NZB]~\n")
+            with self.assertRaisesRegex(ValueError, "no files would remain"), mock.patch.object(main, "publish") as publish:
+                main.process_release(root)
+            publish.assert_not_called()
+            self.assertEqual(marker.read_bytes(), b"~^newz[NZB]~\n")
+            self.assertEqual(list(root.iterdir()), [marker])
+
     def test_extensionless_media_is_identified_and_unknown_text_is_retained(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

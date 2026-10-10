@@ -284,7 +284,13 @@ def is_srr_sidecar(path: Path) -> bool:
 
 
 def disposable(path: Path) -> bool:
-    if path.suffix.casefold() not in UNWANTED_SUFFIXES:
+    suffix = path.suffix.casefold()
+    if suffix not in KNOWN_MEDIA_SUFFIXES | {".cue", ".m3u", ".m3u8"}:
+        # Only the complete short posting marker is disposable, never a prefix.
+        with path.open("rb") as stream:
+            if stream.read(15) in {b"~^newz[NZB]~", b"~^newz[NZB]~\n", b"~^newz[NZB]~\r\n"}:
+                return True
+    if suffix not in UNWANTED_SUFFIXES:
         return False
     # Playlist disposal needs the whole release, including files from later
     # archives. Never discard a duplicate before completeness is established.
