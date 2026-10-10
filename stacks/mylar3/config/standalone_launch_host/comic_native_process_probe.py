@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 
 MAX = 1024 * 1024
-SCOPE_SHA = '6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608'
+SCOPE_SHA = 'ace628118bd21ac2f50bde93eacad7e0908a0d2e5b34bd5d83222da26a842d3d'
 class Held(ValueError): pass
 
 def need(value, reason):

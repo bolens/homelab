@@ -429,7 +429,7 @@
   },
   {
     "path": "publication_native_configured_scope.py",
-    "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608"
+    "sha256": "ace628118bd21ac2f50bde93eacad7e0908a0d2e5b34bd5d83222da26a842d3d"
   },
   {
     "path": "publication_native_scope_birth.py",
@@ -577,7 +577,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "fa82c07f8657a19940f1bc4be577ff5e2d650cae408e715a5be4789dddcb94f4"
+    "sha256": "98102892c513b131675fd9da24435997ecc7172766d834d5226f8b62b9a82fce"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_action.py",
@@ -589,7 +589,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "3f4a66732a0b8d6414816194ebf23da7c7fbcc2c424a8efcac15dce2f6118897"
+    "sha256": "052068259dac7ecfb9f224fa2520a2ead482bb9ddd52a23db2106f04b897f3a6"
   },
   {
     "path": "reader_recovery/retained_pack_control.py",
@@ -645,7 +645,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "f0c0a62093f05fd8b7582e2b4783ccd872587b3c3cee5a43afe2fc95ddb57039"
+    "sha256": "c04d1dfe23a9308d86495ee450746a7ab9a00d832e21404f15a34715a3ccbb52"
   },
   {
     "path": "story_arc_search.py",
@@ -749,7 +749,7 @@
   },
   {
     "path": "test_config_retention.py",
-    "sha256": "2154467a0fac943188b9b7492d60c768c274b10574e2fc2745f6a2c323abb0a9"
+    "sha256": "c88d6c763457d16bf7f77eb27c68b09db86b3341d2fadbdf0225ad11e6426536"
   },
   {
     "path": "test_converted_catalog.py",
@@ -1441,7 +1441,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "5da9e0d471b67e5b1684f95cf8a8752888590165380761d61f3f7172af1a5593"
+    "sha256": "2dcf6cc2e8ea994b011708dbc218808c3b1cb507ea58106ee2e9d7e208d4843c"
   },
   {
     "path": "verify_publication_reader_cohort.py",

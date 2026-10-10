@@ -2,6 +2,7 @@
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import os
+import ast
 import hashlib
 import json
 import stat
@@ -122,6 +123,26 @@ def owning_suite(test, environment):
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
             env=environment)
 
+def config_scope_preflight(source, *, installed):
+    # Fail before broad suites on stale pins; this check grants no admission.
+    import patch_config_retention as retention
+    scope = (FIXES / 'publication_native_configured_scope.py').read_bytes()
+    tree = ast.parse(scope, feature_version=(3, 10))
+    pins = [n.value.value for n in tree.body if isinstance(n, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == 'CONFIG_SHA' for t in n.targets)
+            and isinstance(n.value, ast.Constant)]
+    assert len(pins) == 1 and type(pins[0]) is str and len(pins[0]) == 64, 'Configured scope Config pin shape'
+    actual = (source / 'config.py').read_text()
+    patched = retention.patched_source(actual)
+    assert hashlib.sha256(patched.encode('utf-8')).hexdigest() == pins[0], 'Configured scope Config pin stale'
+    if installed:
+        assert patched == actual, 'Configuration retention guard is not installed'
+        assert (source / 'publication_native_configured_scope.py').read_bytes() == scope, 'Installed configured scope source differs'
+
+
+if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
+    config_scope_preflight(Path('/app/mylar3/mylar'), installed=True)
+
 # Public source controls run even when the upstream image has no installed auth.
 subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_publication_launch_auth.py')], check=True)
 # Build-only source controls; public host files grant no installation authority.
@@ -145,6 +166,8 @@ with tempfile.TemporaryDirectory() as directory:
     for name in ('queue_management.html', 'manage.html', 'base.html', 'searchresults.html', 'config.html', 'weeklypull.html'):
         shutil.copyfile('/app/mylar3/data/interfaces/default/' + name, templates / name)
     subprocess.run([sys.executable, str(FIXES / 'apply_patches.py'), str(source)], check=True)
+    # The upstream Config reaches its final bytes only after the full ordered installer.
+    config_scope_preflight(source, installed=False)
     import patch_publication_processing as import_processing_patch
     assert import_processing_patch.patched_source((source/'PostProcessor.py').read_text()) == (source/'PostProcessor.py').read_text()
     assert (source/'ordinary_import_history.py').read_bytes() == (FIXES/'ordinary_import_history.py').read_bytes()

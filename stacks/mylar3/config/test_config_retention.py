@@ -107,6 +107,72 @@ class Retention(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('Native configuration retention guard is not installed', result.stderr)
 
+    def test_early_installed_config_scope_pin_preflight(self):
+        # Execute the actual verifier function without launching its broad suites.
+        tree = ast.parse((HERE / 'verify_image.py').read_text())
+        function = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                        and n.name == 'config_scope_preflight')
+        namespace = dict(Path=Path, ast=ast, hashlib=__import__('hashlib'), FIXES=HERE)
+        original = sys.modules.get('patch_config_retention')
+        try:
+            sys.modules['patch_config_retention'] = p
+            exec(compile(ast.Module(body=[function], type_ignores=[]), '<actual-verifier-preflight>', 'exec'), namespace)
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                (root / 'config.py').write_text(self.current)
+                scope = (HERE / 'publication_native_configured_scope.py').read_bytes()
+                (root / 'publication_native_configured_scope.py').write_bytes(scope)
+                namespace['config_scope_preflight'](root, installed=True)
+                stale = root / 'fixes'
+                stale.mkdir()
+                (stale / 'publication_native_configured_scope.py').write_bytes(scope.replace(
+                    b'd8f02277daaf55b62f95832106e0deb97760d0d297bdf07640be98c910fbe570',
+                    b'46bd21f2b117367dffdae510282558bf2757981300665e05f4d2bb2fab1557cc'))
+                namespace['FIXES'] = stale
+                with self.assertRaisesRegex(AssertionError, 'Configured scope Config pin stale'):
+                    namespace['config_scope_preflight'](root, installed=True)
+        finally:
+            if original is None:
+                sys.modules.pop('patch_config_retention', None)
+            else:
+                sys.modules['patch_config_retention'] = original
+
+    def test_upstream_Config_full_order_before_prospective_preflight(self):
+        def load(name):
+            spec = importlib.util.spec_from_file_location(name, HERE / (name + '.py'))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        old_path = list(sys.path)
+        try:
+            sys.path.insert(0, str(HERE))
+            tagger = load('patch_tagger_backend')
+            transport = load('patch_ddl_transport')
+        finally:
+            sys.path[:] = old_path
+        # Reverse exactly the two reviewed insertions from real V11 bytes.
+        upstream = self.prior
+        anchor = '        for name, value in list(kwargs.items()):\n'
+        for module, setting in ((transport, "    'ENABLE_DDL': (bool, 'DDL', False),"),
+                                (tagger, "    'ENABLE_META': (bool, 'Metatagging', False),")):
+            fixture = 'SETTINGS = {\n' + setting + '\n}\nclass Config:\n    def configure(self, **kwargs):\n' + anchor + '            pass\n'
+            transformed = module.configuration(fixture)
+            # The setting marker occupies three lines, not an inferred output fact.
+            setting_patch = transformed[len('SETTINGS = {\n'):transformed.index('\n', transformed.index(setting))]
+            prefix = transformed.split('    def configure(self, **kwargs):\n', 1)[1].split(anchor, 1)[0]
+            self.assertEqual(upstream.count(setting_patch), 1)
+            self.assertEqual(upstream.count(prefix + anchor), 1)
+            upstream = upstream.replace(setting_patch, setting, 1).replace(prefix + anchor, anchor, 1)
+        self.assertNotIn(tagger.MARKER, upstream)
+        self.assertNotIn(transport.MARKER, upstream)
+        self.assertEqual(transport.configuration(tagger.configuration(upstream)), self.prior)
+        self.assertNotEqual(__import__('hashlib').sha256(p.patched_source(upstream).encode()).hexdigest(),
+                            __import__('hashlib').sha256(self.current.encode()).hexdigest())
+        self.assertEqual(p.patched_source(transport.configuration(tagger.configuration(upstream))), self.current)
+        verifier = (HERE / 'verify_image.py').read_text()
+        install_call = "subprocess.run([sys.executable, str(FIXES / 'apply_patches.py'), str(source)], check=True)"
+        self.assertLess(verifier.index(install_call), verifier.index('config_scope_preflight(source, installed=False)'))
+
     def test_malformed_original_or_relocated_patch_refused(self):
         for altered in (self.prior.replace('shutil.rmtree(f)', 'shutil.rmtree(f, ignore_errors=True)', 1), self.current.replace(p.MARKER, p.MARKER + p.MARKER, 1), self.current.replace('if self.CLEANUP_CACHE:', 'if True:', 1)):
             with self.assertRaises(ValueError):
