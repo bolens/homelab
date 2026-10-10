@@ -107,3 +107,7 @@ config/test_fixtures/retained_pack_worker/**
 !config/test_fixtures/retained_pack_worker/retained_pack_operations.py
 !config/test_fixtures/retained_pack_worker/source-pins.json
 !config/test_fixtures/retained_pack_worker/writer_cycle.py
+
+!config/test_fixtures/retained_pack_worker/check_preproof_session.py
+!config/test_fixtures/retained_pack_worker/retained_pack_control.py
+!config/reader_recovery/CONTRACT-retained-pack.md

@@ -25,7 +25,7 @@ COPY --from=checked /app/normalize.py /app/maintenance.py /app/import_match.py /
 COPY --from=checked /app/publication_guard.py /app/publication_evidence.py /app/publication_metadata.py /app/publication_zip.py /app/publication_lock.py /app/publication_derivative_evidence.py /app/
 COPY --from=checked /app/publication_archive_layout.py /app/publication_archive_derivative.py /app/publication_archive_repair.py /app/publication_archive_diagnostics.py /app/
 COPY --from=checked /app/ordinary_import_observation.py /app/ordinary_import_ack.py /app/native_handoff.py /app/reader_handoff.py /app/maintenance_report.py /app/conversion_handoff.py /app/combined_handoff.py /app/archive_repair_handoff.py /app/
-COPY --from=checked /app/retained_pack_handoff.py /app/retained_pack_operations.py /app/archive_terminal_observation.py /app/
+COPY --from=checked /app/retained_pack_handoff.py /app/retained_pack_operations.py /app/retained_pack_control.py /app/archive_terminal_observation.py /app/
 USER 1000:1000
 ENTRYPOINT ["python3", "/app/normalize.py"]
 CMD []
