@@ -68,7 +68,7 @@ def execute(handler,raw):
             controller=Controller(mylar.DATA_DIR,[mylar.CONFIG.DESTINATION_DIR])
             if handler.cmd=='retainedDeliveryFinalize':
                 cap=retained.prepare_existing(controller,original_writer,value);cap.accept()
-                receipt=finalizer.finalize(cap)
+                receipt=finalizer.finalize(cap,response_handler=handler,response_frame=frame)
             else:receipt=finalizer.response_existing(controller,original_writer,value)
             envelope=receipt.encode(handler,frame)
         if original_config!=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,mylar.CONFIG.API_ENABLED,mylar.CONFIG.API_KEY):

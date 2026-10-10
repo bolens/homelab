@@ -481,3 +481,166 @@ def prepare_existing(preparation,lease,retention_root):
     cap._files[preimage]=pf['signature9'];cap._contents[preimage]=pf['sha256'];cap._names.add(preimage.name);cap._dirs[op]=o.signature(op);cap._seal()
     cap._record('baseline.json',{'version':1,'kind':'repair-local-preimage-observation','preparation':copy.deepcopy(prep._binding),'reader':lease.binding,'native_before':pf,'native_after_sha256':o.digest(after),'adoption_root':str(op),'swap_before':stage,'swap_attributes':attrs,'mutation_authority':False,'publication_acceptance':False})
     cap.close();return cap
+
+# Opaque live factual exports. A saved dictionary cannot enter this registry.
+_TERMINAL_EXPORTS=weakref.WeakKeyDictionary()
+_TERMINAL_RECORDS=weakref.WeakKeyDictionary()
+
+class TerminalOriginals:
+    __slots__=('__weakref__',)
+    def __init__(self,key):
+        o.check(key is _KEY,'repair-terminal-owning-export')
+
+def _terminal_physical(cap):
+    p=cap.preparation;c=p._controller;w=p._writer
+    return (id(c),id(w),id(p),id(cap.reader),id(w.local),str(c.root),
+            tuple(map(str,c.roots)),str(c.tool_root),str(w.root),
+            str(c.database),str(c.native_database),tuple(p._identity))
+
+def _terminal_close(cap,record):
+    o.check(type(cap) is RepairAdoption and record['cap']() is cap
+            and _SEALS.get(cap)==record['cap_seal']
+            and threading.get_ident()==record['thread'] and os.getpid()==record['pid'],
+            'repair-terminal-live-original')
+    cap.close()
+    modules=o.sdk();o.writer_pair(cap.preparation._controller,cap.preparation._writer,modules)
+    o.check(_terminal_physical(cap)==record['physical']
+            and tuple(modules[2].writer_identity(cap.preparation._writer))==record['physical'][-1]
+            and cap.preparation._writer.local is cap.preparation._local
+            and getattr(cap.preparation._writer.local[1],'depth',0)>0,
+            'repair-terminal-original-writer-controller')
+    for path,value in record['hashes']:
+        f=o.fact(Path(path),max(dict(record['files'])[path][2],1),record['deadline'])
+        o.check(tuple(f['signature9'])==dict(record['files'])[path]
+                and f['sha256']==value,'repair-terminal-original-readback')
+    o.check(_SEALS.get(cap)==record['cap_seal'] and cap._core()==record['cap_seal'],
+            'repair-terminal-cap-seal')
+
+def _terminal_core_projection(cap):
+    logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+    pending=[logical];projection=[]
+    while pending:
+        value=pending.pop();kind=type(value)
+        if kind is dict:
+            keys=tuple(sorted(value));projection.append(('dict',keys))
+            for name in reversed(keys):pending.append(value[name])
+        elif kind in (list,tuple):
+            projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+        elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+        else:raise o.Held('repair-terminal-core-projection-type')
+    return tuple(projection)
+
+def terminal_original_vectors(handle,cap):
+    """Return copied facts only for the registered live owning export/cap pair."""
+    o.check(type(handle) is TerminalOriginals and handle in _TERMINAL_RECORDS,
+            'repair-terminal-exact-export')
+    record=_TERMINAL_RECORDS[handle];original_record=tuple(record.items())
+    # Build all return bytes/containers before the last semantic helper.
+    answer={k:record[k] for k in ('files','nodes','absent','claims','namespaces','hashes',
+        'physical','phase','owner','operation_id','baseline','metadata','stage','receipt','pid','thread')}
+    _terminal_close(cap,record)
+    # Complete primitive originals after every SDK/hash/cap helper.
+    if _TERMINAL_RECORDS.get(handle) is not record or _TERMINAL_EXPORTS.get(cap) is not handle or tuple(record.items())!=original_record:
+        raise o.Held('repair-terminal-export-original-registry')
+    p=cap.preparation;c=p._controller;w=p._writer
+    actual=(id(c),id(w),id(p),id(cap.reader),id(w.local),str(c.root),tuple(map(str,c.roots)),str(c.tool_root),str(w.root),str(c.database),str(c.native_database),tuple(p._identity))
+    if actual!=record['physical'] or tuple(w.root_identity)+tuple(w.lock_identity)!=record['physical'][-1] or w.local is not p._local or not getattr(w.local[1],'depth',0) or any(getattr(w.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or os.getpid()!=record['pid'] or threading.get_ident()!=record['thread'] or cap._phase!=record['phase'] or tuple(sorted(cap._owner.items()))!=record['owner'] or tuple(cap._objects)!=(record['physical'][2],record['physical'][3],record['physical'][1],record['physical'][0]) or cap._thread!=record['thread'] or _SEALS.get(cap)!=record['cap_seal']:
+        raise o.Held('repair-terminal-export-original-owner')
+    if time.monotonic()>=record['deadline']:raise o.Held('repair-terminal-export-deadline')
+    for path,names in record['namespaces']:
+        if frozenset(os.listdir(path))!=frozenset(names):raise o.Held('repair-terminal-export-census')
+    for path,value in record['nodes']:
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise o.Held('repair-terminal-export-node')
+    for path,value in record['files']:
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise o.Held('repair-terminal-export-file')
+    for path in record['absent']:
+        try:os.lstat(path)
+        except FileNotFoundError:continue
+        raise o.Held('repair-terminal-export-absence')
+    for path,value in record['claims']:
+        try:z=os.lstat(path)
+        except FileNotFoundError:
+            if value is not None:raise o.Held('repair-terminal-export-missing-claim')
+            continue
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise o.Held('repair-terminal-export-claim')
+    if _TERMINAL_RECORDS.get(handle) is not record or _TERMINAL_EXPORTS.get(cap) is not handle or tuple(record.items())!=original_record:
+        raise o.Held('repair-terminal-export-original-registry')
+    p=cap.preparation;c=p._controller;w=p._writer
+    actual=(id(c),id(w),id(p),id(cap.reader),id(w.local),str(c.root),tuple(map(str,c.roots)),str(c.tool_root),str(w.root),str(c.database),str(c.native_database),tuple(p._identity))
+    if actual!=record['physical'] or tuple(w.root_identity)+tuple(w.lock_identity)!=record['physical'][-1] or w.local is not p._local or not getattr(w.local[1],'depth',0) or any(getattr(w.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or os.getpid()!=record['pid'] or threading.get_ident()!=record['thread'] or cap._phase!=record['phase'] or tuple(sorted(cap._owner.items()))!=record['owner'] or tuple(cap._objects)!=(record['physical'][2],record['physical'][3],record['physical'][1],record['physical'][0]) or cap._thread!=record['thread'] or _SEALS.get(cap)!=record['cap_seal']:
+        raise o.Held('repair-terminal-export-original-owner')
+    if time.monotonic()>=record['deadline']:raise o.Held('repair-terminal-export-deadline')
+    logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+    pending=[logical];projection=[]
+    while pending:
+        value=pending.pop();kind=type(value)
+        if kind is dict:
+            keys=tuple(sorted(value));projection.append(('dict',keys))
+            for name in reversed(keys):pending.append(value[name])
+        elif kind in (list,tuple):
+            projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+        elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+        else:raise o.Held('repair-terminal-core-projection-type')
+    if tuple(projection)!=record['core_projection']:raise o.Held('repair-terminal-export-original-complete-core')
+    return answer
+
+def terminal_originals(cap):
+    """Opaque same-process completed owning cap; no reconstruction from receipts."""
+    if type(cap) is not RepairAdoption or _SEALS.get(cap) is None:
+        raise o.Held('repair-terminal-exact-live-adoption')
+    if cap in _TERMINAL_EXPORTS:
+        handle=_TERMINAL_EXPORTS[cap];terminal_original_vectors(handle,cap);return handle
+    # Retain every original before the first replaceable installed/close/SDK read.
+    cap_seal=_SEALS[cap];core_projection=_terminal_core_projection(cap);phase=cap._phase;prep=cap.preparation
+    owner=tuple(sorted(cap._owner.items()));operation=prep._binding['operation_id'];deadline=prep._deadline;original_thread=threading.get_ident();original_pid=os.getpid()
+    files={str(p):tuple(v) for p,v in cap._files.items()}
+    for p,v in cap._dirs.items():
+        p=str(p);v=tuple(v)
+        if p in files and files[p]!=v:raise o.Held('repair-terminal-original-file-conflict')
+        files[p]=v
+    stage=str(prep._operation);directory=tuple(prep._directory)
+    if stage in files and files[stage]!=directory:raise o.Held('repair-terminal-original-stage-conflict')
+    files[stage]=directory
+    nodes={str(p):tuple(v) for p,v in cap._nodes.items()}
+    for p,v in prep._nodes.items():
+        p=str(p);v=tuple(v)
+        if p in nodes and nodes[p]!=v:raise o.Held('repair-terminal-original-node-conflict')
+        nodes[p]=v
+    hashes=tuple((str(p),v) for p,v in cap._contents.items())
+    absent=tuple(sorted(map(str,cap._absent)))
+    claims={str(p):None if v is None else tuple(v) for p,v in cap._claims.items()}
+    s=files[str(cap.source)];claims[str(cap.source)]=(s[0],s[1],s[5],s[6],s[7],s[8])
+    namespaces=((str(cap.root),tuple(sorted(cap._names))),
+                (str(cap.journal),tuple(sorted(p.name for p in cap._files if p.parent==cap.journal))),
+                (str(cap.source.parent),tuple(sorted(cap._source_names))),
+                (stage,('intent.json','original.arc','preparation.json','prepared.cbz','restored-original.arc')))
+    physical=_terminal_physical(cap)
+    metadata=str(prep._operation/'preparation.json');baseline=str(cap.journal/'baseline.json')
+    receipt=cap._receipt
+    if phase not in ('complete','rollback-complete'):raise o.Held('repair-terminal-incomplete-cap')
+    expected=str(cap.journal/('complete.json' if phase=='complete' else 'rollback-complete.json'))
+    contents=dict(hashes)
+    if type(receipt) is not dict or set(receipt)!={'path','sha256','signature9'} or receipt['path']!=expected or tuple(receipt['signature9'])!=files.get(expected) or receipt['sha256']!=contents.get(expected):raise o.Held('repair-terminal-owning-receipt')
+    # Cap sources already have sealed original rows; capture all additional
+    # source ancestors together before source-read/installed callbacks.
+    for path in (Path(__file__),Path(reader.__file__),Path(o.__file__)):
+        value=(lambda z:(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink))(os.lstat(path))
+        if files.get(str(path))!=value:raise o.Held('repair-terminal-original-source')
+        for parent in path.parents:
+            z=os.lstat(parent);value=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid);name=str(parent)
+            if name in nodes and nodes[name]!=value:raise o.Held('repair-terminal-original-source-node')
+            nodes[name]=value
+    installed();cap.close()
+    record=dict(cap=weakref.ref(cap),cap_seal=cap_seal,core_projection=core_projection,thread=original_thread,pid=original_pid,
+        deadline=deadline,files=tuple(files.items()),nodes=tuple(nodes.items()),absent=absent,
+        claims=tuple(claims.items()),namespaces=namespaces,hashes=hashes,physical=physical,phase=phase,
+        owner=owner,operation_id=operation,
+        baseline=(baseline,files[baseline],contents[baseline]),metadata=(metadata,files[metadata],contents[metadata]),
+        stage=(stage,directory),receipt=(expected,files[expected],contents[expected]))
+    handle=TerminalOriginals(_KEY);_TERMINAL_RECORDS[handle]=record;_TERMINAL_EXPORTS[cap]=handle
+    try:terminal_original_vectors(handle,cap)
+    except BaseException:
+        _TERMINAL_RECORDS.pop(handle,None);_TERMINAL_EXPORTS.pop(cap,None);raise
+    return handle

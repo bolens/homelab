@@ -57,7 +57,7 @@ class RetainedFinalization:
         return status_existing(packet['controller'],packet['writer'],packet['request'])
 
 
-def finalize(cap):
+def finalize(cap,*,response_handler=None,response_frame=None):
     source_files={};source_hashes={};source_nodes={}
     # Capture BOTH original leaves and first ancestors before any source reads.
     # Duplicate ancestors never replace an earlier admitted primitive vector.
@@ -156,6 +156,12 @@ def finalize(cap):
             'mutation_authority':False,'publication_acceptance':False,
             'reader_index_acceptance':False,'automatic_replay':False}
     raw=o.compact(record).decode();new_value=o.compact(changed).decode()
+    # Copies retain the actual owning preimage; never recover from a saved record.
+    packet['transition_bytes']=o.compact(dict(version=1,kind='retained-pack-two-row-transition',
+        request=value,native_data_root=str(controller.root),record_bytes=raw,
+        pack_before_row=prior,pack_after_row=[prior[0],prior[1],new_value,prior[3]],
+        workflow_before=before,original_vectors=originals))
+    o.check(len(packet['transition_bytes'])<=1024*1024,'retained-worker-export-precommit-bound')
     expected_sql=copy.deepcopy(before)
     replacement=prior.copy();replacement[2]=new_value
     # Preserve updated column: only exact member/value mutation is admitted.
@@ -164,6 +170,9 @@ def finalize(cap):
     expected_sql['rows']['records'].append(o.compact([RECORD_KIND,token,raw,0.0]).decode())
     expected_sql['rows']['records'].sort()
     result_record_sha=hashlib.sha256(raw.encode()).hexdigest()
+    # Budget the actual API encoding before the sole workflow transaction.
+    if response_handler is not None or response_frame is not None:
+        _precommit_response_budget(packet,response_handler,response_frame,result_record_sha,files,nodes)
     # All callbacks precede raw closure and the exact fixed SQL transaction.
     _checked(packet,dict(files))
     for path,names in namespaces.items():
@@ -205,6 +214,8 @@ def finalize(cap):
     # Only this owning SQL diff may advance workflow identity; never event vectors.
     original=tuple(files[str(controller.database)])
     now=tuple(o.signature(controller.database))
+    if 'response_stat_ceiling' in packet:
+        o.check(all(type(v) is int and abs(v)<=packet['response_stat_ceiling'] for v in now),'retained-committed-stat-wire-width')
     o.check(now[:2]==original[:2] and now[5:]==original[5:],'retained-finalize-workflow-identity')
     o.check(r._sql(controller.database,now)==expected_sql,'retained-finalize-complete-SQL-diff')
     content=o.read_checked(controller.database,list(now),256*1024**2,packet['deadline'])
@@ -308,6 +319,7 @@ class ResponseSources:
 def response_sources():
     from mylar import api,native_writers,publication_retained_api
     import mylar
+    serializer=api.Api._successResponse;serializer_code=serializer.__code__
     config=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,mylar.CONFIG.API_ENABLED,mylar.CONFIG.API_KEY)
     paths=[Path(module.__file__) for module in (api,native_writers,publication_retained_api,r)] + [Path(__file__)]
     files={};nodes={};hashes={}
@@ -330,7 +342,7 @@ def response_sources():
            'absent':[],'claims':[],'namespaces':[]}
     encoded=o.compact(frame);obj=object.__new__(ResponseSources)
     _response_raw(frame)
-    _SOURCE_FRAMES[obj]=(os.getpid(),threading.get_ident(),deadline,encoded,dict(hashes),config)
+    _SOURCE_FRAMES[obj]=(os.getpid(),threading.get_ident(),deadline,encoded,dict(hashes),config,serializer,serializer_code)
     return obj
 
 
@@ -379,12 +391,20 @@ def _encode_response(receipt,handler,source_frame):
             'retained-response-live-source')
     o.check(type(handler) is api.Api and getattr(handler._successResponse,'__func__',None) is api.Api._successResponse,
             'retained-response-owning-serializer')
+    o.check(api.Api._successResponse is source[6] and source[6].__code__ is source[7],'retained-response-original-serializer')
     answer=status_existing(packet['controller'],packet['writer'],packet['request'])
+    transition=json.loads(packet['transition_bytes'])
+    source_originals=json.loads(source[3])
+    transition.update(native_source_root=str(Path(__file__).parent),
+                      native_sources=[dict(path=p,signature9=v,sha256=source[4][p]) for p,v in source_originals['files9']],
+                      committed_vectors=json.loads(packet['vectors_bytes']),
+                      committed_hashes=dict(packet['hashes']))
+    answer=dict(answer,transition=transition)
     raw=handler._successResponse(answer)
     o.check(type(raw) is str and 0<len(raw.encode())<=4*1024**2,'retained-response-envelope-bound')
     decoded=g.decode_json(raw)
     o.check(type(decoded) is dict and set(decoded)=={'success','data'} and decoded['success'] is True
-            and g.same_json(decoded['data'],_result(packet)),'retained-response-exact-envelope')
+            and g.same_json(decoded['data'],answer),'retained-response-exact-envelope')
     frames=(json.loads(source[3]),json.loads(packet['vectors_bytes']))
     _HTTP[receipt]={'pid':os.getpid(),'thread':threading.get_ident(),'deadline':min(packet['deadline'],source[2]),
             'packet':packet,'frames':tuple(o.compact(frame) for frame in frames),'hashes':source[4],
@@ -460,3 +480,43 @@ def _finish_response(receipt,envelope):
             ('allow_pending','allow_tagger_pending','allow_release_pending')):raise o.Held('retained-response-final-purpose')
     if entry['config']!=(mylar.DATA_DIR,mylar.CONFIG.DESTINATION_DIR,mylar.CONFIG.DDL_LOCATION,mylar.CONFIG.API_ENABLED,mylar.CONFIG.API_KEY):raise o.Held('retained-response-final-configuration')
     return envelope
+
+
+def _precommit_response_budget(packet,handler,source_frame,record_sha,files,nodes):
+    """Wire-size bound only. Placeholder stat/hash fields never become evidence."""
+    from mylar import api,publication_guard as g
+    source=_SOURCE_FRAMES.get(source_frame)
+    o.check(type(source_frame) is ResponseSources and source is not None and source[:2]==(os.getpid(),threading.get_ident())
+            and time.monotonic()<source[2] and type(handler) is api.Api
+            and getattr(handler._successResponse,'__func__',None) is source[6] is api.Api._successResponse
+            and source[6].__code__ is source[7],'retained-precommit-response-owner')
+    frame=json.loads(source[3])
+    for path,stamp in frame['files9']:
+        original=tuple(stamp)
+        o.check(path not in files or tuple(files[path])==original,'retained-precommit-source-conflict')
+        files.setdefault(path,original);packet['hashes'][path]=source[4][path]
+    for path,stamp in frame['nodes5']:
+        original=tuple(stamp)
+        o.check(path not in nodes or tuple(nodes[path])==original,'retained-precommit-node-conflict')
+        nodes.setdefault(path,original)
+    packet['vectors']['files9']=[[p,list(v)] for p,v in files.items()]
+    packet['vectors']['nodes5']=[[p,list(v)] for p,v in nodes.items()]
+    # A signed 21-digit field dominates any supported original or postcommit stat.
+    ceiling=2**64-1;reserved=[-ceiling]*9
+    o.check(all(type(v) is int and abs(v)<=ceiling for stamp in files.values() for v in stamp),'retained-stat-wire-width')
+    transition=json.loads(packet['transition_bytes'])
+    future=json.loads(o.compact(packet['vectors']))
+    for row in future['files9']:
+        if row[0]==str(packet['controller'].database):row[1]=reserved
+    transition.update(native_source_root=str(Path(__file__).parent),
+        native_sources=[dict(path=p,signature9=v,sha256=source[4][p]) for p,v in frame['files9']],
+        committed_vectors=future,committed_hashes=dict(packet['hashes']))
+    transition['committed_hashes'][str(packet['controller'].database)]='0'*64
+    preview=dict(packet,record_sha=record_sha,committed=dict(path=str(packet['controller'].database),sha256='0'*64,signature9=reserved))
+    answer=dict(_result(preview),transition=transition)
+    raw=handler._successResponse(answer)
+    o.check(type(raw) is str and 0<len(raw.encode())<=4*1024**2,'retained-response-precommit-wire-bound')
+    decoded=g.decode_json(raw)
+    o.check(type(decoded) is dict and set(decoded)=={'success','data'} and decoded['success'] is True
+            and g.same_json(decoded['data'],answer),'retained-precommit-exact-envelope')
+    packet['response_stat_ceiling']=ceiling
