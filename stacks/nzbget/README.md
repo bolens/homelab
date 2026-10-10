@@ -107,6 +107,11 @@ before cleanup. Complete recognised lists, including extensionless files, are
 removed during cleanup. Unknown, ambiguous, remote and unsafe M3U lists stay
 retained. Recognition accepts UTF-8 lists up to 1 MiB with local audio paths;
 it does not fetch URLs or infer completeness from unrelated text.
+Retained, resolvable playlists have their references updated whenever files move
+or gain extensions, including cleanup-disabled helpers and cue-protected lists.
+An unresolved retained M3U, or another recognised playlist with existing local
+references, keeps folder structure and filenames unchanged because its references cannot be safely rewritten.
+
 Cue sheets are retained because album-image releases need them to identify
 individual tracks. The extension does not split album images into track files.
 Cue `FILE` references are updated when tracks move or gain extensions. Quoted
@@ -217,7 +222,8 @@ python3 stacks/nzbget/scripts/UnpackMusicTar/main.py --preview "/path/to/music/r
 
 The extension rejects symlinks and special files in the release, concurrent
 instances, files changed by another writer during preparation, and missing
-download directories. It also refuses to clean a release down to zero files.
+download directories. It also refuses to clean a release down to zero files,
+including cleanup-only helper calls with extraction disabled.
 Extraction is limited to 20,000 entries per archive, 100 archives per release,
 100 GiB of cumulative declared extracted data, and the available free space.
 Encrypted ZIP archives and unsafe or conflicting archive paths fail processing.
@@ -234,11 +240,19 @@ version 1.15 or newer, select its exact path:
 python3 stacks/nzbget/scripts/UnpackMusicTar/main.py --recover "/path/to/music/release/.unpack-music-example"
 ```
 
+Successful publication records verified output checksums before deleting backups.
+Restoring originals also records verified completion before deleting recovery
+data. The recovery journal is removed last. If final cleanup fails or is interrupted,
+`--recover` verifies those outputs and finishes cleanup without restoring removed
+sidecars. Changed or missing outputs retain the workspace for manual review.
+An empty workspace left after the final directory-removal failure can also be
+removed by the same command.
+
 Recovery validates the journal, saved originals, and current output checksums
 before moving files. It refuses corrupted backups, unsafe paths, and changed
 outputs. After restoring and verifying every original file and archive, it
 removes that operation's workspace. An interrupted recovery can be resumed with
-the same command. Ordinary recovery write failures roll back the recovery
+the same command. Ordinary restore failures roll back the recovery
 attempt; an unresolved failure retains the workspace for review.
 
 Legacy workspaces without checksums require manual recovery. Their
