@@ -7,7 +7,7 @@
       "sha256": "0f6cb551d564585db1a751c0e05308e3d205d1353798a837a81d274317a3648b"
     },
     "CONTRACT-archive-repair.md": {
-      "sha256": "d57d674fe931d2b5a9272cbb79fc9718fac104ef68c379d5577bc7f5db3f35d3"
+      "sha256": "18a0606127400f249dd9573ade6dea0e7e1c2f1f07334377d7a7a096a080b44b"
     },
     "CONTRACT-nfs-factual.md": {
       "sha256": "511512eae7e990675dbd6f2208dc4e17629962e625942e42041da99989498b7d"
@@ -88,7 +88,10 @@
       "sha256": "c71f0d71dcd2b69c1f4f392bd5aada3bb1a65794fd8f1c12ee16aa7489684577"
     },
     "_archive_repair_fixtures/publication_archive_dispatch.py": {
-      "sha256": "069a55bf6bcd922d327fbf1b6760ed8d3d31c646c8b805a671fa31dbc0f5d4d2"
+      "sha256": "8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7"
+    },
+    "_archive_repair_fixtures/publication_archive_history.py": {
+      "sha256": "cc53a7ae0ad57375ec1b043de5334968700ae29a162949046dc46a510f5a6ec6"
     },
     "_archive_repair_fixtures/publication_archive_layout.py": {
       "sha256": "c46add9ed2b57c1f44ec4fe23db73189b77925bea01a247df9333b526bd95168"
@@ -340,22 +343,22 @@
       "sha256": "6bd821f36f6eec4fa389e8200e69b0822b7af957ecfc06cda0fa3919e6353b51"
     },
     "_terminal_reconstruction_fixtures/installed_terminal_cli.py": {
-      "sha256": "8d775d6bb9c3d0a78f97757027d5136518357652dbf1b274b71eb4f08c84af35"
+      "sha256": "c65d1937cfd16261e00e7fd1e0239eebf8606998726ae62c46cc64ea632e1db6"
     },
     "_terminal_reconstruction_fixtures/publication_reader_lifecycle.py": {
       "sha256": "ef4521bd9ef78c5b78130cb7706afe5557c570870325e3ec055ca7c51c931d74"
     },
     "comic_archive_backup_action.py": {
-      "sha256": "8761c62d41b1f1148bcf28c919484972fd3a0bf42815ffd2da623542c63b6065"
+      "sha256": "cf94322027715e607b944d7d88673f1dd3cc067ac1e2b23441ee915f5f0d92a9"
     },
     "comic_archive_evidence_adapter.py": {
-      "sha256": "cc154176e910913d3fbc504f03d4ee840399b81a38255fc76238272d4323bf7c"
+      "sha256": "c79d2bf49efb3942f912ee465b7a76f2e3f1097093c791ca451d4704c39c51d6"
     },
     "comic_archive_proof_producer.py": {
-      "sha256": "78edb9ac21e118a19a74ae6c5cf34df0455862fc071f3e4a322466863b9efae9"
+      "sha256": "d4b292c1bf56e6eafdcf87ae1f98c200cf4225e361334faa2b155828645c9e12"
     },
     "comic_archive_repair_action.py": {
-      "sha256": "2a1dcdbe933190eb8bdf96cea9278561348262eade58069ea737ec92c9d795d1"
+      "sha256": "38a73d2ab08cb2139181987b494efac1b27e66c2c41190f85adffb91c9d12594"
     },
     "comic_archive_repair_protocol.py": {
       "sha256": "eef63a55d27b9a2e515eb6634d14ae96d8485c5ef64719799c819486b3ace8fb"
@@ -364,7 +367,7 @@
       "sha256": "6276f6f028f3c4ebcf261e111cdf7430f0f85b76e624a3b8e120f555b76ec09f"
     },
     "comic_native_evidence_adapter.py": {
-      "sha256": "ff69f1210fe13b58f33b9a96654a7557438b0c34f323cda34554ec7b66b2988d"
+      "sha256": "ba14b2956d4257898b696e4368d4d10b39b95abfe597f34c9a842f634c511ee9"
     },
     "comic_native_process_probe.py": {
       "sha256": "77325f0a7fd14b6e2e1a1f91aaf4c66cb53b5e2fd4cffdd34453642002afd1ec"
@@ -382,7 +385,7 @@
       "sha256": "393d398e1e08ce147d4f8efa60879b99a910af582fbb6ae70e0f71cc0229d0bf"
     },
     "comic_negative_reader_action.py": {
-      "sha256": "1668fbfb536f7907da1381264a79b9bff91ec5e1ec71c53ca65c5e51f8a27e72"
+      "sha256": "bbe6106eb255610ad9145e52726ef0b84fe6b78686fe4a8cdb693c6afddda7e5"
     },
     "comic_negative_terminal_observer.py": {
       "sha256": "ec84afea896371e6c3e29c566a30613979561a63f53e924ff45c5def6a1d7c04"
@@ -400,7 +403,7 @@
       "sha256": "d44073c8a2eb6bc6534384cebcf1c73ab0d89a52ac147298d24e11e093c9c55f"
     },
     "comic_reader_proof_producer.py": {
-      "sha256": "0edb99518f2808e0a3a4ac1ef4c0369a865482d17a9cf60bbfc4bae3b906f26d"
+      "sha256": "3d5e8eab3618a9aa24bb148579f240b000b6bdbf526fbeb01acf0672cef4efab"
     },
     "comic_reader_rows.py": {
       "sha256": "ebac3228fa3c6055b86e3636fb33368f4ccf21950b452e7d6c10070af4a2c99a"
@@ -415,7 +418,7 @@
       "sha256": "699e69b280a67580c7e4acd02a3aca97b7ef8c74be25cb4d9da29e3c1c188d5b"
     },
     "comic_terminal_observation_producer.py": {
-      "sha256": "fdc25243525c811cd753dec8c74b2cd4920d181100cece3554cc55b64e049f04"
+      "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
     },
     "publication_native_configured_scope.py": {
       "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608"
@@ -442,7 +445,7 @@
       "sha256": "eb3a6aa3a61308a1816d8b74823210cf19b07cb32b0bd72aff86d90625e19de5"
     },
     "test_archive_repair_flow.py": {
-      "sha256": "a6d3531928532cb3559470999e6d1982f9fdceccb3913c4d061ce79b04609c1e"
+      "sha256": "a15a799422a682c965e0f93b2bb4e74307cffe5eaf2e79fed05d8b666a9d01f1"
     },
     "test_archive_repair_protocol.py": {
       "sha256": "47e175ed23f78ead18ae6f12bc05d02a650d7000307116cff4ca0d0b922f34e7"

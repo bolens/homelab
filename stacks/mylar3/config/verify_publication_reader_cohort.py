@@ -36,6 +36,35 @@ def main():
         module = importlib.import_module('mylar.' + name)
         path = Path(module.__file__)
         assert path == Path('/app/mylar3/mylar') / (name + '.py') and path.resolve() == path, name
+    retained = importlib.import_module('mylar.publication_retained_delivery')
+    assert Path(retained.__file__).read_bytes() == (fixes / 'publication_retained_delivery.py').read_bytes()
+    assert retained.ENABLED is False and retained.o is core
+    assert all(callable(getattr(retained, name, None)) for name in
+               ('prepare_existing', 'verify_ack', 'status_existing', 'RetainedDeliveryAcceptance'))
+    native = importlib.import_module('mylar.publication_native')
+    history = importlib.import_module('mylar.ordinary_import_history')
+    assert callable(native.accept_retained_delivery) and callable(native.retained_delivery_status)
+    assert callable(history.confirmed_retained)
+    finalizer = importlib.import_module('mylar.publication_retained_finalize')
+    assert Path(finalizer.__file__).read_bytes() == (fixes / 'publication_retained_finalize.py').read_bytes()
+    assert finalizer.ENABLED is False and finalizer.o is core and finalizer.r is retained
+    assert callable(finalizer.finalize) and callable(finalizer.status_existing)
+    assert callable(native.finalize_retained_delivery) and callable(native.retained_finalization_status)
+    assert len(manifest['existing_sdk_closure']) == 72
+    observer = importlib.import_module('mylar.ordinary_import_observation')
+    retained_api = importlib.import_module('mylar.publication_retained_api')
+    writers = importlib.import_module('mylar.native_writers')
+    continuity = importlib.import_module('mylar.ordinary_import_continuity')
+    for module in (observer, retained_api, writers, continuity, finalizer):
+        name = module.__name__.split('.')[-1]
+        assert module.__name__ == 'mylar.' + name
+        assert Path(module.__file__) == Path('/app/mylar3/mylar') / (name + '.py')
+        assert Path(module.__file__).read_bytes() == (fixes / (name + '.py')).read_bytes()
+    assert observer.ENABLED is False and callable(observer.observe)
+    assert retained_api.ENABLED is False and callable(retained_api.execute) and callable(retained_api.owns)
+    assert writers.SELF_ADMITTED_API == ('retainedDeliveryFinalize', 'retainedDeliveryStatus')
+    assert writers.PASSIVE_API == ('publicationControl', 'getHealth', 'getVersion', 'restart', 'shutdown', 'ordinaryImportObservation')
+    assert callable(finalizer.response_existing) and callable(finalizer.response_sources)
     loader = modules['publication_negative_namespace']
     kernel = loader.kernel()
     assert kernel.__file__ == str(loader.KERNEL_PATH)

@@ -15,6 +15,91 @@ PHASES = ('prepared', 'prepare-uncertain', 'native-prepared', 'rename-uncertain'
           'cleanup-uncertain', 'cleanup-complete')
 
 
+def load_reviewed_preview(path):
+    """Bounded explicit input; duplicate/non-finite/deep JSON is never approval."""
+    with Path(path).open('rb') as stream:
+        raw=stream.read(16*1024*1024+1)
+    if len(raw)>16*1024*1024:
+        raise ValueError('Reviewed supplement preview exceeds bounds')
+    try:
+        def integer(text):
+            if len(text)>16:raise ValueError('Preview integer exceeds bounds')
+            return int(text)
+        def reject(_):raise ValueError('Preview requires finite integer facts')
+        value=json.loads(raw.decode('utf-8'),object_pairs_hook=evidence.object_pairs,
+                         parse_int=integer,parse_float=reject,parse_constant=reject)
+    except (ValueError,UnicodeError,RecursionError,evidence.Unavailable):
+        raise ValueError('Invalid reviewed supplement preview JSON') from None
+    reviewed_preview(value)
+    return value
+
+
+def reviewed_preview(value):
+    """Validate explicit source-bound review input; native alone derives additions."""
+    if (not isinstance(value, dict) or set(value) != {'version','policy','reviews'}
+            or type(value['version']) is not int or value['version'] != 1
+            or not isinstance(value['policy'], dict) or len(value['policy'])>9 or not isinstance(value['reviews'], list)
+            or len(value['reviews']) > 10000):
+        raise ValueError('Exact reviewed combined preview required')
+    if any(not isinstance(k,str) or not isinstance(v,str) or not v.strip() or len(v)>65536 or any(ord(c)<32 for c in v)
+           for k,v in value['policy'].items()):
+        raise ValueError('Invalid reviewed metadata policy')
+    result = {}
+    for row in value['reviews']:
+        if (not isinstance(row,dict) or set(row) != {'source','source_sha256','status','evidence','additions'}
+                or not isinstance(row['source'],str) or not Path(row['source']).is_absolute()
+                or '..' in Path(row['source']).parts or row['source'] in result
+                or row['status'] != 'verified' or not isinstance(row['additions'],dict) or len(row['additions'])>9
+                or any(not isinstance(k,str) or not isinstance(v,str) or not v.strip() or len(v)>65536 or any(ord(c)<32 for c in v)
+                       for k,v in row['additions'].items())
+                or any(not isinstance(row[k],str) or len(row[k])!=64
+                       or any(c not in '0123456789abcdef' for c in row[k])
+                       for k in ('source_sha256','evidence'))):
+            raise ValueError('Exact verified source supplement review required')
+        result[row['source']] = json.loads(json.dumps(row))
+    return result
+
+
+def native_source(naming,path):
+    with naming.authority() as authority:
+        matches=[native/path.relative_to(worker) for native,worker in authority.mappings if path.is_relative_to(worker)]
+    if len(matches)!=1:raise ValueError('Exact native source mapping required')
+    return str(matches[0])
+
+
+def native_preview(value,request,policy):
+    keys={'version','protocol','request','policy','owner','census','payload','observed','writer','source_signature','additions','binding'}
+    if (not isinstance(value,dict) or set(value)!=keys or type(value['version']) is not int or value['version']!=1
+            or value['protocol']!='combined-preview-v1' or not evidence.same_json(value['request'],request)
+            or not evidence.same_json(value['policy'],policy) or not isinstance(value['additions'],dict)
+            or value['binding']!=evidence.canonical_digest({k:v for k,v in value.items() if k!='binding'})):
+        raise ValueError('Exact current native supplement preview required')
+    return value
+
+
+def planned_metadata(entry, policy):
+    """Bind reviewed preview to this request, without granting publication rights."""
+    plan = entry.get('metadata_plan')
+    if plan is None:
+        return  # Preserve existing exact reviewed legacy combined manifests.
+    review = entry.get('metadata_review')
+    if not isinstance(review,dict):
+        raise ValueError('Exact verified metadata review required')
+    if (not isinstance(plan,dict) or set(plan) != {'version','additions','policy_sha256','native_preview'}
+            or type(plan['version']) is not int or plan['version'] != 1
+            or plan['policy_sha256'] != evidence.canonical_digest(policy)):
+        raise ValueError('Combined metadata preview policy changed')
+    reviewed_preview(dict(version=1,policy=policy,reviews=[dict(
+        source=entry['request']['source'],additions=plan['additions'],**(review or {}))]))
+    preview=plan['native_preview']
+    if not isinstance(preview,dict) or not evidence.same_json(preview.get('additions'),plan['additions']):
+        raise ValueError('Approved additions differ from native derivation')
+    if review['source_sha256'] != entry['request']['sha256']:
+        raise ValueError('Combined metadata preview source changed')
+    if (Path(entry['request']['source']).name == entry['request']['target'] and not plan['additions']):
+        raise ValueError('Already-correct canonical preview requires no publication')
+
+
 class Combined:
     def __init__(self, naming):
         self.naming = naming
@@ -68,12 +153,7 @@ class Combined:
             dict(version=1, action=action, arguments=arguments)))
 
     def native_path(self, path):
-        with self.naming.authority() as authority:
-            matches = [native/path.relative_to(worker) for native, worker in authority.mappings
-                       if path.is_relative_to(worker)]
-        if len(matches) != 1:
-            raise ValueError('Exact native source mapping required')
-        return str(matches[0])
+        return native_source(self.naming,path)
 
     def prepare(self, entry, policy, manifest):
         remote_unlocked(self.worker)
@@ -82,7 +162,9 @@ class Combined:
                 or not isinstance(policy, dict) or not isinstance(manifest, str)
                 or len(manifest) != 64 or any(c not in '0123456789abcdef' for c in manifest)):
             raise ValueError('Reviewed combined entry required')
-        if policy:
+        entry=json.loads(json.dumps(entry));policy=json.loads(json.dumps(policy))
+        planned_metadata(entry, policy)
+        if policy or entry.get('metadata_plan') is not None:
             review = entry.get('metadata_review')
             if (not isinstance(review, dict) or set(review) != {'status', 'source_sha256', 'evidence'}
                     or review['status'] != 'verified' or review['source_sha256'] != entry['request']['sha256']
@@ -91,6 +173,7 @@ class Combined:
                 raise ValueError('Unverified credits remain deferred from metadata publication')
         source = Path(entry['request']['source'])
         request = dict(entry['request'], source=self.native_path(source))
+        plan=entry.get('metadata_plan')
         token = evidence.canonical_digest(dict(request=request, policy=policy, manifest=manifest))
         folder = self.root/token
         if folder.exists():
@@ -99,10 +182,24 @@ class Combined:
                     or not evidence.same_json(existing['policy'], policy) or existing['manifest']!=manifest):
                 raise ValueError('Combined entry changed')
             return folder
+        if plan is not None:
+            expected=native_preview(plan['native_preview'],request,policy)
+            if digest(source)!=entry['request']['sha256']:
+                raise ValueError('Reviewed combined original changed')
+            fresh=self.api('preview',naming=request,policy=policy)
+            native_preview(fresh,request,policy)
+            if not evidence.same_json(fresh,expected):
+                raise ValueError('Native supplement preview changed before preparation')
         reader = self.naming.reader_proof(source, all_books(self.worker.reader))
         if not evidence.same_json(reader, entry['reader']):
             raise ValueError('Combined reader plan changed')
         before = self.naming.publication(source, entry['request'])
+        if plan is not None and before is not None:
+            facts=before['source']
+            if (not evidence.same_json(facts['authority']['owner'],expected['owner'])
+                    or not evidence.same_json(facts['authority']['census'],expected['census'])
+                    or facts['inventory']['payload']!=expected['payload']):
+                raise ValueError('Native supplement preview authority changed')
         if before is None or digest(source) != entry['request']['sha256']:
             raise ValueError('Current publication authority required')
         with self.naming.authority():
@@ -213,13 +310,20 @@ class Combined:
             health = self.naming.api('getHealth')
             if not isinstance(health, dict) or type(health.get('combined_publication')) is not int or health['combined_publication'] != 1:
                 return job
+            if (job['entry'].get('metadata_plan') is not None
+                    and (type(health.get('combined_preview')) is not int or health['combined_preview']!=1)):
+                return job
             with self.naming.authority():
                 if not evidence.same_json(job['before'], self.naming.publication(
                         Path(job['entry']['request']['source']), job['entry']['request'])):
                     raise ValueError('Prepared combined source changed')
                 job['phase'] = 'prepare-uncertain'
                 expected,stamp=self.transition(folder,expected,stamp,job)
-            result = self.api('prepare', naming=job['request'], policy=job['policy'], manifest=job['manifest'])
+            arguments=dict(naming=job['request'],policy=job['policy'],manifest=job['manifest'])
+            if job['entry'].get('metadata_plan') is not None:
+                plan=job['entry']['metadata_plan']
+                arguments.update(preview=plan['native_preview'],approved_additions=plan['additions'])
+            result = self.api('prepare', **arguments)
             self.acknowledgement(job, result)
             if result['phase'] != 'prepared':
                 raise ValueError('Combined prepare acknowledgement mismatch')

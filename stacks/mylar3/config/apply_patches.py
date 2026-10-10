@@ -46,6 +46,8 @@ PATCHES = (
     "patch_prowlarr_identity",
     "patch_release_naming",
     "patch_publication_guard",
+    "patch_ordinary_import_observation",
+    "patch_retained_delivery_api",
     "patch_publication_startup",
     "patch_publication_conversion",
     "patch_publication_reconcile",

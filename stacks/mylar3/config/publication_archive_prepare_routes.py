@@ -3,6 +3,7 @@
 Only the existing primary-key adapter may expose these Controller branches.
 No stage selection from paths, adoption, catalog/reader write or replay.
 """
+import copy
 import hashlib
 import importlib
 import os
@@ -178,6 +179,11 @@ def durable_status(c,w,owner,op,m,modules,deadline):
 
 def _dispatch(controller,writer,value):
     m=module();modules=m.sdk();g=modules[2];m.writer_pair(controller,writer,modules)
+    # Original configuration and held purpose survive every preparation/history callback.
+    controller_binding=(controller.root,controller.database,controller.native_database,controller.writer_root,tuple(controller.roots),controller.tool_root)
+    writer_binding=(writer.root,writer.lock,writer.pending,writer.tagger_pending,writer.release_pending,tuple(writer.lock_identity),tuple(writer.root_identity),writer.local)
+    local=writer.local
+    history_vectors=None;history_originals=None
     action=value['action'];owner=g.exact_owner(value['owner']);operation_id=value['operation_id']
     m.check(action in ('prepare-archive-repair','archive-repair-status') and type(operation_id) is str
             and re.fullmatch('[0-9a-f]{64}',operation_id),'exact-owned-route')
@@ -188,24 +194,97 @@ def _dispatch(controller,writer,value):
         # Reserve the largest bounded three custody/stage files, plus receipts.
         m.check(before['bytes']+3*(512*1024**2+2)+128*1024**2<=MAX_STAGE_BYTES,'stage-reservation-bound')
         prep=m.prepare_existing(controller,writer,owner,operation_id);root_after=m.signature(controller.root)
+        root_signature=copy.deepcopy(root_after)
+        original_files=copy.deepcopy(prep._files);original_nodes=copy.deepcopy(prep._nodes);original_claims=copy.deepcopy(prep._claims)
+        history_ref=None
+        if os.path.lexists(controller.root/'archive-history-v1'):
+            from mylar import publication_archive_history as history
+            history_ref=copy.deepcopy(history.prepared(prep))
+            raw=m.read_checked(Path(history_ref['path']),history_ref['signature9'],history.MAX_BYTES,deadline)
+            if hashlib.sha256(raw).hexdigest()!=history_ref['sha256']:raise m.Held('route-emitted-history-hash')
+            history_originals=copy.deepcopy(g.decode_json(raw.decode())['original_vectors'])
+            # Preserve the complete emitted originals before subsequent callbacks.
+            history_vectors=copy.deepcopy(history.record_vectors(copy.deepcopy(history_ref)))
         after=namespace(controller,m,deadline)
         m.check(after['names']==before['names']|{op.name},'new-stage-census')
         for p,f in before['files'].items():m.check(after['files'].get(p)==f,'old-stage-file-CAS')
         for p,v in before['directories'].items():m.check(after['directories'].get(p)==v,'old-stage-directory-CAS')
+        final_snapshot=copy.deepcopy(after)
         binding=prep.revalidate();result=summary(action,owner,operation_id,'prepared',binding=binding)
-        close(controller,m,after,root_after,deadline);prep.close_passive()
+        close(controller,m,copy.deepcopy(after),copy.deepcopy(root_after),deadline);prep.close_passive()
         m.check(time.monotonic()<deadline,'request-deadline')
-        terminal(controller,writer,m,after,root_after,prep._files,prep._nodes,prep._claims,g)
+        snapshot=final_snapshot;files=original_files;nodes=original_nodes;claims=original_claims
+        terminal(controller,writer,m,copy.deepcopy(snapshot),copy.deepcopy(root_signature),copy.deepcopy(files),copy.deepcopy(nodes),copy.deepcopy(claims),g)
     elif op.name not in before['names']:
-        result=summary(action,owner,operation_id,'missing');close(controller,m,before,before['root'],deadline)
+        snapshot=copy.deepcopy(before);root_signature=copy.deepcopy(before['root'])
+        result=summary(action,owner,operation_id,'missing');close(controller,m,copy.deepcopy(before),before['root'],deadline)
         m.check(time.monotonic()<deadline,'request-deadline')
-        terminal(controller,writer,m,before,before['root'],{}, {}, {},g)
+        files={};nodes={};claims={}
+        terminal(controller,writer,m,copy.deepcopy(snapshot),copy.deepcopy(root_signature),copy.deepcopy(files),copy.deepcopy(nodes),copy.deepcopy(claims),g)
     else:
         outcome,binding,files,nodes,claims=durable_status(controller,writer,owner,op,m,modules,deadline)
+        snapshot=copy.deepcopy(before);root_signature=copy.deepcopy(before['root']);files=copy.deepcopy(files);nodes=copy.deepcopy(nodes);claims=copy.deepcopy(claims)
         result=summary(action,owner,operation_id,outcome,binding=binding)
-        close(controller,m,before,before['root'],deadline)
+        close(controller,m,copy.deepcopy(before),before['root'],deadline)
         m.check(time.monotonic()<deadline,'request-deadline')
-        terminal(controller,writer,m,before,before['root'],files,nodes,claims,g)
+        files=copy.deepcopy(files);nodes=copy.deepcopy(nodes);claims=copy.deepcopy(claims)
+        terminal(controller,writer,m,copy.deepcopy(snapshot),copy.deepcopy(root_signature),copy.deepcopy(files),copy.deepcopy(nodes),copy.deepcopy(claims),g)
+    # Conflict-refusing detached originals, never a fresh observation permission.
+    vectors={'files9':{},'nodes5':{},'claims':{},'namespaces':{},'absent':set()}
+    def merge(field,path,value):
+        path=str(path);value=None if value is None else tuple(value)
+        if path in vectors[field] and vectors[field][path]!=value:raise m.Held('route-original-conflict')
+        vectors[field][path]=value
+    for path,fact in {**snapshot['files'],**files}.items():
+        if path in snapshot['files'] and path in files and snapshot['files'][path]!=files[path]:raise m.Held('route-file-conflict')
+        merge('files9',path,fact['signature9'])
+    for path,value in snapshot['directories'].items():merge('files9',path,value)
+    merge('files9',controller_binding[0],root_signature)
+    for collection in (snapshot['nodes'],nodes):
+        for path,value in collection.items():merge('nodes5',path,value)
+    for path,value in claims.items():merge('claims',path,value)
+    for directory in snapshot['directories']:
+        merge('namespaces',directory,sorted(Path(path).name for path in snapshot['files'] if Path(path).parent==directory))
+    if history_vectors is not None:
+        for originals in (history_originals,history_vectors):
+            for field in ('files9','nodes5','claims','namespaces'):
+                for path,value in originals[field]:merge(field,path,sorted(value) if field=='namespaces' else value)
+            vectors['absent'].update(originals['absent'])
+        merge('files9',history_ref['path'],history_ref['signature9'])
+    for database in controller_binding[1:3]:
+        vectors['absent'].update(str(database)+suffix for suffix in ('-wal','-shm','-journal'))
+    vectors['absent'].update(str(writer_binding[0]/name) for name in (
+        'negative-retirement-v1.pending','negative-retirement-v1.terminal-pending',
+        'archive-repair-v1.pending','archive-repair-v1.terminal-pending','normalizer-v1.pending',
+        'tagger-v2.pending','release-v1.pending','tagger-publication-v1.json',
+        'nested-derivative-v1.json','tagger-recovery-v1.pending'))
+    # No SDK/signature/digest/serializer/namespace helper follows this primitive closure.
+    if (controller.root,controller.database,controller.native_database,controller.writer_root,tuple(controller.roots),controller.tool_root)!=controller_binding:
+        raise m.Held('route-controller-binding')
+    if (writer.root,writer.lock,writer.pending,writer.tagger_pending,writer.release_pending,tuple(writer.lock_identity),tuple(writer.root_identity),writer.local)!=writer_binding or writer.local is not local:
+        raise m.Held('route-writer-binding')
+    if getattr(local[1],'depth',0)<=0 or any(getattr(local[1],name,False) for name in ('allow_pending','allow_tagger_pending','allow_release_pending')):
+        raise m.Held('route-writer-purpose')
+    for path,names in vectors['namespaces'].items():
+        if tuple(sorted(os.listdir(path)))!=names:raise m.Held('route-original-namespace')
+    for path,expected in vectors['claims'].items():
+        try:info=os.lstat(path)
+        except FileNotFoundError:
+            if expected is not None:raise m.Held('route-original-claim-absence')
+            continue
+        if (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,None if info.st_mode & 0o170000 == 0o040000 else info.st_nlink)!=expected:
+            raise m.Held('route-original-claim')
+    for path in vectors['absent']:
+        try:os.lstat(path)
+        except FileNotFoundError:continue
+        raise m.Held('route-original-absence')
+    for path,expected in vectors['files9'].items():
+        info=os.lstat(path)
+        if (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=expected:
+            raise m.Held('route-original-file')
+    for path,expected in vectors['nodes5'].items():
+        info=os.lstat(path)
+        if (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid)!=expected:raise m.Held('route-original-node')
     return result
 
 

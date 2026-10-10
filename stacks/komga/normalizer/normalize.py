@@ -65,7 +65,7 @@ def api_path(value):
     return Path(urllib.parse.unquote(urllib.parse.urlparse(value).path))
 
 
-def request(base, route, data=None, key=None, form=None, text=False):
+def request(base, route, data=None, key=None, form=None, text=False, limit=None):
     headers = {}
     if key:
         headers['X-API-Key'] = key
@@ -79,7 +79,11 @@ def request(base, route, data=None, key=None, form=None, text=False):
     req = urllib.request.Request(base.rstrip('/') + route, data=body, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=30) as response:
-            content = response.read()
+            if limit is not None and (type(limit) is not int or not 1 <= limit <= 4*1024*1024):
+                raise ValueError('Invalid bounded response policy')
+            content = response.read() if limit is None else response.read(limit+1)
+            if limit is not None and len(content)>limit:
+                raise ValueError('Bounded response exceeded')
             if text:
                 return content.decode("utf-8")
             return json.loads(content) if content else None
@@ -697,10 +701,14 @@ def main():
     parser.add_argument('--health', action='store_true')
     parser.add_argument('--naming-plan', metavar='MANIFEST')
     parser.add_argument('--naming-apply', metavar='MANIFEST')
+    parser.add_argument('--naming-reviewed-preview', metavar='PREVIEW',
+                        help='Explicit reviewed supplement preview; requires --naming-plan')
     parser.add_argument('--naming-limit', type=int, default=1)
     args = parser.parse_args()
     if not 1 <= args.naming_limit <= 100 or (args.naming_plan and args.naming_apply):
         parser.error('Choose one naming action and a limit from 1 to 100')
+    if args.naming_reviewed_preview and not args.naming_plan:
+        parser.error('--naming-reviewed-preview requires --naming-plan')
     config = json.loads(Path(args.config).read_text())
     state = Path(config.get('state', '/state'))
     if args.health:
@@ -731,7 +739,13 @@ def main():
             from naming_worker import Naming
             normalizer.naming = Naming(normalizer)
         if args.naming_plan:
-            save(Path(args.naming_plan), normalizer.naming.plan())
+            if args.naming_reviewed_preview:
+                from combined_handoff import load_reviewed_preview
+                reviewed = load_reviewed_preview(args.naming_reviewed_preview)
+                manifest = normalizer.naming.plan(combined=reviewed)
+            else:
+                manifest = normalizer.naming.plan()
+            save(Path(args.naming_plan), manifest)
             return
         if args.naming_apply:
             result = normalizer.naming.apply(json.loads(Path(args.naming_apply).read_text()), args.naming_limit)

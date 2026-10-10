@@ -46,6 +46,7 @@ def emit(path, value, nodes, names):
         stamp=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
         leaf=os.stat(path.name,dir_fd=d,follow_symlinks=False)
         need(stamp==(leaf.st_dev,leaf.st_ino,leaf.st_size,leaf.st_mtime_ns,leaf.st_ctime_ns,leaf.st_mode,leaf.st_uid,leaf.st_gid,leaf.st_nlink),'terminal-output-leaf-CAS')
+        os.lseek(d,0,os.SEEK_SET)
         need(frozenset(os.listdir(d))==names|{path.name},'terminal-output-created-census');os.fsync(d);z=os.fstat(d)
         need((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)==nodes[str(path.parent)],'terminal-output-parent-metadata')
         parent=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)

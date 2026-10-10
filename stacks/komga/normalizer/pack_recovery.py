@@ -475,7 +475,12 @@ class Packs:
             from publication_guard import confirmation_check
             confirmation_check(self.worker, prepared, target, matched)
             if preserves(info, self.m.info(target), metadata_changed=True):
-                member.update(phase='confirmed', destination=str(target), destination_sha256=digest(target), destination_identity=identity(target), reason='Library content verified')
+                from ordinary_import_ack import confirmed
+                acknowledgement=confirmed(self.m,prepared,matched,target)
+                if not acknowledgement:
+                    member.update(phase='review',reason='Archive present; exact import acknowledgement missing')
+                    return
+                member.update(phase='confirmed', destination=str(target), destination_sha256=digest(target), destination_identity=identity(target), ordinary_import_token=acknowledgement, reason='Ordinary import acknowledged')
             else:
                 # A different scan is worth retaining, without replacing an existing issue.
                 self.preserve_extra(prepared, member, points, info, comicid=matched['comicid'])
@@ -485,10 +490,22 @@ class Packs:
                       reason='Import submitted; awaiting content verification' if result == 'import_queued' else 'Import retained for verification')
 
     def cleanup(self, receipt, value):
-        if not value['members'] or any(m['phase'] not in ('confirmed', 'preserved') for m in value['members']):
+        if not value['members']:return
+        if any(not ((m['phase']=='confirmed' and m['kind']!='sidecar') or (m['kind']=='sidecar' and m['phase']=='preserved')) for m in value['members']):
+            if self.worker.config.get('writer_state') is not None and any(m['phase']=='preserved' and m['kind']!='sidecar' for m in value['members']):
+                from publication_guard import Unavailable
+                raise Unavailable('Supplement cleanup requires reviewed derivative ownership')
             return
         if not self.m.idle():
             return
+        from ordinary_import_ack import confirmed
+        from publication_guard import Unavailable
+        for member in value['members']:
+            if member['kind']=='sidecar':continue
+            match={key:member.get(key) for key in ('issueid','comicid')}
+            token=confirmed(self.m,Path(member.get('prepared') or member['source']),match,Path(member['destination']),cleanup=True)
+            if token is None or token!=member.get('ordinary_import_token'):
+                raise Unavailable('Pack cleanup requires exact ordinary import acknowledgement')
         # Historical verification is not permission to delete a current repeat.
         # Recheck all members before writing intent or removing any source.
         if self.worker.config.get('writer_state') is not None:
@@ -502,6 +519,11 @@ class Packs:
                 source = Path(member['source'])
                 target = Path(member['destination'])
                 confirmation_check(self.worker, source if source.exists() else target, target, match)
+                from ordinary_import_ack import confirmed
+                original=Path(member.get('prepared') or member['source'])
+                token=confirmed(self.m,original,match,target,cleanup=True)
+                if token is None or token!=member.get('ordinary_import_token'):
+                    raise Unavailable('Pack cleanup requires exact ordinary import acknowledgement')
         # Verify every destination and every source before removing any source.
         for member in value['members']:
             source = Path(member['source'])

@@ -90,7 +90,17 @@ def previous_attempt(maintenance, source):
         with closing(sqlite3.connect('file:' + str(directory / 'mylar.db') + '?mode=ro', uri=True)) as db:
             row = issue_state(db, record['match'])
         if row and row[0] == 'Downloaded' and row[1]:
-            return 'import_cleanup', record['match']
+            from ordinary_import_ack import confirmed
+            from publication_guard import catalog_path
+            try:
+                with closing(sqlite3.connect('file:'+str(directory/'mylar.db')+'?mode=ro',uri=True)) as database:
+                    locations=database.execute('SELECT ComicLocation FROM comics WHERE ComicID=?',(record['match']['comicid'],)).fetchall()
+            except sqlite3.Error:return 'import_review',record['match']
+            if len(locations)==1:
+                target=catalog_path(maintenance.worker,Path(locations[0][0])/row[1])
+                if confirmed(maintenance,source,record['match'],target,cleanup=True):
+                    return 'import_cleanup', record['match']
+            return 'import_review',record['match']
         if record['phase'] == 'prepared':
             from publication_guard import import_check, evidence
             current = import_check(maintenance.worker,source,record['match'])

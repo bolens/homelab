@@ -1,0 +1,4 @@
+# Public checked API source SHA256 identities; these values are verified file digests, not API credentials.
+stacks/komga/normalizer/ordinary_observation_fixtures/manifest.json:generic-api-key:2
+stacks/mylar3/config/run_import_api_controls.py:generic-api-key:13
+stacks/mylar3/config/test_retained_delivery_api.py:generic-api-key:21

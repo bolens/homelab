@@ -119,7 +119,7 @@ class ControlTest(unittest.TestCase):
         database.executescript("""
             CREATE TABLE ddl_info(ID TEXT, issueid TEXT, status TEXT, pack INTEGER, filename TEXT);
             CREATE TABLE issues(IssueID TEXT, Status TEXT, Location TEXT);
-            CREATE TABLE annuals(IssueID TEXT, Status TEXT, Location TEXT,ComicID TEXT DEFAULT '20',Deleted INT DEFAULT 0);
+            CREATE TABLE annuals(IssueID TEXT, Status TEXT, Location TEXT,ComicID TEXT DEFAULT '20',ReleaseComicID TEXT DEFAULT '20',Deleted INT DEFAULT 0);
             INSERT INTO ddl_info VALUES ('1','2','Completed',0,'comic.cbz'),('pack','2','Completed',1,'pack.cbz'),
               ('annual','3','Completed',0,'annual.cbz'),('queued','2','Queued',0,'queued.cbz'),('missing','4','Completed',0,'missing.cbz');
             INSERT INTO issues VALUES ('2','Snatched',NULL),('4','Downloaded',NULL);
@@ -154,8 +154,8 @@ class ControlTest(unittest.TestCase):
             processing['recent'] = [{'name': 'pack.cbz'}]
             database.execute("UPDATE issues SET Status='Downloaded', Location='comic.cbz' WHERE IssueID='2'")
             after = control.diagnostics(rows)
-        self.assertEqual(after['1']['reason'], 'Post-processed; in library')
-        self.assertEqual(after['annual']['reason'], 'Post-processed; in library')
+        self.assertEqual(after['1']['reason'], 'Downloaded; import not confirmed (archive present)')
+        self.assertEqual(after['annual']['reason'], 'Downloaded; import not confirmed (archive present)')
         database.execute('UPDATE annuals SET Deleted=1')
         self.assertNotIn('annual',control.import_evidence(SimpleNamespace(select=lambda q:database.execute(q).fetchall())))
         self.assertIn('Processing finished', after['pack']['reason'])
@@ -227,7 +227,7 @@ class ControlTest(unittest.TestCase):
             CREATE TABLE ddl_info(ID TEXT,issueid TEXT,comicid TEXT,status TEXT,pack INTEGER,issues TEXT);
             CREATE TABLE comics(ComicID TEXT,ComicLocation TEXT);
             CREATE TABLE issues(IssueID TEXT,ComicID TEXT,Issue_Number TEXT,Status TEXT,Location TEXT);
-            CREATE TABLE annuals(IssueID TEXT,Status TEXT,Location TEXT,ComicID TEXT DEFAULT '20',Deleted INT DEFAULT 0);
+            CREATE TABLE annuals(IssueID TEXT,Status TEXT,Location TEXT,ComicID TEXT DEFAULT '20',ReleaseComicID TEXT DEFAULT '20',Deleted INT DEFAULT 0);
             INSERT INTO ddl_info VALUES ('pack','1','20','Completed',1,'001-003'),
                 ('unknown','1','20','Completed',1,NULL),('single','1','20','Completed',0,NULL);
             INSERT INTO issues VALUES ('1','20','1','Archived','one.cbz'),
@@ -237,14 +237,14 @@ class ControlTest(unittest.TestCase):
         adapter = SimpleNamespace(select=lambda q,args=(): database.execute(q,args).fetchall())
         (self.root/'one.cbz').write_bytes(b'one');(self.root/'two.cbz').write_bytes(b'two')
         evidence = control.import_evidence(adapter)
-        self.assertEqual(evidence['pack'], ('Pack import incomplete (2/3 issues)',False))
-        self.assertEqual(evidence['single'], ('Post-processed; in library',True))
+        self.assertEqual(evidence['pack'], ('Pack archives present; delivery acknowledgements unconfirmed (2/3 issues)',False))
+        self.assertEqual(evidence['single'], ('Downloaded; import not confirmed (archive present)',False))
         for flag in ('False','false','0',None):
             database.execute("UPDATE ddl_info SET pack=? WHERE id='single'",(flag,))
-            self.assertEqual(control.import_evidence(adapter)['single'], ('Post-processed; in library',True))
+            self.assertEqual(control.import_evidence(adapter)['single'], ('Downloaded; import not confirmed (archive present)',False))
         self.assertFalse(evidence['unknown'][1])
         (self.root/'three.cbz').write_bytes(b'three')
-        self.assertEqual(control.import_evidence(adapter)['pack'], ('Pack in library (3/3 issues)',True))
+        self.assertEqual(control.import_evidence(adapter)['pack'], ('Pack archives present; delivery acknowledgements unconfirmed (3/3 issues)',False))
         database.execute("INSERT INTO issues VALUES ('duplicate','20','3','Downloaded','three.cbz')")
         self.assertFalse(control.import_evidence(adapter)['pack'][1])
         for value in (None, '', '1-3 + Annual', '3-1', '1-999999', '1.5', 'Complete'):

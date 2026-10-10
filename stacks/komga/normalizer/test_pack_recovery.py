@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 from types import SimpleNamespace
 import zipfile
 
-from normalize import Normalizer
+from normalize import Normalizer, identity, digest
 from maintenance import Maintenance
 from pack_recovery import Packs, evidence, kind, source_state
 from import_match import catalog, match
@@ -18,6 +18,23 @@ from test_publication_guard import AuthorityFixture
 
 
 class PackEvidenceTest(unittest.TestCase):
+    def test_review_sidecar_retains_actual_source_and_never_enters_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);pack=root/'pack';pack.mkdir()
+            source=pack/'notes.txt';source.write_bytes(b'retained sidecar bytes')
+            owned=root/'records';owned.mkdir();receipt=owned/'receipt.json'
+            member={'id':'b'*64,'kind':'sidecar','phase':'review','source':str(source),
+                    'identity':identity(source),'sha256':digest(source)}
+            (owned/('sidecar-'+member['id'])).write_bytes(source.read_bytes())
+            value={'source':str(pack),'members':[member]}
+            reporter=Mock(return_value={})
+            fake=SimpleNamespace(worker=SimpleNamespace(config={},roots=[pack]),
+                m=SimpleNamespace(idle=lambda:True,roots=[pack]),cache=root/'cache',report=reporter)
+            Packs.cleanup(fake,receipt,value)
+            self.assertTrue(source.exists())
+            self.assertEqual(source.read_bytes(),b'retained sidecar bytes')
+            reporter.assert_not_called();self.assertFalse(receipt.exists())
+
     def test_reused_source_cannot_reuse_a_previous_inventory_receipt(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);source=root/'pack.zip';source.write_bytes(b'first')
@@ -217,6 +234,10 @@ class PackEvidenceTest(unittest.TestCase):
 @unittest.skipUnless(TOOL, 'Set ARCHIVING_UTILS_BIN')
 class PackTest(unittest.TestCase):
     def setUp(self):
+        # These owning copy/extraction controls assume a separately-tested exact
+        # completion fact; this mock is not native importer/runtime evidence.
+        ack=patch('ordinary_import_ack.confirmed',return_value='f'*64)
+        ack.start();self.addCleanup(ack.stop)
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
@@ -304,13 +325,9 @@ class PackTest(unittest.TestCase):
         for m in value['members']:self.packs.member(m,receipt.parent)
         self.assertEqual(len(list(self.library.glob('* - Extras/*.cbz'))),1)
         self.packs.cleanup(receipt,value)
-        self.assertFalse(issue.exists());self.assertFalse(cover.exists())
-        self.assertFalse(list(self.cache.glob('.mylar-pack-*/*.cbz')))
-        self.assertTrue((receipt.parent/('sidecar-'+next(m['id'] for m in value['members'] if m['kind']=='sidecar'))).exists())
-        self.m.mylar.assert_called_once()
-        intent=json.loads(self.m.mylar.call_args.kwargs['report'])
-        self.assertTrue(intent['cleanup_verified_at'])
-        self.assertNotIn('cleaned_at',intent)
+        self.assertTrue(issue.exists());self.assertTrue(cover.exists())
+        self.assertTrue(list(self.cache.glob('.mylar-pack-*/*.cbz')))
+        self.m.mylar.assert_not_called()  # Supplement preservation is not ordinary import ACK.
 
     def test_cleanup_report_failure_preserves_all_source_files(self):
         issue=self.archive(self.pack/'Test Comic 001 (2017).cbz')

@@ -68,14 +68,16 @@ def read(fd,path,name):
 
 def snapshot(path):
  with directory(path,private=True) as (fd,nodes):
-  before=nine(os.fstat(fd));names={e.name for e in os.scandir(path)};check(len(names)<=MAX_JOBS*3,'Repair journal job bound');records={};files={};total=0
+  before=nine(os.fstat(fd));names={e.name for e in os.scandir(path)};check(len(names)<=MAX_JOBS*4,'Repair journal job bound');records={};files={};total=0
   for name in sorted(names):
-   check(re.fullmatch('[a-f0-9]{64}\\.(intent|attempt|ack)\\.json',name),'Unknown repair journal entry');value,sig=read(fd,path,name);total+=sig[2];check(total<=MAX_BYTES,'Repair journal byte bound');records[name]=value;files[path/name]=sig
+   check(re.fullmatch('[a-f0-9]{64}\\.(intent|attempt|ack|terminal)\\.json',name),'Unknown repair journal entry');value,sig=read(fd,path,name);total+=sig[2];check(total<=MAX_BYTES,'Repair journal byte bound');records[name]=value;files[path/name]=sig
   for key in {name.split('.')[0] for name in names}:
    check(key+'.intent.json' in records,'Orphan repair journal record');intent=records[key+'.intent.json'];owner,operation_id=keys(intent.get('owner'),key);record(intent,owner,operation_id,'prepared-review')
    if key+'.attempt.json' in records:record(records[key+'.attempt.json'],owner,operation_id,'dispatching-review')
    if key+'.ack.json' in records:
-    check(key+'.attempt.json' in records,'Repair ack without dispatch intent');reply(records[key+'.ack.json'],owner,operation_id)
+    check(key+'.attempt.json' in records,'Repair ack without dispatch intent');ack=reply(records[key+'.ack.json'],owner,operation_id);check(ack['outcome']=='queued-review','Original queued ACK required')
+   if key+'.terminal.json' in records:
+    check(key+'.attempt.json' in records,'Terminal fact without dispatch intent');answer=reply(records[key+'.terminal.json'],owner,operation_id);check(answer['outcome'] in ('terminal-observed','rollback-observed'),'Exact terminal fact required')
   close(path,before,files,nodes,names);return records,files,nodes,before,names
 
 def append(path,name,value,prior):
@@ -84,9 +86,10 @@ def append(path,name,value,prior):
  with directory(path,private=True) as (fd,parents):
   check(parents==nodes and nine(os.fstat(fd))==signature,'Repair append namespace changed');leaf=os.open(name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=fd)
   try:
+   created=nine(os.fstat(leaf));check(created[5]&0o170000==0o100000 and created[5]&0o7777==0o600 and created[6:9]==[os.geteuid(),os.getegid(),1],'Repair intended created metadata')
    count=0
    while count<len(raw):count+=os.write(leaf,raw[count:])
-   os.fsync(leaf);os.lseek(leaf,0,0);check(os.read(leaf,len(raw)+1)==raw,'Repair intended record readback');new=nine(os.fstat(leaf));check(nine(os.stat(name,dir_fd=fd,follow_symlinks=False))==new,'Repair append leaf changed');os.fsync(fd);newdir=nine(os.fstat(fd))
+   os.fsync(leaf);os.lseek(leaf,0,0);check(os.read(leaf,len(raw)+1)==raw,'Repair intended record readback');new=nine(os.fstat(leaf));check(new[:2]==created[:2] and new[5:]==created[5:],'Repair original created FD changed');check(nine(os.stat(name,dir_fd=fd,follow_symlinks=False))==new,'Repair append leaf changed');os.fsync(fd);newdir=nine(os.fstat(fd))
   finally:os.close(leaf)
  newfiles=dict(files);newfiles[path/name]=new;close(path,newdir,newfiles,nodes,names|{name});return records|{name:value},newfiles,nodes,newdir,names|{name}
 def journal(worker,create=False):
@@ -110,7 +113,8 @@ def base(owner,key,phase):return dict(version=1,owner=owner,operation_id=key,pha
 def record(value,owner,key,phase):
  check(type(value) is dict and set(value)==FIELDS and type(value['version']) is int and value['version']==1 and value['owner']==owner and value['operation_id']==key and value['phase']==phase and value['mutation_authority'] is False and value['publication_acceptance'] is False,'Repair immutable primary-key intent changed')
 def reply(value,owner,key):
- expected=dict(version=1,operation_id=key,owner=owner,outcome='queued-review',root_scoped_child_required=True,reader_preservation_verified=False,mutation_authority=False,publication_acceptance=False)
+ check(type(value) is dict and value.get('outcome') in ('queued-review','terminal-observed','rollback-observed'),'Finite factual archive status required')
+ expected=dict(version=1,operation_id=key,owner=owner,outcome=value['outcome'],root_scoped_child_required=True,reader_preservation_verified=False,mutation_authority=False,publication_acceptance=False)
  check(type(value) is dict and value==expected and type(value['version']) is int and all(value[k] is expected[k] for k in ('root_scoped_child_required','reader_preservation_verified','mutation_authority','publication_acceptance')),'Exact queued review acknowledgement required');return expected
 
 def writer(worker):
@@ -148,7 +152,8 @@ def _send(worker,owner,key,*,status_only=False):
  # HTTP success grants no rights; re-acquire existing Writer and prove records.
  with w.hold(timeout=0):
   bind_state(w,worker);close(path,prior[3],prior[1],prior[2],prior[4]);current=snapshot(path);check(current[:4]==prior[:4] and current[4]==prior[4],'Repair journal drift after HTTP')
-  name=key+'.ack.json'
+  check(answer['outcome']=='queued-review' or action=='archive-repair-adoption-status','Terminal fact requires passive status')
+  name=key+('.ack.json' if answer['outcome']=='queued-review' else '.terminal.json')
   if name in current[0]:check(current[0][name]==answer,'Repair saved acknowledgement changed')
   else:current=append(path,name,answer,current)
   result=copy.deepcopy(answer);final=current;close(path,final[3],final[1],final[2],final[4])

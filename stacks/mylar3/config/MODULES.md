@@ -21,9 +21,11 @@ Mylar's package; adapters and tests stay in the build stage.
 | HTTP resume offsets | `patch_ddl_resume.py` | `test_ddl_resume.py` |
 | Requeued download state | `patch_ddl_requeue.py` | `test_ddl_requeue.py` |
 | Authenticated publication registration and advisory protocol | `patch_publication_guard.py` | `publication_api.py`, `publication_guard.py`, `test_publication_api.py`; follows writer, workflow and naming helper installation |
-| Native payload admission and retained postprocessing review | `patch_publication_processing.py` (invoked by `patch_publication_guard.py`) | `publication_native.py`, `processing_guard.py`, `pp_monitor.py`, `test_publication_native.py`; checked actual native processing and acknowledgement branches |
+| Native payload admission and durable import acknowledgement | `patch_publication_processing.py` (invoked by `patch_publication_guard.py`), `patch_postprocessing.py` | `publication_native.py`, `processing_guard.py`, `ordinary_import_history.py`, `ordinary_import_continuity.py`, `pp_monitor.py`; checked actual native processing, one-use delivery attempts, post-catalog acknowledgement and owned terminal continuity |
 | Retained archive diagnostics and pure preservation proof | `patch_publication_guard.py` | `publication_archive_layout.py`, `publication_archive_derivative.py`, `publication_archive_repair.py`, `publication_archive_diagnostics.py`; pure preservation, stable-source and owning observer tests; ordinary inventory refusal remains review |
-| Same-payload archive repair and review dispatch | `patch_publication_guard.py` | `publication_archive_reader.py`, `publication_archive_adoption.py`, `publication_archive_dispatch.py`, `publication_archive_verifier.py`, `publication_archive_rollback.py`, `publication_reader_lifecycle.py`, `publication_native_configured_scope.py`; portable adoption, lifecycle, configured-scope and owning API controls; genuine owning child and terminal acceptance remain required |
+| Same-payload archive repair and review dispatch | `patch_publication_guard.py` | `publication_archive_reader.py`, `publication_archive_adoption.py`, `publication_archive_dispatch.py`, `publication_archive_history.py`, `publication_archive_verifier.py`, `publication_archive_rollback.py`, `publication_reader_lifecycle.py`, `publication_native_configured_scope.py`; portable adoption, lifecycle, configured-scope and owning API controls; genuine owning child and terminal acceptance remain required |
+| Disabled retained-target acceptance | `patch_publication_guard.py` | `publication_retained_delivery.py`, `test_publication_retained_delivery.py`; original producer-process facts, no historical import acknowledgement; durable provenance and consumers remain unfinished |
+| Disabled retained-pack finalization | `patch_publication_guard.py` | `publication_retained_finalize.py`, `test_publication_retained_finalize.py`; same-process catalog acceptance and exact member update, no historical acknowledgement or cleanup; restart provenance remains unfinished |
 | Owned tagging publication and terminal evidence | `patch_publication_guard.py` | `publication_transaction.py`, `tagger_backend.py`, `tagger_native.py`, `tagger_service.py`, `tagger_pack.py`, `tagger_nfs.py`, `test_publication_tagging.py`; internal typed coordination, retained review and exact terminal completion |
 | Owned release rename and root metadata | `patch_publication_guard.py` | `publication_rename.py`, `release_naming.py`, `tagger_supplement.py`, `publication_transaction.py`; `test_publication_rename.py`, `test_publication_maintenance.py`; immutable source/owner/census checkpoints and retained interruption holds |
 | Existing-only startup admission and explicit fresh installation | `patch_publication_startup.py` | `native_writers.py`, `publication_fresh.py`, `test_publication_startup.py`; follows the authenticated publication API, refuses pending media intents and uncertain cleanup records |
@@ -31,6 +33,8 @@ Mylar's package; adapters and tests stay in the build stage.
 | Conclusive combined-pass preservation cleanup | `patch_combined_publication.py` | `combined_cleanup.py`, `test_combined_cleanup.py`; independently captured producer history, current archive/owner/census and final reader acceptance, at-most-once private-pair retirement and passive terminal acknowledgement |
 | Prospective canonical negative retirement and reader custody | `patch_publication_reader_cohort.py` | `publication_reader_cohort.json` pins the 25 canonical helpers; portable source controls and fresh installed origin/hash/type checks remain in the build stage; owning admission stays held while parent pin is absent |
 | Explicit reviewed nested-metadata derivative | `patch_publication_derivative.py` | `publication_lineage.py`, `publication_derivative.py`, `library_metadata.py`; lineage/adoption/producer/consumer controls, complete inherited owner claims and retained originals; ordinary discovery does not authorize member-name changes |
+| Disabled ordinary import continuity observation | `patch_ordinary_import_observation.py` | `ordinary_import_observation.py`; native copied originals and exact authenticated response closure; worker final post-cycle strict admission; process-local evidence only, durable pack/report and cleanup held |
+| Disabled same-daemon retained finalization endpoint | `patch_retained_delivery_api.py` | `publication_retained_api.py`, typed `publication_retained_finalize.py` response; finite self-admitted hooks, original event registry required; no restart resurrection or import/cleanup/index grant |
 | Authenticated health/recovery API | `patch_diagnostics_api.py` | `worker_health.py`, `failed_downloads.py`, `cooldown_health.py`; `test_health.py`, `test_failed_downloads.py`, `test_cooldown_health.py` |
 | Transfer lifecycle and queue recovery | `patch_queue_control.py` | `queue_control.py`, `verified_transfer.py`; corresponding `test_*.py` |
 | Mirror failover and cooldown discovery | `patch_ddl_failover.py` | `ddl_failover.py`, `test_ddl_failover.py`, `test_ddl_failover_native.py`; follows discovery and queue adapters |
@@ -123,6 +127,25 @@ crashes, conflicts, RPC ambiguity, native handoff and the pinned CLI. It can run
 an explicitly provided disposable media fixture root. Native journal selection,
 startup recovery and writer/scanner admission are integrated. Live canary, startup
 recovery and old-image rollback acceptance passed before opt-in activation.
+
+`ordinary_import_history.py` records one-use delivery attempts in the private
+`ordinary-import-v1.sqlite`, separately from immutable workflow controls. Only
+the actual post-catalog importer hook emits completion; deferred source cleanup
+requires it. Passive queue, guided and pack consumers join the original token,
+owner, payload and current destination. `ordinary_import_ack.py` supplies the
+normalizer's read-only counterpart. Existing archive presence, queue acceptance
+and archive-repair reports do not create an ordinary import acknowledgement.
+
+`publication_retained_delivery.py` is installed but disabled. It can create a fresh, bounded acceptance of a preserved existing target after an actual catalog event; it never creates a historical ordinary import acknowledgement. Current evidence is bound to the producing process. The source adds disabled primary-key POST `retainedDeliveryFinalize` and `retainedDeliveryStatus` hooks, with strict ordinary-purpose admission and typed response closure after serialization and writer release. Restart provenance, worker receipt consumption and matching installed semantic acceptance remain unfinished. It grants no placement, cleanup, Wanted-state or reader-index rights.
+
+`ordinary_import_continuity.py`, installed by `patch_postprocessing.py`, retains
+the original acknowledgement through an owned rename or preserved metadata
+publication. Its separate private `ordinary-import-continuity-v1` journal records
+the original pending receipt and actual terminal evidence without changing the
+original completion row. Prepare the journal before the accepted operation backup
+and include it with `ordinary-import-v1.sqlite` in backup and restore verification.
+Missing or changed evidence remains review; a historical file without an original
+import acknowledgement cannot gain one from rename or metadata history.
 
 ## Library metadata maintenance
 
@@ -337,6 +360,8 @@ retry state keeps its separate JSON Store and existing attempt/cooldown records.
 
 `patch_combined_publication.py` installs the primary-key POST `combinedPublication` route after publication authority. `combined_publication.py` owns private preparation and the finite rename → unchanged-hash reader restoration → preserved root metadata sequence. `publication_transaction.closed_supplement` validates closed metadata lineage without creating or replaying a tagging transaction. Private originals remain retained; final cleanup requires separate acceptance.
 
+The same route accepts a read-only `preview` action with exact `naming` and `policy` arguments. `combined_publication.preview` derives additions through `tagger_enrichment.supplements` under fresh native source, owner and complete census proof without creating a journal or capability. Reviewed preparation supplies both that immutable preview and `approved_additions`; native equality checks precede copies and preparation, and actual additions are checked again before tagging. Empty canonical previews create no publication. `combined_preview=1` requires the installed preview and route; the image gate checks module parity and the callable. Legacy explicit combined manifests retain their existing contract.
+
 `patch_publication_conversion.py` installs primary-key `commitConvertedArchive` and passive `convertedArchiveStatus`. `publication_conversion.py` owns exact live conversion admission, unchanged member/page inventories, private original retention, exclusive target publication, conditional catalog relocation and durable terminal acknowledgement. Its controls use actual archive verification and current native ownership. PDF and member-name derivatives remain held. Both routes are installed and tested by the image gate before workflow capabilities are advertised.
 
 Archive diagnostics run only after ordinary inventory refuses the same source.
@@ -423,7 +448,7 @@ and its fresh proof producers are independently accepted.
 
 The host-only recovery tree also contains the continuous lifecycle parent,
 fresh native process/evidence producer and schema1 phase-custody composer.
-The private-copy gate runs 493 recovery checks in isolated suite processes,
+The private-copy gate runs 539 recovery checks in isolated suite processes,
 including explicit predecessor fixtures and the current provider command
 contract. Original reader pair signatures are carried unchanged; the actual
 child lifecycle validates its own kernel facts. No new pair protocol or
@@ -436,3 +461,15 @@ report references through fresh observation and terminal custody. Its exclusive
 private outputs retain their original inode and mode through final checks. Both
 forward and rollback layouts remain factual observations; owning runtime proof
 and publication acceptance are separate gates.
+
+`publication_archive_history.py` retains bounded factual preparation, execution
+and independent verification receipts in `Controller.root/archive-history-v1`.
+The explicit repair-request preflight initializes this private journal under
+the native Writer before queue admission; include it in the subsequent consistent
+backup and protected custody capture. Passive status requires existing history
+and preserves the original records and namespace through its final raw closure.
+These facts grant no ordinary import, publication, indexing, replay or resume
+permission. Original child namespace differences remain a separate acceptance
+gap; copying or restamping receipts does not resolve it.
+
+`publication_retained_finalize.py` remains disabled. A live retained-target acceptance can finalize one exact pack member and a distinct backend record in the same process. Saved records cannot restore the original producer witness after a restart or unknown commit. This state grants no ordinary import acknowledgement, source cleanup, or reader-index acceptance; authenticated activation and downstream acceptance remain unfinished.

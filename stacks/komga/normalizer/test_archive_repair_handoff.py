@@ -159,4 +159,58 @@ class Controls(unittest.TestCase):
  def test_no_queued_jobs_dispatch_does_not_read_remote(self):
   with patch.object(m,'api') as api:self.assertEqual(m.dispatch(self.worker),0)
   api.assert_not_called();self.assertFalse((self.state/'archive-repair-requests').exists())
+
+ def test_terminal_fact_separate_from_original_queue_ack(self):
+  self.enqueue()
+  with patch.object(m,'api',side_effect=self.response):m.dispatch(self.worker)
+  path=m.journal(self.worker);original=(path/(self.key+'.ack.json')).read_bytes()
+  def terminal(*args,**kwargs):
+   value=self.response(*args,**kwargs);value['outcome']='terminal-observed';return value
+  with patch.object(m,'api',side_effect=terminal):answer=m.status(self.worker,self.owner,self.key)
+  self.assertEqual(answer['outcome'],'terminal-observed');self.assertEqual((path/(self.key+'.ack.json')).read_bytes(),original)
+  self.assertTrue((path/(self.key+'.terminal.json')).is_file());self.assertFalse(answer['publication_acceptance'])
+  self.assertEqual(self.calls[-1]['action'],'archive-repair-adoption-status')
+  self.assertEqual(self.source.read_bytes(),b'original')
+ def test_lost_queue_response_terminal_status_never_fabricates_queue_ack(self):
+  self.enqueue()
+  with patch.object(m,'api',side_effect=TimeoutError):self.assertEqual(m.dispatch(self.worker),0)
+  def terminal(*args,**kwargs):
+   value=self.response(*args,**kwargs);value['outcome']='rollback-observed';return value
+  with patch.object(m,'api',side_effect=terminal):m.status(self.worker,self.owner,self.key)
+  path=m.journal(self.worker)
+  self.assertFalse((path/(self.key+'.ack.json')).exists());self.assertTrue((path/(self.key+'.attempt.json')).exists());self.assertTrue((path/(self.key+'.terminal.json')).exists())
+ def test_terminal_unknown_or_rights_true_refused(self):
+  self.enqueue()
+  with patch.object(m,'api',side_effect=self.response):m.dispatch(self.worker)
+  for outcome in ('complete','imported','observed-forward'):
+   def unsupported(*args,**kwargs):
+    value=self.response(*args,**kwargs);value['outcome']=outcome;return value
+   with patch.object(m,'api',side_effect=unsupported):
+    with self.assertRaises(m.Unavailable):m.status(self.worker,self.owner,self.key)
+
+ def test_terminal_write_fsync_mode_mutation_refused_and_attempt_retained(self):
+  self.enqueue()
+  with patch.object(m,'api',side_effect=self.response):m.dispatch(self.worker)
+  real=os.fsync;fired=[]
+  def late(fd):
+   real(fd)
+   if os.fstat(fd).st_mode & 0o170000==0o100000:os.fchmod(fd,0o640);fired.append(True)
+  def terminal(*args,**kwargs):
+   value=self.response(*args,**kwargs);value['outcome']='terminal-observed';return value
+  with patch.object(m,'api',side_effect=terminal),patch.object(m.os,'fsync',late):
+   with self.assertRaises(m.Unavailable):m.status(self.worker,self.owner,self.key)
+  self.assertTrue(fired)
+  path=self.state/'archive-repair-requests';self.assertTrue((path/(self.key+'.attempt.json')).exists());self.assertTrue((path/(self.key+'.ack.json')).exists())
+
+ def test_queue_ack_created_fd_intended_metadata_never_rebased(self):
+  self.enqueue()
+  with patch.object(m,'api',side_effect=TimeoutError):self.assertEqual(m.dispatch(self.worker),0)
+  real=os.fsync;fired=[]
+  def late(fd):
+   real(fd)
+   if os.readlink('/proc/self/fd/'+str(fd)).endswith('.ack.json'):
+    os.fchmod(fd,0o640);fired.append(True)
+  with patch.object(m,'api',side_effect=self.response),patch.object(m.os,'fsync',late):
+   with self.assertRaises(m.Unavailable):m.status(self.worker,self.owner,self.key)
+  self.assertTrue(fired);self.assertTrue((self.state/'archive-repair-requests'/(self.key+'.attempt.json')).exists())
 if __name__=='__main__':unittest.main()

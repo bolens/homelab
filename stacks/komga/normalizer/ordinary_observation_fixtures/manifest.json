@@ -1,0 +1,12 @@
+{
+  "api.py": "9c4f2758ea781eee78789b8c1c88a54a9f7692b8ca83ea5859db9fc0ad2fa52a",
+  "media_writer.py": "6187fe15991d7047088ebce319f597278db6d3c62cd25535d1b6e9e1f2fc7b45",
+  "native_writers.py": "16a90e8fa1ea0375083caddb548e0c2fa2fb51fa4d7e63f770cdedf2e6d0c388",
+  "ordinary_import_continuity.py": "259986b7a6279fd8e9ae966e7643eca4c694de4e34d142f21b205908bcc6a2bc",
+  "ordinary_import_history.py": "0d4af8b01cf5d4e32c8471226a6075751fdd41f7d708df066e5914be1978a0e5",
+  "ordinary_import_observation.py": "c2e8da946e2677b1ebf940342077ea6bbf64b0210bbbddca77e92f9dce55bea3",
+  "publication_guard.py": "b840762bc6b0e3743a7c37755a0e3ab3eaac25f4b4827b000fd5fddbe0dd2bd9",
+  "publication_native.py": "6a07fe296270a4021db67eb384221683af847a981d13c5ea5a1eaa8b3e7fa69e",
+  "publication_rename.py": "4e1e16228f8a246472839e43abcc183c13b9fbff7a70e827c6b809486697e9af",
+  "publication_transaction.py": "683bec2256d565af2f39af7c750ecfb5bd5bf1c021a8ee51c3d87934c2dcfb5d"
+}

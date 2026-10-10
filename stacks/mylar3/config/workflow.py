@@ -489,12 +489,15 @@ def _tick(queue):
                     emit('library','Confirmed in library',issueid=r['IssueID'],comicid=r['ComicID'],name=r['ComicName'])
         if seen is None or set(seen)!=current:store().set('meta','library_seen',sorted(current))
         for held in store().active('handoff',HELD|{'source-ready'}):
+            # Existing archive presence cannot identify this accepted downloader
+            # generation. Until its exact ordinary acknowledgement is linked,
+            # preserve the handoff and original DDL instead of clearing either.
             if held['phase'] in ('accepted','source-ready') and held['issueid'] in current:
-                db.DBConnection().upsert('ddl_info',{'status':'Completed'},{'id':held['ddl_id']})
-                set_handoff(held,'completed','Issue confirmed in library; original DDL retired')
+                continue
         for held in store().active('dispatch',DISPATCH_HELD):
             if held['issueid'] in current:
-                store().set('dispatch',held['issueid'],dict(held,phase='completed'))
+                # A dispatch response proves queue acceptance, not ordinary import.
+                continue
         if not intake()['paused']:
             for deferred in store().active('deferred',{'waiting'},50):
                 row=reservation(deferred['issueid'])
@@ -729,6 +732,8 @@ def force_process(function):
                     database.execute('INSERT INTO records VALUES (?,?,?,?)',
                         ('worker_import_attempt',proof['token'],json.dumps(proof),time.time()))
                 if command:
+                    from mylar import ordinary_import_history
+                    ordinary_import_history.queue_guided(proof,binding)
                     from mylar import queue_control
                     with issue_lock(binding['issueid']),queue_control._LOCK,LOCK:
                         current=store().get('command',command)
@@ -749,6 +754,15 @@ def state_health():
     try:
         store().get('policy','current')
         result = {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
+        try:
+            from mylar import ordinary_import_observation, api
+        except ImportError:
+            pass
+        else:
+            if (ordinary_import_observation.ENABLED is True
+                    and callable(getattr(ordinary_import_observation, 'observe', None))
+                    and callable(getattr(api.Api, '_ordinaryImportObservation', None))):
+                result['ordinary_import_observation'] = 1
         try:
             from mylar import publication_archive_diagnostics as diagnostics
             from mylar import publication_archive_repair as archive_repair
@@ -778,6 +792,8 @@ def state_health():
                 and callable(getattr(combined_publication, 'execute', None))
                 and callable(closed_supplement)):
             result['combined_publication'] = 1
+            if callable(getattr(combined_publication, 'preview', None)):
+                result['combined_preview'] = 1
         if (callable(getattr(api.Api, '_commitConvertedArchive', None))
                 and callable(getattr(api.Api, '_convertedArchiveStatus', None))
                 and callable(getattr(publication_conversion, 'commit', None))

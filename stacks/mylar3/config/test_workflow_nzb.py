@@ -76,7 +76,7 @@ class NativeNZBTest(unittest.TestCase):
 
     def test_native_hooks_are_checked_and_idempotent(self):
         root = Path(os.environ.get('MYLAR_WORKFLOW_SOURCE','/app/mylar3/mylar'))
-        if not root.exists(): root = Path('/tmp/mylar-workflow-native/mylar')
+        if not root.exists(): root = Path(__file__).parent/'test_fixtures/native'
         if not root.exists(): self.skipTest('Native fixture unavailable')
         for name, patcher in [('queues/nzb.py', patch_workflow.nzb_queue), ('process.py', patch_workflow.processing)]:
             source = patcher((root/name).read_text())
@@ -89,7 +89,7 @@ class NativeNZBTest(unittest.TestCase):
 
     def test_actual_native_cdh_moves_poll_to_pending_processing(self):
         root = Path(os.environ.get('MYLAR_WORKFLOW_SOURCE','/app/mylar3/mylar'))
-        if not root.exists(): root = Path('/tmp/mylar-workflow-native/mylar')
+        if not root.exists(): root = Path(__file__).parent/'test_fixtures/native'
         if not root.exists(): self.skipTest('Native fixture unavailable')
         source = patch_workflow.nzb_queue((root/'queues/nzb.py').read_text())
         fn = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name=='cdh_monitor')

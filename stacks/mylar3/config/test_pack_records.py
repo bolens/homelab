@@ -11,6 +11,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 from workflow_store import Store
+import publication_guard
+import publication_native
 
 
 def load(name):
@@ -30,8 +32,37 @@ class RecordsTest(unittest.TestCase):
         self.modules=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.workflow_store':sys.modules['workflow_store']})
         self.modules.start();self.addCleanup(self.modules.stop)
         self.module=load('pack_intake')
+        self.mylar.DATA_DIR=str(self.root)
+        self.mylar.ordinary_import_history=SimpleNamespace(confirmed_token=lambda *_:True)
+        self.mylar.publication_guard=publication_guard
+        self.mylar.publication_native=SimpleNamespace(Review=publication_native.Review,owner=lambda root,issueid,comicid:{'table':'issues','issueid':issueid,'parentcomicid':comicid,'releasecomicid':comicid})
         self.key='a'*64
         self.store.set('pack',self.key,{'id':self.key,'ddl_id':'1','source':'/private/download','name':'Test pack','phase':'discovered','members':[],'inventory_complete':False})
+
+    def test_review_sidecar_never_counts_as_completed_pack(self):
+        payload={'id':self.key,'inventory_complete':True,'members':[
+            {'id':'b'*64,'name':'notes.txt','kind':'sidecar','phase':'review','reason':'Retained for review'}]}
+        self.module.report(json.dumps(payload))
+        row=self.module.snapshot()[0]
+        self.assertFalse(row['complete']);self.assertEqual(row['confirmed'],0)
+        self.assertFalse(self.module.evidence(['1'])['1'][1])
+        self.assertEqual(self.store.get('pack',self.key)['phase'],'review')
+
+    def test_archive_present_without_ordinary_ack_cannot_confirm_pack(self):
+        target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
+        self.mylar.ordinary_import_history.confirmed_token=lambda *_:False
+        with self.assertRaisesRegex(ValueError,'ordinary import acknowledgement'):
+            self.module.report(self.report(target))
+        self.assertEqual(self.store.get('pack',self.key)['phase'],'discovered')
+        self.assertTrue(target.exists())
+
+    def test_lost_or_changed_ack_retains_completed_pack_generation(self):
+        target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
+        self.module.report(self.report(target))
+        self.assertTrue(self.module.evidence(['1'])['1'][1])
+        self.mylar.ordinary_import_history.confirmed_token=lambda *_:False
+        self.assertFalse(self.module.evidence(['1'])['1'][1])
+        self.assertTrue(target.exists())
 
     def test_authoritative_evidence_outlives_bounded_activity_history(self):
         target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
@@ -63,7 +94,7 @@ class RecordsTest(unittest.TestCase):
         new=self.root/'Original.recovered-2.__1115810__.zip';new.write_bytes(b'new content')
         old_key=hashlib.sha256(('378582\0'+str(old)).encode()).hexdigest()
         old_record={'id':old_key,'ddl_id':'378582','source':str(old),'name':'Old pack',
-                    'phase':'confirmed','members':[],'inventory_complete':True,'cleanup_complete':True}
+                    'phase':'confirmed','ordinary_import_token':'f'*64,'members':[],'inventory_complete':True,'cleanup_complete':True}
         self.store.set('pack',old_key,old_record)
         db=Mock();db.select.return_value=[{'id':'378582','pack':1,'filename':new.name,'series':'New pack'}]
         self.mylar.db=SimpleNamespace(DBConnection=lambda:db)
@@ -79,7 +110,7 @@ class RecordsTest(unittest.TestCase):
     def test_evidence_requires_every_capture_regardless_of_update_order(self):
         raw=b'pack credit'
         complete={'id':self.key,'ddl_id':'1','source':'/private/old','name':'Old',
-                  'phase':'confirmed','inventory_complete':True,'members':[
+                  'phase':'confirmed','ordinary_import_token':'f'*64,'inventory_complete':True,'members':[
                       {'id':'b'*64,'name':'credit.txt','kind':'sidecar','phase':'preserved',
                        'sidecar':base64.b64encode(raw).decode(),'sha256':hashlib.sha256(raw).hexdigest()}]}
         incomplete=dict(complete,id='c'*64,source='/private/new',phase='review',
@@ -163,7 +194,7 @@ class RecordsTest(unittest.TestCase):
         self.assertEqual(self.module.source_state(source,content=True),expected)
 
     def report(self,destination):
-        member={'id':'b'*64,'name':'Test.cbz','kind':'issue','phase':'confirmed',
+        member={'id':'b'*64,'name':'Test.cbz','kind':'issue','phase':'confirmed','ordinary_import_token':'f'*64,
                 'destination':str(destination),'destination_sha256':hashlib.sha256(destination.read_bytes()).hexdigest()}
         return json.dumps({'id':self.key,'inventory_complete':True,'members':[member]})
 
@@ -243,7 +274,7 @@ class RecordsTest(unittest.TestCase):
         self.mylar.db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q:[]))
         for n in range(201):
             self.store.set('pack',str(n),{'id':str(n),'ddl_id':str(n),'source':'/private/d'+str(n),
-                'name':'old','phase':'confirmed','cleanup_complete':True,'inventory_complete':True,'members':[]})
+                'name':'old','phase':'confirmed','ordinary_import_token':'f'*64,'cleanup_complete':True,'inventory_complete':True,'members':[]})
         self.assertIn(self.key,[r['id'] for r in self.module.work()['packs']])
         for n in range(101):
             self.store.set('pack','pending'+str(n),{'id':'pending'+str(n),'ddl_id':str(n),'source':'/private/p'+str(n),

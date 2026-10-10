@@ -7,6 +7,7 @@ import re
 import shutil
 import stat
 import uuid
+import zipfile
 
 
 def modules():
@@ -23,14 +24,17 @@ def held(function):
         _, _, guard, native, *_ = modules()
         try:
             return function(*args, **kwargs)
-        except (guard.Unavailable, OSError, ValueError, TypeError, KeyError):
+        except (guard.Unavailable, OSError, ValueError, TypeError, KeyError, zipfile.BadZipFile):
             raise native.Review('combined-publication-evidence-unavailable') from None
     return run
 
 
 def immutable(job):
-    return {key: job[key] for key in ('version', 'kind', 'token', 'request', 'policy',
+    value = {key: job[key] for key in ('version', 'kind', 'token', 'request', 'policy',
             'manifest', 'owner', 'payload', 'census', 'observed', 'writer', 'pair', 'metadata_token')}
+    if 'preview' in job:
+        value['preview']=job['preview'];value['approved_additions']=job['approved_additions']
+    return value
 
 
 def root(writer):
@@ -114,13 +118,123 @@ def current(writer, job, path, checksum):
     return proof, selected
 
 
+def preview_arguments(value):
+    from mylar.tagger_enrichment import validate
+    if not isinstance(value,dict) or set(value)!={'naming','policy'}:
+        raise ValueError('Exact native supplement preview arguments required')
+    request=json.loads(json.dumps(value['naming']))
+    policy=json.loads(json.dumps(validate(value['policy'])))
+    if (not isinstance(request,dict) or set(request)!={'version','source','target','sha256','issueid','comicid'}
+            or type(request['version']) is not int or request['version']!=1
+            or not isinstance(request['source'],str) or not Path(request['source']).is_absolute()
+            or '..' in Path(request['source']).parts or not isinstance(request['target'],str)
+            or Path(request['target']).name!=request['target'] or not request['target'].endswith('.cbz')
+            or not isinstance(request['sha256'],str) or not re.fullmatch('[0-9a-f]{64}',request['sha256'])
+            or any(not isinstance(request[k],str) or not re.fullmatch('[1-9][0-9]{0,15}',request[k])
+                   for k in ('issueid','comicid'))):
+        raise ValueError('Exact native supplement preview source required')
+    return request,policy
+
+
+def preview_observation(writer,request,policy):
+    """Actual native derivation and current authority; no journals or capabilities."""
+    mylar,writers,guard,native,naming,_,supplement,_=modules()
+    from mylar.tagger_enrichment import supplements
+    paths=[Path(mylar.DATA_DIR)/name for name in ('mylar.db','workflow.sqlite')]
+    paths.append(writer.root/'publication-v1.json')
+    source=Path(request['source'])
+    originals={}
+    for path in (*paths,source):
+        info=path.lstat()
+        originals[str(path)]=(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,
+            info.st_ctime_ns,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)
+    ancestors={parent for path in (*paths,source,writer.lock) for parent in path.parents}
+    nodes={}
+    for parent in ancestors:
+        info=parent.lstat()
+        nodes[str(parent)]=(info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid)
+    lock_info=writer.lock.lstat()
+    lock_stamp=(lock_info.st_dev,lock_info.st_ino,lock_info.st_size,lock_info.st_mtime_ns,
+                lock_info.st_ctime_ns,lock_info.st_mode,lock_info.st_uid,lock_info.st_gid,lock_info.st_nlink)
+    writers.admission(writer)
+    identity=guard.writer_identity(writer)
+    stamps={str(path):guard.file_hash(path) for path in paths}
+    if any(tuple(stamps[str(path)][0])!=originals[str(path)] for path in paths):
+        raise native.Review('combined-preview-initial-control-changed')
+    database,_=naming.services();proposal=naming.proposal(database,source)
+    if any(proposal[key]!=request[key] for key in ('version','source','sha256','issueid','comicid')):
+        raise native.Review('combined-preview-proposal-stale')
+    proof=native.require(source,issueid=request['issueid'],comicid=request['comicid'])
+    census=guard.media_snapshot(paths[1],paths[2])[0]
+    observed=guard.observe_owners(paths[0],writer,[proof['owner']],[mylar.CONFIG.DESTINATION_DIR])['observed']
+    additions=supplements(supplement.metadata(source),policy)
+    fresh=native.require(source,issueid=request['issueid'],comicid=request['comicid'])
+    if (not guard.same_json(fresh,proof) or observed[0]['catalog']['path']!=str(source)
+            or observed[0]['source_sha256']!=request['sha256']
+            or proof['inventory']['source_sha256']!=request['sha256']
+            or tuple(proof['inventory']['source_signature'])!=originals[str(source)]):
+        raise native.Review('combined-preview-source-changed')
+    writers.admission(writer)
+    if (guard.writer_identity(writer)!=identity
+            or any(guard.file_hash(path)!=stamps[str(path)] for path in paths)
+            or guard.file_hash(source)!=(list(originals[str(source)]),request['sha256'])):
+        raise native.Review('combined-preview-authority-changed')
+    guard.ordinary_root(writer.root)
+    if (writer.fenced() or writer.fenced(tagger=True) or writer.fenced(release=True)
+            or any(os.path.lexists(writer.root/name) for name in
+                   ('tagger-publication-v1.json','nested-derivative-v1.json','tagger-recovery-v1.pending'))):
+        raise native.Review('combined-preview-pending-publication')
+    if guard.writer_identity(writer)!=identity:
+        raise native.Review('combined-preview-writer-changed')
+    value=dict(version=1,protocol='combined-preview-v1',request=request,policy=policy,
+        owner=proof['owner'],census=census,payload=proof['inventory']['payload'],observed=observed,
+        writer=identity,source_signature=list(originals[str(source)]),additions=additions)
+    value['binding']=guard.canonical_digest(value)
+    # Retain helper observations, but never let their replaceable callbacks be the
+    # last authority check. Response construction also precedes the raw closure.
+    if (any(tuple(guard.signature(path.lstat()))!=originals[str(path)] for path in paths)
+            or tuple(guard.signature(source.lstat()))!=originals[str(source)]):
+        raise native.Review('combined-preview-final-evidence-changed')
+    absent=[Path(str(path)+suffix) for path in paths[:2] for suffix in ('-journal','-wal','-shm')]
+    absent.extend(writer.root/name for name in ('normalizer-v1.pending','tagger-v2.pending',
+        'release-v1.pending','tagger-publication-v1.json','nested-derivative-v1.json',
+        'tagger-recovery-v1.pending'))
+    for path in absent:
+        try:path.lstat()
+        except FileNotFoundError:pass
+        else:raise native.Review('combined-preview-final-pending-changed')
+    for parent in ancestors:
+        info=parent.lstat()
+        if (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid)!=nodes[str(parent)]:
+            raise native.Review('combined-preview-final-ancestor-changed')
+    info=writer.lock.lstat()
+    if (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
+            info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=lock_stamp:
+        raise native.Review('combined-preview-final-writer-changed')
+    for path in (*paths,source):
+        expected=originals[str(path)]
+        info=path.lstat()
+        if (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
+                info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=expected:
+            raise native.Review('combined-preview-final-evidence-changed')
+    return value
+
+
+@held
+def preview(value):
+    request,policy=preview_arguments(value)
+    with modules()[1].operation() as writer:
+        return preview_observation(writer,request,policy)
+
+
 @held
 def prepare(value):
     mylar, writers, guard, native, naming, transaction, _, _ = modules()
-    if (not isinstance(value, dict) or set(value) != {'naming', 'policy', 'manifest'}
+    if (not isinstance(value, dict) or set(value) not in ({'naming', 'policy', 'manifest'},{'naming', 'policy', 'manifest','preview','approved_additions'})
             or not isinstance(value['manifest'], str)
             or not re.fullmatch('[0-9a-f]{64}', value['manifest'])):
         raise ValueError('Reviewed combined manifest binding required')
+    value=json.loads(json.dumps(value))
     from mylar.tagger_enrichment import validate
     request = json.loads(json.dumps(value['naming']))
     policy = json.loads(json.dumps(validate(value['policy'])))
@@ -131,9 +245,23 @@ def prepare(value):
         raise ValueError('Exact ordinary naming request required')
     token = guard.canonical_digest(dict(request=request, policy=policy, manifest=value['manifest']))
     with writers.operation() as writer:
+        folder = writer.root/'combined-publication-v1'/token
+        supplied=value.get('preview')
+        if 'preview' in value and (not isinstance(supplied,dict) or not isinstance(value['approved_additions'],dict)):
+            raise native.Review('combined-preview-required')
+        if not folder.exists() and supplied is not None:
+            actual=preview_observation(writer,request,policy)
+            if (not guard.same_json(actual,supplied)
+                    or not guard.same_json(actual['additions'],value['approved_additions'])):
+                raise native.Review('combined-approved-preview-changed')
+            if Path(request['source']).name==request['target'] and not actual['additions']:
+                raise native.Review('combined-canonical-no-additions')
         folder = root(writer)/token
         if folder.exists():
             _, job = read(writer, token)
+            if (not guard.same_json(job.get('preview'),supplied)
+                    or not guard.same_json(job.get('approved_additions'),value.get('approved_additions'))):
+                raise native.Review('combined-existing-preview-changed')
             evidence=guard.private_evidence(folder/'receipt.json')
             if job['phase']=='complete':
                 verified_complete(writer,job)
@@ -158,6 +286,13 @@ def prepare(value):
                                        [mylar.CONFIG.DESTINATION_DIR])['observed']
         if observed[0]['catalog']['path'] != str(source):
             raise native.Review('combined-original-not-current')
+        if supplied is not None and (not guard.same_json(proof['owner'],supplied['owner'])
+                or not guard.same_json(census,supplied['census'])
+                or not guard.same_json(observed,supplied['observed'])
+                or proof['inventory']['payload']!=supplied['payload']
+                or not guard.same_json(proof['inventory']['source_signature'],supplied['source_signature'])
+                or guard.writer_identity(writer)!=supplied['writer']):
+            raise native.Review('combined-preview-changed-before-copies')
         folder.mkdir(mode=0o700)
         from mylar.media_writer import sync
         sync(folder.parent)
@@ -179,6 +314,9 @@ def prepare(value):
                    policy=policy, manifest=value['manifest'], owner=proof['owner'],
                    payload=proof['inventory']['payload'], census=census, observed=observed,
                    writer=guard.writer_identity(writer), pair=pair, phase='prepared', metadata_token=uuid.uuid4().hex)
+        if supplied is not None:
+            job['preview']=json.loads(json.dumps(supplied))
+            job['approved_additions']=json.loads(json.dumps(value['approved_additions']))
         job['binding'] = guard.canonical_digest(immutable(job))
         fresh, selected = current(writer, job, source, request['sha256'])
         if (not guard.same_json(selected, observed)
@@ -300,6 +438,10 @@ def metadata(token, move):
             job['reader_move'] = reader_move(move, job)
             path = Path(job['rename']['destination'])
             current(writer, job, path, job['request']['sha256'])
+            if 'preview' in job:
+                from mylar.tagger_enrichment import supplements
+                if not guard.same_json(supplements(supplement.metadata(path),job['policy']),job['preview']['additions']):
+                    raise native.Review('combined-approved-additions-changed')
             job.update(phase='metadata-uncertain')
             save(folder, job)
             submitted=json.loads(json.dumps(job))
@@ -478,10 +620,12 @@ def execute(raw):
     except (guard.Unavailable, RecursionError, OverflowError):
         raise ValueError('Bounded unique combined protocol required') from None
     if (not isinstance(value, dict) or type(value.get('version')) is not int or value['version'] != 1
-            or value.get('action') not in ('prepare', 'rename', 'metadata', 'status', 'cleanup')
+            or value.get('action') not in ('prepare', 'preview', 'rename', 'metadata', 'status', 'cleanup')
             or set(value) != {'version', 'action', 'arguments'} or not isinstance(value['arguments'], dict)):
         raise ValueError('Exact combined protocol required')
     action, args = value['action'], value['arguments']
+    if action == 'preview':
+        return preview(args)
     if action == 'prepare':
         return prepare(args)
     if action == 'cleanup':

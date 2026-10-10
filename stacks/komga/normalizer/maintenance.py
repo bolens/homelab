@@ -107,6 +107,23 @@ class Maintenance:
             raise RuntimeError('Mylar maintenance API rejected the request')
         return result['data']
 
+    def mylar_observation(self, encoded_request):
+        """Exact bounded authenticated return bytes, never data reconstruction."""
+        from publication_guard import remote_unlocked
+        remote_unlocked(self.worker)
+        if type(encoded_request) is not bytes or len(encoded_request)>4*1024*1024:
+            raise ValueError('Bounded original observation request required')
+        settings=self.worker.config['mylar']
+        parser=configparser.ConfigParser()
+        parser.read(Path(settings.get('config_dir','/mylar'))/'config.ini')
+        key=next(parser.get(s,'api_key') for s in parser.sections() if parser.has_option(s,'api_key'))
+        raw=request(settings['url'],'/api',form={'apikey':key,'cmd':'ordinaryImportObservation',
+            'request':encoded_request.decode('utf-8')},text=True,limit=4*1024*1024)
+        if type(raw) is not str:raise ValueError('Original encoded API response required')
+        original=raw.encode('utf-8')
+        if len(original)>4*1024*1024:raise ValueError('Original API response exceeds bound')
+        return original
+
     def idle(self):
         value = native_work(self,'getHealth')
         queue = value['queues'].get('POST-PROCESS-QUEUE', {})

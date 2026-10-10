@@ -723,4 +723,228 @@ class NamingWorkerTest(unittest.TestCase):
         self.naming.api.assert_not_called()
 
 
+class CanonicalCombinedPlanTest(unittest.TestCase):
+    def setUp(self):
+        import zipfile
+        from media_writer import Writer
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name);self.source=self.root/'Old.001.(2020).cbz'
+        with zipfile.ZipFile(self.source,'w') as archive:
+            archive.writestr('page.jpg',b'unchanged page payload')
+            archive.writestr('ComicInfo.xml','<ComicInfo><Publisher>Example</Publisher></ComicInfo>')
+        self.sha=digest(self.source)
+        self.worker=SimpleNamespace(config={'mylar':{'config_dir':str(self.root)},'writer_state':str(self.root/'writer')},
+            state=self.root,roots=[self.root],reader=Mock())
+        Writer(self.root/'writer',create=True)
+        self.naming=Naming(self.worker)
+        self.proposal=dict(version=1,source=str(self.source),sha256=self.sha,issueid='1',comicid='2',
+            series='Old',number='1',year='2020',type='Print',volume=None,group=None)
+        self.naming.api=Mock(side_effect=self.protocol)
+        self.naming.catalog=Mock(return_value={'issues:1':dict(source=str(self.source),issueid='1',comicid='2')})
+        self.owner=dict(table='issues',issueid='1',parentcomicid='2',releasecomicid='2')
+        self.census=dict(epoch='epoch',revision=1,keys=[])
+        self.naming.publication=Mock(side_effect=lambda path,request:dict(source=dict(
+            authority=dict(owner=self.owner,census=self.census),
+            inventory=dict(payload='same-page-payload',source_sha256=digest(path)))))
+        @contextmanager
+        def authority():yield SimpleNamespace(mappings=[(self.root,self.root)])
+        self.naming.authority=authority
+        self.book=dict(id='book',url=str(self.source),deleted=False,fileHash=self.sha,
+            media={'status':'READY','pagesCount':1},libraryId='library',seriesId='series',readProgress={'page':1})
+        self.books=patch('naming_worker.all_books',return_value=[self.book]);self.books.start();self.addCleanup(self.books.stop)
+        self.hash=patch('naming_worker.reader_hash',side_effect=digest);self.hash.start();self.addCleanup(self.hash.stop)
+        self.preview=dict(version=1,policy={},reviews=[dict(source=str(self.source),source_sha256=self.sha,
+            status='verified',evidence='a'*64,additions={'SeriesGroup':'Publisher: Example'})])
+
+    def protocol(self,command,**values):
+        if command=='getHealth':return dict(combined_preview=1,combined_publication=1)
+        if command=='getReleaseNaming':return self.proposal
+        value=json.loads(values['request'])
+        self.assertEqual(value['action'],'preview')
+        import zipfile,xml.etree.ElementTree as ET
+        import publication_evidence as evidence
+        with zipfile.ZipFile(self.source) as archive:xml=ET.fromstring(archive.read('ComicInfo.xml'))
+        additions={} if xml.findtext('SeriesGroup') else {'SeriesGroup':'Publisher: '+xml.findtext('Publisher')}
+        request=dict(self.proposal,target=self.source.name)
+        request={key:request[key] for key in ('version','source','target','sha256','issueid','comicid')}
+        result=dict(version=1,protocol='combined-preview-v1',request=request,policy=value['arguments']['policy'],
+            owner=self.owner,census=self.census,payload='same-page-payload',observed=[],writer=[1,2,3,4],
+            source_signature=evidence.signature(self.source.lstat()),additions=additions)
+        result['binding']=evidence.canonical_digest(result)
+        return json.loads(json.dumps(result))
+
+    def make_correct(self):
+        import zipfile
+        with zipfile.ZipFile(self.source,'w') as archive:
+            archive.writestr('page.jpg',b'unchanged page payload')
+            archive.writestr('ComicInfo.xml','<ComicInfo><Publisher>Example</Publisher><SeriesGroup>Publisher: Example</SeriesGroup></ComicInfo>')
+        self.sha=digest(self.source);self.proposal['sha256']=self.sha;self.book['fileHash']=self.sha
+        self.preview['reviews'][0].update(source_sha256=self.sha,additions={})
+
+    def planned(self):return self.naming.plan(combined=self.preview)
+
+    def test_canonical_missing_metadata_retains_exact_combined_request_and_reader(self):
+        manifest=self.planned();entry=manifest['entries'][0]
+        self.assertEqual(manifest['kind'],'combined-root-v1');self.assertEqual(entry['phase'],'planned')
+        self.assertEqual(entry['request']['source'],str(self.source))
+        self.assertEqual(entry['request']['target'],self.source.name)
+        self.assertEqual(entry['reader']['hash'],self.sha)
+        self.assertEqual(entry['metadata_plan']['additions'],{'SeriesGroup':'Publisher: Example'})
+        from combined_handoff import Combined
+        joint=Combined(self.naming)
+        self.naming.api.side_effect=lambda command,**values: ({'combined_preview':1,'combined_publication':False}
+            if command=='getHealth' else self.protocol(command,**values))
+        result=self.naming.apply(manifest)
+        self.assertEqual(result[0]['phase'],'prepared')
+        self.assertEqual(joint.read(joint.root/result[0]['native_token'])['request']['target'],self.source.name)
+
+    def test_already_correct_canonical_preview_is_noop_and_ordinary_plan_unchanged(self):
+        self.make_correct()
+        self.assertEqual(self.planned()['entries'][0]['phase'],'unchanged')
+        self.assertEqual(self.naming.plan()['entries'][0]['phase'],'unchanged')
+        self.naming.api.reset_mock()
+        self.assertEqual(self.naming.apply(self.planned()),[])
+        self.assertEqual([c.args[0] for c in self.naming.api.call_args_list],['getHealth','getReleaseNaming','combinedPublication'])
+        self.assertFalse(list((self.root/'combined-release-v1').glob('*/receipt.json')))
+
+    def test_stale_preview_source_and_unverified_credits_are_not_planned(self):
+        self.preview['reviews'][0]['source_sha256']='0'*64
+        self.assertEqual(self.planned()['entries'][0]['phase'],'review')
+        self.preview['reviews'][0]['source_sha256']=self.sha
+        self.preview['reviews'][0]['status']='deferred'
+        with self.assertRaises(ValueError):self.planned()
+        self.preview['reviews']=[]
+        self.assertEqual(self.planned()['entries'][0]['phase'],'review')
+
+    def test_stale_reader_and_source_changed_during_reader_proof_are_held(self):
+        self.book['fileHash']='stale'
+        self.assertEqual(self.planned()['entries'][0]['phase'],'review')
+        self.book['fileHash']=self.sha
+        actual=self.naming.reader_proof
+        def changed(path,books):
+            result=actual(path,books);self.source.write_bytes(b'changed');return result
+        self.naming.reader_proof=changed
+        self.assertEqual(self.planned()['entries'][0]['phase'],'review')
+        self.assertFalse((self.root/'combined-release-v1').exists())
+
+    def test_apply_rechecks_review_policy_reader_and_original_before_private_receipt(self):
+        from combined_handoff import Combined
+        manifest=self.planned();joint=Combined(self.naming)
+        for edit in ('review','policy','reader','source'):
+            candidate=json.loads(json.dumps(manifest))
+            if edit=='review':candidate['entries'][0].pop('metadata_review')
+            if edit=='policy':candidate['policy']={'AgeRating':'Teen'}
+            if edit=='reader':candidate['entries'][0]['reader']['hash']='foreign'
+            if edit=='source':self.source.write_bytes(b'foreign source')
+            with self.subTest(edit=edit),self.assertRaises(ValueError):joint.apply(candidate,1)
+            self.assertFalse(list(joint.root.glob('*/receipt.json')))
+
+    def test_canonical_metadata_lost_response_uses_status_and_preserves_page_payload(self):
+        import zipfile
+        from combined_handoff import Combined
+        manifest=self.planned();joint=Combined(self.naming)
+        folder=joint.prepare(manifest['entries'][0],{},'b'*64);job=joint.read(folder)
+        native=dict(version=1,protocol='combined-root-v1',token=job['native_token'],binding='c'*64,
+            request=job['request'],owner=self.owner,census=self.census,payload='same-page-payload',
+            before=self.sha,after=self.sha,lineage='d'*64,phase='renamed')
+        job.update(phase='reader-move-pending',native=native);save(folder/'receipt.json',job)
+        calls=[]
+        def api(command,**values):
+            value=json.loads(values['request']);calls.append(value['action'])
+            if value['action']=='status':return dict(native)
+            self.assertEqual(value['action'],'metadata')
+            self.assertEqual(joint.read(folder)['phase'],'metadata-uncertain')
+            self.assertEqual(value['arguments']['reader_move']['sha256'],self.sha)
+            with zipfile.ZipFile(self.source) as archive:page=archive.read('page.jpg')
+            with zipfile.ZipFile(self.source,'w') as archive:
+                archive.writestr('page.jpg',page)
+                archive.writestr('ComicInfo.xml','<ComicInfo><Publisher>Example</Publisher><SeriesGroup>Publisher: Example</SeriesGroup></ComicInfo>')
+            native.update(phase='complete',after=digest(self.source),lineage='e'*64)
+            raise TimeoutError('response lost')
+        self.naming.api.side_effect=api
+        with patch.object(joint,'scan'),self.assertRaises(TimeoutError):joint.advance(folder)
+        self.assertEqual(joint.read(folder)['phase'],'metadata-uncertain')
+        with patch.object(joint,'scan'):self.assertEqual(joint.advance(folder)['phase'],'reader-final-pending')
+        self.book['fileHash']=digest(self.source)
+        self.assertEqual(joint.advance(folder)['phase'],'done')
+        self.assertEqual(calls.count('metadata'),1)
+        with zipfile.ZipFile(self.source) as archive:
+            self.assertEqual(archive.read('page.jpg'),b'unchanged page payload')
+            self.assertIn(b'<SeriesGroup>',archive.read('ComicInfo.xml'))
+        self.assertEqual(self.source.name,'Old.001.(2020).cbz')
+
+    def test_canonical_empty_additions_cannot_be_forced_into_publication(self):
+        from combined_handoff import Combined
+        manifest=self.planned();manifest['entries'][0]['metadata_plan']['additions']={}
+        joint=Combined(self.naming)
+        self.naming.api.reset_mock()
+        with self.assertRaises(ValueError):joint.apply(manifest,1)
+        self.naming.api.assert_not_called()
+        self.assertFalse(list(joint.root.glob('*/receipt.json')))
+
+    def test_canonical_uncertain_status_archive_drift_retains_receipt_without_replay(self):
+        from combined_handoff import Combined
+        manifest=self.planned();joint=Combined(self.naming)
+        folder=joint.prepare(manifest['entries'][0],{},'b'*64);job=joint.read(folder)
+        native=dict(version=1,protocol='combined-root-v1',token=job['native_token'],binding='c'*64,
+            request=job['request'],owner=self.owner,census=self.census,payload='same-page-payload',
+            before=self.sha,after=self.sha,lineage='d'*64,phase='complete')
+        job.update(phase='metadata-uncertain',native=dict(native,phase='renamed'))
+        save(folder/'receipt.json',job);before=(folder/'receipt.json').read_bytes()
+        self.naming.api.side_effect=None;self.naming.api.return_value=native
+        self.source.write_bytes(b'foreign publication')
+        with self.assertRaises(ValueError):joint.advance(folder)
+        self.assertEqual((folder/'receipt.json').read_bytes(),before)
+        self.assertEqual(json.loads(self.naming.api.call_args.kwargs['request'])['action'],'status')
+        self.assertEqual(self.naming.api.call_count,5)  # Health/proposal, two previews, then passive status.
+
+    def test_unsupported_or_mismatched_additions_never_plan_or_prepare(self):
+        for additions in ({'UnsupportedField':'not native derived'},{'SeriesGroup':'Publisher: Wrong'}):
+            self.preview['reviews'][0]['additions']=additions
+            with self.subTest(additions=additions):
+                self.assertEqual(self.planned()['entries'][0]['phase'],'review')
+                self.assertFalse((self.root/'combined-release-v1').exists())
+        self.make_correct();self.preview['reviews'][0]['additions']={'AgeRating':'Teen'}
+        self.assertEqual(self.planned()['entries'][0]['phase'],'review')
+
+    def test_native_preview_census_drift_blocks_worker_private_preparation(self):
+        from combined_handoff import Combined
+        manifest=self.planned();self.census['revision']=2
+        joint=Combined(self.naming)
+        with self.assertRaises(ValueError):joint.apply(manifest,1)
+        self.assertFalse(list(joint.root.glob('*/receipt.json')))
+
+    def test_duplicate_preview_and_boolean_version_are_refused(self):
+        self.preview['reviews'].append(dict(self.preview['reviews'][0]))
+        with self.assertRaises(ValueError):self.planned()
+        self.preview['reviews'].pop();self.preview['version']=True
+        with self.assertRaises(ValueError):self.planned()
+
+    def test_preview_loader_refuses_duplicate_nonfinite_deep_and_oversized_json(self):
+        from combined_handoff import load_reviewed_preview
+        path=self.root/'preview.json'
+        for raw in (b'{"version":1,"version":1}',b'{"version":NaN}',b'{"version":1.0}',b'{"version":'+b'9'*1000+b'}',b'['*2000+b']'*2000,b' '* (16*1024*1024+1)):
+            with self.subTest(size=len(raw)):
+                path.write_bytes(raw)
+                with self.assertRaises(ValueError):load_reviewed_preview(path)
+        save(path,self.preview)
+        self.assertEqual(load_reviewed_preview(path),self.preview)
+
+    def test_reviewed_preview_cli_is_explicit_and_keeps_plain_planning_compatible(self):
+        import normalize
+        preview=self.root/'preview.json';save(preview,self.preview)
+        config=self.root/'config.json';save(config,{'state':str(self.root)})
+        manifest=self.root/'manifest.json'
+        worker=SimpleNamespace(config={},naming_rules={'enabled':False},naming=None)
+        naming=Mock();naming.plan.return_value={'version':1,'entries':[]}
+        arguments=['normalize','--config',str(config),'--naming-plan',str(manifest)]
+        with patch('normalize.Normalizer',return_value=worker),patch('naming_worker.Naming',return_value=naming),patch('sys.argv',arguments):
+            normalize.main()
+        naming.plan.assert_called_once_with();naming.plan.reset_mock()
+        with patch('normalize.Normalizer',return_value=worker),patch('naming_worker.Naming',return_value=naming),patch('sys.argv',arguments+['--naming-reviewed-preview',str(preview)]):
+            normalize.main()
+        naming.plan.assert_called_once_with(combined=self.preview)
+        with patch('sys.argv',['normalize','--naming-reviewed-preview',str(preview)]),self.assertRaises(SystemExit):normalize.main()
+
+
 if __name__ == '__main__':unittest.main()

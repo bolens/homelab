@@ -196,8 +196,16 @@ class Naming:
         return dict(id=book['id'], hash=checksum, pages=book['media']['pagesCount'],
                     progress=book.get('readProgress'), seriesid=book['seriesId'], libraryid=book['libraryId'])
 
-    def plan(self, limit=10000):
+    def plan(self, limit=10000, *, combined=None):
         remote_unlocked(self.worker)
+        # This is an explicit reviewed supplement preview, never automatic credit approval.
+        reviews = None
+        if combined is not None:
+            from combined_handoff import reviewed_preview
+            reviews = reviewed_preview(combined)
+            health=self.api('getHealth')
+            if not isinstance(health,dict) or type(health.get('combined_preview')) is not int or health['combined_preview']!=1:
+                raise ValueError('Current native supplementation preview capability required')
         result = []; books = all_books(self.worker.reader)
         for row in list(self.catalog().values())[:limit]:
             path = Path(row['source'])
@@ -206,12 +214,35 @@ class Naming:
                 target = render(proposal)
                 request = {name:proposal[name] for name in ('version','source','sha256','issueid','comicid')}
                 request['target'] = target
-                if target == path.name:
+                preview = None
+                if reviews is not None:
+                    preview = reviews.get(str(path))
+                    if preview is None or preview['source_sha256'] != request['sha256']:
+                        raise ValueError('Exact reviewed supplement preview required')
+                    if digest(path) != request['sha256']:
+                        raise ValueError('Reviewed supplement source changed')
+                native=None
+                if preview is not None:
+                    from combined_handoff import native_source,native_preview
+                    native_request=dict(request,source=native_source(self,path))
+                    native=self.api('combinedPublication',request=json.dumps(dict(version=1,action='preview',
+                        arguments=dict(naming=native_request,policy=combined['policy']))))
+                    native_preview(native,native_request,combined['policy'])
+                    if not evidence.same_json(native['additions'],preview['additions']):
+                        raise ValueError('Approved additions differ from actual native derivation')
+                if target == path.name and (preview is None or not native['additions']):
                     result.append(dict(row, phase='unchanged')); continue
-                if any(p.name.casefold() == target.casefold() for p in path.parent.iterdir()):
+                if target != path.name and any(p.name.casefold() == target.casefold() for p in path.parent.iterdir()):
                     raise ValueError('Release destination collision')
                 proof = self.reader_proof(path, books)
-                result.append(dict(row, phase='planned', proposal=proposal, request=request, reader=proof))
+                entry = dict(row, phase='planned', proposal=proposal, request=request, reader=proof)
+                if preview is not None:
+                    if digest(path) != request['sha256']:
+                        raise ValueError('Reviewed supplement source changed during reader proof')
+                    entry['metadata_review'] = {key: preview[key] for key in ('status','source_sha256','evidence')}
+                    entry['metadata_plan'] = dict(version=1, additions=preview['additions'],
+                        policy_sha256=evidence.canonical_digest(combined['policy']),native_preview=native)
+                result.append(entry)
             except (ValueError, RuntimeError) as error:
                 result.append(dict(row, phase='review', reason=str(error)))
         owned = {row['source'] for row in self.catalog().values()}
@@ -223,7 +254,10 @@ class Naming:
                 if path.suffix.lower() != '.cbz':reason = 'Preserved format is outside CBZ release naming'
                 if not scoped_file(path, self.worker.roots):reason = 'Unsafe or linked publication path'
                 result.append(dict(source=str(path), phase='review', reason=reason))
-        return dict(version=1, created_at=time.time(), entries=result)
+        manifest = dict(version=1, created_at=time.time(), entries=result)
+        if combined is not None:
+            manifest.update(kind='combined-root-v1', policy=combined['policy'])
+        return manifest
 
     def recovery_entry(self, predecessor, preservation=None):
         """Explicitly replace a rejected attempt; ordinary ticks never call this."""

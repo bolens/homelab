@@ -287,7 +287,7 @@ class WorkflowTest(unittest.TestCase):
         (Path(self.tmp.name)/'annual.cbz').write_bytes(b'archive')
         workflow.tick(app.SEARCH_QUEUE)
         self.assertEqual(workflow.store().get('dispatch','10')['phase'],'accepted')
-        self.assertEqual(workflow.store().get('dispatch','11')['phase'],'completed')
+        self.assertEqual(workflow.store().get('dispatch','11')['phase'],'accepted')
         self.assertEqual(workflow._OBSERVER_ERRORS,0)
 
     def test_download_next_preserves_native_worker_scheduler(self):
@@ -381,9 +381,15 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(web.commands()['aliases'],[])
         web.acknowledge(cmd['id'],'claimed');web.acknowledge(cmd['id'],'submitted')
         self.assertEqual(web.commands()['aliases'],[])
-        web.acknowledge(cmd['id'],'confirmed')
+        with self.assertRaises(ValueError):web.acknowledge(cmd['id'],'confirmed')
+        self.assertEqual(web.commands()['aliases'],[])
+        # This owning alias branch assumes the completion reader's separately
+        # tested durable fact; no current-file presence is promoted here.
+        with patch('mylar.ordinary_import_history.confirmed_guided',return_value=True):
+            web.acknowledge(cmd['id'],'confirmed')
         self.assertEqual(len(web.commands()['aliases']),1)
-        web.action('disable_alias',{'alias_id':cmd['id']});web.acknowledge(cmd['id'],'confirmed')
+        web.action('disable_alias',{'alias_id':cmd['id']})
+        with patch('mylar.ordinary_import_history.confirmed_guided',return_value=True):web.acknowledge(cmd['id'],'confirmed')
         self.assertEqual(web.commands()['aliases'],[])
     def test_stale_or_conflicting_import_is_rejected(self):
         p=self.proposal()
@@ -449,6 +455,10 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(value['maintenance_reports'],1)
 
     def test_publication_capabilities_require_installed_routes_and_owners(self):
+        # Load real module dependencies before the temporary capability objects;
+        # a first import must not replace those objects in a standalone run.
+        for name in ('combined_publication', 'publication_conversion', 'publication_transaction'):
+            importlib.import_module('mylar.' + name)
         api = SimpleNamespace(Api=SimpleNamespace())
         combined = SimpleNamespace(execute=lambda _: None)
         conversion = SimpleNamespace(commit=lambda _: None, status=lambda _: None)
@@ -463,6 +473,17 @@ class WorkflowTest(unittest.TestCase):
             api.Api._convertedArchiveStatus = lambda _: None
             value = workflow.state_health()
             self.assertEqual(value['combined_publication'], 1)
+            self.assertNotIn('combined_preview', value)
+            combined.preview = lambda _: None
+            value = workflow.state_health()
+            self.assertEqual(value['combined_preview'], 1)
+            self.assertIs(type(value['combined_preview']), int)
+            with patch.object(api.Api, '_combinedPublication', None):
+                self.assertNotIn('combined_preview', workflow.state_health())
+            with patch.object(combined, 'execute', None):
+                self.assertNotIn('combined_preview', workflow.state_health())
+            combined.preview = None
+            self.assertNotIn('combined_preview', workflow.state_health())
             self.assertEqual(value['owned_conversion'], 1)
             conversion.status = None
             self.assertNotIn('owned_conversion', workflow.state_health())
@@ -509,7 +530,7 @@ class WorkflowTest(unittest.TestCase):
     def test_guided_handoff_claims_and_queues_once_without_separate_acknowledgement(self):
         command,native,client,arguments,item=self.guided_submission()
         def submit(client,**kwargs):workflow.processing_put(app.PP_QUEUE,item,kwargs['workflow_command'])
-        with patch.dict(sys.modules,{'mylar.publication_native':native}):
+        with patch.dict(sys.modules,{'mylar.publication_native':native}), patch('mylar.ordinary_import_history.queue_guided'):
             workflow.force_process(submit)(client,**arguments)
             row=workflow.store().get('command',command['id'])
             self.assertEqual(row['phase'],'submitted');self.assertTrue(row['dispatched'])
@@ -521,7 +542,7 @@ class WorkflowTest(unittest.TestCase):
     def test_guided_handoff_stale_choice_or_missing_dependency_spends_nothing(self):
         command,native,client,arguments,item=self.guided_submission();submit=Mock()
         for binding in ({},{'id':command['id']},dict(json.loads(arguments['guided_handoff']),version='f'*64)):
-            with patch.dict(sys.modules,{'mylar.publication_native':native}):
+            with patch.dict(sys.modules,{'mylar.publication_native':native}), patch('mylar.ordinary_import_history.queue_guided'):
                 workflow.force_process(submit)(client,**dict(arguments,guided_handoff=json.dumps(binding)))
             self.assertEqual(workflow.store().get('command',command['id'])['phase'],'queued')
             self.assertIsNone(workflow.store().get('worker_import_attempt','a'*64))
@@ -531,7 +552,7 @@ class WorkflowTest(unittest.TestCase):
         command,native,client,arguments,item=self.guided_submission()
         queue=Mock();queue.put.side_effect=RuntimeError('queue interruption')
         def submit(client,**kwargs):workflow.processing_put(queue,item,kwargs['workflow_command'])
-        with patch.dict(sys.modules,{'mylar.publication_native':native}):
+        with patch.dict(sys.modules,{'mylar.publication_native':native}), patch('mylar.ordinary_import_history.queue_guided'):
             with self.assertRaises(RuntimeError):workflow.force_process(submit)(client,**arguments)
             self.assertIsNotNone(workflow.store().get('worker_import_attempt','a'*64))
             workflow.force_process(submit)(client,**arguments)
@@ -546,7 +567,7 @@ class WorkflowTest(unittest.TestCase):
         client=SimpleNamespace(apikey='fixture',_failureResponse=lambda reason:{'success':False})
         item=dict(issueid='10',comicid='20',nzb_folder='/fixture/stage',nzb_name='comic.cbz',download_info=None)
         def submit(client,**kwargs):workflow.processing_put(app.PP_QUEUE,item)
-        with patch.dict(sys.modules,{'mylar.publication_native':native}):
+        with patch.dict(sys.modules,{'mylar.publication_native':native}), patch('mylar.ordinary_import_history.queue_guided'):
             workflow.force_process(submit)(client,publication_handoff='fixture')
         queued=app.PP_QUEUE.get_nowait()
         self.assertEqual(queued['download_info'],{'publication_handoff':proof})
@@ -561,7 +582,7 @@ class WorkflowTest(unittest.TestCase):
         workflow.store().set('worker_import_attempt','c'*64,dict(proof,owner=None))
         native.import_handoff.return_value=dict(proof,token='d'*64,owner=dict(proof['owner'],issueid='11'))
         queued=Mock()
-        with patch.dict(sys.modules,{'mylar.publication_native':native}):
+        with patch.dict(sys.modules,{'mylar.publication_native':native}), patch('mylar.ordinary_import_history.queue_guided'):
             workflow.force_process(queued)(client,publication_handoff='fixture')
         queued.assert_not_called()
         self.assertEqual(client.data,{'success':False})
@@ -636,8 +657,8 @@ class WorkflowTest(unittest.TestCase):
         self.conn.execute("UPDATE issues SET Status='Downloaded',Location='Example.cbz'")
         (Path(self.tmp.name)/'Example.cbz').write_bytes(b'comic')
         workflow._LAST_TICK=0;workflow.tick(app.SEARCH_QUEUE)
-        self.assertEqual(self.status(),'Completed')
-        self.assertEqual(workflow.store().get('handoff','10')['phase'],'completed')
+        self.assertEqual(self.status(),'Source review')
+        self.assertEqual(workflow.store().get('handoff','10')['phase'],'source-ready')
 
     def test_existing_workflow_api_migrates_typed_acknowledgement_idempotently(self):
         import patch_workflow
@@ -701,7 +722,7 @@ class Api:
         import patch_workflow
         for name,patcher in [('search.py',patch_workflow.search),('queues/search.py',patch_workflow.search_queue),('queues/ddl.py',patch_workflow.ddl),('webserve.py',patch_workflow.server),('api.py',patch_workflow.api)]:
             source=Path(os.environ.get('MYLAR_WORKFLOW_SOURCE','/app/mylar3/mylar'))/name
-            if not source.exists():source=Path('/tmp/mylar-workflow-native/mylar')/name
+            if not source.exists():source=Path(__file__).parent/'test_fixtures/native'/name
             if not source.exists():self.skipTest('Native fixture not available')
             changed=patcher(source.read_text());self.assertEqual(patcher(changed),changed);ast.parse(changed)
         changed=patch_workflow.search(source.parent.joinpath('search.py').read_text())
