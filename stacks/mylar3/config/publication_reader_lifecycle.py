@@ -456,6 +456,20 @@ def _archive_terminal_components():
          'archive-terminal-installed-adoption')
  return scope,owned,adoption
 
+def _archive_terminal_custody_projection(custody):
+ logical=dict(command=custody.command, paths=[str(custody.input), str(custody.control), str(custody.config_root), str(custody.main), str(custody.tasks), str(custody.restore_root), str(custody.scratch)], deadline=custody.deadline, backup_manifest=custody.backup_manifest, backup_acceptance=custody.backup_acceptance, input_sha=custody.input_sha, nonce=custody.nonce, parent_sha=custody.parent_sha, thread=custody.thread, channel=id(custody.channel), channel_seal=custody.channel_seal, reader=custody.reader, invocation=custody.invocation, proofs=custody.proofs, files={str(p): v for p, v in custody.files.items()}, reader_files={str(p): v for p, v in custody.reader_files.items()}, nodes={str(p): v for p, v in custody.nodes.items()}, absent=list(map(str, custody.absent)), reader_absent=list(map(str, custody.reader_absent)))
+ pending=[logical];projection=[]
+ while pending:
+  value=pending.pop();kind=type(value)
+  if kind is dict:
+   keys=tuple(sorted(value));projection.append(('dict',keys))
+   for name in reversed(keys):pending.append(value[name])
+  elif kind in (list,tuple):
+   projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+  elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+  else:raise Held('archive-terminal-custody-projection-type')
+ return tuple(projection)
+
 def bind_archive_terminal_originals(custody,scope,cap):
  """One factual augmentation from a LIVE completed cap, never saved JSON.
 
@@ -531,7 +545,8 @@ def bind_archive_terminal_originals(custody,scope,cap):
   custody.files={p:list(v) for p,v in new_files.items()};custody.nodes={p:list(v) for p,v in new_nodes.items()}
   seal=custody._core();custody.core=seal;_SEALS[custody]=seal
   # Private actual cap reference, no receipt hydration/exported authority.
-  registered=(weakref.ref(cap),handle,scope,terminal,seal,os.getpid(),threading.get_ident());_ARCHIVE_TERMINALS[custody]=registered
+  original_custody_projection=_archive_terminal_custody_projection(custody)
+  registered=(weakref.ref(cap),handle,scope,terminal,seal,os.getpid(),threading.get_ident(),original_custody_projection);_ARCHIVE_TERMINALS[custody]=registered
   adoption.terminal_original_vectors(handle,cap);scope.revalidate();custody.revalidate_stopped();custody._sealed(seal)
   require(custody.channel is channel and custody.channel_seal==channel_seal and custody.command==command and custody.deadline==deadline,'archive-terminal-same-original-lifetime')
   if time.monotonic()>=deadline:raise Held('archive-terminal-final-deadline')
@@ -568,11 +583,34 @@ def bind_archive_terminal_originals(custody,scope,cap):
    z=os.fstat(descriptor)
    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
   if time.monotonic()>=deadline:raise Held('archive-terminal-final-deadline')
+  # No FD/time/process/thread or serialization helper follows this boundary.
+  final_pid=os.getpid();final_thread=threading.get_ident()
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  for path,names in terminal_names:
+   if frozenset(os.listdir(path))!=frozenset(names):raise Held('archive-terminal-final-census')
+  for path,value in terminal_claims:
+   try:z=os.lstat(path)
+   except FileNotFoundError:
+    if value is not None:raise Held('archive-terminal-final-missing-claim')
+    continue
+   if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+  for path in (*old_absent,*terminal_absent):
+   try:os.lstat(path)
+   except FileNotFoundError:continue
+   raise Held('archive-terminal-final-absence')
+  for path,value in (*nodes,*terminal_nodes):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+  for path,value in (*files,*terminal_files):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
   preparation=cap.preparation
   physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
-  if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or os.getpid()!=terminal['pid'] or threading.get_ident()!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+  if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or final_pid!=terminal['pid'] or final_thread!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
    raise Held('archive-terminal-final-original-writer-controller')
-  if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+  if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
    raise Held('archive-terminal-final-original-custody')
   if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
    raise Held('archive-terminal-final-original-channel')
@@ -588,7 +626,451 @@ def bind_archive_terminal_originals(custody,scope,cap):
       elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
       else:raise Held('archive-terminal-core-projection-type')
   if tuple(projection)!=original_core_projection:raise Held('archive-terminal-final-complete-core')
+  logical=dict(command=custody.command, paths=[str(custody.input), str(custody.control), str(custody.config_root), str(custody.main), str(custody.tasks), str(custody.restore_root), str(custody.scratch)], deadline=custody.deadline, backup_manifest=custody.backup_manifest, backup_acceptance=custody.backup_acceptance, input_sha=custody.input_sha, nonce=custody.nonce, parent_sha=custody.parent_sha, thread=custody.thread, channel=id(custody.channel), channel_seal=custody.channel_seal, reader=custody.reader, invocation=custody.invocation, proofs=custody.proofs, files={str(p): v for p, v in custody.files.items()}, reader_files={str(p): v for p, v in custody.reader_files.items()}, nodes={str(p): v for p, v in custody.nodes.items()}, absent=list(map(str, custody.absent)), reader_absent=list(map(str, custody.reader_absent)))
+  pending=[logical];projection=[]
+  while pending:
+   value=pending.pop();kind=type(value)
+   if kind is dict:
+    keys=tuple(sorted(value));projection.append(('dict',keys))
+    for name in reversed(keys):pending.append(value[name])
+   elif kind in (list,tuple):
+    projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+   elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+   else:raise Held('archive-terminal-custody-projection-type')
+  if tuple(projection)!=original_custody_projection:raise Held('archive-terminal-final-complete-custody')
   return custody
  except BaseException:
   _ARCHIVE_TERMINALS.pop(custody,None);_SEALS.pop(custody,None)
   raise Held('archive-terminal-uncertain-custody-invalidated') from None
+
+def archive_terminal_original_vectors(custody,scope,cap):
+ """Read only the exact actual live terminal/custody registry; no DTO factory."""
+ if type(custody) is not StoppedReaderCustody:raise Held('archive-terminal-exact-custody')
+ registered=_ARCHIVE_TERMINALS.get(custody)
+ if type(custody) is not StoppedReaderCustody or registered is None or registered[0]() is not cap or registered[2] is not scope:
+  raise Held('archive-terminal-query-original-registry')
+ terminal=registered[3];seal=registered[4];original_custody_projection=registered[7]
+ # Copy admitted originals BEFORE the first replaceable component/SDK callback.
+ terminal_snapshot=tuple(terminal.items());channel=custody.channel;channel_seal=custody.channel_seal;deadline=custody.deadline;command=custody.command
+ invocation=copy.deepcopy(custody.invocation);original_reader=copy.deepcopy(custody.reader);original_proofs=copy.deepcopy(custody.proofs);original_thread=custody.thread
+ new_files={p:tuple(v) for p,v in custody.files.items()};new_nodes={p:tuple(v) for p,v in custody.nodes.items()};old_reader={p:tuple(v) for p,v in custody.reader_files.items()};old_absent=tuple([*custody.absent,*custody.reader_absent])
+ files=tuple((str(p),v) for p,v in {**new_files,**old_reader}.items());nodes=tuple((str(p),v) for p,v in new_nodes.items())
+ terminal_files=tuple(terminal['files']);terminal_nodes=tuple(terminal['nodes']);terminal_absent=tuple(terminal['absent']);terminal_claims=tuple(terminal['claims']);terminal_names=tuple(terminal['namespaces'])
+ answer={'terminal':copy.deepcopy(terminal),'custody_originals':{'files9':files,'nodes5':nodes,'absent':tuple(map(str,old_absent)),'claims':(),'namespaces':()}}
+ try:
+  sm,o,adoption=_archive_terminal_components();handle=registered[1]
+  require(type(scope) is sm.NativeConfiguredScope and scope._custody is custody and type(cap) is adoption.RepairAdoption and cap.reader.custody is custody,'archive-terminal-query-exact-cap-scope')
+  export_record=adoption._TERMINAL_RECORDS.get(handle)
+  require(export_record is not None and export_record['cap']() is cap,'archive-terminal-query-original-export')
+  export_snapshot=tuple(export_record.items());cap_seal=export_record['cap_seal'];original_core_projection=export_record['core_projection']
+  controller=cap.preparation._controller;writer=cap.preparation._writer
+  require(os.getpid()==registered[5] and threading.get_ident()==registered[6],'archive-terminal-query-original-process')
+  custody._sealed(seal);adoption.terminal_original_vectors(handle,cap);scope.revalidate();custody.revalidate_stopped();custody._sealed(seal)
+  if time.monotonic()>=deadline:raise Held('archive-terminal-final-deadline')
+  preparation=cap.preparation
+  physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
+  if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or os.getpid()!=terminal['pid'] or threading.get_ident()!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+   raise Held('archive-terminal-final-original-writer-controller')
+  if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+   raise Held('archive-terminal-final-original-custody')
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+   raise Held('archive-terminal-final-original-channel')
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  for path,names in terminal_names:
+   if frozenset(os.listdir(path))!=frozenset(names):raise Held('archive-terminal-final-census')
+  for path,value in terminal_claims:
+   try:z=os.lstat(path)
+   except FileNotFoundError:
+    if value is not None:raise Held('archive-terminal-final-missing-claim')
+    continue
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+  for path in (*old_absent,*terminal_absent):
+   try:os.lstat(path)
+   except FileNotFoundError:continue
+   raise Held('archive-terminal-final-absence')
+  for path,value in (*nodes,*terminal_nodes):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+  for path,value in (*files,*terminal_files):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  if time.monotonic()>=deadline:raise Held('archive-terminal-final-deadline')
+  # No FD/time/process/thread or serialization helper follows this boundary.
+  final_pid=os.getpid();final_thread=threading.get_ident()
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  for path,names in terminal_names:
+   if frozenset(os.listdir(path))!=frozenset(names):raise Held('archive-terminal-final-census')
+  for path,value in terminal_claims:
+   try:z=os.lstat(path)
+   except FileNotFoundError:
+    if value is not None:raise Held('archive-terminal-final-missing-claim')
+    continue
+   if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+  for path in (*old_absent,*terminal_absent):
+   try:os.lstat(path)
+   except FileNotFoundError:continue
+   raise Held('archive-terminal-final-absence')
+  for path,value in (*nodes,*terminal_nodes):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+  for path,value in (*files,*terminal_files):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+  preparation=cap.preparation
+  physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
+  if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or final_pid!=terminal['pid'] or final_thread!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+   raise Held('archive-terminal-final-original-writer-controller')
+  if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+   raise Held('archive-terminal-final-original-custody')
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+   raise Held('archive-terminal-final-original-channel')
+  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+  pending=[logical];projection=[]
+  while pending:
+      value=pending.pop();kind=type(value)
+      if kind is dict:
+          keys=tuple(sorted(value));projection.append(('dict',keys))
+          for name in reversed(keys):pending.append(value[name])
+      elif kind in (list,tuple):
+          projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+      elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+      else:raise Held('archive-terminal-core-projection-type')
+  if tuple(projection)!=original_core_projection:raise Held('archive-terminal-final-complete-core')
+  logical=dict(command=custody.command, paths=[str(custody.input), str(custody.control), str(custody.config_root), str(custody.main), str(custody.tasks), str(custody.restore_root), str(custody.scratch)], deadline=custody.deadline, backup_manifest=custody.backup_manifest, backup_acceptance=custody.backup_acceptance, input_sha=custody.input_sha, nonce=custody.nonce, parent_sha=custody.parent_sha, thread=custody.thread, channel=id(custody.channel), channel_seal=custody.channel_seal, reader=custody.reader, invocation=custody.invocation, proofs=custody.proofs, files={str(p): v for p, v in custody.files.items()}, reader_files={str(p): v for p, v in custody.reader_files.items()}, nodes={str(p): v for p, v in custody.nodes.items()}, absent=list(map(str, custody.absent)), reader_absent=list(map(str, custody.reader_absent)))
+  pending=[logical];projection=[]
+  while pending:
+   value=pending.pop();kind=type(value)
+   if kind is dict:
+    keys=tuple(sorted(value));projection.append(('dict',keys))
+    for name in reversed(keys):pending.append(value[name])
+   elif kind in (list,tuple):
+    projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+   elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+   else:raise Held('archive-terminal-custody-projection-type')
+  if tuple(projection)!=original_custody_projection:raise Held('archive-terminal-final-complete-custody')
+  return answer
+ except BaseException:
+  _ARCHIVE_TERMINALS.pop(custody,None);_SEALS.pop(custody,None)
+  raise Held('archive-terminal-query-uncertain-custody-invalidated') from None
+
+_ARCHIVE_RELEASES=weakref.WeakKeyDictionary()
+_ARCHIVE_ROUNDS=weakref.WeakKeyDictionary()
+class ArchiveTerminalRelease:
+ __slots__=('__weakref__',)
+ def __init__(self,key):
+  if key is not _KEY:raise Held('archive-terminal-no-release-hydration')
+
+def archive_terminal_release(custody,scope,cap,refs):
+ """One actual inherited-pipe round, while the original Writer stays held."""
+ if type(custody) is not StoppedReaderCustody:raise Held('archive-terminal-exact-custody')
+ registered=_ARCHIVE_TERMINALS.get(custody)
+ if type(custody) is not StoppedReaderCustody or registered is None or registered[0]() is not cap or registered[2] is not scope or custody in _ARCHIVE_ROUNDS:
+  raise Held('archive-terminal-release-original-registry')
+ terminal=registered[3];seal=registered[4];original_custody_projection=registered[7]
+ terminal_snapshot=tuple(terminal.items());channel=custody.channel;channel_seal=custody.channel_seal;deadline=custody.deadline;command=custody.command
+ invocation=copy.deepcopy(custody.invocation);original_reader=copy.deepcopy(custody.reader);original_proofs=copy.deepcopy(custody.proofs);original_thread=custody.thread
+ new_files={p:tuple(v) for p,v in custody.files.items()};new_nodes={p:tuple(v) for p,v in custody.nodes.items()};old_reader={p:tuple(v) for p,v in custody.reader_files.items()};old_absent=tuple([*custody.absent,*custody.reader_absent])
+ files=tuple((str(p),v) for p,v in {**new_files,**old_reader}.items());nodes=tuple((str(p),v) for p,v in new_nodes.items())
+ terminal_files=tuple(terminal['files']);terminal_nodes=tuple(terminal['nodes']);terminal_absent=tuple(terminal['absent']);terminal_claims=tuple(terminal['claims']);terminal_names=tuple(terminal['namespaces'])
+ reference_snapshot=copy.deepcopy(refs)
+ try:
+  require(type(reference_snapshot) is dict and set(reference_snapshot)=={'originals','execution_report','terminal_report'},'archive-terminal-release-ref-roles')
+  operation=Path(invocation['operation']);require(operation.is_absolute(),'archive-terminal-release-output')
+  ref_files=[];ref_nodes={}
+  names={'originals':'execution-originals.json','execution_report':'execute-report.json','terminal_report':'terminal-report.json'}
+  # All declared original leaf9 and actual original ancestors precede reads.
+  for role,name in names.items():
+   ref=reference_snapshot[role]
+   require(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and ref['path']==str(operation/name) and type(ref['sha256']) is str and len(ref['sha256'])==64 and all(c in '0123456789abcdef' for c in ref['sha256']) and type(ref['signature9']) in (list,tuple) and len(ref['signature9'])==9 and all(type(x) is int for x in ref['signature9']),'archive-terminal-release-exact-ref')
+   value=tuple(ref['signature9']);require(value[5]&0o170000==0o100000 and value[5]&0o7777==0o600 and value[6]==os.geteuid() and value[8]==1,'archive-terminal-release-private-ref')
+   ref_files.append((ref['path'],value))
+   for path in Path(ref['path']).parents:
+    z=os.lstat(path);fact=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+    if path in ref_nodes and ref_nodes[path]!=fact:raise Held('archive-terminal-release-first-node')
+    ref_nodes[path]=fact
+  sm,o,adoption=_archive_terminal_components();handle=registered[1]
+  require(type(scope) is sm.NativeConfiguredScope and scope._custody is custody and type(cap) is adoption.RepairAdoption and cap.reader.custody is custody,'archive-terminal-release-exact-cap')
+  export_record=adoption._TERMINAL_RECORDS[handle];export_snapshot=tuple(export_record.items());cap_seal=export_record['cap_seal'];original_core_projection=export_record['core_projection'];controller=cap.preparation._controller;writer=cap.preparation._writer
+  archive_terminal_original_vectors(custody,scope,cap)
+  for role in names:
+   ref=reference_snapshot[role];data,fact=read(ref['path'],ref['sha256'])
+   require(tuple(fact)==tuple(ref['signature9']),'archive-terminal-release-original-ref-read')
+  channel.binding();channel.seq+=1;sequence=channel.seq;challenge=secrets.token_hex(32)
+  frame={'protocol':'reader-lifecycle-pipe-v1','type':'terminal-observation','nonce':custody.nonce,'input_sha256':custody.input_sha,'parent_sha256':custody.parent_sha,'sequence':sequence,'challenge':challenge,'terminal':reference_snapshot}
+  request=encoded(frame)+b'\n';request_sha=hashlib.sha256(request).hexdigest();witness=ArchiveTerminalRelease(_KEY)
+  record={'custody':weakref.ref(custody),'cap':weakref.ref(cap),'scope':scope,'registered':registered,'pipe':channel,'pipe_seal':channel_seal,'sequence':sequence,'conversation_sequence':sequence,'challenge':challenge,'refs':tuple((role,ref['path'],ref['sha256'],tuple(ref['signature9'])) for role,ref in reference_snapshot.items()),'nodes':tuple((str(p),v) for p,v in ref_nodes.items()),'operation':str(operation),'names':tuple(names.values()),'request_sha256':request_sha,'response_sha256':None,'consumed':False,'pid':os.getpid(),'thread':threading.get_ident()}
+  _ARCHIVE_RELEASES[witness]=record;_ARCHIVE_ROUNDS[custody]=witness
+  count=0
+  while count<len(request):
+   written=os.write(channel.output,request[count:]);require(written>0,'archive-terminal-release-write');count+=written
+  limit=min(deadline,time.monotonic()+90);buf=bytearray()
+  while not buf.endswith(b'\n'):
+   require(time.monotonic()<limit and len(buf)<FRAME_MAX,'archive-terminal-release-bound')
+   ready=select.select([channel.input],[],[],max(0,limit-time.monotonic()))[0];require(bool(ready),'archive-terminal-release-unavailable')
+   value=os.read(channel.input,1);require(bool(value),'archive-terminal-release-EOF');buf.extend(value)
+  response_raw=bytes(buf);reply=decoded(response_raw)
+  expected=dict(frame);expected['type']='terminal-release';expected['rights']={k:False for k in ('publication','ordinary_import','index','cleanup','replay','resume')}
+  require(type(reply) is dict and set(reply)==set(expected) and reply==expected and type(reply['sequence']) is int and all(type(v) is bool and v is False for v in reply['rights'].values()),'archive-terminal-release-exact-response')
+  record['response_sha256']=hashlib.sha256(response_raw).hexdigest();record_snapshot=tuple(record.items())
+  answer=witness
+  archive_terminal_original_vectors(custody,scope,cap)
+  # Actual successful owning revalidation advances this same inherited pipe;
+  # the original terminal request/response sequence remains immutable.
+  if tuple(record.items())!=record_snapshot:raise Held('archive-terminal-original-release-record')
+  record['conversation_sequence']=channel.seq;record_snapshot=tuple(record.items())
+  for path,value in ref_nodes.items():
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-release-ref-node')
+  for path,value in ref_files:
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-release-ref-file')
+  if frozenset(os.listdir(operation))!=frozenset(('execution-originals.json','execute-report.json','terminal-report.json')):raise Held('archive-terminal-release-output-census')
+  if time.monotonic()>=deadline:raise Held('archive-terminal-final-deadline')
+  preparation=cap.preparation
+  physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
+  if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or os.getpid()!=terminal['pid'] or threading.get_ident()!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+   raise Held('archive-terminal-final-original-writer-controller')
+  if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+   raise Held('archive-terminal-final-original-custody')
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+   raise Held('archive-terminal-final-original-channel')
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  for path,names in terminal_names:
+   if frozenset(os.listdir(path))!=frozenset(names):raise Held('archive-terminal-final-census')
+  for path,value in terminal_claims:
+   try:z=os.lstat(path)
+   except FileNotFoundError:
+    if value is not None:raise Held('archive-terminal-final-missing-claim')
+    continue
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+  for path in (*old_absent,*terminal_absent):
+   try:os.lstat(path)
+   except FileNotFoundError:continue
+   raise Held('archive-terminal-final-absence')
+  for path,value in (*nodes,*terminal_nodes):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+  for path,value in (*files,*terminal_files):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  if time.monotonic()>=deadline:raise Held('archive-terminal-final-deadline')
+  # No FD/time/process/thread or serialization helper follows this boundary.
+  final_pid=os.getpid();final_thread=threading.get_ident()
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  for path,value in ref_nodes.items():
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-release-ref-node')
+  for path,value in ref_files:
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-release-ref-file')
+  if frozenset(os.listdir(operation))!=frozenset(('execution-originals.json','execute-report.json','terminal-report.json')):raise Held('archive-terminal-release-output-census')
+  for path,names in terminal_names:
+   if frozenset(os.listdir(path))!=frozenset(names):raise Held('archive-terminal-final-census')
+  for path,value in terminal_claims:
+   try:z=os.lstat(path)
+   except FileNotFoundError:
+    if value is not None:raise Held('archive-terminal-final-missing-claim')
+    continue
+   if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+  for path in (*old_absent,*terminal_absent):
+   try:os.lstat(path)
+   except FileNotFoundError:continue
+   raise Held('archive-terminal-final-absence')
+  for path,value in (*nodes,*terminal_nodes):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+  for path,value in (*files,*terminal_files):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+  preparation=cap.preparation
+  physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
+  if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or final_pid!=terminal['pid'] or final_thread!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+   raise Held('archive-terminal-final-original-writer-controller')
+  if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+   raise Held('archive-terminal-final-original-custody')
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+   raise Held('archive-terminal-final-original-channel')
+  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+  pending=[logical];projection=[]
+  while pending:
+      value=pending.pop();kind=type(value)
+      if kind is dict:
+          keys=tuple(sorted(value));projection.append(('dict',keys))
+          for name in reversed(keys):pending.append(value[name])
+      elif kind in (list,tuple):
+          projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+      elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+      else:raise Held('archive-terminal-core-projection-type')
+  if tuple(projection)!=original_core_projection:raise Held('archive-terminal-final-complete-core')
+  logical=dict(command=custody.command, paths=[str(custody.input), str(custody.control), str(custody.config_root), str(custody.main), str(custody.tasks), str(custody.restore_root), str(custody.scratch)], deadline=custody.deadline, backup_manifest=custody.backup_manifest, backup_acceptance=custody.backup_acceptance, input_sha=custody.input_sha, nonce=custody.nonce, parent_sha=custody.parent_sha, thread=custody.thread, channel=id(custody.channel), channel_seal=custody.channel_seal, reader=custody.reader, invocation=custody.invocation, proofs=custody.proofs, files={str(p): v for p, v in custody.files.items()}, reader_files={str(p): v for p, v in custody.reader_files.items()}, nodes={str(p): v for p, v in custody.nodes.items()}, absent=list(map(str, custody.absent)), reader_absent=list(map(str, custody.reader_absent)))
+  pending=[logical];projection=[]
+  while pending:
+   value=pending.pop();kind=type(value)
+   if kind is dict:
+    keys=tuple(sorted(value));projection.append(('dict',keys))
+    for name in reversed(keys):pending.append(value[name])
+   elif kind in (list,tuple):
+    projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+   elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+   else:raise Held('archive-terminal-custody-projection-type')
+  if tuple(projection)!=original_custody_projection:raise Held('archive-terminal-final-complete-custody')
+  if _ARCHIVE_RELEASES.get(witness) is not record or _ARCHIVE_ROUNDS.get(custody) is not witness or tuple(record.items())!=record_snapshot or type(channel.seq) is not int or channel.seq!=record['conversation_sequence'] or channel.seq<sequence:
+   raise Held('archive-terminal-release-final-original-witness')
+  return answer
+ except BaseException:
+  _ARCHIVE_TERMINALS.pop(custody,None);_SEALS.pop(custody,None)
+  raise Held('archive-terminal-release-uncertain-custody-invalidated') from None
+
+def consume_archive_terminal_release(witness,custody,scope,cap):
+ """Consume the actual one-use response witness; saved JSON never qualifies."""
+ if type(witness) is not ArchiveTerminalRelease:raise Held('archive-terminal-no-release-hydration')
+ record=_ARCHIVE_RELEASES.get(witness)
+ require(type(witness) is ArchiveTerminalRelease and record is not None and not record['consumed'] and _ARCHIVE_ROUNDS.get(custody) is witness and record['custody']() is custody and record['cap']() is cap and record['scope'] is scope and record['pipe'] is custody.channel and record['registered'] is _ARCHIVE_TERMINALS.get(custody) and os.getpid()==record['pid'] and threading.get_ident()==record['thread'] and type(custody.channel.seq) is int and custody.channel.seq==record['conversation_sequence'],'archive-terminal-original-live-release')
+ try:
+  if type(custody) is not StoppedReaderCustody:raise Held('archive-terminal-exact-custody')
+  registered=_ARCHIVE_TERMINALS.get(custody)
+  if type(custody) is not StoppedReaderCustody or registered is None or registered[0]() is not cap or registered[2] is not scope:
+   raise Held('archive-terminal-query-original-registry')
+  terminal=registered[3];seal=registered[4];original_custody_projection=registered[7]
+  # Copy admitted originals BEFORE the first replaceable component/SDK callback.
+  terminal_snapshot=tuple(terminal.items());channel=custody.channel;channel_seal=custody.channel_seal;deadline=custody.deadline;command=custody.command
+  invocation=copy.deepcopy(custody.invocation);original_reader=copy.deepcopy(custody.reader);original_proofs=copy.deepcopy(custody.proofs);original_thread=custody.thread
+  new_files={p:tuple(v) for p,v in custody.files.items()};new_nodes={p:tuple(v) for p,v in custody.nodes.items()};old_reader={p:tuple(v) for p,v in custody.reader_files.items()};old_absent=tuple([*custody.absent,*custody.reader_absent])
+  files=tuple((str(p),v) for p,v in {**new_files,**old_reader}.items());nodes=tuple((str(p),v) for p,v in new_nodes.items())
+  terminal_files=tuple(terminal['files']);terminal_nodes=tuple(terminal['nodes']);terminal_absent=tuple(terminal['absent']);terminal_claims=tuple(terminal['claims']);terminal_names=tuple(terminal['namespaces'])
+  answer={'terminal':copy.deepcopy(terminal),'custody_originals':{'files9':files,'nodes5':nodes,'absent':tuple(map(str,old_absent)),'claims':(),'namespaces':()}}
+  sm,o,adoption=_archive_terminal_components();handle=registered[1]
+  export_record=adoption._TERMINAL_RECORDS[handle];export_snapshot=tuple(export_record.items());cap_seal=export_record['cap_seal'];original_core_projection=export_record['core_projection'];controller=cap.preparation._controller;writer=cap.preparation._writer
+  record['consumed']=True;record_snapshot=tuple(record.items())
+  answer={'sequence':record['sequence'],'challenge':record['challenge'],'request_sha256':record['request_sha256'],'response_sha256':record['response_sha256']}
+  # Mark consumed BEFORE any callback: unknown response can never be replayed.
+  archive_terminal_original_vectors(custody,scope,cap)
+  if tuple(record.items())!=record_snapshot:raise Held('archive-terminal-original-release-record')
+  record['conversation_sequence']=channel.seq;record_snapshot=tuple(record.items())
+  answer['conversation_sequence']=channel.seq
+  require(_ARCHIVE_RELEASES.get(witness) is record and record['consumed'] is True and _ARCHIVE_ROUNDS.get(custody) is witness,'archive-terminal-final-consumed-release')
+  for _,path,_,value in record['refs']:
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-consume-original-ref')
+  for path,value in record['nodes']:
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-consume-original-ref-node')
+  if frozenset(os.listdir(record['operation']))!=frozenset(record['names']):raise Held('archive-terminal-consume-output-census')
+  if time.monotonic()>=deadline:raise Held('archive-terminal-final-deadline')
+  preparation=cap.preparation
+  physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
+  if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or os.getpid()!=terminal['pid'] or threading.get_ident()!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+   raise Held('archive-terminal-final-original-writer-controller')
+  if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+   raise Held('archive-terminal-final-original-custody')
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+   raise Held('archive-terminal-final-original-channel')
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  for path,names in terminal_names:
+   if frozenset(os.listdir(path))!=frozenset(names):raise Held('archive-terminal-final-census')
+  for path,value in terminal_claims:
+   try:z=os.lstat(path)
+   except FileNotFoundError:
+    if value is not None:raise Held('archive-terminal-final-missing-claim')
+    continue
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+  for path in (*old_absent,*terminal_absent):
+   try:os.lstat(path)
+   except FileNotFoundError:continue
+   raise Held('archive-terminal-final-absence')
+  for path,value in (*nodes,*terminal_nodes):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+  for path,value in (*files,*terminal_files):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  if time.monotonic()>=deadline:raise Held('archive-terminal-final-deadline')
+  # No FD/time/process/thread or serialization helper follows this boundary.
+  final_pid=os.getpid();final_thread=threading.get_ident()
+  for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+   z=os.fstat(descriptor)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-original-channel-FD')
+  for path,value in record['nodes']:
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-consume-original-ref-node')
+  for _,path,_,value in record['refs']:
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-consume-original-ref')
+  if frozenset(os.listdir(record['operation']))!=frozenset(record['names']):raise Held('archive-terminal-consume-output-census')
+  for path,names in terminal_names:
+   if frozenset(os.listdir(path))!=frozenset(names):raise Held('archive-terminal-final-census')
+  for path,value in terminal_claims:
+   try:z=os.lstat(path)
+   except FileNotFoundError:
+    if value is not None:raise Held('archive-terminal-final-missing-claim')
+    continue
+   if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+  for path in (*old_absent,*terminal_absent):
+   try:os.lstat(path)
+   except FileNotFoundError:continue
+   raise Held('archive-terminal-final-absence')
+  for path,value in (*nodes,*terminal_nodes):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+  for path,value in (*files,*terminal_files):
+   z=os.lstat(path)
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+  preparation=cap.preparation
+  physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
+  if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or final_pid!=terminal['pid'] or final_thread!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+   raise Held('archive-terminal-final-original-writer-controller')
+  if _ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or _SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+   raise Held('archive-terminal-final-original-custody')
+  if type(channel) is not ParentPipe or _PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+   raise Held('archive-terminal-final-original-channel')
+  logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+  pending=[logical];projection=[]
+  while pending:
+      value=pending.pop();kind=type(value)
+      if kind is dict:
+          keys=tuple(sorted(value));projection.append(('dict',keys))
+          for name in reversed(keys):pending.append(value[name])
+      elif kind in (list,tuple):
+          projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+      elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+      else:raise Held('archive-terminal-core-projection-type')
+  if tuple(projection)!=original_core_projection:raise Held('archive-terminal-final-complete-core')
+  logical=dict(command=custody.command, paths=[str(custody.input), str(custody.control), str(custody.config_root), str(custody.main), str(custody.tasks), str(custody.restore_root), str(custody.scratch)], deadline=custody.deadline, backup_manifest=custody.backup_manifest, backup_acceptance=custody.backup_acceptance, input_sha=custody.input_sha, nonce=custody.nonce, parent_sha=custody.parent_sha, thread=custody.thread, channel=id(custody.channel), channel_seal=custody.channel_seal, reader=custody.reader, invocation=custody.invocation, proofs=custody.proofs, files={str(p): v for p, v in custody.files.items()}, reader_files={str(p): v for p, v in custody.reader_files.items()}, nodes={str(p): v for p, v in custody.nodes.items()}, absent=list(map(str, custody.absent)), reader_absent=list(map(str, custody.reader_absent)))
+  pending=[logical];projection=[]
+  while pending:
+   value=pending.pop();kind=type(value)
+   if kind is dict:
+    keys=tuple(sorted(value));projection.append(('dict',keys))
+    for name in reversed(keys):pending.append(value[name])
+   elif kind in (list,tuple):
+    projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+   elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+   else:raise Held('archive-terminal-custody-projection-type')
+  if tuple(projection)!=original_custody_projection:raise Held('archive-terminal-final-complete-custody')
+  if _ARCHIVE_RELEASES.get(witness) is not record or tuple(record.items())!=record_snapshot or _ARCHIVE_ROUNDS.get(custody) is not witness or type(channel.seq) is not int or channel.seq!=record['conversation_sequence'] or channel.seq<record['sequence']:
+   raise Held('archive-terminal-consume-final-original-witness')
+  return answer
+ except BaseException:
+  # Failure after this exact live witness admission invalidates its owning
+  # custody; the consumed/unknown round cannot be replayed or rehydrated.
+  _ARCHIVE_TERMINALS.pop(custody,None);_SEALS.pop(custody,None)
+  raise Held('archive-terminal-consume-uncertain-invalidated') from None

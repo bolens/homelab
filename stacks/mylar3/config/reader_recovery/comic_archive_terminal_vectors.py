@@ -23,7 +23,7 @@ def partition(report,*,path_mapper,sdk_map,mounts,image_sources):
         image_nodes.update(str(p) for p in child.parents)
     v=report.get('original_vectors')
     if type(v) is not dict or set(v)!={'files','nodes','claims','censuses','absent'}:raise Held('archive-terminal-vector-shape')
-    files={};nodes={};claims={};names={};absent=set();child_files={};child_nodes={}
+    files={};nodes={};claims={};names={};absent=set();child_files={};child_nodes={};child_claims={}
     def add(target,path,value):
         if path in target and target[path]!=value:raise Held('archive-terminal-vector-conflict')
         target[path]=value
@@ -37,7 +37,32 @@ def partition(report,*,path_mapper,sdk_map,mounts,image_sources):
             if type(value) not in (list,tuple) or len(value)!=length or any(type(x) is not int for x in value):raise Held('archive-terminal-vector-types')
             result.append((row[0],tuple(value)))
         return tuple(result)
-    file_rows=rows('files',9);node_rows=rows('nodes',5);claim_rows=rows('claims',9,True)
+    file_rows=rows('files',9);node_rows=rows('nodes',5)
+    claim_rows=[]
+    if type(v['claims']) not in (list,tuple) or len(v['claims'])>100000:raise Held('archive-terminal-claim-bound')
+    for row in v['claims']:
+        if type(row) not in (list,tuple) or len(row)!=2 or type(row[0]) is not str or not Path(row[0]).is_absolute() or '..' in Path(row[0]).parts:raise Held('archive-terminal-claim-row')
+        value=row[1]
+        if value is not None:
+            if type(value) not in (list,tuple) or len(value)!=6 or any(type(x) is not int for x in value[:5]):raise Held('archive-terminal-claim-six')
+            kind=value[2]&0o170000
+            if kind not in (0o040000,0o100000) or (value[5] is not None if kind==0o040000 else type(value[5]) is not int or value[5]<1):raise Held('archive-terminal-claim-role')
+            value=tuple(value)
+        claim_rows.append((row[0],value))
+    claim_rows=tuple(claim_rows)
+    # Exact source-backed claim6 alignment, never fabrication of claim full9.
+    original_files={};original_nodes={}
+    for path,value in file_rows:add(original_files,path,value)
+    for path,value in node_rows:add(original_nodes,path,value)
+    for path,value in claim_rows:
+        if value is None:
+            if path in original_files or path in original_nodes:raise Held('archive-terminal-missing-claim-conflict')
+        else:
+            node=value[:5]
+            if path in original_nodes and original_nodes[path]!=node:raise Held('archive-terminal-claim-node-conflict')
+            if path in original_files:
+                full=original_files[path];expected=(full[0],full[1],full[5],full[6],full[7],None if full[5]&0o170000==0o040000 else full[8])
+                if expected!=value:raise Held('archive-terminal-claim-file-conflict')
     # Freeze all original tuples before the first caller mapping callback.
     census_rows=tuple((row[0],tuple(row[1])) for row in v['censuses']);absence_rows=tuple(v['absent'])
     for path,value in file_rows:
@@ -51,11 +76,19 @@ def partition(report,*,path_mapper,sdk_map,mounts,image_sources):
             if path not in image_nodes:raise Held('archive-terminal-unmapped-node') from None
             add(child_nodes,path,value)
         else:add(nodes,host,value)
-    for path,value in claim_rows:add(claims,str(path_mapper(path)),value)
+    for path,value in claim_rows:
+        try:host=str(path_mapper(path))
+        except (ValueError,KeyError):
+            # Catalog claims include exact CHILD ancestors above shared mounts.
+            # Only present directory facts on the already admitted ancestor set
+            # retain foreign provenance; no absent/regular image claim is exempt.
+            if path not in image_nodes or value is None or value[2]&0o170000!=0o040000 or value[5] is not None:raise Held('archive-terminal-unmapped-claim') from None
+            add(child_claims,path,value)
+        else:add(claims,host,value)
     for path in absence_rows:
         if type(path) is not str or not Path(path).is_absolute():raise Held('archive-terminal-absence-path')
         absent.add(str(path_mapper(path)))
     for path,value in census_rows:
         if type(path) is not str or not Path(path).is_absolute() or any(type(x) is not str or '/' in x or x in ('','.','..') for x in value) or len(set(value))!=len(value):raise Held('archive-terminal-census-types')
         add(names,str(path_mapper(path)),tuple(sorted(value)))
-    return {'files':files,'nodes':nodes,'claims':claims,'absent':tuple(sorted(absent)),'censuses':names,'child_image_files':child_files,'child_image_nodes':child_nodes,'publication_acceptance':False,'mutation_authority':False}
+    return {'files':files,'nodes':nodes,'claims':claims,'absent':tuple(sorted(absent)),'censuses':names,'child_image_files':child_files,'child_image_nodes':child_nodes,'child_image_claims':child_claims,'publication_acceptance':False,'mutation_authority':False}

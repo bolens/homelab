@@ -90,6 +90,12 @@ def main():
     assert birth.life is lifecycle
     assert callable(lifecycle.from_birth) and callable(birth.from_checked_parent)
     assert callable(lifecycle.bind_archive_preparation)
+    assert all(callable(getattr(lifecycle, name, None)) for name in
+               ('archive_terminal_original_vectors', 'archive_terminal_release',
+                'consume_archive_terminal_release'))
+    import inspect
+    archive_history = importlib.import_module('mylar.publication_archive_history')
+    assert 'live_cap' in inspect.signature(archive_history.observe_terminal).parameters
     assert modules['publication_reader_sql_transition'].sql_five_transition is modules['publication_reader_phase'].sql_five_transition
     print('Installed prospective reader source/origin/type proof passed; owning admission remains held')
 

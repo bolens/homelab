@@ -22,6 +22,8 @@ _GENERATED = weakref.WeakKeyDictionary()
 _PHASES = weakref.WeakKeyDictionary()
 _PROJECTORS = weakref.WeakKeyDictionary()
 _OUTPUT_NODES = weakref.WeakKeyDictionary()
+_ARCHIVE_TERMINAL_ROUNDS = weakref.WeakKeyDictionary()
+_ARCHIVE_TERMINAL_SEALS = weakref.WeakKeyDictionary()
 
 DOCKER = ('pkexec', '/usr/bin/docker', '--host', 'unix:///run/docker.sock')
 MAX = 64 * 1024**2
@@ -287,6 +289,8 @@ class ScopedDocker:
   end=time.monotonic()+seconds
   try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except OSError:raise Held('child-start-ACK-unknown') from None
+  original_streams=(p.stdin,p.stdout,p.stderr);original_pid=p.pid
+  original_descriptors=tuple((stream.fileno(),tuple(five(os.fstat(stream.fileno())))) for stream in original_streams)
   streams={p.stdout:'stdout',p.stderr:'stderr'};out=bytearray();err=bytearray();line=bytearray();ack=None
   try:
    while streams:
@@ -301,8 +305,15 @@ class ScopedDocker:
      line.extend(block)
      while b'\n' in line:
       raw,_,remainder=line.partition(b'\n');line=bytearray(remainder);message=decode(raw)
-      if message.get('type') in ('challenge', 'birth-commit'):
-       response=handler(message);need(type(response) is bytes and response.endswith(b'\n') and len(response)<=MAX,'parent-fixed-response-bytes');p.stdin.write(response);p.stdin.flush()
+      if message.get('type') in ('challenge', 'birth-commit', 'terminal-observation'):
+       need(ack is None,'child-dialogue-after-final-ACK')
+       response=handler(message,bytes(raw)) if message.get('type')=='terminal-observation' else handler(message)
+       need(type(response) is bytes and response.endswith(b'\n') and len(response)<=MAX,'parent-fixed-response-bytes')
+       for fd,fact in original_descriptors:
+        z=os.fstat(fd)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('parent-original-dialogue-FD')
+       if (p.stdin,p.stdout,p.stderr)!=original_streams or p.pid!=original_pid:raise Held('parent-original-dialogue-process')
+       if os.write(original_descriptors[0][0],response)!=len(response):raise Held('parent-dialogue-release-partial-no-replay')
       else:need(message.get('type')=='ACK' and ack is None,'child-output-protocol');ack=message['ack']
    need(not line and p.wait(timeout=max(0.001,end-time.monotonic()))==0 and ack is not None,'child-ACK-unknown')
    return ack
@@ -328,12 +339,15 @@ class LifecycleParent:
              'operation', 'reader', 'held_native', 'held_worker', 'selected_image',
              'provider', 'producer', 'observer', 'sdk_map', 'mounts', 'native',
              'action_inputs', 'producer_inputs', 'birth_source_sha256', 'scope_projection', 'bounds', 'admission_source_sha256', 'nfs'}
+        same_child=archive and type(plan.get('version')) is int and plan['version']==11
         if archive:base_keys=(base_keys-{'action_inputs','admission_source_sha256'})|{'action','backup_provider'}
+        if same_child:base_keys.add('terminal_mode')
         need(type(plan) is dict and set(plan)==base_keys,'plan-schema')
-        need(plan['version'] == (10 if archive else 9) and type(plan['version']) is int
+        need(plan['version'] in ((10,11) if archive else (9,)) and type(plan['version']) is int
              and plan['kind'] == ('reviewed-archive-one-lifecycle-protocol' if archive else 'reviewed-negative-five-lifecycle-protocol')
              and digest(plan['nonce']) and type(plan['seconds']) is int
              and 1 <= plan['seconds'] <= 3600, 'plan-kind')
+        if same_child:need(plan['terminal_mode']=='same-child-v1','archive-exact-terminal-mode')
         need(re.fullmatch('sha256:[0-9a-f]{64}', plan['selected_image']) is not None,
              'selected-image-digest')
         self.plan = copy.deepcopy(plan); self.engine = engine
@@ -737,10 +751,10 @@ class LifecycleParent:
         expected_mounts = sorted((r['host'], r['child'], self.phase_write(r,phase)) for r in mounts)
         need(created['Config']['Labels'] == {'com.homelab.reader.lifecycle': name}, 'child-exact-label')
         self.profile(created, cid, command, expected_mounts, False)
-        child_static = static(created); sequence = 0
+        child_static = static(created); sequence = 0; original_running=None
         self.emit(phase + '-start-intent.json', dict(id=cid, automatic_replay=False))
-        def challenge(message):
-            nonlocal sequence
+        def challenge(message,raw=None):
+            nonlocal sequence,original_running
             original_files = dict(self.files)
             original_files.update({p: tuple(v['signature9']) for p, v in self.generated.items()})
             original_nodes = dict(self.nodes); original_nodes[str(self.op)] = self.op_fact
@@ -749,7 +763,8 @@ class LifecycleParent:
                 return None
             base = {'protocol', 'type', 'nonce', 'input_sha256', 'parent_sha256', 'sequence', 'challenge'}
             need((set(message) == base and message['type'] == 'challenge'
-                  or set(message) == base | {'birth'} and message['type'] == 'birth-commit')
+                  or set(message) == base | {'birth'} and message['type'] == 'birth-commit'
+                  or self.plan.get('version')==11 and phase=='execute' and set(message)==base|{'terminal'} and message['type']=='terminal-observation')
                  and message['protocol'] == 'reader-lifecycle-pipe-v1' and message['nonce'] == self.plan['nonce']
                  and message['input_sha256'] == input_ref['sha256']
                  and message['parent_sha256'] == self.source_ref['sha256']
@@ -758,6 +773,9 @@ class LifecycleParent:
             sequence += 1; current = self.inspect(cid)
             need(static(current) == child_static and current['State']['Running'] is True
                  and current['State']['Pid'] > 0 and current['State']['Paused'] is False, 'child-running-profile')
+            if self.plan.get('version')==11 and phase=='execute':
+                if original_running is None:original_running=copy.deepcopy(current)
+                else:need(same_runtime(current,original_running),'archive-same-original-producer-incarnation')
             fresh = self.produce('native-observation', dict(observations=observed, child=current,
                                                            child_mounts=current['Mounts']))
             need(set(fresh) == {'native', 'worker', 'child_mounts'}
@@ -766,6 +784,8 @@ class LifecycleParent:
                  and fresh['child_mounts'] == current['Mounts'], 'fresh-native-worker-mounts')
             # Reinspect after producer callbacks; stale snapshots never close.
             self.continuous(); need(same_runtime(self.inspect(cid), current), 'late-child-profile')
+            if message['type']=='terminal-observation':
+                return self.accept_archive_terminal(input_ref,actual,message,current,original_running,raw)
             if message['type'] == 'birth-commit':
                 need(phase in ('prepare', 'execute', 'verify-terminal'), 'birth-purpose')
                 return self.accept_birth(phase, input_ref, actual, message,
@@ -788,10 +808,19 @@ class LifecycleParent:
         ack = self.engine.interactive(cid, challenge, self.left())
         if phase != 'backup':
             need(_PHASES.get(self, {}).get(phase, {}).get('accepted') is True, 'child-ACK-before-birth')
-        report_ref = validate_ack(ack, phase, self.plan['nonce'], self.phase_provider(phase)['sha256'])
+        if self.plan.get('version')==11 and phase=='execute':
+            round_record=_ARCHIVE_TERMINAL_ROUNDS.get(self)
+            need(round_record is not None and round_record['cid']==cid and round_record['sequence']<=sequence,'archive-original-terminal-round-before-ACK')
+            need(type(ack) is dict and set(ack)=={'nonce','phase','source_sha256','report','publication_acceptance','reader_resume_authority','terminal_release'},'archive-same-child-ACK-schema')
+            need(type(ack['terminal_release']) is dict and type(ack['terminal_release'].get('conversation_sequence')) is int and ack['terminal_release']==dict(sequence=round_record['sequence'],conversation_sequence=sequence,challenge=round_record['challenge'],request_sha256=round_record['request_sha256'],response_sha256=round_record['response_sha256']) and ack['report']==round_record['refs']['execution_report'],'archive-original-terminal-release-ACK')
+            report_ref=validate_ack({k:v for k,v in ack.items() if k!='terminal_release'},phase,self.plan['nonce'],self.phase_provider(phase)['sha256'])
+        else:report_ref = validate_ack(ack, phase, self.plan['nonce'], self.phase_provider(phase)['sha256'])
         exited = self.inspect(cid)
         need(static(exited) == child_static, 'child-final-static')
         self.profile(exited, cid, command, expected_mounts, True)
+        if self.plan.get('version')==11 and phase=='execute':
+            need(exited['State']['StartedAt']==original_running['State']['StartedAt'],'archive-original-producer-start-before-exit')
+            self.close_archive_terminal_round(round_record)
         self.continuous()
         need(report_ref['path'] == self.mapping.child(self.op / phase / (phase + '-report.json')), 'fixed-report-child-path')
         host_ref = {**report_ref, 'path': self.mapping.host(report_ref['path'])}
@@ -837,6 +866,158 @@ class LifecycleParent:
             return host
         return mapped
 
+    def accept_archive_terminal(self,input_ref,actual,message,current,original_running,raw):
+        # Only an admitted plan11 ORIGINAL execute child can enter this dialogue.
+        need(self.plan.get('version')==11 and self.plan.get('terminal_mode')=='same-child-v1' and _PHASES.get(self,{}).get('execute',{}).get('accepted') is True and self not in _ARCHIVE_TERMINAL_ROUNDS,'archive-terminal-original-live-birth')
+        original_files=dict(self.files);original_nodes=dict(self.nodes)
+        for path,ref in self.generated.items():
+            value=tuple(ref['signature9']);need(path not in original_files or original_files[path]==value,'archive-terminal-control-conflict');original_files[path]=value
+        for path,value in _OUTPUT_NODES.get(self,{}).items():
+            need(path not in original_nodes or original_nodes[path]==value,'archive-terminal-output-node-conflict');original_nodes[path]=value
+        need(str(self.op) not in original_nodes or original_nodes[str(self.op)]==self.op_fact,'archive-terminal-operation-node-conflict');original_nodes[str(self.op)]=self.op_fact
+        original_core=_CORES.get(self);original_generated=_GENERATED.get(self);original_phase=_PHASES[self]['execute']
+        logical=dict(plan=self.plan,files=self.files,nodes=self.nodes,source=self.source_ref,input=self.plan_ref,engine=id(self.engine),thread=self.thread,deadline=self.deadline,core=self.core,generated=self.generated,op=str(self.op),op_fact=self.op_fact,outputs=_OUTPUT_NODES.get(self,{}),phases=_PHASES.get(self,{}))
+        pending=[logical];projection=[]
+        while pending:
+            value=pending.pop();kind=type(value)
+            if kind is dict:
+                keys=tuple(sorted(value));projection.append(('dict',keys))
+                for name in reversed(keys):pending.append(value[name])
+            elif kind in (list,tuple):projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+            elif kind in (str,int,bool,float,bytes,type(None)):projection.append((kind.__name__,value))
+            else:raise Held('archive-terminal-parent-projection-type')
+        original_projection=tuple(projection)
+        need(same_runtime(current,original_running) and current['State']['Running'] is True,'archive-terminal-original-running-child')
+        need(type(raw) is bytes and raw==encode(message),'archive-terminal-original-encoded-request')
+        original_request=raw+b'\n'
+        declared=copy.deepcopy(message['terminal']);need(type(declared) is dict and set(declared)=={'originals','execution_report','terminal_report'},'archive-terminal-fixed-ref-roles')
+        fixed={'originals':'execution-originals.json','execution_report':'execute-report.json','terminal_report':'terminal-report.json'}
+        mapped={}
+        # Every source-provided full9 is retained before the first file read.
+        for role,name in fixed.items():
+            ref=declared[role];need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and ref['path']==self.mapping.child(self.op/'execute'/name) and digest(ref['sha256']) and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(v) is int for v in ref['signature9']),'archive-terminal-fixed-original-ref')
+            host=str(self.op/'execute'/name);value=tuple(ref['signature9']);need(host not in original_files or original_files[host]==value,'archive-terminal-report-ref-conflict');original_files[host]=value;mapped[role]=dict(ref,path=host)
+        documents={role:decode(read(ref)) for role,ref in mapped.items()}
+        execute=documents['execution_report'];terminal=documents['terminal_report'];original=documents['originals'];request=decode(read(self.plan['producer_inputs']['archive_request']))
+        owner=request['owner'];operation=request['operation_id']
+        need(type(original) is dict and set(original)=={'version','kind','owner','operation_id','baseline','preparation','preparation_directory9','reader','publication_acceptance','mutation_authority'} and original['version']==1 and original['kind']=='archive-one-original-custody' and original['owner']==owner and original['operation_id']==operation and original['publication_acceptance'] is False and original['mutation_authority'] is False,'archive-terminal-original-execution-record')
+        for doc,kind in ((execute,'archive-one-owning-execute-observation'),(terminal,'archive-one-independent-terminal-observation')):
+            need(doc.get('kind')==kind and doc.get('owner')==owner and doc.get('operation_id')==operation and doc.get('outcome') in ('observed-forward','observed-rollback') and doc.get('originals')==declared['originals'] and doc.get('baseline')==original['baseline'] and doc.get('phase')=='execute' and doc.get('nonce')==self.plan['nonce'] and doc.get('final_ack_required') is True and doc.get('provider_continuity_verified') is False and all(doc.get(k) is False for k in ('reader_index_acceptance','ordinary_import_grant','publication_acceptance','mutation_authority','automatic_replay')),'archive-terminal-owning-report-joins')
+        need(execute['terminal_report']==declared['terminal_report'] and execute['execute_history']==terminal['execute_history'] and execute['outcome']==terminal['outcome'],'archive-terminal-execute-fresh-verifier-join')
+        summary=terminal['independent_observation'];rollback=terminal['outcome']=='observed-rollback'
+        need(summary['operation_id']==operation and summary['owner']==owner and summary['baseline_sha256']==original['baseline']['sha256'] and summary['reader_reference_preservation'] is True and summary['publication_acceptance'] is False and summary['ordinary_import_grant'] is False and summary['kind']==('fresh-repair-rollback-observation' if rollback else 'fresh-repair-terminal-observation') and (summary.get('native_preimage_restored') is True and summary.get('rollback_verified') is True if rollback else summary.get('native_only_size_cell_transition') is True),'archive-terminal-independent-owning-verifier')
+        sdk=decode(read(self.plan['sdk_map']));scope_ref=self.generated[str(self.op/'execute-input.native-scope.json')];native=decode(read(scope_ref))
+        vectors=self.observer.partition(terminal,path_mapper=self.terminal_mapper(),sdk_map=sdk,mounts=copy.deepcopy(self.plan['mounts']),image_sources={native[k]['path']:native[k] for k in ('config_module','main_module')})
+        for target,incoming,label in ((original_files,vectors['files'],'file'),(original_nodes,vectors['nodes'],'node')):
+            for path,value in incoming.items():
+                value=tuple(value);need(path not in target or target[path]==value,'archive-terminal-original-'+label+'-conflict');target[path]=value
+        # Proof/histories are factual records tied to this actual selected source,
+        # not serialized capabilities. Require every ref to already be in proof9.
+        for childref in (original['baseline'],original['preparation'],execute['execute_history'],terminal['history']):
+            hostref=dict(childref,path=self.mapping.host(childref['path']));need(original_files.get(hostref['path'])==tuple(childref['signature9']),'archive-terminal-history-baseline-original9');document=decode(read(hostref))
+            if childref in (execute['execute_history'],terminal['history']):need(document['owner']==owner and document['operation_id']==operation and all(document[k] is False for k in ('mutation_authority','publication_acceptance','ordinary_import_grant','reader_index_acceptance','automatic_replay')),'archive-terminal-history-owning-join')
+        stage=str(Path(self.mapping.host(original['preparation']['path'])).parent)
+        need(original_files.get(stage)==tuple(original['preparation_directory9']),'archive-terminal-original-completed-stage9')
+        original_files=tuple((str(k),tuple(v)) for k,v in original_files.items());original_nodes=tuple((str(k),tuple(v)) for k,v in original_nodes.items())
+        original_claims=tuple((str(k),None if v is None else tuple(v)) for k,v in vectors['claims'].items());original_absent=tuple(vectors['absent']);original_names=tuple((str(k),tuple(v)) for k,v in vectors['censuses'].items())
+        response=encode({**message,'type':'terminal-release','rights':dict(publication=False,ordinary_import=False,index=False,cleanup=False,replay=False,resume=False)})+b'\n'
+        record=dict(cid=current['Id'],sequence=message['sequence'],challenge=message['challenge'],request_sha256=hashlib.sha256(original_request).hexdigest(),response_sha256=hashlib.sha256(response).hexdigest(),refs=declared,execute=copy.deepcopy(execute),terminal=copy.deepcopy(terminal),vectors=vectors,files=original_files,nodes=original_nodes,claims=original_claims,absent=original_absent,names=original_names)
+        _ARCHIVE_TERMINAL_ROUNDS[self]=record
+        pending=[record];record_projection=[]
+        while pending:
+            value=pending.pop();kind=type(value)
+            if kind is dict:
+                keys=tuple(sorted(value));record_projection.append(('dict',keys))
+                for name in reversed(keys):pending.append(value[name])
+            elif kind in (list,tuple):record_projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+            elif kind in (str,int,bool,float,bytes,type(None)):record_projection.append((kind.__name__,value))
+            else:raise Held('archive-terminal-round-projection-type')
+        original_record_projection=tuple(record_projection);_ARCHIVE_TERMINAL_SEALS[self]=original_record_projection
+        self.continuous();need(same_runtime(self.inspect(current['Id']),original_running),'archive-terminal-last-original-child')
+        self.close_archive_terminal_round(record)
+        for path,names in original_names:
+            if tuple(sorted(os.listdir(path)))!=names:raise Held('archive-terminal-final-census')
+        for path,value in original_claims:
+            try:z=os.lstat(path)
+            except FileNotFoundError:
+                if value is not None:raise Held('archive-terminal-final-missing-claim')
+                continue
+            if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+        for path in original_absent:
+            try:os.lstat(path)
+            except FileNotFoundError:continue
+            raise Held('archive-terminal-final-absence')
+        for path,value in original_nodes:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+        for path,value in original_files:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+        logical=dict(plan=self.plan,files=self.files,nodes=self.nodes,source=self.source_ref,input=self.plan_ref,engine=id(self.engine),thread=self.thread,deadline=self.deadline,core=self.core,generated=self.generated,op=str(self.op),op_fact=self.op_fact,outputs=_OUTPUT_NODES.get(self,{}),phases=_PHASES.get(self,{}))
+        pending=[logical];projection=[]
+        while pending:
+            value=pending.pop();kind=type(value)
+            if kind is dict:
+                keys=tuple(sorted(value));projection.append(('dict',keys))
+                for name in reversed(keys):pending.append(value[name])
+            elif kind in (list,tuple):projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+            elif kind in (str,int,bool,float,bytes,type(None)):projection.append((kind.__name__,value))
+            else:raise Held('archive-terminal-parent-projection-type')
+        pending=[record];record_projection=[]
+        while pending:
+            value=pending.pop();kind=type(value)
+            if kind is dict:
+                keys=tuple(sorted(value));record_projection.append(('dict',keys))
+                for name in reversed(keys):pending.append(value[name])
+            elif kind in (list,tuple):record_projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+            elif kind in (str,int,bool,float,bytes,type(None)):record_projection.append((kind.__name__,value))
+            else:raise Held('archive-terminal-round-projection-type')
+        if tuple(record_projection)!=original_record_projection or tuple(projection)!=original_projection or _CORES.get(self)!=original_core or _GENERATED.get(self)!=original_generated or _PHASES.get(self,{}).get('execute') is not original_phase or _ARCHIVE_TERMINAL_ROUNDS.get(self) is not record or _ARCHIVE_TERMINAL_SEALS.get(self) is not original_record_projection:raise Held('archive-terminal-final-original-parent-registry')
+        return response
+
+    def close_archive_terminal_round(self,record):
+        need(_ARCHIVE_TERMINAL_ROUNDS.get(self) is record,'archive-terminal-original-round-registry')
+        original_seal=_ARCHIVE_TERMINAL_SEALS.get(self)
+        pending=[record];projection=[]
+        while pending:
+            value=pending.pop();kind=type(value)
+            if kind is dict:
+                keys=tuple(sorted(value));projection.append(('dict',keys))
+                for name in reversed(keys):pending.append(value[name])
+            elif kind in (list,tuple):projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+            elif kind in (str,int,bool,float,bytes,type(None)):projection.append((kind.__name__,value))
+            else:raise Held('archive-terminal-round-projection-type')
+        if original_seal is None or tuple(projection)!=original_seal:raise Held('archive-terminal-original-round-seal')
+        original_files=record['files'];original_nodes=record['nodes'];original_claims=record['claims'];original_absent=record['absent'];original_names=record['names']
+        for path,names in original_names:
+            if tuple(sorted(os.listdir(path)))!=names:raise Held('archive-terminal-final-census')
+        for path,value in original_claims:
+            try:z=os.lstat(path)
+            except FileNotFoundError:
+                if value is not None:raise Held('archive-terminal-final-missing-claim')
+                continue
+            if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise Held('archive-terminal-final-claim')
+        for path in original_absent:
+            try:os.lstat(path)
+            except FileNotFoundError:continue
+            raise Held('archive-terminal-final-absence')
+        for path,value in original_nodes:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('archive-terminal-final-node')
+        for path,value in original_files:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('archive-terminal-final-file')
+        pending=[record];projection=[]
+        while pending:
+            value=pending.pop();kind=type(value)
+            if kind is dict:
+                keys=tuple(sorted(value));projection.append(('dict',keys))
+                for name in reversed(keys):pending.append(value[name])
+            elif kind in (list,tuple):projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+            elif kind in (str,int,bool,float,bytes,type(None)):projection.append((kind.__name__,value))
+            else:raise Held('archive-terminal-round-projection-type')
+        if tuple(projection)!=original_seal or _ARCHIVE_TERMINAL_SEALS.get(self) is not original_seal or _ARCHIVE_TERMINAL_ROUNDS.get(self) is not record:raise Held('archive-terminal-round-final-registry')
+
     def archive_phase_input(self,phase,payload,custody_context):
         need(phase in ('backup','execute','verify-terminal'),'archive-finite-phase')
         host_path=self.op/(phase+'-input.json');directory=self.op/phase
@@ -849,6 +1030,7 @@ class LifecycleParent:
         else:
             request=decode(read(self.plan['producer_inputs']['archive_request']))
             value.update(owner=request['owner'],operation_id=request['operation_id'])
+        if self.plan.get('version')==11 and phase=='execute':value.update(version=2,terminal_mode='same-child-v1')
         ref=self.emit(phase+'-input.json',value);actual=actual_command(command,ref['sha256'])
         if phase!='backup':
             need(custody_context is not None,'archive-phase-custody-required')
@@ -904,12 +1086,18 @@ class LifecycleParent:
             # ACK/report/record remain original references, never status-derived.
             ack=copy.deepcopy(self.generated[str(self.op/'execute-ack.json')]);ackvalue=decode(read(ack));reportref=ackvalue['report'];hostreport={**reportref,'path':self.mapping.host(reportref['path'])}
             need(decode(read(hostreport))==report,'archive-original-execute-report')
-            context.update(observations=self.continuous(),execution_originals=original_host)
-            payload['execution_originals']=self.mapping.child_ref(original_host)
-            inp,cmd=self.phase_input('verify-terminal',payload,context)
-            verified=self.child_phase('verify-terminal',inp,cmd)
+            if self.plan.get('version')==11:
+                round_record=_ARCHIVE_TERMINAL_ROUNDS.get(self)
+                need(round_record is not None and report==round_record['execute'],'archive-original-retained-execute-report')
+                verified=copy.deepcopy(round_record['terminal'])
+                self.close_archive_terminal_round(round_record)
+            else:
+                context.update(observations=self.continuous(),execution_originals=original_host)
+                payload['execution_originals']=self.mapping.child_ref(original_host)
+                inp,cmd=self.phase_input('verify-terminal',payload,context)
+                verified=self.child_phase('verify-terminal',inp,cmd)
             need(verified['owner']==request['owner'] and verified['operation_id']==request['operation_id'] and verified['originals']==originals and verified['baseline']==report['baseline'] and verified['outcome']==report['outcome'],'archive-fresh-terminal-original-join')
-            sdk=decode(read(self.plan['sdk_map']));phaseproof=self.op/'verify-terminal-input.native-scope.json'
+            sdk=decode(read(self.plan['sdk_map']));phaseproof=self.op/('execute-input.native-scope.json' if self.plan.get('version')==11 else 'verify-terminal-input.native-scope.json')
             scope_ref=self.generated.get(str(phaseproof))
             # accept_birth retains the independent HOST proof ref after exact
             # selected-child/source/mount/config-module observation joins.
@@ -928,7 +1116,7 @@ class LifecycleParent:
             for path,value in _OUTPUT_NODES.get(self,{}).items():
                 need(path not in nodes or nodes[path]==value,'archive-terminal-phase-node-conflict');nodes[path]=value
             need(str(self.op) not in nodes or nodes[str(self.op)]==self.op_fact,'archive-operation-original-conflict');nodes[str(self.op)]=self.op_fact
-            intent=self.emit('resume-intent.json',dict(reader=self.plan['reader']['id'],outcome=verified['outcome'],child_image_vectors=dict(files=vectors['child_image_files'],nodes=vectors['child_image_nodes']),reader_index_acceptance=False,publication_acceptance=False,automatic_replay=False))
+            intent=self.emit('resume-intent.json',dict(reader=self.plan['reader']['id'],outcome=verified['outcome'],child_image_vectors=dict(files=vectors['child_image_files'],nodes=vectors['child_image_nodes'],claims=vectors['child_image_claims']),reader_index_acceptance=False,publication_acceptance=False,automatic_replay=False))
             files[intent['path']]=tuple(intent['signature9'])
             self.continuous();seconds=self.left()
             # Last semantic, source, engine and mapping callbacks have finished.
@@ -945,8 +1133,8 @@ class LifecycleParent:
                 except FileNotFoundError:
                     if value is not None:raise Held('archive-resume-missing-claim')
                     continue
-                actual=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
-                if value is None or actual!=value or (z.st_mode&0o170000)==0o040000:raise Held('archive-resume-claim')
+                actual=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)
+                if value is None or actual!=value:raise Held('archive-resume-claim')
             for path in absent:
                 try:os.lstat(path)
                 except FileNotFoundError:continue
