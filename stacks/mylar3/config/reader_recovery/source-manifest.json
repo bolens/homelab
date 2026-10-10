@@ -487,7 +487,7 @@
       "sha256": "3ec1454688355851ec991f55954f2fa2aa564bbf80fc933d50edf220a980ab62"
     },
     "test_reader_proof_admission.py": {
-      "sha256": "14e6fd9f883612a8662f045111e113a1533db10c8e171c813a82ddc467792ecd"
+      "sha256": "fb34dfc6822a3c7989d7672072c2ebb2d13edfba5a6e0f4d2e0bcca70e880aa3"
     },
     "test_reader_proof_producer.py": {
       "sha256": "4c1ac31b013e2d813d4888a96c234366af28a6c49746468978e2892359a0bbab"

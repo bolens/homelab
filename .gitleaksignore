@@ -2,3 +2,7 @@
 stacks/komga/normalizer/ordinary_observation_fixtures/manifest.json:generic-api-key:2
 stacks/mylar3/config/run_import_api_controls.py:generic-api-key:13
 stacks/mylar3/config/test_retained_delivery_api.py:generic-api-key:21
+
+# Exact retained native source SHA256 pins, independently verified against public source bytes.
+stacks/komga/normalizer/retained_pack_handoff.py:generic-api-key:20
+stacks/mylar3/config/test_fixtures/retained_pack_worker/retained_pack_handoff.py:generic-api-key:20

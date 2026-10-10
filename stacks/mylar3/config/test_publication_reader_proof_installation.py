@@ -29,7 +29,9 @@ class Controls(unittest.TestCase):
  def test_exact_owned_admission_predecessor_replaced(self):
   p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_predecessor.py',p);old=p.stat().st_ino;self.install();self.assertNotEqual(p.stat().st_ino,old);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
  def accepted(self):
-  p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_accepted.py',p);return p
+  p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_lifecycle_predecessor.py',p);return p
+ def test_historical_accepted_predecessor_still_upgrades(self):
+  p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_accepted.py',p);original=p.stat().st_ino;self.install();self.assertNotEqual(p.stat().st_ino,original);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
  def test_current_accepted_immediate_predecessor_replaced(self):
   p=self.accepted();original=p.stat().st_ino;self.assertEqual(self.manifest['modules']['publication_reader_admission']['owned_predecessor_sha256'],sha(p));self.install();self.assertNotEqual(p.stat().st_ino,original);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
  def test_current_accepted_first_ast_drift_not_rebaselined(self):

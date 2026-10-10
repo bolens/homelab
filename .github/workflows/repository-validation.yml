@@ -93,7 +93,7 @@ jobs:
           docker build --network=none --file - --tag mylar-ci-installed stacks/mylar3 <<EOF
           FROM $image
           COPY config/ /opt/mylar3-fixes/
-          RUN --network=none python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar
+          RUN --network=none python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar && chmod 0644 /app/mylar3/mylar/config.py && chmod 0755 /app/mylar3/Mylar.py
           EOF
           stacks/mylar3/verify-image.sh mylar-ci-installed
 
