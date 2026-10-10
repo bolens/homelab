@@ -85,6 +85,12 @@ Binary `.srr` recovery sidecars are recognised by the ReScene marker and valid
 bounded application header. Unknown or malformed binary files with that suffix
 remain retained, and cue references continue to protect files from cleanup.
 
+Exact short `~^newz[NZB]~` posting markers are removed even with obfuscated
+filenames, allowing no line ending, LF or CRLF. Matching is bounded and requires
+the complete payload. Similar text, named audio/video, cue and M3U files and
+cue-referenced files remain protected. A marker-only release is retained by the
+existing guard against deleting every file.
+
 Zero-byte files with known audio extensions always fail validation before
 cleanup or publication, even without track totals, with cleanup disabled, or
 when optional audio decoding verification is off. Originals, archives and
