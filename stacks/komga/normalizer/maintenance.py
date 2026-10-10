@@ -124,6 +124,27 @@ class Maintenance:
         if len(original)>4*1024*1024:raise ValueError('Original API response exceeds bound')
         return original
 
+    def initialize_retained_pack(self):
+        """Explicit pre-proof preparation, never called by tick."""
+        from retained_pack_operations import initialize
+        return initialize(self)
+
+    def select_retained_pack(self, pack_id, member_id):
+        from retained_pack_operations import existing, select
+        select(existing(self),pack_id,member_id)
+
+    def run_retained_pack(self):
+        from retained_pack_operations import existing, execute
+        return execute(existing(self))
+
+    def reconcile_retained_pack(self):
+        from retained_pack_operations import existing, reconcile
+        return reconcile(existing(self))
+
+    def retained_pack_view(self):
+        from retained_pack_operations import existing, view
+        return view(existing(self))
+
     def retained_pack_return(self, command, encoded_request):
         """Only the two finite retained POST commands; original bounded bytes."""
         from publication_guard import remote_unlocked

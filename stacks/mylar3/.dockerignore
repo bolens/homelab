@@ -101,5 +101,6 @@ config/test_fixtures/retained_pack_worker/**
 !config/test_fixtures/retained_pack_worker/reader_scan.py
 !config/test_fixtures/retained_pack_worker/release_naming.py
 !config/test_fixtures/retained_pack_worker/retained_pack_handoff.py
+!config/test_fixtures/retained_pack_worker/retained_pack_operations.py
 !config/test_fixtures/retained_pack_worker/source-pins.json
 !config/test_fixtures/retained_pack_worker/writer_cycle.py

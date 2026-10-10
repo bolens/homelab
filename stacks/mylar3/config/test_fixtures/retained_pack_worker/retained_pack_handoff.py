@@ -188,15 +188,58 @@ def _sql(path,stamp):
 
 
 def initialize(maintenance):
-    """Explicit preparation ONLY, before protected proof/backup lifetime."""
+    """Explicit pre-proof initialization under the genuine existing Writer."""
     check(type(maintenance) is Maintenance,'retained-maintenance-type')
     p=maintenance.state/'retained-pack-handoffs'
+    # Existing full9 or exact absence is fixed before admission/binding callbacks.
+    try:
+        z=os.lstat(p);original_journal=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+    except FileNotFoundError:original_journal=None
+    original_nodes={}
+    for parent_path in p.parents:
+        z=os.lstat(parent_path);original_nodes[str(parent_path)]=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+    remote_unlocked(maintenance.worker)
+    binding=_binding(maintenance)
     check(not any(q.is_symlink() for q in (p,*p.parents)),'retained-linked-journal')
-    p.mkdir(mode=0o700,exist_ok=True);z=os.lstat(p)
-    check(z.st_mode&0o170000==0o040000 and z.st_mode&0o7777==0o700 and z.st_uid==os.geteuid() and z.st_gid==os.getegid(),'retained-private-journal')
-    fd=os.open(p,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
-    try:os.fsync(fd)
-    finally:os.close(fd)
+    parent=os.lstat(p.parent);parent5=(parent.st_dev,parent.st_ino,parent.st_mode,parent.st_uid,parent.st_gid)
+    writer=Writer(maintenance.worker.config['writer_state'],create=False)
+    with writer.hold(timeout=0):
+        evidence.ordinary_purpose(writer)
+        lock=os.lstat(writer.lock);lock9=(lock.st_dev,lock.st_ino,lock.st_size,lock.st_mtime_ns,lock.st_ctime_ns,lock.st_mode,lock.st_uid,lock.st_gid,lock.st_nlink)
+        root=os.lstat(writer.root);root5=(root.st_dev,root.st_ino,root.st_mode,root.st_uid,root.st_gid)
+        d=os.open(p.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        try:
+            z=os.fstat(d)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=parent5:raise ValueError('retained-init-parent')
+            for path,wanted in original_nodes.items():
+                z=os.lstat(path)
+                if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=wanted:raise ValueError('retained-init-node')
+            if original_journal is None:
+                try:os.stat(p.name,dir_fd=d,follow_symlinks=False)
+                except FileNotFoundError:pass
+                else:raise ValueError('retained-init-original-absence')
+                os.mkdir(p.name,0o700,dir_fd=d)  # Exclusive owned absent -> created transition.
+                z=os.stat(p.name,dir_fd=d,follow_symlinks=False)
+                first=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+            else:
+                first=original_journal
+                z=os.stat(p.name,dir_fd=d,follow_symlinks=False)
+                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=first:raise ValueError('retained-init-original')
+            fd=os.open(p.name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=d)
+            try:
+                z=os.fstat(fd)
+                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=first:raise ValueError('retained-init-original-FD')
+                check(first[5]&0o170000==0o040000 and first[5]&0o7777==0o700 and first[6:8]==(os.geteuid(),os.getegid()),'retained-private-journal')
+                os.fsync(fd);os.fsync(d);evidence.ordinary_purpose(writer)
+                check(_binding(maintenance)==binding,'retained-init-binding')
+                for observed,wanted in ((os.fstat(fd),first),(os.lstat(p),first),(os.lstat(writer.lock),lock9)):
+                    if (observed.st_dev,observed.st_ino,observed.st_size,observed.st_mtime_ns,observed.st_ctime_ns,observed.st_mode,observed.st_uid,observed.st_gid,observed.st_nlink)!=wanted:raise ValueError('retained-init-original')
+                for path,wanted in ((*original_nodes.items(),(writer.root,root5))):
+                    z=os.lstat(path)
+                    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=wanted:raise ValueError('retained-init-node')
+            finally:os.close(fd)
+        finally:os.close(d)
+    return (str(p),first,tuple(original_nodes.items()),binding)
 
 
 def select(maintenance,pack_id,member_id):
@@ -243,7 +286,7 @@ def _core(action,phase):
     return c
 
 
-def prepare(maintenance,pack_id,member_id):
+def prepare(maintenance,pack_id,member_id,*,initialized=None):
     check(ENABLED and type(maintenance) is Maintenance,'retained-default-disabled')
     check(type(NATIVE_API_SHA) is str and re.fullmatch('[a-f0-9]{64}',NATIVE_API_SHA),'retained-installed-API-pin-unproven')
     check(all(type(v) is str and re.fullmatch('[a-f0-9]{64}',v) for v in (pack_id,member_id)),'retained-selected-identities')
@@ -252,7 +295,7 @@ def prepare(maintenance,pack_id,member_id):
     receipt=maintenance.state/'packs'/pack_id/'receipt.json';journal=maintenance.state/'retained-pack-handoffs'
     z=os.lstat(journal);check(z.st_mode&0o7777==0o700 and z.st_uid==os.geteuid() and z.st_gid==os.getegid(),'retained-preinitialized-journal')
     # Capture all existing root/control/receipt leaves before receipt decoding.
-    controls=[a.database,a.catalog,a.writer.lock,a.writer.root/'publication-v1.json',receipt,Path(__file__),Path(_RETURN_CODE.co_filename),Path(_REQUEST_CODE.co_filename),a.config/'config.ini']
+    controls=[a.database,a.catalog,a.writer.lock,a.writer.root/'publication-v1.json',receipt,Path(__file__),Path(__file__).with_name('retained_pack_operations.py'),Path(_RETURN_CODE.co_filename),Path(_REQUEST_CODE.co_filename),a.config/'config.ini']
     absent=[str(p)+s for p in (a.database,a.catalog) for s in ('-journal','-wal','-shm')]+[str(a.writer.root/n) for n in _MARKERS]
     first=_capture(controls,absent,trees=[receipt.parent,journal,*maintenance.worker.roots,Path(maintenance.settings['ddl_cache'])]);raw=_read(receipt,first['files'][str(receipt)],_LIMIT);local=evidence.decode_json(raw)
     evidence.ordinary_purpose(a.writer);a.admission()
@@ -288,12 +331,20 @@ def prepare(maintenance,pack_id,member_id):
     intent=journal/(token+'.intent.json');done=journal/(token+'.done.json')
     _nodes(first,intent);first['absent']+=tuple(map(str,(intent,done)));first['nodes'][str(journal)]=five(z)
     census=a.admission();_raw(_detached(first))
+    if initialized is not None:
+        original_path,original_stamp,original_nodes,original_binding=initialized
+        if original_path!=str(journal) or maintenance_binding!=original_binding:raise ValueError('retained-init-journal-binding')
+        z=os.lstat(journal)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=original_stamp:raise ValueError('retained-init-journal-original')
+        for path,v in original_nodes:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise ValueError('retained-init-node-original')
     body=compact(dict(version=1,kind='retained-pack-dispatch-intent',request=request,receipt_sha256=hashlib.sha256(raw).hexdigest(),historical_import_ack=False,cleanup_grant=False))
     stamp=_journal_write(intent,body,first['nodes'][str(journal)])
     first['absent']=tuple(p for p in first['absent'] if p!=str(intent));first['files'][str(intent)]=stamp;first['hashes'][str(intent)]=hashlib.sha256(body).hexdigest();first['names'][str(journal)]=tuple(sorted((*first['names'][str(journal)],intent.name)))
     c=dict(maintenance=maintenance,maintenance_binding=maintenance_binding,authority=a,writer=a.writer,frame_bytes=compact(first),request_bytes=compact(request),request=request,token=token,
            native_target=native_path(maintenance,target),native_source=native_path(maintenance,source),receipt=receipt,receipt_bytes=raw,local_bytes=compact(local),workflow=workflow,catalog=catalog,census=census,
-           intent=intent,done=done,writer_binding=(a.writer.root,a.writer.lock,a.writer.pending,a.writer.tagger_pending,a.writer.release_pending,tuple(a.writer.lock_identity),tuple(a.writer.root_identity),a.writer.local),pid=os.getpid(),thread=threading.get_ident(),deadline=time.monotonic()+90,phase='prepared')
+           intent=intent,done=done,database=str(a.database),catalog_path=str(a.catalog),writer_binding=(a.writer.root,a.writer.lock,a.writer.pending,a.writer.tagger_pending,a.writer.release_pending,tuple(a.writer.lock_identity),tuple(a.writer.root_identity),a.writer.local),pid=os.getpid(),thread=threading.get_ident(),deadline=time.monotonic()+90,phase='prepared')
     action=object.__new__(RetainedPackAction);_CORES[action]=c
     _transport(maintenance);check(_binding(maintenance)==maintenance_binding,'retained-original-Maintenance')
     # Final direct original closure follows registry/copy/serialization helpers.
@@ -337,6 +388,37 @@ def dispatch(action):
     check(type(reply) is bytes and 0<len(reply)<=_LIMIT,'retained-original-response')
     c['reply_bytes']=bytes(reply);c['phase']='returned'
     return action
+
+
+def status_after_lost_reply(action):
+    """One read-only same-live-action status; never resubmit finalization."""
+    c=_core(action,'dispatching');c['phase']='statusing';m=c['maintenance'];remote_unlocked(m.worker)
+    _transport(m);check(_binding(m)==c['maintenance_binding'],'retained-original-Maintenance')
+    frame=json.loads(c['frame_bytes'])
+    # Only the two native SQL files may have owning write signatures. Their exact
+    # logical transition/original incarnation is still mandatory in consume().
+    for path in (c['database'],c['catalog_path']):
+        original=tuple(frame['files'].pop(path));z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=(original[0],original[1],*original[5:]):raise ValueError('retained-status-SQL-incarnation')
+    _raw(frame)
+    reply=m.retained_pack_return('retainedDeliveryStatus',c['request_bytes'])
+    _transport(m);check(_binding(m)==c['maintenance_binding'],'retained-original-Maintenance')
+    check(type(reply) is bytes and 0<len(reply)<=_LIMIT,'retained-original-response')
+    _raw(frame)
+    c['reply_bytes']=bytes(reply);c['phase']='returned'
+    return action
+
+
+def live_state(action):
+    """Local factual UI state only; this does not revalidate a completed receipt."""
+    check(type(action) is RetainedPackAction,'retained-owning-action-type');c=_CORES.get(action)
+    check(c is not None and c['pid']==os.getpid() and c['thread']==threading.get_ident(),'retained-live-action')
+    return c['phase']
+
+
+def validate_selection(maintenance,pack_id,member_id):
+    check(ENABLED and type(maintenance) is Maintenance and all(type(v) is str and re.fullmatch('[a-f0-9]{64}',v) for v in (pack_id,member_id)),'retained-exact-selector')
+    return (pack_id,member_id)
 
 
 def _map(c,data,path):

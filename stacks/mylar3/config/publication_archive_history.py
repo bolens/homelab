@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import time
+import threading
 
 from mylar import publication_archive_owned as o
 
@@ -450,14 +451,50 @@ def _bind(controller, writer, custody, scope, owner, operation_id, baseline):
             'claims': (), 'namespaces': ()}, value
 
 
+def _bind_live(controller, writer, custody, scope, cap, owner, operation_id, baseline):
+    from mylar import publication_reader_lifecycle as lifecycle
+    actual = lifecycle.archive_terminal_original_vectors(custody, scope, cap)
+    terminal = actual['terminal']
+    o.check(cap.preparation._controller is controller and cap.preparation._writer is writer
+            and dict(terminal['owner']) == owner and terminal['operation_id'] == operation_id
+            and terminal['baseline'][0] == str(baseline), 'archive-history-exact-live-owner')
+    o.writer_pair(controller, writer, o.sdk())
+    inherited = original_vectors(actual['custody_originals'])
+    terminal_vectors = {'files9': terminal['files'], 'nodes5': terminal['nodes'],
+                        'absent': terminal['absent'], 'claims': terminal['claims'],
+                        'namespaces': terminal['namespaces']}
+    for field in ('files9', 'nodes5', 'claims', 'namespaces'):
+        current = dict(inherited[field])
+        for path, value in terminal_vectors[field]:
+            o.check(path not in current or current[path] == value,
+                    'archive-history-live-original-conflict')
+            current[path] = value
+        inherited[field] = list(current.items())
+    inherited['absent'] = tuple(set(inherited['absent']) | set(terminal_vectors['absent']))
+    return original_vectors(inherited), {'baseline': {'sha256': terminal['baseline'][2]}}
+
+
 def observe_terminal(controller, writer, custody, scope, owner, operation_id,
-                     baseline, scratch, *, rollback=False, with_vectors=False):
+                     baseline, scratch, *, rollback=False, with_vectors=False, live_cap=None):
     """Invoke genuine fresh verifier; no caller-supplied receipt or DTO is admitted."""
     early = _early(controller)
     from mylar import publication_archive_verifier as verifier
     o.check(type(rollback) is bool and type(with_vectors) is bool, 'archive-history-finite-terminal-kind')
     history_path, history_nodes = directory(controller, writer)  # Existing before proof lifetime.
-    inherited, execute = _bind(controller, writer, custody, scope, owner, operation_id, baseline)
+    if live_cap is None:
+        inherited, execute = _bind(controller, writer, custody, scope, owner, operation_id, baseline)
+    else:
+        from mylar import publication_reader_lifecycle as lifecycle
+        from mylar import publication_archive_adoption as adoption
+        inherited, execute = _bind_live(controller, writer, custody, scope, live_cap,
+                                       owner, operation_id, baseline)
+        registered = lifecycle._ARCHIVE_TERMINALS[custody]
+        handle = registered[1]; export_record = adoption._TERMINAL_RECORDS[handle]
+        record_snapshot = tuple(export_record.items()); core_projection = export_record['core_projection']
+        original_custody_seal = registered[4]; original_custody_projection = registered[7]; original_pipe = custody.channel
+        original_pipe_seal = custody.channel_seal
+        o.check(live_cap._phase == ('rollback-complete' if rollback else 'complete'),
+                'archive-history-live-terminal-kind')
     inherited = original_vectors(inherited)
     observed = (verifier.verify_rollback_existing_with_vectors if rollback else
                 verifier.verify_existing_with_vectors)(controller, writer, custody,
@@ -483,8 +520,12 @@ def observe_terminal(controller, writer, custody, scope, owner, operation_id,
     vectors['nodes5'] = list(vectors['nodes5']) + [(str(p), v) for p, v in history_nodes.items()]
     answer = {'summary': copy.deepcopy(summary), 'original_vectors': copy.deepcopy(vectors),
               'history': copy.deepcopy(reference)} if with_vectors else reference
+    final_vectors={k:tuple((p,None if v is None else tuple(v)) for p,v in vectors[k]) for k in ('files9','nodes5','claims','namespaces')}
+    final_absent=tuple(vectors['absent'])
     custody.revalidate_stopped()
     close(vectors)
+    if live_cap is not None:
+        lifecycle.archive_terminal_original_vectors(custody, scope, live_cap)
     # Helpers/serialization must run BEFORE this copied complete raw closure.
     for path, names in vectors['namespaces']:
         if tuple(sorted(os.listdir(path))) != tuple(names):
@@ -515,6 +556,65 @@ def observe_terminal(controller, writer, custody, scope, owner, operation_id,
                  None if (s.st_mode & 0o170000) == 0o040000 else s.st_nlink)
         if claim != (None if vector is None else tuple(vector)):
             raise o.Held('archive-history-original-claim')
+    if live_cap is not None:
+        for descriptor, value in zip(original_pipe_seal[:2], original_pipe_seal[3]):
+            z = os.fstat(descriptor)
+            if (z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid) != value:
+                raise o.Held('archive-history-final-live-pipe-FD')
+        final_pid=os.getpid();final_thread=threading.get_ident();final_now=time.monotonic()
+        for descriptor,value in zip(original_pipe_seal[:2],original_pipe_seal[3]):
+            z=os.fstat(descriptor)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise o.Held('archive-history-final-live-pipe-FD')
+        # The final original physical loop follows all actual pipe/time helpers.
+        for path,names in final_vectors['namespaces']:
+            if tuple(sorted(os.listdir(path)))!=names:raise o.Held('archive-history-original-census')
+        for path,v in final_vectors['claims']:
+            try:z=os.lstat(path)
+            except FileNotFoundError:
+                if v is not None:raise o.Held('archive-history-original-claim')
+                continue
+            if v is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=v:raise o.Held('archive-history-original-claim')
+        for path in final_absent:
+            try:os.lstat(path)
+            except FileNotFoundError:continue
+            raise o.Held('archive-history-original-absence')
+        for path,v in final_vectors['nodes5']:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise o.Held('archive-history-original-node')
+        for path,v in final_vectors['files9']:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise o.Held('archive-history-original-file')
+        if lifecycle._ARCHIVE_TERMINALS.get(custody) is not registered or registered[0]() is not live_cap or registered[2] is not scope or lifecycle._SEALS.get(custody) != original_custody_seal or custody.core != original_custody_seal or custody.channel is not original_pipe or custody.channel_seal != original_pipe_seal or lifecycle._PIPE_SEALS.get(original_pipe) != original_pipe_seal or (original_pipe.input, original_pipe.output, original_pipe.thread, original_pipe.facts) != original_pipe_seal or adoption._TERMINAL_EXPORTS.get(live_cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items()) != record_snapshot or adoption._SEALS.get(live_cap) != export_record['cap_seal']:
+            raise o.Held('archive-history-final-live-registry')
+        p=live_cap.preparation
+        physical=(id(controller),id(writer),id(p),id(live_cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(p._identity))
+        if physical!=export_record['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=export_record['physical'][-1]:raise o.Held('archive-history-final-live-physical')
+        if live_cap.preparation._controller is not controller or live_cap.preparation._writer is not writer or writer.local is not live_cap.preparation._local or not getattr(writer.local[1], 'depth', 0) or any(getattr(writer.local[1], k, False) for k in ('allow_pending', 'allow_tagger_pending', 'allow_release_pending')) or final_pid != export_record['pid'] or final_thread != export_record['thread'] or final_now >= export_record['deadline']:
+            raise o.Held('archive-history-final-live-purpose')
+        logical=dict(command=custody.command, paths=[str(custody.input), str(custody.control), str(custody.config_root), str(custody.main), str(custody.tasks), str(custody.restore_root), str(custody.scratch)], deadline=custody.deadline, backup_manifest=custody.backup_manifest, backup_acceptance=custody.backup_acceptance, input_sha=custody.input_sha, nonce=custody.nonce, parent_sha=custody.parent_sha, thread=custody.thread, channel=id(custody.channel), channel_seal=custody.channel_seal, reader=custody.reader, invocation=custody.invocation, proofs=custody.proofs, files={str(p): v for p, v in custody.files.items()}, reader_files={str(p): v for p, v in custody.reader_files.items()}, nodes={str(p): v for p, v in custody.nodes.items()}, absent=list(map(str, custody.absent)), reader_absent=list(map(str, custody.reader_absent)))
+        pending=[logical];projection=[]
+        while pending:
+         value=pending.pop();kind=type(value)
+         if kind is dict:
+          keys=tuple(sorted(value));projection.append(('dict',keys))
+          for name in reversed(keys):pending.append(value[name])
+         elif kind in (list,tuple):
+          projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+         elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+         else:raise o.Held('archive-terminal-custody-projection-type')
+        if tuple(projection)!=original_custody_projection:raise o.Held('archive-history-final-live-custody')
+        logical = {'objects':live_cap._objects,'phase':live_cap._phase,'thread':live_cap._thread,'paths':list(map(str,(live_cap.root,live_cap.source,live_cap.stage,live_cap.journal))),'files':{str(p):v for p,v in live_cap._files.items()},'nodes':{str(p):v for p,v in live_cap._nodes.items()},'absent':sorted(map(str,live_cap._absent)),'before':live_cap._before,'after':live_cap._after,'owner':live_cap._owner,'source_attrs':live_cap._source_attrs,'stage_attrs':live_cap._stage_attrs,'census':live_cap._census,'records':live_cap._records,'claims':{str(p):v for p,v in live_cap._claims.items()},'names':sorted(live_cap._names),'receipt':live_cap._receipt,'dirs':{str(p):v for p,v in live_cap._dirs.items()},'contents':{str(p):v for p,v in live_cap._contents.items()},'source_names':sorted(live_cap._source_names)}
+        pending=[logical];projection=[]
+        while pending:
+            value=pending.pop();kind=type(value)
+            if kind is dict:
+                keys=tuple(sorted(value));projection.append(('dict',keys))
+                for name in reversed(keys):pending.append(value[name])
+            elif kind in (list,tuple):
+                projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+            elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+            else:raise o.Held('repair-terminal-core-projection-type')
+        if tuple(projection)!=core_projection:raise o.Held('archive-history-final-live-complete-core')
     return answer
 
 

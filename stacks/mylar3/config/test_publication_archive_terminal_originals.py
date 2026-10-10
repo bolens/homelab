@@ -107,8 +107,9 @@ class Binding(unittest.TestCase):
   self.l.response['reader']=copy.deepcopy(self.l.state)
   self.l.reader.update(config_root=str(self.cfg),restore_root=str(self.restore),scratch=str(self.scratch),runtime=self.l.state,current_pairs=self.l.pairs(self.cfg),restore_pairs=self.l.pairs(self.restore))
   sdk=self.l.write('sdk.json',self.m.encoded({name:hashlib.sha256(Path(self.m.__file__).with_name(name).read_bytes()).hexdigest() for name in ('publication_reader_lifecycle.py','publication_archive_adoption.py','publication_archive_owned.py','publication_archive_reader.py','publication_native_configured_scope.py')}))
-  self.l.input=self.l.write('input.json',self.m.encoded({'action':'archive-one','owner':self.c.owner,'operation_id':self.c.operation_id,'sdk_map':sdk}))
+  self.l.input=self.l.write('input.json',self.m.encoded({'action':'archive-one','owner':self.c.owner,'operation_id':self.c.operation_id,'sdk_map':sdk,**({'operation':str(self.round_output)} if hasattr(self,'round_output') else {})}))
   self.l.doc.update(input_sha256=self.l.input['sha256'],command=['fixture','--phase','execute']);self.l.doc['proofs']['archive_sdk_map']=sdk;self.l.write('input.lifecycle.json',self.m.encoded(self.l.doc))
+  if hasattr(self,'terminal_channel_setup'):self.terminal_channel_setup(self.l)
   self.life=self.m.StoppedReaderCustody(self.m._KEY,self.l.input['path'],self.l.input['sha256'],self.l.nonce,self.l.parent['sha256'],self.l.doc['command'],self.l.channel)
   case=self
   class Scope:

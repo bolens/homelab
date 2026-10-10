@@ -46,6 +46,7 @@ PACK_FIXTURES = frozenset((
     'test_fixtures/retained_pack_worker/reader_scan.py',
     'test_fixtures/retained_pack_worker/release_naming.py',
     'test_fixtures/retained_pack_worker/retained_pack_handoff.py',
+    'test_fixtures/retained_pack_worker/retained_pack_operations.py',
     'test_fixtures/retained_pack_worker/source-pins.json',
     'test_fixtures/retained_pack_worker/writer_cycle.py',
 ))

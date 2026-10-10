@@ -283,6 +283,18 @@ def execute_one(plan,modules,custody,scope):
   return evidence,vectors
 
 
+def same_child_observation(cap,modules,custody,scope,scratch):
+ adoption=modules['publication_archive_adoption'];life=modules['publication_reader_lifecycle'];history=modules['publication_archive_history']
+ need(type(cap) is adoption.RepairAdoption and cap.reader.custody is custody and cap._phase in ('complete','rollback-complete'),'repair-same-child-exact-terminal-cap')
+ controller=cap.preparation._controller;writer=cap.preparation._writer
+ life.bind_archive_terminal_originals(custody,scope,cap)
+ observed=history.observe_terminal(controller,writer,custody,scope,dict(cap._owner),cap.preparation._binding['operation_id'],cap.journal/'baseline.json',scratch,rollback=cap._phase=='rollback-complete',with_vectors=True,live_cap=cap)
+ need(type(observed) is dict and set(observed)=={'summary','original_vectors','history'},'repair-same-child-actual-observation')
+ value=observed['original_vectors'];need(set(value)=={'files9','nodes5','absent','claims','namespaces'},'repair-same-child-complete-vectors')
+ vectors=seal_vectors(dict(value['files9']),dict(value['nodes5']),value['absent'],dict(value['claims']),dict(value['namespaces']))
+ return observed,vectors
+
+
 def original_execution(value,plan):
  expected={'version','kind','owner','operation_id','baseline','preparation','preparation_directory9','reader','publication_acceptance','mutation_authority'}
  need(type(value) is dict and set(value)==expected and type(value['version']) is int and value['version']==1 and value['kind']=='archive-one-original-custody' and value['publication_acceptance'] is False and value['mutation_authority'] is False,'repair-original-execute-schema')
@@ -338,13 +350,210 @@ def require_terminal_observers(modules):
 
 def validate_plan(plan,args,argv):
  base={'version','action','command_template','operation','sdk_map','nonce','parent_sha256','selected_image','controls','archive_scopes','owner','operation_id'}
- expected=base|({'execution_originals'} if args.phase=='verify-terminal' else set())
- need(type(plan) is dict and set(plan)==expected and type(plan['version']) is int and plan['version']==1 and plan['action']=='archive-one','repair-exact-action-input')
+ same=type(plan) is dict and type(plan.get('version')) is int and plan['version']==2
+ expected=base|({'execution_originals'} if args.phase=='verify-terminal' else set())|({'terminal_mode'} if same else set())
+ need(type(plan) is dict and set(plan)==expected and type(plan['version']) is int and plan['version'] in (1,2) and plan['action']=='archive-one','repair-exact-action-input')
+ if same:need(args.phase=='execute' and plan['terminal_mode']=='same-child-v1','repair-exact-same-child-mode')
  need(args.phase in ('execute','verify-terminal'),'repair-finite-action-phase');owner_request({'version':1,'owner':plan['owner'],'operation_id':plan['operation_id']})
  need(type(plan['nonce']) is str and re.fullmatch('[0-9a-f]{64}',plan['nonce']) and type(plan['parent_sha256']) is str and re.fullmatch('[0-9a-f]{64}',plan['parent_sha256']) and re.fullmatch('sha256:[0-9a-f]{64}',plan['selected_image']),'repair-parent-identities')
  need(type(plan['controls']) is dict and set(plan['controls'])==ROLES,'repair-distinct-eight-controls')
  actual_command(plan,args,argv)
  return plan
+
+def same_child_ack(modules,custody,scope,cap,witness,reference,vectors,source_files,source_nodes,args):
+ life=modules['publication_reader_lifecycle'];adoption=modules['publication_archive_adoption']
+ release=life.consume_archive_terminal_release(witness,custody,scope,cap)
+ registered=life._ARCHIVE_TERMINALS.get(custody)
+ if type(custody) is not life.StoppedReaderCustody or registered is None or registered[0]() is not cap or registered[2] is not scope:
+  raise life.Held('archive-terminal-query-original-registry')
+ terminal=registered[3];seal=registered[4];original_custody_projection=registered[7]
+ # Copy admitted originals BEFORE the first replaceable component/SDK callback.
+ terminal_snapshot=tuple(terminal.items());channel=custody.channel;channel_seal=custody.channel_seal;deadline=custody.deadline;command=custody.command
+ invocation=copy.deepcopy(custody.invocation);original_reader=copy.deepcopy(custody.reader);original_proofs=copy.deepcopy(custody.proofs);original_thread=custody.thread
+ new_files={p:tuple(v) for p,v in custody.files.items()};new_nodes={p:tuple(v) for p,v in custody.nodes.items()};old_reader={p:tuple(v) for p,v in custody.reader_files.items()};old_absent=tuple([*custody.absent,*custody.reader_absent])
+ files=tuple((str(p),v) for p,v in {**new_files,**old_reader}.items());nodes=tuple((str(p),v) for p,v in new_nodes.items())
+ terminal_files=tuple(terminal['files']);terminal_nodes=tuple(terminal['nodes']);terminal_absent=tuple(terminal['absent']);terminal_claims=tuple(terminal['claims']);terminal_names=tuple(terminal['namespaces'])
+ handle=registered[1];export_record=adoption._TERMINAL_RECORDS[handle];export_snapshot=tuple(export_record.items());cap_seal=export_record['cap_seal'];original_core_projection=export_record['core_projection'];controller=cap.preparation._controller;writer=cap.preparation._writer
+ release_record=life._ARCHIVE_RELEASES[witness];release_snapshot=tuple(release_record.items())
+ frame=encoded({'type':'ACK','ack':{'nonce':custody.nonce,'phase':'execute','source_sha256':args.source_sha256,'report':reference,'terminal_release':release,'publication_acceptance':False,'reader_resume_authority':False}})+b'\n'
+ # All semantic/copy/write/watch helpers precede original source and complete
+ # terminal inline closure. No mutation object is deserialized from this report.
+ all_files=tuple((str(p),tuple(v)) for p,v in source_files.items())+((reference['path'],tuple(reference['signature9'])),)
+ all_nodes=tuple((str(p),tuple(v)) for p,v in source_nodes.items())
+ ack_terminal_files=tuple(vectors['files']);ack_terminal_nodes=tuple(vectors['nodes']);ack_terminal_absent=tuple(vectors['absent']);ack_terminal_claims=tuple(vectors['claims']);ack_terminal_censuses=tuple(vectors['censuses']);output_fd=sys.stdout.fileno()
+ close_vectors(vectors)
+ for p,v in all_nodes:
+  z=os.lstat(p)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('repair-ACK-source-node')
+ for p,v in all_files:
+  z=os.lstat(p)
+  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('repair-ACK-source-file')
+ # Inline full observational originals again AFTER the last replaceable helper.
+ for p,names in ack_terminal_censuses:
+  if set(os.listdir(p))!=set(names):raise Held('repair-ACK-census')
+ for p,v in ack_terminal_nodes:
+  z=os.lstat(p)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('repair-ACK-node')
+ for p,v in ack_terminal_files:
+  z=os.lstat(p)
+  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('repair-ACK-file')
+ for p in ack_terminal_absent:
+  try:os.lstat(p)
+  except FileNotFoundError:continue
+  raise Held('repair-ACK-absence')
+ for p,v in ack_terminal_claims:
+  try:z=os.lstat(p)
+  except FileNotFoundError:
+   if v is not None:raise Held('repair-ACK-missing-claim')
+   continue
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if (z.st_mode & 0o170000)==0o040000 else z.st_nlink)!=v:raise Held('repair-ACK-claim')
+ if life.time.monotonic()>=deadline:raise life.Held('archive-terminal-final-deadline')
+ preparation=cap.preparation
+ physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
+ if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or os.getpid()!=terminal['pid'] or life.threading.get_ident()!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+  raise life.Held('archive-terminal-final-original-writer-controller')
+ if life._ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or life._SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or life.threading.get_ident()!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+  raise life.Held('archive-terminal-final-original-custody')
+ if type(channel) is not life.ParentPipe or life._PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  raise life.Held('archive-terminal-final-original-channel')
+ for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+  z=os.fstat(descriptor)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise life.Held('archive-terminal-final-original-channel-FD')
+ for path,names in terminal_names:
+  if frozenset(os.listdir(path))!=frozenset(names):raise life.Held('archive-terminal-final-census')
+ for path,value in terminal_claims:
+  try:z=os.lstat(path)
+  except FileNotFoundError:
+   if value is not None:raise life.Held('archive-terminal-final-missing-claim')
+   continue
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise life.Held('archive-terminal-final-claim')
+ for path in (*old_absent,*terminal_absent):
+  try:os.lstat(path)
+  except FileNotFoundError:continue
+  raise life.Held('archive-terminal-final-absence')
+ for path,value in (*nodes,*terminal_nodes):
+  z=os.lstat(path)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise life.Held('archive-terminal-final-node')
+ for path,value in (*files,*terminal_files):
+  z=os.lstat(path)
+  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise life.Held('archive-terminal-final-file')
+ for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+  z=os.fstat(descriptor)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise life.Held('archive-terminal-final-original-channel-FD')
+ if life.time.monotonic()>=deadline:raise life.Held('archive-terminal-final-deadline')
+ # Every original source/report vector closes after final FD/process callbacks.
+ final_pid=os.getpid();final_thread=life.threading.get_ident()
+ for descriptor,value in zip(channel_seal[:2],channel_seal[3]):
+  z=os.fstat(descriptor)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise life.Held('archive-terminal-final-original-channel-FD')
+ for path,names in terminal_names:
+  if frozenset(os.listdir(path))!=frozenset(names):raise life.Held('archive-terminal-final-census')
+ for path,value in terminal_claims:
+  try:z=os.lstat(path)
+  except FileNotFoundError:
+   if value is not None:raise life.Held('archive-terminal-final-missing-claim')
+   continue
+  if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=value:raise life.Held('archive-terminal-final-claim')
+ for path in (*old_absent,*terminal_absent):
+  try:os.lstat(path)
+  except FileNotFoundError:continue
+  raise life.Held('archive-terminal-final-absence')
+ for path,value in (*nodes,*terminal_nodes):
+  z=os.lstat(path)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise life.Held('archive-terminal-final-node')
+ for path,value in (*files,*terminal_files):
+  z=os.lstat(path)
+  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise life.Held('archive-terminal-final-file')
+ for path,v in all_nodes:
+  z=os.lstat(path)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('repair-ACK-source-node')
+ for path,v in all_files:
+  z=os.lstat(path)
+  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('repair-ACK-source-file')
+ for path,names in ack_terminal_censuses:
+  if frozenset(os.listdir(path))!=frozenset(names):raise Held('repair-ACK-census')
+ for path,v in ack_terminal_claims:
+  try:z=os.lstat(path)
+  except FileNotFoundError:
+   if v is not None:raise Held('repair-ACK-missing-claim')
+   continue
+  if v is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=v:raise Held('repair-ACK-claim')
+ for path in ack_terminal_absent:
+  try:os.lstat(path)
+  except FileNotFoundError:continue
+  raise Held('repair-ACK-absence')
+ for path,v in ack_terminal_nodes:
+  z=os.lstat(path)
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise Held('repair-ACK-node')
+ for path,v in ack_terminal_files:
+  z=os.lstat(path)
+  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=v:raise Held('repair-ACK-file')
+ preparation=cap.preparation
+ physical=(id(controller),id(writer),id(preparation),id(cap.reader),id(writer.local),str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(writer.root),str(controller.database),str(controller.native_database),tuple(preparation._identity))
+ if physical!=terminal['physical'] or tuple(writer.root_identity)+tuple(writer.lock_identity)!=terminal['physical'][-1] or writer.local is not preparation._local or not getattr(writer.local[1],'depth',0) or any(getattr(writer.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')) or final_pid!=terminal['pid'] or final_thread!=terminal['thread'] or cap._phase!=terminal['phase'] or tuple(sorted(cap._owner.items()))!=terminal['owner'] or tuple(cap._objects)!=(terminal['physical'][2],terminal['physical'][3],terminal['physical'][1],terminal['physical'][0]) or cap._thread!=terminal['thread'] or adoption._SEALS.get(cap)!=cap_seal or adoption._TERMINAL_EXPORTS.get(cap) is not handle or adoption._TERMINAL_RECORDS.get(handle) is not export_record or tuple(export_record.items())!=export_snapshot:
+  raise life.Held('archive-terminal-final-original-writer-controller')
+ if life._ARCHIVE_TERMINALS.get(custody) is not registered or tuple(terminal.items())!=terminal_snapshot or life._SEALS.get(custody)!=seal or custody.core!=seal or custody.channel is not channel or custody.channel_seal!=channel_seal or custody.command!=command or custody.deadline!=deadline or custody.invocation!=invocation or custody.reader!=original_reader or custody.proofs!=original_proofs or custody.thread!=original_thread or final_thread!=original_thread or {p:tuple(v) for p,v in custody.files.items()}!=new_files or {p:tuple(v) for p,v in custody.reader_files.items()}!=old_reader or {p:tuple(v) for p,v in custody.nodes.items()}!=new_nodes or tuple([*custody.absent,*custody.reader_absent])!=old_absent:
+  raise life.Held('archive-terminal-final-original-custody')
+ if type(channel) is not life.ParentPipe or life._PIPE_SEALS.get(channel)!=channel_seal or (channel.input,channel.output,channel.thread,channel.facts)!=channel_seal:
+  raise life.Held('archive-terminal-final-original-channel')
+ logical = {'objects':cap._objects,'phase':cap._phase,'thread':cap._thread,'paths':list(map(str,(cap.root,cap.source,cap.stage,cap.journal))),'files':{str(p):v for p,v in cap._files.items()},'nodes':{str(p):v for p,v in cap._nodes.items()},'absent':sorted(map(str,cap._absent)),'before':cap._before,'after':cap._after,'owner':cap._owner,'source_attrs':cap._source_attrs,'stage_attrs':cap._stage_attrs,'census':cap._census,'records':cap._records,'claims':{str(p):v for p,v in cap._claims.items()},'names':sorted(cap._names),'receipt':cap._receipt,'dirs':{str(p):v for p,v in cap._dirs.items()},'contents':{str(p):v for p,v in cap._contents.items()},'source_names':sorted(cap._source_names)}
+ pending=[logical];projection=[]
+ while pending:
+     value=pending.pop();kind=type(value)
+     if kind is dict:
+         keys=tuple(sorted(value));projection.append(('dict',keys))
+         for name in reversed(keys):pending.append(value[name])
+     elif kind in (list,tuple):
+         projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+     elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+     else:raise life.Held('archive-terminal-core-projection-type')
+ if tuple(projection)!=original_core_projection:raise life.Held('archive-terminal-final-complete-core')
+ logical=dict(command=custody.command, paths=[str(custody.input), str(custody.control), str(custody.config_root), str(custody.main), str(custody.tasks), str(custody.restore_root), str(custody.scratch)], deadline=custody.deadline, backup_manifest=custody.backup_manifest, backup_acceptance=custody.backup_acceptance, input_sha=custody.input_sha, nonce=custody.nonce, parent_sha=custody.parent_sha, thread=custody.thread, channel=id(custody.channel), channel_seal=custody.channel_seal, reader=custody.reader, invocation=custody.invocation, proofs=custody.proofs, files={str(p): v for p, v in custody.files.items()}, reader_files={str(p): v for p, v in custody.reader_files.items()}, nodes={str(p): v for p, v in custody.nodes.items()}, absent=list(map(str, custody.absent)), reader_absent=list(map(str, custody.reader_absent)))
+ pending=[logical];projection=[]
+ while pending:
+  value=pending.pop();kind=type(value)
+  if kind is dict:
+   keys=tuple(sorted(value));projection.append(('dict',keys))
+   for name in reversed(keys):pending.append(value[name])
+  elif kind in (list,tuple):
+   projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+  elif kind in (str,int,bool,float,type(None)):projection.append((kind.__name__,value))
+  else:raise life.Held('archive-terminal-custody-projection-type')
+ if tuple(projection)!=original_custody_projection:raise life.Held('archive-terminal-final-complete-custody')
+ if output_fd!=channel.output:raise Held('repair-final-original-output-FD')
+ if life._ARCHIVE_RELEASES.get(witness) is not release_record or tuple(release_record.items())!=release_snapshot or release_record['consumed'] is not True or life._ARCHIVE_ROUNDS.get(custody) is not witness or type(channel.seq) is not int or channel.seq!=release_record['conversation_sequence'] or release['conversation_sequence']!=channel.seq:
+  raise Held('repair-final-original-consumed-release')
+ written=os.write(output_fd,frame)
+ if written!=len(frame):raise Held('repair-final-ACK-partial-no-replay')
+
+def execute_same_child(plan,modules,custody,scope,source_files,source_nodes,args):
+ need(plan.get('terminal_mode')=='same-child-v1' and plan.get('version')==2,'repair-same-child-default-disabled')
+ controller,writer=exact_pair(modules,custody,scope);require_terminal_observers(modules);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
+ operation,opnodes=operation_directory(plan['operation'],custody);need(not os.listdir(operation),'repair-exclusive-output-operation')
+ for root in (*controller.roots,controller.root,retention,scratch):need(operation!=Path(root) and operation not in Path(root).parents and Path(root) not in operation.parents,'repair-output-disjoint')
+ with writer.hold(timeout=0):
+  modules['publication_archive_history'].directory(controller,writer)
+  scope.revalidate();cap=prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention)
+  baseline=cap.journal/'baseline.json';prep_path=cap.preparation._operation/'preparation.json'
+  original={'version':1,'kind':'archive-one-original-custody','owner':copy.deepcopy(plan['owner']),'operation_id':plan['operation_id'],'baseline':{'path':str(baseline),'signature9':list(cap._files[baseline]),'sha256':cap._contents[baseline]},'preparation':{'path':str(prep_path),'signature9':list(cap.preparation._files[prep_path]['signature9']),'sha256':cap.preparation._files[prep_path]['sha256']},'preparation_directory9':list(cap.preparation._directory),'reader':cap.reader.binding,'publication_acceptance':False,'mutation_authority':False}
+  originals=emit(operation,'execution-originals.json',original,());cap.close()
+  cap.install();cap.complete();execute_history=modules['publication_archive_history'].executed(cap)
+  observed,vectors=same_child_observation(cap,modules,custody,scope,scratch)
+  vectors['files']+=((originals['path'],tuple(originals['signature9'])),)
+  vectors['nodes']+=tuple((str(p),tuple(v)) for p,v in opnodes.items())
+  vectors['censuses']=tuple((p,n) for p,n in vectors['censuses'] if p!=str(operation))+((str(operation),('execute-report.json','execution-originals.json','terminal-report.json')),)
+  outcome='observed-rollback' if cap._phase=='rollback-complete' else 'observed-forward'
+  terminal={'version':1,'kind':'archive-one-independent-terminal-observation','outcome':outcome,'owner':copy.deepcopy(plan['owner']),'operation_id':plan['operation_id'],'originals':originals,'baseline':original['baseline'],'independent_observation':observed['summary'],'history':observed['history'],'execute_history':execute_history,'reader_index_acceptance':False,'ordinary_import_grant':False,'publication_acceptance':False,'mutation_authority':False,'automatic_replay':False,'phase':'execute','nonce':plan['nonce'],'final_ack_required':True,'provider_continuity_verified':False}
+  terminal['original_vectors']={key:[[path,None if value is None else list(value)] for path,value in vectors[key]] for key in ('files','nodes','claims','censuses')};terminal['original_vectors']['absent']=list(vectors['absent'])
+  terminal_ref=emit(operation,'terminal-report.json',terminal,('execution-originals.json',))
+  evidence={'version':1,'kind':'archive-one-owning-execute-observation','outcome':outcome,'owner':copy.deepcopy(plan['owner']),'operation_id':plan['operation_id'],'originals':originals,'baseline':original['baseline'],'execute_history':execute_history,'terminal_report':terminal_ref,'repair_bytes_verified':True,'reader_reference_preservation':True,'reader_index_acceptance':False,'ordinary_import_grant':False,'publication_acceptance':False,'mutation_authority':False,'automatic_replay':False,'phase':'execute','nonce':plan['nonce'],'final_ack_required':True,'provider_continuity_verified':False}
+  report_ref=emit(operation,'execute-report.json',evidence,('execution-originals.json','terminal-report.json'))
+  for ref in (terminal_ref,report_ref):vectors['files']+=((ref['path'],tuple(ref['signature9'])),)
+  custody.revalidate_stopped();scope.revalidate();close_vectors(vectors)
+  refs={'originals':originals,'execution_report':report_ref,'terminal_report':terminal_ref}
+  witness=modules['publication_reader_lifecycle'].archive_terminal_release(custody,scope,cap,refs)
+  same_child_ack(modules,custody,scope,cap,witness,report_ref,vectors,source_files,source_nodes,args)
+
 
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('--phase',choices=('execute','verify-terminal'),required=True);ap.add_argument('--input',required=True);ap.add_argument('--input-sha256',required=True);ap.add_argument('--source-sha256',required=True);args=ap.parse_args()
@@ -362,6 +571,8 @@ def main():
  modules,sf,sn=sdk(plan['sdk_map']);merge(files,sf,'repair-sdk-original-file');merge(nodes,sn,'repair-sdk-original-node')
  token=modules['publication_native_scope_birth'].from_checked_parent(args.input,args.input_sha256,plan['nonce'],parent_sha=plan['parent_sha256'],argv=list(sys.orig_argv));custody=modules['publication_reader_lifecycle'].from_birth(token);scope=modules['publication_native_configured_scope'].from_checked_parent(custody)
  operation,opnodes=operation_directory(plan['operation'],custody);merge(nodes,opnodes,'repair-original-output-ancestor')
+ if plan.get('terminal_mode')=='same-child-v1':
+  execute_same_child(plan,modules,custody,scope,files,nodes,args);return
  result,vectors=(execute_one if args.phase=='execute' else verify_one)(plan,modules,custody,scope)
  if args.phase=='verify-terminal':
   # Private factual export only; actual typed verifier produced these originals.
