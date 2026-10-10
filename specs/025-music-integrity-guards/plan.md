@@ -14,8 +14,20 @@ Local UTF-8 M3U-style lists are bounded to 1 MiB and local audio paths. Exact
 references establish the relationship; obfuscated matching requires every
 surviving same-directory FLAC to match a numbered artist/title entry in one
 tagged album/disc. Missing entries stop cleanup. Complete recognised lists may
-be cleaned; unsafe, remote and ambiguous M3U lists remain. No URL fetching or
+be cleaned under default settings. RequireCompleteness retains them and rewrites
+local references when needed so repeat processing keeps its evidence. Unsafe,
+remote and ambiguous M3U lists remain. No URL fetching or
 guessed online album metadata is involved.
+
+## Additional completeness requirements
+
+Reconcile nonempty position aliases and slash totals before grouping. Validate
+declared disc sets within album/artist and edition context. Retain directories
+when flattening would merge those contexts or numbered groups without album tags.
+RequireCompleteness defaults off and requires validated totals, complete local
+playlist coverage or cue-image evidence for each audio file. Apply the same guard
+to previews, unchanged releases and cleanup-disabled processing. Preserve source
+bytes on every failure. No local sequence can establish an undeclared final count.
 
 ## Technical Context
 

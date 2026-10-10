@@ -396,10 +396,24 @@ def flac_album_metadata(path: Path) -> tuple[dict[str, str], bool]:
                             key = key.upper()
                             single_value_keys = {
                                 "ALBUM", "ALBUMARTIST", "ALBUM ARTIST", "ARTIST", "TITLE", "TRACK", "TRACKNUMBER",
-                                "TRACKTOTAL", "TOTALTRACKS", "DISC", "DISCNUMBER", "CUESHEET",
+                                "TRACKTOTAL", "TOTALTRACKS", "DISC", "DISCNUMBER", "DISCTOTAL", "TOTALDISCS", "CUESHEET",
                             }
                             if key in single_value_keys and key in tags and tags[key] != value:
-                                return {}, False
+                                if key in {"TRACK", "TRACKNUMBER", "TRACKTOTAL", "TOTALTRACKS",
+                                           "DISC", "DISCNUMBER", "DISCTOTAL", "TOTALDISCS"}:
+                                    if not value.strip():
+                                        continue
+                                    values = {"previous": tags[key], "incoming": value}
+                                    positions = key in {"TRACK", "TRACKNUMBER", "DISC", "DISCNUMBER"}
+                                    try:
+                                        number, total = metadata_position(
+                                            values, ("previous", "incoming") if positions else (),
+                                            () if positions else ("previous", "incoming"), key)
+                                    except ValueError as error:
+                                        raise RuntimeError(f"conflicting repeated FLAC {key} tags; retaining all files") from error
+                                    value = (number + ("/" + total if total else "")) if positions else total
+                                else:
+                                    return {}, False
                             tags[key] = value
                 except (ValueError, UnicodeDecodeError):
                     return {}, False
@@ -410,29 +424,90 @@ def flac_album_metadata(path: Path) -> tuple[dict[str, str], bool]:
     return {}, False
 
 
-def check_album_tracks(files: list[Path], protected: set[Path]) -> None:
+def metadata_position(tags: dict[str, str], names: tuple[str, ...],
+                      total_names: tuple[str, ...], label: str) -> tuple[str, str]:
+    """Reconcile nonempty aliases and slash totals without letting blanks mask evidence."""
+    positions = []
+    totals = [tags.get(name, "").strip() for name in total_names]
+    for name in names:
+        value = tags.get(name, "").strip()
+        if value:
+            position, separator, total = value.partition("/")
+            positions.append(position.strip())
+            if separator:
+                totals.append(total.strip())
+
+    def reconcile(values: list[str]) -> str:
+        values = [value for value in values if value]
+        normalized = {str(int(value)) if re.fullmatch(r"[0-9]{1,5}", value) else value
+                      for value in values}
+        if len(normalized) > 1:
+            raise ValueError(f"conflicting FLAC {label} metadata aliases; retaining all files")
+        return next(iter(normalized), "")
+
+    return reconcile(positions), reconcile(totals)
+
+
+def album_directory(path: Path, root: Path) -> Path:
+    parent = root
+    for part in path.relative_to(root).parts[:-1]:
+        parent = parent / part
+        if DISC_DIRECTORY.fullmatch(part):
+            return parent.parent
+    return path.parent
+
+
+def check_album_tracks(files: list[Path], protected: set[Path], root: Path) -> set[Path]:
     groups: dict[tuple, list[tuple[Path, str, str]]] = {}
+    discs: dict[tuple, list[tuple[str, str]]] = {}
+    proven = set(protected)
     for path in files:
-        if path in protected or detected_suffix(path) != ".flac":
+        if detected_suffix(path) != ".flac":
             continue
         tags, embedded_cue = flac_album_metadata(path)
-        if embedded_cue or tags.get("CUESHEET"):
-            continue
-        track = tags.get("TRACKNUMBER", tags.get("TRACK", ""))
-        number, _, combined_total = track.partition("/")
-        total = tags.get("TRACKTOTAL", tags.get("TOTALTRACKS", combined_total))
-        disc = tags.get("DISCNUMBER", tags.get("DISC", "")).split("/", 1)[0].strip()
-        if re.fullmatch(r"[0-9]{1,5}", disc):
-            disc = str(int(disc))
-        ancestry = tuple(part.casefold() for part in path.parent.parts if DISC_DIRECTORY.fullmatch(part))
+        disc, disc_total = metadata_position(tags, ("DISCNUMBER", "DISC"),
+                                             ("DISCTOTAL", "TOTALDISCS"), "disc")
+        ancestry = tuple(part.casefold() for part in path.parent.relative_to(root).parts if DISC_DIRECTORY.fullmatch(part))
         album = tags.get("ALBUM", "").strip().casefold()
-        artist = tags.get("ALBUMARTIST", tags.get("ALBUM ARTIST", "")).strip().casefold()
-        key = (album or str(path.parent), artist, disc, ancestry)
-        groups.setdefault(key, []).append((path, number.strip(), total.strip()))
+        artist = (tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST", "")).strip().casefold()
+        base = album_directory(path, root)
+        # A shared album name alone must not combine independent edition folders.
+        discs.setdefault((album or str(base), artist, str(base)), []).append((disc, disc_total))
+        if path in protected or embedded_cue or tags.get("CUESHEET"):
+            proven.add(path)
+            continue
+        number, total = metadata_position(tags, ("TRACKNUMBER", "TRACK"),
+                                          ("TRACKTOTAL", "TOTALTRACKS"), "track")
+        key = (album or str(path.parent), artist, disc, ancestry, str(base))
+        groups.setdefault(key, []).append((path, number, total))
+    for records in discs.values():
+        totals = {int(total) for _, total in records if re.fullmatch(r"[0-9]{1,5}", total) and int(total) > 0}
+        if not totals:
+            continue
+        if len(totals) != 1:
+            raise ValueError("conflicting FLAC disc totals within an album; retaining all files")
+        total = totals.pop()
+        numbers = {int(number) for number, _ in records if re.fullmatch(r"[0-9]{1,5}", number)}
+        if any(not re.fullmatch(r"[0-9]{1,5}", number) for number, _ in records) or numbers != set(range(1, total + 1)):
+            raise ValueError(f"incomplete album: missing or invalid discs of {total}; retaining all files")
     for records in groups.values():
         totals = {int(total) for _, _, total in records if re.fullmatch(r"[0-9]{1,5}", total) and int(total) > 0}
         if not totals:
-            continue  # Missing metadata cannot establish completeness.
+            # Track positions establish a lower bound even without a declared total.
+            if any(total for _, _, total in records) or not all(
+                       re.fullmatch(r"[0-9]{1,5}", number) and int(number) > 0
+                       for _, number, _ in records):
+                continue  # Untagged or ambiguous positions cannot establish a sequence.
+            numbers = [int(number) for _, number, _ in records]
+            if len(set(numbers)) != len(numbers):
+                raise ValueError("duplicate FLAC track numbers within an album/disc; retaining all files")
+            if sorted(numbers) != list(range(1, len(numbers) + 1)):
+                raise ValueError(
+                    f"incomplete album/disc: numbered tracks have gaps before track {max(numbers)} "
+                    "without a declared total; retaining all files. Obtain a complete release; "
+                    "post-processing cannot restore tracks absent from the download"
+                )
+            continue  # A contiguous prefix cannot prove that later tracks are present.
         if len(totals) != 1:
             raise ValueError("conflicting FLAC track totals within an album/disc; retaining all files")
         total = totals.pop()
@@ -449,6 +524,9 @@ def check_album_tracks(files: list[Path], protected: set[Path]) -> None:
                 "Check NZBGet RenameIgnoreExt / RenameAfterUnpack before downloading again; "
                 "earlier renaming can overwrite tracks before this script starts"
             )
+
+        proven.update(path for path, _, _ in records)
+    return proven
 
 
 AUDIO_SUFFIXES = {
@@ -478,6 +556,17 @@ def verify_audio_files(plan: ProcessingPlan) -> None:
     print(f"[INFO] Audio decoding verified: {len(audio)} files")
 
 
+def playlist_reference(line: str) -> PurePosixPath | None:
+    line = line.strip()
+    if not line or line.startswith("#") or any(not char.isprintable() for char in line):
+        return None
+    entry = PurePosixPath(line.replace("\\", "/"))
+    if (entry.is_absolute() or PureWindowsPath(line).drive or ":" in line
+            or ".." in entry.parts or entry.suffix.casefold() not in AUDIO_SUFFIXES):
+        return None
+    return entry
+
+
 def playlist_entries(path: Path) -> list[PurePosixPath] | None:
     """Recognise bounded local M3U text, never arbitrary text or remote paths."""
     if path.suffix.casefold() in KNOWN_MEDIA_SUFFIXES | {".cue"}:
@@ -493,11 +582,8 @@ def playlist_entries(path: Path) -> list[PurePosixPath] | None:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        if any(not char.isprintable() for char in line):
-            return None
-        entry = PurePosixPath(line.replace("\\", "/"))
-        if (entry.is_absolute() or PureWindowsPath(line).drive or ":" in line
-                or ".." in entry.parts or entry.suffix.casefold() not in AUDIO_SUFFIXES):
+        entry = playlist_reference(line)
+        if entry is None:
             return None
         entries.append(entry)
         if len(entries) > MAX_MEMBERS:
@@ -514,7 +600,9 @@ def playlist_title(value: str) -> str:
     return "".join(word for word in words if word not in {"and", "feat", "ft", "featuring"})
 
 
-def check_playlists(files: list[Path], protected: set[Path]) -> set[Path]:
+def check_playlists(files: list[Path], protected: set[Path],
+                    covered: set[Path] | None = None,
+                    references: dict[Path, dict[PurePosixPath, Path]] | None = None) -> set[Path]:
     recognised = set()
     audio = [path for path in files if detected_suffix(path) in AUDIO_SUFFIXES
              or path.suffix.casefold() in AUDIO_SUFFIXES]
@@ -524,11 +612,23 @@ def check_playlists(files: list[Path], protected: set[Path]) -> set[Path]:
         entries = playlist_entries(playlist)
         if entries is None:
             continue
-        available = {target.relative_to(playlist.parent).as_posix().casefold()
-                     for path in audio if path.is_relative_to(playlist.parent)
-                     for target in (path, extension_target(path))}
+        available: dict[str, set[Path]] = {}
+        for path in audio:
+            if path.is_relative_to(playlist.parent):
+                for target in (path, extension_target(path)):
+                    available.setdefault(target.relative_to(playlist.parent).as_posix().casefold(), set()).add(path)
         exact = [entry.as_posix().casefold() in available for entry in entries]
         if all(exact):
+            resolved = [available[entry.as_posix().casefold()] for entry in entries]
+            if any(len(matches) != 1 for matches in resolved) or len({next(iter(matches)) for matches in resolved}) != len(entries):
+                raise ValueError(f"ambiguous playlist: {playlist.name}; entries must reference distinct audio files; retaining all files")
+            if covered is not None:
+                for entry in entries:
+                    matches = available[entry.as_posix().casefold()]
+                    if len(matches) == 1:
+                        covered.update(matches)
+            if references is not None and all(len(available[entry.as_posix().casefold()]) == 1 for entry in entries):
+                references[playlist] = {entry: next(iter(available[entry.as_posix().casefold()])) for entry in entries}
             recognised.add(playlist)
             continue
         # Obfuscated files can still be related through numbered artist/title
@@ -542,13 +642,14 @@ def check_playlists(files: list[Path], protected: set[Path]) -> set[Path]:
         matched = []
         for path in candidates:
             tags, embedded = flac_album_metadata(path)
-            track = tags.get("TRACKNUMBER", tags.get("TRACK", "")).split("/", 1)[0].strip()
+            track, _ = metadata_position(tags, ("TRACKNUMBER", "TRACK"), ("TRACKTOTAL", "TOTALTRACKS"), "track")
             if embedded or tags.get("CUESHEET") or not tags.get("ALBUM") or not tags.get("ARTIST") or not tags.get("TITLE"):
                 break
             if not re.fullmatch(r"[0-9]{1,5}", track):
                 break
-            identities.add((tags["ALBUM"].casefold(), tags.get("ALBUMARTIST", "").casefold(),
-                            tags.get("DISCNUMBER", tags.get("DISC", ""))))
+            disc, _ = metadata_position(tags, ("DISCNUMBER", "DISC"), ("DISCTOTAL", "TOTALDISCS"), "disc")
+            identities.add((tags["ALBUM"].strip().casefold(),
+                            (tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST", "")).strip().casefold(), disc))
             expected = playlist_title(tags["ARTIST"] + " " + tags["TITLE"])
             matches = [index for index, entry in enumerate(entries)
                        if len(entry.parts) == 1
@@ -563,6 +664,10 @@ def check_playlists(files: list[Path], protected: set[Path]) -> set[Path]:
             if len(identities) == 1 and len(set(matched)) == len(candidates):
                 if len(matched) != len(entries):
                     raise ValueError(f"incomplete playlist: {playlist.name}; {len(matched)} of {len(entries)} tracks present; retaining all files")
+                if references is not None:
+                    references[playlist] = {entries[index]: path for path, index in zip(candidates, matched)}
+                if covered is not None:
+                    covered.update(candidates)
                 recognised.add(playlist)
                 continue
         if any(exact):
@@ -571,16 +676,42 @@ def check_playlists(files: list[Path], protected: set[Path]) -> set[Path]:
 
 
 def plan_tree(root: Path, *, flatten: bool = True,
-              extensions: bool = True, cleanup: bool = True) -> ProcessingPlan:
+              extensions: bool = True, cleanup: bool = True,
+              require_completeness: bool = False) -> ProcessingPlan:
     files = tree_files(root)
     for path in files:
         if path.suffix.casefold() in AUDIO_SUFFIXES and path.stat().st_size == 0:
             raise ValueError(f"empty audio file: {path.name}; retaining all files")
     cues = read_cues(files, root)
     protected = {target for _, _, refs in cues.values() for target in refs.values()}
-    if cleanup:
-        check_album_tracks(files, protected)
-    playlists = check_playlists(files, protected) if cleanup else set()
+    proven = check_album_tracks(files, protected, root) if cleanup or require_completeness else set()
+    covered: set[Path] = set()
+    playlist_refs: dict[Path, dict[PurePosixPath, Path]] = {}
+    playlists = check_playlists(files, protected, covered, playlist_refs) if cleanup or require_completeness else set()
+    if require_completeness:
+        unresolved = [path for path in files if (detected_suffix(path) in AUDIO_SUFFIXES
+                      or path.suffix.casefold() in AUDIO_SUFFIXES) and path not in proven | covered]
+        if unresolved:
+            raise ValueError(f"RequireCompleteness: final track count is unproven for {len(unresolved)} audio files; retaining all files")
+    # Keep distinct unknown album groups stable across repeated processing.
+    unknown_groups: dict[Path, set[Path]] = {}
+    numbered_unknown = False
+    album_boundaries: dict[tuple, set[Path]] = {}
+    for path in files:
+        if detected_suffix(path) != ".flac":
+            continue
+        tags, _ = flac_album_metadata(path)
+        if tags.get("ALBUM", "").strip():
+            key = (tags["ALBUM"].strip().casefold(),
+                   (tags.get("ALBUMARTIST") or tags.get("ALBUM ARTIST", "")).strip().casefold())
+            album_boundaries.setdefault(key, set()).add(album_directory(path, root))
+            continue
+        numbered_unknown |= bool(tags.get("TRACKNUMBER") or tags.get("TRACK"))
+        parent = flattened_target(path, root, root).parent
+        unknown_groups.setdefault(parent, set()).add(path.parent)
+    if (any(len(parents) > 1 for parents in album_boundaries.values())
+            or (numbered_unknown and any(len(parents) > 1 for parents in unknown_groups.values()))):
+        flatten = False
     plans = {}
     removed = []
     repaired = []
@@ -589,7 +720,8 @@ def plan_tree(root: Path, *, flatten: bool = True,
     for path in files:
         target = extension_target(path) if extensions else path
         sidecar = path in playlists or (path.suffix.casefold() not in {".m3u", ".m3u8"} and disposable(path))
-        if cleanup and path not in protected and (sidecar or detected_suffix(path) in CLEANUP_SIGNATURE_SUFFIXES):
+        if (cleanup and path not in protected and not (require_completeness and path in playlists)
+                and (sidecar or detected_suffix(path) in CLEANUP_SIGNATURE_SUFFIXES)):
             # Only recognized images/documents without an established media suffix are
             # disposable. Do not delete a named audio/video file on a sniff alone.
             if path.suffix.casefold() not in KNOWN_MEDIA_SUFFIXES or disposable(path):
@@ -606,6 +738,25 @@ def plan_tree(root: Path, *, flatten: bool = True,
             raise ValueError("output filename conflicts with the private recovery workspace prefix")
     check_targets(list(plans.values()), root)
     rewritten = {}
+    if require_completeness:
+        for playlist, refs in playlist_refs.items():
+            raw = playlist.read_bytes()
+            encoding = "utf-8-sig" if raw.startswith(b"\xef\xbb\xbf") else "utf-8"
+            lines = []
+            for line in raw.decode(encoding).splitlines(keepends=True):
+                entry = PurePosixPath(line.strip().replace("\\", "/"))
+                if entry in refs:
+                    relative = os.path.relpath(plans[refs[entry]], plans[playlist].parent).replace(os.sep, "/")
+                    rendered = "./" + relative if relative.startswith("#") or relative != relative.strip() else relative
+                    reference = playlist_reference(rendered)
+                    if reference is None or reference.as_posix() != relative:
+                        raise ValueError(f"filename cannot be represented in a playlist: {playlist.name}")
+                    ending = line[len(line.rstrip("\r\n")):]
+                    line = rendered + ending
+                lines.append(line)
+            content = "".join(lines).encode(encoding)
+            if content != raw:
+                rewritten[playlist] = content
     for cue, (encoding, text, refs) in cues.items():
         def replace(match: re.Match[str]) -> str:
             name = match.group("quoted") or match.group("plain")
@@ -744,27 +895,30 @@ def publish(stage: Path, root: Path, originals: list[Path], scratch: Path,
 
 
 def process_release(directory: Path, *, extract: bool = True, flatten: bool = True,
-                    extensions: bool = True, cleanup: bool = True, verify_audio: bool = False) -> None:
+                    extensions: bool = True, cleanup: bool = True, verify_audio: bool = False,
+                    require_completeness: bool = False) -> None:
     if directory.is_symlink() or not directory.is_dir():
         raise ValueError("download directory must be an existing directory without a symlink")
     root = directory.resolve()
     descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        process_locked(root, extract=extract, flatten=flatten, extensions=extensions, cleanup=cleanup, verify_audio=verify_audio)
+        process_locked(root, extract=extract, flatten=flatten, extensions=extensions, cleanup=cleanup, verify_audio=verify_audio,
+                       require_completeness=require_completeness)
     finally:
         os.close(descriptor)
 
 
 def process_locked(root: Path, *, extract: bool, flatten: bool, extensions: bool, cleanup: bool,
-                   verify_audio: bool = False) -> None:
+                   verify_audio: bool = False, require_completeness: bool = False) -> None:
     if any(path.name.startswith(".unpack-music-") for path in root.iterdir()):
         raise ValueError("unfinished music processing workspace found; recover it before retrying")
     originals = tree_files(root)
     baseline = {path: file_state(path) for path in originals}
     audio_verified = False
     if not extract or not any(is_archive(path) for path in originals):
-        initial_plan = plan_tree(root, flatten=flatten, extensions=extensions, cleanup=cleanup)
+        initial_plan = plan_tree(root, flatten=flatten, extensions=extensions, cleanup=cleanup,
+                                 require_completeness=require_completeness)
         if extract and cleanup and not initial_plan.targets:
             raise ValueError("no files would remain after music cleanup; retaining the original release")
         if verify_audio:
@@ -792,7 +946,8 @@ def process_locked(root: Path, *, extract: bool, flatten: bool, extensions: bool
                     raise ValueError("insufficient disk space to stage files without hard-link support") from error
                 shutil.copy2(original, target)
         archives, duplicates = extract_archives(stage, scratch) if extract else ([], 0)
-        plan = plan_tree(stage, flatten=flatten, extensions=extensions, cleanup=cleanup)
+        plan = plan_tree(stage, flatten=flatten, extensions=extensions, cleanup=cleanup,
+                         require_completeness=require_completeness)
         if verify_audio and not audio_verified:
             verify_audio_files(plan)
         normalize_tree(stage, scratch, flatten=flatten, extensions=extensions, cleanup=cleanup, plan=plan)
@@ -852,13 +1007,13 @@ def print_summary(plan: ProcessingPlan, *, archives: int = 0, duplicates: int = 
     label = "Release unchanged" if unchanged else "Music processing complete"
     print(f"[INFO] {label}: {plan.media} media files retained; "
           f"{len(plan.removed) + duplicates} sidecars removed; {len(plan.repaired)} extensions repaired; "
-          f"{len(plan.cues)} cue sheets updated; {len(plan.unknown)} unidentified files retained; "
+          f"{len(plan.cues)} cue/playlist files updated; {len(plan.unknown)} unidentified files retained; "
           f"{archives} archives extracted; {len(plan.targets)} total files retained")
     for path in plan.unknown:
         print(f"[WARNING] Unidentified file retained: {json.dumps(plan.targets[path].name, ensure_ascii=False)}")
 
 
-def preview(directory: Path, *, verify_audio: bool = False) -> None:
+def preview(directory: Path, *, verify_audio: bool = False, require_completeness: bool = False) -> None:
     if directory.is_symlink() or not directory.is_dir():
         raise ValueError("preview requires an existing release directory without a symlink")
     root = directory.resolve()
@@ -880,7 +1035,7 @@ def preview(directory: Path, *, verify_audio: bool = False) -> None:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
             archives, duplicates = extract_archives(stage, scratch)
-            plan = plan_tree(stage)
+            plan = plan_tree(stage, require_completeness=require_completeness)
             if verify_audio:
                 verify_audio_files(plan)
             targets = [root / path.relative_to(stage) for path in plan.targets.values()]
@@ -901,7 +1056,8 @@ def preview(directory: Path, *, verify_audio: bool = False) -> None:
                     print(f"[PREVIEW] Move: {json.dumps(source.relative_to(stage).as_posix(), ensure_ascii=False)}"
                           f" -> {json.dumps(target.relative_to(stage).as_posix(), ensure_ascii=False)}")
             for cue in plan.cues:
-                print(f"[PREVIEW] Update cue FILE references: {json.dumps(cue.relative_to(stage).as_posix(), ensure_ascii=False)}")
+                kind = "cue FILE" if cue.suffix.casefold() == ".cue" else "playlist"
+                print(f"[PREVIEW] Update {kind} references: {json.dumps(cue.relative_to(stage).as_posix(), ensure_ascii=False)}")
             print_summary(plan, archives=len(archives), duplicates=duplicates, unchanged=not plan.changed and not archives)
             if not plan.targets:
                 print("[WARNING] Processing would refuse this plan because zero files would remain")
@@ -1026,12 +1182,15 @@ def cli(argv: list[str] | None = None) -> int:
     action.add_argument("--preview", type=Path, metavar="RELEASE_DIRECTORY")
     action.add_argument("--recover", type=Path, metavar="WORKSPACE_DIRECTORY")
     parser.add_argument("--verify-audio", action="store_true", help="Decode audio with ffmpeg during preview")
+    parser.add_argument("--require-completeness", action="store_true",
+                        help="Require track totals, covering local playlists or cue images during preview")
     options = parser.parse_args(arguments)
-    if options.verify_audio and options.preview is None:
-        parser.error("--verify-audio requires --preview")
+    if (options.verify_audio or options.require_completeness) and options.preview is None:
+        parser.error("--verify-audio and --require-completeness require --preview")
     try:
         if options.preview is not None:
-            preview(options.preview, verify_audio=options.verify_audio)
+            preview(options.preview, verify_audio=options.verify_audio,
+                    require_completeness=options.require_completeness)
         else:
             recover(options.recover)
     except (OSError, ValueError, tarfile.TarError, zipfile.BadZipFile, RuntimeError,
@@ -1061,7 +1220,10 @@ def main() -> int:
         option = os.environ.get("NZBPO_VERIFYAUDIO", "no").casefold()
         if option not in {"yes", "no"}:
             raise ValueError("VerifyAudio must be yes or no")
-        process_release(Path(directory_value), verify_audio=option == "yes")
+        strict = os.environ.get("NZBPO_REQUIRECOMPLETENESS", "no").casefold()
+        if strict not in {"yes", "no"}:
+            raise ValueError("RequireCompleteness must be yes or no")
+        process_release(Path(directory_value), verify_audio=option == "yes", require_completeness=strict == "yes")
     except (OSError, tarfile.TarError, zipfile.BadZipFile, ValueError, RuntimeError,
             NotImplementedError, EOFError) as error:
         print(f"[ERROR] Music post-processing failed: {error}", file=sys.stderr)

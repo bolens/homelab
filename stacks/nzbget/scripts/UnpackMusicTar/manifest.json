@@ -4,7 +4,7 @@
   "homepage": "https://nzbget.com/documentation/post-processing-scripts/",
   "kind": "POST-PROCESSING",
   "displayName": "Unpack Music Tar",
-  "version": "1.21",
+  "version": "1.24",
   "author": "homelab",
   "license": "MIT",
   "about": "Safely extracts ZIP and tar-family archives for the music category.",
@@ -28,9 +28,12 @@
     "Validates the complete staged release before publication, rolls back ordinary write failures, and retains recovery files after an interrupted publication.",
     "Identifies tagless MP3, ADTS AAC, and AIFF audio, reports processing counts and unidentified files, and skips publication for unchanged releases.",
     "Offers explicit --preview and checksum-verified --recover commands for a selected release or retained workspace.",
-    "Skips failed or repairable NZBGet downloads without cleanup and validates tagged FLAC track counts within separate album/disc groups.",
+    "Skips failed or repairable NZBGet downloads without cleanup and validates tagged FLAC track counts within separate album/disc groups, including numbered gaps and duplicates when totals are absent.",
     "Optionally decodes recognised audio with ffmpeg before publication; errors preserve originals and archives. Protect .cue files with NZBGet RenameIgnoreExt.",
     "Recognises CP437 box-art scene NFO sidecars with printable ASCII text, while retaining unknown binary files and cue-referenced sidecars.",
+    "Reconciles nonempty track/disc tag aliases, rejects declared missing discs, and preserves album folder boundaries when flattening would merge independent groups.",
+    "Optional RequireCompleteness rejects audio without a known track count, complete covering local playlist or cue-image evidence; retains playlists and updates their paths for repeatable processing.",
+    "Requires distinct resolved playlist audio paths, applies reconciled metadata to obfuscated playlist matching, and confines disc grouping to the selected release tree.",
     "Runs only for the music category and removes archives after successful extraction."
   ],
   "options": [
@@ -40,6 +43,18 @@
       "value": "no",
       "description": [
         "Decode recognised audio with ffmpeg before cleanup and publication. Requires ffmpeg in the NZBGet runtime; missing tools, decoding errors or a ten-minute per-file timeout fail without changing originals."
+      ],
+      "select": [
+        "yes",
+        "no"
+      ]
+    },
+    {
+      "name": "RequireCompleteness",
+      "displayName": "Require completeness evidence",
+      "value": "no",
+      "description": [
+        "Require every audio file to have a validated FLAC track total, a complete local playlist reference or cue-image evidence before processing. Contiguous tracks without a final count fail. Recognised playlists are retained and their paths updated. Default no preserves support for untagged releases and singles. Does not look up online album counts."
       ],
       "select": [
         "yes",
