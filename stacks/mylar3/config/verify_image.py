@@ -2,13 +2,16 @@
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import os
+import hashlib
+import json
+import stat
 import shutil
 import subprocess
 import sys
 import tempfile
 
 FIXES = Path(__file__).parent
-# These owning suites use independent temporary database/media/cache roots.
+# These owning suites use independent temporary source/database/media/cache roots.
 # Shared-source patch and legacy suites remain serialized.
 # Export/composed retained API suites run only in the mandatory copied API family,
 # where their exact generated api.py fixture exists; direct execution lacks that fixture.
@@ -20,10 +23,84 @@ OWNING_SUITES = ('test_publication_conversion.py', 'test_publication_reconcile.p
     'test_publication_archive_owned.py', 'test_publication_archive_preparation_existing.py', 'test_publication_archive_lifecycle_binding.py', 'test_publication_archive_owned_api.py', 'test_publication_archive_adoption.py', 'test_publication_archive_rollback.py', 'test_publication_archive_verifier_vectors.py', 'test_publication_reader_lifecycle.py', 'test_publication_native_configured_scope.py', 'test_publication_negative_purpose.py')
 
 
+def owning_sources(destination):
+    # This checked public map is also the finite copied API fixture closure.
+    # Never enumerate local config: it can contain ignored operational state.
+    map_path = FIXES / 'import_api_control_sources.json'
+    recovery_map = FIXES / 'reader_recovery/source-manifest.json'
+    map_before = os.lstat(map_path)
+    recovery_before = os.lstat(recovery_map)
+    rows = json.loads(map_path.read_bytes())
+    assert isinstance(rows, list) and rows
+    recovery = json.loads(recovery_map.read_bytes())
+    rows.extend({'path': 'reader_recovery/' + name, 'sha256': value['sha256']} for name, value in recovery['files'].items())
+    paths = {}
+    for row in rows:
+        assert set(row) == {'path', 'sha256'}
+        relative = Path(row['path'])
+        assert not relative.is_absolute() and relative.parts and all(part not in ('.', '..') for part in relative.parts)
+        assert relative.as_posix() not in paths or paths[relative.as_posix()] == row['sha256']
+        assert isinstance(row['sha256'], str) and len(row['sha256']) == 64 and all(c in '0123456789abcdef' for c in row['sha256'])
+        paths[relative.as_posix()] = row['sha256']
+    # This unchanged owning suite is outside the API control family's map.
+    paths.setdefault('test_publication_archive_route_history.py', None)
+    paths['import_api_control_sources.json'] = None
+    paths['reader_recovery/source-manifest.json'] = None
+    originals = {}
+    ancestors = {}
+    def signature(value):
+        return (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns,
+                value.st_ctime_ns, value.st_mode, value.st_uid, value.st_gid, value.st_nlink)
+    assert signature(os.lstat(map_path)) == signature(map_before)
+    assert signature(os.lstat(recovery_map)) == signature(recovery_before)
+    # Capture all original leaves before the first copying/hash callback.
+    for name in sorted(paths):
+        parent = (FIXES / name).parent
+        while parent != FIXES.parent:
+            node = os.lstat(parent)
+            assert stat.S_ISDIR(node.st_mode)
+            fact = (node.st_dev, node.st_ino, node.st_mode, node.st_uid, node.st_gid)
+            assert parent not in ancestors or ancestors[parent] == fact
+            ancestors[parent] = fact
+            parent = parent.parent
+        value = os.lstat(FIXES / name)
+        assert stat.S_ISREG(value.st_mode) and value.st_nlink == 1
+        captured = signature(value)
+        if name == 'import_api_control_sources.json':
+            assert captured == signature(map_before)
+        if name == 'reader_recovery/source-manifest.json':
+            assert captured == signature(recovery_before)
+        originals[name] = captured
+    for name, expected in paths.items():
+        source = FIXES / name
+        content = source.read_bytes()
+        assert signature(os.lstat(source)) == originals[name]
+        if expected is not None:
+            assert hashlib.sha256(content).hexdigest() == expected, name
+        target = destination / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open('xb') as output:
+            output.write(content)
+        target.chmod(originals[name][5] & 0o777)
+        assert target.read_bytes() == content
+    for parent, original in ancestors.items():
+        node = os.lstat(parent)
+        assert (node.st_dev, node.st_ino, node.st_mode, node.st_uid, node.st_gid) == original, str(parent)
+    for name, original in originals.items():
+        assert signature(os.lstat(FIXES / name)) == original, name
+
+
 def owning_suite(test, environment):
-    return subprocess.run([sys.executable, str(FIXES / test)],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-        env=environment)
+    assert test in OWNING_SUITES
+    # Independent media roots do not isolate tests that deliberately chmod or
+    # replace their loaded source. Give every parallel actor its own source too.
+    with tempfile.TemporaryDirectory(prefix='mylar-owning-controls-') as directory:
+        private = Path(directory) / 'fixes'
+        private.mkdir()
+        owning_sources(private)
+        return subprocess.run([sys.executable, '-B', str(private / test)],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            env=environment)
 
 if Path('/opt/comictagger/bin/python').exists():
     assert Path('/opt/ddl-transport/bin/python').is_file(), 'Custom image is missing its required optional discovery runtime'

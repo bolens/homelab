@@ -19,6 +19,7 @@ SUITES = (
     'test_publication_reader_phase.py', 'test_publication_reader_softdelete.py',
     'test_publication_reader_sql_commit.py', 'test_publication_reader_sql_custody.py',
     'test_publication_reader_sql_start.py', 'test_publication_reader_wal_phase.py',
+    'test_publication_reader_recovery_controls.py',
 )
 
 

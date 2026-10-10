@@ -162,6 +162,13 @@ Before changing the image, pull the candidate explicitly, then run:
 ./verify-image.sh IMAGE_REFERENCE
 ```
 
+Run the gate from this full Git checkout with host Python 3 available. Its
+repository helper inventories only tracked public configuration files; ignored
+live configuration and caches are excluded. The source mounts remain read-only,
+and fault tests change disposable copies owned by the fixture user. The gate limits
+memory to 512 MiB and its temporary filesystem to 256 MiB, allowing the
+unchanged 128 MiB preservation reserve and private parallel fixtures.
+
 The gate copies public application source inside an isolated container, applies
 all build-time patches, and runs DDL, tagging-timeout, and health regressions. It has
 no network or live configuration mounts. Repository CI installs the current public
