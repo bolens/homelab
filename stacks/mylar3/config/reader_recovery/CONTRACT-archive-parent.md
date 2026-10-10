@@ -144,3 +144,7 @@ ld.so.preload. Ancestor /opt and every child of TOOL_ROOT hold. Unrelated /opt
 siblings are not excluded by this rule and still require normal mapping/proof.
 This extends overlay refusal only; it adds no immutable-image fact exclusions,
 mutable HOST relabeling, native grant, parent pin or ordinary admission.
+
+## Same-child worker observation
+
+Default-disabled plan12 preserves the plan11 same-child contract and adds an original regular worker-source ref and an exact installed source-map ref. The worker image and read-only mounts come from the original held-worker profile. One disposable worker process uses its own inherited pipe, source entry and receiver birth; image-only ancestors remain receiver facts. The parent retains both process/pipe registries and the original execute capability’s archive, catalog, authority and marker roles through fresh observation and worker release before releasing the producer. No saved capability, worker report or receiver measurement replaces original shared source facts. Installed image/CLI, actual mount equality and NFS remain separate acceptance gates; the shipped flag remains false.

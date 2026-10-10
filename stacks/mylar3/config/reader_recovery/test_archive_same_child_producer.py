@@ -14,8 +14,11 @@ class Tests(unittest.TestCase):
  phase=fixture.Controls.phase
  def paired(self,plan_version=11,input_version=2,mode='same-child-v1',extra=False):
   request=self.phase();pp=Path(self.plan['path']);plan=json.loads(pp.read_bytes());plan['version']=plan_version
-  if plan_version==11:plan['terminal_mode']='same-child-v1'
-  else:plan.pop('terminal_mode',None)
+  if plan_version in (11,12):plan['terminal_mode']='same-child-v1'
+  if plan_version==12:
+   source=a.write(self.root/'worker-source-fixture.json',{'fixture':'original-host-source-ref-shape-only'});sources=a.write(self.root/'worker-source-map-fixture.json',{'fixture':'source-preflight-parent-owned'})
+   plan['worker_observation']={'mode':'original-pipes-v1','source':source,'image_sources':sources}
+  if plan_version not in (11,12):plan.pop('terminal_mode',None)
   raw=a.encoded(plan);pp.write_bytes(raw);self.plan.update(sha256=hashlib.sha256(raw).hexdigest(),signature9=a.nine(pp.lstat()));request['parent_plan']=dict(self.plan)
   inv=request['context']['invocation'];ip=Path(inv['input_path']);doc=json.loads(ip.read_bytes());doc['version']=input_version
   if mode is not None:doc['terminal_mode']=mode
@@ -34,5 +37,16 @@ class Tests(unittest.TestCase):
   with self.assertRaises(p.Held):p.produce('phase-custody',self.paired(mode='foreign'),watch=self.parent.continuous)
  def test_extra_input_key_held(self):
   with self.assertRaises(p.Held):p.produce('phase-custody',self.paired(extra=True),watch=self.parent.continuous)
+
+ def test_exact_plan12_input2_same_child_eight_roles(self):
+  answer=p.produce('phase-custody',self.paired(12,2),watch=self.parent.continuous)['evidence'];self.assertEqual(set(answer),{'reader','proofs','birth_seed'})
+ def test_plan12_input1_held(self):
+  with self.assertRaises(p.Held):p.produce('phase-custody',self.paired(12,1),watch=self.parent.continuous)
+ def test_plan12_unknown_worker_mode_held(self):
+  request=self.paired(12,2);path=Path(self.plan['path']);doc=json.loads(path.read_bytes());doc['worker_observation']['mode']='foreign';raw=a.encoded(doc);path.write_bytes(raw);request['parent_plan'].update(sha256=hashlib.sha256(raw).hexdigest(),signature9=a.nine(path.stat()))
+  with self.assertRaises(p.Held):p.produce('phase-custody',request,watch=self.parent.continuous)
+ def test_plan12_extra_worker_field_held(self):
+  request=self.paired(12,2);path=Path(self.plan['path']);doc=json.loads(path.read_bytes());doc['worker_observation']['authority']=True;raw=a.encoded(doc);path.write_bytes(raw);request['parent_plan'].update(sha256=hashlib.sha256(raw).hexdigest(),signature9=a.nine(path.stat()))
+  with self.assertRaises(p.Held):p.produce('phase-custody',request,watch=self.parent.continuous)
 
 if __name__=='__main__':unittest.main()

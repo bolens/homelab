@@ -24,6 +24,15 @@ _PROJECTORS = weakref.WeakKeyDictionary()
 _OUTPUT_NODES = weakref.WeakKeyDictionary()
 _ARCHIVE_TERMINAL_ROUNDS = weakref.WeakKeyDictionary()
 _ARCHIVE_TERMINAL_SEALS = weakref.WeakKeyDictionary()
+_DIALOGUES = weakref.WeakKeyDictionary()
+_DIALOGUE_SEALS = weakref.WeakKeyDictionary()
+_WORKER_MODULES = weakref.WeakKeyDictionary()
+_WORKER_INTENTS = weakref.WeakKeyDictionary()
+_WORKER_FUNCTIONS = weakref.WeakKeyDictionary()
+_OBSERVER_OWNED = weakref.WeakKeyDictionary()
+_OBSERVER_RELEASED = weakref.WeakKeyDictionary()
+WORKER_OBSERVATION_ENABLED = False
+WORKER_VECTORS_SHA = '3fa569e80a8812de545ef71c31ea81f12518fb31454a5249f2605d099dd310d2'
 
 DOCKER = ('pkexec', '/usr/bin/docker', '--host', 'unix:///run/docker.sock')
 MAX = 64 * 1024**2
@@ -270,6 +279,26 @@ def stopped(row):
          and all(state.get(k) is False for k in ('Paused', 'Restarting', 'Dead', 'OOMKilled')), 'reader-not-stopped')
 _NFS_ADAPTERS=weakref.WeakKeyDictionary()
 
+def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
+    need(cid not in _DIALOGUES.get(engine,{}),'original-dialogue-exclusive')
+    need(type(original_pid) is int and original_pid>0 and process.pid==original_pid and (process.stdin,process.stdout,process.stderr)==streams and all(v[1][2]&0o170000==0o010000 for v in descriptors),'original-created-dialogue-process')
+    record=dict(process=process,streams=streams,descriptors=descriptors,pid=original_pid,
+                owner_pid=os.getpid(),thread=threading.get_ident(),deadline=end)
+    seal=(process,streams,descriptors,original_pid,record['owner_pid'],record['thread'],end)
+    _DIALOGUES.setdefault(engine,{})[cid]=record;_DIALOGUE_SEALS.setdefault(engine,{})[cid]=seal
+    return record
+
+def dialogue_close(engine,cid):
+    record=_DIALOGUES.get(engine,{}).get(cid);seal=_DIALOGUE_SEALS.get(engine,{}).get(cid)
+    need(record is not None and seal is not None,'original-live-dialogue-registry')
+    pid=os.getpid();thread=threading.get_ident();now=time.monotonic()
+    for descriptor,expected in seal[2]:
+        z=os.fstat(descriptor)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=expected:raise Held('original-live-dialogue-FD')
+    if (record['process'],record['streams'],record['descriptors'],record['pid'],record['owner_pid'],record['thread'],record['deadline'])!=seal or record['process'].pid!=seal[3] or (record['process'].stdin,record['process'].stdout,record['process'].stderr)!=seal[1] or pid!=seal[4] or thread!=seal[5] or now>=seal[6] or _DIALOGUES.get(engine,{}).get(cid) is not record or _DIALOGUE_SEALS.get(engine,{}).get(cid) is not seal:raise Held('original-live-dialogue-drift')
+    return record
+
+
 class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
  def run(self,args,seconds):
@@ -291,6 +320,7 @@ class ScopedDocker:
   except OSError:raise Held('child-start-ACK-unknown') from None
   original_streams=(p.stdin,p.stdout,p.stderr);original_pid=p.pid
   original_descriptors=tuple((stream.fileno(),tuple(five(os.fstat(stream.fileno())))) for stream in original_streams)
+  dialogue_register(self,cid,p,original_streams,original_descriptors,end,original_pid)
   streams={p.stdout:'stdout',p.stderr:'stderr'};out=bytearray();err=bytearray();line=bytearray();ack=None
   try:
    while streams:
@@ -298,7 +328,7 @@ class ScopedDocker:
     ready=select.select(list(streams),[],[],min(1,max(0,end-time.monotonic())))[0]
     if not ready:handler(None);continue
     for stream in ready:
-     block=os.read(stream.fileno(),65536)
+     dialogue_close(self,cid);block=os.read(stream.fileno(),65536)
      if not block:del streams[stream];continue
      buf=out if streams[stream]=='stdout' else err;buf.extend(block);need(len(buf)<=MAX,'child-output-bound')
      if streams[stream]=='stderr':continue
@@ -309,9 +339,6 @@ class ScopedDocker:
        need(ack is None,'child-dialogue-after-final-ACK')
        response=handler(message,bytes(raw)) if message.get('type')=='terminal-observation' else handler(message)
        need(type(response) is bytes and response.endswith(b'\n') and len(response)<=MAX,'parent-fixed-response-bytes')
-       for fd,fact in original_descriptors:
-        z=os.fstat(fd)
-        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('parent-original-dialogue-FD')
        if (p.stdin,p.stdout,p.stderr)!=original_streams or p.pid!=original_pid:raise Held('parent-original-dialogue-process')
        if os.write(original_descriptors[0][0],response)!=len(response):raise Held('parent-dialogue-release-partial-no-replay')
       else:need(message.get('type')=='ACK' and ack is None,'child-output-protocol');ack=message['ack']
@@ -321,7 +348,50 @@ class ScopedDocker:
    # Do not stop/remove/replay an unknown Docker child or resume the reader.
    raise Held('child-uncertain-proof-retained') from None
   finally:
-   for stream in (p.stdin,p.stdout,p.stderr):stream.close()
+   for stream in original_streams:stream.close()
+   _DIALOGUES.get(self,{}).pop(cid,None);_DIALOGUE_SEALS.get(self,{}).pop(cid,None)
+
+ def worker_interactive(self,cid,protocol,seconds,guard):
+  # A nested observer dialogue never replaces the live producer entry.
+  end=time.monotonic()+seconds
+  try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+  except OSError:raise Held('worker-start-ACK-unknown') from None
+  original_pid=p.pid;streams=(p.stdin,p.stdout,p.stderr);fds=tuple((v.fileno(),tuple(five(os.fstat(v.fileno())))) for v in streams)
+  dialogue_register(self,cid,p,streams,fds,end,original_pid);outputs={streams[1]:'stdout',streams[2]:'stderr'};line=bytearray();sizes={'stdout':0,'stderr':0};done=False
+  try:
+   while outputs:
+    need(time.monotonic()<end,'worker-dialogue-deadline');guard()
+    ready=select.select(list(outputs),[],[],min(1,max(0,end-time.monotonic())))[0]
+    for stream in ready:
+     dialogue_close(self,cid);block=os.read(stream.fileno(),65536)
+     if not block:del outputs[stream];continue
+     kind=outputs[stream];sizes[kind]+=len(block);need(sizes[kind]<=4*1024**2,'worker-output-bound')
+     if kind=='stderr':continue
+     line.extend(block);need(len(line)<=4*1024**2+1,'worker-frame-bound')
+     while b'\n' in line:
+      raw,_,remainder=line.partition(b'\n');line=bytearray(remainder);need(not done,'worker-output-after-release')
+      response=protocol.accept(bytes(raw));guard();dialogue_close(self,cid);guard()
+      if response is None:done=True;continue
+      need(type(response) is bytes and 0<len(response)<=4*1024**2,'worker-response-encoded')
+      pending=memoryview(response+b'\n')
+      while pending:
+       need(time.monotonic()<end and bool(select.select([],[fds[0][0]],[],max(0,end-time.monotonic()))[1]),'worker-response-timeout')
+       dialogue_close(self,cid);guard()
+       n=os.write(fds[0][0],pending[:4096]);need(n>0,'worker-response-unknown');pending=pending[n:]
+   need(done and not line and p.wait(timeout=max(.001,end-time.monotonic()))==0,'worker-final-ACK-unknown')
+   dialogue_close(self,cid);guard();return protocol.result
+  except BaseException:raise Held('worker-uncertain-retain-proof-no-replay') from None
+  finally:
+   for stream in streams:stream.close()
+   _DIALOGUES.get(self,{}).pop(cid,None);_DIALOGUE_SEALS.get(self,{}).pop(cid,None)
+ def remove_observer(self,cid,original):
+  # Only the parent can pass an actual freshly inspected exited owned profile.
+  owned=_OBSERVER_OWNED.get(self,{}).get(cid);released=_OBSERVER_RELEASED.get(self,{}).get(cid)
+  need(owned is not None and released is not None and type(original) is dict and static(original)==owned[1] and original.get('Id')==cid and original['State']['Status']=='exited' and original['State']['ExitCode']==0 and original['State']['Pid']==0 and original['Config']['Labels'].get('com.homelab.reader.worker-observer')==owned[0],'worker-owned-exited-cleanup')
+  try:r=subprocess.run([*DOCKER,'rm',cid],capture_output=True,timeout=5,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+  except (OSError,subprocess.TimeoutExpired):raise Held('worker-cleanup-ACK-unknown') from None
+  need(r.returncode==0 and len(r.stdout)<=4096 and len(r.stderr)<=4096,'worker-cleanup-ACK-held')
+
 
 
 class LifecycleParent:
@@ -339,15 +409,19 @@ class LifecycleParent:
              'operation', 'reader', 'held_native', 'held_worker', 'selected_image',
              'provider', 'producer', 'observer', 'sdk_map', 'mounts', 'native',
              'action_inputs', 'producer_inputs', 'birth_source_sha256', 'scope_projection', 'bounds', 'admission_source_sha256', 'nfs'}
-        same_child=archive and type(plan.get('version')) is int and plan['version']==11
+        same_child=archive and type(plan.get('version')) is int and plan['version'] in (11,12)
         if archive:base_keys=(base_keys-{'action_inputs','admission_source_sha256'})|{'action','backup_provider'}
         if same_child:base_keys.add('terminal_mode')
+        if archive and plan.get('version')==12:base_keys.add('worker_observation')
         need(type(plan) is dict and set(plan)==base_keys,'plan-schema')
-        need(plan['version'] in ((10,11) if archive else (9,)) and type(plan['version']) is int
+        need(plan['version'] in ((10,11,12) if archive else (9,)) and type(plan['version']) is int
              and plan['kind'] == ('reviewed-archive-one-lifecycle-protocol' if archive else 'reviewed-negative-five-lifecycle-protocol')
              and digest(plan['nonce']) and type(plan['seconds']) is int
              and 1 <= plan['seconds'] <= 3600, 'plan-kind')
         if same_child:need(plan['terminal_mode']=='same-child-v1','archive-exact-terminal-mode')
+        if plan.get('version')==12:
+            need(WORKER_OBSERVATION_ENABLED is True,'worker-observation-default-disabled')
+            worker=plan['worker_observation'];need(type(worker) is dict and set(worker)=={'mode','source','image_sources'} and worker['mode']=='original-pipes-v1','worker-observation-finite-plan')
         need(re.fullmatch('sha256:[0-9a-f]{64}', plan['selected_image']) is not None,
              'selected-image-digest')
         self.plan = copy.deepcopy(plan); self.engine = engine
@@ -366,7 +440,11 @@ class LifecycleParent:
                 for node, value in parents(Path(ref['path'])).items():
                     need(node not in self.nodes or self.nodes[node] == value, 'archive-input-original-node')
                     self.nodes[node] = value
-        for value in (plan_ref, source_ref, plan['provider'], plan['sdk_map'], plan['observer']):
+        worker_refs=tuple(plan['worker_observation'][k] for k in ('source','image_sources')) if plan.get('version')==12 else ()
+        for value in worker_refs:
+            for node,fact in parents(Path(value['path'])).items():need(node not in self.nodes or self.nodes[node]==fact,'worker-source-node-original');self.nodes[node]=fact
+            need(value['path'] not in self.files or self.files[value['path']]==tuple(value['signature9']),'worker-source-original9');self.files[value['path']]=tuple(value['signature9'])
+        for value in (plan_ref, source_ref, plan['provider'], plan['sdk_map'], plan['observer'],*worker_refs):
             read(value); self.files[value['path']] = tuple(value['signature9'])
             for node,value in parents(Path(value['path'])).items():
                 need(node not in self.nodes or self.nodes[node]==value,'parent-original-ancestor-conflict');self.nodes[node]=value
@@ -435,6 +513,13 @@ class LifecycleParent:
         _NFS_ADAPTERS[self]=nfs_module
         self.observer = pinned_module(plan['observer'])
         need(callable(getattr(self.observer, 'partition', None) if archive else getattr(self.observer, 'observe_mapped_with_originals', None)), 'observer-interface')
+        if plan.get('version')==12:
+            worker=plan['worker_observation'];sources=decode(read(worker['image_sources']))
+            need(sources=={'/app/archive_terminal_observation.py':worker['source']['sha256']},'worker-exact-installed-source-map')
+            helper=Path(__file__).with_name('comic_archive_worker_vectors.py');value={'path':str(helper),'signature9':list(nine(os.lstat(helper))),'sha256':WORKER_VECTORS_SHA}
+            for node,fact in parents(helper).items():need(node not in self.nodes or self.nodes[node]==fact,'worker-helper-node-original');self.nodes[node]=fact
+            need(str(helper) not in self.files or self.files[str(helper)]==tuple(value['signature9']),'worker-helper-original9');self.files[str(helper)]=tuple(value['signature9']);module=pinned_module(value);_WORKER_MODULES[self]=module
+            _WORKER_FUNCTIONS[self]=(tuple((name,module.__dict__[name],module.__dict__[name].__code__) for name in ('need','encode','decode','digest','path','put','frame','pack','mapping','freeze','response')),module.Round,tuple(module.Round.__dict__.items()),module.Round.__init__.__code__,module.Round.accept.__code__)
         self.baselines = {}
         for key in ('reader', 'held_native', 'held_worker'):
             expected = plan[key]
@@ -764,7 +849,7 @@ class LifecycleParent:
             base = {'protocol', 'type', 'nonce', 'input_sha256', 'parent_sha256', 'sequence', 'challenge'}
             need((set(message) == base and message['type'] == 'challenge'
                   or set(message) == base | {'birth'} and message['type'] == 'birth-commit'
-                  or self.plan.get('version')==11 and phase=='execute' and set(message)==base|{'terminal'} and message['type']=='terminal-observation')
+                  or self.plan.get('version') in (11,12) and phase=='execute' and set(message)==base|{'terminal'} and message['type']=='terminal-observation')
                  and message['protocol'] == 'reader-lifecycle-pipe-v1' and message['nonce'] == self.plan['nonce']
                  and message['input_sha256'] == input_ref['sha256']
                  and message['parent_sha256'] == self.source_ref['sha256']
@@ -773,7 +858,7 @@ class LifecycleParent:
             sequence += 1; current = self.inspect(cid)
             need(static(current) == child_static and current['State']['Running'] is True
                  and current['State']['Pid'] > 0 and current['State']['Paused'] is False, 'child-running-profile')
-            if self.plan.get('version')==11 and phase=='execute':
+            if self.plan.get('version') in (11,12) and phase=='execute':
                 if original_running is None:original_running=copy.deepcopy(current)
                 else:need(same_runtime(current,original_running),'archive-same-original-producer-incarnation')
             fresh = self.produce('native-observation', dict(observations=observed, child=current,
@@ -804,11 +889,21 @@ class LifecycleParent:
                 if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
                         z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != tuple(expected):
                     raise Held('challenge-file-final')
+            if type(self.engine) is ScopedDocker and cid in _DIALOGUES.get(self.engine,{}):
+                pipe_files=tuple(self.files.items());pipe_nodes=tuple(self.nodes.items());pipe_plan=copy.deepcopy(self.plan);pipe_core=_CORES.get(self);pipe_phase=self.phase;pipe_thread=self.thread;pipe_deadline=self.deadline
+                dialogue_close(self.engine,cid)
+                for path,value in pipe_nodes:
+                    z=os.lstat(path)
+                    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(value):raise Held('challenge-original-pipe-node-final')
+                for path,value in pipe_files:
+                    z=os.lstat(path)
+                    if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(value):raise Held('challenge-original-pipe-file-final')
+                if tuple(self.files.items())!=pipe_files or tuple(self.nodes.items())!=pipe_nodes or self.plan!=pipe_plan or _CORES.get(self) is not pipe_core or self.core!=pipe_core or self.phase!=pipe_phase or self.thread!=pipe_thread or self.deadline!=pipe_deadline:raise Held('challenge-original-pipe-logical-final')
             return response
         ack = self.engine.interactive(cid, challenge, self.left())
         if phase != 'backup':
             need(_PHASES.get(self, {}).get(phase, {}).get('accepted') is True, 'child-ACK-before-birth')
-        if self.plan.get('version')==11 and phase=='execute':
+        if self.plan.get('version') in (11,12) and phase=='execute':
             round_record=_ARCHIVE_TERMINAL_ROUNDS.get(self)
             need(round_record is not None and round_record['cid']==cid and round_record['sequence']<=sequence,'archive-original-terminal-round-before-ACK')
             need(type(ack) is dict and set(ack)=={'nonce','phase','source_sha256','report','publication_acceptance','reader_resume_authority','terminal_release'},'archive-same-child-ACK-schema')
@@ -818,7 +913,7 @@ class LifecycleParent:
         exited = self.inspect(cid)
         need(static(exited) == child_static, 'child-final-static')
         self.profile(exited, cid, command, expected_mounts, True)
-        if self.plan.get('version')==11 and phase=='execute':
+        if self.plan.get('version') in (11,12) and phase=='execute':
             need(exited['State']['StartedAt']==original_running['State']['StartedAt'],'archive-original-producer-start-before-exit')
             self.close_archive_terminal_round(round_record)
         self.continuous()
@@ -866,9 +961,125 @@ class LifecycleParent:
             return host
         return mapped
 
+    def worker_intent(self,current):
+        need(self.plan.get('version')==12 and WORKER_OBSERVATION_ENABLED is True and type(self.engine) is ScopedDocker and self in _WORKER_MODULES and self not in _WORKER_INTENTS,'worker-owning-original-intent')
+        producer=current['Id'];dialogue_close(self.engine,producer)
+        original_deadline=min(time.monotonic()+30.0,self.deadline,_DIALOGUE_SEALS[self.engine][producer][6]);need(original_deadline>time.monotonic(),'worker-ingress-original-deadline')
+        module=_WORKER_MODULES[self];held=self.baselines['held_worker'];mounts=copy.deepcopy(held['Mounts'])
+        rows,_=module.mapping(mounts)
+        roots=sorted(b for a,b in rows if any(Path(b)==Path(r) or Path(r) in Path(b).parents for r in module.READ_ROOTS))
+        need(bool(roots),'worker-existing-observation-roots')
+        request=decode(read(self.plan['producer_inputs']['archive_request']));name='reader-worker-observer-'+self.plan['nonce'][:16]
+        command=['-I','-B','/app/archive_terminal_observation.py','--reviewed-original-parent-v1','--nonce',self.plan['nonce'],'--operation-id',request['operation_id'],'--bind-roots',encode(roots).decode()]
+        args=['create','--pull','never','--name',name,'--label','com.homelab.reader.worker-observer='+name,'--interactive','--read-only','--network','none','--ipc','private','--user','1000:1000','--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit','32','--memory','768m','--memory-swap','768m','--cpus','0.5','--env','PYTHONDONTWRITEBYTECODE=1','--entrypoint','python3']
+        for source,destination in rows:args.extend(['--mount','type=bind,src='+source+',dst='+destination+',readonly'])
+        args.extend([held['Image'],*command])
+        ref=self.emit('worker-create-intent.json',dict(command=args,automatic_replay=False))
+        _WORKER_INTENTS[self]=(tuple(args),tuple(command),tuple(rows),name,copy.deepcopy(ref),tuple(roots),held['Image'],original_deadline)
+
+    def worker_profile(self,row,cid,intent,state):
+        args,command,mounts,name,ref,roots,image,_deadline=intent;h=row['HostConfig'];c=row['Config'];s=row['State']
+        need(row['Id']==cid and row['Image']==image and c['User']=='1000:1000' and c['Entrypoint']==['python3'] and c['Cmd']==list(command) and c['OpenStdin'] is True and c['Tty'] is False and c['Labels']=={'com.homelab.reader.worker-observer':name},'worker-exact-source-command-image')
+        need(h['ReadonlyRootfs'] is True and h['Privileged'] is False and h['NetworkMode']=='none' and h['IpcMode']=='private' and h['PidMode']=='' and h['CapDrop']==['ALL'] and not h.get('CapAdd') and h['SecurityOpt']==['no-new-privileges'] and h['PidsLimit']==32 and h['Memory']==768*1024**2 and h['MemorySwap']==768*1024**2 and h['NanoCpus']==500000000 and h.get('RestartPolicy',{}).get('Name') in ('','no') and all(not h.get(k) for k in ('Devices','DeviceRequests','Binds','Tmpfs','PortBindings')),'worker-exact-isolation')
+        need(len(row['Mounts'])==len(mounts) and all(m['Type']=='bind' and m['RW'] is False for m in row['Mounts']) and sorted((m['Source'],m['Destination']) for m in row['Mounts'])==sorted(mounts),'worker-original-readonly-bind-profile')
+        need(state in ('created','running','exited') and all(s.get(k) is False for k in ('Paused','Restarting','Dead','OOMKilled')) and type(s['Pid']) is int and s['Status']==state and s['Running'] is (state=='running') and (s['Pid']>0 if state=='running' else s['Pid']==0) and (state!='exited' or s['ExitCode']==0),'worker-finite-lifecycle')
+
+    def observe_archive_worker(self,current,original_running,terminal,vectors,original_files,original_nodes,declared):
+        need(WORKER_OBSERVATION_ENABLED is True and self.plan.get('version')==12 and type(self.engine) is ScopedDocker,'worker-actual-owning-engine')
+        intent=_WORKER_INTENTS.get(self);need(intent is not None,'worker-original-create-intent')
+        producer_dialogue=dialogue_close(self.engine,current['Id']);producer_seal=_DIALOGUE_SEALS[self.engine][current['Id']]
+        budget=min(intent[7]-time.monotonic(),self.left(),producer_seal[6]-time.monotonic());need(budget>0,'worker-original-producer-deadline')
+        module=_WORKER_MODULES[self];functions=_WORKER_FUNCTIONS[self];roles=terminal.get('worker_roles');need(type(roles) is dict and set(roles)=={'archive','catalog','authority','marker','catalog_native_target'},'worker-fixed-live-role-provenance')
+        data=Path(self.plan['native']['data']);expected={'catalog':str(data/'mylar.db'),'authority':str(data/'workflow.sqlite'),'marker':str(data/'media-writer/publication-v1.json')}
+        host_roles={}
+        for role in ('archive','catalog','authority','marker'):
+            ref=roles[role];need(type(ref) is dict and set(ref)=={'path','signature9','sha256'} and digest(ref['sha256']) and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(v) is int for v in ref['signature9']),'worker-original-live-role-ref')
+            if role in expected:need(ref['path']==expected[role],'worker-derived-controller-role')
+            else:need(any(Path(ref['path'])==Path(r) or Path(r) in Path(ref['path']).parents for r in self.plan['native']['roots']) and ref['sha256']==terminal['independent_observation']['source_sha256'],'worker-derived-live-source-role')
+            host=self.mapping.host(ref['path']);need(dict(original_files).get(host)==tuple(ref['signature9']),'worker-role-original-parent9');host_roles[role]=dict(ref,path=host)
+        need(roles['catalog_native_target']==roles['archive']['path'],'worker-original-catalog-target');host_roles['catalog_native_target']=roles['catalog_native_target']
+        host={'files9':list(original_files),'nodes5':list(original_nodes),'claims':list(vectors['claims'].items()),'namespaces':list(vectors['censuses'].items()),'absent':list(vectors['absent']),'hashes':[]}
+        producer={'files9':list(vectors['child_image_files'].items()),'nodes5':list(vectors['child_image_nodes'].items()),'claims':list(vectors['child_image_claims'].items()),'namespaces':[],'absent':[],'hashes':[]}
+        protocol=module.Round(nonce=self.plan['nonce'],operation=terminal['operation_id'],owner=terminal['owner'],outcome=terminal['outcome'],roles=host_roles,host=host,producer=producer,producer_ref=declared['terminal_report'],history_ref=terminal['history'],mounts=copy.deepcopy(self.baselines['held_worker']['Mounts']),source_sha=self.plan['worker_observation']['source']['sha256'])
+        need(protocol.bind_roots==intent[5],'worker-source-owned-launch-roots')
+        immutable_fields=('nonce','operation','owner','outcome','host','producer','roles','bind_roots','source_sha','sources','producer_ref','history_ref')
+        immutable=tuple((k,copy.deepcopy(getattr(protocol,k))) for k in immutable_fields)
+        constants=(module.PROTOCOL,module.LIMIT,module.COUNT,tuple(module.READ_ROOTS),module.SOURCE_ENTRY,tuple(sorted(module.RIGHTS.items())))
+        files=tuple(original_files);nodes=tuple(original_nodes);claims=tuple(vectors['claims'].items());names=tuple(vectors['censuses'].items());absent=tuple(vectors['absent'])
+        cid=None;running=None;created_static=None;created_projection=None;owned_record=None
+        def guard():
+            nonlocal running
+            protocol_state=module._ROUND_STATES.get(protocol)
+            need(time.monotonic()<intent[7],'worker-original-ingress-deadline')
+            self.continuous();need(same_runtime(self.inspect(current['Id']),original_running),'worker-live-original-producer')
+            dialogue_close(self.engine,current['Id'])
+            if cid is not None:
+                row=self.inspect(cid);need(static(row)==created_static,'worker-original-static-through-dialogue')
+                state=row['State']['Status'];self.worker_profile(row,cid,intent,state)
+                if state=='running':
+                    if running is None:running=copy.deepcopy(row)
+                    else:need(same_runtime(row,running),'worker-original-running-lifetime')
+                elif state=='created':need(running is None and protocol.step==0,'worker-created-before-birth-only')
+                else:need(state=='exited' and running is not None and protocol.step==4 and row['State']['StartedAt']==running['State']['StartedAt'],'worker-exit-after-final-release-only')
+            if cid in _DIALOGUES.get(self.engine,{}):dialogue_close(self.engine,cid)
+            # No FD/process/time/inspect/encoding helper after this complete closure.
+            for path,entries in names:
+                if tuple(sorted(os.listdir(path)))!=tuple(entries):raise Held('worker-parent-final-census')
+            for path,value in claims:
+                try:z=os.lstat(path)
+                except FileNotFoundError:
+                    if value is None:continue
+                    raise Held('worker-parent-final-missing-claim')
+                if value is None or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=tuple(value):raise Held('worker-parent-final-claim')
+            for path in absent:
+                try:os.lstat(path)
+                except FileNotFoundError:continue
+                raise Held('worker-parent-final-absence')
+            for path,value in nodes:
+                z=os.lstat(path)
+                if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(value):raise Held('worker-parent-final-node')
+            for path,value in files:
+                z=os.lstat(path)
+                if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(value):raise Held('worker-parent-final-file')
+            if (module.PROTOCOL,module.LIMIT,module.COUNT,tuple(module.READ_ROOTS),module.SOURCE_ENTRY,tuple(sorted(module.RIGHTS.items())))!=constants:raise Held('worker-parent-final-protocol-constants')
+            if module.__dict__.get('Round') is not functions[1] or type(protocol) is not functions[1] or type(protocol).__getattribute__ is not object.__getattribute__ or len(functions[1].__dict__)!=len(functions[2]) or any(functions[1].__dict__.get(name) is not value for name,value in functions[2]) or functions[1].__init__.__code__ is not functions[3] or functions[1].accept.__code__ is not functions[4]:raise Held('worker-parent-final-protocol-implementation')
+            for name,function,code in functions[0]:
+                if module.__dict__.get(name) is not function or function.__code__ is not code:raise Held('worker-parent-final-protocol-function')
+            pending=[protocol.__dict__];projection=[]
+            while pending:
+                value=pending.pop();kind=type(value)
+                if kind is dict:
+                    keys=tuple(sorted(value));projection.append(('dict',keys));pending.extend(value[k] for k in reversed(keys))
+                elif kind in (list,tuple):projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+                elif kind in (str,int,bool,float,bytes,type(None)):projection.append((kind.__name__,value))
+                else:raise Held('worker-parent-final-state-type')
+            if protocol_state is None or module._ROUND_STATES.get(protocol) is not protocol_state or tuple(projection)!=protocol_state:raise Held('worker-parent-final-complete-state')
+            if created_static is not None:
+                pending=[created_static];projection=[]
+                while pending:
+                    value=pending.pop();kind=type(value)
+                    if kind is dict:
+                        keys=tuple(sorted(value));projection.append(('dict',keys));pending.extend(value[k] for k in reversed(keys))
+                    elif kind in (list,tuple):projection.append((kind.__name__,len(value)));pending.extend(reversed(value))
+                    elif kind in (str,int,bool,float,bytes,type(None)):projection.append((kind.__name__,value))
+                    else:raise Held('worker-parent-created-state-type')
+                if tuple(projection)!=created_projection or cid is not None and _OBSERVER_OWNED.get(self.engine,{}).get(cid) is not owned_record:raise Held('worker-parent-original-created-profile-registry')
+            if _WORKER_FUNCTIONS.get(self) is not functions or _WORKER_INTENTS.get(self) is not intent or _WORKER_MODULES.get(self) is not module or _DIALOGUES.get(self.engine,{}).get(current['Id']) is not producer_dialogue or _DIALOGUE_SEALS.get(self.engine,{}).get(current['Id']) is not producer_seal or tuple((k,getattr(protocol,k)) for k in immutable_fields)!=immutable:raise Held('worker-parent-final-live-registry')
+        guard();cid=self.engine.run(list(intent[0]),min(budget,self.left())).decode().strip();need(digest(cid),'worker-create-ACK')
+        created=self.inspect(cid);self.worker_profile(created,cid,intent,'created');created_static=static(created);created_projection=module.freeze(created_static)
+        owned_record=(intent[3],copy.deepcopy(created_static));_OBSERVER_OWNED.setdefault(self.engine,{})[cid]=owned_record
+        result=self.engine.worker_interactive(cid,protocol,min(budget,self.left()),guard)
+        need(protocol.step==4 and result is not None,'worker-complete-original-dialogue')
+        exited=self.inspect(cid);self.worker_profile(exited,cid,intent,'exited');need(static(exited)==created_static and running is not None and exited['State']['StartedAt']==running['State']['StartedAt'],'worker-original-exit-profile')
+        _OBSERVER_RELEASED.setdefault(self.engine,{})[cid]=(producer_dialogue,result)
+        guard();self.engine.remove_observer(cid,exited)
+        # After exact owned removal, only the original producer remains live.
+        cid=None;guard();return copy.deepcopy(result)
+
     def accept_archive_terminal(self,input_ref,actual,message,current,original_running,raw):
         # Only an admitted plan11 ORIGINAL execute child can enter this dialogue.
-        need(self.plan.get('version')==11 and self.plan.get('terminal_mode')=='same-child-v1' and _PHASES.get(self,{}).get('execute',{}).get('accepted') is True and self not in _ARCHIVE_TERMINAL_ROUNDS,'archive-terminal-original-live-birth')
+        need(self.plan.get('version') in (11,12) and self.plan.get('terminal_mode')=='same-child-v1' and _PHASES.get(self,{}).get('execute',{}).get('accepted') is True and self not in _ARCHIVE_TERMINAL_ROUNDS,'archive-terminal-original-live-birth')
+        if self.plan.get('version')==12:self.worker_intent(current)
         original_files=dict(self.files);original_nodes=dict(self.nodes)
         for path,ref in self.generated.items():
             value=tuple(ref['signature9']);need(path not in original_files or original_files[path]==value,'archive-terminal-control-conflict');original_files[path]=value
@@ -920,8 +1131,11 @@ class LifecycleParent:
         need(original_files.get(stage)==tuple(original['preparation_directory9']),'archive-terminal-original-completed-stage9')
         original_files=tuple((str(k),tuple(v)) for k,v in original_files.items());original_nodes=tuple((str(k),tuple(v)) for k,v in original_nodes.items())
         original_claims=tuple((str(k),None if v is None else tuple(v)) for k,v in vectors['claims'].items());original_absent=tuple(vectors['absent']);original_names=tuple((str(k),tuple(v)) for k,v in vectors['censuses'].items())
+        worker_result=None
+        if self.plan.get('version')==12:
+            worker_result=self.observe_archive_worker(current,original_running,terminal,vectors,original_files,original_nodes,declared)
         response=encode({**message,'type':'terminal-release','rights':dict(publication=False,ordinary_import=False,index=False,cleanup=False,replay=False,resume=False)})+b'\n'
-        record=dict(cid=current['Id'],sequence=message['sequence'],challenge=message['challenge'],request_sha256=hashlib.sha256(original_request).hexdigest(),response_sha256=hashlib.sha256(response).hexdigest(),refs=declared,execute=copy.deepcopy(execute),terminal=copy.deepcopy(terminal),vectors=vectors,files=original_files,nodes=original_nodes,claims=original_claims,absent=original_absent,names=original_names)
+        record=dict(worker_result=worker_result,cid=current['Id'],sequence=message['sequence'],challenge=message['challenge'],request_sha256=hashlib.sha256(original_request).hexdigest(),response_sha256=hashlib.sha256(response).hexdigest(),refs=declared,execute=copy.deepcopy(execute),terminal=copy.deepcopy(terminal),vectors=vectors,files=original_files,nodes=original_nodes,claims=original_claims,absent=original_absent,names=original_names)
         _ARCHIVE_TERMINAL_ROUNDS[self]=record
         pending=[record];record_projection=[]
         while pending:
@@ -935,6 +1149,7 @@ class LifecycleParent:
         original_record_projection=tuple(record_projection);_ARCHIVE_TERMINAL_SEALS[self]=original_record_projection
         self.continuous();need(same_runtime(self.inspect(current['Id']),original_running),'archive-terminal-last-original-child')
         self.close_archive_terminal_round(record)
+        if type(self.engine) is ScopedDocker and current['Id'] in _DIALOGUES.get(self.engine,{}):dialogue_close(self.engine,current['Id'])
         for path,names in original_names:
             if tuple(sorted(os.listdir(path)))!=names:raise Held('archive-terminal-final-census')
         for path,value in original_claims:
@@ -1030,7 +1245,7 @@ class LifecycleParent:
         else:
             request=decode(read(self.plan['producer_inputs']['archive_request']))
             value.update(owner=request['owner'],operation_id=request['operation_id'])
-        if self.plan.get('version')==11 and phase=='execute':value.update(version=2,terminal_mode='same-child-v1')
+        if self.plan.get('version') in (11,12) and phase=='execute':value.update(version=2,terminal_mode='same-child-v1')
         ref=self.emit(phase+'-input.json',value);actual=actual_command(command,ref['sha256'])
         if phase!='backup':
             need(custody_context is not None,'archive-phase-custody-required')
@@ -1086,7 +1301,7 @@ class LifecycleParent:
             # ACK/report/record remain original references, never status-derived.
             ack=copy.deepcopy(self.generated[str(self.op/'execute-ack.json')]);ackvalue=decode(read(ack));reportref=ackvalue['report'];hostreport={**reportref,'path':self.mapping.host(reportref['path'])}
             need(decode(read(hostreport))==report,'archive-original-execute-report')
-            if self.plan.get('version')==11:
+            if self.plan.get('version') in (11,12):
                 round_record=_ARCHIVE_TERMINAL_ROUNDS.get(self)
                 need(round_record is not None and report==round_record['execute'],'archive-original-retained-execute-report')
                 verified=copy.deepcopy(round_record['terminal'])
@@ -1097,7 +1312,7 @@ class LifecycleParent:
                 inp,cmd=self.phase_input('verify-terminal',payload,context)
                 verified=self.child_phase('verify-terminal',inp,cmd)
             need(verified['owner']==request['owner'] and verified['operation_id']==request['operation_id'] and verified['originals']==originals and verified['baseline']==report['baseline'] and verified['outcome']==report['outcome'],'archive-fresh-terminal-original-join')
-            sdk=decode(read(self.plan['sdk_map']));phaseproof=self.op/('execute-input.native-scope.json' if self.plan.get('version')==11 else 'verify-terminal-input.native-scope.json')
+            sdk=decode(read(self.plan['sdk_map']));phaseproof=self.op/('execute-input.native-scope.json' if self.plan.get('version') in (11,12) else 'verify-terminal-input.native-scope.json')
             scope_ref=self.generated.get(str(phaseproof))
             # accept_birth retains the independent HOST proof ref after exact
             # selected-child/source/mount/config-module observation joins.

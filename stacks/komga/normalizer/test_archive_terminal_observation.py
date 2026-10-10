@@ -41,14 +41,17 @@ class Dialogue(unittest.TestCase):
                     absent=[str(p)+s for p in (self.catalog,self.authority) for s in ('-journal','-wal','-shm')],
                     hashes=[(str(p),hashlib.sha256(p.read_bytes()).hexdigest()) for p in files])
 
-    def run_dialogue(self, mutate=None, bad=None, release_mutate=None):
-        bootstrap = dict(protocol=h.PROTOCOL,type='bootstrap',nonce='a'*64,operation_id='b'*64,
+    def run_dialogue(self, mutate=None, bad=None, release_mutate=None, reviewed=False, birth_mutate=None):
+        bootstrap = dict(protocol=h.WIRE2 if reviewed else h.PROTOCOL,type='bootstrap',nonce='a'*64,operation_id='b'*64,
                          owner=self.owner,roles=self.roles,local_originals=self.originals(),
                          source_map={str(Path(h.__file__).absolute()):hashlib.sha256(Path(h.__file__).read_bytes()).hexdigest()})
         source_r,parent_w=os.pipe();parent_r,source_w=os.pipe();errors=[];channels=[]
+        argv=[str(Path(h.__file__).absolute()),'--reviewed-original-parent-v1','--nonce','a'*64,'--operation-id','b'*64,'--bind-roots',h.encode([str(self.root)]).decode()]
+        launch_argv=patch.object(h.sys,'argv',argv);launch_argv.start()
         def worker():
             try:
-                c=h.ParentChannel(source_r,source_w);channels.append(c);h.exchange(c)
+                launch=h.reviewed_launch(tuple(argv)) if reviewed else None
+                c=h.ParentChannel(source_r,source_w,launch=launch);channels.append(c);h.exchange(c)
             except BaseException as e:errors.append(e)
             finally:os.close(source_w);os.close(source_r)
         t=threading.Thread(target=worker);t.start()
@@ -62,27 +65,36 @@ class Dialogue(unittest.TestCase):
                 raw.extend(b)
             return bytes(raw[:-1])
         try:
+            if reviewed:
+                birth_raw=receive()
+                if birth_raw is None:return [],errors,channels
+                birth=json.loads(birth_raw);self.assertEqual(birth['type'],'receiver-birth')
+                self.assertEqual(birth['rights'],h.RIGHTS)
+                bootstrap['receiver_birth_sha256']=hashlib.sha256(birth_raw).hexdigest()
+                if birth_mutate:birth_mutate(bootstrap,birth,channels[0])
             send(bootstrap);hello_raw=receive()
             if hello_raw is None:return [],errors,channels
             hello=json.loads(hello_raw);foreign={k:[] for k in h.VECTORS}
             ref={'path':'/foreign/original.json','sha256':'c'*64,'signature9':[1,2,3,4,5,33152,1000,1000,1]}
-            request=dict(protocol=h.PROTOCOL,type='observe',nonce='a'*64,operation_id='b'*64,sequence=1,
+            request=dict(protocol=h.WIRE2 if reviewed else h.PROTOCOL,type='observe',nonce='a'*64,operation_id='b'*64,sequence=1,
                          challenge=hello['challenge'],owner=self.owner,outcome='observed-forward',
                          producer_ref=ref,producer_history_ref=ref,producer_originals=foreign,
                          host_projection=foreign,consumer_projection=json.loads(h.encode(bootstrap['local_originals'])),rights=dict(h.RIGHTS))
+            if reviewed:request['receiver_birth_sha256']=bootstrap['receiver_birth_sha256']
             if bad:bad(request)
             if mutate:mutate()
             raw=h.encode(request);send(request);answer=receive()
             if answer is None:return [hello],errors,channels
             result=json.loads(answer)
-            release=dict(protocol=h.PROTOCOL,type='release',nonce='a'*64,operation_id='b'*64,sequence=2,
+            release=dict(protocol=h.WIRE2 if reviewed else h.PROTOCOL,type='release',nonce='a'*64,operation_id='b'*64,sequence=2,
                          challenge=hello['challenge'],request_sha256=hashlib.sha256(raw).hexdigest(),
                          result_sha256=hashlib.sha256(answer).hexdigest(),rights=dict(h.RIGHTS))
+            if reviewed:release['receiver_birth_sha256']=bootstrap['receiver_birth_sha256']
             if release_mutate:release_mutate(release,channels[0])
             send(release);final=receive()
             return [hello,result,None if final is None else json.loads(final)],errors,channels
         finally:
-            os.close(parent_w);os.close(parent_r);t.join(3);self.assertFalse(t.is_alive())
+            os.close(parent_w);os.close(parent_r);t.join(3);launch_argv.stop();self.assertFalse(t.is_alive())
 
     def test_complete_real_pipe_sql_regular_facts_no_grant(self):
         before={p:p.read_bytes() for p in (self.archive,self.catalog,self.authority,self.marker)}
@@ -303,5 +315,84 @@ class Dialogue(unittest.TestCase):
     def test_parser_duplicate_deep_bool_and_nonfinite_refuse(self):
         for raw in (b'{"a":1,"a":2}',b'{"a":'+b'['*25+b'0'+b']'*25+b'}',b'{"a":NaN}'):
             with self.assertRaises(h.Held):h.decode(raw)
+
+class Unit5(unittest.TestCase):
+    # Real files/SQLite/pipes; READ_ROOTS and launch argv are explicit host fixtures.
+    # This is not an installed image/interpreter/mount proof.
+    setUp=Dialogue.setUp
+    originals=Dialogue.originals
+    run_dialogue=Dialogue.run_dialogue
+
+    def test_reviewed_birth_original_real_pipe_positive(self):
+        messages,errors,channels=self.run_dialogue(reviewed=True)
+        self.assertFalse(errors);self.assertEqual(messages[-1]['type'],'released')
+        self.assertEqual(messages[-1]['protocol'],h.WIRE2)
+        self.assertEqual(len(messages[-1]['receiver_birth_sha256']),64)
+        self.assertEqual(channels[0].launch.bind_roots,(str(self.root),))
+
+    def test_reviewed_annual_original_real_pipe_positive(self):
+        with closing(sqlite3.connect(self.catalog)) as db,db:
+            db.execute('DELETE FROM issues');db.execute('INSERT INTO annuals VALUES(?,?,?,?,?,?)',('12','11','13','Comic.cbz','Archived',0))
+        self.owner=dict(table='annuals',issueid='12',parentcomicid='11',releasecomicid='13')
+        messages,errors,_=self.run_dialogue(reviewed=True)
+        self.assertFalse(errors);self.assertEqual(messages[1]['local_proof']['catalog_owner']['releasecomicid'],'13')
+
+    def test_wrong_original_birth_hash_holds(self):
+        messages,errors,_=self.run_dialogue(reviewed=True,birth_mutate=lambda boot,b,c:boot.update(receiver_birth_sha256='0'*64))
+        self.assertTrue(errors);self.assertFalse(messages)
+
+    def test_birth_cannot_replace_shared_leaf(self):
+        def change(boot,b,c):
+            old=self.archive;old.rename(self.root/'old.cbz');old.write_bytes(b'actual preserved archive fixture')
+        _,errors,_=self.run_dialogue(reviewed=True,birth_mutate=change);self.assertTrue(errors)
+
+    def test_bootstrap_cannot_rebase_receiver_original_parent(self):
+        def change(boot,b,c):
+            boot['local_originals']['nodes5']=[(p,(v[0],v[1],v[2]^0o020,v[3],v[4]) if p=='/tmp' else v) for p,v in boot['local_originals']['nodes5']]
+        _,errors,_=self.run_dialogue(reviewed=True,birth_mutate=change);self.assertTrue(errors)
+
+    def test_launch_registry_replacement_holds(self):
+        def change(boot,b,c):h._LAUNCHES[c.launch]=tuple(list(h._LAUNCHES[c.launch]))
+        _,errors,_=self.run_dialogue(reviewed=True,birth_mutate=change);self.assertTrue(errors)
+
+    def test_live_launch_nonce_mutation_holds(self):
+        def change(boot,b,c):c.launch.nonce='0'*64
+        _,errors,_=self.run_dialogue(reviewed=True,birth_mutate=change);self.assertTrue(errors)
+
+    def test_observe_original_birth_replay_holds(self):
+        _,errors,_=self.run_dialogue(reviewed=True,bad=lambda q:q.update(receiver_birth_sha256='0'*64));self.assertTrue(errors)
+
+    def test_release_original_birth_replay_holds(self):
+        _,errors,_=self.run_dialogue(reviewed=True,release_mutate=lambda q,c:q.update(receiver_birth_sha256='0'*64));self.assertTrue(errors)
+
+    def test_default_disabled_preserved(self):
+        with patch.object(h,'ENABLED',False):
+            with self.assertRaises(h.Held):h.ParentChannel()
+        with self.assertRaises(h.Held):h.reviewed_launch((h.__file__,'--anything'))
+
+    def test_launch_extra_or_unmapped_root_holds(self):
+        argv=(h.__file__,'--reviewed-original-parent-v1','--nonce','a'*64,'--operation-id','b'*64,'--bind-roots','["/outside"]')
+        with self.assertRaises(h.Held):h.reviewed_launch(argv)
+        with self.assertRaises(h.Held):h.reviewed_launch(argv+('extra',))
+
+
+class FinalUnit5(unittest.TestCase):
+    setUp=Dialogue.setUp
+    originals=Dialogue.originals
+    run_dialogue=Dialogue.run_dialogue
+    def test_actual_original_interpreter_argv_mutation_holds(self):
+        original=list(h.sys.orig_argv)
+        def mutate(boot,b,c):h.sys.orig_argv=[*original,'foreign']
+        try:
+            _,errors,_=self.run_dialogue(reviewed=True,birth_mutate=mutate);self.assertTrue(errors)
+        finally:h.sys.orig_argv=original
+    def test_sender_last_select_callback_cannot_release_changed_archive(self):
+        real=h.select.select;fired=[]
+        def callback(r,w,e,t):
+            ready=real(r,w,e,t)
+            if w and not fired:fired.append(True);self.archive.chmod(0o640)
+            return ready
+        with patch.object(h.select,'select',callback):_,errors,_=self.run_dialogue(reviewed=True)
+        self.assertTrue(fired);self.assertTrue(errors)
 
 if __name__=='__main__':unittest.main()
