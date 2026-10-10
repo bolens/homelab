@@ -9,7 +9,7 @@
 
 ## Current remaining work (2026-10-10)
 
-T019/T023 remain open. Their combined naming/metadata and eligible bulk passes depend on feature 023's authenticated recovery, held rollout and current-library acceptance. The naming preference remains dot separators with a hyphen before the verified release group. The new native candidate, offline gate and target crypto fixture checks pass; those source/runtime checks do not accept the live library or authorize processing resumption. T024 remains open for the final idempotence, data and cleanup proof after the bulk pass. Additional reading-progress audit remains deferred.
+T019/T023 remain open. Their combined naming/metadata and eligible bulk passes depend on feature 023's authenticated recovery, held rollout and current-library acceptance; its [current hold-release work](../023-verified-publication-corrections/tasks.md#current-hold-release-work-2026-10-10) tracks the passing child/runtime checks and unfinished host driver review. The naming preference remains dot separators with a hyphen before the verified release group. These checks do not accept the live library or authorize processing resumption. T024 remains open for the final idempotence, data and cleanup proof after the bulk pass. Additional reading-progress audit remains deferred.
 
 ## Phase 1: Setup
 

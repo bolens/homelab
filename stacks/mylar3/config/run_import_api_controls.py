@@ -53,6 +53,20 @@ PACK_FIXTURES = frozenset((
     'test_fixtures/retained_pack_worker/writer_cycle.py',
 ))
 
+# Exact standalone build-only siblings; preserve their repository-style paths.
+STANDALONE_FIXTURES = frozenset((
+    'reader_recovery/comic_retained_standalone_action.py',
+    'reader_recovery/comic_retained_standalone_backup.py',
+    'reader_recovery/comic_retained_standalone_parent.py',
+    'reader_recovery/test_standalone_backup.py',
+    'reader_recovery/test_standalone_bodies.py',
+    'reader_recovery/test_standalone_directory_joins.py',
+    'reader_recovery/test_standalone_parent.py',
+    'reader_recovery/test_standalone_publication.py',
+    'reader_recovery/test_standalone_runtime_seals.py',
+))
+STANDALONE_MANIFEST = 'standalone_control_sources.json'
+
 HOST_SOURCES = {
     'reader_recovery/comic_retained_pack_parent.py': 'comic_retained_pack_parent.py',
     'reader_recovery/comic_retained_pack_backup.py': 'comic_retained_pack_backup.py',
@@ -71,7 +85,7 @@ def main(family="all"):
     assert family in ("all", "observation", "retained")
     entries = json.loads((ROOT / 'import_api_control_sources.json').read_text())
     assert isinstance(entries, list) and 1 <= len(entries) <= 512
-    assert PACK_FIXTURES | set(HOST_SOURCES) <= {row['path'] for row in entries}
+    assert PACK_FIXTURES | set(HOST_SOURCES) | STANDALONE_FIXTURES | {STANDALONE_MANIFEST} <= {row['path'] for row in entries}
     files, nodes, buffers = {}, {}, {}
     # Capture the complete original set before the first source read.
     for row in entries:
@@ -80,7 +94,8 @@ def main(family="all"):
         assert not rel.is_absolute() and '..' not in rel.parts
         assert (len(rel.parts) == 1 and rel.suffix == '.py'
                 or row['path'] == 'import_api_fixtures/api_predecessor.py'
-                or row['path'] in PACK_FIXTURES or row['path'] in HOST_SOURCES)
+                or row['path'] in PACK_FIXTURES or row['path'] in HOST_SOURCES
+                or row['path'] in STANDALONE_FIXTURES or row['path'] == STANDALONE_MANIFEST)
         path = ROOT / rel
         assert path not in files
         st = os.lstat(path)
@@ -118,7 +133,8 @@ def main(family="all"):
                 assert hashlib.sha256(data).hexdigest() == API_SHA
                 (preimages / 'api.py').write_bytes(data)
             else:
-                assert len(Path(name).parts) == 1 or name in PACK_FIXTURES or name in HOST_SOURCES
+                assert (len(Path(name).parts) == 1 or name in PACK_FIXTURES or name in HOST_SOURCES
+                        or name in STANDALONE_FIXTURES or name == STANDALONE_MANIFEST)
                 destination = config / HOST_SOURCES.get(name, name)
                 assert destination not in destinations
                 destinations.add(destination)

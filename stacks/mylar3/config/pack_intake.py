@@ -161,6 +161,16 @@ def report(payload, handoff=None):
             any(k in m for k in ('retained_finalization','retained_delivery_final','fresh_retained_acceptance'))
             or m.get('phase')=='retained-accepted' for m in value.get('members',[]) if isinstance(m,dict)):
         raise ValueError('Reserved native retained finalization')
+    # Reserved standalone fields belong only to the distinct live native producer.
+    # Legitimate generic phase/token/event metadata is intentionally unaffected.
+    def standalone_reserved(row):
+        return isinstance(row,dict) and (row.get('phase')=='standalone-retained-accepted'
+            or row.get('record_kind')=='retained_standalone'
+            or row.get('kind')=='fresh-standalone-retained-finalization'
+            or any(k in row for k in ('standalone_retained_token','standalone_retained_event',
+                                     'standalone_retained_finalization','fresh_standalone_acceptance')))
+    if standalone_reserved(value) or any(standalone_reserved(row) for row in value.get('members',[])):
+        raise ValueError('Reserved native standalone retained finalization')
     from mylar import worker_handoff
     worker_handoff.admit(handoff,'packReport',{'report':payload})
     key = value.get('id', '')

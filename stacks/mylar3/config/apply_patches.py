@@ -53,6 +53,7 @@ PATCHES = (
     "patch_publication_reconcile",
     "patch_publication_derivative",
     "patch_combined_publication",
+    "patch_publication_retained_standalone",
     "patch_publication_reader_cohort",
 )
 
