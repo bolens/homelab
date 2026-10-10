@@ -1320,6 +1320,38 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.run_main(root), main.FAILURE)
             self.assertEqual(self.snapshot(root), before)
 
+    def test_empty_completed_music_directory_is_preserved(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            category = Path(temp) / "usenet/completed/music"
+            category.mkdir(parents=True)
+            inode = category.stat().st_ino
+            self.assertEqual(self.run_main(category), main.FAILURE)
+            self.assertTrue(category.is_dir())
+            self.assertEqual(category.stat().st_ino, inode)
+            self.assertEqual(list(category.iterdir()), [])
+            main.flatten_existing_tree(category)
+            self.assertTrue(category.is_dir())
+            self.assertEqual(category.stat().st_ino, inode)
+
+    def test_empty_directory_cleanup_stays_inside_release(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            category = Path(temp) / "usenet/completed/music"
+            root = category / "Album"
+            (root / "Wrapper/Audio").mkdir(parents=True)
+            (root / "Wrapper/Empty/Nested").mkdir(parents=True)
+            sibling = category / "Other empty release"
+            sibling.mkdir()
+            audio = b"fLaC" + bytes(32)
+            (root / "Wrapper/Audio/one.flac").write_bytes(audio)
+            category_inode = category.stat().st_ino
+            release_inode = root.stat().st_ino
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual(self.snapshot(root), {"one.flac": audio})
+            self.assertFalse((root / "Wrapper").exists())
+            self.assertTrue(sibling.is_dir())
+            self.assertEqual(category.stat().st_ino, category_inode)
+            self.assertEqual(root.stat().st_ino, release_inode)
+
     def test_video_containers_are_not_mislabelled_as_audio(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

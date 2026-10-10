@@ -62,7 +62,10 @@ separate disc folders, preserving different mixes without renaming the tracks.
 Filename collisions within the same disc still fail rather than overwrite a file.
 Nested numbered disc folders retain their hierarchy.
 This flattening pass also handles release folders created earlier by NZBGet's
-built-in unpacker and removes directories left empty afterward.
+built-in unpacker and removes empty subdirectories inside the processed release.
+It preserves the processing directory itself, its parents such as
+`usenet/completed/music`, and sibling release directories. An empty music
+category directory is retained.
 After successful extraction, `.accurip`, `.jpg`, `.log`, `.m3u`,
 `.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pdf`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`, and
 `.txt` sidecar files are removed, along with `.url` shortcuts, while audio and
