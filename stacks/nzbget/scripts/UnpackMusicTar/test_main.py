@@ -1310,6 +1310,49 @@ class MusicProcessingSeamTest(unittest.TestCase):
                     self.assertEqual(self.run_main(root), main.FAILURE)
                 self.assertEqual(self.snapshot(root), before)
 
+    def test_extensionless_album_info_cleanup_before_import(self) -> None:
+        info = "Album: Example Album\nArtist: Example Artist\nTracklist:\n01 Example Song\n"
+        for name in ("album_info", "was95_album_info", "WAS95_ALBUM_INFO"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = b"fLaC" + bytes(32)
+                (root / "song.flac").write_bytes(audio)
+                (root / name).write_text(info)
+                self.assertEqual(self.run_main(root), main.SUCCESS)
+                self.assertEqual(self.snapshot(root), {"song.flac": audio})
+                self.assertEqual(self.run_main(root), main.SUCCESS)
+
+    def test_album_info_unknown_binary_and_oversized_content_preserved(self) -> None:
+        info = b"Album: Example Album\nArtist: Example Artist\nTracklist:\n01 Example Song\n"
+        cases = (("notes", info), ("was95_album_info", b"unrelated text"),
+                 ("was95_album_info", b"Album:\nArtist:\nTracklist:\n01 Example Song\n"),
+                 ("was95_album_info", b"Album:    \r\nArtist: \r\nTracklist:\r\n01 Example Song\r\n"),
+                 ("was95_album_info", info + b"\x00"),
+                 ("was95_album_info", info + b"x" * 65536),
+                 ("was95_album_info", b"fLaC" + bytes(32)),
+                 ("was95_album_info", b""))
+        for name, payload in cases:
+            with self.subTest(name=name, payload=payload[:80]), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "song.flac").write_bytes(b"fLaC" + bytes(32))
+                (root / name).write_bytes(payload)
+                self.assertFalse(main.disposable(root / name))
+                self.assertEqual(self.run_main(root), main.SUCCESS)
+                target = root / (name + ".flac" if payload.startswith(b"fLaC") else name)
+                self.assertEqual(target.read_bytes(), payload)
+
+    def test_album_info_only_and_cue_reference_remain_protected(self) -> None:
+        info = "Album: Example Album\nArtist: Example Artist\nTracklist:\n01 Example Song\n"
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "was95_album_info").write_text(info)
+            before = self.snapshot(root)
+            self.assertEqual(self.run_main(root), main.FAILURE)
+            self.assertEqual(self.snapshot(root), before)
+            (root / "reference.cue").write_text('FILE "was95_album_info" WAVE\n')
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual((root / "was95_album_info").read_text(), info)
+
     def test_missing_directory_and_cleanup_to_empty_fail(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -1319,6 +1362,38 @@ class MusicProcessingSeamTest(unittest.TestCase):
             before = self.snapshot(root)
             self.assertEqual(self.run_main(root), main.FAILURE)
             self.assertEqual(self.snapshot(root), before)
+
+    def test_empty_completed_music_directory_is_preserved(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            category = Path(temp) / "usenet/completed/music"
+            category.mkdir(parents=True)
+            inode = category.stat().st_ino
+            self.assertEqual(self.run_main(category), main.FAILURE)
+            self.assertTrue(category.is_dir())
+            self.assertEqual(category.stat().st_ino, inode)
+            self.assertEqual(list(category.iterdir()), [])
+            main.flatten_existing_tree(category)
+            self.assertTrue(category.is_dir())
+            self.assertEqual(category.stat().st_ino, inode)
+
+    def test_empty_directory_cleanup_stays_inside_release(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            category = Path(temp) / "usenet/completed/music"
+            root = category / "Album"
+            (root / "Wrapper/Audio").mkdir(parents=True)
+            (root / "Wrapper/Empty/Nested").mkdir(parents=True)
+            sibling = category / "Other empty release"
+            sibling.mkdir()
+            audio = b"fLaC" + bytes(32)
+            (root / "Wrapper/Audio/one.flac").write_bytes(audio)
+            category_inode = category.stat().st_ino
+            release_inode = root.stat().st_ino
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual(self.snapshot(root), {"one.flac": audio})
+            self.assertFalse((root / "Wrapper").exists())
+            self.assertTrue(sibling.is_dir())
+            self.assertEqual(category.stat().st_ino, category_inode)
+            self.assertEqual(root.stat().st_ino, release_inode)
 
     def test_video_containers_are_not_mislabelled_as_audio(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

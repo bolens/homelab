@@ -62,7 +62,10 @@ separate disc folders, preserving different mixes without renaming the tracks.
 Filename collisions within the same disc still fail rather than overwrite a file.
 Nested numbered disc folders retain their hierarchy.
 This flattening pass also handles release folders created earlier by NZBGet's
-built-in unpacker and removes directories left empty afterward.
+built-in unpacker and removes empty subdirectories inside the processed release.
+It preserves the processing directory itself, its parents such as
+`usenet/completed/music`, and sibling release directories. An empty music
+category directory is retained.
 After successful extraction, `.accurip`, `.jpg`, `.log`, `.m3u`,
 `.m3u8`, `.md5`, `.nfo`, `.nzb`, `.pdf`, `.pls`, `.png`, `.sfv`, `.srr`, `.toc`, and
 `.txt` sidecar files are removed, along with `.url` shortcuts, while audio and
@@ -90,6 +93,14 @@ filenames, allowing no line ending, LF or CRLF. Matching is bounded and requires
 the complete payload. Similar text, named audio/video, cue and M3U files and
 cue-referenced files remain protected. A marker-only release is retained by the
 existing guard against deleting every file.
+
+Extensionless `album_info` posting sidecars, including a short alphanumeric
+prefix such as `post_album_info`, are removed during music post-processing before
+import. Recognition requires the entire file to be readable UTF-8 text within
+64 KiB, with nonempty `Album:` and `Artist:` fields, a `Tracklist:` heading and a
+numbered track entry. Unknown text, recognised media and cue references remain
+protected. An info-only release remains retained by the guard against deleting
+every file; this rule does not infer that missing audio was imported.
 
 Zero-byte files with known audio extensions always fail validation before
 cleanup or publication, even without track totals, with cleanup disabled, or
