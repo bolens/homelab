@@ -768,3 +768,13 @@ reader preservation require their separate checked recovery route.
 The source includes a disabled ordinary-import continuity observer for owned rename and preserved metadata changes. During a marked maintenance cycle it collects selectors only; after all cycle work it obtains fresh strict admission, makes the authenticated native request outside the writer hold, and immediately verifies the original response bytes and complete mapped file/control facts. This observation remains process-local. It cannot complete a durable pack report, authorize retained-source cleanup, restore a lost witness after restart or grant reader acceptance. Matching native/worker images and actual transport acceptance are required before activation; existing mounts, ports, settings and privileges are unchanged.
 
 The worker also packages disabled retained-pack receipt and archive terminal observation helpers. The pack path exposes explicit initialization, selection, execution and one read-only status check for a lost response. Initialization preserves the existing journal before admission callbacks; execution and status consumption require the same live session, action and writer custody. Its local view reports retained observations and uncertain review, with zero imported members. Scheduling, authenticated installed transport, restart recovery and post-CAS uncertainty remain held. The archive observer uses bounded inherited pipes and read-only facts, with publication, import, indexing, cleanup, replay and resume rights all false. Original producer custody, complete mapping and matching installed images must be accepted before either path is enabled. Their public test fixtures stay in the checked build stage.
+
+The disabled retained-pack control keeps the selected worker, existing lock and
+original pipes alive while the separate host parent verifies consistent native,
+worker and reader state backup and isolated restore. It selects one member only
+after that same conversation supplies the verified backup result. Following a
+lost response, only the original action can make one passive status request. The
+parent checks the result before allowing that original worker to exit; it does
+not automatically resume services or remove evidence. Actual installed source,
+configured bind geometry and terminal reader acceptance remain required before
+activation. See [the host contract](../mylar3/config/reader_recovery/CONTRACT-retained-pack.md).

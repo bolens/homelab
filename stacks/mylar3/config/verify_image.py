@@ -10,11 +10,13 @@ import tempfile
 FIXES = Path(__file__).parent
 # These owning suites use independent temporary database/media/cache roots.
 # Shared-source patch and legacy suites remain serialized.
+# Export/composed retained API suites run only in the mandatory copied API family,
+# where their exact generated api.py fixture exists; direct execution lacks that fixture.
 OWNING_SUITES = ('test_publication_conversion.py', 'test_publication_reconcile.py',
     'test_publication_lineage.py', 'test_publication_derivative.py',
     'test_reviewed_derivative.py', 'test_combined_publication.py',
     'test_combined_cleanup.py', 'test_closed_supplement.py', 'test_publication_archive_repair.py',
-    'test_publication_archive_diagnostics.py', 'test_publication_archive_history.py', 'test_publication_archive_route_history.py', 'test_publication_retained_delivery.py', 'test_publication_retained_finalize.py', 'test_retained_native_operation.py', 'test_retained_pack_export.py', 'test_retained_pack_composed.py', 'test_publication_archive_terminal_originals.py', 'test_publication_archive_same_child.py', 'test_publication_archive_admission.py',
+    'test_publication_archive_diagnostics.py', 'test_publication_archive_history.py', 'test_publication_archive_route_history.py', 'test_publication_retained_delivery.py', 'test_publication_retained_finalize.py', 'test_retained_native_operation.py', 'test_publication_archive_terminal_originals.py', 'test_publication_archive_same_child.py', 'test_publication_archive_admission.py',
     'test_publication_archive_owned.py', 'test_publication_archive_preparation_existing.py', 'test_publication_archive_lifecycle_binding.py', 'test_publication_archive_owned_api.py', 'test_publication_archive_adoption.py', 'test_publication_archive_rollback.py', 'test_publication_archive_verifier_vectors.py', 'test_publication_reader_lifecycle.py', 'test_publication_native_configured_scope.py', 'test_publication_negative_purpose.py')
 
 

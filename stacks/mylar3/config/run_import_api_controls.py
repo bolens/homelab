@@ -16,6 +16,7 @@ PACK_FIXTURES = frozenset((
     'test_fixtures/retained_pack_worker/archive_repair_handoff.py',
     'test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py',
     'test_fixtures/retained_pack_worker/check_retained_pack_export.py',
+    'test_fixtures/retained_pack_worker/check_preproof_session.py',
     'test_fixtures/retained_pack_worker/combined_handoff.py',
     'test_fixtures/retained_pack_worker/conversion_handoff.py',
     'test_fixtures/retained_pack_worker/edition_evidence.py',
@@ -46,10 +47,18 @@ PACK_FIXTURES = frozenset((
     'test_fixtures/retained_pack_worker/reader_scan.py',
     'test_fixtures/retained_pack_worker/release_naming.py',
     'test_fixtures/retained_pack_worker/retained_pack_handoff.py',
+    'test_fixtures/retained_pack_worker/retained_pack_control.py',
     'test_fixtures/retained_pack_worker/retained_pack_operations.py',
     'test_fixtures/retained_pack_worker/source-pins.json',
     'test_fixtures/retained_pack_worker/writer_cycle.py',
 ))
+
+HOST_SOURCES = {
+    'reader_recovery/comic_retained_pack_parent.py': 'comic_retained_pack_parent.py',
+    'reader_recovery/comic_retained_pack_backup.py': 'comic_retained_pack_backup.py',
+    'reader_recovery/retained_pack_control.py': 'retained_pack_control.py',
+    'reader_recovery/comic_reader_backup_primitives.py': 'comic_reader_backup_primitives.py',
+}
 
 def full(st):
     return (st.st_dev, st.st_ino, st.st_mode, st.st_uid, st.st_gid,
@@ -62,7 +71,7 @@ def main(family="all"):
     assert family in ("all", "observation", "retained")
     entries = json.loads((ROOT / 'import_api_control_sources.json').read_text())
     assert isinstance(entries, list) and 1 <= len(entries) <= 512
-    assert PACK_FIXTURES <= {row['path'] for row in entries}
+    assert PACK_FIXTURES | set(HOST_SOURCES) <= {row['path'] for row in entries}
     files, nodes, buffers = {}, {}, {}
     # Capture the complete original set before the first source read.
     for row in entries:
@@ -71,7 +80,7 @@ def main(family="all"):
         assert not rel.is_absolute() and '..' not in rel.parts
         assert (len(rel.parts) == 1 and rel.suffix == '.py'
                 or row['path'] == 'import_api_fixtures/api_predecessor.py'
-                or row['path'] in PACK_FIXTURES)
+                or row['path'] in PACK_FIXTURES or row['path'] in HOST_SOURCES)
         path = ROOT / rel
         assert path not in files
         st = os.lstat(path)
@@ -103,13 +112,16 @@ def main(family="all"):
         config.mkdir()
         preimages = root / 'preimages'
         preimages.mkdir()
+        destinations = set()
         for name, data in buffers.items():
             if name == 'import_api_fixtures/api_predecessor.py':
                 assert hashlib.sha256(data).hexdigest() == API_SHA
                 (preimages / 'api.py').write_bytes(data)
             else:
-                assert len(Path(name).parts) == 1 or name in PACK_FIXTURES
-                destination = config / name
+                assert len(Path(name).parts) == 1 or name in PACK_FIXTURES or name in HOST_SOURCES
+                destination = config / HOST_SOURCES.get(name, name)
+                assert destination not in destinations
+                destinations.add(destination)
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 destination.write_bytes(data)
         source = (preimages / 'api.py').read_text()
@@ -132,9 +144,12 @@ def main(family="all"):
                          'test_publication_retained_finalize', 'test_publication_retained_delivery',
                          'test_retained_pack_export', 'test_retained_pack_composed'),
         }
+        if family == 'all':
+            families['preproof'] = ('test_preproof', 'test_preproof_composed.Preproof.test_original_session_real_pipe_backup_SQLite_and_native_worker_CAS', 'test_preproof_composed.Preproof.test_original_session_lost_HTTP_one_status_no_finalize_replay', 'test_preproof_composed.Preproof.test_real_backup_foreign_source_refuses_before_selection', 'test_preproof_terminal.Terminal.test_last_result_schema_source_drift_holds', 'test_preproof_terminal.Terminal.test_last_result_schema_restore_drift_holds', 'test_preproof_terminal.Terminal.test_last_raw_helper_source_drift_holds', 'test_preproof_terminal.Terminal.test_original_process_alive_until_same_pipe_ACK_then_natural_exit', 'test_preproof_terminal.Terminal.test_postCAS_foreign_journal_leaf_holds', 'test_preproof_terminal.Terminal.test_postCAS_foreign_SQL_holds', 'test_preproof_terminal.Terminal.test_wrong_original_result_digest_does_not_release_child', 'test_preproof_terminal.Terminal.test_lost_reply_reconciles_once_and_keeps_same_terminal_pipe', 'test_preproof_terminal.Terminal.test_original_selected_PID_drift_holds', 'test_preproof_terminal.Terminal.test_unknown_original_child_exit_before_ACK_holds', 'test_preproof_terminal.Terminal.test_postCAS_receipt_foreign_bytes_holds', 'test_preproof_terminal.Terminal.test_last_runtime_profile_callback_source_drift_holds', 'test_preproof_terminal.Terminal.test_final_original_runtime_registry_change_holds', 'test_preproof_terminal.Terminal.test_final_original_runtime_registry_erasure_holds', 'test_preproof_terminal.Terminal.test_final_original_runtime_registry_forged_equal_bytes_holds', 'test_preproof_terminal.Terminal.test_final_original_terminal_registry_equal_replacement_holds', 'test_preproof_terminal.Terminal.test_final_original_terminal_registry_foreign_holds', 'test_preproof_terminal.Terminal.test_final_original_terminal_registry_erasure_holds', 'test_preproof_terminal.Terminal.test_initial_runtime_registry_change_before_first_factory_callback_holds', 'test_preproof_terminal.Terminal.test_initial_presentNone_terminal_entry_is_not_original_absence', 'test_preproof_terminal.Terminal.test_late_presentNone_terminal_entry_is_not_original_absence', 'test_preproof_terminal.Terminal.test_initial_nested_foreign_terminal_entry_holds', 'test_preproof_terminal.Terminal.test_initial_stale_terminal_phase_holds')
         selected = families.values() if family == 'all' else (families[family],)
         for suites in selected:
-            result = subprocess.run([sys.executable, '-B', '-m', 'unittest', *suites], cwd=config)
+            environment = dict(os.environ, RETAINED_PRIMITIVES=str(config/'comic_reader_backup_primitives.py'))
+            result = subprocess.run([sys.executable, '-B', '-m', 'unittest', *suites], cwd=config, env=environment)
             code = code or result.returncode
     # No helper callback follows this complete original raw closure.
     for path, original in files.items():

@@ -25,6 +25,7 @@ _RETURN_CODE=_RETURN.__code__
 _REQUEST=_RETURN.__globals__['request']
 _REQUEST_CODE=_REQUEST.__code__
 _CORES=weakref.WeakKeyDictionary()
+_TERMINAL_EXPORTS=weakref.WeakKeyDictionary()
 _SELECTED={}
 _LIMIT=4*1024**2
 _MARKERS=('normalizer-v1.pending','tagger-v2.pending','release-v1.pending','tagger-publication-v1.json',
@@ -552,21 +553,26 @@ def consume(action):
     frame['absent']=tuple(p for p in frame['absent'] if p!=str(c['done']));frame['files'][str(c['done'])]=done_stamp;frame['names'][str(c['done'].parent)]=tuple(sorted((*frame['names'][str(c['done'].parent)],c['done'].name)))
     check(_read(receipt,stamp,_LIMIT)==encoded,'retained-receipt-readback')
     _transport(c['maintenance']);check(_binding(c['maintenance'])==c['maintenance_binding'],'retained-original-Maintenance')
+    # Preserve the genuine owned successor before final callbacks; no recapture.
+    closed_frame={k:tuple(group) if k=='absent' else {p:(dict(v) if k=='attrs' else tuple(v) if k in ('files','nodes','names') or k=='claims' and v is not None else v) for p,v in group.items()} for k,group in frame.items()}
+    closed_core=_terminal_projection(c,phase='consumed')
+    terminal_record=(c,compact(closed_frame),native_compact(expected),native_compact(c['catalog']),closed_core,c['token'],c['reply_bytes'])
+    _TERMINAL_EXPORTS[action]=terminal_record
     # Final copied physical closure after ALL write/SQL/serialization helpers.
-    _raw(_detached(frame))
-    for p,n in frame['names'].items():
+    _raw(_detached(closed_frame))
+    for p,n in closed_frame['names'].items():
         if tuple(sorted(os.listdir(p)))!=tuple(n):raise ValueError('retained-namespace')
-    for p,v in frame['nodes'].items():
+    for p,v in closed_frame['nodes'].items():
         z=os.lstat(p)
         if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(v):raise ValueError('retained-node')
-    for p,v in frame['files'].items():
+    for p,v in closed_frame['files'].items():
         z=os.lstat(p)
         if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(v):raise ValueError('retained-file')
-    for p in frame['absent']:
+    for p in closed_frame['absent']:
         try:os.lstat(p)
         except FileNotFoundError:continue
         raise ValueError('retained-absence')
-    for p,v in frame['claims'].items():
+    for p,v in closed_frame['claims'].items():
         try:z=os.lstat(p)
         except FileNotFoundError:
             if v is None:continue
@@ -585,6 +591,7 @@ def consume(action):
     if (getattr(m.retained_pack_return,'__func__',None) is not _RETURN or _RETURN.__code__ is not _RETURN_CODE
             or _RETURN.__globals__.get('request') is not _REQUEST or _REQUEST.__code__ is not _REQUEST_CODE):
         raise ValueError('retained-final-transport')
+    if _TERMINAL_EXPORTS.get(action) is not terminal_record:raise ValueError('retained-original-terminal-registry')
     c['phase']='consumed'
     return {'outcome':'retained-observed','cleanup_grant':False,'ordinary_import_grant':False,'reader_index_acceptance':False}
 
@@ -599,3 +606,62 @@ def run_selected(maintenance):
     dispatch(action)
     with writer.hold(timeout=0),scope(maintenance.worker,writer):consume(action)
     return 1
+
+
+def _terminal_projection(c,phase=None):
+    pending=[dict(c,phase=c['phase'] if phase is None else phase)];out=[]
+    while pending:
+        item=pending.pop();kind=type(item)
+        if kind is dict:
+            keys=tuple(sorted(item));out.append(('dict',keys));pending.extend(item[k] for k in reversed(keys))
+        elif kind in (list,tuple):out.append((kind.__name__,len(item)));pending.extend(reversed(item))
+        elif kind in (str,int,float,bool,bytes,type(None)):out.append((kind.__name__,item))
+        else:out.append(('identity',id(kind),id(item)))
+    return tuple(out)
+
+
+def close_terminal(action):
+    """Read-only same-live consumed-action originals under its actual ordinary Writer."""
+    c=_core(action,'consumed');record=_TERMINAL_EXPORTS.get(action)
+    check(record is not None and record[0] is c,'retained-original-terminal-export')
+    frame=json.loads(record[1]);m=c['maintenance'];a=current(m.worker)
+    check(a.writer.local is c['writer'].local,'retained-same-terminal-Writer');evidence.ordinary_purpose(a.writer)
+    _transport(m);check(_binding(m)==c['maintenance_binding'],'retained-terminal-Maintenance')
+    check(native_compact(_sql(a.database,frame['files'][str(a.database)]))==record[2] and native_compact(_sql(a.catalog,frame['files'][str(a.catalog)]))==record[3],'retained-terminal-SQL')
+    check(a.admission()==c['census'],'retained-terminal-census')
+    for p,digest in frame['hashes'].items():check(hashlib.sha256(_read(p,frame['files'][p])).hexdigest()==digest,'retained-terminal-bytes')
+    _raw(frame);check(_terminal_projection(c)==record[4],'retained-terminal-core')
+    out={k:tuple(group) if k=='absent' else {p:(dict(v) if k=='attrs' else tuple(v) if k in ('files','nodes','names') or k=='claims' and v is not None else v) for p,v in group.items()} for k,group in frame.items()}
+    # Every helper has finished before complete raw originals and logical seal.
+    for p,names in frame['names'].items():
+        if tuple(sorted(os.listdir(p)))!=tuple(names):raise ValueError('retained-terminal-namespace')
+    for p,v in frame['nodes'].items():
+        z=os.lstat(p)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(v):raise ValueError('retained-terminal-node')
+    for p,v in frame['files'].items():
+        z=os.lstat(p)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(v):raise ValueError('retained-terminal-file')
+    for p in frame['absent']:
+        try:os.lstat(p)
+        except FileNotFoundError:continue
+        raise ValueError('retained-terminal-absence')
+    for p,v in frame['claims'].items():
+        try:z=os.lstat(p)
+        except FileNotFoundError:
+            if v is None:continue
+            raise ValueError('retained-terminal-claim')
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid,None if z.st_mode&0o170000==0o040000 else z.st_nlink)!=(None if v is None else tuple(v)):raise ValueError('retained-terminal-claim')
+    pending=[c];projection=[]
+    while pending:
+        item=pending.pop();kind=type(item)
+        if kind is dict:
+            keys=tuple(sorted(item));projection.append(('dict',keys));pending.extend(item[k] for k in reversed(keys))
+        elif kind in (list,tuple):projection.append((kind.__name__,len(item)));pending.extend(reversed(item))
+        elif kind in (str,int,float,bool,bytes,type(None)):projection.append((kind.__name__,item))
+        else:projection.append(('identity',id(kind),id(item)))
+    if tuple(projection)!=record[4] or _CORES.get(action) is not c or _TERMINAL_EXPORTS.get(action) is not record or c['token']!=record[5] or c['reply_bytes'] is not record[6]:raise ValueError('retained-terminal-final-core')
+    w=a.writer
+    if (w.root,w.lock,w.pending,w.tagger_pending,w.release_pending,tuple(w.lock_identity),tuple(w.root_identity),w.local)!=c['writer_binding'] or getattr(w.local[1],'depth',0)<=0 or any(getattr(w.local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')):raise ValueError('retained-terminal-final-Writer')
+    if (m.state,m.worker,tuple(m.worker.roots),m.worker.config['writer_state'],m.settings.get('ddl_cache'),m.settings.get('mylar_ddl_cache'),m.worker.config['mylar'].get('url'),m.worker.config['mylar'].get('config_dir','/mylar'),tuple((row['native'],row['worker']) for row in m.worker.config['publication_roots']))!=c['maintenance_binding']:raise ValueError('retained-terminal-final-Maintenance')
+    if (getattr(m.retained_pack_return,'__func__',None) is not _RETURN or _RETURN.__code__ is not _RETURN_CODE or _RETURN.__globals__.get('request') is not _REQUEST or _REQUEST.__code__ is not _REQUEST_CODE):raise ValueError('retained-terminal-final-transport')
+    return out

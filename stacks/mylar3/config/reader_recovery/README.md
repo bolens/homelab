@@ -25,3 +25,14 @@ acceptance remain separate gates. See [the parent contract](CONTRACT-archive-par
 The NFS host prerequisite runs a newly owned exact hardlink canary while the reader is active, closes cleanup and releases its existing Writer lease, then owns the finite reader-stop successor. Its process-local factual object cannot be reconstructed from a receipt. HOST media and DATA paths come from inspected bind/config projections; private source-cohort inputs and operational receipts are excluded from this closure. The action child acquires a separate existing Writer and repeats current admission checks. The canary, bridge and source tests grant no library, import or reader-resume rights. See [the NFS factual contract](CONTRACT-nfs-factual.md).
 
 The disabled archive plan12/input2 path keeps the original execute child alive while a separate read-only worker observes four roles derived from its live capability. The parent retains both original pipes, source profiles and the worker image’s own ancestors through final release. The pure worker projection helper supplies no custody or publication rights. Installed CLI, image, bind geometry and NFS verification remain required; source tests do not enable the path.
+
+The separate disabled retained-pack parent keeps one selected worker and its
+original pipes and worker lock alive through initialization, consistent state
+backup, isolated restore, one member action, and the final result exchange. Its
+neutral backup covers native configuration, worker state and reader configuration.
+The result grants no automatic restart, cleanup or reader acceptance. The exact
+worker control is an adjacent host dependency, not a Mylar SDK module. See
+[the retained-pack contract](CONTRACT-retained-pack.md). The mandatory copied API
+gate runs its 48 owning controls; the existing 588 recovery controls remain
+unchanged. Actual installed source, bind geometry, state capacity and native
+background admissibility must be verified before activation.

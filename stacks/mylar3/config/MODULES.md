@@ -473,3 +473,14 @@ permission. Original child namespace differences remain a separate acceptance
 gap; copying or restamping receipts does not resolve it.
 
 `publication_retained_finalize.py` remains disabled. A live retained-target acceptance can finalize one exact pack member and a distinct backend record in the same process. Saved records cannot restore the original producer witness after a restart or unknown commit. This state grants no ordinary import acknowledgement, source cleanup, or reader-index acceptance; authenticated activation and downstream acceptance remain unfinished.
+
+The default-disabled retained-pack parent and backup helper live under
+`reader_recovery/`, with a byte-identical adjacent worker control dependency.
+They are host tools; the installer does not add them to the canonical Mylar SDK.
+The worker image includes only the production control and exact handoff successor.
+The copied API graph explicitly admits four host dependencies and 37 worker
+Python fixture files plus their source map. Its all-family gate runs 247 controls,
+including 48 parent conversation checks, against the generated API fixture.
+Export/composed API suites are not repeated directly without that fixture. The
+parent remains disabled and its accepted runtime pins unset; tested factual
+results do not authorize reader resume, indexing, cleanup or historical import.

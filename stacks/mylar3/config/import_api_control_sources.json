@@ -556,6 +556,22 @@
     "sha256": "e99994c68582957f44b74bc42d20676c175ceb617ea2f44a62436908c83a0cb9"
   },
   {
+    "path": "reader_recovery/comic_reader_backup_primitives.py",
+    "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
+  },
+  {
+    "path": "reader_recovery/comic_retained_pack_backup.py",
+    "sha256": "96714f959a86f8fa9b83fda82e795505a93e511eb0ca287326b0d1233970a48b"
+  },
+  {
+    "path": "reader_recovery/comic_retained_pack_parent.py",
+    "sha256": "fa82c07f8657a19940f1bc4be577ff5e2d650cae408e715a5be4789dddcb94f4"
+  },
+  {
+    "path": "reader_recovery/retained_pack_control.py",
+    "sha256": "a11b28318ed5f930f07963c7daf44b997eb1d1211c73242d32b5e9b20a834736"
+  },
+  {
     "path": "release_calendar.py",
     "sha256": "1cc07ff361771efdf49b3336b838df9568545b6cb81c1b14148946547583ab56"
   },
@@ -748,6 +764,10 @@
     "sha256": "d9a165610980da31308753abfc6b392efb5a71c9c66679298ec30e8f6637cb2d"
   },
   {
+    "path": "test_fixtures/retained_pack_worker/check_preproof_session.py",
+    "sha256": "1d16faa1f3d616329c77b11ed541c195044b1409fb670f8eb145011e2b40c3d9"
+  },
+  {
     "path": "test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py",
     "sha256": "b00331d89fe7c55c67f7c06db9c1dac81f79d44a4047beceb024fd711e371041"
   },
@@ -872,8 +892,12 @@
     "sha256": "4479b6027a5180b31ee5a994202bca87e5bb1cb2f1685d6cb7463f736b1526e8"
   },
   {
+    "path": "test_fixtures/retained_pack_worker/retained_pack_control.py",
+    "sha256": "a11b28318ed5f930f07963c7daf44b997eb1d1211c73242d32b5e9b20a834736"
+  },
+  {
     "path": "test_fixtures/retained_pack_worker/retained_pack_handoff.py",
-    "sha256": "0e8f6d5bd2f58d812fb2e9eb7114baab516b213d3ae2a2853e4d74f4301485ce"
+    "sha256": "632cbd69317db66ae64abc954b674cddd95e613a74f338bae0a827f5faa60b9d"
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_operations.py",
@@ -881,7 +905,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "a7e0de8077ec30d6bcd475afe2d21afdc0ac9eefc93e9e8b2185523cf69de24e"
+    "sha256": "dcf37bf9db4cc39dc49c40c669708e3a707f49ff453c703cb3a5b9fd1c9561ff"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",
@@ -946,6 +970,18 @@
   {
     "path": "test_pp_monitor.py",
     "sha256": "b8862cf7971346e0380f86b67d7e24d60ea979c3a2e8c787c8cbc97ab3d41c42"
+  },
+  {
+    "path": "test_preproof.py",
+    "sha256": "00a31b5383595ea78431ccede363f6d018acc69e7a8c05dc291919b0e4a526c4"
+  },
+  {
+    "path": "test_preproof_composed.py",
+    "sha256": "797b0a86123074d9b5c210fd0cd246ce8f6c21437fe1126a315d0772ae82e18d"
+  },
+  {
+    "path": "test_preproof_terminal.py",
+    "sha256": "d2954de6ddb2cc402b6d7670fe94cd201ffb421f7308ee69c658586653d4302c"
   },
   {
     "path": "test_prowlarr_identity.py",
@@ -1317,7 +1353,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "45048c75ff119a9cc50099c2fd340a208561f0cfd4420a22047a4e7be4c74298"
+    "sha256": "bb7b0d7c0519be740bd20f01c1573b7c1fb97d3907729f0feb6be122cbc78f1c"
   },
   {
     "path": "verify_publication_reader_cohort.py",

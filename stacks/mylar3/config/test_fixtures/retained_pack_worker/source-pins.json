@@ -1,5 +1,6 @@
 {
   "archive_repair_handoff.py": "d9a165610980da31308753abfc6b392efb5a71c9c66679298ec30e8f6637cb2d",
+  "check_preproof_session.py": "1d16faa1f3d616329c77b11ed541c195044b1409fb670f8eb145011e2b40c3d9",
   "check_retained_pack_composed_worker.py": "b00331d89fe7c55c67f7c06db9c1dac81f79d44a4047beceb024fd711e371041",
   "check_retained_pack_export.py": "0dbd9825cc63fe42fe8d5f5a605eac85eb24df4c900d677eacc1f952c78dd9d0",
   "combined_handoff.py": "1b0e456799c3ab8c1e425a36ee487130575d996a8598987a8b0905ca88267809",
@@ -31,7 +32,8 @@
   "reader_handoff.py": "7ab00b345831fb614326c9796ef0b5b04f4926e3a3949833a3f3dcd8f77b7066",
   "reader_scan.py": "2963ee58ec016bb2ee488b2c64fac0e5f2d2d4963f961ce548b31fa99fe88700",
   "release_naming.py": "4479b6027a5180b31ee5a994202bca87e5bb1cb2f1685d6cb7463f736b1526e8",
-  "retained_pack_handoff.py": "0e8f6d5bd2f58d812fb2e9eb7114baab516b213d3ae2a2853e4d74f4301485ce",
+  "retained_pack_control.py": "a11b28318ed5f930f07963c7daf44b997eb1d1211c73242d32b5e9b20a834736",
+  "retained_pack_handoff.py": "632cbd69317db66ae64abc954b674cddd95e613a74f338bae0a827f5faa60b9d",
   "retained_pack_operations.py": "faf03dea0bb016484c41d021fa62617af9790ddb23f278eb240680435b6c3a65",
   "writer_cycle.py": "7b03a493d8acb85e31fb8c7f7788216dce396e18bb2b55ddead357de6df5a14c"
 }
