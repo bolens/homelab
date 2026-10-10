@@ -31,6 +31,32 @@ class BackupTests(unittest.TestCase):
         self.tmp.cleanup()
     def run_backup(self):
         return b.copy_and_verify(self.scopes, self.out)
+    def test_real_original_directory_birth_model_and_backup_restore(self):
+        before=os.lstat(self.root);result=self.run_backup();answer=result.close()
+        self.assertFalse(answer['ordinary_import'])
+        for path in (self.out,self.out/'backup',self.out/'restore'):
+            after=os.lstat(path)
+            self.assertEqual(after.st_dev,before.st_dev)
+            self.assertEqual(after.st_nlink==1,before.st_nlink==1)
+        self.assertEqual((self.out/'restore/existing_target').read_bytes(),self.target.read_bytes())
+
+    def test_real_fresh_original_directory_FD_census_and_drift_cleanup(self):
+        directory=self.root/'fresh-census';directory.mkdir(mode=0o700)
+        fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW);real=b.os.listdir;fresh=[]
+        try:
+            self.assertEqual(b._directory_names(fd),())
+            (directory/'child').mkdir(mode=0o700)
+            self.assertEqual(b._directory_names(fd),('child',))
+            def changed(value):
+                names=real(value)
+                if isinstance(value,int):fresh.append(value);os.chmod(directory,0o750)
+                return names
+            with patch.object(b.os,'listdir',changed),self.assertRaises(ValueError):b._directory_names(fd)
+            self.assertEqual(len(fresh),1)
+            with self.assertRaises(OSError):os.fstat(fresh[0])
+            self.assertEqual(os.fstat(fd).st_ino,os.lstat(directory).st_ino)
+        finally:os.close(fd)
+
     def test_real_sqlite_independent_private_copies(self):
         result = self.run_backup()
         self.assertFalse(result.close()['ordinary_import'])

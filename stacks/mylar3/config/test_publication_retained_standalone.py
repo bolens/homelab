@@ -3,6 +3,7 @@ import hashlib
 import importlib
 import json
 import os
+from pathlib import Path
 import select
 import shutil
 import sqlite3
@@ -402,13 +403,17 @@ class Standalone(base.Retained):
 
     def test_standalone_directory_projection_exact_birth_copy_SQL_chains(self):
         with self.writer.hold():
+            original_parent=os.lstat(self.c.root)
             session=self.init();initialized=s._SEALS[session];j=initialized['journal'];parent=initialized['sql_parents'][0]
-            self.assertIsNone(j['before9']);self.assertEqual(j['journal_birth9'][8],2)
-            self.assertEqual(j['after9'][8],j['journal_birth9'][8]+1)
-            self.assertEqual(parent['initialized9'][8],parent['pre_initialize9'][8]+1)
+            self.assertIsNone(j['before9']);birth=j['journal_birth9'];pre=parent['pre_initialize9']
+            self.assertEqual(pre[:2],(original_parent.st_dev,original_parent.st_ino));self.assertEqual(pre[8],original_parent.st_nlink)
+            self.assertEqual(birth[0],original_parent.st_dev);self.assertEqual(birth[8],1 if original_parent.st_nlink==1 else 2)
+            self.assertEqual(j['after9'][8],birth[8] if birth[8]==1 else birth[8]+1)
+            self.assertEqual(os.lstat(self.c.root/s.NAME).st_nlink,j['after9'][8])
+            self.assertEqual(parent['initialized9'][8],pre[8] if pre[8]==1 else pre[8]+1)
             self.assertIsNone(parent['backup9']);self.assertEqual(j['initialized_names'],('intent.json',))
             cap=self.ready(session);prepared=s._SEALS[session];row=prepared['sql_parents'][0]
-            self.assertEqual(row['backup9'][8],row['initialized9'][8]+1)
+            self.assertEqual(row['backup9'][8],row['initialized9'][8] if row['initialized9'][8]==1 else row['initialized9'][8]+1)
             copies=prepared['journal']['preservation'];self.assertEqual([v['name'] for v in copies],['target-preserved.cbz','target-restored.cbz'])
             self.assertEqual(copies[0]['before9'],j['initialized9']);self.assertEqual(copies[1]['before9'],copies[0]['after9'])
             cap.accept();cap.finalize();final=s._SEALS[session];row=final['sql_parents'][0]
@@ -541,6 +546,106 @@ class Standalone(base.Retained):
             for fd in (original_fd,foreign_in,foreign_out):os.close(fd)
         self.assertTrue(fired)
 
+
+    def test_fresh_census_mode_drift_closes_owned_temporary_FD(self):
+        directory=self.case.root/'census-cleanup';directory.mkdir(mode=0o700)
+        fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW);real=os.listdir;captured=[]
+        def changed(value):
+            result=real(value)
+            if isinstance(value,int):captured.append(value);os.chmod(directory,0o750)
+            return result
+        try:
+            with patch.object(s.os,'listdir',changed),self.assertRaises(o.Held):s._directory_names(fd)
+            self.assertEqual(len(captured),1)
+            with self.assertRaises(OSError):os.fstat(captured[0])
+            self.assertEqual(os.fstat(fd).st_ino,os.lstat(directory).st_ino)
+        finally:os.close(fd)
+
+    def test_fresh_census_foreign_same_number_FD_remains_open(self):
+        directory=self.case.root/'census-foreign';directory.mkdir(mode=0o700)
+        foreign=self.case.root/'foreign-census-file';foreign.write_bytes(b'foreign')
+        fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW);real=os.listdir;captured=[]
+        def changed(value):
+            result=real(value)
+            if isinstance(value,int):
+                os.close(value);replacement=os.open(foreign,os.O_RDONLY|os.O_NOFOLLOW)
+                self.assertEqual(replacement,value);captured.append(replacement)
+            return result
+        try:
+            with patch.object(s.os,'listdir',changed),self.assertRaises(o.Held):s._directory_names(fd)
+            self.assertEqual(len(captured),1);self.assertEqual(os.fstat(captured[0]).st_ino,os.lstat(foreign).st_ino)
+        finally:
+            for owned in captured:os.close(owned)
+            os.close(fd)
+
+    def test_real_original_directory_FD_census_after_child_birth(self):
+        directory=self.case.root/'census-directory';directory.mkdir(mode=0o700)
+        fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        try:
+            self.assertEqual(s._directory_names(fd),())
+            (directory/'child').mkdir(mode=0o700)
+            self.assertEqual(s._directory_names(fd),('child',))
+            self.assertEqual(os.fstat(fd).st_ino,os.lstat(directory).st_ino)
+        finally:os.close(fd)
+
+    def test_fresh_census_callback_original_directory_drift_refuses(self):
+        directory=self.case.root/'census-drift';directory.mkdir(mode=0o700)
+        fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW);real=os.listdir;fired=[]
+        def changed(value):
+            result=real(value)
+            if isinstance(value,int):fired.append(True);os.chmod(directory,0o750)
+            return result
+        try:
+            with patch.object(s.os,'listdir',changed),self.assertRaises(o.Held):s._directory_names(fd)
+            self.assertTrue(fired)
+        finally:os.close(fd)
+
+    def test_directory_birth_original_model_full_finalize(self):
+        with self.writer.hold():
+            session=self.init();core=s._CORES[session]
+            birth=core['journal']['birth9'];self.assertIn(birth[8],(1,2))
+            self.assertEqual(birth[8],o.signature(core['folder'])[8])
+            cap=self.ready(session);cap.accept();result=cap.finalize()
+        self.assertFalse(result['cleanup_grant']);self.assertFalse(result['historical_import_ack'])
+
+    def test_existing_private_journal_carrier_original_model_finalize(self):
+        journal=self.c.root/s.NAME;carrier=self.c.root/s.CARRIER
+        journal.mkdir(mode=0o700);carrier.mkdir(mode=0o700)
+        old=journal/('9'*64);old.mkdir(mode=0o700);retained=old/'original.json';retained.write_bytes(b'original old evidence');retained.chmod(0o600)
+        original=(retained.read_bytes(),tuple(o.signature(retained)))
+        with self.writer.hold():
+            session=self.init();cap=self.ready(session);cap.accept();result=cap.finalize()
+        self.assertEqual(original,(retained.read_bytes(),tuple(o.signature(retained))))
+        self.assertFalse(result['cleanup_grant'])
+
+    def test_regular_selected_source_hardlink_remains_refused(self):
+        os.link(self.source,self.cache/'foreign-hardlink.cbz')
+        with self.writer.hold(),self.assertRaises((o.Held,ValueError)):self.init()
+
+    def test_directory_foreign_child_after_initialized_remains_refused(self):
+        with self.writer.hold():
+            session=self.init();(s._CORES[session]['folder']/'foreign').mkdir()
+            with self.assertRaises((o.Held,ValueError)):self.ready(session)
+
+    def test_directory_first_birth_callback_mode_drift_remains_refused(self):
+        real=s._open_directory;fired=[]
+        def changed(path,*args,**kwargs):
+            result=real(path,*args,**kwargs)
+            if Path(path).name==s.NAME and not fired:
+                fired.append(True);Path(path).chmod(0o750)
+            return result
+        with self.writer.hold(),patch.object(s,'_open_directory',changed),self.assertRaises((o.Held,ValueError)):self.init()
+        self.assertTrue(fired)
+
+    def test_directory_last_validate_original_mode_drift_remains_refused(self):
+        with self.writer.hold():
+            session=self.init();cap=self.ready(session);real=s._validate;fired=[]
+            def changed(core):
+                value=real(core)
+                if not fired:fired.append(True);s._CORES[session]['folder'].chmod(0o750)
+                return value
+            with patch.object(s,'_validate',changed),self.assertRaises((o.Held,ValueError)):cap.accept()
+        self.assertTrue(fired)
 
 # Explicitly remove inherited pack tests: this is standalone coverage, not a
 # duplicate report of predecessor suites.

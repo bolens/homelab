@@ -249,4 +249,14 @@ class DirectoryTests(unittest.TestCase):
         self.backup={}
         with self.assertRaises(ValueError):self.call()
 
+    def test_original_directory_model_switch_remains_refused(self):
+        for value in (self.initial,self.final):value['journal']['birth9'][8]=2 if value['journal']['birth9'][8]==1 else 1
+        with self.assertRaises(ValueError):self.call()
+    def test_original_directory_birth_foreign_device_remains_refused(self):
+        for value in (self.initial,self.final):value['journal']['birth9'][0]+=1
+        with self.assertRaises(ValueError):self.call()
+    def test_regular_preservation_hardlink_remains_refused(self):
+        os.link(self.directory/'target-preserved.cbz',self.directory/'foreign-preservation-alias')
+        with self.assertRaises(ValueError):self.call()
+
 if __name__=='__main__':unittest.main()

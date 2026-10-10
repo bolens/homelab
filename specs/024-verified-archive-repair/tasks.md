@@ -4,7 +4,7 @@
 
 ## Current remaining work (2026-10-10)
 
-T011–T015 remain open for integrated owning-route, reader-continuity and final reviewed delivery evidence. The new native candidate passes its full gate, the corrected offline gate and installed source/origin checks. PR #289 is merged at `6727476` after all required hosted checks passed. Feature 023's [current hold-release work](../023-verified-publication-corrections/tasks.md#current-hold-release-work-2026-10-10) tracks the passing authenticated child/runtime checks and unfinished host driver review. T016/T017 then require a fresh verified backup, held matching-image rollout and real archive/owner/catalog/reader acceptance. T018 depends on feature 023's complete current-library acceptance before ordinary or bulk processing resumes. No live repair, hold release or cleanup is accepted by fixture checks.
+T014 is complete: independent review of both READMEs and 17 related Compose, environment, metadata, preparation, ingress and normalizer-example surfaces confirms that diagnostics reuse existing boundaries without a new runtime dependency. `make validate` passes; the generated PostHog bundle is intentionally skipped and the existing asking/harbor metadata warnings remain. T011–T013 and T015 stay open for connected owning-route, reader-continuity and matching-cohort acceptance. The merged native recovery source passes its complete image gate and final installed source/origin/type parity. Feature 023's [current hold-release work](../023-verified-publication-corrections/tasks.md#current-hold-release-work-2026-10-10) tracks the Btrfs portability correction and fresh backup prerequisites. T016/T017 then require consistent backup and isolated restore, held matching-image rollout and real archive/owner/catalog/reader acceptance. T018 depends on feature 023's complete current-library acceptance before ordinary or bulk processing resumes. No live repair, hold release or cleanup is accepted by fixture checks.
 
 ## Phase 1: Setup
 
@@ -48,7 +48,7 @@ Independent test: one isolated owned repair completes with matching reader/nativ
 
 ## Phase 6: Delivery
 
-- [ ] T014 Update Mylar/Komga README and inspect their Compose, environment, metadata, preparation and ingress contracts together; diagnostics reuse existing settings/mounts/ports/privileges and introduce no new dependency. Regenerate affected catalog sources only through owning generators.
+- [x] T014 Update Mylar/Komga README and inspect their Compose, environment, metadata, preparation and ingress contracts together; diagnostics reuse existing settings/mounts/ports/privileges and introduce no new dependency. Regenerate affected catalog sources only through owning generators.
 - [ ] T015 Complete independent integrated failure review, actual selected-native/worker source-image tests, focused checks, `make validate` and `make ci-local`; deliver reviewed source through `RELEASING.md` and record source/image proof in this file. All required hosted checks and local checks must pass on the reviewed final head; no CI waiver or branch-protection bypass is authorized. Feature 023 T022/T026 owning lifecycle/code/installation gates are prerequisites; historical image proof does not accept this new cohort.
 
 ## Phase 7: Scoped live acceptance

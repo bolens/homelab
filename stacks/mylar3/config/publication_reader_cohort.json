@@ -288,7 +288,7 @@
       "owning_adapters": [
         "patch_publication_retained_standalone.py"
       ],
-      "tracked_source_sha256": "b2c796b10ae6ad08e0c7e7e3cac0277b59af1833b20424b7750038533f5741d7"
+      "tracked_source_sha256": "bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60"
     },
     "publication_tagging_recovery": {
       "owning_adapters": [

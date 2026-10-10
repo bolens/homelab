@@ -64,7 +64,8 @@ class Connected(unittest.TestCase):
   sys.path.insert(0,str(self.host));self.addCleanup(lambda:sys.path.remove(str(self.host)))
   pspec=importlib.util.spec_from_file_location('genuine_parent',self.host/'comic_retained_standalone_parent.py');parent=importlib.util.module_from_spec(pspec);pspec.loader.exec_module(parent)
   mounts=[{'Type':'volume','Name':'existing-fixture-volume','Source':'/','Destination':'/','RW':True}] if fault=='volume' else [{'Type':'bind','Source':'/','Destination':'/','RW':True}] # Explicit same-namespace fixture projection, NOT a launch profile.
-  prelaunch={'carrier9':None,'carrier_names':(),'token_absent':True}
+  carrier=self.data/parent.CARRIER_NAME
+  prelaunch={'carrier9':tuple(nine(carrier)) if carrier.exists() else None,'carrier_names':tuple(sorted(os.listdir(carrier))) if carrier.exists() else (),'token_absent':True}
   hostboot=dict(self.boot,input_sha256=sha(self.input.read_bytes()))
   token=sha(enc({k:self.boot['request'][k] for k in ('ddl_id','owner','kind')}))
   raw,challenge=self.read(p)
@@ -153,6 +154,10 @@ class Connected(unittest.TestCase):
  def test_named_volume_original_mapping_full_terminal_fixture(self):
   # Explicit physical namespace/volume profile fixture; no actual Docker volume claim.
   self.run_connected('volume')
+ def test_actual_signed_existing_private_journal_carrier_backup_finalize_exit(self):
+  (self.data/'retained-standalone-v1').mkdir(mode=0o700)
+  (self.data/'retained-standalone-observations-v1').mkdir(mode=0o700)
+  self.run_connected()
  def test_actual_signed_initialize_backup_finalize_exit(self):self.run_connected()
  def test_actual_fragmented_signed_ready(self):self.run_connected('fragment')
  def test_actual_pipelined_ready_refused_before_acceptance(self):self.run_connected('pipeline')

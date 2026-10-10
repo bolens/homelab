@@ -36,3 +36,11 @@ worker control is an adjacent host dependency, not a Mylar SDK module. See
 gate runs its 48 owning controls; the existing 588 recovery controls remain
 unchanged. Actual installed source, bind geometry, state capacity and native
 background admissibility must be verified before activation.
+
+The standalone retained-target journal and observation directories live under
+the admitted native data root on its existing mount. Empty exclusive directory
+births support exactly link count 1 (constant count, including Btrfs) or 2
+(counted children). The captured original FD, same filesystem and exact
+namespace select the rule; regular files still require a single link. Exact
+original identity, ownership, controlled namespace and final closure remain
+mandatory. A checked tmpfs fixture does not prove the operational filesystem.

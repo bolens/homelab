@@ -40,6 +40,14 @@ MAX_ENTRIES=100000
 MAX_FILE=256*1024**2
 
 
+def _directory_links(before, child_births):
+    # Only the two fixed ordinary directory models; no caller-selected policy.
+    if (len(before)!=9 or before[5]&0o170000!=0o040000 or
+            type(before[8]) is not int or before[8]<1 or
+            type(child_births) is not int or child_births not in (0,1)):
+        raise ValueError('standalone-directory-link-model')
+    return before[8] if before[8]==1 else before[8]+child_births
+
 def request(value):
     o.check(type(value) is dict and set(value)==FIELDS and type(value['version']) is int
             and value['version']==1 and value['kind']==KIND,'standalone-request')
@@ -110,6 +118,26 @@ class _DirectoryResources:
         if refused:raise o.Held('standalone-directory-resource-identity-unknown')
 
 
+def _directory_names(fd):
+    """Fresh OFD census; original directory FD and full facts remain retained."""
+    z=os.fstat(fd)
+    before=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+    fresh=os.open('.',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=fd)
+    z=os.fstat(fresh);identity=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+    try:
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=before:raise o.Held('standalone-census-original-FD')
+        names=tuple(sorted(os.listdir(fresh)))
+        for owned in (fd,fresh):
+            z=os.fstat(owned)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=before:raise o.Held('standalone-census-original-FD')
+        return names
+    finally:
+        z=os.fstat(fresh)
+        if (z.st_dev,z.st_ino)!=identity[:2]:raise o.Held('standalone-census-resource-identity')
+        os.close(fresh)
+        if (z.st_mode,z.st_uid,z.st_gid)!=identity[2:]:raise o.Held('standalone-census-resource-identity')
+
+
 def _open_directory(path,resources=None):
     local=_DirectoryResources() if resources is None else resources
     start=len(local.rows)
@@ -118,7 +146,7 @@ def _open_directory(path,resources=None):
     z=os.fstat(fd)
     local.rows.append((fd,(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)))
     try:
-        stamp=_fd9(fd);names=tuple(sorted(os.listdir(fd)))
+        stamp=_fd9(fd);names=_directory_names(fd)
         return fd,stamp,names
     except BaseException:
         local.rollback(start)
@@ -161,7 +189,7 @@ def _write_owned(c,path,raw):
     """Original dirFD insertion captured BEFORE stream/readback helper callbacks."""
     original=_SEALS[c['session']];before,names=_directory_expected(c,original)[str(path.parent)]
     row=next(row for row in _DIRS[c['session']] if row[0]==str(path.parent));parent=row[1]
-    o.check(_fd9(parent)==before and tuple(sorted(os.listdir(parent)))==names,'standalone-output-parent-original')
+    o.check(_fd9(parent)==before and _directory_names(parent)==names,'standalone-output-parent-original')
     digest=hashlib.sha256(raw).hexdigest();o.check(len(raw)<=MAX_FILE,'standalone-output-bound')
     fd=os.open(path.name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent)
     try:
@@ -182,7 +210,7 @@ def _write_owned(c,path,raw):
         o.check(_fd9(parent)==after,'standalone-output-parent-no-late-refresh')
     finally:os.close(fd)
     after_names=tuple(sorted((*names,path.name)))
-    o.check(tuple(sorted(os.listdir(parent)))==after_names,'standalone-output-exact-namespace')
+    o.check(_directory_names(parent)==after_names,'standalone-output-exact-namespace')
     z=os.lstat(path)
     if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise o.Held('standalone-output-final')
     return stamp,digest,{'name':path.name,'before9':before,'after9':after,'before_names':names,'after_names':after_names,
@@ -467,13 +495,13 @@ def _initialize(controller,writer,value,*,conversation,resources):
     o.check(value==original_channel['request'],'standalone-original-selector-before-intent')
     journal=controller.root/NAME
     for path,(fd,v,names,roles) in parent_capture.items():
-        o.check(_fd9(fd)==v and tuple(sorted(os.listdir(fd)))==names,'standalone-original-SQL-parent-before-birth')
+        o.check(_fd9(fd)==v and _directory_names(fd)==names,'standalone-original-SQL-parent-before-birth')
     if journal_capture is not None:
-        o.check(_fd9(journal_capture[0])==journal_capture[1] and tuple(sorted(os.listdir(journal_capture[0])))==journal_capture[2],'standalone-original-journal-before-birth')
+        o.check(_fd9(journal_capture[0])==journal_capture[1] and _directory_names(journal_capture[0])==journal_capture[2],'standalone-original-journal-before-birth')
     if not original_journal_present:
         o.check(not os.path.lexists(journal),'standalone-original-journal-absence');os.mkdir(journal,0o700)
         journal_fd,journal_birth9,journal_birth_names=_open_directory(journal,resources)
-        o.check(journal_birth9[5]&0o7777==0o700 and journal_birth9[6:]==(os.geteuid(),os.getegid(),2) and journal_birth_names==(),'standalone-journal-exclusive-birth')
+        o.check(journal_birth9[5]&0o7777==0o700 and journal_birth9[6:8]==(os.geteuid(),os.getegid()) and journal_birth9[8] in (1,2) and journal_birth_names==(),'standalone-journal-exclusive-birth')
     elif tuple(sorted(os.listdir(journal)))!=c['namespaces'][str(journal)]:raise o.Held('standalone-original-journal-census')
     if original_journal_present:journal_fd,journal_birth9,journal_birth_names=journal_capture
     z=os.lstat(journal);jv=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
@@ -481,7 +509,7 @@ def _initialize(controller,writer,value,*,conversation,resources):
     names=c['namespaces'][str(journal)] if original_journal_present else ();o.check(len(names)<4096 and all(re.fullmatch('[0-9a-f]{64}',n) for n in names),'standalone-journal-bound')
     folder=journal/c['token'];os.mkdir(folder,0o700);folder_fd,folder_birth9,folder_names=_open_directory(folder,resources)
     journal_after9=_fd9(journal_fd)
-    o.check(journal_after9[:2]==journal_birth9[:2] and journal_after9[5:8]==journal_birth9[5:8] and journal_after9[8]==journal_birth9[8]+1,'standalone-journal-sole-token-birth')
+    o.check(journal_after9[:2]==journal_birth9[:2] and journal_after9[5:8]==journal_birth9[5:8] and journal_after9[8]==_directory_links(journal_birth9,1) and folder_birth9[0]==journal_birth9[0] and folder_birth9[8] in (1,2) and (folder_birth9[8]==1)==(journal_birth9[8]==1),'standalone-journal-sole-token-birth')
     z=os.lstat(folder);fv=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
     r._join_nodes(c['nodes'],{str(journal):jv,str(folder):fv});r._join_nodes(c['nodes'],r._nodes([folder]))
     c['folder']=folder;c['namespaces'][str(journal)]=tuple(sorted((*names,c['token'])));c['namespaces'][str(folder)]=()
@@ -494,7 +522,7 @@ def _initialize(controller,writer,value,*,conversation,resources):
     for path,(fd,v,old_names,roles) in sorted(parent_capture.items()):
         after=_fd9(fd);expected_names=tuple(sorted((*old_names,*((NAME,) if not original_journal_present and str(journal.parent)==path else ()))))
         increments=1 if not original_journal_present and str(journal.parent)==path else 0
-        o.check(after[:2]==v[:2] and after[5:8]==v[5:8] and after[8]==v[8]+increments and tuple(sorted(os.listdir(fd)))==expected_names,'standalone-SQL-parent-owning-journal-birth')
+        o.check(after[:2]==v[:2] and after[5:8]==v[5:8] and after[8]==_directory_links(v,increments) and (not increments or (journal_birth9[0]==v[0] and (journal_birth9[8]==1)==(v[8]==1))) and _directory_names(fd)==expected_names,'standalone-SQL-parent-owning-journal-birth')
         c['sql_parents'].append({'path':path,'database_roles':sorted(roles),'pre_initialize9':v,'pre_initialize_names':old_names,
             'initialized9':after,'initialized_names':expected_names,'backup9':None,'backup_names':None,'native_noop':None,'workflow_cas':None})
     c['phase']='initialized'
@@ -541,13 +569,13 @@ def _publish_body(session,kind,raw,*,resources):
         if before9 is None:
             o.check(not os.path.lexists(carrier),'standalone-body-carrier-original-absence')
             os.mkdir(carrier,0o700);carrier_fd,birth9,_=_open_directory(carrier,resources)
-            o.check(birth9[5]&0o170000==0o040000 and birth9[5]&0o7777==0o700 and birth9[6:8]==(os.geteuid(),os.getegid()) and birth9[8]==2,'standalone-body-carrier-private-birth')
+            o.check(birth9[5]&0o170000==0o040000 and birth9[5]&0o7777==0o700 and birth9[6:8]==(os.geteuid(),os.getegid()) and birth9[8] in (1,2),'standalone-body-carrier-private-birth')
         else:
             carrier_fd=c['carrier_original_fd'];birth9=_fd9(carrier_fd);o.check(birth9==before9 and tuple(sorted(os.listdir(carrier)))==before_names,'standalone-body-carrier-original')
             o.check(before9[5]&0o170000==0o040000 and before9[5]&0o7777==0o700 and before9[6:8]==(os.geteuid(),os.getegid()),'standalone-body-carrier-private')
         os.mkdir(directory,0o700);directory_fd,directory_before9,_=_open_directory(directory,resources);carrier_after9=_fd9(carrier_fd)
-        o.check(directory_before9[5]&0o170000==0o040000 and directory_before9[5]&0o7777==0o700 and directory_before9[6:8]==(os.geteuid(),os.getegid()) and directory_before9[8]==2,'standalone-body-token-private-birth')
-        o.check(carrier_after9[:2]==birth9[:2] and carrier_after9[5:8]==birth9[5:8] and carrier_after9[8]==birth9[8]+1,'standalone-body-carrier-sole-directory')
+        o.check(directory_before9[5]&0o170000==0o040000 and directory_before9[5]&0o7777==0o700 and directory_before9[6:8]==(os.geteuid(),os.getegid()) and directory_before9[8] in (1,2),'standalone-body-token-private-birth')
+        o.check(carrier_after9[:2]==birth9[:2] and carrier_after9[5:8]==birth9[5:8] and carrier_after9[8]==_directory_links(birth9,1) and directory_before9[0]==birth9[0] and (directory_before9[8]==1)==(birth9[8]==1),'standalone-body-carrier-sole-directory')
         before=();after_carrier=tuple(sorted((*before_names,c['token'])))
         o.check(tuple(sorted(os.listdir(carrier)))==after_carrier and tuple(sorted(os.listdir(directory)))==before,'standalone-body-exclusive-names')
         nodes=dict(original['nodes']);r._join_nodes(nodes,{str(carrier):(carrier_after9[0],carrier_after9[1],carrier_after9[5],carrier_after9[6],carrier_after9[7]),str(directory):(directory_before9[0],directory_before9[1],directory_before9[5],directory_before9[6],directory_before9[7])})
@@ -558,8 +586,8 @@ def _publish_body(session,kind,raw,*,resources):
             before_parent=tuple(row['initialized9']);old_names=tuple(row['initialized_names'])
             increment=1 if before9 is None and str(carrier.parent)==row['path'] else 0
             expected_names=tuple(sorted((*old_names,*((CARRIER,) if increment else ()))))
-            o.check(after_parent[:2]==before_parent[:2] and after_parent[5:8]==before_parent[5:8] and after_parent[8]==before_parent[8]+increment
-                and tuple(sorted(os.listdir(parent_fd)))==expected_names,'standalone-SQL-parent-owning-carrier-birth')
+            o.check(after_parent[:2]==before_parent[:2] and after_parent[5:8]==before_parent[5:8] and after_parent[8]==_directory_links(before_parent,increment) and (not increment or (birth9[0]==before_parent[0] and (birth9[8]==1)==(before_parent[8]==1)))
+                and _directory_names(parent_fd)==expected_names,'standalone-SQL-parent-owning-carrier-birth')
             row['backup9']=after_parent;row['backup_names']=expected_names
         _commit(c,{'nodes':nodes,'namespaces':names,'sql_parents':parents})
         _register_directory(c,carrier,carrier_fd,birth9);_register_directory(c,directory,directory_fd,directory_before9)
