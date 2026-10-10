@@ -4,7 +4,7 @@
 
 ## Current remaining work (2026-10-10)
 
-T011–T015 remain open for integrated owning-route, reader-continuity and final reviewed delivery evidence. The new native candidate passes its full gate, the corrected offline gate and installed source/origin checks; all 24 target crypto primitive controls pass without skips. PR #289 is merged at `6727476` after all required hosted checks passed. Feature 023's authenticated launch, failure-cleanup corrections and actual recovery prerequisites remain unfinished. T016/T017 then require a fresh verified backup, held matching-image rollout and real archive/owner/catalog/reader acceptance. T018 depends on feature 023's complete current-library acceptance before ordinary or bulk processing resumes. No live repair, hold release or cleanup is accepted by fixture checks.
+T011–T015 remain open for integrated owning-route, reader-continuity and final reviewed delivery evidence. The new native candidate passes its full gate, the corrected offline gate and installed source/origin checks. PR #289 is merged at `6727476` after all required hosted checks passed. Feature 023's [current hold-release work](../023-verified-publication-corrections/tasks.md#current-hold-release-work-2026-10-10) tracks the passing authenticated child/runtime checks and unfinished host driver review. T016/T017 then require a fresh verified backup, held matching-image rollout and real archive/owner/catalog/reader acceptance. T018 depends on feature 023's complete current-library acceptance before ordinary or bulk processing resumes. No live repair, hold release or cleanup is accepted by fixture checks.
 
 ## Phase 1: Setup
 

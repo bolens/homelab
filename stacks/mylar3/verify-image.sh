@@ -17,6 +17,8 @@ docker image inspect "$1" >/dev/null
 docker run --rm --pull=never --network=none --read-only --user=1000:1000 \
   --cap-drop=ALL --security-opt=no-new-privileges --pids-limit=64 --memory=512m \
   --tmpfs /tmp:rw,size=256m,mode=1777 \
+  --tmpfs /run/authenticated-fixtures:rw,nosuid,nodev,noexec,size=64m,uid=1000,gid=1000,mode=0700 \
+  -e HOME=/run/authenticated-fixtures \
   -e PYTHONDONTWRITEBYTECODE=1 \
   --mount "type=bind,src=$script_dir/config,dst=/fixes,readonly" \
   --mount "type=bind,src=$repo_dir/scripts/run-private-comic-controls.py,dst=/ci-controls.py,readonly" \

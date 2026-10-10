@@ -1,0 +1,527 @@
+[
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/auth/fixture_worker.py",
+    "sha256": "c04477c2a30113d3d805aab1739f0df4989b530d4ea2be4811d66f4bffc63d2f",
+    "target": "fixtures/auth/fixture_worker.py"
+  },
+  {
+    "path": "standalone_launch_auth/private_crypto.py",
+    "sha256": "3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab",
+    "target": "fixtures/auth/private_crypto.py"
+  },
+  {
+    "path": "standalone_launch_auth/standalone_launch_auth.py",
+    "sha256": "fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8",
+    "target": "fixtures/auth/standalone_launch_auth.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/auth/test_install_auth.py",
+    "sha256": "de7c7825df734463bdf45c78c07588fd3b4a51bcbb3f167824018e866a90b608",
+    "target": "fixtures/auth/test_install_auth.py"
+  },
+  {
+    "path": "standalone_launch_auth/v3_auth_core.py",
+    "sha256": "b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93",
+    "target": "fixtures/auth/v3_auth_core.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/child/run_controls.py",
+    "sha256": "cfa8e7dc0eb0e8ad2f4ad7e91b9aec4c1e1364384e75b9d1209babbe16d2c305",
+    "target": "fixtures/child/run_controls.py"
+  },
+  {
+    "path": "archive_monitor.py",
+    "sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3",
+    "target": "fixtures/child/source/archive_monitor.py"
+  },
+  {
+    "path": "combined_cleanup.py",
+    "sha256": "9d6a91a25dbf6a84d4c937c5536874be976e0383001d6a97eca9a3c0a9f537df",
+    "target": "fixtures/child/source/combined_cleanup.py"
+  },
+  {
+    "path": "combined_publication.py",
+    "sha256": "13cf0f3d7572db2f8fe748f36c6ffec0adb90410aa5350aeb258d0a6343646af",
+    "target": "fixtures/child/source/combined_publication.py"
+  },
+  {
+    "path": "converted_catalog.py",
+    "sha256": "3e33eb0424ca2c908c0153ad8b7a0a12267eb31ba3b4df8459c0bdb907a5d4b3",
+    "target": "fixtures/child/source/converted_catalog.py"
+  },
+  {
+    "path": "converted_tagging.py",
+    "sha256": "90287662d3e76b22bdf8f27494476988a1188c666707ff9f50d982a061456520",
+    "target": "fixtures/child/source/converted_tagging.py"
+  },
+  {
+    "path": "file_identity.py",
+    "sha256": "b9a2bffb0e8f9ae99cdb8f83cdd041d302fb405d00e2450b15b2a003ed977cc9",
+    "target": "fixtures/child/source/file_identity.py"
+  },
+  {
+    "path": "import_problems.py",
+    "sha256": "f8e1a4854be4b25974a4af3bda3db6ccd36e6023b5ac5160511cea63e31efc58",
+    "target": "fixtures/child/source/import_problems.py"
+  },
+  {
+    "path": "library_metadata.py",
+    "sha256": "287c076fa8d967255168a0dc3e7dfdfb7bb89c0ac052f5daa775eeabbf6febbe",
+    "target": "fixtures/child/source/library_metadata.py"
+  },
+  {
+    "path": "library_status.py",
+    "sha256": "c0458b5941c3fd401f0b69bc533cba341ca5f63bf96e13f054017550991e90cd",
+    "target": "fixtures/child/source/library_status.py"
+  },
+  {
+    "path": "media_writer.py",
+    "sha256": "6187fe15991d7047088ebce319f597278db6d3c62cd25535d1b6e9e1f2fc7b45",
+    "target": "fixtures/child/source/media_writer.py"
+  },
+  {
+    "path": "metadata_repair.py",
+    "sha256": "567d9c08378f2f6884da4119bbd9933403c915b983326c3e8d1b3466c5621964",
+    "target": "fixtures/child/source/metadata_repair.py"
+  },
+  {
+    "path": "native_writers.py",
+    "sha256": "16a90e8fa1ea0375083caddb548e0c2fa2fb51fa4d7e63f770cdedf2e6d0c388",
+    "target": "fixtures/child/source/native_writers.py"
+  },
+  {
+    "path": "ordinary_import_continuity.py",
+    "sha256": "259986b7a6279fd8e9ae966e7643eca4c694de4e34d142f21b205908bcc6a2bc",
+    "target": "fixtures/child/source/ordinary_import_continuity.py"
+  },
+  {
+    "path": "ordinary_import_history.py",
+    "sha256": "0d4af8b01cf5d4e32c8471226a6075751fdd41f7d708df066e5914be1978a0e5",
+    "target": "fixtures/child/source/ordinary_import_history.py"
+  },
+  {
+    "path": "ordinary_import_observation.py",
+    "sha256": "c2e8da946e2677b1ebf940342077ea6bbf64b0210bbbddca77e92f9dce55bea3",
+    "target": "fixtures/child/source/ordinary_import_observation.py"
+  },
+  {
+    "path": "pack_bindings.py",
+    "sha256": "1bb49d868ab3ce3dd2e4789aa4fb32833780cc63ba7a0ec29bf2109ce7369ed1",
+    "target": "fixtures/child/source/pack_bindings.py"
+  },
+  {
+    "path": "pack_catalog.py",
+    "sha256": "908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20",
+    "target": "fixtures/child/source/pack_catalog.py"
+  },
+  {
+    "path": "pack_intake.py",
+    "sha256": "a257f9f94507c9a2f1e8e621fb682d97fc4aa7a4bc5b5bbe7858f5d991842a95",
+    "target": "fixtures/child/source/pack_intake.py"
+  },
+  {
+    "path": "patch_publication_guard.py",
+    "sha256": "607c8f92cdc86be421bd54a60f59277a97cdfab3263dab71e6c1c236f04df50c",
+    "target": "fixtures/child/source/patch_publication_guard.py"
+  },
+  {
+    "path": "patch_publication_processing.py",
+    "sha256": "abf2e0d957fe7b99a7acf1ff5a4e36bd039c35da961f1915880fa4f12ab2e9aa",
+    "target": "fixtures/child/source/patch_publication_processing.py"
+  },
+  {
+    "path": "pp_monitor.py",
+    "sha256": "39a1cce51092c65582e04307dec396ec8fa9eaaeef855684a92904e2943944f4",
+    "target": "fixtures/child/source/pp_monitor.py"
+  },
+  {
+    "path": "processing_guard.py",
+    "sha256": "9e0074d6178e7963e596505e69b7828346790f618ef461d61dcab3c4a95c6655",
+    "target": "fixtures/child/source/processing_guard.py"
+  },
+  {
+    "path": "publication_api.py",
+    "sha256": "785f93d90903633ec72570b03926d2581df6fef837f5352a5e1aa651f78ca131",
+    "target": "fixtures/child/source/publication_api.py"
+  },
+  {
+    "path": "publication_archive_adoption.py",
+    "sha256": "3bb0f1c5e00d26819fa909b39d00c11d22bfef7a1bab21eb9abdd5702c52f18d",
+    "target": "fixtures/child/source/publication_archive_adoption.py"
+  },
+  {
+    "path": "publication_archive_derivative.py",
+    "sha256": "55deff15f79c75aacabb8cff1fcd200c5db445fec26dda5aaaaf2ae9e99a652e",
+    "target": "fixtures/child/source/publication_archive_derivative.py"
+  },
+  {
+    "path": "publication_archive_diagnostics.py",
+    "sha256": "c71f0d71dcd2b69c1f4f392bd5aada3bb1a65794fd8f1c12ee16aa7489684577",
+    "target": "fixtures/child/source/publication_archive_diagnostics.py"
+  },
+  {
+    "path": "publication_archive_dispatch.py",
+    "sha256": "8f4dfc2364c36d4acb925677a8bfc2ad1fe82229b79a4c58d43608f88a9a5ce7",
+    "target": "fixtures/child/source/publication_archive_dispatch.py"
+  },
+  {
+    "path": "publication_archive_history.py",
+    "sha256": "16d37ff25299215b44ac0b13895babf3fd2dfc7e7b5badc822a8d2c93609134a",
+    "target": "fixtures/child/source/publication_archive_history.py"
+  },
+  {
+    "path": "publication_archive_layout.py",
+    "sha256": "c46add9ed2b57c1f44ec4fe23db73189b77925bea01a247df9333b526bd95168",
+    "target": "fixtures/child/source/publication_archive_layout.py"
+  },
+  {
+    "path": "publication_archive_owned.py",
+    "sha256": "dbd40b36800ea8eeeae90d6043e3113655bae7e798a52efc175c070a4e2c54a1",
+    "target": "fixtures/child/source/publication_archive_owned.py"
+  },
+  {
+    "path": "publication_archive_preparation_existing.py",
+    "sha256": "ce0cf1fbedd20433d54a1df02e9473b3115185aba081cf250c171f12a16301e7",
+    "target": "fixtures/child/source/publication_archive_preparation_existing.py"
+  },
+  {
+    "path": "publication_archive_prepare_routes.py",
+    "sha256": "3c2921c8ae8987d676004c55dea1a5aac9d2681725ca36ec9e5e8101b0f17c02",
+    "target": "fixtures/child/source/publication_archive_prepare_routes.py"
+  },
+  {
+    "path": "publication_archive_reader.py",
+    "sha256": "805484c17fa32cde4786e2152c89b21b1ba220bbd65d47ad8b7b7dd1af91a7a8",
+    "target": "fixtures/child/source/publication_archive_reader.py"
+  },
+  {
+    "path": "publication_archive_repair.py",
+    "sha256": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee",
+    "target": "fixtures/child/source/publication_archive_repair.py"
+  },
+  {
+    "path": "publication_archive_rollback.py",
+    "sha256": "675081c87096fc97021c3e72bcb8f7ce975836313849efdb6293af9ffbc99d04",
+    "target": "fixtures/child/source/publication_archive_rollback.py"
+  },
+  {
+    "path": "publication_archive_verifier.py",
+    "sha256": "b451cedca2f11b818b3ea0f83b119cf3ffe4a89e0e4092bab80ca8c06d37c666",
+    "target": "fixtures/child/source/publication_archive_verifier.py"
+  },
+  {
+    "path": "publication_conversion.py",
+    "sha256": "133ffebcee2149b28fbc504f2794f36cda0e0505daed94a3de567494ba2c71d0",
+    "target": "fixtures/child/source/publication_conversion.py"
+  },
+  {
+    "path": "publication_derivative.py",
+    "sha256": "41652d363de301795f5b3aedd150321e61c0f7c676e00f1b7a9d51a81f381322",
+    "target": "fixtures/child/source/publication_derivative.py"
+  },
+  {
+    "path": "publication_fresh.py",
+    "sha256": "6e8100f7114e96ae3e3b0371870e9bcbec82df0367b86e98f725d21bdc8ca46f",
+    "target": "fixtures/child/source/publication_fresh.py"
+  },
+  {
+    "path": "publication_guard.py",
+    "sha256": "b840762bc6b0e3743a7c37755a0e3ab3eaac25f4b4827b000fd5fddbe0dd2bd9",
+    "target": "fixtures/child/source/publication_guard.py"
+  },
+  {
+    "path": "publication_lineage.py",
+    "sha256": "c302233fd7bb2862c1c2901cc3432559ae19762ab11ae0751cd423983e82bca7",
+    "target": "fixtures/child/source/publication_lineage.py"
+  },
+  {
+    "path": "publication_native.py",
+    "sha256": "6a07fe296270a4021db67eb384221683af847a981d13c5ea5a1eaa8b3e7fa69e",
+    "target": "fixtures/child/source/publication_native.py"
+  },
+  {
+    "path": "publication_native_configured_scope.py",
+    "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608",
+    "target": "fixtures/child/source/publication_native_configured_scope.py"
+  },
+  {
+    "path": "publication_native_scope_birth.py",
+    "sha256": "28dfcb92ec2f0267ecf97ac05f12136ee9ff2fbe242ea20d155c399567e610ef",
+    "target": "fixtures/child/source/publication_native_scope_birth.py"
+  },
+  {
+    "path": "publication_reader_lifecycle.py",
+    "sha256": "0a117a9932a995888a1fbeb20ff46d91b7e21b57f699781eb8ab336b2fe8b207",
+    "target": "fixtures/child/source/publication_reader_lifecycle.py"
+  },
+  {
+    "path": "publication_reconcile.py",
+    "sha256": "a7a205d57bdaab13d799b6926cc997dbceb1df91330a6ab45cf871080bd83920",
+    "target": "fixtures/child/source/publication_reconcile.py"
+  },
+  {
+    "path": "publication_rename.py",
+    "sha256": "4e1e16228f8a246472839e43abcc183c13b9fbff7a70e827c6b809486697e9af",
+    "target": "fixtures/child/source/publication_rename.py"
+  },
+  {
+    "path": "publication_rescan.py",
+    "sha256": "c12f336ec3c271b588c46d07cea36db9cf7981c9d97bfa5aad02a601e422f539",
+    "target": "fixtures/child/source/publication_rescan.py"
+  },
+  {
+    "path": "publication_retained_api.py",
+    "sha256": "41df9fc5214d7bb328261582711cfc3dbe673e40ac5568010cde48c660170c08",
+    "target": "fixtures/child/source/publication_retained_api.py"
+  },
+  {
+    "path": "publication_retained_delivery.py",
+    "sha256": "bfbf227b8deff0e37550360ee47a0832019ef1f5cea68e3618d4e0ef0295380b",
+    "target": "fixtures/child/source/publication_retained_delivery.py"
+  },
+  {
+    "path": "publication_retained_finalize.py",
+    "sha256": "1ecc57c8797796c109548b56261427746be54e06ad545e99ea8cfa632369acd3",
+    "target": "fixtures/child/source/publication_retained_finalize.py"
+  },
+  {
+    "path": "publication_tagging_recovery.py",
+    "sha256": "db4e832f5fbf1bb8c55486515b08127ef6d63f396128e712de6dae6c96183c09",
+    "target": "fixtures/child/source/publication_tagging_recovery.py"
+  },
+  {
+    "path": "publication_transaction.py",
+    "sha256": "683bec2256d565af2f39af7c750ecfb5bd5bf1c021a8ee51c3d87934c2dcfb5d",
+    "target": "fixtures/child/source/publication_transaction.py"
+  },
+  {
+    "path": "queue_control.py",
+    "sha256": "6b0427378396a88b6e474d45b60eaed299ca6fbb0690895dbb7de4f8a8040b74",
+    "target": "fixtures/child/source/queue_control.py"
+  },
+  {
+    "path": "queue_progress.py",
+    "sha256": "e99994c68582957f44b74bc42d20676c175ceb617ea2f44a62436908c83a0cb9",
+    "target": "fixtures/child/source/queue_progress.py"
+  },
+  {
+    "path": "release_naming.py",
+    "sha256": "eeb379b8614aa78bcd641e95b5200e6c074aa6142952bf242b2133c6ca92d4a9",
+    "target": "fixtures/child/source/release_naming.py"
+  },
+  {
+    "path": "tagger_adapter.py",
+    "sha256": "3c04cc96e023226f6574ec2b8883a708c2abf29dd0500dbb11380cee77e5a11e",
+    "target": "fixtures/child/source/tagger_adapter.py"
+  },
+  {
+    "path": "tagger_archive.py",
+    "sha256": "45b898d34e38ba1a1e1807eafda570460e0f4da8bc316d8cc0e978d31fa53340",
+    "target": "fixtures/child/source/tagger_archive.py"
+  },
+  {
+    "path": "tagger_attributes.py",
+    "sha256": "8dc21b95f08bd36a045ea33442bd8796349333d92c73c0c9b4f107ecc6ee94ee",
+    "target": "fixtures/child/source/tagger_attributes.py"
+  },
+  {
+    "path": "tagger_cli.py",
+    "sha256": "cc63c81b7e103b2b873abdf1db43bcbb878bfabbfad41c1629357c017824b178",
+    "target": "fixtures/child/source/tagger_cli.py"
+  },
+  {
+    "path": "tagger_enrichment.py",
+    "sha256": "759f56ceee61d1ec9d014d69847723d7b6ead545b7bfb2210110ff336a5b548e",
+    "target": "fixtures/child/source/tagger_enrichment.py"
+  },
+  {
+    "path": "tagger_handoff.py",
+    "sha256": "c9e6da16f69f21ccbcbc88b781f770e82f5648b648f4de20509f5b69eb5decb7",
+    "target": "fixtures/child/source/tagger_handoff.py"
+  },
+  {
+    "path": "tagger_legacy.py",
+    "sha256": "2b611caba3a0ad1743a4a91d819838eee7592b198922338c50463590f5243a30",
+    "target": "fixtures/child/source/tagger_legacy.py"
+  },
+  {
+    "path": "tagger_lookup.py",
+    "sha256": "553c83acc9b15c1637ed9e2cc8b0e6250512fdcf978af68d047e7f22c1a04064",
+    "target": "fixtures/child/source/tagger_lookup.py"
+  },
+  {
+    "path": "tagger_metadata.py",
+    "sha256": "63df491c211f5e756db1cd3e367710c7cb41a046a4365dbc08a1eea4cc72fabb",
+    "target": "fixtures/child/source/tagger_metadata.py"
+  },
+  {
+    "path": "tagger_native.py",
+    "sha256": "1272ddf2f8c65421a7104b5af2c607b2961dc227fec579808752694b38a29583",
+    "target": "fixtures/child/source/tagger_native.py"
+  },
+  {
+    "path": "tagger_nfs.py",
+    "sha256": "2d20cbee35b64b4e30d02436a291641023a7798287563ea3aa313f4d9aaf3f67",
+    "target": "fixtures/child/source/tagger_nfs.py"
+  },
+  {
+    "path": "tagger_pack.py",
+    "sha256": "2e0c1a3701b1e02824dea247452d848953f7cf672755df9edc58e9534044215a",
+    "target": "fixtures/child/source/tagger_pack.py"
+  },
+  {
+    "path": "tagger_runtime.py",
+    "sha256": "f7647af93c35bed413ecdc90819beed46393027c976b81a8f3aeaedeee16d1d3",
+    "target": "fixtures/child/source/tagger_runtime.py"
+  },
+  {
+    "path": "tagger_service.py",
+    "sha256": "a5b6bee8da61507e897a3513b0a53ed897c631f04dbd702e7a62ba3f597db18e",
+    "target": "fixtures/child/source/tagger_service.py"
+  },
+  {
+    "path": "tagger_staging.py",
+    "sha256": "b20da0398d9155a673eecf9ec2f18e5b34f1f12ac0d385aa4b4bc95bc9f7d234",
+    "target": "fixtures/child/source/tagger_staging.py"
+  },
+  {
+    "path": "tagger_supplement.py",
+    "sha256": "88d025cecbb463300657c00030028f3b8ea722153714d893089f66dea63123d7",
+    "target": "fixtures/child/source/tagger_supplement.py"
+  },
+  {
+    "path": "tagger_volume_cache.py",
+    "sha256": "c184cb722076440c94c92efd52a48eb6e63270d6a36abcce1fe4beafb36d0c05",
+    "target": "fixtures/child/source/tagger_volume_cache.py"
+  },
+  {
+    "path": "test_pack_records.py",
+    "sha256": "89cd5ce7eb5717949ef5ebdad9a18c70a58bbdc1a29984ee625f7bc776a77f6f",
+    "target": "fixtures/child/source/test_pack_records.py"
+  },
+  {
+    "path": "test_publication_api.py",
+    "sha256": "44d5c0a09360165cbf8eb4551a06d9579e5ffe2a59d8da9a893f9672a203a391",
+    "target": "fixtures/child/source/test_publication_api.py"
+  },
+  {
+    "path": "test_publication_guard.py",
+    "sha256": "1393a1118471d50afba3cd9f72808a659360daade40c09e40bd4fe7fd643bc28",
+    "target": "fixtures/child/source/test_publication_guard.py"
+  },
+  {
+    "path": "test_publication_retained_delivery.py",
+    "sha256": "6520cd5b0dbe01406e31b310f7b6fd844a6580fb0e1b22bc495778c361ff8a2f",
+    "target": "fixtures/child/source/test_publication_retained_delivery.py"
+  },
+  {
+    "path": "test_publication_retained_standalone.py",
+    "sha256": "216873422e12a7f9bdef5c431346d6729f5fdca29f88319089747baeb5ce280e",
+    "target": "fixtures/child/source/test_publication_retained_standalone.py"
+  },
+  {
+    "path": "test_standalone_pack_report_deny.py",
+    "sha256": "675a4ed7a0d1549ecb32e8f3196ff0fea8620628d63ee3dc51511e43adc9aaf6",
+    "target": "fixtures/child/source/test_standalone_pack_report_deny.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/child/source/test_standalone_resources.py",
+    "sha256": "7a6ba5e2a7369ed758c6c99c4f2a9870dfcdacef7764c1c0b7411f7bbb3a3c18",
+    "target": "fixtures/child/source/test_standalone_resources.py"
+  },
+  {
+    "path": "worker_handoff.py",
+    "sha256": "41045f1f071620f585a308776c4a182bec6317852ca849208ce82fa0aceeac57",
+    "target": "fixtures/child/source/worker_handoff.py"
+  },
+  {
+    "path": "workflow.py",
+    "sha256": "1f1185f06d60720aab5c62ccaff39f512d94e665f650dbea5e7c6d51ff6ebd25",
+    "target": "fixtures/child/source/workflow.py"
+  },
+  {
+    "path": "workflow_nzb.py",
+    "sha256": "79f76b1a0e32c6524f962b6c4fa67b3088d70ba4859e852e55159e5a1bbed581",
+    "target": "fixtures/child/source/workflow_nzb.py"
+  },
+  {
+    "path": "workflow_store.py",
+    "sha256": "2c9417711d11b0294bf3d01ee18ab76433c3c3c0030cba6a9e96055c7f28fb3f",
+    "target": "fixtures/child/source/workflow_store.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_reader_backup_primitives.py",
+    "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0",
+    "target": "fixtures/host/comic_reader_backup_primitives.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_backup.py",
+    "sha256": "6860f540de4ab4fd878d2bd091ab46cf2552e0701c179c700e33391bdb4ca231",
+    "target": "fixtures/host/comic_retained_standalone_backup.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/host/comic_retained_standalone_parent.py",
+    "sha256": "b4808911d67d74d34d357dacd29fa990228edc8be7604d04c66d57319d69dbfe",
+    "target": "fixtures/host/comic_retained_standalone_parent.py"
+  },
+  {
+    "path": "standalone_launch_host/private_crypto.py",
+    "sha256": "1331178acd712de15fef933081c0aee80da4f99377295810637db468aabc3d9c",
+    "target": "fixtures/host_crypto/private_crypto.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_native_process_probe.py",
+    "sha256": "77325f0a7fd14b6e2e1a1f91aaf4c66cb53b5e2fd4cffdd34453642002afd1ec",
+    "target": "fixtures/probe_sources/comic_native_process_probe.py"
+  },
+  {
+    "path": "standalone_launch_host/publication_native_configured_scope.py",
+    "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608",
+    "target": "fixtures/probe_sources/publication_native_configured_scope.py"
+  },
+  {
+    "path": "standalone_launch_host/BOOTSTRAP.py",
+    "sha256": "768483c50613ed9a2eae170034419fc6b09db0b8557aa3f614171cc6d3e60075",
+    "target": "source/BOOTSTRAP.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/source/comic_retained_standalone_action.py",
+    "sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
+    "target": "source/comic_retained_standalone_action.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_broker.py",
+    "sha256": "4889ef5972be35dff41745009972987257ed367042023f2b7cff8c849ffc6b15",
+    "target": "source/comic_retained_standalone_broker.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_parent.py",
+    "sha256": "b4808911d67d74d34d357dacd29fa990228edc8be7604d04c66d57319d69dbfe",
+    "target": "source/comic_retained_standalone_parent.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/source/publication_retained_standalone.py",
+    "sha256": "b2c796b10ae6ad08e0c7e7e3cac0277b59af1833b20424b7750038533f5741d7",
+    "target": "source/publication_retained_standalone.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/tests/connected_worker.py",
+    "sha256": "9060bbf85bcf6917ca6ab9db53c755a2158c77dd911b0a618b8b22c3617b400b",
+    "target": "tests/connected_worker.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/tests/test_connected_launch.py",
+    "sha256": "785d27e36cdecd6bfd9e3cb9acc154ced3aab2cbed7173bf7be7dc0a356ebb9f",
+    "target": "tests/test_connected_launch.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/tests/test_fixed_broker.py",
+    "sha256": "b8fd04fbc33b43c02309d7d1068cfe2d8c6245db70ac5c04c637e977232482bc",
+    "target": "tests/test_fixed_broker.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/tests/test_reader_wal_preflight.py",
+    "sha256": "8ab452358c04de8f76d9b6cded96e4bc1bf7d7eea43222dc1413a8197c81b6b9",
+    "target": "tests/test_reader_wal_preflight.py"
+  }
+]

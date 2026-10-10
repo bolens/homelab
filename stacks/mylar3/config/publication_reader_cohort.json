@@ -18,6 +18,12 @@
       ],
       "tracked_source_sha256": "13cf0f3d7572db2f8fe748f36c6ffec0adb90410aa5350aeb258d0a6343646af"
     },
+    "comic_retained_standalone_action": {
+      "owning_adapters": [
+        "patch_publication_retained_standalone.py"
+      ],
+      "tracked_source_sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680"
+    },
     "converted_catalog": {
       "owning_adapters": [
         "patch_converted_tagging.py"
@@ -107,7 +113,7 @@
       "owning_adapters": [
         "patch_pack_intake.py"
       ],
-      "tracked_source_sha256": "42edc95f607a915e9e9a4d56a059b28fa481b6b1f0ac2f1bcb130a94a8208992"
+      "tracked_source_sha256": "a257f9f94507c9a2f1e8e621fb682d97fc4aa7a4bc5b5bbe7858f5d991842a95"
     },
     "pp_monitor": {
       "owning_adapters": [
@@ -277,6 +283,12 @@
         "patch_publication_guard.py"
       ],
       "tracked_source_sha256": "1ecc57c8797796c109548b56261427746be54e06ad545e99ea8cfa632369acd3"
+    },
+    "publication_retained_standalone": {
+      "owning_adapters": [
+        "patch_publication_retained_standalone.py"
+      ],
+      "tracked_source_sha256": "b2c796b10ae6ad08e0c7e7e3cac0277b59af1833b20424b7750038533f5741d7"
     },
     "publication_tagging_recovery": {
       "owning_adapters": [

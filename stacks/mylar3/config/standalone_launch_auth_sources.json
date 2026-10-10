@@ -1,0 +1,22 @@
+[
+  {
+    "path": "patch_publication_launch_auth.py",
+    "sha256": "70dae8db1d68c62ec8f27ee69686d288ca483b885e5c8664917c63530c384c02"
+  },
+  {
+    "path": "test_publication_launch_auth.py",
+    "sha256": "004616f622545d40e498f5b922fc37d36e4c990e7ef2489f57b4734d2ba2bb1f"
+  },
+  {
+    "path": "standalone_launch_auth/standalone_launch_auth.py",
+    "sha256": "fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8"
+  },
+  {
+    "path": "standalone_launch_auth/v3_auth_core.py",
+    "sha256": "b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93"
+  },
+  {
+    "path": "standalone_launch_auth/private_crypto.py",
+    "sha256": "3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab"
+  }
+]

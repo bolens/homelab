@@ -28,9 +28,25 @@ def owning_sources(destination):
     # Never enumerate local config: it can contain ignored operational state.
     map_path = FIXES / 'import_api_control_sources.json'
     recovery_map = FIXES / 'reader_recovery/source-manifest.json'
+    auth_map = FIXES / 'standalone_launch_auth_sources.json'
+    auth_before = os.lstat(auth_map)
+    auth_ancestors = {}
+    for parent in (auth_map.parent, *auth_map.parent.parents):
+        value = os.lstat(parent)
+        assert stat.S_ISDIR(value.st_mode)
+        auth_ancestors[parent] = (value.st_dev, value.st_ino, value.st_mode, value.st_uid, value.st_gid)
     map_before = os.lstat(map_path)
     recovery_before = os.lstat(recovery_map)
     rows = json.loads(map_path.read_bytes())
+    auth_rows = json.loads(auth_map.read_bytes())
+    assert isinstance(auth_rows, list) and len(auth_rows) == 5
+    expected_auth_paths = {'patch_publication_launch_auth.py', 'test_publication_launch_auth.py',
+        'standalone_launch_auth/standalone_launch_auth.py', 'standalone_launch_auth/v3_auth_core.py',
+        'standalone_launch_auth/private_crypto.py'}
+    assert all(type(row) is dict and set(row) == {'path', 'sha256'} and type(row['path']) is str
+        for row in auth_rows)
+    assert {row['path'] for row in auth_rows} == expected_auth_paths
+    rows.extend(auth_rows)
     assert isinstance(rows, list) and rows
     recovery = json.loads(recovery_map.read_bytes())
     rows.extend({'path': 'reader_recovery/' + name, 'sha256': value['sha256']} for name, value in recovery['files'].items())
@@ -46,11 +62,13 @@ def owning_sources(destination):
     paths.setdefault('test_publication_archive_route_history.py', None)
     paths['import_api_control_sources.json'] = None
     paths['reader_recovery/source-manifest.json'] = None
+    paths['standalone_launch_auth_sources.json'] = None
     originals = {}
-    ancestors = {}
+    ancestors = dict(auth_ancestors)
     def signature(value):
         return (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns,
                 value.st_ctime_ns, value.st_mode, value.st_uid, value.st_gid, value.st_nlink)
+    assert signature(os.lstat(auth_map)) == signature(auth_before)
     assert signature(os.lstat(map_path)) == signature(map_before)
     assert signature(os.lstat(recovery_map)) == signature(recovery_before)
     # Capture all original leaves before the first copying/hash callback.
@@ -68,6 +86,8 @@ def owning_sources(destination):
         captured = signature(value)
         if name == 'import_api_control_sources.json':
             assert captured == signature(map_before)
+        if name == 'standalone_launch_auth_sources.json':
+            assert captured == signature(auth_before)
         if name == 'reader_recovery/source-manifest.json':
             assert captured == signature(recovery_before)
         originals[name] = captured
@@ -102,6 +122,17 @@ def owning_suite(test, environment):
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
             env=environment)
 
+# Public source controls run even when the upstream image has no installed auth.
+subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_publication_launch_auth.py')], check=True)
+# Build-only source controls; public host files grant no installation authority.
+subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_authenticated_standalone_copy.py')], check=True)
+subprocess.run([sys.executable, '-I', '-B', str(FIXES/'run_authenticated_standalone_controls.py'),
+                '--backend', 'target', '--family',
+                'all' if Path('/opt/archiving-utils/lib/archive_backend.py').is_file() else 'broker'], check=True)
+if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
+    import patch_publication_launch_auth as auth_install
+    auth_install.verify_installed('/opt/mylar-publication-launch/auth')
+
 if Path('/opt/comictagger/bin/python').exists():
     assert Path('/opt/ddl-transport/bin/python').is_file(), 'Custom image is missing its required optional discovery runtime'
     assert Path('/opt/archiving-utils/lib/archive_backend.py').is_file(), 'Custom image is missing its pinned archive verifier'
@@ -132,6 +163,10 @@ with tempfile.TemporaryDirectory() as directory:
     print('Public import API control family: ' + api_family, flush=True)
     subprocess.run([sys.executable, '-I', '-B', str(FIXES/'run_import_api_controls.py'),
                     '--family', api_family], check=True)
+    # Finite copy regressions run in both upstream and custom-backend lanes.
+    subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_import_api_copy.py')], check=True)
+    subprocess.run([sys.executable, '-I', '-B', str(FIXES/'run_standalone_controls.py'),
+                    '--family', 'all' if api_family == 'all' else 'mechanical'], check=True)
     subprocess.run([sys.executable, str(FIXES/'test_ordinary_import_continuity.py')],check=True)
     subprocess.run([sys.executable, '-c', "from pathlib import Path; import mylar; from mylar import publication_retained_delivery as r, publication_archive_owned as o, publication_native as n, ordinary_import_history as h; from mylar import publication_retained_finalize as f; assert f.ENABLED is False and f.o is o and f.r is r; assert callable(f.finalize) and callable(f.status_existing); assert callable(n.finalize_retained_delivery) and callable(n.retained_finalization_status); assert r.__name__=='mylar.publication_retained_delivery'; assert Path(r.__file__)==Path(mylar.__path__[0])/'publication_retained_delivery.py'; assert r.ENABLED is False; assert r.o is o; assert all(callable(getattr(r,k,None)) for k in ('prepare_existing','verify_ack','status_existing','RetainedDeliveryAcceptance')); assert callable(n.accept_retained_delivery); assert callable(n.retained_delivery_status); assert callable(h.confirmed_retained)"], check=True, env=dict(os.environ, PYTHONPATH=str(source.parent) + ':/app/mylar3:/app/mylar3/lib'))
     subprocess.run([sys.executable, str(FIXES/'test_ordinary_import_history.py')],check=True)

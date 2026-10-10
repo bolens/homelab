@@ -50,7 +50,18 @@ def main():
     assert finalizer.ENABLED is False and finalizer.o is core and finalizer.r is retained
     assert callable(finalizer.finalize) and callable(finalizer.status_existing)
     assert callable(native.finalize_retained_delivery) and callable(native.retained_finalization_status)
-    assert len(manifest['existing_sdk_closure']) == 72
+    assert len(manifest['existing_sdk_closure']) == 74
+    standalone = importlib.import_module('mylar.publication_retained_standalone')
+    standalone_action = importlib.import_module('mylar.comic_retained_standalone_action')
+    for module, relative in ((standalone, 'publication_retained_standalone.py'),
+                             (standalone_action, 'reader_recovery/comic_retained_standalone_action.py')):
+        assert Path(module.__file__) == Path('/app/mylar3/mylar') / (module.__name__.split('.')[-1] + '.py')
+        assert Path(module.__file__).read_bytes() == (fixes / relative).read_bytes()
+        assert module.ENABLED is False
+    assert standalone.o is core and standalone.r is retained
+    assert standalone_action.PARENT_SOURCE_SHA is None
+    assert not (Path('/app/mylar3/mylar') / 'comic_retained_standalone_parent.py').exists()
+    assert not (Path('/app/mylar3/mylar') / 'comic_retained_standalone_backup.py').exists()
     observer = importlib.import_module('mylar.ordinary_import_observation')
     retained_api = importlib.import_module('mylar.publication_retained_api')
     writers = importlib.import_module('mylar.native_writers')

@@ -1267,3 +1267,18 @@ terminal references before writing its private observation manifest. The fresh
 child retains those references and independently checks current reader pairs;
 it does not refresh the original backup custody. These source controls do not
 release publication holds or establish live import acceptance.
+
+Standalone retained-download recovery sources are present but disabled. The
+canonical kernel/action have their own checked installer and copied-source
+controls; the standalone host parent/backup helpers are not native package
+modules. Their original six-frame pipe and full-state backup contracts do not
+establish authenticated launch or actual namespace/runtime fitness. No
+historical ordinary-import acknowledgement, cleanup, resume or index grant is
+created. An accepted activation and protected runtime proof are still required.
+
+The image carries three read-only public authentication modules in
+`/opt/mylar-publication-launch/auth/`. Their separate installer and 14 source
+controls check exact bytes, file ownership and the five allowed fixture paths.
+The final image copies only those three modules. Deployment enrollment, keys
+and activation are separate operational steps. An image build does not release
+the processing hold.

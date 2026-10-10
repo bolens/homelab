@@ -484,3 +484,42 @@ including 48 parent conversation checks, against the generated API fixture.
 Export/composed API suites are not repeated directly without that fixture. The
 parent remains disabled and its accepted runtime pins unset; tested factual
 results do not authorize reader resume, indexing, cleanup or historical import.
+
+The disabled standalone retained-download unit adds canonical
+`publication_retained_standalone.py` and `comic_retained_standalone_action.py`
+through `patch_publication_retained_standalone.py`. The checked existing SDK
+closure has 74 modules; the prospective Reader cohort remains 25 modules. The
+action is sourced from `reader_recovery/`, but only its exact native module and
+the owning kernel enter the final Mylar package. The host standalone backup and
+parent, source manifests and fixtures stay outside that package.
+
+`run_standalone_controls.py` copies only its declared current public source
+closure into a disposable private test tree. It adds 7 real-file installer, 2 manifest-origin and
+111 host conformance controls; the custom-backend image also requires all 56
+native kernel/report-deny controls with zero skips. An upstream image without
+the optional archive backend leaves those 56 controls unproved. Existing
+Reader recovery 588 checks and API 247 checks are preserved separately. Both
+image lanes also require the three finite API-copy regression controls. The
+new unit accepts no saved capability, historical import ACK, resume, cleanup or
+indexing authority. Both enabled flags remain false and the parent pin unset.
+Authenticated launch, installed namespace/profile, full backup capacity and
+actual runtime proof remain required before operational admission.
+
+`patch_publication_launch_auth.py` separately installs the three pinned public
+modules from `standalone_launch_auth/` into
+`/opt/mylar-publication-launch/auth/`. Generic patching never invokes this
+installer. The checked and final image stages verify the read-only root-owned
+files and exact public namespace. The five-path source map and 14 installer
+controls run once in both image lanes. Public images contain no deployment
+anchor, inventory, enrollment or signing keys. Actual authenticated launch and
+protected runtime acceptance remain separate.
+
+`run_authenticated_standalone_controls.py` checks a separate finite 105-row
+public graph, including the eight original host sources and build-only fixtures.
+Both image lanes run six copy controls. The custom-backend lane requires all
+121 authenticated recovery controls with zero skips; the upstream lane runs
+26 broker controls and explicitly leaves the other 95 unproved. The Ubuntu
+crypto bridge changes only private test copies; the public Arch host source
+stays unchanged. The offline verifier supplies a private disposable HOME under
+`/run/authenticated-fixtures` without changing the runtime activation policy.
+The checked build stage uses a bounded 256 MiB temporary filesystem for its test journals, preserving the same directory-link semantics used by the offline image gate. The mount exists only during verification. The host package still requires separate reviewed root provisioning.
