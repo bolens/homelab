@@ -367,6 +367,50 @@ class MusicProcessingSeamTest(unittest.TestCase):
             self.assertEqual(self.run_main(root), main.SUCCESS)
             self.assertEqual(self.snapshot(root), before)
 
+    def test_numbered_flac_gaps_and_duplicates_fail_without_totals(self) -> None:
+        for numbers in ((11,), (10, 10), (1, 3), (1, 1)):
+            with self.subTest(numbers=numbers), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                for index, number in enumerate(numbers):
+                    (root / f"track-{index}.flac").write_bytes(self.tagged_flac(
+                        {"ALBUM": "Fixture", "TRACKNUMBER": str(number)}))
+                (root / "notes.nfo").write_text("preserved notes")
+                before = self.snapshot(root)
+                with mock.patch.object(main, "publish") as publish:
+                    self.assertEqual(self.run_main(root), main.FAILURE)
+                    publish.assert_not_called()
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_contiguous_flac_numbers_without_totals_remain_valid(self) -> None:
+        for numbers in ((1,), (1, 2, 3)):
+            with self.subTest(numbers=numbers), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                for number in numbers:
+                    (root / f"{number}.flac").write_bytes(self.tagged_flac(
+                        {"ALBUM": "Fixture", "TRACKNUMBER": str(number)}))
+                before = self.snapshot(root)
+                self.assertEqual(self.run_main(root), main.SUCCESS)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_totalless_numbered_discs_and_album_image_keep_their_exceptions(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for disc in ("CD1", "CD2"):
+                folder = root / disc
+                folder.mkdir()
+                for number in (1, 2):
+                    (folder / f"{number}.flac").write_bytes(self.tagged_flac(
+                        {"ALBUM": "Fixture", "TRACKNUMBER": str(number)}))
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual(len(list(root.rglob('*.flac'))), 4)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "Image.flac").write_bytes(self.tagged_flac({"TRACKNUMBER": "11"}))
+            (root / "Image.cue").write_text('FILE "Image.flac" WAVE\n TRACK 01 AUDIO\n')
+            before = self.snapshot(root)
+            self.assertEqual(self.run_main(root), main.SUCCESS)
+            self.assertEqual(self.snapshot(root), before)
+
     def test_single_tracks_and_album_images_are_not_rejected(self) -> None:
         for kind in ("single", "untagged", "cue", "embedded", "comment-cue"):
             with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temp:
@@ -379,6 +423,275 @@ class MusicProcessingSeamTest(unittest.TestCase):
                     (root / "Release.cue").write_text('FILE "Release.flac" WAVE\n TRACK 01 AUDIO\n')
                 self.assertEqual(self.run_main(root), main.SUCCESS)
                 self.assertTrue((root / "Release.flac").exists())
+
+    def test_metadata_aliases_cannot_mask_missing_tracks_or_conflicts(self) -> None:
+        variants = [
+            {"TRACKNUMBER": "1", "TRACKTOTAL": "1", "TOTALTRACKS": "11"},
+            {"TRACKNUMBER": "1/11", "TRACKTOTAL": ""},
+            {"TRACKNUMBER": "", "TRACK": "11"},
+            {"TRACKNUMBER": "1", "TRACK": "2", "TRACKTOTAL": "1"},
+            {"TRACKNUMBER": "1", "TRACKTOTAL": "1", "tracktotal": "11"},
+            {"TRACKNUMBER": "1", "TRACKTOTAL": "1", "DISCNUMBER": "1", "DISC": "2"},
+        ]
+        for tags in variants:
+            with self.subTest(tags=tags), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "track.flac").write_bytes(self.tagged_flac(tags))
+                (root / "notes.nfo").write_text("retained notes")
+                before = self.snapshot(root)
+                with mock.patch.object(main, "publish") as publish:
+                    self.assertEqual(self.run_main(root), main.FAILURE)
+                    publish.assert_not_called()
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_blank_and_equivalent_aliases_fall_through(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "one.flac").write_bytes(self.tagged_flac({
+                "TRACKNUMBER": "", "TRACK": "01/01", "TRACKTOTAL": "", "TOTALTRACKS": "1",
+                "DISCNUMBER": "", "DISC": "01/01", "DISCTOTAL": "", "TOTALDISCS": "1",
+                "tracktotal": "01"}))
+            main.process_release(root, require_completeness=True)
+            before = self.snapshot(root)
+            main.process_release(root, require_completeness=True)
+            self.assertEqual(self.snapshot(root), before)
+
+    def test_declared_disc_totals_reject_missing_or_conflicting_discs(self) -> None:
+        variants = [
+            {"DISCNUMBER": "1", "DISCTOTAL": "2"},
+            {"DISCNUMBER": "1/2"}, {"DISC": "1/2", "DISCTOTAL": ""},
+            {"DISCNUMBER": "1", "TOTALDISCS": "2"},
+            {"DISCNUMBER": "1/1", "DISCTOTAL": "2"},
+            {"DISCNUMBER": "1", "DISCTOTAL": "1", "TOTALDISCS": "2"},
+        ]
+        for disc_tags in variants:
+            with self.subTest(tags=disc_tags), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "one.flac").write_bytes(self.tagged_flac({
+                    "ALBUM": "Fixture", "TRACKNUMBER": "1", "TRACKTOTAL": "1", **disc_tags}))
+                (root / "notes.nfo").write_text("retained notes")
+                before = self.snapshot(root)
+                self.assertEqual(self.run_main(root), main.FAILURE)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_declared_disc_sets_keep_edition_boundaries(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for edition, total in (("original", 2), ("deluxe", 3)):
+                for disc in range(1, total + 1):
+                    folder = root / edition / f"CD{disc}"
+                    folder.mkdir(parents=True)
+                    (folder / f"{edition}-{disc}.flac").write_bytes(self.tagged_flac({
+                        "ALBUM": "Fixture", "TRACKNUMBER": "1/1", "DISCNUMBER": f"{disc}/{total}"}))
+            main.preview(root, require_completeness=True)
+            main.process_release(root, require_completeness=True)
+            before = self.snapshot(root)
+            main.process_release(root, require_completeness=True)
+            self.assertEqual(self.snapshot(root), before)
+
+    def test_unknown_album_folder_groups_survive_repeated_processing(self) -> None:
+        for total in (False, True):
+            with self.subTest(total=total), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                for name in ("one", "two"):
+                    folder = root / name
+                    folder.mkdir()
+                    tags = {"TRACKNUMBER": "1"}
+                    if total:
+                        tags["TRACKTOTAL"] = "1"
+                    (folder / f"{name}.flac").write_bytes(self.tagged_flac(tags))
+                    (folder / "notes.nfo").write_text("disposable notes")
+                main.process_release(root)
+                before = self.snapshot(root)
+                main.process_release(root)
+                self.assertEqual(self.snapshot(root), before)
+                self.assertEqual(set(before), {"one/one.flac", "two/two.flac"})
+
+    def test_strict_completeness_rejects_unproven_tail_and_preserves_archives(self) -> None:
+        for archive in (False, True):
+            with self.subTest(archive=archive), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                content = {f"Release/{track}.flac": self.tagged_flac({"ALBUM": "Fixture", "TRACKNUMBER": str(track)})
+                           for track in (1, 2)}
+                content["Release/notes.nfo"] = b"retained notes"
+                if archive:
+                    with zipfile.ZipFile(root / "release.zip", "w") as output:
+                        for name, payload in content.items():
+                            output.writestr(name, payload)
+                else:
+                    for name, payload in content.items():
+                        path = root / name
+                        path.parent.mkdir(exist_ok=True)
+                        path.write_bytes(payload)
+                before = self.snapshot(root)
+                with self.assertRaisesRegex(ValueError, "unproven"), mock.patch.object(main, "publish") as publish:
+                    main.process_release(root, require_completeness=True)
+                publish.assert_not_called()
+                self.assertEqual(self.snapshot(root), before)
+                with self.assertRaisesRegex(ValueError, "unproven"):
+                    main.preview(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_strict_playlist_evidence_survives_repairs_flattening_and_retries(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            folder = root / "Release" / "Audio"
+            folder.mkdir(parents=True)
+            (folder / "one").write_bytes(self.tagged_flac({"TRACKNUMBER": "1"}))
+            (folder / "two").write_bytes(self.tagged_flac({"TRACKNUMBER": "2"}))
+            (folder.parent / "tracks.m3u").write_bytes(b"\xef\xbb\xbf# fixture\r\nAudio/one.flac\r\nAudio/two.flac\r\n")
+            (folder / "notes.nfo").write_text("disposable notes")
+            main.process_release(root, require_completeness=True)
+            before = self.snapshot(root)
+            self.assertEqual(before["tracks.m3u"], b"\xef\xbb\xbf# fixture\r\none.flac\r\ntwo.flac\r\n")
+            main.process_release(root, require_completeness=True)
+            self.assertEqual(self.snapshot(root), before)
+
+    def test_strict_playlist_must_cover_every_unproven_audio_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for name in ("one", "two"):
+                (root / f"{name}.mp3").write_bytes(b"ID3audio fixture")
+            (root / "tracks.m3u").write_text("one.mp3\n")
+            before = self.snapshot(root)
+            with self.assertRaisesRegex(ValueError, "unproven"):
+                main.process_release(root, cleanup=False, require_completeness=True)
+            self.assertEqual(self.snapshot(root), before)
+            (root / "tracks.m3u").write_text("one.mp3\ntwo.mp3\n")
+            main.process_release(root, require_completeness=True)
+
+    def test_strict_cue_image_and_known_track_total_are_supported(self) -> None:
+        for kind in ("cue", "embedded", "total"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                tags = {"TRACKNUMBER": "1/1"} if kind == "total" else {"TRACKNUMBER": "11"}
+                (root / "image.flac").write_bytes(self.tagged_flac(tags, embedded_cue=kind == "embedded"))
+                if kind == "cue":
+                    (root / "image.cue").write_text('FILE "image.flac" WAVE\n TRACK 01 AUDIO\n')
+                main.process_release(root, require_completeness=True)
+                before = self.snapshot(root)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_strict_nzbget_option_preview_cli_and_invalid_values(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for value, status in (("yes", main.SUCCESS), ("invalid", main.FAILURE)):
+                with mock.patch.dict(os.environ, {"NZBPP_CATEGORY": "music", "NZBPP_FINALDIR": str(root),
+                                                  "NZBPO_REQUIRECOMPLETENESS": value}, clear=True), \
+                     mock.patch.object(main, "process_release") as process:
+                    self.assertEqual(main.main(), status)
+                    if value == "yes":
+                        process.assert_called_once_with(root, verify_audio=False, require_completeness=True)
+                    else:
+                        process.assert_not_called()
+            with mock.patch.object(main, "preview") as preview:
+                self.assertEqual(main.cli(["--preview", str(root), "--require-completeness"]), 0)
+                preview.assert_called_once_with(root, verify_audio=False, require_completeness=True)
+            with self.assertRaises(SystemExit):
+                main.cli(["--recover", str(root), "--require-completeness"])
+
+    def test_playlist_entries_must_resolve_to_distinct_audio_files(self) -> None:
+        for strict in (False, True):
+            with self.subTest(strict=strict), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "one.flac").write_bytes(self.tagged_flac({"ALBUM": "Fixture", "TRACKNUMBER": "1"}))
+                (root / "tracks.m3u").write_text("one.flac\none.FLAC\n")
+                (root / "notes.nfo").write_text("retained notes")
+                before = self.snapshot(root)
+                with self.assertRaisesRegex(ValueError, "distinct audio"), mock.patch.object(main, "publish") as publish:
+                    main.process_release(root, require_completeness=strict)
+                publish.assert_not_called()
+                self.assertEqual(self.snapshot(root), before)
+                with self.assertRaisesRegex(ValueError, "distinct audio"):
+                    main.preview(root, require_completeness=strict)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_obfuscated_playlist_uses_reconciled_blank_and_disc_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for track in (1, 2):
+                (root / f"hash-{track}.flac").write_bytes(self.tagged_flac({
+                    "ALBUM": "Fixture", "ALBUMARTIST": "", "ALBUM ARTIST": "Artist", "ARTIST": "Artist",
+                    "TITLE": f"Song {track}", "TRACKNUMBER": "", "TRACK": str(track),
+                    "DISCNUMBER": "01/01" if track == 1 else "", "DISC": "1/1"}))
+            (root / "tracks.m3u").write_text("01 Artist Song 1.flac\n02 Artist Song 2.flac\n")
+            main.preview(root, require_completeness=True)
+            main.process_release(root, require_completeness=True)
+            before = self.snapshot(root)
+            main.process_release(root, require_completeness=True)
+            self.assertEqual(self.snapshot(root), before)
+            self.assertEqual(before["tracks.m3u"], b"hash-1.flac\nhash-2.flac\n")
+
+    def test_disc_ancestry_stops_at_selected_release_root(self) -> None:
+        for ancestor in ("normal", "CD1", "Disc 2 - Remixes"):
+            with self.subTest(ancestor=ancestor), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp) / ancestor / "release"
+                root.mkdir(parents=True)
+                for edition in ("original", "remaster"):
+                    folder = root / edition
+                    folder.mkdir()
+                    (folder / f"{edition}.flac").write_bytes(self.tagged_flac({
+                        "ALBUM": "Fixture", "TRACKNUMBER": "1/1", "DISCNUMBER": "1/1"}))
+                before = self.snapshot(root)
+                main.preview(root, require_completeness=True)
+                main.process_release(root, require_completeness=True)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_compatible_repeated_positions_merge_nonempty_totals(self) -> None:
+        for first, second in (("1", "01/01"), ("01/01", "1")):
+            with self.subTest(first=first), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / "one.flac").write_bytes(self.tagged_flac({
+                    "TRACKNUMBER": first, "tracknumber": second,
+                    "DISCNUMBER": first, "discnumber": second}))
+                main.process_release(root, require_completeness=True)
+                before = self.snapshot(root)
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_strict_playlist_rewrite_rejects_unreadable_references_before_publication(self) -> None:
+        for name in ("hash:one.flac", "hash\\one.flac"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                (root / name).write_bytes(self.tagged_flac({
+                    "ALBUM": "Fixture", "ARTIST": "Artist", "TITLE": "Song", "TRACKNUMBER": "1"}))
+                (root / "tracks.m3u").write_text("01 Artist Song.flac\n")
+                before = self.snapshot(root)
+                with self.assertRaisesRegex(ValueError, "represented in a playlist"), mock.patch.object(main, "publish") as publish:
+                    main.process_release(root, require_completeness=True)
+                publish.assert_not_called()
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_strict_playlist_references_escape_leading_space_and_comment_marker(self) -> None:
+        for name in (" one.mp3", "#one.mp3"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                folder = root / "Audio"
+                folder.mkdir()
+                (folder / name).write_bytes(b"ID3audio fixture")
+                (root / "tracks.m3u").write_text(f"Audio/{name}\n")
+                main.process_release(root, require_completeness=True)
+                before = self.snapshot(root)
+                self.assertEqual(before["tracks.m3u"], f"./{name}\n".encode())
+                main.process_release(root, require_completeness=True)
+                self.assertEqual(self.snapshot(root), before)
+
+    def test_independent_editions_with_distinct_disc_labels_remain_repeatable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for edition, label, disc in (("original", "CD1 - Original Mixes", "1/1"),
+                                         ("deluxe", "CD1 - Extended Mixes", "1/2"),
+                                         ("deluxe", "CD2 - Bonus Mixes", "2/2")):
+                folder = root / edition / label
+                folder.mkdir(parents=True)
+                (folder / "one.flac").write_bytes(self.tagged_flac({
+                    "ALBUM": "Fixture", "TRACKNUMBER": "1/1", "DISCNUMBER": disc}))
+            before = self.snapshot(root)
+            main.process_release(root, require_completeness=True)
+            main.process_release(root, require_completeness=True)
+            self.assertEqual(self.snapshot(root), before)
 
     def test_invalid_flac_metadata_does_not_invent_missing_tracks(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -701,10 +1014,10 @@ class MusicProcessingSeamTest(unittest.TestCase):
                                               "NZBPO_VERIFYAUDIO": "yes"}, clear=True), \
                  mock.patch.object(main, "process_release") as process:
                 self.assertEqual(main.main(), main.SUCCESS)
-                process.assert_called_once_with(root, verify_audio=True)
+                process.assert_called_once_with(root, verify_audio=True, require_completeness=False)
             with mock.patch.object(main, "preview") as preview:
                 self.assertEqual(main.cli(["--preview", str(root), "--verify-audio"]), 0)
-                preview.assert_called_once_with(root, verify_audio=True)
+                preview.assert_called_once_with(root, verify_audio=True, require_completeness=False)
             with self.assertRaises(SystemExit):
                 main.cli(["--recover", str(root), "--verify-audio"])
 

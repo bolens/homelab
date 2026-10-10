@@ -78,6 +78,13 @@ Complete recognised extensionless playlists can be removed during cleanup.
 - **FR-009**: Preserve ambiguous, remote and unsafe playlist-like text and all files on completeness failure.
 
 - **FR-010**: Reject zero-byte files with known audio extensions before mutation, regardless of track totals, cleanup settings or optional decoder availability.
+- **FR-011**: Reject gaps and duplicate numbers in fully numbered FLAC album/disc groups without declared totals; preserve unknown metadata and cue-image exceptions. A contiguous prefix does not establish the final track count.
+- **FR-012**: Reconcile nonempty track/disc aliases and slash totals, including repeated numeric keys. Blank values must not hide completeness evidence. Reject contradictory values and declared missing discs before publication.
+- **FR-013**: Keep grouping stable across repeated processing when flattening would combine independent editions or numbered FLAC folders lacking album identity.
+- **FR-014**: Offer default-off RequireCompleteness and preview support. Refuse otherwise unproven audio even on unchanged/cleanup-disabled paths. Accept validated FLAC totals, complete covering local playlists and cue-image exceptions. Retain and repair strict-mode playlist evidence for retries, preserving sources and archives on failure.
+- **FR-015**: Require distinct resolved audio files for recognized playlist entries, reconcile obfuscated playlist position aliases, and limit disc context to the selected release tree. Preserve valid independent editions under disc-named ancestors and across differing disc labels. Merge compatible repeated position/total values. Require rewritten strict playlist references to round-trip through the reader, preserving all source files on ambiguity or unrepresentable-path failure.
+
+
 
 ### Key Entities
 
