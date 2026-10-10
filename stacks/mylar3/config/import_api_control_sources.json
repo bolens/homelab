@@ -1005,7 +1005,7 @@
   },
   {
     "path": "test_publication_retained_finalize.py",
-    "sha256": "3abbc69b6904d4f3fffb111f06e54fd6c8c114feb08ad872867b7c5932db49c2"
+    "sha256": "0cddb300aaf08b39d8d1663a5104e209f78660e90fd1b88c32e69a8fb76a4f9c"
   },
   {
     "path": "test_publication_startup.py",
@@ -1045,7 +1045,7 @@
   },
   {
     "path": "test_retained_native_operation.py",
-    "sha256": "81792ad86cdf109a48c69e1e4b672529144f9e17fc8777c15e0e6e3195a124e9"
+    "sha256": "3d978acfb06c91df5580c4d52e8c5cbcb38f0b66670b4a673604afd36e88d5ac"
   },
   {
     "path": "test_reviewed_derivative.py",
