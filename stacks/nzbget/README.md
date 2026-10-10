@@ -155,7 +155,40 @@ The check includes albums with several surviving tracks, not just a lone file.
 External cue references, embedded FLAC cues and embedded `CUESHEET` comments exempt
 album images from track-file counting.
 
-This check uses bounded metadata reads. Untagged files, absent numeric totals and
+When totals are absent but every track in an album/disc has a valid number,
+the sequence must start at one and contain no gaps or duplicates. A lone track
+11 or two copies of track 10 fail before cleanup. A contiguous sequence cannot
+prove that later tracks are present. Partial album downloads require manual review.
+
+Nonempty `TRACKNUMBER`/`TRACK` and `TRACKTOTAL`/`TOTALTRACKS` values must
+agree with slash totals such as `1/11`. Blank values fall through to other tags.
+The same rules apply to `DISCNUMBER`/`DISC`, `DISCTOTAL`/`TOTALDISCS` and slash
+disc totals. A declared two-disc album requires both discs. Separate edition
+folders remain independent. Disc ancestry is limited to the selected release tree. Folder structure is retained when flattening would
+merge separate album groups or numbered FLAC groups without album identities,
+so another processing pass keeps the same grouping.
+
+Set **RequireCompleteness** to `yes` to refuse audio whose final track count is
+unproven. Its default is `no`. Each audio file needs a validated FLAC track total,
+a reference from a complete local playlist, or cue-image evidence. A contiguous
+prefix without totals fails in this mode. Playlists must cover every otherwise
+unproven audio file. Playlist entries must resolve to distinct audio files, including case variants.
+Obfuscated playlist matching uses the same reconciled track/disc tags as album
+checks. Strict processing retains recognised playlists and updates their paths
+after moves or extension repairs so retries keep the evidence. Names beginning
+with spaces or `#` use `./` references. A rewrite that the playlist reader cannot
+resolve fails before publication.
+This setting also checks unchanged releases and applies with cleanup disabled.
+It uses local evidence and cannot detect incorrect totals or omitted playlist
+entries that leave a plausible, internally complete set.
+
+Preview strict processing without changing a release:
+
+```bash
+python3 stacks/nzbget/scripts/UnpackMusicTar/main.py --preview "/path/to/music/release" --require-completeness
+```
+
+This check uses bounded metadata reads. Untagged files, ambiguous metadata and
 other formats cannot establish completeness. Totals are interpreted per disc;
 ambiguous tags, intentionally partial downloads or album-wide totals spread across
 discs may require manual correction. Already overwritten tracks require a backup
