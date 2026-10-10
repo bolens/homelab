@@ -1157,7 +1157,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "e9eee82def84e86c63c94e4dfac618eb4e2a4819db7a636c5c7f2cc0a3883c1e"
+    "sha256": "988a0917c9060cb0f977ea0cc804f29f737af1ee6f6df69a41dbd038e2006a0a"
   },
   {
     "path": "verify_publication_reader_cohort.py",
