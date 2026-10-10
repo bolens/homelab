@@ -301,7 +301,7 @@
   },
   {
     "path": "patch_publication_processing.py",
-    "sha256": "abf2e0d957fe7b99a7acf1ff5a4e36bd039c35da961f1915880fa4f12ab2e9aa",
+    "sha256": "307c77daeeaadedac2a279f4bb4050cf8ea8ccb570ac1dfc88d9fb8b3e4a2d4b",
     "target": "patch_publication_processing.py"
   },
   {
@@ -1210,6 +1210,11 @@
     "target": "test_health.py"
   },
   {
+    "path": "test_import_api_copy.py",
+    "sha256": "29407a955120844adc9869e8ab1dc21cee88e596ebb498ee84b07670a3c829a3",
+    "target": "test_import_api_copy.py"
+  },
+  {
     "path": "test_library_metadata.py",
     "sha256": "b6cc58acc07f0b4f2d42b0490616a00616725a733fa78aad6a8da6500022b68d",
     "target": "test_library_metadata.py"
@@ -1230,6 +1235,11 @@
     "target": "test_modern_tagger.py"
   },
   {
+    "path": "test_native_terminal_dispatch.py",
+    "sha256": "7e547260e45f2cd98410dc3791086f121c98d6a4756510ef527881e979315ccb",
+    "target": "test_native_terminal_dispatch.py"
+  },
+  {
     "path": "test_native_writers.py",
     "sha256": "14467d31dbc1a919880ef41f096f196f74073d3c17209893ea86ae5942cbdc05",
     "target": "test_native_writers.py"
@@ -1246,7 +1256,7 @@
   },
   {
     "path": "test_ordinary_import_migration.py",
-    "sha256": "61c2a6a36b0f529f6a5dacad179eb4c46d1e18c3cafafa73bfcbb471e1bcc656",
+    "sha256": "10a3c866dc8bf310cacd1f059bc49f18a18906cdd6d2b9a16a03197910ce208e",
     "target": "test_ordinary_import_migration.py"
   },
   {
@@ -1781,7 +1791,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "3db8aafc719b056f3e1230d923257d4182b66d2bc153e840874c691920fa3a9a",
+    "sha256": "4d2070970f0e38800467b26092706ba6cf1ba5833b9de06f79082e04b1f047fa",
     "target": "verify_image.py"
   },
   {
@@ -1818,10 +1828,5 @@
     "path": "workflow_web.py",
     "sha256": "a7862ed59724b7578c23fcd335bd2a192d832d1da83242372e84935254299c85",
     "target": "workflow_web.py"
-  },
-  {
-    "path": "test_import_api_copy.py",
-    "sha256": "29407a955120844adc9869e8ab1dc21cee88e596ebb498ee84b07670a3c829a3",
-    "target": "test_import_api_copy.py"
   }
 ]

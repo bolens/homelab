@@ -241,7 +241,7 @@
   },
   {
     "path": "patch_publication_processing.py",
-    "sha256": "abf2e0d957fe7b99a7acf1ff5a4e36bd039c35da961f1915880fa4f12ab2e9aa"
+    "sha256": "307c77daeeaadedac2a279f4bb4050cf8ea8ccb570ac1dfc88d9fb8b3e4a2d4b"
   },
   {
     "path": "patch_publication_reader_cohort.py",
@@ -641,7 +641,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "1ee60b48015defca303d40d75d9bf4141a07f4fca6840478487dac0e8ae44718"
+    "sha256": "7fee9a8aaad076c04469e90c55928c39a1e110a95c55c3e00938762882d66774"
   },
   {
     "path": "story_arc_search.py",
@@ -988,6 +988,10 @@
     "sha256": "afb33ae03ea6811e421748a73f2ee8268564b2b81d5e4654202bf54d002730f1"
   },
   {
+    "path": "test_native_terminal_dispatch.py",
+    "sha256": "7e547260e45f2cd98410dc3791086f121c98d6a4756510ef527881e979315ccb"
+  },
+  {
     "path": "test_native_writers.py",
     "sha256": "14467d31dbc1a919880ef41f096f196f74073d3c17209893ea86ae5942cbdc05"
   },
@@ -1001,7 +1005,7 @@
   },
   {
     "path": "test_ordinary_import_migration.py",
-    "sha256": "61c2a6a36b0f529f6a5dacad179eb4c46d1e18c3cafafa73bfcbb471e1bcc656"
+    "sha256": "10a3c866dc8bf310cacd1f059bc49f18a18906cdd6d2b9a16a03197910ce208e"
   },
   {
     "path": "test_ordinary_import_observation.py",
@@ -1429,7 +1433,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "3db8aafc719b056f3e1230d923257d4182b66d2bc153e840874c691920fa3a9a"
+    "sha256": "4d2070970f0e38800467b26092706ba6cf1ba5833b9de06f79082e04b1f047fa"
   },
   {
     "path": "verify_publication_reader_cohort.py",

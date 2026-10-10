@@ -126,7 +126,7 @@
   },
   {
     "path": "patch_publication_processing.py",
-    "sha256": "abf2e0d957fe7b99a7acf1ff5a4e36bd039c35da961f1915880fa4f12ab2e9aa",
+    "sha256": "307c77daeeaadedac2a279f4bb4050cf8ea8ccb570ac1dfc88d9fb8b3e4a2d4b",
     "target": "fixtures/child/source/patch_publication_processing.py"
   },
   {

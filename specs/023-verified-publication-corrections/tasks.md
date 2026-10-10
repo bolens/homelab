@@ -83,7 +83,7 @@ T001 → T002–T003 → T004–T005 → T006–T012 → T013–T015 → T016 re
 
 T020, T021 and T023–T025 are complete as implementation milestones: independent review confirms admission exclusion, five-owner staging, exact SQL transitions, reversal, terminal succession and crash/lost-response refusal. Evidence includes the merged PR #293 full-image gates, installed native source/type parity and the actual Btrfs 191 standalone/132 authenticated controls, with no skips. The earlier blanket note incorrectly kept these implementation tasks open until live acceptance. Their completion does not authorize execution: configured stopped-reader/parent admission, matching worker acceptance, consistent restore and live terminal proof remain under the unchecked T022/T026–T029 and T017–T019. T028 still needs authenticated operational launch.
 
-T017 already has earlier verified backup, catalog preservation, bootstrap authority and 13 correction-family registrations. Fresh affected-state backup and the remaining archive/ownership recovery are required for the next rollout. T017–T019 remain open. T018 supplies the current-library acceptance shared with feature 024 T018; feature 022 T024 separately proves post-bulk idempotence and final data acceptance.
+T017 already has earlier verified backup, catalog preservation, bootstrap authority and 13 correction-family registrations. The fresh 12-scope backup operation is running after writer coordination and authenticated quiescence; read-only checks confirm Mylar and Komga stopped and all 72 expected SQLite databases present without observed drift. Complete backup/isolated-restore acceptance and the remaining archive/ownership recovery are required for the next rollout. T017–T019 remain open. T018 supplies the current-library acceptance shared with feature 024 T018; feature 022 T024 separately proves post-bulk idempotence and final data acceptance.
 
 ## Parallel opportunities
 
@@ -95,7 +95,9 @@ Build the immutable reviewed-registration MVP first, then prove every publicatio
 
 ## Evidence
 
-The authority foundations and guarded publication paths in T001–T016 are accepted. The new owning recovery cohort, live negative-retirement proof, retained-download reconciliation and hold release remain open under T020–T029 and T017–T019. Current verification and remaining release gates are listed above.
+The authority foundations and guarded publication paths in T001–T016 are accepted. Configured lifecycle and installation acceptance, live negative-retirement proof, retained-download reconciliation and hold release remain open under T022/T026–T029 and T017–T019. Current verification and remaining release gates are listed above.
+
+Current-image isolated verification passed all 16 cases: ordinary import success/lost-response, retained regular/annual recovery, finalization/refusal controls and import-to-rename-to-preserved-metadata continuity. All 101 expected sources match the original accepted-image export. This proves the selected fixture paths. The stricter full discovery check reproduced duplicate dispatch of a successfully moved source, a publication-review outcome and duplicate queue packets. The integrated installer correction preserves all 47 publication guards and passes 23 focused controls. The unchanged full-discovery case now passes against the corrected diagnostic image, proving one owning result, catalog placement, durable DDL acknowledgement and post-acknowledgement cleanup. Full matching production-image/CI acceptance and configured archive/worker/reader terminal execution remain under T029.
 
 Detailed delivery, runtime, convergence and failure records are retained in [evidence history](evidence-history.md). Historical component tests and CI exceptions do not authorize a current merge, recovery or processing release.
 
