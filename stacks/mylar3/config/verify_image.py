@@ -47,7 +47,12 @@ with tempfile.TemporaryDirectory() as directory:
     assert retained_api_patch.patched_source((source/'api.py').read_text()) == (source/'api.py').read_text()
     for name in ('ordinary_import_observation.py', 'publication_retained_api.py', 'native_writers.py'):
         assert (source/name).read_bytes() == (FIXES/name).read_bytes()
-    subprocess.run([sys.executable, '-I', '-B', str(FIXES/'run_import_api_controls.py')], check=True)
+    # The pristine upstream lane has no optional archive backend. Its exact
+    # API/continuity controls run here; the custom image must run both families.
+    api_family = 'all' if Path('/opt/archiving-utils/lib/archive_backend.py').is_file() else 'observation'
+    print('Public import API control family: ' + api_family, flush=True)
+    subprocess.run([sys.executable, '-I', '-B', str(FIXES/'run_import_api_controls.py'),
+                    '--family', api_family], check=True)
     subprocess.run([sys.executable, str(FIXES/'test_ordinary_import_continuity.py')],check=True)
     subprocess.run([sys.executable, '-c', "from pathlib import Path; import mylar; from mylar import publication_retained_delivery as r, publication_archive_owned as o, publication_native as n, ordinary_import_history as h; from mylar import publication_retained_finalize as f; assert f.ENABLED is False and f.o is o and f.r is r; assert callable(f.finalize) and callable(f.status_existing); assert callable(n.finalize_retained_delivery) and callable(n.retained_finalization_status); assert r.__name__=='mylar.publication_retained_delivery'; assert Path(r.__file__)==Path(mylar.__path__[0])/'publication_retained_delivery.py'; assert r.ENABLED is False; assert r.o is o; assert all(callable(getattr(r,k,None)) for k in ('prepare_existing','verify_ack','status_existing','RetainedDeliveryAcceptance')); assert callable(n.accept_retained_delivery); assert callable(n.retained_delivery_status); assert callable(h.confirmed_retained)"], check=True, env=dict(os.environ, PYTHONPATH=str(source.parent) + ':/app/mylar3:/app/mylar3/lib'))
     subprocess.run([sys.executable, str(FIXES/'test_ordinary_import_history.py')],check=True)

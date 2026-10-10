@@ -19,7 +19,8 @@ def full(st):
 def node(st):
     return (st.st_dev, st.st_ino, st.st_mode, st.st_uid, st.st_gid)
 
-def main():
+def main(family="all"):
+    assert family in ("all", "observation", "retained")
     entries = json.loads((ROOT / 'import_api_control_sources.json').read_text())
     assert isinstance(entries, list) and 1 <= len(entries) <= 512
     files, nodes, buffers = {}, {}, {}
@@ -80,9 +81,13 @@ def main():
         (config / 'api.py').write_text(source)
         code = 0
         # Owning host fixture package identities are isolated by suite family.
-        for suites in (('test_ordinary_import_observation', 'test_ordinary_import_continuity'),
-                       ('test_retained_delivery_api', 'test_retained_native_operation',
-                        'test_publication_retained_finalize', 'test_publication_retained_delivery')):
+        families = {
+            'observation': ('test_ordinary_import_observation', 'test_ordinary_import_continuity'),
+            'retained': ('test_retained_delivery_api', 'test_retained_native_operation',
+                         'test_publication_retained_finalize', 'test_publication_retained_delivery'),
+        }
+        selected = families.values() if family == 'all' else (families[family],)
+        for suites in selected:
             result = subprocess.run([sys.executable, '-B', '-m', 'unittest', *suites], cwd=config)
             code = code or result.returncode
     # No helper callback follows this complete original raw closure.
@@ -96,4 +101,7 @@ def main():
     return code
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--family', choices=('all', 'observation', 'retained'), default='all')
+    raise SystemExit(main(parser.parse_args().family))

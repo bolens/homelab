@@ -12,5 +12,10 @@
   "css": [
     "site/*.css"
   ],
-  "notes": "Complements native repository checks. Managed Spec Kit files retain their dedicated integrity gate; imported snapshots and generated/native-checked surfaces are scoped separately."
+  "notes": "Complements native repository checks. Managed Spec Kit files retain their dedicated integrity gate. Excluded public Mylar API and processor snapshots retain exact upstream bytes, SHA-pinned provenance and owning patch/import controls; maintained adapters and tests remain selected.",
+  "exclude": [
+    "stacks/komga/normalizer/ordinary_observation_fixtures/native/*.py",
+    "stacks/mylar3/config/import_api_fixtures/api_predecessor.py",
+    "stacks/mylar3/config/test_fixtures/ordinary_import/PostProcessor.py"
+  ]
 }

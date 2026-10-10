@@ -1,3 +1,5 @@
 **
 !Dockerfile
 !*.py
+!ordinary_observation_fixtures/
+!ordinary_observation_fixtures/**
