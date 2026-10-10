@@ -207,6 +207,7 @@ with tempfile.TemporaryDirectory() as directory:
     # function used to start and stop worker pools. Both upstream and built
     # image verification must exercise this same freshly patched source.
     subprocess.run([sys.executable, str(FIXES / 'test_publication_native.py')], check=True, env=dict(os.environ, MYLAR_WORKFLOW_SOURCE=str(source)))
+    subprocess.run([sys.executable, str(FIXES / 'test_config_retention.py')], check=True, env=dict(os.environ, MYLAR_WORKFLOW_SOURCE=str(source)))
     subprocess.run([sys.executable,str(FIXES/'test_publication_rescan.py')],check=True,
                    env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
     subprocess.run([sys.executable,str(FIXES/'test_publication_mutation.py')],check=True,
