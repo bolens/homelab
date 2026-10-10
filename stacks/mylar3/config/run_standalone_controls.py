@@ -11,9 +11,9 @@ import sys
 import tempfile
 
 ROOT=Path(__file__).absolute().parent
-HOST=(('test_standalone_backup.py',24),('test_standalone_parent.py',28),
+HOST=(('test_standalone_backup.py',26),('test_standalone_parent.py',28),
       ('test_standalone_runtime_seals.py',6),('test_standalone_bodies.py',11),
-      ('test_standalone_publication.py',11),('test_standalone_directory_joins.py',31))
+      ('test_standalone_publication.py',11),('test_standalone_directory_joins.py',34))
 
 
 def full(s):
@@ -84,8 +84,8 @@ def main():
         run([sys.executable,'-I','-B',str(private/'test_standalone_gate.py')],2)
         for name,count in HOST:run([sys.executable,'-I','-B',str(private/'reader_recovery'/name)],count)
         if args.family=='all':
-            run([sys.executable,'-I','-B','-c',"import os,sys,unittest;sys.path.insert(0,os.getcwd());r=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(['test_publication_retained_standalone','test_standalone_pack_report_deny','test_standalone_resources']));raise SystemExit(not r.wasSuccessful())"],56)
-        else:print('Native standalone 56 controls unproved: optional archive backend absent.',flush=True)
+            run([sys.executable,'-I','-B','-c',"import os,sys,unittest;sys.path.insert(0,os.getcwd());r=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(['test_publication_retained_standalone','test_standalone_pack_report_deny','test_standalone_resources']));raise SystemExit(not r.wasSuccessful())"],66)
+        else:print('Native standalone 66 controls unproved: optional archive backend absent.',flush=True)
     # Last subprocess/output/temp cleanup helpers precede complete original public closure.
     for path,expected in nodes.items():
         s=os.lstat(path)

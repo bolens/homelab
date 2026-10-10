@@ -39,6 +39,14 @@ _CHANNELS = weakref.WeakKeyDictionary()
 _ABSENT = object()
 
 
+def _directory_links(before, child_births):
+    # Only the two fixed ordinary directory models; no caller-selected policy.
+    if (len(before)!=9 or before[5]&0o170000!=0o040000 or
+            type(before[8]) is not int or before[8]<1 or
+            type(child_births) is not int or child_births not in (0,1)):
+        raise ValueError('standalone-directory-link-model')
+    return before[8] if before[8]==1 else before[8]+child_births
+
 def pairs(values):
     result = {}
     for key, value in values:
@@ -1000,7 +1008,7 @@ def join_publication(header,boot,mounts,known_original,prelaunch,initialized_pub
              name not in ('.','..') and Path(name).name==name and '\\' not in name for name in names),
              'standalone-publication-canonical-namespace')
     before=publication['directory_before9'];after=publication['directory_after9']
-    need(before[:2]==after[:2] and before[5:]==after[5:] and before[8]==2,
+    need(before[:2]==after[:2] and before[5:]==after[5:] and before[8] in (1,2),
          'standalone-body-own-single-file-directory-transition')
     if phase=='initialized':
         need(initialized_publication is None and publication['before_names']==[] and
@@ -1009,12 +1017,12 @@ def join_publication(header,boot,mounts,known_original,prelaunch,initialized_pub
         if publication['carrier_baseline']=='absent':
             need(prelaunch['carrier9'] is None and publication['carrier_before9'] is None and
                  prelaunch['carrier_names']==() and publication['carrier_before_names']==[] and
-                 publication['carrier_after9'][8]==3,'standalone-exclusive-carrier-birth')
+                 publication['carrier_after9'][8]==(1 if before[8]==1 else 3) and publication['carrier_after9'][0]==before[0],'standalone-exclusive-carrier-birth')
         else:
             cb=publication['carrier_before9'];ca=publication['carrier_after9']
             need(type(cb) is list and tuple(cb)==prelaunch['carrier9'] and
                  publication['carrier_before_names']==list(prelaunch['carrier_names']) and
-                 cb[:2]==ca[:2] and cb[5:8]==ca[5:8] and ca[8]==cb[8]+1,'standalone-existing-carrier-owned-token-transition')
+                 cb[:2]==ca[:2] and cb[5:8]==ca[5:8] and ca[8]==_directory_links(cb,1) and cb[0]==before[0] and (cb[8]==1)==(before[8]==1),'standalone-existing-carrier-owned-token-transition')
         need(token not in publication['carrier_before_names'] and publication['carrier_after_names']==
              sorted([*publication['carrier_before_names'],token]),'standalone-only-new-token-namespace')
     else:
@@ -1087,9 +1095,12 @@ def directory_successor_plan(initial, final, initialized_publication, observed_p
              'standalone-ledger-direct-names')
         return value
 
-    def transition(before,after,old_names,new_names,insert=(),births=0):
+    def transition(before,after,old_names,new_names,insert=(),births=0,child=None):
         stamp(before);stamp(after);names(old_names);names(new_names)
-        need(before[:2]==after[:2] and before[5:8]==after[5:8] and after[8]==before[8]+births and
+        if births:
+            stamp(child)
+            need(child[8] in (1,2) and child[0]==before[0] and (child[8]==1)==(before[8]==1),'standalone-directory-original-child-link-model')
+        need(before[:2]==after[:2] and before[5:8]==after[5:8] and after[8]==_directory_links(before,births) and
              not set(old_names).intersection(insert) and new_names==sorted([*old_names,*insert]),
              'standalone-exact-directory-successor')
 
@@ -1103,14 +1114,14 @@ def directory_successor_plan(initial, final, initialized_publication, observed_p
          len(jf['preservation'])==2 and type(jf['accepted']) is dict,'standalone-journal-phase-ledger')
     if ji['before9'] is None:
         birth=stamp(ji['journal_birth9'])
-        need(ji['before_names']==[] and birth[5]&0o7777==0o700 and birth[6:8]==[1000,1000] and birth[8]==2,
+        need(ji['before_names']==[] and birth[5]&0o7777==0o700 and birth[6:8]==[1000,1000] and birth[8] in (1,2),
              'standalone-journal-exclusive-original-birth')
-        transition(birth,ji['after9'],[],ji['after_names'],(token,),1)
+        transition(birth,ji['after9'],[],ji['after_names'],(token,),1,ji['birth9'])
     else:
         need(ji['journal_birth9'] is None,'standalone-existing-journal-not-birth')
-        transition(ji['before9'],ji['after9'],ji['before_names'],ji['after_names'],(token,),1)
+        transition(ji['before9'],ji['after9'],ji['before_names'],ji['after_names'],(token,),1,ji['birth9'])
     birth=stamp(ji['birth9'])
-    need(birth[5]&0o7777==0o700 and birth[6:8]==[1000,1000] and birth[8]==2,'standalone-token-exclusive-birth')
+    need(birth[5]&0o7777==0o700 and birth[6:8]==[1000,1000] and birth[8] in (1,2),'standalone-token-exclusive-birth')
     transition(birth,ji['initialized9'],[],ji['initialized_names'],('intent.json',))
     need(mapped_files.get(directory)==tuple(ji['initialized9']) and
          mapped_spaces.get(directory)==tuple(ji['initialized_names']) and
@@ -1152,12 +1163,12 @@ def directory_successor_plan(initial, final, initialized_publication, observed_p
             need(encode(row[field])==encode(terminal[field]),'standalone-SQL-original-'+field)
         direct_journal=Path(journal).parent==Path(row['path']) and ji['before9'] is None
         transition(row['pre_initialize9'],row['initialized9'],row['pre_initialize_names'],row['initialized_names'],
-                   (Path(journal).name,) if direct_journal else (),int(direct_journal))
+                   (Path(journal).name,) if direct_journal else (),int(direct_journal),ji['journal_birth9'] if direct_journal else None)
         need(type(before_pub) is dict and type(after_pub) is dict and set(before_pub)==set(after_pub)=={'path','signature9','names'} and
              before_pub['path']==after_pub['path']==row['path'],'standalone-SQL-publication-fixed-parent')
         direct_carrier=Path(carrier).parent==Path(row['path']) and initialized_publication['carrier_baseline']=='absent'
         transition(row['initialized9'],before_pub['signature9'],row['initialized_names'],before_pub['names'],
-                   (Path(carrier).name,) if direct_carrier else (),int(direct_carrier))
+                   (Path(carrier).name,) if direct_carrier else (),int(direct_carrier),initialized_publication['directory_after9'] if direct_carrier else None)
         need(terminal['backup9']==before_pub['signature9'] and terminal['backup_names']==before_pub['names'] and
              mapped_files.get(row['path'])==tuple(terminal['backup9']) and
              mapped_spaces.get(row['path'])==tuple(terminal['backup_names']), 'standalone-SQL-post-body-backup-original')

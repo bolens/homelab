@@ -17,6 +17,26 @@ PRIMITIVES_SHA256 = 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566
 _OBSERVATIONS = weakref.WeakKeyDictionary()
 
 
+def _directory_names(fd):
+    """Fresh OFD census; original directory FD and full facts remain retained."""
+    z=os.fstat(fd)
+    before=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+    fresh=os.open('.',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=fd)
+    z=os.fstat(fresh);identity=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+    try:
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=before:raise ValueError('backup-census-original-FD')
+        names=tuple(sorted(os.listdir(fresh)))
+        for owned in (fd,fresh):
+            z=os.fstat(owned)
+            if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=before:raise ValueError('backup-census-original-FD')
+        return names
+    finally:
+        z=os.fstat(fresh)
+        if (z.st_dev,z.st_ino)!=identity[:2]:raise ValueError('backup-census-resource-identity')
+        os.close(fresh)
+        if (z.st_mode,z.st_uid,z.st_gid)!=identity[2:]:raise ValueError('backup-census-resource-identity')
+
+
 def need(value, reason):
     if not value:
         raise ValueError(reason)
@@ -352,7 +372,7 @@ def copy_and_verify(scopes, out):
         opened = os.fstat(fd)
         identity = (opened.st_dev, opened.st_ino, opened.st_mode & 0o170000)
         try:
-            need(tuple(sorted(os.listdir(fd))) == names, 'backup-parent-namespace')
+            need(_directory_names(fd) == names, 'backup-parent-namespace')
             # Complete original parent closes after namespace/open helpers, before creation.
             need(nine(os.fstat(fd)) == prior and nine(os.lstat(path.parent)) == prior,
                  'backup-parent-original')
@@ -365,13 +385,12 @@ def copy_and_verify(scopes, out):
         after = nine(os.fstat(fd))
         need((after[0],after[1],after[5],after[6],after[7]) ==
              (prior[0],prior[1],prior[5],prior[6],prior[7]) and
-             after[8] == prior[8] + int(directory), 'backup-owned-directory-transition')
+             after[8] == (prior[8] if prior[8] == 1 else prior[8] + int(directory)), 'backup-owned-directory-transition')
         parent = str(path.parent)
         if parent in created_directories:
             created_directories[parent] = after
             created_spaces[parent] = tuple(sorted((*names, path.name)))
-        os.lseek(fd, 0, os.SEEK_SET)
-        need(tuple(sorted(os.listdir(fd))) == tuple(sorted((*names,path.name))) and
+        need(_directory_names(fd) == tuple(sorted((*names,path.name))) and
              nine(os.fstat(fd)) == after and nine(os.lstat(path.parent)) == after,
              'backup-owned-insertion-final')
 
@@ -381,12 +400,13 @@ def copy_and_verify(scopes, out):
             os.mkdir(path.name, 0o700, dir_fd=fd)
             original9 = nine(os.stat(path.name, dir_fd=fd, follow_symlinks=False))
             value = (original9[0],original9[1],original9[5],original9[6],original9[7])
-            need(value[2] & 0o7777 == 0o700 and value[3] == os.geteuid(), 'backup-created-directory')
+            need(value[2] & 0o170000 == 0o040000 and value[2] & 0o7777 == 0o700 and value[3] == os.geteuid() and
+                 original9[8] in (1,2) and original9[0] == prior[0] and (original9[8] == 1) == (prior[8] == 1), 'backup-created-directory')
             created_nodes[str(path)] = value; created_directories[str(path)] = original9; created_spaces[str(path)] = ()
             inserted(path, fd, prior, names, True)
             child = os.open(path.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
             try:
-                need(nine(os.fstat(child)) == original9 and os.listdir(child) == [], 'backup-created-directory-FD')
+                need(nine(os.fstat(child)) == original9 and _directory_names(child) == (), 'backup-created-directory-FD')
                 os.fsync(child)
                 need(nine(os.fstat(child)) == original9 and nine(os.lstat(path)) == original9, 'backup-created-directory-sync')
             finally:

@@ -7,7 +7,7 @@ import stat
 import sys
 
 SOURCES = {
-    'publication_retained_standalone': ('publication_retained_standalone.py', 'b2c796b10ae6ad08e0c7e7e3cac0277b59af1833b20424b7750038533f5741d7'),
+    'publication_retained_standalone': ('publication_retained_standalone.py', 'bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60'),
     'comic_retained_standalone_action': ('reader_recovery/comic_retained_standalone_action.py', '3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680'),
 }
 ROOT = Path(__file__).resolve().parent

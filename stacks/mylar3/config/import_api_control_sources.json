@@ -253,7 +253,7 @@
   },
   {
     "path": "patch_publication_retained_standalone.py",
-    "sha256": "69900c94390c176c939536e897c8d75e7c92a167793ec7a1cd166c551ede8b84"
+    "sha256": "6aa7c0494174235de7911f0bff7f73021128fc99df3f297f24edc7078af6c3e5"
   },
   {
     "path": "patch_publication_startup.py",
@@ -545,7 +545,7 @@
   },
   {
     "path": "publication_retained_standalone.py",
-    "sha256": "b2c796b10ae6ad08e0c7e7e3cac0277b59af1833b20424b7750038533f5741d7"
+    "sha256": "bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60"
   },
   {
     "path": "publication_tagging_recovery.py",
@@ -581,11 +581,11 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_backup.py",
-    "sha256": "6860f540de4ab4fd878d2bd091ab46cf2552e0701c179c700e33391bdb4ca231"
+    "sha256": "bb0bfb94897ae61157ec92e747c3be4e3c51a2e925cdbecfe119512de398ffa2"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "b4808911d67d74d34d357dacd29fa990228edc8be7604d04c66d57319d69dbfe"
+    "sha256": "3f4a66732a0b8d6414816194ebf23da7c7fbcc2c424a8efcac15dce2f6118897"
   },
   {
     "path": "reader_recovery/retained_pack_control.py",
@@ -593,7 +593,7 @@
   },
   {
     "path": "reader_recovery/test_standalone_backup.py",
-    "sha256": "58ea8a17c60791334cf085d2b9434f839ac565b917bc051c4c2152ad414c54de"
+    "sha256": "24e38f8efa8e042c6e200bfb0bd7c62a71d3b4847633b2d1ec6790d184652b2e"
   },
   {
     "path": "reader_recovery/test_standalone_bodies.py",
@@ -601,7 +601,7 @@
   },
   {
     "path": "reader_recovery/test_standalone_directory_joins.py",
-    "sha256": "911e8cf6fc8c9224bdef609d4ebd765bac584681c6d9da30168b5c650ff1f023"
+    "sha256": "5a3e44e145ac47e593f2eb2739661fd763e46e9f381ea7c63efcd86d9b4c9228"
   },
   {
     "path": "reader_recovery/test_standalone_parent.py",
@@ -633,7 +633,7 @@
   },
   {
     "path": "run_standalone_controls.py",
-    "sha256": "27712331484f936d775e08dd71e88b53a5df0b483584ca4648089371eebf049b"
+    "sha256": "cceeef34ac7f2941608b57099c62e8414738db13782ea64452f768a726a2f08e"
   },
   {
     "path": "source_patches.py",
@@ -641,7 +641,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "3ddeb19a2dd44d37911afa123d2ff6611a84d13446d43d093de83ccfc2c691c4"
+    "sha256": "1ee60b48015defca303d40d75d9bf4141a07f4fca6840478487dac0e8ae44718"
   },
   {
     "path": "story_arc_search.py",
@@ -1253,7 +1253,7 @@
   },
   {
     "path": "test_publication_retained_standalone.py",
-    "sha256": "216873422e12a7f9bdef5c431346d6729f5fdca29f88319089747baeb5ce280e"
+    "sha256": "024b2cb8eeccce289fac1662655913debdc630afe38cc1b736743b1e375b3ab9"
   },
   {
     "path": "test_publication_standalone_installation.py",

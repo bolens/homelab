@@ -416,7 +416,7 @@
   },
   {
     "path": "test_publication_retained_standalone.py",
-    "sha256": "216873422e12a7f9bdef5c431346d6729f5fdca29f88319089747baeb5ce280e",
+    "sha256": "024b2cb8eeccce289fac1662655913debdc630afe38cc1b736743b1e375b3ab9",
     "target": "fixtures/child/source/test_publication_retained_standalone.py"
   },
   {
@@ -456,12 +456,12 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "6860f540de4ab4fd878d2bd091ab46cf2552e0701c179c700e33391bdb4ca231",
+    "sha256": "bb0bfb94897ae61157ec92e747c3be4e3c51a2e925cdbecfe119512de398ffa2",
     "target": "fixtures/host/comic_retained_standalone_backup.py"
   },
   {
     "path": "test_fixtures/authenticated_standalone/fixtures/host/comic_retained_standalone_parent.py",
-    "sha256": "b4808911d67d74d34d357dacd29fa990228edc8be7604d04c66d57319d69dbfe",
+    "sha256": "3f4a66732a0b8d6414816194ebf23da7c7fbcc2c424a8efcac15dce2f6118897",
     "target": "fixtures/host/comic_retained_standalone_parent.py"
   },
   {
@@ -496,12 +496,12 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "b4808911d67d74d34d357dacd29fa990228edc8be7604d04c66d57319d69dbfe",
+    "sha256": "3f4a66732a0b8d6414816194ebf23da7c7fbcc2c424a8efcac15dce2f6118897",
     "target": "source/comic_retained_standalone_parent.py"
   },
   {
     "path": "test_fixtures/authenticated_standalone/source/publication_retained_standalone.py",
-    "sha256": "b2c796b10ae6ad08e0c7e7e3cac0277b59af1833b20424b7750038533f5741d7",
+    "sha256": "bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60",
     "target": "source/publication_retained_standalone.py"
   },
   {
@@ -511,7 +511,7 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/tests/test_connected_launch.py",
-    "sha256": "785d27e36cdecd6bfd9e3cb9acc154ced3aab2cbed7173bf7be7dc0a356ebb9f",
+    "sha256": "3ccd2edc1520c4207249a0de39ad4ef213a853938986ccad9dc6a3b77d527fa3",
     "target": "tests/test_connected_launch.py"
   },
   {
