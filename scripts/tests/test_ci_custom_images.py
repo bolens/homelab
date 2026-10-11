@@ -56,7 +56,6 @@ class ImageSelectionTests(unittest.TestCase):
         # must enter the publish matrix or receive a reviewed exclusion.
         excluded = {
             "stacks/ail-framework/Dockerfile.build",  # Untracked vendor source.
-            "stacks/ail-framework/Dockerfile.runtime",  # Requires the local build.
             "stacks/searx-ng/Dockerfile.4get",  # Operator-managed unlicensed source.
             "stacks/searx-ng/Dockerfile.4get-sidecar",  # Same source restriction.
         }
@@ -69,6 +68,38 @@ class ImageSelectionTests(unittest.TestCase):
         published = {image["dockerfile"] for image in self.images}
         self.assertFalse(published & excluded)
         self.assertEqual(dockerfiles, published | excluded)
+
+
+class AilBuildContractTests(unittest.TestCase):
+    def test_final_stage_uses_completed_variant_and_runtime_patches(self):
+        body = (ROOT / "stacks/ail-framework/Dockerfile.build").read_text()
+        stages = [line for line in body.splitlines() if line.startswith("FROM ")]
+        self.assertEqual(len(stages), 3)
+        self.assertRegex(stages[0], r"^FROM ubuntu:22[.]04@sha256:[0-9a-f]{64} AS native_builder$")
+        self.assertEqual(stages[1:], ["FROM native_builder AS variant_builder", "FROM scratch"])
+        variant, final = body.split("FROM native_builder AS variant_builder", 1)[1].split("FROM scratch", 1)
+        self.assertIn("ARG AIL_TORCH_VARIANT=cpu", variant)
+        self.assertIn("AIL_TORCH_VARIANT=${AIL_TORCH_VARIANT}", variant)
+        self.assertIn("apt-get purge -y", variant)
+        self.assertIn("COPY --from=variant_builder / /", final)
+        self.assertIn("/opt/AIL/AILENV/bin/pip install --require-hashes", final)
+        for name in ("requirements-runtime.txt", "ail-dark-mode.css", "ail-dark-mode.js"):
+            self.assertIn("COPY " + name + " /tmp/" + name, final)
+        for variable in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+            self.assertIn(variable + "=1", final)
+        self.assertIn("host = 0.0.0.0", final)
+        self.assertIn("/opt/AIL/bin/LAUNCH.sh", final)
+        self.assertTrue(final.rstrip().endswith('ENTRYPOINT ["/bin/bash", "/opt/AIL/docker_start.sh"]'))
+
+    def test_documented_variants_have_no_external_intermediate(self):
+        stack = ROOT / "stacks/ail-framework"
+        self.assertFalse((stack / "Dockerfile.runtime").exists())
+        readme = (stack / "README.md").read_text()
+        self.assertEqual(readme.count("docker build -f Dockerfile.build"), 2)
+        for expected in ("AIL_TORCH_VARIANT=cpu", "AIL_TORCH_VARIANT=gpu", "-t ail-framework:7.0 .", "-t ail-framework:7.0-gpu ."):
+            self.assertIn(expected, readme)
+        for obsolete in ("Dockerfile.runtime", "BASE_IMAGE=", "7.0-cpu-build", "7.0-gpu-build"):
+            self.assertNotIn(obsolete, readme)
 
 
 class MylarInstalledGateTests(unittest.TestCase):

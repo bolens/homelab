@@ -32,7 +32,7 @@
   {
     "name": "AIL framework",
     "category": "Utilities",
-    "summary": "The locally built AIL 7 image includes a dark interface theme. The runtime image appends ail-dark-mode.css to AIL's shared Bootstrap stylesheet so the theme covers the login, settings, dashboard, table, form, and modal templates without maintaining forks of upstream HTML. It also appends ail-dark-mode.js to ECharts so canvas-rendered charts use the bundled dark theme.",
+    "summary": "The locally built AIL 7 image includes a dark interface theme. The final build stage appends ail-dark-mode.css to AIL's shared Bootstrap stylesheet so the theme covers the login, settings, dashboard, table, form, and modal templates without maintaining forks of upstream HTML. It also appends ail-dark-mode.js to ECharts so canvas-rendered charts use the bundled dark theme.",
     "url": "apps/ail-framework/"
   },
   {

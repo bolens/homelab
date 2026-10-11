@@ -80,11 +80,15 @@ echo "Checking Markdown style..."
 mapfile -t markdown_files < <(git ls-files '*.md' | while read -r file; do
   [[ -f "$file" ]] && printf '%s\n' "$file"
 done)
-if [[ -x node_modules/.bin/markdownlint-cli2 ]]; then
-  node_modules/.bin/markdownlint-cli2 --config .markdownlint.json "${markdown_files[@]}"
+if command -v node >/dev/null 2>&1 &&
+   node --input-type=module -e "import.meta.resolve('markdownlint/promise')" >/dev/null 2>&1; then
+  node --test scripts/test-lint-markdown.mjs
+  node scripts/lint-markdown.mjs --config .markdownlint.json "${markdown_files[@]}"
+elif (( STRICT )); then
+  echo "FAIL: locked markdownlint is unavailable; run npm ci." >&2
+  exit 1
 else
-  run_optional_check markdownlint-cli2 markdownlint-cli2 --config .markdownlint.json \
-    "${markdown_files[@]}"
+  echo "WARN: locked markdownlint is unavailable; check skipped." >&2
 fi
 
 echo "Checking repository shell helpers..."
