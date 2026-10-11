@@ -10,10 +10,10 @@
 
 **Updated 2026-10-11.** Detailed results and retained failures are in [evidence history](evidence-history.md#reader-and-backup-verification-2026-10-11).
 
-- Completed verification: compact reader mechanics pass the actual 389,249-row Komga database under unchanged limits. Both 77-test suites, independent source review and full local CI pass. PR #304 carries the coherent source update.
-- T022/T026/T029: the complete candidate image, 177-source parity check, installed cohort and all 17 isolated runtime cases pass. Finish hosted delivery and genuine configured reader/provider/archive acceptance.
+- Completed verification: compact reader mechanics pass the actual 389,249-row Komga database under unchanged limits. Both 77-test suites, independent source review and full local CI pass. PR #304 merged after all 12 hosted checks passed.
+- T022/T026/T029: the complete candidate image, 177-source parity check, installed cohort and all 17 isolated runtime cases pass. Finish genuine configured reader/provider/archive acceptance.
 - T028: reviewed recovery source and isolated import scenarios pass. Execute the genuine configured retained generation and fresh catalog-to-ACK handoff.
-- T017/T027: complete the fresh 12-scope backup and isolated restore. The reviewed launcher passed its controls, but actual execution stopped before copying: the driver validated the disabled planning scope before proving current quiescence. A correction is in progress. Neither failed operation is accepted.
+- T017/T027: complete the fresh 12-scope backup and isolated restore. The corrected launcher passes independent review and selected-runtime checks. Fresh private inputs are bound, but the new attempt refused the initial cross-filesystem snapshot: the ordinary-copy path incorrectly required the same device as a reflink. The narrow correction is in progress; full-state verification remains required. Prior failed attempts remain unaccepted.
 - T018/T019: verify live recovery, the current library, restart and database integrity, then release holds and retain one verified backup plus unresolved originals.
 
 Mylar and Komga remain stopped. The worker remains held. Completed fixture or source checks do not accept live recovery.

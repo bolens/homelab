@@ -228,3 +228,5 @@ The coherent compact reader correction passes all 389,249 rows of the actual 490
 ## Installed recovery prerequisite 2026-10-11
 
 The complete compact-reader candidate passes its build, installed cohort/source parity and all 17 isolated runtime cases. Feature 023 retains the [combined runtime and backup handoff evidence](../023-verified-publication-corrections/evidence-history.md#installed-candidate-and-backup-handoff-2026-10-11). The actual fresh backup stops before copying because the driver validates a deliberately disabled planning scope before current stopped-profile proof. T012 and T015–T018 remain open: isolated cases do not establish configured archive terminal production, consistent backup acceptance or live repair.
+
+The shared reader source is now merged through PR #304 after all 12 hosted checks passed. The independently reviewed launcher correction and new pending backup invocation are recorded in feature 023’s [delivery and backup evidence](../023-verified-publication-corrections/evidence-history.md#reviewed-launcher-and-source-delivery-2026-10-11). Remaining live acceptance tasks stay open.
