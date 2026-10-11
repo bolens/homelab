@@ -106,7 +106,7 @@
       "sha256": "7df9d99bbea18538eb2d32aca7f435197f7e1e6c820716b2152ac2c7127c6cc5"
     },
     "_archive_repair_fixtures/publication_archive_reader.py": {
-      "sha256": "9383f2d757c366edc9e2a5710cf4a68ff3ef3592eba7bd349add7e370403be6c"
+      "sha256": "05affe629333eb81c84180e012d7d497baca73c7c39ce8c877facfc2b2a165a9"
     },
     "_archive_repair_fixtures/publication_archive_repair.py": {
       "sha256": "128c0b65113dbfe10f51a02bcda432a4a5951608b892f5e5c1f3b0763e71cdee"
@@ -217,7 +217,7 @@
       "sha256": "44d5c0a09360165cbf8eb4551a06d9579e5ffe2a59d8da9a893f9672a203a391"
     },
     "_archive_repair_fixtures/test_publication_archive_adoption.py": {
-      "sha256": "f9f6a78de331c558c8e10f0ef1b6a60ff2ed6501fe1b62310d77f1da27e71e34"
+      "sha256": "1067606b8304cb15ebbcba42bf3b3cc6cf4afcc3f12110148791e043291c560a"
     },
     "_archive_repair_fixtures/test_publication_archive_installation.py": {
       "sha256": "edace70768b67e6b16a5b7933c93140f3877772d08769edd716b70d8050167e1"

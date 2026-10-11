@@ -34,15 +34,27 @@ def logical(db,deadline):
     o.check(db.execute('PRAGMA integrity_check').fetchall()==[('ok',)] and not db.execute('PRAGMA foreign_key_check').fetchall(),'reader-integrity')
     schema=db.execute('SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name').fetchall()
     o.check(len(schema)<=4096,'reader-schema-bound'); result={'schema':[[cell(v) for v in row] for row in schema],'tables':{}}
-    count=total=0
+    count=0;total=len(encoded(result['schema']))
+    o.check(time.monotonic()<deadline,'reader-row-bound')
     for kind,name,_,_ in schema:
         if kind!='table':continue
         columns=db.execute('PRAGMA table_xinfo('+quoted(name)+')').fetchall()
-        rows=[]
+        typed_columns=[[cell(v) for v in row] for row in columns];total+=len(encoded(typed_columns))
+        full=name in ('BOOK','MEDIA_PAGE','MEDIA','issues','annuals');rows=[];digests={};table_count=0
         for row in db.execute('SELECT * FROM '+quoted(name)):
-            v=[cell(c) for c in row]; count+=1; total+=len(encoded(v))
-            o.check(count<=ROWS and total<=MAX and time.monotonic()<deadline,'reader-row-bound'); rows.append(v)
-        result['tables'][name]={'columns':[[cell(v) for v in row] for row in columns],'rows':sorted(rows,key=encoded)}
+            v=[cell(c) for c in row];raw=encoded(v);count+=1;table_count+=1
+            o.check(len(raw)<=MAX,'reader-row-bound')
+            if full:total+=len(raw);rows.append(v)
+            else:
+                digest=hashlib.sha256(raw).hexdigest();previous=digests.get(digest,0)
+                if previous==0:total+=len(encoded([digest,1]))
+                else:total+=len(str(previous+1))-len(str(previous))
+                digests[digest]=previous+1
+            o.check(count<=ROWS and total<=MAX and time.monotonic()<deadline,'reader-row-bound')
+        if full:table={'columns':typed_columns,'rows':sorted(rows,key=encoded)}
+        else:table={'columns':typed_columns,'row_count':table_count,'row_digests':[[digest,multiplicity] for digest,multiplicity in sorted(digests.items())]}
+        result['tables'][name]=table
+    o.check(len(encoded(result))<=MAX and time.monotonic()<deadline,'reader-row-bound')
     return result
 
 def pair(db,deadline):
