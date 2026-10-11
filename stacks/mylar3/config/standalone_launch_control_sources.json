@@ -191,7 +191,7 @@
   },
   {
     "path": "publication_archive_reader.py",
-    "sha256": "805484c17fa32cde4786e2152c89b21b1ba220bbd65d47ad8b7b7dd1af91a7a8",
+    "sha256": "05affe629333eb81c84180e012d7d497baca73c7c39ce8c877facfc2b2a165a9",
     "target": "fixtures/child/source/publication_archive_reader.py"
   },
   {

@@ -400,4 +400,108 @@ class RawClosureV3(unittest.TestCase):
   with patch.object(o,'fact',late),self.assertRaises(o.Held):cap.install()
   self.assertTrue(fired);self.assertEqual(cap._phase,'uncertain');self.assertTrue((self.c.writer.root/a.PENDING).exists())
 
+
+class StreamingReaderTests(unittest.TestCase):
+ """Real sparse SQLite/file mechanics only; no installed custody grant."""
+ def fixture(self):
+  import tempfile
+  t=tempfile.TemporaryDirectory();self.addCleanup(t.cleanup);root=Path(t.name);scratch=root/'scratch';scratch.mkdir(mode=0o700);db=root/'database.sqlite'
+  with __import__('contextlib').closing(sqlite3.connect(db)) as conn:conn.execute('CREATE TABLE BOOK (ID TEXT)');conn.execute("INSERT INTO BOOK VALUES ('original')");conn.commit()
+  return db,scratch
+ def test_reader_large_sparse_SQLite_streaming_without_row_budget_increase(self):
+  import time,tracemalloc
+  db,scratch=self.fixture()
+  with db.open('r+b') as f:f.truncate(256*1024**2+4096)
+  tracemalloc.start()
+  try:
+   with patch.object(o,'read_checked',side_effect=AssertionError('unbounded buffer path')):result,facts=r.observe(db,scratch,time.monotonic()+120)
+   peak=tracemalloc.get_traced_memory()[1]
+  finally:tracemalloc.stop()
+  self.assertEqual(result['tables']['BOOK']['rows'],[[['text','original']]])
+  self.assertEqual(facts[db]['fact']['signature9'][2],256*1024**2+4096);self.assertLess(peak,8*1024**2)
+  self.assertEqual(r.MAX,256*1024**2);self.assertEqual(r.ROWS,1000000);self.assertEqual(r.FILE_MAX,1024**3)
+ def test_reader_file_over_one_GiB_refused_before_hash(self):
+  import time
+  db,scratch=self.fixture()
+  with db.open('r+b') as f:f.truncate(1024**3+1)
+  with self.assertRaisesRegex(o.Held,'file-bound'):r.pair(db,time.monotonic()+120)
+ def test_reader_logical_row_budget_remains_distinct(self):
+  import time
+  db,scratch=self.fixture()
+  with __import__('contextlib').closing(sqlite3.connect(db)) as conn,patch.object(r,'MAX',1),self.assertRaisesRegex(o.Held,'reader-row-bound'):r.logical(conn,time.monotonic()+120)
+  self.assertEqual(r.FILE_MAX,1024**3)
+ def test_reader_stream_source_mode_drift_refused(self):
+  import time,contextlib
+  db,scratch=self.fixture();fact=r.pair(db,time.monotonic()+120)[db]['fact'];real=o.checked_stream;fired=[]
+  @contextlib.contextmanager
+  def changed(path,expected):
+   with real(path,expected) as stream:
+    read=stream.read
+    def late(*args):
+     value=read(*args)
+     if value and not fired:db.chmod(0o640);fired.append(True)
+     return value
+    with patch.object(stream,'read',late):yield stream
+  with patch.object(o,'checked_stream',changed),self.assertRaisesRegex(o.Held,'read-final-CAS'):r.copy_checked(db,scratch/db.name,fact,o.stat5(scratch.stat()),time.monotonic()+120)
+  self.assertTrue(fired)
+ def test_reader_stream_final_output_mode_drift_refused(self):
+  import time,contextlib
+  db,scratch=self.fixture();fact=r.pair(db,time.monotonic()+120)[db]['fact'];real=o.directory_fd;target=scratch/db.name;fired=[]
+  @contextlib.contextmanager
+  def changed(path,expected=None):
+   with real(path,expected) as fd:yield fd
+   if expected is not None and not fired:target.chmod(0o640);fired.append(True)
+  with patch.object(o,'directory_fd',changed),self.assertRaisesRegex(o.Held,'reader-copy-output-CAS'):r.copy_checked(db,target,fact,o.stat5(scratch.stat()),time.monotonic()+120)
+  self.assertTrue(fired)
+ def test_reader_stream_source_hash_mismatch_refused(self):
+  import time
+  db,scratch=self.fixture();fact=r.pair(db,time.monotonic()+120)[db]['fact'];fact=dict(fact,sha256='f'*64)
+  with self.assertRaisesRegex(o.Held,'reader-copy-source'):r.copy_checked(db,scratch/db.name,fact,o.stat5(scratch.stat()),time.monotonic()+120)
+
+
+class CompactReaderTests(unittest.TestCase):
+ """Full typed binding rows plus complete nonbinding multiset; fixture custody only."""
+ setUp=Tests.setUp
+ lease=Tests.lease
+ def restore_change(self,sql):
+  with __import__('contextlib').closing(sqlite3.connect(self.restore/'database.sqlite')) as db:db.execute(sql);db.commit()
+  with self.assertRaisesRegex(o.Held,'reader-independent-full-restore'):self.lease()
+ def test_compact_unrelated_restore_row_changed_refused(self):self.restore_change("UPDATE refs SET USER_ID='foreign'")
+ def test_compact_unrelated_restore_column_changed_refused(self):self.restore_change('ALTER TABLE refs ADD COLUMN foreign_column TEXT')
+ def test_compact_unrelated_restore_schema_changed_refused(self):self.restore_change('CREATE INDEX foreign_index ON refs(USER_ID)')
+ def test_compact_unrelated_restore_cell_type_changed_refused(self):self.restore_change('UPDATE refs SET opaque=CAST(opaque AS TEXT)')
+ def test_compact_unrelated_restore_duplicate_changed_refused(self):self.restore_change('INSERT INTO refs SELECT * FROM refs')
+ def test_compact_unordered_rows_preserve_exact_multiplicity(self):
+  import time,hashlib
+  with __import__('contextlib').closing(sqlite3.connect(':memory:')) as db:
+   db.execute('CREATE TABLE metadata(value)');db.executemany('INSERT INTO metadata VALUES (?)',[(1,),('1',),(b'1',),(1,)])
+   first=r.logical(db,time.monotonic()+20);db.execute('DELETE FROM metadata');db.executemany('INSERT INTO metadata VALUES (?)',[(b'1',),(1,),(1,),('1',)])
+   second=r.logical(db,time.monotonic()+20);self.assertEqual(first,second)
+   table=first['tables']['metadata'];self.assertEqual(table['row_count'],4);self.assertEqual(len(table['row_digests']),3)
+   digest=hashlib.sha256(r.encoded([r.cell(1)])).hexdigest();self.assertIn([digest,2],table['row_digests']);self.assertNotIn('rows',table)
+ def test_compact_genuine_large_metadata_exceeds_old_raw_budget(self):
+  import time,hashlib
+  value='\x01'*1024;number=50000;path=self.base/'large-metadata.sqlite'
+  with __import__('contextlib').closing(sqlite3.connect(path)) as db:
+   db.execute('CREATE TABLE metadata(value TEXT)');db.executemany('INSERT INTO metadata VALUES (?)',((value,) for _ in range(number)));db.commit()
+   self.assertGreater(number*len(r.encoded([r.cell(value)])),r.MAX)
+   result=r.logical(db,time.monotonic()+120)
+  self.assertLess(path.stat().st_size,96*1024**2);self.assertLess(len(r.encoded(result)),64*1024)
+  digest=hashlib.sha256(r.encoded([r.cell(value)])).hexdigest();self.assertEqual(result['tables']['metadata']['row_count'],number);self.assertEqual(result['tables']['metadata']['row_digests'],[[digest,number]])
+  self.assertEqual(r.MAX,256*1024**2);self.assertEqual(r.ROWS,1000000);self.assertEqual(r.FILE_MAX,1024**3)
+ def test_compact_annual_exact_size_transition_keeps_all_other_rows(self):
+  import time
+  with __import__('contextlib').closing(sqlite3.connect(':memory:')) as db:
+   db.execute('CREATE TABLE annuals(IssueID TEXT,ComicID TEXT,ReleaseComicID TEXT,ComicSize TEXT)');db.executemany('INSERT INTO annuals VALUES (?,?,?,?)',[('owned','parent','release','1'),('foreign','other','release2','2')])
+   db.execute('CREATE TABLE metadata(value TEXT)');db.execute("INSERT INTO metadata VALUES ('original')")
+   deadline=time.monotonic()+20;before=a.snapshot(db,deadline);owner={'table':'annuals','issueid':'owned','parentcomicid':'parent','releasecomicid':'release'};after=a.transition(before,owner,999)
+   a._set_size(db,owner,before,after,deadline);self.assertEqual(a.snapshot(db,deadline),after);self.assertEqual(before['tables']['metadata'],after['tables']['metadata']);self.assertEqual(db.execute("SELECT ComicSize FROM annuals WHERE IssueID='foreign'").fetchone(),('2',));self.assertIn('rows',after['tables']['annuals'])
+ def test_compact_native_unrelated_reference_CAS_refuses_size_update(self):
+  import time
+  with __import__('contextlib').closing(sqlite3.connect(':memory:')) as db:
+   db.execute('CREATE TABLE issues(IssueID TEXT,ComicID TEXT,ComicSize TEXT)');db.execute("INSERT INTO issues VALUES ('owned','parent','1')");db.execute('CREATE TABLE metadata(value TEXT)');db.execute("INSERT INTO metadata VALUES ('original')")
+   deadline=time.monotonic()+20;before=a.snapshot(db,deadline);owner={'table':'issues','issueid':'owned','parentcomicid':'parent'};after=a.transition(before,owner,999);db.execute("UPDATE metadata SET value='foreign'")
+   with self.assertRaisesRegex(o.Held,'catalog-logical-before-CAS'):a._set_size(db,owner,before,after,deadline)
+   self.assertEqual(db.execute('SELECT ComicSize FROM issues').fetchone(),('1',))
+
 if __name__=='__main__':unittest.main()
