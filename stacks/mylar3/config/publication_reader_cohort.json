@@ -457,7 +457,7 @@
     "publication_native_configured_scope": {
       "already_installed": true,
       "filename": "publication_native_configured_scope.py",
-      "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608"
+      "sha256": "ace628118bd21ac2f50bde93eacad7e0908a0d2e5b34bd5d83222da26a842d3d"
     },
     "publication_native_scope_birth": {
       "already_installed": false,

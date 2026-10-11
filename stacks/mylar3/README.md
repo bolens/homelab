@@ -58,6 +58,10 @@ mylar3.yourdomain.com {
 
 ## Health and monitoring
 
+Configuration loading retains cache and DDL originals. The `CLEANUP_CACHE` and
+`CLEANUP_STRAYS` settings are preserved, but their automatic configuration-time
+deletions are deferred; source cleanup remains owned by verified post-processing.
+
 The published image includes patches from `config/` to handle missing DDL
 download sizes without breaking the queue page and to reject HTTP errors or
 HTML responses before saving them as comic archives. The build-time patching is idempotent and
@@ -208,7 +212,9 @@ a fully imported label. Presence counts remain separate from exact member delive
 acknowledgements. Pack confirmation and source cleanup require each comic member
 to retain its original ordinary import token. Without a verified member inventory,
 unspecified annuals, collected editions, and
-unknown member lists remain unconfirmed. Finished processing runs also use the existing retained
+unknown member lists remain unconfirmed. Within one run, Mylar processes each
+successfully completed comic/source pair once, including when acquisition and
+manual discovery find the same file. Finished processing runs also use the existing retained
 Activity journal, and new runs retain their exact DDL ID and processing receipt.
 A restart or newer processing activity does not turn a finished pack back into a
 waiting item, even when extraction changes its folder name. The health probe counts new byte high-water marks and completed downloads.

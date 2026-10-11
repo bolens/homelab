@@ -16,8 +16,9 @@ SOURCE=HERE/'test_fixtures/ordinary_import/PostProcessor.py'
 
 def unpatched_source(source):
     """Undo only exact round-trip checked guards in a disposable text value."""
+    source=migration.terminal_predecessor(source)
     if migration.IMPORT_MARKER in source:
-        if migration.patched_source(source)!=source:raise ValueError('Current import patch differs')
+        if migration._import_source(source)!=source:raise ValueError('Current import patch differs')
         source=source.replace(migration.IMPORT_MARKER+'\n','',1).replace(migration.IMPORT_HOOK,'',1)
         source=source.replace(migration.IMPORT_FILE_COPY,migration.IMPORT_FILE_OP)
         for original in migration.IMPORT_CLEANUPS:
