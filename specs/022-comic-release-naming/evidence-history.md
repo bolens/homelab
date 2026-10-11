@@ -524,3 +524,14 @@ waiver; complete feature, combined-route, derivative and live gates remain open.
 - CI isolation verification (2026-10-10): The user’s restored hosted-CI requirement remains mandatory for every future merge. The reviewed launcher retains read-only source mounts and hardened container flags while running deliberate source-mutation fault tests on private copies. Root’s actual worker run passes all 679 tests without skips. The native owning gate now gives each of its unchanged 28 parallel suites a separate finite source closure; its exact API source pin is updated. Full local CI passes. Complete native-image verification, the existing 64 MiB offline tmpfs limit and final-head hosted CI remain pending; no live recovery or operational completion is claimed.
 
 - Offline CI capacity correction (2026-10-10): The actual native gate refuses four startup fixtures because the existing 64 MiB temporary filesystem cannot satisfy the unchanged 128 MiB preservation reserve. Increase only its bounded test allocation to 256 MiB temporary storage and 512 MiB memory; retain network isolation, UID1000, read-only inputs, dropped capabilities and every preservation assertion. The full repeat and hosted successor checks remain pending.
+
+
+## Recovery dependency progress 2026-10-11
+
+Feature 023 compact reader verification now passes the actual Komga database under unchanged limits. The detailed results are in its [evidence history](../023-verified-publication-corrections/evidence-history.md#reader-and-backup-verification-2026-10-11). This removes one prerequisite blocker without accepting the live naming/metadata or bulk pass. T019, T023 and T024 remain open until their configured execution and final preservation/idempotence checks pass. Dot separators and a hyphen before the verified release group remain the naming preference.
+
+## Naming runtime checkpoint 2026-10-11
+
+The complete compact-reader candidate passes installed source/cohort verification and all 17 isolated discovery, import, recovery, rename and preserved-metadata cases. Feature 023 retains the [combined runtime and backup handoff evidence](../023-verified-publication-corrections/evidence-history.md#installed-candidate-and-backup-handoff-2026-10-11). This completes an isolated naming verification milestone; the remaining combined bulk pass, supplement reconciliation and live idempotence/data acceptance remain open under T019/T023/T024.
+
+The shared reader source is now merged through PR #304 after all 12 hosted checks passed. The independently reviewed launcher correction and new pending backup invocation are recorded in feature 023’s [delivery and backup evidence](../023-verified-publication-corrections/evidence-history.md#reviewed-launcher-and-source-delivery-2026-10-11). Remaining live acceptance tasks stay open.

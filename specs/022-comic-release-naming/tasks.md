@@ -7,9 +7,11 @@
 
 **Current delivery requirement (2026-10-10)**: Hosted CI must pass before any further merge. The user has revoked the outage waiver; historical waivers in the linked evidence history do not authorize new exceptions. Fix failing checks while preserving their acceptance assertions.
 
-## Current remaining work (2026-10-10)
+## Current remaining work
 
-T019/T023 remain open. Their combined naming/metadata and eligible bulk passes depend on feature 023's authenticated recovery, held rollout and current-library acceptance; its [current hold-release work](../023-verified-publication-corrections/tasks.md#current-hold-release-work-2026-10-10) tracks the reviewed host driver, passing installed runtime checks and the actual backup verification failure that currently blocks rollout. The naming preference remains dot separators with a hyphen before the verified release group. These checks do not accept the live library or authorize processing resumption. T024 remains open for the final idempotence, data and cleanup proof after the bulk pass. Additional reading-progress audit remains deferred.
+**Updated 2026-10-11.**
+
+T019/T023 remain open. Their combined naming/metadata and eligible bulk passes depend on feature 023's authenticated recovery, held rollout and current-library acceptance; its [current hold-release work](../023-verified-publication-corrections/tasks.md#current-hold-release-work) tracks the passing actual reader verification and remaining backup, matching-image and configured recovery checks. The naming preference remains dot separators with a hyphen before the verified release group. These checks do not accept the live library or authorize processing resumption. T024 remains open for the final idempotence, data and cleanup proof after the bulk pass. Additional reading-progress audit remains deferred.
 
 ## Phase 1: Setup
 
@@ -89,3 +91,5 @@ Deliver US1 as the opt-in naming MVP, verify US2 recovery gates, then roll out U
 Naming foundations and earlier live canaries are accepted as recorded by T001–T018 and T020–T022. The interrupted combined/bulk pass, supplement reconciliation and final idempotence remain open under T019/T023/T024. Current verification and release dependencies are listed above.
 
 Detailed dated checks, previous delivery exceptions, image identities and failure receipts are retained in [evidence history](evidence-history.md). Those historical observations do not override the current hosted-CI requirement or complete live acceptance.
+
+Current candidate runtime verification has passed; configured recovery and live acceptance remain required. See the [latest evidence](evidence-history.md#naming-runtime-checkpoint-2026-10-11).
