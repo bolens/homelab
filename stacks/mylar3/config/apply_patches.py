@@ -49,6 +49,7 @@ PATCHES = (
     "patch_ordinary_import_observation",
     "patch_retained_delivery_api",
     "patch_publication_startup",
+    "patch_config_retention",
     "patch_publication_conversion",
     "patch_publication_reconcile",
     "patch_publication_derivative",

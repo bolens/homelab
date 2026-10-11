@@ -2,6 +2,7 @@
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import os
+import ast
 import hashlib
 import json
 import stat
@@ -122,6 +123,26 @@ def owning_suite(test, environment):
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
             env=environment)
 
+def config_scope_preflight(source, *, installed):
+    # Fail before broad suites on stale pins; this check grants no admission.
+    import patch_config_retention as retention
+    scope = (FIXES / 'publication_native_configured_scope.py').read_bytes()
+    tree = ast.parse(scope, feature_version=(3, 10))
+    pins = [n.value.value for n in tree.body if isinstance(n, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == 'CONFIG_SHA' for t in n.targets)
+            and isinstance(n.value, ast.Constant)]
+    assert len(pins) == 1 and type(pins[0]) is str and len(pins[0]) == 64, 'Configured scope Config pin shape'
+    actual = (source / 'config.py').read_text()
+    patched = retention.patched_source(actual)
+    assert hashlib.sha256(patched.encode('utf-8')).hexdigest() == pins[0], 'Configured scope Config pin stale'
+    if installed:
+        assert patched == actual, 'Configuration retention guard is not installed'
+        assert (source / 'publication_native_configured_scope.py').read_bytes() == scope, 'Installed configured scope source differs'
+
+
+if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
+    config_scope_preflight(Path('/app/mylar3/mylar'), installed=True)
+
 # Public source controls run even when the upstream image has no installed auth.
 subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_publication_launch_auth.py')], check=True)
 # Build-only source controls; public host files grant no installation authority.
@@ -145,6 +166,8 @@ with tempfile.TemporaryDirectory() as directory:
     for name in ('queue_management.html', 'manage.html', 'base.html', 'searchresults.html', 'config.html', 'weeklypull.html'):
         shutil.copyfile('/app/mylar3/data/interfaces/default/' + name, templates / name)
     subprocess.run([sys.executable, str(FIXES / 'apply_patches.py'), str(source)], check=True)
+    # The upstream Config reaches its final bytes only after the full ordered installer.
+    config_scope_preflight(source, installed=False)
     import patch_publication_processing as import_processing_patch
     assert import_processing_patch.patched_source((source/'PostProcessor.py').read_text()) == (source/'PostProcessor.py').read_text()
     assert (source/'ordinary_import_history.py').read_bytes() == (FIXES/'ordinary_import_history.py').read_bytes()
@@ -171,6 +194,7 @@ with tempfile.TemporaryDirectory() as directory:
     subprocess.run([sys.executable, '-c', "from pathlib import Path; import mylar; from mylar import publication_retained_delivery as r, publication_archive_owned as o, publication_native as n, ordinary_import_history as h; from mylar import publication_retained_finalize as f; assert f.ENABLED is False and f.o is o and f.r is r; assert callable(f.finalize) and callable(f.status_existing); assert callable(n.finalize_retained_delivery) and callable(n.retained_finalization_status); assert r.__name__=='mylar.publication_retained_delivery'; assert Path(r.__file__)==Path(mylar.__path__[0])/'publication_retained_delivery.py'; assert r.ENABLED is False; assert r.o is o; assert all(callable(getattr(r,k,None)) for k in ('prepare_existing','verify_ack','status_existing','RetainedDeliveryAcceptance')); assert callable(n.accept_retained_delivery); assert callable(n.retained_delivery_status); assert callable(h.confirmed_retained)"], check=True, env=dict(os.environ, PYTHONPATH=str(source.parent) + ':/app/mylar3:/app/mylar3/lib'))
     subprocess.run([sys.executable, str(FIXES/'test_ordinary_import_history.py')],check=True)
     subprocess.run([sys.executable, str(FIXES/'test_ordinary_import_migration.py'),str(source)],check=True)
+    subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_native_terminal_dispatch.py'), str(source)], check=True)
     for test in ('test_ddl_status.py', 'test_ddl_responses.py', 'test_ddl_exhaustion.py', 'test_tagger_timeout.py', 'test_ddl_mirror_retries.py', 'test_health.py', 'test_unnumbered_issues.py', 'test_ddl_resume.py', 'test_ddl_requeue.py', 'test_queue_progress.py', 'test_queue_control.py', 'test_verified_transfer.py', 'test_queue_views.py', 'test_search_fallback.py', 'test_search_cooldown.py', 'test_prowlarr_identity.py', 'test_pp_monitor.py', 'test_archive_monitor.py', 'test_ddl_ui.py', 'test_pack_intake.py', 'test_database_transactions.py', 'test_catalog_volumes.py', 'test_story_arc_search.py', 'test_release_calendar.py', 'test_file_matching.py', 'test_tagger_handoff.py', 'test_tagger_backend.py'):
         subprocess.run([sys.executable, str(FIXES / test), str(source)], check=True)
     for test in ('test_release_naming.py', 'test_publication_rename.py', 'test_publication_conversion.py', 'test_publication_reconcile.py', 'test_publication_lineage.py', 'test_publication_derivative.py', 'test_reviewed_derivative.py', 'test_combined_publication.py', 'test_combined_cleanup.py', 'test_closed_supplement.py', 'test_worker_reports.py', 'test_publication_maintenance.py', 'test_file_identity.py', 'test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py', 'test_pack_records.py', 'test_pack_bindings.py', 'test_pack_catalog.py', 'test_queue_schedule.py', 'test_tagger_runtime.py', 'test_tagger_metadata.py', 'test_tagger_enrichment.py', 'test_tagger_archive.py', 'test_tagger_adapter.py', 'test_tagger_nfs.py', 'test_tagger_volume_cache.py', 'test_tagger_lookup.py', 'test_tagger_service.py', 'test_media_writer.py', 'test_native_writers.py', 'test_tagger_staging.py', 'test_tagger_native.py', 'test_converted_tagging.py', 'test_converted_catalog.py', 'test_library_metadata.py', 'test_metadata_repair.py', 'test_ddl_transport.py', 'test_ddl_failover.py', 'test_ddl_failover_native.py', 'test_comic_format_preference.py', 'test_publication_api.py', 'test_publication_startup.py'):
@@ -206,6 +230,7 @@ with tempfile.TemporaryDirectory() as directory:
     # function used to start and stop worker pools. Both upstream and built
     # image verification must exercise this same freshly patched source.
     subprocess.run([sys.executable, str(FIXES / 'test_publication_native.py')], check=True, env=dict(os.environ, MYLAR_WORKFLOW_SOURCE=str(source)))
+    subprocess.run([sys.executable, str(FIXES / 'test_config_retention.py')], check=True, env=dict(os.environ, MYLAR_WORKFLOW_SOURCE=str(source)))
     subprocess.run([sys.executable,str(FIXES/'test_publication_rescan.py')],check=True,
                    env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
     subprocess.run([sys.executable,str(FIXES/'test_publication_mutation.py')],check=True,

@@ -1,7 +1,7 @@
 [
   {
     "path": "apply_patches.py",
-    "sha256": "0614e360a1f5e0103b433513856a6be0cae9a48852568450d1c5f588548e6339",
+    "sha256": "80468bd4c2d7b2fe09152bd7422fdfa32a2c6fb6e678f38c9090bd59cdb19092",
     "target": "apply_patches.py"
   },
   {
@@ -175,6 +175,11 @@
     "target": "patch_comic_format_preference.py"
   },
   {
+    "path": "patch_config_retention.py",
+    "sha256": "dabac13053082b5ad359804260826400b14d22ab6902c4df31093675dcac7721",
+    "target": "patch_config_retention.py"
+  },
+  {
     "path": "patch_converted_tagging.py",
     "sha256": "3584c7473c89d359c84342125b5f1cfc1926242e06aa922dde46bf7756ce0a95",
     "target": "patch_converted_tagging.py"
@@ -301,7 +306,7 @@
   },
   {
     "path": "patch_publication_processing.py",
-    "sha256": "abf2e0d957fe7b99a7acf1ff5a4e36bd039c35da961f1915880fa4f12ab2e9aa",
+    "sha256": "307c77daeeaadedac2a279f4bb4050cf8ea8ccb570ac1dfc88d9fb8b3e4a2d4b",
     "target": "patch_publication_processing.py"
   },
   {
@@ -531,7 +536,7 @@
   },
   {
     "path": "publication_native_configured_scope.py",
-    "sha256": "6d4b43c84a653aa56cbf22e25563b26e4cb8a5c700cce5d8a124612be3818608",
+    "sha256": "ace628118bd21ac2f50bde93eacad7e0908a0d2e5b34bd5d83222da26a842d3d",
     "target": "publication_native_configured_scope.py"
   },
   {
@@ -716,7 +721,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "fa82c07f8657a19940f1bc4be577ff5e2d650cae408e715a5be4789dddcb94f4",
+    "sha256": "98102892c513b131675fd9da24435997ecc7172766d834d5226f8b62b9a82fce",
     "target": "reader_recovery/comic_retained_pack_parent.py"
   },
   {
@@ -736,7 +741,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "3f4a66732a0b8d6414816194ebf23da7c7fbcc2c424a8efcac15dce2f6118897",
+    "sha256": "052068259dac7ecfb9f224fa2520a2ead482bb9ddd52a23db2106f04b897f3a6",
     "target": "reader_recovery/comic_retained_standalone_parent.py"
   },
   {
@@ -928,6 +933,11 @@
     "path": "test_comic_format_preference.py",
     "sha256": "6df3c8331c6e68ab41a8c560dacbf276473c6f9caeeaf06ea5d395807fc0c74e",
     "target": "test_comic_format_preference.py"
+  },
+  {
+    "path": "test_config_retention.py",
+    "sha256": "c88d6c763457d16bf7f77eb27c68b09db86b3341d2fadbdf0225ad11e6426536",
+    "target": "test_config_retention.py"
   },
   {
     "path": "test_converted_catalog.py",
@@ -1210,6 +1220,11 @@
     "target": "test_health.py"
   },
   {
+    "path": "test_import_api_copy.py",
+    "sha256": "29407a955120844adc9869e8ab1dc21cee88e596ebb498ee84b07670a3c829a3",
+    "target": "test_import_api_copy.py"
+  },
+  {
     "path": "test_library_metadata.py",
     "sha256": "b6cc58acc07f0b4f2d42b0490616a00616725a733fa78aad6a8da6500022b68d",
     "target": "test_library_metadata.py"
@@ -1230,6 +1245,11 @@
     "target": "test_modern_tagger.py"
   },
   {
+    "path": "test_native_terminal_dispatch.py",
+    "sha256": "7e547260e45f2cd98410dc3791086f121c98d6a4756510ef527881e979315ccb",
+    "target": "test_native_terminal_dispatch.py"
+  },
+  {
     "path": "test_native_writers.py",
     "sha256": "14467d31dbc1a919880ef41f096f196f74073d3c17209893ea86ae5942cbdc05",
     "target": "test_native_writers.py"
@@ -1246,7 +1266,7 @@
   },
   {
     "path": "test_ordinary_import_migration.py",
-    "sha256": "61c2a6a36b0f529f6a5dacad179eb4c46d1e18c3cafafa73bfcbb471e1bcc656",
+    "sha256": "10a3c866dc8bf310cacd1f059bc49f18a18906cdd6d2b9a16a03197910ce208e",
     "target": "test_ordinary_import_migration.py"
   },
   {
@@ -1781,7 +1801,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "3db8aafc719b056f3e1230d923257d4182b66d2bc153e840874c691920fa3a9a",
+    "sha256": "2dcf6cc2e8ea994b011708dbc218808c3b1cb507ea58106ee2e9d7e208d4843c",
     "target": "verify_image.py"
   },
   {
@@ -1818,10 +1838,5 @@
     "path": "workflow_web.py",
     "sha256": "a7862ed59724b7578c23fcd335bd2a192d832d1da83242372e84935254299c85",
     "target": "workflow_web.py"
-  },
-  {
-    "path": "test_import_api_copy.py",
-    "sha256": "29407a955120844adc9869e8ab1dc21cee88e596ebb498ee84b07670a3c829a3",
-    "target": "test_import_api_copy.py"
   }
 ]

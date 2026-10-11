@@ -15,7 +15,7 @@ import stat
 import threading
 import weakref
 
-CONFIG_SHA='46bd21f2b117367dffdae510282558bf2757981300665e05f4d2bb2fab1557cc'
+CONFIG_SHA='d8f02277daaf55b62f95832106e0deb97760d0d297bdf07640be98c910fbe570'
 # Root must pin the reviewed default DATA/config.ini producer before installation.
 MAIN_SHA='bf3baffade994465527103f1812a9a7df09ec09a096d64a6b9d6ff473f8fc8c4'
 CONFIG_PATH='/app/mylar3/mylar/config.py';MAIN_PATH='/app/mylar3/Mylar.py'

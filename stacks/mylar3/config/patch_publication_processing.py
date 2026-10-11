@@ -154,7 +154,7 @@ IMPORT_CLEANUPS=(
     'self.tidyup(odir, True, subpath, filename=os.path.basename(orig_filename))')
 
 
-def patched_source(source):
+def _import_source(source):
     if IMPORT_MARKER in source:
         if source.count(IMPORT_MARKER)!=1 or source.count(IMPORT_HOOK)!=1:
             raise ValueError('Ordinary import completion boundary changed')
@@ -166,7 +166,7 @@ def patched_source(source):
                 'processing_guard.defer_import_cleanup(self, self.tidyup, ',1)
             if clean.count(replacement)!=1:raise ValueError('Import cleanup boundary changed')
             clean=clean.replace(replacement,original,1)
-        if patched_source(clean)!=source:raise ValueError('Ordinary import hook moved')
+        if _import_source(clean)!=source:raise ValueError('Ordinary import hook moved')
         return source
     source=_publication_source(source)
     if source.count(IMPORT_FILE_OP)!=2:raise ValueError('Ordinary file placement changed')
@@ -187,5 +187,118 @@ def patched_source(source):
     if index==0 or ast.unparse(body[index-1])!='myDB.upsert(updatetable, newVal, ctrlVal)':
         raise ValueError('Ordinary catalog success hook is not adjacent')
     return source
+
+
+
+TERMINAL_MARKER='# homelab-native-completed-terminal-v1'
+TERMINAL_ENTRY='    @processing_guard.run\n    @pp_monitor.observe\n    def Process(self):\n'
+TERMINAL_WRAPPER="""    @processing_guard.run
+    @pp_monitor.observe
+    def Process(self):
+        if hasattr(self, '_publication_terminal_scope'):
+            raise RuntimeError('Native terminal invocation already active')
+        self._publication_terminal_scope = []
+        try:
+            result = self._publication_process_original()
+            if self._publication_terminal_scope:
+                self.queue.put([dict(row) for row in self.valreturn])
+            return result
+        finally:
+            del self._publication_terminal_scope
+
+    def _publication_process_original(self):
+"""
+TERMINAL_CAPTURE='            _publication_terminal_source = os.path.join(subpath, orig_filename)\n'
+TERMINAL_CAPTURE_ANCHOR='            processing_guard.publication(self, os.path.join(subpath, orig_filename), issueid=issueid, comicid=comicid)\n            #Run Pre-script'
+TERMINAL_SKIP="""                    if any(kind == ('yes' if ml['AnnualType'] is not None else 'no')
+                           and parent == str(comicid) and issue == str(issueid)
+                           and original_source == ml['ComicLocation']
+                           and any(row is current for current in self.valreturn)
+                           for kind, parent, issue, original_source, row in self._publication_terminal_scope):
+                        continue
+"""
+TERMINAL_SKIP_ANCHOR="                    dspcyear = ml['SeriesYear']\n                    #check to see if file is still being written to."
+TERMINAL_SUCCESS_ANCHOR="""            self._log("Post Processing SUCCESSFUL! ")
+
+            self.valreturn.append({"self.log": self.log,
+                                   "mode": 'stop',
+                                   "issueid": issueid,
+                                   "comicid": comicid})
+
+            return self.queue.put(self.valreturn)
+"""
+TERMINAL_SUCCESS=TERMINAL_SUCCESS_ANCHOR.replace(
+    '            return self.queue.put(self.valreturn)\n',
+    """            if hasattr(self, '_publication_terminal_scope'):
+                self._publication_terminal_scope.append((annchk, str(comicid), str(issueid),
+                                                         _publication_terminal_source, self.valreturn[-1]))
+                return
+            return self.queue.put([dict(row) for row in self.valreturn])
+""")
+
+def _terminal_guards(source):
+    tree=ast.parse(source);result=[]
+    for function in ast.walk(tree):
+        if not isinstance(function,ast.FunctionDef):continue
+        for node in ast.walk(function):
+            if (not isinstance(node,ast.Expr) or not isinstance(node.value,ast.Call)
+                    or ast.unparse(node.value.func)!='self.valreturn.append'
+                    or len(node.value.args)!=1 or not isinstance(node.value.args[0],ast.Dict)):
+                continue
+            keys=node.value.args[0].keys
+            if any(not isinstance(key,ast.Constant) for key in keys) or {key.value for key in keys}!={'self.log','mode'}:
+                continue
+            if ((function.name=='Process' and node.col_offset in (16,20))
+                    or (function.name=='nzb_or_oneoff_pp' and node.col_offset==12)):
+                indent=' '*node.col_offset
+                result.append((node.lineno-1,indent+"if getattr(self, '_publication_terminal_scope', None):\n"+indent+'    return\n'))
+    if len(result)!=3:raise ValueError('Native outer terminal coverage changed')
+    return result
+
+
+def terminal_predecessor(source):
+    if TERMINAL_MARKER not in source:return source
+    clean=source
+    for current,prior in ((TERMINAL_WRAPPER,TERMINAL_ENTRY),
+                          (TERMINAL_CAPTURE+TERMINAL_CAPTURE_ANCHOR,TERMINAL_CAPTURE_ANCHOR),
+                          (TERMINAL_SKIP_ANCHOR.replace('                    #check',TERMINAL_SKIP+'                    #check'),TERMINAL_SKIP_ANCHOR),
+                          (TERMINAL_SUCCESS,TERMINAL_SUCCESS_ANCHOR)):
+        if clean.count(current)!=1:raise ValueError('Native terminal producer boundary changed')
+        clean=clean.replace(current,prior,1)
+    guards=_terminal_guards(clean)
+    for _,guard in guards:
+        if clean.count(guard)!=1:raise ValueError('Native outer terminal guard changed')
+        clean=clean.replace(guard,'',1)
+    if clean.count(TERMINAL_MARKER)!=1:raise ValueError('Native terminal marker changed')
+    return clean.replace(TERMINAL_MARKER+'\n','',1)
+
+
+def _terminal_source(source):
+    if TERMINAL_MARKER in source:
+        clean=terminal_predecessor(source)
+        if _terminal_source(clean)!=source:raise ValueError('Native terminal placement changed')
+        return source
+    # Only exact genuine success and original dispatch boundaries are changed.
+    lines=source.splitlines(keepends=True)
+    for line,guard in sorted(_terminal_guards(source),reverse=True):lines.insert(line,guard)
+    source=''.join(lines)
+    for prior,current in ((TERMINAL_ENTRY,TERMINAL_WRAPPER),
+                          (TERMINAL_CAPTURE_ANCHOR,TERMINAL_CAPTURE+TERMINAL_CAPTURE_ANCHOR),
+                          (TERMINAL_SKIP_ANCHOR,TERMINAL_SKIP_ANCHOR.replace('                    #check',TERMINAL_SKIP+'                    #check')),
+                          (TERMINAL_SUCCESS_ANCHOR,TERMINAL_SUCCESS)):
+        if source.count(prior)!=1:raise ValueError('Native completed dispatch boundary changed')
+        source=source.replace(prior,current,1)
+    source=TERMINAL_MARKER+'\n'+source
+    ast.parse(source,feature_version=(3,10))
+    return source
+
+
+def patched_source(source):
+    if TERMINAL_MARKER in source:
+        clean=terminal_predecessor(source)
+        if _import_source(clean)!=clean or _terminal_source(clean)!=source:
+            raise ValueError('Native completed terminal source differs')
+        return source
+    return _terminal_source(_import_source(source))
 
 if __name__=='__main__':main(sys.argv[1])
