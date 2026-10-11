@@ -27,7 +27,7 @@ local build defaults; operators can select the published image explicitly.
 
 The matrix excludes images whose required source is unavailable in CI:
 
-- AIL Framework's build and runtime stages require its local vendor checkout.
+- AIL Framework's application build requires its local vendor checkout.
 - The SearxNG 4get images require operator-verified source directories.
 
 Those images remain local builds until their source preparation is made

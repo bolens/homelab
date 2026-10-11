@@ -48,7 +48,12 @@ COPY --from=ruff /ruff /usr/local/bin/ruff
 COPY --from=actionlint /usr/local/bin/actionlint /usr/local/bin/actionlint
 COPY --from=hadolint /bin/hadolint /usr/local/bin/hadolint
 
-RUN npm install --global corepack@0.36.0 \
+RUN curl --fail --silent --show-error --location \
+        https://registry.npmjs.org/corepack/-/corepack-0.36.0.tgz \
+        --output /tmp/corepack-0.36.0.tgz \
+    && echo "4a2889b01859a9d0623c74c497a393dec012ad1aca21c61340cb15197c7a104fe033c5853306237885fc4edf11894e08bf627a2db4fc2a919f08eb01a51581ff  /tmp/corepack-0.36.0.tgz" | sha512sum --check --strict - \
+    && npm install --global --offline /tmp/corepack-0.36.0.tgz \
+    && rm /tmp/corepack-0.36.0.tgz \
     && corepack enable \
     && UV_TOOL_DIR=/opt/uv-tools UV_TOOL_BIN_DIR=/usr/local/bin uv tool install zizmor==1.30.0
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8 COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \

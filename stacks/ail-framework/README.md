@@ -1,7 +1,7 @@
 # AIL framework
 
-The locally built AIL 7 image includes a dark interface theme. The runtime
-image appends `ail-dark-mode.css` to AIL's shared Bootstrap stylesheet so the
+The locally built AIL 7 image includes a dark interface theme. The final build
+stage appends `ail-dark-mode.css` to AIL's shared Bootstrap stylesheet so the
 theme covers the login, settings, dashboard, table, form, and modal templates
 without maintaining forks of upstream HTML. It also appends
 `ail-dark-mode.js` to ECharts so canvas-rendered charts use the bundled dark
@@ -43,7 +43,7 @@ theme.
 | **Crawlers** | Lacus 1.25.1 provides Playwright/Chromium captures; a separate Tor service provides `.onion` SOCKS routing. AIL starts its Crawler and CrawlerImporter workers with a two-capture limit. |
 | **Login behavior** | Uses upstream AIL 7.0 behavior; the old 5.x `root.py` override is no longer mounted. |
 | **GPU** | Disabled by default. Add `-f docker-compose.gpu.yml` to use the CUDA image and expose the host NVIDIA GPU. |
-| **Flask bind** | The runtime layer changes AIL's loopback-only default to `0.0.0.0:7000` so Caddy can reach the container over `ingress-admin`. |
+| **Flask bind** | The final build stage changes AIL's loopback-only default to `0.0.0.0:7000` so Caddy can reach the container over `ingress-admin`. |
 
 ## Resources
 
@@ -76,21 +76,15 @@ image CI builds Lacus and Tor; it does not build the AIL application image. Inst
    cd stacks/ail-framework
    docker build -f Dockerfile.build \
      --build-arg AIL_TORCH_VARIANT=cpu \
-     -t ail-framework:7.0-cpu-build .
-   docker build -f Dockerfile.runtime \
-     --build-arg BASE_IMAGE=ail-framework:7.0-cpu-build \
      -t ail-framework:7.0 .
    docker tag ail-framework:7.0 ail-framework:7.0-cpu
    docker build -f Dockerfile.build \
      --build-arg AIL_TORCH_VARIANT=gpu \
-     -t ail-framework:7.0-gpu-build .
-   docker build -f Dockerfile.runtime \
-     --build-arg BASE_IMAGE=ail-framework:7.0-gpu-build \
      -t ail-framework:7.0-gpu .
-   docker image rm ail-framework:7.0-cpu-build ail-framework:7.0-gpu-build
    ```
    The retained release tags are `7.0` (CPU default), `7.0-cpu`, and
-   `7.0-gpu`; the intermediate build tags are temporary.
+   `7.0-gpu`. Each build includes the runtime dependency and interface patches
+   in its final stage; no separately tagged intermediate image is required.
 
 2. **Optional GPU deployment:**
    ```bash
