@@ -11,7 +11,7 @@
 - T016/T017: verify the fresh backup and isolated restore, deploy the held matching images, then prove real archive, owner, catalog and reader recovery.
 - T018: complete shared current-library acceptance before ordinary or bulk processing resumes.
 
-Feature 023 owns the [hold-release prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work). The old partial backup does not authorize rollout. Processing holds remain in place.
+Feature 023 owns the [hold-release prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work). Neither the old partial backup nor the fresh invocation that failed restore verification authorizes rollout. Feature 023 records the isolated restore-copy failure and required full verification. Processing holds remain in place.
 
 ## Phase 1: Setup
 
