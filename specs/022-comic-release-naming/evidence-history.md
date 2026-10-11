@@ -529,3 +529,7 @@ waiver; complete feature, combined-route, derivative and live gates remain open.
 ## Recovery dependency progress 2026-10-11
 
 Feature 023 compact reader verification now passes the actual Komga database under unchanged limits. The detailed results are in its [evidence history](../023-verified-publication-corrections/evidence-history.md#reader-and-backup-verification-2026-10-11). This removes one prerequisite blocker without accepting the live naming/metadata or bulk pass. T019, T023 and T024 remain open until their configured execution and final preservation/idempotence checks pass. Dot separators and a hyphen before the verified release group remain the naming preference.
+
+## Naming runtime checkpoint 2026-10-11
+
+The complete compact-reader candidate passes installed source/cohort verification and all 17 isolated discovery, import, recovery, rename and preserved-metadata cases. Feature 023 retains the [combined runtime and backup handoff evidence](../023-verified-publication-corrections/evidence-history.md#installed-candidate-and-backup-handoff-2026-10-11). This completes an isolated naming verification milestone; the remaining combined bulk pass, supplement reconciliation and live idempotence/data acceptance remain open under T019/T023/T024.

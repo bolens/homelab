@@ -91,3 +91,5 @@ Deliver US1 as the opt-in naming MVP, verify US2 recovery gates, then roll out U
 Naming foundations and earlier live canaries are accepted as recorded by T001–T018 and T020–T022. The interrupted combined/bulk pass, supplement reconciliation and final idempotence remain open under T019/T023/T024. Current verification and release dependencies are listed above.
 
 Detailed dated checks, previous delivery exceptions, image identities and failure receipts are retained in [evidence history](evidence-history.md). Those historical observations do not override the current hosted-CI requirement or complete live acceptance.
+
+Current candidate runtime verification has passed; configured recovery and live acceptance remain required. See the [latest evidence](evidence-history.md#naming-runtime-checkpoint-2026-10-11).

@@ -81,3 +81,5 @@ Deliver truthful diagnostics first while implementing the separate owning capabi
 T001–T010 accept the prospective design, retained diagnostics and bounded non-executable preparation. T011 and T013 accept dedicated adoption and durable recovery-history implementation. Installed reader continuity, integrated acceptance and live repair remain open under T012 and T015–T018. Current verification and remaining release dependencies are listed above.
 
 Detailed dated source/image tests, retained-original experiments and failure receipts are retained in [evidence history](evidence-history.md). Private repaired copies and earlier component proofs do not complete production adoption or authorize hold release.
+
+Current candidate runtime verification has passed; configured recovery and live acceptance remain required. See the [latest evidence](evidence-history.md#installed-recovery-prerequisite-2026-10-11).
