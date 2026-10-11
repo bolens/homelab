@@ -240,13 +240,16 @@ def flattened_target(path: Path, source: Path, destination: Path) -> Path:
 
 def is_text_sidecar(path: Path) -> bool:
     """Check the entire file before treating an explicit sidecar suffix as text."""
+    with path.open("rb") as stream:
+        bom = stream.read(2)
+    encoding = "utf-16" if bom in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig"
     try:
-        with path.open(encoding="utf-8-sig") as stream:
+        with path.open(encoding=encoding) as stream:
             while chunk := stream.read(65536):
                 if any(not char.isprintable() and char not in "\t\r\n\f" for char in chunk):
                     return False
     except UnicodeDecodeError:
-        if path.suffix.casefold() != ".nfo":
+        if encoding == "utf-16" or path.suffix.casefold() != ".nfo":
             return False
         # Scene NFOs often use CP437 box art. Limit the fallback to printable
         # ASCII plus drawing glyphs, rather than interpreting arbitrary binary
@@ -602,7 +605,8 @@ def playlist_entries(path: Path) -> list[PurePosixPath] | None:
     if path.stat().st_size > 1024**2 or detected_suffix(path) is not None:
         return None
     try:
-        text = path.read_text(encoding="utf-8-sig")
+        raw = path.read_bytes()
+        text = raw.decode("utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig")
     except UnicodeDecodeError:
         return None
     entries = []
@@ -779,9 +783,11 @@ def plan_tree(root: Path, *, flatten: bool = True,
         if playlist not in plans:
             continue
         raw = playlist.read_bytes()
-        encoding = "utf-8-sig" if raw.startswith(b"\xef\xbb\xbf") else "utf-8"
+        bom = raw[:2] if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else b""
+        encoding = ("utf-16-le" if bom == b"\xff\xfe" else "utf-16-be") if bom else (
+            "utf-8-sig" if raw.startswith(b"\xef\xbb\xbf") else "utf-8")
         lines = []
-        for line in raw.decode(encoding).splitlines(keepends=True):
+        for line in raw[len(bom):].decode(encoding).splitlines(keepends=True):
             entry = playlist_reference(line)
             if entry in refs:
                 relative = os.path.relpath(plans[refs[entry]], plans[playlist].parent).replace(os.sep, "/")
@@ -792,7 +798,7 @@ def plan_tree(root: Path, *, flatten: bool = True,
                 ending = line[len(line.rstrip("\r\n")):]
                 line = rendered + ending
             lines.append(line)
-        content = "".join(lines).encode(encoding)
+        content = bom + "".join(lines).encode(encoding)
         if content != raw:
             rewritten[playlist] = content
     for cue, (encoding, text, refs) in cues.items():

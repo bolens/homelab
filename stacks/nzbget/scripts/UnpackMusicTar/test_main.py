@@ -22,6 +22,57 @@ class UnpackMusicArchiveTest(unittest.TestCase):
         self.enterContext(contextlib.redirect_stdout(io.StringIO()))
         self.enterContext(contextlib.redirect_stderr(io.StringIO()))
 
+    def test_utf16_sidecars_are_cleaned_without_changing_audio_or_cues(self) -> None:
+        for encoding, bom in (("utf-16-le", b"\xff\xfe"), ("utf-16-be", b"\xfe\xff")):
+            with self.subTest(encoding=encoding), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                audio = b"fLaC" + bytes(32)
+                (root / "album.flac").write_bytes(audio)
+                cue = b'FILE "album.flac" WAVE\r\n'
+                (root / "album.cue").write_bytes(cue)
+                (root / "album.log").write_bytes(bom + "Exact Audio Copy\r\nAccurately ripped\r\n".encode(encoding))
+                main.process_release(root)
+                self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()},
+                                 {"album.flac": audio, "album.cue": cue})
+
+    def test_utf16_cleanup_preserves_malformed_data_media_and_cue_references(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            text = b"\xff\xfe" + "rip notes\r\n".encode("utf-16-le")
+            files = {"odd.log": text + b"x", "control.log": b"\xff\xfe" + "notes\x00".encode("utf-16-le"),
+                     "no-bom.log": "notes".encode("utf-16-le"), "song.mp3": text,
+                     "unknown.log": b"\x00unknown binary", "referenced.log": text,
+                     "album.cue": b'FILE "referenced.log" BINARY\n'}
+            for name, payload in files.items():
+                (root / name).write_bytes(payload)
+            main.process_release(root)
+            self.assertEqual({p.name: p.read_bytes() for p in root.iterdir()}, files)
+
+    def test_utf16_playlists_detect_incomplete_releases_and_preserve_encoding(self) -> None:
+        for encoding, bom in (("utf-16-le", b"\xff\xfe"), ("utf-16-be", b"\xfe\xff")):
+            for missing in (False, True):
+                with self.subTest(encoding=encoding, missing=missing), tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    audio = root / "Release" / "Audio"
+                    audio.mkdir(parents=True)
+                    (audio / "one.flac").write_bytes(b"fLaC" + bytes(32))
+                    if not missing:
+                        (audio / "two.flac").write_bytes(b"fLaC" + bytes(32))
+                    text = "# fixture\r\nAudio/one.flac\r\nAudio/two.flac\r\n"
+                    (audio.parent / "tracks.log").write_bytes(bom + text.encode(encoding))
+                    before = {str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+                    if missing:
+                        with self.assertRaisesRegex(ValueError, "incomplete playlist"):
+                            main.process_release(root)
+                        self.assertEqual({str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()}, before)
+                    else:
+                        main.process_release(root, cleanup=False)
+                        expected = "# fixture\r\none.flac\r\ntwo.flac\r\n"
+                        self.assertEqual((root / "tracks.log").read_bytes(), bom + expected.encode(encoding))
+                        before = {str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+                        main.process_release(root, cleanup=False)
+                        self.assertEqual({str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()}, before)
+
     def test_multidisc_releases_preserve_tracks_with_identical_names(self) -> None:
         disc_pairs = (
             ("CD1", "CD2"),
