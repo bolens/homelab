@@ -79,7 +79,11 @@ consecutive valid frame headers rather than a single sync marker.
 Recognized images and PDF booklets, including files without extensions, flow
 through the normal cleanup rules. Unknown files
 are retained. Cleanup removes a file with a sidecar extension only when its
-content is a recognized image or PDF document, or the entire file is readable text.
+content is a recognized image or PDF document, or the entire file is readable text. BOM-marked UTF-16 text, including Exact
+Audio Copy logs, is supported in either byte order. Local UTF-16 playlists receive
+the same completeness checks as UTF-8 playlists; retained playlists keep their
+BOM and byte order when references change. Malformed UTF-16, binary
+control characters and cue-referenced files remain protected.
 Scene `.nfo` files containing CP437 box art are also recognised when all other
 content is printable ASCII or ordinary text whitespace. The fallback is limited
 to `.nfo`, drawing glyphs and the CP437 black square; unsupported binary content
