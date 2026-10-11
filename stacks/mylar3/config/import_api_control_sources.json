@@ -385,7 +385,7 @@
   },
   {
     "path": "publication_archive_reader.py",
-    "sha256": "805484c17fa32cde4786e2152c89b21b1ba220bbd65d47ad8b7b7dd1af91a7a8"
+    "sha256": "9383f2d757c366edc9e2a5710cf4a68ff3ef3592eba7bd349add7e370403be6c"
   },
   {
     "path": "publication_archive_repair.py",
@@ -645,7 +645,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "c04d1dfe23a9308d86495ee450746a7ab9a00d832e21404f15a34715a3ccbb52"
+    "sha256": "e6d00b119d9be18906ee60e0ce64067bba267a601d0c15798f9ac7e316335108"
   },
   {
     "path": "story_arc_search.py",
@@ -1065,7 +1065,7 @@
   },
   {
     "path": "test_publication_archive_adoption.py",
-    "sha256": "87b673167db415eef0ab7f9d3824543eaca9b57eb74e0bfc455fc9f2015b0b15"
+    "sha256": "f9f6a78de331c558c8e10f0ef1b6a60ff2ed6501fe1b62310d77f1da27e71e34"
   },
   {
     "path": "test_publication_archive_diagnostics.py",

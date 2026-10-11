@@ -17,7 +17,7 @@ from contextlib import closing
 from mylar import publication_archive_owned as o
 
 _KEY=object(); _SEALS=weakref.WeakKeyDictionary()
-MAX=256*1024**2; ROWS=1000000
+MAX=256*1024**2; ROWS=1000000; FILE_MAX=1024**3
 
 def encoded(v):return json.dumps(v,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()
 def cell(v):
@@ -52,9 +52,39 @@ def pair(db,deadline):
     o.check(wal==shm,'reader-paired-WAL')
     for suffix in ('','-wal','-shm'):
         p=Path(str(db)+suffix)
-        if os.path.lexists(p):result[p]={'fact':o.fact(p,MAX,deadline),'attrs':o.attributes(p)}
+        if os.path.lexists(p):result[p]={'fact':o.fact(p,FILE_MAX,deadline),'attrs':o.attributes(p)}
         else:result[p]=None
     return result
+
+def copy_checked(source,target,fact,parent_identity,deadline):
+    """Bounded original-FD copy/readback; zero ranges stay sparse, never omitted."""
+    expected=fact['signature9'];o.check(0<expected[2]<=FILE_MAX,'reader-file-bound')
+    with o.checked_stream(source,expected) as inp,o.directory_fd(target.parent,parent_identity) as parent:
+        info=os.fstat(parent)
+        o.check(stat.S_IMODE(info.st_mode)==0o700 and info.st_uid==os.geteuid(),'reader-copy-parent')
+        fd=os.open(target.name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=parent)
+        with os.fdopen(fd,'w+b') as out:
+            original=o.stat9(os.fstat(out.fileno()));count=0;checksum=hashlib.sha256()
+            while block:=inp.read(1024**2):
+                count+=len(block)
+                o.check(count<=expected[2] and count<=FILE_MAX and time.monotonic()<deadline,'reader-copy-bound')
+                checksum.update(block)
+                if block.count(0)==len(block):out.seek(len(block),os.SEEK_CUR)
+                else:o.check(out.write(block)==len(block),'reader-copy-write')
+            o.check(count==expected[2] and checksum.hexdigest()==fact['sha256'],'reader-copy-source')
+            out.truncate(count);out.flush();os.fsync(out.fileno());out.seek(0)
+            checked=0;checksum=hashlib.sha256()
+            while block:=out.read(1024**2):
+                checked+=len(block)
+                o.check(checked<=count and time.monotonic()<deadline,'reader-copy-readback-bound');checksum.update(block)
+            o.check(checked==count and checksum.hexdigest()==fact['sha256'],'reader-copy-readback')
+            created=o.stat9(os.fstat(out.fileno()))
+            o.check(tuple(created[i] for i in (0,1,5,6,7,8))==tuple(original[i] for i in (0,1,5,6,7,8)),'reader-copy-original-FD')
+        os.fsync(parent)
+    # Source/parent context callbacks all precede the retained raw output closure.
+    z=os.lstat(target)
+    if [z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]!=created:
+        raise o.Held('reader-copy-output-CAS')
 
 def observe(db,scratch,deadline):
     """SQLite reads ONLY another detached pair; originals and retained restore stay unopened."""
@@ -63,8 +93,7 @@ def observe(db,scratch,deadline):
         root=Path(work);root.chmod(0o700)
         for p,v in before.items():
             if v is None:continue
-            raw=o.read_checked(p,v['fact']['signature9'],MAX,deadline)
-            o.write(root/p.name,raw,o.stat5(os.lstat(root)))
+            copy_checked(p,root/p.name,v['fact'],o.stat5(os.lstat(root)),deadline)
         o.check(pair(db,deadline)==before,'reader-copy-CAS')
         with closing(sqlite3.connect('file:'+str(root/db.name)+'?mode=ro',uri=True)) as conn:
             conn.execute('PRAGMA query_only=ON');conn.execute('PRAGMA trusted_schema=OFF');conn.execute('BEGIN')

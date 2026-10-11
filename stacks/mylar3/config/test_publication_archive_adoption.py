@@ -400,4 +400,62 @@ class RawClosureV3(unittest.TestCase):
   with patch.object(o,'fact',late),self.assertRaises(o.Held):cap.install()
   self.assertTrue(fired);self.assertEqual(cap._phase,'uncertain');self.assertTrue((self.c.writer.root/a.PENDING).exists())
 
+
+class StreamingReaderTests(unittest.TestCase):
+ """Real sparse SQLite/file mechanics only; no installed custody grant."""
+ def fixture(self):
+  import tempfile
+  t=tempfile.TemporaryDirectory();self.addCleanup(t.cleanup);root=Path(t.name);scratch=root/'scratch';scratch.mkdir(mode=0o700);db=root/'database.sqlite'
+  with __import__('contextlib').closing(sqlite3.connect(db)) as conn:conn.execute('CREATE TABLE BOOK (ID TEXT)');conn.execute("INSERT INTO BOOK VALUES ('original')");conn.commit()
+  return db,scratch
+ def test_reader_large_sparse_SQLite_streaming_without_row_budget_increase(self):
+  import time,tracemalloc
+  db,scratch=self.fixture()
+  with db.open('r+b') as f:f.truncate(256*1024**2+4096)
+  tracemalloc.start()
+  try:
+   with patch.object(o,'read_checked',side_effect=AssertionError('unbounded buffer path')):result,facts=r.observe(db,scratch,time.monotonic()+120)
+   peak=tracemalloc.get_traced_memory()[1]
+  finally:tracemalloc.stop()
+  self.assertEqual(result['tables']['BOOK']['rows'],[[['text','original']]])
+  self.assertEqual(facts[db]['fact']['signature9'][2],256*1024**2+4096);self.assertLess(peak,8*1024**2)
+  self.assertEqual(r.MAX,256*1024**2);self.assertEqual(r.ROWS,1000000);self.assertEqual(r.FILE_MAX,1024**3)
+ def test_reader_file_over_one_GiB_refused_before_hash(self):
+  import time
+  db,scratch=self.fixture()
+  with db.open('r+b') as f:f.truncate(1024**3+1)
+  with self.assertRaisesRegex(o.Held,'file-bound'):r.pair(db,time.monotonic()+120)
+ def test_reader_logical_row_budget_remains_distinct(self):
+  import time
+  db,scratch=self.fixture()
+  with __import__('contextlib').closing(sqlite3.connect(db)) as conn,patch.object(r,'MAX',1),self.assertRaisesRegex(o.Held,'reader-row-bound'):r.logical(conn,time.monotonic()+120)
+  self.assertEqual(r.FILE_MAX,1024**3)
+ def test_reader_stream_source_mode_drift_refused(self):
+  import time,contextlib
+  db,scratch=self.fixture();fact=r.pair(db,time.monotonic()+120)[db]['fact'];real=o.checked_stream;fired=[]
+  @contextlib.contextmanager
+  def changed(path,expected):
+   with real(path,expected) as stream:
+    read=stream.read
+    def late(*args):
+     value=read(*args)
+     if value and not fired:db.chmod(0o640);fired.append(True)
+     return value
+    with patch.object(stream,'read',late):yield stream
+  with patch.object(o,'checked_stream',changed),self.assertRaisesRegex(o.Held,'read-final-CAS'):r.copy_checked(db,scratch/db.name,fact,o.stat5(scratch.stat()),time.monotonic()+120)
+  self.assertTrue(fired)
+ def test_reader_stream_final_output_mode_drift_refused(self):
+  import time,contextlib
+  db,scratch=self.fixture();fact=r.pair(db,time.monotonic()+120)[db]['fact'];real=o.directory_fd;target=scratch/db.name;fired=[]
+  @contextlib.contextmanager
+  def changed(path,expected=None):
+   with real(path,expected) as fd:yield fd
+   if expected is not None and not fired:target.chmod(0o640);fired.append(True)
+  with patch.object(o,'directory_fd',changed),self.assertRaisesRegex(o.Held,'reader-copy-output-CAS'):r.copy_checked(db,target,fact,o.stat5(scratch.stat()),time.monotonic()+120)
+  self.assertTrue(fired)
+ def test_reader_stream_source_hash_mismatch_refused(self):
+  import time
+  db,scratch=self.fixture();fact=r.pair(db,time.monotonic()+120)[db]['fact'];fact=dict(fact,sha256='f'*64)
+  with self.assertRaisesRegex(o.Held,'reader-copy-source'):r.copy_checked(db,scratch/db.name,fact,o.stat5(scratch.stat()),time.monotonic()+120)
+
 if __name__=='__main__':unittest.main()

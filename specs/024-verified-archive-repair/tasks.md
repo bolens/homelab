@@ -74,3 +74,5 @@ Deliver truthful diagnostics first while implementing the separate owning capabi
 T001–T010 accept the prospective design, retained diagnostics and bounded non-executable preparation. T011 and T013 accept dedicated adoption and durable recovery-history implementation. Installed reader continuity, integrated acceptance and live repair remain open under T012 and T015–T018. Current verification and remaining release dependencies are listed above.
 
 Detailed dated source/image tests, retained-original experiments and failure receipts are retained in [evidence history](evidence-history.md). Private repaired copies and earlier component proofs do not complete production adoption or authorize hold release.
+
+Reader-size correction (2026-10-11): the actual 490 MiB Komga database exceeds the archive reader's mistaken 256 MiB file limit. The integrated streaming correction preserves the logical-data budget and passes 68 canonical plus 68 retained-fixture controls. T012/T015–T018 remain open pending actual database-budget, installed-image and configured repair acceptance.
