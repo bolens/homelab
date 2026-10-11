@@ -11,7 +11,7 @@
 **Updated 2026-10-11.** Detailed results and retained failures are in [evidence history](evidence-history.md#reader-and-backup-verification-2026-10-11).
 
 - Completed verification: compact reader mechanics pass the actual 389,249-row Komga database under unchanged limits. Both 77-test suites, independent source review and full local CI pass. PR #304 merged after all 12 hosted checks passed.
-- T022/T026/T029: the complete candidate image, 177-source parity check, installed cohort and all 17 isolated runtime cases pass. Finish genuine configured reader/provider/archive acceptance.
+- T022/T026/T029: the complete candidate image, 177-source parity check, installed cohort and all 17 isolated runtime cases pass. Trusted-main Mylar publication also passes; the accepted worker sources are unchanged. Finish genuine configured reader/provider/archive acceptance.
 - T028: reviewed recovery source and isolated import scenarios pass. Execute the genuine configured retained generation and fresh catalog-to-ACK handoff.
 - T017/T027: complete the fresh 12-scope backup and isolated restore. The corrected launcher passes independent review and selected-runtime checks. The real cross-filesystem correction passes independent review and selected-runtime tests. A fresh invocation is launched with new private inputs; complete full-state verification remains required. Prior failed attempts remain unaccepted.
 - T018/T019: verify live recovery, the current library, restart and database integrity, then release holds and retain one verified backup plus unresolved originals.
