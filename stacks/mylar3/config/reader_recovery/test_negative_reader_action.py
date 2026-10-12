@@ -28,6 +28,9 @@ class Tests(unittest.TestCase):
   self.controller=SimpleNamespace(roots=[self.library]);self.writer=Writer()
   class Scope:
    def controller_writer(x):self.events.append('configured-pair');return self.controller,self.writer
+   def writer_session(x,controller,writer):
+    assert controller is self.controller and writer is self.writer
+    return writer.hold(timeout=0)
    def revalidate(x):self.events.append('configured-revalidate')
   self.scope=Scope();self.coordinator=SimpleNamespace(revalidate=lambda:self.events.append('coordinator-original'),close_owned_terminal=lambda a:self.events.append('coordinator-terminal'))
   def prep(*args):self.events.append(('prep',args[3]));return SimpleNamespace(revalidate=lambda:{'fixture_only':True})

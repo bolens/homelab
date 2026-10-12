@@ -633,7 +633,7 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "9b387baac4917573431b5f89a14c98fc318c70191c8fdcd25f51370bfafee8d9"
+    "sha256": "c1e4e93cb1d9901dbd12fdb5ac194ac3082d375efe8c7a91397143acff6ac36d"
   },
   {
     "path": "run_reader_recovery_controls.py",
@@ -649,7 +649,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "cb4cee679e978725ba39062d1d45b56a089938ab20afa5ceedc9a3896b79129e"
+    "sha256": "486f7ef444a3b5953c49e3fcb840f43afb39b226ff1787980c439bf128113c03"
   },
   {
     "path": "story_arc_search.py",
@@ -1018,6 +1018,10 @@
   {
     "path": "test_native_writers.py",
     "sha256": "14467d31dbc1a919880ef41f096f196f74073d3c17209893ea86ae5942cbdc05"
+  },
+  {
+    "path": "test_negative_ready_session.py",
+    "sha256": "44c44e01539f16dba9d3afde098fbca471fde64dc3ae1d15d1359318ba6a3ed5"
   },
   {
     "path": "test_ordinary_import_continuity.py",
