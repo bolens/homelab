@@ -132,3 +132,18 @@ not independently completed-looking member receipts. An exact root-owned termina
 successor hold becomes durable before aggregate-marker removal; ordinary and
 startup admission refuse unresolved successor state until its owning terminal
 phase durably acknowledges completion.
+
+## Configured archive pipe Writer session (023 T022 / 024 T012)
+
+The finite same-pipe session retains immutable encoded prelease native/worker/
+child-mount observations and binding bytes, original child host PID/start ticks,
+Writer root/lock/marker facts, and source/control file9/ancestor5 rows. The child
+also retains the exact installed Controller/Writer/local/thread identities and
+complete original census. `enter` precedes acquisition; `held` closes local
+Writer and original physical custody without remote observations; `leave`
+follows release and requires the original unlocked projection again. The
+terminal request/response hashes and consumed ACK sequence stay original even
+when the final leave advances the conversation sequence. Pending terminal reply
+rights are all false; local SDK completion and parent independent acceptance are
+separate facts. Postrelease drift or lost leave leaves independent acceptance
+unproved and retains the original operation, without a new global hold or replay.

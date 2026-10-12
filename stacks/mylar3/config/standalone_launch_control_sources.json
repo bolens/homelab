@@ -181,7 +181,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "ce0cf1fbedd20433d54a1df02e9473b3115185aba081cf250c171f12a16301e7",
+    "sha256": "4652185332271e8a86e2388091afd000ae66876b791321e9e645cb2f5ebb4c66",
     "target": "fixtures/child/source/publication_archive_preparation_existing.py"
   },
   {
@@ -241,7 +241,7 @@
   },
   {
     "path": "publication_native_configured_scope.py",
-    "sha256": "ace628118bd21ac2f50bde93eacad7e0908a0d2e5b34bd5d83222da26a842d3d",
+    "sha256": "8bdb029a7fd9aa12ab714a501a96c8e25d033260d0f31b1be03ebf143d2b1606",
     "target": "fixtures/child/source/publication_native_configured_scope.py"
   },
   {
@@ -251,7 +251,7 @@
   },
   {
     "path": "publication_reader_lifecycle.py",
-    "sha256": "0a117a9932a995888a1fbeb20ff46d91b7e21b57f699781eb8ab336b2fe8b207",
+    "sha256": "9558032119aee25f3a717dcbe915b2c24705556abde6baa265818eaf26fc4c27",
     "target": "fixtures/child/source/publication_reader_lifecycle.py"
   },
   {
@@ -461,7 +461,7 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/fixtures/host/comic_retained_standalone_parent.py",
-    "sha256": "052068259dac7ecfb9f224fa2520a2ead482bb9ddd52a23db2106f04b897f3a6",
+    "sha256": "7f6c4e4eae8ef49f6599473bcf8b9ec683292c426fad5e53308ba3b1fd81c3cd",
     "target": "fixtures/host/comic_retained_standalone_parent.py"
   },
   {
@@ -471,12 +471,12 @@
   },
   {
     "path": "standalone_launch_host/comic_native_process_probe.py",
-    "sha256": "7646a5cf0feb71867382fcc2a32d89326042be5eee95035f3479a7f7de28fba9",
+    "sha256": "9b2f6916d1b574e3ca7cd3781ea67f05c265fce582bd5f6ab05ffd110c4487af",
     "target": "fixtures/probe_sources/comic_native_process_probe.py"
   },
   {
     "path": "standalone_launch_host/publication_native_configured_scope.py",
-    "sha256": "ace628118bd21ac2f50bde93eacad7e0908a0d2e5b34bd5d83222da26a842d3d",
+    "sha256": "8bdb029a7fd9aa12ab714a501a96c8e25d033260d0f31b1be03ebf143d2b1606",
     "target": "fixtures/probe_sources/publication_native_configured_scope.py"
   },
   {
@@ -496,7 +496,7 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "052068259dac7ecfb9f224fa2520a2ead482bb9ddd52a23db2106f04b897f3a6",
+    "sha256": "7f6c4e4eae8ef49f6599473bcf8b9ec683292c426fad5e53308ba3b1fd81c3cd",
     "target": "source/comic_retained_standalone_parent.py"
   },
   {

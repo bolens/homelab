@@ -66,7 +66,7 @@ class LocalEnvironment(unittest.TestCase):
         c=patch.object(P,'fresh_native',side_effect=fresh);c.start();self.addCleanup(c.stop)
 
 class FullLifecycleControls(LocalEnvironment):
-    def fixture(self, failure=None, optional_fonts=False, use_core=False, return_factual=False):
+    def fixture(self, failure=None, optional_fonts=False, use_core=False, return_factual=False, ready=False):
         tmp = tempfile.TemporaryDirectory(prefix='active-nfs-whole-local-')
         self.addCleanup(tmp.cleanup)
         root = Path(tmp.name)
@@ -132,8 +132,9 @@ class FullLifecycleControls(LocalEnvironment):
                 {'Name': '/komga-comic-normalizer-1', 'Id': 'b' * 64, 'Image': P.WORKER, 'State': state(False, 0)}, reader]
         for row in rows:
             row.setdefault('Path','fixture');row.setdefault('Args',[]);row.setdefault('Config',{});row.setdefault('HostConfig',{});row.setdefault('Mounts',[]);row.setdefault('NetworkSettings',{})
-        publication = {'state': 'held', 'reason': 'startup-restart-required',
-                       'census': {'revision': 13, 'keys': [str(i) for i in range(13)]}}
+        keys = [format(i, '064x') for i in range(3)]
+        publication = {'state': 'ready' if ready else 'held', 'reason': 'verified' if ready else 'startup-restart-required',
+                       'census': {'version': 1, 'epoch': 'f'*64, 'revision': len(keys), 'keys': keys, 'digest': P.digest(P.encode(keys))}}
 
         childrows=[]
         def engine(argv, **kwargs):
@@ -260,6 +261,22 @@ class FullLifecycleControls(LocalEnvironment):
             fixture_projection=patch.object(P,'canonical',side_effect=canonical);fixture_projection.start();self.addCleanup(fixture_projection.stop)
             return captured[0],rows,events
         return events
+
+    def test_ready_verified_full_writer_lifecycle_restores_original(self):
+        self.fixture(ready=True)
+
+    def test_ready_verified_real_child_lost_ACK_never_releases(self):
+        events=self.fixture('lost-child-ack',use_core=True,ready=True)
+        self.assertIn('actual-kernel-ACK-lost',events)
+
+    def test_unlocked_census_never_accepts_incomplete_or_busy(self):
+        keys=['a'*64]
+        value={'state':'ready','reason':'verified','census':{'version':1,'epoch':'b'*64,'revision':1,'keys':keys,'digest':P.digest(P.encode(keys))}}
+        P.unlocked_publication(value)
+        for field,replacement in [('epoch','wrong'),('revision',True),('keys',keys+keys),('digest','c'*64)]:
+            changed=copy.deepcopy(value);changed['census'][field]=replacement
+            with self.subTest(field=field),self.assertRaises(P.Held):P.unlocked_publication(changed)
+        with self.assertRaises(P.Held):P.unlocked_publication({'state':'held','reason':'writer-busy','census':None})
 
     def test_late_optional_fonts_creation_holds_after_absence_check(self):
         original = L.os.listdir

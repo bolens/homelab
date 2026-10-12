@@ -1249,6 +1249,14 @@ The cohort adds no settings, mounts, ports or privileges. Owning reader admissio
 remains held until the reviewed lifecycle parent and current producer pins are
 installed and connected runtime, NFS and live terminal verification pass.
 
+The build also runs 15 connected Writer-session controls. The existing parent
+pipe seals the complete prelease census and carries enter, held and leave
+messages; held challenges and idle checks make no Docker or API calls. The
+terminal reply grants no rights: ACK remains inside the original Writer, and
+independent parent and worker validation follows release. Ready and legacy
+startup-held originals use the same strict census and process checks. Source
+controls do not establish configured NFS or live terminal acceptance.
+
 The reader recovery cohort also installs the canonical scope-birth helper. It
 captures metadata in the selected child and hands the original inherited pipe
 to lifecycle custody. Public recovery tools under `config/reader_recovery/` are

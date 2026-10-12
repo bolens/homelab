@@ -113,7 +113,7 @@ real backup/copy/SQLite8, fresh -I bootstrap3, archive scheduling12, finite
 namespace12, native geometry4 and original-admission/runtime-overlay4. Child/NFS/SDK declarations in scheduling and
 namespace tests are explicit doubles; genuine canonical installed types and
 protected parent admission are not claimed. Run `python3 -I -B stacks/mylar3/config/run_reader_recovery_controls.py`
-from the repository root for the complete 539-control private-copy gate. Run that
+from the repository root for the complete 591-control private-copy gate. Run that
 owning launcher inside the selected image as UID1000, cap0, networknone, readonly root, no Docker
 socket, no live mounts; only this public source/test closure and private tmpfs
 are required. Root alone executes Docker and supplies exact candidate ID.
@@ -148,3 +148,9 @@ mutable HOST relabeling, native grant, parent pin or ordinary admission.
 ## Same-child worker observation
 
 Default-disabled plan12 preserves the plan11 same-child contract and adds an original regular worker-source ref and an exact installed source-map ref. The worker image and read-only mounts come from the original held-worker profile. One disposable worker process uses its own inherited pipe, source entry and receiver birth; image-only ancestors remain receiver facts. The parent retains both process/pipe registries and the original execute capability’s archive, catalog, authority and marker roles through fresh observation and worker release before releasing the producer. No saved capability, worker report or receiver measurement replaces original shared source facts. Installed image/CLI, actual mount equality and NFS remain separate acceptance gates; the shipped flag remains false.
+
+## Original Writer session on the existing pipe
+
+The source-owned `writer_session` extension of `reader-lifecycle-pipe-v1` carries version, stage (`enter`, `held`, `leave`), original session nonce, child process PID/start ticks, Writer identity and the complete prelease census. Enter completes before Writer acquisition. The held and idle branches retain that original unlocked observation and close local process, source and physical custody without Docker or API calls. The child independently proves its exact configured Controller paths and original ordinary Writer locally. Ready/verified and legacy startup-held observations require the same complete census; no fresh empty census or startup reset is admitted.
+
+The terminal reply is sealed pending with all six rights false. ACK remains inside the original Writer. Only one post-ACK leave may follow its actual release; the consumed ACK sequence is retained separately from the leave conversation sequence. The existing independent terminal/worker checks run after release, before acceptance and natural exit. A failed acquisition permits a no-work leave, not a terminal grant. Lost enter, ACK or leave and postrelease original drift retain uncertainty without replay or refreshed expectations. Local SDK completion may clear its successor marker before parent acceptance; that does not establish independent acceptance or reader resume. Ordinary postrelease drift must refuse. Installed source/cohort, actual child/worker geometry, NFS and configured terminal execution remain separate acceptance requirements.

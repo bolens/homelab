@@ -13,6 +13,8 @@
 
 T019/T023 remain open for the combined naming/metadata and eligible bulk passes, which require feature 023's configured recovery and current-library acceptance. The naming preference remains dot separators with a hyphen before the verified release group. T024 retains final idempotence, data and cleanup proof after the bulk pass; the additional reading-progress audit remains deferred. The shared outer backup is verified, normal Mylar is available and the compatible Komga reader is healthy. Bulk and experimental worker processing remain separately held; feature 023 owns the [current recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work).
 
+The [Ready Writer-session source proposal](../023-verified-publication-corrections/evidence-history.md#ready-writer-session-source-proposal-2026-10-12) passes host controls and independent source review. T019/T023/T024 still require image and live acceptance before bulk processing. New pkexec calls remain paused.
+
 ## Phase 1: Setup
 
 **Purpose**: Record preferences, preservation requirements and prospective contracts.

@@ -34,6 +34,9 @@ class Controls(unittest.TestCase):
   p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_accepted.py',p);original=p.stat().st_ino;self.install();self.assertNotEqual(p.stat().st_ino,original);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
  def test_current_accepted_immediate_predecessor_replaced(self):
   p=self.accepted();original=p.stat().st_ino;self.assertEqual(self.manifest['modules']['publication_reader_admission']['owned_predecessor_sha256'],sha(p));self.install();self.assertNotEqual(p.stat().st_ino,original);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
+ def test_exact_previous_cohort_lifecycle_pin_upgrades(self):
+  p=self.package/'publication_reader_admission.py';shutil.copy2(ROOT/'reader_proof_install_fixtures/admission_ready_predecessor.py',p);original=p.stat().st_ino
+  self.assertEqual(sha(p),m.ADMISSION_PREDECESSORS[-1]);self.install();self.assertNotEqual(p.stat().st_ino,original);self.assertEqual(sha(p),self.manifest['modules']['publication_reader_admission']['sha256'])
  def test_current_accepted_first_ast_drift_not_rebaselined(self):
   target=self.accepted();raw=target.read_bytes();real=m.ast.parse;fired=[]
   def late(data,*args,**kwargs):

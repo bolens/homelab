@@ -316,7 +316,7 @@
   },
   {
     "path": "patch_publication_reader_cohort.py",
-    "sha256": "a6de0df18bb51e162df735d6e44f8bb841bc3fe13642b388f5bae90ceeef5354",
+    "sha256": "57e72c8f48275c6a034482bd2bbee5dc174871e5e02b259bd5c71aec547500df",
     "target": "patch_publication_reader_cohort.py"
   },
   {
@@ -476,7 +476,7 @@
   },
   {
     "path": "publication_archive_preparation_existing.py",
-    "sha256": "ce0cf1fbedd20433d54a1df02e9473b3115185aba081cf250c171f12a16301e7",
+    "sha256": "4652185332271e8a86e2388091afd000ae66876b791321e9e645cb2f5ebb4c66",
     "target": "publication_archive_preparation_existing.py"
   },
   {
@@ -541,7 +541,7 @@
   },
   {
     "path": "publication_native_configured_scope.py",
-    "sha256": "ace628118bd21ac2f50bde93eacad7e0908a0d2e5b34bd5d83222da26a842d3d",
+    "sha256": "8bdb029a7fd9aa12ab714a501a96c8e25d033260d0f31b1be03ebf143d2b1606",
     "target": "publication_native_configured_scope.py"
   },
   {
@@ -606,7 +606,7 @@
   },
   {
     "path": "publication_reader_admission.py",
-    "sha256": "ef8560e6f0895edb5e5cd2e1f9e10df735ecf70e86f88c9f1bfbed1b206442a8",
+    "sha256": "3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c",
     "target": "publication_reader_admission.py"
   },
   {
@@ -616,7 +616,7 @@
   },
   {
     "path": "publication_reader_lifecycle.py",
-    "sha256": "0a117a9932a995888a1fbeb20ff46d91b7e21b57f699781eb8ab336b2fe8b207",
+    "sha256": "9558032119aee25f3a717dcbe915b2c24705556abde6baa265818eaf26fc4c27",
     "target": "publication_reader_lifecycle.py"
   },
   {
@@ -726,7 +726,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "98102892c513b131675fd9da24435997ecc7172766d834d5226f8b62b9a82fce",
+    "sha256": "13ebd16cc2058a7330015c42ef2c9573aa7ee138d21774ff304854e61d35d46e",
     "target": "reader_recovery/comic_retained_pack_parent.py"
   },
   {
@@ -746,7 +746,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "052068259dac7ecfb9f224fa2520a2ead482bb9ddd52a23db2106f04b897f3a6",
+    "sha256": "7f6c4e4eae8ef49f6599473bcf8b9ec683292c426fad5e53308ba3b1fd81c3cd",
     "target": "reader_recovery/comic_retained_standalone_parent.py"
   },
   {
@@ -796,12 +796,12 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "9a36c7bfa411a017bf37a99b2f85fa446c5027a16b9173750ab0dbb471fb45e1",
+    "sha256": "9b387baac4917573431b5f89a14c98fc318c70191c8fdcd25f51370bfafee8d9",
     "target": "run_publication_reader_controls.py"
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "2739121ad08a1ef53fe2ab6ea6fe1f167fe17a37ff011cdd57d4d02a7e11e522",
+    "sha256": "5a8ed9996f06357def5c1091147d24525c0fbf0bdc6914461e4a99e5f8c407ff",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -1456,7 +1456,7 @@
   },
   {
     "path": "test_publication_native_configured_scope.py",
-    "sha256": "482bbe569c760b36e3b30a8f0c2bfa7b86a94d66994ead5b1d565c67b71bfbbc",
+    "sha256": "2f118b3380a7bf02187931ea064107a0c88339705d78993833521831fbb917a1",
     "target": "test_publication_native_configured_scope.py"
   },
   {
@@ -1521,7 +1521,7 @@
   },
   {
     "path": "test_publication_reader_admission.py",
-    "sha256": "e7954abc8fbd96b023955a477bf5cceb9ea68a70c1c7a6f77474bfc9b46ebb60",
+    "sha256": "84edd60c65baa7d018b3aef11c938ca3a73d0454346c8f7c8118ab56e6600895",
     "target": "test_publication_reader_admission.py"
   },
   {
@@ -1541,12 +1541,12 @@
   },
   {
     "path": "test_publication_reader_proof_installation.py",
-    "sha256": "ed5b1748ad83e9ade1a10c70599afefc34fbfe4bd568c1a99d9020d1be4482ae",
+    "sha256": "f9fb7c7782d429979ea2125d61915e7f462cfa7329458eebf0f975bd71ca4e3d",
     "target": "test_publication_reader_proof_installation.py"
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "cec95866d640c069c4994fa883f7b83141ee6aa8f140b15de2f62bc829db630c",
+    "sha256": "36ca4141408c442fb304665dd96ccc842569de84f1fe64d957ebea7de1c3bfc1",
     "target": "test_publication_reader_recovery_controls.py"
   },
   {
@@ -1638,6 +1638,11 @@
     "path": "test_queue_views.py",
     "sha256": "c3c5c7a480bbc6828e4ab4493d79547ee70e497484a9cad2ef3aca513e1c6790",
     "target": "test_queue_views.py"
+  },
+  {
+    "path": "test_ready_writer_session.py",
+    "sha256": "eeec1bcdfed0c08a373f7ddfeaa475a8b056eb226a7a6fcc4377d910ba5db8bb",
+    "target": "test_ready_writer_session.py"
   },
   {
     "path": "test_release_calendar.py",

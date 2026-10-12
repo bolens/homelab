@@ -264,7 +264,7 @@ def execute_one(plan,modules,custody,scope):
  controller,writer=exact_pair(modules,custody,scope);require_terminal_observers(modules);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  operation,opnodes=operation_directory(plan['operation'],custody);need(not os.listdir(operation),'repair-exclusive-output-operation')
  for root in (*controller.roots,controller.root,retention,scratch):need(operation!=Path(root) and operation not in Path(root).parents and Path(root) not in operation.parents,'repair-output-disjoint')
- with writer.hold(timeout=0):
+ with scope.writer_session(controller,writer):
   modules['publication_archive_history'].directory(controller,writer) # Explicit pre-backup initialization prerequisite.
   scope.revalidate();cap=prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention)
   baseline=cap.journal/'baseline.json';prep_path=cap.preparation._operation/'preparation.json'
@@ -350,7 +350,7 @@ def verify_one(plan,modules,custody,scope):
  forward=frozenset({'baseline.json','install-intent.json','installed.json','complete-intent.json','complete.json'})
  reverse=frozenset({'baseline.json','install-intent.json','installed.json','reverse-intent.json','reversed.json','rollback-complete-intent.json','rollback-complete.json'})
  need(names in (forward,reverse),'repair-finite-terminal-journal');rollback=names==reverse
- with writer.hold(timeout=0):
+ with scope.writer_session(controller,writer):
   require_terminal_observers(modules)
   observed=modules['publication_archive_history'].observe_terminal(controller,writer,custody,scope,plan['owner'],plan['operation_id'],baseline,scratch,rollback=rollback,with_vectors=True)
   need(type(observed) is dict and set(observed)=={'summary','original_vectors','history'},'repair-actual-observation-shape')
@@ -552,7 +552,7 @@ def execute_same_child(plan,modules,custody,scope,source_files,source_nodes,args
  controller,writer=exact_pair(modules,custody,scope);require_terminal_observers(modules);scratch,retention=scopes_existing(plan['archive_scopes'],custody,controller)
  operation,opnodes=operation_directory(plan['operation'],custody);need(not os.listdir(operation),'repair-exclusive-output-operation')
  for root in (*controller.roots,controller.root,retention,scratch):need(operation!=Path(root) and operation not in Path(root).parents and Path(root) not in operation.parents,'repair-output-disjoint')
- with writer.hold(timeout=0):
+ with scope.writer_session(controller,writer):
   modules['publication_archive_history'].directory(controller,writer)
   scope.revalidate();cap=prepare_one(plan,modules,custody,scope,controller,writer,scratch,retention)
   baseline=cap.journal/'baseline.json';prep_path=cap.preparation._operation/'preparation.json'
