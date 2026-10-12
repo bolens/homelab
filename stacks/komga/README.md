@@ -778,3 +778,27 @@ parent checks the result before allowing that original worker to exit; it does
 not automatically resume services or remove evidence. Actual installed source,
 configured bind geometry and terminal reader acceptance remain required before
 activation. See [the host contract](../mylar3/config/reader_recovery/CONTRACT-retained-pack.md).
+
+
+### Explicit pack-only maintenance pass
+
+For one existing capture, run the worker entry point with `--pack-capture <capture-sha256>`
+and `--pack-ddl <ddl-id>` using the configured worker mounts and configuration.
+The two selectors must identify the same current native capture. This mode requires
+shared writer coordination and configured pack imports. It acquires `worker.lock`,
+checks current publication authority and idle native processing, and uses the existing
+pack inventory/member/report/cleanup logic. Only requests produced for that selected
+capture are dispatched. It does not run conversion, naming, global maintenance,
+PDF rendering or library scans. Member preparation still uses the existing owning
+metadata and archive checks.
+
+A pass reports request counts, not completed import or library acceptance. Repeat
+with the same selectors to reconcile durable receipts; uncertain requests and
+retained accepted members remain held for their owning recovery route. A failed
+pass retains the normalizer recovery fence and originals for review. Never clear
+that fence or replace a capture/member merely to retry.
+
+This single pass does not enable future automatic pack processing. While the
+normal worker remains Created/stopped, future packs wait. Once its owning
+rollout gates permit resuming the normal worker, the existing maintenance
+`Packs.cycle()` remains the automated path; this mode adds no service or loop.

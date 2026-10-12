@@ -1010,7 +1010,7 @@ class Api(object):
             self.data = self._failureResponse('Primary API key required')
             return
         from mylar import pack_intake
-        self.data = self._successResponse(pack_intake.work())
+        self.data = self._successResponse(pack_intake.work(kwargs.get('pack_id'), kwargs.get('ddl_id')))
 
     def _packReport(self, **kwargs):
         if not mylar.CONFIG.API_ENABLED or self.apikey != mylar.CONFIG.API_KEY:

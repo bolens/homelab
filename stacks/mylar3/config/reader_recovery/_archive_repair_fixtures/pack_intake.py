@@ -117,7 +117,16 @@ def capture(processor):
     return True
 
 
-def work():
+def work(pack_id=None, ddl_id=None):
+    if pack_id is not None or ddl_id is not None:
+        if (type(pack_id) is not str or not HEX.fullmatch(pack_id)
+                or type(ddl_id) is not str or not ddl_identifier(ddl_id)):
+            raise ValueError('Exact pack capture and DDL identity required')
+        record = workflow.store().get('pack', pack_id)
+        if not record or record.get('id') != pack_id or record.get('ddl_id') != ddl_id:
+            raise ValueError('Selected pack capture unavailable')
+        return {'enabled': bool(workflow.policy().get('pack_automation')),
+                'packs': [record], 'protected': [record['source']]}
     if workflow.policy().get('pack_automation'):
         import mylar
         from mylar import db

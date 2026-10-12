@@ -66,7 +66,7 @@
   },
   {
     "path": "library_metadata.py",
-    "sha256": "287c076fa8d967255168a0dc3e7dfdfb7bb89c0ac052f5daa775eeabbf6febbe",
+    "sha256": "aa1421972534b0c1f979fa4c3650d6485737c48fe88e16bc0a54824d3508a30c",
     "target": "fixtures/child/source/library_metadata.py"
   },
   {
@@ -116,7 +116,7 @@
   },
   {
     "path": "pack_intake.py",
-    "sha256": "a257f9f94507c9a2f1e8e621fb682d97fc4aa7a4bc5b5bbe7858f5d991842a95",
+    "sha256": "24fc0d50c9569cbfe0125884ebbcb84246884770548f050e354c43fa94171582",
     "target": "fixtures/child/source/pack_intake.py"
   },
   {

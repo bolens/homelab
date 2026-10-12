@@ -37,7 +37,8 @@ def search(source):
 def api(source):
     marker = '# homelab-pack-api-v1'
     if marker in source:
-        for old,new in (("pack_intake.report(kwargs.get('report'))",
+        for old,new in (("pack_intake.work()", "pack_intake.work(kwargs.get('pack_id'), kwargs.get('ddl_id'))"),
+                        ("pack_intake.report(kwargs.get('report'))",
                          "pack_intake.report(kwargs.get('report'), kwargs.get('maintenance_handoff'))"),
                         ("pack_catalog.resolve(kwargs.get('evidence'))",
                          "pack_catalog.resolve(kwargs.get('evidence'), kwargs.get('maintenance_handoff'), kwargs.get('catalog_attempt'))")):
@@ -51,7 +52,7 @@ def api(source):
             self.data = self._failureResponse('Primary API key required')
             return
         from mylar import pack_intake
-        self.data = self._successResponse(pack_intake.work())
+        self.data = self._successResponse(pack_intake.work(kwargs.get('pack_id'), kwargs.get('ddl_id')))
 
     def _packReport(self, **kwargs):
         if not mylar.CONFIG.API_ENABLED or self.apikey != mylar.CONFIG.API_KEY:

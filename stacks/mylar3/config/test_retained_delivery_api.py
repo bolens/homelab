@@ -18,7 +18,7 @@ import test_publication_retained_finalize as fixture
 import patch_retained_delivery_api as installer
 
 ROOT=Path(__file__).parent
-API_SHA='0fade189a300b8c26ea083355d4c13a464c7960a47c6b81a4a66f76f307c83a7'
+API_SHA='7cd81fc5e511f27d0943507df7606df68f660ffe6688677b937eafba92a00c6a'
 
 class Endpoint(unittest.TestCase):
  def setUp(self):

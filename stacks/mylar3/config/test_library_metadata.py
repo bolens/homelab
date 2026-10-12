@@ -145,4 +145,68 @@ class MaintenanceTest(unittest.TestCase):
         source='def worker():\n            converted_tagging.poll()\n'
         fixed=adapter.worker(source);self.assertEqual(adapter.worker(fixed),fixed)
         with self.assertRaises(ValueError):adapter.worker('def worker(): pass')
+
+class IdlePollAdmissionTest(unittest.TestCase):
+    """Actual native admission, Writer and SQLite; disposable queue boundaries."""
+    def setUp(self):
+        import importlib
+        import queue
+        import test_publication_startup
+        self.fixture=test_publication_startup.ExistingAdmissionTests('runTest')
+        self.fixture.setUp();self.addCleanup(self.fixture.doCleanups)
+        self.store,self.writer=self.fixture.authority()
+        self.assertEqual(self.fixture.activate()['state'],'ready')
+        self.app=self.fixture.mylar;self.native=self.fixture.native
+        self.app.CONFIG=SimpleNamespace(POST_PROCESSING=True,ENABLE_META=True,CT_TAG_CR=True,
+                                       CT_TAG_CBL=False,CBR2CBZ_ONLY=False,TAGGER_BACKEND='modern')
+        self.app.APILOCK=False;self.app.PP_QUEUE=queue.Queue();self.app.logger=Mock()
+        self.workflow=importlib.import_module('mylar.workflow');self.app.workflow=self.workflow
+        original=self.workflow._STORE;self.workflow._STORE=None
+        self.addCleanup(setattr,self.workflow,'_STORE',original)
+        self.library=importlib.import_module('mylar.library_metadata');self.app.library_metadata=self.library
+        self.tagging=self.library.converted_tagging
+
+    def test_idle_disabled_policy_is_read_only_under_actual_writer_admission(self):
+        original=self.workflow.policy;calls=[];before=self.store.path.read_bytes()
+        def policy():
+            self.assertTrue(self.native.active());self.assertGreater(self.writer.local[1].depth,0)
+            calls.append(True);return original()
+        with patch.object(self.workflow,'policy',side_effect=policy),patch.object(self.library.Maintenance,'tick') as tick:
+            self.library.poll();tick.assert_not_called()
+        self.assertEqual(calls,[True]);self.assertFalse(self.native.active())
+        self.assertEqual(self.store.path.read_bytes(),before)
+        self.assertTrue(self.tagging.RUN.acquire(blocking=False));self.tagging.RUN.release()
+
+    def test_enabled_policy_and_tick_share_admitted_original_sqlite_store(self):
+        self.store.set('policy','current',{'library_missing_tags':True})
+        calls=[]
+        def tick(missing,nested):
+            self.assertTrue(self.native.active());self.assertGreater(self.writer.local[1].depth,0)
+            self.assertEqual(self.workflow.store().path,self.store.path);calls.append((missing,nested))
+        with patch.object(self.library.Maintenance,'tick',side_effect=tick):self.library.poll()
+        self.assertEqual(calls,[(True,False)]);self.assertFalse(self.native.active())
+
+    def test_refused_admission_does_not_kill_idle_consumer_or_strand_next_job(self):
+        import queue
+        import threading
+        work=queue.Queue();processed=[];errors=[];finished=threading.Event()
+        def consume():
+            try:
+                # Same unhandled idle poll boundary as the native PP worker.
+                self.library.poll();work.put('queued-native-job')
+                processed.append(work.get_nowait())
+            except Exception as error:errors.append(type(error).__name__)
+            finally:finished.set()
+        with patch.object(self.native,'admission',side_effect=self.fixture.guard.Unavailable('secret fixture path')), patch.object(self.workflow,'policy',wraps=self.workflow.policy) as policy:
+            thread=threading.Thread(target=consume);thread.start();self.assertTrue(finished.wait(3));thread.join(3)
+            policy.assert_not_called()
+        self.assertEqual(errors,[]);self.assertEqual(processed,['queued-native-job'])
+        self.assertNotIn('secret fixture path',str(self.app.logger.warn.call_args_list))
+        self.assertTrue(self.tagging.RUN.acquire(blocking=False));self.tagging.RUN.release()
+
+    def test_existing_native_queue_priority_never_reads_policy(self):
+        self.app.PP_QUEUE.put('native-first')
+        with patch.object(self.workflow,'policy') as policy:self.library.poll();policy.assert_not_called()
+        self.assertEqual(self.app.PP_QUEUE.get_nowait(),'native-first')
+
 if __name__=='__main__':unittest.main()

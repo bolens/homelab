@@ -1288,3 +1288,12 @@ controls check exact bytes, file ownership and the five allowed fixture paths.
 The final image copies only those three modules. Deployment enrollment, keys
 and activation are separate operational steps. An image build does not release
 the processing hold.
+
+
+DDL worker status updates retain their original queue generation and release
+provenance. A removed or replaced row is not recreated by a status-only update;
+changed owner/date/handoff state retains the source for review. Initial full
+provider capture remains unchanged. Existing skeletal rows do not acquire
+reconstructed owners from this correction. `patch_ddl_status_retention.py` runs
+after the existing queue adapters, and the installed-image gate exercises
+`test_status_retention.py` against the actual installed native source.

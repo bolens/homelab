@@ -8,10 +8,10 @@
 
 - Completed: T011/T013 repair adoption and durable history implementation, and T014 contract review. The compact reader passes the actual database and both 77-test suites.
 - T012/T015: finish configured reader continuity, archive prepare→execute→terminal proof and matching-cohort delivery.
-- T016/T017: the shared outer backup and isolated restore are verified. Finish matching-worker and configured reader/repair preparation, then prove real archive, owner, catalog and reader recovery.
+- T016/T017: the shared outer backup and isolated restore are verified. The compatible reader is healthy with all schema/table fingerprints preserved. Finish matching-worker and configured repair preparation, then prove real archive, owner, catalog and reader recovery.
 - T018: complete shared current-library acceptance before repaired-archive or bulk processing resumes.
 
-Feature 023 owns the [configured recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and records the accepted outer-backup verification. Normal Mylar is available while experimental-worker, bulk and archive-recovery work remain held. Remaining repair acceptance uses scoped Writer windows without requiring a blanket Mylar outage.
+Feature 023 owns the [configured recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and records the accepted outer-backup verification. Normal Mylar and the compatible Komga reader are available while experimental-worker, bulk and archive-recovery work remain held. Remaining repair acceptance uses scoped Writer windows without requiring a blanket Mylar outage.
 
 ## Phase 1: Setup
 
@@ -60,9 +60,9 @@ Independent test: one isolated owned repair completes with matching reader/nativ
 
 ## Phase 7: Scoped live acceptance
 
-- [ ] T016 Coordinate writers, capture fresh affected-state/reader/native baselines, measure and create consistent backup plus independently verified restore, then deploy compatible matching images following owning READMEs; record exact actual image/process and private evidence digests in this file.
+- [ ] T016 Coordinate writers, capture fresh affected-state/reader/native baselines, measure and create consistent backup plus independently verified restore, then deploy compatible matching images following owning READMEs using brief affected-operation writer windows and normal Mylar startup; record exact actual image/process and private evidence digests in this file.
 - [ ] T017 [US3] Execute the supported retained-original repair through its dedicated owning route, verify actual archive/owner/catalog/reader state and guarded repeat handling, and reconcile DDL only through actual ordinary import acknowledgement; update feature 022/023 acceptance evidence without claiming general writer release prematurely.
-- [ ] T018 [US3] Verify restart, rollback/lost-response refusal and complete current-library acceptance; reference feature 023 T018 shared current-library acceptance before ordinary/bulk resumption, then feature 022 T024 final post-bulk acceptance; prune only conclusively superseded operation-owned copies while retaining one independently verified current backup and unresolved originals.
+- [ ] T018 [US3] Verify restart, rollback/lost-response refusal and complete current-library acceptance; reference feature 023 T018 shared current-library acceptance before experimental bulk resumption and feature 022 T024 final post-bulk acceptance. Ordinary Mylar remains available under its existing per-operation checks; prune only conclusively superseded operation-owned copies while retaining one independently verified current backup and unresolved originals.
 
 ## Dependencies and execution
 

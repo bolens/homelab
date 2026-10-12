@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).parent
-API_SHA = '0fade189a300b8c26ea083355d4c13a464c7960a47c6b81a4a66f76f307c83a7'
+API_SHA = '7cd81fc5e511f27d0943507df7606df68f660ffe6688677b937eafba92a00c6a'
 # Exact public build-only worker closure; no sibling or runtime config copy.
 PACK_FIXTURES = frozenset((
     'test_fixtures/retained_pack_worker/archive_repair_handoff.py',
@@ -32,6 +32,7 @@ PACK_FIXTURES = frozenset((
     'test_fixtures/retained_pack_worker/ordinary_import_ack.py',
     'test_fixtures/retained_pack_worker/ordinary_import_observation.py',
     'test_fixtures/retained_pack_worker/pack_recovery.py',
+    'test_fixtures/retained_pack_worker/pack_only.py',
     'test_fixtures/retained_pack_worker/pdf_conversion.py',
     'test_fixtures/retained_pack_worker/publication_archive_derivative.py',
     'test_fixtures/retained_pack_worker/publication_archive_diagnostics.py',
@@ -52,6 +53,9 @@ PACK_FIXTURES = frozenset((
     'test_fixtures/retained_pack_worker/source-pins.json',
     'test_fixtures/retained_pack_worker/writer_cycle.py',
 ))
+
+DDL_STATUS_FIXTURES = frozenset(('test_fixtures/ddl_status_retention/db.py',
+    'test_fixtures/ddl_status_retention/ddl.py'))
 
 # Exact standalone build-only siblings; preserve their repository-style paths.
 STANDALONE_FIXTURES = frozenset((
@@ -85,7 +89,7 @@ def main(family="all"):
     assert family in ("all", "observation", "retained")
     entries = json.loads((ROOT / 'import_api_control_sources.json').read_text())
     assert isinstance(entries, list) and 1 <= len(entries) <= 512
-    assert PACK_FIXTURES | set(HOST_SOURCES) | STANDALONE_FIXTURES | {STANDALONE_MANIFEST} <= {row['path'] for row in entries}
+    assert PACK_FIXTURES | DDL_STATUS_FIXTURES | set(HOST_SOURCES) | STANDALONE_FIXTURES | {STANDALONE_MANIFEST} <= {row['path'] for row in entries}
     files, nodes, buffers = {}, {}, {}
     # Capture the complete original set before the first source read.
     for row in entries:
@@ -94,7 +98,7 @@ def main(family="all"):
         assert not rel.is_absolute() and '..' not in rel.parts
         assert (len(rel.parts) == 1 and rel.suffix == '.py'
                 or row['path'] == 'import_api_fixtures/api_predecessor.py'
-                or row['path'] in PACK_FIXTURES or row['path'] in HOST_SOURCES
+                or row['path'] in PACK_FIXTURES or row['path'] in DDL_STATUS_FIXTURES or row['path'] in HOST_SOURCES
                 or row['path'] in STANDALONE_FIXTURES or row['path'] == STANDALONE_MANIFEST)
         path = ROOT / rel
         assert path not in files
@@ -133,7 +137,7 @@ def main(family="all"):
                 assert hashlib.sha256(data).hexdigest() == API_SHA
                 (preimages / 'api.py').write_bytes(data)
             else:
-                assert (len(Path(name).parts) == 1 or name in PACK_FIXTURES or name in HOST_SOURCES
+                assert (len(Path(name).parts) == 1 or name in PACK_FIXTURES or name in DDL_STATUS_FIXTURES or name in HOST_SOURCES
                         or name in STANDALONE_FIXTURES or name == STANDALONE_MANIFEST)
                 destination = config / HOST_SOURCES.get(name, name)
                 assert destination not in destinations

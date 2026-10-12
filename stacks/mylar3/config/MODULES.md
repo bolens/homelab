@@ -524,3 +524,12 @@ crypto bridge changes only private test copies; the public Arch host source
 stays unchanged. The offline verifier supplies a private disposable HOME under
 `/run/authenticated-fixtures` without changing the runtime activation policy.
 The checked build stage keeps installation root-owned, then runs its verifier as UID/GID 1000 with supplementary groups cleared. Test journals use a bounded 256 MiB temporary filesystem and a separate private 64 MiB HOME, matching the directory and ownership semantics of the offline image gate. These mounts exist only during verification. The host package still requires separate reviewed root provisioning.
+
+
+DDL worker status updates retain their original queue generation and release
+provenance. A removed or replaced row is not recreated by a status-only update;
+changed owner/date/handoff state retains the source for review. Initial full
+provider capture remains unchanged. Existing skeletal rows do not acquire
+reconstructed owners from this correction. `patch_ddl_status_retention.py` runs
+after the existing queue adapters, and the installed-image gate exercises
+`test_status_retention.py` against the actual installed native source.

@@ -73,6 +73,8 @@ def request(maintenance, command, arguments, guards):
     root.mkdir(exist_ok=True,mode=0o700)
     paths=list(root.glob('*.json'))
     path = root/(token+'.json')
+    if hasattr(maintenance, '_pack_only_native'):
+        maintenance._pack_only_native.add(path)
     if not path.exists():
         if len(paths) >= 4096:
             raise Unavailable('Maintenance handoff retention requires review')
@@ -138,7 +140,7 @@ def packet(maintenance, record, token):
                 census=record['proof']['census'],sources=sources)
 
 
-def dispatch(maintenance):
+def dispatch(maintenance, selected_paths=None):
     from media_writer import Writer, Busy
     from writer_cycle import bind_state
     worker=maintenance.worker
@@ -146,7 +148,9 @@ def dispatch(maintenance):
     root=maintenance.state/'native-handoffs'
     if not root.exists():return 0
     if maintenance.state!=worker.state/'maintenance':raise Unavailable('Foreign maintenance state')
-    paths=sorted(root.glob('*.json'))
+    paths=sorted(root.glob('*.json')) if selected_paths is None else sorted(selected_paths)
+    if any(path.parent!=root or not re.fullmatch(r'[a-f0-9]{64}\.json',path.name) for path in paths):
+        raise Unavailable('Foreign selected maintenance handoff')
     if len(paths)>4096:raise Unavailable('Maintenance handoff count exceeds bound')
     writer=Writer(worker.config['writer_state'],create=False)
     # Bounded round-robin inspection prevents one retained stale request from

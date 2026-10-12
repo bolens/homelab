@@ -151,6 +151,9 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
                   else json.loads(receipt.read_text()))
         if record.get('match') != match:
             return 'import_review'
+        if hasattr(maintenance, '_pack_only_imports'):
+            maintenance._pack_only_imports.add(receipt)
+
         if workflow_command is not None and record.get('phase')=='prepared':
             from publication_guard import evidence
             if (record.get('workflow_command')==workflow_command
@@ -232,6 +235,8 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
         record.update(phase='prepared',prepared_at=time.time(),remote_folder=str(remote/stage.name),
                       publication=dict(version=1,source=source_proof,stage=stage_proof))
         handoff_save(receipt,record)
+        if hasattr(maintenance, '_pack_only_imports'):
+            maintenance._pack_only_imports.add(receipt)
         maintenance.import_submitted = True
         return 'ready'  # Prepared is never acknowledged as queued.
     save(receipt, record)  # Persist before the potentially accepted network request.
@@ -247,7 +252,7 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     return 'import_queued'
 
 
-def dispatch_prepared(maintenance):
+def dispatch_prepared(maintenance, selected_paths=None):
     """One durable attempt after complete cycle/fence clearance, outside HTTP lock."""
     from maintenance import scoped_file
     from media_writer import Writer, Busy
@@ -261,7 +266,9 @@ def dispatch_prepared(maintenance):
     if not receipts.exists():return 0
     if maintenance.state != worker.state/'maintenance':
         raise Unavailable('Import handoff belongs to foreign worker state')
-    paths = sorted(receipts.glob('*.json'))
+    paths = sorted(receipts.glob('*.json')) if selected_paths is None else sorted(selected_paths)
+    if any(path.parent != receipts or not re.fullmatch(r'[a-f0-9]{64}\.json', path.name) for path in paths):
+        raise Unavailable('Foreign selected import handoff')
     if len(paths) > 4096:raise Unavailable('Import handoff count exceeds bounds')
     writer = Writer(root,create=False)
     for path in paths:
