@@ -910,7 +910,9 @@ class LifecycleParent:
             base = {'protocol', 'type', 'nonce', 'input_sha256', 'parent_sha256', 'sequence', 'challenge'}
             need((set(message) == base and message['type'] == 'challenge'
                   or set(message) == base | {'birth'} and message['type'] == 'birth-commit'
-                  or self.plan.get('version') in (10,11,12) and set(message)==base|{'writer_session'} and message['type']=='challenge'
+                  or (self.plan.get('version') in (10,11,12)
+                      or self.plan.get('version')==9 and self.plan.get('kind')=='reviewed-negative-five-lifecycle-protocol' and phase in ('prepare','execute'))
+                  and set(message)==base|{'writer_session'} and message['type']=='challenge'
                   or self.plan.get('version') in (11,12) and phase=='execute' and set(message)==base|{'terminal'} and message['type']=='terminal-observation')
                  and message['protocol'] == 'reader-lifecycle-pipe-v1' and message['nonce'] == self.plan['nonce']
                  and message['input_sha256'] == input_ref['sha256']
@@ -930,7 +932,8 @@ class LifecycleParent:
                  and same_runtime(fresh['worker'], observed['held_worker'])
                  and fresh['child_mounts'] == current['Mounts'], 'fresh-native-worker-mounts')
             if ws is not None and ws.get('stage')=='enter':
-                need(self.plan.get('version') in (10,11,12) and phase in ('execute','verify-terminal') and writer_session is None
+                need((self.plan.get('version') in (10,11,12) and phase in ('execute','verify-terminal')
+                      or self.plan.get('version')==9 and self.plan.get('kind')=='reviewed-negative-five-lifecycle-protocol' and phase in ('prepare','execute')) and writer_session is None
                      and set(ws)=={'version','stage','session','process','writer_identity','census'}
                      and type(ws['version']) is int and ws['version']==1 and digest(ws['session'])
                      and type(ws['process']) is dict and set(ws['process'])=={'pid','start_ticks'}

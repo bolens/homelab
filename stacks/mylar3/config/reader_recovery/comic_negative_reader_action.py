@@ -286,7 +286,7 @@ def purpose_existing(plan,lifecycle,modules,*,execute):
  admission=modules['publication_reader_admission'];need(admission.PARENT_SHA==plan['parent_sha256'],'action-owning-parent-pin')
  doc=invocation_document(plan,lifecycle,action);invocation=write(Path(action['operation'])/'invocation.json',doc,expected_nodes=operation_nodes)
  context=admission.enter_checked_child(invocation['path'],invocation['sha256'],plan['nonce'],parent_sha=plan['parent_sha256'],source_sha=plan['admission_source_sha256'],argv=doc['command'],lifecycle=lifecycle)
- with writer.hold(timeout=0):
+ with scope.writer_session(controller,writer):
   scope.revalidate();coordinator=modules['publication_reader_native_coordinator'].from_held_existing(controller,writer)
   preps=[modules['publication_negative'].prepare_existing(controller,writer,Path(member['source']),member['owner'],Path(member['counterpart']),Path(member['retained']),Path(member['restore'])) for member in action['members']]
   admitted=admission.admit_child(context,coordinator,preps);reader=modules['publication_reader_phase'].from_admission(admitted)

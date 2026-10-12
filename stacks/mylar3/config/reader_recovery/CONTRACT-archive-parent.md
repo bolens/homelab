@@ -154,3 +154,11 @@ Default-disabled plan12 preserves the plan11 same-child contract and adds an ori
 The source-owned `writer_session` extension of `reader-lifecycle-pipe-v1` carries version, stage (`enter`, `held`, `leave`), original session nonce, child process PID/start ticks, Writer identity and the complete prelease census. Enter completes before Writer acquisition. The held and idle branches retain that original unlocked observation and close local process, source and physical custody without Docker or API calls. The child independently proves its exact configured Controller paths and original ordinary Writer locally. Ready/verified and legacy startup-held observations require the same complete census; no fresh empty census or startup reset is admitted.
 
 The terminal reply is sealed pending with all six rights false. ACK remains inside the original Writer. Only one post-ACK leave may follow its actual release; the consumed ACK sequence is retained separately from the leave conversation sequence. The existing independent terminal/worker checks run after release, before acceptance and natural exit. A failed acquisition permits a no-work leave, not a terminal grant. Lost enter, ACK or leave and postrelease original drift retain uncertainty without replay or refreshed expectations. Local SDK completion may clear its successor marker before parent acceptance; that does not establish independent acceptance or reader resume. Ordinary postrelease drift must refuse. Installed source/cohort, actual child/worker geometry, NFS and configured terminal execution remain separate acceptance requirements.
+
+The reviewed negative-five version9 provider uses the same enter/held/leave
+fields only for prepare and execute. Its owning purpose requires the original
+complete registry census through forward or rollback terminal proof. The
+existing main report, unlocked watch and ordinary ACK remain after release;
+negative-five does not gain the archive pending-terminal exchange or any
+terminal, publication or resume right from its Writer session. Backup and
+verify-terminal cannot announce a negative-five Writer session.
