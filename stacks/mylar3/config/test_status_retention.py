@@ -1,4 +1,4 @@
-import ast,copy,datetime,hashlib,sqlite3,sys,threading,types,unittest
+import ast,copy,datetime,sqlite3,sys,threading,types,unittest
 from pathlib import Path
 from queue import Queue
 import patch_ddl_status_retention as patcher

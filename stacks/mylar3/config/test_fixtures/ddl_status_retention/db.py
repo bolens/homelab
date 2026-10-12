@@ -179,7 +179,7 @@ class DBConnection:
 
 
     def upsert(self, tableName, valueDict, keyDict):
-        thisthread = threading.current_thread().name
+        threading.current_thread().name
 
         changesBefore = self.connection.total_changes
 

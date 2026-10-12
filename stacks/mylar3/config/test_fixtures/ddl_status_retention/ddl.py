@@ -154,7 +154,7 @@ def ddl_downloader(queue):
             else:
                 if item['site'] == 'DDL(GetComics)':
                     try:
-                        ltf = ddzstat['links_exhausted']
+                        ddzstat['links_exhausted']
                     except KeyError:
                         logger.info('[Status: %s] Failed to download item from %s : %s ' % (ddzstat['success'], item['link_type'], ddzstat))
                         try:

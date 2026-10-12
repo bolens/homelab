@@ -649,7 +649,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "bc50e61927e7bb8e6b5fa5226514739e2d8596c3800fbd55ab960f1b74bd0592"
+    "sha256": "5c38f0e206838dd47fa6001f431198c51cff7eaa57bde7040b2693e47b36dd0a"
   },
   {
     "path": "story_arc_search.py",
@@ -825,11 +825,11 @@
   },
   {
     "path": "test_fixtures/ddl_status_retention/db.py",
-    "sha256": "20cf5a9bf0479ca760f4ab53c6485e8525c10769b055dd1e8f38331e31b24e67"
+    "sha256": "2171f5147ad8221d3deb7b36b870e5ed4b0951915b208b6eb9117bfc8a8bc404"
   },
   {
     "path": "test_fixtures/ddl_status_retention/ddl.py",
-    "sha256": "92a5e43ac84c635a87a93a1085afeb32f9357ba26daa24516677b6f8033792d4"
+    "sha256": "696823a00846abd9540f2fe3d7e8e3c21e0632750db89d2d2db06e5548829f06"
   },
   {
     "path": "test_fixtures/retained_pack_worker/archive_repair_handoff.py",
@@ -1361,7 +1361,7 @@
   },
   {
     "path": "test_status_retention.py",
-    "sha256": "92c5b3e66c7802f01f9e5103fa85961164e5c1669d5b853bd184f6cf177e14e5"
+    "sha256": "dbffb86f52f34024edac9f9bd947392d64ad8f2a3092b7a26dfa6683f43ff453"
   },
   {
     "path": "test_story_arc_search.py",

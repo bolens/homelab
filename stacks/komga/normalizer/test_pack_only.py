@@ -1,13 +1,10 @@
 """Selected capture controls; original copy/ACK suites remain separate."""
-import ast
 import json
-import re
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 import test_pack_recovery
-from pack_recovery import Packs
 
 HERE=Path(__file__).parent
 
@@ -125,9 +122,21 @@ class ProducedReceiptTests(unittest.TestCase):
         unrelated=next(p for p in (f.m.state/'native-handoffs').glob('*.json') if p!=selected)
         f.arguments=dict(f.arguments,catalog_attempt='1');f.m._pack_only_native.clear();f.prepare()
         self.assertEqual(f.m._pack_only_native,{selected})
-        f.m.mylar.side_effect=f.api
+        def selected_api(command,**kwargs):
+            if command=='getHealth':return f.api(command,**kwargs)
+            self.assertFalse(getattr(f.writer.local[1],'depth',0))
+            self.assertFalse(f.writer.fenced())
+            self.assertEqual(command,'packCatalog')
+            packet=json.loads(kwargs['maintenance_handoff'])
+            self.assertEqual(packet['token'],selected.stem)
+            self.assertEqual(json.loads(selected.read_text())['phase'],'dispatching')
+            self.assertEqual(packet['sources'][0]['path'],str(f.native_root/f.source.name))
+            return {'phase':'ready','issueid':'999','comicid':'888'}
+        f.m.mylar.side_effect=selected_api
         with patch('native_handoff.scope',f.portable):
             self.assertEqual(dispatch(f.m,tuple(f.m._pack_only_native)),1)
+            self.assertEqual(dispatch(f.m,tuple(f.m._pack_only_native)),0)
+        self.assertEqual(sum(call.args[0]=='packCatalog' for call in f.m.mylar.call_args_list),1)
         self.assertEqual(json.loads(unrelated.read_text())['phase'],'prepared')
         self.assertEqual(json.loads(selected.read_text())['phase'],'complete')
 
