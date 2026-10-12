@@ -43,9 +43,9 @@ WRITER_SHA = None
 SELECTED_SDK = None
 READY_INPUT = None
 READY_INPUT_SHA = None
-SCOPE_SHA="ace628118bd21ac2f50bde93eacad7e0908a0d2e5b34bd5d83222da26a842d3d"
+SCOPE_SHA="8bdb029a7fd9aa12ab714a501a96c8e25d033260d0f31b1be03ebf143d2b1606"
 _NATIVE_PROJECTOR=None
-CHECKED_PROBE_SHA = "7646a5cf0feb71867382fcc2a32d89326042be5eee95035f3479a7f7de28fba9"
+CHECKED_PROBE_SHA = "9b2f6916d1b574e3ca7cd3781ea67f05c265fce582bd5f6ab05ffd110c4487af"
 _COHORT = None
 DOCKER = ["pkexec", "/usr/bin/docker", "--host", "unix:///run/docker.sock"]
 
@@ -321,6 +321,24 @@ def validate(plan, scope):
         exact(ref, ("path", "sha256"))
         fact(ref["path"], ref["sha256"])
     return fixture, out, roots
+
+
+def unlocked_publication(pub):
+    # Unlocked observations retain the complete source-owned census; a live
+    # owned Writer is checked separately and must expose no census.
+    check(type(pub) is dict and (pub.get('state'), pub.get('reason')) in
+          (('held', 'startup-restart-required'), ('ready', 'verified')),
+          'unlocked-native-state')
+    census = pub.get('census')
+    check(type(census) is dict and set(census) == {'version', 'epoch', 'revision', 'keys', 'digest'}
+          and type(census['version']) is int and census['version'] == 1
+          and type(census['epoch']) is str and re.fullmatch('[a-f0-9]{64}', census['epoch'])
+          and type(census['revision']) is int and 0 <= census['revision'] <= 512
+          and type(census['keys']) is list
+          and all(type(k) is str and re.fullmatch('[a-f0-9]{64}', k) for k in census['keys'])
+          and census['keys'] == sorted(set(census['keys']))
+          and len(census['keys']) == census['revision']
+          and census['digest'] == digest(encode(census['keys'])), 'unlocked-complete-census')
 
 
 def fresh_native(call, container_id):
@@ -627,8 +645,7 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None):
         health = fresh_native(call, next(r["Id"] for r in rows if r["Name"]=="/mylar3"))
         pub = health['publication']
         if lease is None:
-            check(pub['state'] == 'held' and pub['reason'] == 'startup-restart-required'
-                  and pub['census']['revision'] == 13 and len(pub['census']['keys']) == 13, 'held-census')
+            unlocked_publication(pub)
         else:
             lease.pulse()
             check(pub['state'] == 'held' and pub['reason'] == 'writer-busy'
@@ -1564,9 +1581,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         configured_writer_mapping(native['Mounts'],health['config'],WRITER_ROOT)
         publication = health['publication']
         if active_lease is None:
-            check(publication['state'] == 'held' and publication['reason'] == 'startup-restart-required'
-                  and publication['census']['revision'] == 13 and len(publication['census']['keys']) == 13,
-                  'current-held-census')
+            unlocked_publication(publication)
         else:
             active_lease.pulse()
             check(publication['state'] == 'held' and publication['reason'] == 'writer-busy'
@@ -1722,7 +1737,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         health=fresh_native(call,native_row['Id'])
         projection=_NATIVE_PROJECTOR(dict(inspect=native_row,process=health['process'],publication=health['publication']))
         observed=dict(mapping=live,native_process=health['process'],native_config=health['config'],projection=projection)
-        # Lease has ended. Original startup hold/census must return, not writer-busy.
+        # Lease has ended. The original unlocked state and complete census must return.
         check(observed['native_process']==initial['native_process'] and observed['native_config']==initial['native_config']
               and projection==initial_projection,'post-release-original-native-census')
         actual_mount=observe_mount(core['library_root']);actual_device=stamp(canonical(core['library_root']))[0]

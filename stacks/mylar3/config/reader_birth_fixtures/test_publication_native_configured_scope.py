@@ -148,4 +148,18 @@ class Controls(unittest.TestCase):
    with self.subTest(arg=arg),self.assertRaises(m.Held):m.data_from_argv(['python3','/app/mylar3/Mylar.py','--datadir',str(self.data),arg,'/foreign'])
  def test_explicit_supported_launch_flags(self):
   self.assertEqual(m.data_from_argv(['python3','/app/mylar3/Mylar.py','--quiet','--datadir',str(self.data),'--nolaunch','--port','8090']),str(self.data))
+ def test_ready_verified_original_scope_no_new_rights(self):
+  self.nvalue['publication'].update(state='ready',reason='verified');self.c.response['native']=copy.deepcopy(self.nvalue);self.write_proof()
+  x=self.make();x.revalidate();self.assertFalse(x.binding['mutation_authority']);self.assertFalse(x.binding['publication_acceptance'])
+ def test_ready_original_epoch_change_refused(self):
+  self.nvalue['publication'].update(state='ready',reason='verified');self.c.response['native']=copy.deepcopy(self.nvalue);self.write_proof();x=self.make()
+  self.c.response['native']['publication']['census']['epoch']='e'*64
+  with self.assertRaises(m.Held):x.revalidate()
+ def test_ready_scope_refuses_lost_native_response(self):
+  self.nvalue['publication'].update(state='ready',reason='verified');self.c.response['native']=copy.deepcopy(self.nvalue);self.write_proof();x=self.make()
+  with patch.object(self.custody,'native_observation',side_effect=l.Held('lost-response')),self.assertRaises(l.Held):x.revalidate()
+ def test_writer_busy_or_pending_never_unlocked_scope(self):
+  for state,reason,census in [('held','writer-busy',None),('held','media-pending',self.nvalue['publication']['census']),('ready','startup-restart-required',self.nvalue['publication']['census'])]:
+   value=copy.deepcopy(self.nvalue);value['publication'].update(state=state,reason=reason,census=census)
+   with self.subTest(reason=reason),self.assertRaises(m.Held):m.observed_native(value)
 if __name__=='__main__':unittest.main()

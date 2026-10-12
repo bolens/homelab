@@ -19,7 +19,7 @@ import threading
 import time
 from urllib.parse import unquote,urlsplit
 import weakref
-_KEY=object();_SEALS=weakref.WeakKeyDictionary();_PIPE_SEALS=weakref.WeakKeyDictionary()
+_KEY=object();_SEALS=weakref.WeakKeyDictionary();_PIPE_SEALS=weakref.WeakKeyDictionary();_WRITER_PIPE=weakref.WeakKeyDictionary()
 BIRTH_SOURCE=Path('/app/mylar3/mylar/publication_native_scope_birth.py')
 MAX=64*1024**2
 FRAME_MAX=1024**2
@@ -93,9 +93,11 @@ class ParentPipe:
    z=os.fstat(descriptor)
    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=fact:raise Held('lifecycle-original-pipe-FD')
   return expected
- def challenge(self,nonce,input_sha,parent_sha):
+ def challenge(self,nonce,input_sha,parent_sha,writer_session=None):
   original=self.binding();self.seq+=1;token=secrets.token_hex(32)
-  raw=encoded(dict(protocol='reader-lifecycle-pipe-v1',type='challenge',nonce=nonce,input_sha256=input_sha,parent_sha256=parent_sha,sequence=self.seq,challenge=token))+b'\n'
+  message=dict(protocol='reader-lifecycle-pipe-v1',type='challenge',nonce=nonce,input_sha256=input_sha,parent_sha256=parent_sha,sequence=self.seq,challenge=token)
+  if writer_session is not None:message['writer_session']=copy.deepcopy(writer_session)
+  raw=encoded(message)+b'\n'
   count=0
   while count<len(raw):count+=os.write(self.output,raw[count:])
   end=time.monotonic()+10;buf=bytearray()
@@ -103,7 +105,9 @@ class ParentPipe:
    require(time.monotonic()<end and len(buf)<FRAME_MAX,'lifecycle-pipe-bound')
    ready=select.select([self.input],[],[],max(0,end-time.monotonic()))[0];require(bool(ready),'lifecycle-parent-unavailable')
    b=os.read(self.input,1);require(bool(b),'lifecycle-parent-closed');buf.extend(b)
-  value=decoded(buf);base={'protocol','type','sequence','challenge','nonce','input_sha256','parent_sha256','reader','child_source_sha256','child_image'};require(set(value) in (base,base|{'native','worker','child_mounts'}),'lifecycle-pipe-schema');require(value['protocol']=='reader-lifecycle-pipe-v1' and value['type']=='observation' and value['sequence']==self.seq and value['challenge']==token and value['nonce']==nonce and value['input_sha256']==input_sha and value['parent_sha256']==parent_sha,'lifecycle-pipe-response')
+  value=decoded(buf);base={'protocol','type','sequence','challenge','nonce','input_sha256','parent_sha256','reader','child_source_sha256','child_image'};require(set(value) in ((base,base|{'native','worker','child_mounts'}) if writer_session is None else (base|{'native','worker','child_mounts','writer_session'},)),'lifecycle-pipe-schema')
+  if writer_session is not None:require(value['writer_session']==writer_session,'lifecycle-writer-session-response')
+  require(value['protocol']=='reader-lifecycle-pipe-v1' and value['type']=='observation' and value['sequence']==self.seq and value['challenge']==token and value['nonce']==nonce and value['input_sha256']==input_sha and value['parent_sha256']==parent_sha,'lifecycle-pipe-response')
   require(self.binding()==original,'lifecycle-pipe-descriptor-CAS')
   return value
 class StoppedReaderCustody:
@@ -145,6 +149,26 @@ class StoppedReaderCustody:
     require(p not in self.nodes or self.nodes[p]==v,'lifecycle-birth-node-conflict');self.nodes[p]=copy.deepcopy(v)
    passive(copy.deepcopy(birth_files),copy.deepcopy(birth_nodes))
   self.core=self._core();_SEALS[self]=self.core;self.observed=None;self.revalidate_stopped();self.vectors()
+ def writer_enter(self,scope,binding):
+  require(self not in _WRITER_PIPE,'lifecycle-no-active-writer-session')
+  module=importlib.import_module('mylar.publication_native_configured_scope')
+  require(type(scope) is module.NativeConfiguredScope and scope._custody is self,'lifecycle-owning-writer-scope')
+  expected=_SEALS.get(self);self._sealed(expected);original=self.native_observation()
+  require(module.observed_native(original['native'])==scope._native,'lifecycle-writer-prelease-original')
+  raw=encoded(binding);origin=encoded({k:original[k] for k in ('native','worker','child_mounts')})
+  response=self.channel.challenge(self.nonce,self.input_sha,self.parent_sha,dict(decoded(raw),stage='enter'))
+  require(module.observed_native(response['native'])==scope._native and module.observed_worker(response['worker'])==scope._worker and response['child_mounts']==scope._mounts,'lifecycle-writer-enter-original')
+  origin=encoded({k:response[k] for k in ('native','worker','child_mounts')})
+  self._sealed(expected);passive(copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent))
+  _WRITER_PIPE[self]=(scope,raw,origin)
+ def writer_leave(self,scope,binding):
+  session=_WRITER_PIPE.get(self);require(session is not None and session[0] is scope and encoded(binding)==session[1],'lifecycle-original-writer-leave')
+  expected=_SEALS.get(self);self._sealed(expected)
+  response=self.channel.challenge(self.nonce,self.input_sha,self.parent_sha,dict(decoded(session[1]),stage='leave'))
+  module=importlib.import_module('mylar.publication_native_configured_scope')
+  require(module.observed_native(response['native'])==scope._native,'lifecycle-writer-leave-original-unlocked')
+  require(_WRITER_PIPE.get(self) is session,'lifecycle-writer-leave-original-session');self._sealed(expected)
+  passive(copy.deepcopy(self.files),copy.deepcopy(self.nodes),tuple(self.absent));_WRITER_PIPE.pop(self,None)
  def _core(self):return hashlib.sha256(encoded(dict(command=self.command,paths=[str(self.input),str(self.control),str(self.config_root),str(self.main),str(self.tasks),str(self.restore_root),str(self.scratch)],deadline=self.deadline,backup_manifest=self.backup_manifest,backup_acceptance=self.backup_acceptance,input_sha=self.input_sha,nonce=self.nonce,parent_sha=self.parent_sha,thread=self.thread,channel=id(self.channel),channel_seal=self.channel_seal,reader=self.reader,invocation=self.invocation,proofs=self.proofs,files={str(p):v for p,v in self.files.items()},reader_files={str(p):v for p,v in self.reader_files.items()},nodes={str(p):v for p,v in self.nodes.items()},absent=list(map(str,self.absent)),reader_absent=list(map(str,self.reader_absent))))).hexdigest()
  def _sealed(self,expected):
   require(self.channel.binding()==self.channel_seal,'lifecycle-original-channel')
@@ -153,7 +177,13 @@ class StoppedReaderCustody:
   expected=_SEALS.get(self);self._sealed(expected)
   files=copy.deepcopy(self.files);nodes=copy.deepcopy(self.nodes);absent=tuple(self.absent);base=copy.deepcopy(self.reader['runtime']);provider=self.reader['child_source_sha256'];image=self.reader['child_image']
   require(self._core()==self.core==_SEALS.get(self) and threading.get_ident()==self.thread and time.monotonic()<self.deadline,'lifecycle-custody-lifetime')
-  observation=self.channel.challenge(self.nonce,self.input_sha,self.parent_sha)
+  session=_WRITER_PIPE.get(self)
+  if session is None:observation=self.channel.challenge(self.nonce,self.input_sha,self.parent_sha)
+  else:
+   scope,binding,original=session;proof=scope._writer_proof();require(encoded(proof)==binding,'lifecycle-own-writer-original')
+   observation=self.channel.challenge(self.nonce,self.input_sha,self.parent_sha,dict(proof,stage='held'))
+   require(encoded({k:observation[k] for k in ('native','worker','child_mounts')})==original,'lifecycle-held-original-native-challenge')
+   require(_WRITER_PIPE.get(self) is session and encoded(scope._writer_proof())==binding,'lifecycle-own-writer-after-challenge')
   state=observation['reader']
   require(all(state[k]==base[k] for k in ('Id','Image','Name','Path','Args','Config','HostConfig','Mounts')) and state['State']==base['State'] and state['State']['Running'] is False and state['State']['Pid']==0 and state['State']['Status']=='exited','lifecycle-continuous-reader-stop')
   require(observation['child_source_sha256']==provider and observation['child_image']==image,'lifecycle-selected-child')

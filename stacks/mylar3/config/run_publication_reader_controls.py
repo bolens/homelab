@@ -9,7 +9,7 @@ import tempfile
 FIXES = Path(__file__).parent
 SUITES = (
     'test_publication_archive_owned.py', 'test_publication_cohort_imports.py',
-    'test_publication_native_configured_scope.py', 'test_publication_negative.py',
+    'test_publication_native_configured_scope.py', 'test_ready_writer_session.py', 'test_publication_negative.py',
     'test_publication_negative_aggregate.py', 'test_publication_negative_batch.py',
     'test_publication_negative_batch_projection.py', 'test_publication_negative_batch_rollback_terminal.py',
     'test_publication_negative_batch_terminal.py', 'test_publication_negative_batch_transition.py',

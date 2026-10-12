@@ -21,6 +21,11 @@ class Flow(unittest.TestCase):
    def __init__(sl,custody):sl._custody=custody
    def revalidate(sl):self.case.life.revalidate_stopped()
    def controller_writer(sl):return c.controller,c.writer
+   def writer_session(sl,controller,writer):
+    # Existing repair/SQL host fixture projects the transport only. The new
+    # real-pipe session has separate connected controls, never an image grant.
+    self.assertIs(controller,c.controller);self.assertIs(writer,c.writer)
+    return writer.hold(timeout=0)
   self.modules['publication_native_configured_scope']=types.SimpleNamespace(NativeConfiguredScope=FixtureScope)
   self.private=tempfile.TemporaryDirectory(prefix='archive-provider-flow-');self.addCleanup(self.private.cleanup);self.private_root=Path(self.private.name)
   self.case.scratch=self.private_root/'scratch';self.case.scratch.mkdir(mode=0o700)

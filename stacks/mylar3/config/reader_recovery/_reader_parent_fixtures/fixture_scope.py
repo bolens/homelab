@@ -5,6 +5,8 @@ lifecycle pipe object and its immutable native proof permit existing SDK objects
 """
 import ast
 import configparser
+from contextlib import contextmanager
+import secrets
 import copy
 import hashlib
 import importlib
@@ -19,7 +21,7 @@ CONFIG_SHA='d8f02277daaf55b62f95832106e0deb97760d0d297bdf07640be98c910fbe570'
 # Root must pin the reviewed default DATA/config.ini producer before installation.
 MAIN_SHA='bf3baffade994465527103f1812a9a7df09ec09a096d64a6b9d6ff473f8fc8c4'
 CONFIG_PATH='/app/mylar3/mylar/config.py';MAIN_PATH='/app/mylar3/Mylar.py'
-_KEY=object();_SEALS=weakref.WeakKeyDictionary()
+_KEY=object();_SEALS=weakref.WeakKeyDictionary();_WRITER_SESSIONS=weakref.WeakKeyDictionary();_OWNED_PAIRS=weakref.WeakKeyDictionary()
 class Held(ValueError):pass
 def check(v,r):
  if not v:raise Held(r)
@@ -85,7 +87,7 @@ def observed_native(value):
  check(type(value) is dict and set(value)=={'inspect','process','publication'},'scope-native-observation-shape');row=value['inspect'];profile=static(row);state=row['State']
  check(type(state) is dict and state.get('Running') is True and state.get('Status') in ('running','paused') and type(state.get('Pid')) is int and state['Pid']>0 and type(state.get('StartedAt')) is str and state['StartedAt'] and type(state.get('Paused')) is bool and all(state.get(k) is False for k in ('Restarting','Dead','OOMKilled')),'scope-native-running')
  proc=value['process'];check(type(proc) is dict and set(proc)=={'pid','start_ticks','argv'} and type(proc['pid']) is int and proc['pid']>0 and type(proc['start_ticks']) is int and proc['start_ticks']>0 and type(proc['argv']) is list and 2<=len(proc['argv'])<=64 and all(type(x) is str and '\x00' not in x and len(x.encode())<=8192 for x in proc['argv']),'scope-native-process')
- pub=value['publication'];check(type(pub) is dict and pub.get('state')=='held' and pub.get('reason')=='startup-restart-required' and type(pub.get('census')) is dict,'scope-native-startup-hold')
+ pub=value['publication'];check(type(pub) is dict and (pub.get('state'),pub.get('reason')) in (('held','startup-restart-required'),('ready','verified')) and type(pub.get('census')) is dict,'scope-native-unlocked-census')
  census=pub['census'];check(set(census)=={'version','epoch','revision','keys','digest'} and type(census['version']) is int and census['version']==1 and digest(census['epoch']) and type(census['revision']) is int and 0<=census['revision']<=512 and type(census['keys']) is list and all(digest(k) for k in census['keys']) and census['keys']==sorted(set(census['keys'])) and len(census['keys'])==census['revision'] and census['digest']==hashlib.sha256(json.dumps(census['keys'],sort_keys=True,ensure_ascii=False,separators=(',',':'),allow_nan=False).encode()).hexdigest(),'scope-complete-census')
  return dict(inspect=profile,state={k:state[k] for k in ('Running','Status','Pid','StartedAt','Paused','Restarting','Dead','OOMKilled')},process=copy.deepcopy(proc),publication={k:copy.deepcopy(pub[k]) for k in ('state','reason','census')})
 def observed_worker(row):
@@ -161,6 +163,67 @@ class NativeConfiguredScope:
    z=os.lstat(p)
    if [z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]!=v:raise Held('scope-terminal-file')
   return None
+ def _writer_proof(self):
+  record=_WRITER_SESSIONS.get(self);check(record is not None,'scope-original-writer-session')
+  controller,writer,guard,local,identity,thread,process,binding,root5,lock9,paths=record
+  if (str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(controller.database),str(controller.native_database),str(controller.writer_root),str(writer.root),str(writer.lock),str(writer.pending),str(writer.tagger_pending),str(writer.release_pending),tuple(writer.root_identity),tuple(writer.lock_identity))!=paths:raise Held('scope-original-configured-pair-paths')
+  check(threading.get_ident()==thread==self._thread and writer.local is local
+        and tuple(guard.writer_identity(writer))==identity and getattr(local[1],'depth',0)>0
+        and not any(getattr(local[1],k,False) for k in ('allow_pending','allow_tagger_pending','allow_release_pending')),
+        'scope-current-owning-writer')
+  if (str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(controller.database),str(controller.native_database),str(controller.writer_root),str(writer.root),str(writer.lock),str(writer.pending),str(writer.tagger_pending),str(writer.release_pending),tuple(writer.root_identity),tuple(writer.lock_identity))!=paths:raise Held('scope-before-registry-configured-pair-paths')
+  current,records=guard.registry_snapshot(Path(paths[3]),Path(paths[6])/'publication-v1.json')
+  check(current==self._native['publication']['census'],'scope-original-writer-census')
+  check((os.getpid(),int(Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()[19]))==process,
+        'scope-original-writer-process')
+  proof=json.loads(binding)
+  check(_WRITER_SESSIONS.get(self) is record,'scope-original-writer-record')
+  if (str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(controller.database),str(controller.native_database),str(controller.writer_root),str(writer.root),str(writer.lock),str(writer.pending),str(writer.tagger_pending),str(writer.release_pending),tuple(writer.root_identity),tuple(writer.lock_identity))!=paths:raise Held('scope-final-configured-pair-paths')
+  z=os.lstat(paths[6])
+  if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=root5:raise Held('scope-final-writer-root')
+  z=os.lstat(paths[7])
+  if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=lock9:raise Held('scope-final-writer-lock')
+  return proof
+ @contextmanager
+ def writer_session(self,controller,writer):
+  check(self not in _WRITER_SESSIONS and _OWNED_PAIRS.get(self)==(controller,writer),'scope-no-nested-original-writer-session');self.revalidate()
+  o=importlib.import_module('mylar.publication_archive_owned');modules=o.sdk();guard=modules[2]
+  check(type(controller) is modules[0].Controller and type(writer) is modules[1].Writer
+        and str(controller.root)==self._binding['data'] and list(map(str,controller.roots))==self._binding['roots']
+        and controller.database==controller.root/'workflow.sqlite' and controller.native_database==controller.root/'mylar.db'
+        and str(controller.tool_root)==self._binding['tool_root'] and controller.writer_root==controller.root/'media-writer'
+        and writer.root==controller.writer_root and writer.lock==writer.root/'writer-v1.lock'
+        and writer.pending==writer.root/'normalizer-v1.pending' and writer.tagger_pending==writer.root/'tagger-v2.pending'
+        and writer.release_pending==writer.root/'release-v1.pending' and not getattr(writer.local[1],'depth',0),'scope-exact-unheld-writer-pair')
+  paths=(str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(controller.database),str(controller.native_database),str(controller.writer_root),str(writer.root),str(writer.lock),str(writer.pending),str(writer.tagger_pending),str(writer.release_pending),tuple(writer.root_identity),tuple(writer.lock_identity))
+  identity=tuple(guard.writer_identity(writer));local=writer.local;thread=threading.get_ident()
+  process=(os.getpid(),int(Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()[19]))
+  binding=dict(version=1,session=secrets.token_hex(32),process=dict(pid=process[0],start_ticks=process[1]),
+               writer_identity=list(identity),census=copy.deepcopy(self._native['publication']['census']))
+  raw=json.dumps(binding,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+  z=os.lstat(writer.root);root5=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+  z=os.lstat(writer.lock);lock9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+  record=(controller,writer,guard,local,identity,thread,process,raw,root5,lock9,paths)
+  self._custody.writer_enter(self,binding)
+  try:
+   if (str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(controller.database),str(controller.native_database),str(controller.writer_root),str(writer.root),str(writer.lock),str(writer.pending),str(writer.tagger_pending),str(writer.release_pending),tuple(writer.root_identity),tuple(writer.lock_identity))!=paths:raise Held('scope-entered-configured-pair-paths')
+   with writer.hold(timeout=0):
+    _WRITER_SESSIONS[self]=record
+    try:
+     self._writer_proof();yield writer
+    finally:
+     try:self._writer_proof()
+     finally:_WRITER_SESSIONS.pop(self,None)
+  finally:
+   check(writer.local is local and tuple(guard.writer_identity(writer))==identity
+         and not getattr(local[1],'depth',0),'scope-writer-released-original')
+   if (str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(controller.database),str(controller.native_database),str(controller.writer_root),str(writer.root),str(writer.lock),str(writer.pending),str(writer.tagger_pending),str(writer.release_pending),tuple(writer.root_identity),tuple(writer.lock_identity))!=paths:raise Held('scope-released-configured-pair-paths')
+   self._custody.writer_leave(self,binding)
+   if (str(controller.root),tuple(map(str,controller.roots)),str(controller.tool_root),str(controller.database),str(controller.native_database),str(controller.writer_root),str(writer.root),str(writer.lock),str(writer.pending),str(writer.tagger_pending),str(writer.release_pending),tuple(writer.root_identity),tuple(writer.lock_identity))!=paths:raise Held('scope-left-configured-pair-paths')
+   z=os.lstat(paths[6])
+   if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=root5:raise Held('scope-left-writer-root')
+   z=os.lstat(paths[7])
+   if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=lock9:raise Held('scope-left-writer-lock')
  def _sha(self,p):
   # Digests come only from admitted immutable proof bytes, never refreshed facts.
   m=lifecycle();raw,_=m.read(self._ref['path'],self._ref['sha256']);doc=m.decoded(raw)
@@ -172,6 +235,6 @@ class NativeConfiguredScope:
   result=(copy.deepcopy(self._files),copy.deepcopy(self._nodes));self.revalidate();return result
  def controller_writer(self):
   # No hold acquired here, no namespace creation, no daemon global assignment.
-  binding=copy.deepcopy(self._binding);self.revalidate();o=importlib.import_module('mylar.publication_archive_owned');modules=o.sdk();self.revalidate();controller=modules[0].Controller(binding['data'],binding['roots'],tool_root=Path(binding['tool_root']));writer=modules[1].Writer(controller.writer_root,create=False);check(type(controller) is modules[0].Controller and type(writer) is modules[1].Writer,'scope-exact-sdk-pair');self.revalidate();return controller,writer
+  binding=copy.deepcopy(self._binding);self.revalidate();o=importlib.import_module('mylar.publication_archive_owned');modules=o.sdk();self.revalidate();controller=modules[0].Controller(binding['data'],binding['roots'],tool_root=Path(binding['tool_root']));writer=modules[1].Writer(controller.writer_root,create=False);check(type(controller) is modules[0].Controller and type(writer) is modules[1].Writer,'scope-exact-sdk-pair');self.revalidate();_OWNED_PAIRS[self]=(controller,writer);return controller,writer
 
 def from_checked_parent(custody):return NativeConfiguredScope(_KEY,custody)

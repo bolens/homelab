@@ -336,7 +336,7 @@ class ScopedDocker:
      while b'\n' in line:
       raw,_,remainder=line.partition(b'\n');line=bytearray(remainder);message=decode(raw)
       if message.get('type') in ('challenge', 'birth-commit', 'terminal-observation'):
-       need(ack is None,'child-dialogue-after-final-ACK')
+       need(ack is None or message.get('type')=='challenge' and type(message.get('writer_session')) is dict and message['writer_session'].get('stage')=='leave','child-dialogue-after-final-ACK')
        response=handler(message,bytes(raw)) if message.get('type')=='terminal-observation' else handler(message)
        need(type(response) is bytes and response.endswith(b'\n') and len(response)<=MAX,'parent-fixed-response-bytes')
        if (p.stdin,p.stdout,p.stderr)!=original_streams or p.pid!=original_pid:raise Held('parent-original-dialogue-process')
@@ -836,19 +836,81 @@ class LifecycleParent:
         expected_mounts = sorted((r['host'], r['child'], self.phase_write(r,phase)) for r in mounts)
         need(created['Config']['Labels'] == {'com.homelab.reader.lifecycle': name}, 'child-exact-label')
         self.profile(created, cid, command, expected_mounts, False)
-        child_static = static(created); sequence = 0; original_running=None
+        child_static = static(created); sequence = 0; original_running=None;writer_session=None;writer_confirmed=False;pending_terminal=None;consumed_sequence=None
         self.emit(phase + '-start-intent.json', dict(id=cid, automatic_replay=False))
         def challenge(message,raw=None):
-            nonlocal sequence,original_running
+            nonlocal sequence,original_running,writer_session,writer_confirmed,pending_terminal,consumed_sequence
             original_files = dict(self.files)
             original_files.update({p: tuple(v['signature9']) for p, v in self.generated.items()})
             original_nodes = dict(self.nodes); original_nodes[str(self.op)] = self.op_fact
-            observed = self.continuous()
+            leaving=False
+            ws=message.get('writer_session') if type(message) is dict else None
+            if writer_session is not None:
+                binding_raw,origin_raw,original_child_raw,host_pid,host_ticks,writer_frames,session_files,session_nodes=writer_session
+                # No Docker/API/engine callback occurs in this held/idle branch.
+                if int(Path('/proc/'+str(host_pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])!=host_ticks:
+                    raise Held('writer-session-original-child-process')
+                for path,value in (*session_nodes,*writer_frames[0]):
+                    z=os.lstat(path)
+                    if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('writer-session-original-node')
+                for path,value in (*session_files,*writer_frames[1]):
+                    z=os.lstat(path)
+                    if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('writer-session-original-file')
+                if message is None:return None
+                frame_base={'protocol','type','nonce','input_sha256','parent_sha256','sequence','challenge'}
+                need(message.get('protocol')=='reader-lifecycle-pipe-v1' and message.get('nonce')==self.plan['nonce']
+                     and message.get('input_sha256')==input_ref['sha256'] and message.get('parent_sha256')==self.source_ref['sha256']
+                     and type(message.get('sequence')) is int and message['sequence']==sequence+1 and digest(message.get('challenge')),'writer-session-original-dialogue')
+                if message['type']=='terminal-observation':
+                    need(writer_confirmed and phase=='execute' and self.plan.get('version') in (11,12)
+                         and set(message)==frame_base|{'terminal'} and pending_terminal is None
+                         and type(raw) is bytes and raw==encode(message),'writer-session-one-pending-terminal')
+                    pending_terminal=(bytes(raw),message['sequence']);sequence=message['sequence']
+                    return encode({**message,'type':'terminal-release','rights':dict(publication=False,ordinary_import=False,index=False,cleanup=False,replay=False,resume=False)})+b'\n'
+                need(type(ws) is dict and set(message)==frame_base|{'writer_session'}
+                     and ws.get('stage') in ('held','leave') and encode({k:v for k,v in ws.items() if k!='stage'})==binding_raw,'writer-session-original-binding')
+                if ws['stage']=='held':
+                    writer_confirmed=True;sequence=message['sequence']
+                    origin=decode(origin_raw)
+                    response=encode({**message,'type':'observation','reader':origin['reader'],
+                                   'child_source_sha256':self.phase_provider(phase)['sha256'],
+                                   'child_image':self.plan['selected_image'],
+                                   **{k:origin[k] for k in ('native','worker','child_mounts')}})+b'\n'
+                    for path,value in (*session_nodes,*writer_frames[0]):
+                        z=os.lstat(path)
+                        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('writer-session-response-node')
+                    for path,value in (*session_files,*writer_frames[1]):
+                        z=os.lstat(path)
+                        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('writer-session-response-file')
+                    return response
+                # The leave is emitted only after the installed original Writer
+                # context actually closes. Fresh remote checks resume here.
+                original=decode(origin_raw);original_child=decode(original_child_raw)
+                observed=self.continuous();current=self.inspect(cid)
+                need(same_runtime(current,original_child),'writer-session-leave-original-child')
+                fresh=self.produce('native-observation',dict(observations=observed,child=current,child_mounts=current['Mounts']))
+                projector=_PROJECTORS[self]
+                need(projector(fresh['native'])==projector(original['native'])
+                     and same_runtime(fresh['worker'],original['worker']) and fresh['child_mounts']==original['child_mounts'],'writer-session-restored-original-unlocked')
+                if pending_terminal is not None:
+                    terminal_raw,terminal_seq=pending_terminal
+                    # Existing complete actual terminal/worker validator runs
+                    # only after release; its reply bytes must match pending.
+                    pending_message=decode(terminal_raw)
+                    actual_response=self.accept_archive_terminal(input_ref,actual,pending_message,current,original_running,terminal_raw)
+                    expected_response=encode({**pending_message,'type':'terminal-release','rights':dict(publication=False,ordinary_import=False,index=False,cleanup=False,replay=False,resume=False)})+b'\n'
+                    need(actual_response==expected_response,'writer-session-pending-terminal-response')
+                    consumed_sequence=sequence
+                writer_session=None;writer_confirmed=False;leaving=True
+                # Continue through the original fresh response/file closures.
+            else:
+                observed = self.continuous()
             if message is None:
                 return None
             base = {'protocol', 'type', 'nonce', 'input_sha256', 'parent_sha256', 'sequence', 'challenge'}
             need((set(message) == base and message['type'] == 'challenge'
                   or set(message) == base | {'birth'} and message['type'] == 'birth-commit'
+                  or self.plan.get('version') in (10,11,12) and set(message)==base|{'writer_session'} and message['type']=='challenge'
                   or self.plan.get('version') in (11,12) and phase=='execute' and set(message)==base|{'terminal'} and message['type']=='terminal-observation')
                  and message['protocol'] == 'reader-lifecycle-pipe-v1' and message['nonce'] == self.plan['nonce']
                  and message['input_sha256'] == input_ref['sha256']
@@ -867,6 +929,30 @@ class LifecycleParent:
                  and same_runtime(fresh['native']['inspect'], observed['held_native'])
                  and same_runtime(fresh['worker'], observed['held_worker'])
                  and fresh['child_mounts'] == current['Mounts'], 'fresh-native-worker-mounts')
+            if ws is not None and ws.get('stage')=='enter':
+                need(self.plan.get('version') in (10,11,12) and phase in ('execute','verify-terminal') and writer_session is None
+                     and set(ws)=={'version','stage','session','process','writer_identity','census'}
+                     and type(ws['version']) is int and ws['version']==1 and digest(ws['session'])
+                     and type(ws['process']) is dict and set(ws['process'])=={'pid','start_ticks'}
+                     and all(type(v) is int and v>0 for v in ws['process'].values())
+                     and type(ws['writer_identity']) is list and len(ws['writer_identity'])==4 and all(type(v) is int for v in ws['writer_identity']),
+                     'writer-session-finite-enter')
+                projection=_PROJECTORS[self](fresh['native']);need(ws['census']==projection['publication']['census'],'writer-session-original-unlocked-census')
+                host_pid=current['State']['Pid'];host_ticks=int(Path('/proc/'+str(host_pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
+                namespace_pid=[line.split()[1:] for line in Path('/proc/'+str(host_pid)+'/status').read_text().splitlines() if line.startswith('NSpid:')]
+                need(len(namespace_pid)==1 and int(namespace_pid[0][-1])==ws['process']['pid'] and host_ticks==ws['process']['start_ticks'],'writer-session-original-child-namespace')
+                writer_root=Path(self.mapping.host(self.plan['native']['data']))/'media-writer';lock=writer_root/'writer-v1.lock';marker=writer_root/'publication-v1.json'
+                z=os.lstat(writer_root);root5=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+                z=os.lstat(lock);lock9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+                z=os.lstat(marker);marker9=(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+                need(ws['writer_identity']==list(root5[:2]+lock9[:2]) and stat.S_ISDIR(root5[2]) and stat.S_IMODE(root5[2])==0o700
+                     and root5[3]==1000 and stat.S_ISREG(lock9[5]) and stat.S_IMODE(lock9[5])==0o600 and lock9[6]==1000 and lock9[8]==1,'writer-session-original-host-identity')
+                origin=encode(dict(reader=observed['reader'],**fresh));binding=encode({k:v for k,v in ws.items() if k!='stage'})
+                writer_session=(binding,origin,encode(current),host_pid,host_ticks,
+                                (((str(writer_root),root5),),((str(lock),lock9),(str(marker),marker9))),
+                                tuple((str(p),tuple(v)) for p,v in original_files.items()),tuple((str(p),tuple(v)) for p,v in original_nodes.items()))
+                writer_confirmed=False
+            elif ws is not None:need(leaving and ws.get('stage')=='leave','writer-session-entry-stage')
             # Reinspect after producer callbacks; stale snapshots never close.
             self.continuous(); need(same_runtime(self.inspect(cid), current), 'late-child-profile')
             if message['type']=='terminal-observation':
@@ -901,13 +987,14 @@ class LifecycleParent:
                 if tuple(self.files.items())!=pipe_files or tuple(self.nodes.items())!=pipe_nodes or self.plan!=pipe_plan or _CORES.get(self) is not pipe_core or self.core!=pipe_core or self.phase!=pipe_phase or self.thread!=pipe_thread or self.deadline!=pipe_deadline:raise Held('challenge-original-pipe-logical-final')
             return response
         ack = self.engine.interactive(cid, challenge, self.left())
+        need(writer_session is None,'writer-session-leave-before-natural-exit')
         if phase != 'backup':
             need(_PHASES.get(self, {}).get(phase, {}).get('accepted') is True, 'child-ACK-before-birth')
         if self.plan.get('version') in (11,12) and phase=='execute':
             round_record=_ARCHIVE_TERMINAL_ROUNDS.get(self)
             need(round_record is not None and round_record['cid']==cid and round_record['sequence']<=sequence,'archive-original-terminal-round-before-ACK')
             need(type(ack) is dict and set(ack)=={'nonce','phase','source_sha256','report','publication_acceptance','reader_resume_authority','terminal_release'},'archive-same-child-ACK-schema')
-            need(type(ack['terminal_release']) is dict and type(ack['terminal_release'].get('conversation_sequence')) is int and ack['terminal_release']==dict(sequence=round_record['sequence'],conversation_sequence=sequence,challenge=round_record['challenge'],request_sha256=round_record['request_sha256'],response_sha256=round_record['response_sha256']) and ack['report']==round_record['refs']['execution_report'],'archive-original-terminal-release-ACK')
+            need(type(ack['terminal_release']) is dict and type(ack['terminal_release'].get('conversation_sequence')) is int and ack['terminal_release']==dict(sequence=round_record['sequence'],conversation_sequence=consumed_sequence if consumed_sequence is not None else sequence,challenge=round_record['challenge'],request_sha256=round_record['request_sha256'],response_sha256=round_record['response_sha256']) and ack['report']==round_record['refs']['execution_report'],'archive-original-terminal-release-ACK')
             report_ref=validate_ack({k:v for k,v in ack.items() if k!='terminal_release'},phase,self.plan['nonce'],self.phase_provider(phase)['sha256'])
         else:report_ref = validate_ack(ack, phase, self.plan['nonce'], self.phase_provider(phase)['sha256'])
         exited = self.inspect(cid)

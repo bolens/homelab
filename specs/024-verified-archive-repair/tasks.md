@@ -8,6 +8,7 @@
 
 - Completed: T011/T013 repair adoption and durable history implementation, and T014 contract review. The compact reader passes the actual database and both 77-test suites.
 - T012/T015: finish configured reader continuity, archive prepare→execute→terminal proof and matching-cohort delivery.
+- T012/T015: the [Ready Writer-session source proposal](../023-verified-publication-corrections/evidence-history.md#ready-writer-session-source-proposal-2026-10-12) passes host controls and independent source review. Installed-cohort and genuine configured terminal proof remain required. New pkexec calls remain paused.
 - T016/T017: the shared outer backup and isolated restore are verified. The compatible reader is healthy with all schema/table fingerprints preserved. Finish matching-worker and configured repair preparation, then prove real archive, owner, catalog and reader recovery.
 - T018: complete shared current-library acceptance before repaired-archive or bulk processing resumes.
 

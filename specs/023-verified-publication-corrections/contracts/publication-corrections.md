@@ -32,6 +32,40 @@ When the complete validated registry is empty, existing eligibility may continue
 
 Remote advisory checks occur before the worker holds the shared writer. Under writer exclusion, validate the full census and marker through the existing read-only native config/writer mounts, require the same epoch/revision and stable candidate content, and freshly revalidate every matched correct owner’s complete all-row/deleted/annual-shadow path binding and current correct-archive payload. Either compute those facts locally or locally revalidate complete immutable advisory facts; revision equality alone is insufficient. This is mandatory for existing-target confirmations, Extras, cleanup and conversion publication that may never reach native final import. Test intervening correct-owner/path/content changes with an unchanged registry revision. Native final import repeats content/owner checks. Protocol mismatch or uncertain state holds publication. Worker never writes native registry SQLite. Cover common import submission, guided/pack routes, existing-target confirmation, Extras placement, duplicate cleanup, conversion publication and naming/metadata passes.
 
+### Configured archive Writer session (023 T022 / 024 T012)
+
+The existing `reader-lifecycle-pipe-v1` challenge carries one finite
+`writer_session` object: `version: 1`, `stage` (`enter`, `held`, or `leave`),
+64-hex `session`, `process` (`pid`, `start_ticks`), the four original
+`writer_identity` device/inode integers, and the complete original `census`.
+The existing nonce, input and parent source digests, sequence and challenge remain
+mandatory. No session field is a publication, replay, cleanup or resume grant.
+
+`enter` completes before acquiring Writer. The parent seals the original selected
+child/PID/start, private pipe conversation, source/control originals, Writer
+root/lock/marker and unlocked native projection. An unlocked projection may be
+`ready/verified` or the historical `held/startup-restart-required`, with the
+complete validated original epoch, keys, revision and digest. During `held`, the
+installed owning scope verifies its exact original Controller/Writer pair,
+thread/local identities, positive Writer depth, false recovery allowances, and
+unchanged complete local census. Parent idle and held challenges use the sealed
+prelease projection and raw original process/filesystem custody; they run no
+Docker/API probe. This retained projection is not a fresh API observation or an
+empty-census admission.
+
+The terminal response remains an all-false pending receipt. The original child
+validates its local durable forward/rollback SDK receipt and writes its ACK while
+Writer is still held. Exactly one subsequent `leave` follows actual Writer
+release; the parent preserves the consumed ACK conversation sequence separately
+from the leave sequence. It then freshly verifies the original unlocked native
+projection and runs the existing independent terminal/worker validator before
+terminal acceptance and natural-exit proof. Source/catalog/config/census drift
+after local completion refuses independent acceptance rather than refreshing
+original facts. Reader resume still requires the complete owning parent result.
+A failed acquisition after enter has a no-work leave and no terminal acceptance.
+Lost enter/ACK/leave or an uncertain independent check retains evidence and never
+automatically replays or reconstructs a capability.
+
 ## Rollout
 
 Deploy matching native first and worker second with writers held and independently restore-verified affected state. Seed only exact reviewed correction evidence. Prove conflict canary and legitimate different-payload canary, then scoped existing-repeat repair and fresh protected whole-library acceptance. Source publication and healthy containers alone do not complete live acceptance.
