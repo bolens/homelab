@@ -8,10 +8,10 @@
 
 - Completed: T011/T013 repair adoption and durable history implementation, and T014 contract review. The compact reader passes the actual database and both 77-test suites.
 - T012/T015: finish configured reader continuity, archive prepare→execute→terminal proof and matching-cohort delivery.
-- T016/T017: the shared outer backup and isolated restore are verified. Finish matching-worker and configured reader/repair preparation, then prove real archive, owner, catalog and reader recovery.
+- T016/T017: the shared outer backup and isolated restore are verified. The compatible reader is healthy with all schema/table fingerprints preserved. Finish matching-worker and configured repair preparation, then prove real archive, owner, catalog and reader recovery.
 - T018: complete shared current-library acceptance before repaired-archive or bulk processing resumes.
 
-Feature 023 owns the [configured recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and records the accepted outer-backup verification. Normal Mylar is available while experimental-worker, bulk and archive-recovery work remain held. Remaining repair acceptance uses scoped Writer windows without requiring a blanket Mylar outage.
+Feature 023 owns the [configured recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and records the accepted outer-backup verification. Normal Mylar and the compatible Komga reader are available while experimental-worker, bulk and archive-recovery work remain held. Remaining repair acceptance uses scoped Writer windows without requiring a blanket Mylar outage.
 
 ## Phase 1: Setup
 

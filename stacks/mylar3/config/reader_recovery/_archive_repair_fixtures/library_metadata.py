@@ -235,14 +235,14 @@ def poll():
     from mylar import workflow, native_writers
     if not converted_tagging.settings() or mylar.APILOCK or not mylar.PP_QUEUE.empty():
         return
-    policy = workflow.policy()
-    if not policy['library_missing_tags'] and not policy['library_nested_metadata']:
-        return
     if not converted_tagging.RUN.acquire(blocking=False):
         return
     try:
         with native_writers.operation():
             if mylar.APILOCK or not mylar.PP_QUEUE.empty():
+                return
+            policy = workflow.policy()
+            if not policy['library_missing_tags'] and not policy['library_nested_metadata']:
                 return
             Maintenance(workflow.store(), next_catalog, converted_tagging.catalog, repair,
                         converted_tagging.recover).tick(policy['library_missing_tags'], policy['library_nested_metadata'])

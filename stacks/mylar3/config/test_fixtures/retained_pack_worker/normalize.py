@@ -699,12 +699,17 @@ def main():
     parser.add_argument('--config', default='/config/normalizer.json')
     parser.add_argument('--once', action='store_true')
     parser.add_argument('--health', action='store_true')
+    parser.add_argument('--pack-capture')
+    parser.add_argument('--pack-ddl')
     parser.add_argument('--naming-plan', metavar='MANIFEST')
     parser.add_argument('--naming-apply', metavar='MANIFEST')
     parser.add_argument('--naming-reviewed-preview', metavar='PREVIEW',
                         help='Explicit reviewed supplement preview; requires --naming-plan')
     parser.add_argument('--naming-limit', type=int, default=1)
     args = parser.parse_args()
+    if args.pack_capture is not None or args.pack_ddl is not None:
+        if args.once or args.health or args.naming_plan or args.naming_apply or args.naming_reviewed_preview:
+            parser.error('Pack-only selection cannot be combined with other modes')
     if not 1 <= args.naming_limit <= 100 or (args.naming_plan and args.naming_apply):
         parser.error('Choose one naming action and a limit from 1 to 100')
     if args.naming_reviewed_preview and not args.naming_plan:
@@ -726,6 +731,13 @@ def main():
             limit = max(180, config['maintenance'].get('interval_seconds', 300) * 3)
             if result.get('errors') or time.time() - result['checked_at'] > limit:
                 raise SystemExit(1)
+        return
+    if args.pack_capture is not None or args.pack_ddl is not None:
+        normalizer = Normalizer(config)
+        with (state / 'worker.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            from pack_only import run
+            print(json.dumps(run(normalizer, args.pack_capture, args.pack_ddl)), flush=True)
         return
     normalizer = Normalizer(config)
     normalizer.pdf_defer = True

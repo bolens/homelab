@@ -596,13 +596,20 @@ class Packs:
         value['cleaned_at'] = time.time()
         save(receipt, value)
 
-    def cycle(self):
+    def cycle(self, pack_id=None, ddl_id=None, *, scan=True):
         if not self.m.settings.get('pack_import', False):
             return set()
         from maintenance import native_work
         work = native_work(self.m,'packWork')
         if not work.get('enabled'):
             return set()
+        if pack_id is not None or ddl_id is not None:
+            if (type(pack_id) is not str or not re.fullmatch('[a-f0-9]{64}', pack_id)
+                    or type(ddl_id) is not str or not ddl_id.isdecimal()
+                    or len(work.get('packs', [])) != 1
+                    or work['packs'][0].get('id') != pack_id
+                    or work['packs'][0].get('ddl_id') != ddl_id):
+                raise ValueError('Exact selected pack work required')
         protected = set()
         for source in work.get('protected', [r['source'] for r in work['packs']]):
             try:
@@ -664,7 +671,7 @@ class Packs:
                 continue
             if self.m.import_submitted:
                 break
-        if self.changed:
+        if self.changed and scan:
             for library in self.worker.reader.call('/api/v1/libraries'):
                 root = api_path(library.get('root', ''))
                 if root in self.worker.roots:

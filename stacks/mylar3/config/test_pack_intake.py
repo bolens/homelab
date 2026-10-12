@@ -170,5 +170,45 @@ class ProcessingTest(unittest.TestCase):
         self.assertNotIn('threading.Thread(target=PostProcess.Process).start()', native)
 
 
+
+
+
+class SelectedPackWorkTests(unittest.TestCase):
+    def native(self, record):
+        from pathlib import Path
+        from types import SimpleNamespace
+        import re
+        source=(Path(__file__).with_name('pack_intake.py')).read_text()
+        node=next(n for n in ast.parse(source).body if isinstance(n,ast.FunctionDef) and n.name=='work')
+        store=SimpleNamespace(get=Mock(return_value=record),set=Mock(),active=Mock())
+        flow=SimpleNamespace(store=lambda:store,policy=lambda:{'pack_automation':True})
+        ns={'workflow':flow,'HEX':re.compile(r'[a-f0-9]{64}\Z'),'ddl_identifier':lambda x:x if re.fullmatch('[0-9]{1,32}',x) else ''}
+        exec(compile(ast.Module([node],type_ignores=[]),'native-work','exec'),ns)
+        return ns['work'],store
+
+    def test_native_exact_selection_does_not_discover_or_advance_cursor(self):
+        record={'id':'a'*64,'ddl_id':'1','source':'/cache/original'}
+        work,store=self.native(record)
+        value=work('a'*64,'1')
+        self.assertEqual(value['packs'],[record]);self.assertEqual(value['protected'],['/cache/original'])
+        store.set.assert_not_called();store.active.assert_not_called()
+
+    def test_native_different_capture_or_ddl_refuses(self):
+        work,_=self.native({'id':'a'*64,'ddl_id':'1','source':'/cache/original'})
+        for pack,ddl in [('b'*64,'1'),('a'*64,'2'),('bad','1'),('a'*64,None)]:
+            with self.subTest(pack=pack,ddl=ddl),self.assertRaises(ValueError):work(pack,ddl)
+
+
+    def test_existing_api_migration_is_idempotent(self):
+        from patch_pack_intake import api
+        source="""# homelab-pack-api-v1
+def _packWork(self, **kwargs):
+    self.data = self._successResponse(pack_intake.work())
+"""
+        changed=api(source)
+        self.assertIn("pack_intake.work(kwargs.get('pack_id'), kwargs.get('ddl_id'))",changed)
+        self.assertEqual(api(changed),changed)
+
+
 if __name__ == '__main__':
     unittest.main()

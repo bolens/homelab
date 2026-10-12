@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 from patch_ddl_mirror_retries import patched_source
 
 SOURCE = Path(sys.argv.pop(1))
+from test_status_retention import DB
 
 
 class DdlMirrorRetriesTest(unittest.TestCase):
@@ -24,7 +25,8 @@ class DdlMirrorRetriesTest(unittest.TestCase):
                 if isinstance(n, ast.FunctionDef) and n.name == "ddl_downloader"
             )
         )
-        database, helpers, gc = (MagicMock(), MagicMock(), MagicMock())
+        database, helpers, gc = (DB(), MagicMock(), MagicMock())
+        self.addCleanup(database.connection.close)
         gc.downloadit.return_value = {"success": False, "filename": None}
         gc.parse_downloadresults.side_effect = OSError("temporary DNS failure")
         queue = Queue()
@@ -43,6 +45,7 @@ class DdlMirrorRetriesTest(unittest.TestCase):
             comicinfo=None,
             packinfo=None,
         )
+        database.upsert("ddl_info", {key:item[key] for key in ("series","site","link_type","link","mainlink","issueid","comicid")} | dict(status="Queued",updated_date="original",year="2020",issues="1",pack=0), {"id":item["id"]})
         queue.put(item)
         helpers.reverse_the_pack_snatch.side_effect = lambda *args: queue.put("exit")
         mylar = SimpleNamespace(
@@ -69,12 +72,14 @@ class DdlMirrorRetriesTest(unittest.TestCase):
             requests=SimpleNamespace(RequestException=ConnectionError),
         )
         exec(
-            compile(ast.Module(body=[node], type_ignores=[]), "<ddl>", "exec"),
+            compile(ast.Module(body=[n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name.startswith("_ddl_status_")]+[node], type_ignores=[]), "<ddl>", "exec"),
             namespace,
         )
         namespace["ddl_downloader"](queue)
         self.assertEqual(gc.parse_downloadresults.call_count, 4)
-        database.upsert.assert_any_call("ddl_info", {"status": "Failed"}, {"id": "1"})
+        row=database.selectone("SELECT * FROM ddl_info WHERE id=?",["1"]).fetchone()
+        self.assertEqual(row["status"],"Failed")
+        self.assertEqual((row["issueid"],row["comicid"],row["link"],row["mainlink"]),("2","3","unused","unused"))
         self.assertEqual(mylar.DDL_QUEUED, [])
         namespace["queue_control"].stop_retry.assert_called_once_with(item, lookup_failed=True)
 

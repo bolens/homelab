@@ -16,6 +16,7 @@ from patch_ddl_exhaustion import patched_source
 from patch_queue_control import patched_source as control_source
 
 SOURCE = Path(sys.argv.pop(1))
+from test_status_retention import DB
 
 
 def method(filename, name, namespace):
@@ -30,7 +31,7 @@ def method(filename, name, namespace):
             if isinstance(n, ast.FunctionDef) and n.name == name
         )
     )
-    module = ast.Module(body=[node], type_ignores=[])
+    module = ast.Module(body=[n for n in ast.parse(patched).body if isinstance(n,ast.FunctionDef) and n.name.startswith("_ddl_status_")]+[node], type_ignores=[])
     exec(compile(module, filename, "exec"), namespace)
     return namespace[name]
 
@@ -40,7 +41,8 @@ class DdlExhaustionTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.location = Path(self.temp.name)
-        self.database = MagicMock()
+        self.database = DB()
+        self.addCleanup(self.database.connection.close)
         self.mylar = SimpleNamespace(
             CONFIG=SimpleNamespace(DDL_LOCATION=str(self.location)),
             DDL_LOCK=False,
@@ -72,6 +74,14 @@ class DdlExhaustionTest(unittest.TestCase):
                 Session=MagicMock(), exceptions=SimpleNamespace(Timeout=TimeoutError)
             ),
         )
+
+    def seed(self,item):
+        fields={key:item[key] for key in ('series','site','link_type','link','mainlink','issueid','comicid')}
+        fields.update(status='Queued',updated_date='original',year='2020',issues='1',pack=0)
+        self.database.upsert('ddl_info',fields,{'id':item['id']})
+
+    def row(self,key):
+        return self.database.selectone('SELECT * FROM ddl_info WHERE id=?',[key]).fetchone()
 
     def download(self, content_type, status=200, fallback=False):
         response = MagicMock()
@@ -115,6 +125,7 @@ class DdlExhaustionTest(unittest.TestCase):
             comicinfo=None,
             packinfo=None,
         )
+        self.seed(item)
         queue = MagicMock()
         queue.qsize.return_value = 1
         queue.get.side_effect = [item, "exit"]
@@ -134,9 +145,8 @@ class DdlExhaustionTest(unittest.TestCase):
         )
         worker = method("queues/ddl.py", "ddl_downloader", self.namespace)
         worker(queue)
-        self.database.upsert.assert_any_call(
-            "ddl_info", {"status": "Failed"}, {"id": "1"}
-        )
+        self.assertEqual(self.row("1")["status"],"Failed")
+        self.assertEqual((self.row("1")["issueid"],self.row("1")["comicid"]),("2","3"))
         self.assertEqual(self.mylar.DDL_QUEUED, [])
         helpers.reverse_the_pack_snatch.assert_called_once_with("1", "3")
         self.namespace["queue_control"].stop_retry.assert_called_once_with(item, gc.parse_downloadresults.return_value)
@@ -160,11 +170,13 @@ class DdlExhaustionTest(unittest.TestCase):
                 self.mylar.DDL_QUEUED = []
                 self.namespace.update(datetime=datetime, helpers=MagicMock(),
                                       getcomics=SimpleNamespace(GC=lambda **kwargs: gc), ddl_cleanup=MagicMock())
-                self.database.reset_mock()
+                self.database.action("DELETE FROM ddl_info")
+                self.seed(item)
+                if with_previous:self.seed(prior)
                 method('queues/ddl.py', 'ddl_downloader', self.namespace)(queue)
-                self.database.upsert.assert_any_call('ddl_info', {'status': 'Failed'}, {'id': 'unknown'})
-                completed_ids = [call.args[2]['id'] for call in self.database.upsert.call_args_list
-                                 if call.args[1].get('status') == 'Completed']
+                self.assertEqual(self.row('unknown')['status'],'Failed')
+                self.assertEqual((self.row('unknown')['issueid'],self.row('unknown')['comicid']),('2','3'))
+                completed_ids = [row['ID'] for row in self.database.selectone("SELECT ID FROM ddl_info WHERE status='Completed' ORDER BY ID").fetchall()]
                 self.assertEqual(completed_ids, ['prior'] if with_previous else [])
                 self.assertEqual(self.mylar.PP_QUEUE.put.call_count, int(with_previous))
 

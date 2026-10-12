@@ -167,13 +167,14 @@ class Maintenance:
         queue = value['queues'].get('POST-PROCESS-QUEUE', {})
         return queue.get('alive') and queue.get('size') == 0 and not value['processing']
 
-    def prepare(self):
+    def prepare(self, pack_id=None, ddl_id=None):
         from publication_guard import NativeBatch
         values = {}
         self.reader_snapshot=None
         if time.time() - self.last_run >= self.settings.get('interval_seconds',300):
             for command in ('getHealth','workflowCommands',*(['packWork'] if self.settings.get('pack_import',False) else [])):
-                try:values[command] = self.mylar(command)
+                try:values[command] = (self.mylar(command, pack_id=pack_id, ddl_id=ddl_id)
+                    if command == 'packWork' and pack_id is not None else self.mylar(command))
                 except Exception:values[command] = None
             if self.worker.config.get('writer_state') is not None:
                 from publication_guard import remote_unlocked,evidence,Unavailable
