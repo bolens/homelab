@@ -13,11 +13,11 @@
 - Completed verification: compact reader mechanics pass the actual 389,249-row Komga database under unchanged limits. Both 77-test suites, independent source review and full local CI pass. PR #304 merged after all 12 hosted checks passed.
 - T022/T026/T029: the complete candidate image, 177-source parity check, installed cohort and all 17 isolated runtime cases pass. Trusted-main Mylar publication also passes; the accepted worker sources are unchanged. Finish genuine configured reader/provider/archive acceptance.
 - T028: reviewed recovery source and isolated import scenarios pass. Execute the genuine configured retained generation and fresh catalog-to-ACK handoff.
-- T017/T027: the fresh 12-scope outer backup and isolated restore now pass complete source, copy and all 72 database checks, plus independent original-receipt, vector and current-metadata closure. Retain failed operations and the quarantined corrupt restore inode. Matching-image held startup and genuine configured recovery remain required before processing release.
-- Held startup: the actual V8 parent accepts native startup through the same daemon, original Writer custody, installed source checks and authenticated health/version observations. It unlocks the same Writer FD and confirms startup-restart-required with a nonempty census; processing remains held. A fresh read-only baseline confirms the same held receipt. All 25 launcher controls pass in the selected native runtime. Reader/worker profile preparation and genuine configured recovery remain pending.
-- T018/T019: verify live recovery, the current library, restart and database integrity, then release holds and retain one verified backup plus unresolved originals.
+- T017/T027: the fresh 12-scope outer backup and isolated restore now pass complete source, copy and all 72 database checks, plus independent original-receipt, vector and current-metadata closure. Retain failed operations and the quarantined corrupt restore inode. Native normal startup is now accepted; genuine configured reader/provider/archive recovery remains required before experimental or bulk admission.
+- Normal Mylar: the fresh normal restart passes API READY, completed Main startup, two identical 178-source observations bound to the new daemon and unchanged container profile, preserved existing ComicID/IssueID associations and SQLite integrity. The login page is available; authenticated DDL-page acceptance is not claimed. Bulk, experimental-worker and archive-recovery work remain separately held.
+- T018/T019: verify live recovery, the current library, restart and database integrity before releasing experimental/bulk holds; retain one verified backup plus unresolved originals.
 
-Mylar is running with its startup processing hold. Komga remains stopped and the worker remains created and held. Completed fixture or source checks do not accept live recovery.
+Normal Mylar is available. Komga remains stopped and the worker remains created and held. Remaining feature acceptance runs in scoped Writer windows; it does not require a blanket Mylar outage.
 
 ## Phase 1: Setup
 
