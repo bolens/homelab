@@ -14,10 +14,10 @@
 - T022/T026/T029: the complete candidate image, 177-source parity check, installed cohort and all 17 isolated runtime cases pass. Trusted-main Mylar publication also passes; the accepted worker sources are unchanged. Finish genuine configured reader/provider/archive acceptance.
 - T028: reviewed recovery source and isolated import scenarios pass. Execute the genuine configured retained generation and fresh catalog-to-ACK handoff.
 - T017/T027: the fresh 12-scope outer backup and isolated restore now pass complete source, copy and all 72 database checks, plus independent original-receipt, vector and current-metadata closure. Retain failed operations and the quarantined corrupt restore inode. Matching-image held startup and genuine configured recovery remain required before processing release.
-- Held startup: both reviewed image settings are selected, and the recreated native candidate is stopped. Its fresh baseline matches the expected security profile derived from accepted platform metadata; the other two service profiles and original Writer remain unchanged. All 22 current launcher controls pass in the selected native runtime. Fresh preflight and proof-linked bindings remain pending, followed by completed startup callbacks and same-process authenticated hold/census.
+- Held startup: the actual V8 parent accepts native startup through the same daemon, original Writer custody, installed source checks and authenticated health/version observations. It unlocks the same Writer FD and confirms startup-restart-required with a nonempty census; processing remains held. A fresh read-only baseline confirms the same held receipt. All 25 launcher controls pass in the selected native runtime. Reader/worker profile preparation and genuine configured recovery remain pending.
 - T018/T019: verify live recovery, the current library, restart and database integrity, then release holds and retain one verified backup plus unresolved originals.
 
-Mylar and Komga remain stopped. The worker remains held. Completed fixture or source checks do not accept live recovery.
+Mylar is running with its startup processing hold. Komga remains stopped and the worker remains created and held. Completed fixture or source checks do not accept live recovery.
 
 ## Phase 1: Setup
 
