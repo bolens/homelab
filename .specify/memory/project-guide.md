@@ -44,6 +44,12 @@ over missing mounts, service changes, or destructive volume removal.
 For Mylar-only updates, keep NZBGet and Komga running. Scope backups and any writer
 coordination to the affected state and follow the Mylar stack's update instructions.
 Do not reuse a multi-service rollout script for a single-service UI change.
+Release the external deployment Writer guard before ordinary Mylar startup,
+following the [owning README](../../stacks/mylar3/README.md); use scoped Writer
+windows for preservation checks or actual repairs. Keep verified normal Mylar
+availability separate from unfinished bulk, experimental-normalizer and
+archive-recovery acceptance. Those operations remain inactive until their own
+gates pass; implementation and isolated tests establish no live admission.
 Validate private operational helpers in the selected application’s actual Python
 runtime before protected execution. Host-only tests do not prove container runtime
 compatibility; use portable streaming hashes when the runtime lacks
