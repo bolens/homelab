@@ -126,7 +126,7 @@
   },
   {
     "path": "native_writers.py",
-    "sha256": "16a90e8fa1ea0375083caddb548e0c2fa2fb51fa4d7e63f770cdedf2e6d0c388",
+    "sha256": "cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202",
     "target": "native_writers.py"
   },
   {
@@ -411,7 +411,7 @@
   },
   {
     "path": "patch_wide_layout.py",
-    "sha256": "89dccbf1ee0d6fb6f4cdb9468d0b6d1de5eecf87537480b864847c7b69e0cc2a",
+    "sha256": "c7ca38c796f312d4df00c3407fd5fbbe328720024ff49a6d29dc2ab82b05ad58",
     "target": "patch_wide_layout.py"
   },
   {
@@ -1271,7 +1271,7 @@
   },
   {
     "path": "test_native_writers.py",
-    "sha256": "14467d31dbc1a919880ef41f096f196f74073d3c17209893ea86ae5942cbdc05",
+    "sha256": "67eb807118d7c1160f8db66a2df76e8c64e366f985319bb54201d8c66b382472",
     "target": "test_native_writers.py"
   },
   {
@@ -1841,7 +1841,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "4d379a99520af8a971397f66e707bb375d0333035771415911ee1bf13fc60267",
+    "sha256": "1c61c022c0f71eadd1681aa4f7a407282d3e940c050b7a7528ad74f53eb84641",
     "target": "verify_image.py"
   },
   {

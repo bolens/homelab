@@ -1,0 +1,74 @@
+/* jQuery UI and the selected Mylar theme own colors, icons and interaction states. */
+:root { --mylar-control-height: 34px; --mylar-control-radius: 4px; --mylar-focus-color: #3383bb; --mylar-control-gap: .6em; }
+:is(#main,header,#subhead_menu,#ajaxMsg,.ui-dialog) .mylar-button.ui-button { box-sizing: border-box; min-height: var(--mylar-control-height); border-radius: var(--mylar-control-radius); font-family: inherit; line-height: 1.4; vertical-align: middle; }
+:is(#main,header,#ajaxMsg,.ui-dialog) :is(button,a).mylar-button.ui-button { padding: 0; text-decoration: none; }
+:is(#main,header,#subhead_menu,#ajaxMsg,.ui-dialog) .mylar-button .ui-button-text { padding-block: .5em; }
+:is(#main,header,#subhead_menu,#ajaxMsg,.ui-dialog) .mylar-button:focus-visible { outline: 2px solid var(--mylar-focus-color); outline-offset: 3px; }
+#main .mylar-button.ui-state-disabled { cursor: default; }
+#main :is(.wf_actions,.import_actions,.catalog_nav,.history_maintenance_links) { gap: var(--mylar-control-gap); align-items: center; }
+:is(#main,.ui-dialog) :is(input[type=text],input[type=number],input[type=search],input[type=password],input[type=email],input[type=url],input[type=tel],input[type=date],textarea,select) { box-sizing: border-box; min-height: var(--mylar-control-height); font-family: inherit; border-radius: var(--mylar-control-radius); }
+@media (max-width: 760px), (pointer: coarse) { :root { --mylar-control-height: 44px; } }
+
+/* Carbon's charcoal component roles, formerly duplicated in page/layout overrides. */
+body[data-mylar-theme=carbon] { --mylar-control-surface: #555; --mylar-control-text: #fff; --mylar-control-border: #444; --mylar-control-hover: #454545; --mylar-control-pressed: #333; }
+body[data-mylar-theme=carbon] .mylar-button.ui-button { color: var(--mylar-control-text); background: var(--mylar-control-surface); background-image: linear-gradient(#626262,#4d4d4d); border: 1px solid var(--mylar-control-border); text-shadow: none; font-weight: normal; }
+body[data-mylar-theme=carbon] .mylar-button:is(:hover,.ui-state-hover,.ui-state-focus) { color: var(--mylar-control-text); background: var(--mylar-control-hover); background-image: none; }
+body[data-mylar-theme=carbon] .mylar-button:is(:active,.ui-state-active) { background: var(--mylar-control-pressed); background-image: none; }
+body[data-mylar-theme=carbon] .mylar-button .ui-icon { background-image: url("images/icon_sprite_white.png"); }
+body[data-mylar-theme=carbon] .mylar-button:is(:disabled,.ui-state-disabled,[aria-disabled=true]) { opacity: .55; cursor: default; background: var(--mylar-control-surface); background-image: none; color: var(--mylar-control-text); }
+
+/* Native Carbon menu gradients are important, including two-ID hover rules. */
+body[data-mylar-theme=carbon] :is(#btn_menu,#btn_notifs) a.mylar-button.ui-button {
+  --mylar-menu-button-surface: var(--mylar-control-surface);
+  --mylar-menu-button-image: linear-gradient(#626262,#4d4d4d);
+}
+body[data-mylar-theme=carbon] :is(#btn_menu,#btn_notifs) a.mylar-button.ui-button,
+body[data-mylar-theme=carbon] :is(#btn_container,#btn_container_center) :is(#btn_menu,#btn_notifs) a.mylar-button.ui-button {
+  background-color: var(--mylar-menu-button-surface);
+  background-image: var(--mylar-menu-button-image) !important;
+}
+body[data-mylar-theme=carbon] :is(#btn_menu,#btn_notifs) a.mylar-button.ui-button:is(:hover,.ui-state-hover,.ui-state-focus) {
+  --mylar-menu-button-surface: var(--mylar-control-hover);
+  --mylar-menu-button-image: none;
+}
+body[data-mylar-theme=carbon] :is(#btn_menu,#btn_notifs) a.mylar-button.ui-button:is(:active,.ui-state-active) {
+  --mylar-menu-button-surface: var(--mylar-control-pressed);
+  --mylar-menu-button-image: none;
+}
+body[data-mylar-theme=carbon] :is(#btn_menu,#btn_notifs) a.mylar-button.ui-button:is(:disabled,.ui-state-disabled,[aria-disabled=true]) {
+  --mylar-menu-button-surface: var(--mylar-control-surface);
+  --mylar-menu-button-image: none;
+}
+
+.mylar-button.ui-button-icon-only { min-width: var(--mylar-control-height); }
+
+body[data-mylar-theme=default] { --mylar-control-surface: #eee; --mylar-control-text: #333; --mylar-control-border: #aaa; --mylar-control-hover: #f8f8f8; --mylar-control-pressed: #ddd; --mylar-menu-surface: #f2f2f2; --mylar-menu-text: #333; --mylar-menu-border: #aaa; }
+body[data-mylar-theme=carbon] { --mylar-menu-surface: #30363b; --mylar-menu-text: #f1f3f4; --mylar-menu-border: #687078; }
+body[data-mylar-theme] header #nav .homelab_queue_links { background: var(--mylar-menu-surface); border-color: var(--mylar-menu-border); }
+body[data-mylar-theme] header #nav .homelab_queue_links a { color: var(--mylar-menu-text); }
+
+/* DataTables owns pagination events and disabled/current states. */
+#main .mylar-pagination { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; min-height: var(--mylar-control-height); min-width: var(--mylar-control-height); padding: .4em .65em; border-radius: var(--mylar-control-radius); font-family: inherit; line-height: 1.4; }
+#main .mylar-pagination:focus-visible { outline: 2px solid var(--mylar-focus-color); outline-offset: 3px; }
+body[data-mylar-theme=carbon] .mylar-pagination { color: var(--mylar-control-text); background: var(--mylar-control-surface); border: 1px solid var(--mylar-control-border); }
+body[data-mylar-theme=carbon] .mylar-pagination:hover { background: var(--mylar-control-hover); }
+body[data-mylar-theme=carbon] .mylar-pagination:is(.current,[aria-current=page]) { background: var(--mylar-control-pressed); }
+body[data-mylar-theme=carbon] .mylar-pagination:is(.disabled,:disabled,[aria-disabled=true],.ui-state-disabled):not([aria-current=page]) { opacity: .55; background: var(--mylar-control-surface); }
+
+#main .mylar-pagination[aria-current=page] { opacity: 1; font-weight: bold; }
+body[data-mylar-theme=default] { --mylar-processing-surface: #f2f2f2; --mylar-processing-text: #333; --mylar-processing-border: #aaa; }
+body[data-mylar-theme=carbon] { --mylar-processing-surface: #3d4348; --mylar-processing-text: #fff; --mylar-processing-border: #777; }
+body[data-mylar-theme] .dataTables_wrapper .dataTables_processing { color: var(--mylar-processing-text); background-color: var(--mylar-processing-surface); border-color: var(--mylar-processing-border); }
+
+/* Native dialog close remains an anchor; its lifecycle belongs to jQuery UI. */
+.ui-dialog .ui-dialog-titlebar { padding-inline-end: calc(var(--mylar-control-height) + .5em); min-height: var(--mylar-control-height); box-sizing: border-box; }
+.ui-dialog .ui-dialog-titlebar-close { box-sizing: border-box; width: var(--mylar-control-height); height: var(--mylar-control-height); top: 50%; margin-top: calc(var(--mylar-control-height) / -2); display: flex; align-items: center; justify-content: center; }
+.ui-dialog .ui-dialog-titlebar-close:focus-visible { outline: 2px solid var(--mylar-focus-color); outline-offset: 2px; }
+:is(#main,.ui-dialog) :is(input[type=text],input[type=number],input[type=search],input[type=password],input[type=email],input[type=url],input[type=tel],input[type=date],textarea,select):focus-visible { outline: 2px solid var(--mylar-focus-color); outline-offset: 2px; }
+#main :is(.links,#btn_menu), #btn_notifs { display: flex; flex-wrap: wrap; gap: var(--mylar-control-gap); }
+
+body[data-mylar-theme=carbon] .ui-accordion .ui-accordion-header { color: var(--mylar-control-text); background: var(--mylar-control-surface); border-color: var(--mylar-control-border); }
+body[data-mylar-theme=carbon] .ui-accordion .ui-accordion-header:is(:hover,.ui-state-hover,.ui-state-focus) { background: var(--mylar-control-hover); }
+body[data-mylar-theme=carbon] .ui-accordion .ui-accordion-header.ui-state-active { background: var(--mylar-control-pressed); }
+body[data-mylar-theme=carbon] .ui-accordion .ui-accordion-header a { color: inherit; }
+body[data-mylar-theme=carbon] .ui-accordion .ui-accordion-header .ui-icon { background-image: url("images/icon_sprite_white.png"); }
