@@ -77,6 +77,24 @@ class Installation(unittest.TestCase):
         installer.main(self.root)
         self.assertIn(installer.MARKER, (self.root.parent / 'lib/mega/mega.py').read_text())
 
+    def test_actual_verifier_preserves_self_contained_cache_suite_arguments(self):
+        tree = ast.parse((HERE / 'verify_image.py').read_text())
+        loop = next(n for n in ast.walk(tree) if isinstance(n, ast.For)
+                    and isinstance(n.iter, ast.Tuple)
+                    and any(isinstance(v, ast.Constant) and v.value == 'test_cache_admission.py'
+                            for v in n.iter.elts))
+        calls = []
+        runner = SimpleNamespace(run=lambda argv, **options: calls.append((argv, options)))
+        exec(compile(ast.Module(body=[loop], type_ignores=[]), '<actual-verifier-suite-routing>', 'exec'),
+             dict(sys=sys, FIXES=HERE, source=self.root, subprocess=runner))
+        independent = {'test_cache_admission.py', 'test_cache_transfer.py',
+                       'test_cache_providers.py', 'test_cache_ddl.py'}
+        self.assertTrue(independent <= {Path(argv[1]).name for argv, _ in calls})
+        for argv, options in calls:
+            self.assertEqual(argv[0], sys.executable)
+            self.assertEqual(options, dict(check=True))
+            self.assertEqual(argv[2:], [] if Path(argv[1]).name in independent else [str(self.root)])
+
     def test_unsupported_provider_preimage_fails_before_any_target_write(self):
         (self.root/'downloaders/mediafire.py').write_text('def changed(): pass\n')
         before={str(p):p.read_bytes() for p in self.root.parent.rglob('*.py')}
