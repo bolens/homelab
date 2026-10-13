@@ -205,6 +205,27 @@ def clear_active(key):
     mylar.DDL_QUEUED[:] = [value for value in mylar.DDL_QUEUED if str(value) != str(key)]
 
 
+def mylar_cache_destination():
+    import mylar
+    return mylar.CONFIG.DDL_LOCATION or mylar.CONFIG.CACHE_DIR
+
+
+def cache_held(item, queue, reason, refund=False):
+    """Keep an admitted original queued, without provider failure or deletion."""
+    with _LOCK:
+        state = store(); value = state.record(item)
+        original = item.pop('_cache_admission_attempt', None)
+        if refund and original == (value['release'], value['attempts'], value.get('started')):
+            value['attempts'] = max(0, value['attempts'] - 1)
+        value['reason'] = reason
+        value['speed'] = 0
+        state.save()
+    clear_active(item['id'])
+    queue.put(item)
+    time.sleep(1)
+
+
+
 def begin(item, queue):
     from mylar import db, helpers
     database = db.DBConnection()
@@ -212,8 +233,20 @@ def begin(item, queue):
     if not current or current['status'] not in ('Queued', 'Downloading'):
         clear_active(item['id'])
         return False
+    from mylar import cache_admission, pack_intake
+    try:
+        if pack_intake.unresolved_capture(str(item['id'])):
+            raise cache_admission.Held('Existing pack capture requires owning recovery before another transfer')
+        with cache_admission.allocation(mylar_cache_destination(), 1, nodes=1):
+            pass
+    except cache_admission.Held as exc:
+        cache_held(item, queue, str(exc))
+        return False
     with _LOCK:
         decision = store().begin(item)
+        if decision == 'ready':
+            value = store().data['items'][str(item['id'])]
+            item['_cache_admission_attempt'] = (value['release'], value['attempts'], value['started'])
     if decision in ('exhausted', 'completed'):
         status = 'Completed' if decision == 'completed' else 'Failed'
         database.upsert('ddl_info', {'status': status}, {'id': item['id']})

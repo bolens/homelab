@@ -62,6 +62,32 @@ Configuration loading retains cache and DDL originals. The `CLEANUP_CACHE` and
 `CLEANUP_STRAYS` settings are preserved, but their automatic configuration-time
 deletions are deferred; source cleanup remains owned by verified post-processing.
 
+DDL cache admission defaults to **20 GiB** across Mylar's configured cache and DDL
+locations, with **5 GiB** of filesystem free space reserved. Set
+`ddl_cache_max_gib` and `ddl_cache_min_free_gib` in Mylar's `[DDL]` configuration
+to whole GiB values from 1 through 4096. Nested locations are counted once;
+retained downloads, partial files, extraction stages and Mega temporary files
+all count. Mega temporary plaintext stays in the configured cache rather than
+the container's writable `/tmp` layer. New HTTP and extracted cache payloads are
+owner-readable only; existing original file permissions are preserved. HTTP
+downloads and ZIP expansion reserve
+projected bytes and per-entry metadata/block overhead before allocation, and check available space
+before each write. Participating allocations share an original file lock;
+external programs writing these directories are not covered by this application
+admission limit or a filesystem quota.
+
+At capacity, new transfers stay Queued with the capacity reason and do not spend
+a provider attempt. Existing unconfirmed pack captures block another download
+for that DDL ID. These checks preserve Remove and NZB handoff behavior. Cache
+admission never deletes retained originals or claims an import acknowledgement.
+Recovery that reuses a complete extraction can continue above the budget without
+allocating another copy: every ZIP member, implicit directory and comic archive
+must independently match the unchanged original. Missing, changed or ambiguous
+members remain available for review; separate physical sources are not merged.
+An existing cache above the default budget therefore holds new allocations until
+verified recovery or an explicit budget increase makes space available. This
+policy covers Mylar's cache, not the normalizer's independent retained sources.
+
 The published image includes patches from `config/` to handle missing DDL
 download sizes without breaking the queue page and to reject HTTP errors or
 HTML responses before saving them as comic archives. The build-time patching is idempotent and

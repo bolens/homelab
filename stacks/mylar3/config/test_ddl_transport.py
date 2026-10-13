@@ -19,6 +19,7 @@ from unittest.mock import patch
 
 import requests
 import ddl_transport as transport
+import cache_admission
 from patch_ddl_transport import caller, configuration, template, web
 
 COUNTS = Counter()
@@ -210,7 +211,7 @@ class TransportTest(unittest.TestCase):
         process = function(method(text,'process_kwargs'),namespace)
         target = SimpleNamespace(MINIMAL_INI=False,ENCRYPT_PASSWORDS=False,OTHER='unchanged')
         target._define = lambda key:define(target,key)
-        mylar = SimpleNamespace(CONFIG=target,ddl_transport=transport,tagger_backend=tagger_backend)
+        mylar = SimpleNamespace(CONFIG=target,ddl_transport=transport,tagger_backend=tagger_backend,cache_admission=cache_admission)
         with patch.dict(sys.modules,{'mylar':mylar}):
             for selected in ('requests','curl','requests'):
                 process(target,{'ddl_discovery_backend':selected})

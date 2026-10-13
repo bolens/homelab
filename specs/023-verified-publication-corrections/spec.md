@@ -83,6 +83,8 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - **FR-014**: Reader-owned repeat retirement must bind one complete finite native batch and the continuously verified stopped reader, preserve unrelated namespace/catalog/reader facts, and support exact rollback with retained originals and independently verified restore custody.
 - **FR-015**: Durable negative-retirement pending state must hold every ordinary native, worker and archive preparation purpose until the exact owning aggregate proves terminal acceptance. Unknown interruptions cannot grant replay or clear the hold.
 
+- **FR-016**: Bound new DDL cache admission with an explicit configurable byte budget and processing headroom; retain unresolved downloads and review evidence, prevent another capture of the same unresolved delivery, and report the capacity hold without fabricating import acknowledgement. Verified cleanup, not age alone, permits retained-source deletion.
+
 ### Key Entities
 
 - **Publication correction**: Reviewed immutable relationship between one verified payload, its correct owner, rejected owners and supporting evidence.
@@ -98,6 +100,8 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - **SC-002**: Rewritten metadata and recompression cannot evade a registered correction; different eligible payload fixtures remain eligible.
 - **SC-003**: All crash, restart, stale-owner and corrupt-evidence fixtures preserve prior correction history and affected archives.
 - **SC-004**: Scoped live acceptance proves the correct publication’s bytes, owner and reader intact, the incorrect repeat retained outside the library, and no unrelated catalog changes.
+
+- **SC-005**: Cache admission refuses projected budget/reserve overflow, simultaneous allocation and unverifiable accounting; a verified unchanged extraction is reused without another recovery copy. Retained unresolved downloads and prior acknowledgements remain unchanged.
 
 ## Assumptions
 

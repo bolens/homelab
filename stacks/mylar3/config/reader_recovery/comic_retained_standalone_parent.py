@@ -596,7 +596,7 @@ class ConfiguredRuntime:
         return self.process
 
 NATIVE_PROBE_SOURCE_SHA256 = None
-SCOPE_SOURCE_SHA256 = '8bdb029a7fd9aa12ab714a501a96c8e25d033260d0f31b1be03ebf143d2b1606'
+SCOPE_SOURCE_SHA256 = '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'
 
 
 def native_observation(runtime, probe_ref, scope_ref, config_ref, module_pins, nonce):
