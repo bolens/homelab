@@ -1,12 +1,62 @@
 // Queue UI owns one active-status request at a time. Native queue actions stay explicit.
 var ImportTimer=null, ddlLoading=false, ddlStopped=false, ddlMutating=false, ddlActiveId=null, ddlFresh=false, ddlRemoveId=null, ddlTableLoading=false;
 var ddlCsrf=null, ddlTableFailed=false;
+var ddlPreferenceRequest=null, ddlPreferenceTimer=null, ddlPreferenceSequence=0, ddlPreferenceAttempts=0;
+var ddlPreferencesLoading=false, ddlPreferencesLoaded=false, ddlPreferencesPaused=false, ddlPreferenceBlocked=false;
+function ddlPreferenceReadFailed(xhr) {
+    var status=xhr && xhr.status;
+    if (status===401 || status===403) {
+        ddlPreferenceBlocked=true;
+        $('#ddl_schedule_note').text('Sign in through Manage, then refresh status to load queue preferences.');
+        return;
+    }
+    if (status>=400 && status<500 && status!==408 && status!==429) ddlPreferenceBlocked=true;
+    if (ddlPreferenceBlocked || ddlPreferenceAttempts>=4) {
+        $('#ddl_schedule_note').text('Queue preferences could not be loaded. Refresh status to retry.');
+        return;
+    }
+    $('#ddl_schedule_note').text('Queue preferences are temporarily unavailable. Retrying automatically…');
+    if (!ddlStopped && !ddlPreferencesPaused && !document.hidden) {
+        clearTimeout(ddlPreferenceTimer);
+        ddlPreferenceTimer=setTimeout(function(){ddlPreferenceTimer=null;ddlLoadPreferences(false);},Math.min(8000,2000*Math.pow(2,ddlPreferenceAttempts-1)));
+    }
+}
+function ddlLoadPreferences(resetRetries) {
+    if (ddlCsrf || ddlPreferencesLoading || ddlStopped || ddlPreferencesPaused || document.hidden) return;
+    if (resetRetries) {ddlPreferenceAttempts=0;ddlPreferenceBlocked=false;clearTimeout(ddlPreferenceTimer);ddlPreferenceTimer=null;}
+    if (ddlPreferenceBlocked || ddlPreferenceAttempts>=4) return;
+    var sequence=++ddlPreferenceSequence;
+    ddlPreferencesLoading=true;ddlPreferenceAttempts++;
+    $('#ddl_schedule_note').text('Loading queue preferences…');
+    ddlPreferenceRequest=$.ajax({url:'workflowStatus',dataType:'json',timeout:10000,cache:true}).done(function(data){
+        if (sequence!==ddlPreferenceSequence || ddlStopped || ddlPreferencesPaused) return;
+        var policy=data && data.policy;
+        if (!data || data.error || typeof data.csrf!=='string' || !data.csrf || !policy || ['mixed','singles','packs','alternate'].indexOf(policy.ddl_kind)===-1 || ['fifo','newest','release_oldest','release_newest'].indexOf(policy.ddl_order)===-1 || typeof policy.ddl_paused!=='boolean') {ddlPreferenceReadFailed();return;}
+        ddlCsrf=data.csrf;
+        if (!ddlPreferencesLoaded) {
+            $('#ddl_kind').val(policy.ddl_kind);$('#ddl_order').val(policy.ddl_order);$('#ddl_paused').prop('checked',policy.ddl_paused);
+            $('#ddl_schedule_note').text('Applies to the next eligible download. Active transfers keep running; provider cooldowns still apply.');
+        } else $('#ddl_schedule_note').text('Connection restored. Your current choices were kept; save to apply them.');
+        ddlPreferencesLoaded=true;
+        $('#ddl_schedule :input').prop('disabled',ddlMutating);$('#ddl_save_schedule').button('refresh');
+    }).fail(function(xhr){if(sequence===ddlPreferenceSequence && !ddlStopped && !ddlPreferencesPaused)ddlPreferenceReadFailed(xhr);})
+    .always(function(){if(sequence===ddlPreferenceSequence){ddlPreferencesLoading=false;ddlPreferenceRequest=null;}});
+}
+function ddlPausePreferences() {
+    ddlPreferencesPaused=true;ddlPreferenceSequence++;
+    clearTimeout(ddlPreferenceTimer);ddlPreferenceTimer=null;
+    var request=ddlPreferenceRequest;
+    if (ddlPreferencesLoading) ddlPreferenceAttempts=Math.max(0,ddlPreferenceAttempts-1);
+    ddlPreferencesLoading=false;ddlPreferenceRequest=null;
+    if (request) request.abort();
+}
+function ddlResumePreferences() {ddlPreferencesPaused=false;ddlLoadPreferences(false);}
 function ddlSchedulingAction(action,values) {
     if (!ddlCsrf || ddlMutating) return;
     ddlMutating=true;ddlRowActionsEnabled();$('#ddl_schedule :input').prop('disabled',true);$('#ddl_save_schedule').button('refresh');
     $.ajax({url:'workflowAction',type:'POST',data:$.extend({csrf:ddlCsrf,action:action},values),dataType:'json',timeout:15000})
     .done(function(data){$('#ddl_schedule_note').text(data && data.ok ? (action==='ddl_next' ? 'This queued item will run next when its provider is available.' : 'Preferences saved. The active download is unchanged.') : 'Change was not confirmed. Reload before retrying.');})
-    .fail(function(){$('#ddl_schedule_note').text('Change was not confirmed. Reload and check preferences before retrying.');ddlCsrf=null;})
+    .fail(function(){$('#ddl_schedule_note').text('Change was not confirmed. Refresh status to reconnect before deciding whether to save again.');ddlCsrf=null;})
     .always(function(){ddlMutating=false;ddlRowActionsEnabled();$('#ddl_schedule :input').prop('disabled',!ddlCsrf);$('#ddl_save_schedule').button('refresh');activecheck();});
 }
 function ddlText(value) { return $('<span>').text(value == null ? '' : String(value)).html(); }
@@ -101,14 +151,9 @@ function ddlRowActions(full) {
 $(document).ready(function(){
     $('#ddl_refresh, #ddl_active_actions button, #ddl_restart_queue, #ddl_clear_queue').button();
     $('#ddl_save_schedule').button();
-    $.ajax({url:'workflowStatus',dataType:'json',timeout:10000,cache:true}).done(function(data){
-        if (!data || !data.csrf || !data.policy) return;
-        ddlCsrf=data.csrf;$('#ddl_kind').val(data.policy.ddl_kind);$('#ddl_order').val(data.policy.ddl_order);$('#ddl_paused').prop('checked',data.policy.ddl_paused);
-        $('#ddl_schedule :input').prop('disabled',false);$('#ddl_save_schedule').button('refresh');
-        $('#ddl_schedule_note').text('Applies to the next eligible download. Active transfers keep running; provider cooldowns still apply.');
-    }).fail(function(){$('#ddl_schedule_note').text('Queue preferences could not be loaded. Reload or sign in through Manage.');});
+    ddlLoadPreferences(false);
     $('#ddl_schedule').on('submit',function(event){event.preventDefault();ddlSchedulingAction('policy',{values:JSON.stringify({ddl_kind:$('#ddl_kind').val(),ddl_order:$('#ddl_order').val(),ddl_paused:$('#ddl_paused').prop('checked')})});});
-    $('#ddl_refresh').on('click',activecheck);
+    $('#ddl_refresh').on('click',function(){ddlLoadPreferences(true);activecheck();});
     $('#ddl_active_actions').on('click','button',function(){if(ddlFresh && ddlActiveId!==null)ajaxcallit($(this).attr('data-ddl-mode'),ddlActiveId);});
     function closeRemove(box) {
         ddlRemoveId=null;
@@ -162,6 +207,7 @@ $(document).ready(function(){
         $('#ddl_sort').val($('#ddl_sort option').filter(function(){return this.value===value;}).length ? value : 'custom');
         $('#ddl_sort_note').text(value==='11:asc' ? 'Estimated from saved preferences and Download next. Active first, eligible downloads before cooldowns, then history. Updates automatically.' : 'Changes the table view only.');
     });
-    document.addEventListener('visibilitychange',function(){if(document.hidden)clearTimeout(ImportTimer);else activecheck();});
-    $(window).on('beforeunload',function(){ddlStopped=true;clearTimeout(ImportTimer);});
+    document.addEventListener('visibilitychange',function(){if(document.hidden){clearTimeout(ImportTimer);ddlPausePreferences();}else{ddlResumePreferences();activecheck();}});
+    $(window).on('beforeunload pagehide',function(){ddlStopped=true;clearTimeout(ImportTimer);ddlPausePreferences();});
+    $(window).on('pageshow',function(event){if(event.originalEvent && event.originalEvent.persisted){ddlStopped=false;ddlResumePreferences();activecheck();}});
 });

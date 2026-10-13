@@ -320,8 +320,10 @@ body[data-mylar-theme=default] a:focus-visible { outline-color: #3383bb; }
 def publication_http(function):
     @wraps(function)
     def wrapped(*args,**kwargs):
-        if _PUBLICATION and startup_status()['state']!='ready':
-            return publication_hold_page()
+        if _PUBLICATION:
+            startup=startup_status()
+            if startup['state']!='ready' and (startup['state'],startup.get('reason'))!=('held','writer-busy'):
+                return publication_hold_page()
         if _PUBLICATION:
             from .publication_native import Review
             try:

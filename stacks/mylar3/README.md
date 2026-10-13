@@ -235,7 +235,11 @@ completed downloads show that their import is unconfirmed instead of claiming
 they are queued. If the shared media writer remains busy for the 180-second admission
 timeout, the untouched processing job returns to the queue with its original issue
 and DDL identity. The serial worker retries it after other queued work. Invalid
-writer state and failures after processing starts still require review. Existing
+writer state and failures after processing starts still require review. Ordinary
+HTTP and API requests also wait for a transient Writer-busy probe, then recheck
+publication authority under the acquired Writer. A busy probe alone does not require
+startup review or restart. Durable holds and incomplete startup still refuse entry;
+self-admitted recovery APIs retain their separate admission rules. Existing
 downloads stranded by an older image need a verified resubmission of the retained
 archive. Pack downloads are not marked imported based on one member issue. Explicit
 integer issue lists and ranges show how many members have a Downloaded or Archived
@@ -261,7 +265,11 @@ transfers independently.
 DDL Queue Management keeps the active transfer visible when its size is unknown,
 with an indeterminate progress bar. Failed refreshes retain the last snapshot and
 disable active-download actions until fresh status arrives. Requests do not overlap,
-and polling pauses in hidden tabs. The queue becomes labeled cards on small screens,
+and polling pauses in hidden tabs. Queue-preference reads retry transient failures
+up to three times with bounded delays. **Refresh status** starts another read after
+retries are exhausted or sign-in is restored. Reconnecting preserves unsaved choices;
+failed mutations are never retried automatically. Hidden or departing pages cancel
+preference reads and timers. The queue becomes labeled cards on small screens,
 with a sort selector, while larger screens retain the full table. Queue-wide actions
 are separate from active-download controls. Removing an entry uses an inline
 Remove / Cancel confirmation in its row; Escape cancels. Aborting a download or

@@ -865,4 +865,96 @@ class BusyStartupTests(unittest.TestCase):
         with self.assertRaises(ValueError):patched_source(revised.replace(QUEUE_PREFIX,QUEUE_PREFIX.replace('return False','return True'),1))
         with self.assertRaises(ValueError):patched_source(revised.replace(BUSY_MARKER,BUSY_MARKER+'\n'+BUSY_MARKER,1))
 
+class BusyRequestTests(unittest.TestCase):
+    """Real existing SQLite authority and another thread's actual Writer."""
+    setUp=ExistingAdmissionTests.setUp
+    authority=ExistingAdmissionTests.authority
+    activate=ExistingAdmissionTests.activate
+    busy=BusyStartupTests.busy
+
+    def ready(self):
+        self.authority();self.assertEqual(self.activate()['state'],'ready')
+
+    def test_actual_HTTP_busy_waits_then_admits_existing_store(self):
+        self.ready();calls=[]
+        def handler():
+            self.assertTrue(self.native.active());calls.append(True)
+            return self.native.existing_store(self.root).get('pack','absent')
+        context,seen,errors,thread=self.busy(lambda writer:None)
+        with context:self.assertIsNone(self.native.publication_http(handler)())
+        thread.join(1);self.assertFalse(errors);self.assertEqual(len(calls),1);self.assertEqual(seen[0]['reason'],'writer-busy')
+        self.assertEqual(self.native.startup_status()['state'],'ready');self.assertFalse(self.native.active())
+
+    def test_actual_HTTP_busy_then_pending_refuses_handler(self):
+        self.ready();calls=Mock()
+        context,seen,errors,thread=self.busy(lambda writer:writer.create_file(writer.release_pending))
+        with context,self.assertRaises(self.guard.Unavailable):self.native.publication_http(calls)()
+        thread.join(1);calls.assert_not_called();self.assertFalse(errors);self.assertEqual(seen[0]['reason'],'writer-busy')
+        self.assertTrue((self.root/'media-writer/release-v1.pending').is_file())
+
+    def test_actual_HTTP_busy_then_removed_authority_refuses_handler(self):
+        self.ready();calls=Mock()
+        context,seen,errors,thread=self.busy(lambda writer:(writer.root/'publication-v1.json').unlink())
+        with context,self.assertRaises(self.guard.Unavailable):self.native.publication_http(calls)()
+        thread.join(1);calls.assert_not_called();self.assertFalse(errors);self.assertEqual(seen[0]['reason'],'writer-busy')
+
+    def test_actual_HTTP_busy_cannot_bypass_incomplete_startup(self):
+        self.ready();self.native._STARTUP_COMPLETE=False;calls=Mock()
+        context,seen,errors,thread=self.busy(lambda writer:None)
+        with context,self.assertRaises(self.guard.Unavailable):self.native.publication_http(calls)()
+        thread.join(1);calls.assert_not_called();self.assertFalse(errors);self.assertEqual(seen[0]['reason'],'writer-busy')
+
+    def test_nonbusy_unknown_HTTP_holds_never_enter_operation(self):
+        self.ready();calls=Mock()
+        for state,reason in (('held','media-pending'),('held','authority-unavailable'),('held','startup-restart-required'),('unknown','writer-busy'),('held','unknown')):
+            with self.subTest(state=state,reason=reason),patch.object(self.native,'startup_status',return_value={'state':state,'reason':reason}),patch.object(self.native,'operation',side_effect=AssertionError('hold entered operation')):
+                result=self.native.publication_http(calls)();self.assertIn('processing is held',result)
+        calls.assert_not_called()
+
+    def actual_api(self):
+        import shutil
+        from patch_publication_startup import main
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup);root=Path(temporary.name)
+        for name in ('__init__.py','api.py','webserve.py'):shutil.copyfile(Path(os.environ['MYLAR_WORKFLOW_SOURCE'])/name,root/name)
+        main(root);tree=ast.parse((root/'api.py').read_text());cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='Api');method=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='checkParams')
+        self.mylar.CONFIG=types.SimpleNamespace(API_ENABLED=True,API_KEY='p'*32);self.mylar.SSE_KEY='s'*32
+        ns=dict(mylar=self.mylar,cmd_list=['getIndex','getHealth','retainedDeliveryFinalize'],logger=Mock());exec(compile(ast.Module(body=[method],type_ignores=[]),'<actual native API router>', 'exec'),ns)
+        return ns['checkParams'],root
+
+    @unittest.skipUnless(os.environ.get('MYLAR_WORKFLOW_SOURCE'),'actual pinned source required')
+    def test_actual_API_busy_validates_then_real_fetch_admission(self):
+        self.ready();check,_=self.actual_api();handler=types.SimpleNamespace(_failureResponse=lambda message:message,apitype=None);calls=[]
+        def fetch(current):
+            self.assertTrue(self.native.active());calls.append(True)
+            return self.native.existing_store(self.root).get('pack','absent')
+        context,seen,errors,thread=self.busy(lambda writer:None)
+        with context:
+            check(handler,cmd='getIndex',apikey='p'*32);self.assertEqual(handler.data,'OK')
+            self.assertIsNone(self.native.publication_api_call(fetch)(handler))
+        thread.join(1);self.assertFalse(errors);self.assertEqual(len(calls),1);self.assertEqual(seen[0]['reason'],'writer-busy')
+
+    @unittest.skipUnless(os.environ.get('MYLAR_WORKFLOW_SOURCE'),'actual pinned source required')
+    def test_actual_API_busy_removed_authority_refuses_fetch(self):
+        self.ready();check,_=self.actual_api();handler=types.SimpleNamespace(_failureResponse=lambda message:message,apitype=None);calls=Mock()
+        context,seen,errors,thread=self.busy(lambda writer:(writer.root/'publication-v1.json').unlink())
+        with context:
+            check(handler,cmd='getIndex',apikey='p'*32);self.assertEqual(handler.data,'OK')
+            with self.assertRaises(self.guard.Unavailable):self.native.publication_api_call(calls)(handler)
+        thread.join(1);calls.assert_not_called();self.assertFalse(errors);self.assertEqual(seen[0]['reason'],'writer-busy')
+
+    @unittest.skipUnless(os.environ.get('MYLAR_WORKFLOW_SOURCE'),'actual pinned source required')
+    def test_actual_API_self_admitted_busy_retains_predecessor_refusal(self):
+        self.ready();check,_=self.actual_api();handler=types.SimpleNamespace(_failureResponse=lambda message:message,apitype=None)
+        context,seen,errors,thread=self.busy(lambda writer:None)
+        with context:check(handler,cmd='retainedDeliveryFinalize',apikey='p'*32)
+        thread.join(1);self.assertIn('authority held',handler.data);self.assertFalse(errors);self.assertEqual(seen[0]['reason'],'writer-busy')
+
+    @unittest.skipUnless(os.environ.get('MYLAR_WORKFLOW_SOURCE'),'actual pinned source required')
+    def test_actual_API_prefix_upgrade_idempotence_and_drift_refusal(self):
+        from patch_publication_startup import main,API_PREFIX,API_BUSY_MARKER
+        _,root=self.actual_api();before=(root/'api.py').read_bytes();main(root);self.assertEqual((root/'api.py').read_bytes(),before)
+        text=before.decode();self.assertEqual(text.count(API_BUSY_MARKER),1);self.assertEqual(text.count(API_PREFIX),1)
+        (root/'api.py').write_text(text.replace("and self.cmd not in native_writers.SELF_ADMITTED_API", "and True",1))
+        with self.assertRaises(ValueError):main(root)
+
 if __name__=='__main__':unittest.main()
