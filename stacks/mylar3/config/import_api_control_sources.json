@@ -273,7 +273,7 @@
   },
   {
     "path": "patch_publication_startup.py",
-    "sha256": "0273ca422602a1fa9c1f4d63be8365c40df81f3710af5a20ecd7f0783429900d"
+    "sha256": "415adf0acf1c6b4b3429af720b69675714abd7d8162e51e9f449f584122808cd"
   },
   {
     "path": "patch_queue_control.py",
@@ -657,7 +657,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "73f56a99697145a25514934cfafea63fd86b4b2fb3708a57fd008825f506070f"
+    "sha256": "743d687902bd3621efa183be93bec310c464ed43ec7f43a41451dda28213f327"
   },
   {
     "path": "story_arc_search.py",
@@ -1349,7 +1349,7 @@
   },
   {
     "path": "test_publication_startup.py",
-    "sha256": "d335de949058eb4c7b5854ff7791f9b9042c83524fef6ab2fc2ed35ffb1c1f2a"
+    "sha256": "f6ebe5562a9b35c70983f724002526f2777a8c762bcb34ca74eba0d23e8c452d"
   },
   {
     "path": "test_publication_tagging.py",

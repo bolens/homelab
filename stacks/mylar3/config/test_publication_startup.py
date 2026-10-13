@@ -766,4 +766,97 @@ class PreIntentProducerAdmissionTests(unittest.TestCase):
         self.malformed('retained_repeat')
 
 
+
+
+@unittest.skipUnless(os.environ.get('MYLAR_WORKFLOW_SOURCE'),'actual pinned source required')
+class BusyStartupTests(unittest.TestCase):
+    """Actual startup AST, real SQLite/Writer; scheduler target callbacks projected."""
+    setUp=ExistingAdmissionTests.setUp
+    authority=ExistingAdmissionTests.authority
+    activate=ExistingAdmissionTests.activate
+    functions=NativeStartupSourceTests.functions
+
+    def boot(self):
+        self.authority();self.assertEqual(self.activate()['state'],'ready')
+        ns=self.functions();ns['_INITIALIZED']=True
+        import datetime
+        ns.update(updater=Mock(),datetime=datetime,DBUPDATE_INTERVAL=1,IntervalTrigger=Mock())
+        return ns
+
+    def busy(self,action):
+        entered=threading.Event();release=threading.Event();errors=[]
+        writer=self.Writer(self.root/'media-writer',create=False)
+        def held():
+            try:
+                with writer.hold(allow_pending=True,allow_tagger_pending=True,allow_release_pending=True):
+                    entered.set();self.assertTrue(release.wait(3));action(writer)
+            except BaseException as error:errors.append(error)
+        thread=threading.Thread(target=held);thread.start();self.assertTrue(entered.wait(1))
+        self.addCleanup(lambda:(release.set(),thread.join(3)))
+        actual=self.native.startup_status;seen=[]
+        def probe():
+            value=actual();seen.append(value)
+            if value.get('reason')=='writer-busy':
+                timer=threading.Timer(.05,release.set);timer.start();self.addCleanup(timer.join)
+            return value
+        return patch.object(self.native,'startup_status',side_effect=probe),seen,errors,thread
+
+    def test_actual_start_busy_waits_for_real_admission_before_scheduler(self):
+        ns=self.boot()
+        class ReachedScheduler(Exception):pass
+        def reached(*args,**kwargs):
+            self.assertTrue(self.native.active());raise ReachedScheduler()
+        ns['SCHED'].add_job.side_effect=reached
+        context,seen,errors,thread=self.busy(lambda writer:None)
+        with context,self.assertRaises(ReachedScheduler):ns['start']()
+        thread.join(1);self.assertFalse(errors);self.assertEqual(seen[0]['reason'],'writer-busy')
+        self.assertEqual(ns['SCHED'].add_job.call_count,1)
+
+    def test_actual_queue_busy_waits_then_creates_real_thread_once(self):
+        ns=self.boot();done=threading.Event();finish=threading.Event();threads=[]
+        self.mylar.PPPOOL=None;ns.update(threading=threading,PP_QUEUE=queue.Queue(),postprocess_main=lambda q:(done.set(),finish.wait(2)))
+        context,seen,errors,thread=self.busy(lambda writer:None)
+        try:
+            with context:ns['queue_schedule']('pp_queue','start')
+            self.assertTrue(done.wait(1));threads.append(self.mylar.PPPOOL);self.assertTrue(threads[0].is_alive())
+            with self.native.operation():ns['queue_schedule']('pp_queue','start')
+            self.assertIs(self.mylar.PPPOOL,threads[0]);self.assertFalse(errors);self.assertEqual(seen[0]['reason'],'writer-busy')
+        finally:
+            finish.set()
+            if self.mylar.PPPOOL is not None:self.mylar.PPPOOL.join(2)
+            thread.join(1)
+
+    def test_busy_then_media_pending_revalidates_and_refuses_scheduler(self):
+        ns=self.boot();context,seen,errors,thread=self.busy(lambda writer:writer.create_file(writer.release_pending))
+        with context,self.assertRaises(self.guard.Unavailable):ns['start']()
+        thread.join(1);self.assertFalse(errors);ns['SCHED'].add_job.assert_not_called()
+        self.assertTrue((self.root/'media-writer/release-v1.pending').is_file())
+
+    def test_busy_then_authority_removed_refuses_queue_creation(self):
+        ns=self.boot();context,seen,errors,thread=self.busy(lambda writer:(writer.root/'publication-v1.json').unlink())
+        with context,self.assertRaises(self.guard.Unavailable):ns['queue_schedule']('pp_queue','start')
+        thread.join(1);self.assertFalse(errors);ns['threading'].Thread.assert_not_called()
+
+    def test_nonbusy_review_refusal_never_enters_operation(self):
+        ns=self.boot()
+        for reason in ('media-pending','authority-unavailable','startup-restart-required'):
+            with self.subTest(reason=reason),patch.object(self.native,'startup_status',return_value={'state':'held','reason':reason}),patch.object(self.native,'operation',side_effect=AssertionError('review admission entered')):
+                self.assertFalse(ns['start']());self.assertFalse(ns['queue_schedule']('pp_queue','start'))
+        ns['SCHED'].add_job.assert_not_called();ns['threading'].Thread.assert_not_called()
+
+    def test_busy_cannot_bypass_incomplete_startup(self):
+        ns=self.boot();self.native._STARTUP_COMPLETE=False
+        context,seen,errors,thread=self.busy(lambda writer:None)
+        with context,self.assertRaises(self.guard.Unavailable):ns['start']()
+        thread.join(1);self.assertFalse(errors);ns['SCHED'].add_job.assert_not_called()
+
+    def test_exact_prior_guard_upgrade_idempotence_and_drift_refusal(self):
+        from patch_publication_startup import patched_source,OLD_START,OLD_QUEUE,START_PREFIX,QUEUE_PREFIX,BUSY_MARKER
+        source=(Path(os.environ['MYLAR_WORKFLOW_SOURCE'])/'__init__.py').read_text()
+        revised=patched_source(source);self.assertEqual(patched_source(revised),revised)
+        self.assertEqual(revised.count(START_PREFIX),1);self.assertEqual(revised.count(QUEUE_PREFIX),1)
+        with self.assertRaises(ValueError):patched_source(source.replace(OLD_START,OLD_START.replace('return False','return True'),1))
+        with self.assertRaises(ValueError):patched_source(source.replace(OLD_QUEUE,OLD_QUEUE.replace('return False','return True'),1))
+        with self.assertRaises(ValueError):patched_source(revised.replace(BUSY_MARKER,BUSY_MARKER+'\n'+BUSY_MARKER,1))
+
 if __name__=='__main__':unittest.main()
