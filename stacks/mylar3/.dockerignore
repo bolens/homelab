@@ -18,6 +18,9 @@ config/**
 # Public checked-stage source closures; runtime configuration stays excluded.
 !config/.portable-cohort
 !config/ddl_queue.js
+!config/mylar_components.js
+!config/history_ui.js
+!config/catalog_ui.js
 !config/import_api_control_sources.json
 !config/publication_reader_cohort.json
 !config/standalone_control_sources.json
