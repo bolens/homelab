@@ -14,6 +14,9 @@ from unittest.mock import MagicMock, patch
 import urllib.parse
 import zipfile
 import queue_control
+import cache_admission
+import patch_ddl_status_retention as status_patch
+from test_status_retention import DB
 import verified_transfer
 from patch_ddl_requeue import patched_source
 from patch_queue_control import patched_source as control_source
@@ -75,11 +78,22 @@ class DdlRequeueTest(unittest.TestCase):
                         mainlink='unused', series='Comic', year='2026', size='100',
                         link_type='GC-Main', pack=0, filename=final.name,
                         remote_filesize=len(body), site='DDL(GetComics)')
-            database = MagicMock()
-            database.selectone.return_value.fetchone.side_effect = [item, {'ComicID': '2'}]
+            # Native upsert and original-generation CAS run against real SQLite.
+            database = DB()
+            self.addCleanup(database.connection.close)
+            for column in ('tmp_filename', 'filename', 'size'):
+                database.action('ALTER TABLE ddl_info ADD COLUMN %s TEXT' % column)
+            database.action('CREATE TABLE comics (ComicID TEXT, ComicName TEXT)')
+            database.action('INSERT INTO comics VALUES (?, ?)', ['2', 'Comic'])
+            database.upsert('ddl_info', dict(item, updated_date='original'), {'id': '1'})
+            native_status = {}
+            exec(status_patch.HELPERS, native_status)
             state = queue_control.Store(directory)
             state.begin(item)
-            mylar = SimpleNamespace(CONFIG=SimpleNamespace(DDL_AUTORESUME=True, DDL_LOCATION=directory),
+            mylar = SimpleNamespace(DATA_DIR=directory,
+                                    CONFIG=SimpleNamespace(DDL_AUTORESUME=True, CACHE_DIR=directory,
+                                                           DDL_LOCATION=directory),
+                                    cache_admission=cache_admission,
                                     DDL_QUEUED=[], DDL_QUEUE=MagicMock(), DDL_LOCK=False,
                                     db=SimpleNamespace(DBConnection=lambda: database),
                                     queue_control=SimpleNamespace(reset=MagicMock(), _LOCK=queue_control._LOCK,
@@ -87,6 +101,7 @@ class DdlRequeueTest(unittest.TestCase):
             namespace = dict(workflow=SimpleNamespace(guard_requeue=lambda fn: fn),
                              mylar=mylar, db=mylar.db, logger=MagicMock(), json=json, os=os,
                              re=re, urllib=urllib, verified_transfer=verified_transfer,
+                             cache_admission=cache_admission,
                              queue_control=mylar.queue_control,
                              requests=SimpleNamespace(Session=MagicMock(), exceptions=SimpleNamespace(Timeout=TimeoutError)))
             exec(compile(ast.Module(body=[requeue, download], type_ignores=[]), '<resume>', 'exec'), namespace)
@@ -97,9 +112,14 @@ class DdlRequeueTest(unittest.TestCase):
             downloader = MagicMock(headers={})
             downloader.session.get.return_value = response
             downloader.zip_zip.side_effect = verified_transfer.unpack
-            with patch.dict(sys.modules, {'mylar': mylar}):
+            # Capacity alone is projected: disposable tmpfs is below the production reserve.
+            with patch.dict(sys.modules, {'mylar': mylar,
+                                         'mylar.queues.ddl': SimpleNamespace(**native_status)}), \
+                    patch.object(cache_admission.os, 'fstatvfs', return_value=SimpleNamespace(
+                        f_bavail=100 * cache_admission.GIB, f_frsize=1)):
                 namespace['ddl_requeue'](None, 'resume', id='1')
                 queued = mylar.DDL_QUEUE.put.call_args.args[0]
+                self.assertEqual(database.selectone('SELECT status FROM ddl_info WHERE ID=?', ['1']).fetchone()['status'], 'Queued')
                 result = namespace['downloadit'](downloader, item['id'], item['link'], item['mainlink'],
                                                  queued['resume'], item['issueid'], item['remote_filesize'])
             self.assertTrue(result['success'])

@@ -1016,7 +1016,7 @@
   },
   {
     "path": "test_ddl_requeue.py",
-    "sha256": "b11823956a18052ef50c32b3c8092e2f5a41e3a4223212a973cc1b2348868cfd",
+    "sha256": "58326e44c1f1ed62e4366ae93c8a0f62f7c5c3d58fd2f8ced5e790a0880f5dea",
     "target": "test_ddl_requeue.py"
   },
   {

@@ -657,7 +657,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "75c4ab99c129ef7233d6ac49ee225e73fbae676adc3f844f01914d5d69b2b42f"
+    "sha256": "f201e6c685e8edf69ac2fa8682116b54f1c508a8b998c1aecbd18c43f9811f14"
   },
   {
     "path": "story_arc_search.py",
@@ -813,7 +813,7 @@
   },
   {
     "path": "test_ddl_requeue.py",
-    "sha256": "b11823956a18052ef50c32b3c8092e2f5a41e3a4223212a973cc1b2348868cfd"
+    "sha256": "58326e44c1f1ed62e4366ae93c8a0f62f7c5c3d58fd2f8ced5e790a0880f5dea"
   },
   {
     "path": "test_ddl_responses.py",
