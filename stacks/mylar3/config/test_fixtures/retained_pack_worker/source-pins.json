@@ -34,7 +34,7 @@
   "reader_scan.py": "2963ee58ec016bb2ee488b2c64fac0e5f2d2d4963f961ce548b31fa99fe88700",
   "release_naming.py": "4479b6027a5180b31ee5a994202bca87e5bb1cb2f1685d6cb7463f736b1526e8",
   "retained_pack_control.py": "a11b28318ed5f930f07963c7daf44b997eb1d1211c73242d32b5e9b20a834736",
-  "retained_pack_handoff.py": "a02711e8fa0dc3c4a41dce02ec5f3c7858f9f97c46fcb773d996a46d9bce0684",
+  "retained_pack_handoff.py": "a4aaf3e2149c6983e9bdbe1027f82a7487a286d4b21dd6fe9b98357fecdd7ead",
   "retained_pack_operations.py": "faf03dea0bb016484c41d021fa62617af9790ddb23f278eb240680435b6c3a65",
   "writer_cycle.py": "7b03a493d8acb85e31fb8c7f7788216dce396e18bb2b55ddead357de6df5a14c"
 }

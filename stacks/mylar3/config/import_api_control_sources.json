@@ -105,7 +105,7 @@
   },
   {
     "path": "native_writers.py",
-    "sha256": "cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202"
+    "sha256": "43622672cbc3ff49edc45c905f3a57883213102a5ec7203b3a1233ac2ef916fd"
   },
   {
     "path": "ordinary_import_continuity.py",
@@ -277,7 +277,7 @@
   },
   {
     "path": "patch_publication_startup.py",
-    "sha256": "415adf0acf1c6b4b3429af720b69675714abd7d8162e51e9f449f584122808cd"
+    "sha256": "9402d0d7b96fbd51f98623614495da5b716a62083bc951b46ebda1f1b4908a92"
   },
   {
     "path": "patch_queue_control.py",
@@ -661,7 +661,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "1966dba1a90162601c1b83cc7c089bdfc76b6faef5bb39434d868ce18f7bf8f1"
+    "sha256": "388fc653a5b98fb429633bd6f77a99ccc024e04e6131caf1888f49f880c58df5"
   },
   {
     "path": "story_arc_search.py",
@@ -1029,7 +1029,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_handoff.py",
-    "sha256": "a02711e8fa0dc3c4a41dce02ec5f3c7858f9f97c46fcb773d996a46d9bce0684"
+    "sha256": "a4aaf3e2149c6983e9bdbe1027f82a7487a286d4b21dd6fe9b98357fecdd7ead"
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_operations.py",
@@ -1037,7 +1037,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "dc8645f98717e797377cd9ab2ca51faacb4c4298ca05ee82981c0642cb33a1d9"
+    "sha256": "37f28ddc9365189d3bdf6a4a077c32f2f727efd3d08a9983f9ac4b7a88cd595c"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",
@@ -1357,7 +1357,7 @@
   },
   {
     "path": "test_publication_startup.py",
-    "sha256": "5edc49dbcc41b3a7ec2ce9276f797ce0cf384368c58a9a5d075efd83b3dbefcc"
+    "sha256": "29c0a7621337af514edad2556db179ca62c8f0d2d67f9430c4262a546788f3e5"
   },
   {
     "path": "test_publication_tagging.py",

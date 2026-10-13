@@ -74,6 +74,10 @@ def patched_source(source):
     source=BUSY_MARKER+'\n'+MARKER+'\n'+source;ast.parse(source);return source
 
 
+API_BUSY_MARKER = '# homelab-publication-api-startup-busy-v2'
+OLD_API_PREFIX = "        # homelab-publication-api-startup-v1\n        from mylar import native_writers\n        if (native_writers.publication_mode()\n                and self.cmd not in native_writers.PASSIVE_API\n                and native_writers.startup_status()['state'] != 'ready'):\n            self.data = self._failureResponse('Publication authority held; authenticated review required')\n            return\n"
+API_PREFIX = "        # homelab-publication-api-startup-v1\n        # homelab-publication-api-startup-busy-v2\n        from mylar import native_writers\n        if native_writers.publication_mode() and self.cmd not in native_writers.PASSIVE_API:\n            startup = native_writers.startup_status()\n            busy = ((startup['state'], startup.get('reason')) == ('held', 'writer-busy')\n                    and self.cmd not in native_writers.SELF_ADMITTED_API)\n            if startup['state'] != 'ready' and not busy:\n                self.data = self._failureResponse('Publication authority held; authenticated review required')\n                return\n"
+
 def main(directory):
     root=Path(directory)
     changes={root/'__init__.py':patched_source((root/'__init__.py').read_text())}
@@ -82,15 +86,12 @@ def main(directory):
     if api_marker not in source:
         anchor="        self.data = 'OK'\n"
         if source.count(anchor)!=1:raise ValueError('Expected one API admission boundary')
-        prefix='''        # homelab-publication-api-startup-v1
-        from mylar import native_writers
-        if (native_writers.publication_mode()
-                and self.cmd not in native_writers.PASSIVE_API
-                and native_writers.startup_status()['state'] != 'ready'):
-            self.data = self._failureResponse('Publication authority held; authenticated review required')
-            return
-'''
-        source=source.replace(anchor,prefix+anchor,1)
+        source=source.replace(anchor,API_PREFIX+anchor,1)
+    elif API_BUSY_MARKER not in source:
+        if source.count(OLD_API_PREFIX)!=1:raise ValueError('Publication API startup predecessor changed')
+        source=source.replace(OLD_API_PREFIX,API_PREFIX,1)
+    elif source.count(API_PREFIX)!=1:
+        raise ValueError('Publication API busy guard changed')
     tree=ast.parse(source)
     classes=[node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='Api']
     if len(classes)!=1:raise ValueError('Expected native API class')

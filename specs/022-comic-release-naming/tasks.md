@@ -9,11 +9,11 @@
 
 ## Current remaining work
 
-**Updated 2026-10-12.**
+**Updated 2026-10-13.**
 
 T019/T023 remain open for the combined naming/metadata and eligible bulk passes, which require feature 023's configured recovery and current-library acceptance. The naming preference remains dot separators with a hyphen before the verified release group. T024 retains final idempotence, data and cleanup proof after the bulk pass; the additional reading-progress audit remains deferred. The shared outer backup is verified, normal Mylar is available and the compatible Komga reader is healthy. Bulk and experimental worker processing remain separately held; feature 023 owns the [current recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work).
 
-The [Ready Writer-session source proposal](../023-verified-publication-corrections/evidence-history.md#ready-writer-session-source-proposal-2026-10-12) passes host controls and independent source review. T019/T023/T024 still require matching-worker and configured live acceptance before bulk processing. Privileged access resumed on 2026-10-12. The published native successor passes installed-source verification and all 17 isolated import cases; matching worker and live acceptance remain pending.
+The [Ready Writer-session source proposal](../023-verified-publication-corrections/evidence-history.md#ready-writer-session-source-proposal-2026-10-12) passes host controls and independent source review. T019/T023/T024 still require matching-worker and configured live acceptance before bulk processing. Privileged access resumed on 2026-10-12. The ordinary native repair is deployed and independently passes READY, queue health, 206 source checks and catalog preservation against its verified pre-update restore. The compatible worker image passes 36 installed-module checks and 689 tests without skips. Authenticated UI checks subsequently expose transient Post-processing and DDL polling failures, now reproduced as a Writer-busy HTTP hold. Normal-route repair, configured recovery and bulk acceptance remain pending.
 
 ## Phase 1: Setup
 

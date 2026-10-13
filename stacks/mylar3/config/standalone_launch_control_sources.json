@@ -86,7 +86,7 @@
   },
   {
     "path": "native_writers.py",
-    "sha256": "cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202",
+    "sha256": "43622672cbc3ff49edc45c905f3a57883213102a5ec7203b3a1233ac2ef916fd",
     "target": "fixtures/child/source/native_writers.py"
   },
   {
