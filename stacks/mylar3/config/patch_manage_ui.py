@@ -46,7 +46,7 @@ SCAN_FUNCTIONS = '''        var CheckEnabled = false;
 
 
 TABS_FUNCTIONS = """
-        function refreshTab() {
+        function refreshManageTab() {
             var panel = $('#tabs > .ui-tabs-panel:visible');
             if (!panel.length) return;
             panel.load(window.location.href + ' #' + panel.attr('id') + ' > *', function() {
@@ -65,6 +65,7 @@ TABS_FUNCTIONS = """
             });
         };
         function initManageTabs() {
+            window.refreshTab = refreshManageTab;
             manageTabsState($('#tabs').tabs('option', 'selected'));
             $('#tabs').off('tabsselect.manageTabs').on('tabsselect.manageTabs', function(event, ui) {
                 manageTabsState(ui.index);

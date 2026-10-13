@@ -276,7 +276,7 @@
   },
   {
     "path": "patch_manage_ui.py",
-    "sha256": "9352e46d8c8e22dd4822ad5ddec0b4369afa93b49e976d1f8dd5d9e65ce59a31",
+    "sha256": "3346b00ba051207846d9050ef5f779448026c8f9f46e95099856bf29e6b4ef95",
     "target": "patch_manage_ui.py"
   },
   {

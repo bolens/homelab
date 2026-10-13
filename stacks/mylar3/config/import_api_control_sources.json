@@ -221,7 +221,7 @@
   },
   {
     "path": "patch_manage_ui.py",
-    "sha256": "9352e46d8c8e22dd4822ad5ddec0b4369afa93b49e976d1f8dd5d9e65ce59a31"
+    "sha256": "3346b00ba051207846d9050ef5f779448026c8f9f46e95099856bf29e6b4ef95"
   },
   {
     "path": "patch_media_writers.py",
@@ -661,7 +661,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "f1d2ee64b9fe092f7572bba081c84c68dd2981b2ac6a48b36d4d6957e9c94cd9"
+    "sha256": "1966dba1a90162601c1b83cc7c089bdfc76b6faef5bb39434d868ce18f7bf8f1"
   },
   {
     "path": "story_arc_search.py",
