@@ -24,7 +24,9 @@ body:has(#ddl_queue_page) #subhead_menu { float: none; display: flex; flex-wrap:
 #ddl_queue_page button, #ddl_queue_page select, #ddl_queue_page input { max-width: 100%; }
 #ddl_queue_page .table_wrapper { width: 100%; overflow-x: auto; }
 #ddl_queue_page #queue_table { width: 100% !important; }
-#ddl_queue_page #queue_table_wrapper { position: relative; }
+#ddl_queue_page #queue_table_wrapper { position: relative; display: flow-root; }
+/* Native DataTables reserves 22px; shared pagination controls are taller. */
+#ddl_queue_page .dataTables_paginate { width: auto; max-width: 100%; height: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem; margin-bottom: .75rem; }
 #ddl_queue_page #queue_table_processing {
  position: absolute; left: 50%; top: 3.5rem; transform: translateX(-50%);
  width: max-content; min-width: 9rem; max-width: calc(100% - 24px); height: auto;
