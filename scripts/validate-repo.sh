@@ -69,6 +69,7 @@ python3 scripts/validate-topology-artifacts.py
 python3 scripts/build-pages-site.py --check
 python3 scripts/validate-pages-site.py
 run_optional_check node node --check site/public/search.js
+run_optional_check node node --test stacks/mylar3/config/test_ddl_queue_ui.mjs
 
 echo "Checking YAML style..."
 mapfile -t yaml_files < <(git ls-files '*.yaml' '*.yml' | while read -r file; do

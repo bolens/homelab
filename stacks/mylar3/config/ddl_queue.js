@@ -10,6 +10,33 @@ function ddlSchedulingAction(action,values) {
     .always(function(){ddlMutating=false;ddlRowActionsEnabled();$('#ddl_schedule :input').prop('disabled',!ddlCsrf);$('#ddl_save_schedule').button('refresh');activecheck();});
 }
 function ddlText(value) { return $('<span>').text(value == null ? '' : String(value)).html(); }
+function ddlAge(seconds) {
+    if (seconds == null || !isFinite(Number(seconds))) return 'Unknown';
+    seconds=Math.max(0,Math.floor(Number(seconds)));
+    if (seconds<60) return seconds+'s ago';
+    if (seconds<3600) return Math.floor(seconds/60)+'m ago';
+    if (seconds<86400) return Math.floor(seconds/3600)+'h ago';
+    return Math.floor(seconds/86400)+'d ago';
+}
+function ddlReviewLink(full) {
+    if (full[3]==='Completed') return {label:'Review import',href:'postProcessing#pp_work'};
+    if (full[3]==='NZB handoff') return {label:'Review handoff',href:'activity#wf_handoff'};
+    if (full[3]==='Failed') return {label:'Review problems',href:'importProblems'};
+    return null;
+}
+function ddlDecorateRows() {
+    var table=$('#queue_table').DataTable();
+    var labels=['Series','Size','Provider','Progress','Download status','Updated','Actions','Received','Speed','Last progress','Download / import status'];
+    table.rows({page:'current'}).every(function(){
+        var full=this.data(),index=this.index(),status=full[3];
+        $(this.node()).attr('data-ddl-state',status);
+        $.each(labels,function(column,label){$(table.cell(index,column).node()).attr('data-label',label);});
+        var state=$('<span>').addClass('ddl_status_badge').text(status==='Completed' ? 'Downloaded' : status);
+        $(table.cell(index,4).node()).empty().append(state);
+        var age=(full[9] || {}).last_progress_seconds;
+        $(table.cell(index,9).node()).text(ddlAge(age)).attr('title',age==null ? 'No progress observation recorded' : age+' seconds since progress');
+    });
+}
 function ddlSchedule() { clearTimeout(ImportTimer); if (!ddlStopped && !document.hidden) ImportTimer=setTimeout(activecheck,5000); }
 function ddlRowActionsEnabled() { $('#queue_table button').prop('disabled',ddlTableLoading || ddlMutating || ddlTableFailed); }
 function ddlActionsEnabled() { $('#ddl_active_actions button').prop('disabled',!ddlFresh || ddlMutating || ddlActiveId==null); }
@@ -60,12 +87,14 @@ function ddlRowActions(full) {
     if (status==='Incomplete') actions.push(['resume','Resume']);
     actions.push(['remove','Remove']);
     var box=$('<div>').addClass('ddl_row_actions');
+    var review=ddlReviewLink(full);
+    if (review) $('<a>').addClass('ddl_review_link').attr('href',review.href).text(review.label).appendTo(box);
     $.each(actions,function(_,a){$('<button type="button">').attr({'data-ddl-mode':a[0],'data-ddl-id':String(full[5])}).text(a[1]).appendTo(box);});
     var prompt=$('<span>').addClass('ddl_remove_prompt').prop('hidden',ddlRemoveId!==String(full[5]));
     $('<span>').text(status==='NZB handoff' ? 'Remove DDL entry? Pending NZB searches are cancelled. Accepted NZB downloads continue. Uncertain handoffs require Activity review.' : 'Remove entry?').appendTo(prompt);
     $('<button type="button" data-ddl-confirm="remove">').text('Remove').appendTo(prompt);
     $('<button type="button" data-ddl-confirm="cancel">').text('Cancel').appendTo(prompt);
-    box.children().prop('hidden',ddlRemoveId===String(full[5]));
+    box.children('[data-ddl-mode]').prop('hidden',ddlRemoveId===String(full[5]));
     box.attr('data-ddl-id',String(full[5])).append(prompt);
     return $('<div>').append(box).html();
 }
@@ -108,7 +137,17 @@ $(document).ready(function(){
     $('#queue_table').on('processing.dt',function(event,settings,processing){
         ddlTableLoading=processing;ddlRowActionsEnabled();
         $(this).attr('aria-busy',processing ? 'true' : 'false');
-        $('#queue_table_processing').attr('aria-hidden','true').text('Refreshing queue…').css('top',$(this).position().top+12);
+        $('#queue_table_processing').attr('aria-hidden','true');
+        $('#ddl_table_refresh').text(processing ? 'Updating queue…' : '');
+    });
+    $('#queue_table').on('init.dt',function(){
+        $(this).DataTable().columns([7,8,9]).visible($('#ddl_show_details').prop('checked'),false);
+        $(this).DataTable().columns.adjust();
+        ddlDecorateRows();
+    }).on('draw.dt',ddlDecorateRows);
+    $('#ddl_show_details').on('change',function(){
+        var table=$('#queue_table').DataTable();
+        table.columns([7,8,9]).visible(this.checked,false);table.columns.adjust();ddlDecorateRows();
     });
     $('#queue_table').on('preDraw.dt',function(){
         ddlRemoveId=null;

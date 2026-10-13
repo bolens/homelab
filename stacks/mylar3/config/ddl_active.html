@@ -9,7 +9,7 @@
 <select id="ddl_kind" disabled><option value="mixed">Mixed singles and packs</option><option value="singles">Singles before packs</option><option value="packs">Packs before singles</option><option value="alternate">Alternate singles and packs</option></select>
 </div>
 <div class="ddl_setting">
-<label for="ddl_order">Sort by</label>
+<label for="ddl_order">Download priority</label>
 <select id="ddl_order" disabled><option value="fifo">Oldest queued first</option><option value="newest">Newest queued first</option><option value="release_oldest">Oldest release first</option><option value="release_newest">Newest release first</option></select>
 </div>
 <label class="ddl_toggle"><input id="ddl_paused" type="checkbox" disabled> Pause new downloads</label>
@@ -27,5 +27,6 @@
 <div id="ddl_active_actions" class="ddl_actions" hidden><button type="button" data-ddl-mode="restart">Restart download</button><button type="button" data-ddl-mode="resume">Resume download</button><button type="button" data-ddl-mode="abort">Abort download</button></div>
 </section>
 <section id="ddl_history" aria-labelledby="ddl_history_heading"><h2 id="ddl_history_heading">Queue and history</h2>
-<p>Download completion and confirmed library import are shown separately in Download / import status.</p>
+<p>Downloaded files still need verified library import. Use Review import to check processing and resolve problems.</p>
+<div class="ddl_table_tools"><label><input id="ddl_show_details" type="checkbox"> Show transfer details</label><span id="ddl_table_refresh" role="status" aria-live="off"></span></div>
 <div class="ddl_view_settings"><label for="ddl_sort">View order</label><select id="ddl_sort" aria-describedby="ddl_sort_note"><option value="11:asc">Download queue order</option><option value="5:desc" selected>Recently updated</option><option value="5:asc">Oldest updated</option><option value="0:asc">Series A–Z</option><option value="3:desc">Progress, highest first</option><option value="4:asc">Status A–Z</option><option value="custom" disabled>Current table order</option></select><span id="ddl_sort_note">Changes the table view only.</span></div>

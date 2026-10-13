@@ -94,3 +94,33 @@ body:has(#ddl_queue_page) #subhead_menu { float: none; display: flex; flex-wrap:
 }
 
 #ddl_queue_page .ddl_remove_prompt { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+
+/* Download state stays distinct from verified import state. */
+#ddl_queue_page #queue_table tbody tr, #ddl_queue_page #queue_table tbody td { background-color: transparent !important; }
+#ddl_queue_page #queue_table tbody tr:nth-child(even) { background-color: #8881 !important; }
+#ddl_queue_page #queue_table tbody tr:hover { background-color: #3383bb12 !important; }
+#ddl_queue_page #queue_table td { padding: .8rem .6rem; border-bottom: 1px solid #8884; line-height: 1.5; }
+#ddl_queue_page #queue_table th { padding: .7rem .6rem; }
+#ddl_queue_page #queue_table td[data-label=Series] { min-width: 14rem; }
+#ddl_queue_page #queue_table td[data-label=Progress], #ddl_queue_page #queue_table td[data-label=Size],
+#ddl_queue_page #queue_table td[data-label=Received], #ddl_queue_page #queue_table td[data-label=Speed],
+#ddl_queue_page #queue_table td[data-label="Last progress"] { white-space: nowrap; font-variant-numeric: tabular-nums; }
+#ddl_queue_page #queue_table td[data-label="Download / import status"] { min-width: 16rem; }
+#ddl_queue_page .ddl_status_badge { display: inline-block; border: 1px solid #8888; border-radius: 4px; padding: .2rem .45rem; white-space: nowrap; font-weight: bold; }
+#ddl_queue_page [data-ddl-state=Completed] .ddl_status_badge { border-color: #3383bb; }
+#ddl_queue_page [data-ddl-state=Failed] .ddl_status_badge, #ddl_queue_page [data-ddl-state=Incomplete] .ddl_status_badge { border-color: #c67c45; }
+#ddl_queue_page [data-ddl-state=Downloading] .ddl_status_badge { border-color: #4a9a6b; }
+#ddl_queue_page .ddl_review_link { flex-basis: 100%; margin-bottom: .3rem; font-weight: bold; }
+#ddl_queue_page .ddl_row_actions { min-width: 8rem; }
+#ddl_queue_page .ddl_row_actions button, #ddl_queue_page .ddl_row_actions a { min-height: 32px; }
+#ddl_queue_page .ddl_table_tools { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 1rem 0; }
+#ddl_queue_page .ddl_table_tools label { display: flex; gap: .5rem; align-items: center; }
+#ddl_queue_page #queue_table_processing { display: none !important; }
+#ddl_queue_page #ddl_table_refresh { font-size: .9em; }
+#ddl_queue_page .ddl_active_heading h2 { margin: 0; }
+#ddl_active { margin-bottom: 1.5rem; padding: 1rem 1.2rem; }
+@media (max-width: 760px) {
+ #ddl_queue_page #queue_table td[data-label=Series], #ddl_queue_page #queue_table td[data-label="Download / import status"] { min-width: 0; }
+ #ddl_queue_page #queue_table td[data-label=Actions], #ddl_queue_page #queue_table td[data-label="Download / import status"] { grid-column: 1 / -1; }
+ #ddl_queue_page .ddl_row_actions button, #ddl_queue_page .ddl_row_actions a { min-height: 44px; }
+}

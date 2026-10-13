@@ -77,7 +77,7 @@
   },
   {
     "path": "import_problems.py",
-    "sha256": "f8e1a4854be4b25974a4af3bda3db6ccd36e6023b5ac5160511cea63e31efc58"
+    "sha256": "0f5fc209358066d20669af55c19af82946ed093d84fef6e4b383f2cbf9890f4e"
   },
   {
     "path": "install_tagger_service.py",
@@ -649,7 +649,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "486f7ef444a3b5953c49e3fcb840f43afb39b226ff1787980c439bf128113c03"
+    "sha256": "c105473c8961374582362f0d6211847ad775aea3ec8b98a5da5a810dd5e57e65"
   },
   {
     "path": "story_arc_search.py",
@@ -1473,7 +1473,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "8e9fbd51ee83685691bfcb846694104183a58a24488644822dab07eccc4d8807"
+    "sha256": "4d379a99520af8a971397f66e707bb375d0333035771415911ee1bf13fc60267"
   },
   {
     "path": "verify_publication_reader_cohort.py",

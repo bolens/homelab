@@ -4,6 +4,7 @@ import os
 import re
 from pathlib import Path
 import time
+from urllib.parse import urlencode
 
 ACTIONS = {
     'quarantine_resolved': ('Quarantined download replaced', 'A replacement is recorded in the library. The corrupt source and its receipt remain in private recovery storage.'),
@@ -19,6 +20,44 @@ ACTIONS = {
     'retry_unconfirmed': ('Replacement request unconfirmed', 'Check Mylar history before retrying to avoid a duplicate search.'),
     'failed': ('Maintenance check failed', 'Check maintenance health and storage access.'),
 }
+
+
+def next_steps(row):
+    """Link to existing review screens without initiating recovery work."""
+    kind = row.get('kind', '')
+    phase = row.get('phase', '')
+    steps = []
+    if kind == 'quarantine_resolved':
+        steps.append(('Verify library import', 'postProcessing#pp_confirmed'))
+    elif row.get('source_token'):
+        steps.append(('Review issue matches', 'activity?' + urlencode({'source_token': row['source_token']}) + '#guided_matches'))
+    elif kind in ('ready', 'import_queued', 'import_review', 'import_cleanup', 'snatched'):
+        steps.append(('Check post-processing', 'postProcessing#pp_work'))
+    elif kind in ('pdf_rendering', 'import_unsupported', 'validation'):
+        steps.append(('Review conversion status', 'postProcessing#pp_conversion'))
+    elif kind in ('quarantine', 'retry_unconfirmed', 'failed_download'):
+        steps.append(('Check download queue', 'queueManage'))
+    elif kind == 'unmatched':
+        steps.append(('Review import matches', 'activity#guided_matches'))
+    else:
+        steps.append(('Check processing status', 'postProcessing'))
+    if phase in ('retry_queued', 'retry_stopped', 'retry_unconfirmed') and kind != 'quarantine_resolved':
+        if not any(url == 'queueManage' for _, url in steps):
+            steps.append(('Check replacement queue', 'queueManage'))
+    issueid = str(row.get('issueid', ''))
+    if issueid.isdecimal() and len(issueid) <= 20:
+        steps.append(('View issue activity', 'activity?' + urlencode({'issueid': issueid}) + '#wf_history'))
+    return [{'label': label, 'href': href} for label, href in steps]
+
+
+def report_age(seconds):
+    if seconds < 60:
+        return '%s seconds' % seconds
+    if seconds < 3600:
+        return '%s minutes' % (seconds // 60)
+    if seconds < 86400:
+        return '%s hours' % (seconds // 3600)
+    return '%s days' % (seconds // 86400)
 
 
 def path():
@@ -66,12 +105,14 @@ def view():
     from mylar import db, queue_control
     try:
         value = json.loads(path().read_text())
-        age = int(time.time() - value['checked_at'])
-        report_status = 'Maintenance report is %s seconds old.' % age
+        age = max(0, int(time.time() - value['checked_at']))
+        report_state = 'stale' if age > 900 else 'current'
+        report_status = 'Maintenance report is %s old.' % report_age(age)
         if age > 900:
             report_status += ' Report is stale; check the maintenance worker.'
     except (OSError, ValueError, KeyError):
         value = {'rows': []}
+        report_state = 'missing'
         report_status = 'No maintenance report is available. Enable the comic maintenance worker to inspect completed files.'
     rows = []
     for row in value['rows']:
@@ -81,13 +122,15 @@ def view():
     for row in database.select("SELECT i.IssueID,i.ComicID,i.ComicName,i.Issue_Number,MAX(s.DateAdded) AS added "
                                "FROM issues i JOIN snatched s ON i.IssueID=s.IssueID WHERE i.Status='Snatched' "
                                "GROUP BY i.IssueID HAVING julianday('now')-julianday(MAX(s.DateAdded))>1 LIMIT 200"):
-        rows.append({'name': '%s #%s' % (row['ComicName'], row['Issue_Number']), 'reason': 'Snatched for over 24 hours',
+        rows.append({'name': '%s #%s' % (row['ComicName'], row['Issue_Number']), 'kind': 'snatched', 'reason': 'Snatched for over 24 hours',
                      'action': 'Check downloader completion, then match this issue to its completed file.',
                      'phase': '', 'comicid': str(row['ComicID']) if str(row['ComicID']).isdecimal() else '', 'issueid': str(row['IssueID'])})
     with queue_control._LOCK:
         for key, row in queue_control.store().data['items'].items():
             if row.get('attempts', 0) >= queue_control.ATTEMPT_LIMIT and not row.get('completed'):
-                rows.append({'name': 'DDL record ' + key, 'reason': row['reason'], 'phase': '',
+                rows.append({'name': 'DDL record ' + key, 'kind': 'failed_download', 'reason': row['reason'], 'phase': '',
                              'action': 'Review mirrors in DDL Queue Management, then explicitly restart if appropriate.',
                              'comicid': '', 'issueid': ''})
-    return {'report_status': report_status, 'rows': rows[:1000]}
+    for row in rows:
+        row['next_steps'] = next_steps(row)
+    return {'report_status': report_status, 'report_state': report_state, 'rows': rows[:1000]}

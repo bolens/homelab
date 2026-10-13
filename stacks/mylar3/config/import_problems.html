@@ -8,34 +8,57 @@
 <style>
 .import_filters { display: flex; flex-wrap: wrap; align-items: center; gap: .7em; margin: 1em 0; }
 .import_filters select { padding: .5em; max-width: 100%; }
-#import_problems .review_match { margin: .5em 0; }
+#import_review .import_notice { padding: 1em; border: 1px solid #8886; border-left: 4px solid #3383bb; border-radius: 3px; margin: 1em 0; }
+#import_review .import_notice[data-state=stale], #import_review .import_notice[data-state=missing] { border-left-color: #db9f42; }
+#import_review .import_notice p { margin: .4em 0; max-width: 95ch; }
+#import_review .import_actions { display: flex; flex-wrap: wrap; gap: .5em; margin: .6em 0; }
+#import_review .import_actions a { display: inline-block; padding: .4em .7em; border: 1px solid #8888; border-radius: 3px; }
+#import_review .import_actions a:first-child { border-color: #3383bb; }
+#import_review .import_actions a:hover { background: #3383bb20; }
+#import_problems td { vertical-align: top; padding: .65em; overflow-wrap: anywhere; }
+#import_problems td:first-child { width: 36%; }
+#import_problems td:last-child { width: 37%; }
+#import_review .table_wrapper { overflow-x: auto; }
+#import_problems { width: 100%; }
 #import_problems td:first-child a { display: block; margin-top: .4em; }
-.import_filters :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
+#import_review :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
 </style>
 </%def>
 <%def name="body()">
 <input type="hidden" id="page_name" value="import_problems" />
+<div id="import_review">
 <div id="paddingheader"><h1 class="clearfix">Import problems</h1></div>
-<p role="status">${report_status | h}</p>
-<p>Files remain untouched until their identity and archive contents are verified. Refresh this page for the latest report.</p>
+<div class="import_notice" data-state="${context.get('report_state', 'current') | h}">
+<p role="status"><strong>${report_status | h}</strong></p>
+% if context.get('report_state', 'current') in ('stale', 'missing'):
+<p>Check that the comic maintenance worker is running and can reach Mylar. These saved file reports may no longer reflect current downloads or library contents.</p>
+% endif
+<p>Refresh report reloads saved results. It does not start a scan or a replacement search. Check current queue and processing status before retrying an import or download.</p>
+<div class="import_actions"><a href="importProblems">Refresh saved report</a><a href="postProcessing">Check post-processing</a><a href="queueManage">Check download queue</a></div>
+</div>
+<p>Use each row's next step to inspect the problem. Review matches opens issue selection when a proposal is available. Files stay retained until verified recovery completes.</p>
 <div class="import_filters"><label for="recovery_filter">Recovery status:</label>
 <select id="recovery_filter"><option value="">All recovery states</option></select><button id="clear_import_filters" type="button">Clear filters</button></div>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Import problem details">
 <table class="display" id="import_problems">
-<thead><tr><th scope="col">File or issue</th><th scope="col">Problem</th><th scope="col">Recovery status</th><th scope="col">Suggested action</th></tr></thead>
+<thead><tr><th scope="col">File or issue</th><th scope="col">Problem</th><th scope="col">Recovery status</th><th scope="col">Next step</th></tr></thead>
 <tbody>
 % for row in rows:
 <tr><td>${row['name'] | h}
 % if row.get('comicid'):
  <a href="comicDetails?ComicID=${row['comicid'] | h}">Open series</a>
 % endif
-</td><td>${row['reason'] | h}</td><td>${{'saved': 'Recovery copy saved', 'quarantined': 'Quarantined', 'retry_queued': 'Replacement search queued', 'retry_stopped': 'Replacement search stopped', 'retry_unconfirmed': 'Replacement request unconfirmed'}.get(row.get('phase', ''), 'No recovery recorded') | h}</td><td>${row['action'] | h}
-% if row.get('source_token'):
- <a class="review_match" href="activity?source_token=${row['source_token'] | h}#guided_matches">Review matches</a>
-% endif
+</td><td>${row['reason'] | h}</td><td>${'Replacement recorded in library' if row.get('kind') == 'quarantine_resolved' else {'saved': 'Recovery copy saved', 'quarantined': 'Quarantined', 'retry_queued': 'Replacement search queued', 'retry_stopped': 'Replacement search stopped', 'retry_unconfirmed': 'Replacement request unconfirmed'}.get(row.get('phase', ''), 'No recovery recorded') | h}</td><td>
+<div class="import_actions">
+% for step in row.get('next_steps', []):
+<a href="${step['href'] | h}">${step['label'] | h}</a>
+% endfor
+</div>
+${row['action'] | h}
 </td></tr>
 % endfor
 </tbody></table>
+</div>
 </div>
 </%def>
 <%def name="javascriptIncludes()">
@@ -44,7 +67,6 @@
     $(document).ready(function() {
         initActions();
         $('#clear_import_filters').button();
-        $('.review_match').button({icons: {primary: 'ui-icon-search'}});
         var table=$('#import_problems').DataTable({
             pageLength: 25,
             lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
