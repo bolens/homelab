@@ -4,15 +4,16 @@
 
 ## Current remaining work
 
-**Updated 2026-10-12.** Detailed results are in [evidence history](evidence-history.md#reader-continuity-and-backup-prerequisites-2026-10-11).
+**Updated 2026-10-13.** Detailed results are in [evidence history](evidence-history.md#current-archive-source-pins-2026-10-13).
 
 - Completed: T011/T013 repair adoption and durable history implementation, and T014 contract review. The compact reader passes the actual database and both 77-test suites.
 - T012/T015: finish configured reader continuity, archive prepare→execute→terminal proof and matching-cohort delivery.
-- T012/T015: the [Ready Writer-session source proposal](../023-verified-publication-corrections/evidence-history.md#ready-writer-session-source-proposal-2026-10-12) passes host controls and independent source review. Published native installed-cohort verification now passes. Matching worker delivery and genuine configured terminal proof remain required; privileged access resumed on 2026-10-12.
-- T016/T017: the shared outer backup and isolated restore are verified. The compatible reader is healthy with all schema/table fingerprints preserved. Finish matching-worker and configured repair preparation, then prove real archive, owner, catalog and reader recovery.
+- T012/T015: the [Ready Writer-session source proposal](../023-verified-publication-corrections/evidence-history.md#ready-writer-session-source-proposal-2026-10-12) passes host controls and independent source review. Published native and worker isolated-image verification now passes. Configured installation, connected parent/provider/reader/worker custody and genuine terminal proof remain required.
+- T016/T017: the shared outer backup and isolated restore are verified. The compatible reader is healthy with all schema/table fingerprints preserved. Finish configured repair preparation, then prove real archive, owner, catalog and reader recovery.
+- T012/T015: the current-cohort archive assembler/bridge pin-only successor passes independent source review and unchanged source/relocated controls. Actual operation inputs remain unbound; this source checkpoint grants no configured or live admission.
 - T018: complete shared current-library acceptance before repaired-archive or bulk processing resumes.
 
-Feature 023 owns the [configured recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and records the accepted outer-backup verification. Normal Mylar and the compatible Komga reader are available while experimental-worker, bulk and archive-recovery work remain held. Remaining repair acceptance uses scoped Writer windows without requiring a blanket Mylar outage.
+Feature 023 owns the [configured recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and records the accepted outer-backup verification. Normal Mylar availability remains separate from experimental acceptance; native Mylar is temporarily stopped for its scoped update backup, which remains in progress. The compatible Komga reader remains healthy while experimental-worker, bulk and archive-recovery work remain held. No new backup or update acceptance is claimed.
 
 ## Phase 1: Setup
 
