@@ -7,7 +7,7 @@
 **Updated 2026-10-13.** Detailed results are in [evidence history](evidence-history.md#current-archive-source-pins-2026-10-13).
 
 - Completed: T011/T013 repair adoption and durable history implementation, and T014 contract review. The compact reader passes the actual database and both 77-test suites.
-- T012/T015: finish configured reader continuity, archive prepare→execute→terminal proof and matching-cohort delivery.
+- T012/T015: finish genuine installed reader continuity and archive prepare→execute→terminal production with factual native/worker consumption, then matching-cohort delivery. These implementation and isolated-image milestones do not inherently require live T016/T017 repair acceptance.
 - T012/T015: the [Ready Writer-session source proposal](../023-verified-publication-corrections/evidence-history.md#ready-writer-session-source-proposal-2026-10-12) passes host controls and independent source review. Earlier published native and worker isolated-image verification passes; the undeployed UI successor needs current-cohort binding. Configured installation, connected parent/provider/reader/worker custody and genuine terminal proof remain required.
 - T016/T017: the shared outer backup and isolated restore are verified. The compatible reader is healthy with all schema/table fingerprints preserved. Finish configured repair preparation, then prove real archive, owner, catalog and reader recovery.
 - T012/T015: the current-cohort archive assembler/bridge pin-only successor passes independent source review and unchanged source/relocated controls. Actual operation inputs remain unbound; this source checkpoint grants no configured or live admission.
