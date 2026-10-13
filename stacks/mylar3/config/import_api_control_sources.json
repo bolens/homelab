@@ -657,7 +657,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "df6eb94a1a9159a966aa9ccf06f35359865537f6cb67d03dde5913879abd1e07"
+    "sha256": "73f56a99697145a25514934cfafea63fd86b4b2fb3708a57fd008825f506070f"
   },
   {
     "path": "story_arc_search.py",
@@ -1025,7 +1025,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_handoff.py",
-    "sha256": "632cbd69317db66ae64abc954b674cddd95e613a74f338bae0a827f5faa60b9d"
+    "sha256": "a02711e8fa0dc3c4a41dce02ec5f3c7858f9f97c46fcb773d996a46d9bce0684"
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_operations.py",
@@ -1033,7 +1033,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "4cee1ce78744de00c5a1c95fabca6b083e33e524ab49fa4f6a315e29524aee02"
+    "sha256": "dc8645f98717e797377cd9ab2ca51faacb4c4298ca05ee82981c0642cb33a1d9"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",

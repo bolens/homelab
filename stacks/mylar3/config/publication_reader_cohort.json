@@ -77,7 +77,7 @@
       "owning_adapters": [
         "patch_media_writers.py"
       ],
-      "tracked_source_sha256": "16a90e8fa1ea0375083caddb548e0c2fa2fb51fa4d7e63f770cdedf2e6d0c388"
+      "tracked_source_sha256": "cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202"
     },
     "ordinary_import_continuity": {
       "owning_adapters": [
