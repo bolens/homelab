@@ -78,6 +78,19 @@ class ImportActionsTest(unittest.TestCase):
         self.assertIn('&lt;script&gt;', page)
         self.assertNotIn('<script>', page)
 
+    def test_report_overview_and_filters_keep_retained_rows_visible(self):
+        from mako.template import Template
+        source = Path(__file__).with_name('import_problems.html').read_text().replace('<%inherit file="base.html"/>', '')
+        rows = [dict(name='Example',reason='Needs review',action='Inspect first',kind=kind)
+                for kind in ('unmatched','quarantine_resolved')]
+        page = Template(source).get_def('body').render(rows=rows, report_status='Missing', report_state='missing')
+        self.assertIn('<dt>Reported items</dt><dd>2',page)
+        self.assertIn('<dt>Replacement recorded</dt><dd>1',page)
+        self.assertIn('<dt>Report freshness</dt><dd>Unavailable',page)
+        self.assertIn('id="problem_filter"',page)
+        for label in ('File or issue','Problem','Recovery status','Next step'):
+            self.assertIn('data-label="'+label+'"',page)
+
 
 if __name__ == '__main__':
     unittest.main()

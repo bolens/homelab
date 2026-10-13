@@ -1,0 +1,13 @@
+/* Standalone login uses shared theme roles without loading jQuery UI. */
+body[data-mylar-theme] { margin: 0; min-height: 100vh; padding: 1.5rem; box-sizing: border-box; font-family: Arial,sans-serif; background: #f2f2f2; color: #333; }
+body[data-mylar-theme=carbon] { background: #252b32; color: #eee; }
+body[data-mylar-theme] .wrap { width: min(100%,22rem); margin: clamp(2rem,10vh,6rem) auto 0; }
+body[data-mylar-theme] .avatar { background: transparent; bottom: 0; margin-bottom: 1.5rem; }
+body[data-mylar-theme] h1 { font-size: 1.5rem; text-align: center; margin-bottom: 1.5rem; }
+body[data-mylar-theme] .wrap label { display: block; margin: 1rem 0 .5rem; }
+body[data-mylar-theme] .wrap input { box-sizing: border-box; width: 100%; min-height: 44px; border: 1px solid #888; border-radius: var(--mylar-control-radius); font: inherit; background: #fff; color: #222; }
+body[data-mylar-theme] .wrap .bar { display: none; }
+body[data-mylar-theme] .wrap button { box-sizing: border-box; min-height: 44px; margin-top: 1.5rem; font: inherit; border: 1px solid var(--mylar-control-border); border-radius: var(--mylar-control-radius); color: var(--mylar-control-text); background: var(--mylar-control-surface); }
+body[data-mylar-theme] .wrap button:hover { background: var(--mylar-control-hover); }
+body[data-mylar-theme] .wrap button:active { background: var(--mylar-control-pressed); }
+body[data-mylar-theme] .wrap :is(input,button):focus-visible { outline: 2px solid var(--mylar-focus-color); outline-offset: 3px; }
