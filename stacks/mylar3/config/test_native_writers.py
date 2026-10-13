@@ -97,6 +97,35 @@ class NativeWriterTest(unittest.TestCase):
         source=(root/'__init__.py').read_text()
         self.assertLess(source.index('native_writers.initialize_publication()'),source.index('# Initialize the database'))
 
+    def test_held_http_page_does_not_enter_native_handler_or_writer(self):
+        handler=Mock()
+        with patch.object(self.native,'_PUBLICATION',True), \
+                patch.object(self.native,'startup_status',return_value={'state':'held'}), \
+                patch.object(self.native,'owner') as writer:
+            page=self.native.publication_http(handler)()
+        handler.assert_not_called();writer.assert_not_called()
+        self.assertIn('<!doctype html>',page)
+        self.assertIn('<title>Media processing is held | Mylar</title>',page)
+        self.assertIn('name="viewport"',page)
+        self.assertIn('Read the recovery guide',page)
+        self.assertIn('href="">Try this page again',page)
+        self.assertNotIn('<form',page)
+        self.assertNotIn('href="restart',page)
+        self.assertNotIn('href="logs',page)
+
+    def test_identity_review_page_retains_distinct_guidance(self):
+        page=self.native.publication_hold_page(review=True)
+        self.assertIn('Publication identity requires review',page)
+        self.assertIn('Source and catalog are retained',page)
+        self.assertIn('Restart Mylar if the review requires it',page)
+        self.assertNotIn('restart Mylar to finish startup',page)
+
+    def test_hold_page_uses_selected_theme_without_catalog_access(self):
+        with patch.object(self.mylar,'CONFIG',SimpleNamespace(INTERFACE='default'),create=True):
+            self.assertIn('data-mylar-theme="default"',self.native.publication_hold_page())
+        with patch.object(self.mylar,'CONFIG',SimpleNamespace(INTERFACE='carbon'),create=True):
+            self.assertIn('data-mylar-theme="carbon"',self.native.publication_hold_page())
+
     def test_error_releases_manual_lock(self):
         @self.native.guard
         def manual():raise ValueError('fixture')

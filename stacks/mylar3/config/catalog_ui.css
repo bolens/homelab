@@ -1,0 +1,39 @@
+body:has(#catalog_review) #main, body:has(#catalog_review) footer { width: calc(100% - clamp(24px,4vw,96px)); min-width: 0; max-width: none; box-sizing: border-box; }
+body:has(#catalog_review) #subhead_container, body:has(#catalog_review) #subhead_menu { float: none; height: auto; }
+body:has(#catalog_review) #subhead_menu { display: flex; flex-wrap: wrap; gap: .5em; }
+#catalog_review { min-width: 0; }
+#catalog_review :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
+#catalog_review .catalog_help { max-width: 95ch; line-height: 1.6; margin: 1em 0 1.5em; }
+#catalog_review .catalog_nav { display: flex; flex-wrap: wrap; gap: 1em; margin: 1em 0; }
+#catalog_review #checkboxControls { float: none !important; margin: 1em 0 !important; padding: 1em; border: 1px solid #8886; border-radius: 5px; }
+#catalog_review #checkboxControls label { background: transparent !important; border: 1px solid #8888; border-radius: 4px; padding: .5em .7em; margin: .3em; line-height: 2.5; }
+#catalog_review #markissue { position: static !important; float: none !important; padding: 1em; border: 1px solid #8886; border-radius: 5px; margin: 1em 0; }
+#catalog_review #markissue select, #catalog_review #markissue button { margin: .4em; }
+#catalog_review #markissue select { padding: .5em; }
+#catalog_review #catalog_selected { display: block; font-weight: bold; }
+#catalog_review table { width: 100% !important; }
+#catalog_review th, #catalog_review td { padding: .75em .6em; text-align: left; vertical-align: top; line-height: 1.5; overflow-wrap: anywhere; }
+#catalog_review tbody tr, #catalog_review tbody td { background: transparent !important; }
+#catalog_review tbody tr:nth-child(even) { background: #8881 !important; }
+#catalog_review tbody tr:hover { background: #3383bb12 !important; }
+#catalog_review .catalog_badge { display: inline-block; padding: .15em .5em; border: 1px solid #8888; border-radius: 4px; }
+#catalog_review [data-catalog-status=Failed] .catalog_badge { border-color: #c67c45; }
+#catalog_review [data-catalog-status=Snatched] .catalog_badge { border-color: #3383bb; }
+#catalog_review #tabs { margin: 1.5em 0; }
+#catalog_review #tabs > ul { display: flex; flex-wrap: wrap; gap: .5em; }
+#catalog_review .dataTables_filter input { padding: .4em; }
+#catalog_review .catalog_legend { border-top: 1px solid #8886; padding-top: 1em; line-height: 1.7; }
+@media (max-width: 760px) {
+ #catalog_review table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+ #catalog_review table, #catalog_review tbody { display: block; }
+ #catalog_review tbody tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border: 1px solid #8886; border-radius: 5px; margin: 1em 0; padding: .5em; }
+ #catalog_review td { display: block; width: auto !important; border: 0; }
+ #catalog_review td::before { content: attr(data-label); display: block; font-weight: bold; margin-bottom: .3em; }
+ #catalog_review #series_table td:nth-child(2), #catalog_review #wanted_table td:nth-child(2), #catalog_review .display_no_select td:first-child { grid-column: 1 / -1; }
+ #catalog_review .dataTables_filter, #catalog_review .dataTables_length, #catalog_review .dataTables_paginate { float: none; text-align: left; margin: .8em 0; }
+ #catalog_review .dataTables_filter input { max-width: 60vw; }
+ #catalog_review #markissue button, #catalog_review #markissue select { min-height: 44px; }
+}
+
+#catalog_review .catalog_total:empty { display: none; }
+#catalog_review .catalog_total { font-size: .65em; border: 1px solid #8888; padding: .2em .5em; border-radius: 4px; vertical-align: middle; }

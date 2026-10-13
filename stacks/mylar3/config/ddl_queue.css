@@ -21,7 +21,7 @@ body:has(#ddl_queue_page) #subhead_menu { float: none; display: flex; flex-wrap:
 #ddl_queue_page dt { font-weight: bold; } #ddl_queue_page dd { margin: .4rem 0; }
 #ddl_notice[data-stale=true], #ddl_action_notice:not(:empty) { padding: .7rem 1rem; border-left: 3px solid #bd7d25; }
 #ddl_queue_page :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
-#ddl_queue_page button, #ddl_queue_page select, #ddl_queue_page input { min-height: 26px; max-width: 100%; }
+#ddl_queue_page button, #ddl_queue_page select, #ddl_queue_page input { max-width: 100%; }
 #ddl_queue_page .table_wrapper { width: 100%; overflow-x: auto; }
 #ddl_queue_page #queue_table { width: 100% !important; }
 #ddl_queue_page #queue_table_wrapper { position: relative; }
@@ -35,8 +35,6 @@ body:has(#ddl_queue_page) #subhead_menu { float: none; display: flex; flex-wrap:
 #ddl_queue_page #queue_table td { vertical-align: top; text-align: left; overflow-wrap: anywhere; }
 #ddl_queue_page #queue_table th { text-align: left; }
 #ddl_queue_page .ddl_row_actions { display: flex; flex-wrap: wrap; gap: .4rem; }
-#ddl_queue_page .ddl_row_actions button { padding: .2rem .5rem; color: inherit; background: transparent; border: 1px solid #8889; border-radius: 3px; cursor: pointer; }
-#ddl_queue_page .ddl_row_actions button:hover { background: #8882; }
 #ddl_schedule { display: grid; grid-template-columns: repeat(2, minmax(180px, 280px)) auto auto; align-items: end; justify-content: start; gap: 10px 18px; padding: 14px; border: 1px solid #8886; border-radius: 5px; margin: 1rem 0; }
 #ddl_schedule .ddl_setting label { display: block; margin-bottom: 6px; font-weight: bold; }
 #ddl_schedule select { width: 100%; }
@@ -112,7 +110,6 @@ body:has(#ddl_queue_page) #subhead_menu { float: none; display: flex; flex-wrap:
 #ddl_queue_page [data-ddl-state=Downloading] .ddl_status_badge { border-color: #4a9a6b; }
 #ddl_queue_page .ddl_review_link { flex-basis: 100%; margin-bottom: .3rem; font-weight: bold; }
 #ddl_queue_page .ddl_row_actions { min-width: 8rem; }
-#ddl_queue_page .ddl_row_actions button, #ddl_queue_page .ddl_row_actions a { min-height: 32px; }
 #ddl_queue_page .ddl_table_tools { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; align-items: center; margin: 1rem 0; }
 #ddl_queue_page .ddl_table_tools label { display: flex; gap: .5rem; align-items: center; }
 #ddl_queue_page #queue_table_processing { display: none !important; }

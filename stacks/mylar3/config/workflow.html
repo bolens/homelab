@@ -11,7 +11,19 @@
 <%def name="headIncludes()">
 <link rel="stylesheet" href="interfaces/${interface}/css/data_table.css">
 <style>
+body:has(#workflow) #main, body:has(#workflow) footer { width: calc(100% - clamp(24px,4vw,96px)); min-width: 0; max-width: none; box-sizing: border-box; }
 #workflow { min-width: 0; }
+#workflow .wf_intro { line-height: 1.6; }
+#workflow .wf_notice { border: 1px solid #8886; border-left: 3px solid #3383bb; border-radius: 4px; padding: .8em 1em; }
+#workflow .wf_pack_controls { padding: 1em; border: 1px solid #8886; border-radius: 4px; margin: 1em 0; }
+#workflow #wf_pack_records .wf_card { border: 1px solid #8886; border-radius: 5px; padding: 1em; margin: .7em 0; }
+#workflow #wf_pack_records summary { cursor: pointer; overflow-wrap: anywhere; line-height: 1.6; }
+#workflow .wf_pack_name { font-weight: bold; }
+#workflow .wf_pack_progress { display: block; font-size: .95em; margin: .4em 0 0 1.2em; }
+#workflow [hidden] { display: none !important; }
+#workflow #wf_filter { padding: 1em; border: 1px solid #8886; border-radius: 4px; }
+#workflow #wf_proposals { margin: 1.5em 0; }
+#workflow .wf_pair h2 { margin-top: 0; }
 #workflow .wf_controls { display: flex; flex-wrap: wrap; gap: 1em 2em; align-items: end; }
 #workflow .wf_summary dt, #workflow label { font-weight: bold; }
 #workflow .wf_summary dd { margin: .35em 0 0; }
@@ -57,29 +69,35 @@
 #workflow legend { font-weight: bold; }
 #workflow .wf_actions { display: flex; flex-wrap: wrap; gap: .7em; margin: .7em 0; }
 @media (max-width: 1050px) { #workflow .wf_pair { grid-template-columns: minmax(0, 1fr); gap: 0; } }
+@media (max-width: 760px) {
+ #workflow button, #workflow .wf_jump a { min-height: 44px; box-sizing: border-box; }
+ #workflow .wf_controls { align-items: stretch; }
+ #workflow .wf_history_scroll { max-height: none; }
+ #workflow table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+ #workflow table, #workflow table tbody { display: block; }
+ #workflow table tr { display: block; border: 1px solid #8886; margin: 1em 0; border-radius: 4px; }
+ #workflow table td { display: block; border: 0; }
+ #workflow table td::before { content: attr(data-label); display: block; font-weight: bold; margin-bottom: .3em; }
+}
 </style>
 </%def>
 <%def name="body()">
 <input type="hidden" id="page_name" value="workflow" />
 <div id="workflow">
 <div id="paddingheader"><h1 class="clearfix">Activity and workflow</h1></div>
+<p class="wf_intro">Follow an issue from search to verified import, review uncertain matches, and check pack contents. Review controls keep unconfirmed work held until you choose the next step.</p>
 <p id="wf_status" class="wf_notice" role="status" aria-live="polite">Loading workflow status…</p>
 <p id="wf_action_status" role="status" aria-live="polite"></p>
 <noscript>Enable JavaScript to view activity and use workflow controls. Manage, DDL Queue Management, Post-processing and Import problems remain available from the links above.</noscript>
 <nav class="wf_jump" aria-label="Activity sections">
-<a href="#wf_history">Issue activity</a><a href="#wf_handoff">NZB handoff</a>
-<a href="#wf_packs">Packs and extras</a><a href="#guided_matches">Resolve imports <span id="wf_match_count"></span></a><a href="#wf_settings">Intake settings</a>
+<a href="#wf_history">Issue activity</a><a href="#guided_matches">Resolve imports <span id="wf_match_count"></span></a>
+<a href="#wf_packs">Packs and extras</a><a href="#wf_handoff">NZB handoff</a><a href="#wf_settings">Intake settings</a>
 </nav>
 <dl class="wf_summary">
 <div><dt>New intake</dt><dd id="wf_intake">Unknown</dd></div>
 <div><dt>DDL providers</dt><dd id="wf_cooldown">Unknown</dd></div>
 <div><dt>Last updated</dt><dd id="wf_updated">Not yet updated</dd></div>
 </dl>
-<section id="wf_packs" aria-labelledby="wf_packs_title">
-<h2 id="wf_packs_title">Packs and extras</h2>
-<p>Each member is tracked separately. Confirmed issues have verified library content; preserved supplements keep covers and alternate copies without replacing full issues. Uncertain content stays available for review.</p>
-<div id="wf_pack_records"><p>No pack status loaded.</p></div>
-</section>
 <section id="wf_history" aria-labelledby="wf_history_title">
 <h2 id="wf_history_title">Issue activity</h2>
 <p>Search, download and processing observations persist across restarts. A finished step does not by itself confirm a library import.</p>
@@ -97,6 +115,29 @@
 <thead><tr><th scope="col">When</th><th scope="col">Issue</th><th scope="col">Stage</th><th scope="col">Provider</th><th scope="col">Outcome</th><th scope="col">Next retry</th></tr></thead><tbody><tr><td colspan="6">Waiting for activity.</td></tr></tbody></table></div>
 <div class="wf_actions"><button id="wf_latest" type="button">Latest activity</button><button id="wf_older" type="button" disabled>Older activity</button></div>
 <p id="wf_history_note">Up to 100 events per page. Status updates every five seconds; viewing older activity pauses automatic updates.</p>
+</section>
+<section id="guided_matches" aria-labelledby="wf_matching_title">
+<h2 id="wf_matching_title">Resolve import matches</h2>
+<p>Review the evidence and choose an issue explicitly. The maintenance worker checks that the source has not changed before staging it for import. Original archives remain intact.</p>
+<div id="wf_proposals"><p>No proposals loaded.</p></div>
+<h3>Import submissions</h3>
+<div class="table_wrapper"><table class="display" id="wf_commands"><thead><tr><th scope="col">Submission</th><th scope="col">Issue ID</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead><tbody><tr><td colspan="4">No submissions loaded.</td></tr></tbody></table></div>
+<div id="wf_import_review"></div>
+<h3>Saved series aliases</h3>
+<p>Aliases apply only to the exact source series and start year shown. A requested alias activates only after the selected import is confirmed.</p>
+<div id="wf_aliases"><p>No aliases loaded.</p></div>
+</section>
+<section id="wf_packs" aria-labelledby="wf_packs_title">
+<h2 id="wf_packs_title">Packs and extras</h2>
+<p>Each member is tracked separately. Confirmed issues have verified library content; preserved supplements keep covers and alternate copies without replacing full issues. Uncertain content stays available for review.</p>
+<div class="wf_controls wf_pack_controls">
+<div class="wf_field"><label for="wf_pack_search">Find a pack or member</label><input id="wf_pack_search" type="text" /></div>
+<div class="wf_field"><label for="wf_pack_state">Pack status</label><select id="wf_pack_state"><option value="">All packs</option><option value="inventory">Inventory needs review</option><option value="pending">Review or processing pending</option><option value="complete">Complete</option></select></div>
+<button type="button" id="wf_pack_clear">Clear pack filters</button>
+</div>
+<p id="wf_pack_count" role="status">Waiting for pack inventory.</p>
+<div id="wf_pack_records"><p>No pack status loaded.</p></div>
+<div class="wf_actions"><button id="wf_pack_previous" type="button" disabled>Previous packs</button><button id="wf_pack_next" type="button" disabled>Next packs</button></div>
 </section>
 <div class="wf_pair">
 <section id="wf_handoff" aria-labelledby="wf_handoff_title">
@@ -141,17 +182,7 @@
 </form>
 </section>
 </div>
-<section id="guided_matches" aria-labelledby="wf_matching_title">
-<h2 id="wf_matching_title">Resolve import matches</h2>
-<p>Review the evidence and choose an issue explicitly. The maintenance worker checks that the source has not changed before staging it for import. Original archives remain intact.</p>
-<div id="wf_proposals"><p>No proposals loaded.</p></div>
-<h3>Import submissions</h3>
-<div class="table_wrapper"><table class="display" id="wf_commands"><thead><tr><th scope="col">Submission</th><th scope="col">Issue ID</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead><tbody><tr><td colspan="4">No submissions loaded.</td></tr></tbody></table></div>
-<div id="wf_import_review"></div>
-<h3>Saved series aliases</h3>
-<p>Aliases apply only to the exact source series and start year shown. A requested alias activates only after the selected import is confirmed.</p>
-<div id="wf_aliases"><p>No aliases loaded.</p></div>
-</section>
+
 </div>
 </%def>
 <%def name="javascriptIncludes()">
@@ -186,7 +217,8 @@ $(document).ready(function() {
     function table(id, rows, columns, empty) {
         var body=$(id+' tbody').empty();
         if (!rows.length) $('<tr>').append($('<td>').attr('colspan',columns).text(empty)).appendTo(body);
-        $.each(rows,function(_,values) { var row=$('<tr>').appendTo(body); $.each(values,function(_,v){cell(row,v);}); });
+        var labels=$(id+' thead th').map(function(){return $(this).text();}).get();
+        $.each(rows,function(_,values) { var row=$('<tr>').appendTo(body); $.each(values,function(i,v){cell(row,v);row.children().last().attr('data-label',labels[i]);}); });
     }
     function action(data, button, success) {
         if (!csrf || mutating) { message('Wait for the current request to finish before trying again.',button); return; }
@@ -331,7 +363,21 @@ $(document).ready(function() {
             }
         });
     }
-    var lastPackSignature='';
+    var lastPackSignature='', packPage=0;
+    function filterPacks() {
+        var query=$('#wf_pack_search').val().trim().toLowerCase(), state=$('#wf_pack_state').val();
+        var cards=$('#wf_pack_records details'), matches=cards.filter(function(){return (!state || $(this).attr('data-state')===state) && (!query || $(this).text().toLowerCase().indexOf(query)!==-1);});
+        var count=matches.length;
+        packPage=Math.max(0,Math.min(packPage,Math.ceil(count/10)-1));
+        cards.prop('hidden',true);matches.slice(packPage*10,packPage*10+10).prop('hidden',false);
+        $('#wf_pack_count').text(count ? 'Showing '+(packPage*10+1)+'–'+Math.min(packPage*10+10,count)+' of '+count+' matching packs.' : (cards.length ? 'No packs match these filters.' : 'No inventoried packs yet.'));
+        $('#wf_pack_previous').button(packPage ? 'enable':'disable');
+        $('#wf_pack_next').button((packPage+1)*10<count ? 'enable':'disable');
+    }
+    $('#wf_pack_search, #wf_pack_state').on('input change',function(){packPage=0;filterPacks();});
+    $('#wf_pack_clear').on('click',function(){$('#wf_pack_search, #wf_pack_state').val('');packPage=0;filterPacks();});
+    $('#wf_pack_previous').on('click',function(){packPage--;filterPacks();});
+    $('#wf_pack_next').on('click',function(){packPage++;filterPacks();});
     function packs(rows) {
         rows=rows || [];
         var signature=JSON.stringify(rows);
@@ -346,7 +392,10 @@ $(document).ready(function() {
             if (opened[r.id]) details.prop('open',true);
             var members=r.members || [];
             var progress=members.length ? r.confirmed+'/'+r.total+' members verified'+(r.complete ? ' · Complete' : ' · Review or processing pending') : 'No members reported · Inventory needs review';
-            $('<summary>').text(r.name+' — '+progress).appendTo(details);
+            details.attr('data-state',!members.length ? 'inventory' : r.complete ? 'complete' : 'pending');
+            var summary=$('<summary>').appendTo(details);
+            $('<span>').addClass('wf_pack_name').text(r.name).appendTo(summary);
+            $('<span>').addClass('wf_pack_progress').text(progress).appendTo(summary);
             if (!members.length) {
                 $('<p>').text(r.inventory_complete ? 'The worker reported an empty inventory. This pack cannot be confirmed without member evidence.' : 'No member inventory has been reported for this pack yet. Its contents and library imports have not been verified.').appendTo(details);
                 $('<p>').text('Check the maintenance worker and confirm pack import is enabled there and in Activity settings.').appendTo(details);
@@ -364,6 +413,7 @@ $(document).ready(function() {
                 if (m.comicid) $('<a>').attr('href','comicDetails?ComicID='+encodeURIComponent(m.comicid)).text(' View series').appendTo(item);
             });
         });
+        filterPacks();
     }
     function render(data) {
         packs(data.packs);

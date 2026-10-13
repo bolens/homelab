@@ -310,7 +310,9 @@ validation failures, quarantine/replacement status, releases that exhausted thei
 attempts, and issues left Snatched for over 24 hours. The optional Komga maintenance
 worker publishes file reports through the primary-key `reportImportProblems` API.
 Missing or stale reports are labeled. Recovery states use readable labels and can
-be filtered. **Refresh report** reloads the latest saved report without starting a
+be filtered alongside problem types. The report overview separates item counts,
+recorded replacements, and freshness. Narrow screens show labeled item cards.
+**Refresh report** reloads the latest saved report without starting a
 new scan or replacement search. Each row links to its next review screen:
 processing, conversion, replacement queue or import matches. **View issue activity**
 opens history filtered to that issue. Replaced downloads show their library outcome
@@ -333,6 +335,28 @@ Docker access, credentials, or media mount is required.
 Verify the configured media directories exist on the intended filesystem before
 running preparation. The helper refuses to create missing media paths. Directory
 existence alone does not verify the remote mount; check its source and access.
+
+## Library and Wanted review
+
+Library separates publication status from monitoring status and labels monitoring
+states in text. Wanted uses status badges, labeled filters, and section links to
+upcoming and availability lists. Its bulk status selector requires Apply instead
+of changing issues immediately. Selection applies to the current server-side
+page. Marking Downloaded or Archived changes status, not library file contents.
+Both pages keep native sorting, filters and data loading, with labeled rows on
+narrow screens.
+
+## History review
+
+History uses readable status badges and links each catalog issue to its Activity
+history. Snatched records a download request; Post-Processed records a processing
+step. Neither label alone proves a verified import. Selection controls count unique
+issues on the current page. Bulk actions require Apply and confirmation, and native
+Clear also resets issue status. Clearing affects all history entries for a selected
+issue. Separate History maintenance controls retain the native clearing routes,
+including the download log, with explicit confirmation. Table redraws preserve
+scroll position and narrow layouts show labeled rows. These changes do not alter
+history storage or native retry behavior.
 
 ## Post-processing monitor
 
@@ -367,6 +391,32 @@ existing primary-key `reportImportProblems` call. Mylar stores it privately as
 labeled. Deploy the updated Mylar image before restarting the maintenance worker.
 No new ports, credentials, environment values, or mounts are required.
 
+
+## Shared interface components
+
+The base template initializes native jQuery UI buttons across Mylar, including
+controls added by live status refreshes. Existing icons and click handlers remain
+owned by Mylar. A shared component stylesheet owns control height, corner radius,
+spacing and keyboard focus. The selected interface controls colors and icons. Carbon uses one shared charcoal
+palette; the default interface keeps its native theme colors.
+Disabled attributes stay synchronized with the widget state. Header search,
+notification actions, scheduler and StoryArc actions, weekly-pull controls and
+dialog buttons use the same integration. Existing widgets initialized after
+insertion are adopted without replacing their handlers or icons. Password and
+email fields share form geometry; native checkboxes and radio buttons keep their
+behavior. Dialog close controls retain their native lifecycle and keyboard support. DataTables
+pagination shares control sizing and Carbon colors while retaining its native
+current/disabled states and navigation handlers. Review navigation
+uses the same button presentation while retaining link semantics. Activity, Import
+problems, Post-processing, Library, Wanted and History share this integration.
+`component_examples.html` provides enabled, disabled, dynamic and navigation
+examples for a preview using native theme assets, including late native widgets
+and dialogs. Maintenance uses the same shared components. Login uses static
+shared theme roles, visible field labels, password-manager autocomplete and
+a responsive form without loading jQuery UI. The comic reader keeps its
+separate native Materialize interface. The held-startup screen remains
+self-contained and selects the same light or Carbon appearance without catalog
+access.
 
 ## Desktop layout
 
@@ -429,6 +479,12 @@ Failed issues when both automatic failure settings are enabled; explicit Wanted
 status avoids depending on that conditional fallback.
 
 ## Activity and workflow controls
+
+Activity places issue history and import review before pack inventory and settings.
+Pack search and status filters apply to the loaded inventory, with ten packs per
+page. Open pack details remain open across inventory refreshes. Search and paging
+do not start downloads or change pack verification. Narrow layouts label activity
+and submission fields instead of requiring horizontal table scrolling.
 
 Open **Activity** from Manage or the Queues menu. The authenticated `activity`
 page combines search/provider results, download, conversion, tagging and processing
@@ -527,6 +583,11 @@ only Mylar. Check database integrity, baseline issue records and media hashes,
 container health, and the DDL and post-processing pages. If data is missing or
 corrupt, stop writers and restore the verified backup and previous image. Remove
 temporary update backups only after preservation checks pass; retain routine backups.
+
+When publication review holds a web request, Mylar shows a responsive status page
+with recovery steps, a link to this guide, and a retry link for the current page.
+It does not load the catalog or offer controls to clear the hold or restart the
+service. Review and restart remain separate operator actions.
 
 Mylar startup checks publication authority before database maintenance and leaves
 pending media recovery held for explicit authenticated review. It does not replay

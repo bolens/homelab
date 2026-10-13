@@ -259,17 +259,75 @@ def queue_operation(mode):
         yield None
 
 
+def publication_hold_page(*, review=False):
+    """Render without templates or catalog access while native startup is held."""
+    import mylar
+    theme = 'default' if getattr(getattr(mylar, 'CONFIG', None), 'INTERFACE', 'carbon') == 'default' else 'carbon'
+    title = 'Publication identity requires review' if review else 'Media processing is held'
+    explanation = ('Source and catalog are retained. Mylar stopped this request because publication identity needs review.'
+                   if review else 'This page is unavailable while Mylar waits for authenticated publication review.')
+    restart = ('Restart Mylar if the review requires it.' if review
+               else 'After the review is complete, restart Mylar to finish startup.')
+    page = '''<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>''' + title + ''' | Mylar</title>
+<style>
+:root { color-scheme: dark; font-family: Arial, Helvetica, sans-serif; background: #252b33; color: #e8ecf1; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 0; line-height: 1.6; }
+header { padding: 18px max(24px, calc((100% - 880px)/2)); border-bottom: 1px solid #46515e; background: #303943; }
+header strong { font-size: 20px; letter-spacing: .02em; }
+header span { margin-left: 14px; color: #c0c9d3; font-size: 14px; }
+main { width: min(880px, calc(100% - 48px)); margin: clamp(28px, 7vh, 80px) auto; }
+.state { display: inline-block; color: #ffcd83; border: 1px solid #a98049; border-radius: 4px; padding: 3px 10px; font-size: 14px; }
+h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.2; margin: 20px 0 14px; }
+.lead { color: #cdd5df; max-width: 68ch; font-size: 17px; }
+section { margin: 30px 0; padding: 24px; background: #2d3540; border: 1px solid #4b5868; border-left: 4px solid #e9b46c; border-radius: 6px; }
+h2 { margin: 0 0 12px; font-size: 20px; }
+ol { padding-left: 24px; margin: 0; }
+li { padding-left: 6px; margin: 10px 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+a { color: #9dd5fc; }
+.actions a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 16px; border: 1px solid #7599b5; border-radius: 4px; text-decoration: none; font-weight: bold; }
+.actions a:first-child { background: #8ac9f5; border-color: #8ac9f5; color: #182634; }
+a:hover { text-decoration: underline; }
+a:focus-visible { outline: 3px solid #ffcd83; outline-offset: 4px; }
+.note { color: #b9c4d0; font-size: 14px; }
+@media (max-width: 480px) { header span { display: block; margin-left: 0; } main { width: calc(100% - 32px); } section { padding: 18px; } .actions a { width: 100%; } }
+html:has(body[data-mylar-theme=default]) { color-scheme: light; background: #fafafa; color: #333; }
+body[data-mylar-theme=default] header { background: #eee; border-color: #aaa; }
+body[data-mylar-theme=default] header span, body[data-mylar-theme=default] .lead, body[data-mylar-theme=default] .note { color: #555; }
+body[data-mylar-theme=default] section { background: #f2f2f2; border-color: #aaa; border-left-color: #b88736; }
+body[data-mylar-theme=default] .state { color: #805c24; border-color: #b88736; }
+body[data-mylar-theme=default] a { color: #3383bb; }
+body[data-mylar-theme=default] .actions a { border-color: #3383bb; }
+body[data-mylar-theme=default] .actions a:first-child { background: #3383bb; color: #fff; }
+body[data-mylar-theme=default] a:focus-visible { outline-color: #3383bb; }
+</style></head><body>
+<header><strong>Mylar</strong><span>Publication review</span></header>
+<main aria-labelledby="hold-title"><span class="state">Processing held</span>
+<h1 id="hold-title">''' + title + '''</h1><p class="lead">''' + explanation + '''</p>
+<section aria-labelledby="next-steps"><h2 id="next-steps">What to do next</h2>
+<ol><li>Ask your administrator to complete authenticated publication review.</li>
+<li>''' + restart + '''</li><li>Return to this page and try again.</li></ol>
+<div class="actions"><a href="https://github.com/bolens/homelab/blob/main/stacks/mylar3/README.md#image-updates-and-rollback">Read the recovery guide</a><a href="">Try this page again</a></div>
+</section><p class="note">Refreshing this page does not clear the hold. Keep recovery files and pending markers in place until review is complete.</p>
+</main></body></html>'''
+    return page.replace('<body>', '<body data-mylar-theme="' + theme + '">')
+
+
 def publication_http(function):
     @wraps(function)
     def wrapped(*args,**kwargs):
         if _PUBLICATION and startup_status()['state']!='ready':
-            return '<p>Media processing is held. Complete authenticated publication review, then restart Mylar.</p>'
+            return publication_hold_page()
         if _PUBLICATION:
             from .publication_native import Review
             try:
                 with operation():return function(*args,**kwargs)
             except Review:
-                return '<p>Publication identity requires review. Source and catalog are retained.</p>'
+                return publication_hold_page(review=True)
         return function(*args,**kwargs)
     return wrapped
 

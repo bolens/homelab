@@ -105,7 +105,7 @@
   },
   {
     "path": "native_writers.py",
-    "sha256": "16a90e8fa1ea0375083caddb548e0c2fa2fb51fa4d7e63f770cdedf2e6d0c388"
+    "sha256": "cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202"
   },
   {
     "path": "ordinary_import_continuity.py",
@@ -337,7 +337,7 @@
   },
   {
     "path": "patch_wide_layout.py",
-    "sha256": "89dccbf1ee0d6fb6f4cdb9468d0b6d1de5eecf87537480b864847c7b69e0cc2a"
+    "sha256": "c7ca38c796f312d4df00c3407fd5fbbe328720024ff49a6d29dc2ab82b05ad58"
   },
   {
     "path": "patch_workflow.py",
@@ -657,7 +657,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "27fb634e2af6c7b017397f709ea86406b03085be4c51788afca4be73c163b580"
+    "sha256": "73f56a99697145a25514934cfafea63fd86b4b2fb3708a57fd008825f506070f"
   },
   {
     "path": "story_arc_search.py",
@@ -1025,7 +1025,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_handoff.py",
-    "sha256": "632cbd69317db66ae64abc954b674cddd95e613a74f338bae0a827f5faa60b9d"
+    "sha256": "a02711e8fa0dc3c4a41dce02ec5f3c7858f9f97c46fcb773d996a46d9bce0684"
   },
   {
     "path": "test_fixtures/retained_pack_worker/retained_pack_operations.py",
@@ -1033,7 +1033,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "4cee1ce78744de00c5a1c95fabca6b083e33e524ab49fa4f6a315e29524aee02"
+    "sha256": "dc8645f98717e797377cd9ab2ca51faacb4c4298ca05ee82981c0642cb33a1d9"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",
@@ -1069,7 +1069,7 @@
   },
   {
     "path": "test_native_writers.py",
-    "sha256": "14467d31dbc1a919880ef41f096f196f74073d3c17209893ea86ae5942cbdc05"
+    "sha256": "67eb807118d7c1160f8db66a2df76e8c64e366f985319bb54201d8c66b382472"
   },
   {
     "path": "test_negative_ready_session.py",
@@ -1529,7 +1529,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "d347e8bb985173c9a7e88f27190e117a203dc71b70039320e3fdb1553b1842dd"
+    "sha256": "d73178f986b85c0434b2d1a8b0b27c626d3cbfa2fa8b875d14e92dc5d4e395e7"
   },
   {
     "path": "verify_publication_reader_cohort.py",
