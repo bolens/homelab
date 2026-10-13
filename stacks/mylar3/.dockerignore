@@ -67,6 +67,17 @@ config/test_fixtures/**
 config/test_fixtures/ordinary_import/**
 !config/test_fixtures/ordinary_import/*.py
 
+# Exact checked-stage upstream cache fixtures; runtime config remains excluded.
+!config/test_fixtures/cache_admission/
+config/test_fixtures/cache_admission/**
+!config/test_fixtures/cache_admission/PROVENANCE.json
+!config/test_fixtures/cache_admission/config.py.txt
+!config/test_fixtures/cache_admission/getcomics.py.txt
+!config/test_fixtures/cache_admission/mediafire.py.txt
+!config/test_fixtures/cache_admission/pixeldrain.py.txt
+!config/test_fixtures/cache_admission/mega.py.txt
+!config/test_fixtures/cache_admission/mega_library.py.txt
+
 !config/reader_recovery/CONTRACT-archive-parent.md
 !config/reader_recovery/CONTRACT-archive-proof.md
 !config/reader_recovery/CONTRACT-archive-repair.md
