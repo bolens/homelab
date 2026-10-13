@@ -2,6 +2,7 @@
 from pathlib import Path
 import sys
 from source_patches import replace_once
+from patch_manage_ui import install as install_manage_ui
 
 START = '<!-- homelab-wide-layout-v1 -->'
 END = '<!-- /homelab-wide-layout-v1 -->'
@@ -180,6 +181,7 @@ def main(directory):
         catalog = path.with_name(name + '.html')
         catalog.write_text(catalog_template(catalog.read_text(), name,
             (files/'catalog_ui.css').read_text(), (files/'catalog_ui.js').read_text()))
+    install_manage_ui(path.parent, files)
     print('Mylar fluid desktop layout verified')
 
 

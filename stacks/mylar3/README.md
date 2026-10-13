@@ -408,7 +408,13 @@ behavior. Dialog close controls retain their native lifecycle and keyboard suppo
 pagination shares control sizing and Carbon colors while retaining its native
 current/disabled states and navigation handlers. Review navigation
 uses the same button presentation while retaining link semantics. Activity, Import
-problems, Post-processing, Library, Wanted and History share this integration.
+problems, Post-processing, Library, Wanted, History and Manage share this integration.
+Manage keeps its four native tabs with labeled scan and processing forms, separate
+save-only and scan actions, import-status guidance, grouped export tools, and
+responsive scheduler and queue tables. A scan flag is submitted only by the scan
+action; the explicit running-import override belongs to that form. Repeated panel
+refreshes retain one status poller and one manual-processing handler. Scan and
+processing submissions are distinguished from confirmed library imports.
 `component_examples.html` provides enabled, disabled, dynamic and navigation
 examples for a preview using native theme assets, including late native widgets
 and dialogs. Maintenance uses the same shared components. Login uses static

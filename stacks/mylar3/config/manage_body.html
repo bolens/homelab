@@ -1,0 +1,112 @@
+<div id="manage_review">
+  <div id="paddingheader"><h1>Manage</h1><p class="manage_help">Import comics, process completed downloads and review background jobs. Choose an action below; opening a tab does not start work.</p></div>
+  <div id="tabs">
+    <ul>
+      <li><a href="#tabs-1">Scan library</a></li>
+      <li><a href="#tabs-2">Manual processing</a></li>
+      <li><a href="#tabs-3">Tools and exports</a></li>
+      <li><a href="#tabs-4">Jobs and queues</a></li>
+    </ul>
+    <div id="tabs-1" class="configtable">
+      <div class="manage_scan_layout">
+        <form action="comicScan" method="GET" id="comicScan" onsubmit="return false;">
+          <fieldset><legend>Scan a comic folder</legend>
+            <p class="manage_help">Scan this folder and its subfolders for comics. Review the file options before starting. You can leave this page once the scan is submitted.</p>
+            <div class="row"><label for="scan_path">Folder to scan</label><input type="text" id="scan_path" name="path" value="${mylar.CONFIG.COMIC_DIR or '' | h}" placeholder="/data/comics" aria-describedby="scan_path_help" /><small id="scan_path_help">Use the full path visible to Mylar, rather than a path on your desktop.</small></div>
+            <div class="row checkbox"><input type="checkbox" name="autoadd" id="autoadd" value="1" ${scan_info['autoadd']} /><label for="autoadd">Add newly found series</label></div>
+            <div class="row checkbox"><input type="checkbox" name="imp_metadata" id="imp_metadata" value="1" ${scan_info['imp_metadata']} /><label for="imp_metadata">Use existing metadata</label><small>Use metadata in each archive to help identify its series.</small></div>
+            <div class="row checkbox"><input type="checkbox" name="imp_seriesfolders" id="imp_seriesfolders" value="1" ${scan_info['imp_seriesfolders']} /><label for="imp_seriesfolders">Each series has its own folder</label><small>Enable this when the source folder is organized by series.</small></div>
+            <div class="row checkbox"><input type="checkbox" name="imp_move" id="imps" value="1" ${scan_info['imp_move']} /><label for="imps">Move files into the library</label><small>When off, files stay in place and matched issues are marked Archived.</small></div>
+            <div id="move_options" class="row checkbox"><input type="checkbox" name="imp_rename" id="imp_rename" value="1" ${scan_info['imp_rename']} /><label for="imp_rename">Rename moved files</label><small>Use your configured naming rules.</small></div>
+            <div id="path_options" class="row checkbox"><input type="checkbox" name="imp_paths" id="imp_paths" value="1" ${scan_info['imp_paths']} /><label for="imp_paths">Use source folders as series locations</label><small>Set each imported series location to its existing folder.</small></div>
+            %if mylar.IMPORTLOCK:
+            <div class="manage_notice"><strong>An import is already running</strong><p>Wait for it to finish before scanning again. Overriding it can interrupt the current import.</p><div class="row checkbox"><input type="checkbox" name="forcescan" id="forcescan" value="1" /><label for="forcescan">Override the running import for this scan</label></div></div>
+            %endif
+            <div class="manage_actions">
+              <input type="button" value="Save and start scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return true;" data-success="Scan submitted. Review import results when it finishes." data-error="Unable to start the scan. Check the logs." />
+              <input type="button" value="Save options only" onclick="clearScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Scan options saved; no scan started." data-error="Unable to save settings. Check the logs." />
+            </div>
+          </fieldset>
+        </form>
+        <aside class="manage_import_status" aria-labelledby="import_heading">
+          <h2 id="import_heading">Import status</h2>
+          <label for="importstatus">Current scan</label><input type="text" id="importstatus" value="${mylar.IMPORT_STATUS or 'No scan running' | h}" readonly />
+          <span id="manage_import_feedback" class="manage_help" role="status"></span>
+          <dl><dt>Valid files</dt><dd>${mylar.IMPORT_TOTALFILES}
+          %if int(mylar.IMPORT_FILES) != int(mylar.IMPORT_TOTALFILES):
+            / ${mylar.IMPORT_FILES}
+          %endif
+          </dd><dt>Files with ComicIDs</dt><dd>${mylar.IMPORT_CID_COUNT}</dd><dt>Parsed</dt><dd>${mylar.IMPORT_PARSED_COUNT}</dd><dt>Could not parse</dt><dd>${mylar.IMPORT_FAILURE_COUNT}</dd></dl>
+          <p class="manage_help">These counts describe the scan. A completed scan does not confirm a library import.</p>
+          %if mylar.IMPORTBUTTON:
+          <div class="links"><a href="importResults">Review import results</a></div>
+          %endif
+          <div class="links"><a href="importProblems">Resolve import problems</a><a href="activity">View import activity</a></div>
+          %if mylar.IMPORT_STATUS and mylar.IMPORT_STATUS != 'Import completed.':
+          <script>$(function() { turniton(); });</script>
+          %endif
+        </aside>
+      </div>
+    </div>
+    <div id="tabs-2" class="configtable">
+      <div class="manage_manual_layout">
+        <form id="manage_manual_form" onsubmit="$('#manual_process').trigger('click');return false;">
+          <fieldset><legend>Process completed downloads</legend><p class="manage_help">Search this folder and its subfolders for files belonging to series on your watchlist. Processing uses your current post-processing settings; unmatched files stay in the source folder.</p>
+            <div class="row_nomax"><label for="nzb_folder">Folder to process</label><input type="text" value="${mylar.CONFIG.MANUAL_PP_FOLDER or '' | h}" name="nzb_folder" id="nzb_folder" placeholder="/data/downloads/completed/comics" aria-describedby="manual_folder_help" /><small id="manual_folder_help">Use the full path visible to Mylar. Processing may move or rename matched files.</small></div>
+            <div class="manage_actions"><input type="button" value="Start processing" id="manual_process" /></div>
+            <input type="hidden" name="nzb_name" value="Manual Run" />
+            <div class="manage_manual_feedback"><img id="manualpp_statusicon" name="manualpp_statusicon" src="images/success.png" style="visibility:hidden;" height="20" width="20" alt="" /><span id="manual_status" role="status"></span></div>
+          </fieldset>
+        </form>
+        <aside class="manage_manual_help"><h2>Follow the result</h2><p>You can leave after the request is submitted. A finished processing run still needs a confirmed library import.</p><div class="links"><a href="postProcessing">View processing runs</a><a href="activity">Review confirmed imports</a><a href="importProblems">Resolve import problems</a></div></aside>
+      </div>
+      <!-- Preserve native interactive-dialog targets without exposing unfinished controls. -->
+      <div id="interactive_dialog" title="Review matched files" style="display:none;"><span id="interactive_message"></span><table class="display" id="interactive_table"><thead><tr><th id="series">Series</th><th id="issuenumber">Issue</th><th id="filename">Filename</th></tr></thead><tbody id="interactive_table_body"></tbody></table></div>
+      <div id="serieslisting_dialog" title="Select a series" style="display:none;"><span id="serieslisting_message"></span></div>
+    </div>
+    <div id="tabs-3">
+      <p class="manage_help">Export issue lists or open a dedicated management page.</p>
+      <div class="manage_tools">
+        <fieldset><legend>Export issue lists</legend><p class="manage_help">Create a CSV list of Wanted or Downloaded issues.</p><div class="links"><a href="#" onclick="doAjaxCall('wanted_Export?mode=Wanted',$(this));return false;" data-success="Wanted list exported." data-error="Failed to export. Check logs.">Export Wanted to CSV</a><a href="#" onclick="doAjaxCall('wanted_Export?mode=Downloaded',$(this));return false;" data-success="Downloaded list exported." data-error="Failed to export. Check logs.">Export Downloaded to CSV</a></div></fieldset>
+        <fieldset><legend>Reading lists and story arcs</legend><p class="manage_help">Organize reading order or import a Comic Book Lover list.</p><div class="links"><a href="readlist">Manage reading lists</a><a href="storyarc_main">Manage story arcs</a><a href="cblimport">Import a CBL list</a></div></fieldset>
+        <fieldset><legend>Library and imports</legend><p class="manage_help">Review series, issue states and import matches.</p><div class="links"><a href="manageComics">Manage comics</a><a href="manageIssues?status=Wanted">Manage issues</a><a href="importResults">Review import results</a><a href="manageFailed">Review failed links</a></div></fieldset>
+      </div>
+    </div>
+    <div id="tabs-4">
+      <div class="manage_section_heading"><h2>Scheduled jobs</h2><span>Local time: <span id="curtime"></span></span></div>
+      <p class="manage_help">Pause or resume a scheduler, or run an eligible job now. A job can start up to 60 seconds late while other work is running. Run now does not resume a paused job. Status is captured when this page loads.</p>
+      <div class="links"><a href="manage#tabs-4">Refresh jobs and queues</a><a href="activity">Open live activity</a></div>
+      <div class="manage_table_wrap"><table class="manage_jobs"><thead><tr><th scope="col">Job</th><th scope="col">Next run</th><th scope="col">Interval</th><th scope="col">Previous run</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody>
+      %for j in jobs:
+        <tr><th scope="row">${j['jobname'] | h}</th><td>${j['next_run_datetime'] | h}</td><td>${j['interval'] | h}</td><td>${j['prev_run_datetime'] | h}</td><td><span class="manage_status">${j['status'] | h}</span></td><td><div class="links">
+        %if j['status'] in ('Running', 'Waiting'):
+          <a href="#" onclick="doAjaxCall('jobmanage?job=${j['jobname']}&mode=pause',$(this),'tabs',true);return false;" data-success="Scheduler paused" data-error="Unable to pause scheduler."><span class="ui-icon ui-icon-stop"></span>Pause</a>
+        %elif j['status'] == 'Paused':
+          <a href="#" onclick="doAjaxCall('jobmanage?job=${j['jobname']}&mode=resume',$(this),'tabs',true);return false;" data-success="Scheduler resumed" data-error="Unable to resume scheduler."><span class="ui-icon ui-icon-play"></span>Resume</a>
+        %endif
+        <%
+          force_jobs = {'Auto-Search':'search', 'DB Updater':'updater', 'Weekly Pullist':'weekly', 'Folder Monitor':'monitor', 'RSS Feeds':'rss', 'Check Version':'version'}
+          force_job = force_jobs.get(j['jobname'])
+        %>
+        %if force_job:
+          <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=${force_job}',$(this),'tabs',true);return false;" data-success="Job submitted" data-error="Unable to run job."><span class="ui-icon ui-icon-star"></span>Run now</a>
+        %endif
+        </div></td></tr>
+      %endfor
+      %if not jobs:
+        <tr><td colspan="6">No scheduled jobs are reported.</td></tr>
+      %endif
+      </tbody></table></div>
+      <h2>Processing queues</h2><p class="manage_help">Only workers enabled by your configuration are expected to run. An empty queue means no work is waiting; it does not establish worker health.</p>
+      <div class="manage_table_wrap"><table class="manage_queues"><thead><tr><th scope="col">Queue</th><th scope="col">Waiting items</th><th scope="col">Worker</th></tr></thead><tbody>
+      %for q in queues:
+        <tr><th scope="row">${q.name | h}</th><td>${q.size}</td><td><span class="manage_status">${'Running' if q.is_alive else ('Stopped' if q.is_alive is not None else 'Not started')}</span></td></tr>
+      %endfor
+      %if not queues:
+        <tr><td colspan="3">No processing queues are reported.</td></tr>
+      %endif
+      </tbody></table></div>
+      <p class="manage_help">For a stopped worker, review logs and configuration before restarting Mylar. A worker that has never started may be disabled in configuration.</p><div class="links"><a href="logs">View logs</a><a href="postProcessing">View post-processing</a><a href="queueManage">View download queue</a></div>
+    </div>
+  </div>
+</div>

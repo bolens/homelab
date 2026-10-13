@@ -220,6 +220,10 @@
     "sha256": "f5e7e10f5ba695d9e94d76baff5cd4b1e34247448436d2731e771570a9708e5c"
   },
   {
+    "path": "patch_manage_ui.py",
+    "sha256": "9352e46d8c8e22dd4822ad5ddec0b4369afa93b49e976d1f8dd5d9e65ce59a31"
+  },
+  {
     "path": "patch_media_writers.py",
     "sha256": "a567f43674319c8c70eaa5e43b0bdcacf30c0d367fbeed70f4b7e072fdc7c06e"
   },
@@ -337,7 +341,7 @@
   },
   {
     "path": "patch_wide_layout.py",
-    "sha256": "c7ca38c796f312d4df00c3407fd5fbbe328720024ff49a6d29dc2ab82b05ad58"
+    "sha256": "4c299984eb2b661306a2aaf85260c3f8951646d813527925861ca8fc3a554cba"
   },
   {
     "path": "patch_workflow.py",
@@ -657,7 +661,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "1755b3f92f17b265c77869622cc68042017a5f45a497198c8ee82efd72f5801c"
+    "sha256": "f1d2ee64b9fe092f7572bba081c84c68dd2981b2ac6a48b36d4d6957e9c94cd9"
   },
   {
     "path": "story_arc_search.py",
@@ -1050,6 +1054,10 @@
   {
     "path": "test_library_metadata.py",
     "sha256": "a3440f918820f11d7c742abc59b4bd222296a77fb9bf87b6a83bec252e6fcfdd"
+  },
+  {
+    "path": "test_manage_ui.py",
+    "sha256": "fcbc2c1d37b74d49aa0bc4ab590b44f1024cebefc140ab870880476042e468a3"
   },
   {
     "path": "test_media_writer.py",
@@ -1529,7 +1537,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "d73178f986b85c0434b2d1a8b0b27c626d3cbfa2fa8b875d14e92dc5d4e395e7"
+    "sha256": "3c1d50c8e7481ab1957a0435774287198a8e4b67ec8fa359ba9ca64b522a9b28"
   },
   {
     "path": "verify_publication_reader_cohort.py",

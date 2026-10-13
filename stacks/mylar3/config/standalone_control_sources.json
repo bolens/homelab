@@ -275,6 +275,11 @@
     "target": "patch_library_metadata.py"
   },
   {
+    "path": "patch_manage_ui.py",
+    "sha256": "9352e46d8c8e22dd4822ad5ddec0b4369afa93b49e976d1f8dd5d9e65ce59a31",
+    "target": "patch_manage_ui.py"
+  },
+  {
     "path": "patch_media_writers.py",
     "sha256": "a567f43674319c8c70eaa5e43b0bdcacf30c0d367fbeed70f4b7e072fdc7c06e",
     "target": "patch_media_writers.py"
@@ -421,7 +426,7 @@
   },
   {
     "path": "patch_wide_layout.py",
-    "sha256": "c7ca38c796f312d4df00c3407fd5fbbe328720024ff49a6d29dc2ab82b05ad58",
+    "sha256": "4c299984eb2b661306a2aaf85260c3f8951646d813527925861ca8fc3a554cba",
     "target": "patch_wide_layout.py"
   },
   {
@@ -1315,6 +1320,11 @@
     "target": "test_library_metadata.py"
   },
   {
+    "path": "test_manage_ui.py",
+    "sha256": "fcbc2c1d37b74d49aa0bc4ab590b44f1024cebefc140ab870880476042e468a3",
+    "target": "test_manage_ui.py"
+  },
+  {
     "path": "test_media_writer.py",
     "sha256": "8dfaed91c217ef53149a36d7dc587e496451200f0944cee5d97e6e67a4779269",
     "target": "test_media_writer.py"
@@ -1911,7 +1921,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "d73178f986b85c0434b2d1a8b0b27c626d3cbfa2fa8b875d14e92dc5d4e395e7",
+    "sha256": "3c1d50c8e7481ab1957a0435774287198a8e4b67ec8fa359ba9ca64b522a9b28",
     "target": "verify_image.py"
   },
   {
