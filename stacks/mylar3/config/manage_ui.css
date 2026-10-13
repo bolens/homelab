@@ -1,0 +1,151 @@
+/* Manage composes native forms, tabs and shared Mylar controls. */
+#manage_review {
+  --manage-surface: var(--mylar-menu-surface, #f2f2f2);
+  --manage-border: var(--mylar-menu-border, #aaa);
+  min-width: 0;
+  line-height: 1.5;
+}
+#manage_review #paddingheader { margin-bottom: .75rem; }
+#manage_review #paddingheader h1 { margin-bottom: .4rem; }
+#manage_review .manage_help { max-width: 88ch; margin: 0 0 1.5rem; }
+#manage_review #tabs { padding: 0; border: 0; background: transparent; color: inherit; }
+#manage_review #tabs > .ui-tabs-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+#manage_review #tabs > .ui-tabs-nav li {
+  float: none;
+  top: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--mylar-control-border);
+  border-radius: var(--mylar-control-radius);
+  background: var(--mylar-control-surface);
+  color: var(--mylar-control-text);
+}
+#manage_review #tabs > .ui-tabs-nav li a {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  float: none;
+  min-height: var(--mylar-control-height);
+  padding: .7em 1em;
+  color: inherit;
+  font-weight: normal;
+  line-height: 1.4;
+  white-space: normal;
+}
+#manage_review #tabs > .ui-tabs-nav li:is(:hover,.ui-state-hover,.ui-state-focus) {
+  background: var(--mylar-control-hover);
+}
+#manage_review #tabs > .ui-tabs-nav li:is(.ui-tabs-selected,.ui-tabs-active,.ui-state-active) {
+  background: var(--mylar-control-pressed);
+  box-shadow: inset 0 -3px var(--mylar-focus-color);
+}
+#manage_review #tabs > .ui-tabs-nav li:is(.ui-tabs-selected,.ui-tabs-active,.ui-state-active) a { font-weight: bold; }
+#manage_review #tabs > .ui-tabs-nav a:focus-visible {
+  outline: 2px solid var(--mylar-focus-color);
+  outline-offset: 3px;
+  border-radius: var(--mylar-control-radius);
+}
+#manage_review #tabs > .ui-tabs-panel { padding: 0; color: inherit; }
+#manage_review :is(.manage_scan_layout,.manage_manual_layout,.manage_tools) { display: grid; gap: 1.25rem; min-width: 0; align-items: start; }
+#manage_review :is(.manage_scan_layout,.manage_manual_layout,.manage_tools) > * { min-width: 0; }
+#manage_review :is(form,fieldset) { min-width: 0; }
+#manage_review :is(#comicScan fieldset,#tabs-2 form,.manage_import_status,.manage_manual_help,.manage_tools fieldset) {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--manage-border);
+  border-radius: var(--mylar-control-radius);
+  background: var(--manage-surface);
+}
+#manage_review fieldset legend { padding: 0 .4em; margin: 0; font-size: 1.2em; font-weight: bold; }
+#manage_review :is(.manage_import_status,.manage_manual_help) h2 { margin: 0 0 .75rem; font-size: 1.2em; }
+#manage_review :is(form,.manage_manual_help) p { max-width: 80ch; margin: 0 0 1rem; }
+#manage_review form .row:not(.checkbox), #manage_review form .row_nomax { margin: 1.2rem 0; }
+#manage_review form :is(.row:not(.checkbox),.row_nomax) > label {
+  display: block;
+  float: none;
+  width: auto;
+  padding: 0;
+  margin-bottom: .5rem;
+  font: inherit;
+  font-weight: bold;
+}
+#manage_review :is(#comicScan input[name=path],#nzb_folder,#importstatus) {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: .65em .75em;
+  font: inherit;
+}
+#manage_review #importstatus { margin: .75rem 0; text-align: left; }
+#manage_review .row.checkbox {
+  display: grid;
+  grid-template-columns: 1.5em minmax(0,1fr);
+  align-items: start;
+  gap: .25rem .5rem;
+  margin: .8rem 0;
+}
+#manage_review .row.checkbox > input { margin: .3em 0 0; }
+#manage_review .row.checkbox > label { float: none; width: auto; padding: 0; font: inherit; cursor: pointer; }
+#manage_review .row.checkbox > small { grid-column: 2; margin: 0; padding: 0; color: inherit; font-size: .9em; line-height: 1.5; }
+#manage_review .manage_actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.5rem; align-items: center; }
+#manage_review .manage_actions :is(input,button,a) { max-width: 100%; margin: 0; white-space: normal; }
+#manage_review .manage_manual_help, #manage_review .manage_import_status { overflow-wrap: anywhere; }
+#manage_review :is(.manage_manual_help,.manage_import_status) :is(dl,ul) { margin: .75rem 0 0; }
+#manage_review .manage_import_status dt { margin-top: .7rem; font-weight: bold; }
+#manage_review .manage_import_status dd { margin: .15rem 0 0; }
+#manage_review #manual_status { display: block; margin-top: .75rem; overflow-wrap: anywhere; }
+#manage_review .manage_tools .links { gap: .75rem; margin: .75rem 0 0; }
+#manage_review .manage_section_heading { margin: 1.75rem 0 .75rem; font-size: 1.35em; }
+#manage_review .manage_table_wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--manage-border); border-radius: var(--mylar-control-radius); }
+#manage_review :is(.manage_jobs,.manage_queues) { width: 100%; border-collapse: collapse; border-spacing: 0; }
+#manage_review :is(.manage_jobs,.manage_queues) :is(th,td) {
+  width: auto !important; /* Native job cells carry fixed inline widths. */
+  padding: .85rem .75rem;
+  text-align: left !important;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+#manage_review :is(.manage_jobs,.manage_queues) th { background: var(--manage-surface); font-weight: bold; }
+#manage_review :is(.manage_jobs,.manage_queues) td { border-top: 1px solid var(--manage-border); }
+#manage_review .manage_jobs td#options { min-width: 11rem; }
+#manage_review .manage_jobs td#options a { display: inline-block; margin: 0 .35rem .4rem 0; }
+#manage_review .manage_status { display: inline-block; padding: .2em .6em; border: 1px solid var(--manage-border); border-radius: var(--mylar-control-radius); font-weight: bold; white-space: nowrap; }
+@media (min-width: 1080px) {
+  #manage_review .manage_scan_layout { grid-template-columns: minmax(0,1fr) minmax(260px,320px); }
+  #manage_review .manage_scan_layout #comicScan { grid-column: 1; grid-row: 1; }
+  #manage_review .manage_scan_layout .manage_import_status { grid-column: 2; grid-row: 1; }
+  #manage_review .manage_manual_layout { grid-template-columns: minmax(0,1fr) minmax(260px,320px); }
+  #manage_review .manage_tools { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (min-width: 721px) and (max-width: 1079px) {
+  #manage_review #tabs > .ui-tabs-nav li { flex: 1 1 calc(50% - .5rem); }
+  #manage_review .manage_tools { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 720px) {
+  #manage_review #tabs > .ui-tabs-nav li { flex: 1 1 calc(50% - .5rem); }
+  #manage_review #tabs > .ui-tabs-nav li a { min-height: 44px; padding: .75em; }
+  #manage_review :is(#comicScan fieldset,#tabs-2 form,.manage_import_status,.manage_manual_help,.manage_tools fieldset) { padding: 1rem; }
+  #manage_review .manage_actions { align-items: stretch; }
+  #manage_review .manage_actions :is(input,button,a) { width: 100%; min-height: 44px; }
+  #manage_review .manage_jobs { min-width: 640px; }
+  #manage_review .manage_queues { min-width: 420px; }
+}
+/* Native configuration forms indent helper text for floated labels. */
+#manage_review form .row:not(.checkbox) > small { display: block; margin: .4rem 0 0; padding: 0; width: auto; line-height: 1.5; color: inherit; }
+#manage_review #tabs > .ui-tabs-panel { border: 0; background: transparent; }
+#manage_review .manage_section_heading { display: flex; flex-wrap: wrap; gap: .75rem; align-items: baseline; font-size: inherit; }
+#manage_review .manage_section_heading h2 { margin: 0; }
+#manage_review .manage_notice { padding: 1rem; margin-top: 1rem; border-inline-start: 3px solid var(--mylar-focus-color); background: var(--mylar-control-surface); }
+#manage_review .manage_manual_feedback { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; }
+#manage_review .manage_jobs td:last-child { min-width: 11rem; }
