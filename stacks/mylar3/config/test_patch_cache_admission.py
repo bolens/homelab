@@ -49,6 +49,34 @@ class Installation(unittest.TestCase):
         for name in ('cache_admission.py','verified_transfer.py','pack_intake.py','queue_control.py'):
             self.assertEqual((self.root/name).read_bytes(),(HERE/name).read_bytes())
 
+    def test_actual_verifier_copies_owning_library_before_temporary_replay(self):
+        tree = ast.parse((HERE / 'verify_image.py').read_text())
+        stage = next(n for n in tree.body if isinstance(n, ast.With)
+                     and any(isinstance(i.context_expr, ast.Call)
+                             and ast.unparse(i.context_expr.func) == 'tempfile.TemporaryDirectory'
+                             for i in n.items))
+        index = next(i for i, n in enumerate(stage.body) if isinstance(n, ast.Assign)
+                     and any(isinstance(t, ast.Name) and t.id == 'library' for t in n.targets))
+        install = next(i for i, n in enumerate(stage.body)
+                       if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+                       and ast.unparse(n.value.func) == 'subprocess.run')
+        self.assertLess(index + 2, install)
+        original = FIXTURE / 'mega_library.py.txt'
+        class PublicLibraryProjection(ast.NodeTransformer):
+            def visit_Constant(self, node):
+                if node.value == '/app/mylar3/lib/mega/mega.py':
+                    return ast.copy_location(ast.Constant(str(original)), node)
+                return node
+        copied = ast.Module(body=stage.body[index:index + 3], type_ignores=[])
+        copied = ast.fix_missing_locations(PublicLibraryProjection().visit(copied))
+        (self.root.parent / 'lib/mega/mega.py').unlink()
+        (self.root.parent / 'lib/mega').rmdir()
+        exec(compile(copied, '<actual-verifier-library-copy>', 'exec'),
+             dict(Path=Path, shutil=shutil, directory=str(self.root.parent)))
+        self.assertEqual((self.root.parent / 'lib/mega/mega.py').read_bytes(), original.read_bytes())
+        installer.main(self.root)
+        self.assertIn(installer.MARKER, (self.root.parent / 'lib/mega/mega.py').read_text())
+
     def test_unsupported_provider_preimage_fails_before_any_target_write(self):
         (self.root/'downloaders/mediafire.py').write_text('def changed(): pass\n')
         before={str(p):p.read_bytes() for p in self.root.parent.rglob('*.py')}

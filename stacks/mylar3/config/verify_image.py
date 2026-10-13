@@ -164,6 +164,9 @@ if Path('/opt/comictagger/bin/python').exists():
 with tempfile.TemporaryDirectory() as directory:
     source = Path(directory) / 'mylar'
     shutil.copytree('/app/mylar3/mylar', source)
+    library = Path(directory) / 'lib/mega'
+    library.mkdir(parents=True)
+    shutil.copyfile('/app/mylar3/lib/mega/mega.py', library / 'mega.py')
     templates = Path(directory) / 'data/interfaces/default'
     templates.mkdir(parents=True)
     for name in ('queue_management.html', 'manage.html', 'base.html', 'searchresults.html', 'config.html', 'weeklypull.html'):

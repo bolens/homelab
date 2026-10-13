@@ -657,7 +657,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "22f4e45463fbb1a6740c5ceefdc3b3a11f1edec6381febdbd3f2bc8e6d3ecc87"
+    "sha256": "75c4ab99c129ef7233d6ac49ee225e73fbae676adc3f844f01914d5d69b2b42f"
   },
   {
     "path": "story_arc_search.py",
@@ -1109,7 +1109,7 @@
   },
   {
     "path": "test_patch_cache_admission.py",
-    "sha256": "d6c618e51f07d0ec52a48c0c3ad4ffddff5e83641aad44ba5b1fa9985dbc6a92"
+    "sha256": "9caf2fcbd80e8a9511e1f7dd6a3543703981726f3dc60b303ae37cdc33d3bc7a"
   },
   {
     "path": "test_pp_monitor.py",
@@ -1529,7 +1529,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "1d7d4bb674f56f7ed95e333d46fc1f7d5848abd4132eaf99d3e507ed8941e270"
+    "sha256": "4d328a11e60b385bb70b114049dc8fc28dddd78de693a1ca6e72184c22c058b3"
   },
   {
     "path": "verify_publication_reader_cohort.py",
