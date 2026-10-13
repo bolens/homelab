@@ -125,8 +125,11 @@ class Retention(unittest.TestCase):
                 namespace['config_scope_preflight'](root, installed=True)
                 stale = root / 'fixes'
                 stale.mkdir()
+                scope_tree = ast.parse(scope)
+                current_pin = next(n.value.value for n in scope_tree.body
+                                   if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'CONFIG_SHA' for t in n.targets))
                 (stale / 'publication_native_configured_scope.py').write_bytes(scope.replace(
-                    b'd8f02277daaf55b62f95832106e0deb97760d0d297bdf07640be98c910fbe570',
+                    current_pin.encode(),
                     b'46bd21f2b117367dffdae510282558bf2757981300665e05f4d2bb2fab1557cc'))
                 namespace['FIXES'] = stale
                 with self.assertRaisesRegex(AssertionError, 'Configured scope Config pin stale'):
@@ -148,12 +151,14 @@ class Retention(unittest.TestCase):
             sys.path.insert(0, str(HERE))
             tagger = load('patch_tagger_backend')
             transport = load('patch_ddl_transport')
+            cache = load('patch_cache_admission')
         finally:
             sys.path[:] = old_path
-        # Reverse exactly the two reviewed insertions from real V11 bytes.
+        # Reverse every owning Config insertion from the actual installed bytes.
         upstream = self.prior
         anchor = '        for name, value in list(kwargs.items()):\n'
-        for module, setting in ((transport, "    'ENABLE_DDL': (bool, 'DDL', False),"),
+        for module, setting in ((cache, "    'DDL_LOCATION': (str, 'DDL', None),"),
+                                (transport, "    'ENABLE_DDL': (bool, 'DDL', False),"),
                                 (tagger, "    'ENABLE_META': (bool, 'Metatagging', False),")):
             fixture = 'SETTINGS = {\n' + setting + '\n}\nclass Config:\n    def configure(self, **kwargs):\n' + anchor + '            pass\n'
             transformed = module.configuration(fixture)
@@ -163,12 +168,14 @@ class Retention(unittest.TestCase):
             self.assertEqual(upstream.count(setting_patch), 1)
             self.assertEqual(upstream.count(prefix + anchor), 1)
             upstream = upstream.replace(setting_patch, setting, 1).replace(prefix + anchor, anchor, 1)
+        self.assertNotIn(cache.MARKER, upstream)
         self.assertNotIn(tagger.MARKER, upstream)
         self.assertNotIn(transport.MARKER, upstream)
-        self.assertEqual(transport.configuration(tagger.configuration(upstream)), self.prior)
+        self.assertEqual(cache.configuration(transport.configuration(tagger.configuration(upstream))), self.prior)
         self.assertNotEqual(__import__('hashlib').sha256(p.patched_source(upstream).encode()).hexdigest(),
                             __import__('hashlib').sha256(self.current.encode()).hexdigest())
-        self.assertEqual(p.patched_source(transport.configuration(tagger.configuration(upstream))), self.current)
+        ordered = cache.configuration(p.patched_source(transport.configuration(tagger.configuration(upstream))))
+        self.assertEqual(ordered, self.current)
         verifier = (HERE / 'verify_image.py').read_text()
         install_call = "subprocess.run([sys.executable, str(FIXES / 'apply_patches.py'), str(source)], check=True)"
         self.assertLess(verifier.index(install_call), verifier.index('config_scope_preflight(source, installed=False)'))

@@ -1,13 +1,18 @@
 [
   {
     "path": "apply_patches.py",
-    "sha256": "4d6f4391e40f506d23b23063c49ca000834fad500d95c7750ea6a34e5a761aba",
+    "sha256": "d598ccaab1049e75acc78e1690a2e46aca62bfdba7814497779b06e207a7c15e",
     "target": "apply_patches.py"
   },
   {
     "path": "archive_monitor.py",
     "sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3",
     "target": "archive_monitor.py"
+  },
+  {
+    "path": "cache_admission.py",
+    "sha256": "218405e98b0b57dc377496c43fb61b8d39e396f1c590e68af46cdb67ae5d1f09",
+    "target": "cache_admission.py"
   },
   {
     "path": "catalog_volume.py",
@@ -156,8 +161,13 @@
   },
   {
     "path": "pack_intake.py",
-    "sha256": "24fc0d50c9569cbfe0125884ebbcb84246884770548f050e354c43fa94171582",
+    "sha256": "9cf005357e9c754374b2a07306618f17a299fc2c5dfc2da39f44b2f74380b4f7",
     "target": "pack_intake.py"
+  },
+  {
+    "path": "patch_cache_admission.py",
+    "sha256": "6fb663d05d2e05e4c5c459968f8d8c1b9bde85a802b51042ae5a6d65d0125fc5",
+    "target": "patch_cache_admission.py"
   },
   {
     "path": "patch_catalog_volumes.py",
@@ -541,7 +551,7 @@
   },
   {
     "path": "publication_native_configured_scope.py",
-    "sha256": "8bdb029a7fd9aa12ab714a501a96c8e25d033260d0f31b1be03ebf143d2b1606",
+    "sha256": "43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed",
     "target": "publication_native_configured_scope.py"
   },
   {
@@ -706,7 +716,7 @@
   },
   {
     "path": "queue_control.py",
-    "sha256": "6b0427378396a88b6e474d45b60eaed299ca6fbb0690895dbb7de4f8a8040b74",
+    "sha256": "e4a399c61d6f33d085372224e16c7099219b5ba69b27306cc3b5b009777cfe9c",
     "target": "queue_control.py"
   },
   {
@@ -726,7 +736,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "13ebd16cc2058a7330015c42ef2c9573aa7ee138d21774ff304854e61d35d46e",
+    "sha256": "bcb4a6410c5499e761be2a5d5b4dfda381eff0c41833d58720993d319513e62f",
     "target": "reader_recovery/comic_retained_pack_parent.py"
   },
   {
@@ -746,7 +756,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "7f6c4e4eae8ef49f6599473bcf8b9ec683292c426fad5e53308ba3b1fd81c3cd",
+    "sha256": "3f77f155b15cd02af4fe14be882c71dbcd02ca3284b9f77eab8d43c51096021d",
     "target": "reader_recovery/comic_retained_standalone_parent.py"
   },
   {
@@ -915,6 +925,26 @@
     "target": "test_archive_monitor.py"
   },
   {
+    "path": "test_cache_admission.py",
+    "sha256": "9fc1b3d951f96a4b95df7f180ca1f4355e42a5a1d3cad8b9328534f1b13ea548",
+    "target": "test_cache_admission.py"
+  },
+  {
+    "path": "test_cache_ddl.py",
+    "sha256": "452cc190cc17e7f77a6e1ab6ed79e6686e9425f1267801e1ba12abf794fc1bdf",
+    "target": "test_cache_ddl.py"
+  },
+  {
+    "path": "test_cache_providers.py",
+    "sha256": "301757743cac45b61c374bc7506b973ece5720cbe92db5d72d5008c10610e8be",
+    "target": "test_cache_providers.py"
+  },
+  {
+    "path": "test_cache_transfer.py",
+    "sha256": "852c246d26645695a7beb33d9fe12c54e805bde20d6ec2c0d5f6115e38811fd0",
+    "target": "test_cache_transfer.py"
+  },
+  {
     "path": "test_catalog_volumes.py",
     "sha256": "746d059568ed28d7e38cf5a8acec9321dd98f0529fab7c154f69b6c3538eef30",
     "target": "test_catalog_volumes.py"
@@ -941,7 +971,7 @@
   },
   {
     "path": "test_config_retention.py",
-    "sha256": "c88d6c763457d16bf7f77eb27c68b09db86b3341d2fadbdf0225ad11e6426536",
+    "sha256": "edff16bea3b33c1731f6172ccddc7a5278744f99d85b1e32f966a4f660e79d8e",
     "target": "test_config_retention.py"
   },
   {
@@ -966,7 +996,7 @@
   },
   {
     "path": "test_ddl_exhaustion.py",
-    "sha256": "1f8b39fc1a4cf22cbc793006a7d77c86206db81816abb557a876ade095a2d135",
+    "sha256": "0829eb8137202356ce6fb0825616dcf7e3e8ad2e338c7c50a25e988ad016e58a",
     "target": "test_ddl_exhaustion.py"
   },
   {
@@ -986,12 +1016,12 @@
   },
   {
     "path": "test_ddl_requeue.py",
-    "sha256": "b11823956a18052ef50c32b3c8092e2f5a41e3a4223212a973cc1b2348868cfd",
+    "sha256": "58326e44c1f1ed62e4366ae93c8a0f62f7c5c3d58fd2f8ced5e790a0880f5dea",
     "target": "test_ddl_requeue.py"
   },
   {
     "path": "test_ddl_responses.py",
-    "sha256": "22a388de1a1faba54599c1eaba26529a25892fc701e6066a371af8a4f30b8454",
+    "sha256": "1902b462ab427071df52e3f94df0ecc57ca186066f2e41d38ad8b86d05cbe47e",
     "target": "test_ddl_responses.py"
   },
   {
@@ -1006,7 +1036,7 @@
   },
   {
     "path": "test_ddl_transport.py",
-    "sha256": "4ee01249540a386d62b635752bddd7af951bc35b5408ebaf2727c6f8ff6644cb",
+    "sha256": "2bd3fcb78c10d0d6d2bb59364eb451ab58742570e2efe8e86e857d02300f98c7",
     "target": "test_ddl_transport.py"
   },
   {
@@ -1028,6 +1058,41 @@
     "path": "test_file_matching.py",
     "sha256": "e06e3b7c48a6e46dfc8c79c8a5f6fae644288f3090972e9ba9dd80ed356c7ab8",
     "target": "test_file_matching.py"
+  },
+  {
+    "path": "test_fixtures/cache_admission/PROVENANCE.json",
+    "sha256": "a7dc0abe18a14a7b4d834acd3659d66506ebaa81e74a384b3fa06bcacb872618",
+    "target": "test_fixtures/cache_admission/PROVENANCE.json"
+  },
+  {
+    "path": "test_fixtures/cache_admission/config.py.txt",
+    "sha256": "d8f02277daaf55b62f95832106e0deb97760d0d297bdf07640be98c910fbe570",
+    "target": "test_fixtures/cache_admission/config.py.txt"
+  },
+  {
+    "path": "test_fixtures/cache_admission/getcomics.py.txt",
+    "sha256": "857dbf95fdbe9e54da7abefab0f60de7262be62f39b93934e713b16cf96d23c7",
+    "target": "test_fixtures/cache_admission/getcomics.py.txt"
+  },
+  {
+    "path": "test_fixtures/cache_admission/mediafire.py.txt",
+    "sha256": "1dbf2ba9362324bfc7c928206a0fc9518e661695dec7e946cba9d7f1ae6e96e7",
+    "target": "test_fixtures/cache_admission/mediafire.py.txt"
+  },
+  {
+    "path": "test_fixtures/cache_admission/mega.py.txt",
+    "sha256": "017c9e237386d4061137d71c27ab61be41e3bc02e54098cd0de6f4e57402227d",
+    "target": "test_fixtures/cache_admission/mega.py.txt"
+  },
+  {
+    "path": "test_fixtures/cache_admission/mega_library.py.txt",
+    "sha256": "4c53f1f18a895c3eba1805f94949c93b48807f572ea45ac1aef40f7804d0e8d2",
+    "target": "test_fixtures/cache_admission/mega_library.py.txt"
+  },
+  {
+    "path": "test_fixtures/cache_admission/pixeldrain.py.txt",
+    "sha256": "709585226bdb653eb70bf071aa3b9340bfef7976c9b7c299b350a9f7d118aa40",
+    "target": "test_fixtures/cache_admission/pixeldrain.py.txt"
   },
   {
     "path": "test_fixtures/ddl_status_retention/db.py",
@@ -1318,6 +1383,11 @@
     "path": "test_pack_records.py",
     "sha256": "89cd5ce7eb5717949ef5ebdad9a18c70a58bbdc1a29984ee625f7bc776a77f6f",
     "target": "test_pack_records.py"
+  },
+  {
+    "path": "test_patch_cache_admission.py",
+    "sha256": "b5be0a0f31289832a5a67bc4f14ed744683c7c09bae127d75202231700816a0d",
+    "target": "test_patch_cache_admission.py"
   },
   {
     "path": "test_pp_monitor.py",
@@ -1711,7 +1781,7 @@
   },
   {
     "path": "test_status_retention.py",
-    "sha256": "dbffb86f52f34024edac9f9bd947392d64ad8f2a3092b7a26dfa6683f43ff453",
+    "sha256": "4b891dca5c43ad0d8e354aee495c16a79fb4438d6c71f9d4c6eea5ef06300e05",
     "target": "test_status_retention.py"
   },
   {
@@ -1731,7 +1801,7 @@
   },
   {
     "path": "test_tagger_backend.py",
-    "sha256": "a82d2485e4a4947e0ae4cf21b900b89211e5e2761ace2183102782d91ec770d5",
+    "sha256": "7bb888669036a38e643b32a6243d263665a93702112a74db2f4864dfa9e1d4da",
     "target": "test_tagger_backend.py"
   },
   {
@@ -1801,7 +1871,7 @@
   },
   {
     "path": "test_verified_transfer.py",
-    "sha256": "bdf8b76ce5e13f93b4a760d4bafc8ea87b4ea80ee0cc6f0beae26ce125c39b8b",
+    "sha256": "8e714a57171275dac1d5ec836df32ff4255f7d6e91d7419973d83205c49c9376",
     "target": "test_verified_transfer.py"
   },
   {
@@ -1836,12 +1906,12 @@
   },
   {
     "path": "verified_transfer.py",
-    "sha256": "b3d3f180cca67e33a6705b4f49425c9c7367d8720defc8170b3908bb4a4b715b",
+    "sha256": "a7a7a54d15df903c0198279e6515706472e9f6085369ff159bda95d77ca9b040",
     "target": "verified_transfer.py"
   },
   {
     "path": "verify_image.py",
-    "sha256": "4d379a99520af8a971397f66e707bb375d0333035771415911ee1bf13fc60267",
+    "sha256": "d347e8bb985173c9a7e88f27190e117a203dc71b70039320e3fdb1553b1842dd",
     "target": "verify_image.py"
   },
   {

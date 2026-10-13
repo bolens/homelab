@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "provider_image": "sha256:ca13a184d98a12cb0330d21e937e11e9abe8e9b61b9bc486f911789323509c32",
+  "provider_platform_manifest": "sha256:63b7aa949f8a32a1fb2a2fd5e9b83f49df192de2a0188d27f614c2548ee5530a",
+  "native_fixtures": "original accepted b2 public source export; Config/getcomics unchanged owning transforms",
+  "files": {
+    "mega.py.txt": "017c9e237386d4061137d71c27ab61be41e3bc02e54098cd0de6f4e57402227d",
+    "mediafire.py.txt": "1dbf2ba9362324bfc7c928206a0fc9518e661695dec7e946cba9d7f1ae6e96e7",
+    "pixeldrain.py.txt": "709585226bdb653eb70bf071aa3b9340bfef7976c9b7c299b350a9f7d118aa40",
+    "mega_library.py.txt": "4c53f1f18a895c3eba1805f94949c93b48807f572ea45ac1aef40f7804d0e8d2",
+    "config.py.txt": "d8f02277daaf55b62f95832106e0deb97760d0d297bdf07640be98c910fbe570",
+    "getcomics.py.txt": "857dbf95fdbe9e54da7abefab0f60de7262be62f39b93934e713b16cf96d23c7"
+  }
+}

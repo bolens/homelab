@@ -7,10 +7,13 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 import zipfile
 import verified_transfer as transfer
+import cache_admission
 import queue_control
+from test_status_retention import DB
+import patch_ddl_status_retention as status_patch
 
 if len(sys.argv)>1:
     sys.argv.pop(1)
@@ -28,10 +31,20 @@ class TransferTest(unittest.TestCase):
         self.body = stream.getvalue()
         self.state = queue_control.Store(self.root)
         self.state.begin({'id':'1','issueid':'2','mainlink':'fixture'})
-        self.database = MagicMock()
-        mylar = SimpleNamespace(queue_control=SimpleNamespace(_LOCK=queue_control._LOCK,store=lambda:self.state),
+        self.database = DB(); self.addCleanup(self.database.connection.close)
+        self.database.action('ALTER TABLE ddl_info ADD COLUMN tmp_filename TEXT')
+        self.database.action('ALTER TABLE ddl_info ADD COLUMN filename TEXT')
+        self.database.action('ALTER TABLE ddl_info ADD COLUMN size TEXT')
+        self.database.upsert('ddl_info', dict(status='Downloading', updated_date='original', issueid='2', comicid='3',
+                                           link='https://fixture.invalid/source', mainlink='https://fixture.invalid/release',
+                                           site='DDL(GetComics)', series='Fixture #2', link_type='GC-Main'), {'id':'1'})
+        self.database.upsert('ddl_info', dict(self.database.selectone('SELECT * FROM ddl_info WHERE ID=?',['1']).fetchone(), ID='2'), {'id':'2'})
+        native_status = {}; exec(status_patch.HELPERS, native_status)
+        mylar = SimpleNamespace(DATA_DIR=str(self.root), CONFIG=SimpleNamespace(CACHE_DIR=str(self.root), DDL_LOCATION=str(self.root)), cache_admission=cache_admission, queue_control=SimpleNamespace(_LOCK=queue_control._LOCK,store=lambda:self.state),
                                 db=SimpleNamespace(DBConnection=lambda:self.database))
-        context = patch.dict(sys.modules, {'mylar':mylar});context.start();self.addCleanup(context.stop)
+        context = patch.dict(sys.modules, {'mylar':mylar, 'mylar.queues.ddl':SimpleNamespace(**native_status)});context.start();self.addCleanup(context.stop)
+        # Disposable tmpfs is smaller than the production reserve; capacity alone is projected.
+        free = patch.object(cache_admission.os, 'fstatvfs', return_value=SimpleNamespace(f_bavail=100 * cache_admission.GIB, f_frsize=1));free.start();self.addCleanup(free.stop)
 
     def response(self, body=None, status=200, headers=None):
         body = self.body if body is None else body
