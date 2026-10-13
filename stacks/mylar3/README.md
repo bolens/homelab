@@ -186,6 +186,12 @@ preservation. The offline gate cannot verify a download provider's availability.
 ## Queue control and import problems
 
 The image includes queue control. The queue table
+uses download-status badges instead of full-row status colors. Completed transfers
+are labeled **Downloaded**, with a **Review import** link to post-processing.
+Failed downloads link to Import problems and NZB handoffs link to Activity.
+**Show transfer details** reveals received bytes, speed and time since progress.
+Routine refreshes use an indicator above the table and preserve the current page.
+The table
 shows received bytes, recent speed, seconds since progress, attempts, and cooldown
 status. Completed individual issues show **Post-processed; ordinary import acknowledged**
 only after the native importer records a durable acknowledgement for that exact
@@ -279,7 +285,11 @@ attempts, and issues left Snatched for over 24 hours. The optional Komga mainten
 worker publishes file reports through the primary-key `reportImportProblems` API.
 Missing or stale reports are labeled. Recovery states use readable labels and can
 be filtered. **Refresh report** reloads the latest saved report without starting a
-new scan or replacement search. Ambiguous imports with candidate proposals link
+new scan or replacement search. Each row links to its next review screen:
+processing, conversion, replacement queue or import matches. **View issue activity**
+opens history filtered to that issue. Replaced downloads show their library outcome
+even when the saved recovery phase still says a search was queued. Stale reports
+show a worker-check warning above the table. Ambiguous imports with candidate proposals link
 to Activity for explicit issue selection; viewing the report never assigns an
 issue or deletes files. It uses the existing Mylar login and ingress.
 
@@ -306,6 +316,12 @@ lock state, active runs and elapsed time, the first 100 waiting items, up to 50
 recent run observations, and recent confirmed imports. The monitor does not consume
 queue entries, change concurrency, or offer destructive queue controls. A finished
 run is separate from an import confirmed by Mylar history and a Downloaded issue.
+
+The page separates active work, waiting items, run history, conversion, tagging,
+library maintenance and confirmed imports into review sections. Each links to its
+related settings or troubleshooting screen. Worker availability warnings include
+a next step. Empty tables hide search and pagination controls, and unchanged
+refresh data preserves table views.
 
 Status refreshes every five seconds without overlapping requests. Failed refreshes
 retain the last snapshot with a stale warning. Mylar does not provide a reliable
@@ -539,7 +555,10 @@ enabled together; disabling the worker
 while leaving Mylar's setting on retains new packs pending worker recovery.
 
 Activity's **Packs and extras** section records each original format, catalog
-identity, classification and outcome. It survives DDL history cleanup. Submitted
+identity, classification and outcome. It survives DDL history cleanup.
+Packs without reported members expand to an inventory explanation and links to
+post-processing status and pack verification settings. An empty inventory never
+confirms a pack or its library imports. Submitted
 imports remain pending until page bytes and non-metadata sidecars match the
 library. Changed or missing library files invalidate completion. Cleaned packs
 whose saved file identities become stale return to the worker for destination hash

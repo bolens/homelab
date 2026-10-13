@@ -167,7 +167,10 @@ $(document).ready(function() {
     var lastCommandSignature='';
     var lastProposalSignature='', lastHandoffSignature='', lastAliasSignature='', lastDispatchSignature='';
     var selectedSource=new URLSearchParams(window.location.search).get('source_token') || '';
-    var filters={issueid:'',stage:''};
+    var selectedIssue=new URLSearchParams(window.location.search).get('issueid') || '';
+    if (!/^\d{1,20}$/.test(selectedIssue)) selectedIssue='';
+    $('#wf_issue').val(selectedIssue);
+    var filters={issueid:selectedIssue,stage:''};
     var policyFields=['library_missing_tags','library_nested_metadata','pack_automation','auto_handoff','handoff_hours','intake_enabled','queue_high','queue_low','free_stop_gib','free_resume_gib'];
     function date(value) { return value == null || value === '' ? '—' : new Date(Number(value)*1000).toLocaleString(); }
     function message(value, button) {
@@ -341,9 +344,20 @@ $(document).ready(function() {
         $.each(rows,function(_,r) {
             var details=$('<details>').attr('data-pack',r.id).addClass('wf_card').appendTo(target);
             if (opened[r.id]) details.prop('open',true);
-            $('<summary>').text(r.name+' — '+r.confirmed+'/'+r.total+' members verified'+(r.complete ? ' · Complete' : ' · Review or processing pending')).appendTo(details);
+            var members=r.members || [];
+            var progress=members.length ? r.confirmed+'/'+r.total+' members verified'+(r.complete ? ' · Complete' : ' · Review or processing pending') : 'No members reported · Inventory needs review';
+            $('<summary>').text(r.name+' — '+progress).appendTo(details);
+            if (!members.length) {
+                $('<p>').text(r.inventory_complete ? 'The worker reported an empty inventory. This pack cannot be confirmed without member evidence.' : 'No member inventory has been reported for this pack yet. Its contents and library imports have not been verified.').appendTo(details);
+                $('<p>').text('Check the maintenance worker and confirm pack import is enabled there and in Activity settings.').appendTo(details);
+                var links=$('<p>').appendTo(details);
+                $('<a>').attr('href','postProcessing').text('View post-processing status').appendTo(links);
+                links.append(document.createTextNode(' · '));
+                $('<a>').attr('href','#wf_settings').text('Review pack verification settings').appendTo(links);
+                return;
+            }
             var list=$('<ul>').appendTo(details);
-            $.each(r.members,function(_,m) {
+            $.each(members,function(_,m) {
                 var item=$('<li>').appendTo(list);
                 $('<strong>').text(m.name).appendTo(item);
                 $('<span>').text(' — '+m.kind+' · '+m.format+' · '+m.phase+' · '+m.reason).appendTo(item);

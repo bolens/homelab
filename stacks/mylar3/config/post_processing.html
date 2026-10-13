@@ -19,14 +19,46 @@
 #pp_monitor :focus-visible { outline: 2px solid #3383bb; outline-offset: 3px; }
 #pp_monitor h2 { margin-top: 1.5em; }
 #pp_message[data-stale="true"] { border-left: 3px solid #db9f42; padding-left: 0.7em; }
+
+#pp_monitor { min-width: 0; }
+#pp_monitor [hidden] { display: none !important; }
+#pp_monitor .pp_summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1em; }
+#pp_monitor .pp_summary > div { padding: 1em; border: 1px solid #8886; border-radius: 5px; }
+#pp_monitor .pp_summary dd { margin: .6em 0 0; overflow-wrap: anywhere; }
+#pp_monitor .pp_pair { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.5em; align-items: start; }
+#pp_monitor .pp_pair > section, #pp_monitor .pp_section { border: 1px solid #8886; border-radius: 5px; padding: 1.2em; margin: 1.5em 0; min-width: 0; }
+#pp_monitor section > h2 { margin-top: 0; }
+#pp_monitor .pp_links { display: flex; flex-wrap: wrap; gap: .6em; margin: 1em 0; }
+#pp_monitor .pp_links a { padding: .45em .7em; border: 1px solid #8888; border-radius: 4px; display: inline-block; }
+#pp_monitor .pp_links a:hover { background: #3383bb18; }
+#pp_monitor .pp_notice { border-left: 4px solid #3383bb; padding: .8em 1em; margin: 1em 0; }
+#pp_monitor .pp_notice[data-attention=true] { border-left-color: #db9f42; background: #db9f420a; }
+#pp_monitor .pp_notice p { margin: .3em 0; }
+#pp_monitor table.display { width: 100% !important; }
+#pp_monitor table.display td, #pp_monitor table.display th { text-align: left; vertical-align: top; padding: .65em; line-height: 1.5; overflow-wrap: anywhere; }
+#pp_monitor .table_wrapper { margin-bottom: .5em; }
+#pp_monitor .dataTables_empty { padding: 1.2em !important; background: transparent; }
+#pp_monitor .pp_table_empty .dataTables_length, #pp_monitor .pp_table_empty .dataTables_filter, #pp_monitor .pp_table_empty .dataTables_info { display: none; }
+#pp_monitor .pp_no_pages .dataTables_paginate { display: none; }
+#pp_monitor details { margin: 1em 0; }
+#pp_monitor summary { cursor: pointer; }
+#pp_monitor p { max-width: 100ch; }
+@media (max-width: 1100px) { #pp_monitor .pp_pair { grid-template-columns: minmax(0,1fr); gap: 0; } }
+@media (max-width: 700px) {
+ #pp_monitor .pp_summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ #pp_monitor .dataTables_length, #pp_monitor .dataTables_filter, #pp_monitor .dataTables_info, #pp_monitor .dataTables_paginate { float: none; text-align: left; margin: .6em 0; }
+ #pp_monitor .dataTables_filter input { max-width: 65vw; }
+ #pp_monitor .pp_section, #pp_monitor .pp_pair > section { padding: .8em; }
+ #pp_monitor .pp_links a { min-height: 44px; }
+}
 </style>
 </%def>
 <%def name="body()">
 <input type="hidden" id="page_name" value="post_processing" />
 <div id="pp_monitor">
 <div id="paddingheader"><h1 class="clearfix">Post-processing</h1></div>
-<p id="pp_message" role="status" aria-live="polite">Loading post-processing status…</p>
-<nav class="pp_jump" aria-label="Post-processing sections"><a href="#pp_work">Active and waiting</a><a href="#pp_runs">Recent runs</a><a href="#pp_conversion">Conversion and metadata</a><a href="#pp_tagging">Converted and library comic tagging</a><a href="#pp_confirmed">Confirmed imports</a></nav>
+<div id="pp_notice" class="pp_notice"><p id="pp_message" role="status" aria-live="polite">Loading post-processing status…</p><p id="pp_next_step" hidden></p><div class="pp_links"><a href="importProblems">Review import problems</a><a href="queueManage">Check download queue</a><a href="config">Review settings</a></div></div>
+<nav class="pp_jump" aria-label="Post-processing sections"><a href="#pp_work">Active and waiting</a><a href="#pp_runs">Recent runs</a><a href="#pp_conversion">Conversion and metadata</a><a href="#pp_tagging">Comic tagging</a><a href="#pp_library_metadata">Library maintenance</a><a href="#pp_confirmed">Confirmed imports</a></nav>
 <dl class="pp_summary">
 <div><dt>Status</dt><dd id="pp_status">Unknown</dd></div>
 <div><dt>Worker</dt><dd id="pp_worker">Unknown</dd></div>
@@ -38,39 +70,54 @@ Run observations cover this service session; confirmed imports come from Mylar h
 <noscript>This monitor needs JavaScript. Enable it to load queue status.</noscript>
 <div class="pp_pair" id="pp_work"><section>
 <h2>Active work</h2>
-<p>Runs currently observed by Mylar.</p>
+<p>Runs currently observed by Mylar.</p><div class="pp_links"><a href="importProblems">Review processing problems</a></div>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Active processing"><table id="pp_active" class="display">
 <thead><tr><th>Item</th><th>Source</th><th>Started</th><th>Elapsed</th></tr></thead><tbody></tbody></table></div>
 </section><section>
 <h2>Waiting to process</h2>
-<p id="pp_limit"></p>
+<p id="pp_limit"></p><div class="pp_links"><a href="queueManage">Check downloads awaiting processing</a></div>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Waiting processing"><table id="pp_queue" class="display">
 <thead><tr><th>Position</th><th>Item</th><th>Source</th></tr></thead><tbody></tbody></table></div>
 </section></div>
+<section class="pp_section" aria-labelledby="pp_runs">
 <h2 id="pp_runs">Recent processing runs</h2>
+<div class="pp_links"><a href="#pp_confirmed">Check confirmed imports</a><a href="importProblems">Resolve import problems</a></div>
 <p id="pp_since">Observations start when Mylar starts. A finished run does not by itself confirm an import.</p>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Recent processing"><table id="pp_recent" class="display">
 <thead><tr><th>Item</th><th>Source</th><th>Outcome</th><th>Finished</th><th>Elapsed</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="pp_section" aria-labelledby="pp_conversion">
 <h2 id="pp_conversion">Archive conversion and metadata</h2>
-<p>Original and output formats are observed from archive headers when available.
+<div class="pp_links"><a href="importProblems">Review conversion problems</a></div>
+<details><summary>How conversion and metadata results are checked</summary><p>Original and output formats are observed from archive headers when available.
 Metadata results compare ComicInfo.xml and ComicBookInfo blocks, not the accuracy of individual fields.
-Library normalization preserves existing metadata. Opt-in Mylar follow-up fills missing ComicInfo after conversion.</p>
+Library normalization preserves existing metadata. Opt-in Mylar follow-up fills missing ComicInfo after conversion.</p></details>
 <p id="pp_archive_report">Waiting for conversion report.</p>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Conversion and metadata"><table id="pp_archives" class="display">
 <thead><tr><th>Item</th><th>Stage</th><th>Original format</th><th>Output format</th><th>Conversion</th><th>Metadata</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="pp_section" aria-labelledby="pp_tagging">
 <h2 id="pp_tagging">Converted and library comic tagging</h2>
+<div class="pp_links"><a href="config">Review tagging settings</a><a href="activity#wf_settings">Review maintenance settings</a></div>
 <p>Up to 100 durable jobs, processed when the download import queue is idle. Existing ComicInfo is preserved.
 Waiting for settings means Modern ComicRack metadata tagging must be enabled.</p>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Converted and library comic tagging"><table id="pp_converted" class="display">
 <thead><tr><th>Item</th><th>Status</th><th>Details</th><th>Attempts</th><th>Updated</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="pp_section" aria-labelledby="pp_library_metadata">
 <h2 id="pp_library_metadata">Library metadata maintenance</h2>
+<div class="pp_links"><a href="activity#wf_settings">Review library maintenance settings</a></div>
 <p id="pp_library_scan">Enable missing-tag discovery or nested-copy repair in <a href="activity#wf_settings">Activity settings</a>. Requires Modern ComicRack tagging.</p>
 <p id="pp_library_progress">Waiting for scan status.</p>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Library metadata maintenance"><table id="pp_library" class="display">
 <thead><tr><th>Item</th><th>Status</th><th>Details</th><th>Updated</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="pp_section" aria-labelledby="pp_confirmed">
 <h2 id="pp_confirmed">Recent confirmed imports</h2>
+<p>Imports recorded in Mylar history. Compare these with finished runs above before retrying a download.</p><div class="pp_links"><a href="activity#wf_history">View issue activity</a><a href="home">Open library</a></div>
 <div class="table_wrapper" tabindex="0" role="region" aria-label="Confirmed imports"><table id="pp_imports" class="display">
 <thead><tr><th>Issue</th><th>Recorded by Mylar</th></tr></thead><tbody></tbody></table></div>
+</section>
 </div>
 </%def>
 <%def name="javascriptIncludes()">
@@ -82,6 +129,10 @@ $(document).ready(function() {
     function text(value) { return $('<span>').text(value == null ? '--' : value).html(); }
     function table(id, empty) {
         return $(id).DataTable({pageLength: 10, order: [], pagingType: 'full_numbers',
+            drawCallback: function() {
+                var api=this.api(),info=api.page.info();
+                $(api.table().container()).toggleClass('pp_table_empty',info.recordsTotal===0).toggleClass('pp_no_pages',info.pages<=1);
+            },
             columnDefs: [{targets: '_all', render: text}], language: {emptyTable: empty}});
     }
     var active=table('#pp_active', 'No observed processing is active.');
@@ -92,6 +143,9 @@ $(document).ready(function() {
     var library=table('#pp_library', 'No library repairs or review items recorded.');
     var imports=table('#pp_imports', 'No confirmed imports in Mylar history.');
     function update(table, rows) {
+        var container=$(table.table().container()),signature=JSON.stringify(rows);
+        if (container.data('pp-signature')===signature) return;
+        container.data('pp-signature',signature);
         table.clear().rows.add(rows).draw(false);
         var info=table.page.info();
         if (info.pages && info.page >= info.pages) table.page(info.pages-1).draw(false);
@@ -119,7 +173,11 @@ $(document).ready(function() {
             $('#pp_waiting').text(data.queue_depth);
             $('#pp_updated').text(date(data.checked_at));
             var warning=data.observer_errors ? ' Some activity could not be observed; check Mylar logs.' : '';
-            $('#pp_message').attr('data-stale','false').text('Status is current.' + warning);
+            var unavailable=data.enabled && !data.worker_alive;
+            var disabled=!data.enabled;
+            $('#pp_notice').attr('data-attention',unavailable || disabled || !!data.observer_errors ? 'true' : 'false');
+            $('#pp_message').attr('data-stale','false').text((unavailable ? 'Processing worker is unavailable.' : disabled ? 'Automatic post-processing is disabled.' : 'Status is current.') + warning);
+            $('#pp_next_step').prop('hidden',!unavailable && !disabled && !data.observer_errors).text(unavailable ? 'Check Mylar logs and worker health. Review waiting items before retrying downloads.' : disabled ? 'Review automatic post-processing in Settings. A completed download still needs a confirmed import.' : 'Check Mylar logs for observation failures. Missing observations do not prove that processing stopped.');
             $('#pp_since').text('Up to 50 runs observed since ' + date(data.observing_since) + '. A finished run does not by itself confirm an import.');
             $('#pp_limit').text(data.waiting_truncated ? 'Showing the first 100 waiting items.' : 'Queue order is unchanged by this monitor.');
             update(active, data.active.map(function(r) {return [r.name,r.source,date(r.started_at),elapsed(r.elapsed_seconds)];}));
@@ -139,6 +197,8 @@ $(document).ready(function() {
         });
     }
     function failed() {
+        $('#pp_notice').attr('data-attention','true');
+        $('#pp_next_step').prop('hidden',true);
         $('#pp_message').attr('data-stale','true').text('Status could not be refreshed. Displayed data may be stale. Check the connection or sign in again through Manage.');
     }
     $('#pp_refresh').on('click', function(event) {event.preventDefault();refresh();});
