@@ -665,7 +665,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "35ccae355ffce71e337b53389499b5330012c8f9b558b51fa1c0774fd4e810b1"
+    "sha256": "d0c4e57ca0ab86d23bb46653b17539cd201ba15bdb6c5f50cbd8fcc759a58ae4"
   },
   {
     "path": "story_arc_search.py",
