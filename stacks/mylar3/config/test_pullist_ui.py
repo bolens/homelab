@@ -16,7 +16,15 @@ def native():
     return (SOURCE if SOURCE.is_file() else SOURCE.parent/'data/interfaces/default/weeklypull.html').read_text()
 
 
+def scripts(text):
+    normalized = text.replace('"sSearch": "Filter releases:"', '"sSearch": ""').replace(TABLE_OPTIONS, '')
+    return re.findall(r'<script\b[^>]*>.*?</script\s*>', normalized, re.S | re.I)
+
+
 class PullistUITest(unittest.TestCase):
+    def test_script_contract_includes_html_tag_case_and_closing_whitespace(self):
+        tags = ['<script>first()</script>', '<SCRIPT src="example.js"></SCRIPT>', '<ScRiPt>third()</sCrIpT >']
+        self.assertEqual(scripts('\n'.join(tags)), tags)
     def test_changed_source_is_refused(self):
         with self.assertRaises(ValueError):
             template('changed native template', '')
@@ -27,7 +35,6 @@ class PullistUITest(unittest.TestCase):
         result = template(source, (ROOT/'pullist_ui.css').read_text())
         self.assertEqual(result, template(result, ''))
         self.assertEqual(re.findall(r'onclick="([^"]+)"', source), re.findall(r'onclick="([^"]+)"', result))
-        scripts = lambda text: re.findall(r'<script\b[^>]*>.*?</script>', text.replace('"sSearch": "Filter releases:"', '"sSearch": ""').replace(TABLE_OPTIONS, ''), re.S)
         self.assertEqual(scripts(source), scripts(result))
         for route in ('MassWeeklyDownload', 'dump_that_shizzle', 'queueit?', 'queueissue?', 'addbyid?', 'add2futurewatchlist?', 'searchit?', 'torrentit?', 'download_specific_release'):
             self.assertEqual(source.count(route), result.count(route), route)

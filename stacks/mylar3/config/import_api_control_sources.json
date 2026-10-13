@@ -665,7 +665,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "d0c4e57ca0ab86d23bb46653b17539cd201ba15bdb6c5f50cbd8fcc759a58ae4"
+    "sha256": "55740069ca15c6a1c68969b97be687ea6b0ff77ba486cab2bae7ab993c9985c8"
   },
   {
     "path": "story_arc_search.py",
@@ -1369,7 +1369,7 @@
   },
   {
     "path": "test_pullist_ui.py",
-    "sha256": "2f8009e14da9b4443132b94d37cf39ee8051561953fd0717d37b29db54337488"
+    "sha256": "3c99bf5dac989c2dd642b2e36bceb778d82bbcde043cddd2272d6cc1bac7e79d"
   },
   {
     "path": "test_queue_control.py",
