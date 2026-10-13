@@ -76,6 +76,21 @@ class CacheTransfers(unittest.TestCase):
         with self.assertRaises(ValueError): transfer.unpack('1', source, source.name)
         self.assertFalse(list(self.root.glob('.mylar-unpack-*')))
 
+    def test_atomic_promotion_preserves_late_foreign_destination_and_verified_partial(self):
+        from unittest.mock import patch
+        actual=Path.exists;foreign=b'foreign retained original';fired=[]
+        def changed(path):
+            result=actual(path)
+            if path == self.final and not result and not fired:
+                fired.append(True);path.write_bytes(foreign)
+            return result
+        with patch.object(Path,'exists',changed),self.assertRaises(cache_admission.Held):
+            transfer.receive(self.response(),self.final,None,'1')
+        self.assertEqual(fired,[True]);self.assertEqual(self.final.read_bytes(),foreign)
+        self.assertEqual(self.final.with_suffix('.cbz.part').read_bytes(),self.body)
+        row=self.database.selectone('SELECT * FROM ddl_info WHERE ID=?',['1']).fetchone()
+        self.assertEqual(row['status'],'Downloading');self.assertIsNotNone(row['tmp_filename'])
+
     def test_actual_Requests_GetComics_lookup_Remove_and_handoff_preserve_original_row(self):
         import ast
         import os

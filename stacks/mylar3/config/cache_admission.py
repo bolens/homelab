@@ -208,7 +208,10 @@ class Allocation:
             except BlockingIOError:
                 raise Held('Cache allocation is already reserved') from None
             self.dirfd, destination_nodes = open_directory(self.destination)
-            self.nodes.update(destination_nodes)
+            for name, expected in destination_nodes.items():
+                if name in self.nodes and self.nodes[name] != expected:
+                    raise Held('Original cache reservation ancestor conflicts')
+                self.nodes.setdefault(name, expected)
             self.destination5 = directory_identity(os.fstat(self.dirfd))
             if self.destination5 != directory_identity(os.lstat(self.destination)):
                 raise Held('Original cache destination changed')

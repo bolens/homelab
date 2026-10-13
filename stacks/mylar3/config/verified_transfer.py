@@ -321,8 +321,19 @@ def receive(response, final, resume, record_id, original_generation=None):
             raise ValueError('Truncated download; partial retained')
         checked(partial)
         if final.exists():
-            retain(final)
-        os.replace(partial, final)
+            raise cache_guard().Held('Existing download destination requires owning recovery; partial retained')
+        reservation.originals()
+        if cache_guard().identity(os.stat(partial.name, dir_fd=reservation.dirfd, follow_symlinks=False)) != written:
+            raise ValueError('Original verified partial changed')
+        try:
+            os.link(partial.name, final.name, src_dir_fd=reservation.dirfd,
+                    dst_dir_fd=reservation.dirfd, follow_symlinks=False)
+        except FileExistsError:
+            raise cache_guard().Held('Download destination appeared; original and verified partial retained') from None
+        linked = os.stat(final.name, dir_fd=reservation.dirfd, follow_symlinks=False)
+        if (linked.st_dev, linked.st_ino) != written[:2] or linked.st_nlink != 2:
+            raise ValueError('Verified transfer promotion identity changed')
+        os.unlink(partial.name, dir_fd=reservation.dirfd)
         ddl_metadata(database, original_generation, {'tmp_filename': None})
 
 

@@ -62,6 +62,17 @@ class Controls(unittest.TestCase):
             result = subprocess.run([sys.executable, '-I', '-B', '-c', script, str(Path(guard.__file__).parent), str(self.cache)], capture_output=True)
         self.assertNotEqual(result.returncode, 0); self.assertIn(b'already reserved', result.stderr)
 
+    def test_flock_callback_cannot_reseal_an_original_shared_ancestor(self):
+        real=guard.fcntl.flock;fired=[]
+        def changed(fd,flags):
+            result=real(fd,flags)
+            if flags == guard.fcntl.LOCK_EX | guard.fcntl.LOCK_NB and not fired:
+                fired.append(True);self.root.chmod(0o750)
+            return result
+        with patch.object(guard.fcntl,'flock',changed),self.assertRaises(guard.Held):
+            with guard.Allocation(self.cache,0):self.fail('Changed original ancestor was accepted')
+        self.assertEqual(fired,[True]);self.assertEqual(self.root.stat().st_mode & 0o777,0o750)
+
     def test_later_census_entry_cannot_change_a_previously_counted_file(self):
         first = self.cache / 'a'; first.write_bytes(b'original')
         last = self.cache / 'z'; last.write_bytes(b'last')

@@ -11,7 +11,7 @@
   },
   {
     "path": "cache_admission.py",
-    "sha256": "bc3f680eed306c476e2c888235b9aab1eb6542c6597a2d2a4336f7c797f9fe7f",
+    "sha256": "218405e98b0b57dc377496c43fb61b8d39e396f1c590e68af46cdb67ae5d1f09",
     "target": "cache_admission.py"
   },
   {
@@ -926,7 +926,7 @@
   },
   {
     "path": "test_cache_admission.py",
-    "sha256": "79417e3d7b32a5cbe9a8930282c014fc66aa10fdd87303789606af4067cc716b",
+    "sha256": "9fc1b3d951f96a4b95df7f180ca1f4355e42a5a1d3cad8b9328534f1b13ea548",
     "target": "test_cache_admission.py"
   },
   {
@@ -941,7 +941,7 @@
   },
   {
     "path": "test_cache_transfer.py",
-    "sha256": "c7bd5c6e677ec0cb920149cb482989b14dfaa7bfb3405a6eb0a33515f85024f3",
+    "sha256": "f9b091181eaa2cf0f060337a39d6d5762aee7fb2ae14e84103b500cda92e4169",
     "target": "test_cache_transfer.py"
   },
   {
@@ -1906,7 +1906,7 @@
   },
   {
     "path": "verified_transfer.py",
-    "sha256": "7493057bf07e2d648be37580f452eb2fafcb2310f7499f480144239523066e32",
+    "sha256": "a4ba9ff0ab3a59a2fd299c2be27f70b60325a2b8e651d19d0fec1221061c749e",
     "target": "verified_transfer.py"
   },
   {
