@@ -1036,7 +1036,7 @@
   },
   {
     "path": "test_ddl_transport.py",
-    "sha256": "4ee01249540a386d62b635752bddd7af951bc35b5408ebaf2727c6f8ff6644cb",
+    "sha256": "2bd3fcb78c10d0d6d2bb59364eb451ab58742570e2efe8e86e857d02300f98c7",
     "target": "test_ddl_transport.py"
   },
   {
@@ -1801,7 +1801,7 @@
   },
   {
     "path": "test_tagger_backend.py",
-    "sha256": "a82d2485e4a4947e0ae4cf21b900b89211e5e2761ace2183102782d91ec770d5",
+    "sha256": "7bb888669036a38e643b32a6243d263665a93702112a74db2f4864dfa9e1d4da",
     "target": "test_tagger_backend.py"
   },
   {

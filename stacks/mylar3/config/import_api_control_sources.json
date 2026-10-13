@@ -657,7 +657,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "a83eec627e842e5a3ac70a555ceb815077a20a53c7e1566c9b281e668082a9a9"
+    "sha256": "27fb634e2af6c7b017397f709ea86406b03085be4c51788afca4be73c163b580"
   },
   {
     "path": "story_arc_search.py",
@@ -829,7 +829,7 @@
   },
   {
     "path": "test_ddl_transport.py",
-    "sha256": "4ee01249540a386d62b635752bddd7af951bc35b5408ebaf2727c6f8ff6644cb"
+    "sha256": "2bd3fcb78c10d0d6d2bb59364eb451ab58742570e2efe8e86e857d02300f98c7"
   },
   {
     "path": "test_ddl_ui.py",
@@ -1441,7 +1441,7 @@
   },
   {
     "path": "test_tagger_backend.py",
-    "sha256": "a82d2485e4a4947e0ae4cf21b900b89211e5e2761ace2183102782d91ec770d5"
+    "sha256": "7bb888669036a38e643b32a6243d263665a93702112a74db2f4864dfa9e1d4da"
   },
   {
     "path": "test_tagger_enrichment.py",

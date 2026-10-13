@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 from patch_tagger_backend import configuration, web, caller, template
 import tagger_backend
+import cache_admission
 import tagger_handoff
 
 SOURCE = Path(sys.argv.pop(1))
@@ -30,7 +31,7 @@ class BackendTest(unittest.TestCase):
     def setUp(self):
         self.config = SimpleNamespace(TAGGER_BACKEND='legacy')
         self.mylar = SimpleNamespace(CONFIG=self.config, tagger_backend=tagger_backend,
-                                     tagger_handoff=tagger_handoff, logger=Mock(),
+                                     tagger_handoff=tagger_handoff, cache_admission=cache_admission, logger=Mock(),
                                      native_writers=SimpleNamespace(publication_mode=lambda:False))
         context=patch.dict(sys.modules, {'mylar':self.mylar})
         context.start();self.addCleanup(context.stop)
