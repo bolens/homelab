@@ -1,6 +1,9 @@
 """Exercise patched upstream methods with isolated files and mocked HTTP."""
 
 import ast
+import cache_admission
+import verified_transfer as actual_transfer
+import patch_ddl_status_retention as status_patch
 import json
 import os
 from pathlib import Path
@@ -9,9 +12,10 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import urllib.parse
 from patch_ddl_responses import patched_source
+from test_status_retention import DB
 
 SOURCE = Path(sys.argv.pop(1))
 
@@ -28,6 +32,7 @@ def method(filename, name, namespace):
         )
     )
     module = ast.Module(body=[node], type_ignores=[])
+    namespace.setdefault("cache_admission", cache_admission)
     exec(compile(module, filename, "exec"), namespace)
     return namespace[name]
 
@@ -37,14 +42,23 @@ class DdlResponsesTest(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.location = Path(self.temp.name)
-        self.database = MagicMock()
+        self.database = DB();self.addCleanup(self.database.connection.close)
+        for field in ('filename','size','tmp_filename'):self.database.action('ALTER TABLE ddl_info ADD COLUMN '+field+' TEXT')
+        self.database.upsert('ddl_info',dict(status='Downloading',updated_date='original',issueid='2',comicid='3',
+                                           link='https://example.invalid/comic.cbz',mainlink='https://example.invalid/comic.cbz',site='DDL(GetComics)',series='Fixture #2'),{'id':'1'})
+        self.database.upsert = MagicMock(wraps=self.database.upsert)
         self.mylar = SimpleNamespace(
             CONFIG=SimpleNamespace(DDL_LOCATION=str(self.location)),
             DDL_LOCK=False,
             DDL_QUEUED=[],
         )
 
-        def receive(response, path, resume, record_id):
+        self.mylar.cache_admission=cache_admission
+        native_status={};exec(status_patch.HELPERS,native_status)
+        context=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.queues.ddl':SimpleNamespace(**native_status)})
+        context.start();self.addCleanup(context.stop)
+
+        def receive(response, path, resume, record_id, **kwargs):
             Path(path).write_bytes(b"".join(response.iter_content()))
 
         self.namespace = dict(
@@ -56,7 +70,7 @@ class DdlResponsesTest(unittest.TestCase):
             ),
             queue_control=MagicMock(),
             verified_transfer=SimpleNamespace(
-                receive=receive, validate_result=lambda value, item: value
+                receive=receive, ddl_generation=actual_transfer.ddl_generation, ddl_metadata=actual_transfer.ddl_metadata, validate_result=lambda value, item: value
             ),
             db=SimpleNamespace(DBConnection=lambda: self.database),
             mylar=self.mylar,
@@ -98,7 +112,7 @@ class DdlResponsesTest(unittest.TestCase):
 
     def test_null_size_uses_http_length(self):
         self.assertTrue(self.download("application/zip")["success"])
-        self.assertEqual(self.database.upsert.call_args.args[1]["remote_filesize"], 4)
+        self.assertEqual(self.database.selectone("SELECT remote_filesize FROM ddl_info WHERE id=?",["1"]).fetchone()[0], 4)
         self.assertEqual((self.location / "comic[__2__].cbz").read_bytes(), b"PKxx")
 
     def test_reject_html_and_http_errors_before_writing(self):

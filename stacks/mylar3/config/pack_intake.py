@@ -95,6 +95,22 @@ def discover(ddl_id, source, name):
     return current
 
 
+def unresolved_capture(ddl_id):
+    """A pending original generation prevents another transfer for its DDL ID."""
+    key = ddl_identifier(ddl_id)
+    if not key:
+        return False
+    records = workflow.store().active('pack', PHASES)
+    for row in records:
+        if row.get('ddl_id') != key:
+            continue
+        if (row.get('phase') != 'confirmed' or not row.get('inventory_complete')
+                or not row.get('cleanup_complete') or not row.get('members')
+                or any(not member_present(member) for member in row['members'])):
+            return True
+    return False
+
+
 def capture(processor):
     """Defer a downloaded pack before native anchor-based imports can run."""
     if not workflow.policy().get('pack_automation') or not getattr(processor, 'ddl', False):

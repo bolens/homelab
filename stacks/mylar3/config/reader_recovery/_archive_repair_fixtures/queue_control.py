@@ -212,8 +212,20 @@ def begin(item, queue):
     if not current or current['status'] not in ('Queued', 'Downloading'):
         clear_active(item['id'])
         return False
+    from mylar import cache_admission, pack_intake
+    try:
+        if pack_intake.unresolved_capture(str(item['id'])):
+            raise cache_admission.Held('Existing pack capture requires owning recovery before another transfer')
+        with cache_admission.allocation(mylar_cache_destination(), 1, nodes=1):
+            pass
+    except cache_admission.Held as exc:
+        cache_held(item, queue, str(exc))
+        return False
     with _LOCK:
         decision = store().begin(item)
+        if decision == 'ready':
+            value = store().data['items'][str(item['id'])]
+            item['_cache_admission_attempt'] = (value['release'], value['attempts'], value['started'])
     if decision in ('exhausted', 'completed'):
         status = 'Completed' if decision == 'completed' else 'Failed'
         database.upsert('ddl_info', {'status': status}, {'id': item['id']})

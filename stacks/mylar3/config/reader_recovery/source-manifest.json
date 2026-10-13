@@ -64,7 +64,7 @@
       "sha256": "908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20"
     },
     "_archive_repair_fixtures/pack_intake.py": {
-      "sha256": "2cd7c0262f43be541598b5ef656c33831ed26bcde34a2e803622e611cea26cef"
+      "sha256": "c3fa780e12a54b765606959d6938812476c20d9fff30d8a9258fd7fe88108043"
     },
     "_archive_repair_fixtures/patch_publication_guard.py": {
       "sha256": "0e069cdac035bde301eca136530d7b3a96b5ef179cae31c1fd40fe10ae95f50e"
@@ -157,7 +157,7 @@
       "sha256": "064358afcbf8800a9d4fb96e690ccada0c61ce855e445e106571150ace5a5f7f"
     },
     "_archive_repair_fixtures/queue_control.py": {
-      "sha256": "de3cb09d5d931754af8d9bdb9febe681da4429449871906ea2b04ca89c6ba8f3"
+      "sha256": "f8a2184bc41f134d20bee5e97665a50b4285bc47cf7e10f51b77ab1448af8948"
     },
     "_archive_repair_fixtures/release_naming.py": {
       "sha256": "eeb379b8614aa78bcd641e95b5200e6c074aa6142952bf242b2133c6ca92d4a9"

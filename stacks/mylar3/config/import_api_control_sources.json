@@ -1,11 +1,15 @@
 [
   {
     "path": "apply_patches.py",
-    "sha256": "4d6f4391e40f506d23b23063c49ca000834fad500d95c7750ea6a34e5a761aba"
+    "sha256": "d598ccaab1049e75acc78e1690a2e46aca62bfdba7814497779b06e207a7c15e"
   },
   {
     "path": "archive_monitor.py",
     "sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3"
+  },
+  {
+    "path": "cache_admission.py",
+    "sha256": "bc3f680eed306c476e2c888235b9aab1eb6542c6597a2d2a4336f7c797f9fe7f"
   },
   {
     "path": "catalog_volume.py",
@@ -125,7 +129,11 @@
   },
   {
     "path": "pack_intake.py",
-    "sha256": "24fc0d50c9569cbfe0125884ebbcb84246884770548f050e354c43fa94171582"
+    "sha256": "9cf005357e9c754374b2a07306618f17a299fc2c5dfc2da39f44b2f74380b4f7"
+  },
+  {
+    "path": "patch_cache_admission.py",
+    "sha256": "6fb663d05d2e05e4c5c459968f8d8c1b9bde85a802b51042ae5a6d65d0125fc5"
   },
   {
     "path": "patch_catalog_volumes.py",
@@ -565,7 +573,7 @@
   },
   {
     "path": "queue_control.py",
-    "sha256": "6b0427378396a88b6e474d45b60eaed299ca6fbb0690895dbb7de4f8a8040b74"
+    "sha256": "e4a399c61d6f33d085372224e16c7099219b5ba69b27306cc3b5b009777cfe9c"
   },
   {
     "path": "queue_progress.py",
@@ -649,7 +657,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "c105473c8961374582362f0d6211847ad775aea3ec8b98a5da5a810dd5e57e65"
+    "sha256": "2edda76c2ea04747ddddbc8b7cd2843ef3b4f2c32ccc5800e081e5b39376df51"
   },
   {
     "path": "story_arc_search.py",
@@ -732,6 +740,22 @@
     "sha256": "84a038275ab2d4d859c9a802473a2e06356668e9c23ac4a9a0aec157d4f2c689"
   },
   {
+    "path": "test_cache_admission.py",
+    "sha256": "79417e3d7b32a5cbe9a8930282c014fc66aa10fdd87303789606af4067cc716b"
+  },
+  {
+    "path": "test_cache_ddl.py",
+    "sha256": "452cc190cc17e7f77a6e1ab6ed79e6686e9425f1267801e1ba12abf794fc1bdf"
+  },
+  {
+    "path": "test_cache_providers.py",
+    "sha256": "301757743cac45b61c374bc7506b973ece5720cbe92db5d72d5008c10610e8be"
+  },
+  {
+    "path": "test_cache_transfer.py",
+    "sha256": "c7bd5c6e677ec0cb920149cb482989b14dfaa7bfb3405a6eb0a33515f85024f3"
+  },
+  {
     "path": "test_catalog_volumes.py",
     "sha256": "746d059568ed28d7e38cf5a8acec9321dd98f0529fab7c154f69b6c3538eef30"
   },
@@ -773,7 +797,7 @@
   },
   {
     "path": "test_ddl_exhaustion.py",
-    "sha256": "1f8b39fc1a4cf22cbc793006a7d77c86206db81816abb557a876ade095a2d135"
+    "sha256": "0829eb8137202356ce6fb0825616dcf7e3e8ad2e338c7c50a25e988ad016e58a"
   },
   {
     "path": "test_ddl_failover.py",
@@ -793,7 +817,7 @@
   },
   {
     "path": "test_ddl_responses.py",
-    "sha256": "22a388de1a1faba54599c1eaba26529a25892fc701e6066a371af8a4f30b8454"
+    "sha256": "1902b462ab427071df52e3f94df0ecc57ca186066f2e41d38ad8b86d05cbe47e"
   },
   {
     "path": "test_ddl_resume.py",
@@ -822,6 +846,34 @@
   {
     "path": "test_file_matching.py",
     "sha256": "e06e3b7c48a6e46dfc8c79c8a5f6fae644288f3090972e9ba9dd80ed356c7ab8"
+  },
+  {
+    "path": "test_fixtures/cache_admission/PROVENANCE.json",
+    "sha256": "a7dc0abe18a14a7b4d834acd3659d66506ebaa81e74a384b3fa06bcacb872618"
+  },
+  {
+    "path": "test_fixtures/cache_admission/config.py.txt",
+    "sha256": "d8f02277daaf55b62f95832106e0deb97760d0d297bdf07640be98c910fbe570"
+  },
+  {
+    "path": "test_fixtures/cache_admission/getcomics.py.txt",
+    "sha256": "857dbf95fdbe9e54da7abefab0f60de7262be62f39b93934e713b16cf96d23c7"
+  },
+  {
+    "path": "test_fixtures/cache_admission/mediafire.py.txt",
+    "sha256": "1dbf2ba9362324bfc7c928206a0fc9518e661695dec7e946cba9d7f1ae6e96e7"
+  },
+  {
+    "path": "test_fixtures/cache_admission/mega.py.txt",
+    "sha256": "017c9e237386d4061137d71c27ab61be41e3bc02e54098cd0de6f4e57402227d"
+  },
+  {
+    "path": "test_fixtures/cache_admission/mega_library.py.txt",
+    "sha256": "4c53f1f18a895c3eba1805f94949c93b48807f572ea45ac1aef40f7804d0e8d2"
+  },
+  {
+    "path": "test_fixtures/cache_admission/pixeldrain.py.txt",
+    "sha256": "709585226bdb653eb70bf071aa3b9340bfef7976c9b7c299b350a9f7d118aa40"
   },
   {
     "path": "test_fixtures/ddl_status_retention/db.py",
@@ -1054,6 +1106,10 @@
   {
     "path": "test_pack_records.py",
     "sha256": "89cd5ce7eb5717949ef5ebdad9a18c70a58bbdc1a29984ee625f7bc776a77f6f"
+  },
+  {
+    "path": "test_patch_cache_admission.py",
+    "sha256": "d6c618e51f07d0ec52a48c0c3ad4ffddff5e83641aad44ba5b1fa9985dbc6a92"
   },
   {
     "path": "test_pp_monitor.py",
@@ -1369,7 +1425,7 @@
   },
   {
     "path": "test_status_retention.py",
-    "sha256": "dbffb86f52f34024edac9f9bd947392d64ad8f2a3092b7a26dfa6683f43ff453"
+    "sha256": "4b891dca5c43ad0d8e354aee495c16a79fb4438d6c71f9d4c6eea5ef06300e05"
   },
   {
     "path": "test_story_arc_search.py",
@@ -1441,7 +1497,7 @@
   },
   {
     "path": "test_verified_transfer.py",
-    "sha256": "bdf8b76ce5e13f93b4a760d4bafc8ea87b4ea80ee0cc6f0beae26ce125c39b8b"
+    "sha256": "8e714a57171275dac1d5ec836df32ff4255f7d6e91d7419973d83205c49c9376"
   },
   {
     "path": "test_verify_status_routing.py",
@@ -1469,11 +1525,11 @@
   },
   {
     "path": "verified_transfer.py",
-    "sha256": "b3d3f180cca67e33a6705b4f49425c9c7367d8720defc8170b3908bb4a4b715b"
+    "sha256": "7493057bf07e2d648be37580f452eb2fafcb2310f7499f480144239523066e32"
   },
   {
     "path": "verify_image.py",
-    "sha256": "4d379a99520af8a971397f66e707bb375d0333035771415911ee1bf13fc60267"
+    "sha256": "1d7d4bb674f56f7ed95e333d46fc1f7d5848abd4132eaf99d3e507ed8941e270"
   },
   {
     "path": "verify_publication_reader_cohort.py",

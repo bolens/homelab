@@ -1,6 +1,9 @@
 """Exercise patched upstream methods with isolated files and mocked HTTP."""
 
 import ast
+import cache_admission
+import verified_transfer as actual_transfer
+import patch_ddl_status_retention as status_patch
 import datetime
 import json
 import os
@@ -10,7 +13,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import urllib.parse
 from patch_ddl_exhaustion import patched_source
 from patch_queue_control import patched_source as control_source
@@ -32,6 +35,7 @@ def method(filename, name, namespace):
         )
     )
     module = ast.Module(body=[n for n in ast.parse(patched).body if isinstance(n,ast.FunctionDef) and n.name.startswith("_ddl_status_")]+[node], type_ignores=[])
+    namespace.setdefault("cache_admission", cache_admission)
     exec(compile(module, filename, "exec"), namespace)
     return namespace[name]
 
@@ -49,7 +53,12 @@ class DdlExhaustionTest(unittest.TestCase):
             DDL_QUEUED=[],
         )
 
-        def receive(response, path, resume, record_id):
+        self.mylar.cache_admission=cache_admission
+        native_status={};exec(status_patch.HELPERS,native_status)
+        context=patch.dict(sys.modules,{'mylar':self.mylar,'mylar.queues.ddl':SimpleNamespace(**native_status)})
+        context.start();self.addCleanup(context.stop)
+
+        def receive(response, path, resume, record_id, **kwargs):
             Path(path).write_bytes(b"".join(response.iter_content()))
 
         self.namespace = dict(
@@ -61,7 +70,7 @@ class DdlExhaustionTest(unittest.TestCase):
             ),
             queue_control=MagicMock(),
             verified_transfer=SimpleNamespace(
-                receive=receive, validate_result=lambda value, item: value
+                receive=receive, ddl_generation=actual_transfer.ddl_generation, ddl_metadata=actual_transfer.ddl_metadata, validate_result=lambda value, item: value
             ),
             db=SimpleNamespace(DBConnection=lambda: self.database),
             mylar=self.mylar,

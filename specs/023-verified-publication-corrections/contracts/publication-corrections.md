@@ -28,6 +28,33 @@ Check before scripts/tagging/duplicate removal/placement/status mutation and bef
 
 When the complete validated registry is empty, existing eligibility may continue without a payload scan. When it is nonempty, any unsupported or incomplete candidate inventory is unavailable and held: the implementation cannot assume an unreadable candidate is unknown. Native and worker keep rejected/uncertain sources and historical receipts. A terminal retained-review result cannot fall through to tag-failure import or failure/search replay. Every interrupted journal retains correction token, epoch/revision, candidate before/after binding and exact owner facts. Replay revalidates the latest complete census and current matched correct-owner evidence before any mutation or fence clearance; a changed registry may retain an older prepared job for review. No deletion or fence clearance follows rewritten metadata alone.
 
+## DDL cache capacity (FR-016 / T030)
+
+Participating Mylar DDL transfers and ZIP expansion require finite admission
+before allocation. Defaults are a 20 GiB aggregate cache budget and a 5 GiB
+filesystem free-space reserve; `[DDL]` settings `ddl_cache_max_gib` and
+`ddl_cache_min_free_gib` accept whole GiB values from 1 through 4096. Count
+retained, partial, temporary and unpacked entries without following symlinks;
+deduplicate overlapping roots and count logical bytes as well as allocated
+blocks. Unverifiable accounting or original directory/lock drift refuses new
+allocation. Process and filesystem locks serialize participating allocations;
+check remaining space before each write. This is application admission, not a
+quota for unrelated writers or the normalizer's independent retained state.
+
+Capacity refusal preserves the owning queue generation and provider attempt
+budget. Every provider metadata update uses the original entry generation:
+late Remove, NZB handoff or replacement must never recreate a row or overwrite
+another generation. An unresolved durable pack capture blocks a second transfer
+for that DDL ID. A complete unchanged extraction may be reused after independent
+member and namespace verification; incomplete or changed companions remain for
+review. Zero-allocation recovery may proceed above capacity. Neither capacity,
+age nor a Completed label authorizes deletion or supplies an import ACK.
+
+This prospective contract remains incomplete until the installed image and
+configured guard pass T030 acceptance, including concurrent/restart refusal,
+provider callbacks, retained extraction reuse and preservation of existing
+queue/import evidence.
+
 ## Lock order and worker behavior
 
 Remote advisory checks occur before the worker holds the shared writer. Under writer exclusion, validate the full census and marker through the existing read-only native config/writer mounts, require the same epoch/revision and stable candidate content, and freshly revalidate every matched correct owner’s complete all-row/deleted/annual-shadow path binding and current correct-archive payload. Either compute those facts locally or locally revalidate complete immutable advisory facts; revision equality alone is insufficient. This is mandatory for existing-target confirmations, Extras, cleanup and conversion publication that may never reach native final import. Test intervening correct-owner/path/content changes with an unchanged registry revision. Native final import repeats content/owner checks. Protocol mismatch or uncertain state holds publication. Worker never writes native registry SQLite. Cover common import submission, guided/pack routes, existing-target confirmation, Extras placement, duplicate cleanup, conversion publication and naming/metadata passes.

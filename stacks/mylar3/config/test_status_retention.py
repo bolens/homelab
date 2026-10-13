@@ -2,12 +2,14 @@ import ast,copy,datetime,sqlite3,sys,threading,types,unittest
 from pathlib import Path
 from queue import Queue
 import patch_ddl_status_retention as patcher
+import cache_admission
 ROOT=Path(sys.argv.pop(1)) if __name__=='__main__' and len(sys.argv)>1 and not sys.argv[1].startswith('-') else None
 FIXTURE=Path(__file__).parent/'test_fixtures/ddl_status_retention'
 NATIVE=(ROOT/'db.py') if ROOT is not None else FIXTURE/'db.py'
 DDL=FIXTURE/'ddl.py'
 assert NATIVE.is_file() and DDL.is_file()
 def function(source,name,namespace):
+ namespace.setdefault("cache_admission",cache_admission)
  node=next(n for n in ast.walk(ast.parse(source)) if isinstance(n,ast.FunctionDef) and n.name==name);node.decorator_list=[];exec(compile(ast.Module(body=[node],type_ignores=[]),str(DDL),'exec'),namespace);return namespace[name]
 class DB:
  def __init__(self):

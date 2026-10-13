@@ -120,3 +120,7 @@ terminal successor hold must precede aggregate-marker removal and span final
 receipt acknowledgement, including crash and lost-response boundaries. Installers and selected
 image tests must verify exact classes and module provenance before use. Fresh
 operational reader and NFS evidence remain separate from portable source tests.
+
+## DDL cache growth prevention — 2026-10-12
+
+Extend the existing intake/backpressure boundary with a configurable retained-cache byte budget and processing headroom. Inventory the cache without following symlinks, count retained and temporary payloads, and refuse new admission when capacity cannot be established. Reuse existing durable capture ownership to prevent repeated downloads of an unresolved delivery. Keep import acknowledgement and source-retirement authority unchanged; neither age nor a Completed label permits deletion. Verify boundary, concurrent reservation, restart, unreadable state and retained-pack scenarios before reviewed image delivery and live acceptance.

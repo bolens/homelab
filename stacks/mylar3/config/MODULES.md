@@ -10,6 +10,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Discovery transport and preference | `patch_ddl_transport.py` | `ddl_transport.py`, `ddl_transport_worker.py`, `test_ddl_transport.py`; isolated curl runtime, Requests archive owner |
 | Static-page notifications | `patch_global_events.py` | Guard absent page reload targets after displaying the notification |
 | Active DDL path and size handling | `patch_ddl_status.py` | `test_ddl_status.py` |
+| Finite cache admission and unchanged extraction reuse | `patch_cache_admission.py` | `cache_admission.py`, `verified_transfer.py`, `queue_control.py`, `pack_intake.py`; original-FD usage, provider plaintext guards, generation-CAS holds and cache tests |
 | HTTP response validation | `patch_ddl_responses.py` | `test_ddl_responses.py` |
 | Exhausted mirrors | `patch_ddl_exhaustion.py` | `test_ddl_exhaustion.py` |
 | Transient mirror lookup failures | `patch_ddl_mirror_retries.py` | `test_ddl_mirror_retries.py` |
