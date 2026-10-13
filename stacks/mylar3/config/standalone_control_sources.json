@@ -1686,7 +1686,7 @@
   },
   {
     "path": "test_publication_startup.py",
-    "sha256": "f6ebe5562a9b35c70983f724002526f2777a8c762bcb34ca74eba0d23e8c452d",
+    "sha256": "5edc49dbcc41b3a7ec2ce9276f797ce0cf384368c58a9a5d075efd83b3dbefcc",
     "target": "test_publication_startup.py"
   },
   {
