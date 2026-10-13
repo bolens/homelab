@@ -551,7 +551,7 @@
   },
   {
     "path": "publication_native_configured_scope.py",
-    "sha256": "8bdb029a7fd9aa12ab714a501a96c8e25d033260d0f31b1be03ebf143d2b1606",
+    "sha256": "43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed",
     "target": "publication_native_configured_scope.py"
   },
   {
@@ -736,7 +736,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_pack_parent.py",
-    "sha256": "13ebd16cc2058a7330015c42ef2c9573aa7ee138d21774ff304854e61d35d46e",
+    "sha256": "bcb4a6410c5499e761be2a5d5b4dfda381eff0c41833d58720993d319513e62f",
     "target": "reader_recovery/comic_retained_pack_parent.py"
   },
   {
@@ -756,7 +756,7 @@
   },
   {
     "path": "reader_recovery/comic_retained_standalone_parent.py",
-    "sha256": "7f6c4e4eae8ef49f6599473bcf8b9ec683292c426fad5e53308ba3b1fd81c3cd",
+    "sha256": "3f77f155b15cd02af4fe14be882c71dbcd02ca3284b9f77eab8d43c51096021d",
     "target": "reader_recovery/comic_retained_standalone_parent.py"
   },
   {
@@ -941,7 +941,7 @@
   },
   {
     "path": "test_cache_transfer.py",
-    "sha256": "f9b091181eaa2cf0f060337a39d6d5762aee7fb2ae14e84103b500cda92e4169",
+    "sha256": "852c246d26645695a7beb33d9fe12c54e805bde20d6ec2c0d5f6115e38811fd0",
     "target": "test_cache_transfer.py"
   },
   {
@@ -971,7 +971,7 @@
   },
   {
     "path": "test_config_retention.py",
-    "sha256": "c88d6c763457d16bf7f77eb27c68b09db86b3341d2fadbdf0225ad11e6426536",
+    "sha256": "edff16bea3b33c1731f6172ccddc7a5278744f99d85b1e32f966a4f660e79d8e",
     "target": "test_config_retention.py"
   },
   {
@@ -1906,7 +1906,7 @@
   },
   {
     "path": "verified_transfer.py",
-    "sha256": "a4ba9ff0ab3a59a2fd299c2be27f70b60325a2b8e651d19d0fec1221061c749e",
+    "sha256": "a7a7a54d15df903c0198279e6515706472e9f6085369ff159bda95d77ca9b040",
     "target": "verified_transfer.py"
   },
   {

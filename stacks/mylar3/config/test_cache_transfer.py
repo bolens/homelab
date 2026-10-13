@@ -2,6 +2,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+import stat
 import zipfile
 import cache_admission
 import verified_transfer as transfer
@@ -20,6 +21,26 @@ class CacheTransfers(unittest.TestCase):
         with zipfile.ZipFile(path, 'w') as archive:
             archive.writestr(member, self.body)
         return path
+
+    def test_new_transfer_and_extraction_payloads_are_owner_only(self):
+        transfer.receive(self.response(), self.final, None, '1')
+        self.assertEqual(stat.S_IMODE(self.final.stat().st_mode), 0o600)
+        source = self.pack()
+        original_mode = stat.S_IMODE(source.stat().st_mode)
+        answer = transfer.unpack('1', source, source.name)
+        child = Path(answer['path']) / 'nested/comic.cbz'
+        self.assertEqual(child.read_bytes(), self.body)
+        self.assertEqual(stat.S_IMODE(child.stat().st_mode), 0o600)
+        self.assertEqual(stat.S_IMODE(source.stat().st_mode), original_mode)
+        resumed = self.root / 'resumed.cbz'
+        partial = resumed.with_suffix('.cbz.part')
+        partial.write_bytes(self.body[:20])
+        resumed_mode = stat.S_IMODE(partial.stat().st_mode)
+        headers = {'Content-Range': 'bytes 20-%s/%s' % (len(self.body) - 1, len(self.body)),
+                   'Content-Length': str(len(self.body) - 20)}
+        transfer.receive(self.response(self.body[20:], 206, headers), resumed, 20, '1')
+        self.assertEqual(resumed.read_bytes(), self.body)
+        self.assertEqual(stat.S_IMODE(resumed.stat().st_mode), resumed_mode)
 
     def test_known_length_denied_before_creating_partial(self):
         self.overbudget()

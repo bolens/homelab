@@ -289,7 +289,7 @@ def receive(response, final, resume, record_id, original_generation=None):
     with cache_guard().allocation(final.parent, None if expected is None else expected - offset, nodes=0 if partial.exists() else 1) as reservation:
         ddl_metadata(database, original_generation, {'tmp_filename': str(partial), 'remote_filesize': expected or 0})
         flags = os.O_WRONLY | os.O_NOFOLLOW | (os.O_APPEND if offset else os.O_CREAT | os.O_EXCL)
-        output_fd = os.open(partial.name, flags, 0o644, dir_fd=reservation.dirfd)
+        output_fd = os.open(partial.name, flags, 0o600, dir_fd=reservation.dirfd)
         birth = os.fstat(output_fd)
         if not stat.S_ISREG(birth.st_mode) or birth.st_nlink != 1:
             os.close(output_fd)
@@ -368,7 +368,7 @@ def unpack(record_id, path, filename):
                             parent_fd, _ = guard.open_directory((temporary / name).parent)
                             try:
                                 child_fd = os.open(Path(name).name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
-                                                   0o644, dir_fd=parent_fd)
+                                                   0o600, dir_fd=parent_fd)
                                 with os.fdopen(child_fd, 'wb') as output, archive.open(entry) as source_member:
                                     for chunk in iter(lambda: source_member.read(65536), b''):
                                         reservation.before_write(len(chunk))
