@@ -4,6 +4,11 @@ from pathlib import Path
 import sys
 
 MARKER = '# homelab-publication-startup-v1'
+BUSY_MARKER = '# homelab-publication-startup-busy-v2'
+OLD_START = "    from mylar import native_writers\n    if native_writers.startup_status()['state'] != 'ready':\n        return False\n"
+OLD_QUEUE = "    from mylar import native_writers\n    if mode == 'start' and native_writers.startup_status()['state'] != 'ready':\n        return False\n"
+START_PREFIX = "    from mylar import native_writers\n    startup = native_writers.startup_status()\n    if startup['state'] != 'ready' and (startup['state'], startup.get('reason')) != ('held', 'writer-busy'):\n        return False\n"
+QUEUE_PREFIX = "    from mylar import native_writers\n    if mode == 'start':\n        startup = native_writers.startup_status()\n        if startup['state'] != 'ready' and (startup['state'], startup.get('reason')) != ('held', 'writer-busy'):\n            return False\n"
 
 
 def _wrap_function(source, name, prefix, context):
@@ -26,6 +31,13 @@ def patched_source(source):
                   'with native_writers.queue_operation(mode):')
         if any(source.count(value)!=1 for value in required):
             raise ValueError('Publication startup patch changed')
+        if BUSY_MARKER in source:
+            if source.count(BUSY_MARKER)!=1 or source.count(START_PREFIX)!=1 or source.count(QUEUE_PREFIX)!=1:
+                raise ValueError('Publication busy startup patch changed')
+        else:
+            if source.count(OLD_START)!=1 or source.count(OLD_QUEUE)!=1:
+                raise ValueError('Expected exact prior startup advisory guards')
+            source=BUSY_MARKER+'\n'+source.replace(OLD_START,START_PREFIX,1).replace(OLD_QUEUE,QUEUE_PREFIX,1)
         ast.parse(source);return source
     anchor='        native_writers.initialize()\n'
     if source.count(anchor)!=1:
@@ -57,15 +69,9 @@ def patched_source(source):
                       "                logger.warn('Native catalog held; authenticated review required')\n",
                       '                return True\n']+['    '+line if line.strip() else line for line in body]
     source=''.join(lines)
-    source=_wrap_function(source,'start',"""    from mylar import native_writers
-    if native_writers.startup_status()['state'] != 'ready':
-        return False
-""",'    with native_writers.operation():\n')
-    source=_wrap_function(source,'queue_schedule',"""    from mylar import native_writers
-    if mode == 'start' and native_writers.startup_status()['state'] != 'ready':
-        return False
-""",'    with native_writers.queue_operation(mode):\n')
-    source=MARKER+'\n'+source;ast.parse(source);return source
+    source=_wrap_function(source,'start',START_PREFIX,'    with native_writers.operation():\n')
+    source=_wrap_function(source,'queue_schedule',QUEUE_PREFIX,'    with native_writers.queue_operation(mode):\n')
+    source=BUSY_MARKER+'\n'+MARKER+'\n'+source;ast.parse(source);return source
 
 
 def main(directory):

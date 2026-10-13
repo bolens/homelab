@@ -341,7 +341,7 @@
   },
   {
     "path": "patch_publication_startup.py",
-    "sha256": "0273ca422602a1fa9c1f4d63be8365c40df81f3710af5a20ecd7f0783429900d",
+    "sha256": "415adf0acf1c6b4b3429af720b69675714abd7d8162e51e9f449f584122808cd",
     "target": "patch_publication_startup.py"
   },
   {
@@ -1686,7 +1686,7 @@
   },
   {
     "path": "test_publication_startup.py",
-    "sha256": "d335de949058eb4c7b5854ff7791f9b9042c83524fef6ab2fc2ed35ffb1c1f2a",
+    "sha256": "5edc49dbcc41b3a7ec2ce9276f797ce0cf384368c58a9a5d075efd83b3dbefcc",
     "target": "test_publication_startup.py"
   },
   {
