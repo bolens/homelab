@@ -2,7 +2,7 @@ services:
   postiz:
     labels:
       logging: "true"
-    image: ghcr.io/gitroomhq/postiz-app:latest@sha256:7eb4a553507ce3f200deff2ec0211ab3cf834ba19eb44dd68e83ccc236509feb
+    image: ghcr.io/gitroomhq/postiz-app:latest@sha256:d2b37802e96757729fdea2d3d71287f841c2b619faa1cb4c21dac07df657fde1
     container_name: postiz
     restart: unless-stopped
     cpus: 4.0

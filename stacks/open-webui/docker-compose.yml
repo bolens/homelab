@@ -3,7 +3,7 @@
 # Compose reads `.env` (copy of stack.env from `./prepare-stack.sh`) for `${VAR}` substitution.
 services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:main@sha256:8b432fe0a65b91116afc7961365c6cca5379cc923171386a96691f3471f3cae9
+    image: ghcr.io/open-webui/open-webui:main@sha256:f179b139e120666eb9ca0fb4af0cfd12a8872f4e1b7bde25f53f099527a5f0aa
     container_name: open-webui
     restart: unless-stopped
     labels:

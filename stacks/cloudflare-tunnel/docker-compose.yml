@@ -2,7 +2,7 @@ services:
   cloudflared:
     labels:
       logging: "true"
-    image: cloudflare/cloudflared:latest@sha256:51c9cefcb4569df44e1ad403ab1d3d8065aa8e84339bcfc6aee75502e1140339
+    image: cloudflare/cloudflared:latest@sha256:9b49eed8f62806d5d45ddf59ecefb5710429598ea6d3fcccd2af938f621b2b07
     container_name: cloudflare-tunnel
     restart: unless-stopped
     cpus: 1.0
