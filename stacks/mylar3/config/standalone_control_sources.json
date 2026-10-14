@@ -130,6 +130,11 @@
     "target": "metadata_repair.py"
   },
   {
+    "path": "native_importer_scheduling_fixture.py",
+    "sha256": "f833993eb311ddd08c743243f472b744b23be2a489ecf83bd2c9b66f1940f203",
+    "target": "native_importer_scheduling_fixture.py"
+  },
+  {
     "path": "native_writers.py",
     "sha256": "43622672cbc3ff49edc45c905f3a57883213102a5ec7203b3a1233ac2ef916fd",
     "target": "native_writers.py"
@@ -156,7 +161,7 @@
   },
   {
     "path": "pack_catalog.py",
-    "sha256": "908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20",
+    "sha256": "00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f",
     "target": "pack_catalog.py"
   },
   {
@@ -821,7 +826,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "5a8ed9996f06357def5c1091147d24525c0fbf0bdc6914461e4a99e5f8c407ff",
+    "sha256": "082942cea68908ac1320d3d62ce98a45fd440b421e2e73a7579d0e0b59168b1e",
     "target": "run_reader_recovery_controls.py"
   },
   {
@@ -953,6 +958,11 @@
     "path": "test_cache_transfer.py",
     "sha256": "852c246d26645695a7beb33d9fe12c54e805bde20d6ec2c0d5f6115e38811fd0",
     "target": "test_cache_transfer.py"
+  },
+  {
+    "path": "test_catalog_maintenance.py",
+    "sha256": "bd7f6bb2dbe58d3b1ae21d3cf7c99523cb089748c7e35b291c9e7368b2e25cac",
+    "target": "test_catalog_maintenance.py"
   },
   {
     "path": "test_catalog_volumes.py",
@@ -1166,7 +1176,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/maintenance.py",
-    "sha256": "83a8a1c914cefb6fe635c8879bbad6fed3c9a2258ab16fb14671409c9041a4e8",
+    "sha256": "ee651d4947b12275cb73c593b8509672cb3b10e1da37350a053a3680a2e0b209",
     "target": "test_fixtures/retained_pack_worker/maintenance.py"
   },
   {
@@ -1206,12 +1216,12 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_only.py",
-    "sha256": "b951dd6f44776c9eabe6340cdde26e52dac196716a52ed138126066e9b3857b4",
+    "sha256": "459ec7a761c38ad7e9f6cf938087f52782879e481a2a8adf47d50b4a44615301",
     "target": "test_fixtures/retained_pack_worker/pack_only.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_recovery.py",
-    "sha256": "acf993c4be5ea2a598c7bc9fa673d67dd3b59b771fbfec5c51f90e2251d8b0ef",
+    "sha256": "03755f6ff7293fc14d536caa70d90e15fdac93a1ff99f3277908bc0c84db3be3",
     "target": "test_fixtures/retained_pack_worker/pack_recovery.py"
   },
   {
@@ -1301,7 +1311,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "37f28ddc9365189d3bdf6a4a077c32f2f727efd3d08a9983f9ac4b7a88cd595c",
+    "sha256": "b2ac4584b524cfc65d98f337f4cfecfa5aeb024783b1d7c056bdeb342c2e3b7e",
     "target": "test_fixtures/retained_pack_worker/source-pins.json"
   },
   {
@@ -1386,7 +1396,7 @@
   },
   {
     "path": "test_pack_catalog.py",
-    "sha256": "b7f65774fa5999f3fecf4742d3f70f461c8c4ab6256411b611c3e191bb369197",
+    "sha256": "208eb705f1e4d9fe2febdd396f093d12098041a80f2d150870c1f29acefa72da",
     "target": "test_pack_catalog.py"
   },
   {
@@ -1636,7 +1646,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "36ca4141408c442fb304665dd96ccc842569de84f1fe64d957ebea7de1c3bfc1",
+    "sha256": "075a884a3c374a627d0f2d8ea444cfa7fd3343573deb15369e8bab60631f3abc",
     "target": "test_publication_reader_recovery_controls.py"
   },
   {
@@ -1931,7 +1941,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "7b152ec75c9c499101677b7b8eecbfa6c5e63f3ddea7d256453f04dd2e90c01a",
+    "sha256": "49bac6dab0739e93231dc25137796282383cee94e1c8404dd396d31d27a600a6",
     "target": "verify_image.py"
   },
   {

@@ -1,0 +1,176 @@
+"""Deterministic configured overlays from this reviewed finite source graph.
+
+This builds bytes only. It grants no lifecycle/SDK authority and does not write
+or load modules. Base admission and provider defaults remain refusing.
+"""
+import ast
+import hashlib
+from pathlib import Path
+
+EXPECTED={'parent': '3047a6b0646710bfd403dea9b77e25ec6f356e1e9a8c64e9ed039857f3594d40', 'projection': '0882a6ffb1fdaca76d42075c24ba20690d963b96c7ded5e4a93ce1354cc35bd4', 'admission': '3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c', 'archive_action': 'e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59', 'backup_action': '36629020bd333e45b7f8621149c727153e17b1eb32dcae4d2fe42294ef42eb46', 'producer': 'a147dd978c10e71fa3fa67c50ec12913ab5b0054c3dd15b6d6066bac1f6c8f8f', 'archive_adapter': '2234458c27c0bb94b949cabb6f54776469f20257b3187508e60db0f181911f42'}
+EXPECTED_NFS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '1003f97d4e4828404c2ce61f5745b18099205de4f0480f35114c508bc20b5294', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '76e722e192750857c61fd6f0d228966a253e47edb68a5a069567d3fb9697e221', 'comic_nfs_child_input_projection.py': 'adbbc45c0b2252443436bab303381b7941561cdb84f14a5353ecc3e8408c9d05', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_negative_nfs_active_parent.py': 'e2a1451a8a935737e0ee54f45740cdee08c839d9c554e1ffc0ab68ef93497688', 'comic_nfs_factual_successor.py': 'a770f274840fba4b2cd39361f4980a5cc380ce4d9361ec70902871e454f5bc68'}
+CHILD_OPERATION = Path('/_operation')
+BASE_SOURCE_MANIFEST_SHA = '6da9a9611d08be83a7d31bc7482f526e0e13fdd366be9dc8097ba047427bab0f'
+class Held(ValueError):pass
+
+def need(ok,reason):
+    if not ok:raise Held(reason)
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+def assignments(raw, edits):
+    text=raw.decode('utf-8');tree=ast.parse(text,feature_version=(3,10));lines=text.splitlines(keepends=True);spans=[]
+    for name,value in edits.items():
+        nodes=[n for n in tree.body if isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id==name]
+        need(len(nodes)==1 and nodes[0].lineno==nodes[0].end_lineno,'configured-unique-assignment')
+        n=nodes[0];spans.append((n.lineno-1,n.col_offset,n.end_col_offset,value))
+    for index,start,end,value in sorted(spans,reverse=True):lines[index]=lines[index][:start]+value+lines[index][end:]
+    result=''.join(lines).encode();changed=ast.parse(result,feature_version=(3,10))
+    stripped=lambda t:ast.dump(ast.Module(body=[n for n in t.body if not (isinstance(n,ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Name) and n.targets[0].id in edits)],type_ignores=[]),include_attributes=False)
+    need(stripped(tree)==stripped(changed),'configured-body-unchanged')
+    return result
+
+def build(sources, parent_original_path):
+    need(type(sources) is dict and set(sources)==set(EXPECTED),'configured-source-roles')
+    for name,raw in sources.items():need(type(raw) is bytes and sha(raw)==EXPECTED[name],'configured-reviewed-source-pin')
+    need(type(parent_original_path) is str and Path(parent_original_path).is_absolute() and all(x not in ('','.','..') for x in parent_original_path.split('/')[1:]) and Path(parent_original_path).name=='comic_reader_lifecycle_parent.py','configured-parent-original-path')
+    parent=assignments(sources['parent'],{'CHILD_CONTROL_PROJECTION_ENABLED':'CHILD_CONTROL_PROJECTION_ENABLED = True','CHILD_CONTROL_SOURCE_SHA':'CHILD_CONTROL_SOURCE_SHA = '+repr(EXPECTED['projection'])})
+    parent_sha=sha(parent)
+    child_parent=str(CHILD_OPERATION/('control-'+sha(parent_original_path.encode())[:24])/Path(parent_original_path).name)
+    admission=assignments(sources['admission'],{'PARENT_SOURCE':'PARENT_SOURCE = Path('+repr(child_parent)+')','PARENT_SHA':'PARENT_SHA = '+repr(parent_sha)})
+    action=assignments(sources['archive_action'],{'PARENT_SOURCE_SHA':'PARENT_SOURCE_SHA='+repr(parent_sha)})
+    pins=ast.literal_eval(next(n.value for n in ast.parse(sources['producer']).body if isinstance(n,ast.Assign) and getattr(n.targets[0],'id',None)=='PINS'));pins=dict(pins);pins['comic_archive_repair_action.py']=sha(action)
+    producer=assignments(sources['producer'],{'PINS':'PINS='+repr(pins)})
+    backup_source=sources['backup_action'].replace(EXPECTED['archive_action'].encode(),sha(action).encode()).replace(EXPECTED['producer'].encode(),sha(producer).encode())
+    # The original backup producer loader names its exact historical preimage.
+    backup_source=backup_source.replace(b'c75332b81a5cbb8bed3dd002b8a5a0e7a1fc85366782c128d987276fa23b411a',sha(producer).encode())
+    backup=assignments(backup_source,{'PARENT_SOURCE_SHA':'PARENT_SOURCE_SHA='+repr(parent_sha)})
+    adapter=assignments(sources['archive_adapter'],{'PRODUCER_SHA':'PRODUCER_SHA = '+repr(sha(producer)),'TERMINAL_PRODUCER_SHA':'TERMINAL_PRODUCER_SHA = '+repr(sha(producer)),'ACTION_SHA':'ACTION_SHA = '+repr(sha(action))})
+    artifacts={'comic_reader_lifecycle_parent.py':parent,'comic_child_control_projection.py':sources['projection'],'publication_reader_admission.py':admission,'comic_archive_repair_action.py':action,'comic_archive_backup_action.py':backup,'comic_archive_proof_producer.py':producer,'comic_archive_evidence_adapter.py':adapter}
+    return artifacts,dict(parent_sha256=parent_sha,child_parent_source=child_parent,base_sources=dict(EXPECTED),effective_sources={name:sha(raw) for name,raw in artifacts.items()},installation_authority=False,lifecycle_authority=False,base_image_parity=False)
+
+def build_nfs(sources):
+    """Finite host-only helpers; no SDK/cohort or installed-admission grant."""
+    need(type(sources) is dict and set(sources)==set(EXPECTED_NFS),'configured-nfs-exact-source-roles')
+    for name,raw in sources.items():need(type(raw) is bytes and sha(raw)==EXPECTED_NFS[name],'configured-nfs-reviewed-source-pin')
+    return dict(sources)
+
+def install(source_paths, output, *, sdk_ref=None, base_manifest_path=None, nfs_source_paths=None):
+    """Create one exclusive root-private configured artifact set; never deploy.
+
+    Root caller supplies reviewed public source paths, not digests or code edits.
+    This does not replace installed files. Canonical admission overlay is a
+    separate own UID1000 leaf; Parent and provider originals remain root600.
+    """
+    import json
+    import os
+    import stat
+    need(os.geteuid()==0,'configured-install-root-required')
+    need(type(source_paths) is dict and set(source_paths)==set(EXPECTED),'configured-install-source-roles')
+    need(type(sdk_ref) is dict and set(sdk_ref)=={'path','sha256','signature9'} and type(sdk_ref['signature9']) in (list,tuple) and len(sdk_ref['signature9'])==9 and all(type(x) is int for x in sdk_ref['signature9']) and base_manifest_path is not None,'configured-install-original-maps-required')
+    original_paths=source_paths;original_sdk=sdk_ref
+    original_nfs=nfs_source_paths
+    need(nfs_source_paths is None or type(nfs_source_paths) is dict and set(nfs_source_paths)==set(EXPECTED_NFS),'configured-install-exact-nfs-roles')
+    nfs_tape=None if nfs_source_paths is None else tuple(sorted(nfs_source_paths.items()))
+    if nfs_tape is not None:need(all(type(k) is str and type(v) is str for k,v in nfs_tape),'configured-install-nfs-path-types')
+    paths_tape=tuple(sorted(source_paths.items()));sdk_tape=(sdk_ref['path'],sdk_ref['sha256'],tuple(sdk_ref['signature9']))
+    need(all(type(k) is str and type(v) is str for k,v in paths_tape) and type(sdk_tape[0]) is str and type(sdk_tape[1]) is str,'configured-install-original-input-types')
+    source_paths=dict(paths_tape)
+    combined_paths=dict(source_paths)
+    if nfs_tape is not None:combined_paths.update(dict(nfs_tape))
+    expected_pins={**EXPECTED,**(EXPECTED_NFS if nfs_tape is not None else {})}
+    sdk_ref={'path':sdk_tape[0],'sha256':sdk_tape[1],'signature9':sdk_tape[2]}
+    output=Path(output)
+    need(output.is_absolute() and all(x not in ('','.','..') for x in str(output).split('/')[1:]),'configured-install-output')
+    vector=lambda z:(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+    node=lambda z:(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+    files=[];nodes={};fds=[];sources={};created=[]
+    for path in [output,Path(sdk_ref['path']),Path(base_manifest_path),*map(Path,combined_paths.values())]:
+        need(path.is_absolute() and all(x not in ('','.','..') for x in str(path).split('/')[1:]),'configured-install-canonical')
+        for parent in path.parents:
+            z=os.lstat(parent);need(stat.S_ISDIR(z.st_mode),'configured-install-ancestor')
+            previous=nodes.setdefault(str(parent),node(z));need(previous==node(z),'configured-install-original-ancestor')
+    try:
+        for role,value in combined_paths.items():
+            path=Path(value);old=vector(os.lstat(path));need(stat.S_ISREG(old[5]) and old[8]==1 and 0<old[2]<=1024**2,'configured-install-source-bound')
+            fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC);fds.append(fd);need(vector(os.fstat(fd))==old,'configured-install-source-FD')
+            chunks=[];remaining=old[2]
+            while remaining:
+                piece=os.read(fd,min(remaining,65536));need(bool(piece),'configured-install-source-length');chunks.append(piece);remaining-=len(piece)
+            raw=b''.join(chunks);need(sha(raw)==expected_pins[role] and vector(os.fstat(fd))==old and vector(os.lstat(path))==old,'configured-install-reviewed-original')
+            sources[role]=raw;files.append((str(path),old))
+        map_bytes={}
+        for role,path,expected_hash,expected9 in (('sdk',Path(sdk_ref['path']),sdk_ref['sha256'],tuple(sdk_ref['signature9'])),('base',Path(base_manifest_path),BASE_SOURCE_MANIFEST_SHA,None)):
+            old=vector(os.lstat(path));need(stat.S_ISREG(old[5]) and old[8]==1 and 0<old[2]<=1024**2 and (expected9 is None or old==expected9),'configured-install-map-original9')
+            if role=='sdk':need(stat.S_IMODE(old[5])==0o600 and old[6]==0,'configured-install-map-private')
+            fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC);fds.append(fd);need(vector(os.fstat(fd))==old,'configured-install-map-FD')
+            raw=b'';remaining=old[2]
+            while remaining:
+                part=os.read(fd,min(remaining,65536));need(bool(part),'configured-install-map-length');raw+=part;remaining-=len(part)
+            need(sha(raw)==expected_hash and vector(os.fstat(fd))==old and vector(os.lstat(path))==old,'configured-install-map-pin');files.append((str(path),old));map_bytes[role]=raw
+        def unique(rows):
+            result={}
+            for key,value in rows:need(key not in result,'configured-install-map-duplicate');result[key]=value
+            return result
+        base_sdk=json.loads(map_bytes['sdk'],object_pairs_hook=unique)
+        artifacts,receipt=build({role:sources[role] for role in EXPECTED},str(output/'comic_reader_lifecycle_parent.py'))
+        sdk,cohort=configured_maps(base_sdk,map_bytes['base'],artifacts,receipt)
+        output.mkdir(mode=0o700);rootfd=os.open(output,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC);fds.append(rootfd)
+        birth=node(os.fstat(rootfd));need(stat.S_ISDIR(birth[2]) and stat.S_IMODE(birth[2])==0o700 and birth[3:]==(0,os.getegid()) and node(os.lstat(output))==birth,'configured-install-root-creator');nodes[str(output)]=birth
+        # Overlay leaf is independently child-readable; root originals never chowned.
+        overlay='publication_reader_admission.overlay.py'
+        blobs={**artifacts,overlay:artifacts['publication_reader_admission.py'],'configured-sdk-map.json':(json.dumps(sdk,sort_keys=True,indent=2)+'\n').encode(),'configured-cohort.json':(json.dumps(cohort,sort_keys=True,indent=2)+'\n').encode()}
+        if nfs_tape is not None:
+            blobs.update(build_nfs({name:sources[name] for name in EXPECTED_NFS}))
+            receipt['nfs_host_only_sources']={name:EXPECTED_NFS[name] for name in EXPECTED_NFS}
+            receipt['nfs_session_admission_proven']=False
+        receipt['readonly_overlay']={'source':str(output/overlay),'destination':'/app/mylar3/mylar/publication_reader_admission.py','uid':1000,'gid':1000,'mode':'0600','sha256':sha(blobs[overlay])}
+        receipt['base_sdk_ref']={'path':sdk_ref['path'],'sha256':sdk_ref['sha256'],'signature9':list(sdk_ref['signature9'])}
+        receipt['effective_sdk_map_sha256']=sha(blobs['configured-sdk-map.json']);receipt['effective_cohort_sha256']=sha(blobs['configured-cohort.json']);receipt['actual_overlay_origins_verified']=False
+        receipt['original_source_refs']={role:{'path':combined_paths[role],'sha256':expected_pins[role],'signature9':list(next(v for p,v in files if p==combined_paths[role]))} for role in combined_paths}
+        blobs['configured-source-observation.json']=(json.dumps(receipt,sort_keys=True,indent=2)+'\n').encode()
+        for name,raw in blobs.items():
+            fd=os.open(name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=rootfd);fds.append(fd);before=vector(os.fstat(fd))
+            need(stat.S_ISREG(before[5]) and stat.S_IMODE(before[5])==0o600 and before[6:]==(0,os.getegid(),1),'configured-install-file-creator')
+            view=memoryview(raw)
+            while view:
+                size=os.write(fd,view);need(size>0,'configured-install-write');view=view[size:]
+            if name==overlay:os.fchown(fd,1000,1000)
+            os.fsync(fd);current=vector(os.fstat(fd));owner=(1000,1000) if name==overlay else (0,os.getegid())
+            need(current[:2]==before[:2] and current[2]==len(raw) and current[5]==before[5] and current[6:]==(*owner,1),'configured-install-own-transition')
+            os.lseek(fd,0,0);need(os.read(fd,len(raw)+1)==raw and vector(os.fstat(fd))==current and vector(os.stat(name,dir_fd=rootfd,follow_symlinks=False))==current,'configured-install-exact-readback')
+            created.append((str(output/name),current))
+        os.fsync(rootfd);result={'output':str(output),'prepared':True,'lifecycle_performed':False,'configured_admission_proven':False}
+        # Return original producer incarnations for the immediate runtime consumer;
+        # a consumer must not adopt freshly observed output metadata instead.
+        result['root_signature5']=list(birth)
+        result['output_refs']={path:{'path':path,'sha256':sha(blobs[Path(path).name]),'signature9':list(stamp)} for path,stamp in created}
+    finally:
+        for fd in reversed(fds):os.close(fd)
+    # All serializers, writes, chown/fsync, callbacks and FD cleanup are finished.
+    if nfs_tape is not None and tuple(sorted(original_nfs.items()))!=nfs_tape:raise Held('configured-install-original-nfs-inputs-final')
+    if tuple(sorted(original_paths.items()))!=paths_tape or (original_sdk['path'],original_sdk['sha256'],tuple(original_sdk['signature9']))!=sdk_tape:raise Held('configured-install-original-inputs-final')
+    if tuple(sorted(os.listdir(output)))!=tuple(sorted(blobs)):raise Held('configured-install-output-namespace')
+    for path,expected in nodes.items():
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=expected:raise Held('configured-install-final5')
+    for path,expected in (*files,*created):
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=expected:raise Held('configured-install-final9')
+    return result
+
+
+def configured_maps(base_sdk, base_manifest, artifacts, receipt):
+    """Derive only admission's configured hash; never admit an unknown SDK leaf.
+
+    The caller must independently prove original base image/source map and
+    effective overlay origins. This pure map derivation grants no admission.
+    """
+    import json
+    need(type(base_manifest) is bytes and sha(base_manifest)==BASE_SOURCE_MANIFEST_SHA,'configured-base-source-manifest')
+    base=json.loads(base_manifest);known=base['base_installed_sources'];required=set(base['required_sdk_names'])
+    need(type(base_sdk) is dict and required<=set(base_sdk) and set(base_sdk)<=set(known),'configured-complete-known-sdk')
+    need(all(type(name) is str and type(value) is str and known[name]==value for name,value in base_sdk.items()),'configured-base-sdk-pins')
+    need(set(artifacts)=={'comic_reader_lifecycle_parent.py','comic_child_control_projection.py','publication_reader_admission.py','comic_archive_repair_action.py','comic_archive_backup_action.py','comic_archive_proof_producer.py','comic_archive_evidence_adapter.py'} and receipt['effective_sources']=={name:sha(raw) for name,raw in artifacts.items()} and receipt['parent_sha256']==sha(artifacts['comic_reader_lifecycle_parent.py']),'configured-derived-artifact-joins')
+    sdk=dict(base_sdk);sdk['publication_reader_admission.py']=sha(artifacts['publication_reader_admission.py'])
+    cohort=json.loads(json.dumps(base['base_cohort']));cohort['parent_sha256']=receipt['parent_sha256'];cohort['modules']['publication_reader_admission']['sha256']=sdk['publication_reader_admission.py']
+    need(cohort['runtime_acceptance'] is False and cohort['publication_acceptance'] is False,'configured-cohort-no-runtime-grant')
+    return sdk,cohort

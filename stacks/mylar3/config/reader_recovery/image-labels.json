@@ -1,0 +1,9 @@
+{
+  "actual_image_inspect": false,
+  "labels": {
+    "org.opencontainers.image.source": "https://github.com/bolens/homelab",
+    "org.opencontainers.image.title": "Mylar comic automation"
+  },
+  "sha256": "370d22a8883d25b4429eb89d77d79bcc8e28fb964507314e03cf1874a66d0c28",
+  "source": "stacks/mylar3/Dockerfile"
+}

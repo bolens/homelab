@@ -177,3 +177,12 @@ config/test_fixtures/authenticated_standalone/fixtures/child/source/**
 config/test_fixtures/ddl_status_retention/**
 !config/test_fixtures/ddl_status_retention/db.py
 !config/test_fixtures/ddl_status_retention/ddl.py
+
+# Finite public configured-parent source-only expectations and test fixtures.
+!config/reader_recovery/configured_reader_parent_base_sources.json
+!config/reader_recovery/INSTALLER-SOURCE-LOCATORS.json
+!config/reader_recovery/image-labels.json
+!config/reader_recovery/_configured_parent_fixtures/
+config/reader_recovery/_configured_parent_fixtures/**
+!config/reader_recovery/_configured_parent_fixtures/active_parent_predecessor.py
+!config/reader_recovery/_configured_parent_fixtures/nfs_factual_predecessor.py

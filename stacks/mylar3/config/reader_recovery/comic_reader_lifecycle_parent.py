@@ -3,6 +3,7 @@
 Root installs and accepts real producers/image before calling run_operation.
 Only this host parent owns engine access; children use inherited pipes.
 """
+import ast
 import copy
 import hashlib
 import importlib.util
@@ -13,6 +14,7 @@ import re
 import select
 import stat
 import subprocess
+import sys
 import threading
 import time
 import weakref
@@ -168,16 +170,37 @@ def pinned_module(source):
     return module
 
 
+CHILD_CONTROL_PROJECTION_ENABLED = False
+CHILD_CONTROL_SOURCE_SHA = None
+_CHILD_TREES = weakref.WeakKeyDictionary()
+_CONFIGURED_OVERLAYS = weakref.WeakKeyDictionary()
+_CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
+_CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
+_CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
+BASE_ADMISSION_SHA = '3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c'
+
 class Paths:
     def __init__(self, mounts):
         need(type(mounts) is list and 1 <= len(mounts) <= 64, 'mount-bound')
         self.mounts = copy.deepcopy(mounts)
+        self.owner = None
         for row in mounts:
             need(set(row) == {'host', 'child', 'write'} and type(row['write']) is bool, 'mount-shape')
             absolute(row['host']); absolute(row['child'])
         need(len({x['child'] for x in mounts}) == len(mounts), 'mount-duplicate')
 
     def child(self, host):
+        if self.owner in _NFS_DATA_ROOTS:
+            path=Path(host)
+            if any(path==Path(root) or Path(root) in path.parents for root in _NFS_DATA_ROOTS[self.owner]):return str(path)
+        if self.owner in _NFS_OUTPUT_PAIRS:
+            original,physical,virtual,_=_NFS_OUTPUT_PAIRS[self.owner];path=Path(host)
+            if path==Path(original) or Path(original) in path.parents:return str(Path(virtual)/path.relative_to(original))
+        if self.owner is not None:
+            tree = _CHILD_TREES.get(self.owner)
+            need(tree is not None,'owning-child-tree')
+            result = tree.child(host)
+            if result is not None:return result
         path = absolute(str(host)); candidates = []
         for row in self.mounts:
             root = Path(row['host'])
@@ -192,6 +215,16 @@ class Paths:
         return result
 
     def host(self, child):
+        if self.owner in _NFS_DATA_ROOTS:
+            path=Path(child)
+            if any(path==Path(root) or Path(root) in path.parents for root in _NFS_DATA_ROOTS[self.owner]):return str(path)
+        if self.owner in _NFS_OUTPUT_PAIRS:
+            original,physical,virtual,_=_NFS_OUTPUT_PAIRS[self.owner];path=Path(child)
+            if path==Path(virtual) or Path(virtual) in path.parents:return str(Path(physical)/path.relative_to(virtual))
+        if self.owner is not None:
+            tree = _CHILD_TREES.get(self.owner)
+            path = Path(child)
+            if path == tree.child_root or tree.child_root in path.parents:return tree.host(path)
         path = absolute(str(child)); candidates = []
         for row in self.mounts:
             root = Path(row['child'])
@@ -204,8 +237,172 @@ class Paths:
         return str(Path(row['host']) / rest)
 
     def child_ref(self, value):
+        if self.owner is not None:
+            self.owner.left()
+            return _CHILD_TREES[self.owner].projected(value)
         read(value)
         return {**value, 'path': self.child(value['path'])}
+
+    def child_host_ref(self,value):
+        # Physical copy ref for host-owned lease mounts; child_ref is virtual.
+        need(self.owner is not None,'configured-child-host-ref-required')
+        self.owner.left();tree=_CHILD_TREES[self.owner]
+        child=tree.projected(value);host=tree.host(child['path'])
+        result=dict(child,path=host);tree.check();return result
+
+    def child_empty(self,name):
+        need(self.owner is not None and name=='nfs-lease-empty-config','configured-child-empty-purpose')
+        self.owner.left();tree=_CHILD_TREES[self.owner];path=tree.root/name
+        need(not os.path.lexists(path),'configured-child-empty-exclusive')
+        tree._mkdir(path);stamp=tuple(nine(os.lstat(path)));tree.check()
+        need(not os.listdir(path),'configured-child-empty-namespace')
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise Held('configured-child-empty-original9')
+        return dict(path=str(path),signature9=list(stamp))
+
+    def admit_nfs_empty(self,value):
+        need(self.owner is not None,'nfs-empty-owning-parent')
+        owner=self.owner;owner.left();session=_NFS_LIVE_SESSIONS.get(owner)
+        need(session is not None,'nfs-empty-original-session-required');session.close()
+        need(type(value) is dict and set(value)=={'path','signature9'} and value['path']==str(Path(session.output)/'lease-empty-config'),'nfs-empty-exact-derived-path')
+        expected=tuple(value['signature9']);need(len(expected)==9 and all(type(v) is int for v in expected) and stat.S_ISDIR(expected[5]) and stat.S_IMODE(expected[5])==0o700 and expected[6:8]==(1000,1000),'nfs-empty-child-creator')
+        host=absolute(self.host(value['path']));nodes=parents(host)
+        fd=os.open(host,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            need(tuple(nine(os.fstat(fd)))==expected and tuple(nine(os.lstat(host)))==expected and not os.listdir(fd),'nfs-empty-original-FD9-namespace')
+        finally:os.close(fd)
+        session.close()
+        if tuple(nine(os.lstat(host)))!=expected:raise Held('nfs-empty-original-final9')
+        row=(value['path'],str(host),expected,tuple(nodes.items()),session,session.cid,session.original_pid,owner.plan['nonce'])
+        need(owner not in _NFS_EMPTY_ROWS,'nfs-empty-no-rebaseline');_NFS_EMPTY_ROWS[owner]=row
+        return dict(path=str(host),signature9=list(expected))
+
+    def check_nfs_empty(self,value):
+        need(self.owner is not None,'nfs-empty-owning-parent');owner=self.owner;owner.left()
+        row=_NFS_EMPTY_ROWS.get(owner);need(row is not None,'nfs-empty-original-unbound')
+        child,host,stamp,nodes,session,cid,pid,nonce=row
+        need(value==dict(path=host,signature9=list(stamp)) and _NFS_LIVE_SESSIONS.get(owner) is session and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),'nfs-empty-original-session-ref')
+        session.close();need(not os.listdir(host),'nfs-empty-original-empty')
+        for path,expected in nodes:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(expected):raise Held('nfs-empty-original5')
+        z=os.lstat(host)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=stamp:raise Held('nfs-empty-original9')
+        return dict(path=host,signature9=list(stamp))
+
+    def admit_nfs_probe(self,value):
+        need(self.owner is not None,'nfs-probe-owning-parent');owner=self.owner;owner.left()
+        session=_NFS_LIVE_SESSIONS.get(owner);need(session is not None,'nfs-probe-original-session');session.close()
+        need(type(value) is dict and set(value)=={'path','sha256','signature9'} and value['path']==str(Path(session.output)/'probe'/'probe-input.json') and digest(value['sha256']),'nfs-probe-exact-derived-input')
+        stamp=tuple(value['signature9']);need(len(stamp)==9 and all(type(v) is int for v in stamp) and stat.S_ISREG(stamp[5]) and stat.S_IMODE(stamp[5])==0o600 and stamp[6:9]==(1000,1000,1) and 0<stamp[2]<=MAX,'nfs-probe-child-creator')
+        host=absolute(self.host(value['path']));nodes=parents(host)
+        fd=os.open(host,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            need(tuple(nine(os.fstat(fd)))==stamp and tuple(nine(os.lstat(host)))==stamp,'nfs-probe-original-FD9');raw=b''
+            while len(raw)<stamp[2]:
+                block=os.read(fd,min(65536,stamp[2]-len(raw)));need(bool(block),'nfs-probe-short-read');raw+=block
+            need(hashlib.sha256(raw).hexdigest()==value['sha256'] and tuple(nine(os.fstat(fd)))==stamp,'nfs-probe-original-bytes')
+        finally:os.close(fd)
+        data=decode(raw);need(type(data) is dict and set(data)=={'version','kind','nonce','root','root9','source_parent9','target_parent9','device','mount','forbidden_roots','seconds'},'nfs-probe-input-schema')
+        refs,_,active,probe,_=_NFS_SOURCE_CONTEXTS[owner];outer=decode(active);plan=decode(probe)
+        fixture=str(Path(outer['parent_admission']['path'])/plan['fixture_name']);fixture_host=self.host(fixture)
+        scope_ref=outer['active_scope'];scope=decode(read(dict(scope_ref,signature9=list(owner.files[scope_ref['path']]))))
+        roots=scope['forbidden_roots'];need(type(roots) is list and 1<=len(roots)<=32 and len(roots)==len(set(roots)),'nfs-probe-original-protected-roots')
+        need(type(data['version']) is int and data['version']==1 and data['kind']=='reviewed-disposable-hardlink-nfs-canary' and type(data['nonce']) is str and re.fullmatch('[a-f0-9]{64}',data['nonce']) is not None and type(data['seconds']) is int and data['seconds']==120,'nfs-probe-original-input-kind')
+        need(data['root']==fixture and data['device']==plan['expected_device'] and data['mount']==plan['mount_identity'] and data['mount']['fstype']=='nfs4' and data['forbidden_roots']==roots,'nfs-probe-original-geometry')
+        directories={fixture_host:tuple(data['root9']),str(Path(fixture_host)/'source'):tuple(data['source_parent9']),str(Path(fixture_host)/'target'):tuple(data['target_parent9'])}
+        for path,original in directories.items():
+            need(len(original)==9 and all(type(v) is int for v in original) and original[0]==plan['expected_device'] and stat.S_ISDIR(original[5]) and stat.S_IMODE(original[5])==0o700 and original[6:8]==(1000,1000) and tuple(nine(os.lstat(path)))==original,'nfs-probe-original-directory9')
+        for root in roots:
+            physical=self.host(root);need(not (Path(physical)==Path(fixture_host) or Path(physical) in Path(fixture_host).parents or Path(fixture_host) in Path(physical).parents),'nfs-probe-protected-overlap')
+        cohort_ref=outer['source_cohort'];cohort=decode(read(dict(cohort_ref,signature9=list(owner.files[cohort_ref['path']]))))
+        need(cohort['images']['selected']==owner.plan['selected_image'],'nfs-probe-original-cohort-image')
+        sources=[]
+        for key in ('probe','hardlink_kernel'):
+            original=cohort['sources'][key];need(original['path'] in owner.files,'nfs-probe-source-original-membership')
+            sources.append(self.child_host_ref(dict(original,signature9=list(owner.files[original['path']]))))
+        virtual_sources=[self.child(str(Path(row['path']))) for row in sources]
+        output=str(Path(session.output)/'probe');output_host=self.host(output)
+        mounts=[[fixture_host,fixture,True],[fixture_host,'/config',False],[output_host,output,True],*[ [r['path'],v,False] for r,v in zip(sources,virtual_sources) ],[str(host),value['path'],False],*[ [self.host(root),root,False] for root in roots ]]
+        spec=dict(image=owner.plan['selected_image'],mounts=mounts,probe=virtual_sources[0],kernel=virtual_sources[1],input=value['path'],input_sha256=value['sha256'],probe_sha256=sources[0]['sha256'])
+        session.close();need(owner not in _NFS_PROBE_ROWS,'nfs-probe-no-rebaseline')
+        row=(copy.deepcopy(value),str(host),tuple(nodes.items()),tuple(directories.items()),session,session.cid,session.original_pid,owner.plan['nonce'],copy.deepcopy(spec))
+        _NFS_PROBE_ROWS[owner]=row;_NFS_PROBE_SEALS[owner]=encode(dict(child=row[0],host=row[1],nodes=row[2],directories=row[3],cid=row[5],pid=row[6],nonce=row[7],spec=row[8]))
+        self.check_nfs_probe(dict(path=str(host),sha256=value['sha256'],signature9=list(stamp)))
+        return dict(path=str(host),sha256=value['sha256'],signature9=list(stamp))
+
+    def check_nfs_probe(self,value):
+        need(self.owner is not None,'nfs-probe-owning-parent');owner=self.owner;owner.left()
+        row=_NFS_PROBE_ROWS.get(owner);need(row is not None,'nfs-probe-original-unbound')
+        child,host,nodes,directories,session,cid,pid,nonce,spec=row
+        original_tape=_NFS_PROBE_SEALS.get(owner)
+        need(encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=spec))==original_tape,'nfs-probe-original-table')
+        need(value==dict(path=host,sha256=child['sha256'],signature9=child['signature9']) and _NFS_LIVE_SESSIONS.get(owner) is session and (session.cid,session.original_pid,owner.plan['nonce'])==(cid,pid,nonce),'nfs-probe-original-session-reference')
+        session.close()
+        # The input was admitted from the child's original UID1000 creator;
+        # only its exact retained FD/path/hash is read here.
+        fd=os.open(host,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            need(tuple(nine(os.fstat(fd)))==tuple(child['signature9']),'nfs-probe-original-current-FD9')
+            raw=b''
+            while len(raw)<child['signature9'][2]:
+                block=os.read(fd,min(65536,child['signature9'][2]-len(raw)));need(bool(block),'nfs-probe-original-current-short');raw+=block
+            need(hashlib.sha256(raw).hexdigest()==child['sha256'] and tuple(nine(os.fstat(fd)))==tuple(child['signature9']),'nfs-probe-original-current-bytes')
+        finally:os.close(fd)
+        result=copy.deepcopy(spec);session.close()
+        need(_NFS_PROBE_ROWS.get(owner) is row and encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=spec))==original_tape,'nfs-probe-final-original-table')
+        for path,original in nodes:
+            z=os.lstat(path)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=tuple(original):raise Held('nfs-probe-original-ancestor5')
+        owned_probe=session.probe_replies.probe
+        started=owned_probe is not None and hasattr(owned_probe,'process') and owned_probe.process.started is True
+        removed=_NFS_PROBE_REMOVED.get(owner)
+        if removed is not None:
+            need(owner.engine not in _NFS_REMOTE_WINDOWS and removed[0] is row
+                 and removed[1] is session and removed[2] is owned_probe
+                 and session.lease_replies.done is True and removed[4] is session.lease_replies.lease
+                 and removed[4].channel.released is True and owned_probe.process.execution_sent is True
+                 and hashlib.sha256(owned_probe.process.kernel_output).hexdigest()==removed[5],
+                 'nfs-probe-cleanup-original-successful-release')
+            for path in removed[6]:
+                if os.path.lexists(path):raise Held('nfs-probe-cleanup-owned-absence-drift')
+        for path,original in directories:
+            if removed is not None:
+                if not (path==removed[6][0] or Path(path).is_relative_to(removed[6][0])):
+                    raise Held('nfs-probe-cleanup-no-foreign-directory')
+                if os.path.lexists(path):raise Held('nfs-probe-cleanup-directory-reappeared')
+                continue
+            if not os.path.lexists(path):raise Held('nfs-probe-owned-directory-missing-before-cleanup-proof')
+            z=os.lstat(path)
+            actual=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid) if started else (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+            expected=(original[0],original[1],original[5],original[6],original[7]) if started else original
+            if actual!=expected:raise Held('nfs-probe-original-directory-transition')
+        z=os.lstat(host)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=tuple(child['signature9']):raise Held('nfs-probe-original-final9')
+        if removed is not None:
+            if _NFS_PROBE_REMOVED.get(owner) is not removed or _NFS_PROBE_ROWS.get(owner) is not row:
+                raise Held('nfs-probe-cleanup-original-final-seal')
+            for path in removed[6]:
+                if os.path.lexists(path):raise Held('nfs-probe-cleanup-final-absence')
+        return result
+
+    def original_ref(self, value):
+        if self.owner is not None:return _CHILD_TREES[self.owner].original(value)
+        return dict(value,path=self.host(value['path']))
+
+    def original_host(self, path):
+        if self.owner is not None:return _CHILD_TREES[self.owner].original_host(path)
+        return str(path)
+
+    def private_scope(self, path, role):
+        if self.owner is not None:
+            self.owner.left();return _CHILD_TREES[self.owner].scope(path,role)
+        return str(path)
+
+    def scope_owner(self,path):
+        if self.owner is not None:return _CHILD_TREES[self.owner].scope_owner(path)
+        return os.geteuid()
+
 
 
 def command_template(provider, phase, input_path):
@@ -278,6 +475,23 @@ def stopped(row):
     need(state['Running'] is False and state['Pid'] == 0 and state['Status'] == 'exited'
          and all(state.get(k) is False for k in ('Paused', 'Restarting', 'Dead', 'OOMKilled')), 'reader-not-stopped')
 _NFS_ADAPTERS=weakref.WeakKeyDictionary()
+_NFS_SOURCE_CONTEXTS=weakref.WeakKeyDictionary()
+_NFS_SOURCE_SEALS=weakref.WeakKeyDictionary()
+_NFS_HOST_MODULES=weakref.WeakKeyDictionary()
+_NFS_HOST_MODULE_SEALS=weakref.WeakKeyDictionary()
+_NFS_CHILD_SOURCE_ROWS=weakref.WeakKeyDictionary()
+_NFS_PACKET_ROWS=weakref.WeakKeyDictionary()
+_NFS_PACKET_SEALS=weakref.WeakKeyDictionary()
+_NFS_OUTPUT_PAIRS=weakref.WeakKeyDictionary()
+_NFS_DATA_ROOTS=weakref.WeakKeyDictionary()
+_NFS_CHILD_EPOCHS=weakref.WeakKeyDictionary()
+_NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
+_NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
+_NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
+_NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '1003f97d4e4828404c2ce61f5745b18099205de4f0480f35114c508bc20b5294', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '76e722e192750857c61fd6f0d228966a253e47edb68a5a069567d3fb9697e221', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'adbbc45c0b2252443436bab303381b7941561cdb84f14a5353ecc3e8408c9d05'}
+NFS_ACTIVE_SOURCE_SHA='e2a1451a8a935737e0ee54f45740cdee08c839d9c554e1ffc0ab68ef93497688'
+
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
     need(cid not in _DIALOGUES.get(engine,{}),'original-dialogue-exclusive')
@@ -299,14 +513,27 @@ def dialogue_close(engine,cid):
     return record
 
 
+_NFS_REMOTE_WINDOWS=weakref.WeakKeyDictionary()
+_NFS_READER_EPOCHS=weakref.WeakKeyDictionary()
+_NFS_PROBE_BIRTHS=weakref.WeakKeyDictionary()
+_NFS_PROBE_LAUNCHES=weakref.WeakKeyDictionary()
+_NFS_PROBE_REMOVED=weakref.WeakKeyDictionary()
+
+def nfs_remote_guard(engine):
+    # Even malformed or uncertain entries remain fail-closed until source-owned
+    # physical release proof removes the original window registration.
+    need(engine not in _NFS_REMOTE_WINDOWS,'nfs-no-remote-under-Writer')
+
 class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
  def run(self,args,seconds):
+  nfs_remote_guard(self)
   need(type(args) is list and bool(args) and args[0] in ('inspect','stop','start','create','events'),'engine-command')
   try:r=subprocess.run([*DOCKER,*args],capture_output=True,timeout=seconds,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except (OSError,subprocess.TimeoutExpired):raise Held('engine-ACK-unknown-no-replay') from None
   need(len(r.stdout)<=MAX and len(r.stderr)<=MAX and r.returncode==0,'engine-command-held');return r.stdout
  def canary(self,args,**kwargs):
+  nfs_remote_guard(self)
   # Only the separately source-pinned diagnostic parent uses this transport.
   need(type(args) is list and (args[:len(DOCKER)]==DOCKER and args[len(DOCKER)] in ('create','inspect','start','exec')
        or args[:2]==['findmnt','--json']), 'nfs-engine-command')
@@ -315,6 +542,7 @@ class ScopedDocker:
   try:return subprocess.run(args,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},**kwargs)
   except (OSError,subprocess.TimeoutExpired):raise Held('nfs-engine-ACK-unknown') from None
  def interactive(self,cid,handler,seconds):
+  nfs_remote_guard(self)
   end=time.monotonic()+seconds
   try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
   except OSError:raise Held('child-start-ACK-unknown') from None
@@ -351,7 +579,28 @@ class ScopedDocker:
    for stream in original_streams:stream.close()
    _DIALOGUES.get(self,{}).pop(cid,None);_DIALOGUE_SEALS.get(self,{}).pop(cid,None)
 
+ def probe_interactive(self,cid):
+  nfs_remote_guard(self)
+  need(type(cid) is str and digest(cid),'nfs-probe-original-CID')
+  birth=_NFS_PROBE_BIRTHS.get(self,{}).get(cid)
+  need(birth is not None,'nfs-probe-unregistered-birth')
+  owner=birth[0];owner.check_nfs_probe_birth(cid)
+  end=time.monotonic()+owner.left()
+  launches=_NFS_PROBE_LAUNCHES.setdefault(self,{})
+  need(cid not in launches,'nfs-probe-start-no-replay')
+  launches[cid]=(birth,'start-ACK-pending')
+  try:process=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+  except OSError:raise Held('nfs-probe-start-ACK-unknown-no-replay') from None
+  streams=(process.stdin,process.stdout,process.stderr)
+  descriptors=tuple((v.fileno(),tuple(five(os.fstat(v.fileno())))) for v in streams)
+  dialogue_register(self,cid,process,streams,descriptors,end,process.pid)
+  owner.check_nfs_probe_birth(cid)
+  need(launches.get(cid)==(birth,'start-ACK-pending'),'nfs-probe-original-launch-pending')
+  launches[cid]=(birth,process,_DIALOGUE_SEALS[self][cid])
+  return process
+
  def worker_interactive(self,cid,protocol,seconds,guard):
+  nfs_remote_guard(self)
   # A nested observer dialogue never replaces the live producer entry.
   end=time.monotonic()+seconds
   try:p=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
@@ -385,6 +634,7 @@ class ScopedDocker:
    for stream in streams:stream.close()
    _DIALOGUES.get(self,{}).pop(cid,None);_DIALOGUE_SEALS.get(self,{}).pop(cid,None)
  def remove_observer(self,cid,original):
+  nfs_remote_guard(self)
   # Only the parent can pass an actual freshly inspected exited owned profile.
   owned=_OBSERVER_OWNED.get(self,{}).get(cid);released=_OBSERVER_RELEASED.get(self,{}).get(cid)
   need(owned is not None and released is not None and type(original) is dict and static(original)==owned[1] and original.get('Id')==cid and original['State']['Status']=='exited' and original['State']['ExitCode']==0 and original['State']['Pid']==0 and original['Config']['Labels'].get('com.homelab.reader.worker-observer')==owned[0],'worker-owned-exited-cleanup')
@@ -400,7 +650,7 @@ class LifecycleParent:
     Engine and producer are host-owned. No child report authorizes restart.
     Missing required real producers fails before execute and leaves reader held.
     """
-    def __init__(self, plan_ref, source_ref, engine):
+    def __init__(self, plan_ref, source_ref, engine, *, configured=None, nfs_sources=None, nfs_intents=None):
         self.thread = threading.get_ident()
         self.plan_ref = copy.deepcopy(plan_ref); self.source_ref = copy.deepcopy(source_ref)
         plan = decode(read(plan_ref)); read(source_ref)
@@ -520,6 +770,77 @@ class LifecycleParent:
             for node,fact in parents(helper).items():need(node not in self.nodes or self.nodes[node]==fact,'worker-helper-node-original');self.nodes[node]=fact
             need(str(helper) not in self.files or self.files[str(helper)]==tuple(value['signature9']),'worker-helper-original9');self.files[str(helper)]=tuple(value['signature9']);module=pinned_module(value);_WORKER_MODULES[self]=module
             _WORKER_FUNCTIONS[self]=(tuple((name,module.__dict__[name],module.__dict__[name].__code__) for name in ('need','encode','decode','digest','path','put','frame','pack','mapping','freeze','response')),module.Round,tuple(module.Round.__dict__.items()),module.Round.__init__.__code__,module.Round.accept.__code__)
+        if configured is not None:
+            need(CHILD_CONTROL_PROJECTION_ENABLED and type(configured) is dict and set(configured)=={'base_admission','admission','cohort','image_metadata'},'configured-overlay-finite-input')
+            original=[]
+            for key in ('base_admission','admission','cohort','image_metadata'):
+                ref=configured[key]
+                for node,value in parents(Path(ref['path'])).items():need(node not in self.nodes or self.nodes[node]==value,'configured-overlay-ancestor-conflict');self.nodes[node]=value
+                need(ref['path'] not in self.files or self.files[ref['path']]==tuple(ref['signature9']),'configured-overlay-file-conflict');self.files[ref['path']]=tuple(ref['signature9'])
+                read(ref);original.append((ref['path'],ref['sha256'],tuple(ref['signature9'])))
+            base=read(configured['base_admission']);need(configured['base_admission']['sha256']==BASE_ADMISSION_SHA,'configured-overlay-reviewed-base')
+            child_root=Path(self.mapping.child(self.op));parent_child=child_root/('control-'+hashlib.sha256(self.source_ref['path'].encode()).hexdigest()[:24])/Path(self.source_ref['path']).name
+            expected=base.replace(b"PARENT_SOURCE = Path('/tmp/comic-komga-reader-preservation-parent-v1.py')",('PARENT_SOURCE = Path('+repr(str(parent_child))+')').encode(),1).replace(b'PARENT_SHA = None',('PARENT_SHA = '+repr(self.source_ref['sha256'])).encode(),1)
+            need(expected!=base and read(configured['admission'])==expected and mapping.get('publication_reader_admission.py')==configured['admission']['sha256'],'configured-overlay-exact-approved-edits')
+            cohort=decode(read(configured['cohort']));need(cohort['parent_sha256']==self.source_ref['sha256'] and cohort['modules']['publication_reader_admission']['sha256']==configured['admission']['sha256'] and cohort['runtime_acceptance'] is False and cohort['publication_acceptance'] is False,'configured-overlay-effective-cohort')
+            image=decode(read(configured['image_metadata']))
+            need(type(image) is list and len(image)==1 and type(image[0]) is dict and image[0].get('Id')==plan['selected_image'] and image[0].get('Os')=='linux' and image[0].get('Architecture')=='amd64' and type(image[0].get('Config')) is dict,'configured-selected-image-original')
+            labels=image[0]['Config'].get('Labels')
+            need(labels is None or type(labels) is dict and all(type(k) is str and type(v) is str for k,v in labels.items()),'configured-selected-image-label-shape')
+            _CONFIGURED_IMAGE_LABELS[self]=tuple(sorted((labels or {}).items()));_CONFIGURED_IMAGE_SEALS[self]=_CONFIGURED_IMAGE_LABELS[self]
+            _CONFIGURED_OVERLAYS[self]=tuple(original);_CONFIGURED_OVERLAY_SEALS[self]=tuple(original)
+        if nfs_sources is not None:
+            need(CHILD_CONTROL_PROJECTION_ENABLED and type(nfs_sources) is dict and set(nfs_sources)==set(NFS_HOST_SOURCE_PINS),'nfs-owning-finite-sources')
+            refs={};raws={}
+            for name,expected in NFS_HOST_SOURCE_PINS.items():
+                ref=copy.deepcopy(nfs_sources[name]);need(ref['sha256']==expected and Path(ref['path']).name==name,'nfs-owning-reviewed-source')
+                for node,value in parents(Path(ref['path'])).items():
+                    need(node not in self.nodes or self.nodes[node]==value,'nfs-owning-original-node');self.nodes[node]=value
+                need(ref['path'] not in self.files or self.files[ref['path']]==tuple(ref['signature9']),'nfs-owning-original-file');self.files[ref['path']]=tuple(ref['signature9'])
+                raws[name]=read(ref);refs[name]=ref
+            need(plan['nfs']['active_parent']['sha256']==NFS_ACTIVE_SOURCE_SHA,'nfs-owning-active-source')
+            active=decode(read(plan['nfs']['active_input']))
+            need(type(active) is dict and set(active)=={'version','kind','active_scope','parent_admission','probe_plan','operation_output','native_controls','effective_observer_review','source_cohort'} and type(active['version']) is int and active['version']==1 and active['kind']=='approved-active-nfs-owned-lifecycle','nfs-owning-active-input-schema')
+            output=absolute(active['operation_output']);need(output!=self.op and self.op not in output.parents,'nfs-owning-distinct-original-output')
+            # Owning active_scope/review/cohort/native_controls are path+SHA
+            # references; probe_plan and parent_admission are inline plans.
+            # Admit current original9 before the first read, never replace a
+            # previously captured original path incarnation.
+            for name in ('active_scope','effective_observer_review','source_cohort','native_controls'):
+                value=active[name];need(type(value) is dict and set(value)=={'path','sha256'},'nfs-owning-nested-ref-shape')
+                path=absolute(value['path'])
+                for node,fact in parents(path).items():
+                    need(node not in self.nodes or self.nodes[node]==fact,'nfs-owning-input-node');self.nodes[node]=fact
+                stamp=tuple(nine(os.lstat(path)))
+                need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-owning-input-file');self.files[str(path)]=stamp
+            for name in ('active_scope','effective_observer_review','source_cohort','native_controls'):
+                value=active[name];read(dict(value,signature9=list(self.files[value['path']])))
+            # Complete finite SourceCohort file graph is sealed before any child.
+            cref=active['source_cohort'];cohort=decode(read(dict(cref,signature9=list(self.files[cref['path']]))))
+            need(type(cohort) is dict and type(cohort.get('sources')) is dict and type(cohort.get('logs')) is dict,'nfs-owning-cohort-original')
+            original_scope=decode(read(dict(active['active_scope'],signature9=list(self.files[active['active_scope']['path']]))))
+            need(type(original_scope.get('sources')) is dict,'nfs-owning-scope-source-refs')
+            nested=[*cohort['sources'].values(),*cohort['logs'].values(),cohort['parent'],cohort['receipt'],*original_scope['sources'].values()]
+            for value in nested:
+                need(type(value) is dict and set(value)=={'path','sha256'},'nfs-owning-cohort-ref-shape');path=absolute(value['path'])
+                for node,fact in parents(path).items():
+                    need(node not in self.nodes or self.nodes[node]==fact,'nfs-owning-cohort-node');self.nodes[node]=fact
+                stamp=tuple(nine(os.lstat(path)));need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-owning-cohort-file');self.files[str(path)]=stamp
+            for value in nested:read(dict(value,signature9=list(self.files[value['path']])))
+            need(type(active['probe_plan']) is dict and type(active['parent_admission']) is dict,'nfs-owning-inline-plans')
+            probe=copy.deepcopy(active['probe_plan'])
+            roots=tuple(original_scope['forbidden_roots']);need(1<=len(roots)<=32 and len(roots)==len(set(roots)),'nfs-owning-data-roots')
+            grandparent=str(Path(active['parent_admission']['path']).parent)
+            for path in (*roots,grandparent):absolute(path)
+            _NFS_DATA_ROOTS[self]=(*roots,grandparent)
+            need(type(nfs_intents) is dict and set(nfs_intents)=={'path','sha256','signature9'},'nfs-owning-original-intents-required')
+            intent=copy.deepcopy(nfs_intents)
+            for node,fact in parents(Path(intent['path'])).items():
+                need(node not in self.nodes or self.nodes[node]==fact,'nfs-owning-intents-node');self.nodes[node]=fact
+            need(intent['path'] not in self.files or self.files[intent['path']]==tuple(intent['signature9']),'nfs-owning-intents-file');self.files[intent['path']]=tuple(intent['signature9']);read(intent)
+            refs['engine_intents']=intent
+            _NFS_SOURCE_CONTEXTS[self]=(refs,raws,encode(active),encode(probe),str(output))
+            _NFS_SOURCE_SEALS[self]=encode(dict(refs=refs,raw_sha={name:hashlib.sha256(raw).hexdigest() for name,raw in raws.items()},active=active,probe=probe,output=str(output)))
         self.baselines = {}
         for key in ('reader', 'held_native', 'held_worker'):
             expected = plan[key]
@@ -535,6 +856,13 @@ class LifecycleParent:
              'worker-must-stay-created')
         # A running native daemon's explicit held publication state/process is
         # proven only by the required fresh producer, never by container health.
+        if CHILD_CONTROL_PROJECTION_ENABLED:
+            control_path=Path(__file__).with_name('comic_child_control_projection.py')
+            for node,value in parents(control_path).items():
+                need(node not in self.nodes or self.nodes[node]==value,'configured-projection-original-node');self.nodes[node]=value
+            control_ref=dict(path=str(control_path),sha256=CHILD_CONTROL_SOURCE_SHA,signature9=nine(os.lstat(control_path)))
+            need(str(control_path) not in self.files or self.files[str(control_path)]==tuple(control_ref['signature9']),'configured-projection-original9')
+            read(control_ref);self.files[str(control_path)]=tuple(control_ref['signature9'])
         self.core = encode(dict(plan=self.plan, files=self.files, nodes=self.nodes,
                                 source=self.source_ref, input=self.plan_ref, engine=id(self.engine),
                                 thread=self.thread, deadline=self.deadline))
@@ -543,6 +871,18 @@ class LifecycleParent:
         self.op.mkdir(mode=0o700); self.op_fact = tuple(five(os.lstat(self.op))); self.sync(self.op.parent)
         self.emit('intent.json', dict(version=2, nonce=plan['nonce'], automatic_replay=False,
                                       publication_acceptance=False))
+        if CHILD_CONTROL_PROJECTION_ENABLED:
+            need(os.geteuid()==0 and digest(CHILD_CONTROL_SOURCE_SHA) and self in _CONFIGURED_OVERLAYS,'configured-child-projection')
+            control_path=Path(__file__).with_name('comic_child_control_projection.py')
+            control_ref=dict(path=str(control_path),sha256=CHILD_CONTROL_SOURCE_SHA,signature9=nine(os.lstat(control_path)))
+            module=pinned_module(control_ref)
+            child_root=Path(self.mapping.child(self.op))
+            tree=module.Tree(self.op.with_name(self.op.name+'-child'),child_root,self.op,read)
+            _CHILD_TREES[self]=tree;self.mapping.owner=self
+            _OUTPUT_NODES.setdefault(self,{})[str(tree.root)]=tuple(five(os.lstat(tree.root)))
+        else:
+            need(os.geteuid()!=0,'root-child-projection-default-disabled')
+
 
     def left(self):
         need(threading.get_ident() == self.thread and time.monotonic() < self.deadline, 'parent-lifetime')
@@ -550,7 +890,451 @@ class LifecycleParent:
                          source=self.source_ref, input=self.plan_ref, engine=id(self.engine),
                                 thread=self.thread, deadline=self.deadline)) == _CORES.get(self), 'original-parent-core')
         need(str(self.op) == self.plan['operation'] and encode(self.generated) == _GENERATED.get(self), 'parent-output-core')
+        if self in _CHILD_TREES:
+            need(self.mapping.owner is self,'original-child-mapping-owner');_CHILD_TREES[self].check()
+            need(_CONFIGURED_OVERLAYS.get(self)==_CONFIGURED_OVERLAY_SEALS.get(self),'configured-overlay-original-seal')
+            need(_CONFIGURED_IMAGE_LABELS.get(self)==_CONFIGURED_IMAGE_SEALS.get(self),'configured-image-original-seal')
+            for path,sha,stamp in _CONFIGURED_OVERLAY_SEALS[self]:read(dict(path=path,sha256=sha,signature9=list(stamp)))
+        if self in _NFS_OUTPUT_PAIRS:
+            original,physical,virtual,stamp=_NFS_OUTPUT_PAIRS[self];tree=_CHILD_TREES[self]
+            need(original==_NFS_SOURCE_CONTEXTS[self][4] and physical==str(tree.root/'nfs'/'active-output') and virtual==str(tree.child_root/'nfs'/'active-output'),'nfs-active-output-original-pair')
+            z=os.lstat(Path(physical).parent)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=stamp:raise Held('nfs-active-output-original-parent5')
+        if self in _NFS_SOURCE_CONTEXTS:
+            refs,raws,active,probe,output=_NFS_SOURCE_CONTEXTS[self]
+            need(encode(dict(refs=refs,raw_sha={name:hashlib.sha256(raw).hexdigest() for name,raw in raws.items()},active=decode(active),probe=decode(probe),output=output))==_NFS_SOURCE_SEALS.get(self),'nfs-owning-source-context-seal')
+            for ref in refs.values():read(ref)
         return max(0.001, self.deadline - time.monotonic())
+
+    def nfs_host_modules(self):
+        self.left();need(self in _NFS_SOURCE_CONTEXTS,'nfs-owning-default-unconfigured')
+        refs,raws,_,_,_=_NFS_SOURCE_CONTEXTS[self]
+        if self in _NFS_HOST_MODULES:
+            modules=_NFS_HOST_MODULES[self];original=_NFS_HOST_MODULE_SEALS[self]
+            need(tuple((name,module) for name,module in modules.items())==original[0],'nfs-host-original-module-table')
+            for name,module,key,functions in original[1]:
+                need(sys.modules.get(key) is module and module.__file__==refs[name]['path'],'nfs-host-original-module-origin')
+                for parent,attribute,value,code in functions:
+                    need(getattr(parent,attribute,None) is value and getattr(value,'__code__',None) is code,'nfs-host-original-callable')
+            return modules
+        refs,raws,_,_,_=_NFS_SOURCE_CONTEXTS[self];modules={}
+        # Production host-only imports consume the checked detached buffers.
+        # No SDK names, preexisting module replacement or origin patching.
+        for name in ('comic_nfs_host_engine.py','comic_nfs_host_lease.py','comic_nfs_lease_session.py','comic_nfs_host_probe.py','comic_nfs_parent_session.py','comic_nfs_child_input_projection.py'):
+            key=name[:-3];need(key not in sys.modules,'nfs-host-module-existing-refused')
+            spec=importlib.util.spec_from_loader(key,loader=None);module=importlib.util.module_from_spec(spec);module.__file__=refs[name]['path']
+            exec(compile(raws[name],module.__file__,'exec'),module.__dict__)
+            sys.modules[key]=module;modules[name]=module
+        seals=[]
+        for name,module in modules.items():
+            functions=[]
+            for attribute,value in tuple(module.__dict__.items()):
+                if callable(value) and getattr(value,'__module__',None)==module.__name__:
+                    functions.append((module,attribute,value,getattr(value,'__code__',None)))
+                    if isinstance(value,type):
+                        for member,method in tuple(value.__dict__.items()):
+                            if hasattr(method,'__code__'):functions.append((value,member,method,method.__code__))
+            seals.append((name,module,name[:-3],tuple(functions)))
+        self.left();_NFS_HOST_MODULES[self]=modules;_NFS_HOST_MODULE_SEALS[self]=(tuple(modules.items()),tuple(seals));return modules
+
+    def nfs_child_ref(self,ref):
+        self.left();need(self in _NFS_SOURCE_CONTEXTS,'nfs-owning-default-unconfigured')
+        refs,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];data=decode(active)
+        cohort_ref=data['source_cohort'];cohort=decode(read(dict(cohort_ref,signature9=list(self.files[cohort_ref['path']]))))
+        scope_ref=data['active_scope'];scope=decode(read(dict(scope_ref,signature9=list(self.files[scope_ref['path']]))))
+        named=[*refs.values(),self.plan_ref,self.source_ref,self.plan['nfs']['active_parent'],self.plan['nfs']['active_input'],*cohort['sources'].values(),*cohort['logs'].values(),cohort['parent'],cohort['receipt'],*scope['sources'].values(),*[data[k] for k in ('active_scope','effective_observer_review','source_cohort','native_controls')]]
+        original_paths={v['path'] for v in named}
+        generated_names={'nfs-uid-child.py','nfs-cohort-receipt-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}
+        need(ref['path'] in original_paths and tuple(ref['signature9'])==self.files.get(ref['path']) or Path(ref['path']).parent==self.op and Path(ref['path']).name in generated_names and self.generated.get(ref['path'])==ref,'nfs-only-declared-control-origin')
+        tree=_CHILD_TREES[self];tree.reserve_nfs_control(ref);result=tree.projected(ref);self.left();return result
+
+    def prepare_nfs_inputs(self):
+        self.left();need(self in _NFS_SOURCE_CONTEXTS and self in _CHILD_TREES,'nfs-owning-default-unconfigured')
+        modules=self.nfs_host_modules();producer=modules['comic_nfs_child_input_projection.py'].Inputs(self)
+        if self not in _NFS_OUTPUT_PAIRS:
+            _,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];original_output=decode(active)['operation_output'];tree=_CHILD_TREES[self];phase=tree.phase('nfs');physical=phase/'active-output';virtual=str(tree.child_root/'nfs'/'active-output')
+            need(not os.path.lexists(physical),'nfs-active-output-exclusive');_NFS_OUTPUT_PAIRS[self]=(original_output,str(physical),virtual,tuple(five(os.lstat(phase))))
+        original=self.plan['nfs']['active_input'];two=dict(path=original['path'],sha256=original['sha256'])
+        projected=producer.outer(two);original=producer.emitted[(projected['path'],projected['sha256'])]
+        result=self.nfs_child_ref(original);self.left();return result
+
+    def prepare_nfs_child_source(self):
+        self.left();need(self in _NFS_SOURCE_CONTEXTS,'nfs-owning-default-unconfigured')
+        refs,raws,_,_,_=_NFS_SOURCE_CONTEXTS[self];raw=raws['comic_nfs_uid_child.py'];tree=ast.parse(raw,feature_version=(3,10));lines=raw.decode().splitlines(keepends=True)
+        edits={'ACTIVE_SOURCE_SHA':NFS_ACTIVE_SOURCE_SHA,'LEASE_INTERFACE_SOURCE_SHA':refs['comic_nfs_lease_session.py']['sha256']}
+        for name,value in edits.items():
+            nodes=[n for n in tree.body if isinstance(n,ast.Assign) and len(n.targets)==1 and getattr(n.targets[0],'id',None)==name]
+            need(len(nodes)==1 and nodes[0].lineno==nodes[0].end_lineno and ast.literal_eval(nodes[0].value) is None,'nfs-child-original-default-assignment')
+            node=nodes[0];lines[node.lineno-1]=lines[node.lineno-1][:node.col_offset]+name+' = '+repr(value)+lines[node.lineno-1][node.end_col_offset:]
+        result=''.join(lines).encode();after=ast.parse(result,feature_version=(3,10))
+        def body(t):return ast.dump(ast.Module(body=[n for n in t.body if not (isinstance(n,ast.Assign) and len(n.targets)==1 and getattr(n.targets[0],'id',None) in edits)],type_ignores=[]),include_attributes=False)
+        need(body(tree)==body(after),'nfs-child-approved-two-constants-only')
+        path=self.op/'nfs-uid-child.py';directory=os.open(self.op,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            need(tuple(five(os.fstat(directory)))==self.op_fact,'nfs-child-source-parent-original5')
+            fd=os.open(path.name,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600,dir_fd=directory)
+            try:
+                born=tuple(nine(os.fstat(fd)));need(stat.S_ISREG(born[5]) and stat.S_IMODE(born[5])==0o600 and born[6:]==(0,0,1),'nfs-child-source-creator')
+                offset=0
+                while offset<len(result):
+                    count=os.write(fd,result[offset:]);need(count>0,'nfs-child-source-short');offset+=count
+                os.fsync(fd);original=tuple(nine(os.fstat(fd)));need(original[:2]==born[:2] and original[5:]==born[5:] and original[2]==len(result),'nfs-child-source-own-write')
+                os.lseek(fd,0,0);need(os.read(fd,len(result)+1)==result and tuple(nine(os.fstat(fd)))==original,'nfs-child-source-readback')
+            finally:os.close(fd)
+            os.fsync(directory)
+        finally:os.close(directory)
+        value=dict(path=str(path),sha256=hashlib.sha256(result).hexdigest(),signature9=list(original))
+        self.generated[str(path)]=copy.deepcopy(value);_GENERATED[self]=encode(self.generated);self.left()
+        child=self.nfs_child_ref(value);self.left()
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=original:raise Held('nfs-child-source-final9')
+        _NFS_CHILD_SOURCE_ROWS[self]=(copy.deepcopy(value),copy.deepcopy(child))
+        return value,child
+
+    def prepare_nfs_packet(self,seconds):
+        self.left();need(type(seconds) is int and 1<=seconds<=min(120,int(self.left())),'nfs-packet-finite-seconds')
+        need(self not in _NFS_PACKET_ROWS,'nfs-packet-no-replay')
+        active_input=self.prepare_nfs_inputs();source,child_source=self.prepare_nfs_child_source()
+        active_ref=self.nfs_child_ref(self.plan['nfs']['active_parent'])
+        refs,_,_,_,_=_NFS_SOURCE_CONTEXTS[self];interface=self.nfs_child_ref(refs['comic_nfs_lease_session.py'])
+        original_roles={}
+        for role,key in (('native','held_native'),('worker','held_worker'),('reader','reader')):
+            baseline=self.baselines[key];original_roles[role]=dict(id=baseline['Id'],image=baseline['Image'],profile=static(baseline),epoch={k:v for k,v in baseline['State'].items() if k!='Health'})
+        plan=self.nfs_child_ref(self.plan_ref);parent=self.nfs_child_ref(self.source_ref)
+        roles=self.emit('nfs-roles-bootstrap-input.json',dict(version=1,kind='parent-original-current-three-role-bootstrap',plan=plan,source=parent,roles=original_roles,ancestors={}))
+        roles_child=self.nfs_child_ref(roles)
+        packet=self.emit('nfs-packet-input.json',dict(version=1,kind='owning-nfs-retained-host-lease-child-v2',nonce=self.plan['nonce'],seconds=seconds,active_source=active_ref,active_input=active_input,roles=roles_child,lease_interface=interface))
+        _NFS_PACKET_ROWS[self]=(copy.deepcopy(packet),copy.deepcopy(source),copy.deepcopy(roles_child))
+        _NFS_PACKET_SEALS[self]=encode(_NFS_PACKET_ROWS[self])
+        self.left();return packet,source
+
+    def open_nfs_child(self,packet_ref,child_ref):
+        self.left();need(self in _NFS_SOURCE_CONTEXTS and self in _CHILD_TREES,'nfs-child-default-unconfigured')
+        need(packet_ref['path'] in self.generated and self.generated[packet_ref['path']]==packet_ref and child_ref['path'] in self.generated and self.generated[child_ref['path']]==child_ref,'nfs-child-own-generated-inputs')
+        need(self in _NFS_PACKET_ROWS and encode(_NFS_PACKET_ROWS[self])==_NFS_PACKET_SEALS.get(self) and (packet_ref,child_ref)==_NFS_PACKET_ROWS[self][:2],'nfs-child-original-prepared-packet-and-source')
+        need(self in _NFS_CHILD_SOURCE_ROWS and child_ref==_NFS_CHILD_SOURCE_ROWS[self][0],'nfs-child-original-configured-source')
+        packet=decode(read(packet_ref));read(child_ref)
+        need(type(packet) is dict and set(packet)=={'version','kind','nonce','seconds','active_source','active_input','roles','lease_interface'} and type(packet['version']) is int and packet['version']==1 and packet['kind']=='owning-nfs-retained-host-lease-child-v2' and packet['nonce']==self.plan['nonce'] and type(packet['seconds']) is int and 1<=packet['seconds']<=int(self.left()),'nfs-child-finite-owned-packet')
+        child=self.nfs_child_ref(child_ref);payload=self.nfs_child_ref(packet_ref)
+        command=['-I','-B',child['path'],'--packet',payload['path'],'--packet-sha256',payload['sha256'],'--packet9',encode(list(payload['signature9'])).decode()]
+        tree=_CHILD_TREES[self];mounts=[dict(r) for r in self.plan['mounts'] if Path(r['host'])!=self.op]
+        mounts.append(dict(host=str(tree.root),child=str(tree.child_root),write=True))
+        for host,target in tree.readonly_files():mounts.append(dict(host=host,child=target,write=False))
+        # Only exact original NFS sibling grandparent is writable additionally;
+        # original protected roots stay read-only for this observer child.
+        _,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];admission=decode(active)['parent_admission']
+        virtual=str(Path(admission['path']).parent);physical=virtual
+        expected=tuple(admission['grandparent_signature'])
+        need(tuple(nine(os.lstat(physical)))==expected and stat.S_ISDIR(expected[5]) and admission['mount_identity']['fstype']=='nfs4' and expected[0]==admission['expected_device'],'nfs-child-original-nfs-grandparent')
+        protected=[self.mapping.host(self.plan['native']['data']),*[self.mapping.host(p) for p in self.plan['native']['roots']]]
+        need(all(not (Path(physical)==Path(p) or Path(physical) in Path(p).parents or Path(p) in Path(physical).parents) for p in protected),'nfs-child-grandparent-protected-overlap')
+        mounts=[dict(r,write=False) for r in mounts if r['child']!=str(tree.child_root)]+[dict(host=str(tree.root),child=str(tree.child_root),write=True)]
+        mounts=[r for r in mounts if r['child'] not in _NFS_DATA_ROOTS[self]]
+        mounts.extend(dict(host=root,child=root,write=False) for root in _NFS_DATA_ROOTS[self][:-1])
+        mounts.append(dict(host=physical,child=virtual,write=True))
+        need(len({r['child'] for r in mounts})==len(mounts),'nfs-child-mount-shadow')
+        name='reader-nfs-'+self.plan['nonce'][:16]
+        args=['create','--pull','never','--name',name,'--label','com.homelab.reader.lifecycle='+name,'--interactive','--read-only','--network','none','--ipc','private','--user','1000:1000','--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit','32','--memory','2g','--memory-swap','2g','--env','PYTHONDONTWRITEBYTECODE=1','--entrypoint','/lsiopy/bin/python3']
+        for row in mounts:
+            need(not any(c in row['host']+row['child'] for c in ',\n\r'),'nfs-child-mount-spelling');args.extend(['--mount','type=bind,src='+row['host']+',dst='+row['child']+('' if row['write'] else ',readonly')])
+        args.extend([self.plan['selected_image'],*command]);self.emit('nfs-create-intent.json',dict(command=args,automatic_replay=False));self.left()
+        cid=self.engine.run(args,self.left()).decode().strip();need(digest(cid),'nfs-child-created-ACK');created=self.inspect(cid)
+        labels=dict(_CONFIGURED_IMAGE_LABELS.get(self,()));need('com.homelab.reader.lifecycle' not in labels,'nfs-child-image-reserved-label');labels['com.homelab.reader.lifecycle']=name
+        need(created['Config']['Labels']==labels,'nfs-child-original-created-labels')
+        self.profile(created,cid,command,sorted((r['host'],r['child'],r['write']) for r in mounts),False)
+        process=subprocess.Popen([*DOCKER,'start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+        streams=(process.stdin,process.stdout,process.stderr);fds=tuple((v.fileno(),tuple(five(os.fstat(v.fileno())))) for v in streams)
+        dialogue_register(self.engine,cid,process,streams,fds,min(self.deadline,time.monotonic()+packet['seconds']),process.pid)
+        session=self.retain_nfs_process(cid,process,packet_ref,encode(static(created)))
+        return session
+
+    def retain_nfs_process(self,cid,process,packet_ref,created_static):
+        # Creation/spec validation is source-owned at the caller; this method
+        # admits only the actual existing original registered dialogue.
+        self.left();need(self in _NFS_SOURCE_CONTEXTS and self not in _NFS_LIVE_SESSIONS,'nfs-original-session-exclusive')
+        need(type(process) is subprocess.Popen and process.pid==dialogue_close(self.engine,cid)['pid'],'nfs-original-process-registered')
+        modules=self.nfs_host_modules();refs,_,active,probe,output=_NFS_SOURCE_CONTEXTS[self]
+        original_probe=decode(probe);parent=decode(active)['parent_admission']
+        fixture=str(Path(parent['path'])/original_probe['fixture_name'])
+        absent=(self.mapping.host(fixture),self.mapping.host(parent['path']))
+        engine=modules['comic_nfs_host_engine.py'].EngineReplies(self,cid,self.plan['nonce'],intents_ref=refs['engine_intents'])
+        lease=modules['comic_nfs_lease_session.py'].HostLeaseReplies(engine,None,absent,helper_ref=refs['comic_negative_nfs_active_lifecycle.py'])
+        probe_handler=modules['comic_nfs_host_probe.py'].HostProbeReplies(engine)
+        virtual_output=_NFS_OUTPUT_PAIRS[self][2]
+        session=modules['comic_nfs_parent_session.py'].RetainedChild(self,cid,process,engine,lease,probe_handler,packet_ref,virtual_output,created_static)
+        _NFS_LIVE_SESSIONS[self]=session;self.left();return session
+
+    def nfs_role_namespace_reply(self,frame):
+        session=_NFS_LIVE_SESSIONS.get(self);need(session is not None and session.lease_replies.lease is None,'nfs-namespace-before-lease-only')
+        session.close();dialogue=session.engine_replies
+        need(type(frame) is dict and set(frame)=={'type','nonce','sequence','payload'} and frame['type']=='nfs-role-namespace' and frame['nonce']==self.plan['nonce'] and type(frame['sequence']) is int and frame['sequence']==dialogue.sequence+1 and frame['payload']=={},'nfs-namespace-finite-frame')
+        original_ref=_NFS_PACKET_ROWS[self][2];root_ref=self.mapping.original_ref(original_ref);bootstrap=decode(read(root_ref))
+        need(bootstrap['kind']=='parent-original-current-three-role-bootstrap' and bootstrap['ancestors']=={},'nfs-namespace-original-bootstrap')
+        current=self.inspect(session.cid);state=current['State']
+        need(encode(static(current))==session.created_static and state['Running'] is True and state['Paused'] is False and type(state['Pid']) is int and state['Pid']>0,'nfs-namespace-own-running-child')
+        need(self not in _NFS_CHILD_EPOCHS,'nfs-namespace-bootstrap-no-replay')
+        pid=state['Pid'];epoch=lifecycle_state(current);ticks=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19]);ancestors={}
+        for key in ('plan','source'):
+            ref=bootstrap[key];expected=tuple(ref['signature9']);self.mapping.original_ref(ref)
+            rootfd=os.open('/proc/'+str(pid)+'/root',os.O_RDONLY|os.O_DIRECTORY|os.O_CLOEXEC)
+            try:
+                virtual=Path('/');ancestors['/']=list(five(os.fstat(rootfd)))
+                for part in Path(ref['path']).parts[1:-1]:
+                    virtual/=part;fd=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=rootfd)
+                    stamp=list(five(os.fstat(fd)));need(str(virtual) not in ancestors or ancestors[str(virtual)]==stamp,'nfs-namespace-original-ancestor-conflict');ancestors[str(virtual)]=stamp
+                    os.close(rootfd);rootfd=fd
+                fd=os.open(Path(ref['path']).name,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC,dir_fd=rootfd)
+                try:
+                    need(tuple(nine(os.fstat(fd)))==expected,'nfs-namespace-original-child-leaf9');raw=b''
+                    while len(raw)<expected[2]:
+                        block=os.read(fd,min(65536,expected[2]-len(raw)));need(bool(block),'nfs-namespace-original-child-short');raw+=block
+                    need(hashlib.sha256(raw).hexdigest()==ref['sha256'] and tuple(nine(os.fstat(fd)))==expected,'nfs-namespace-original-child-bytes')
+                finally:os.close(fd)
+            finally:os.close(rootfd)
+        after=self.inspect(session.cid);ticks2=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
+        need(encode(static(after))==session.created_static and lifecycle_state(after)==epoch and ticks2==ticks,'nfs-namespace-original-child-epoch')
+        _NFS_CHILD_EPOCHS[self]=(session,session.cid,pid,encode(epoch),ticks)
+        response=copy.deepcopy(bootstrap);response['kind']='parent-original-current-three-role-selectors';response['ancestors']=ancestors
+        session.close();dialogue.sequence=frame['sequence']
+        return dict(type='nfs-host',nonce=self.plan['nonce'],sequence=frame['sequence'],payload=response)
+
+    def register_nfs_probe_birth(self,probe,created_profile):
+        modules=self.nfs_host_modules();session=_NFS_LIVE_SESSIONS.get(self)
+        cls=modules['comic_nfs_host_probe.py'].HostProbe
+        process_cls=modules['comic_nfs_host_probe.py'].ProbeProcess
+        need(session is not None and session.owner is self and session.probe_replies.probe is probe
+             and type(probe) is cls and probe.owner is self and probe.dialogue is session.engine_replies
+             and type(probe.process) is process_cls,'nfs-probe-original-source-object')
+        session.close();descriptor=cls.birth_descriptor(probe,created_profile)
+        need(set(descriptor)=={'cid','name','spec','static','profile'} and digest(descriptor['cid'])
+             and descriptor['cid']==created_profile['Id'] and descriptor['spec']['image']==self.plan['selected_image'],
+             'nfs-probe-original-birth-descriptor')
+        births=_NFS_PROBE_BIRTHS.setdefault(self.engine,{})
+        need(descriptor['cid'] not in births,'nfs-probe-birth-no-replay')
+        record=(self,session,probe,cls,probe.process,process_cls,self.core,self.thread,self.plan['nonce'],
+                encode(descriptor),cls.birth_descriptor,cls.birth_descriptor.__code__,
+                cls.prepared_descriptor,cls.prepared_descriptor.__code__)
+        births[descriptor['cid']]=record
+        self.check_nfs_probe_birth(descriptor['cid'])
+
+    def check_nfs_probe_birth(self,cid):
+        nfs_remote_guard(self.engine);self.left();modules=self.nfs_host_modules()
+        record=_NFS_PROBE_BIRTHS.get(self.engine,{}).get(cid)
+        need(record is not None and record[0] is self and record[6]==self.core
+             and record[7]==threading.get_ident()==self.thread and record[8]==self.plan['nonce'],
+             'nfs-probe-original-birth-owner')
+        session,probe,cls,process,process_cls=record[1:6]
+        need(_NFS_LIVE_SESSIONS.get(self) is session and session.probe_replies.probe is probe
+             and type(probe) is cls is modules['comic_nfs_host_probe.py'].HostProbe
+             and probe.owner is self and probe.dialogue is session.engine_replies
+             and probe.process is process and type(process) is process_cls is modules['comic_nfs_host_probe.py'].ProbeProcess,
+             'nfs-probe-original-birth-object')
+        need(cls.birth_descriptor is record[10] and record[10].__code__ is record[11]
+             and cls.prepared_descriptor is record[12] and record[12].__code__ is record[13],
+             'nfs-probe-original-birth-code')
+        descriptor=decode(record[9]);process.original_close();process.profile(descriptor['profile'])
+        need(process.cid==process.cid_original==cid and process.name==descriptor['name']
+             and encode(process.spec)==encode(descriptor['spec']) and process.static.hex()==descriptor['static'],
+             'nfs-probe-original-birth-facts')
+        session.close()
+        need(_NFS_PROBE_BIRTHS.get(self.engine,{}).get(cid) is record,'nfs-probe-original-birth-registry')
+        return record
+
+    def begin_nfs_writer_window(self,lease):
+        # Only the existing exact retained dialogue can block this engine.
+        modules=self.nfs_host_modules();session=_NFS_LIVE_SESSIONS.get(self)
+        lease_class=modules['comic_nfs_host_lease.py'].HostWriterLease
+        session_class=modules['comic_nfs_parent_session.py'].RetainedChild
+        need(type(session) is session_class and session.owner is self
+             and session.lease_replies.lease is lease and type(lease) is lease_class,
+             'nfs-writer-window-original-session')
+        session_class.close(session);self.left()
+        need(lease_class.window_state(lease)=='PREPARED'
+             and self.engine not in _NFS_REMOTE_WINDOWS,'nfs-writer-window-before-acquire')
+        probe=session.probe_replies.probe
+        need(probe is not None,'nfs-writer-window-prepared-probe-required')
+        birth=self.check_nfs_probe_birth(probe.process.cid_original)
+        prepared=birth[12](probe)
+        need(set(prepared)=={'cid','name','spec','static','process_pid','process_start_ticks','inner_epoch','pipes','native_grant','publication_authority'}
+             and prepared['native_grant'] is False and prepared['publication_authority'] is False,
+             'nfs-writer-window-original-prepared-probe')
+        # Actual class consumed its original prepared ACK; retain object/code
+        # separately from these false-rights facts before acquire can be sent.
+        prepared_tape=encode(prepared)
+        launch=_NFS_PROBE_LAUNCHES.get(self.engine,{}).get(prepared['cid'])
+        need(launch is not None and len(launch)==3 and launch[0] is birth
+             and launch[1] is probe.process.process
+             and _DIALOGUE_SEALS.get(self.engine,{}).get(prepared['cid']) is launch[2],
+             'nfs-writer-window-original-probe-launch')
+        dialogue_close(self.engine,prepared['cid'])
+        dialogue=dialogue_close(self.engine,session.cid)
+        seal=_DIALOGUE_SEALS[self.engine][session.cid]
+        record=(self,self.core,threading.get_ident(),self.plan['nonce'],session,
+                session.cid,lease,lease_class,seal,dialogue['process'],
+                lease_class.window_state,lease_class.window_state.__code__,
+                lease_class.physical_exit,lease_class.physical_exit.__code__,birth,prepared_tape,launch)
+        _NFS_REMOTE_WINDOWS[self.engine]=record
+        # The block is installed before the caller writes the acquire token.
+        # Any later refusal retains it; no ACK or terminal acceptance follows.
+        self.left();session_class.close(session)
+        need(_NFS_REMOTE_WINDOWS.get(self.engine)==record,'nfs-writer-window-original-block')
+        need(_NFS_PROBE_BIRTHS.get(self.engine,{}).get(prepared['cid']) is birth
+             and birth[12](probe)==decode(prepared_tape),
+             'nfs-writer-window-prepared-probe-final')
+
+    def nfs_probe_cleanup_transition(self,lease,record):
+        # Only the exact source-owned successful release path may record this
+        # finite owned-directory transition. Aborted physical exit grants none.
+        need(_NFS_REMOTE_WINDOWS.get(self.engine) is record and record[0] is self
+             and record[6] is lease,'nfs-probe-cleanup-original-window')
+        if getattr(getattr(lease,'channel',None),'released',False) is not True:return None
+        row=_NFS_PROBE_ROWS.get(self);need(row is not None,'nfs-probe-cleanup-original-row')
+        child,host,nodes,directories,session,cid,pid,nonce,spec=row
+        need(_NFS_PROBE_SEALS.get(self)==encode(dict(child=child,host=host,nodes=nodes,directories=directories,cid=cid,pid=pid,nonce=nonce,spec=spec))
+             and _NFS_LIVE_SESSIONS.get(self) is session and session is record[4],
+             'nfs-probe-cleanup-original-seal')
+        probe=record[14][2];process=probe.process;launch=record[16]
+        need(session.probe_replies.probe is probe and session.lease_replies.lease is lease
+             and process.process is launch[1] and process.execution_sent is True
+             and process.process.poll()==0 and type(process.kernel_output) is bytes,
+             'nfs-probe-cleanup-original-kernel-complete')
+        kernel=decode(process.kernel_output)
+        need(set(kernel)=={'version','kind','source_sha256','kernel_sha256','input_sha256','report','transitions','facts','directories','root9','actual_library_platform_verified','native_grant','publication_authority'}
+             and type(kernel['version']) is int and kernel['version']==1 and kernel['kind']=='checked-hardlink-canary-child'
+             and kernel['source_sha256']==spec['probe_sha256'] and kernel['input_sha256']==spec['input_sha256']
+             and all(kernel[k] is False for k in ('actual_library_platform_verified','native_grant','publication_authority')),
+             'nfs-probe-cleanup-original-kernel-ACK')
+        _,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];outer=decode(active);cohort_ref=outer['source_cohort']
+        cohort=decode(read(dict(cohort_ref,signature9=list(self.files[cohort_ref['path']]))))
+        need(kernel['kernel_sha256']==cohort['sources']['hardlink_kernel']['sha256'],
+             'nfs-probe-cleanup-original-kernel-source')
+        fixture=directories[0][0];parent=str(Path(fixture).parent)
+        need(len(directories)==3 and tuple(path for path,_ in directories)==(fixture,str(Path(fixture)/'source'),str(Path(fixture)/'target'))
+             and tuple(session.lease_replies.absent)==tuple(session.lease_replies.absence_tape)==(fixture,parent)
+             and spec['mounts'][0][0]==fixture,
+             'nfs-probe-cleanup-exact-owned-absence')
+        # The kernel reports final full9; compare immutable initial identity5,
+        # never refresh initial directory metadata after owned mutations.
+        final9=[kernel['root9'],kernel['directories'].get('source'),kernel['directories'].get('target')]
+        for (_,original),current in zip(directories,final9):
+            need(type(current) is list and len(current)==9 and all(type(v) is int for v in current)
+                 and tuple(current[i] for i in (0,1,5,6,7))==tuple(original[i] for i in (0,1,5,6,7)),
+                 'nfs-probe-cleanup-original-directory-identity')
+        for path in (fixture,parent):
+            if os.path.lexists(path):raise Held('nfs-probe-cleanup-owned-absence-required')
+        return (row,session,probe,launch,lease,hashlib.sha256(process.kernel_output).hexdigest(),(fixture,parent))
+
+    def end_nfs_writer_window(self,lease):
+        # Physical EOF/exit may occur after the operational deadline. This
+        # failure-safe closure proves originals; it grants no further work.
+        record=_NFS_REMOTE_WINDOWS.get(self.engine)
+        need(record is not None and len(record)==17 and record[0] is self
+             and type(self) is LifecycleParent and threading.get_ident()==self.thread
+             and record[1]==self.core and record[2]==self.thread
+             and record[3]==self.plan['nonce'],'nfs-writer-window-original-release')
+        session,lease_class=record[4],record[7]
+        need(_NFS_LIVE_SESSIONS.get(self) is session and session.owner is self
+             and session.cid==record[5] and session.lease_replies.lease is lease
+             and lease is record[6] and type(lease) is lease_class,
+             'nfs-writer-window-original-session')
+        need(_DIALOGUE_SEALS.get(self.engine,{}).get(session.cid)==record[8]
+             and _DIALOGUES.get(self.engine,{}).get(session.cid,{}).get('process') is record[9],
+             'nfs-writer-window-original-pipes')
+        birth=record[14];probe=birth[2];probe_cls=birth[3]
+        need(_NFS_PROBE_BIRTHS.get(self.engine,{}).get(decode(record[15])['cid']) is birth
+             and birth[0] is self and birth[1] is session and session.probe_replies.probe is probe
+             and type(probe) is probe_cls and probe.process is birth[4]
+             and probe_cls.prepared_descriptor is birth[12] and birth[12].__code__ is birth[13],
+             'nfs-writer-window-original-prepared-probe-custody')
+        original_core=encode(dict(plan=self.plan,files=self.files,nodes=self.nodes,
+             source=self.source_ref,input=self.plan_ref,engine=id(self.engine),
+             thread=self.thread,deadline=self.deadline))
+        need(original_core==self.core==_CORES.get(self),'nfs-writer-window-original-parent-core')
+        modules=_NFS_HOST_MODULES.get(self);original=_NFS_HOST_MODULE_SEALS.get(self)
+        need(modules is not None and original is not None and modules['comic_nfs_host_lease.py'].HostWriterLease is lease_class,
+             'nfs-writer-window-original-source-class')
+        need(tuple((name,module) for name,module in modules.items())==original[0],'nfs-writer-window-original-module-table')
+        for name,module,key,functions in original[1]:
+            need(sys.modules.get(key) is module and module.__file__==_NFS_SOURCE_CONTEXTS[self][0][name]['path'],'nfs-writer-window-original-module-origin')
+            for parent,attribute,value,code in functions:
+                need(getattr(parent,attribute,None) is value and getattr(value,'__code__',None) is code,'nfs-writer-window-original-callable')
+        need(lease_class.window_state is record[10] and record[10].__code__ is record[11]
+             and lease_class.physical_exit is record[12] and record[12].__code__ is record[13],
+             'nfs-writer-window-original-physical-code')
+        need(record[10](lease)=='RELEASED_PHYSICAL' and record[12](lease) is True,
+             'nfs-writer-window-physical-release-required')
+        cleanup=self.nfs_probe_cleanup_transition(lease,record)
+        # Source/control/ancestor closure after the last local physical callback.
+        files=dict(self.files);nodes=dict(self.nodes)
+        files.update({path:tuple(value['signature9']) for path,value in self.generated.items()})
+        for path,value in _OUTPUT_NODES.get(self,{}).items():
+            need(path not in nodes or nodes[path]==value,'nfs-writer-window-output-node-original');nodes[path]=value
+        final(files,nodes,())
+        need(_NFS_REMOTE_WINDOWS.get(self.engine)==record
+             and encode(dict(plan=self.plan,files=self.files,nodes=self.nodes,
+                  source=self.source_ref,input=self.plan_ref,engine=id(self.engine),
+                  thread=self.thread,deadline=self.deadline))==original_core,
+             'nfs-writer-window-release-final-original')
+        need(lease_class.window_state is record[10] and record[10].__code__ is record[11]
+             and lease_class.physical_exit is record[12] and record[12].__code__ is record[13],
+             'nfs-writer-window-physical-code-final')
+        # Deadline-free original outer dialogue closure after every physical
+        # callback. Stored registry equality cannot prove actual pipe custody.
+        if cleanup is not None:
+            for path in cleanup[6]:
+                if os.path.lexists(path):raise Held('nfs-probe-cleanup-final-owned-absence')
+        outer=_DIALOGUES.get(self.engine,{}).get(session.cid);seal=record[8]
+        need(outer is not None and _DIALOGUE_SEALS.get(self.engine,{}).get(session.cid) is seal
+             and (outer['process'],outer['streams'],outer['descriptors'],outer['pid'],
+                  outer['owner_pid'],outer['thread'],outer['deadline'])==seal
+             and outer['process'] is record[9] and record[9].pid==seal[3]
+             and (record[9].stdin,record[9].stdout,record[9].stderr)==seal[1]
+             and os.getpid()==seal[4] and threading.get_ident()==seal[5],
+             'nfs-writer-window-original-outer-process')
+        for descriptor,expected in seal[2]:
+            z=os.fstat(descriptor)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=expected:
+                raise Held('nfs-writer-window-original-outer-FD')
+        launch=record[16];prepared=decode(record[15]);probe_process=launch[1];probe_seal=launch[2]
+        if (_NFS_PROBE_LAUNCHES.get(self.engine,{}).get(prepared['cid']) is not launch
+            or _DIALOGUE_SEALS.get(self.engine,{}).get(prepared['cid']) is not probe_seal
+            or probe.process.process is not probe_process or probe_process.pid!=probe_seal[3]
+            or (probe_process.stdin,probe_process.stdout,probe_process.stderr)!=probe_seal[1]):
+            raise Held('nfs-writer-window-original-probe-process')
+        for descriptor,expected in probe_seal[2]:
+            z=os.fstat(descriptor)
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=expected:
+                raise Held('nfs-writer-window-original-probe-FD')
+        if _NFS_REMOTE_WINDOWS.get(self.engine) is not record:
+            raise Held('nfs-writer-window-original-block-final')
+        if cleanup is not None:_NFS_PROBE_REMOVED[self]=cleanup
+        del _NFS_REMOTE_WINDOWS[self.engine]
+
+    def nfs_reader_epoch_reply(self,frame):
+        session=_NFS_LIVE_SESSIONS.get(self);need(session is not None,'nfs-reader-epoch-original-session')
+        session.close();dialogue=session.engine_replies
+        need(type(frame) is dict and set(frame)=={'type','nonce','sequence','payload'} and frame['type']=='nfs-reader-epoch' and frame['nonce']==self.plan['nonce'] and type(frame['sequence']) is int and frame['sequence']==dialogue.sequence+1 and frame['payload']=={},'nfs-reader-epoch-finite-frame')
+        original=self.baselines['reader'];cid=original['Id'];pid=original['State']['Pid']
+        need(type(pid) is int and pid>0,'nfs-reader-epoch-original-pid')
+        retained=_NFS_READER_EPOCHS.get(self)
+        if self.engine in _NFS_REMOTE_WINDOWS:
+            need(retained is not None and retained[:4]==(session,cid,pid,original['State']['StartedAt']),
+                 'nfs-reader-epoch-prelease-original-required')
+            # Local host process identity only. No Docker/API under the Writer.
+            ticks=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
+            need(ticks==retained[4],'nfs-reader-epoch-held-local-starttick')
+        else:
+            before=self.inspect(cid)
+            need(static(before)==static(original) and lifecycle_state(before)==lifecycle_state(original),'nfs-reader-epoch-original-before')
+            ticks=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
+            after=self.inspect(cid);ticks2=int(Path('/proc/'+str(pid)+'/stat').read_text().rsplit(')',1)[1].split()[19])
+            need(static(after)==static(original) and lifecycle_state(after)==lifecycle_state(original) and ticks2==ticks,'nfs-reader-epoch-original-after')
+            current=(session,cid,pid,original['State']['StartedAt'],ticks)
+            if retained is None:_NFS_READER_EPOCHS[self]=current
+            else:need(retained==current,'nfs-reader-epoch-postrelease-original')
+        response=dict(type='nfs-host',nonce=self.plan['nonce'],sequence=frame['sequence'],payload=dict(version=1,kind='parent-original-reader-host-epoch',cid=cid,pid=pid,start_ticks=ticks,started_at=original['State']['StartedAt'],native_grant=False,publication_authority=False))
+        session.close();need(_NFS_READER_EPOCHS.get(self)==(session,cid,pid,original['State']['StartedAt'],ticks),'nfs-reader-epoch-final-original')
+        dialogue.sequence=frame['sequence'];return response
 
     def inspect(self, cid):
         need(digest(cid), 'exact-container-id')
@@ -587,6 +1371,9 @@ class LifecycleParent:
             self.generated[value['path']] = copy.deepcopy(value)
             _GENERATED[self] = encode(self.generated)
             self.left()
+            if self in _CHILD_TREES and name.endswith(('-input.json','-input.birth.json','-input.lifecycle.json')):
+                if name in {'nfs-cohort-receipt-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}:self.nfs_child_ref(value)
+                else:_CHILD_TREES[self].project(value)
             return value
         finally:
             os.close(directory)
@@ -658,9 +1445,10 @@ class LifecycleParent:
             need(payload.get('execute_ack')==self.mapping.child_ref(custody_context['execute_ack']),'terminal-phase-execute-ACK-binding')
         host_path = self.op / (phase + '-input.json')
         phase_directory = self.op / phase
-        phase_directory.mkdir(mode=0o700)
+        if self in _CHILD_TREES:phase_directory=_CHILD_TREES[self].phase(phase)
+        else:phase_directory.mkdir(mode=0o700)
         info=os.lstat(phase_directory);phase_fact=tuple(five(info))
-        need(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode)==0o700 and info.st_uid==os.geteuid(),'phase-directory-intended-metadata')
+        need(stat.S_ISDIR(info.st_mode) and stat.S_IMODE(info.st_mode)==0o700 and info.st_uid==(1000 if self in _CHILD_TREES else os.geteuid()),'phase-directory-intended-metadata')
         _OUTPUT_NODES.setdefault(self,{})[str(phase_directory)]=phase_fact
         self.sync(self.op)
         provider = self.mapping.child_ref(self.plan['provider'])
@@ -756,9 +1544,13 @@ class LifecycleParent:
         # checked by the child against its original namespace, never host-normalized.
         z = os.lstat(host_path)
         host_ref = dict(path=str(host_path), sha256=child_ref['sha256'], signature9=nine(z))
-        raw = read(host_ref); document = decode(raw)
+        if self in _CHILD_TREES:
+            raw,host_ref=_CHILD_TREES[self].output(child_ref,child_path,'native_scope')
+        else:raw=read(host_ref)
+        document=decode(raw)
         if self.plan.get('action')=='archive-one':
-            self.generated[host_ref['path']]=copy.deepcopy(host_ref);_GENERATED[self]=encode(self.generated)
+            logical_path=str(Path(input_ref['path']).with_suffix('.native-scope.json'))
+            self.generated[logical_path]=copy.deepcopy(host_ref);_GENERATED[self]=encode(self.generated)
         need(set(document) == {'version', 'kind', 'invocation', 'native', 'worker', 'child_mounts', 'config',
                                'config_module', 'main_module', 'worker_library', 'tool_root', 'ancestors'}
              and document['version'] == 1 and type(document['version']) is int
@@ -809,6 +1601,23 @@ class LifecycleParent:
         _PHASES[self][phase]['accepted'] = True
         return response
 
+    def child_control(self,ref,expected_path,role='factual_record'):
+        need(type(ref) is dict and ref.get('path')==str(expected_path),'child-control-fixed-path')
+        if self in _CHILD_TREES:
+            _,view=_CHILD_TREES[self].output(ref,expected_path,role)
+            return view
+        return dict(ref,path=self.mapping.host(ref['path']))
+
+    def child_control_from_proof(self,ref,original_files):
+        # Copying a child-owned record never admits a new proof row.
+        original_ref=(ref['path'],ref['sha256'],tuple(ref['signature9']))
+        admitted=tuple((str(path),tuple(value)) for path,value in sorted(original_files.items()))
+        physical=self.mapping.host(original_ref[0])
+        need(dict(admitted).get(physical)==original_ref[2],'archive-terminal-history-baseline-original9')
+        view=self.child_control(ref,original_ref[0])
+        need((ref['path'],ref['sha256'],tuple(ref['signature9']))==original_ref and tuple((str(path),tuple(value)) for path,value in sorted(original_files.items()))==admitted,'archive-terminal-history-proof-unchanged')
+        return view
+
     def phase_provider(self,phase):
         return self.plan['backup_provider'] if self.plan.get('action')=='archive-one' and phase=='backup' else self.plan['provider']
 
@@ -816,6 +1625,18 @@ class LifecycleParent:
         self.continuous(); name = 'reader-' + phase + '-' + self.plan['nonce'][:16]
         command = actual[1:]
         mounts = copy.deepcopy(self.plan['mounts'])
+        if self in _CHILD_TREES:
+            tree=_CHILD_TREES[self]
+            mounts=[dict(r,host=str(tree.root),write=False) if Path(r['host'])==self.op else r for r in mounts]
+            # Native scope and late lifecycle siblings need the exact RW phase/input directory.
+            mounts.append(dict(host=str(tree.root),child=str(tree.child_root),write=True))
+            # Avoid duplicate destinations: the child tree RW row replaces only operation mount.
+            mounts=[r for i,r in enumerate(mounts) if not any(x['child']==r['child'] for x in mounts[i+1:])]
+            for host,child in tree.readonly_files():mounts.append(dict(host=host,child=child,write=False))
+            path,sha,stamp=_CONFIGURED_OVERLAY_SEALS[self][1]
+            overlay=tree.project(dict(path=path,sha256=sha,signature9=list(stamp)))
+            mounts.append(dict(host=overlay['path'],child='/app/mylar3/mylar/publication_reader_admission.py',write=False))
+            for original,_,host,_,_,_ in tree.scopes:mounts.append(dict(host=host,child=tree.child(host),write=True))
         args = ['create', '--pull', 'never', '--name', name, '--label', 'com.homelab.reader.lifecycle=' + name,
                 '--interactive', '--read-only', '--network', 'none', '--ipc', 'private', '--user', '1000:1000',
                 '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--pids-limit', '32',
@@ -823,9 +1644,9 @@ class LifecycleParent:
                 '--entrypoint', '/lsiopy/bin/python3']
         if self.plan.get('action')=='archive-one' and phase=='backup':args.extend(['--env','TMPDIR='+self.mapping.child(self.op/'backup')])
         for row in mounts:
-            write = self.phase_write(row,phase)
+            write = row['write'] if self in _CHILD_TREES else self.phase_write(row,phase)
             # Only private operation/scratch may be writable during backup/preparation.
-            if Path(self.op) == Path(row['host']):
+            if self not in _CHILD_TREES and Path(self.op) == Path(row['host']):
                 write = True
             args.extend(['--mount', 'type=bind,src=' + row['host'] + ',dst=' + row['child']
                          + ('' if write else ',readonly')])
@@ -833,8 +1654,10 @@ class LifecycleParent:
         self.emit(phase + '-create-intent.json', dict(command=args, automatic_replay=False))
         self.continuous(); cid = self.engine.run(args, self.left()).decode().strip()
         need(digest(cid), 'child-create-ACK'); created = self.inspect(cid)
-        expected_mounts = sorted((r['host'], r['child'], self.phase_write(r,phase)) for r in mounts)
-        need(created['Config']['Labels'] == {'com.homelab.reader.lifecycle': name}, 'child-exact-label')
+        expected_mounts = sorted((r['host'], r['child'], r['write'] if self in _CHILD_TREES else self.phase_write(r,phase)) for r in mounts)
+        expected_labels=dict(_CONFIGURED_IMAGE_LABELS.get(self,()))
+        need('com.homelab.reader.lifecycle' not in expected_labels,'child-image-reserved-label');expected_labels['com.homelab.reader.lifecycle']=name
+        need(created['Config']['Labels'] == expected_labels, 'child-exact-label')
         self.profile(created, cid, command, expected_mounts, False)
         child_static = static(created); sequence = 0; original_running=None;writer_session=None;writer_confirmed=False;pending_terminal=None;consumed_sequence=None
         self.emit(phase + '-start-intent.json', dict(id=cid, automatic_replay=False))
@@ -1009,9 +1832,12 @@ class LifecycleParent:
         self.continuous()
         need(report_ref['path'] == self.mapping.child(self.op / phase / (phase + '-report.json')), 'fixed-report-child-path')
         host_ref = {**report_ref, 'path': self.mapping.host(report_ref['path'])}
-        report = decode(read(host_ref))
+        if self in _CHILD_TREES:
+            raw,host_ref=_CHILD_TREES[self].output(report_ref,self.mapping.child(self.op/phase/(phase+'-report.json')),'report')
+            report=decode(raw)
+        else:report=decode(read(host_ref))
         if self.plan.get('action')=='archive-one':
-            self.generated[host_ref['path']]=copy.deepcopy(host_ref);_GENERATED[self]=encode(self.generated)
+            self.generated[str(self.op/phase/(phase+'-report.json'))]=copy.deepcopy(host_ref);_GENERATED[self]=encode(self.generated)
         need(report['phase'] == phase and report['nonce'] == self.plan['nonce']
              and report['final_ack_required'] is True and report['provider_continuity_verified'] is False,
              'report-factual-only')
@@ -1172,6 +1998,7 @@ class LifecycleParent:
         if self.plan.get('version')==12:self.worker_intent(current)
         original_files=dict(self.files);original_nodes=dict(self.nodes)
         for path,ref in self.generated.items():
+            path=ref['path']
             value=tuple(ref['signature9']);need(path not in original_files or original_files[path]==value,'archive-terminal-control-conflict');original_files[path]=value
         for path,value in _OUTPUT_NODES.get(self,{}).items():
             need(path not in original_nodes or original_nodes[path]==value,'archive-terminal-output-node-conflict');original_nodes[path]=value
@@ -1197,7 +2024,8 @@ class LifecycleParent:
         # Every source-provided full9 is retained before the first file read.
         for role,name in fixed.items():
             ref=declared[role];need(type(ref) is dict and set(ref)=={'path','sha256','signature9'} and ref['path']==self.mapping.child(self.op/'execute'/name) and digest(ref['sha256']) and type(ref['signature9']) is list and len(ref['signature9'])==9 and all(type(v) is int for v in ref['signature9']),'archive-terminal-fixed-original-ref')
-            host=str(self.op/'execute'/name);value=tuple(ref['signature9']);need(host not in original_files or original_files[host]==value,'archive-terminal-report-ref-conflict');original_files[host]=value;mapped[role]=dict(ref,path=host)
+            mapped[role]=self.child_control(ref,self.mapping.child(self.op/'execute'/name),'report' if role=='execution_report' else 'factual_record')
+            host=mapped[role]['path'];value=tuple(mapped[role]['signature9']);need(host not in original_files or original_files[host]==value,'archive-terminal-report-ref-conflict');original_files[host]=value
         documents={role:decode(read(ref)) for role,ref in mapped.items()}
         execute=documents['execution_report'];terminal=documents['terminal_report'];original=documents['originals'];request=decode(read(self.plan['producer_inputs']['archive_request']))
         owner=request['owner'];operation=request['operation_id']
@@ -1215,7 +2043,7 @@ class LifecycleParent:
         # Proof/histories are factual records tied to this actual selected source,
         # not serialized capabilities. Require every ref to already be in proof9.
         for childref in (original['baseline'],original['preparation'],execute['execute_history'],terminal['history']):
-            hostref=dict(childref,path=self.mapping.host(childref['path']));need(original_files.get(hostref['path'])==tuple(childref['signature9']),'archive-terminal-history-baseline-original9');document=decode(read(hostref))
+            hostref=self.child_control_from_proof(childref,original_files);value=tuple(hostref['signature9']);need(hostref['path'] not in original_files or original_files[hostref['path']]==value,'archive-terminal-derived-view-conflict');original_files[hostref['path']]=value;document=decode(read(hostref))
             if childref in (execute['execute_history'],terminal['history']):need(document['owner']==owner and document['operation_id']==operation and all(document[k] is False for k in ('mutation_authority','publication_acceptance','ordinary_import_grant','reader_index_acceptance','automatic_replay')),'archive-terminal-history-owning-join')
         stage=str(Path(self.mapping.host(original['preparation']['path'])).parent)
         need(original_files.get(stage)==tuple(original['preparation_directory9']),'archive-terminal-original-completed-stage9')
@@ -1326,8 +2154,10 @@ class LifecycleParent:
     def archive_phase_input(self,phase,payload,custody_context):
         need(phase in ('backup','execute','verify-terminal'),'archive-finite-phase')
         host_path=self.op/(phase+'-input.json');directory=self.op/phase
-        directory.mkdir(mode=0o700);fact=tuple(five(os.lstat(directory)))
-        need((fact[2]&0o777)==0o700 and fact[3]==os.geteuid(),'archive-phase-private')
+        if self in _CHILD_TREES:directory=_CHILD_TREES[self].phase(phase)
+        else:directory.mkdir(mode=0o700)
+        fact=tuple(five(os.lstat(directory)))
+        need((fact[2]&0o777)==0o700 and fact[3]==(1000 if self in _CHILD_TREES else os.geteuid()),'archive-phase-private')
         _OUTPUT_NODES.setdefault(self,{})[str(directory)]=fact;self.sync(self.op)
         provider=self.mapping.child_ref(self.phase_provider(phase));command=command_template(provider,phase,self.mapping.child(host_path))
         value=dict(payload,version=1,nonce=self.plan['nonce'],action='archive-one-backup' if phase=='backup' else 'archive-one',parent_sha256=self.source_ref['sha256'],command_template=command,operation=self.mapping.child(directory),selected_image=self.plan['selected_image'],sdk_map=self.mapping.child_ref(self.plan['sdk_map']))
@@ -1366,12 +2196,15 @@ class LifecycleParent:
             for ref in (self.plan['backup_provider'],self.plan['observer']):read(ref)
             for ref in (self.plan['provider'],self.plan['backup_provider']):
                 module=pinned_module(ref);need(getattr(module,'PARENT_SOURCE_SHA',None)==self.source_ref['sha256'],'archive-reviewed-parent-pin-required-before-stop')
-            nfs.preflight(self);nfs.run_active(self);observed=nfs.stop_owned(self)
+            nfs.preflight(self)
+            if self in _NFS_SOURCE_CONTEXTS:nfs.run_active_retained(self)
+            else:nfs.run_active(self)
+            observed=nfs.stop_owned(self)
             runtime=copy.deepcopy(observed['reader'])
             for mount in runtime['Mounts']:
                 if mount['Type']=='bind':need(self.mapping.child(mount['Source'])==mount['Source'],'archive-backup-host-canonical-bind')
             inp,cmd=self.phase_input('backup',dict(runtime=runtime));backup=self.child_phase('backup',inp,cmd)
-            backup=dict(backup,manifest={**backup['manifest'],'path':self.mapping.host(backup['manifest']['path'])},restore_root=self.mapping.host(backup['restore_root']))
+            backup=dict(backup,manifest=self.child_control(backup['manifest'],self.mapping.child(self.op/'backup'/'reader-backup'/'manifest.json')),restore_root=self.mapping.host(backup['restore_root']))
             # Child backup control refs use canonical HOST mount spelling. No
             # copied HOST inode is asserted as a CHILD inode at birth.
             controls=self.produce('backup-controls',dict(backup=backup,observations=observed))
@@ -1387,9 +2220,9 @@ class LifecycleParent:
             need(all(report[k] is False for k in ('reader_index_acceptance','ordinary_import_grant','publication_acceptance','mutation_authority','automatic_replay')),'archive-execute-false-rights')
             originals=report['originals'];expected=self.mapping.child(self.op/'execute'/'execution-originals.json')
             need(type(originals) is dict and originals['path']==expected,'archive-original-fixed-execute-record')
-            original_host={**originals,'path':self.mapping.host(originals['path'])};read(original_host)
+            original_host=self.child_control(originals,expected);read(original_host)
             # ACK/report/record remain original references, never status-derived.
-            ack=copy.deepcopy(self.generated[str(self.op/'execute-ack.json')]);ackvalue=decode(read(ack));reportref=ackvalue['report'];hostreport={**reportref,'path':self.mapping.host(reportref['path'])}
+            ack=copy.deepcopy(self.generated[str(self.op/'execute-ack.json')]);ackvalue=decode(read(ack));reportref=ackvalue['report'];hostreport=self.child_control(reportref,self.mapping.child(self.op/'execute'/'execute-report.json'),'report')
             need(decode(read(hostreport))==report,'archive-original-execute-report')
             if self.plan.get('version') in (11,12):
                 round_record=_ARCHIVE_TERMINAL_ROUNDS.get(self)
@@ -1417,6 +2250,7 @@ class LifecycleParent:
                 for path,value in original.items():
                     value=tuple(value);need(path not in group or group[path]==value,'archive-terminal-original-control-conflict');group[path]=value
             for path,ref in self.generated.items():
+                path=ref['path']
                 value=tuple(ref['signature9']);need(path not in files or files[path]==value,'archive-terminal-generated-conflict');files[path]=value
             for path,value in _OUTPUT_NODES.get(self,{}).items():
                 need(path not in nodes or nodes[path]==value,'archive-terminal-phase-node-conflict');nodes[path]=value
@@ -1464,7 +2298,8 @@ class LifecycleParent:
             nfs_module=_NFS_ADAPTERS.get(self)
             need(nfs_module is not None,'nfs-owning-module-required')
             nfs_module.preflight(self)  # implementation and source evidence before stop
-            nfs_module.run_active(self) # owning running-reader canary, no receipt reconstruction
+            if self in _NFS_SOURCE_CONTEXTS:nfs_module.run_active_retained(self)
+            else:nfs_module.run_active(self) # legacy exact process-local factory
             observed=nfs_module.stop_owned(self)
             runtime = copy.deepcopy(observed['reader'])
             # Provider backup sees canonical host config roots also mounted in child.
@@ -1521,6 +2356,7 @@ class LifecycleParent:
                         raise Held('resume-original-conflict')
                     group[path] = vector
             for path, ref in self.generated.items():
+                path=ref['path']
                 vector = tuple(ref['signature9'])
                 if path in files and files[path] != vector:
                     raise Held('resume-generated-conflict')

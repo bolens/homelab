@@ -192,7 +192,7 @@ def backup_controls(request,*,watch):
  mapping=watch.__self__.mapping
  mapped_scopes={}
  for k in ('scratch','retention_root'):
-  host=scopes[k];mapped_scopes[k]=mapping.child(host);need(mapping.host(mapped_scopes[k])==host,'archive-producer-scope-roundtrip')
+  host=mapping.private_scope(scopes[k],k);mapped_scopes[k]=mapping.child(host);need(mapping.host(mapped_scopes[k])==host,'archive-producer-scope-roundtrip')
  scope_ref=emit(o,out,'archive-scopes.json',dict(version=1,**mapped_scopes))
  controls=dict(stopped_runtime=stopped_ref,backup_ack=ack,backup_manifest=copy.deepcopy(backup['manifest']),backup_acceptance=acceptance,schema=schema_ref,reader_snapshot=snapshot,archive_request=copy.deepcopy(plan['producer_inputs']['archive_request']),custody=custody)
  need(set(controls)==ROLES,'archive-producer-eight-roles');o.record(out,a.nine(os.lstat(out)))
@@ -229,20 +229,23 @@ def phase_custody(request,*,watch):
  inv=ctx['invocation'];need(type(inv) is dict and set(inv)=={'input_path','input_sha256','command','nonce','parent_sha256','provider_sha256'} and inv['nonce']==request['nonce'] and inv['parent_sha256']==request['parent_source']['sha256'] and inv['provider_sha256']==PINS['comic_archive_repair_action.py'],'archive-producer-actual-invocation')
  mapping=watch.__self__.mapping
  def child(path):
-  result=mapping.child(str(path));need(mapping.host(result)==str(path),'archive-producer-path-roundtrip');return result
- def refchild(ref):return dict(ref,path=child(ref['path']))
+  host=str(path)
+  for role in ('scratch','retention_root'):
+   if host==scopes[role]:host=mapping.private_scope(host,role)
+  result=mapping.child(host);need(mapping.host(result)==host,'archive-producer-path-roundtrip');return result
+ def refchild(ref):return mapping.child_ref(ref)
  generated_scopes=o.ref(ctx['archive_scopes']);need(same(generated_scopes,{'version':1,'scratch':child(scopes['scratch']),'retention_root':child(scopes['retention_root'])}),'archive-producer-original-scopes')
  proofs=copy.deepcopy(ctx['controls']);proofs['archive_scopes']=copy.deepcopy(ctx['archive_scopes']);o.ref(plan['sdk_map']);proofs['archive_sdk_map']=copy.deepcopy(plan['sdk_map'])
  if ctx['phase']=='verify-terminal':
-  ref=ctx['execution_originals'];original=a.original_execution(o.ref(ref),owner);baseline=original['baseline'];baseline_host=mapping.host(baseline['path']);need(mapping.child(baseline_host)==baseline['path'],'archive-producer-original-baseline-roundtrip');baseline_ref=dict(baseline,path=baseline_host);o.ref(baseline_ref);proofs['archive_execution_originals']=copy.deepcopy(ref)
+  ref=ctx['execution_originals'];original=a.original_execution(o.ref(ref),owner);baseline=original['baseline'];baseline_host=mapping.host(baseline['path']);need(mapping.child(baseline_host)==baseline['path'],'archive-producer-original-baseline-roundtrip');baseline_ref=watch.__self__.child_control(baseline,baseline['path']);o.admit(baseline_ref['path']);o.ref(baseline_ref);proofs['archive_execution_originals']=copy.deepcopy(ref)
   # Lifecycle also needs the ORIGINAL baseline path in its immutable proof map.
   proofs['archive_adoption_baseline']=baseline_ref
   expected_baseline=Path(child(scopes['retention_root']))/('adopt-'+owner['operation_id'])/'journal'/'baseline.json'
   stage_child=Path(plan['native']['data'])/('archive-repair-'+owner['operation_id']);meta=original['preparation'];need(Path(baseline['path'])==expected_baseline and Path(meta['path'])==stage_child/'preparation.json','archive-producer-original-operation-paths')
   stage_host=Path(mapping.host(str(stage_child)));need(mapping.child(str(stage_host))==str(stage_child),'archive-producer-original-stage-roundtrip');o.record(stage_host,original['preparation_directory9'])
-  metadata_host=mapping.host(meta['path']);need(mapping.child(metadata_host)==meta['path'],'archive-producer-original-metadata-roundtrip');metadata_ref=dict(meta,path=metadata_host);o.ref(metadata_ref);proofs['archive_preparation_metadata']=metadata_ref
+  metadata_host=mapping.host(meta['path']);need(mapping.child(metadata_host)==meta['path'],'archive-producer-original-metadata-roundtrip');metadata_ref=watch.__self__.child_control(meta,meta['path']);o.admit(metadata_ref['path']);o.ref(metadata_ref);proofs['archive_preparation_metadata']=metadata_ref
  reader={'config_root':child(config),'restore_root':child(restore),'scratch':child(scopes['scratch']),'current_pairs':copy.deepcopy(old['current_pairs']),'restore_pairs':copy.deepcopy(old['pairs']),'backup_manifest':refchild(proofs['backup_manifest']),'backup_acceptance':refchild(proofs['backup_acceptance']),'runtime':expected['reader'],'child_source_sha256':inv['provider_sha256'],'child_image':plan['selected_image']}
- input_host=mapping.host(inv['input_path']);input_doc=o.ref({'path':input_host,'sha256':inv['input_sha256']})
+ input_host=mapping.original_host(mapping.host(inv['input_path']));input_doc=o.ref({'path':input_host,'sha256':inv['input_sha256']})
  command=['/lsiopy/bin/python3','-I','-B',child(plan['provider']['path']),'--phase',ctx['phase'],'--input',inv['input_path'],'--input-sha256',inv['input_sha256'],'--source-sha256',inv['provider_sha256']]
  same_child=type(plan.get('version')) is int and plan['version'] in (11,12)
  if type(plan.get('version')) is int and plan['version']==12:

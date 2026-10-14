@@ -1,5 +1,8 @@
 """Real disposable SQLite; fake parent observations are not custody grants."""
 import copy
+import sys
+sys.path.insert(0,str(__import__('pathlib').Path(__file__).parent))
+import comic_reader_lifecycle_parent as owning_parent
 import os
 import threading
 import hashlib
@@ -17,7 +20,8 @@ class Controls(unittest.TestCase):
   self.scratch=self.root/'scratch';self.scratch.mkdir(mode=0o700)
   self.plan['native']['data']='/config/mylar';self.plan['provider']=dict(path=str(ROOT/'comic_negative_reader_action.py'),sha256=hashlib.sha256((ROOT/'comic_negative_reader_action.py').read_bytes()).hexdigest());self.plan['birth_source_sha256']='f'*64
   self.plan['producer']['sha256']=hashlib.sha256((ROOT/'comic_native_evidence_adapter.py').read_bytes()).hexdigest()
-  class Mapping:
+  class Mapping(owning_parent.Paths):
+   def __init__(obj):super().__init__([dict(host=str(self.root),child=str(self.root),write=True)])
    def child(obj,path):
     path=str(path)
     if path==str(self.config/'config.ini'):return '/config/mylar/config.ini'

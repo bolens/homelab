@@ -1,0 +1,9 @@
+{
+  "admission": "../publication_reader_admission.py",
+  "archive_action": "comic_archive_repair_action.py",
+  "archive_adapter": "comic_archive_evidence_adapter.py",
+  "backup_action": "comic_archive_backup_action.py",
+  "parent": "comic_reader_lifecycle_parent.py",
+  "producer": "comic_archive_proof_producer.py",
+  "projection": "comic_child_control_projection.py"
+}

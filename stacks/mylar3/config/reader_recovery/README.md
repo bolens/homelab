@@ -10,7 +10,7 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 591 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Eight owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not release the live hold.
+The private-copy runner executes 804 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Eight owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not release the live hold.
 
 The distinct `comic_archive_repair_action.py` tool and pure protocol builder
 use eight archive-only control roles. One held Writer owns preparation, reader
@@ -18,7 +18,7 @@ lease and adoption. Independent verification retains the original preparation
 file and completed-directory identities. The archive parent pin remains disabled;
 The same lifecycle parent now has a finite archive-only branch with a neutral
 backup child, original control vectors and terminal verification before resume.
-It refuses interpreter and tool overlays, including read-only mounts. Installed
+It refuses caller-supplied interpreter and tool overlays, including read-only mounts. Only the maintained installer’s exact configured canonical admission overlay is added internally after source validation. Installed
 composition, protected backup/NFS execution, reader indexing and durable import
 acceptance remain separate gates. See [the parent contract](CONTRACT-archive-parent.md). See [the archive contract](CONTRACT-archive-repair.md).
 
@@ -33,7 +33,7 @@ neutral backup covers native configuration, worker state and reader configuratio
 The result grants no automatic restart, cleanup or reader acceptance. The exact
 worker control is an adjacent host dependency, not a Mylar SDK module. See
 [the retained-pack contract](CONTRACT-retained-pack.md). The mandatory copied API
-gate runs its 48 owning controls; the 591 recovery controls include three additional complete-census NFS controls. Actual installed source, bind geometry, state capacity and native
+gate runs its 48 owning controls; the historical 591 recovery controls include three additional complete-census NFS controls. Actual installed source, bind geometry, state capacity and native
 background admissibility must be verified before activation.
 
 The standalone retained-target journal and observation directories live under
@@ -43,3 +43,71 @@ births support exactly link count 1 (constant count, including Btrfs) or 2
 namespace select the rule; regular files still require a single link. Exact
 original identity, ownership, controlled namespace and final closure remain
 mandatory. A checked tmpfs fixture does not prove the operational filesystem.
+
+## Configured child ownership and retained NFS session
+
+The maintained host installer `install_configured_reader_parent.py` validates
+its exact reviewed Parent, provider, producer and admission bytes before making
+private configured artifacts. The base installed admission remains unset and
+refuses by default. Only approved constant edits enable a particular reviewed
+Parent and worker observation; the effective configured overlay/source map is
+separate from base-image parity. The committed historical source-only manifest
+records the accepted 3166 required100/known175 graph. It is not evidence for a
+new corrective image; original selected-image/source/cohort proofs are required.
+
+Root-private originals retain full file9/hash/ancestor5. The owning finite child
+projection produces distinct UID1000 private copies and readonly input/Birth/
+source leaves. The phase/output directory is child-owned and writable; the late
+lifecycle sidecar is protocol/hash-custodied there, not described as readonly.
+Returned child control identities must match the original mapped physical
+identity before a separately derived root view is read. No existing original
+file is chmoded or made broadly readable.
+
+The optional retained NFS path keeps the genuine UID1000 child canary object in
+its original process and delegates fixed source-owned engine, host Writer, and
+probe operations over the registered original pipes. Namespace and host reader
+epoch replies bind exact captured roles/source and actual process metadata.
+The host owns exact probe name/spec/CID and separate prepare/create/start.
+On failure, only original retained input pipes are closed; genuine lease
+acquisition and channel deadlines are bounded. Unknown fixtures/proofs are
+retained, with no successful ACK, cleanup, reader resume or replay grant.
+
+The original 591 build controls remain an independently retained predecessor.
+Fourteen added suites run 136 executions (including explicitly inherited
+mechanical cases), producing the preceding 727 mandatory zero-skip total. These
+host/pipe/filesystem checks do not prove installed Parent/Birth, actual NFS4,
+worker factual consumption or terminal acceptance. The isolated historical
+constructor/overlay and genuine disposable Main results are narrower runtime
+milestones; full connected acceptance remains open.
+
+## Prepared lease and remote-call block checkpoint
+
+The opt-in deferred helper announces prepared before actual Writer acquisition.
+The source-owned Parent registers the original session/lease/pipes and blocks
+all five Docker transport entry points before the acquire token is written.
+Held checks use original local process ticks, FIFO/file/ancestor vectors and
+source tapes. A release-reviewed message does not unlock the transport. Only
+original helper physical exit and inner epoch disappearance can end the block;
+failed EOF may prove physical release while success/cleanup/ACK remain false.
+The release closure handles expired operational deadlines without admitting
+new work or changing an original baseline.
+
+Four additional mandatory suites contribute 28 executions (10 deferred lease,
+10 local window including inherited methods, two expired-Paths controls, and
+six engine/reader predicates), raising727 to755. Four later outer-dialogue
+controls raise755 to759. Six phased-probe suites add40 executions
+(4+4+11+13+3+5), yielding the phased799 across55 mandatory suites. Inherited
+methods are counted as executions and explicitly qualified. Source-method
+Parent/session/engine fixtures remain projections; actual Writer, SQLite,
+process and anonymous Popen pipes are exercised. This is not a connected
+installed Parent/Birth/NFS grant.
+
+The configured NFS route prepares the original lease and wait-gated probe
+before acquiring Writer. The Parent seals the actual registered probe birth,
+real original Popen/pipes and consumed prepared ACK. Held execution uses local
+custody only; terminal Docker/API checks occur after physical release against
+original facts. Outer-dialogue drift retains the block. Genuine configured
+Parent/NFS environmental acceptance remains unproved; the unconfigured legacy
+route remains operationally held.
+
+Five additional owned-cleanup transition controls raise799 to804 across56 suites. The original admitted fixture may be absent only after the original registered kernel completes, exact source-owned release succeeds and physical release closes original process/pipe custody. Aborted/unknown release, foreign kernel metadata, changed original rows, reappeared directories and retained-control drift refuse. Parent/kernel/lease prerequisites in these source-method controls remain explicitly projected; actual configured Parent/NFS acceptance is still required.

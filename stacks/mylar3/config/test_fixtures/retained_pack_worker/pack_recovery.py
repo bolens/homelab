@@ -431,6 +431,9 @@ class Packs:
             self.preserve_extra(prepared, member, points, info)
             return
         matched = match(prepared, self.db, eligible)
+        if not matched and getattr(self.m, '_pack_only_existing_catalog', False):
+            member.update(phase='review', reason='Selected-only pass requires one existing catalog identity; original retained')
+            return
         if not matched and not member.get('catalog_attempted') and points['series'] and number(points['number']) is not None:
             member['catalog_attempted'] = True
             return  # Persist intent before the next cycle makes an external request.
