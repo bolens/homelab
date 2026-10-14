@@ -9,11 +9,11 @@
 
 ## Current remaining work
 
-**Updated 2026-10-13.**
+**Updated 2026-10-14.**
 
 T019/T023 remain open for the combined naming/metadata and eligible bulk passes, which require feature 023's configured recovery and current-library acceptance. The naming preference remains dot separators with a hyphen before the verified release group. T024 retains final idempotence, data and cleanup proof after the bulk pass; the additional reading-progress audit remains deferred. The shared outer backup is verified, normal Mylar is available and the compatible Komga reader is healthy. Bulk and experimental worker processing remain separately held; feature 023 owns the [current recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work).
 
-The deployed ordinary Mylar repair and compatible worker pass their accepted source/runtime checks. PR #335's published native candidate also passes installed-source, API, UI and 17 import/recovery cases. PR #336 now carries the combined reader-recovery and selected-pack implementation; hosted CI, matching-image delivery and genuine configured acceptance remain required before T019/T023/T024 bulk work. Selected ordinary pack recovery is prepared separately. See feature 023's [current evidence](../023-verified-publication-corrections/evidence-history.md#queue-admission-delivery-and-selected-pack-preflight-2026-10-13).
+The deployed ordinary Mylar repair and compatible worker pass their accepted source/runtime checks. PR #335's published native candidate also passes installed-source, API, UI and 17 import/recovery cases. PR #336 merged with all 14 hosted checks passing and GitHub/local/Gitea synchronized. Matching-image publication and genuine configured acceptance remain required before T019/T023/T024 bulk work. Selected ordinary pack recovery is prepared separately. See feature 023's [current evidence](../023-verified-publication-corrections/evidence-history.md#queue-admission-delivery-and-selected-pack-preflight-2026-10-13).
 
 ## Phase 1: Setup
 
