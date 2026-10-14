@@ -284,6 +284,10 @@
     "sha256": "9402d0d7b96fbd51f98623614495da5b716a62083bc951b46ebda1f1b4908a92"
   },
   {
+    "path": "patch_pullist_ui.py",
+    "sha256": "43ba234ccf259e2c35f8bba901c736591e59635569ce95c41e1185e69e94c266"
+  },
+  {
     "path": "patch_queue_control.py",
     "sha256": "edf0de21e8f79b09275058c7bff16ba42f2f34715b779ad3589f3963a0cd4936"
   },
@@ -345,7 +349,7 @@
   },
   {
     "path": "patch_wide_layout.py",
-    "sha256": "4c299984eb2b661306a2aaf85260c3f8951646d813527925861ca8fc3a554cba"
+    "sha256": "0ab41a784b0d712b6dd56e14133af9807143c1c52aa310b1e13f8c583e75df28"
   },
   {
     "path": "patch_workflow.py",
@@ -665,7 +669,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "7668a33ed471d03037c34af547098364fed5602a176e21d900d9bc3b84e03426"
+    "sha256": "dec284bee7adc6cee96aa32c5ddf0f0a524206a850e5140feef5f6e2f3705984"
   },
   {
     "path": "story_arc_search.py",
@@ -1372,6 +1376,10 @@
     "sha256": "3838639249ea4dcf634becc57806f9118d53822eadf916e88a525f7fd0e4a52e"
   },
   {
+    "path": "test_pullist_ui.py",
+    "sha256": "3226e909f797f07371ffb593d479c4f38b3d46d259f0019b5ab960785c4246fe"
+  },
+  {
     "path": "test_queue_control.py",
     "sha256": "a101200b2671a808069ae2c7bb832605cec68b8be2a3caa72de2c1a6fa6e58ce"
   },
@@ -1545,7 +1553,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "525634b28fd7c0ffa9febe6969dd3335cb343b21f4fb83e6528eb6214b358b0f"
+    "sha256": "49bac6dab0739e93231dc25137796282383cee94e1c8404dd396d31d27a600a6"
   },
   {
     "path": "verify_publication_reader_cohort.py",
