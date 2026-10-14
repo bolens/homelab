@@ -56,6 +56,12 @@ compatibility; use portable streaming hashes when the runtime lacks
 `hashlib.file_digest`. Keep runtime compatibility checks separate from live data
 acceptance.
 
+Keep operational helper source, proof inputs, receipts and resume notes on private
+persistent storage outside Git. Reserve temporary filesystems for disposable test
+fixtures. Before a planned reboot, verify the checkpoint and its referenced files
+are durable; after reboot, recapture process epochs and live file bindings rather
+than treating retained historical proof as fresh authorization.
+
 Do not copy the entire comic library for routine interface, image or configuration
 updates. Back up affected application state and verify the library in place. If
 an operation changes existing media, preserve those specific files first. Reserve
