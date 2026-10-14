@@ -4,7 +4,7 @@
 
 ## Current remaining work
 
-**Updated 2026-10-13.** Detailed results are in [evidence history](evidence-history.md#current-archive-source-pins-2026-10-13).
+**Updated 2026-10-14.** Detailed results are in [evidence history](evidence-history.md#current-archive-source-pins-2026-10-13).
 
 - Completed: T011/T013 repair adoption and durable history implementation, and T014 contract review. The compact reader passes the actual database and both 77-test suites.
 - T012/T015: finish genuine installed reader continuity and archive prepare→execute→terminal production with factual native/worker consumption, then matching-cohort delivery. These implementation and isolated-image milestones do not inherently require live T016/T017 repair acceptance.
@@ -16,7 +16,7 @@
 - T012/T015: reviewed finite projection/installer and real host-lease source pass 30 and 15 host controls without skips. The real Parent constructor and canonical 100-leaf configured overlay pass in the selected image. Connected Birth/pipe, actual NFS and terminal consumption remain unverified; see [shared implementation](../023-verified-publication-corrections/evidence-history.md#reviewed-installer-and-host-lease-implementation).
 - T018: complete shared current-library acceptance before repaired-archive or bulk processing resumes.
 
-Feature 023 owns the [configured recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and accepted outer-backup evidence. Ordinary Mylar and the compatible reader are healthy. PR #335's published native candidate passes installed-source, API, UI and 17 import/recovery cases; PR #336 carries the combined source checkpoint with hosted CI and matching-image delivery pending. Genuine Parent/Birth/NFS/archive terminal and current-library acceptance remain required before experimental-worker, bulk or archive-recovery processing. Selected ordinary pack recovery is separate.
+Feature 023 owns the [configured recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and accepted outer-backup evidence. Ordinary Mylar and the compatible reader are healthy. PR #335's published native candidate passes installed-source, API, UI and 17 import/recovery cases; PR #336 merged the combined source checkpoint with all 14 hosted checks passing and GitHub/local/Gitea synchronized. Matching-image publication and verification remain pending. Genuine Parent/Birth/NFS/archive terminal and current-library acceptance remain required before experimental-worker, bulk or archive-recovery processing. Selected ordinary pack recovery is separate.
 
 ## Phase 1: Setup
 
