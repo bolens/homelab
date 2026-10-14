@@ -889,8 +889,7 @@ kernel-byte fixtures supply no real filesystem or remount acceptance.
 
 The passive worker source passes five separate-process controls plus a full
 registry/current-marker route before and after genuine registration. Its reader
-has no native maintenance writer or held-journal allowance. Worker packaging and
-latest native-source join remain pending. The reconstructed main-image verifier
+has no native maintenance writer or held-journal allowance. Worker packaging and the latest native-source join now pass source verification: regeneration reproduces all twelve outputs, with four additional separate-process stable-branch controls. Matching worker-image verification remains pending. The reconstructed main-image verifier
 also passes independent source review and four host controls with image binding
 unset. CI delivery, installed-image gates, verified backup/restore and live
 recovery remain open under T017. No aggregate task is checked off on fixture
@@ -918,3 +917,7 @@ check. Independent review passes for all three corrections. Root repeats lint,
 two status-routing controls, six preloaded-worker identity cases and an existing
 worker journal-refusal case. Fresh full hosted checks remain required before
 merge. No live operation is claimed.
+
+The `f114f1c9` corrective head passes hosted lint, CodeQL, repository validation and both worker jobs. The native image then refuses the authenticated fixture graph: its runner retains 105 ordered sources while the reviewed manifest contains 114. The correction updates only that exact ordered tuple; all other runner AST, finite-count/hash/copy/ancestor checks and expected test counts remain unchanged. Root verifies the complete frozen package and independently passes six copy controls plus the genuine 26-control broker family without skips. Full authenticated families, fresh complete hosted checks and live acceptance remain required. No aggregate task is newly complete.
+
+Independent review confirms the corrected 114-row graph and all source hashes, with unchanged guards and counts. Full local CI passes. A separate FR-016 audit finds no cache-guard source defect: 45 unchanged owning controls and seven additional budget, crash/restart and filesystem controls pass without skips. A read-only configured-cache observer passes four disposable checks but remains unbound; configuration-file evidence does not prove loaded daemon settings. T030 stays open for matching-runtime and configured live acceptance.
