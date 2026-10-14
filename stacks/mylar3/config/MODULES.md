@@ -55,6 +55,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Responsive queue interface | `patch_ddl_ui.py` | `ddl_queue.js`, `ddl_queue.css`, `test_ddl_ui.py` |
 | Shared wide-screen layout | `patch_wide_layout.py` | `wide_layout.css` |
 | Manage workflows and native-tab presentation | `patch_manage_ui.py` (through `patch_wide_layout.py`) | `manage_body.html`, `manage_ui.css`, `test_manage_ui.py` |
+| Weekly release-list presentation | `patch_pullist_ui.py` (through `patch_wide_layout.py`) | `pullist_ui.css`, `test_pullist_ui.py`; native week navigation, searches, watchlist actions and weekly settings remain owned by Mylar |
 | SQLite write transactions | `patch_database_transactions.py` | `test_database_transactions.py` |
 | Filename identity and single-volume recovery | `patch_file_matching.py` | `file_identity.py`, `test_file_identity.py`, `test_file_matching.py` |
 | Explicit catalog volume labels | `patch_catalog_volumes.py` | `catalog_volume.py`, `test_catalog_volumes.py` |

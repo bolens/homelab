@@ -182,6 +182,8 @@ def main(directory):
         catalog.write_text(catalog_template(catalog.read_text(), name,
             (files/'catalog_ui.css').read_text(), (files/'catalog_ui.js').read_text()))
     install_manage_ui(path.parent, files)
+    from patch_pullist_ui import main as patch_pullist
+    patch_pullist(directory)
     print('Mylar fluid desktop layout verified')
 
 

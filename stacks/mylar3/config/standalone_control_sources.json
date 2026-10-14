@@ -350,6 +350,11 @@
     "target": "patch_publication_startup.py"
   },
   {
+    "path": "patch_pullist_ui.py",
+    "sha256": "43ba234ccf259e2c35f8bba901c736591e59635569ce95c41e1185e69e94c266",
+    "target": "patch_pullist_ui.py"
+  },
+  {
     "path": "patch_queue_control.py",
     "sha256": "edf0de21e8f79b09275058c7bff16ba42f2f34715b779ad3589f3963a0cd4936",
     "target": "patch_queue_control.py"
@@ -426,7 +431,7 @@
   },
   {
     "path": "patch_wide_layout.py",
-    "sha256": "4c299984eb2b661306a2aaf85260c3f8951646d813527925861ca8fc3a554cba",
+    "sha256": "0ab41a784b0d712b6dd56e14133af9807143c1c52aa310b1e13f8c583e75df28",
     "target": "patch_wide_layout.py"
   },
   {
@@ -1705,6 +1710,11 @@
     "target": "test_publication_tagging.py"
   },
   {
+    "path": "test_pullist_ui.py",
+    "sha256": "3226e909f797f07371ffb593d479c4f38b3d46d259f0019b5ab960785c4246fe",
+    "target": "test_pullist_ui.py"
+  },
+  {
     "path": "test_queue_control.py",
     "sha256": "a101200b2671a808069ae2c7bb832605cec68b8be2a3caa72de2c1a6fa6e58ce",
     "target": "test_queue_control.py"
@@ -1921,7 +1931,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "3c1d50c8e7481ab1957a0435774287198a8e4b67ec8fa359ba9ca64b522a9b28",
+    "sha256": "7b152ec75c9c499101677b7b8eecbfa6c5e63f3ddea7d256453f04dd2e90c01a",
     "target": "verify_image.py"
   },
   {

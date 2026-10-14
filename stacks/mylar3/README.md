@@ -423,6 +423,10 @@ responsive scheduler and queue tables. A scan flag is submitted only by the scan
 action; the explicit running-import override belongs to that form. Repeated panel
 refreshes retain one status poller and one manual-processing handler. Scan and
 processing submissions are distinguished from confirmed library imports.
+Weekly releases use labeled week navigation, release and wanted counts, a named
+filter, neutral rows with status badges, and visible row-action labels. Publisher
+bulk-add and weekly-copy controls retain their native scope and settings. Narrow
+screens keep the release table scrollable; both themes share the same geometry.
 `component_examples.html` provides enabled, disabled, dynamic and navigation
 examples for a preview using native theme assets, including late native widgets
 and dialogs. Maintenance uses the same shared components. Login uses static
