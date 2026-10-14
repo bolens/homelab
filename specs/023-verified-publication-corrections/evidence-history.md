@@ -864,3 +864,45 @@ The first private device resolver batch passes seventeen host controls in indepe
 The hosted PR #338 build fails a separate scheduling defect: the outer 90-second reader-control deadline is shorter than one nested child's existing 120-second allowance and kills the unchanged 807-control aggregate. The corrective runner retains ordinary 90-second and child 120-second bounds, giving only the two aggregate paths a finite 6,780-second cap derived from 56 serial children plus fixture overhead. Overall workflow and isolated-launcher limits remain independently tighter. Ten owning controls, including all 807 checks, pass without skips; independent review preserves original assertions, suites and actor policy. Leaf-first repins change only two standalone rows and their three API-map references.
 
 The final-image correction copies the actual checked Mega library into the runtime stage and checks its allocation, temporary-file, before-write and promotion calls there. The mandatory CI regressions replay the owning patch and final COPY routes: the original image contract fails, while fifteen corrected controls pass with no skips. Independent source review confirms only the Mega library was omitted among the audited external patch outputs; existing template copies and Main permissions stay intact. Corrected source still requires full local checks, hosted CI and a fresh built-image gate before deployment.
+
+
+## Recovery delivery checkpoint 2026-10-14
+
+PR #338 is squash-merged as `454b41df` after every applicable hosted check
+completes successfully. Full local CI passes. GitHub, local main and the
+configured Gitea mirror share that revision. The earlier scheduling failure and
+missing final-stage Mega library remain recorded above. Corrected trusted-main
+image publication completes successfully. No live update is claimed.
+
+The current Mylar container successfully repeats the read-only Btrfs identity
+query as UID 1000. Its stable filesystem/subvolume result matches the host
+observation. Identifiers stay private. This proves current query capability,
+not recovery authorization, historical continuity or actual remount behavior.
+
+The native recovery batch is integrated locally after independent source review.
+Root repeats all 57 controls in both the frozen package and owning checkout:
+22 new controls and 35 unchanged bootstrap/registration controls pass without
+skips. A retained peer failure is corrected: mutation of the original accepted
+plan now refuses before fence removal and preserves the fence, SQL and marker.
+Tests use real SQLite, Writer locks and future registration/restart. Portable
+kernel-byte fixtures supply no real filesystem or remount acceptance.
+
+The passive worker source passes five separate-process controls plus a full
+registry/current-marker route before and after genuine registration. Its reader
+has no native maintenance writer or held-journal allowance. Worker packaging and
+latest native-source join remain pending. The reconstructed main-image verifier
+also passes independent source review and four host controls with image binding
+unset. CI delivery, installed-image gates, verified backup/restore and live
+recovery remain open under T017. No aggregate task is checked off on fixture
+results alone.
+
+
+The integrated packaging closure retains all 100 required SDK names and 25 Reader
+cohort modules, adding four existing helper dependencies for a 78-module closure
+and 179-source known base. All 924 control-map rows and 220 recovery rows match
+their declared source. Root repeats sixteen installer controls without skips.
+A documentation edit initially stales the README hash and the unchanged owning
+gate refuses it. The correction changes that one hash field only. Root then
+passes all ten owning controls, including the complete 807-control aggregate,
+without skips. Full staged local CI passes with all new source and fixture files
+included. Hosted CI, new image verification and live recovery remain pending.

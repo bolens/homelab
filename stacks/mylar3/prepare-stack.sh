@@ -19,4 +19,5 @@ prepare_stack_msg "Optional library metadata discovery and nested-copy repair ar
 prepare_stack_msg "Optional PDF-to-CBZ rendering is configured on the matching normalizer; deploy Mylar before enabling it. Existing settings are preserved."
 prepare_stack_msg "Read-only payload verification, including pinned libarchive 3.8.9, is bundled in the image and needs no extra mounts or preparation. Correction registration and publication enforcement remain a separately gated migration; this foundation does not repair media."
 prepare_stack_msg "Protected lossless conversion and combined root metadata require matching native/worker images and verified rollout; preparation does not activate them."
+prepare_stack_msg "Device-identity recovery requires a reviewed consistent backup and isolated restore. Preserve the existing config volume and recovery markers; preparation does not adopt identities or clear publication holds."
 prepare_stack_end

@@ -113,3 +113,12 @@ route remains operationally held.
 Five additional owned-cleanup transition controls raise799 to804 across56 suites. The original admitted fixture may be absent only after the original registered kernel completes, exact source-owned release succeeds and physical release closes original process/pipe custody. Aborted/unknown release, foreign kernel metadata, changed original rows, reappeared directories and retained-control drift refuse. Parent/kernel/lease prerequisites in these source-method controls remain explicitly projected; actual configured Parent/NFS acceptance is still required.
 
 Three configured-base generation controls raise804 to807 across the same56 suites. The source-only expected base now joins reviewed merged native SDK/API/pack-catalog bytes and current cohort provenance; exact predecessor175/cohort expectations remain historical. Complete-known-SDK and raw base-manifest guards are unchanged. Default image staysNone and installed/runtime/publication acceptance staysFalse; actual matching image/overlay-origin/Parent/Birth/NFS/terminal evidence is still required.
+
+
+Device-recovery packaging extends the current existing SDK closure from 74 to
+78 modules and the known native base from 175 to 179. The 100 required SDK names
+and 25 Reader cohort modules are unchanged. The four new helpers are installed
+through the native publication adapter. Current source maps include their exact
+bytes and the portable recovery controls. Historical expectations remain
+unchanged. Installed parity and actual backup, migration and reader acceptance
+remain separate from these source updates.

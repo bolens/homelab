@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import threading
 import zipfile
 
 MAX_MEMBERS = 4096
@@ -751,11 +752,13 @@ def _registry_snapshot(database, marker):
                 current_writer = writer_identity(Writer(marker.parent, create=False))
                 if not isinstance(value, dict) or not digest_value(value.get('initialization_intent')):
                     raise Unavailable('Missing initialization witness binding')
-                initialization_witness(db, value['initialization_intent'], census, before[:2], current_writer)
+                initialization_witness(db, value['initialization_intent'], census, before[:2], current_writer, ledger_dir=marker.parent/'identity-adoptions-v1')
+                projected_marker = dict(value)
+                projected_marker.update(historical_identity(db, marker.parent/'identity-adoptions-v1', value, before[:2], current_writer, outcome='committed'))
             expected = dict(version=1, phase='final', census=census,
                             initialization_intent=value['initialization_intent'],
                             database_identity=before[:2], writer_identity=current_writer)
-            if canonical_digest(value) != canonical_digest(expected):
+            if canonical_digest(projected_marker) != canonical_digest(expected):
                 raise Unavailable('Correction marker does not bind complete final state')
             if (signature(os.fstat(stream.fileno())) != before
                     or signature(database.lstat()) != before
@@ -957,6 +960,18 @@ def writer_identity(writer):
         os.close(fd)
 
 
+def database_stamp(path):
+    with regular(path) as stream:
+        info = signature(os.fstat(stream.fileno()))
+        header = stream.read(100)
+    if (info[6] != os.geteuid() or stat.S_IMODE(info[5]) != 0o600 or info[8] != 1
+            or len(header) != 100 or header[:16] != b'SQLite format 3\0'
+            or header[18:20] != b'\x01\x01'
+            or any(os.path.lexists(str(path) + suffix) for suffix in ('-wal', '-shm', '-journal'))):
+        raise Unavailable('Expected private complete rollback-journal database')
+    return info
+
+
 def empty_census(epoch):
     return dict(version=1, epoch=epoch, revision=0, keys=[], digest=canonical_digest([]))
 
@@ -1080,7 +1095,21 @@ def workflow_schema(db):
         'SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')])
 
 
-def initialization_witness(db, token, census, identity, writer, *, pending=None):
+def historical_identity(db, ledger_dir, binding, identity, writer, *, outcome, pending=None, writer_owner=None):
+    original = {name: list(binding[name]) for name in ('database_identity', 'writer_identity')}
+    current = dict(database_identity=list(identity), writer_identity=list(writer))
+    if original == current and (outcome != 'committed' or ledger_dir is None):
+        return current
+    if ledger_dir is None:
+        raise Unavailable('Foreign initialization witness')
+    if __package__:
+        from .publication_identity_readers import durable_identity
+    else:
+        from publication_identity_readers import durable_identity
+    return durable_identity(db, ledger_dir, original, current, outcome=outcome, pending=pending, writer_owner=writer_owner)
+
+
+def initialization_witness(db, token, census, identity, writer, *, pending=None, ledger_dir=None, writer_owner=None):
     rows = db.execute("SELECT key,value FROM records WHERE kind='publication_intent'").fetchall()
     committed = []
     for key, raw in rows:
@@ -1091,10 +1120,11 @@ def initialization_witness(db, token, census, identity, writer, *, pending=None)
         if value['outcome'] == 'committed':
             if plan['action'] == 'bootstrap':
                 committed.append(key)
+            effective = historical_identity(db, ledger_dir, plan['binding'], identity, writer, outcome='committed', pending=pending, writer_owner=writer_owner)
             epoch = plan['epoch'] if plan['action'] == 'bootstrap' else plan['old']['epoch']
             if ((plan['action'] == 'bootstrap' and key != token) or epoch != census['epoch']
-                    or plan['binding']['database_identity'] != identity
-                    or plan['binding']['writer_identity'] != writer
+                    or effective['database_identity'] != identity
+                    or effective['writer_identity'] != writer
                     or plan['binding']['schema'] != workflow_schema(db)):
                 raise Unavailable('Foreign initialization witness')
     if committed != [token]:

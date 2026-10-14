@@ -806,19 +806,23 @@ def adoption(writer, token):
         with closing(
             sqlite3.connect(database.as_uri() + "?mode=ro&immutable=1", uri=True)
         ) as db:
+            db.execute('BEGIN')
             row = db.execute(
                 "SELECT value FROM records WHERE kind='publication_intent' AND key=? AND typeof(value)='text' "
                 "AND length(CAST(value AS BLOB))<=?",
                 (token, guard.REGISTRATION_BYTES),
             ).fetchone()
+            if row is not None:
+                record = guard.decode_json(row[0])
+                plan = guard.intent_record(token, record)
+                effective = guard.historical_identity(db, writer.root/"identity-adoptions-v1", plan["binding"],
+                                                      before[:2], guard.writer_identity(writer), outcome=record["outcome"])
         if row is None or guard.database_stamp(database) != before:
             raise guard.Unavailable("Derivative adoption journal changed")
-        record = guard.decode_json(row[0])
-        plan = guard.intent_record(token, record)
         if (
             plan["action"] != "register"
-            or plan["binding"]["database_identity"] != before[:2]
-            or plan["binding"]["writer_identity"] != guard.writer_identity(writer)
+            or effective["database_identity"] != before[:2]
+            or effective["writer_identity"] != guard.writer_identity(writer)
         ):
             raise guard.Unavailable("Derivative adoption journal is foreign")
     body = record["plan"]["body"]

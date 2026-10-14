@@ -50,7 +50,7 @@ def main():
     assert finalizer.ENABLED is False and finalizer.o is core and finalizer.r is retained
     assert callable(finalizer.finalize) and callable(finalizer.status_existing)
     assert callable(native.finalize_retained_delivery) and callable(native.retained_finalization_status)
-    assert len(manifest['existing_sdk_closure']) == 74
+    assert len(manifest['existing_sdk_closure']) == 78
     standalone = importlib.import_module('mylar.publication_retained_standalone')
     standalone_action = importlib.import_module('mylar.comic_retained_standalone_action')
     for module, relative in ((standalone, 'publication_retained_standalone.py'),

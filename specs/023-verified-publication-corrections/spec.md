@@ -61,6 +61,7 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - Correct files renamed or retagged through accepted journals; historical correction evidence must remain traceable.
 - Interrupted registration/publication, concurrent native and worker admission, partial cleanup and restored application state.
 - New acquisitions during an audit; inventory drift is evidence rather than successful full-library acceptance.
+- Device numbers change after reboot while immutable history and file inodes remain intact. Recovery needs explicit reviewed destination trust, a verified backup and isolated restore. Historical filesystem continuity cannot be inferred from matching bytes alone.
 
 ## Requirements
 
