@@ -22,7 +22,7 @@
       "sha256": "9dac2510d6ab158505a0ee0964d483b5265c55ffb6c14941632a9a8d44c77775"
     },
     "README.md": {
-      "sha256": "0a77af0c9dcc6a11aa1f3f5fe57c1bafc3a398c7be8a329096bcfa3f0d84a07d"
+      "sha256": "c3b67367c338b4e8b3c475cef95f15fa95d60d6812749ea3b6fc413e39377d10"
     },
     "_archive_repair_fixtures/archive_monitor.py": {
       "sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3"
@@ -469,13 +469,13 @@
       "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
     },
     "configured_reader_parent_base_sources.json": {
-      "sha256": "6da9a9611d08be83a7d31bc7482f526e0e13fdd366be9dc8097ba047427bab0f"
+      "sha256": "6a36eac8a61015bfc9f254a87bc2f533437d61811cdd49210ba516605c335e3e"
     },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "45ea59e6afb3c5ea3fcd21b5f7c0302a90e48663fced844f2f51961306ef4ca6"
+      "sha256": "8a1edc3ac27ace631dcafbf4aa1b20d373d51bfcd4d6fc3479853f61529c8848"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -541,7 +541,7 @@
       "sha256": "ca56630160985621a880ea1d3a9f567a7975fbc90cd0a23af6d302ffa75fe2a9"
     },
     "test_configured_parent_installation.py": {
-      "sha256": "2f81bc66d7147fa53b56e14a92b9be58b0ac397a5ed18477cc0b7ee2af930864"
+      "sha256": "d574dcb7568f141a33d318cb1e22c0dd3a84bb2a0061ed5e4913c9165796f260"
     },
     "test_deferred_lease.py": {
       "sha256": "8f6188aff1bb8deee90ccdea2b6c8b7961934d45bac9d9563346f7b66f504fa6"

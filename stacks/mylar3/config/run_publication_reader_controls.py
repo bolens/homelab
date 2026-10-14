@@ -22,6 +22,11 @@ SUITES = (
     'test_publication_reader_recovery_controls.py',
 )
 
+ORDINARY_SUITE_TIMEOUT = 90
+# The aggregate has 56 serial children with existing 120-second deadlines.
+# This fixed cap encloses those deadlines plus 60 seconds for fixture overhead.
+RECOVERY_AGGREGATE_TIMEOUT = 6780
+
 
 def fixture_identity():
     # The immutable namespace kernel admits its local mechanical fixtures only
@@ -50,11 +55,12 @@ def main():
         for suite in SUITES:
             print('Prospective reader source controls: ' + suite, flush=True)
             subprocess.run([sys.executable, '-B', str(controls / suite)], check=True,
-                cwd=controls, env=environment, timeout=90,
+                cwd=controls, env=environment,
+                timeout=RECOVERY_AGGREGATE_TIMEOUT if suite == 'test_publication_reader_recovery_controls.py' else ORDINARY_SUITE_TIMEOUT,
                 preexec_fn=fixture_identity if os.geteuid() == 0 else None)
 
         subprocess.run([sys.executable, '-I', '-B', str(controls / 'run_reader_recovery_controls.py')],
-            check=True, cwd=controls, timeout=120,
+            check=True, cwd=controls, timeout=RECOVERY_AGGREGATE_TIMEOUT,
             preexec_fn=fixture_identity if os.geteuid() == 0 else None)
 
 if __name__ == '__main__':

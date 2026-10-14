@@ -1,9 +1,13 @@
 """Regression tests for custom-image CI selection."""
 
+import ast
 import importlib.util
 import json
 import os
+import shlex
+import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 import unittest
@@ -100,6 +104,84 @@ class AilBuildContractTests(unittest.TestCase):
             self.assertIn(expected, readme)
         for obsolete in ("Dockerfile.runtime", "BASE_IMAGE=", "7.0-cpu-build", "7.0-gpu-build"):
             self.assertNotIn(obsolete, readme)
+
+
+class MylarStagePreservationTests(unittest.TestCase):
+    """Preserve checked external-tree patches across the real final COPY routes."""
+
+    STACK = ROOT / "stacks/mylar3"
+
+    def copy_checked_artifact(self, body, checked, final, artifact):
+        stage = body.rsplit("\nFROM ", 1)[1]
+        for line in stage.splitlines():
+            if not line.startswith("COPY --from=checked "):
+                continue
+            fields = shlex.split(line)
+            for source in fields[2:-1]:
+                if source == artifact:
+                    target = fields[-1]
+                    if target.endswith("/"):
+                        target += Path(source).name
+                elif source.endswith("/") and artifact.startswith(source):
+                    target = fields[-1].rstrip("/") + "/" + artifact[len(source):]
+                else:
+                    continue
+                destination = final / target.lstrip("/")
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(checked / artifact.lstrip("/"), destination)
+
+    def test_final_stage_preserves_real_mega_patch_and_checks_installed_guard(self):
+        config = self.STACK / "config"
+        fixture = config / "test_fixtures/cache_admission/mega_library.py.txt"
+        result = subprocess.run(
+            [sys.executable, "-I", "-B", "-c",
+             "import sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); "
+             "import patch_cache_admission as patch; "
+             "sys.stdout.write(patch.mega_library(Path(sys.argv[2]).read_text()))",
+             str(config), str(fixture)], capture_output=True, text=True, check=True)
+        original = fixture.read_text()
+        patched = result.stdout
+        self.assertNotEqual(original, patched)
+        body = (self.STACK / "Dockerfile").read_text()
+        artifact = "/app/mylar3/lib/mega/mega.py"
+        with tempfile.TemporaryDirectory() as directory:
+            checked, final = Path(directory) / "checked", Path(directory) / "final"
+            for root, content in ((checked, patched), (final, original)):
+                leaf = root / artifact.lstrip("/")
+                leaf.parent.mkdir(parents=True)
+                leaf.write_text(content)
+            self.copy_checked_artifact(body, checked, final, artifact)
+            installed = final / artifact.lstrip("/")
+            self.assertEqual(installed.read_text(), patched)
+            stage = body.rsplit("\nFROM ", 1)[1]
+            guard = next(shlex.split(line)[-1] for line in stage.splitlines()
+                         if line.startswith("RUN python3 -I -B -c ")
+                         and artifact in line)
+            # Execute the actual final-stage assertion with only its fixed path
+            # projected into the disposable checked/final file trees.
+            def verify(path):
+                tree = ast.parse(guard)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Constant) and node.value == artifact:
+                        node.value = str(path)
+                return subprocess.run(
+                    [sys.executable, "-I", "-B", "-c", ast.unparse(tree)],
+                    capture_output=True, text=True)
+            self.assertEqual(verify(installed).returncode, 0)
+            installed.write_text(original)
+            self.assertNotEqual(verify(installed).returncode, 0)
+
+    def test_final_stage_preserves_external_workflow_template(self):
+        artifact = "/app/mylar3/data/interfaces/default/workflow.html"
+        content = (self.STACK / "config/workflow.html").read_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            checked, final = Path(directory) / "checked", Path(directory) / "final"
+            source = checked / artifact.lstrip("/")
+            source.parent.mkdir(parents=True)
+            source.write_bytes(content)
+            self.copy_checked_artifact((self.STACK / "Dockerfile").read_text(),
+                                       checked, final, artifact)
+            self.assertEqual((final / artifact.lstrip("/")).read_bytes(), content)
 
 
 class MylarInstalledGateTests(unittest.TestCase):

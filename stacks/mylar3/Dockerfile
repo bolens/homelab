@@ -93,6 +93,8 @@ FROM pdf-runtime
 LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
       org.opencontainers.image.title="Mylar comic automation"
 COPY --from=checked /app/mylar3/mylar/ /app/mylar3/mylar/
+COPY --from=checked /app/mylar3/lib/mega/mega.py /app/mylar3/lib/mega/mega.py
+RUN python3 -I -B -c "import ast; from pathlib import Path; source=Path('/app/mylar3/lib/mega/mega.py').read_text(); assert source.count('# homelab-cache-admission-v1')==1; tree=ast.parse(source); assert all(any(isinstance(node,ast.Call) and ast.unparse(node.func)==name for node in ast.walk(tree)) for name in ('cache_admission.allocation','cache_admission.temporary','reservation.before_write','temp_output_file.promote'))"
 # Only public verifier leaves cross this boundary; no anchor, key or fixture.
 COPY --from=checked /opt/mylar-publication-launch/auth/ /opt/mylar-publication-launch/auth/
 RUN chmod 0755 /app/mylar3/Mylar.py \

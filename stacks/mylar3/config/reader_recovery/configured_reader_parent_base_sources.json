@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "1c0a5ecb6fcf0eb9088c8411ad93d76cc44fd24b8c812c67f478a01de9bbd8ed",
+  "base_cohort_sha256": "0aac9c3a43f063f040b182dfb15b198572a6e1ce7413af2565c7c14b0423f2f4",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -109,7 +109,7 @@
     "PostProcessor.py": "a10da3dbf348d404512243e97fbfef2abe7d3c9eb3a6eb0b20ff4642f2eaece5",
     "__init__.py": "00528e2783d5caf3f1075eea41ea2ea6505ad88d9558ee8d384f9f0f133be591",
     "api.py":
-      "23b8e01c547f70a8dd74004560f206fb29e553128aca819d6b4f81d8e250997d",
+      "a4b8bd68338297d6c0f0039c9d95b9386ebddee8c989085d610c227a70611c2b",
     "archive_monitor.py": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3",
     "auth.py":
       "aec8142c623ad3555331df538f12637559b474c54e92713800687b4b10546289",
@@ -161,7 +161,7 @@
     "media_writer.py": "6187fe15991d7047088ebce319f597278db6d3c62cd25535d1b6e9e1f2fc7b45",
     "metadata_repair.py": "567d9c08378f2f6884da4119bbd9933403c915b983326c3e8d1b3466c5621964",
     "moveit.py": "1a21d9e35bfb5f43e515fb292e7ae7e114d7e1bdcd7c767a8dda3394443c4452",
-    "native_writers.py": "cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202",
+    "native_writers.py": "43622672cbc3ff49edc45c905f3a57883213102a5ec7203b3a1233ac2ef916fd",
     "newpull.py": "4c9a0fb988f010ed62c1cd7723a34517b9e528105d35d5f97bbab11d3fa5a7be",
     "notifiers.py": "bd166e4802f320b6346b78e706d7db707471702085a2987c6067dcb7189c14f5",
     "nzbget.py": "2f2f366795baf7efcb0428a222270df5a2754a3b4058de6b01dcda82534c51a9",
@@ -170,7 +170,7 @@
     "ordinary_import_history.py": "0d4af8b01cf5d4e32c8471226a6075751fdd41f7d708df066e5914be1978a0e5",
     "ordinary_import_observation.py": "c2e8da946e2677b1ebf940342077ea6bbf64b0210bbbddca77e92f9dce55bea3",
     "pack_bindings.py": "1bb49d868ab3ce3dd2e4789aa4fb32833780cc63ba7a0ec29bf2109ce7369ed1",
-    "pack_catalog.py": "908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20",
+    "pack_catalog.py": "00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f",
     "pack_intake.py": "9cf005357e9c754374b2a07306618f17a299fc2c5dfc2da39f44b2f74380b4f7",
     "parseit.py": "ef0682002829fb601041280c47e737c9e3907732bc01132a8fea70d4f97f0918",
     "pp_monitor.py": "39a1cce51092c65582e04307dec396ec8fa9eaaeef855684a92904e2943944f4",
@@ -365,7 +365,7 @@
         "owning_adapters": [
           "patch_media_writers.py"
         ],
-        "tracked_source_sha256": "cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202"
+        "tracked_source_sha256": "43622672cbc3ff49edc45c905f3a57883213102a5ec7203b3a1233ac2ef916fd"
       },
       "ordinary_import_continuity": {
         "owning_adapters": [
@@ -395,7 +395,7 @@
         "owning_adapters": [
           "patch_pack_intake.py"
         ],
-        "tracked_source_sha256": "908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20"
+        "tracked_source_sha256": "00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f"
       },
       "pack_intake": {
         "owning_adapters": [
