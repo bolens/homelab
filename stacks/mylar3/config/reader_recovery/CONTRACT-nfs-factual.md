@@ -19,3 +19,68 @@ Remaining protected gates are fresh accepted source-cohort assembly; selected im
 The nested configuration-mount correction projects the complete original mount table, selects the unique longest mapping and rejects config or Writer leaf overlays. Prior 169-control evidence remains historical; the corrected dedicated closure has 172 controls pending integrated runtime proof.
 
 The archive-specific readiness method adds eight controls and the provider adds three, bringing the current combined runner to 493. It remains disabled without the reviewed finite archive parent branch.
+
+## Retained configured child and current role inputs
+
+The optional maintained branch binds exact captured native/reader/worker IDs,
+images, static profiles and runtime epochs from the original Parent plan and
+SourceCohort. It never adopts the current live profile as a fresh baseline or
+uses fixed old-image selectors for a new image. Default image/source fields
+remain unset.
+
+The child uses UID1000 private paired controls and genuine child namespace
+ancestor vectors. The original host reader epoch is obtained only through the
+registered finite no-selector reply and checked against the effective observer.
+No host PID namespace or Docker socket is mounted. The genuine child canary is
+retained over original nonce/sequence-bound pipes; host engine calls consume
+source-owned exact intents and role IDs. Fixed host probe initialize returns its
+original name/argv/mounts before child writes create-intent; create captures its
+exact own CID/static and start follows that same spec.
+
+The real host Writer lease retains original Popen/FIFOs/token/CID/PID/start
+epoch and source-bound helper. Overall lease seconds bound acquisition by the
+positive remaining deadline as well as subsequent reads, with legacy None
+retaining its original 30-second acquisition contract. Failure supervision
+closes only original stdin/FD after identity checks, even when a handler fails
+before pump.read/write or nested abort refuses. Unknown canary/probe artifacts
+remain held for review, never automatically replayed or declared cleaned.
+
+Historical source-only 3166 required100/known175 expectations and constructor
+proof remain distinct from actual newly selected-image SDK/cohort/origin proof.
+The default route and exact original Writer/NFS4/census/cleanup guards remain.
+The additional copied test suites are mandatory and zero-skip, but projected
+engine cases are not an installed Parent/NFS/terminal acceptance grant.
+
+## Current connected call-order blocker
+
+The retained implementation remains disabled for configured execution. Its
+HostWriterLease and active NFS path currently inspect/observe native state and
+create/start the probe after the actual native Writer is held. This conflicts
+with the owning no-Docker/API-under-Writer requirement; legacy implementation
+provenance does not create an exception. The source/pipe tests do not establish
+contract-conforming NFS acceptance. Required correction must preserve sealed
+prelease facts, use local held custody only, and perform independent remote
+validation after release against those originals. No fresh observation may
+replace an original baseline or grant terminal acceptance.
+
+## Partial enforced lease-window checkpoint
+
+The maintained Parent now installs an engine-level block before the deferred
+helper acquire command. It refuses run/canary/interactive/worker_interactive/
+remove_observer before any subprocess. Local original reader epoch and source/
+pipe custody remain available while held. Physical release uses original
+process/inner PID disappearance and FD/path/namespace closure; an in-context
+release-reviewed ACK alone is insufficient. A proven aborted physical exit may
+clear the transport for independent diagnostics, with the session failed and
+no cleanup, terminal, resume or replay grant.
+
+This closes the lease/transport boundary only. The old active/probe call order
+is not accepted: it now fails at the guard and must be changed to prelease
+remote setup, local held execution, and postrelease independent comparison
+against sealed originals. The default configured route remains disabled.
+
+Before clearing a physically released window, the Parent separately closes the retained original outer process PID, stream objects, registry fields and actual descriptor five-vectors after all physical callbacks. This local release-only closure may outlive the work deadline; ordinary dialogue deadlines remain strict. Drift retains the block and grants no success or replay.
+
+Configured phase order is prelease lease preparation, exact probe birth and real wait-gated Popen/prepared ACK; source-owned acquire; local held execution/inventory/cleanup; actual helper physical release; independent postrelease terminal/source/profile/library checks against sealed originals. The Parent registers only the actual source-bound HostProbe and CID, rejects replay before launch, and requires consumed prepared ACK before blocking/acquisition. Descriptor facts carry false rights; no serialized canary or arbitrary child argv is admitted. Default legacy route remains operational HOLD, and actual configured NFS/Parent acceptance remains a separate gate.
+
+The retained probe mapping preserves its original admitted fixture directory vectors through execution. Source-owned cleanup may remove exactly that fixture and its parent before physical release. Only the original registered kernel output (exact probe/input/kernel hashes and immutable original directory identity), successful original release ACK, physical process/pipe closure and exact original owned absence permit the separately retained removal transition. Postrelease mapping then requires those exact paths absent and retains original input/source/ancestor/output/protected checks. No arbitrary missing path, aborted/unknown release or refreshed baseline is admitted.

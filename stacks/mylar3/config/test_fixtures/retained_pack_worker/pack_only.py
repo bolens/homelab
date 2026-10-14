@@ -21,6 +21,7 @@ def run(worker, pack_id, ddl_id):
     m.import_attempts = None
     m._pack_only_imports = set()
     m._pack_only_native = set()
+    m._pack_only_existing_catalog = True
     writer = Writer(worker.config['writer_state'], create=False)
     with writer.hold(timeout=0), scope(worker, writer):
         pass

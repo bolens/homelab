@@ -792,6 +792,18 @@ capture are dispatched. It does not run conversion, naming, global maintenance,
 PDF rendering or library scans. Member preparation still uses the existing owning
 metadata and archive checks.
 
+This selected mode requires one existing native catalog identity for every comic
+member. Missing or ambiguous matches remain in review with their originals,
+including members with an older catalog-addition result. The pass does not add
+series or request catalog fallback. A unique match still passes the existing
+publication and import guards before submission. The normal automated pack cycle
+keeps its existing catalog-addition behavior.
+
+Selected preparation fetches health and the exact pack work, retaining the
+existing reader snapshot and response checks. It omits the unrelated queued-command
+fetch, so this preparation does not rotate that command cursor. Normal maintenance
+preparation keeps its existing command polling.
+
 A pass reports request counts, not completed import or library acceptance. Repeat
 with the same selectors to reconcile durable receipts; uncertain requests and
 retained accepted members remain held for their owning recovery route. A failed

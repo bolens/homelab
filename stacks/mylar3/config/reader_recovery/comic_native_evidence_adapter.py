@@ -302,7 +302,7 @@ def phase_custody(request, *, watch):
     need(roots[0]==Path(config_mounts[0]['Source']) and roots[1]==Path(ctx['backup']['restore_root'])
          and ctx['backup']['manifest']['path']==ctx['controls']['backup_manifest']['path']
          and ctx['backup']['manifest']['sha256']==ctx['controls']['backup_manifest']['sha256'],'custody-original-backup-join')
-    scratch=Path(ctx['controls']['custody']['path']).parent/'scratch'
+    scratch=Path(mapping.private_scope(Path(ctx['controls']['custody']['path']).parent/'scratch','scratch'))
     for root in [*roots,scratch]:
         for node in [root,*root.parents]:
             z=os.lstat(node);need(stat.S_ISDIR(z.st_mode),'custody-root-directory')
@@ -317,16 +317,16 @@ def phase_custody(request, *, watch):
     inv=expected['invocation'];need(set(inv)=={'input_path','input_sha256','parent_sha256','provider_sha256','command','nonce'}
          and inv['nonce']==request['nonce'] and inv['parent_sha256']==request['parent_source']['sha256']
          and inv['provider_sha256']==plan['provider']['sha256'],'custody-invocation')
-    input_host=mapping.host(inv['input_path']);raw=o.raw(input_host)
+    input_host=mapping.original_host(mapping.host(inv['input_path']));raw=o.raw(input_host)
     need(hashlib.sha256(raw).hexdigest()==inv['input_sha256'],'custody-input-digest');value=decode(raw)
     command=['/lsiopy/bin/python3','-I','-B',mapping.child(plan['provider']['path']),'--phase',ctx['phase'],'--input',inv['input_path'],'--input-sha256',inv['input_sha256'],'--source-sha256',inv['provider_sha256']]
     need(inv['command']==command and value['command_template']==command[:9]+['<INPUT_SHA256>']+command[10:]
          and value['nonce']==request['nonce'] and value['parent_sha256']==inv['parent_sha256']
          and value['selected_image']==plan['selected_image'] and value['version']==1,'custody-exact-command')
-    mapped_controls={name:dict(ref,path=mapping.child(ref['path'])) for name,ref in ctx['controls'].items()}
+    mapped_controls={name:mapping.child_ref(ref) for name,ref in ctx['controls'].items()}
     need(value['controls']==mapped_controls,'custody-input-nine-role-join')
-    if terminal:need(value.get('execute_ack')==dict(ctx['execute_ack'],path=mapping.child(ctx['execute_ack']['path'])),'custody-input-execute-ACK')
-    if terminal:need(value.get('terminal_manifest')==dict(ctx['terminal_manifest'],path=mapping.child(ctx['terminal_manifest']['path'])),'custody-input-terminal-manifest')
+    if terminal:need(value.get('execute_ack')==mapping.child_ref(ctx['execute_ack']),'custody-input-execute-ACK')
+    if terminal:need(value.get('terminal_manifest')==mapping.child_ref(ctx['terminal_manifest']),'custody-input-terminal-manifest')
     native=plan['native'];need(set(native)=={'data','roots'} and len(native['roots'])==1,'custody-native-scope')
     config_path=str(Path(native['data'])/'config.ini');config_host=scope.projection(expected['observations']['held_native']['Mounts'],config_path)
     need(mapping.child(config_host)==config_path,'custody-config-geometry');config=o.raw(config_host)
@@ -335,12 +335,12 @@ def phase_custody(request, *, watch):
     worker_library=worker_library_destination(scope,expected['observations']['held_worker']['Mounts'],physical)
     need(mapping.child(physical)==library,'custody-library-child-geometry')
     reader=dict(config_root=mapping.child(roots[0]),restore_root=mapping.child(roots[1]),scratch=mapping.child(scratch),
-                backup_manifest=dict(ctx['controls']['backup_manifest'],path=mapping.child(ctx['controls']['backup_manifest']['path'])),
-                backup_acceptance=dict(ctx['controls']['backup_acceptance'],path=mapping.child(ctx['controls']['backup_acceptance']['path'])),
+                backup_manifest=mapping.child_ref(ctx['controls']['backup_manifest']),
+                backup_acceptance=mapping.child_ref(ctx['controls']['backup_acceptance']),
                 current_pairs=copy.deepcopy(original_pair_values['current']),restore_pairs=copy.deepcopy(original_pair_values['restore']),
                 runtime=runtime,child_source_sha256=inv['provider_sha256'],child_image=plan['selected_image'])
     seed=dict(version=1,kind='selected-child-native-scope-birth',invocation=inv,
-              parent_source=dict(request['parent_source'],path=mapping.child(request['parent_source']['path'])),
+              parent_source=mapping.child_ref(request['parent_source']),
               birth_source=dict(path='/app/mylar3/mylar/publication_native_scope_birth.py',sha256=plan['birth_source_sha256']),
               config=dict(path=config_path,sha256=hashlib.sha256(config).hexdigest()),worker_library=worker_library,selected_image=plan['selected_image'])
     proofs=dict(ctx['controls'])

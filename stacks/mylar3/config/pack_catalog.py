@@ -158,7 +158,7 @@ def resolve(payload, handoff=None, catalog_attempt=None):
                         record.update(mutation_started=True, issueid=issueid, comicid=volumeid,
                                       reason='Catalog addition incomplete; retained for review')
                         finish()
-                        importer.addComictoDB(volumeid, suppress_addall=True)
+                        importer.addComictoDB(volumeid, calledfrom='maintenance', pullupd=True, suppress_addall=True)
                         comicid = volumeid
                         current = database.selectone('SELECT IssueID FROM issues WHERE IssueID=? AND ComicID=?', [issueid, comicid]).fetchone()
                     if current:

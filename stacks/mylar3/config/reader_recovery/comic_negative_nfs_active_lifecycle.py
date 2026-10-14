@@ -10,8 +10,10 @@ import json
 import os
 from pathlib import Path
 import re
+import select
 import stat
 import sys
+import time
 
 WRITER_SHA = None
 NAMES = frozenset(('source.bin', 'retained.bin', 'collision-source.bin', 'collision-destination.bin'))
@@ -149,6 +151,46 @@ def admit_parent(plan, roots, lease, mount_observer):
         os.close(fd)
 
 
+def prepare_parent(plan, roots, mount_observer):
+    """Prelease birth of the exact admitted absent parent; no Writer claim.
+
+    mount_observer is the owning parent's frozen findmnt verifier; this helper
+    has no default observer or alternate mount fallback.
+    """
+    require(type(plan) is dict and set(plan) == {
+        'path', 'grandparent_signature', 'expected_device', 'mount_identity'}, 'parent-plan')
+    p = canonical(plan['path'])
+    require(re.fullmatch(r'\.comic-nfs-private-[0-9a-f]{32}', p.name), 'parent-nonce')
+    require(not os.path.lexists(p), 'parent-already-exists')
+    require(roots and all(not p.is_relative_to(r) and not r.is_relative_to(p) for r in roots),
+            'parent-protected-overlap')
+    require(stamp(p.parent) == plan['grandparent_signature']
+            and plan['expected_device'] == stamp(p.parent)[0], 'grandparent-drift')
+    require(plan['mount_identity']['fstype'] == 'nfs4'
+            and mount_observer(p.parent) == plan['mount_identity'], 'actual-nfs-mount')
+    ancestors = direct_ancestors([p, *roots])
+    rootstates = {r: stamp(r) for r in roots}
+    forbidden_ids = {tuple(v[:2]) for v in rootstates.values()}
+    require(not any(tuple(stamp(q)[:2]) in forbidden_ids for q in (p.parent, *p.parent.parents)),
+            'physical-protected-alias')
+    close_vector(rootstates | {p.parent: plan['grandparent_signature']}, ancestors, {})
+    fd = os.open(p.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        require(sig(os.fstat(fd)) == plan['grandparent_signature'], 'grandparent-fd')
+        os.mkdir(p.name, 0o700, dir_fd=fd)
+        os.fsync(fd)
+        created = sig(os.stat(p.name, dir_fd=fd, follow_symlinks=False))
+        # Root squash is a HOLD. Never chown/chmod an unexpected result.
+        require(stat.S_ISDIR(created[5]) and created[6] == os.geteuid() == 1000
+                and stat.S_IMODE(created[5]) == 0o700
+                and created[0] == plan['expected_device'] and not os.listdir(p),
+                'created-parent-owner-device-mode')
+        close_vector(rootstates | {p: created}, ancestors, {p: set()})
+        return {'path': str(p), 'signature': created, 'grandparent_identity': stamp(p.parent)[:2], 'grandparent_node5': list(ancestors[p.parent])}
+    finally:
+        os.close(fd)
+
+
 def cleanup_owned(parent, child, facts, roots, lease, stopped_child_proof):
     """Delete only a verified completed canary's exact owned tiny namespace.
 
@@ -263,10 +305,32 @@ def namespace(root):
     return ({name: stamp(root / name) for name in names}, stamp(root)[:2])
 
 
-def lease_child(writer_source, writer_root, token, input_stream=sys.stdin, output_stream=sys.stdout, *, writer_sha256):
+def lease_child(writer_source, writer_root, token, input_stream=sys.stdin, output_stream=sys.stdout, *, writer_sha256, seconds=None, defer_acquire=False):
     """Blocking lease only. EOF/unknown commands fail closed; no marker writes."""
     require(type(writer_sha256) is str and re.fullmatch('[a-f0-9]{64}', writer_sha256), 'explicit-writer-source-pin')
     require(os.geteuid() == 1000 and re.fullmatch('[a-f0-9]{64}', token), 'lease-caller-token')
+    require(seconds is None or type(seconds) is int and 1<=seconds<=900,'lease-seconds-bound')
+    require(type(defer_acquire) is bool and (not defer_acquire or seconds is not None),'lease-deferred-finite-deadline')
+    deadline=None if seconds is None else time.monotonic()+seconds
+    descriptors=None
+    pending=bytearray()
+    if deadline is not None:
+        descriptors=[]
+        for stream in (input_stream,output_stream):
+            fd=stream.fileno();z=os.fstat(fd);descriptors.append((fd,(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)))
+        descriptors=tuple(descriptors)
+        require(all(stat.S_ISFIFO(v[2]) for _,v in descriptors),'lease-original-deadline-pipes')
+    def pipe_guard():
+        require(deadline is not None and time.monotonic()<deadline,'lease-original-deadline')
+        for fd,v in descriptors:
+            z=os.fstat(fd)
+            require((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)==v,'lease-original-deadline-pipe')
+    def bounded_line():
+        while b'\n' not in pending:
+            pipe_guard();require(len(pending)<1024,'lease-line-bound')
+            require(select.select([descriptors[0][0]],[],[],max(0,deadline-time.monotonic()))[0],'lease-original-deadline')
+            pipe_guard();piece=os.read(descriptors[0][0],1024-len(pending));require(bool(piece),'lease-channel-lost');pending.extend(piece)
+        line,_,rest=pending.partition(b'\n');pending[:]=rest;pipe_guard();return bytes(line)+b'\n'
     src = canonical(writer_source)
     source_sig = stamp(src)
     initial_nodes = direct_ancestors([src,canonical(writer_root)])
@@ -287,20 +351,31 @@ def lease_child(writer_source, writer_root, token, input_stream=sys.stdin, outpu
     ancestors = direct_ancestors([src, root])
     require(ancestors==initial_nodes,'writer-original-ancestor')
     writer = module.Writer(root, create=False)
-    with writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True, timeout=30):
-        def emit(state):
-            require(namespace(root) == (before, identity) and stamp(src) == source_sig, 'lease-source-namespace-drift')
-            value = {'version': 1, 'kind': 'owned-nfs-existing-writer-lease', 'token': token,
-                     'state': state, 'writer_identity': identity, 'source_sha256': writer_sha256,
-                     'markers_unchanged': True, 'native_grant': False, 'publication_authority': False}
-            raw_ack = (json.dumps(value, sort_keys=True) + '\n').encode()
-            ack_fd = output_stream.fileno()
-            output_stream.flush()
-            close_vector({src: source_sig, **{root / n: s for n, s in before.items()}}, ancestors, {root: set(before)})
-            require(os.write(ack_fd, raw_ack) == len(raw_ack), 'lease-ack-short-write')
+    def emit(state):
+        require(namespace(root) == (before, identity) and stamp(src) == source_sig, 'lease-source-namespace-drift')
+        value = {'version': 1, 'kind': 'owned-nfs-existing-writer-lease', 'token': token,
+                 'state': state, 'writer_identity': identity, 'source_sha256': writer_sha256,
+                 'markers_unchanged': True, 'native_grant': False, 'publication_authority': False}
+        raw_ack = (json.dumps(value, sort_keys=True) + '\n').encode()
+        ack_fd = output_stream.fileno()
+        output_stream.flush()
+        close_vector({src: source_sig, **{root / n: s for n, s in before.items()}}, ancestors, {root: set(before)})
+        if deadline is not None:
+            require(ack_fd==descriptors[1][0],'lease-original-ACK-pipe')
+            pipe_guard();require(len(raw_ack)<=4096 and select.select([],[descriptors[1][0]],[],max(0,deadline-time.monotonic()))[1],'lease-ACK-deadline');pipe_guard()
+        require(os.write(ack_fd, raw_ack) == len(raw_ack), 'lease-ack-short-write')
+    if defer_acquire:
+        emit('prepared')
+        command=json.loads(bounded_line())
+        require(type(command) is dict and set(command)=={'token','action','owned_absence_verified'} and command['token']==token and command['action']=='acquire' and command['owned_absence_verified'] is False,'lease-original-acquire-command')
+    acquisition_timeout=30
+    if deadline is not None:
+        pipe_guard();acquisition_timeout=min(30,deadline-time.monotonic())
+        require(acquisition_timeout>0,'lease-original-deadline')
+    with writer.hold(allow_pending=True, allow_tagger_pending=True, allow_release_pending=True, timeout=acquisition_timeout):
         emit('held')
         while True:
-            line = input_stream.readline(1025)
+            line = input_stream.readline(1025) if deadline is None else bounded_line()
             require(line and len(line) <= 1024, 'lease-channel-lost')
             command = json.loads(line)
             require(type(command) is dict and set(command) == {'token', 'action', 'owned_absence_verified'}
@@ -321,13 +396,15 @@ def main():
     parser.add_argument('--writer-sha256')
     parser.add_argument('--writer-root')
     parser.add_argument('--token')
+    parser.add_argument('--lease-seconds',type=int)
+    parser.add_argument('--defer-acquire',action='store_true')
     args = parser.parse_args()
     if not args.lease_child:
         print(json.dumps({'executable': False, 'native_grant': False,
                           'publication_authority': False, 'application_execution': False}))
         return
     require(all((args.writer_source, args.writer_sha256, args.writer_root, args.token)), 'explicit-child-contract')
-    lease_child(args.writer_source, args.writer_root, args.token, writer_sha256=args.writer_sha256)
+    lease_child(args.writer_source, args.writer_root, args.token, writer_sha256=args.writer_sha256,seconds=args.lease_seconds,defer_acquire=args.defer_acquire)
 
 
 if __name__ == '__main__':

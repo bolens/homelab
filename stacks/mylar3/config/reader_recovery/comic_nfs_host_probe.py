@@ -1,0 +1,285 @@
+"""Finite host-created probe; child argv never reaches ScopedDocker.
+
+The Parent mapping admission is intentionally required. No local/NFS bypass and
+no terminal capability is returned by this transport.
+"""
+import copy
+import base64
+import json
+import re
+import uuid
+import os
+import stat
+import subprocess
+import select
+import time
+import weakref
+_PROCESS_SEALS=weakref.WeakKeyDictionary()
+_PREPARED_ACKS=weakref.WeakKeyDictionary()
+
+
+class Held(ValueError):
+    pass
+
+
+def need(ok, reason):
+    if not ok:
+        raise Held(reason)
+
+
+def encode(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+
+
+def ticks(pid):
+    raw=(__import__('pathlib').Path('/proc')/str(pid)/'stat').read_text();return int(raw[raw.rfind(')')+2:].split()[19])
+
+def fd5(stream):
+    z=os.fstat(stream.fileno());return (stream.fileno(),(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid))
+
+class ProbeProcess:
+    """Command/profile boundary. Constructor inputs are owning-host originals."""
+    def __init__(self, spec, docker, execute, close,*,gated=False,launcher=None):
+        need(type(spec) is dict and set(spec) == {'image', 'mounts', 'probe', 'kernel', 'input', 'input_sha256', 'probe_sha256'}, 'probe-spec-schema')
+        need(re.fullmatch(r'sha256:[a-f0-9]{64}', spec['image']) is not None, 'probe-image')
+        for key in ('input_sha256', 'probe_sha256'):
+            need(type(spec[key]) is str and re.fullmatch('[a-f0-9]{64}', spec[key]) is not None, 'probe-source-digest')
+        mounts = spec['mounts']
+        need(type(mounts) is list and 6 <= len(mounts) <= 38, 'probe-mount-bound')
+        for row in mounts:
+            need(type(row) is list and len(row) == 3 and type(row[2]) is bool
+                 and all(type(p) is str and p.startswith('/') and '..' not in p.split('/')
+                         and not any(c in p for c in ',\n\r') for p in row[:2]), 'probe-mount-shape')
+        need(len({r[1] for r in mounts}) == len(mounts), 'probe-mount-destinations')
+        # Fixed six mounts plus readonly protected roots. All paths are host
+        # mapping originals; virtual destinations remain literal child paths.
+        need(mounts[0][2] is True and mounts[1][1:] == ['/config', False]
+             and mounts[0][0] == mounts[1][0] and mounts[2][2] is True
+             and mounts[3][1:] == [spec['probe'], False]
+             and mounts[4][1:] == [spec['kernel'], False]
+             and mounts[5][1:] == [spec['input'], False]
+             and all(r[2] is False for r in mounts[6:]), 'probe-finite-mount-contract')
+        need(type(gated) is bool and (not gated or callable(launcher)),'probe-gated-original-launcher')
+        self.gated,self.launcher=gated,launcher
+        self.process=None;self.pipe_original=None;self.pid_original=None;self.process_start=None;self.running_epoch=None;self.execution_sent=False;self.kernel_output=None
+        self.spec = copy.deepcopy(spec)
+        self.docker = tuple(docker)
+        self.name = 'comic-nfs-probe-' + uuid.uuid4().hex
+        self.execute, self.close = execute, close
+        self.original = encode(dict(spec=self.spec, docker=self.docker, name=self.name))
+        self.cid = None
+        self.cid_original = None
+        self.static = None
+        self.started = False
+        self.terminal = False
+
+    def original_close(self):
+        self.close()
+        need(encode(dict(spec=self.spec, docker=self.docker, name=self.name)) == self.original, 'probe-original-spec')
+        need(self.cid_original is None or self.cid == self.cid_original, 'probe-original-born-CID')
+
+    def command(self):
+        self.original_close()
+        args = list(self.docker) + ['create', '--pull', 'never', '--name', self.name,
+                '--label', 'com.homelab.nfs.probe=' + self.name, '--user', '1000:1000',
+                '--read-only', '--network', 'none', '--cap-drop', 'ALL', '--security-opt',
+                'no-new-privileges', '--pids-limit', '64', '--entrypoint', '/lsiopy/bin/python3']
+        for src, dst, rw in self.spec['mounts']:
+            args += ['--mount', 'type=bind,src=' + src + ',dst=' + dst + ('' if rw else ',readonly')]
+        if self.gated:args+=['--interactive']
+        args += [self.spec['image'], self.spec['probe'], '--input', self.spec['input'],
+                 '--input-sha256', self.spec['input_sha256'], '--source-sha256',
+                 self.spec['probe_sha256'], '--kernel', self.spec['kernel']]
+        if self.gated:args+=['--defer-execute']
+        self.original_close()
+        return args
+
+    def call(self, args):
+        self.original_close()
+        result = self.execute(args, input=None, capture_output=True, check=False, timeout=900)
+        need(type(result.returncode) is int and result.returncode == 0
+             and type(result.stdout) is bytes and len(result.stdout) <= 8 * 1024**2
+             and type(result.stderr) is bytes and len(result.stderr) <= 4 * 1024**2, 'probe-engine-ack')
+        self.original_close()
+        return result
+
+    def profile(self, row, terminal=False, running=False):
+        need(type(row) is dict and row.get('Id') == self.cid and row.get('Image') == self.spec['image'], 'probe-original-CID-image')
+        c, h, s = row['Config'], row['HostConfig'], row['State']
+        need(c['User'] == '1000:1000' and c['Labels'].get('com.homelab.nfs.probe') == self.name
+             and c.get('Entrypoint') == ['/lsiopy/bin/python3']
+             and c.get('Cmd') == self.command()[self.command().index(self.spec['image']) + 1:], 'probe-original-command-label')
+        need(h['ReadonlyRootfs'] is True and h['Privileged'] is False and h['NetworkMode'] == 'none'
+             and h['PidMode'] == '' and not h.get('CapAdd') and h['CapDrop'] == ['ALL']
+             and h['SecurityOpt'] == ['no-new-privileges'] and h['PidsLimit'] == 64
+             and not h.get('Binds') and not h.get('Tmpfs') and not h.get('Devices'), 'probe-original-security')
+        need(len(row['Mounts']) == len(self.spec['mounts']) and all(m['Type'] == 'bind' for m in row['Mounts'])
+             and sorted([m['Source'], m['Destination'], m['RW']] for m in row['Mounts'])
+             == sorted(self.spec['mounts']), 'probe-original-mounts')
+        need(s['Status'] == ('exited' if terminal else 'running' if running else 'created') and s['Running'] is running
+             and type(s['Pid']) is int and (s['Pid']>0 if running else s['Pid']==0)
+             and all(s.get(k) is False for k in ('Paused', 'Restarting', 'Dead', 'OOMKilled'))
+             and (not terminal or type(s['ExitCode']) is int and s['ExitCode'] == 0), 'probe-original-state')
+        if self.static is not None:
+            need(encode({k: row[k] for k in ('Config', 'HostConfig', 'Mounts')}) == self.static, 'probe-original-terminal-static')
+        self.original_close()
+
+    def inspect(self, terminal=False, running=False):
+        need(self.cid is not None, 'probe-unborn')
+        rows = json.loads(self.call(list(self.docker) + ['inspect', self.cid]).stdout)
+        need(type(rows) is list and len(rows) == 1, 'probe-one-profile')
+        self.profile(rows[0], terminal,running)
+        return rows[0]
+
+    def create(self):
+        need(self.cid is None, 'probe-create-no-replay')
+        # Mark uncertain creation before engine callback: never replay on loss.
+        self.cid = 'creation-ack-pending'
+        result = self.call(self.command())
+        need(re.fullmatch(b'[a-f0-9]{64}\n?', result.stdout) is not None, 'probe-created-id-ack')
+        self.cid = result.stdout.decode().rstrip('\n')
+        self.cid_original = self.cid
+        row = self.inspect()
+        self.static = encode({k: row[k] for k in ('Config', 'HostConfig', 'Mounts')})
+        self.original_close()
+        return dict(id=self.cid, name=self.name, argv=self.command(), mounts=copy.deepcopy(self.spec['mounts']), profile=row)
+
+    def prepare(self):
+        need(self.cid is None, 'probe-prepare-before-birth')
+        result = dict(name=self.name, argv=self.command(), mounts=copy.deepcopy(self.spec['mounts']))
+        self.original_close()
+        return result
+
+    def local(self):
+        self.original_close();seal=_PROCESS_SEALS.get(self)
+        need(seal is not None and seal==(self.process,self.pid_original,self.process_start,self.streams,self.pipe_original,self.running_epoch),'probe-original-process-seal')
+        need(type(self.process) is subprocess.Popen and self.process.pid==self.pid_original,'probe-original-real-process')
+        need((self.process.stdin,self.process.stdout,self.process.stderr)==self.streams and tuple(fd5(x) for x in self.streams)==self.pipe_original,'probe-original-FIFOs')
+        try:client=ticks(self.pid_original)
+        except FileNotFoundError:client=None
+        try:inner=ticks(self.running_epoch[0])
+        except FileNotFoundError:inner=None
+        if client!=self.process_start or inner!=self.running_epoch[2]:
+            need(self.execution_sent and self.process.poll()==0 and inner!=self.running_epoch[2],'probe-original-inner-exit-unknown')
+        need(_PROCESS_SEALS.get(self)==seal and seal==(self.process,self.pid_original,self.process_start,self.streams,self.pipe_original,self.running_epoch),'probe-final-original-process-seal')
+    def line(self,seconds=30):
+        self.local();deadline=time.monotonic()+seconds;raw=bytearray()
+        while b'\n' not in raw:
+            self.local();need(len(raw)<8*1024**2 and select.select([self.pipe_original[1][0]],[],[],max(0,deadline-time.monotonic()))[0],'probe-original-pipe-deadline')
+            block=os.read(self.pipe_original[1][0],min(65536,8*1024**2-len(raw)));need(bool(block),'probe-original-pipe-EOF');raw.extend(block)
+        line,_,tail=raw.partition(b'\n');need(not tail,'probe-original-single-frame');self.local();return bytes(line)
+    def start_prepare(self):
+        need(self.gated and self.cid is not None and not self.started,'probe-original-prestart')
+        self.inspect();self.started=True
+        process=self.launcher(self.cid);need(type(process) is subprocess.Popen and process.poll() is None,'probe-original-launcher-Popen')
+        self.process=process;self.streams=(process.stdin,process.stdout,process.stderr);need(all(x is not None for x in self.streams),'probe-original-stdio')
+        self.pipe_original=tuple(fd5(x) for x in self.streams);need(all(stat.S_ISFIFO(x[1][2]) for x in self.pipe_original),'probe-original-FIFOs')
+        self.pid_original=process.pid;self.process_start=ticks(process.pid)
+        row=self.inspect(running=True);self.running_epoch=(row['State']['Pid'],row['State']['StartedAt'],ticks(row['State']['Pid']))
+        _PROCESS_SEALS[self]=(self.process,self.pid_original,self.process_start,self.streams,self.pipe_original,self.running_epoch)
+        ack=json.loads(self.line(30));need(ack==dict(kind='original-nfs-probe-gate',state='prepared',token=self.spec['input_sha256'],source_sha256=self.spec['probe_sha256'],native_grant=False,publication_authority=False),'probe-original-prepared-ACK')
+        self.local();_PREPARED_ACKS[self]=(_PROCESS_SEALS[self],encode(ack));return dict(prepared=True,id=self.cid,epoch=list(self.running_epoch),native_grant=False,publication_authority=False)
+    def execute_local(self):
+        need(self.gated and self.started and not self.execution_sent,'probe-original-execute-no-replay');self.local();self.execution_sent=True
+        raw=encode(dict(token=self.spec['input_sha256'],operation='execute'))+b'\n';need(os.write(self.pipe_original[0][0],raw)==len(raw),'probe-original-execute-unknown');self.local()
+        self.kernel_output=self.line(120);need(self.process.wait(timeout=30)==0,'probe-original-local-exit');self.local()
+        try:inner=ticks(self.running_epoch[0])
+        except FileNotFoundError:inner=None
+        need(inner!=self.running_epoch[2],'probe-original-local-inner-present')
+        return dict(stdout=base64.b64encode(self.kernel_output+b'\n').decode(),stderr='',profile=None,kernel_finished=True,local_exit_verified=True,terminal_profile_verified=False)
+    def finish_after_release(self):
+        need(self.gated and self.execution_sent and self.kernel_output is not None and not self.terminal,'probe-original-finish-no-replay')
+        # Remote terminal inspect is legal only after Parent hard guard cleared.
+        need(self.process.wait(timeout=30)==0,'probe-original-zero-process-exit')
+        terminal=self.inspect(terminal=True);need(terminal['State']['StartedAt']==self.running_epoch[1],'probe-original-terminal-epoch')
+        self.terminal=True;self.original_close()
+        return dict(stdout=self.kernel_output+b'\n',stderr=b'',profile=terminal)
+    def start(self):
+        need(not self.gated and self.cid is not None and self.static is not None and not self.started, 'probe-start-no-replay')
+        self.inspect()
+        self.started = True
+        result = self.call(list(self.docker) + ['start', '-a', self.cid])
+        terminal = self.inspect(terminal=True)
+        self.terminal = True
+        self.original_close()
+        return dict(stdout=result.stdout, stderr=result.stderr, profile=terminal)
+
+
+class HostProbe:
+    """Requires original Parent mapping admission; unimplemented APIs refuse."""
+    def __init__(self, dialogue, child_input_ref):
+        from comic_nfs_host_engine import EngineReplies
+        need(type(dialogue) is EngineReplies, 'probe-original-dialogue-type')
+        dialogue.close()
+        self.dialogue = dialogue
+        self.owner = dialogue.owner
+        mapping = self.owner.mapping
+        need(callable(getattr(mapping, 'admit_nfs_probe', None))
+             and callable(getattr(mapping, 'check_nfs_probe', None)), 'probe-parent-mapping-unbound')
+        self.admitted = mapping.admit_nfs_probe(child_input_ref)
+        spec = mapping.check_nfs_probe(self.admitted)
+        need(spec.get('image') == self.owner.plan['selected_image'], 'probe-original-selected-image')
+        need(callable(getattr(self.owner,'register_nfs_probe_birth',None)) and callable(getattr(self.owner.engine,'probe_interactive',None)),'probe-owning-gated-launcher-unbound')
+        self.spec_tape = encode(spec)
+        self.process = ProbeProcess(spec, dialogue.g['DOCKER'], self.owner.engine.canary, self.close,gated=True,launcher=self.owner.engine.probe_interactive)
+        self.close()
+
+    def birth_descriptor(self,created_profile):
+        self.close();p=self.process;need(type(p) is ProbeProcess and p.cid==p.cid_original and p.static is not None and not p.started,'probe-original-prestart-descriptor')
+        p.profile(created_profile)
+        return dict(cid=p.cid_original,name=p.name,spec=copy.deepcopy(p.spec),static=p.static.hex(),profile=copy.deepcopy(created_profile))
+    def prepared_descriptor(self):
+        self.close();p=self.process;p.local()
+        ack=encode(dict(kind='original-nfs-probe-gate',state='prepared',token=p.spec['input_sha256'],source_sha256=p.spec['probe_sha256'],native_grant=False,publication_authority=False))
+        need(p.gated and p.started and not p.execution_sent and p.process.poll() is None and _PREPARED_ACKS.get(p)==(_PROCESS_SEALS.get(p),ack),'probe-original-prepared-descriptor')
+        return dict(cid=p.cid_original,name=p.name,spec=copy.deepcopy(p.spec),static=p.static.hex(),process_pid=p.pid_original,process_start_ticks=p.process_start,inner_epoch=list(p.running_epoch),pipes=[[fd,list(v)] for fd,v in p.pipe_original],native_grant=False,publication_authority=False)
+    def close(self):
+        self.dialogue.close()
+        need(encode(self.owner.mapping.check_nfs_probe(self.admitted)) == self.spec_tape, 'probe-parent-original-mapping')
+
+
+class HostProbeReplies:
+    """Single original dialogue, single birth, single start; never child argv."""
+    def __init__(self, dialogue):
+        from comic_nfs_host_engine import EngineReplies
+        need(type(dialogue) is EngineReplies, 'probe-original-dialogue-type')
+        dialogue.close()
+        self.dialogue = dialogue
+        self.probe = None
+
+    def accept(self, frame):
+        d = self.dialogue
+        d.close()
+        need(type(frame) is dict and set(frame) == {'type', 'nonce', 'sequence', 'payload'}
+             and frame['type'] == 'nfs-probe' and frame['nonce'] == d.nonce
+             and type(frame['sequence']) is int and frame['sequence'] == d.sequence + 1
+             and len(encode(frame)) <= 16 * 1024**2,
+             'probe-original-dialogue-frame')
+        payload = frame['payload']
+        need(type(payload) is dict and set(payload) == {'operation', 'input'}
+             and payload['operation'] in ('initialize','create','start_prepare','execute_local','finish'), 'probe-finite-frame')
+        if payload['operation'] == 'initialize':
+            need(self.probe is None and type(payload['input']) is dict
+                 and set(payload['input']) == {'path', 'sha256', 'signature9'}, 'probe-original-input')
+            # Retain the boundary before any operation; lost response cannot
+            # cause another birth on this same dialogue.
+            self.probe = HostProbe(d, payload['input'])
+            result = self.probe.process.prepare()
+        elif payload['operation'] == 'create':
+            need(self.probe is not None and payload['input'] is None, 'probe-own-create')
+            result = self.probe.process.create()
+            self.probe.owner.register_nfs_probe_birth(self.probe,result['profile'])
+        elif payload['operation']=='start_prepare':
+            need(self.probe is not None and payload['input'] is None,'probe-own-prestart');result=self.probe.process.start_prepare()
+        elif payload['operation']=='execute_local':
+            need(self.probe is not None and payload['input'] is None,'probe-own-local-execute');result=self.probe.process.execute_local()
+        else:
+            need(self.probe is not None and payload['input'] is None, 'probe-own-start')
+            result = self.probe.process.finish_after_release()
+            result = dict(stdout=base64.b64encode(result['stdout']).decode(),
+                          stderr=base64.b64encode(result['stderr']).decode(), profile=result['profile'])
+        self.probe.close()
+        response = encode(dict(type='nfs-host', nonce=d.nonce, sequence=frame['sequence'], payload=result)) + b'\n'
+        d.close()
+        d.sequence = frame['sequence']
+        return response

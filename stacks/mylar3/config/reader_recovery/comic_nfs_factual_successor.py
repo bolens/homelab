@@ -74,6 +74,62 @@ def run_active(owner):
     r['seal']=seal(owner,r);_REG[owner]=r
     canary.close();owner.left()
 
+_RETAINED=weakref.WeakKeyDictionary()
+
+class RetainedObservation:
+    """Source-owned session proxy; never an ActiveNFSCanaryObservation."""
+    def __init__(self,owner,session,facts):
+        g=parent_module(owner);modules=owner.nfs_host_modules()
+        need(type(session) is modules['comic_nfs_parent_session.py'].RetainedChild and g['_NFS_LIVE_SESSIONS'].get(owner) is session and session.owner is owner and session.state=='ready','nfs-retained-original-session')
+        need(type(facts) is dict and set(facts)=={'binding','mount','device','files','nodes','names','absent'},'nfs-retained-ready-facts')
+        need(type(facts['binding']) is dict and all(facts['binding'].get(k) is False for k in ('actual_library_platform_verified','future_mylar_destination_verified','native_grant','publication_authority','writer_lifecycle_resume_authorized')),'nfs-retained-factual-rights-only')
+        need(session.lease_replies.done is True and all(facts['binding'].get(k) is True for k in ('disposable_probe_verified','platform_supported','owned_fixture_absence_verified')),'nfs-retained-source-complete')
+        self.owner,self.session,self.g=owner,session,g;self.tape=g['encode'](facts)
+        self.binding,self.mount,self.device=copy.deepcopy(facts['binding']),copy.deepcopy(facts['mount']),facts['device']
+        # Leaf9 is identical across each verified bind projection. Child-only
+        # namespace ancestors stay checked by the genuine process-local canary;
+        # host ancestors are independently retained Parent/Tree originals.
+        tree=g['_CHILD_TREES'][owner];files=[]
+        need(all(type(facts[key]) is list and len(facts[key])<=512 for key in ('files','nodes','names','absent')) and type(facts['device']) is int and facts['device']>0 and type(facts['mount']) is dict and facts['mount'].get('fstype')=='nfs4','nfs-retained-bounded-real-nfs-facts')
+        for path,stamp in facts['files']:
+            need(type(path) is str and type(stamp) is list and len(stamp)==9 and all(type(v) is int for v in stamp),'nfs-retained-original-file-vector')
+            host=owner.mapping.host(path);expected=tuple(stamp)
+            need(tuple(g['nine'](os.lstat(host)))==expected,'nfs-retained-mapped-original-leaf9');files.append((host,expected))
+        nodes=dict(owner.nodes)
+        for path,stamp in (*tree.nodes,*tree.directories):
+            need(path not in nodes or nodes[path]==tuple(stamp),'nfs-retained-host-node-conflict');nodes[path]=tuple(stamp)
+        names=[]
+        for path,expected in facts['names']:
+            host=owner.mapping.host(path);need(tuple(sorted(os.listdir(host)))==tuple(sorted(expected)),'nfs-retained-original-namespace');names.append((host,frozenset(expected)))
+        absent=tuple(owner.mapping.host(path) for path in facts['absent'])
+        self.files,self.nodes,self.names,self.absent=tuple(files),tuple(nodes.items()),tuple(names),absent
+        self.original=(owner,session,self.tape,g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device)),self.files,self.nodes,self.names,self.absent)
+        _RETAINED[self]=self.original;self.close()
+    def close(self):
+        owner,session,tape,diagnostic,files,nodes,names,absent=_RETAINED.get(self,(None,)*8)
+        need(self.original==(owner,session,tape,diagnostic,files,nodes,names,absent) and self.owner is owner and self.session is session and self.tape==tape and self.g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device))==diagnostic and (self.files,self.nodes,self.names,self.absent)==(files,nodes,names,absent),'nfs-retained-original-proxy')
+        need(self.g['_NFS_LIVE_SESSIONS'].get(owner) is session and session.state=='ready','nfs-retained-original-live-session')
+        session.request('check',stopped=owner.phase not in ('admitted','stopping'))
+        owner.left();self.g['final'](dict(files),dict(nodes),names)
+        for path in absent:
+            try:os.lstat(path)
+            except FileNotFoundError:continue
+            raise Held('nfs-retained-original-absence')
+    def current(self,*,stopped):
+        self.close();result=self.session.request('current',stopped=stopped);self.close();return result
+
+def run_active_retained(owner):
+    """Registered child/source/pipe route; base direct factory remains strict."""
+    g,module=preflight(owner);original=copy.deepcopy(owner.baselines)
+    for row in original.values():need(g['same_runtime'](owner.inspect(row['Id']),row),'nfs-retained-original-prelaunch-runtime')
+    packet,source=owner.prepare_nfs_packet(min(120,int(owner.left())))
+    session=owner.open_nfs_child(packet,source);facts=session.ready()
+    canary=RetainedObservation(owner,session,facts)
+    rows={row['Name']:row for row in canary.current(stopped=False)}
+    for row in original.values():need(g['same_runtime'](rows[row['Name']],row),'nfs-retained-original-current-runtime')
+    r=dict(module=module,canary=canary,canary_source=copy.deepcopy(owner.plan['nfs']['active_parent']),phase='active',original=original)
+    r['seal']=seal(owner,r);_REG[owner]=r;canary.close();owner.left()
+
 def stop_owned(owner):
     g,r=record(owner,'active');rows={row['Name']:row for row in r['canary'].current(stopped=False)}
     for row in r['original'].values():need(g['same_runtime'](rows[row['Name']],row),'nfs-prestop-current-original')

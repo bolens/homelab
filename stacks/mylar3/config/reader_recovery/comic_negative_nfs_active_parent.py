@@ -22,6 +22,8 @@ import uuid
 import threading
 import weakref
 
+HOST_LEASE_INTERFACE_SHA = '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17'
+
 IMAGE = None
 KOMGA = None
 WORKER = None
@@ -366,9 +368,76 @@ def native_gate():
     return _COHORT.readiness()
 
 
-def identities(rows):
+ROLE_STATIC=('Id','Name','Image','Path','Args','Config','HostConfig','Mounts','NetworkSettings')
+ROLE_KEYS={'native':'held_native','worker':'held_worker','reader':'reader'}
+
+
+def current_roles(raw):
+    """Original-bound selectors only; current observations never become expectations."""
+    check(type(raw) is bytes and 0<len(raw)<=8*1024**2,'current-role-bound-bytes')
+    value=json.loads(raw);exact(value,('version','kind','plan','source','roles','ancestors'))
+    check(type(value['version']) is int and value['version']==1
+          and value['kind']=='parent-original-current-three-role-selectors','current-role-kind')
+    check(type(value['ancestors']) is dict and bool(value['ancestors']),'current-role-original-ancestors')
+    for path,expected in value['ancestors'].items():
+        z=os.lstat(canonical(path))
+        check(type(expected) is list and len(expected)==5 and all(type(v) is int for v in expected)
+              and [z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid]==expected,'current-role-ancestor5')
+    for key in ('plan','source'):
+        ref=value[key];exact(ref,('path','sha256','signature9'))
+        before=stamp(canonical(ref['path']))
+        check(before==ref['signature9'],'current-role-original9')
+        content,original=checked_buffer(ref['path'],ref['sha256'],source=key=='source')
+        check(original['signature']==before and stamp(canonical(ref['path']))==before,'current-role-control-CAS')
+        if key=='plan':plan=json.loads(content)
+    exact(value['roles'],('native','worker','reader'))
+    images={'native':NATIVE_IMAGE,'worker':WORKER,'reader':KOMGA};seen=set()
+    for role,row in value['roles'].items():
+        exact(row,('id','image','profile','epoch'));key=ROLE_KEYS[role]
+        check(type(row['id']) is str and re.fullmatch('[a-f0-9]{64}',row['id'])
+              and row['id'] not in seen,'current-role-unique-id');seen.add(row['id'])
+        check(type(images[role]) is str and row['image']==images[role]
+              and plan[key]['id']==row['id'] and plan[key]['profile']==row['profile']
+              and row['profile']['Id']==row['id'] and row['profile']['Image']==row['image'],
+              'current-role-source-cohort-image-plan')
+        check(set(row['profile'])==set(ROLE_STATIC) and type(row['epoch']) is dict,
+              'current-role-profile-shape')
+    for ref in (value['plan'],value['source']):
+        check(all(str(q) in value['ancestors'] for q in Path(ref['path']).parents),'current-role-complete-ancestors')
+    return value
+
+
+def select_roles(rows,roles,*,include_reader=True,stopped=False):
+    wanted=('native','worker','reader') if include_reader else ('native','worker')
+    check(type(rows) is list and len(rows)==len(wanted),'current-role-row-count')
+    byid={r['Id']:r for r in rows};check(len(byid)==len(rows)
+          and set(byid)=={roles['roles'][k]['id'] for k in wanted},'current-role-row-ids')
+    out={}
+    for role in wanted:
+        expected=roles['roles'][role];row=byid[expected['id']]
+        check(encode({k:row[k] for k in ROLE_STATIC})==encode(expected['profile']),
+              'current-role-static-original')
+        epoch={k:v for k,v in row['State'].items() if k!='Health'}
+        if stopped and role=='reader' and epoch.get('Status')=='exited':
+            old=expected['epoch']
+            check(epoch['Status']=='exited' and epoch['Running'] is False and epoch['Pid']==0
+                  and epoch['StartedAt']==old['StartedAt']
+                  and all(epoch.get(k) is False for k in ('Paused','Restarting','Dead','OOMKilled')),
+                  'current-role-reader-stopped')
+        else:check(encode(epoch)==encode(expected['epoch']),'current-role-runtime-epoch')
+        out[role]=row
+    return out
+
+
+def role_ids(roles):
+    return [roles['roles'][r]['id'] for r in ('native','worker','reader')]
+
+
+def identities(rows,roles=None):
     check(type(rows) is list and len(rows) == 2, "containers")
-    rows = {r["Name"]: r for r in rows}
+    selected=select_roles(rows,roles,include_reader=False) if roles is not None else None
+    rows = ({"/mylar3":selected["native"],"/komga-comic-normalizer-1":selected["worker"]}
+            if selected is not None else {r["Name"]:r for r in rows})
     check(set(rows) == {"/mylar3", "/komga-comic-normalizer-1"}, "containers")
     out = []
     for name, image, status, running in (
@@ -420,13 +489,15 @@ def configured_writer_mapping(mounts,config,writer_root):
     return data
 
 
-def live_mapping(rows, roots):
+def live_mapping(rows, roots, roles=None):
     check(type(rows) is list and len(rows) == 3, "live-three-container-mapping")
-    byname = {r["Name"]: r for r in rows}
+    selected=select_roles(rows,roles) if roles is not None else None
+    byname=({"/mylar3":selected["native"],"/komga-comic-normalizer-1":selected["worker"],"/komga":selected["reader"]}
+            if selected is not None else {r["Name"]:r for r in rows})
     check(
         set(byname) == {"/mylar3", "/komga-comic-normalizer-1", "/komga"}, "live-names"
     )
-    ids = identities([byname["/mylar3"], byname["/komga-comic-normalizer-1"]])
+    ids = identities([byname["/mylar3"], byname["/komga-comic-normalizer-1"]],roles)
     native = [m for m in byname["/mylar3"]["Mounts"] if m["Destination"] == "/data"]
     check(
         len(native) == 1
@@ -584,7 +655,7 @@ def profile(row, name, mounts):
     return row["Id"]
 
 
-def probe_existing_parent(a, engine=subprocess.run, lease=None):
+def probe_existing_parent(a, engine=subprocess.run, lease=None, roles=None, host_probe=None):
     check(os.geteuid() == 1000, "caller-uid")
     os.umask(0o077)
     plan, pf = read(a.input, a.input_sha256)
@@ -638,11 +709,12 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None):
     def observe():
         rows = json.loads(
             call(
-                DOCKER + ["inspect", "mylar3", "komga-comic-normalizer-1", "komga"]
+                DOCKER + ["inspect", *(role_ids(roles) if roles is not None else ["mylar3", "komga-comic-normalizer-1", "komga"])]
             ).stdout
         )
-        ids = live_mapping(rows, roots)
-        health = fresh_native(call, next(r["Id"] for r in rows if r["Name"]=="/mylar3"))
+        ids = live_mapping(rows, roots, roles)
+        native = select_roles(rows,roles)["native"] if roles is not None else next(r for r in rows if r["Name"]=="/mylar3")
+        health = fresh_native(call, native["Id"])
         pub = health['publication']
         if lease is None:
             unlocked_publication(pub)
@@ -667,7 +739,7 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None):
     modules = json.loads(
         call(
             DOCKER
-            + ["exec", "-i", "--user", "1000", "mylar3", "/lsiopy/bin/python3", "-"],
+            + ["exec", "-i", "--user", "1000", roles["roles"]["native"]["id"] if roles is not None else "mylar3", "/lsiopy/bin/python3", "-"],
             PARITY.read_bytes(),
         ).stdout
     )
@@ -761,6 +833,14 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None):
     argv, mounts = command(
         name, fixture, out, roots, probe_input, controls[probe_input]["sha256"]
     )
+    owned_probe=None
+    host_create_spec=None
+    if host_probe is not None:
+        owned_probe=host_probe(dict(path=str(probe_input),sha256=controls[probe_input]["sha256"],signature9=controls[probe_input]["signature"]))
+        prepared=owned_probe.prepare()
+        name,argv,mounts=prepared["name"],prepared["argv"],prepared["mounts"]
+        check(re.fullmatch("comic-nfs-probe-[a-f0-9]{32}",name),"host-probe-owned-name")
+        host_create_spec=encode(dict(name=name,argv=argv,mounts=mounts))
     emit(
         "create-intent.json",
         dict(
@@ -770,10 +850,16 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None):
             automatic_retry=False,
         ),
     )
-    child = call(argv).stdout.decode().strip()
+    if owned_probe is None:
+        child = call(argv).stdout.decode().strip()
+    else:
+        birth=owned_probe.create()
+        child=birth["id"]
+        check(encode(dict(name=name,argv=argv,mounts=mounts))==host_create_spec
+              and encode({k:birth[k] for k in ('name','argv','mounts')})==host_create_spec,"host-probe-original-prebirth-spec")
     check(re.fullmatch("[a-f0-9]{64}", child), "create-ack")
     emit("create-result.json", dict(id=child, name=name))
-    row = json.loads(call(DOCKER + ["inspect", child]).stdout)
+    row = json.loads(call(DOCKER + ["inspect", child]).stdout) if owned_probe is None else [birth["profile"]]
     check(
         type(row) is list and len(row) == 1 and profile(row[0], name, mounts) == child,
         "profile-ack",
@@ -784,7 +870,10 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None):
     continuity()
     check(observe() == initial, "pre-start-held-drift")
     fresh_scope(scope)
-    r = call(DOCKER + ["start", "-a", child])
+    if owned_probe is None:
+        r = call(DOCKER + ["start", "-a", child])
+    else:
+        r,owned_terminal=owned_probe.start()
     ack = json.loads(r.stdout)
     exact(ack,('version','kind','source_sha256','kernel_sha256','input_sha256','report','transitions','facts','directories','root9','actual_library_platform_verified','native_grant','publication_authority'))
     check(ack['version']==1 and ack['kind']=='checked-hardlink-canary-child' and ack['source_sha256']==PROBE_SHA and ack['kernel_sha256']==HARDLINK_KERNEL_SHA
@@ -796,7 +885,7 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None):
     check(rf['signature']==ack['report']['signature9'] and report['transitions']==ack['transitions'] and report['collision_errno']==17,'hardlink-report-original')
     emit('probe-ack.json',ack)
     supported=True
-    terminal = json.loads(call(DOCKER + ["inspect", child]).stdout)[0]
+    terminal = json.loads(call(DOCKER + ["inspect", child]).stdout)[0] if owned_probe is None else owned_terminal
     check(
         all(terminal[k]==v for k,v in initial_child_static.items())
         and terminal["Id"] == child
@@ -886,6 +975,356 @@ def probe_existing_parent(a, engine=subprocess.run, lease=None):
     for p, v in file_items:
         x = os.lstat(p)
         if (x.st_dev,x.st_ino,x.st_size,x.st_mtime_ns,x.st_ctime_ns,x.st_mode,x.st_uid,x.st_gid,x.st_nlink) != v:raise Held('terminal-leaf')
+    return terminal_result
+
+
+def _probe_gated_phases(a,engine,roles,host_probe):
+    check(callable(host_probe),"gated-original-host-probe-required");lease=None
+    check(os.geteuid() == 1000, "caller-uid")
+    os.umask(0o077)
+    plan, pf = read(a.input, a.input_sha256)
+    exact(plan["scope"], ("path", "sha256"))
+    scope, sf = read(plan["scope"]["path"], plan["scope"]["sha256"])
+    fixture, out, roots = validate(plan, scope)
+    controls = {
+        canonical(a.input): pf,
+        canonical(plan["scope"]["path"]): sf,
+        Path(__file__): fact(__file__, a.source_sha256,source=True),
+        READY: fact(READY, READY_SHA, source=True),
+        PARITY: fact(PARITY, PARITY_SHA, source=True),
+        MAP: fact(MAP, MAP_SHA),
+        PROBE:fact(PROBE,PROBE_SHA,source=True),
+        HARDLINK_KERNEL:fact(HARDLINK_KERNEL,HARDLINK_KERNEL_SHA,source=True),
+        **native_gate(),
+    }
+    for ref in scope["sources"].values():
+        controls[canonical(ref["path"])] = fact(ref["path"], ref["sha256"])
+    ancestors = ancestry([*controls, fixture, out, *roots])
+    rootstates = {p: stamp(p) for p in roots}
+    if not a.execute:
+        return dict(
+            executable=False,
+            current_active_scope_reviewed=True,
+            future_mylar_destination_verified=False,
+            actual_library_platform_verified=False,
+            publication_authority=False,
+        )
+    out.mkdir(mode=0o700)
+    ancestors = ancestry([*controls, fixture, out / "acceptance.json", *roots])
+
+    def emit(name, value):
+        p = out / name
+        controls[p] = write(p, value)
+        return p
+
+    def call(argv, data=None):
+        try:
+            r = engine(argv, input=data, capture_output=True, timeout=900, check=False)
+        except (subprocess.TimeoutExpired, PermissionError, OSError):
+            raise Held("engine-ack-unavailable-no-replay") from None
+        check(
+            r.returncode == 0
+            and len(r.stdout) <= 8 * 1024**2
+            and len(r.stderr) <= 4 * 1024**2,
+            "engine-exit",
+        )
+        return r
+
+    def observe():
+        rows = json.loads(
+            call(
+                DOCKER + ["inspect", *(role_ids(roles) if roles is not None else ["mylar3", "komga-comic-normalizer-1", "komga"])]
+            ).stdout
+        )
+        ids = live_mapping(rows, roots, roles)
+        native = select_roles(rows,roles)["native"] if roles is not None else next(r for r in rows if r["Name"]=="/mylar3")
+        health = fresh_native(call, native["Id"])
+        pub = health['publication']
+        if lease is None:
+            unlocked_publication(pub)
+        else:
+            lease.pulse()
+            check(pub['state'] == 'held' and pub['reason'] == 'writer-busy'
+                  and pub['census'] is None, 'held-by-continuous-own-writer')
+        return dict(identity=ids, publication=pub,native_process=health["process"],native_config=health["config"])
+
+    def continuity():
+        for p, f in controls.items():
+            check(fact(p, source=p in (READY, PARITY, Path(__file__),PROBE,HARDLINK_KERNEL)) == f, "control-drift")
+        check(
+            ancestry([*controls, fixture, out, *roots]) == ancestors, "ancestor-drift"
+        )
+        for p, s in rootstates.items():
+            check(stamp(p) == s, "forbidden-root-drift")
+
+    fresh_scope(scope)
+    initial = observe()
+    emit("preflight.json", initial)
+    modules = json.loads(
+        call(
+            DOCKER
+            + ["exec", "-i", "--user", "1000", roles["roles"]["native"]["id"] if roles is not None else "mylar3", "/lsiopy/bin/python3", "-"],
+            PARITY.read_bytes(),
+        ).stdout
+    )
+    check(
+        modules == read(MAP, MAP_SHA)[0] and len(modules) == NATIVE_MAP_COUNT, "actual-native-module-parity"
+    )
+    emit("parity.json", modules)
+    observed_mount = mount_identity(
+        json.loads(
+            call(
+                [
+                    "findmnt",
+                    "--json",
+                    "--target",
+                    plan["fixture_parent"],
+                    "--output",
+                    "SOURCE,TARGET,FSTYPE,FSROOT,OPTIONS,MAJ:MIN",
+                ]
+            ).stdout
+        )
+    )
+    check(observed_mount == plan["mount_identity"], "mount-drift")
+    check(
+        mount_identity(
+            json.loads(
+                call(
+                    [
+                        "findmnt",
+                        "--json",
+                        "--target",
+                        plan["library_root"],
+                        "--output",
+                        "SOURCE,TARGET,FSTYPE,FSROOT,OPTIONS,MAJ:MIN",
+                    ]
+                ).stdout
+            )
+        )
+        == observed_mount,
+        "same-library-mount",
+    )
+    check(
+        stamp(plan["fixture_parent"]) == plan["fixture_parent_signature"],
+        "parent-drift",
+    )
+    continuity()
+    check(observe() == initial, "pre-create-held-drift")
+    fresh_scope(scope)
+    # Newly absent fixture is the only NFS write scope. No pre-existing files touched.
+    fd = os.open(
+        canonical(plan["fixture_parent"]), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    )
+    try:
+        s = os.fstat(fd)
+        check(
+            [
+                s.st_dev,
+                s.st_ino,
+                s.st_size,
+                s.st_mtime_ns,
+                s.st_ctime_ns,
+                s.st_mode,
+                s.st_uid,
+                s.st_gid,
+                s.st_nlink,
+            ]
+            == plan["fixture_parent_signature"],
+            "parent-fd",
+        )
+        os.mkdir(plan["fixture_name"], 0o700, dir_fd=fd)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    private_parent(fixture)
+    check(
+        stamp(fixture)[0] == plan["expected_device"] and not os.listdir(fixture),
+        "fixture-device",
+    )
+    continuity()
+    fd=os.open(fixture,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        z=os.fstat(fd)
+        check([z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink]==stamp(fixture),'fixed-created-scope')
+        for leaf in ('source','target'):
+            os.mkdir(leaf,0o700,dir_fd=fd)
+        os.fsync(fd)
+    finally:os.close(fd)
+    probe_input = emit('probe-input.json',dict(version=1,kind='reviewed-disposable-hardlink-nfs-canary',nonce=uuid.uuid4().hex+uuid.uuid4().hex,
+        root=str(fixture),root9=stamp(fixture),source_parent9=stamp(fixture/'source'),target_parent9=stamp(fixture/'target'),
+        device=plan['expected_device'],mount=plan['mount_identity'],forbidden_roots=[str(p) for p in roots],seconds=120))
+    name = "comic-nfs-probe-" + uuid.uuid4().hex
+    argv, mounts = command(
+        name, fixture, out, roots, probe_input, controls[probe_input]["sha256"]
+    )
+    owned_probe=None
+    host_create_spec=None
+    if host_probe is not None:
+        owned_probe=host_probe(dict(path=str(probe_input),sha256=controls[probe_input]["sha256"],signature9=controls[probe_input]["signature"]))
+        prepared=owned_probe.prepare()
+        name,argv,mounts=prepared["name"],prepared["argv"],prepared["mounts"]
+        check(re.fullmatch("comic-nfs-probe-[a-f0-9]{32}",name),"host-probe-owned-name")
+        host_create_spec=encode(dict(name=name,argv=argv,mounts=mounts))
+    emit(
+        "create-intent.json",
+        dict(
+            argv=argv,
+            fixture_retained=True,
+            container_retained=True,
+            automatic_retry=False,
+        ),
+    )
+    if owned_probe is None:
+        child = call(argv).stdout.decode().strip()
+    else:
+        birth=owned_probe.create()
+        child=birth["id"]
+        check(encode(dict(name=name,argv=argv,mounts=mounts))==host_create_spec
+              and encode({k:birth[k] for k in ('name','argv','mounts')})==host_create_spec,"host-probe-original-prebirth-spec")
+    check(re.fullmatch("[a-f0-9]{64}", child), "create-ack")
+    emit("create-result.json", dict(id=child, name=name))
+    row = json.loads(call(DOCKER + ["inspect", child]).stdout) if owned_probe is None else [birth["profile"]]
+    check(
+        type(row) is list and len(row) == 1 and profile(row[0], name, mounts) == child,
+        "profile-ack",
+    )
+    check(row[0]["Config"].get("Entrypoint")==["/lsiopy/bin/python3"] and row[0]["Config"].get("Cmd")==argv[argv.index(IMAGE)+1:],"child-exact-command")
+    initial_child_static={k:row[0][k] for k in ("Config","HostConfig","Mounts")}
+    emit("profile.json", row[0])
+    continuity()
+    check(observe() == initial, "pre-start-held-drift")
+    fresh_scope(scope)
+    check(owned_probe is not None and all(callable(getattr(owned_probe,n,None)) for n in ('start_prepare','execute_local','finish_after_release')),'gated-original-probe-interface')
+    warm=owned_probe.start_prepare();check(warm['prepared'] is True,'gated-original-probe-prepared')
+    lease=yield dict(stage='prepared',container_id=child,native_grant=False,publication_authority=False)
+    check(lease is not None and lease.profile()['held'] is True,'gated-original-Writer-required')
+    continuity();fresh_scope(scope)
+    r=owned_probe.execute_local()
+    ack = json.loads(r.stdout)
+    exact(ack,('version','kind','source_sha256','kernel_sha256','input_sha256','report','transitions','facts','directories','root9','actual_library_platform_verified','native_grant','publication_authority'))
+    check(ack['version']==1 and ack['kind']=='checked-hardlink-canary-child' and ack['source_sha256']==PROBE_SHA and ack['kernel_sha256']==HARDLINK_KERNEL_SHA
+          and ack['input_sha256']==controls[probe_input]['sha256'] and all(ack[k] is False for k in ('actual_library_platform_verified','native_grant','publication_authority')),'hardlink-child-ack')
+    check([(v['action'],v['nlink']) for v in ack['transitions']]==[('stage',2),('collision',2),('retire',1),('restore',2),('unstage',1)],'hardlink-finite-projections')
+    exact(ack['report'],('path','sha256','signature9'))
+    check(ack['report']['path']==str(fixture/'result.json'),'hardlink-report-path')
+    report,rf=read(fixture/'result.json',ack['report']['sha256'])
+    check(rf['signature']==ack['report']['signature9'] and report['transitions']==ack['transitions'] and report['collision_errno']==17,'hardlink-report-original')
+    emit('probe-ack.json',ack)
+    supported=True
+    fresh_scope(scope)
+    emit("postflight.json", initial)
+    expected={'source/source.bin','source/collision.bin','target/foreign.bin','stage-intent.json','collision-intent.json','retire-intent.json','restore-intent.json','unstage-intent.json','result.json'}
+    check(set(os.listdir(fixture))=={'source','target'}|{n for n in expected if '/' not in n}
+          and set(os.listdir(fixture/'source'))=={'source.bin','collision.bin'} and set(os.listdir(fixture/'target'))=={'foreign.bin'},'hardlink-fixture-census')
+    fixture_files={fixture/name:fact(fixture/name) for name in expected}
+    fixture_dirs={name:stamp(fixture/name) for name in ('source','target')}
+    check(set(ack['facts'])==set(str(p) for p in fixture_files) and ack['directories']==fixture_dirs and ack['root9']==stamp(fixture),'hardlink-child-original-namespace')
+    for q,f in fixture_files.items():
+        check(ack['facts'][str(q)]==dict(signature9=f['signature'],sha256=f['sha256']),'hardlink-child-original-leaf')
+    check(fixture_files[fixture/'source'/'source.bin']['signature']==report['transitions'][-1]['source9'] and fixture_files[fixture/'source'/'source.bin']['sha256']==report['source_sha256']
+          and fixture_files[fixture/'target'/'foreign.bin']['signature']==report['foreign_original9'],'hardlink-kernel-original-leaves')
+    for name in ('stage-intent.json','collision-intent.json','retire-intent.json','restore-intent.json','unstage-intent.json','result.json'):
+        body,original_journal=read(fixture/name,ack['facts'][str(fixture/name)]['sha256'])
+        check(original_journal['signature']==ack['facts'][str(fixture/name)]['signature9'],'journal-original-child-CAS')
+        emit('kernel-'+name,dict(original_child_ref=dict(path=str(fixture/name),**ack['facts'][str(fixture/name)]),body=body,publication_authority=False))
+    fixture_stamp = list(ack["root9"])
+    payload = dict(
+        fixture_facts={str(p): f for p, f in fixture_files.items()},
+        fixture_signature=fixture_stamp,
+        fixture_directories=fixture_dirs,
+        version=1,
+        kind="owned-disposable-nfs-parent",
+        probe_verified=False,
+        final_ack_required=True,
+        fixture=str(fixture),
+        fixture_retained=True,
+        container_id=child,
+        container_retained_stopped=True,
+        platform_supported=supported,
+        report_sha256=rf["sha256"],
+        same_process_held=True,
+        actual_library_platform_verified=False,
+        native_grant=False,
+        publication_authority=False,
+        future_mylar_destination_verified=False,
+        writer_lifecycle_resume_authorized=False,
+    )
+    acceptance = emit("acceptance.json", payload)
+    continuity()
+    census = {p.name: stamp(p) for p in out.iterdir()}
+    check(set(census) == {p.name for p in controls if p.parent == out}, "output-census")
+    for p, f in fixture_files.items():
+        check(fact(p) == f, "fixture-full-drift")
+    check(stamp(fixture) == fixture_stamp, "fixture-root-drift")
+    final_output = {p.name: stamp(p) for p in out.iterdir()}
+    check(final_output == census, "final-output-census-drift")
+    out_stamp = stamp(out)
+    check(set(fixture.iterdir()) == {fixture/'source',fixture/'target'}|{q for q in fixture_files if q.parent==fixture}, 'final-fixture-census')
+    check(
+        ancestry([*controls, fixture, out, *roots]) == ancestors, "final-ancestor-drift"
+    )
+    terminal_result = dict(
+        probe_verified=True,
+        acceptance_sha256=controls[acceptance]["sha256"],
+        platform_supported=supported,
+        fixture_retained=True,
+        container_retained_stopped=True,
+        actual_library_platform_verified=False,
+        native_grant=False,
+        publication_authority=False,
+        future_mylar_destination_verified=False,
+        writer_lifecycle_resume_authorized=False,
+    )
+
+    file_items = tuple((str(p), tuple(f['signature'])) for p, f in {**controls, **fixture_files}.items()) + ((str(fixture), tuple(fixture_stamp)), (str(out), tuple(out_stamp))) + tuple((str(p), tuple(v)) for p, v in rootstates.items()) + tuple((str(fixture/name),tuple(v)) for name,v in fixture_dirs.items())
+    node_items = tuple((str(p), tuple(v)) for p, v in ancestors.items())
+    fixture_names = frozenset({'source','target'}|{p.name for p in fixture_files if p.parent==fixture})
+    output_names = frozenset(census)
+    if frozenset(os.listdir(fixture)) != fixture_names:raise Held('terminal-fixture-census')
+    if frozenset(os.listdir(out)) != output_names:raise Held('terminal-output-census')
+    for p, v in node_items:
+        x = os.lstat(p)
+        if (x.st_dev,x.st_ino,x.st_mode,x.st_uid,x.st_gid) != v:raise Held('terminal-ancestor')
+    for p, v in file_items:
+        x = os.lstat(p)
+        if (x.st_dev,x.st_ino,x.st_size,x.st_mtime_ns,x.st_ctime_ns,x.st_mode,x.st_uid,x.st_gid,x.st_nlink) != v:raise Held('terminal-leaf')
+    yield dict(terminal_result,probe_verified=False,pending_remote_validation=True,local_kernel_closed=True,child_physically_exited=True)
+    # The outer owner has physically released its original Writer helper.
+    lease=None
+    after,terminal=owned_probe.finish_after_release()
+    check(after.stdout==r.stdout,"gated-original-kernel-output")
+    check(
+        all(terminal[k]==v for k,v in initial_child_static.items())
+        and terminal["Id"] == child
+        and terminal["Image"] == IMAGE
+        and terminal["State"]["Status"] == "exited"
+        and terminal["State"]["ExitCode"] == 0
+        and terminal["State"]["Running"] is False
+        and type(terminal["State"]["Pid"]) is int and terminal["State"]["Pid"]==0
+        and all(terminal["State"].get(k) is False for k in ("Paused","Restarting","Dead","OOMKilled")),
+        "child-terminal",
+    )
+    check(observe() == initial, "post-held-drift")
+    fresh_scope(scope)
+    # Cleanup legitimately removed only the canary fixture and its parent.
+    # Recheck original retained controls/protected roots/output after every
+    # postrelease callback; never adopt their current facts as a new baseline.
+    removed=fixture.parent
+    for path,v in node_items:
+        q=Path(path)
+        if q==removed or q.is_relative_to(removed):continue
+        x=os.lstat(q)
+        if (x.st_dev,x.st_ino,x.st_mode,x.st_uid,x.st_gid)!=v:raise Held('postrelease-probe-original-ancestor')
+    if frozenset(os.listdir(out))!=output_names:raise Held('postrelease-probe-output-namespace')
+    for path,v in file_items:
+        q=Path(path)
+        if q==removed or q.is_relative_to(removed):continue
+        x=os.lstat(q)
+        if (x.st_dev,x.st_ino,x.st_size,x.st_mtime_ns,x.st_ctime_ns,x.st_mode,x.st_uid,x.st_gid,x.st_nlink)!=v:raise Held('postrelease-probe-original-leaf')
+    for q in (fixture,removed):
+        try:os.lstat(q)
+        except FileNotFoundError:continue
+        raise Held('postrelease-probe-owned-absence')
     return terminal_result
 
 
@@ -1410,17 +1849,18 @@ _ACTIVE_SEALS=weakref.WeakKeyDictionary()
 
 class ActiveNFSCanaryObservation:
     """Owning completed canary facts only; no action lock or publication right."""
-    __slots__=('files','nodes','names','absent','result','rows','native','mount','device','_observe','thread','__weakref__')
-    def __init__(self,key,files,nodes,names,absent,result,rows,native,mount,device,observe):
+    __slots__=('files','nodes','names','absent','result','rows','native','mount','device','_observe','thread','reader_id','__weakref__')
+    def __init__(self,key,files,nodes,names,absent,result,rows,native,mount,device,observe,reader_id=None):
         if key is not _ACTIVE_KEY:raise Held('active-owning-invocation-required')
         self.files=tuple(files);self.nodes=tuple(nodes);self.names=tuple(names);self.absent=tuple(absent)
         self.result=json.loads(encode(result));self.rows=json.loads(encode(rows));self.native=json.loads(encode(native))
         self.mount=json.loads(encode(mount));self.device=device;self._observe=observe;self.thread=threading.get_ident()
+        self.reader_id=reader_id or next(r['Id'] for r in self.rows if r['Name']=='/komga')
         _ACTIVE_SEALS[self]=self._seal()
     def _seal(self):
         return encode(dict(files=self.files,nodes=self.nodes,names=[(p,sorted(v)) for p,v in self.names],absent=self.absent,
                            result=self.result,rows=self.rows,native=self.native,mount=self.mount,device=self.device,
-                           thread=self.thread,observe=id(self._observe)))
+                           thread=self.thread,observe=id(self._observe),reader_id=self.reader_id))
     def close(self):
         files=tuple(self.files);nodes=tuple(self.nodes);names=tuple(self.names);absent=tuple(self.absent)
         admitted=_ACTIVE_SEALS.get(self)
@@ -1440,12 +1880,12 @@ class ActiveNFSCanaryObservation:
     def current(self,*,stopped):
         self.close();rows,native,mount,device=self._observe()
         if native!=self.native or mount!=self.mount or device!=self.device:raise Held('active-factual-native-export-drift')
-        original={r['Name']:r for r in self.rows};current={r['Name']:r for r in rows}
+        original={r['Id']:r for r in self.rows};current={r['Id']:r for r in rows}
         if set(original)!=set(current):raise Held('active-factual-runtime-set')
         for name in original:
             keys=('Id','Image','Mounts','Config','HostConfig','NetworkSettings')
             if any(current[name].get(k)!=original[name].get(k) for k in keys):raise Held('active-factual-static-drift')
-        state=current['/komga']['State'];old=original['/komga']['State']
+        state=current[self.reader_id]['State'];old=original[self.reader_id]['State']
         if stopped:
             if not (state['Status']=='exited' and state['Running'] is False and type(state['Pid']) is int and state['Pid']==0 and state['StartedAt']==old['StartedAt']
                     and all(state.get(k) is False for k in ('Paused','Restarting','Dead','OOMKilled'))):raise Held('active-factual-not-stopped')
@@ -1455,17 +1895,19 @@ class ActiveNFSCanaryObservation:
     def binding(self):
         result=json.loads(encode(self.result));self.close();return result
 
-def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease):
+def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease,roles=None,host_control=None,probe_type=None,epoch_observer=None):
     if not a.execute:
         return dict(executable=False, native_grant=False, publication_authority=False, actual_library_platform_verified=False)
-    original_input_nodes = ancestry([Path(a.input),Path(__file__)])
+    original_input_nodes = ancestry([Path(a.input),Path(__file__),*([Path(host_control['path'])] if host_control is not None else [])])
     preliminary, preliminary_fact = read(a.input, a.input_sha256)
     cohort = bind_cohort(preliminary.get('source_cohort'))
     cohort.close()
+    roles=current_roles(roles) if roles is not None else None
     check(os.geteuid() == 1000, 'caller-uid')
     os.umask(0o077)
     initial_ancestors = ancestry([Path(__file__), Path(a.input), LIFECYCLE, ACTIVE_TESTS,
-                                 CORE_PARENT, CORE_TESTS, WRITER_FIXTURE, READY, PARITY, MAP, NATIVE_RECEIPT])
+                                 CORE_PARENT, CORE_TESTS, WRITER_FIXTURE, READY, PARITY, MAP, NATIVE_RECEIPT,
+                                 *([Path(host_control['path'])] if host_control is not None else [])])
     for p,v in original_input_nodes.items():
         if initial_ancestors.get(p)!=v:raise Held('source-cohort-initial-ancestor-drift')
     outer, of = read(a.input, a.input_sha256)
@@ -1474,7 +1916,8 @@ def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease):
                   'native_controls', 'effective_observer_review', 'source_cohort'))
     check(outer['version'] == 1 and outer['kind'] == 'approved-active-nfs-owned-lifecycle', 'active-outer-plan')
     known = [Path(__file__), Path(a.input), LIFECYCLE, ACTIVE_TESTS, CORE_PARENT, CORE_TESTS,
-             WRITER_FIXTURE, READY, PARITY, MAP, NATIVE_RECEIPT, Path(outer['active_scope']['path'])]
+             WRITER_FIXTURE, READY, PARITY, MAP, NATIVE_RECEIPT, Path(outer['active_scope']['path']),
+             *([Path(host_control['path'])] if host_control is not None else [])]
     entry = ancestry(known)
     check(all(entry.get(p) == v for p, v in initial_ancestors.items()), 'first-input-ancestor-drift')
     scope, sf = read(outer['active_scope']['path'], outer['active_scope']['sha256'])
@@ -1491,7 +1934,7 @@ def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease):
     check(outer['native_controls'] is not None and outer['effective_observer_review'] is not None,
           'explicit-actual-native-and-reviewed-effective-evidence-required')
     try:
-        return _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry)
+        return _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles,host_control,probe_type,epoch_observer)
     except ValueError as error:
         raise Held(str(error)) from None
 
@@ -1500,13 +1943,38 @@ def execute(a,engine=subprocess.run,lease_type=WriterLease):
     result=_execute_factual(a,engine,lease_type)
     return result.binding if type(result) is ActiveNFSCanaryObservation else result
 
-def run_active_factual(a,engine=subprocess.run):
+def run_active_factual(a,engine=subprocess.run,*,roles=None):
     check(a.execute is True,'active-factual-execute-required')
-    result=_execute_factual(a,engine,WriterLease)
+    result=_execute_factual(a,engine,WriterLease,roles)
     check(type(result) is ActiveNFSCanaryObservation,'active-factual-owning-result')
     result.close();return result
 
-def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry):
+def run_active_host_factual(a,engine,*,interface_module,lease_interface,interface_ref,roles=None):
+    """Configured path: exact source-owned real host lease interface, default off."""
+    import types
+    check(a.execute is True and type(interface_module) is types.ModuleType,'host-lease-interface-module')
+    exact(interface_ref,('path','sha256','signature9'))
+    initial=ancestry([Path(interface_ref['path'])]);raw,original=checked_buffer(interface_ref['path'],HOST_LEASE_INTERFACE_SHA,source=True)
+    check(interface_ref['sha256']==HOST_LEASE_INTERFACE_SHA and original['signature']==interface_ref['signature9']
+          and interface_module.__file__==interface_ref['path'],'host-lease-interface-source-origin')
+    expected=types.ModuleType(interface_module.__name__);expected.__file__=interface_ref['path'];exec(compile(raw,expected.__file__,'exec'),expected.__dict__)
+    for name in ('need','encode','epoch_reply'):
+        check(getattr(interface_module,name).__code__==getattr(expected,name).__code__,'host-lease-interface-helper-code')
+    actual_class=interface_module.ChildLeaseInterface;expected_class=expected.ChildLeaseInterface
+    for name in ('__init__','admit','factory','probe','reader_epoch','_call','prepare','acquire','start','pulse','profile','release_after_absence'):
+        check(actual_class.__dict__[name].__code__==expected_class.__dict__[name].__code__,'host-lease-interface-method-code')
+    for name in ('__init__','prepare','create','start_prepare','execute_local','finish_after_release'):
+        check(interface_module.ChildProbe.__dict__[name].__code__==expected.ChildProbe.__dict__[name].__code__,'host-probe-interface-method-code')
+    check(type(lease_interface) is actual_class and getattr(engine,'__self__',None) is lease_interface.channel
+          and getattr(engine,'__func__',None) is type(lease_interface.channel).engine,'host-lease-original-child-instance')
+    lease_interface.admit()
+    check(ancestry([Path(interface_ref['path'])])==initial and fact(interface_ref['path'],HOST_LEASE_INTERFACE_SHA,source=True)==original,'host-lease-interface-before-factory')
+    result=_execute_factual(a,engine,lease_interface.factory,roles,interface_ref,lease_interface.probe,lease_interface.reader_epoch)
+    check(type(result) is ActiveNFSCanaryObservation,'host-lease-genuine-child-canary')
+    result.close();lease_interface.admit();return result
+
+
+def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles=None,host_control=None,probe_type=None,epoch_observer=None):
     """Checked operational adapter. Missing actual proof refuses before writes."""
     module = lifecycle_module()
     exact(scope, ('version', 'kind', 'approved_disposable_diagnostic', 'observed',
@@ -1536,8 +2004,22 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     rootstates = {r: stamp(r) for r in roots}
     controls = {**_COHORT.facts(), Path(a.input): of, canonical(outer['active_scope']['path']): sf,
                 Path(__file__): own, LIFECYCLE: helper}
+    if host_control is not None:
+        ref=host_control;path=canonical(ref['path']);value=fact(path,HOST_LEASE_INTERFACE_SHA,source=True)
+        check(value['signature']==ref['signature9'],'host-lease-interface-original9');controls[path]=value
+        for path,node in ancestry([path]).items():
+            check(path not in admission or admission[path]==node,'host-lease-interface-original5');admission[path]=node
     for ref in scope['sources'].values():
         controls[canonical(ref['path'])] = fact(ref['path'], ref['sha256'])
+    if roles is not None:
+        for key in ('plan','source'):
+            ref=roles[key];path=canonical(ref['path']);value=fact(path,ref['sha256'],source=key=='source')
+            check(value['signature']==ref['signature9'],'current-role-original-control-retained')
+            controls[path]=value
+        for path,expected in roles['ancestors'].items():
+            current=ancestry([Path(path)/'control'])
+            check(current.get(str(path))==expected,'current-role-retained-ancestor')
+            admission[str(path)]=expected
     controls.update(active_native_controls(outer['native_controls'], a.source_sha256))
     effective_controls, runtime, report = active_effective_controls(outer['effective_observer_review'], roots)
     controls.update(effective_controls)
@@ -1566,18 +2048,26 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
 
     active_lease = None
     def observe_active():
-        rows = json.loads(call(DOCKER + ['inspect', 'mylar3', 'komga-comic-normalizer-1', 'komga']))
-        mapping = live_mapping(rows, roots)
-        native = next(row for row in rows if row['Name'] == '/mylar3')
+        rows = json.loads(call(DOCKER + ['inspect',*(role_ids(roles) if roles is not None else ['mylar3','komga-comic-normalizer-1','komga'])]))
+        mapping = live_mapping(rows, roots,roles)
+        selected=select_roles(rows,roles) if roles is not None else None
+        native=selected['native'] if selected is not None else next(row for row in rows if row['Name']=='/mylar3')
         mounts = [m for m in native['Mounts'] if m['Destination'] == '/config']
         check(len(mounts) == 1 and mounts[0]['Type'] in ('bind', 'volume') and mounts[0]['RW'] is True,
               'same-actual-native-config-writer-mapping')
-        reader = next(row for row in rows if row['Name'] == '/komga')
+        reader=selected['reader'] if selected is not None else next(row for row in rows if row['Name']=='/komga')
+        if epoch_observer is None:
+            reader_ticks=process_start(reader['State']['Pid'])
+        else:
+            host_epoch=epoch_observer()
+            check(host_epoch['cid']==reader['Id'] and host_epoch['pid']==reader['State']['Pid']
+                  and host_epoch['started_at']==reader['State']['StartedAt'],'original-host-reader-epoch')
+            reader_ticks=host_epoch['start_ticks']
         check(reader['Id'] == report['container_id'] and reader['State']['Pid'] == report['pid']
-              and process_start(reader['State']['Pid']) == report['start_time']
+              and reader_ticks == report['start_time']
               and all(reader[k] == runtime['container'][k] for k in ('Config', 'HostConfig', 'Mounts', 'NetworkSettings')),
               'same-current-effective-process-profile')
-        health = fresh_native(call, next(r["Id"] for r in rows if r["Name"]=="/mylar3"))
+        health = fresh_native(call, native["Id"])
         configured_writer_mapping(native['Mounts'],health['config'],WRITER_ROOT)
         publication = health['publication']
         if active_lease is None:
@@ -1613,11 +2103,16 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
                                   'writer_lifecycle_resume_authorized': False})
     emit('library-settings.json', libraries)
     lease = lease_type(output, engine)
-    lease.start()
-    active_lease = lease
+    gated=host_control is not None
+    if gated:
+        check(callable(probe_type) and all(callable(getattr(lease,n,None)) for n in ('prepare','acquire')),'configured-gated-original-interfaces')
+        lease.prepare()
+    else:
+        lease.start()
+        active_lease = lease
+        lease.pulse()
+        check(same_active(observe_active()[0]), 'pre-staging-held-bracket')
     controls.update(getattr(lease, 'records', {}))
-    lease.pulse()
-    check(same_active(observe_active()[0]), 'pre-staging-held-bracket')
     fresh_scope(scope)
 
     def observe_mount(path):
@@ -1633,7 +2128,8 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
           and core['mount_identity'] == outer['parent_admission']['mount_identity']
           and observe_mount(core['library_root']) == core['mount_identity'], 'precreation-same-actual-library-nfs')
     check(not output.is_relative_to(canonical(core['mount_identity']['target'])), 'metadata-output-outside-nfs-target')
-    parent = module.admit_parent(outer['parent_admission'], roots, lease, observe_mount)
+    parent = (module.prepare_parent(outer['parent_admission'],roots,observe_mount) if gated
+              else module.admit_parent(outer['parent_admission'],roots,lease,observe_mount))
     admitted_parent=(str(parent['path']),tuple(parent['signature']),tuple(parent['grandparent_identity']),tuple(parent['grandparent_node5']))
     admitted_grandparent=Path(admitted_parent[0]).parent
     check(admitted_grandparent not in ancestors or tuple(ancestors[admitted_grandparent])==admitted_parent[3],'original-grandparent-conflict')
@@ -1647,13 +2143,27 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     controls[derived] = write(derived, core)
     core_args = argparse.Namespace(input=str(derived), input_sha256=controls[derived]['sha256'],
                                    source_sha256=a.source_sha256, execute=True)
+    phases=None
+    if gated:
+        phases=_probe_gated_phases(core_args,engine,roles,probe_type)
+        prepared=next(phases)
+        check(prepared.get('stage')=='prepared' and prepared.get('native_grant') is False
+              and prepared.get('publication_authority') is False,'original-probe-prepared-before-acquire')
+        # Parent seals actual original probe object/process/prepared ACK before
+        # begin inserts its hard remote block and writes acquire to original stdin.
+        lease.acquire();active_lease=lease
+        result=phases.send(lease)
+        check(result.get('probe_verified') is False and result.get('pending_remote_validation') is True
+              and result.get('local_kernel_closed') is True and result.get('child_physically_exited') is True
+              and result['fixture_retained'] is True,'local-probe-closed-no-terminal-grant')
+    else:
+        lease.pulse()
+        result=probe_existing_parent(core_args,engine,lease,roles,probe_type)
+        check(result['probe_verified'] is True and result['fixture_retained'] is True,'owned-probe-verified')
     lease.pulse()
-    result = probe_existing_parent(core_args, engine, lease)
-    check(result['probe_verified'] is True and result['fixture_retained'] is True, 'owned-probe-verified')
-    lease.pulse()
-    check(same_active(observe_active()[0]), 'post-probe-active-bracket')
-    check(fresh_libraries(query_plan, observe_active()[1], controls, roots) == libraries,
-          'post-probe-library-scopes-unchanged')
+    if not gated:
+        check(same_active(observe_active()[0]),'post-probe-active-bracket')
+        check(fresh_libraries(query_plan,observe_active()[1],controls,roots)==libraries,'post-probe-library-scopes-unchanged')
     fixture = canonical(parent['path']) / core['fixture_name']
     accepted, af = read(output / 'probe' / 'acceptance.json', result['acceptance_sha256'])
     controls[output / 'probe' / 'acceptance.json'] = af
@@ -1676,7 +2186,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
                                             ff,accepted['fixture_directories'],roots,lease)
     check(cleaned['owned_fixture_absence_verified'] is True, 'owned-cleanup-required')
     emit('cleanup-result.json', cleaned)
-    check(same_active(observe_active()[0]), 'post-cleanup-active-bracket')
+    if not gated:check(same_active(observe_active()[0]), 'post-cleanup-active-bracket')
     release_files = tuple((str(p),tuple(f['signature'])) for p,f in controls.items()) + tuple((str(p),tuple(v)) for p,v in rootstates.items())
     release_nodes = tuple((str(p),tuple(v)) for p,v in ancestors.items())
     for p, f in controls.items():
@@ -1687,6 +2197,16 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     for p, s in rootstates.items():
         check(stamp(p) == s, 'active-root-closure')
     lease.release_after_absence((fixture, canonical(parent['path'])), original_files=release_files, original_nodes=release_nodes)
+    active_lease=None
+    if gated:
+        pending=result
+        try:next(phases)
+        except StopIteration as finished:result=finished.value
+        else:raise Held('gated-probe-extra-phase')
+        check(type(result) is dict and result['probe_verified'] is True
+              and result['acceptance_sha256']==pending['acceptance_sha256'],'postrelease-original-probe-terminal')
+        check(same_active(observe_active()[0]),'postrelease-original-active-bracket')
+        check(fresh_libraries(query_plan,observe_active()[1],controls,roots)==libraries,'postrelease-original-library-scopes')
     controls.update(getattr(lease, 'records', {}))
     accepted_operation = emit('active-acceptance.json', {
         'version': 1, 'kind': 'active-owned-disposable-nfs-acceptance',
@@ -1729,11 +2249,12 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     missing_items = tuple(str(p) for p in (*effective_absent, fixture, canonical(parent['path'])))
     # Helper result is never the last proof: original immutable tuples close
     # again after the helper returns, including post-release owned absences.
-    initial_projection=_NATIVE_PROJECTOR(dict(inspect=next(r for r in rows if r['Name']=='/mylar3'),process=initial['native_process'],publication=initial['publication']))
+    initial_projection=_NATIVE_PROJECTOR(dict(inspect=(select_roles(rows,roles)['native'] if roles is not None else next(r for r in rows if r['Name']=='/mylar3')),process=initial['native_process'],publication=initial['publication']))
     def native_after_release():
-        current=json.loads(call(DOCKER+['inspect','mylar3','komga-comic-normalizer-1','komga']))
-        native_row=next(r for r in current if r['Name']=='/mylar3')
-        live=identities([r for r in current if r['Name']!='/komga'])
+        current=json.loads(call(DOCKER+['inspect',*(role_ids(roles) if roles is not None else ['mylar3','komga-comic-normalizer-1','komga'])]))
+        selected=select_roles(current,roles,stopped=True) if roles is not None else None
+        native_row=selected['native'] if selected is not None else next(r for r in current if r['Name']=='/mylar3')
+        live=identities(([selected['native'],selected['worker']] if selected is not None else [r for r in current if r['Name']!='/komga']),roles)
         health=fresh_native(call,native_row['Id'])
         projection=_NATIVE_PROJECTOR(dict(inspect=native_row,process=health['process'],publication=health['publication']))
         observed=dict(mapping=live,native_process=health['process'],native_config=health['config'],projection=projection)
@@ -1744,7 +2265,8 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         return current,observed,actual_mount,actual_device
     current_rows,current_native,current_mount,current_device=native_after_release()
     factual=ActiveNFSCanaryObservation(_ACTIVE_KEY,file_items,node_items,name_items,missing_items,terminal_result,
-                                     current_rows,current_native,current_mount,current_device,native_after_release)
+                                     current_rows,current_native,current_mount,current_device,native_after_release,
+                                     roles['roles']['reader']['id'] if roles is not None else None)
     module.close_vector(terminal_files,terminal_nodes,terminal_names,absent=missing_items)
     for p,v in name_items:
         if frozenset(os.listdir(p)) != v:raise Held('terminal-census')

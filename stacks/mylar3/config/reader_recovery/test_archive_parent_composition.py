@@ -43,7 +43,10 @@ class Tests(unittest.TestCase):
   x.produce=produce
   def child(phase,ref,command):
    phases.append(phase)
-   if phase=='backup':return dict(manifest=x.mapping.child_ref(self.proof),restore_root=x.mapping.child(self.root),phase='backup')
+   if phase=='backup':
+    backup_root=x.op/'backup'/'reader-backup';backup_root.mkdir(mode=0o700)
+    manifest=old.fixture_ref(backup_root/'manifest.json',b'{}')
+    return dict(manifest=x.mapping.child_ref(manifest),restore_root=x.mapping.child(self.root),phase='backup')
    if phase=='execute':
     original=old.fixture_ref(x.op/'execute/execution-originals.json',b'{}');self.original=original
     result=dict(kind='archive-one-owning-execute-observation',owner={'kind':'issue','issue_id':'123','comic_id':'456'},operation_id='d'*64,outcome=outcome,originals=x.mapping.child_ref(original),baseline=self.proof,reader_index_acceptance=False,ordinary_import_grant=False,publication_acceptance=False,mutation_authority=False,automatic_replay=False)

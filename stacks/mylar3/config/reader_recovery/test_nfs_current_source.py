@@ -189,7 +189,9 @@ class FullLifecycleControls(LocalEnvironment):
                 self.assertTrue(all(not os.path.lexists(p) for p in paths))
                 events.append('release-after-absence')
 
-        def probe(a, engine, lease):
+        def probe(a, engine, lease, roles=None, host_probe=None):
+            self.assertIsNone(roles)
+            self.assertIsNone(host_probe)
             events.append('probe')
             derived = P.read(a.input, a.input_sha256)[0]
             c = Path(derived['fixture_parent']) / derived['fixture_name']
@@ -218,13 +220,13 @@ class FullLifecycleControls(LocalEnvironment):
 
         original_core=P.probe_existing_parent
         if use_core:
-            def observe_core(a,engine,lease):
+            def observe_core(a,engine,lease,roles=None,host_probe=None):
                 events.append('probe')
                 # Explicit local substitute only for the production literal NFS library path.
                 def local_validate(core,scope):
                     self.assertEqual(core['library_root'],'/srv/example/media/comics');self.assertEqual(core['scope'],scope_ref)
                     return Path(core['fixture_parent'])/core['fixture_name'],Path(core['output_root']),libraries
-                with patch.object(P,'validate',side_effect=local_validate):return original_core(a,engine,lease)
+                with patch.object(P,'validate',side_effect=local_validate):return original_core(a,engine,lease,roles,host_probe)
             actual_core=observe_core
         else:actual_core=probe
         original = P.canonical

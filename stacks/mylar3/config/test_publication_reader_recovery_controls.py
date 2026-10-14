@@ -17,9 +17,10 @@ class Controls(unittest.TestCase):
   self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name);self.fixes=self.root/'public';self.fixes.mkdir();self.tree=self.fixes/'reader_recovery';self.tree.mkdir();self.stage=self.root/'private';self.stage.mkdir(mode=0o700)
   module=self.fixes/'publication_reader_admission.py';module.write_text('# fixture canonical disabled admission\n');module.chmod(0o644)
   self.module=module
+  writer=self.fixes/'media_writer.py';writer.write_bytes(b'# fixture Writer source\n');writer.chmod(0o644);self.writer=writer
   source=self.tree/'fixture.py';source.write_text('# fixture bytes\n');source.chmod(0o644);self.source=source
   (self.tree/'source-manifest.json').write_text(json.dumps(dict(version=1,files={'fixture.py':dict(sha256=digest(source))})));(self.tree/'source-manifest.json').chmod(0o644)
-  (self.fixes/'publication_reader_cohort.json').write_text(json.dumps(dict(modules={'publication_reader_admission':dict(sha256=digest(module))})));(self.fixes/'publication_reader_cohort.json').chmod(0o644)
+  (self.fixes/'publication_reader_cohort.json').write_text(json.dumps(dict(modules={'publication_reader_admission':dict(sha256=digest(module))},existing_sdk_closure={'media_writer':dict(tracked_source_sha256=digest(writer))})));(self.fixes/'publication_reader_cohort.json').chmod(0o644)
  def copy(self):return m.copy_fixtures(self.fixes,self.stage)
  def test_public644_copy_private600_bytes_same(self):
   before={p: (p.read_bytes(),p.stat().st_mode,p.stat().st_ino) for p in (self.source,self.module)};tree,_,_=self.copy();self.assertEqual((tree/'fixture.py').read_bytes(),self.source.read_bytes());self.assertEqual((tree/'fixture.py').stat().st_mode&511,0o600);self.assertEqual((tree.parent/'publication_reader_admission.py').stat().st_mode&511,0o600);self.assertEqual(before,{p:(p.read_bytes(),p.stat().st_mode,p.stat().st_ino) for p in before})
@@ -49,6 +50,7 @@ class Controls(unittest.TestCase):
   for name in manifest['files']:
    dst=tree/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/'reader_recovery'/name,dst);dst.chmod(0o644)
   shutil.copyfile(PUBLIC/'reader_recovery/source-manifest.json',tree/'source-manifest.json')
+  shutil.copyfile(PUBLIC/'media_writer.py',actual/'media_writer.py');(actual/'media_writer.py').chmod(0o644)
   for name in ('publication_reader_cohort.json','publication_reader_admission.py'):shutil.copyfile(PUBLIC/name,actual/name)
-  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],591);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],804);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
 if __name__=='__main__':unittest.main()

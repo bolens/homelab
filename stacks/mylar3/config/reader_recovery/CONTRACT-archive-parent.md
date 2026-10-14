@@ -29,8 +29,8 @@ match `source-manifest.json` and all internal action/proof/probe/helper pins.
 Native DATA/library geometry is derived by the checked fresh native probe and
 actual configured scope. Writer-mutating mount sources are limited to exact
 native DATA/library, scratch, retention and private operation roots. Extra
-writable ancestors or arbitrary writable sources hold. Image-code overlays at
-`/app` or beneath it hold. Backup additionally requires reader bind Sources
+writable ancestors or arbitrary writable sources hold. Caller-supplied image-code overlays at
+`/app` or beneath it hold; the maintained installer’s exact canonical admission overlay is the only separately validated configured exception. Backup additionally requires reader bind Sources
 mounted at their original canonical HOST spelling. It copies the entire config,
 independently restores it and verifies all schema/table fingerprints and raw
 source/copy/restore facts; this produces no stopped-reader or mutation grant.
@@ -113,7 +113,7 @@ real backup/copy/SQLite8, fresh -I bootstrap3, archive scheduling12, finite
 namespace12, native geometry4 and original-admission/runtime-overlay4. Child/NFS/SDK declarations in scheduling and
 namespace tests are explicit doubles; genuine canonical installed types and
 protected parent admission are not claimed. Run `python3 -I -B stacks/mylar3/config/run_reader_recovery_controls.py`
-from the repository root for the complete 591-control private-copy gate. Run that
+from the repository root for the complete 755-control private-copy gate. Run that
 owning launcher inside the selected image as UID1000, cap0, networknone, readonly root, no Docker
 socket, no live mounts; only this public source/test closure and private tmpfs
 are required. Root alone executes Docker and supplies exact candidate ID.
@@ -162,3 +162,30 @@ existing main report, unlocked watch and ordinary ACK remain after release;
 negative-five does not gain the archive pending-terminal exchange or any
 terminal, publication or resume right from its Writer session. Backup and
 verify-terminal cannot announce a negative-five Writer session.
+
+## Explicit configured ownership seam
+
+The default admission/Parent pins remain disabled. The maintained host installer
+accepts only its fixed reviewed source closure and performs only the approved
+constant transformations. Configured artifacts, original private plan/command
+refs and readonly canonical admission overlay are explicit and hashed; they are
+not arbitrary digest setters or base-image parity.
+
+Finite child control projection preserves each root original file9/hash and
+ancestor5, creates independent UID1000 copies, and retains paired references.
+Inputs, Birth and source leaves are individually readonly. The newly child-owned
+phase/output directory is writable, including the exact late lifecycle sidecar
+whose bytes and identity are bound by the existing pipe. Reciprocal returned
+child identities must first match the mapped original proof9 membership before
+root derives its separate private view. No root original ownership/mode is
+changed, and no broad private=False route is introduced.
+
+The optional NFS child/session branch requires exact reviewed helper/control
+refs, actual captured role/image/epoch/mount facts and a genuine NFS4 disposable
+grandparent outside every protected root. Protected roots remain readonly; only
+that original grandparent supplies the source-owned canary mutation scope. The
+actual canary object remains process-local in the UID1000 child. A bare status,
+receipt or JSON dictionary cannot reconstruct it. Uncertain EOF, handler refusal
+or lost leave retains evidence and grants neither terminal acceptance, cleanup,
+reader resume nor replay. Source/host tests and historical constructor/Main
+prerequisites do not replace genuine connected Birth and terminal proof.

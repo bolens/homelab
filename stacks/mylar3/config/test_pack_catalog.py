@@ -86,7 +86,7 @@ class CatalogTest(unittest.TestCase):
         results=[None,None,{'IssueID':'200'}]
         self.db.selectone.return_value.fetchone.side_effect=lambda:results.pop(0)
         result=self.module.resolve(self.payload)
-        self.importer.addComictoDB.assert_called_once_with('20',suppress_addall=True)
+        self.importer.addComictoDB.assert_called_once_with('20',calledfrom='maintenance',pullupd=True,suppress_addall=True)
         self.assertEqual(result['phase'],'ready')
 
     def test_missing_id_uses_native_search_signature(self):
