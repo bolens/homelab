@@ -68,7 +68,8 @@ locations, with **5 GiB** of filesystem free space reserved. Set
 to whole GiB values from 1 through 4096. Nested locations are counted once;
 retained downloads, partial files, extraction stages and Mega temporary files
 all count. Mega temporary plaintext stays in the configured cache rather than
-the container's writable `/tmp` layer. New HTTP and extracted cache payloads are
+the container's writable `/tmp` layer. The runtime image preserves the checked
+Mega library and verifies its allocation guard in the final build stage. New HTTP and extracted cache payloads are
 owner-readable only; existing original file permissions are preserved. HTTP
 downloads and ZIP expansion reserve
 projected bytes and per-entry metadata/block overhead before allocation, and check available space

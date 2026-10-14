@@ -821,7 +821,7 @@
   },
   {
     "path": "run_publication_reader_controls.py",
-    "sha256": "c1e4e93cb1d9901dbd12fdb5ac194ac3082d375efe8c7a91397143acff6ac36d",
+    "sha256": "6cb8f1beae9b790ceaccd032eb2b6635f3d7cd0da651515837e7b18b319d9f12",
     "target": "run_publication_reader_controls.py"
   },
   {
@@ -1646,7 +1646,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "107dcf0a94267f1125cdc64b265cc79ae8793edda45765fd032560cc5343e048",
+    "sha256": "29ac806216aabcd05cf654cccb37902fcb406220ec865e787c598e0407029909",
     "target": "test_publication_reader_recovery_controls.py"
   },
   {
