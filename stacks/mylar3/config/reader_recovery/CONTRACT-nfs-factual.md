@@ -51,17 +51,15 @@ The default route and exact original Writer/NFS4/census/cleanup guards remain.
 The additional copied test suites are mandatory and zero-skip, but projected
 engine cases are not an installed Parent/NFS/terminal acceptance grant.
 
-## Current connected call-order blocker
+## Historical retained call-order blocker
 
-The retained implementation remains disabled for configured execution. Its
-HostWriterLease and active NFS path currently inspect/observe native state and
-create/start the probe after the actual native Writer is held. This conflicts
-with the owning no-Docker/API-under-Writer requirement; legacy implementation
-provenance does not create an exception. The source/pipe tests do not establish
-contract-conforming NFS acceptance. Required correction must preserve sealed
-prelease facts, use local held custody only, and perform independent remote
-validation after release against those originals. No fresh observation may
-replace an original baseline or grant terminal acceptance.
+The earlier retained NFS path observed native state and created or started its
+probe after acquiring Writer. That violated the no-Docker/API-under-Writer
+contract. Its source provenance and pipe tests did not grant an exception or
+prove NFS acceptance. The configured source now seals remote facts before
+acquisition, uses local custody while held, and validates remotely after
+physical release against those originals. Genuine configured Parent/Birth/NFS
+acceptance remains required; the unconfigured legacy route stays held.
 
 ## Partial enforced lease-window checkpoint
 
@@ -74,10 +72,10 @@ release-reviewed ACK alone is insufficient. A proven aborted physical exit may
 clear the transport for independent diagnostics, with the session failed and
 no cleanup, terminal, resume or replay grant.
 
-This closes the lease/transport boundary only. The old active/probe call order
-is not accepted: it now fails at the guard and must be changed to prelease
-remote setup, local held execution, and postrelease independent comparison
-against sealed originals. The default configured route remains disabled.
+The unconfigured legacy route remains held at this boundary. The configured
+source implements prelease setup, local held execution and postrelease
+comparison against sealed originals. Default bindings remain disabled until
+reviewed installation and genuine configured runtime acceptance.
 
 Before clearing a physically released window, the Parent separately closes the retained original outer process PID, stream objects, registry fields and actual descriptor five-vectors after all physical callbacks. This local release-only closure may outlive the work deadline; ordinary dialogue deadlines remain strict. Drift retains the block and grants no success or replay.
 

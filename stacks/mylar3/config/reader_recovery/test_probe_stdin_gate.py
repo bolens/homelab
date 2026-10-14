@@ -1,6 +1,6 @@
 """Original Popen stdin gate only; kernel/NFS/factory not substituted or executed."""
 from pathlib import Path
-import json,os,subprocess,sys,tempfile,unittest
+import json,subprocess,sys,tempfile,unittest
 class Gate(unittest.TestCase):
  def launch(self,seconds=3):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.marker=Path(self.tmp.name)/'executed'

@@ -113,7 +113,7 @@ real backup/copy/SQLite8, fresh -I bootstrap3, archive scheduling12, finite
 namespace12, native geometry4 and original-admission/runtime-overlay4. Child/NFS/SDK declarations in scheduling and
 namespace tests are explicit doubles; genuine canonical installed types and
 protected parent admission are not claimed. Run `python3 -I -B stacks/mylar3/config/run_reader_recovery_controls.py`
-from the repository root for the complete 755-control private-copy gate. Run that
+from the repository root for the complete 804-control private-copy gate. Run that
 owning launcher inside the selected image as UID1000, cap0, networknone, readonly root, no Docker
 socket, no live mounts; only this public source/test closure and private tmpfs
 are required. Root alone executes Docker and supplies exact candidate ID.
