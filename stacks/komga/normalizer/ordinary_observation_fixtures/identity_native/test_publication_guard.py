@@ -19,7 +19,7 @@ import warnings
 import zipfile
 import zlib
 
-import publication_guard as guard
+from . import publication_guard as guard
 
 TOOL_ROOT = os.environ.get('ARCHIVING_UTILS_ROOT', '/opt/archiving-utils')
 
@@ -258,12 +258,12 @@ class ProcessLimits(unittest.TestCase):
 
 class RegistryTests(unittest.TestCase):
     def setUp(self):
-        import workflow_store
+        from . import workflow_store
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         self.store = workflow_store.Store(self.root)
-        from media_writer import Writer
+        from .media_writer import Writer
         self.writer = Writer(self.root / 'media-writer', create=True)
         self.state = guard.RegistryState(self.store.path, self.writer)
         self.marker = self.state.marker
@@ -910,7 +910,7 @@ class RegistrationTransactionTests(unittest.TestCase):
 
     def observe(self, body):
         import copy
-        from workflow_store import LOCK
+        from .workflow_store import LOCK
         self.assertTrue(self.writer.local[1].depth)
         self.assertFalse(LOCK._is_owned())
         return copy.deepcopy({key:body[key] for key in ('inventory','observed')})

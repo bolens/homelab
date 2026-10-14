@@ -11,19 +11,15 @@ import json
 import os
 from pathlib import Path
 import stat
-import sys
 import unittest
 
 HERE = Path(__file__).absolute().parent
-CONFIG = HERE
-sys.path.insert(0, str(CONFIG))
-sys.path.insert(0, str(HERE))
-import publication_guard as guard
-import publication_identity_adoption as adoption
-import publication_identity_readers as readers
-import test_publication_guard as fixture
-from media_writer import Writer
-from workflow_store import Store
+from . import publication_guard as guard
+from . import publication_identity_adoption as adoption
+from . import publication_identity_readers as readers
+from . import test_publication_guard as fixture
+from .media_writer import Writer
+from .workflow_store import Store
 
 
 class HistoricalFixture(unittest.TestCase):

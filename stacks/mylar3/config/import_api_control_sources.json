@@ -689,7 +689,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "ef9519d3c530ab7de00ae9eb88c48a23936e0b8a7a6f86841d3f70a6dd27929e"
+    "sha256": "49a249b58cc3028599e3ae104e44cc935d6d6a74b2572333e3d06a5b75cc4825"
   },
   {
     "path": "story_arc_search.py",
@@ -1589,7 +1589,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "02a1a5919b73fe3aab65d27d5f16bcbcc825dce9bb4efa8dd9218a12900aa5d5"
+    "sha256": "0b8d3b540e1be483e5020147b2818b4e9a595ce39a23239e21c7cb3edf870705"
   },
   {
     "path": "verify_publication_reader_cohort.py",

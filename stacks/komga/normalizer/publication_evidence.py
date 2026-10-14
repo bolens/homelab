@@ -11,7 +11,6 @@ import subprocess
 import sys
 import tarfile
 import time
-import threading
 import zipfile
 
 MAX_MEMBERS = 4096

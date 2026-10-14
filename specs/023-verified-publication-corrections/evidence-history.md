@@ -906,3 +906,15 @@ gate refuses it. The correction changes that one hash field only. Root then
 passes all ten owning controls, including the complete 807-control aggregate,
 without skips. Full staged local CI passes with all new source and fixture files
 included. Hosted CI, new image verification and live recovery remain pending.
+
+
+PR #341 opens at `11b67e25`. Hosted CI finds three integration failures:
+seven unused imports in the generated passive reader, a worker discovery cache
+collision with the native fixture's test module, and the new installed-helper
+smoke preceding the existing status-guard check. The corrective generator removes
+only unused imports. Fixture imports use their own namespace without replacing
+worker modules. The unchanged helper smoke moves after the unchanged status
+check. Independent review passes for all three corrections. Root repeats lint,
+two status-routing controls, six preloaded-worker identity cases and an existing
+worker journal-refusal case. Fresh full hosted checks remain required before
+merge. No live operation is claimed.

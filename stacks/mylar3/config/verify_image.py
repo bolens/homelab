@@ -143,6 +143,7 @@ def config_scope_preflight(source, *, installed):
 subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'test_verify_status_routing.py')], check=True)
 if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
     config_scope_preflight(Path('/app/mylar3/mylar'), installed=True)
+    subprocess.run([sys.executable, '-B', str(FIXES / 'test_status_retention.py'), '/app/mylar3/mylar'], check=True)
     subprocess.run([sys.executable, '-B', '-c', """import importlib
 from pathlib import Path
 import sys
@@ -164,7 +165,6 @@ assert callable(maintenance.Maintenance.prepare) and callable(maintenance.Mainte
 assert callable(modules['publication_identity_readers'].durable_identity)
 assert callable(modules['publication_filesystem_binding'].observe)
 """, str(FIXES)], check=True, env=dict(os.environ, PYTHONPATH='/app/mylar3:/app/mylar3/lib'))
-    subprocess.run([sys.executable, '-B', str(FIXES / 'test_status_retention.py'), '/app/mylar3/mylar'], check=True)
     subprocess.run([sys.executable, '-B', str(FIXES / 'test_patch_cache_admission.py'), '/app/mylar3/mylar'], check=True)
 
 # Public source controls run even when the upstream image has no installed auth.

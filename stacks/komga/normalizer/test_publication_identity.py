@@ -5,9 +5,8 @@ import subprocess
 import sys
 import unittest
 HERE=Path(__file__).resolve().parent
-DRAFT=HERE/'ordinary_observation_fixtures/identity_native'
-sys.path.insert(0,str(DRAFT))
-from tests_tagger_identity import HistoricalFixture
+sys.path.insert(0,str(HERE))
+from ordinary_observation_fixtures.identity_native.tests_tagger_identity import HistoricalFixture
 
 PROGRAM='''import json,os,sqlite3,sys
 from pathlib import Path

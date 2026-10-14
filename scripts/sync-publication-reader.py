@@ -48,7 +48,9 @@ def outputs():
                   'PAGE_EXTENSIONS REGISTRY_LIMIT REGISTRY_BYTES REGISTRATION_INTENT_LIMIT CATALOG_ROWS '
                   'CATALOG_BYTES CATALOG_PATHS REGISTRATION_BYTES REGISTRY_KINDS INTENT_LIMIT MARKER_BYTES').split())
     imports = ''.join(ast.get_source_segment(source, node) + '\n' for node in tree.body
-                      if isinstance(node, (ast.Import, ast.ImportFrom)))
+                      if isinstance(node, (ast.Import, ast.ImportFrom))
+                      and not (isinstance(node, ast.Import)
+                               and all(alias.name == 'threading' for alias in node.names)))
     reader = imports + '\n' + definitions('publication_guard.py', names)
     reader = reader.replace('from .publication_derivative import', 'from .publication_derivative_evidence import')
     reader = reader.replace('from publication_derivative import', 'from publication_derivative_evidence import')
@@ -111,7 +113,9 @@ def outputs():
             raw = ''.join(lines)
         if filename == 'publication_identity_readers.py':
             imports = ''.join(ast.get_source_segment(raw, node) + '\n' for node in ast.parse(raw).body
-                              if isinstance(node, (ast.Import, ast.ImportFrom, ast.If)))
+                              if isinstance(node, ast.If)
+                              or (isinstance(node, ast.Import)
+                                  and all(alias.name in {'json', 'os'} for alias in node.names)))
             raw = imports + '\n' + definitions(filename, {'configured', 'finish', 'durable_identity'})
         if filename == 'publication_filesystem_binding.py':
             start = raw.index('def database_observation(')
