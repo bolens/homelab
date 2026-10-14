@@ -669,7 +669,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "dec284bee7adc6cee96aa32c5ddf0f0a524206a850e5140feef5f6e2f3705984"
+    "sha256": "34042afc95fb495bf88d7cce0319c1a377f8b3a9db15a4b7fead6f7784a86ed4"
   },
   {
     "path": "story_arc_search.py",
@@ -1049,7 +1049,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "37f28ddc9365189d3bdf6a4a077c32f2f727efd3d08a9983f9ac4b7a88cd595c"
+    "sha256": "b2ac4584b524cfc65d98f337f4cfecfa5aeb024783b1d7c056bdeb342c2e3b7e"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",

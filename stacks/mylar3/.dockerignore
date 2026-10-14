@@ -185,3 +185,4 @@ config/test_fixtures/ddl_status_retention/**
 !config/reader_recovery/_configured_parent_fixtures/
 config/reader_recovery/_configured_parent_fixtures/**
 !config/reader_recovery/_configured_parent_fixtures/active_parent_predecessor.py
+!config/reader_recovery/_configured_parent_fixtures/nfs_factual_predecessor.py

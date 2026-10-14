@@ -1311,7 +1311,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "37f28ddc9365189d3bdf6a4a077c32f2f727efd3d08a9983f9ac4b7a88cd595c",
+    "sha256": "b2ac4584b524cfc65d98f337f4cfecfa5aeb024783b1d7c056bdeb342c2e3b7e",
     "target": "test_fixtures/retained_pack_worker/source-pins.json"
   },
   {

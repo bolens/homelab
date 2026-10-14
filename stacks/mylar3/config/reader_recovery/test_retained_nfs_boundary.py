@@ -20,7 +20,7 @@ class Boundary(unittest.TestCase):
         owner=module.LifecycleParent.__new__(module.LifecycleParent);owner.core=b'unadmitted';owner.thread=threading.get_ident()
         with self.assertRaisesRegex(m.Held,'existing-owning-parent'):m.run_active_retained(owner)
     def test_original_direct_factory_bodies_remain_exact(self):
-        old=Path('/tmp/comic-pr329-isolated-source-l49ftjkl/config/reader_recovery/comic_nfs_factual_successor.py')
+        old=Path(__file__).parent/'_configured_parent_fixtures/nfs_factual_predecessor.py'
         original={n.name:ast.dump(n,include_attributes=False) for n in ast.parse(old.read_bytes()).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
         current={n.name:ast.dump(n,include_attributes=False) for n in ast.parse(Path(m.__file__).read_bytes()).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
         for name,body in original.items():self.assertEqual(current[name],body,name)
