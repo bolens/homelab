@@ -1,5 +1,6 @@
 """Weekly UI preserves native week navigation and action contracts."""
 from pathlib import Path
+from html.parser import HTMLParser
 import re
 import sys
 from types import SimpleNamespace
@@ -18,13 +19,39 @@ def native():
 
 def scripts(text):
     normalized = text.replace('"sSearch": "Filter releases:"', '"sSearch": ""').replace(TABLE_OPTIONS, '')
-    return re.findall(r'<script\b[^>]*>.*?</script\s*>', normalized, re.S | re.I)
+    line_starts = [0] + [index + 1 for index, char in enumerate(normalized) if char == '\n']
+    class ScriptBlocks(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=False)
+            self.blocks = []
+            self.start = None
+        def source_index(self):
+            line, column = self.getpos()
+            return line_starts[line - 1] + column
+        def handle_starttag(self, tag, attrs):
+            if tag == 'script' and self.start is None:
+                self.start = self.source_index()
+        def handle_endtag(self, tag):
+            if tag == 'script' and self.start is not None:
+                end = normalized.index('>', self.source_index()) + 1
+                self.blocks.append(normalized[self.start:end])
+                self.start = None
+    parser = ScriptBlocks()
+    parser.feed(normalized)
+    parser.close()
+    if parser.start is not None:
+        raise ValueError('Unclosed script in native contract')
+    return parser.blocks
 
 
 class PullistUITest(unittest.TestCase):
-    def test_script_contract_includes_html_tag_case_and_closing_whitespace(self):
-        tags = ['<script>first()</script>', '<SCRIPT src="example.js"></SCRIPT>', '<ScRiPt>third()</sCrIpT >']
+    def test_script_contract_uses_html_tag_parsing(self):
+        tags = ['<script>first()</script>', '<SCRIPT src="example.js"></SCRIPT>', '<ScRiPt>third()</sCrIpT >', '<script>fourth()</script\t\n bar>', '<script>fifth()</script/>']
         self.assertEqual(scripts('\n'.join(tags)), tags)
+    def test_unclosed_script_contract_is_refused(self):
+        with self.assertRaises(ValueError):
+            scripts('<script>unfinished()')
+
     def test_changed_source_is_refused(self):
         with self.assertRaises(ValueError):
             template('changed native template', '')

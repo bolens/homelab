@@ -1711,7 +1711,7 @@
   },
   {
     "path": "test_pullist_ui.py",
-    "sha256": "3c99bf5dac989c2dd642b2e36bceb778d82bbcde043cddd2272d6cc1bac7e79d",
+    "sha256": "3226e909f797f07371ffb593d479c4f38b3d46d259f0019b5ab960785c4246fe",
     "target": "test_pullist_ui.py"
   },
   {
