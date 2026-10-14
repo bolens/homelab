@@ -782,12 +782,12 @@
   {
     "path": "reader_recovery/comic_retained_standalone_action.py",
     "sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
-    "target": "comic_retained_standalone_action.py"
+    "target": "reader_recovery/comic_retained_standalone_action.py"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_action.py",
     "sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
-    "target": "reader_recovery/comic_retained_standalone_action.py"
+    "target": "comic_retained_standalone_action.py"
   },
   {
     "path": "reader_recovery/comic_retained_standalone_backup.py",
