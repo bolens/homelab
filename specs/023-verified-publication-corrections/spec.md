@@ -112,3 +112,13 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - Exact acquisition origin must be proven separately before release-specific failure reporting.
 - Exact internal-name changes and perceptual/OCR equivalence are outside v1 matching; separately verified aliases are required.
 - No operation needs additional privileged access until the user permits it again; source development and isolated verification may proceed.
+
+### Retained-recovery fixed installation composition
+
+The separately reviewed retained launch may provision only three authenticated
+public root anchor leaves at the existing canonical installation paths through
+fixed read-only binds. The ordinary image contains empty non-authoritative
+placeholders only. Existing root enrollment, exact selected image/profile,
+source inventory, key joins and same-channel authentication remain required;
+there is no generic overlay, callback-selected mount or ordinary startup grant.
+This follow-up does not accept live T028 retained delivery or ordinary ACK.

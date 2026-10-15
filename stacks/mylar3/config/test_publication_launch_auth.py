@@ -46,6 +46,45 @@ class Install(unittest.TestCase):
         self.security.stop()
         with self.assertRaises(ValueError): self.install()
 
+    def empty_targets(self):
+        self.install()
+        for name in ('installation-v1.json','inventory-v1.json','public-ed25519.der'):
+            path=self.target.parent/name;path.write_bytes(b'');path.chmod(0o444)
+
+    def test_checked_and_required_final_layout_are_distinct(self):
+        self.install();self.installer.verify_installed(self.target,allow_empty_targets=True)
+        with self.assertRaises(FileNotFoundError):self.installer.verify_required_targets(self.target)
+        self.empty_targets();self.installer.verify_required_targets(self.target)
+        with self.assertRaises(ValueError):self.installer.verify_installed(self.target)
+        for name in ('installation-v1.json','inventory-v1.json','public-ed25519.der'):
+            path=self.target.parent/name;path.unlink()
+            with self.assertRaises(FileNotFoundError):self.installer.verify_required_targets(self.target)
+            path.write_bytes(b'');path.chmod(0o444)
+
+    def test_each_fixed_target_content_type_mode_and_link_refuse(self):
+        self.empty_targets()
+        for name in ('installation-v1.json','inventory-v1.json','public-ed25519.der'):
+            path=self.target.parent/name
+            path.chmod(0o600);path.write_bytes(b'not authority');path.chmod(0o444)
+            with self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
+            path.unlink();path.mkdir()
+            with self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
+            path.rmdir();path.symlink_to(self.target/'private_crypto.py')
+            with self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
+            path.unlink();path.write_bytes(b'');path.chmod(0o644)
+            with self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
+            path.chmod(0o444);alias=self.root/'alias';os.link(path,alias)
+            with self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
+            alias.unlink()
+
+    def test_final_target_namespace_and_callback_drift_refuse(self):
+        self.empty_targets();foreign=self.target.parent/'foreign';foreign.write_bytes(b'')
+        with self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
+        foreign.unlink();real=self.installer.verify_installed
+        def callback(*a,**kw):
+            result=real(*a,**kw);os.chmod(self.target.parent/'installation-v1.json',0o640);return result
+        with patch.object(self.installer,'verify_installed',callback),self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
+
     def test_unknown_source_refused_before_destination_birth(self):
         p = self.source / 'v3_auth_core.py'; p.chmod(0o644); p.write_bytes(b'# Unknown\n')
         with self.assertRaisesRegex(ValueError, 'byte pin'): self.install()

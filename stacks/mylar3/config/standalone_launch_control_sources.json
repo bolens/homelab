@@ -341,12 +341,12 @@
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "4889ef5972be35dff41745009972987257ed367042023f2b7cff8c849ffc6b15",
+    "sha256": "e7ffb0f50a9e224f8f43645b9ebdb62a07f04a1a6390b04c9877f23505774fc6",
     "target": "source/comic_retained_standalone_broker.py"
   },
   {
     "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "3f77f155b15cd02af4fe14be882c71dbcd02ca3284b9f77eab8d43c51096021d",
+    "sha256": "30fd2ca0c39e50012f82d69cec616fa99ab75ab7adee04c3825babd6d0ff05aa",
     "target": "source/comic_retained_standalone_parent.py"
   },
   {
@@ -491,12 +491,12 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/tests/test_fixed_broker.py",
-    "sha256": "b8fd04fbc33b43c02309d7d1068cfe2d8c6245db70ac5c04c637e977232482bc",
+    "sha256": "711f551f42cbc4f57f3c2c4747814f7dbb90155986518d651656501e6a38ada4",
     "target": "tests/test_fixed_broker.py"
   },
   {
     "path": "test_fixtures/authenticated_standalone/tests/test_reader_wal_preflight.py",
-    "sha256": "8ab452358c04de8f76d9b6cded96e4bc1bf7d7eea43222dc1413a8197c81b6b9",
+    "sha256": "b7bedaf8976e14cb7ec2a42809aa8096a724d155b95dee109e62a71e4406a998",
     "target": "tests/test_reader_wal_preflight.py"
   },
   {

@@ -84,6 +84,7 @@ COPY --from=tagger-build /opt/comictagger/ /opt/comictagger/
 COPY --from=ddl-build /opt/ddl-transport/ /opt/ddl-transport/
 COPY config/ /opt/mylar3-fixes/
 RUN --mount=type=tmpfs,target=/tmp,size=268435456 --mount=type=tmpfs,target=/run/authenticated-fixtures,size=67108864 --network=none python3 -I -B /opt/mylar3-fixes/patch_publication_launch_auth.py /opt/mylar-publication-launch/auth \
+    && python3 -I -B /opt/mylar3-fixes/test_standalone_anchor_root.py --disposable-build-fixture \
     && python3 /opt/mylar3-fixes/apply_patches.py /app/mylar3/mylar \
     && chmod 0644 /app/mylar3/mylar/config.py \
     && chmod 0755 /app/mylar3/Mylar.py \
@@ -95,10 +96,14 @@ LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
 COPY --from=checked /app/mylar3/mylar/ /app/mylar3/mylar/
 COPY --from=checked /app/mylar3/lib/mega/mega.py /app/mylar3/lib/mega/mega.py
 RUN python3 -I -B -c "import ast; from pathlib import Path; source=Path('/app/mylar3/lib/mega/mega.py').read_text(); assert source.count('# homelab-cache-admission-v1')==1; tree=ast.parse(source); assert all(any(isinstance(node,ast.Call) and ast.unparse(node.func)==name for node in ast.walk(tree)) for name in ('cache_admission.allocation','cache_admission.temporary','reservation.before_write','temp_output_file.promote'))"
-# Only public verifier leaves cross this boundary; no anchor, key or fixture.
+# Public verifier leaves and empty fixed bind targets cross this boundary; no authority or private key.
 COPY --from=checked /opt/mylar-publication-launch/auth/ /opt/mylar-publication-launch/auth/
+# Empty placeholders permit only the scoped broker's three fixed RO leaf mounts.
+# This real image-layout smoke gate proves no enrollment or public anchor is baked.
+RUN --mount=type=bind,from=checked,source=/opt/mylar3-fixes/patch_publication_launch_auth.py,target=/run/verify-public-auth.py,readonly python3 -I -B -c "import os,stat; from pathlib import Path; p=Path('/opt/mylar-publication-launch'); names=('installation-v1.json','inventory-v1.json','public-ed25519.der'); [(os.close(os.open(p/n,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o444))) for n in names]; assert set(os.listdir(p))=={'auth',*names}; assert all(stat.S_ISREG(os.lstat(p/n).st_mode) and os.lstat(p/n).st_uid==os.lstat(p/n).st_gid==0 and stat.S_IMODE(os.lstat(p/n).st_mode)==0o444 and os.lstat(p/n).st_nlink==1 and (p/n).read_bytes()==b'' for n in names)" \
+    && python3 -I -B /run/verify-public-auth.py --verify-final /opt/mylar-publication-launch/auth
 RUN chmod 0755 /app/mylar3/Mylar.py \
-    && python3 -I -B -c "import hashlib,os,stat; from pathlib import Path; p=Path('/opt/mylar-publication-launch/auth'); pins={name: digest.removeprefix('sha256:') for name, digest in {'standalone_launch_auth.py': 'sha256:fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8', 'v3_auth_core.py': 'sha256:b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93', 'private_crypto.py': 'sha256:3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab'}.items()}; assert set(os.listdir(p))==set(pins) and set(os.listdir(p.parent))=={'auth'}; assert all(stat.S_ISDIR(os.lstat(x).st_mode) and os.lstat(x).st_uid==os.lstat(x).st_gid==0 and not os.lstat(x).st_mode & 0o022 for x in (p,*p.parents)); assert all(stat.S_ISREG(os.lstat(p/n).st_mode) and os.lstat(p/n).st_nlink==1 and os.lstat(p/n).st_uid==os.lstat(p/n).st_gid==0 and stat.S_IMODE(os.lstat(p/n).st_mode)==0o444 and hashlib.sha256((p/n).read_bytes()).hexdigest()==d for n,d in pins.items())"
+    && python3 -I -B -c "import hashlib,os,stat; from pathlib import Path; p=Path('/opt/mylar-publication-launch/auth'); pins={name: digest.removeprefix('sha256:') for name, digest in {'standalone_launch_auth.py': 'sha256:fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8', 'v3_auth_core.py': 'sha256:b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93', 'private_crypto.py': 'sha256:3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab'}.items()}; assert set(os.listdir(p))==set(pins) and set(os.listdir(p.parent))=={'auth','installation-v1.json','inventory-v1.json','public-ed25519.der'}; assert all(stat.S_ISDIR(os.lstat(x).st_mode) and os.lstat(x).st_uid==os.lstat(x).st_gid==0 and not os.lstat(x).st_mode & 0o022 for x in (p,*p.parents)); assert all(stat.S_ISREG(os.lstat(p/n).st_mode) and os.lstat(p/n).st_nlink==1 and os.lstat(p/n).st_uid==os.lstat(p/n).st_gid==0 and stat.S_IMODE(os.lstat(p/n).st_mode)==0o444 and hashlib.sha256((p/n).read_bytes()).hexdigest()==d for n,d in pins.items())"
 COPY --from=checked /app/mylar3/data/interfaces/default/ /app/mylar3/data/interfaces/default/
 COPY --from=checked /opt/mylar3-fixes/health.py /opt/mylar3-fixes/health.py
 COPY --from=checked /opt/mylar3-fixes/publication_guard.py /opt/mylar3-fixes/publication_guard.py

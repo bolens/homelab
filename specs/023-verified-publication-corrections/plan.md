@@ -126,3 +126,15 @@ operational reader and NFS evidence remain separate from portable source tests.
 ## DDL cache growth prevention — 2026-10-12
 
 Extend the existing intake/backpressure boundary with a configurable retained-cache byte budget and processing headroom. Inventory the cache without following symlinks, count retained and temporary payloads, and refuse new admission when capacity cannot be established. Reuse existing durable capture ownership to prevent repeated downloads of an unresolved delivery. Keep import acknowledgement and source-retirement authority unchanged; neither age nor a Completed label permits deletion. Verify boundary, concurrent reservation, restart, unreadable state and retained-pack scenarios before reviewed image delivery and live acceptance.
+
+### T028 fixed-anchor launch follow-up
+
+Reuse the source-reviewed root broker and existing enrollment/authentication
+protocol. A revised finite profile adds only three fixed root public-anchor
+read-only leaf mounts, with empty root-owned image targets. Capture host originals
+before reads, authenticate their hashes to the reviewed deployment and retain
+source/creator/namespace custody through launch. Keep legacy profiles strict
+and ordinary service startup unchanged. Validate success and missing/empty/
+symlink/replaced/key/inventory/profile/mount refusals with disposable controls;
+require real image-layout smoke and configured UID1000/pipe/retained-ACK proof
+before operational acceptance. No new signing framework is introduced.
