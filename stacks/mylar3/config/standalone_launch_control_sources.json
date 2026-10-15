@@ -1,35 +1,5 @@
 [
   {
-    "path": "test_fixtures/authenticated_standalone/fixtures/auth/fixture_worker.py",
-    "sha256": "c04477c2a30113d3d805aab1739f0df4989b530d4ea2be4811d66f4bffc63d2f",
-    "target": "fixtures/auth/fixture_worker.py"
-  },
-  {
-    "path": "standalone_launch_auth/private_crypto.py",
-    "sha256": "3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab",
-    "target": "fixtures/auth/private_crypto.py"
-  },
-  {
-    "path": "standalone_launch_auth/standalone_launch_auth.py",
-    "sha256": "fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8",
-    "target": "fixtures/auth/standalone_launch_auth.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/fixtures/auth/test_install_auth.py",
-    "sha256": "de7c7825df734463bdf45c78c07588fd3b4a51bcbb3f167824018e866a90b608",
-    "target": "fixtures/auth/test_install_auth.py"
-  },
-  {
-    "path": "standalone_launch_auth/v3_auth_core.py",
-    "sha256": "b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93",
-    "target": "fixtures/auth/v3_auth_core.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/fixtures/child/run_controls.py",
-    "sha256": "cfa8e7dc0eb0e8ad2f4ad7e91b9aec4c1e1364384e75b9d1209babbe16d2c305",
-    "target": "fixtures/child/run_controls.py"
-  },
-  {
     "path": "archive_monitor.py",
     "sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3",
     "target": "fixtures/child/source/archive_monitor.py"
@@ -58,6 +28,11 @@
     "path": "file_identity.py",
     "sha256": "b9a2bffb0e8f9ae99cdb8f83cdd041d302fb405d00e2450b15b2a003ed977cc9",
     "target": "fixtures/child/source/file_identity.py"
+  },
+  {
+    "path": "identity_kernel_fixture.py",
+    "sha256": "38b544131773993f35dca21f2b443aef2655a12436f2592fad1642e6fccb364c",
+    "target": "fixtures/child/source/identity_kernel_fixture.py"
   },
   {
     "path": "import_problems.py",
@@ -121,7 +96,7 @@
   },
   {
     "path": "patch_publication_guard.py",
-    "sha256": "607c8f92cdc86be421bd54a60f59277a97cdfab3263dab71e6c1c236f04df50c",
+    "sha256": "c649c8671f227a965f0d8cde0fb98f4eed5baafcc8272bddd1869e50a958a5d2",
     "target": "fixtures/child/source/patch_publication_guard.py"
   },
   {
@@ -216,8 +191,13 @@
   },
   {
     "path": "publication_derivative.py",
-    "sha256": "41652d363de301795f5b3aedd150321e61c0f7c676e00f1b7a9d51a81f381322",
+    "sha256": "f9133246f5049b2746eda4512ebf1d654e8c486601ecb791ada331b893017f0b",
     "target": "fixtures/child/source/publication_derivative.py"
+  },
+  {
+    "path": "publication_filesystem_binding.py",
+    "sha256": "337c1bdb82200bbf36eb4f91a76977b3e5853fb765fe170b89e78c05c3587262",
+    "target": "fixtures/child/source/publication_filesystem_binding.py"
   },
   {
     "path": "publication_fresh.py",
@@ -226,8 +206,23 @@
   },
   {
     "path": "publication_guard.py",
-    "sha256": "b840762bc6b0e3743a7c37755a0e3ab3eaac25f4b4827b000fd5fddbe0dd2bd9",
+    "sha256": "f4cc888ca0534a9a8dee17843791ef664c462b6ec824ed16515a0e20a9aaaa0e",
     "target": "fixtures/child/source/publication_guard.py"
+  },
+  {
+    "path": "publication_identity_adoption.py",
+    "sha256": "fe161bda6d03a37f786d5fbcbe9cb4874b52abade0b4ad67152eeafe3c0c6846",
+    "target": "fixtures/child/source/publication_identity_adoption.py"
+  },
+  {
+    "path": "publication_identity_maintenance.py",
+    "sha256": "59a17ecd85f516ac865d734ec8b364ece10d428b3f6acdcb9516dd3a272d4485",
+    "target": "fixtures/child/source/publication_identity_maintenance.py"
+  },
+  {
+    "path": "publication_identity_readers.py",
+    "sha256": "a3d78687867f6008d45f278a7198f240d9a32b210f3ad614bb1b8c414ae77a52",
+    "target": "fixtures/child/source/publication_identity_readers.py"
   },
   {
     "path": "publication_lineage.py",
@@ -310,6 +305,61 @@
     "target": "fixtures/child/source/release_naming.py"
   },
   {
+    "path": "standalone_launch_auth/private_crypto.py",
+    "sha256": "3d888b7155f47b9ae35d99aafd845e0bdaa37cda6cd75ddc91103a02836a6fab",
+    "target": "fixtures/auth/private_crypto.py"
+  },
+  {
+    "path": "standalone_launch_auth/standalone_launch_auth.py",
+    "sha256": "fd871556d6af8741623f94e760a9e2e838cddeb087ee3a4d15a9e4412842a5a8",
+    "target": "fixtures/auth/standalone_launch_auth.py"
+  },
+  {
+    "path": "standalone_launch_auth/v3_auth_core.py",
+    "sha256": "b8c688bcf6b40e12c54eba5793cc368079b1050d20ed11170deaeb721ac99c93",
+    "target": "fixtures/auth/v3_auth_core.py"
+  },
+  {
+    "path": "standalone_launch_host/BOOTSTRAP.py",
+    "sha256": "768483c50613ed9a2eae170034419fc6b09db0b8557aa3f614171cc6d3e60075",
+    "target": "source/BOOTSTRAP.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_native_process_probe.py",
+    "sha256": "c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce",
+    "target": "fixtures/probe_sources/comic_native_process_probe.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_reader_backup_primitives.py",
+    "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0",
+    "target": "fixtures/host/comic_reader_backup_primitives.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_backup.py",
+    "sha256": "bb0bfb94897ae61157ec92e747c3be4e3c51a2e925cdbecfe119512de398ffa2",
+    "target": "fixtures/host/comic_retained_standalone_backup.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_broker.py",
+    "sha256": "e7ffb0f50a9e224f8f43645b9ebdb62a07f04a1a6390b04c9877f23505774fc6",
+    "target": "source/comic_retained_standalone_broker.py"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_parent.py",
+    "sha256": "30fd2ca0c39e50012f82d69cec616fa99ab75ab7adee04c3825babd6d0ff05aa",
+    "target": "source/comic_retained_standalone_parent.py"
+  },
+  {
+    "path": "standalone_launch_host/private_crypto.py",
+    "sha256": "1331178acd712de15fef933081c0aee80da4f99377295810637db468aabc3d9c",
+    "target": "fixtures/host_crypto/private_crypto.py"
+  },
+  {
+    "path": "standalone_launch_host/publication_native_configured_scope.py",
+    "sha256": "43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed",
+    "target": "fixtures/probe_sources/publication_native_configured_scope.py"
+  },
+  {
     "path": "tagger_adapter.py",
     "sha256": "3c04cc96e023226f6574ec2b8883a708c2abf29dd0500dbb11380cee77e5a11e",
     "target": "fixtures/child/source/tagger_adapter.py"
@@ -356,7 +406,7 @@
   },
   {
     "path": "tagger_native.py",
-    "sha256": "1272ddf2f8c65421a7104b5af2c607b2961dc227fec579808752694b38a29583",
+    "sha256": "d7e322336475ebdf63f857bbc3509fce166a8a5d3b60fe7a3899a2b993b50a88",
     "target": "fixtures/child/source/tagger_native.py"
   },
   {
@@ -386,13 +436,88 @@
   },
   {
     "path": "tagger_supplement.py",
-    "sha256": "88d025cecbb463300657c00030028f3b8ea722153714d893089f66dea63123d7",
+    "sha256": "1fbc1eb7c4c4596b655cbfff7308fde9dd84d1a2af9df0f6599dda31db2e6758",
     "target": "fixtures/child/source/tagger_supplement.py"
   },
   {
     "path": "tagger_volume_cache.py",
     "sha256": "c184cb722076440c94c92efd52a48eb6e63270d6a36abcce1fe4beafb36d0c05",
     "target": "fixtures/child/source/tagger_volume_cache.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/auth/fixture_worker.py",
+    "sha256": "c04477c2a30113d3d805aab1739f0df4989b530d4ea2be4811d66f4bffc63d2f",
+    "target": "fixtures/auth/fixture_worker.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/auth/test_install_auth.py",
+    "sha256": "de7c7825df734463bdf45c78c07588fd3b4a51bcbb3f167824018e866a90b608",
+    "target": "fixtures/auth/test_install_auth.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/child/run_controls.py",
+    "sha256": "cfa8e7dc0eb0e8ad2f4ad7e91b9aec4c1e1364384e75b9d1209babbe16d2c305",
+    "target": "fixtures/child/run_controls.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/child/source/test_standalone_resources.py",
+    "sha256": "7a6ba5e2a7369ed758c6c99c4f2a9870dfcdacef7764c1c0b7411f7bbb3a3c18",
+    "target": "fixtures/child/source/test_standalone_resources.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/fixtures/host/comic_retained_standalone_parent.py",
+    "sha256": "3f77f155b15cd02af4fe14be882c71dbcd02ca3284b9f77eab8d43c51096021d",
+    "target": "fixtures/host/comic_retained_standalone_parent.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/source/comic_retained_standalone_action.py",
+    "sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
+    "target": "source/comic_retained_standalone_action.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/source/publication_retained_standalone.py",
+    "sha256": "bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60",
+    "target": "source/publication_retained_standalone.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/tests/connected_worker.py",
+    "sha256": "9060bbf85bcf6917ca6ab9db53c755a2158c77dd911b0a618b8b22c3617b400b",
+    "target": "tests/connected_worker.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/tests/test_connected_launch.py",
+    "sha256": "3ccd2edc1520c4207249a0de39ad4ef213a853938986ccad9dc6a3b77d527fa3",
+    "target": "tests/test_connected_launch.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/tests/test_fixed_broker.py",
+    "sha256": "711f551f42cbc4f57f3c2c4747814f7dbb90155986518d651656501e6a38ada4",
+    "target": "tests/test_fixed_broker.py"
+  },
+  {
+    "path": "test_fixtures/authenticated_standalone/tests/test_reader_wal_preflight.py",
+    "sha256": "b7bedaf8976e14cb7ec2a42809aa8096a724d155b95dee109e62a71e4406a998",
+    "target": "tests/test_reader_wal_preflight.py"
+  },
+  {
+    "path": "test_identity_filesystem.py",
+    "sha256": "a03eaf0d860fd711ba6cfdd2871b46446843055ef33f00744e925d9d5416ff96",
+    "target": "fixtures/child/source/test_identity_filesystem.py"
+  },
+  {
+    "path": "test_identity_historical_callers.py",
+    "sha256": "16f94d99f689b83e12bc9822119c35880f2f12c429b90ab787a22d7fb1b50593",
+    "target": "fixtures/child/source/test_identity_historical_callers.py"
+  },
+  {
+    "path": "test_identity_maintenance.py",
+    "sha256": "2f9ca51a924f72e93222b7ceac70bab99fab65b7ca431d1fd62f1ad85e8a1533",
+    "target": "fixtures/child/source/test_identity_maintenance.py"
+  },
+  {
+    "path": "test_identity_tagger.py",
+    "sha256": "7aa1c357fec33d804a58a2344186735252d5c945de760da7aa1329472b854a25",
+    "target": "fixtures/child/source/test_identity_tagger.py"
   },
   {
     "path": "test_pack_records.py",
@@ -425,11 +550,6 @@
     "target": "fixtures/child/source/test_standalone_pack_report_deny.py"
   },
   {
-    "path": "test_fixtures/authenticated_standalone/fixtures/child/source/test_standalone_resources.py",
-    "sha256": "7a6ba5e2a7369ed758c6c99c4f2a9870dfcdacef7764c1c0b7411f7bbb3a3c18",
-    "target": "fixtures/child/source/test_standalone_resources.py"
-  },
-  {
     "path": "worker_handoff.py",
     "sha256": "41045f1f071620f585a308776c4a182bec6317852ca849208ce82fa0aceeac57",
     "target": "fixtures/child/source/worker_handoff.py"
@@ -448,80 +568,5 @@
     "path": "workflow_store.py",
     "sha256": "2c9417711d11b0294bf3d01ee18ab76433c3c3c0030cba6a9e96055c7f28fb3f",
     "target": "fixtures/child/source/workflow_store.py"
-  },
-  {
-    "path": "standalone_launch_host/comic_reader_backup_primitives.py",
-    "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0",
-    "target": "fixtures/host/comic_reader_backup_primitives.py"
-  },
-  {
-    "path": "standalone_launch_host/comic_retained_standalone_backup.py",
-    "sha256": "bb0bfb94897ae61157ec92e747c3be4e3c51a2e925cdbecfe119512de398ffa2",
-    "target": "fixtures/host/comic_retained_standalone_backup.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/fixtures/host/comic_retained_standalone_parent.py",
-    "sha256": "3f77f155b15cd02af4fe14be882c71dbcd02ca3284b9f77eab8d43c51096021d",
-    "target": "fixtures/host/comic_retained_standalone_parent.py"
-  },
-  {
-    "path": "standalone_launch_host/private_crypto.py",
-    "sha256": "1331178acd712de15fef933081c0aee80da4f99377295810637db468aabc3d9c",
-    "target": "fixtures/host_crypto/private_crypto.py"
-  },
-  {
-    "path": "standalone_launch_host/comic_native_process_probe.py",
-    "sha256": "c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce",
-    "target": "fixtures/probe_sources/comic_native_process_probe.py"
-  },
-  {
-    "path": "standalone_launch_host/publication_native_configured_scope.py",
-    "sha256": "43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed",
-    "target": "fixtures/probe_sources/publication_native_configured_scope.py"
-  },
-  {
-    "path": "standalone_launch_host/BOOTSTRAP.py",
-    "sha256": "768483c50613ed9a2eae170034419fc6b09db0b8557aa3f614171cc6d3e60075",
-    "target": "source/BOOTSTRAP.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/source/comic_retained_standalone_action.py",
-    "sha256": "3da7fb0fc4c72ac20b321e405a5567db8d173bf6e27ab25994b89aaf1df6b680",
-    "target": "source/comic_retained_standalone_action.py"
-  },
-  {
-    "path": "standalone_launch_host/comic_retained_standalone_broker.py",
-    "sha256": "4889ef5972be35dff41745009972987257ed367042023f2b7cff8c849ffc6b15",
-    "target": "source/comic_retained_standalone_broker.py"
-  },
-  {
-    "path": "standalone_launch_host/comic_retained_standalone_parent.py",
-    "sha256": "3f77f155b15cd02af4fe14be882c71dbcd02ca3284b9f77eab8d43c51096021d",
-    "target": "source/comic_retained_standalone_parent.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/source/publication_retained_standalone.py",
-    "sha256": "bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60",
-    "target": "source/publication_retained_standalone.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/tests/connected_worker.py",
-    "sha256": "9060bbf85bcf6917ca6ab9db53c755a2158c77dd911b0a618b8b22c3617b400b",
-    "target": "tests/connected_worker.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/tests/test_connected_launch.py",
-    "sha256": "3ccd2edc1520c4207249a0de39ad4ef213a853938986ccad9dc6a3b77d527fa3",
-    "target": "tests/test_connected_launch.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/tests/test_fixed_broker.py",
-    "sha256": "b8fd04fbc33b43c02309d7d1068cfe2d8c6245db70ac5c04c637e977232482bc",
-    "target": "tests/test_fixed_broker.py"
-  },
-  {
-    "path": "test_fixtures/authenticated_standalone/tests/test_reader_wal_preflight.py",
-    "sha256": "8ab452358c04de8f76d9b6cded96e4bc1bf7d7eea43222dc1413a8197c81b6b9",
-    "target": "tests/test_reader_wal_preflight.py"
   }
 ]

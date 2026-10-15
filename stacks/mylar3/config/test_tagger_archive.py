@@ -31,9 +31,9 @@ class ArchiveTest(unittest.TestCase):
             info.external_attr = (stat.S_IFREG | 0o640) << 16
             info.comment = b'page comment'
             archive.writestr(info, page)
-            archive.writestr('extras/credits.txt', sidecar)
+            archive.writestr(zipfile.ZipInfo('extras/credits.txt', date_time=(2020, 1, 2, 3, 4, 6)), sidecar)
             if xml is not None:
-                archive.writestr('ComicInfo.xml', xml)
+                archive.writestr(zipfile.ZipInfo('ComicInfo.xml', date_time=(2020, 1, 2, 3, 4, 6)), xml)
             archive.comment = comment
         path.chmod(0o640)
 
@@ -112,6 +112,14 @@ class ArchiveTest(unittest.TestCase):
                                      'added' if old is None else 'updated')
                 self.assertEqual(self.output.read_bytes(), self.tagged.read_bytes())
                 self.output.unlink()
+
+    def test_approved_fixture_never_uses_wall_clock_zip_timestamps(self):
+        with patch.object(zipfile.time, 'localtime', side_effect=AssertionError('Wall-clock ZIP timestamp')):
+            self.pair()
+            with patch.object(subject, 'rebuild', side_effect=AssertionError('Redundant rebuild')):
+                self.assertEqual(subject.prepare(self.original, self.tagged, self.output,
+                                                replace_fields=('Series',)), 'added')
+        self.assertEqual(self.output.read_bytes(), self.tagged.read_bytes())
 
     def test_bookmarks_and_overrides_still_use_reconciliation(self):
         for old, updates in ((b'<ComicInfo><Notes>Keep</Notes></ComicInfo>', {}),

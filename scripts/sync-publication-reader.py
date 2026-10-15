@@ -43,12 +43,14 @@ def outputs():
                  'digest_value exact_owner catalog_fact _catalog_path _claim_identity observe_owners attestation '
                  'media_snapshot cleanup_admission _cleanup_admission complete_census registry_snapshot _registry_snapshot writer_identity empty_census state_binding '
                  'census_value registration_effect intent_record bootstrap_record workflow_schema '
-                 'initialization_witness').split())
+                 'initialization_witness historical_identity database_stamp').split())
     names.update(('MAX_MEMBERS MAX_BYTES MAX_MEMBER MAX_METADATA MAX_OUTPUT TIMEOUT TOOL_ROOT METADATA '
                   'PAGE_EXTENSIONS REGISTRY_LIMIT REGISTRY_BYTES REGISTRATION_INTENT_LIMIT CATALOG_ROWS '
                   'CATALOG_BYTES CATALOG_PATHS REGISTRATION_BYTES REGISTRY_KINDS INTENT_LIMIT MARKER_BYTES').split())
     imports = ''.join(ast.get_source_segment(source, node) + '\n' for node in tree.body
-                      if isinstance(node, (ast.Import, ast.ImportFrom)))
+                      if isinstance(node, (ast.Import, ast.ImportFrom))
+                      and not (isinstance(node, ast.Import)
+                               and all(alias.name == 'threading' for alias in node.names)))
     reader = imports + '\n' + definitions('publication_guard.py', names)
     reader = reader.replace('from .publication_derivative import', 'from .publication_derivative_evidence import')
     reader = reader.replace('from publication_derivative import', 'from publication_derivative_evidence import')
@@ -99,6 +101,49 @@ def outputs():
     result = {'publication_evidence.py': HEADER + reader + '\n' + main,
               'publication_metadata.py': HEADER + metadata,
               'publication_zip.py': HEADER + zipper}
+    # Device adoption is passive worker evidence, never a maintenance writer.
+    for filename in ('publication_identity_adoption.py', 'publication_identity_readers.py',
+                     'publication_filesystem_binding.py'):
+        raw = (NATIVE / filename).read_text()
+        if filename == 'publication_identity_adoption.py':
+            lines = raw.splitlines(keepends=True)
+            drops = [n for n in ast.parse(raw).body if (isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'COMMIT_BINDINGS' for t in n.targets)) or (isinstance(n, ast.FunctionDef) and n.name in {'prepare_plan', 'record_bytes'})]
+            for n in reversed(drops):
+                del lines[n.lineno-1:n.end_lineno]
+            raw = ''.join(lines)
+        if filename == 'publication_identity_readers.py':
+            imports = ''.join(ast.get_source_segment(raw, node) + '\n' for node in ast.parse(raw).body
+                              if isinstance(node, ast.If)
+                              or (isinstance(node, ast.Import)
+                                  and all(alias.name in {'json', 'os'} for alias in node.names)))
+            raw = imports + '\n' + definitions(filename, {'configured', 'finish', 'durable_identity'})
+        if filename == 'publication_filesystem_binding.py':
+            start = raw.index('def database_observation(')
+            end = raw.index('\ndef observe(', start)
+            raw = raw[:start] + ("def database_observation(database, *, held_writer=None, transaction=None):\n"
+                                 "    if held_writer is not None:\n"
+                                 "        raise guard.Unavailable('Passive filesystem reader forbids Writer session')\n"
+                                 "    return guard.database_stamp(database)\n\n") + raw[end:]
+            raw = raw.replace('    database, writer_root = Path(database), Path(writer_root)\n',
+                              "    if held_writer is not None:\n        raise guard.Unavailable('Passive filesystem reader forbids Writer session')\n"
+                              '    database, writer_root = Path(database), Path(writer_root)\n')
+            raw = raw.replace('Writer(writer_root, create=False) if held_writer is None else held_writer',
+                              'Writer(writer_root, create=False)')
+        for name in ('publication_guard',):
+            raw = raw.replace('from . import '+name+' as guard', 'from . import publication_evidence as guard')
+            raw = raw.replace('import '+name+' as guard', 'import publication_evidence as guard')
+        if filename in ('publication_identity_adoption.py', 'publication_identity_readers.py'):
+            function = 'resolve' if filename == 'publication_identity_adoption.py' else 'durable_identity'
+            lines = raw.splitlines(keepends=True)
+            node = next(n for n in ast.parse(raw).body if isinstance(n, ast.FunctionDef) and n.name == function)
+            lines.insert(node.body[0].lineno-1,
+                         "    if writer_owner is not None:\n        raise guard.Unavailable('Passive identity reader forbids Writer session')\n")
+            raw = ''.join(lines)
+        parsed = ast.parse(raw)
+        assert not any(isinstance(n, ast.Name) and n.id in {'Maintenance', 'COMMIT_BINDINGS', 'identity_transaction_owned'}
+                       for n in ast.walk(parsed))
+        result[filename] = HEADER + raw
+
     # These pure/read-only modules and disposable controls are byte-exact peers.
     # Prefixing a generated header would change their preservation commitments.
     for name in ('publication_archive_layout.py', 'publication_archive_derivative.py',

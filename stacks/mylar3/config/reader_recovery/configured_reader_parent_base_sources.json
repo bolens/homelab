@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "0aac9c3a43f063f040b182dfb15b198572a6e1ce7413af2565c7c14b0423f2f4",
+  "base_cohort_sha256": "01529cdb479b40c8688321c0703af1af02c3b5c6e26ecc7176a90be0376630e8",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -193,9 +193,13 @@
     "publication_archive_rollback.py": "675081c87096fc97021c3e72bcb8f7ce975836313849efdb6293af9ffbc99d04",
     "publication_archive_verifier.py": "b451cedca2f11b818b3ea0f83b119cf3ffe4a89e0e4092bab80ca8c06d37c666",
     "publication_conversion.py": "133ffebcee2149b28fbc504f2794f36cda0e0505daed94a3de567494ba2c71d0",
-    "publication_derivative.py": "41652d363de301795f5b3aedd150321e61c0f7c676e00f1b7a9d51a81f381322",
+    "publication_derivative.py": "f9133246f5049b2746eda4512ebf1d654e8c486601ecb791ada331b893017f0b",
+    "publication_filesystem_binding.py": "337c1bdb82200bbf36eb4f91a76977b3e5853fb765fe170b89e78c05c3587262",
     "publication_fresh.py": "6e8100f7114e96ae3e3b0371870e9bcbec82df0367b86e98f725d21bdc8ca46f",
-    "publication_guard.py": "b840762bc6b0e3743a7c37755a0e3ab3eaac25f4b4827b000fd5fddbe0dd2bd9",
+    "publication_guard.py": "f4cc888ca0534a9a8dee17843791ef664c462b6ec824ed16515a0e20a9aaaa0e",
+    "publication_identity_adoption.py": "fe161bda6d03a37f786d5fbcbe9cb4874b52abade0b4ad67152eeafe3c0c6846",
+    "publication_identity_maintenance.py": "59a17ecd85f516ac865d734ec8b364ece10d428b3f6acdcb9516dd3a272d4485",
+    "publication_identity_readers.py": "a3d78687867f6008d45f278a7198f240d9a32b210f3ad614bb1b8c414ae77a52",
     "publication_lineage.py": "c302233fd7bb2862c1c2901cc3432559ae19762ab11ae0751cd423983e82bca7",
     "publication_mutation.py": "02ed8396be80c6f49d69ba4c122ea022a10c7035e85e4194ff6c80c46ac30bd4",
     "publication_native.py": "6a07fe296270a4021db67eb384221683af847a981d13c5ea5a1eaa8b3e7fa69e",
@@ -259,13 +263,13 @@
     "tagger_legacy.py": "2b611caba3a0ad1743a4a91d819838eee7592b198922338c50463590f5243a30",
     "tagger_lookup.py": "553c83acc9b15c1637ed9e2cc8b0e6250512fdcf978af68d047e7f22c1a04064",
     "tagger_metadata.py": "63df491c211f5e756db1cd3e367710c7cb41a046a4365dbc08a1eea4cc72fabb",
-    "tagger_native.py": "1272ddf2f8c65421a7104b5af2c607b2961dc227fec579808752694b38a29583",
+    "tagger_native.py": "d7e322336475ebdf63f857bbc3509fce166a8a5d3b60fe7a3899a2b993b50a88",
     "tagger_nfs.py": "2d20cbee35b64b4e30d02436a291641023a7798287563ea3aa313f4d9aaf3f67",
     "tagger_pack.py": "2e0c1a3701b1e02824dea247452d848953f7cf672755df9edc58e9534044215a",
     "tagger_runtime.py": "f7647af93c35bed413ecdc90819beed46393027c976b81a8f3aeaedeee16d1d3",
     "tagger_service.py": "a5b6bee8da61507e897a3513b0a53ed897c631f04dbd702e7a62ba3f597db18e",
     "tagger_staging.py": "b20da0398d9155a673eecf9ec2f18e5b34f1f12ac0d385aa4b4bc95bc9f7d234",
-    "tagger_supplement.py": "88d025cecbb463300657c00030028f3b8ea722153714d893089f66dea63123d7",
+    "tagger_supplement.py": "1fbc1eb7c4c4596b655cbfff7308fde9dd84d1a2af9df0f6599dda31db2e6758",
     "tagger_volume_cache.py": "c184cb722076440c94c92efd52a48eb6e63270d6a36abcce1fe4beafb36d0c05",
     "test.py": "748c26840492e9b0879eafdaf088194034a0d9624ab6327823bbfa9b75d3743d",
     "updater.py": "f8909e77ea609100163d2c2bc13333644aa91a3865d2506d07a40d6cd006c9d9",
@@ -503,7 +507,7 @@
         "owning_adapters": [
           "patch_publication_derivative.py"
         ],
-        "tracked_source_sha256": "41652d363de301795f5b3aedd150321e61c0f7c676e00f1b7a9d51a81f381322"
+        "tracked_source_sha256": "f9133246f5049b2746eda4512ebf1d654e8c486601ecb791ada331b893017f0b"
       },
       "publication_fresh": {
         "owning_adapters": [
@@ -515,7 +519,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "b840762bc6b0e3743a7c37755a0e3ab3eaac25f4b4827b000fd5fddbe0dd2bd9"
+        "tracked_source_sha256": "f4cc888ca0534a9a8dee17843791ef664c462b6ec824ed16515a0e20a9aaaa0e"
       },
       "publication_lineage": {
         "owning_adapters": [
@@ -666,7 +670,7 @@
         "owning_adapters": [
           "install_tagger_service.py"
         ],
-        "tracked_source_sha256": "1272ddf2f8c65421a7104b5af2c607b2961dc227fec579808752694b38a29583"
+        "tracked_source_sha256": "d7e322336475ebdf63f857bbc3509fce166a8a5d3b60fe7a3899a2b993b50a88"
       },
       "tagger_nfs": {
         "owning_adapters": [
@@ -702,7 +706,7 @@
         "owning_adapters": [
           "install_tagger_service.py"
         ],
-        "tracked_source_sha256": "88d025cecbb463300657c00030028f3b8ea722153714d893089f66dea63123d7"
+        "tracked_source_sha256": "1fbc1eb7c4c4596b655cbfff7308fde9dd84d1a2af9df0f6599dda31db2e6758"
       },
       "tagger_volume_cache": {
         "owning_adapters": [
@@ -733,6 +737,30 @@
           "patch_workflow.py"
         ],
         "tracked_source_sha256": "2c9417711d11b0294bf3d01ee18ab76433c3c3c0030cba6a9e96055c7f28fb3f"
+      },
+      "publication_identity_adoption": {
+        "owning_adapters": [
+          "patch_publication_guard.py"
+        ],
+        "tracked_source_sha256": "fe161bda6d03a37f786d5fbcbe9cb4874b52abade0b4ad67152eeafe3c0c6846"
+      },
+      "publication_identity_readers": {
+        "owning_adapters": [
+          "patch_publication_guard.py"
+        ],
+        "tracked_source_sha256": "a3d78687867f6008d45f278a7198f240d9a32b210f3ad614bb1b8c414ae77a52"
+      },
+      "publication_identity_maintenance": {
+        "owning_adapters": [
+          "patch_publication_guard.py"
+        ],
+        "tracked_source_sha256": "59a17ecd85f516ac865d734ec8b364ece10d428b3f6acdcb9516dd3a272d4485"
+      },
+      "publication_filesystem_binding": {
+        "owning_adapters": [
+          "patch_publication_guard.py"
+        ],
+        "tracked_source_sha256": "337c1bdb82200bbf36eb4f91a76977b3e5853fb765fe170b89e78c05c3587262"
       }
     },
     "kind": "prospective-reader-source-cohort",

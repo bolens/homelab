@@ -3,7 +3,7 @@
 # format unsupported by containerd v2.1+
 FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
-RUN apk add --no-cache bash coreutils docker-cli patch
+RUN apk add --no-cache bash coreutils docker-cli docker-cli-buildx patch
 
 # Spotify docker-gc script (patched for per-resource DRY_RUN, GRACE_PERIOD)
 # renovate: datasource=git-refs packageName=https://github.com/spotify/docker-gc.git currentValue=master
@@ -15,7 +15,9 @@ RUN chmod +x /docker-gc && \
     cd / && patch -p0 -d / < /docker-gc.patch && rm /docker-gc.patch
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY builder-cache-guard.sh /builder-cache-guard.sh
+RUN chmod +x /entrypoint.sh /builder-cache-guard.sh \
+    && /builder-cache-guard.sh >/dev/null
 
 VOLUME /var/lib/docker-gc
 

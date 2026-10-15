@@ -61,6 +61,7 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - Correct files renamed or retagged through accepted journals; historical correction evidence must remain traceable.
 - Interrupted registration/publication, concurrent native and worker admission, partial cleanup and restored application state.
 - New acquisitions during an audit; inventory drift is evidence rather than successful full-library acceptance.
+- Device numbers change after reboot while immutable history and file inodes remain intact. Recovery needs explicit reviewed destination trust, a verified backup and isolated restore. Historical filesystem continuity cannot be inferred from matching bytes alone.
 
 ## Requirements
 
@@ -111,3 +112,13 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - Exact acquisition origin must be proven separately before release-specific failure reporting.
 - Exact internal-name changes and perceptual/OCR equivalence are outside v1 matching; separately verified aliases are required.
 - No operation needs additional privileged access until the user permits it again; source development and isolated verification may proceed.
+
+### Retained-recovery fixed installation composition
+
+The separately reviewed retained launch may provision only three authenticated
+public root anchor leaves at the existing canonical installation paths through
+fixed read-only binds. The ordinary image contains empty non-authoritative
+placeholders only. Existing root enrollment, exact selected image/profile,
+source inventory, key joins and same-channel authentication remain required;
+there is no generic overlay, callback-selected mount or ordinary startup grant.
+This follow-up does not accept live T028 retained delivery or ordinary ACK.

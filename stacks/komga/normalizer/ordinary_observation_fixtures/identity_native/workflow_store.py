@@ -1,0 +1,165 @@
+"""Private durable workflow journal; no native Mylar schema changes."""
+from contextlib import contextmanager
+import json
+import os
+from pathlib import Path
+import re
+import sqlite3
+import threading
+import time
+
+LOCK=threading.RLock()
+STAGES={'search','provider','download','processing','conversion','tagging','library','handoff','matching','intake'}
+
+
+def identifier(value):
+    value=str(value or '')
+    return value if value.isdecimal() and len(value)<=20 else ''
+
+
+def ddl_identifier(value):
+    value=str(value or '')
+    return value if re.fullmatch(r'[0-9]{1,20}(?:-[0-9]{1,8})?',value) else ''
+
+
+def label(value,limit=160):
+    value=str(value or '')
+    if '://' in value or '?' in value:return 'Details withheld'
+    return re.sub(r'[\x00-\x1f\x7f]','',value.replace('\\','/').rstrip('/').rsplit('/',1)[-1])[:limit]
+
+
+class Store:
+    def __init__(self,root,clock=time.time,*,existing_only=False):
+        if type(existing_only) is not bool:
+            raise ValueError('Invalid workflow opening policy')
+        self.path=Path(root).absolute()/'workflow.sqlite';self.clock=clock
+        self.existing_only=existing_only
+        self.identity=None;self.schema=None
+        if existing_only:
+            # This opt-in mode is a connection foundation, not authority admission.
+            # The native adapter must own raw Writer before entering workflow LOCK.
+            with self.connection():pass
+            return
+        with self.connection() as db:
+            db.executescript('''CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY, at REAL NOT NULL, issueid TEXT, comicid TEXT,
+                name TEXT, stage TEXT, provider TEXT, outcome TEXT, retry_at REAL);
+                CREATE INDEX IF NOT EXISTS events_issue ON events(issueid,id);
+                CREATE TABLE IF NOT EXISTS records (
+                kind TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, updated REAL NOT NULL,
+                PRIMARY KEY(kind,key));''')
+    @contextmanager
+    def connection(self):
+        with LOCK:
+            if self.existing_only:
+                if __package__:
+                    from .publication_guard import database_stamp, workflow_schema
+                else:
+                    from publication_guard import database_stamp, workflow_schema
+                identity=database_stamp(self.path)[:2]
+                if self.identity is not None and self.identity != identity:
+                    raise ValueError('Workflow database was replaced')
+                db=sqlite3.connect(self.path.as_uri()+'?mode=rw',uri=True,timeout=10)
+            else:
+                fd=os.open(self.path,os.O_CREAT|os.O_RDWR,0o600);os.close(fd)
+                os.chmod(self.path,0o600)
+                db=sqlite3.connect(str(self.path),timeout=10)
+            db.row_factory=sqlite3.Row
+            try:
+                if self.existing_only:
+                    if database_stamp(self.path)[:2] != identity:
+                        raise ValueError('Workflow database changed during opening')
+                    schema=workflow_schema(db)
+                    if self.schema is not None and self.schema != schema:
+                        raise ValueError('Workflow schema changed')
+                    self.identity=identity;self.schema=schema
+                with db:yield db
+            finally:db.close()
+            if self.existing_only and database_stamp(self.path)[:2] != self.identity:
+                raise ValueError('Workflow database changed during operation')
+    def get(self,kind,key,default=None):
+        with self.connection() as db:
+            row=db.execute('SELECT value FROM records WHERE kind=? AND key=?',(kind,str(key))).fetchone()
+            return json.loads(row[0]) if row else default
+    def all(self,kind,limit=1000):
+        with self.connection() as db:
+            return [json.loads(r[0]) for r in db.execute('SELECT value FROM records WHERE kind=? ORDER BY updated DESC LIMIT ?', (kind,limit))]
+    def active(self,kind,phases,limit=None):
+        # Filter before pagination: terminal history cannot hide an unresolved owner.
+        with self.connection() as db:
+            rows=[json.loads(r[0]) for r in db.execute('SELECT value FROM records WHERE kind=? ORDER BY updated ASC',(kind,))]
+        rows=[r for r in rows if r.get('phase') in phases]
+        return rows if limit is None else rows[:limit]
+    def set(self,kind,key,value):
+        with self.connection() as db:
+            db.execute('INSERT INTO records VALUES (?,?,?,?) ON CONFLICT(kind,key) DO UPDATE SET value=excluded.value,updated=excluded.updated', (kind,str(key),json.dumps(value),self.clock()))
+            if kind in ('command','handoff','dispatch'):
+                terminal={'confirmed','rejected','completed','failed','released','no-result'}
+                rows=db.execute('SELECT key,value FROM records WHERE kind=? ORDER BY updated DESC',(kind,)).fetchall()
+                keys=[r['key'] for r in rows if json.loads(r['value']).get('phase') in terminal][1000:]
+                db.executemany('DELETE FROM records WHERE kind=? AND key=?',[(kind,k) for k in keys])
+                if kind=='command':db.executemany("DELETE FROM records WHERE kind='command_scope' AND key=?",[(k,) for k in keys])
+    def create(self,kind,key,value):
+        with self.connection() as db:
+            return bool(db.execute('INSERT OR IGNORE INTO records VALUES (?,?,?,?)',(kind,str(key),json.dumps(value),self.clock())).rowcount)
+    def replace(self,kind,key,expected,value,*,verify=None):
+        """Do not let a report validated against an old record overwrite recovery."""
+        with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row=db.execute('SELECT value FROM records WHERE kind=? AND key=?',(kind,str(key))).fetchone()
+            if row is None or json.loads(row[0]) != expected:return False
+            if verify is not None:verify()
+            db.execute('UPDATE records SET value=?,updated=? WHERE kind=? AND key=?',
+                       (json.dumps(value),self.clock(),kind,str(key)))
+            return True
+    def delete(self,kind,key):
+        with self.connection() as db:db.execute('DELETE FROM records WHERE kind=? AND key=?',(kind,str(key)))
+    def event(self,stage,outcome,issueid='',comicid='',name='',provider='',retry_at=None,key=None):
+        if stage not in STAGES:raise ValueError('Invalid activity stage')
+        now=self.clock()
+        with self.connection() as db:
+            if key:
+                changed=db.execute('INSERT OR IGNORE INTO records VALUES (?,?,?,?)',('observation',str(key),'{}',now)).rowcount
+                if not changed:return
+            db.execute('INSERT INTO events(at,issueid,comicid,name,stage,provider,outcome,retry_at) VALUES (?,?,?,?,?,?,?,?)',
+                       (now,identifier(issueid),identifier(comicid),label(name),stage,label(provider,80),label(outcome),retry_at))
+            db.execute('DELETE FROM events WHERE at<? OR id IN (SELECT id FROM events ORDER BY id DESC LIMIT -1 OFFSET 5000)',(now-30*86400,))
+            db.execute("DELETE FROM records WHERE kind='observation' AND updated<?",(now-30*86400,))
+    def events(self,issueid='',stage='',before=0):
+        clauses=[];args=[]
+        if issueid:clauses.append('issueid=?');args.append(identifier(issueid))
+        if stage:clauses.append('stage=?');args.append(stage)
+        if before:clauses.append('id<?');args.append(int(before))
+        query='SELECT * FROM events'+(' WHERE '+' AND '.join(clauses) if clauses else '')+' ORDER BY id DESC LIMIT 100'
+        with self.connection() as db:return [dict(r) for r in db.execute(query,args)]
+
+
+def protected_snapshot(db):
+    """Versioned reviewed-bootstrap projection in a caller-owned transaction.
+
+    Event retention, observation deduplication, the library polling cursor and
+    registration intents do not change publication authority. All other record
+    keys and their complete decoded values participate, including unknown kinds.
+    The records.updated envelope is excluded; no nested value is stripped.
+    Writer must be acquired before LOCK by the eventual bootstrap adapter.
+    """
+    if not db.in_transaction:
+        raise ValueError('Bootstrap snapshot requires an existing transaction')
+    count, size = db.execute('SELECT count(*),coalesce(sum(length(CAST(value AS BLOB))),0) '
+                            'FROM records').fetchone()
+    if count > 100000 or size > 64 * 1024 ** 2:
+        raise ValueError('Workflow bootstrap snapshot exceeds bounds')
+    # Import here avoids changing Store construction or creating an authority DB.
+    if __package__:
+        from .publication_guard import canonical_digest, decode_json
+    else:
+        from publication_guard import canonical_digest, decode_json
+    records = []
+    for kind, key, raw in db.execute('SELECT kind,key,value FROM records ORDER BY kind,key'):
+        if (kind in ('observation', 'publication_intent')
+                or (kind == 'meta' and key == 'library_seen')):
+            continue
+        if not isinstance(kind, str) or not isinstance(key, str) or not isinstance(raw, str):
+            raise ValueError('Malformed workflow bootstrap record')
+        records.append([kind, key, decode_json(raw)])
+    return dict(version=1, count=len(records), digest=canonical_digest(records))

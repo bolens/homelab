@@ -16,12 +16,15 @@ ENROLLMENT = Path('/etc/mylar-publication-launch/enrollment-v1.json')
 INSTALLATION = Path('/etc/mylar-publication-launch/deployment-v1.json')
 PACKAGE = Path('/usr/local/lib/mylar-publication-launch')
 KEY = Path('/var/lib/mylar-publication-launch/root-signing-ed25519.der')
+CHILD_ANCHORS = Path('/etc/mylar-publication-launch/child')
+REVIEWED_ANCHORS = Path('/etc/mylar-publication-launch/reviewed-child')
+ANCHOR_NAMES = ('installation-v1.json','inventory-v1.json','public-ed25519.der')
 ROOT_UID = 0
 LIMIT = 65536
 SOURCE_LIMIT = 4*1024**2
 PREAUTH_SECONDS = 5
 TOTAL_SECONDS = 3600
-LOGICAL_PROFILE_SHA = hashlib.sha256(b'standalone-retained-recovery-policy-v1:original-existing-bind-or-named-volume:readonly-uid1000-capdrop-all-no-new-privileges-network-none:no-new-mounts:no-overlay:four-full-roles:3600-1800-120-180:512GiB:100000:no-resume-import-cleanup-index-replay').hexdigest()
+LOGICAL_PROFILE_SHA = hashlib.sha256(b'standalone-retained-recovery-policy-v2:original-existing-bind-or-named-volume:readonly-uid1000-capdrop-all-no-new-privileges-network-none:fixed-three-root-anchor-leaf-binds-v2:no-other-new-mounts:no-other-overlay:four-full-roles:3600-1800-120-180:512GiB:100000:no-resume-import-cleanup-index-replay').hexdigest()
 REGISTRY_LIMIT = 512  # exact owning publication_guard registry ceiling
 NAMES = ('private_crypto.py','comic_reader_backup_primitives.py',
          'comic_retained_standalone_backup.py','comic_retained_standalone_parent.py',
@@ -96,6 +99,117 @@ def read(path,frame):
     raw(frame)
     return bytes(data)
 
+def reviewed_deployment(frame):
+    marker=parse(read(ENROLLMENT,frame))
+    if set(marker)!={'version','kind','deployment_sha256'} or type(marker['version']) is not int or marker['version']!=1 or marker['kind']!='standalone-root-enrollment-v1' or not hexadecimal(marker['deployment_sha256']):raise Held('fixed-enrollment-schema')
+    data=read(INSTALLATION,frame)
+    if sha(data)!=marker['deployment_sha256']:raise Held('fixed-installation-digest')
+    value=parse(data)
+    fields={'version','kind','deployment','image','profile','runtime_profile_sha256','broker_sources','parent_sha256',
+            'bootstrap_sha256','inventory_sha256','anchor_sha256','key_sha256','public_der','host_sources','daemon_sources','ids'}
+    if set(value)!=fields or type(value['version']) is not int or value['version']!=1 or value['kind']!='standalone-root-deployment-v1':raise Held('fixed-installation-schema')
+    if not all(hexadecimal(value[k]) for k in fields-{'version','kind','public_der','host_sources','daemon_sources','ids'}):raise Held('fixed-installation-claims')
+    if value['profile']!=LOGICAL_PROFILE_SHA:raise Held('fixed-source-owned-logical-policy')
+    public=bytes.fromhex(value['public_der'])
+    if len(public)!=44 or public[:12]!=bytes.fromhex('302a300506032b6570032100') or sha(public)!=value['key_sha256']:raise Held('fixed-installation-public-key')
+    if set(value['host_sources'])!=set(NAMES) or not all(hexadecimal(x) for x in value['host_sources'].values()):raise Held('fixed-installation-source-map')
+    if type(value['daemon_sources']) is not dict or set(value['daemon_sources'])!={'/app/mylar3/mylar/worker_health.py','/app/mylar3/mylar/native_writers.py'} or not all(hexadecimal(x) for x in value['daemon_sources'].values()):raise Held('fixed-daemon-source-pins')
+    if sha(canonical(value['host_sources']))!=value['broker_sources'] or value['host_sources']['comic_retained_standalone_parent.py']!=value['parent_sha256'] or value['host_sources']['BOOTSTRAP.py']!=value['bootstrap_sha256']:raise Held('fixed-installation-owning-pin-joins')
+    if set(value['ids'])!={'native','reader','worker'} or not all(hexadecimal(x) for x in value['ids'].values()) or len(set(value['ids'].values()))!=3:raise Held('fixed-installation-runtime-IDs')
+    return value,public,data
+
+
+def anchor_payloads(document, directory, frame):
+    """Root deployment authenticates exactly three original non-secret leaves."""
+    values=tuple(read(directory/name,frame) for name in ANCHOR_NAMES)
+    anchor,inventory=parse(values[0]),parse(values[1])
+    fields={'version','kind','deployment','profile','broker_sources','parent_sha256','bootstrap_sha256','inventory_sha256','key_sha256'}
+    if (set(anchor)!=fields or type(anchor['version']) is not int or anchor['version']!=1
+            or anchor['kind']!='standalone-installation-anchor-v1'
+            or any(anchor[key]!=document[key] for key in fields-{'version','kind'})
+            or sha(values[0])!=document['anchor_sha256']
+            or sha(values[1])!=document['inventory_sha256']
+            or sha(values[2])!=document['key_sha256']
+            or values[2].hex()!=document['public_der']):raise Held('fixed-anchor-deployment-joins')
+    if (set(inventory)!={'version','kind','sources'} or type(inventory['version']) is not int
+            or inventory['version']!=1 or inventory['kind']!='standalone-leaf-inventory-v1'
+            or type(inventory['sources']) is not dict or not 12<=len(inventory['sources'])<=512):raise Held('fixed-anchor-inventory-schema')
+    auth=Path('/opt/mylar-publication-launch/auth');native=Path('/app/mylar3/mylar')
+    for name,digest in inventory['sources'].items():
+        path=Path(name)
+        if (str(path)!=name or not path.is_absolute() or '..' in path.parts or not hexadecimal(digest)
+                or not (path.is_relative_to(auth) or path.is_relative_to(native))):raise Held('fixed-anchor-inventory-path')
+    if not {str(auth/name) for name in ('private_crypto.py','v3_auth_core.py','standalone_launch_auth.py')}<=set(inventory['sources']):raise Held('fixed-anchor-auth-inventory')
+    if len(values[2])!=44 or values[2][:12]!=bytes.fromhex('302a300506032b6570032100'):raise Held('fixed-anchor-public-key')
+    raw(frame)
+    return values
+
+
+def provision_original_anchors():
+    """Explicit root maintenance, never called by startup or launch.
+
+    Enrollment and deployment are already reviewed originals. This copies only
+    their authenticated public anchors; it does not create keys or enrollment.
+    No caller source/destination, callback, command or mounting API is accepted.
+    """
+    if os.geteuid()!=ROOT_UID:raise Held('fixed-root-provision-required')
+    frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in NAMES],*[REVIEWED_ANCHORS/name for name in ANCHOR_NAMES]))
+    document,_,_=reviewed_deployment(frame)
+    for name in NAMES:
+        if sha(read(PACKAGE/name,frame))!=document['host_sources'][name]:raise Held('fixed-installation-source-digest')
+    if Path(__file__).absolute()!=PACKAGE/'comic_retained_standalone_broker.py':raise Held('fixed-broker-original-installation-origin')
+    values=anchor_payloads(document,REVIEWED_ANCHORS,frame)
+    if set(os.listdir(REVIEWED_ANCHORS))!=set(ANCHOR_NAMES):raise Held('fixed-anchor-reviewed-namespace')
+    raw(frame)
+    parent=CHILD_ANCHORS.parent;parent9=five(os.lstat(parent))
+    if parent9[2]&0o170000!=0o040000 or parent9[3]!=ROOT_UID or parent9[2]&0o022:raise Held('fixed-anchor-parent')
+    try:os.mkdir(CHILD_ANCHORS,0o700)
+    except FileExistsError:pass
+    directory=five(os.lstat(CHILD_ANCHORS))
+    if directory[2]&0o170000!=0o040000 or directory[3]!=ROOT_UID or directory[2]&0o022:raise Held('fixed-anchor-directory')
+    names=set(os.listdir(CHILD_ANCHORS));owned={}
+    if names:
+        if names!=set(ANCHOR_NAMES):raise Held('fixed-anchor-partial-or-foreign')
+        existing=capture(tuple(CHILD_ANCHORS/name for name in ANCHOR_NAMES))
+        for name,content in zip(ANCHOR_NAMES,values):
+            if dict(existing[0])[CHILD_ANCHORS/name][5]&0o7777!=0o444:raise Held('fixed-anchor-existing-mode')
+            if read(CHILD_ANCHORS/name,existing)!=content:raise Held('fixed-anchor-existing-bytes')
+        owned=dict(existing[0]);raw(existing)
+    else:
+        for name,content in zip(ANCHOR_NAMES,values):
+            path=CHILD_ANCHORS/name
+            fd=os.open(path,os.O_RDWR|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            born=nine(os.fstat(fd))
+            try:
+                if born[5]&0o7777!=0o600 or born[6]!=ROOT_UID or born[8]!=1:raise Held('fixed-anchor-creator')
+                remaining=content
+                while remaining:
+                    written=os.write(fd,remaining)
+                    if written<=0:raise Held('fixed-anchor-short-write')
+                    remaining=remaining[written:]
+                if tuple(nine(os.fstat(fd))[x] for x in (0,1,5,6,7,8))!=tuple(born[x] for x in (0,1,5,6,7,8)):raise Held('fixed-anchor-before-mode')
+                os.fchmod(fd,0o444)
+                expected=list(born);expected[5]=(born[5]&~0o7777)|0o444
+                os.fsync(fd);after=nine(os.fstat(fd))
+                if tuple(after[x] for x in (0,1,5,6,7,8))!=tuple(expected[x] for x in (0,1,5,6,7,8)):raise Held('fixed-anchor-creator-drift')
+                os.lseek(fd,0,os.SEEK_SET)
+                if os.read(fd,len(content)+1)!=content or nine(os.fstat(fd))!=after:raise Held('fixed-anchor-readback')
+                owned[path]=after
+            finally:
+                closing=os.fstat(fd)
+                if (closing.st_dev,closing.st_ino)==born[:2]:os.close(fd)
+        fd=os.open(CHILD_ANCHORS,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+        try:os.fsync(fd)
+        finally:os.close(fd)
+    # Namespace callbacks precede original source and retained creator tails.
+    if set(os.listdir(CHILD_ANCHORS))!=set(ANCHOR_NAMES) or set(os.listdir(REVIEWED_ANCHORS))!=set(ANCHOR_NAMES):raise Held('fixed-anchor-final-namespace')
+    raw(frame)
+    for path,original in owned.items():
+        if nine(os.lstat(path))!=original:raise Held('fixed-anchor-final-creator')
+    if five(os.lstat(CHILD_ANCHORS))!=directory or five(os.lstat(parent))!=parent9:raise Held('fixed-anchor-final-parent')
+    return {'provisioned_public_anchors':True,'activation':False}
+
+
 class Installation:
     def __init__(self,*args,**kwargs):raise Held('fixed-root-installation-required')
     def close(self):
@@ -132,24 +246,9 @@ class Installation:
 def load_original_installation():
     if os.geteuid()!=ROOT_UID:raise Held('fixed-root-broker-process-required')
     # All fixed root sources are originals before the first read/parse/import.
-    try:frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in NAMES]))
+    try:frame=capture((ENROLLMENT,INSTALLATION,KEY,*[PACKAGE/name for name in NAMES],*[CHILD_ANCHORS/name for name in ANCHOR_NAMES]))
     except FileNotFoundError:raise Held('reviewed-root-installation-unprovisioned') from None
-    marker=parse(read(ENROLLMENT,frame))
-    if set(marker)!={'version','kind','deployment_sha256'} or type(marker['version']) is not int or marker['version']!=1 or marker['kind']!='standalone-root-enrollment-v1' or not hexadecimal(marker['deployment_sha256']):raise Held('fixed-enrollment-schema')
-    data=read(INSTALLATION,frame)
-    if sha(data)!=marker['deployment_sha256']:raise Held('fixed-installation-digest')
-    value=parse(data)
-    fields={'version','kind','deployment','image','profile','runtime_profile_sha256','broker_sources','parent_sha256',
-            'bootstrap_sha256','inventory_sha256','anchor_sha256','key_sha256','public_der','host_sources','daemon_sources','ids'}
-    if set(value)!=fields or type(value['version']) is not int or value['version']!=1 or value['kind']!='standalone-root-deployment-v1':raise Held('fixed-installation-schema')
-    if not all(hexadecimal(value[k]) for k in fields-{'version','kind','public_der','host_sources','daemon_sources','ids'}):raise Held('fixed-installation-claims')
-    if value['profile']!=LOGICAL_PROFILE_SHA:raise Held('fixed-source-owned-logical-policy')
-    public=bytes.fromhex(value['public_der'])
-    if len(public)!=44 or public[:12]!=bytes.fromhex('302a300506032b6570032100') or sha(public)!=value['key_sha256']:raise Held('fixed-installation-public-key')
-    if set(value['host_sources'])!=set(NAMES) or not all(hexadecimal(x) for x in value['host_sources'].values()):raise Held('fixed-installation-source-map')
-    if type(value['daemon_sources']) is not dict or set(value['daemon_sources'])!={'/app/mylar3/mylar/worker_health.py','/app/mylar3/mylar/native_writers.py'} or not all(hexadecimal(x) for x in value['daemon_sources'].values()):raise Held('fixed-daemon-source-pins')
-    if sha(canonical(value['host_sources']))!=value['broker_sources'] or value['host_sources']['comic_retained_standalone_parent.py']!=value['parent_sha256'] or value['host_sources']['BOOTSTRAP.py']!=value['bootstrap_sha256']:raise Held('fixed-installation-owning-pin-joins')
-    if set(value['ids'])!={'native','reader','worker'} or not all(hexadecimal(x) for x in value['ids'].values()) or len(set(value['ids'].values()))!=3:raise Held('fixed-installation-runtime-IDs')
+    value,public,data=reviewed_deployment(frame)
     modules={}
     for name in NAMES:
         source=read(PACKAGE/name,frame)
@@ -171,6 +270,9 @@ def load_original_installation():
         else:module=existing
         raw(frame);_LOADED_MODULES[module_name]=(module,sha(source))
         modules[name]=module;raw(frame)
+    for name in ANCHOR_NAMES:
+        if dict(frame[0])[CHILD_ANCHORS/name][5]&0o7777!=0o444:raise Held('fixed-anchor-readonly-leaf')
+    anchor_payloads(value,CHILD_ANCHORS,frame)
     obj=object.__new__(Installation)
     _INSTALLATIONS[obj]=dict(document=value,bytes=data,frame=frame,modules=modules,public=public,
                             owner=(os.getpid(),threading.get_ident()),deadline=time.monotonic()+TOTAL_SECONDS)
@@ -311,7 +413,7 @@ def launch_original(installation, input_ref, input_child):
     """No caller command/key/profile/image. Root receipt owns every launch pin."""
     if type(installation) is not Installation:raise Held('fixed-root-installation-type')
     row=installation.close();document=row['document'];parent=row['modules']['comic_retained_standalone_parent.py']
-    runtime=parent.ConfiguredRuntime.observe(document['ids'])
+    runtime=parent.ConfiguredRuntime.observe(document['ids'], installed_anchors=True)
     _verify_runtime_receipt(document,runtime)
     bootstrap=read(PACKAGE/'BOOTSTRAP.py',row['frame'])
     if sha(bootstrap)!=document['bootstrap_sha256']:raise Held('fixed-original-bootstrap-pin')
@@ -340,24 +442,38 @@ def launch_original(installation, input_ref, input_child):
             spec='type=volume,src='+mount['Name']+',dst='+mount['Destination']+',volume-nocopy'
         else:raise Held('fixed-original-mount-type')
         arguments+=['--mount',spec+('' if mount['RW'] else ',readonly')]
+    for name in ANCHOR_NAMES:
+        arguments+=['--mount','type=bind,src='+str(CHILD_ANCHORS/name)+',dst=/opt/mylar-publication-launch/'+name+',readonly']
     for value in native['Config']['Env']:arguments+=['--env',value]
     command=['-I','-B','-c',bootstrap.decode(),'--input',input_child,'--input-sha256',input_ref['sha256']]
     arguments += [native['Image'],*command]
     runtime.close();installation.close();parent.raw(bootframe);parent.raw(inputframe)
     for mount,volume in volume_originals:
         if _existing_volume_original(runtime,mount)!=volume:raise Held('fixed-original-volume-before-create')
+    installation.close();parent.raw(bootframe);parent.raw(inputframe)
+    for frame in (row['frame'],bootframe,inputframe):
+        for path,original in frame[1]:
+            if five(os.lstat(path))!=tuple(original):raise Held('fixed-precreate-original-node')
+        for path,original in frame[0]:
+            if nine(os.lstat(path))!=tuple(original):raise Held('fixed-precreate-original-file')
     cid=runtime.command(arguments).decode().strip()
     if not hexadecimal(cid):raise Held('fixed-created-child-ID')
-    observed=runtime.inspect(cid);parent.selected_profile(native,observed)
+    observed=runtime.inspect(cid);parent.selected_profile(native,observed,installed_anchors=True)
     for mount,volume in volume_originals:
         if _existing_volume_original(runtime,mount)!=volume:raise Held('fixed-original-volume-after-create')
     if observed['Config']['Entrypoint']!=['python3'] or observed['Config']['Cmd']!=command or observed['HostConfig'].get('Init'):raise Held('fixed-child-direct-PID1')
     runtime.selected=cid;runtime.selected_static=runtime.static(observed)
+    installation.close();parent.raw(bootframe);parent.raw(inputframe)
+    for frame in (row['frame'],bootframe,inputframe):
+        for path,original in frame[1]:
+            if five(os.lstat(path))!=tuple(original):raise Held('fixed-prestart-original-node')
+        for path,original in frame[0]:
+            if nine(os.lstat(path))!=tuple(original):raise Held('fixed-prestart-original-file')
     process=subprocess.Popen(['docker','start','--attach','--interactive',cid],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     runtime.process=process
     # Original actual Popen FDs precede the next inspection/validation callback.
     pipes=tuple((stream.fileno(),nine(os.fstat(stream.fileno()))) for stream in (process.stdin,process.stdout,process.stderr))
-    running=runtime.inspect(cid);parent.selected_profile(native,running)
+    running=runtime.inspect(cid);parent.selected_profile(native,running,installed_anchors=True)
     if running['State']['Running'] is not True or running['State']['Pid']<=0 or runtime.static(running)!=runtime.selected_static:raise Held('fixed-original-child-start')
     runtime.selected_started=running['State']['StartedAt'];runtime.selected_pid=running['State']['Pid']
     obj=object.__new__(OriginalLaunch)

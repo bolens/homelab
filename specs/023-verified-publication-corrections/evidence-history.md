@@ -864,3 +864,84 @@ The first private device resolver batch passes seventeen host controls in indepe
 The hosted PR #338 build fails a separate scheduling defect: the outer 90-second reader-control deadline is shorter than one nested child's existing 120-second allowance and kills the unchanged 807-control aggregate. The corrective runner retains ordinary 90-second and child 120-second bounds, giving only the two aggregate paths a finite 6,780-second cap derived from 56 serial children plus fixture overhead. Overall workflow and isolated-launcher limits remain independently tighter. Ten owning controls, including all 807 checks, pass without skips; independent review preserves original assertions, suites and actor policy. Leaf-first repins change only two standalone rows and their three API-map references.
 
 The final-image correction copies the actual checked Mega library into the runtime stage and checks its allocation, temporary-file, before-write and promotion calls there. The mandatory CI regressions replay the owning patch and final COPY routes: the original image contract fails, while fifteen corrected controls pass with no skips. Independent source review confirms only the Mega library was omitted among the audited external patch outputs; existing template copies and Main permissions stay intact. Corrected source still requires full local checks, hosted CI and a fresh built-image gate before deployment.
+
+
+## Recovery delivery checkpoint 2026-10-14
+
+PR #338 is squash-merged as `454b41df` after every applicable hosted check
+completes successfully. Full local CI passes. GitHub, local main and the
+configured Gitea mirror share that revision. The earlier scheduling failure and
+missing final-stage Mega library remain recorded above. Corrected trusted-main
+image publication completes successfully. No live update is claimed.
+
+The current Mylar container successfully repeats the read-only Btrfs identity
+query as UID 1000. Its stable filesystem/subvolume result matches the host
+observation. Identifiers stay private. This proves current query capability,
+not recovery authorization, historical continuity or actual remount behavior.
+
+The native recovery batch is integrated locally after independent source review.
+Root repeats all 57 controls in both the frozen package and owning checkout:
+22 new controls and 35 unchanged bootstrap/registration controls pass without
+skips. A retained peer failure is corrected: mutation of the original accepted
+plan now refuses before fence removal and preserves the fence, SQL and marker.
+Tests use real SQLite, Writer locks and future registration/restart. Portable
+kernel-byte fixtures supply no real filesystem or remount acceptance.
+
+The passive worker source passes five separate-process controls plus a full
+registry/current-marker route before and after genuine registration. Its reader
+has no native maintenance writer or held-journal allowance. Worker packaging and the latest native-source join now pass source verification: regeneration reproduces all twelve outputs, with four additional separate-process stable-branch controls. Matching worker-image verification remains pending. The reconstructed main-image verifier
+also passes independent source review and four host controls with image binding
+unset. CI delivery, installed-image gates, verified backup/restore and live
+recovery remain open under T017. No aggregate task is checked off on fixture
+results alone.
+
+
+The integrated packaging closure retains all 100 required SDK names and 25 Reader
+cohort modules, adding four existing helper dependencies for a 78-module closure
+and 179-source known base. All 924 control-map rows and 220 recovery rows match
+their declared source. Root repeats sixteen installer controls without skips.
+A documentation edit initially stales the README hash and the unchanged owning
+gate refuses it. The correction changes that one hash field only. Root then
+passes all ten owning controls, including the complete 807-control aggregate,
+without skips. Full staged local CI passes with all new source and fixture files
+included. Hosted CI, new image verification and live recovery remain pending.
+
+
+PR #341 opens at `11b67e25`. Hosted CI finds three integration failures:
+seven unused imports in the generated passive reader, a worker discovery cache
+collision with the native fixture's test module, and the new installed-helper
+smoke preceding the existing status-guard check. The corrective generator removes
+only unused imports. Fixture imports use their own namespace without replacing
+worker modules. The unchanged helper smoke moves after the unchanged status
+check. Independent review passes for all three corrections. Root repeats lint,
+two status-routing controls, six preloaded-worker identity cases and an existing
+worker journal-refusal case. Fresh full hosted checks remain required before
+merge. No live operation is claimed.
+
+The `f114f1c9` corrective head passes hosted lint, CodeQL, repository validation and both worker jobs. The native image then refuses the authenticated fixture graph: its runner retains 105 ordered sources while the reviewed manifest contains 114. The correction updates only that exact ordered tuple; all other runner AST, finite-count/hash/copy/ancestor checks and expected test counts remain unchanged. Root verifies the complete frozen package and independently passes six copy controls plus the genuine 26-control broker family without skips. Full authenticated families, fresh complete hosted checks and live acceptance remain required. No aggregate task is newly complete.
+
+Independent review confirms the corrected 114-row graph and all source hashes, with unchanged guards and counts. Full local CI passes. A separate FR-016 audit finds no cache-guard source defect: 45 unchanged owning controls and seven additional budget, crash/restart and filesystem controls pass without skips. A read-only configured-cache observer passes four disposable checks but remains unbound; configuration-file evidence does not prove loaded daemon settings. T030 stays open for matching-runtime and configured live acceptance.
+
+The `a77c0fa9` native validation gets past authenticated copying and then refuses a standalone source alias. The earlier map sort reversed the two existing action destinations; the unchanged duplicate-source guard permits the root alias only second. Restoring their reviewed base order changes no source/target/hash set, and requires only the API map’s companion hash update. Root verifies all 810 map rows and independently passes the unchanged 125 mechanical standalone controls without skips; the optional native 66 remain unexecuted on this host.
+
+The wider authenticated host run passes broker 26, connected 15 and child-original 88, then refuses one of three reader-capacity controls because its free-space sample changed. A real competing filesystem writer reproduces that refusal while reader database/WAL/SHM identities remain unchanged; the initial failure’s exact changed fields were not captured. No 132-control success is claimed. The isolated target-image gate remains required, with capacity checks unchanged.
+
+## Recovery delivery and storage cleanup 2026-10-15
+
+The complete `123cae87` native build reaches 115 tagging controls and reports one fixture import error. Its fake `mylar` namespace omits the genuine identity reader. The scoped fixture correction retains production code and every assertion, updates the two dependent source maps, and passes independent review, the original failure and five focused controls without skips. All 14 hosted checks subsequently pass at `4c8b707`, including the complete native build, and PR #341 is merged as `0b5985e5`. Main publication run `38783100623` subsequently passes for both Mylar and the worker at exact `0b5985e5`.
+
+Storage cleanup removes 84 obsolete task-local test images, excluding every container reference and all registry/newer candidates. Three exact-ID unused-private-cache passes report 866.5 MB, 509.8 MB and 2.054 GB reclaimed. Before/after inventories preserve every unselected image and all 230 container states. These passes alone leave approximately 23 GiB free on the applications filesystem. Unknown volumes remain untouched.
+
+The main artifact is the October 7 rollout's disposable isolated restore, allocating 153,303,531,520 bytes beside its retained backup. Prior receipts verify the manifest and 38 database checks. Fresh metadata comparison matches all 37,888 entries. Independent cleanup review and disposable tests verify mount decoding and exact restore-only removal. Protected execution repeats mount, open-file and final directory-identity checks, removes only the restore and confirms the backup tree is unchanged. Available bytes rise from 24,113,823,744 to 176,861,237,248, approximately 23 to 165 GiB, with usage falling from 98% to 83%. Prior verified content plus fresh metadata comparison is not a new content restore drill. The backup, original comics and unresolved recovery evidence remain retained.
+
+The default builder reserves 87.54 GiB and permits 694.8 GiB of cache. PR #346 adds an optional builder-only entrypoint with independent dry-run, age and capacity targets, without invoking container/image/volume cleanup or restarting Docker. Independent review, eight controls, full local CI and the hosted image build pass. All current-base hosted checks pass and PR #346 merges as `5aa7bc90`. Configured runtime and schedule acceptance stay open. The project guide now directs large temporary copies to dedicated backup storage and removes disposable restores after the owning operation is verified. This policy is separate from T030's DDL payload admission budget.
+
+The exact `4c8b707` native verifier successor passes independent 756-pin, 753-resource and 738-Git-source checks plus four host controls without skips. Its image binding remains unset. A separate actual Python 3.10 maintenance-helper run discovers twenty cases and identifies a missing genuine `tagger_metadata` fixture dependency. The frozen successor adds only that exact genuine dependency and retains all 29 prior files. Independent review passes, followed by all twenty cases in the actual Python 3.10 image without skips. Installed candidate CLI and operational acceptance remain pending. No image, live recovery, pack import or ACK acceptance is inferred.
+
+The T028 follow-up supplies a finite authenticated child-anchor composition: exactly three root-attested read-only public files at the existing canonical destinations, with no arbitrary mounts or ordinary-startup activation. The 21-path source proposal passes independent source/security review, 59 focused author checks and root full local CI. Host integration passes the ten owning reader-preservation controls, including the 807-case suite, and all 207 standalone controls. The direct 807-case run and all 247 owning API controls also pass without skips. An extra authenticated host run passes its 26 broker, 15 probe and 88 host controls, then its reader-capacity fixture refuses a change in shared-filesystem free-space counters. That failure is retained without assertion changes; isolated-image and disposable root provisioning checks remain required. These source results do not establish configured Parent/Birth custody, a live import or a fresh ACK. Published-image and live recovery acceptance remain separate.
+
+The pulled worker image at exact main `0b5985e5` passes all 39 installed source/origin checks, 13 selected-pack executions and the full 708-case suite without skips. The selected cases overlap the full suite. This proves the isolated image, not configured activation or live import acceptance. The worker remains inactive. The matching published Mylar image is pulled; its final verification is waiting for the read-only local image identity check.
+
+PR #348 adds the reviewed fixed-anchor profile. Its disposable root provisioning test passes against the published auth-only image. Initial CI identifies a wall-clock ZIP fixture race and two CodeQL permission findings in deliberate fault callbacks. The reviewed correction fixes ZIP timestamps, uses owner-only fault modes and updates all dependent source maps, including the separate auth map. Root repeats all 60 focused cases without skips; the genuine complete-source copier check also passes. Production and existing assertion bodies remain unchanged. Corrected-head hosted checks remain required.
+
+The private maintenance launcher now matches confirmed Main startup package-root/vendor-library ordering. Its actual published-image run passes 24 controls and a separate clean process verifies all seven canonical installed modules, shared owning types and unconfigured commit refusal. The earlier missing-vendor failure is retained. The separate complete native image gate fails and requires its saved error diagnosis before any live update. No backup, adoption, hold release or import acceptance is claimed.
