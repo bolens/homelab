@@ -1871,7 +1871,7 @@
   },
   {
     "path": "test_tagger_archive.py",
-    "sha256": "3642e693af698a5cdaa41cc8d4818105a5edf4c80d441cd64cf6f9f57d2ebdba",
+    "sha256": "d999d288e5908e3c0541482994ce3d24c51d1e096e60690838b63c72344c382c",
     "target": "test_tagger_archive.py"
   },
   {
@@ -2066,7 +2066,7 @@
   },
   {
     "path": "test_standalone_anchor_composition.py",
-    "sha256": "6c0383e3db59dc72c72505d477520d3de1c0ef3de2b8073e1358052c762a1961",
+    "sha256": "87aa1dc7e6825849ffa3d7308f68b160f0efca7b5644a85e8c427c32aa59ea2b",
     "target": "test_standalone_anchor_composition.py"
   },
   {

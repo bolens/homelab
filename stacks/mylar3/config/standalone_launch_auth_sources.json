@@ -5,7 +5,7 @@
   },
   {
     "path": "test_publication_launch_auth.py",
-    "sha256": "08bb58d9b64be638fd91d3bb94d660070ef53d5f7a915fe9b2088bfe39958c59"
+    "sha256": "3410d5d5b3f8202d5729866a3f75d2a4a9f32a7d3e347f7c74129a7d7ded0ee9"
   },
   {
     "path": "standalone_launch_auth/standalone_launch_auth.py",

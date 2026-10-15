@@ -689,7 +689,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "f2e7fe667d03d099e7ac3a5b985e489628c4aa26baec6bfc135b1a3e104e93ce"
+    "sha256": "ec75027c58026c0566f12942fab99537fc5bac50394030e1c9225c847bbb42ed"
   },
   {
     "path": "story_arc_search.py",
@@ -1497,7 +1497,7 @@
   },
   {
     "path": "test_tagger_archive.py",
-    "sha256": "3642e693af698a5cdaa41cc8d4818105a5edf4c80d441cd64cf6f9f57d2ebdba"
+    "sha256": "d999d288e5908e3c0541482994ce3d24c51d1e096e60690838b63c72344c382c"
   },
   {
     "path": "test_tagger_backend.py",
@@ -1653,7 +1653,7 @@
   },
   {
     "path": "test_standalone_anchor_composition.py",
-    "sha256": "6c0383e3db59dc72c72505d477520d3de1c0ef3de2b8073e1358052c762a1961"
+    "sha256": "87aa1dc7e6825849ffa3d7308f68b160f0efca7b5644a85e8c427c32aa59ea2b"
   },
   {
     "path": "test_standalone_anchor_root.py",

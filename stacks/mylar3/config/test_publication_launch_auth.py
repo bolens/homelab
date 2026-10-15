@@ -82,7 +82,7 @@ class Install(unittest.TestCase):
         with self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
         foreign.unlink();real=self.installer.verify_installed
         def callback(*a,**kw):
-            result=real(*a,**kw);os.chmod(self.target.parent/'installation-v1.json',0o640);return result
+            result=real(*a,**kw);os.chmod(self.target.parent/'installation-v1.json',0o600);return result
         with patch.object(self.installer,'verify_installed',callback),self.assertRaises(ValueError):self.installer.verify_required_targets(self.target)
 
     def test_unknown_source_refused_before_destination_birth(self):

@@ -100,7 +100,7 @@ class Anchors(unittest.TestCase):
         def callback(path):
             result=original(path)
             if Path(path)==self.child and len(result)==3:
-                os.chmod(self.child/self.b.ANCHOR_NAMES[0],0o640);fired.append(True)
+                os.chmod(self.child/self.b.ANCHOR_NAMES[0],0o600);fired.append(True)
             return result
         with patch.object(self.b.os,'listdir',callback),self.assertRaisesRegex(ValueError,'final-creator'):
             self.b.provision_original_anchors()
