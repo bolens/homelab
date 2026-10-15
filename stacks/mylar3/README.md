@@ -617,15 +617,23 @@ checks. Waiting for healthy startup while retaining the guard blocks startup unt
 writer-lock timeout, causing startup to fail.
 Recovery bindings include filesystem device numbers and directory inodes. A
 remount or reboot can change the device number while preserving every inode.
-If Mylar reports `Tagger recovery state identity changed`, keep the guard intact
-until both writers are quiesced and their complete state has a verified backup
-and isolated restore. Confirm terminal, cleaned publication receipts and no
-pending writer markers. A rebind is justified only when the stored hash matches
-the exact current inode set with the previous device number. Retained staging
-directory identities need the same verification, and their files must remain
-preserved. Do not clear pending markers or delete recovery directories to make
-startup succeed. The current device-number binding can require this review again
-after another remount.
+If publication authority or tagger recovery reports an identity mismatch, keep
+media processing held until the affected writers are quiesced and their complete
+state has a verified backup and isolated restore. Confirm terminal, cleaned
+publication receipts and no pending writer markers. The unchanged tagger hash
+must match the exact current inode set with the recorded previous device number.
+Preserve retained staging files, original binding bytes and immutable history.
+Do not clear markers or delete recovery directories to make startup succeed.
+
+The [reviewed device-recovery contract](../../specs/023-verified-publication-corrections/contracts/publication-corrections.md#reviewed-device-identity-recovery)
+defines an explicit accepted transition within the existing writer root. Its
+private adoption ledger preserves earlier epochs, tokens and records. Future
+device-number reconciliation requires the reviewed destination's stable Btrfs
+filesystem and subvolume binding, with current file custody still checked.
+Unsupported or incomplete evidence retains the hold. This records the operator's
+current destination trust and does not infer missing historical filesystem
+identifiers. Source, installed-image and live recovery acceptance are separate
+requirements. Use only a verified matching image and reviewed operational inputs.
 If the normalizer or an operator changed data during that interval, retain the
 backup and reconcile the differences before restoring; do not overwrite valid
 changes with an older snapshot. Confirm unrelated services remained healthy.

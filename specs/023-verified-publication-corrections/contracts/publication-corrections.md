@@ -22,6 +22,36 @@ Recovery validates the prepared marker/intent and complete SQLite state. Only ex
 
 Restoring both a matching old database and old marker is indistinguishable from a coherent historical rollback by local comparison alone. Such restore requires independently verified backup/epoch/census evidence and explicit operator reconciliation; this feature does not promise universal rollback detection without an independent anchor. Preserve prior epoch/admission evidence outside the mutable pair.
 
+### Reviewed device-identity recovery
+
+A changed device number does not erase committed history or authorize startup.
+An explicit maintenance transition may adopt the current destination after a
+complete affected-state backup and isolated restore pass independent review.
+The operator accepts the exact digest-bound plan. Preserve the original SQLite
+history, epoch, tokens, marker and tagger binding bytes. Record the transition
+in a bounded, private, append-only `identity-adoptions-v1` ledger under the
+existing writer root. No new mount, privilege or application schema is required.
+
+The recovery fence remains until the accepted transition closes the original
+database, writer lock, marker, ledger namespace and pending-state checks.
+A replaced file, changed schema, unresolved journal, foreign entry or incomplete
+transition retains the hold. Ordinary readers accept only committed transitions.
+Prepared, accepted and aborted historical intents keep their original identity
+requirements and cannot acquire permission to replay through adoption.
+
+Validate the adopted committed history prefix without freezing subsequent valid
+registrations. Future registrations still check current owner facts, census and
+physical file custody. Per-process database and Writer device/inode checks stay
+exact. Any allowance for the maintenance transaction's own rollback journal is
+confined to that held transaction. Passive readers continue refusing sidecars.
+
+For subsequent device-number changes, a stable binding may use read-only Btrfs
+filesystem and subvolume identifiers obtained from the current directory file
+descriptor. Unsupported filesystems or unavailable identifiers hold admission.
+This binds the reviewed destination prospectively. It does not establish a
+historical filesystem identifier that was never captured. A coherent historical
+clone still requires the explicit operator reconciliation described above.
+
 ## Admission and replay
 
 Check before scripts/tagging/duplicate removal/placement/status mutation and before manual metadata/naming/rescan ownership changes. Recheck source/proof before final mutation; scripts invalidate stale stamps. Cover ordinary, annual, storyarc, oneoff, disabled/legacy tagging and converted paths. Registered payload requires an explicitly allowed exact owner and current matching correct publication; missing/stale evidence holds it. Unknown payload follows existing eligibility, never a broad issue/provider blacklist.

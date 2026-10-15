@@ -535,3 +535,15 @@ Feature 023 compact reader verification now passes the actual Komga database und
 The complete compact-reader candidate passes installed source/cohort verification and all 17 isolated discovery, import, recovery, rename and preserved-metadata cases. Feature 023 retains the [combined runtime and backup handoff evidence](../023-verified-publication-corrections/evidence-history.md#installed-candidate-and-backup-handoff-2026-10-11). This completes an isolated naming verification milestone; the remaining combined bulk pass, supplement reconciliation and live idempotence/data acceptance remain open under T019/T023/T024.
 
 The shared reader source is now merged through PR #304 after all 12 hosted checks passed. The independently reviewed launcher correction and new pending backup invocation are recorded in feature 023’s [delivery and backup evidence](../023-verified-publication-corrections/evidence-history.md#reviewed-launcher-and-source-delivery-2026-10-11). Remaining live acceptance tasks stay open.
+
+
+## Shared post-reboot recovery checkpoint 2026-10-14
+
+Current Mylar availability is held by device-number drift in its immutable
+binding. Komga is healthy. The reviewed native/passive-worker device-recovery
+batch is integrated locally and passes owning controls, preserving historical
+identity and admission rules. PR #338 and its matching main images are delivered,
+but this newer batch still needs CI, installed-image and verified live recovery
+acceptance. Earlier READY and backup observations remain historical. See the
+[owning recovery checkpoint](../023-verified-publication-corrections/evidence-history.md#recovery-delivery-checkpoint-2026-10-14)
+for details. These results do not complete bulk naming or archive repair tasks.

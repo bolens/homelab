@@ -14,7 +14,7 @@ Preserve independently verified correction knowledge so repeated publication pay
 
 **Primary Dependencies**: Existing Mylar workflow/writer/catalog/tagger modules; immutable archiving-utils artifact already used by the normalizer; image-bundled libarchive reader. No runtime network dependency for payload verification.
 
-**Storage**: Existing private `workflow.sqlite`, complete correction census/revision and an owned writer-protocol binding marker; worker receipts in existing state. Native application schema is unchanged.
+**Storage**: Existing private `workflow.sqlite`, complete correction census/revision and an owned writer-protocol binding marker; worker receipts in existing state. Native application schema is unchanged. Reviewed device recovery adds a bounded private adoption ledger within the existing writer root, preserving immutable rows and original binding bytes. Stable Btrfs identifiers support prospective device-number reconciliation without relaxing per-process physical custody.
 
 **Testing**: `unittest`, actual patched native-source branch checks, converter-backed worker fixtures, both published image build gates and `make ci-local`.
 
@@ -47,6 +47,8 @@ specs/023-verified-publication-corrections/
 stacks/mylar3/
   Dockerfile
   config/publication_guard.py config/publication_api.py
+  config/publication_identity_adoption.py config/publication_identity_maintenance.py
+  config/publication_identity_readers.py config/publication_filesystem_binding.py
   config/patch_publication_guard.py config/patch_publication_startup.py
   config/publication_fresh.py config/publication_native.py config/publication_transaction.py
   config/patch_publication_processing.py config/test_publication_native.py

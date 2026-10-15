@@ -144,6 +144,27 @@ subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'test_verify_status_rout
 if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
     config_scope_preflight(Path('/app/mylar3/mylar'), installed=True)
     subprocess.run([sys.executable, '-B', str(FIXES / 'test_status_retention.py'), '/app/mylar3/mylar'], check=True)
+    subprocess.run([sys.executable, '-B', '-c', """import importlib
+from pathlib import Path
+import sys
+from mylar import media_writer, workflow_store
+fixes = Path(sys.argv[1])
+installed = Path('/app/mylar3/mylar')
+modules = {}
+for name in ('publication_identity_adoption', 'publication_identity_readers',
+             'publication_identity_maintenance', 'publication_filesystem_binding'):
+    module = importlib.import_module('mylar.' + name)
+    path = Path(module.__file__)
+    assert path == installed / (name + '.py') and path.resolve() == path
+    assert path.read_bytes() == (fixes / (name + '.py')).read_bytes()
+    modules[name] = module
+maintenance = modules['publication_identity_maintenance']
+assert maintenance.COMMIT_BINDINGS is None
+assert maintenance.Writer is media_writer.Writer and maintenance.Store is workflow_store.Store
+assert callable(maintenance.Maintenance.prepare) and callable(maintenance.Maintenance.commit)
+assert callable(modules['publication_identity_readers'].durable_identity)
+assert callable(modules['publication_filesystem_binding'].observe)
+""", str(FIXES)], check=True, env=dict(os.environ, PYTHONPATH='/app/mylar3:/app/mylar3/lib'))
     subprocess.run([sys.executable, '-B', str(FIXES / 'test_patch_cache_admission.py'), '/app/mylar3/mylar'], check=True)
 
 # Public source controls run even when the upstream image has no installed auth.
@@ -208,7 +229,7 @@ with tempfile.TemporaryDirectory() as directory:
         if test not in ('test_cache_admission.py', 'test_cache_transfer.py', 'test_cache_providers.py', 'test_cache_ddl.py'):
             arguments.append(str(source))
         subprocess.run(arguments, check=True)
-    for test in ('test_release_naming.py', 'test_publication_rename.py', 'test_publication_conversion.py', 'test_publication_reconcile.py', 'test_publication_lineage.py', 'test_publication_derivative.py', 'test_reviewed_derivative.py', 'test_combined_publication.py', 'test_combined_cleanup.py', 'test_closed_supplement.py', 'test_worker_reports.py', 'test_publication_maintenance.py', 'test_file_identity.py', 'test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py', 'test_pack_records.py', 'test_pack_bindings.py', 'test_pack_catalog.py', 'test_catalog_maintenance.py', 'test_queue_schedule.py', 'test_import_problem_actions.py', 'test_activity_ui.py', 'test_post_processing_ui.py', 'test_tagger_runtime.py', 'test_tagger_metadata.py', 'test_tagger_enrichment.py', 'test_tagger_archive.py', 'test_tagger_adapter.py', 'test_tagger_nfs.py', 'test_tagger_volume_cache.py', 'test_tagger_lookup.py', 'test_tagger_service.py', 'test_media_writer.py', 'test_native_writers.py', 'test_tagger_staging.py', 'test_tagger_native.py', 'test_converted_tagging.py', 'test_converted_catalog.py', 'test_library_metadata.py', 'test_metadata_repair.py', 'test_ddl_transport.py', 'test_ddl_failover.py', 'test_ddl_failover_native.py', 'test_comic_format_preference.py', 'test_publication_api.py', 'test_publication_startup.py'):
+    for test in ('test_identity_tagger.py', 'test_identity_historical_callers.py', 'test_identity_maintenance.py', 'test_identity_filesystem.py', 'test_release_naming.py', 'test_publication_rename.py', 'test_publication_conversion.py', 'test_publication_reconcile.py', 'test_publication_lineage.py', 'test_publication_derivative.py', 'test_reviewed_derivative.py', 'test_combined_publication.py', 'test_combined_cleanup.py', 'test_closed_supplement.py', 'test_worker_reports.py', 'test_publication_maintenance.py', 'test_file_identity.py', 'test_cooldown_health.py', 'test_workflow_store.py', 'test_workflow.py', 'test_workflow_nzb.py', 'test_pack_records.py', 'test_pack_bindings.py', 'test_pack_catalog.py', 'test_catalog_maintenance.py', 'test_queue_schedule.py', 'test_import_problem_actions.py', 'test_activity_ui.py', 'test_post_processing_ui.py', 'test_tagger_runtime.py', 'test_tagger_metadata.py', 'test_tagger_enrichment.py', 'test_tagger_archive.py', 'test_tagger_adapter.py', 'test_tagger_nfs.py', 'test_tagger_volume_cache.py', 'test_tagger_lookup.py', 'test_tagger_service.py', 'test_media_writer.py', 'test_native_writers.py', 'test_tagger_staging.py', 'test_tagger_native.py', 'test_converted_tagging.py', 'test_converted_catalog.py', 'test_library_metadata.py', 'test_metadata_repair.py', 'test_ddl_transport.py', 'test_ddl_failover.py', 'test_ddl_failover_native.py', 'test_comic_format_preference.py', 'test_publication_api.py', 'test_publication_startup.py'):
         if test in OWNING_SUITES:
             continue
         subprocess.run([sys.executable, str(FIXES / test)], check=True,env=dict(os.environ,MYLAR_WORKFLOW_SOURCE=str(source)))
