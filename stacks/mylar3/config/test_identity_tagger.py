@@ -260,5 +260,79 @@ class TaggerHistoryCardinalityTests(unittest.TestCase):
         self.assertEqual(receipt.read_bytes(), original)
 
 
+
+class TaggerHistoryVersionTests(unittest.TestCase):
+    """Actual owning schema readers; no constructor, replay or runtime grant."""
+    setUp = TaggerHistoryCardinalityTests.setUp
+    receipt = TaggerHistoryCardinalityTests.receipt
+
+    def record(self, version=2):
+        record = dict(version=version, state='committed', cleaned=True,
+                      source='/public-fixture/retained.cbz', request='a'*64,
+                      before='b'*64, after='c'*64, source_identity=[1,2,3,4,5],
+                      workspace=[1,2], permissions=[0o600,os.geteuid(),os.getegid()],
+                      candidate_identity=[1,2,3,4,5], metadata='updated')
+        if version == 2:
+            record.update(publication='rename-link-v1', attributes={}, pack_bindings=None)
+        return record
+
+    def test_legacy_and_native_v2_history_read_together_without_writes(self):
+        paths = [self.receipt(self.paths[1], version, self.record(version)) for version in (1,2)]
+        original = {p:(guard.signature(p.lstat()),p.read_bytes()) for p in paths}
+        names, files = readers.quiescent_tagger(self.paths)
+        self.assertEqual(sum(map(len,names.values())),2)
+        self.assertEqual(len(files),2)
+        for p,(row,raw) in original.items():
+            self.assertEqual(guard.signature(p.lstat()),row)
+            self.assertEqual(p.read_bytes(),raw)
+        self.assertEqual(set(os.listdir(self.paths[0])),{'journal-v2','staging','staging-receipts'})
+
+    def test_unknown_malformed_and_nonterminal_native_history_refuse(self):
+        cases = [dict(version=3),dict(version=True),dict(publication='foreign'),
+                 dict(attributes={'foreign':'AAAA'}),dict(pack_bindings={'version':1}),
+                 dict(state='publishing',cleaned=False),
+                 dict(pack_bindings=dict(version=1,source='/foreign/source.cbz',destination='/foreign/source.cbz',
+                     owner=dict(issueid='1',comicid='2'),bindings=[dict(pack='d'*64,member='e'*64,
+                     before=dict(issueid='1',comicid='2',kind='issue',phase='confirmed',
+                     destination='/foreign/source.cbz',destination_sha256='b'*64,signature=[1,2,3,4,5]))]))]
+        path = self.paths[1]/('%032x.json'%1)
+        for changes in cases:
+            with self.subTest(fields=tuple(changes)):
+                record=self.record();record.update(changes)
+                self.receipt(self.paths[1],1,record)
+                before=path.read_bytes()
+                with self.assertRaises(guard.Unavailable):readers.quiescent_tagger(self.paths)
+                self.assertEqual(path.read_bytes(),before)
+
+    def test_package_namespace_native_v2_never_looks_up_job_or_runs_constructor(self):
+        import subprocess
+        program=r'''
+import importlib,json,os,pathlib,shutil,sys,tempfile
+source=pathlib.Path(sys.argv[1]);record=json.loads(sys.argv[2])
+with tempfile.TemporaryDirectory() as work:
+ root=pathlib.Path(work);package=root/'mylar';package.mkdir()
+ # Explicit namespace fixture, not a genuine daemon/installed factory claim.
+ (package/'__init__.py').write_text("def __getattr__(name):\n if name=='native_writers':raise AssertionError('native job lookup')\n raise AttributeError(name)\n")
+ for p in source.glob('*.py'):
+  if not p.name.startswith('test_'):shutil.copyfile(p,package/p.name)
+ sys.path.insert(0,str(root));m=importlib.import_module('mylar.publication_identity_readers')
+ paths=tuple(root/n for n in ('modern','journal','staging','receipts'))
+ for p in paths:p.mkdir(mode=0o700)
+ token='a'*32;record['token']=token;receipt=paths[1]/(token+'.json');receipt.write_text(json.dumps(record));receipt.chmod(0o600)
+ before=receipt.read_bytes()
+ owner=importlib.import_module('mylar.tagger_pack');parser=object.__new__(owner.Publisher);parser.root=paths[1]
+ try:parser.read(token)
+ except AssertionError as error:assert str(error)=='native job lookup'
+ else:raise AssertionError('owning context route was not exercised')
+ names,files=m.quiescent_tagger(paths)
+ assert len(files)==1 and receipt.read_bytes()==before
+ assert set(os.listdir(root))=={'mylar','modern','journal','staging','receipts'}
+ print('strict native v2 schema/package route; no native job lookup')
+'''
+        result=subprocess.run([sys.executable,'-I','-B','-c',program,str(HERE),json.dumps(self.record())],capture_output=True,timeout=30)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn(b'no native job lookup',result.stdout)
+
+
 if __name__ == '__main__':
     unittest.main()
