@@ -12,5 +12,18 @@ services:
       # Persist docker-gc state between runs (default STATE_DIR=/var/lib/docker-gc)
       - docker_gc_state:/var/lib/docker-gc
 
+  builder-cache:
+    profiles: ["builder-cache"]
+    labels:
+      logging: "true"
+    image: ${DOCKER_GC_IMAGE:-ghcr.io/bolens/homelab-docker-gc:latest}
+    entrypoint: ["/builder-cache-guard.sh"]
+    restart: "no"
+    env_file:
+      - stack.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - docker_gc_state:/var/lib/docker-gc
+
 volumes:
   docker_gc_state: {}

@@ -133,3 +133,63 @@ Adjust the path and schedule for your environment. Do not commit real cron paths
 2. **Before first deploy:** Ensure `stack.env` exists. On the host, in the stack directory, run `./prepare-stack.sh` or `cp stack.env.example stack.env`. If using **Git**: set the compose path to `stacks/docker-gc/docker-compose.yml`.
 3. **Environment variables** (optional): add `DRY_RUN`, `EXCLUDE_CONTAINERS`, `EXCLUDE_IMAGES` to override defaults. Example: `DRY_RUN=false` to actually remove resources (after testing with `true`).
 4. **Deploy.** The container will run once and exit (restart: no). For periodic cleanup, create a cron job or systemd timer on the host that runs `docker compose run --rm docker-gc` from this stack's directory.
+
+## Optional builder-only capacity guard
+
+The `builder-cache` profile runs a separate shell entrypoint. It never runs the
+Spotify container/image collector, network cleanup or volume cleanup. Existing
+`docker-gc` behavior stays independently configured. No ingress, ports, new host
+mounts or daemon restart are needed. The image includes the Docker Buildx CLI
+plugin; the installed CLI must expose `--max-used-space`, `--min-free-space` and
+`--reserved-space`. Missing options or backend support cause failure, with no
+fallback to a broader prune.
+
+Start with the independent default dry-run:
+
+```sh
+docker compose --profile builder-cache run --rm builder-cache
+```
+
+Review the selected builder and these keys in `stack.env`. Preparation preserves
+an existing `stack.env`, so add missing keys deliberately; do not replace it.
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `BUILDER_CACHE_DRY_RUN` | `true` | Preview command only; `false` explicitly enables this builder-only cleanup. The generic `DRY_RUN` does not enable it. |
+| `BUILDER_CACHE_BUILDER` | `default` | Already running selected builder; this helper neither creates one nor requests `--bootstrap`. |
+| `BUILDER_CACHE_MAX_GIB` | `20` | Target maximum cache GiB. |
+| `BUILDER_CACHE_MIN_FREE_GIB` | `40` | Target free GiB on the BuildKit worker's filesystem. |
+| `BUILDER_CACHE_RESERVED_GIB` | `4` | Minimum retained cache GiB, strictly below the maximum. |
+| `BUILDER_CACHE_MIN_AGE_HOURS` | `168` | Only cache unused for at least this many hours may be reclaimed. |
+
+Space settings accept whole GiB from 1 through 4096 and ages from 24 through
+8760 hours. Cleanup uses only private
+(unshared) cache plus the age filter; it can reclaim unused mutable cache.
+BuildKit protects active leases. It does not remove images or volumes; omit
+`--all` so internal/frontend caches are not broadly included. Keep current,
+rollback and published candidate images available and verify them independently
+after maintenance. Avoid running generic image GC or protected runtime proofs
+concurrently with this job.
+
+Capacity targets are best effort, not a filesystem quota: recent, shared or
+active cache can prevent either target. The free-space option is evaluated by
+BuildKit at its actual storage backend; container `/` free space is not used as
+a substitute for daemon storage. Independently check actual daemon filesystem
+headroom afterward. Backend errors propagate. If the target remains unmet,
+hold new heavy builds or revise policy after review rather than broadening
+cleanup automatically.
+
+For periodic protection, an operator can schedule the exact `run --rm
+builder-cache` command above with existing cron/systemd scheduling after
+reviewing and enabling this mode. The selected builder must already be available
+to the container’s Docker client; nondefault builders may need their own reviewed
+client configuration. This profile adds no such configuration mounts. Run jobs
+sequentially. This manual prune
+policy overrides retention targets for that invocation and does not edit the
+daemon's persistent GC policy. It neither requires a daemon restart nor caps
+one build's temporary peak. A pre-build free-space admission check is a separate
+option when all local build launchers can be coordinated.
+
+Mylar's `DDL_CACHE_MAX_GIB`/`DDL_CACHE_MIN_FREE_GIB` guard controls retained
+application downloads and expansion allocations. This builder-only guard does
+not touch those files or create import ACKs.
