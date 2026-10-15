@@ -22,7 +22,7 @@ import uuid
 import threading
 import weakref
 
-HOST_LEASE_INTERFACE_SHA = '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17'
+HOST_LEASE_INTERFACE_SHA='5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17'
 
 IMAGE = None
 KOMGA = None
@@ -30,7 +30,7 @@ WORKER = None
 PROBE = None
 PROBE_SHA = None
 HARDLINK_KERNEL = None
-HARDLINK_KERNEL_SHA = "393d398e1e08ce147d4f8efa60879b99a910af582fbb6ae70e0f71cc0229d0bf"
+HARDLINK_KERNEL_SHA='06ca57bfeb79f45d1a90a3a88a2f0314d99f70c4592c8ff8b904842725f883d8'
 READY = None
 READY_SHA = None
 PARITY = None
@@ -1457,24 +1457,16 @@ class RefuseRedirect(urllib.request.HTTPRedirectHandler):
         raise Held('library-query-redirect')
 
 
-def fresh_libraries(query_plan, rows, controls, expected_roots):
-    exact(query_plan, ('version', 'kind', 'configuration', 'expected_base_url'))
-    check(query_plan['version'] == 1 and query_plan['kind'] == 'approved-active-komga-library-query', 'query-plan')
-    ref = query_plan['configuration']
-    exact(ref, ('path', 'sha256'))
-    cfg, f = read(ref['path'], ref['sha256'])
-    controls[canonical(ref['path'])] = f
-    base, key = cfg['komga']['url'], cfg['komga']['api_key']
-    u = urllib.parse.urlsplit(base)
-    check(base == query_plan['expected_base_url'] and u.scheme in ('http', 'https')
-          and u.netloc and not u.username and not u.password and not u.query and not u.fragment
-          and type(key) is str and key and key != 'REPLACE_ME', 'private-query-configuration')
+def library_documents(base, key, *, guard=lambda: None, seconds=lambda: 30):
+    """Exactly the existing three GETs; no caller-supplied route or HTTP verb."""
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), RefuseRedirect())
     def get(route):
         check(route in ('/api/v2/users/me', '/api/v1/libraries'), 'only-library-get')
         request = urllib.request.Request(base.rstrip('/') + route, headers={'X-API-Key': key}, method='GET')
-        with opener.open(request, timeout=30) as response:
+        guard()
+        with opener.open(request, timeout=min(30, seconds())) as response:
             raw = response.read(8 * 1024**2 + 1)
+        guard()
         check(len(raw) <= 8 * 1024**2, 'library-json-bound')
         def pairs(items):
             value = {}
@@ -1484,16 +1476,32 @@ def fresh_libraries(query_plan, rows, controls, expected_roots):
             return value
         return json.loads(raw, object_pairs_hook=pairs,
                           parse_constant=lambda _: (_ for _ in ()).throw(Held('library-json-number')))
-    user = get('/api/v2/users/me')
+    user=get('/api/v2/users/me');checked_library_user(user)
+    documents = dict(user=user,libraries=get('/api/v1/libraries'),
+                     repeated_libraries=get('/api/v1/libraries'))
+    checked_library_documents(documents)
+    guard()
+    return documents
+
+
+def checked_library_user(user):
+    """Original unrestricted principal check, before any library request."""
     check(type(user) is dict and {'id', 'roles', 'sharedAllLibraries', 'sharedLibrariesIds',
                                   'labelsAllow', 'labelsExclude', 'ageRestriction'} <= set(user)
           and 'ADMIN' in user.get('roles', []) and user.get('sharedAllLibraries') is True
           and user.get('sharedLibrariesIds') == [] and user.get('labelsAllow') == []
           and user.get('labelsExclude') == [] and user.get('ageRestriction') is None
           and type(user.get('id')) is str and user['id'], 'unrestricted-admin')
-    libraries = get('/api/v1/libraries')
+
+
+def checked_library_documents(documents):
+    """Complete unrestricted-admin and stable full-library DTO predicates."""
+    exact(documents, ('user', 'libraries', 'repeated_libraries'))
+    user = documents['user']
+    checked_library_user(user)
+    libraries = documents['libraries']
     check(type(libraries) is list and 1 <= len(libraries) <= 1000
-          and libraries == get('/api/v1/libraries'), 'complete-stable-library-pair')
+          and libraries == documents['repeated_libraries'], 'complete-stable-library-pair')
     required = {'id', 'root', 'scanOnStartup', 'scanInterval', 'emptyTrashAfterScan', 'convertToCbz',
                 'repairExtensions', 'scanForceModifiedTime', 'scanDirectoryExclusions', 'unavailable'}
     check(all(type(v) is dict and required <= set(v) and type(v['id']) is str and v['id']
@@ -1503,6 +1511,11 @@ def fresh_libraries(query_plan, rows, controls, expected_roots):
                                                  'repairExtensions', 'scanForceModifiedTime', 'unavailable'))
               for v in libraries)
           and len({v['id'] for v in libraries}) == len(libraries), 'library-full-dto')
+    return user, libraries
+
+
+def map_library_documents(documents, rows, expected_roots):
+    user, libraries = checked_library_documents(documents)
     komga = next(r for r in rows if r['Name'] == '/komga')
     mapped = set()
     for value in libraries:
@@ -1521,6 +1534,34 @@ def fresh_libraries(query_plan, rows, controls, expected_roots):
               'every-current-library-forbidden')
         mapped.add(str(actual))
     return {'principal_id': user['id'], 'libraries': libraries, 'mapped_roots': sorted(mapped)}
+
+
+
+def fresh_libraries(query_plan, rows, controls, expected_roots, *, library_observer=None):
+    exact(query_plan, ('version', 'kind', 'configuration', 'expected_base_url'))
+    check(type(query_plan['version']) is int and query_plan['version'] == 1
+          and query_plan['kind'] == 'approved-active-komga-library-query', 'query-plan')
+    if library_observer is None:
+        ref = query_plan['configuration']
+        exact(ref, ('path', 'sha256'))
+        cfg, f = read(ref['path'], ref['sha256'])
+        controls[canonical(ref['path'])] = f
+        base, key = cfg['komga']['url'], cfg['komga']['api_key']
+        u = urllib.parse.urlsplit(base)
+        check(base == query_plan['expected_base_url'] and u.scheme in ('http', 'https')
+              and u.netloc and not u.username and not u.password and not u.query and not u.fragment
+              and type(key) is str and key and key != 'REPLACE_ME', 'private-query-configuration')
+        documents = library_documents(base, key)
+    else:
+        reply = library_observer()
+        exact(reply, ('version', 'kind', 'query_plan_sha256', 'documents', 'native_grant', 'publication_authority'))
+        check(type(reply['version']) is int and reply['version'] == 1
+              and reply['kind'] == 'parent-original-library-query'
+              and reply['query_plan_sha256'] == digest(encode(query_plan))
+              and reply['native_grant'] is False and reply['publication_authority'] is False,
+              'original-host-library-query-reply')
+        documents = reply['documents']
+    return map_library_documents(documents, rows, expected_roots)
 
 
 def lifecycle_module():
@@ -1895,7 +1936,7 @@ class ActiveNFSCanaryObservation:
     def binding(self):
         result=json.loads(encode(self.result));self.close();return result
 
-def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease,roles=None,host_control=None,probe_type=None,epoch_observer=None):
+def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease,roles=None,host_control=None,probe_type=None,epoch_observer=None,library_observer=None):
     if not a.execute:
         return dict(executable=False, native_grant=False, publication_authority=False, actual_library_platform_verified=False)
     original_input_nodes = ancestry([Path(a.input),Path(__file__),*([Path(host_control['path'])] if host_control is not None else [])])
@@ -1934,7 +1975,7 @@ def _execute_factual(a, engine=subprocess.run, lease_type=WriterLease,roles=None
     check(outer['native_controls'] is not None and outer['effective_observer_review'] is not None,
           'explicit-actual-native-and-reviewed-effective-evidence-required')
     try:
-        return _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles,host_control,probe_type,epoch_observer)
+        return _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles,host_control,probe_type,epoch_observer,library_observer)
     except ValueError as error:
         raise Held(str(error)) from None
 
@@ -1969,12 +2010,29 @@ def run_active_host_factual(a,engine,*,interface_module,lease_interface,interfac
           and getattr(engine,'__func__',None) is type(lease_interface.channel).engine,'host-lease-original-child-instance')
     lease_interface.admit()
     check(ancestry([Path(interface_ref['path'])])==initial and fact(interface_ref['path'],HOST_LEASE_INTERFACE_SHA,source=True)==original,'host-lease-interface-before-factory')
-    result=_execute_factual(a,engine,lease_interface.factory,roles,interface_ref,lease_interface.probe,lease_interface.reader_epoch)
+    channel=lease_interface.channel
+    send,receive=type(channel).send,type(channel).receive
+    send_code,receive_code=send.__code__,receive.__code__
+    def library_observer():
+        lease_interface.admit()
+        check(not getattr(lease_interface,'acquired',False) or lease_interface.released,
+              'host-library-query-outside-Writer-only')
+        check(type(channel).send is send and send.__code__ is send_code
+              and type(channel).receive is receive and receive.__code__ is receive_code,
+              'host-library-original-channel-methods')
+        sequence=channel.send('nfs-library-query',{})
+        result=channel.receive(sequence)
+        lease_interface.admit()
+        check(type(channel).send is send and send.__code__ is send_code
+              and type(channel).receive is receive and receive.__code__ is receive_code,
+              'host-library-original-channel-methods')
+        return result
+    result=_execute_factual(a,engine,lease_interface.factory,roles,interface_ref,lease_interface.probe,lease_interface.reader_epoch,library_observer)
     check(type(result) is ActiveNFSCanaryObservation,'host-lease-genuine-child-canary')
     result.close();lease_interface.admit();return result
 
 
-def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles=None,host_control=None,probe_type=None,epoch_observer=None):
+def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_type, entry,roles=None,host_control=None,probe_type=None,epoch_observer=None,library_observer=None):
     """Checked operational adapter. Missing actual proof refuses before writes."""
     module = lifecycle_module()
     exact(scope, ('version', 'kind', 'approved_disposable_diagnostic', 'observed',
@@ -2021,7 +2079,19 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
             check(current.get(str(path))==expected,'current-role-retained-ancestor')
             admission[str(path)]=expected
     controls.update(active_native_controls(outer['native_controls'], a.source_sha256))
-    effective_controls, runtime, report = active_effective_controls(outer['effective_observer_review'], roots)
+    review_ref=outer['effective_observer_review']
+    if type(review_ref) is dict and set(review_ref)=={'path','sha256'}:
+        effective_review, review_fact=read(review_ref['path'],review_ref['sha256'])
+        exact(effective_review,('producer','parent_source','report','ack','runtime','acceptance','parent_ack'))
+        controls[canonical(review_ref['path'])]=review_fact
+        for path,node in ancestry([Path(review_ref['path']),*[Path(ref['path']) for ref in effective_review.values()]]).items():
+            check(path not in admission or admission[path]==node,'effective-review-original-ancestor');admission[path]=node
+    else:
+        # Historical local caller accepts the original inline review. The
+        # configured host route requires its sealed projected document ref.
+        check(host_control is None,'configured-effective-review-original-ref-required')
+        effective_review=review_ref
+    effective_controls, runtime, report = active_effective_controls(effective_review, roots)
     controls.update(effective_controls)
     effective_absent = tuple(Path(p) for p in report.get('optional_absent_scopes', {}))
     effective_absent_parents = {canonical(p.parent): stamp(canonical(p.parent)) for p in effective_absent}
@@ -2029,7 +2099,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     controls[READY] = fact(READY, READY_SHA, source=True)
     controls[PARITY] = fact(PARITY, PARITY_SHA, source=True)
     controls[MAP] = fact(MAP, MAP_SHA)
-    check(scope['sources']['current_komga_effective_scope'] == outer['effective_observer_review']['report'],
+    check(scope['sources']['current_komga_effective_scope'] == effective_review['report'],
           'exact-effective-scope-source')
     query_plan, _ = read(scope['sources']['current_komga_libraries']['path'],
                          scope['sources']['current_komga_libraries']['sha256'])
@@ -2088,7 +2158,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
             observed['publication']['state'] == 'held'
             and observed['publication']['reason'] == 'writer-busy'
             and observed['publication']['census'] is None)
-    libraries = fresh_libraries(query_plan, rows, controls, roots)
+    libraries = fresh_libraries(query_plan, rows, controls, roots,library_observer=library_observer)
     check(same_active(observe_active()[0]), 'active-library-query-bracket')
     ancestors = ancestry([*controls, output, *roots])
     check(all(ancestors.get(p) == v for p, v in admission.items() if p in ancestors), 'active-evidence-ancestor-drift')
@@ -2163,7 +2233,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
     lease.pulse()
     if not gated:
         check(same_active(observe_active()[0]),'post-probe-active-bracket')
-        check(fresh_libraries(query_plan,observe_active()[1],controls,roots)==libraries,'post-probe-library-scopes-unchanged')
+        check(fresh_libraries(query_plan,observe_active()[1],controls,roots,library_observer=library_observer)==libraries,'post-probe-library-scopes-unchanged')
     fixture = canonical(parent['path']) / core['fixture_name']
     accepted, af = read(output / 'probe' / 'acceptance.json', result['acceptance_sha256'])
     controls[output / 'probe' / 'acceptance.json'] = af
@@ -2206,7 +2276,7 @@ def _run_owned_lifecycle(a, outer, of, scope, sf, own, helper, engine, lease_typ
         check(type(result) is dict and result['probe_verified'] is True
               and result['acceptance_sha256']==pending['acceptance_sha256'],'postrelease-original-probe-terminal')
         check(same_active(observe_active()[0]),'postrelease-original-active-bracket')
-        check(fresh_libraries(query_plan,observe_active()[1],controls,roots)==libraries,'postrelease-original-library-scopes')
+        check(fresh_libraries(query_plan,observe_active()[1],controls,roots,library_observer=library_observer)==libraries,'postrelease-original-library-scopes')
     controls.update(getattr(lease, 'records', {}))
     accepted_operation = emit('active-acceptance.json', {
         'version': 1, 'kind': 'active-owned-disposable-nfs-acceptance',

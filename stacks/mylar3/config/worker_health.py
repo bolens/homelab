@@ -14,6 +14,15 @@ def snapshot():
     return _snapshot()
 
 
+def _cache_policy():
+    try:
+        from mylar import cache_admission
+        return cache_admission.policy_snapshot()
+    except (ImportError, OSError, ValueError):
+        # Health remains factual; missing/unavailable policy grants no staging.
+        return None
+
+
 def _snapshot():
     import mylar
     from mylar import db, queue_control, cooldown_health, workflow
@@ -77,6 +86,7 @@ def _snapshot():
                 for name in files
             )
     return {
+        "cache_policy": _cache_policy(),
         "completed": completed,
         "queues": queues,
         "enabled": enabled,

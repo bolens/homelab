@@ -16,6 +16,7 @@ MAX=16*1024**2
 _SEALS=weakref.WeakKeyDictionary()
 _SESSION_SEALS=weakref.WeakKeyDictionary()
 _SESSION_PUMPS=weakref.WeakKeyDictionary()
+_EXITED_PUMPS=weakref.WeakKeyDictionary()
 class Held(ValueError):pass
 
 def need(v,r):
@@ -94,10 +95,27 @@ class OriginalPump:
             self.check();need(not self.pending,'nfs-pump-trailing-frame')
             result=self.process.wait(timeout=max(.001,self.deadline-time.monotonic()))
             self.check();need(result==0,'nfs-pump-child-exit')
-            for stream in self.streams:stream.close()
-            self.finished=True
+            original=_SEALS[self]
+            for stream in original[1]:stream.close()
+            need(_SEALS.get(self) is original and original==(self.process,self.streams,self.descriptors,self.pid,self.deadline,self.guard)
+                 and self.process.pid==original[3] and self.process.returncode==0
+                 and (self.process.stdin,self.process.stdout,self.process.stderr)==original[1]
+                 and all(stream.closed for stream in original[1]),'nfs-pump-original-successful-exit')
+            self.finished=True;_EXITED_PUMPS[self]=(original,0)
         except BaseException:
             self.failed=True;raise
+
+    def successful_exit(self):
+        """Closed original transport only; no new work or elapsed-deadline bypass."""
+        value=_EXITED_PUMPS.get(self)
+        need(self.finished and not self.failed and value is not None,'nfs-pump-no-successful-exit')
+        original,result=value
+        need(result==0 and _SEALS.get(self) is original
+             and original==(self.process,self.streams,self.descriptors,self.pid,self.deadline,self.guard)
+             and self.process.pid==original[3] and self.process.returncode==0
+             and (self.process.stdin,self.process.stdout,self.process.stderr)==original[1]
+             and all(stream.closed for stream in original[1]),'nfs-pump-successful-exit-originals')
+        return value
 
 class RetainedChild:
     """Finite existing Parent dialogue; no serialized canary reconstruction."""
@@ -145,6 +163,8 @@ class RetainedChild:
                 need(type(frame) is dict and set(frame)=={'type','nonce','sequence','payload'},'nfs-session-frame')
                 if frame['type']=='nfs-role-namespace':
                     response=self.owner.nfs_role_namespace_reply(frame);self.pump.write(response);continue
+                if frame['type']=='nfs-library-query':
+                    response=self.owner.nfs_library_query_reply(frame);self.pump.write(response);continue
                 if frame['type']=='nfs-reader-epoch':
                     response=self.owner.nfs_reader_epoch_reply(frame);self.pump.write(response);continue
                 if frame['type'] in ('nfs-engine','nfs-lease','nfs-probe'):
@@ -178,6 +198,21 @@ class RetainedChild:
         need(original is not None and original[0] is self and original[1]==self.cid and current['State']['Pid']==original[2] and self.g['encode'](self.g['lifecycle_state'](current))==original[3],'nfs-session-original-running-epoch')
         ticks=int(self.g['Path']('/proc/'+str(original[2])+'/stat').read_text().rsplit(')',1)[1].split()[19]);need(ticks==original[4],'nfs-session-original-running-starttick')
         self.close();return current
+
+    def successful_exit(self):
+        """Only a finished original release dialogue supplies this local witness."""
+        need(self.state=='finished' and _SESSION_PUMPS.get(self) is self.pump,'nfs-session-release-exit-required')
+        need(_SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code)
+             and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output),'nfs-session-exit-original-seal')
+        value=self.pump.successful_exit()
+        self.owner.left();self.owner.nfs_host_modules();self.g['read'](self.packet_ref)
+        need(self.owner.generated.get(self.packet_ref['path'])==self.packet_ref
+             and self.lease_replies.done is True and self.lease_replies.lease.physical_exit() is True
+             and self.lease_replies.lease.channel.released is True and self.lease_replies.lease.channel.aborted is False,'nfs-session-complete-physical-release')
+        need(self.state=='finished' and _SESSION_SEALS.get(self)==(*self.seal,self.created_static,self.lease_class,self.abort_method,self.abort_code)
+             and self.seal==(self.owner,self.g,self.cid,self.engine_replies,self.lease_replies,self.probe_replies,(self.packet_ref['path'],self.packet_ref['sha256'],tuple(self.packet_ref['signature9'])),self.output)
+             and _SESSION_PUMPS.get(self) is self.pump and self.pump.successful_exit()==value,'nfs-session-exit-final-originals')
+        return (self,self.owner,self.cid,self.original_pid,self.created_static,value)
 
     def ready(self):
         need(self.state=='starting','nfs-session-no-replay')

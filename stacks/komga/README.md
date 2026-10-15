@@ -588,6 +588,11 @@ receipt; replacement bytes or added members cannot inherit earlier completion.
 Legacy receipts require their original source hashes and member set to match.
 Deploy matching Mylar and worker images before resuming this workflow.
 
+Pack staging requires a matching Mylar typed `getHealth.cache_policy` snapshot, collected before the shared Writer and consumed locally under it. The worker validates the existing config, original lock and physical cache roots through the existing `/mylar` and `/ddl-cache` mounts; it does not read budget defaults from `config.ini`, add mounts or create the native lock. Admitted normal Mylar startup initializes that lock. Missing/stale policy or an unmapped root holds staging.
+
+Conversions finish and pass preservation checks in independent `/state` before their exact output size plus metadata/block overhead is reserved in shared cache. The copy uses exclusive partials and never overwrites an existing output. Failed and old stages remain retained; independent state needs its own storage policy. A complete verified output may be reused without growth above capacity, while a new copy still holds at the configured maximum. The cache lock is released before native import/ACK dispatch. This is source behavior, not evidence that the configured T030 live policy has passed.
+
+
 Filename and metadata volume-year conflicts remain for review before catalog
 lookup; an issue publication year is not treated as a volume start year.
 Filename volume ordinals such as `v2` match only an explicitly matching catalog
@@ -633,6 +638,10 @@ revalidation without requiring retained sources or worker receipts. Worker repor
 refresh translates recorded destinations through the configured native/worker
 mount mappings and checks their full hashes and current catalog ownership.
 Rejected proofs preserve their original history and remain for review.
+
+The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
+
+Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.
 
 ## Verified release naming
 

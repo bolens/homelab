@@ -126,6 +126,46 @@ def checked_file(path, expected):
         os.close(parent)
 
 
+def mount_namespace(host, rows, host_root, child_root, expected9, actual9):
+    """Join one original export to this exact owned RW subdirectory bind."""
+    from pathlib import PurePosixPath
+    keys={'source','target','fstype','fsroot','options','maj:min'}
+    need(type(host) is dict and set(host)==keys and type(rows) is dict
+         and set(rows)=={'source','target'},'namespace-mount-schema')
+    def absolute(value):
+        need(type(value) is str and value.startswith('/') and '\\' not in value
+             and '\0' not in value and '..' not in value.split('/')
+             and str(PurePosixPath(value))==value,'namespace-canonical-path')
+        return PurePosixPath(value)
+    for row in (host,*rows.values()):
+        need(type(row) is dict and set(row)==keys and all(type(v) is str and v for v in row.values())
+             and row['fstype']=='nfs4','namespace-nfs-row')
+        absolute(row['target']);absolute(row['fsroot'])
+    original=absolute(host_root);target=absolute(child_root);mountpoint=absolute(host['target'])
+    need(original!=mountpoint and mountpoint in original.parents,'namespace-selected-host-subtree')
+    expected_root=str(absolute(host['fsroot'])/original.relative_to(mountpoint))
+    def export(row):
+        suffix='['+row['fsroot']+']'
+        source=row['source']
+        return source[:-len(suffix)] if source.endswith(suffix) else source
+    need(type(expected9) in (list,tuple) and len(expected9)==9
+         and all(type(v) is int for v in expected9)
+         and type(actual9) in (list,tuple) and list(actual9)==list(expected9)
+         and expected9[0]>0 and expected9[1]>0 and stat.S_ISDIR(expected9[5])
+         and stat.S_IMODE(expected9[5])==0o700 and expected9[6]==1000,
+         'namespace-original-root9')
+    need(host['maj:min']==str(os.major(expected9[0]))+':'+str(os.minor(expected9[0])),'namespace-original-device-number')
+    need(rows['source']==rows['target'],'namespace-one-child-bind')
+    row=rows['source']
+    need(row['target']==str(target) and row['fsroot']==expected_root
+         and export(row)==export(host) and row['maj:min']==host['maj:min']
+         and row['options']==host['options']
+         and 'rw' in row['options'].split(',') and 'ro' not in row['options'].split(','),
+         'namespace-original-export-bind')
+    return dict(version=1,kind='original-nfs-bind-namespace-v1',host=copy.deepcopy(host),
+                rows=copy.deepcopy(rows),host_root=str(original),child_root=str(target),root9=list(expected9))
+
+
 def mount(path):
     r = subprocess.run(['findmnt', '--json', '--target', str(path), '--output',
                         'SOURCE,TARGET,FSTYPE,FSROOT,OPTIONS,MAJ:MIN'], capture_output=True,
@@ -147,6 +187,17 @@ def nfs_magic(path):
     value = Statfs(); libc = ctypes.CDLL(None, use_errno=True)
     need(libc.statfs(os.fsencode(path), ctypes.byref(value)) == 0, 'statfs')
     return value.kind
+
+
+def observe_namespace(plan):
+    root=canonical(plan['root']);src=root/'source';dst=root/'target'
+    original=tuple(plan['root9']);actual=nine(os.lstat(root))
+    rows={'source':mount(src),'target':mount(dst)}
+    need(nfs_magic(src)==nfs_magic(dst)==0x6969,'namespace-actual-nfs-statfs')
+    # Current maintained Parent admits this exact host spelling in both namespaces.
+    proof=mount_namespace(plan['mount'],rows,str(root),str(root),original,actual)
+    need(nine(os.lstat(root))==original,'namespace-final-original-root9')
+    return proof
 
 
 class HardlinkCanaryObservation:
@@ -188,8 +239,11 @@ class HardlinkCanaryObservation:
         value = copy.deepcopy(self._binding); self.close(); return value
 
 
-def run(plan_ref, source_ref):
+def run(plan_ref, source_ref, *, namespace=None):
     """Fresh single diagnostic; existing output/fixtures refuse, never replay."""
+    namespace_caller=namespace
+    namespace_tape=None if namespace is None else encode(namespace)
+    if namespace is not None:namespace=decode(namespace_tape)
     started = time.monotonic()
     own = Path(__file__).absolute(); inp = Path(plan_ref['path'])
     nodes = ancestors([own, inp])
@@ -228,7 +282,11 @@ def run(plan_ref, source_ref):
     roots = {str(p): nine(os.lstat(p)) for p in protected}
     need(os.listdir(root) == ['source', 'target'] or set(os.listdir(root)) == {'source', 'target'}, 'new-root')
     need(not os.listdir(src) and not os.listdir(dst), 'empty-parents')
-    need(mount(src) == plan['mount'] == mount(dst) and nfs_magic(src) == nfs_magic(dst) == 0x6969, 'same-nfs-export')
+    if namespace is None:
+        need(mount(src) == plan['mount'] == mount(dst) and nfs_magic(src) == nfs_magic(dst) == 0x6969, 'same-nfs-export')
+    else:
+        need(type(namespace) is dict and namespace==observe_namespace(plan),'namespace-original-local-rows')
+        need(encode(namespace_caller)==namespace_tape,'namespace-original-caller-tape')
     original = tuple(files.items()) + tuple(roots.items()) + ((str(root), root9), (str(src), src9), (str(dst), dst9))
     raw_close(original, tuple(nodes.items()), ((str(root), ('source', 'target')), (str(src), ()), (str(dst), ())), ())
     fds = []
