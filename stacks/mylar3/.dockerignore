@@ -85,6 +85,8 @@ config/test_fixtures/cache_admission/**
 !config/reader_recovery/CONTRACT-archive-proof.md
 !config/reader_recovery/CONTRACT-archive-repair.md
 !config/reader_recovery/CONTRACT-nfs-factual.md
+!config/reader_recovery/CONTRACT-nfs-mount-namespace.md
+!config/reader_recovery/CONTRACT-stopped-nfs-handoff.md
 !config/reader_recovery/CONTRACT-terminal.md
 !config/reader_recovery/README.md
 !config/reader_recovery/_terminal_reconstruction_fixtures/CONTRACT-installed-terminal.md
@@ -93,6 +95,7 @@ config/test_fixtures/cache_admission/**
 !config/test_fixtures/retained_pack_worker/
 config/test_fixtures/retained_pack_worker/**
 !config/test_fixtures/retained_pack_worker/archive_repair_handoff.py
+!config/test_fixtures/retained_pack_worker/cache_reservation.py
 !config/test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py
 !config/test_fixtures/retained_pack_worker/check_retained_pack_export.py
 !config/test_fixtures/retained_pack_worker/combined_handoff.py
@@ -129,6 +132,7 @@ config/test_fixtures/retained_pack_worker/**
 !config/test_fixtures/retained_pack_worker/retained_pack_operations.py
 !config/test_fixtures/retained_pack_worker/source-pins.json
 !config/test_fixtures/retained_pack_worker/writer_cycle.py
+!config/test_fixtures/retained_pack_worker/worker_cache.py
 
 !config/test_fixtures/retained_pack_worker/check_preproof_session.py
 !config/test_fixtures/retained_pack_worker/retained_pack_control.py

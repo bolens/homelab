@@ -84,7 +84,7 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - **FR-014**: Reader-owned repeat retirement must bind one complete finite native batch and the continuously verified stopped reader, preserve unrelated namespace/catalog/reader facts, and support exact rollback with retained originals and independently verified restore custody.
 - **FR-015**: Durable negative-retirement pending state must hold every ordinary native, worker and archive preparation purpose until the exact owning aggregate proves terminal acceptance. Unknown interruptions cannot grant replay or clear the hold.
 
-- **FR-016**: Bound new DDL cache admission with an explicit configurable byte budget and processing headroom; retain unresolved downloads and review evidence, prevent another capture of the same unresolved delivery, and report the capacity hold without fabricating import acknowledgement. Verified cleanup, not age alone, permits retained-source deletion.
+- **FR-016**: Bound new DDL cache admission and participating worker `.mylar-pack-*` output staging with the same explicit configurable byte budget and processing headroom; retain unresolved downloads and review evidence, prevent another capture of the same unresolved delivery, and report the capacity hold without fabricating import acknowledgement. Verified cleanup, not age alone, permits retained-source deletion.
 
 ### Key Entities
 

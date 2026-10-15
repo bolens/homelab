@@ -492,7 +492,7 @@ results do not authorize reader resume, indexing, cleanup or historical import.
 The disabled standalone retained-download unit adds canonical
 `publication_retained_standalone.py` and `comic_retained_standalone_action.py`
 through `patch_publication_retained_standalone.py`. The checked existing SDK
-closure has 78 modules, including the four device-recovery helpers; the prospective Reader cohort remains 25 modules. The
+closure has 80 modules, including four device-recovery and two shared-cache helpers; the prospective Reader cohort remains 25 modules. The
 action is sourced from `reader_recovery/`, but only its exact native module and
 the owning kernel enter the final Mylar package. The host standalone backup and
 parent, source manifests and fixtures stay outside that package.

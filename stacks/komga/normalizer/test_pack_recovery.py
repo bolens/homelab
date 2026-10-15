@@ -264,6 +264,23 @@ class PackTest(unittest.TestCase):
         self.m.idle=Mock(return_value=True)
         self.m.import_submitted=False
         self.m.mylar=Mock(return_value={'phase':'review'})
+        # Copy/conversion fixtures model an explicit finite reviewed policy.
+        # NativeBatch/current Writer admission is covered by test_worker_cache_batch.
+        from worker_cache import Policy
+        import cache_reservation as reservation
+        config_file=self.root/'config.ini';config_file.write_text('[DDL]\nddl_cache_max_gib=20\n');config_file.chmod(0o600)
+        lock=self.root/'cache-admission-v1.lock';lock.touch(mode=0o600)
+        class CopyPolicy(Policy):
+            def __init__(self, maintenance):
+                self.data=config_file.parent;self.roots=(Path(maintenance.settings['ddl_cache']),);self.ddl=self.roots[0]
+                self.maximum=20*reservation.GIB;self.reserve=1
+                self.tape={p:reservation.identity(p.stat()) for p in (config_file,lock)}
+            def destination_allowed(self,destination):
+                self.check();return destination==self.ddl or self.ddl in destination.parents
+            def check(self):
+                if any(reservation.identity(p.lstat())!=row for p,row in self.tape.items()):
+                    raise reservation.Held('Original fixture policy changed')
+        capacity=patch('worker_cache.Policy',CopyPolicy);capacity.start();self.addCleanup(capacity.stop)
         self.packs=Packs(self.m)
         self.pack=self.cache/'pack';self.pack.mkdir()
         self.record={'id':'a'*64,'ddl_id':'1','source':'/cache/pack','name':'Test pack'}

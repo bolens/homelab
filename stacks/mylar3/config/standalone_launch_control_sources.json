@@ -5,6 +5,16 @@
     "target": "fixtures/child/source/archive_monitor.py"
   },
   {
+    "path": "cache_admission.py",
+    "target": "fixtures/child/source/cache_admission.py",
+    "sha256": "ba2c06ea40173676b743eb1ba824564e453c569cf213ee71fcc849492eff2e6a"
+  },
+  {
+    "path": "cache_reservation.py",
+    "target": "fixtures/child/source/cache_reservation.py",
+    "sha256": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf"
+  },
+  {
     "path": "combined_cleanup.py",
     "sha256": "9d6a91a25dbf6a84d4c937c5536874be976e0383001d6a97eca9a3c0a9f537df",
     "target": "fixtures/child/source/combined_cleanup.py"
@@ -61,7 +71,7 @@
   },
   {
     "path": "native_writers.py",
-    "sha256": "43622672cbc3ff49edc45c905f3a57883213102a5ec7203b3a1233ac2ef916fd",
+    "sha256": "98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74",
     "target": "fixtures/child/source/native_writers.py"
   },
   {
@@ -461,7 +471,7 @@
   },
   {
     "path": "test_fixtures/authenticated_standalone/fixtures/child/source/test_standalone_resources.py",
-    "sha256": "7a6ba5e2a7369ed758c6c99c4f2a9870dfcdacef7764c1c0b7411f7bbb3a3c18",
+    "sha256": "ce673e83a9e293d473c8b8b57003f0cd9d4c1f81e378c74bd397ac3ab6d3c24b",
     "target": "fixtures/child/source/test_standalone_resources.py"
   },
   {

@@ -10,7 +10,7 @@ These public host tools use temporary read-only source mounts into a checked sel
 
 `comic_negative_terminal_observer.py` observes physical files and SQLite facts from an owning preimage. The provider's read-only terminal reconstruction checks the canonical lifecycle and controller/writer types and closes original census, file, node and absence vectors after the last helper, before ACK. It grants no mutation or reader-resume capability. The detached installed terminal CLI harness has passed factual-forward and late database drift/no-ACK scenarios through the genuine canonical factories. Its parent observations and durable declarations are explicitly synthetic; protected process custody, owning mutation provenance and live acceptance remain unproved.
 
-The private-copy runner executes 807 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Eight owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not release the live hold.
+The private-copy runner executes 904 recovery checks across the explicit source-manifest suites, including predecessor mechanical tests also exercised elsewhere. The earlier 282- and 374-check results remain historical evidence. Eight owning runner controls check collection and original-source preservation. Historical fixture modules are never production SDK imports. Installed source parity, genuine factories, protected runtime, NFS and full library/DDL acceptance are separate; these checks do not release the live hold.
 
 The distinct `comic_archive_repair_action.py` tool and pure protocol builder
 use eight archive-only control roles. One held Writer owns preparation, reader
@@ -54,6 +54,27 @@ Parent and worker observation; the effective configured overlay/source map is
 separate from base-image parity. The committed historical source-only manifest
 records the accepted 3166 required100/known175 graph. It is not evidence for a
 new corrective image; original selected-image/source/cohort proofs are required.
+
+The optional installer worker profile requires three original-bound private inputs:
+the reviewed worker source, its exact one-module image source map, and selected
+Linux/amd64 image metadata. It derives plan12 worker constants only for that
+explicit profile; the ordinary installer and source defaults remain disabled.
+Metadata/map validation is separate from actual installed source parity.
+
+Configured NFS library observation uses the retained authenticated pipe with an
+empty selector and three fixed host GETs: the current unrestricted user, then
+the complete library list twice. The host seals the original endpoint/config,
+reader epoch and existing native Writer lock. A nonblocking shared lock excludes
+exclusive Writer acquisition throughout those GETs; this is read-side exclusion,
+not Writer admission. Only pre-acquisition and proven physical-release phases
+can query; changed replies, lost pipes and unknown phases refuse. The child
+remains network-isolated and repeats complete DTO/root validation. Its effective
+review input projects exactly seven file references while preserving original
+report, runtime, ACK and acceptance bytes and hash joins. Embedded report paths
+must already be available on the declared same-path protected read-only mounts.
+Configured installation, real container/NFS geometry, fresh observer evidence,
+worker source parity and connected lifecycle acceptance remain unproved by the
+source controls.
 
 Root-private originals retain full file9/hash/ancestor5. The owning finite child
 projection produces distinct UID1000 private copies and readonly input/Birth/
@@ -116,8 +137,9 @@ Three configured-base generation controls raise804 to807 across the same56 suite
 
 
 Device-recovery packaging extends the current existing SDK closure from 74 to
-78 modules and the known native base from 175 to 179. The 100 required SDK names
-and 25 Reader cohort modules are unchanged. The four new helpers are installed
+78 modules and the known native base from 175 to 179. Shared-cache packaging
+then extends that closure to 80 modules, the known base to 180, and required SDK
+names to 102. The 25 Reader cohort modules are unchanged. The four new helpers are installed
 through the native publication adapter. Current source maps include their exact
 bytes and the portable recovery controls. Historical expectations remain
 unchanged. Installed parity and actual backup, migration and reader acceptance

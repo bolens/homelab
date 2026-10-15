@@ -263,30 +263,52 @@ class Packs:
         return receipt, value
 
     def prepared(self, member, directory):
+        from worker_cache import Policy, publish, conversion
+        import cache_reservation
         source = Path(member['source'])
+        source9=cache_reservation.identity(os.lstat(source))
         if identity(source) != member['identity'] or digest(source) != member['sha256']:
             raise ValueError('Source version changed')
         info = self.m.info(source)
         if not info['page_count']:
             raise ValueError('Not a comic archive; retained for review')
+        policy = Policy(self.m)
+        if type(member['id']) is not str or re.fullmatch('[0-9a-f]{64}', member['id']) is None:
+            raise ValueError('Exact pack member identity required')
         stage = self.cache / ('.mylar-pack-' + member['id'])
-        stage.mkdir(exist_ok=True, mode=0o700)
         output = stage / (source.name[:-len(archive_suffix(source))] + '.cbz')
-        if not output.exists():
-            required = source.stat().st_size * 3
-            if source.suffix.lower() == '.pdf':
-                from pdf_conversion import derivative
-                required = derivative(self.worker, source).stat().st_size * 2
-            if shutil.disk_usage(stage).free < required + 128 * 1024**2:
-                raise ValueError('Insufficient conversion space')
-            if source.suffix.lower() == '.cbz' and zipfile.is_zipfile(source):
-                shutil.copyfile(source, output)
-                with output.open('rb') as stream:
-                    os.fsync(stream.fileno())
-            else:
-                self.worker.convert_tool('comic-to-cbz', '--apply', '--output', output, source)
-        if not preserves(info, self.m.info(output)):
-            raise ValueError('Converted content differs')
+        if os.path.lexists(output):
+            # Existing-only recovery remains available at a saturated cache.
+            with policy.allocation(stage, 0, nodes=0):
+                if not scoped_file(output, [self.cache]) or not preserves(info, self.m.info(output)):
+                    raise ValueError('Converted content differs')
+        else:
+            # Conversion expansion is unknown. Finalize and verify independently
+            # before reserving its exact bytes in the native cache ledger.
+            def make(prepared):
+                required = source.stat().st_size * 3
+                if source.suffix.lower() == '.pdf':
+                    from pdf_conversion import derivative
+                    required = derivative(self.worker, source).stat().st_size * 2
+                if shutil.disk_usage(prepared.parent).free < required + 128 * 1024**2:
+                    raise ValueError('Insufficient independent conversion space')
+                if source.suffix.lower() == '.cbz' and zipfile.is_zipfile(source):
+                    with source.open('rb') as original, prepared.open('xb') as target:
+                        shutil.copyfileobj(original, target, 1024 * 1024)
+                        target.flush();os.fsync(target.fileno())
+                else:
+                    self.worker.convert_tool('comic-to-cbz', '--apply', '--output', prepared, source)
+            def verify(prepared):
+                if not preserves(info,self.m.info(prepared)):
+                    raise ValueError('Converted content differs')
+            with conversion(policy,directory,member,source9,output.name,make,verify) as (prepared,finalized):
+                if identity(source) != member['identity'] or digest(source) != member['sha256']:
+                    raise ValueError('Source version changed during conversion')
+                publish(policy, prepared, stage, output)
+                if digest(output) != finalized or not preserves(info, self.m.info(output)):
+                    raise ValueError('Copied conversion differs')
+        if identity(source) != member['identity'] or digest(source) != member['sha256']:
+            raise ValueError('Source version changed during staging')
         member['kind'] = kind(source, info)
         member['prepared'] = str(output)
         if 'original_metadata' not in member:

@@ -11,12 +11,12 @@ import select
 import sys
 import time
 
-KERNEL_SHA='393d398e1e08ce147d4f8efa60879b99a910af582fbb6ae70e0f71cc0229d0bf'
+KERNEL_SHA='06ca57bfeb79f45d1a90a3a88a2f0314d99f70c4592c8ff8b904842725f883d8'
 
 def nine(z):
     return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
 
-def wait_original_execute(token,seconds,source_sha,input_stream=sys.stdin,output_stream=sys.stdout):
+def wait_original_execute(token,seconds,source_sha,input_stream=sys.stdin,output_stream=sys.stdout,*,namespace=None):
     """Original FIFOs only. This ACK grants no canary/publication authority."""
     if type(token) is not str or re.fullmatch('[a-f0-9]{64}',token) is None or type(seconds) is not int or not 1<=seconds<=120:raise ValueError('probe-original-gate-input')
     streams=(input_stream,output_stream);original=tuple((x.fileno(),(lambda z:(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid))(os.fstat(x.fileno()))) for x in streams)
@@ -27,7 +27,9 @@ def wait_original_execute(token,seconds,source_sha,input_stream=sys.stdin,output
         for stream,(fd,v) in zip(streams,original):
             z=os.fstat(fd)
             if stream.fileno()!=fd or (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise ValueError('probe-original-gate-FD')
-    ready=(json.dumps(dict(kind='original-nfs-probe-gate',state='prepared',token=token,source_sha256=source_sha,native_grant=False,publication_authority=False),sort_keys=True)+'\n').encode()
+    ack=dict(kind='original-nfs-probe-gate',state='prepared',token=token,source_sha256=source_sha,native_grant=False,publication_authority=False)
+    if namespace is not None:ack['namespace']=namespace
+    ready=(json.dumps(ack,sort_keys=True)+'\n').encode()
     close()
     if not select.select([],[original[1][0]],[],max(0,deadline-time.monotonic()))[1]:raise ValueError('probe-original-gate-deadline')
     close()
@@ -63,8 +65,13 @@ def run(input_path,input_sha,source_sha,kernel_path,*,defer_execute=False):
     ownraw,kraw,raw=(read(p,v) for p,(_,v) in zip(paths,files))
     if hashlib.sha256(ownraw).hexdigest()!=source_sha or hashlib.sha256(kraw).hexdigest()!=KERNEL_SHA or hashlib.sha256(raw).hexdigest()!=input_sha:raise ValueError('child-source')
     if type(defer_execute) is not bool:raise ValueError('probe-original-gate-mode')
+    module=types.ModuleType('checked_hardlink_kernel');module.__file__=str(kernel)
+    exec(compile(kraw,str(kernel),'exec'),module.__dict__)
+    namespace=None
     if defer_execute:
-        plan=json.loads(raw);wait_original_execute(input_sha,plan['seconds'],source_sha)
+        plan=json.loads(raw);namespace=module.observe_namespace(plan)
+        namespace_tape=json.dumps(namespace,sort_keys=True,separators=(',',':'),allow_nan=False)
+        wait_original_execute(input_sha,plan['seconds'],source_sha,namespace=namespace)
         # Original input/kernel/source tapes close after gate callbacks, before kernel.
         for path,v in files:
             z=os.lstat(path)
@@ -72,9 +79,8 @@ def run(input_path,input_sha,source_sha,kernel_path,*,defer_execute=False):
         for path,v in nodes.items():
             z=os.lstat(path)
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=v:raise ValueError('probe-original-gate-ancestor5')
-    module=types.ModuleType('checked_hardlink_kernel');module.__file__=str(kernel)
-    exec(compile(kraw,str(kernel),'exec'),module.__dict__)
-    observation=module.run(dict(path=str(inp),sha256=input_sha,signature9=files[2][1]),dict(path=str(kernel),sha256=KERNEL_SHA,signature9=files[1][1]))
+    if namespace is not None and json.dumps(namespace,sort_keys=True,separators=(',',':'),allow_nan=False)!=namespace_tape:raise ValueError('probe-original-namespace-tape')
+    observation=module.run(dict(path=str(inp),sha256=input_sha,signature9=files[2][1]),dict(path=str(kernel),sha256=KERNEL_SHA,signature9=files[1][1]),**({'namespace':namespace} if namespace is not None else {}))
     value=observation.binding
     report=Path(json.loads(raw)['root'])/'result.json'
     report9=nine(os.lstat(report));report_raw=read(report,report9)

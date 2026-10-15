@@ -77,7 +77,7 @@
       "owning_adapters": [
         "patch_media_writers.py"
       ],
-      "tracked_source_sha256": "43622672cbc3ff49edc45c905f3a57883213102a5ec7203b3a1233ac2ef916fd"
+      "tracked_source_sha256": "98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74"
     },
     "ordinary_import_continuity": {
       "owning_adapters": [
@@ -469,6 +469,18 @@
         "patch_workflow.py"
       ],
       "tracked_source_sha256": "2c9417711d11b0294bf3d01ee18ab76433c3c3c0030cba6a9e96055c7f28fb3f"
+    },
+    "cache_admission": {
+      "owning_adapters": [
+        "patch_cache_admission.py"
+      ],
+      "tracked_source_sha256": "ba2c06ea40173676b743eb1ba824564e453c569cf213ee71fcc849492eff2e6a"
+    },
+    "cache_reservation": {
+      "owning_adapters": [
+        "patch_cache_admission.py"
+      ],
+      "tracked_source_sha256": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf"
     }
   },
   "kind": "prospective-reader-source-cohort",

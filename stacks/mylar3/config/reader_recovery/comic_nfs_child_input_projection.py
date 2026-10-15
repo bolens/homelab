@@ -52,6 +52,15 @@ class Inputs:
         immutable={'version','kind','images','writer_sha256','native_map_count','selected_module_count','effective_jar_sha256','effective_commit'}
         need(all(value[k]==before[k] for k in immutable),'nfs-input-cohort-facts-unchanged')
         return self.emit('nfs-cohort-input.json',value)
+    def effective_review(self,original):
+        value=self.document(original)
+        roles=('producer','parent_source','report','ack','runtime','acceptance','parent_ack')
+        need(type(value) is dict and set(value)==set(roles),'nfs-input-effective-seven-roles')
+        projected={role:self.ref(value[role]) for role in roles}
+        # Only references change. Report/ACK/acceptance/runtime bytes and their
+        # semantic hash joins remain the original producer's values.
+        need(all(projected[role]['sha256']==value[role]['sha256'] for role in roles),'nfs-input-effective-original-hashes')
+        return self.emit('nfs-effective-review-input.json',projected)
     def outer(self,original):
         value=self.document(original);before=copy.deepcopy(value)
         need(set(value)=={'version','kind','active_scope','parent_admission','probe_plan','operation_output','native_controls','effective_observer_review','source_cohort'},'nfs-input-outer-schema')
@@ -65,7 +74,7 @@ class Inputs:
         for key,ref in tuple(scope['sources'].items()):scope['sources'][key]=self.ref(ref)
         scope_expected=copy.deepcopy(scope_before);scope_expected['sources']=scope['sources']
         need(scope==scope_expected,'nfs-input-scope-facts-unchanged');value['active_scope']=self.emit('nfs-scope-input.json',scope)
-        value['effective_observer_review']=self.ref(value['effective_observer_review'])
+        value['effective_observer_review']=self.effective_review(value['effective_observer_review'])
         value['operation_output']=self.owner.mapping.child(self.owner.mapping.host(before['operation_output']))
         admission=value['parent_admission'];need(set(admission)=={'path','grandparent_signature','expected_device','mount_identity'},'nfs-input-parent-admission-schema')
         # Directory signatures/device/mount observation are actual originals;

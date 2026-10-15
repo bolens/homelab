@@ -87,7 +87,13 @@ must independently match the unchanged original. Missing, changed or ambiguous
 members remain available for review; separate physical sources are not merged.
 An existing cache above the default budget therefore holds new allocations until
 verified recovery or an explicit budget increase makes space available. This
-policy covers Mylar's cache, not the normalizer's independent retained sources.
+policy covers Mylar's cache and participating normalizer `.mylar-pack-*` stages, not the normalizer's independent retained sources.
+
+The authenticated `getHealth` reply exposes a typed effective cache policy only under admitted native Writer exclusion. It includes original config/lock/root identities and the actual effective limits; it does not expose config values other than those limits. Admitted normal startup initializes the shared reservation lock. Health reads never create it. A matching worker uses the prefetched policy and existing physical mount aliases under its Writer, opens the original lock through the read-only config bind, and refuses absent, stale or unmapped policy. Old images without this policy cannot authorize new worker pack staging. Conversion is finalized in independent state before exact output bytes are reserved and copied; failed partials remain retained, and the cache lock is released before import dispatch. Positive growth above the maximum still holds; this is not an automatic budget increase.
+
+The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
+
+Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.
 
 The published image includes patches from `config/` to handle missing DDL
 download sizes without breaking the queue page and to reject HTTP errors or

@@ -151,6 +151,13 @@ def complete_startup():
     from .publication_guard import Unavailable
     if not _PUBLICATION or not active() or not getattr(_LOCAL,'startup',False):
         raise Unavailable('Native startup admission required before completion')
+    # Only admitted normal startup initializes the shared reservation inode.
+    # Invalid/missing cache state stays capacity-held without blocking ordinary startup.
+    try:
+        from . import cache_admission
+        cache_admission.initialize_shared_lock()
+    except (OSError, ValueError, AttributeError):
+        pass
     _STARTUP_COMPLETE=True
 
 

@@ -113,8 +113,13 @@ class Installation(unittest.TestCase):
 
 
 class CurrentBase(unittest.TestCase):
-    CURRENT_PINS=(('api.py',
-                  'a4b8bd68338297d6c0f0039c9d95b9386ebddee8c989085d610c227a70611c2b'),('native_writers.py','43622672cbc3ff49edc45c905f3a57883213102a5ec7203b3a1233ac2ef916fd'),('pack_catalog.py','00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f'))
+    CURRENT_PINS=(
+        ('api.py',
+         'a4b8bd68338297d6c0f0039c9d95b9386ebddee8c989085d610c227a70611c2b'),
+        ('native_writers.py',
+         '98c09f8620aa900e133bc00eed6f475d3245311ba9d5252edd4a2aa61649ee74'),
+        ('pack_catalog.py',
+         '00d63d4d2958a650681eaf927dcf2b36c17f2f85647e3a85a8397f93efba8f9f'))
     OLD_PINS=(('api.py',
                   '23b8e01c547f70a8dd74004560f206fb29e553128aca819d6b4f81d8e250997d'),('native_writers.py','cb36fc620262ea810d7328c228f9722cd4af34a6b818e10d94257aa1165e5202'),('pack_catalog.py','908fcb7df3ab25916290bb1139761e3e1286cfaa460c8c089a6f002495cfee20'))
     def setup_current(self):
@@ -128,7 +133,7 @@ class CurrentBase(unittest.TestCase):
     def test_reviewed_current_sdk_and_optional_api_join_exactly(self):
         raw,base,sdk,artifacts,receipt=self.setup_current();before=dict(sdk)
         effective,cohort=m.configured_maps(sdk,raw,artifacts,receipt)
-        self.assertEqual(sdk,before);self.assertEqual(len(base['base_installed_sources']),179);self.assertEqual(len(base['required_sdk_names']),100)
+        self.assertEqual(sdk,before);self.assertEqual(len(base['base_installed_sources']),180);self.assertEqual(len(base['required_sdk_names']),102)
         for name,pin in self.CURRENT_PINS:self.assertEqual(base['base_installed_sources'][name],pin)
         self.assertEqual([name for name in sdk if sdk[name]!=effective[name]],['publication_reader_admission.py'])
         self.assertFalse(cohort['runtime_acceptance']);self.assertFalse(cohort['publication_acceptance']);self.assertIsNone(base['image']);self.assertFalse(base['installed_acceptance'])
@@ -139,8 +144,8 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'01529cdb479b40c8688321c0703af1af02c3b5c6e26ecc7176a90be0376630e8')
-        self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),78)
+        self.assertEqual(base['base_cohort_sha256'],'53e295ad1d2ad5f816a23580d22c392374af910453eba8a752ba7eadf0447355')
+        self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         for name,pin in self.CURRENT_PINS:
             if name!='api.py':self.assertEqual(base['base_cohort']['existing_sdk_closure'][name[:-3]]['tracked_source_sha256'],pin)
         with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,raw+b' ',artifacts,receipt)

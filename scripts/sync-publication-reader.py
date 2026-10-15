@@ -146,7 +146,7 @@ def outputs():
 
     # These pure/read-only modules and disposable controls are byte-exact peers.
     # Prefixing a generated header would change their preservation commitments.
-    for name in ('publication_archive_layout.py', 'publication_archive_derivative.py',
+    for name in ('cache_reservation.py', 'publication_archive_layout.py', 'publication_archive_derivative.py',
                  'publication_archive_repair.py', 'publication_archive_diagnostics.py',
                  'test_publication_archive_repair.py', 'test_publication_archive_diagnostics.py'):
         result[name] = (NATIVE / name).read_text()

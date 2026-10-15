@@ -10,7 +10,7 @@ import time
 import comic_archive_repair_action as a
 
 HERE=Path(__file__).resolve().parent
-PINS={'comic_reader_backup.py':'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3','comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0','comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7','comic_archive_repair_action.py':'e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59','publication_native_configured_scope.py':'43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'}
+PINS={'comic_reader_backup.py': 'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3', 'comic_reader_backup_primitives.py': 'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0', 'comic_reader_schema.py': 'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7', 'comic_archive_repair_action.py': 'e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59', 'publication_native_configured_scope.py': '43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed'}
 ROLES=a.ROLES
 Held=a.Held
 need=a.need
@@ -136,13 +136,26 @@ def capture_pairs(o,root):
   o.missing(str(base)+'-journal');need('' in pair and ('-wal' in pair)==('-shm' in pair),'archive-producer-coherent-pair');result[name]=pair
  return result
 
-def private_scopes(o,scopes,observations,restore):
+def private_scopes(o,scopes,observations,restore,mapping=None):
  protected=[stopped(observations['reader']),Path(restore)]
  protected.extend(Path(m['Source']) for row in observations.values() for m in row['Mounts'] if m['Type']=='bind')
  roots=[Path(scopes[k]) for k in ('scratch','retention_root')]
  need(roots[0]!=roots[1] and not roots[0].is_relative_to(roots[1]) and not roots[1].is_relative_to(roots[0]),'archive-producer-disjoint-private-scopes')
  for p in roots:
-  z=os.lstat(p);need(p.is_absolute() and p.resolve()==p and not any(x.is_symlink() for x in (p,*p.parents)) and (z.st_mode & 0o170000)==0o040000 and z.st_uid==os.geteuid() and (z.st_mode & 0o777)==0o700,'archive-producer-private-scopes')
+  z=os.lstat(p);owner=z.st_uid==os.geteuid()
+  if not owner and p==roots[1] and mapping is not None:
+   actual=getattr(mapping,'owner',None);g=actual.left.__func__.__globals__ if actual is not None else {}
+   need(type(actual) is g.get('LifecycleParent') and type(mapping) is g.get('Paths') and actual.mapping is mapping and g.get('_CORES',{}).get(actual)==actual.core,'archive-producer-owning-retention-mapping')
+   bound=mapping.archive_retention_original(str(p))
+   need(type(bound) is dict and set(bound)=={'path','signature9','original_signature9','device','owner','phase'}
+        and bound['path']==str(p) and bound['signature9']==list(a.nine(z)) and bound['device']==z.st_dev
+        and bound['owner']==1000 and bound['phase'] in ('initial','execute-owned')
+        and type(bound['original_signature9']) is list and len(bound['original_signature9'])==9
+        and all(type(v) is int for v in bound['original_signature9'])
+        and bound['original_signature9'][:2]+bound['original_signature9'][5:8]==list(a.nine(z))[:2]+list(a.nine(z))[5:8]
+        and (bound['phase']=='execute-owned' or bound['signature9']==bound['original_signature9']),
+        'archive-producer-bound-retention-original9');owner=True
+  need(p.is_absolute() and p.resolve()==p and not any(x.is_symlink() for x in (p,*p.parents)) and (z.st_mode & 0o170000)==0o040000 and owner and (z.st_mode & 0o777)==0o700,'archive-producer-private-scopes')
   need(all(not p.is_relative_to(q) and not q.is_relative_to(p) for q in protected),'archive-producer-scopes-outside-source')
   o.record(p,a.nine(z));o.nodes[p]=tuple(a.five(z))
  need(not os.listdir(roots[0]),'archive-producer-private-scratch-empty');o.names[roots[0]]=frozenset()
@@ -158,7 +171,7 @@ def backup_controls(request,*,watch):
  need(getattr(watch,'__self__',None) is not None and hasattr(watch.__self__,'mapping'),'archive-producer-owning-mapping');mapping=watch.__self__.mapping;completion=tuple((mapping.host(path),value) for path,value in completed)
  o,plan,owner,scopes,source=context(request,watch,[config,restore,manifest_path,manifest_path.parent/'backup'/'config',*[path for path,value in completion]],trees=(config,restore,manifest_path.parent/'backup'/'config'))
  for path,value in completion:o.record(path,value)
- expected=copy.deepcopy(ctx['observations']);private_scopes(o,scopes,expected,restore);runtime(watch,expected)
+ expected=copy.deepcopy(ctx['observations']);private_scopes(o,scopes,expected,restore,mapping);runtime(watch,expected)
  manifest=o.ref(backup['manifest']);need(type(manifest['version']) is int and manifest['version']==1 and manifest['kind']=='verified-reader-backup-copies' and manifest['source_sha256']==PINS['comic_reader_backup.py'] and manifest['primitives_sha256']==PINS['comic_reader_backup_primitives.py'] and manifest['backup_verified'] is False and manifest['final_ack_required'] is True,'archive-producer-neutral-backup-source')
  need(backup['backup_helper_ack']['manifest_sha256']==backup['manifest']['sha256'] and backup['backup_helper_ack']['backup_verified'] is True,'archive-producer-actual-helper-ACK')
  scope=[s for s in manifest['scopes'] if s['name']=='config'];need(len(scope)==1 and Path(scope[0]['path'])==config and restore==manifest_path.parent/'restore'/'config','archive-producer-config-restore-join');scope=scope[0]
@@ -217,7 +230,7 @@ def phase_custody(request,*,watch):
  ctx=request['context'];keys={'backup','controls','archive_scopes','observations','phase','invocation','stage'}|({'execution_originals'} if ctx.get('phase')=='verify-terminal' else set())
  need(type(ctx) is dict and set(ctx)==keys and ctx['stage']=='prebirth' and ctx['phase'] in ('execute','verify-terminal') and set(ctx['controls'])==ROLES,'archive-producer-custody-context')
  declared=[ref['path'] for ref in ctx['controls'].values()]+[ctx['archive_scopes']['path']];declared.extend([ctx['backup']['restore_root'],stopped(ctx['observations']['reader']),*[m['Source'] for row in ctx['observations'].values() for m in row['Mounts'] if m['Type']=='bind']])
- o,plan,owner,scopes,_=context(request,watch,declared);expected=copy.deepcopy(ctx['observations']);private_scopes(o,scopes,expected,ctx['backup']['restore_root']);runtime(watch,expected)
+ o,plan,owner,scopes,_=context(request,watch,declared);expected=copy.deepcopy(ctx['observations']);private_scopes(o,scopes,expected,ctx['backup']['restore_root'],watch.__self__.mapping);runtime(watch,expected)
  controls={k:o.ref(ref) for k,ref in ctx['controls'].items()};need(same(a.owner_request(controls['archive_request']),owner),'archive-producer-owner-join')
  old=controls['custody'];need(set(old)=={'restore_root','pairs','reader_root','current_pairs'},'archive-producer-custody-schema');config=stopped(expected['reader']);restore=Path(ctx['backup']['restore_root'])
  need(old['reader_root']==str(config) and old['restore_root']==str(restore),'archive-producer-original-roots')
