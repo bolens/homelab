@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import cache_admission
+import apply_patches
 import patch_cache_admission as installer
 import patch_ddl_status_retention as status
 from workflow_store import Store
@@ -27,7 +28,7 @@ class Installation(unittest.TestCase):
                     raise AssertionError('Cache allocation guard is not installed: '+name)
             if installer.MARKER not in (INSTALLED.parent/'lib/mega/mega.py').read_text():
                 raise AssertionError('Mega plaintext allocation guard is not installed')
-            for name in ('cache_admission.py','verified_transfer.py','pack_intake.py','queue_control.py'):
+            for name in ('cache_admission.py','cache_reservation.py','verified_transfer.py','pack_intake.py','queue_control.py'):
                 if (INSTALLED/name).read_bytes() != (HERE/name).read_bytes():
                     raise AssertionError('Installed cache source differs: '+name)
 
@@ -40,13 +41,25 @@ class Installation(unittest.TestCase):
         (self.root/'queues/ddl.py').write_text(status.patched_source((HERE/'test_fixtures/ddl_status_retention/ddl.py').read_text()))
         shutil.copyfile(FIXTURE/'mega_library.py.txt',self.root.parent/'lib/mega/mega.py')
 
+    def test_real_cache_helpers_exist_before_cohort_installation(self):
+        def run(argv, **kwargs):
+            self.assertEqual(argv[-1], str(self.root))
+            module = Path(argv[1]).stem
+            if module == 'patch_cache_admission':
+                installer.main(self.root)
+            elif module == 'patch_publication_reader_cohort':
+                for name in ('cache_admission.py', 'cache_reservation.py'):
+                    self.assertEqual((self.root/name).read_bytes(), (HERE/name).read_bytes())
+        with patch('apply_patches.subprocess.run', side_effect=run):
+            apply_patches.main(self.root)
+
     def test_real_original_sources_install_idempotently_and_preserve_status_guards(self):
         installer.main(self.root);original={str(p.relative_to(self.root.parent)):p.read_bytes() for p in self.root.parent.rglob('*.py')}
         installer.main(self.root);self.assertEqual(original,{str(p.relative_to(self.root.parent)):p.read_bytes() for p in self.root.parent.rglob('*.py')})
         status.patched_source((self.root/'queues/ddl.py').read_text())
         self.assertIn("'DDL_CACHE_MAX_GIB': (int, 'DDL', 20)",(self.root/'config.py').read_text())
         self.assertIn("'DDL_CACHE_MIN_FREE_GIB': (int, 'DDL', 5)",(self.root/'config.py').read_text())
-        for name in ('cache_admission.py','verified_transfer.py','pack_intake.py','queue_control.py'):
+        for name in ('cache_admission.py','cache_reservation.py','verified_transfer.py','pack_intake.py','queue_control.py'):
             self.assertEqual((self.root/name).read_bytes(),(HERE/name).read_bytes())
 
     def test_actual_verifier_copies_owning_library_before_temporary_replay(self):
@@ -87,7 +100,7 @@ class Installation(unittest.TestCase):
         runner = SimpleNamespace(run=lambda argv, **options: calls.append((argv, options)))
         exec(compile(ast.Module(body=[loop], type_ignores=[]), '<actual-verifier-suite-routing>', 'exec'),
              dict(sys=sys, FIXES=HERE, source=self.root, subprocess=runner))
-        independent = {'test_cache_admission.py', 'test_cache_transfer.py',
+        independent = {'test_cache_admission.py', 'test_cache_policy.py', 'test_cache_transfer.py',
                        'test_cache_providers.py', 'test_cache_ddl.py'}
         self.assertTrue(independent <= {Path(argv[1]).name for argv, _ in calls})
         for argv, options in calls:

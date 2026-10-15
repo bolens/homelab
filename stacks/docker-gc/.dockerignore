@@ -2,3 +2,5 @@
 !Dockerfile
 !docker-gc.patch
 !entrypoint.sh
+
+!builder-cache-guard.sh

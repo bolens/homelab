@@ -23,6 +23,23 @@ committed initialization witness. Missing witness, foreign identities or changed
 schema holds admission. Later registration intents require their separate
 reviewed transition implementation.
 
+## Device-identity adoption
+
+An immutable private ledger edge contains the digest-bound reviewed plan and its
+accepted token, original and destination identities, schema and committed
+history prefix. Its destination binding includes the current Btrfs filesystem
+and subvolume identity. The original marker and tagger bytes remain historical
+inputs. The recovery fence records an incomplete transition until original
+custody and namespace checks close. Only a committed edge can project committed
+historical identities. It cannot project an unfinished intent or authorize its
+replay. Later valid registrations may extend the adopted history prefix.
+
+Backup and restore digests and complete state comparisons are commit-time
+evidence. They are not a requirement to reread a backup on every admission.
+Unsupported stable identity queries and incomplete or foreign edges retain the
+hold. This model records explicit destination trust rather than inferred
+historical filesystem continuity.
+
 ## Journal recovery receipt
 
 A private owned recovery marker records an immutable digest-bound plan and an

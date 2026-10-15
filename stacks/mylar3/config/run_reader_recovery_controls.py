@@ -16,6 +16,7 @@ SUITES=SUITES+(('test_nfs_current_roles.py',11),)
 SUITES=SUITES+(('test_deferred_lease.py',10),('test_local_lease_window.py',10),('test_nfs_remote_guard.py',10),('test_expired_lease_paths.py',2))
 SUITES=SUITES+(('test_probe_stdin_gate.py',4),('test_gated_host_probe.py',4),('test_phased_child_interface.py',11),('test_probe_lease_order.py',13),('test_prelease_staging.py',3),('test_probe_birth_registry.py',5))
 SUITES=SUITES+(('test_probe_cleanup_transition.py',5),)
+SUITES=SUITES+(('test_configured_worker_library_query.py', 26), ('test_effective_review_projection.py', 9), ('test_nfs_mount_namespace.py', 18), ('test_nfs_stopped_handoff.py', 44))
 MAX_FILES=256
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass

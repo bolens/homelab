@@ -31,6 +31,7 @@ import tagger_handoff
 import publication_transaction as transaction
 import publication_tagging_recovery as recovery
 import publication_guard as guard
+import publication_identity_readers
 import converted_tagging
 import workflow_store
 import ordinary_import_continuity
@@ -538,7 +539,8 @@ class ServicePublicationTests(unittest.TestCase):
                 'mylar.tagger_lookup':types.SimpleNamespace(lookup=provider),
                 'mylar.tagger_service':tagger_service,
                 'mylar.tagger_archive':tagger_archive,'mylar.tagger_adapter':tagger_adapter,
-                'mylar.workflow_store':workflow_store}):
+                'mylar.workflow_store':workflow_store,
+                'mylar.publication_identity_readers':publication_identity_readers}):
             if action is not None:
                 with patch.object(self.mylar,'tagger_native',types.SimpleNamespace(
                         run=namespace['run'],run_legacy=namespace['run_legacy'],state=namespace['state'],catalog=namespace['catalog'])):

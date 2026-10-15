@@ -12,47 +12,7 @@ import tempfile
 ROOT = Path(__file__).parent
 API_SHA = '7cd81fc5e511f27d0943507df7606df68f660ffe6688677b937eafba92a00c6a'
 # Exact public build-only worker closure; no sibling or runtime config copy.
-PACK_FIXTURES = frozenset((
-    'test_fixtures/retained_pack_worker/archive_repair_handoff.py',
-    'test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py',
-    'test_fixtures/retained_pack_worker/check_retained_pack_export.py',
-    'test_fixtures/retained_pack_worker/check_preproof_session.py',
-    'test_fixtures/retained_pack_worker/combined_handoff.py',
-    'test_fixtures/retained_pack_worker/conversion_handoff.py',
-    'test_fixtures/retained_pack_worker/edition_evidence.py',
-    'test_fixtures/retained_pack_worker/guided_match.py',
-    'test_fixtures/retained_pack_worker/import_match.py',
-    'test_fixtures/retained_pack_worker/import_recovery.py',
-    'test_fixtures/retained_pack_worker/maintenance.py',
-    'test_fixtures/retained_pack_worker/maintenance_report.py',
-    'test_fixtures/retained_pack_worker/media_writer.py',
-    'test_fixtures/retained_pack_worker/naming_worker.py',
-    'test_fixtures/retained_pack_worker/native_handoff.py',
-    'test_fixtures/retained_pack_worker/normalize.py',
-    'test_fixtures/retained_pack_worker/ordinary_import_ack.py',
-    'test_fixtures/retained_pack_worker/ordinary_import_observation.py',
-    'test_fixtures/retained_pack_worker/pack_recovery.py',
-    'test_fixtures/retained_pack_worker/pack_only.py',
-    'test_fixtures/retained_pack_worker/pdf_conversion.py',
-    'test_fixtures/retained_pack_worker/publication_archive_derivative.py',
-    'test_fixtures/retained_pack_worker/publication_archive_diagnostics.py',
-    'test_fixtures/retained_pack_worker/publication_archive_layout.py',
-    'test_fixtures/retained_pack_worker/publication_archive_repair.py',
-    'test_fixtures/retained_pack_worker/publication_derivative_evidence.py',
-    'test_fixtures/retained_pack_worker/publication_evidence.py',
-    'test_fixtures/retained_pack_worker/publication_guard.py',
-    'test_fixtures/retained_pack_worker/publication_lock.py',
-    'test_fixtures/retained_pack_worker/publication_metadata.py',
-    'test_fixtures/retained_pack_worker/publication_zip.py',
-    'test_fixtures/retained_pack_worker/reader_handoff.py',
-    'test_fixtures/retained_pack_worker/reader_scan.py',
-    'test_fixtures/retained_pack_worker/release_naming.py',
-    'test_fixtures/retained_pack_worker/retained_pack_handoff.py',
-    'test_fixtures/retained_pack_worker/retained_pack_control.py',
-    'test_fixtures/retained_pack_worker/retained_pack_operations.py',
-    'test_fixtures/retained_pack_worker/source-pins.json',
-    'test_fixtures/retained_pack_worker/writer_cycle.py',
-))
+PACK_FIXTURES=frozenset(('test_fixtures/retained_pack_worker/archive_repair_handoff.py', 'test_fixtures/retained_pack_worker/check_retained_pack_composed_worker.py', 'test_fixtures/retained_pack_worker/check_retained_pack_export.py', 'test_fixtures/retained_pack_worker/check_preproof_session.py', 'test_fixtures/retained_pack_worker/combined_handoff.py', 'test_fixtures/retained_pack_worker/conversion_handoff.py', 'test_fixtures/retained_pack_worker/edition_evidence.py', 'test_fixtures/retained_pack_worker/guided_match.py', 'test_fixtures/retained_pack_worker/import_match.py', 'test_fixtures/retained_pack_worker/import_recovery.py', 'test_fixtures/retained_pack_worker/maintenance.py', 'test_fixtures/retained_pack_worker/maintenance_report.py', 'test_fixtures/retained_pack_worker/media_writer.py', 'test_fixtures/retained_pack_worker/naming_worker.py', 'test_fixtures/retained_pack_worker/native_handoff.py', 'test_fixtures/retained_pack_worker/normalize.py', 'test_fixtures/retained_pack_worker/ordinary_import_ack.py', 'test_fixtures/retained_pack_worker/ordinary_import_observation.py', 'test_fixtures/retained_pack_worker/pack_recovery.py', 'test_fixtures/retained_pack_worker/pack_only.py', 'test_fixtures/retained_pack_worker/pdf_conversion.py', 'test_fixtures/retained_pack_worker/publication_archive_derivative.py', 'test_fixtures/retained_pack_worker/publication_archive_diagnostics.py', 'test_fixtures/retained_pack_worker/publication_archive_layout.py', 'test_fixtures/retained_pack_worker/publication_archive_repair.py', 'test_fixtures/retained_pack_worker/publication_derivative_evidence.py', 'test_fixtures/retained_pack_worker/publication_evidence.py', 'test_fixtures/retained_pack_worker/publication_guard.py', 'test_fixtures/retained_pack_worker/publication_lock.py', 'test_fixtures/retained_pack_worker/publication_metadata.py', 'test_fixtures/retained_pack_worker/publication_zip.py', 'test_fixtures/retained_pack_worker/reader_handoff.py', 'test_fixtures/retained_pack_worker/reader_scan.py', 'test_fixtures/retained_pack_worker/release_naming.py', 'test_fixtures/retained_pack_worker/retained_pack_handoff.py', 'test_fixtures/retained_pack_worker/retained_pack_control.py', 'test_fixtures/retained_pack_worker/retained_pack_operations.py', 'test_fixtures/retained_pack_worker/source-pins.json', 'test_fixtures/retained_pack_worker/writer_cycle.py', 'test_fixtures/retained_pack_worker/worker_cache.py', 'test_fixtures/retained_pack_worker/cache_reservation.py'))
 
 CACHE_FIXTURES = frozenset(('test_fixtures/cache_admission/PROVENANCE.json', 'test_fixtures/cache_admission/config.py.txt', 'test_fixtures/cache_admission/getcomics.py.txt', 'test_fixtures/cache_admission/mediafire.py.txt', 'test_fixtures/cache_admission/mega.py.txt', 'test_fixtures/cache_admission/mega_library.py.txt', 'test_fixtures/cache_admission/pixeldrain.py.txt'))
 
@@ -61,6 +21,14 @@ DDL_STATUS_FIXTURES = frozenset(('test_fixtures/ddl_status_retention/db.py',
 
 # Exact standalone build-only siblings; preserve their repository-style paths.
 STANDALONE_FIXTURES = frozenset((
+    'standalone_launch_host/private_crypto.py',
+    'standalone_launch_host/comic_native_process_probe.py',
+    'standalone_launch_host/publication_native_configured_scope.py',
+    'standalone_launch_host/BOOTSTRAP.py',
+    'standalone_launch_host/comic_retained_standalone_broker.py',
+    'standalone_launch_host/comic_retained_standalone_parent.py',
+    'standalone_launch_host/comic_retained_standalone_backup.py',
+    'standalone_launch_host/comic_reader_backup_primitives.py',
     'reader_recovery/comic_retained_standalone_action.py',
     'reader_recovery/comic_retained_standalone_backup.py',
     'reader_recovery/comic_retained_standalone_parent.py',

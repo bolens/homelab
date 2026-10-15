@@ -81,6 +81,7 @@ def main():
             found=re.search(r'Ran (\d+) tests? in',result.stderr)
             if result.returncode or found is None or int(found.group(1))!=count or 'skipped=' in result.stderr:raise ValueError('Standalone owning suite count/failure/skip')
         run([sys.executable,'-I','-B','-c',"import os,sys,unittest;sys.path.insert(0,os.getcwd());r=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromName('test_publication_standalone_installation'));raise SystemExit(not r.wasSuccessful())"],7)
+        run([sys.executable,'-I','-B',str(private/'test_standalone_anchor_composition.py')],16)
         run([sys.executable,'-I','-B',str(private/'test_standalone_gate.py')],2)
         for name,count in HOST:run([sys.executable,'-I','-B',str(private/'reader_recovery'/name)],count)
         if args.family=='all':

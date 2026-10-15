@@ -22,6 +22,36 @@ Recovery validates the prepared marker/intent and complete SQLite state. Only ex
 
 Restoring both a matching old database and old marker is indistinguishable from a coherent historical rollback by local comparison alone. Such restore requires independently verified backup/epoch/census evidence and explicit operator reconciliation; this feature does not promise universal rollback detection without an independent anchor. Preserve prior epoch/admission evidence outside the mutable pair.
 
+### Reviewed device-identity recovery
+
+A changed device number does not erase committed history or authorize startup.
+An explicit maintenance transition may adopt the current destination after a
+complete affected-state backup and isolated restore pass independent review.
+The operator accepts the exact digest-bound plan. Preserve the original SQLite
+history, epoch, tokens, marker and tagger binding bytes. Record the transition
+in a bounded, private, append-only `identity-adoptions-v1` ledger under the
+existing writer root. No new mount, privilege or application schema is required.
+
+The recovery fence remains until the accepted transition closes the original
+database, writer lock, marker, ledger namespace and pending-state checks.
+A replaced file, changed schema, unresolved journal, foreign entry or incomplete
+transition retains the hold. Ordinary readers accept only committed transitions.
+Prepared, accepted and aborted historical intents keep their original identity
+requirements and cannot acquire permission to replay through adoption.
+
+Validate the adopted committed history prefix without freezing subsequent valid
+registrations. Future registrations still check current owner facts, census and
+physical file custody. Per-process database and Writer device/inode checks stay
+exact. Any allowance for the maintenance transaction's own rollback journal is
+confined to that held transaction. Passive readers continue refusing sidecars.
+
+For subsequent device-number changes, a stable binding may use read-only Btrfs
+filesystem and subvolume identifiers obtained from the current directory file
+descriptor. Unsupported filesystems or unavailable identifiers hold admission.
+This binds the reviewed destination prospectively. It does not establish a
+historical filesystem identifier that was never captured. A coherent historical
+clone still requires the explicit operator reconciliation described above.
+
 ## Admission and replay
 
 Check before scripts/tagging/duplicate removal/placement/status mutation and before manual metadata/naming/rescan ownership changes. Recheck source/proof before final mutation; scripts invalidate stale stamps. Cover ordinary, annual, storyarc, oneoff, disabled/legacy tagging and converted paths. Registered payload requires an explicitly allowed exact owner and current matching correct publication; missing/stale evidence holds it. Unknown payload follows existing eligibility, never a broad issue/provider blacklist.
@@ -30,7 +60,7 @@ When the complete validated registry is empty, existing eligibility may continue
 
 ## DDL cache capacity (FR-016 / T030)
 
-Participating Mylar DDL transfers and ZIP expansion require finite admission
+Participating Mylar DDL transfers, ZIP expansion and worker `.mylar-pack-*` staging require shared finite admission
 before allocation. Defaults are a 20 GiB aggregate cache budget and a 5 GiB
 filesystem free-space reserve; `[DDL]` settings `ddl_cache_max_gib` and
 `ddl_cache_min_free_gib` accept whole GiB values from 1 through 4096. Count
@@ -40,6 +70,10 @@ blocks. Unverifiable accounting or original directory/lock drift refuses new
 allocation. Process and filesystem locks serialize participating allocations;
 check remaining space before each write. This is application admission, not a
 quota for unrelated writers or the normalizer's independent retained state.
+
+The native typed health response may include `cache_policy` only from actual effective CONFIG under admitted Writer exclusion. It binds existing native config SHA/physical identity, original cache roots and the existing reservation lock. Normal admitted startup may initialize that lock; health reads are existing-only. The worker prefetched batch consumes this policy under its genuine shared Writer, validates the physical aliases through existing mounts and opens the original lock read-only/existing-only for flock. Missing or stale policy, an absent lock or an unmapped root refuses. No private config parser supplies worker defaults.
+
+Worker conversion completes in independent retained state before its exact output bytes are reserved and copied to shared cache. The copy checks remaining headroom per chunk, retains failed partials, and never replaces an existing output. Complete output reuse independently checks preservation under zero-growth reservation. The reservation is released before native API/import dispatch. This admission limit excludes independent worker retained state; it neither cleans that state nor supplies retirement or ACK authority. Positive-growth recovery above the configured maximum remains refused until an explicit owning policy decision or verified cleanup creates space.
 
 Capacity refusal preserves the owning queue generation and provider attempt
 budget. Every provider metadata update uses the original entry generation:
@@ -54,6 +88,10 @@ This prospective contract remains incomplete until the installed image and
 configured guard pass T030 acceptance, including concurrent/restart refusal,
 provider callbacks, retained extraction reuse and preservation of existing
 queue/import evidence.
+
+The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
+
+Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.
 
 ## Lock order and worker behavior
 

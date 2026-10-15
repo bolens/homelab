@@ -85,4 +85,59 @@ class Resources(unittest.TestCase):
             self.assertTrue((self.case.c.root/s.CARRIER).is_dir())
 
 
+
+
+class CacheStartupResources(unittest.TestCase):
+    def test_copied_native_startup_initializes_original_shared_cache_lock(self):
+        # A fresh process sees only the finite copied auth source directory.
+        # Package alias/effective CONFIG are public fixture data; admission,
+        # Store/Writer, original config bytes and lock inode are genuine.
+        import subprocess
+        import sys
+        import tempfile
+        program = r'''
+import hashlib,importlib,json,os,sys,types
+from pathlib import Path
+source=Path(sys.argv[1]).resolve();root=Path(sys.argv[2]).resolve()
+pkg=types.ModuleType('mylar');pkg.__path__=[str(source)];pkg.DATA_DIR=str(root)
+sys.modules['mylar']=pkg
+cache=root/'cache';cache.mkdir(mode=0o700)
+pkg.CONFIG=types.SimpleNamespace(CACHE_DIR=str(cache),DDL_LOCATION=str(cache),DDL_CACHE_MAX_GIB=7,DDL_CACHE_MIN_FREE_GIB=2)
+config=root/'config.ini';config.write_bytes(b'[DDL]\nddl_cache_max_gib=7\nddl_cache_min_free_gib=2\n');config.chmod(0o644)
+raw=config.read_bytes();original=config.stat()
+writers=importlib.import_module('mylar.native_writers')
+guard=importlib.import_module('mylar.publication_guard')
+Store=importlib.import_module('mylar.workflow_store').Store
+Writer=importlib.import_module('mylar.media_writer').Writer
+store=Store(root);writer=Writer(root/'media-writer',create=True)
+state=guard.RegistryState(store.path,writer)
+token=state.prepare_bootstrap(dict(manifest_sha256='a'*64,restore_sha256='b'*64,description='public copied auth startup fixture'),epoch='c'*64)
+state.initialize(token,accepted_token=token)
+lock=root/'cache-admission-v1.lock';assert not lock.exists()
+assert 'mylar.cache_admission' not in sys.modules and 'mylar.cache_reservation' not in sys.modules
+assert writers.initialize_publication()['state']=='ready'
+with writers.operation(startup=True):writers.complete_startup()
+assert writers.startup_status()['state']=='ready'
+policy=importlib.import_module('mylar.cache_admission');shared=importlib.import_module('mylar.cache_reservation')
+for module,name in ((policy,'cache_admission.py'),(shared,'cache_reservation.py')):
+ assert Path(module.__file__).resolve()==source/name
+assert lock.is_file() and lock.stat().st_mode & 0o777==0o600
+stamp=policy.identity(lock.stat())
+with writers.operation():packet=policy.policy_snapshot()
+assert packet['maximum']==7*shared.GIB and packet['reserve']==2*shared.GIB
+assert packet['config']['sha256']==hashlib.sha256(raw).hexdigest()
+assert packet['config']['signature9']==list(policy.identity(original))
+with writers.operation(startup=True):writers.complete_startup()
+assert policy.identity(lock.stat())==stamp
+assert config.read_bytes()==raw and policy.identity(config.stat())==policy.identity(original)
+print(json.dumps(dict(genuine_startup=True,lazy_helpers=True,original_lock_reused=True,configured_policy=True,installed_acceptance=False)))
+'''
+        with tempfile.TemporaryDirectory(prefix='auth-cache-startup-') as temporary:
+            result=subprocess.run([sys.executable,'-I','-B','-c',program,
+                str(Path(__file__).resolve().parent),temporary],capture_output=True,text=True,timeout=30)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('"genuine_startup": true',result.stdout)
+        self.assertIn('"original_lock_reused": true',result.stdout)
+        self.assertIn('"installed_acceptance": false',result.stdout)
+
 if __name__=='__main__':unittest.main()

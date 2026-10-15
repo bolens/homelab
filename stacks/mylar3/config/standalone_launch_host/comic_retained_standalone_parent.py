@@ -118,7 +118,12 @@ def mapped_host(mounts, child):
     return str(Path(row['Source']) / Path(child).relative_to(row['Destination']))
 
 
-def selected_profile(native, selected):
+ANCHOR_NAMES = ('installation-v1.json','inventory-v1.json','public-ed25519.der')
+ANCHOR_SOURCE = '/etc/mylar-publication-launch/child/'
+ANCHOR_TARGET = '/opt/mylar-publication-launch/'
+
+
+def selected_profile(native, selected, *, installed_anchors=False):
     need(selected['Image'] == native['Image'] and selected['Config']['User'] == '1000:1000',
          'standalone-selected-image-user')
     host = selected['HostConfig']
@@ -128,11 +133,19 @@ def selected_profile(native, selected):
          host.get('NetworkMode') == 'none' and
          'no-new-privileges' in host.get('SecurityOpt', []) and
          not selected['NetworkSettings']['Networks'], 'standalone-selected-isolation')
+    need(type(installed_anchors) is bool,'standalone-installation-profile-type')
     original = sorted((m['Type'], m['Source'], m['Destination'], m['RW'],m.get('Name') if m['Type']=='volume' else None) for m in native['Mounts'])
     current = sorted((m['Type'], m['Source'], m['Destination'], m['RW'],m.get('Name') if m['Type']=='volume' else None) for m in selected['Mounts'])
+    if installed_anchors:
+        protected=Path(ANCHOR_TARGET)
+        need(all(not Path(m['Destination']).is_relative_to(protected) and not protected.is_relative_to(Path(m['Destination'])) for m in native['Mounts']),'standalone-native-installation-overlay')
+        original=sorted(original+[('bind',ANCHOR_SOURCE+n,ANCHOR_TARGET+n,False,None) for n in ANCHOR_NAMES])
     need(current == original and len(current) <= 32, 'standalone-no-new-mount')
     for mount in selected['Mounts']:
         path = Path(mount['Destination'])
+        if installed_anchors and mount['Destination'] in {ANCHOR_TARGET+n for n in ANCHOR_NAMES}:
+            need(mount['RW'] is False,'standalone-anchor-readonly-boolean')
+            continue
         need(mount['Type'] in ('bind','volume') and (mount['Type']=='bind' or (type(mount.get('Name')) is str and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,255}',mount['Name']) is not None)) and str(path) == mount['Destination'] and path.is_absolute() and
              all(not path.is_relative_to(Path(prefix)) and not Path(prefix).is_relative_to(path)
                  for prefix in IMAGE_PREFIXES), 'standalone-runtime-overlay')
@@ -453,13 +466,17 @@ class ConfiguredRuntime:
         raise ValueError('Original configured runtime required')
 
     @classmethod
-    def observe(cls, ids):
+    def observe(cls, ids, *, installed_anchors=False):
         need(os.geteuid() == 0 and type(ids) is dict and set(ids) == {'native','reader','worker'} and
              all(sha(value) for value in ids.values()) and len(set(ids.values())) == 3,
              'standalone-owning-configured-runtime')
-        value=object.__new__(cls); value.pid=os.getpid(); value.thread=threading.get_ident()
+        need(type(installed_anchors) is bool,'standalone-installation-profile-type')
+        value=object.__new__(cls);value.installed_anchors=installed_anchors; value.pid=os.getpid(); value.thread=threading.get_ident()
         value.deadline=time.monotonic()+TOTAL_SECONDS; value.ids=dict(ids);value.started=time.time()
         value.baseline={role:value.inspect(cid) for role,cid in ids.items()}
+        if installed_anchors:
+            protected=Path(ANCHOR_TARGET)
+            need(all(not Path(m['Destination']).is_relative_to(protected) and not protected.is_relative_to(Path(m['Destination'])) for m in value.baseline['native']['Mounts']),'standalone-native-installation-overlay')
         native=value.baseline['native']['State'];reader=value.baseline['reader']['State'];worker=value.baseline['worker']['State']
         need(native['Running'] is True and native['Paused'] is False and native['Pid'] > 0 and
              reader['Running'] is True and reader['Paused'] is False and
@@ -467,7 +484,7 @@ class ConfiguredRuntime:
              'standalone-initial-runtime-profile')
         value.quiescent=False;value.selected=None;value.process=None
         _RUNTIMES[value]=encode(dict(ids=value.ids,baseline=value.baseline,pid=value.pid,thread=value.thread,
-                                    deadline=value.deadline,started=value.started))
+                                    deadline=value.deadline,started=value.started,installed_anchors=value.installed_anchors))
         return value
 
     def command(self, arguments):
@@ -502,7 +519,7 @@ class ConfiguredRuntime:
     def close(self, terminal_original=_ABSENT):
         registry=_RUNTIMES.get(self)
         need(type(registry) is bytes and registry==encode(dict(ids=self.ids,baseline=self.baseline,pid=self.pid,
-             thread=self.thread,deadline=self.deadline,started=self.started)) and self.quiescent,
+             thread=self.thread,deadline=self.deadline,started=self.started,installed_anchors=self.installed_anchors)) and self.quiescent,
              'standalone-runtime-original-registry')
         table=_RUNTIMES;terminal_table=_TERMINALS
         admitted=json.loads(registry)
@@ -537,7 +554,7 @@ class ConfiguredRuntime:
             need(action in allowed,'standalone-foreign-lifecycle-event')
             key=(actor,action);counts[key]=counts.get(key,0)+1;need(counts[key]<=1,'standalone-repeated-lifecycle-event')
         if self.selected is not None:
-            selected=self.inspect(self.selected);selected_profile(self.baseline['native'],selected)
+            selected=self.inspect(self.selected);selected_profile(self.baseline['native'],selected,installed_anchors=admitted['installed_anchors'])
             need(self.static(selected)==self.selected_static and selected['State']['StartedAt']==self.selected_started,
                  'standalone-selected-original-incarnation')
             state=selected['State']
@@ -554,7 +571,7 @@ class ConfiguredRuntime:
                 or (self.pid,self.thread,self.deadline,self.started) != original_lifetime
                 or (self.quiescent,self.selected,self.process) != original_phase
                 or (getattr(self,'selected_static',None),getattr(self,'selected_started',None),getattr(self,'selected_pid',None)) != original_selected
-                or self.reader_state != original_reader_state
+                or self.installed_anchors is not admitted['installed_anchors'] or self.reader_state != original_reader_state
                 or _RUNTIMES is not table or _RUNTIMES.get(self) is not registry or _TERMINALS is not terminal_table):
             raise ValueError('standalone-final-runtime-registry')
         if terminal_original is _ABSENT:

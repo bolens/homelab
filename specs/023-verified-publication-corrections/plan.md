@@ -14,7 +14,7 @@ Preserve independently verified correction knowledge so repeated publication pay
 
 **Primary Dependencies**: Existing Mylar workflow/writer/catalog/tagger modules; immutable archiving-utils artifact already used by the normalizer; image-bundled libarchive reader. No runtime network dependency for payload verification.
 
-**Storage**: Existing private `workflow.sqlite`, complete correction census/revision and an owned writer-protocol binding marker; worker receipts in existing state. Native application schema is unchanged.
+**Storage**: Existing private `workflow.sqlite`, complete correction census/revision and an owned writer-protocol binding marker; worker receipts in existing state. Native application schema is unchanged. Reviewed device recovery adds a bounded private adoption ledger within the existing writer root, preserving immutable rows and original binding bytes. Stable Btrfs identifiers support prospective device-number reconciliation without relaxing per-process physical custody.
 
 **Testing**: `unittest`, actual patched native-source branch checks, converter-backed worker fixtures, both published image build gates and `make ci-local`.
 
@@ -47,6 +47,8 @@ specs/023-verified-publication-corrections/
 stacks/mylar3/
   Dockerfile
   config/publication_guard.py config/publication_api.py
+  config/publication_identity_adoption.py config/publication_identity_maintenance.py
+  config/publication_identity_readers.py config/publication_filesystem_binding.py
   config/patch_publication_guard.py config/patch_publication_startup.py
   config/publication_fresh.py config/publication_native.py config/publication_transaction.py
   config/patch_publication_processing.py config/test_publication_native.py
@@ -124,3 +126,23 @@ operational reader and NFS evidence remain separate from portable source tests.
 ## DDL cache growth prevention — 2026-10-12
 
 Extend the existing intake/backpressure boundary with a configurable retained-cache byte budget and processing headroom. Inventory the cache without following symlinks, count retained and temporary payloads, and refuse new admission when capacity cannot be established. Reuse existing durable capture ownership to prevent repeated downloads of an unresolved delivery. Keep import acknowledgement and source-retirement authority unchanged; neither age nor a Completed label permits deletion. Verify boundary, concurrent reservation, restart, unreadable state and retained-pack scenarios before reviewed image delivery and live acceptance.
+
+### T028 fixed-anchor launch follow-up
+
+Reuse the source-reviewed root broker and existing enrollment/authentication
+protocol. A revised finite profile adds only three fixed root public-anchor
+read-only leaf mounts, with empty root-owned image targets. Capture host originals
+before reads, authenticate their hashes to the reviewed deployment and retain
+source/creator/namespace custody through launch. Keep legacy profiles strict
+and ordinary service startup unchanged. Validate success and missing/empty/
+symlink/replaced/key/inventory/profile/mount refusals with disposable controls;
+require real image-layout smoke and configured UID1000/pipe/retained-ACK proof
+before operational acceptance. No new signing framework is introduced.
+
+The participating worker pack stage consumes the effective native policy from the authenticated, prefetched `getHealth` reply. The snapshot binds the existing config bytes, reservation inode and physical cache roots. It is read under the shared Writer without another API call and mapped only through existing `/mylar` and `/ddl-cache` binds. Normal admitted startup initializes the native lock; health never creates it and the worker opens it existing-only through its read-only native config mount. Missing, stale or unmapped policy refuses staging without guessed defaults.
+
+Finalize and verify conversions in independent worker state, then reserve their exact output size plus block/inode overhead before copying into shared cache. Release the cache reservation before import or handoff. Existing verified output may be reused with zero growth above capacity; positive growth still refuses. Partial stages and original payloads remain retained. Independent worker state remains outside this DDL budget and requires its own storage policy. This source design does not establish the actual configured limits or live T030 acceptance.
+
+The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
+
+Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.

@@ -7,10 +7,11 @@ import ast
 import hashlib
 from pathlib import Path
 
-EXPECTED={'parent': '3047a6b0646710bfd403dea9b77e25ec6f356e1e9a8c64e9ed039857f3594d40', 'projection': '0882a6ffb1fdaca76d42075c24ba20690d963b96c7ded5e4a93ce1354cc35bd4', 'admission': '3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c', 'archive_action': 'e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59', 'backup_action': '36629020bd333e45b7f8621149c727153e17b1eb32dcae4d2fe42294ef42eb46', 'producer': 'a147dd978c10e71fa3fa67c50ec12913ab5b0054c3dd15b6d6066bac1f6c8f8f', 'archive_adapter': '2234458c27c0bb94b949cabb6f54776469f20257b3187508e60db0f181911f42'}
-EXPECTED_NFS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '1003f97d4e4828404c2ce61f5745b18099205de4f0480f35114c508bc20b5294', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '76e722e192750857c61fd6f0d228966a253e47edb68a5a069567d3fb9697e221', 'comic_nfs_child_input_projection.py': 'adbbc45c0b2252443436bab303381b7941561cdb84f14a5353ecc3e8408c9d05', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_negative_nfs_active_parent.py': 'e2a1451a8a935737e0ee54f45740cdee08c839d9c554e1ffc0ab68ef93497688', 'comic_nfs_factual_successor.py': 'a770f274840fba4b2cd39361f4980a5cc380ce4d9361ec70902871e454f5bc68'}
+EXPECTED={'admission': '3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c', 'archive_action': 'e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59', 'archive_adapter': '998756f63a76bc2d21a43392d959d8b6215e0087d4ce2601f7be4e9f91a7c0c9', 'backup_action': '718815479aaaa8fb634b2defa581bb5e35c0fed94746360d329ac66a9ae15654', 'parent': '98ff2d0d71841a199eae17dad2fdf4d3eb067716ea8e70e19e5d4620da9c7d02', 'producer': '1eed90dd7d1fcab472470061c9f8bf0b7b7acb0a7793d9563bc8897f1f0af146', 'projection': '0882a6ffb1fdaca76d42075c24ba20690d963b96c7ded5e4a93ce1354cc35bd4'}
+EXPECTED_NFS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_nfs_child_input_projection.py': 'b4e6bca8b6b7d0d076c5b68bae35430fa65a3b417f0aa5ccb5cd7ccf265e7d93', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_negative_nfs_active_parent.py': '5581505984e10598f45a9536a381abde8b3efe45d4b58963b2921b121b5d1c37', 'comic_nfs_factual_successor.py': 'be07c14bd13951f2aebfd9459ff82dc268a6219a7d76bf72c726d8ad3f237c76'}
+WORKER_OBSERVER_SOURCE_SHA = 'ede41d9758cb09696e1fdd6faa600363d4b24a53e36e8f0a5999ff5672bd4862'
 CHILD_OPERATION = Path('/_operation')
-BASE_SOURCE_MANIFEST_SHA = '6a36eac8a61015bfc9f254a87bc2f533437d61811cdd49210ba516605c335e3e'
+BASE_SOURCE_MANIFEST_SHA='bb659943bf6b6d5ef5e1f3d4f91614cf12dc4884eeff704e36476fa129ef5570'
 class Held(ValueError):pass
 
 def need(ok,reason):
@@ -28,11 +29,89 @@ def assignments(raw, edits):
     need(stripped(tree)==stripped(changed),'configured-body-unchanged')
     return result
 
-def build(sources, parent_original_path):
+def worker_profile(value):
+    import copy
+    import re
+    need(type(value) is dict and set(value)=={'mode','source','image_sources','image_metadata'}
+         and value['mode']=='original-pipes-v1','configured-worker-finite-profile')
+    for name in ('source','image_sources','image_metadata'):
+        ref=value[name]
+        need(type(ref) is dict and set(ref)=={'path','sha256','signature9'}
+             and type(ref['path']) is str and Path(ref['path']).is_absolute()
+             and all(x not in ('','.','..') for x in ref['path'].split('/')[1:])
+             and type(ref['sha256']) is str and re.fullmatch('[a-f0-9]{64}',ref['sha256'])
+             and type(ref['signature9']) in (list,tuple) and len(ref['signature9'])==9
+             and all(type(x) is int for x in ref['signature9']),'configured-worker-original-ref')
+    need(value['source']['sha256']==WORKER_OBSERVER_SOURCE_SHA,'configured-worker-reviewed-source')
+    return copy.deepcopy(value)
+
+
+def worker_original_inputs(profile):
+    """Finite three private originals; no daemon query or installed parity grant."""
+    import json
+    import os
+    import stat
+    profile=worker_profile(profile)
+    rows=[];nodes={};payload={}
+    vector=lambda z:(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+    node=lambda z:(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+    for role in ('source','image_sources','image_metadata'):
+        path=Path(profile[role]['path'])
+        for parent in path.parents:
+            z=os.lstat(parent);need(stat.S_ISDIR(z.st_mode),'configured-worker-original-node-type')
+            need(nodes.setdefault(str(parent),node(z))==node(z),'configured-worker-original-node')
+    for role in ('source','image_sources','image_metadata'):
+        ref=profile[role];path=Path(ref['path']);expected=tuple(ref['signature9'])
+        fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            value=vector(os.fstat(fd))
+            need(value==expected and vector(os.lstat(path))==expected and stat.S_ISREG(value[5])
+                 and stat.S_IMODE(value[5])==0o600 and value[6]==os.geteuid() and value[8]==1
+                 and 0<value[2]<=1024**2,'configured-worker-original9')
+            raw=b''
+            while len(raw)<value[2]:
+                part=os.read(fd,min(65536,value[2]-len(raw)));need(bool(part),'configured-worker-original-length');raw+=part
+            need(sha(raw)==ref['sha256'] and vector(os.fstat(fd))==value and vector(os.lstat(path))==value,
+                 'configured-worker-original-hash')
+            rows.append((str(path),value));payload[role]=raw
+        finally:os.close(fd)
+    def unique(items):
+        result={}
+        for key,value in items:need(key not in result,'configured-worker-original-duplicate');result[key]=value
+        return result
+    need(json.loads(payload['image_sources'],object_pairs_hook=unique)=={'/app/archive_terminal_observation.py':WORKER_OBSERVER_SOURCE_SHA},
+         'configured-worker-exact-image-sources')
+    metadata=json.loads(payload['image_metadata'],object_pairs_hook=unique)
+    need(type(metadata) is list and len(metadata)==1 and type(metadata[0]) is dict
+         and type(metadata[0].get('Id')) is str and metadata[0].get('Os')=='linux'
+         and metadata[0].get('Architecture')=='amd64','configured-worker-original-image-metadata')
+    import re
+    need(re.fullmatch('sha256:[a-f0-9]{64}',metadata[0]['Id']) is not None,'configured-worker-original-image-id')
+    for path,value in nodes.items():
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=value:raise Held('configured-worker-original-node-final')
+    for path,value in rows:
+        z=os.lstat(path)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=value:raise Held('configured-worker-original9-final')
+    return metadata[0]['Id'],rows,nodes
+
+
+def build(sources, parent_original_path, *, worker_observation=None, worker_image=None):
     need(type(sources) is dict and set(sources)==set(EXPECTED),'configured-source-roles')
     for name,raw in sources.items():need(type(raw) is bytes and sha(raw)==EXPECTED[name],'configured-reviewed-source-pin')
     need(type(parent_original_path) is str and Path(parent_original_path).is_absolute() and all(x not in ('','.','..') for x in parent_original_path.split('/')[1:]) and Path(parent_original_path).name=='comic_reader_lifecycle_parent.py','configured-parent-original-path')
-    parent=assignments(sources['parent'],{'CHILD_CONTROL_PROJECTION_ENABLED':'CHILD_CONTROL_PROJECTION_ENABLED = True','CHILD_CONTROL_SOURCE_SHA':'CHILD_CONTROL_SOURCE_SHA = '+repr(EXPECTED['projection'])})
+    edits={'CHILD_CONTROL_PROJECTION_ENABLED':'CHILD_CONTROL_PROJECTION_ENABLED = True','CHILD_CONTROL_SOURCE_SHA':'CHILD_CONTROL_SOURCE_SHA = '+repr(EXPECTED['projection'])}
+    need(worker_observation is not None or worker_image is None,'configured-worker-no-image-without-profile')
+    if worker_observation is not None:
+        profile=worker_profile(worker_observation)
+        import re
+        need(type(worker_image) is str and re.fullmatch('sha256:[a-f0-9]{64}',worker_image),'configured-worker-original-image-id')
+        observation={key:profile[key] for key in ('mode','source','image_sources')}
+        edits.update(WORKER_OBSERVATION_ENABLED='WORKER_OBSERVATION_ENABLED = True',
+                     WORKER_OBSERVATION_ORIGINALS='WORKER_OBSERVATION_ORIGINALS = '+repr(observation),
+                     WORKER_OBSERVATION_IMAGE='WORKER_OBSERVATION_IMAGE = '+repr(worker_image),
+                     WORKER_OBSERVATION_IMAGE_ORIGINAL='WORKER_OBSERVATION_IMAGE_ORIGINAL = '+repr(profile['image_metadata']))
+    parent=assignments(sources['parent'],edits)
     parent_sha=sha(parent)
     child_parent=str(CHILD_OPERATION/('control-'+sha(parent_original_path.encode())[:24])/Path(parent_original_path).name)
     admission=assignments(sources['admission'],{'PARENT_SOURCE':'PARENT_SOURCE = Path('+repr(child_parent)+')','PARENT_SHA':'PARENT_SHA = '+repr(parent_sha)})
@@ -53,7 +132,7 @@ def build_nfs(sources):
     for name,raw in sources.items():need(type(raw) is bytes and sha(raw)==EXPECTED_NFS[name],'configured-nfs-reviewed-source-pin')
     return dict(sources)
 
-def install(source_paths, output, *, sdk_ref=None, base_manifest_path=None, nfs_source_paths=None):
+def install(source_paths, output, *, sdk_ref=None, base_manifest_path=None, nfs_source_paths=None, worker_observation=None):
     """Create one exclusive root-private configured artifact set; never deploy.
 
     Root caller supplies reviewed public source paths, not digests or code edits.
@@ -66,6 +145,10 @@ def install(source_paths, output, *, sdk_ref=None, base_manifest_path=None, nfs_
     need(os.geteuid()==0,'configured-install-root-required')
     need(type(source_paths) is dict and set(source_paths)==set(EXPECTED),'configured-install-source-roles')
     need(type(sdk_ref) is dict and set(sdk_ref)=={'path','sha256','signature9'} and type(sdk_ref['signature9']) in (list,tuple) and len(sdk_ref['signature9'])==9 and all(type(x) is int for x in sdk_ref['signature9']) and base_manifest_path is not None,'configured-install-original-maps-required')
+    import copy
+    original_worker=worker_observation
+    worker_tape=None if worker_observation is None else json.dumps(worker_observation,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)
+    worker_observation=None if worker_tape is None else worker_profile(json.loads(worker_tape))
     original_paths=source_paths;original_sdk=sdk_ref
     original_nfs=nfs_source_paths
     need(nfs_source_paths is None or type(nfs_source_paths) is dict and set(nfs_source_paths)==set(EXPECTED_NFS),'configured-install-exact-nfs-roles')
@@ -83,7 +166,7 @@ def install(source_paths, output, *, sdk_ref=None, base_manifest_path=None, nfs_
     vector=lambda z:(z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
     node=lambda z:(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
     files=[];nodes={};fds=[];sources={};created=[]
-    for path in [output,Path(sdk_ref['path']),Path(base_manifest_path),*map(Path,combined_paths.values())]:
+    for path in [output,Path(sdk_ref['path']),Path(base_manifest_path),*map(Path,combined_paths.values()),*([Path(worker_observation[k]['path']) for k in ('source','image_sources','image_metadata')] if worker_observation is not None else [])]:
         need(path.is_absolute() and all(x not in ('','.','..') for x in str(path).split('/')[1:]),'configured-install-canonical')
         for parent in path.parents:
             z=os.lstat(parent);need(stat.S_ISDIR(z.st_mode),'configured-install-ancestor')
@@ -110,8 +193,14 @@ def install(source_paths, output, *, sdk_ref=None, base_manifest_path=None, nfs_
             result={}
             for key,value in rows:need(key not in result,'configured-install-map-duplicate');result[key]=value
             return result
+        if worker_observation is not None:
+            worker_image,worker_rows,worker_nodes=worker_original_inputs(worker_observation)
+            files.extend(worker_rows)
+            for path,value in worker_nodes.items():
+                need(path not in nodes or nodes[path]==value,'configured-worker-install-node-conflict');nodes[path]=value
+        else:worker_image=None
         base_sdk=json.loads(map_bytes['sdk'],object_pairs_hook=unique)
-        artifacts,receipt=build({role:sources[role] for role in EXPECTED},str(output/'comic_reader_lifecycle_parent.py'))
+        artifacts,receipt=build({role:sources[role] for role in EXPECTED},str(output/'comic_reader_lifecycle_parent.py'),worker_observation=worker_observation,worker_image=worker_image)
         sdk,cohort=configured_maps(base_sdk,map_bytes['base'],artifacts,receipt)
         output.mkdir(mode=0o700);rootfd=os.open(output,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC);fds.append(rootfd)
         birth=node(os.fstat(rootfd));need(stat.S_ISDIR(birth[2]) and stat.S_IMODE(birth[2])==0o700 and birth[3:]==(0,os.getegid()) and node(os.lstat(output))==birth,'configured-install-root-creator');nodes[str(output)]=birth
@@ -122,6 +211,10 @@ def install(source_paths, output, *, sdk_ref=None, base_manifest_path=None, nfs_
             blobs.update(build_nfs({name:sources[name] for name in EXPECTED_NFS}))
             receipt['nfs_host_only_sources']={name:EXPECTED_NFS[name] for name in EXPECTED_NFS}
             receipt['nfs_session_admission_proven']=False
+        if worker_observation is not None:
+            receipt['worker_observation_profile']=copy.deepcopy(worker_observation)
+            receipt['worker_observation_image']=worker_image
+            receipt['worker_observation_installed_parity_verified']=False
         receipt['readonly_overlay']={'source':str(output/overlay),'destination':'/app/mylar3/mylar/publication_reader_admission.py','uid':1000,'gid':1000,'mode':'0600','sha256':sha(blobs[overlay])}
         receipt['base_sdk_ref']={'path':sdk_ref['path'],'sha256':sdk_ref['sha256'],'signature9':list(sdk_ref['signature9'])}
         receipt['effective_sdk_map_sha256']=sha(blobs['configured-sdk-map.json']);receipt['effective_cohort_sha256']=sha(blobs['configured-cohort.json']);receipt['actual_overlay_origins_verified']=False
@@ -146,6 +239,7 @@ def install(source_paths, output, *, sdk_ref=None, base_manifest_path=None, nfs_
     finally:
         for fd in reversed(fds):os.close(fd)
     # All serializers, writes, chown/fsync, callbacks and FD cleanup are finished.
+    if worker_tape is not None and json.dumps(original_worker,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)!=worker_tape:raise Held('configured-worker-original-input-final')
     if nfs_tape is not None and tuple(sorted(original_nfs.items()))!=nfs_tape:raise Held('configured-install-original-nfs-inputs-final')
     if tuple(sorted(original_paths.items()))!=paths_tape or (original_sdk['path'],original_sdk['sha256'],tuple(original_sdk['signature9']))!=sdk_tape:raise Held('configured-install-original-inputs-final')
     if tuple(sorted(os.listdir(output)))!=tuple(sorted(blobs)):raise Held('configured-install-output-namespace')

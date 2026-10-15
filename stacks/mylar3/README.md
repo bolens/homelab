@@ -87,7 +87,13 @@ must independently match the unchanged original. Missing, changed or ambiguous
 members remain available for review; separate physical sources are not merged.
 An existing cache above the default budget therefore holds new allocations until
 verified recovery or an explicit budget increase makes space available. This
-policy covers Mylar's cache, not the normalizer's independent retained sources.
+policy covers Mylar's cache and participating normalizer `.mylar-pack-*` stages, not the normalizer's independent retained sources.
+
+The authenticated `getHealth` reply exposes a typed effective cache policy only under admitted native Writer exclusion. It includes original config/lock/root identities and the actual effective limits; it does not expose config values other than those limits. Admitted normal startup initializes the shared reservation lock. Health reads never create it. A matching worker uses the prefetched policy and existing physical mount aliases under its Writer, opens the original lock through the read-only config bind, and refuses absent, stale or unmapped policy. Old images without this policy cannot authorize new worker pack staging. Conversion is finalized in independent state before exact output bytes are reserved and copied; failed partials remain retained, and the cache lock is released before import dispatch. Positive growth above the maximum still holds; this is not an automatic budget increase.
+
+The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
+
+Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.
 
 The published image includes patches from `config/` to handle missing DDL
 download sizes without breaking the queue page and to reject HTTP errors or
@@ -617,15 +623,23 @@ checks. Waiting for healthy startup while retaining the guard blocks startup unt
 writer-lock timeout, causing startup to fail.
 Recovery bindings include filesystem device numbers and directory inodes. A
 remount or reboot can change the device number while preserving every inode.
-If Mylar reports `Tagger recovery state identity changed`, keep the guard intact
-until both writers are quiesced and their complete state has a verified backup
-and isolated restore. Confirm terminal, cleaned publication receipts and no
-pending writer markers. A rebind is justified only when the stored hash matches
-the exact current inode set with the previous device number. Retained staging
-directory identities need the same verification, and their files must remain
-preserved. Do not clear pending markers or delete recovery directories to make
-startup succeed. The current device-number binding can require this review again
-after another remount.
+If publication authority or tagger recovery reports an identity mismatch, keep
+media processing held until the affected writers are quiesced and their complete
+state has a verified backup and isolated restore. Confirm terminal, cleaned
+publication receipts and no pending writer markers. The unchanged tagger hash
+must match the exact current inode set with the recorded previous device number.
+Preserve retained staging files, original binding bytes and immutable history.
+Do not clear markers or delete recovery directories to make startup succeed.
+
+The [reviewed device-recovery contract](../../specs/023-verified-publication-corrections/contracts/publication-corrections.md#reviewed-device-identity-recovery)
+defines an explicit accepted transition within the existing writer root. Its
+private adoption ledger preserves earlier epochs, tokens and records. Future
+device-number reconciliation requires the reviewed destination's stable Btrfs
+filesystem and subvolume binding, with current file custody still checked.
+Unsupported or incomplete evidence retains the hold. This records the operator's
+current destination trust and does not infer missing historical filesystem
+identifiers. Source, installed-image and live recovery acceptance are separate
+requirements. Use only a verified matching image and reviewed operational inputs.
 If the normalizer or an operator changed data during that interval, retain the
 backup and reconcile the differences before restoring; do not overwrite valid
 changes with an older snapshot. Confirm unrelated services remained healthy.
@@ -1416,11 +1430,42 @@ historical ordinary-import acknowledgement, cleanup, resume or index grant is
 created. An accepted activation and protected runtime proof are still required.
 
 The image carries three read-only public authentication modules in
-`/opt/mylar-publication-launch/auth/`. Their separate installer and 14 source
+`/opt/mylar-publication-launch/auth/`. Their separate installer and 17 source
 controls check exact bytes, file ownership and the five allowed fixture paths.
-The final image copies only those three modules. Deployment enrollment, keys
-and activation are separate operational steps. An image build does not release
-the processing hold.
+The final image copies those three modules and adds three empty root-owned
+0444 bind targets directly under `/opt/mylar-publication-launch/`:
+`installation-v1.json`, `inventory-v1.json`, and `public-ed25519.der`. Empty
+placeholders are not enrollment or authority; existing authentication refuses
+empty documents. The final image build checks their exact namespace, type,
+ownership, permissions, empty bytes and independent links.
+
+The separate retained-recovery profile v2 permits exactly three additional
+read-only regular-file binds from the fixed root-owned
+`/etc/mylar-publication-launch/child/` directory to those same three canonical
+container basenames. It preserves the original native image and every original
+mount, and rejects writable, missing, extra, duplicated, foreign-source and
+protected-native-path overlays. It does not change ordinary Compose mounts,
+networking, privileges, startup, or processing admission. Legacy profiles retain
+their exact no-additional-mount rule.
+
+Explicit root maintenance `provision_original_anchors()` in the reviewed host
+broker copies only the three original public files from fixed
+`/etc/mylar-publication-launch/reviewed-child/`. It first verifies existing root
+enrollment, deployment, revised logical policy and exact anchor/inventory/key
+hash joins. The operator must already have reviewed the source inventory,
+selected image/profile, deployment and key enrollment; this function does not
+create a signing key, enroll a deployment or infer approval from file presence.
+It accepts no caller paths, callbacks, commands or mount descriptions. Copies
+are exclusive, immutable, independently created leaves; unknown or partial
+existing destinations refuse. Repetition accepts only the exact complete bytes
+and modes. Originals and created identities close after namespace callbacks.
+The root host signing key is never mounted or copied into a child.
+
+This source composition needs a new exact image/layout proof and a fresh reviewed
+installation/enrollment before configured use. Full configured authentication,
+namespace/UID1000 access, lifecycle, backup/restore and retained catalog-to-ACK
+acceptance remain operational gates. An image build does not release the
+processing hold.
 
 
 DDL worker status updates retain their original queue generation and release

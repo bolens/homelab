@@ -290,19 +290,32 @@ def bound_publisher(writer):
     root = writer.root.parent/'modern-tagger-v2'
     paths = (root, root/'journal-v2', root/'staging', root/'staging-receipts')
     identities = []
+    directory_originals = []
     for path in paths:
         info = path.lstat()
         if (any(p.is_symlink() for p in (path, *path.parents)) or not stat.S_ISDIR(info.st_mode)
                 or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o700):
             raise ValueError('Expected private bound recovery state')
         identities.append((info.st_dev, info.st_ino))
+        directory_originals.append([info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid])
     expected = (hashlib.sha256(json.dumps(identities).encode()).hexdigest()+'\n').encode()
     fd = os.open(writer.root/'tagger-state-v2.identity', os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     try:
         info = os.fstat(fd)
         if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != os.geteuid()
-                or stat.S_IMODE(info.st_mode) != 0o600 or os.read(fd, 66) != expected):
+                or stat.S_IMODE(info.st_mode) != 0o600):
             raise ValueError('Tagger recovery state identity changed')
+        raw_binding = os.read(fd, 66)
+        if raw_binding != expected:
+            if __package__:
+                from .publication_identity_readers import validate_tagger_binding
+            else:
+                from publication_identity_readers import validate_tagger_binding
+            validate_tagger_binding(writer, writer.root.parent/'workflow.sqlite',
+                                    writer.root/'tagger-state-v2.identity', paths,
+                                    binding_original=[info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
+                                                      info.st_ctime_ns, info.st_mode, info.st_uid, info.st_gid, info.st_nlink],
+                                    directory_originals=directory_originals)
     finally:
         os.close(fd)
     if __package__:

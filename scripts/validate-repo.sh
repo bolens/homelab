@@ -50,6 +50,7 @@ python3 scripts/audit-prepare-scripts.py
 python3 -m unittest discover -s scripts/tests -p test_prepare_storage.py
 python3 -m unittest discover -s scripts/tests -p test_mirror_sync.py
 python3 -m unittest discover -s scripts/tests -p test_restic_retention.py
+python3 -m unittest discover -s scripts/tests -p test_builder_cache_guard.py
 python3 -m unittest discover -s scripts/tests -p test_optional_stack_overrides.py
 python3 -m unittest discover -s stacks/nzbget/scripts/UnpackMusicTar -p test_main.py
 

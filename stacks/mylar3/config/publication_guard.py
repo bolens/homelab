@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tarfile
 import time
+import threading
 import zipfile
 
 MAX_MEMBERS = 4096
@@ -764,11 +765,13 @@ def _registry_snapshot(database, marker):
                 current_writer = writer_identity(Writer(marker.parent, create=False))
                 if not isinstance(value, dict) or not digest_value(value.get('initialization_intent')):
                     raise Unavailable('Missing initialization witness binding')
-                initialization_witness(db, value['initialization_intent'], census, before[:2], current_writer)
+                initialization_witness(db, value['initialization_intent'], census, before[:2], current_writer, ledger_dir=marker.parent/'identity-adoptions-v1')
+                projected_marker = dict(value)
+                projected_marker.update(historical_identity(db, marker.parent/'identity-adoptions-v1', value, before[:2], current_writer, outcome='committed'))
             expected = dict(version=1, phase='final', census=census,
                             initialization_intent=value['initialization_intent'],
                             database_identity=before[:2], writer_identity=current_writer)
-            if canonical_digest(value) != canonical_digest(expected):
+            if canonical_digest(projected_marker) != canonical_digest(expected):
                 raise Unavailable('Correction marker does not bind complete final state')
             if (signature(os.fstat(stream.fileno())) != before
                     or signature(database.lstat()) != before
@@ -1104,7 +1107,39 @@ def workflow_schema(db):
         'SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name')])
 
 
-def initialization_witness(db, token, census, identity, writer, *, pending=None):
+_IDENTITY_TRANSACTIONS = {}
+
+
+def identity_transaction_owned(db, writer, database):
+    record = _IDENTITY_TRANSACTIONS.get(db)
+    return (record is not None and record[0] is writer and record[1] == str(database)
+            and record[2] == os.getpid() and record[3] == threading.get_ident()
+            and db.in_transaction and getattr(writer.local[1], 'depth', 0) > 0
+            and tuple(database_stamp_identity(database)) == record[4]
+            and tuple(writer_identity(writer)) == record[5])
+
+
+def database_stamp_identity(database):
+    with regular(database) as stream:
+        info = os.fstat(stream.fileno())
+        return info.st_dev, info.st_ino
+
+
+def historical_identity(db, ledger_dir, binding, identity, writer, *, outcome, pending=None, writer_owner=None):
+    original = {name: list(binding[name]) for name in ('database_identity', 'writer_identity')}
+    current = dict(database_identity=list(identity), writer_identity=list(writer))
+    if original == current and (outcome != 'committed' or ledger_dir is None):
+        return current
+    if ledger_dir is None:
+        raise Unavailable('Foreign initialization witness')
+    if __package__:
+        from .publication_identity_readers import durable_identity
+    else:
+        from publication_identity_readers import durable_identity
+    return durable_identity(db, ledger_dir, original, current, outcome=outcome, pending=pending, writer_owner=writer_owner)
+
+
+def initialization_witness(db, token, census, identity, writer, *, pending=None, ledger_dir=None, writer_owner=None):
     rows = db.execute("SELECT key,value FROM records WHERE kind='publication_intent'").fetchall()
     committed = []
     for key, raw in rows:
@@ -1115,10 +1150,11 @@ def initialization_witness(db, token, census, identity, writer, *, pending=None)
         if value['outcome'] == 'committed':
             if plan['action'] == 'bootstrap':
                 committed.append(key)
+            effective = historical_identity(db, ledger_dir, plan['binding'], identity, writer, outcome='committed', pending=pending, writer_owner=writer_owner)
             epoch = plan['epoch'] if plan['action'] == 'bootstrap' else plan['old']['epoch']
             if ((plan['action'] == 'bootstrap' and key != token) or epoch != census['epoch']
-                    or plan['binding']['database_identity'] != identity
-                    or plan['binding']['writer_identity'] != writer
+                    or effective['database_identity'] != identity
+                    or effective['writer_identity'] != writer
                     or plan['binding']['schema'] != workflow_schema(db)):
                 raise Unavailable('Foreign initialization witness')
     if committed != [token]:
@@ -1185,12 +1221,15 @@ class RegistryState:
                 with closing(sqlite3.connect(self.database.as_uri() + '?mode=rw', uri=True)) as db:
                     db.execute('PRAGMA synchronous=FULL')
                     db.execute('BEGIN IMMEDIATE')
+                    _IDENTITY_TRANSACTIONS[db] = (self.writer, str(self.database), os.getpid(),
+                                                   threading.get_ident(), tuple(self.identity), tuple(self.writer_binding))
                     try:
                         workflow_schema(db)
                         if db.execute('PRAGMA quick_check').fetchall() != [('ok',)]:
                             raise Unavailable('Unreadable workflow database')
                         yield db
                     finally:
+                        _IDENTITY_TRANSACTIONS.pop(db, None)
                         db.rollback()
                 if database_stamp(self.database)[:2] != self.identity:
                     raise Unavailable('Initialization database was replaced')
@@ -1215,8 +1254,10 @@ class RegistryState:
         if row is None or not isinstance(row[0], str):
             raise Unavailable('Missing initialization receipt')
         value = decode_json(row[0]);plan = bootstrap_record(token, value)
-        if (plan['binding']['database_identity'] != self.identity
-                or plan['binding']['writer_identity'] != self.writer_binding):
+        effective = historical_identity(db, self.writer.root/'identity-adoptions-v1', plan['binding'],
+                                        self.identity, self.writer_binding, outcome=value['outcome'], writer_owner=self.writer)
+        if (effective['database_identity'] != self.identity
+                or effective['writer_identity'] != self.writer_binding):
             raise Unavailable('Initialization receipt belongs to foreign state')
         return value
 
@@ -1326,7 +1367,7 @@ class RegistryState:
             raise Unavailable('Initialization database was replaced')
         db.execute('BEGIN')
         census, _ = complete_census(db)
-        initialization_witness(db, token, census, self.identity, self.writer_binding)
+        initialization_witness(db, token, census, self.identity, self.writer_binding, ledger_dir=self.writer.root/'identity-adoptions-v1', writer_owner=self.writer)
         if canonical_digest(census) != canonical_digest(record['plan']['new']):
             raise Unavailable('Committed initialization census changed')
         db.commit()
@@ -1461,9 +1502,11 @@ class RegistrationState(RegistryState):
         if row is None:
             raise Unavailable('Missing registration receipt')
         record = decode_json(row[0]);plan = intent_record(token, record)
+        effective = historical_identity(db, self.writer.root/'identity-adoptions-v1', plan['binding'],
+                                        self.identity, self.writer_binding, outcome=record['outcome'], writer_owner=self.writer)
         if (plan['action'] != 'register'
-                or plan['binding']['database_identity'] != self.identity
-                or plan['binding']['writer_identity'] != self.writer_binding):
+                or effective['database_identity'] != self.identity
+                or effective['writer_identity'] != self.writer_binding):
             raise Unavailable('Foreign registration receipt')
         return record
 
@@ -1499,8 +1542,17 @@ class RegistrationState(RegistryState):
 
     def _validated(self, db, initialization, *, pending=None):
         census, records = complete_census(db, pending=pending)
-        initialization_witness(db, initialization, census, self.identity, self.writer_binding, pending=pending)
+        initialization_witness(db, initialization, census, self.identity, self.writer_binding, pending=pending, ledger_dir=self.writer.root/'identity-adoptions-v1', writer_owner=self.writer)
         return census, records
+
+    def _final_marker_matches(self, db, marker, census, initialization, *, pending=None):
+        if marker.get('phase') != 'final':
+            return False
+        projected = dict(marker)
+        projected.update(historical_identity(db, self.writer.root/'identity-adoptions-v1', marker,
+                                            self.identity, self.writer_binding, outcome='committed',
+                                            pending=pending, writer_owner=self.writer))
+        return same_json(projected, self.final_marker(census, initialization))
 
     def _current(self, db, *, pending=None):
         marker = self._read_marker()
@@ -1508,7 +1560,7 @@ class RegistrationState(RegistryState):
         if not digest_value(initialization):
             raise Unavailable('Missing original initialization witness')
         census, records = self._validated(db, initialization, pending=pending)
-        if not same_json(marker, self.final_marker(census, initialization)):
+        if not self._final_marker_matches(db, marker, census, initialization, pending=pending):
             raise Unavailable('Registration requires exact complete final authority')
         return marker, census, records
 
@@ -1609,7 +1661,7 @@ class RegistrationState(RegistryState):
                     initialization = marker.get('initialization_intent')
                     census, _ = self._validated(db, initialization)
                     prepared = self._registration_prepared(token, record, initialization)
-                    if same_json(marker, self.final_marker(census, initialization)):return census
+                    if self._final_marker_matches(db, marker, census, initialization):return census
                     if not same_json(marker, prepared) or census != prepared['old']:
                         raise Unavailable('Mixed aborted registration state')
                     db.commit()
@@ -1622,11 +1674,11 @@ class RegistrationState(RegistryState):
                 initialization = marker.get('initialization_intent')
                 prepared = self._registration_prepared(token, record, initialization)
                 census, _ = self._validated(db, initialization, pending=token)
-                if same_json(marker, self.final_marker(census, initialization)) and record['outcome'] == 'committed':
+                if record['outcome'] == 'committed' and self._final_marker_matches(db, marker, census, initialization, pending=token):
                     if abort:raise Unavailable('Committed registration cannot abort')
                     return registration_effect(token, record['plan'])[1]
-                if not any(same_json(marker, candidate) for candidate in
-                           (prepared, self.final_marker(record['plan']['old'], initialization))):
+                if not (same_json(marker, prepared) or self._final_marker_matches(
+                        db, marker, record['plan']['old'], initialization, pending=token)):
                     raise Unavailable('Missing or foreign prepared registration marker')
                 if record['outcome'] == 'committed':
                     if abort or census != prepared['new'] or not same_json(marker, prepared):
@@ -2025,7 +2077,7 @@ class RegistrationJournalRecovery(JournalRecovery):
         marker = private_json(self.bootstrap_marker)
         initialization = marker.get('initialization_intent')
         census, _ = complete_census(db, pending=registration_token)
-        initialization_witness(db, initialization, census, identity, self.writer_binding,
+        initialization_witness(db, initialization, census, identity, self.writer_binding, ledger_dir=self.writer.root/'identity-adoptions-v1', writer_owner=self.writer,
                                pending=registration_token)
         _, new = registration_effect(registration_token, plan)
         expected = dict(version=1, phase='prepared', intent=registration_token,

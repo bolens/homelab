@@ -1,5 +1,6 @@
 {
   "archive_repair_handoff.py": "d9a165610980da31308753abfc6b392efb5a71c9c66679298ec30e8f6637cb2d",
+  "cache_reservation.py": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf",
   "check_preproof_session.py": "1d16faa1f3d616329c77b11ed541c195044b1409fb670f8eb145011e2b40c3d9",
   "check_retained_pack_composed_worker.py": "b00331d89fe7c55c67f7c06db9c1dac81f79d44a4047beceb024fd711e371041",
   "check_retained_pack_export.py": "0dbd9825cc63fe42fe8d5f5a605eac85eb24df4c900d677eacc1f952c78dd9d0",
@@ -18,7 +19,7 @@
   "ordinary_import_ack.py": "e5f9f09fd7ac0b4d5af69d9706a71b01a9a771bfbf22665baa79df851d95f891",
   "ordinary_import_observation.py": "9bcc265db6969424b5273b31e8a296aeaff9bc7d60f5a69915cbbefb7d304a7c",
   "pack_only.py": "459ec7a761c38ad7e9f6cf938087f52782879e481a2a8adf47d50b4a44615301",
-  "pack_recovery.py": "03755f6ff7293fc14d536caa70d90e15fdac93a1ff99f3277908bc0c84db3be3",
+  "pack_recovery.py": "e66518a6282156ee34191cadd73aca1e26e94b7daaac085880da55fe3aba7f27",
   "pdf_conversion.py": "e45a7693570982173f3a1bf33b7557f1c0de2203d4eeb0392d4642f5ac96330c",
   "publication_archive_derivative.py": "55deff15f79c75aacabb8cff1fcd200c5db445fec26dda5aaaaf2ae9e99a652e",
   "publication_archive_diagnostics.py": "c71f0d71dcd2b69c1f4f392bd5aada3bb1a65794fd8f1c12ee16aa7489684577",
@@ -34,7 +35,8 @@
   "reader_scan.py": "2963ee58ec016bb2ee488b2c64fac0e5f2d2d4963f961ce548b31fa99fe88700",
   "release_naming.py": "4479b6027a5180b31ee5a994202bca87e5bb1cb2f1685d6cb7463f736b1526e8",
   "retained_pack_control.py": "a11b28318ed5f930f07963c7daf44b997eb1d1211c73242d32b5e9b20a834736",
-  "retained_pack_handoff.py": "a4aaf3e2149c6983e9bdbe1027f82a7487a286d4b21dd6fe9b98357fecdd7ead",
+  "retained_pack_handoff.py": "89b3a72b518867e3c5856ceebdd08f268f286ca63a6b4aebd533cadfcc1571b9",
   "retained_pack_operations.py": "faf03dea0bb016484c41d021fa62617af9790ddb23f278eb240680435b6c3a65",
+  "worker_cache.py": "efb31f946b4664c32133533e9f19aee3f378b892c78c06066c8cd9319bd615b5",
   "writer_cycle.py": "7b03a493d8acb85e31fb8c7f7788216dce396e18bb2b55ddead357de6df5a14c"
 }

@@ -1,3 +1,4 @@
+# Reviewed device-identity recovery retains history in the existing config volume; stable Btrfs queries add no runtime privilege.
 name: mylar3
 default_port: 8090
 databases: []

@@ -71,6 +71,10 @@ Before a large application-state backup, measure its size and verify free space
 on the destination filesystem for both the backup and isolated restore. Prefer
 disk storage for large snapshots: tmpfs output consumes memory and can exhaust a
 backup helper's container allowance even when its process uses little memory.
+Place large backup and isolated-restore copies on the dedicated backup filesystem
+when available, rather than consuming application storage. After the owning
+operation is verified, remove its disposable restore copy while preserving the
+required backup and unresolved original evidence.
 
 ## Working through Spec Kit
 

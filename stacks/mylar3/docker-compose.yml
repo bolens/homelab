@@ -1,3 +1,4 @@
+# Explicit device-identity recovery retains a private adoption ledger in the existing config volume; no added privilege or mount.
 # Read-only RAR verification uses image-bundled libarchive 3.8.9; no extra runtime configuration.
 # Bounded read-only payload verification is image-bundled; correction enforcement is a separately gated migration.
 # Optional library metadata maintenance uses existing Activity settings and app state; both options default off.

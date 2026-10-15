@@ -9,11 +9,9 @@
 
 ## Current remaining work
 
-**Updated 2026-10-14.**
+**Updated 2026-10-15.** T019/T023 require feature 023's configured recovery and current-library acceptance before the combined naming/metadata and eligible bulk passes. Preserve dot separators and a hyphen before the verified group. T024 supplies final idempotence, data and cleanup proof after bulk processing. The reading-progress audit remains deferred.
 
-T019/T023 remain open for the combined naming/metadata and eligible bulk passes, which require feature 023's configured recovery and current-library acceptance. The naming preference remains dot separators with a hyphen before the verified release group. T024 retains final idempotence, data and cleanup proof after the bulk pass; the additional reading-progress audit remains deferred. The shared outer backup is verified, normal Mylar is available and the compatible Komga reader is healthy. Bulk and experimental worker processing remain separately held; feature 023 owns the [current recovery prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work).
-
-The deployed ordinary Mylar repair and compatible worker pass their accepted source/runtime checks. PR #335's published native candidate also passes installed-source, API, UI and 17 import/recovery cases. PR #336 merged with all 14 hosted checks passing and GitHub/local/Gitea synchronized. Matching-image publication and genuine configured acceptance remain required before T019/T023/T024 bulk work. Selected ordinary pack recovery is prepared separately. See feature 023's [current evidence](../023-verified-publication-corrections/evidence-history.md#queue-admission-delivery-and-selected-pack-preflight-2026-10-13).
+The complete scoped native backup and isolated restore now verify successfully, including all 32 SQLite databases. PR #352's cache/reader source and matching image publication pass; post-reboot recovery still requires feature 023's T031 tagger-history correction and selected-image verification. PR #354 is in progress. Mylar is stopped, Komga is running and the experimental worker remains inactive. No fresh identity adoption, naming pass or import acceptance is claimed. Ordinary Mylar recovery remains separate from experimental/bulk gates. See feature 023's [current prerequisites](../023-verified-publication-corrections/tasks.md#current-hold-release-work) and [delivery/storage evidence](../023-verified-publication-corrections/evidence-history.md#recovery-delivery-and-storage-cleanup-2026-10-15). Scoped artifact cleanup restores application-drive headroom to about 165 GiB; its original backup remains preserved. That cleanup does not complete post-bulk T024 acceptance.
 
 ## Phase 1: Setup
 

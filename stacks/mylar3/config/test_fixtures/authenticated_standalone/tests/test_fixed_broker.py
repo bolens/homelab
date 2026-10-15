@@ -42,10 +42,20 @@ class BrokerTests(unittest.TestCase):
         self.doc['broker_sources']=hashlib.sha256(json.dumps(self.doc['host_sources'],sort_keys=True,separators=(',',':')).encode()).hexdigest()
         self.doc['parent_sha256']=self.doc['host_sources']['comic_retained_standalone_parent.py']
         self.doc['bootstrap_sha256']=self.doc['host_sources']['BOOTSTRAP.py']
+        self.anchors=self.root/'child';self.anchors.mkdir(mode=0o700)
+        inventory={'version':1,'kind':'standalone-leaf-inventory-v1','sources':{
+            **{'/opt/mylar-publication-launch/auth/'+n:'1'*64 for n in ('private_crypto.py','v3_auth_core.py','standalone_launch_auth.py')},
+            **{'/app/mylar3/mylar/fixture_'+str(i)+'.py':'2'*64 for i in range(9)}}}
+        inventory_raw=self.m.canonical(inventory);self.doc['inventory_sha256']=self.m.sha(inventory_raw)
+        anchor={k:self.doc[k] for k in ('deployment','profile','broker_sources','parent_sha256','bootstrap_sha256','inventory_sha256','key_sha256')}
+        anchor.update(version=1,kind='standalone-installation-anchor-v1')
+        anchor_raw=self.m.canonical(anchor);self.doc['anchor_sha256']=self.m.sha(anchor_raw)
+        for name,raw in zip(self.m.ANCHOR_NAMES,(anchor_raw,inventory_raw,PUBLIC)):
+            path=self.anchors/name;path.write_bytes(raw);path.chmod(0o444)
         self.write();self.enroll()
         # This explicit unit-test projection is not a production installation grant.
         self.settings=patch.multiple(self.m,ROOT_UID=os.geteuid(),PACKAGE=self.pkg,KEY=self.key,INSTALLATION=self.file,
-                                     ENROLLMENT=self.enrollment)
+                                     ENROLLMENT=self.enrollment,CHILD_ANCHORS=self.anchors)
         self.settings.start()
         for name in self.m.NAMES:
             if name[:-3] in sys.modules:del sys.modules[name[:-3]]
