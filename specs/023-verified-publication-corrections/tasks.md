@@ -114,4 +114,6 @@ Detailed delivery, runtime, convergence and failure records are retained in [evi
 
 ## Convergence assessment and evidence
 
+The current native-only backup and isolated restore are verified: 21,873 files, 265 directories and all 32 database checks, with the complete source comparison passing. PR #352's matching images are published and PR #353's task/evidence update is merged with passing CI. The pulled native image passes all 180 tracked installed-source hashes, the maintained cohort, final authentication checks, all 26 maintenance controls, seven canonical installed-module/type checks and six selector controls. A fixture-only isolated-import correction preserves all assertions and launcher bytes. Identity adoption and startup are next; Mylar remains stopped, Komga remains running and the experimental worker remains inactive. These completed prerequisites do not complete T017 or authorize bulk processing.
+
 T028's reviewed recovery source precedes T026 installation; T029 verifies the current combined runtime before the held rollout in T017. T027 supplies actual aggregate proof before T017 reconciliation and T018/T019 acceptance and cleanup. The current remaining-work list preserves these dependencies and existing task IDs.
