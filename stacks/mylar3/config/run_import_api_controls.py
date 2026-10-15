@@ -61,6 +61,14 @@ DDL_STATUS_FIXTURES = frozenset(('test_fixtures/ddl_status_retention/db.py',
 
 # Exact standalone build-only siblings; preserve their repository-style paths.
 STANDALONE_FIXTURES = frozenset((
+    'standalone_launch_host/private_crypto.py',
+    'standalone_launch_host/comic_native_process_probe.py',
+    'standalone_launch_host/publication_native_configured_scope.py',
+    'standalone_launch_host/BOOTSTRAP.py',
+    'standalone_launch_host/comic_retained_standalone_broker.py',
+    'standalone_launch_host/comic_retained_standalone_parent.py',
+    'standalone_launch_host/comic_retained_standalone_backup.py',
+    'standalone_launch_host/comic_reader_backup_primitives.py',
     'reader_recovery/comic_retained_standalone_action.py',
     'reader_recovery/comic_retained_standalone_backup.py',
     'reader_recovery/comic_retained_standalone_parent.py',

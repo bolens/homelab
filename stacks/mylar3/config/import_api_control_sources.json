@@ -681,7 +681,7 @@
   },
   {
     "path": "run_standalone_controls.py",
-    "sha256": "cceeef34ac7f2941608b57099c62e8414738db13782ea64452f768a726a2f08e"
+    "sha256": "f345281a18b1b636d16190592eefd825f7330829bf2c1d803ffce89122fa4c30"
   },
   {
     "path": "source_patches.py",
@@ -689,7 +689,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "d4ed8988459f8e11b746dcdc954355f0f7060afb1fed6e420faef608aa0c02a8"
+    "sha256": "ec75027c58026c0566f12942fab99537fc5bac50394030e1c9225c847bbb42ed"
   },
   {
     "path": "story_arc_search.py",
@@ -1497,7 +1497,7 @@
   },
   {
     "path": "test_tagger_archive.py",
-    "sha256": "3642e693af698a5cdaa41cc8d4818105a5edf4c80d441cd64cf6f9f57d2ebdba"
+    "sha256": "d999d288e5908e3c0541482994ce3d24c51d1e096e60690838b63c72344c382c"
   },
   {
     "path": "test_tagger_backend.py",
@@ -1589,7 +1589,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "0b8d3b540e1be483e5020147b2818b4e9a595ce39a23239e21c7cb3edf870705"
+    "sha256": "0e5258fa6d219076af4c95076624bd4e2b450bccefe76ae56434a93d162cbb55"
   },
   {
     "path": "verify_publication_reader_cohort.py",
@@ -1618,5 +1618,45 @@
   {
     "path": "workflow_web.py",
     "sha256": "a7862ed59724b7578c23fcd335bd2a192d832d1da83242372e84935254299c85"
+  },
+  {
+    "path": "standalone_launch_host/BOOTSTRAP.py",
+    "sha256": "768483c50613ed9a2eae170034419fc6b09db0b8557aa3f614171cc6d3e60075"
+  },
+  {
+    "path": "standalone_launch_host/comic_native_process_probe.py",
+    "sha256": "c8db0286911ad3cdd0ddc9cd17cdb5b88a206b06a49f9b28c79ce00275a57bce"
+  },
+  {
+    "path": "standalone_launch_host/comic_reader_backup_primitives.py",
+    "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_backup.py",
+    "sha256": "bb0bfb94897ae61157ec92e747c3be4e3c51a2e925cdbecfe119512de398ffa2"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_broker.py",
+    "sha256": "e7ffb0f50a9e224f8f43645b9ebdb62a07f04a1a6390b04c9877f23505774fc6"
+  },
+  {
+    "path": "standalone_launch_host/comic_retained_standalone_parent.py",
+    "sha256": "30fd2ca0c39e50012f82d69cec616fa99ab75ab7adee04c3825babd6d0ff05aa"
+  },
+  {
+    "path": "standalone_launch_host/private_crypto.py",
+    "sha256": "1331178acd712de15fef933081c0aee80da4f99377295810637db468aabc3d9c"
+  },
+  {
+    "path": "standalone_launch_host/publication_native_configured_scope.py",
+    "sha256": "43dfd29de92f2dd963b876b261add29f1d251b11d612f18f56e43b72ed9516ed"
+  },
+  {
+    "path": "test_standalone_anchor_composition.py",
+    "sha256": "87aa1dc7e6825849ffa3d7308f68b160f0efca7b5644a85e8c427c32aa59ea2b"
+  },
+  {
+    "path": "test_standalone_anchor_root.py",
+    "sha256": "ce0297ca931ee48cf6abc3ed5c4f7d4f7567f5e1988f24fe7048ac73a5e1192a"
   }
 ]

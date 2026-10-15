@@ -169,6 +169,7 @@ assert callable(modules['publication_filesystem_binding'].observe)
 
 # Public source controls run even when the upstream image has no installed auth.
 subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_publication_launch_auth.py')], check=True)
+subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_standalone_anchor_composition.py')], check=True)
 # Build-only source controls; public host files grant no installation authority.
 subprocess.run([sys.executable, '-I', '-B', str(FIXES/'test_authenticated_standalone_copy.py')], check=True)
 subprocess.run([sys.executable, '-I', '-B', str(FIXES/'run_authenticated_standalone_controls.py'),
@@ -176,7 +177,7 @@ subprocess.run([sys.executable, '-I', '-B', str(FIXES/'run_authenticated_standal
                 'all' if Path('/opt/archiving-utils/lib/archive_backend.py').is_file() else 'broker'], check=True)
 if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
     import patch_publication_launch_auth as auth_install
-    auth_install.verify_installed('/opt/mylar-publication-launch/auth')
+    auth_install.verify_installed('/opt/mylar-publication-launch/auth', allow_empty_targets=True)
 
 if Path('/opt/comictagger/bin/python').exists():
     assert Path('/opt/ddl-transport/bin/python').is_file(), 'Custom image is missing its required optional discovery runtime'

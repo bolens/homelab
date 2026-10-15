@@ -14,7 +14,7 @@ class ReaderCapacity(unittest.TestCase):
   source=Path(self.b.__file__).read_bytes();self.source_sha=hashlib.sha256(source).hexdigest()
   projected=source.replace(b"parent_original[6:8]!=(0,0)",b"parent_original[6:8]!=(os.geteuid(),os.getegid())")
   self.assertNotEqual(source,projected)
-  fixed={key:getattr(self.b,key) for key in ('ROOT_UID','PACKAGE','KEY','INSTALLATION','ENROLLMENT')}
+  fixed={key:getattr(self.b,key) for key in ('ROOT_UID','PACKAGE','KEY','INSTALLATION','ENROLLMENT','CHILD_ANCHORS')}
   exec(compile(projected,self.b.__file__,'exec'),self.b.__dict__);self.b.__dict__.update(fixed)
   installation=self.b.load_original_installation();row=installation.close();self.installation=installation
   self.parent=row['modules']['comic_retained_standalone_parent.py'];self.helper=row['modules']['comic_retained_standalone_backup.py']

@@ -27,7 +27,8 @@ def security(z):
         raise ValueError('Auth installation requires root-owned non-writable originals')
 
 
-def verify_installed(directory):
+def verify_installed(directory, *, allow_empty_targets=False):
+    if type(allow_empty_targets) is not bool:raise ValueError('Auth layout selector type')
     target = Path(directory).absolute()
     if target.name != 'auth':
         raise ValueError('Auth destination basename')
@@ -36,8 +37,15 @@ def verify_installed(directory):
         z = os.lstat(path); security(z)
         if not stat.S_ISDIR(z.st_mode): raise ValueError('Auth directory original')
         nodes[path] = node(z)
-    if set(os.listdir(target)) != set(SOURCES) or set(os.listdir(target.parent)) != {'auth'}:
+    parent_names=set(os.listdir(target.parent))
+    empty_names={'installation-v1.json','inventory-v1.json','public-ed25519.der'}
+    if set(os.listdir(target)) != set(SOURCES) or not (parent_names=={'auth'} or allow_empty_targets and parent_names=={'auth',*empty_names}):
         raise ValueError('Auth public-only namespace')
+    if parent_names!={'auth'}:
+        for name in sorted(empty_names):
+            path=target.parent/name;z=os.lstat(path);security(z)
+            if not stat.S_ISREG(z.st_mode) or z.st_nlink!=1 or z.st_size!=0 or stat.S_IMODE(z.st_mode)!=0o444:raise ValueError('Auth empty readonly bind target')
+            files[path]=full(z)
     for name in SOURCES:
         path = target / name; z = os.lstat(path); security(z)
         if not stat.S_ISREG(z.st_mode) or z.st_nlink != 1 or stat.S_IMODE(z.st_mode) != 0o444:
@@ -56,7 +64,7 @@ def verify_installed(directory):
             if full(os.fstat(fd)) != files[path]: raise ValueError('Auth original FD final')
         finally:
             os.close(fd)
-    if set(os.listdir(target)) != set(SOURCES) or set(os.listdir(target.parent)) != {'auth'}:
+    if set(os.listdir(target)) != set(SOURCES) or set(os.listdir(target.parent)) != parent_names:
         raise ValueError('Auth final public-only namespace')
     for path, original in nodes.items():
         z = os.lstat(path)
@@ -67,6 +75,20 @@ def verify_installed(directory):
         if (z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
                 z.st_mode, z.st_uid, z.st_gid, z.st_nlink) != original:
             raise ValueError('Auth final original installed source')
+
+
+def verify_required_targets(directory):
+    """Final image gate: unlike checked stage, all three targets are mandatory."""
+    target=Path(directory).absolute()
+    originals={}
+    for name in ('installation-v1.json','inventory-v1.json','public-ed25519.der'):
+        path=target.parent/name;z=os.lstat(path);security(z)
+        if not stat.S_ISREG(z.st_mode) or z.st_size or z.st_nlink!=1 or stat.S_IMODE(z.st_mode)!=0o444:raise ValueError('Auth required empty target')
+        originals[path]=full(z)
+    verify_installed(target,allow_empty_targets=True)
+    if set(os.listdir(target.parent))!={'auth',*(p.name for p in originals)}:raise ValueError('Auth required target namespace')
+    for path,original in originals.items():
+        if full(os.lstat(path))!=original:raise ValueError('Auth required target original')
 
 
 def main(directory):
@@ -164,4 +186,6 @@ def main(directory):
             raise ValueError('Auth final original source')
 
 
-if __name__ == '__main__': main(sys.argv[1])
+if __name__ == '__main__':
+    if sys.argv[1:2]==['--verify-final'] and len(sys.argv)==3:verify_required_targets(sys.argv[2])
+    else:main(sys.argv[1])

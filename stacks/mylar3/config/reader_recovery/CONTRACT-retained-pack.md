@@ -1,6 +1,6 @@
 # Retained pack pre-proof parent and worker proposal
 
-This is a new, default-disabled source proposal. It changes no shared parent, Maintenance delegate, installation, source pin, normal tick, API activation, or existing 90-second selection/action deadline. It implements a concrete root-owned launch prefix and a same-live worker conversation. It does not implement independent terminal restart acceptance.
+This retained-recovery protocol remains default-disabled. Its original same-live worker conversation and terminal gates remain in force. The follow-up fixed public-anchor composition below changes only the scoped installation/profile, copied-source pins and image layout; it changes no Maintenance delegate, normal tick, API activation or existing 90-second selection/action deadline. It does not implement independent terminal restart acceptance.
 
 ## Files and identities
 
@@ -63,3 +63,24 @@ V2 remains immutable and held after the unchanged peer literals replaced the run
 ## V4 original absence is distinct from a present null value
 
 V3 remains immutable and held after the unchanged first-factory callback installed a foreign present-None terminal entry. V4 uses a private absence sentinel, direct membership checks and the original terminal table. Every pre-transition core/final closure rejects ANY terminal presence, including None. The final owned install is exclusive and rechecks absence in the same original table after full closure; terminal closures require actual presence and the exact owned tuple identity. No get(None) comparison substitutes for absence. The runtime, Active conversation, backup observation and terminal export require their original non-None typed values and same live object; None/erasure cannot satisfy those positive seals. Source, physical, process, pipe and consumed action originals remain unchanged.
+
+## Fixed public anchor composition (follow-up profile v2)
+
+The ordinary image remains unprovisioned: it carries public auth code and only
+three empty root-owned0444 placeholders at the existing canonical installation
+paths. No private keys or deployment documents enter the image. The root broker
+may add exactly the three fixed read-only leaf mounts documented in the stack
+README, after original root deployment/enrollment/source/key joins. Parent
+selected-profile checks distinguish this registry-sealed profile from the
+legacy exact-native-mount profile at creation, running observation and every
+subsequent runtime close. No caller-selected overlay or writable anchor exists.
+Native paths overlapping the installation prefix refuse before lifecycle; the
+original source inventory and profile checks remain in force.
+
+Root provisioning copies only already-reviewed public anchor originals through
+exclusive retained FDs, full9/source/ancestor closure and exact finite namespace.
+It never creates enrollment or signs approval. A changed source, key, inventory,
+profile, creator, inode, mode, symlink or foreign destination holds without
+repairing unknown state. This is a security-relevant scoped launch contract
+revision; it changes no ordinary service mounts, startup or availability. No
+configured live or historical ACK acceptance follows source tests.
