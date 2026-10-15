@@ -11,7 +11,7 @@ EXPECTED={'admission': '3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b993
 EXPECTED_NFS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_nfs_child_input_projection.py': 'b4e6bca8b6b7d0d076c5b68bae35430fa65a3b417f0aa5ccb5cd7ccf265e7d93', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_negative_nfs_active_parent.py': '5581505984e10598f45a9536a381abde8b3efe45d4b58963b2921b121b5d1c37', 'comic_nfs_factual_successor.py': 'be07c14bd13951f2aebfd9459ff82dc268a6219a7d76bf72c726d8ad3f237c76'}
 WORKER_OBSERVER_SOURCE_SHA = 'ede41d9758cb09696e1fdd6faa600363d4b24a53e36e8f0a5999ff5672bd4862'
 CHILD_OPERATION = Path('/_operation')
-BASE_SOURCE_MANIFEST_SHA='bacc8ba9aba2170a5ffeb27fecef3a4f23c0e013a403f198547c331e82e4ee99'
+BASE_SOURCE_MANIFEST_SHA='5cb3ba1e3b4a9d0abe28470c0d96c9a0844fe8bc0cc1a7ef4d71d6f064a716f3'
 class Held(ValueError):pass
 
 def need(ok,reason):

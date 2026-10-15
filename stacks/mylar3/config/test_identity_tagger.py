@@ -189,5 +189,76 @@ class TaggerIdentityTests(HistoricalFixture):
         self.assertEqual(guard.canonical_digest(self.bootstrap_original['plan']), self.initialization)
 
 
+
+
+
+class TaggerHistoryCardinalityTests(unittest.TestCase):
+    """Real private history files; no remount, publication or migration grant."""
+    def setUp(self):
+        import tempfile
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        root = Path(self.temporary.name)/'modern-tagger-v2'
+        self.paths = (root, root/'journal-v2', root/'staging', root/'staging-receipts')
+        for path in self.paths:
+            path.mkdir(mode=0o700)
+
+    def lock_history(self, count):
+        for number in range(count):
+            path = self.paths[1]/('%064x.lock' % number)
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            os.close(fd)
+
+    def receipt(self, folder, number, record):
+        token = '%032x' % number
+        path = folder/(token+'.json')
+        path.write_text(json.dumps(dict(record, token=token)))
+        path.chmod(0o600)
+        return path
+
+    def test_large_valid_terminal_history_preserved_and_malformed_still_refused(self):
+        self.lock_history(4097)
+        record = dict(version=1, state='committed', cleaned=True,
+                      source='/public-fixture/retained.cbz', request='a'*64,
+                      before='b'*64, after='c'*64, source_identity=[1,2,3,4,5],
+                      workspace=[1,2], permissions=[0o600,os.geteuid(),os.getegid()],
+                      candidate_identity=[1,2,3,4,5], metadata='updated')
+        journal = self.receipt(self.paths[1], 1, record)
+        clean = self.receipt(self.paths[3], 2, dict(version=1, state='cleaned',
+            source='/public-fixture/retained.cbz', before='b'*64,
+            source_identity=[1,2,3,4,5], folder_identity=[1,2], filename='retained.cbz'))
+        originals = {p: (guard.signature(p.lstat()), p.read_bytes()) for p in (journal, clean)}
+        names, files = readers.quiescent_tagger(self.paths)
+        self.assertEqual(sum(map(len, names.values())), 4099)
+        self.assertEqual(len(files), 4099)
+        for path, (row, raw) in originals.items():
+            self.assertEqual(guard.signature(path.lstat()), row)
+            self.assertEqual(path.read_bytes(), raw)
+        journal.write_text('{}')
+        with self.assertRaisesRegex(guard.Unavailable, 'identity-tagger-unreviewed-journal-or-staging'):
+            readers.quiescent_tagger(self.paths)
+
+    def test_finite_upper_bound_refuses_real_oversized_history_without_removal(self):
+        self.lock_history(65537)
+        with self.assertRaisesRegex(guard.Unavailable, 'identity-tagger-unreviewed-journal-or-staging'):
+            readers.quiescent_tagger(self.paths)
+        self.assertEqual(len(os.listdir(self.paths[1])), 65537)
+
+    def test_staging_and_retained_receipt_remain_unreviewed(self):
+        stage = self.paths[2]/'retained'
+        stage.mkdir(mode=0o700)
+        with self.assertRaisesRegex(guard.Unavailable, 'identity-tagger-unreviewed-journal-or-staging'):
+            readers.quiescent_tagger(self.paths)
+        self.assertTrue(stage.is_dir())
+        stage.rmdir()
+        receipt = self.receipt(self.paths[3], 1, dict(version=1,state='retained',
+            source='/public-fixture/retained.cbz',before='b'*64,
+            source_identity=[1,2,3,4,5],folder_identity=[1,2],filename='retained.cbz'))
+        original = receipt.read_bytes()
+        with self.assertRaisesRegex(guard.Unavailable, 'identity-tagger-unreviewed-journal-or-staging'):
+            readers.quiescent_tagger(self.paths)
+        self.assertEqual(receipt.read_bytes(), original)
+
+
 if __name__ == '__main__':
     unittest.main()

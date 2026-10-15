@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "53e295ad1d2ad5f816a23580d22c392374af910453eba8a752ba7eadf0447355",
+  "base_cohort_sha256": "4006bd91b0dfaae38c92618731f9cc2af1f2184bde349bcad69fefc12762b828",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -201,7 +201,7 @@
     "publication_guard.py": "f4cc888ca0534a9a8dee17843791ef664c462b6ec824ed16515a0e20a9aaaa0e",
     "publication_identity_adoption.py": "fe161bda6d03a37f786d5fbcbe9cb4874b52abade0b4ad67152eeafe3c0c6846",
     "publication_identity_maintenance.py": "59a17ecd85f516ac865d734ec8b364ece10d428b3f6acdcb9516dd3a272d4485",
-    "publication_identity_readers.py": "a3d78687867f6008d45f278a7198f240d9a32b210f3ad614bb1b8c414ae77a52",
+    "publication_identity_readers.py": "9a8c7f670e44ebe46fc3e85653d577ff13f754454e147735c693dc01ea4c061f",
     "publication_lineage.py": "c302233fd7bb2862c1c2901cc3432559ae19762ab11ae0751cd423983e82bca7",
     "publication_mutation.py": "02ed8396be80c6f49d69ba4c122ea022a10c7035e85e4194ff6c80c46ac30bd4",
     "publication_native.py": "6a07fe296270a4021db67eb384221683af847a981d13c5ea5a1eaa8b3e7fa69e",
@@ -546,7 +546,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "a3d78687867f6008d45f278a7198f240d9a32b210f3ad614bb1b8c414ae77a52"
+        "tracked_source_sha256": "9a8c7f670e44ebe46fc3e85653d577ff13f754454e147735c693dc01ea4c061f"
       },
       "publication_lineage": {
         "owning_adapters": [

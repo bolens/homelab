@@ -63,7 +63,7 @@ def quiescent_tagger(paths):
         from tagger_adapter import Publisher, TERMINAL
         from tagger_staging import Staging
     names = {str(path): set(os.listdir(path)) for path in paths[1:]}
-    adoption.need(sum(map(len, names.values())) <= 4096 and not names[str(paths[2])],
+    adoption.need(sum(map(len, names.values())) <= 65536 and not names[str(paths[2])],
                   'identity-tagger-unreviewed-journal-or-staging')
     files = {}
     journal_parser = object.__new__(Publisher)
