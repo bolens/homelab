@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import cache_admission
+import apply_patches
 import patch_cache_admission as installer
 import patch_ddl_status_retention as status
 from workflow_store import Store
@@ -39,6 +40,18 @@ class Installation(unittest.TestCase):
             shutil.copyfile(FIXTURE/(name+'.txt'),target)
         (self.root/'queues/ddl.py').write_text(status.patched_source((HERE/'test_fixtures/ddl_status_retention/ddl.py').read_text()))
         shutil.copyfile(FIXTURE/'mega_library.py.txt',self.root.parent/'lib/mega/mega.py')
+
+    def test_real_cache_helpers_exist_before_cohort_installation(self):
+        def run(argv, **kwargs):
+            self.assertEqual(argv[-1], str(self.root))
+            module = Path(argv[1]).stem
+            if module == 'patch_cache_admission':
+                installer.main(self.root)
+            elif module == 'patch_publication_reader_cohort':
+                for name in ('cache_admission.py', 'cache_reservation.py'):
+                    self.assertEqual((self.root/name).read_bytes(), (HERE/name).read_bytes())
+        with patch('apply_patches.subprocess.run', side_effect=run):
+            apply_patches.main(self.root)
 
     def test_real_original_sources_install_idempotently_and_preserve_status_guards(self):
         installer.main(self.root);original={str(p.relative_to(self.root.parent)):p.read_bytes() for p in self.root.parent.rglob('*.py')}

@@ -1,7 +1,7 @@
 [
   {
     "path": "apply_patches.py",
-    "sha256": "d598ccaab1049e75acc78e1690a2e46aca62bfdba7814497779b06e207a7c15e",
+    "sha256": "2f5bf5942ab840558083b03cc3038cb86f6fce5d677edb84d17d739d004f601c",
     "target": "apply_patches.py"
   },
   {
@@ -1466,7 +1466,7 @@
   },
   {
     "path": "test_patch_cache_admission.py",
-    "sha256": "5107d9def765f44e1da029844612c9ee6227ca55df148c33aa3d5eaf70117093",
+    "sha256": "049f9736bd83200bce0517f0e15568aec9c85501d5fe051408ca482c66d05f05",
     "target": "test_patch_cache_admission.py"
   },
   {
