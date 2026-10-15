@@ -128,7 +128,7 @@ class CurrentBase(unittest.TestCase):
     def test_reviewed_current_sdk_and_optional_api_join_exactly(self):
         raw,base,sdk,artifacts,receipt=self.setup_current();before=dict(sdk)
         effective,cohort=m.configured_maps(sdk,raw,artifacts,receipt)
-        self.assertEqual(sdk,before);self.assertEqual(len(base['base_installed_sources']),175);self.assertEqual(len(base['required_sdk_names']),100)
+        self.assertEqual(sdk,before);self.assertEqual(len(base['base_installed_sources']),179);self.assertEqual(len(base['required_sdk_names']),100)
         for name,pin in self.CURRENT_PINS:self.assertEqual(base['base_installed_sources'][name],pin)
         self.assertEqual([name for name in sdk if sdk[name]!=effective[name]],['publication_reader_admission.py'])
         self.assertFalse(cohort['runtime_acceptance']);self.assertFalse(cohort['publication_acceptance']);self.assertIsNone(base['image']);self.assertFalse(base['installed_acceptance'])
@@ -139,8 +139,8 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'0aac9c3a43f063f040b182dfb15b198572a6e1ce7413af2565c7c14b0423f2f4')
-        self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),74)
+        self.assertEqual(base['base_cohort_sha256'],'01529cdb479b40c8688321c0703af1af02c3b5c6e26ecc7176a90be0376630e8')
+        self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),78)
         for name,pin in self.CURRENT_PINS:
             if name!='api.py':self.assertEqual(base['base_cohort']['existing_sdk_closure'][name[:-3]]['tracked_source_sha256'],pin)
         with self.assertRaisesRegex(m.Held,'configured-base-source-manifest'):m.configured_maps(sdk,raw+b' ',artifacts,receipt)

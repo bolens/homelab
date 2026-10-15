@@ -248,3 +248,15 @@ The current source audit identifies the remaining T012/T015 installation proof: 
 The published PR #329 image passes three genuine installed archive-preparation cases without skips. Disposable fixtures use the canonical SDK, real Controller/Writer, four-database backup and verified isolated restore. Supported malformed-ZIP preparation succeeds under the held Writer; unheld preparation and adoption refuse. Original test assertions remain intact. Earlier setup failures are retained: exact empty installed files, the bundled dependency path and the required forbidden-root configuration were corrected in the fixture/launcher, without weakening production guards.
 
 This accepts preparation and refusal behavior only. Actual configured Parent/Birth/pipe installation, reader continuity, execute/terminal production and factual native/worker consumption remain unfinished. T012/T015 and live T016–T018 remain open. Feature 023 records the independently running [native-only rollout](../023-verified-publication-corrections/evidence-history.md#active-native-rollout-and-owning-integration-2026-10-13).
+
+
+## Shared post-reboot recovery checkpoint 2026-10-14
+
+Current Mylar availability is held by device-number drift in its immutable
+binding. Komga is healthy. The reviewed native/passive-worker device-recovery
+batch is integrated locally and passes owning controls, preserving historical
+identity and admission rules. PR #338 and its matching main images are delivered,
+but this newer batch still needs CI, installed-image and verified live recovery
+acceptance. Earlier READY and backup observations remain historical. See the
+[owning recovery checkpoint](../023-verified-publication-corrections/evidence-history.md#recovery-delivery-checkpoint-2026-10-14)
+for details. These results do not complete bulk naming or archive repair tasks.

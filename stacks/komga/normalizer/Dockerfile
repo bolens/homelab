@@ -24,6 +24,7 @@ LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
 ENV PYTHONDONTWRITEBYTECODE=1
 COPY --from=checked /app/normalize.py /app/maintenance.py /app/import_match.py /app/import_recovery.py /app/guided_match.py /app/pack_recovery.py /app/pack_only.py /app/edition_evidence.py /app/media_writer.py /app/writer_cycle.py /app/reader_scan.py /app/pdf_conversion.py /app/release_naming.py /app/naming_worker.py /app/
 COPY --from=checked /app/publication_guard.py /app/publication_evidence.py /app/publication_metadata.py /app/publication_zip.py /app/publication_lock.py /app/publication_derivative_evidence.py /app/
+COPY --from=checked /app/publication_identity_adoption.py /app/publication_identity_readers.py /app/publication_filesystem_binding.py /app/
 COPY --from=checked /app/publication_archive_layout.py /app/publication_archive_derivative.py /app/publication_archive_repair.py /app/publication_archive_diagnostics.py /app/
 COPY --from=checked /app/ordinary_import_observation.py /app/ordinary_import_ack.py /app/native_handoff.py /app/reader_handoff.py /app/maintenance_report.py /app/conversion_handoff.py /app/combined_handoff.py /app/archive_repair_handoff.py /app/
 COPY --from=checked /app/retained_pack_handoff.py /app/retained_pack_operations.py /app/retained_pack_control.py /app/archive_terminal_observation.py /app/
