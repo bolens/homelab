@@ -40,7 +40,7 @@ services:
   homarr:
     labels:
       logging: "false"
-    image: ghcr.io/homarr-labs/homarr:latest@sha256:1b4ea544e2678d88ea949aeb1eb39cb162154c9fcecf581ade0c47f4d2098814
+    image: ghcr.io/homarr-labs/homarr:latest@sha256:1e077fc77d3ad7482376bab964b89cfc8c1f31fe2ddeb5154cf2a1058d40b32d
     container_name: homarr
     restart: unless-stopped
     cpus: 2.0

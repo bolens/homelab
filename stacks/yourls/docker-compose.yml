@@ -40,7 +40,7 @@ services:
   yourls-db:
     labels:
       logging: "true"
-    image: mariadb:12
+    image: mariadb:13
     container_name: yourls-db
     restart: unless-stopped
     env_file:
