@@ -231,7 +231,7 @@
   },
   {
     "path": "publication_identity_readers.py",
-    "sha256": "a3d78687867f6008d45f278a7198f240d9a32b210f3ad614bb1b8c414ae77a52",
+    "sha256": "d58c1efc3230bed3632405ceb8c7c96517feb7780c9bec616dabad8d1548f6fe",
     "target": "fixtures/child/source/publication_identity_readers.py"
   },
   {
@@ -426,7 +426,7 @@
   },
   {
     "path": "tagger_pack.py",
-    "sha256": "2e0c1a3701b1e02824dea247452d848953f7cf672755df9edc58e9534044215a",
+    "sha256": "7caae06cdc2c5a675469df72f97022c6d35d2894183ba5569e22218796744186",
     "target": "fixtures/child/source/tagger_pack.py"
   },
   {
@@ -526,7 +526,7 @@
   },
   {
     "path": "test_identity_tagger.py",
-    "sha256": "7aa1c357fec33d804a58a2344186735252d5c945de760da7aa1329472b854a25",
+    "sha256": "712e97577e71c01a32add98f739f379f900d0ad72d8f515050e39276a1ae7134",
     "target": "fixtures/child/source/test_identity_tagger.py"
   },
   {

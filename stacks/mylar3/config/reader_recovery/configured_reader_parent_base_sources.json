@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "53e295ad1d2ad5f816a23580d22c392374af910453eba8a752ba7eadf0447355",
+  "base_cohort_sha256": "cd97dae6df0b70c299ac26f3d4398f739b41bab4bca9a6c023d15efff21fb6a6",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -201,7 +201,7 @@
     "publication_guard.py": "f4cc888ca0534a9a8dee17843791ef664c462b6ec824ed16515a0e20a9aaaa0e",
     "publication_identity_adoption.py": "fe161bda6d03a37f786d5fbcbe9cb4874b52abade0b4ad67152eeafe3c0c6846",
     "publication_identity_maintenance.py": "59a17ecd85f516ac865d734ec8b364ece10d428b3f6acdcb9516dd3a272d4485",
-    "publication_identity_readers.py": "a3d78687867f6008d45f278a7198f240d9a32b210f3ad614bb1b8c414ae77a52",
+    "publication_identity_readers.py": "d58c1efc3230bed3632405ceb8c7c96517feb7780c9bec616dabad8d1548f6fe",
     "publication_lineage.py": "c302233fd7bb2862c1c2901cc3432559ae19762ab11ae0751cd423983e82bca7",
     "publication_mutation.py": "02ed8396be80c6f49d69ba4c122ea022a10c7035e85e4194ff6c80c46ac30bd4",
     "publication_native.py": "6a07fe296270a4021db67eb384221683af847a981d13c5ea5a1eaa8b3e7fa69e",
@@ -267,7 +267,7 @@
     "tagger_metadata.py": "63df491c211f5e756db1cd3e367710c7cb41a046a4365dbc08a1eea4cc72fabb",
     "tagger_native.py": "d7e322336475ebdf63f857bbc3509fce166a8a5d3b60fe7a3899a2b993b50a88",
     "tagger_nfs.py": "2d20cbee35b64b4e30d02436a291641023a7798287563ea3aa313f4d9aaf3f67",
-    "tagger_pack.py": "2e0c1a3701b1e02824dea247452d848953f7cf672755df9edc58e9534044215a",
+    "tagger_pack.py": "7caae06cdc2c5a675469df72f97022c6d35d2894183ba5569e22218796744186",
     "tagger_runtime.py": "f7647af93c35bed413ecdc90819beed46393027c976b81a8f3aeaedeee16d1d3",
     "tagger_service.py": "a5b6bee8da61507e897a3513b0a53ed897c631f04dbd702e7a62ba3f597db18e",
     "tagger_staging.py": "b20da0398d9155a673eecf9ec2f18e5b34f1f12ac0d385aa4b4bc95bc9f7d234",
@@ -546,7 +546,7 @@
         "owning_adapters": [
           "patch_publication_guard.py"
         ],
-        "tracked_source_sha256": "a3d78687867f6008d45f278a7198f240d9a32b210f3ad614bb1b8c414ae77a52"
+        "tracked_source_sha256": "d58c1efc3230bed3632405ceb8c7c96517feb7780c9bec616dabad8d1548f6fe"
       },
       "publication_lineage": {
         "owning_adapters": [
@@ -709,7 +709,7 @@
         "owning_adapters": [
           "patch_pack_intake.py"
         ],
-        "tracked_source_sha256": "2e0c1a3701b1e02824dea247452d848953f7cf672755df9edc58e9534044215a"
+        "tracked_source_sha256": "7caae06cdc2c5a675469df72f97022c6d35d2894183ba5569e22218796744186"
       },
       "tagger_runtime": {
         "owning_adapters": [

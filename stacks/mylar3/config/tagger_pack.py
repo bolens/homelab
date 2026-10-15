@@ -17,6 +17,20 @@ def store(root):
     return workflow_store.Store(root)
 
 
+def _validate_history_record(record):
+    intent = record.get('pack_bindings')
+    pack_bindings.validate(intent)
+    if intent is not None and (intent['source'] != record['source'] or intent['destination'] != record['source']
+            or any(b['before']['destination_sha256'] != record['before'] for b in intent['bindings'])):
+        raise ValueError('Pack transition does not match publication')
+    return record
+
+
+def read_history(publisher, token):
+    """Strict native history schema only; no job lookup, ctor or replay."""
+    return _validate_history_record(NFSPublisher.read(publisher, token))
+
+
 class Publisher(NFSPublisher):
     def backend_name(self):
         job=self.publication_job()
@@ -162,12 +176,7 @@ class Publisher(NFSPublisher):
         if job is not None and token!=job.value['token']:
             job.closed_history(self,record)
         else:self.correction_checkpoint(record)
-        intent = record.get('pack_bindings')
-        pack_bindings.validate(intent)
-        if intent is not None and (intent['source'] != record['source'] or intent['destination'] != record['source']
-                or any(b['before']['destination_sha256'] != record['before'] for b in intent['bindings'])):
-            raise ValueError('Pack transition does not match publication')
-        return record
+        return _validate_history_record(record)
 
     def finish(self, record, state, *, cleanup=True):
         self.correction_checkpoint(record,cleanup=cleanup and state in ('committed','unchanged','failed','timed_out','unsupported'))

@@ -58,16 +58,22 @@ def tagger_digest(identities):
 def quiescent_tagger(paths):
     if __package__:
         from .tagger_adapter import Publisher, TERMINAL
+        from .tagger_pack import Publisher as NativePublisher, read_history as read_native_history
         from .tagger_staging import Staging
     else:
         from tagger_adapter import Publisher, TERMINAL
+        from tagger_pack import Publisher as NativePublisher, read_history as read_native_history
         from tagger_staging import Staging
     names = {str(path): set(os.listdir(path)) for path in paths[1:]}
-    adoption.need(sum(map(len, names.values())) <= 4096 and not names[str(paths[2])],
+    adoption.need(sum(map(len, names.values())) <= 65536 and not names[str(paths[2])],
                   'identity-tagger-unreviewed-journal-or-staging')
     files = {}
     journal_parser = object.__new__(Publisher)
     journal_parser.root = paths[1]  # Read-only schema parser, no ctor/mkdir/replay.
+    # The owning pure history reader retains v2 schema/pack validation without
+    # entering Publisher.read's context-dependent job callbacks.
+    native_parser = object.__new__(NativePublisher)
+    native_parser.root = paths[1]
     staging_parser = Staging(paths[2], paths[3])
     for folder in (paths[1], paths[3]):
         for name in sorted(names[str(folder)]):
@@ -92,8 +98,28 @@ def quiescent_tagger(paths):
                 adoption.need(re.fullmatch(r'[a-f0-9]{32}\.json', name) is not None,
                               'identity-tagger-unreviewed-journal-or-staging')
                 try:
-                    record = journal_parser.read(name[:-5]) if folder == paths[1] else staging_parser.read(path)
-                except (OSError, ValueError, KeyError, TypeError) as error:
+                    if folder == paths[1]:
+                        # Dispatch only from the original bounded private receipt.
+                        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                        try:
+                            adoption.need(guard.signature(os.fstat(fd)) == row, 'identity-tagger-original-journal9')
+                            raw = bytearray()
+                            while len(raw) < z.st_size:
+                                block = os.read(fd, min(65536, z.st_size-len(raw)))
+                                adoption.need(bool(block), 'identity-tagger-original-journal-read')
+                                raw.extend(block)
+                            adoption.need(guard.signature(os.fstat(fd)) == row
+                                          and guard.signature(os.lstat(path)) == row, 'identity-tagger-original-journal9')
+                        finally:
+                            os.close(fd)
+                        header = json.loads(raw)
+                        adoption.need(type(header) is dict and type(header.get('version')) is int
+                                      and header['version'] in (1, 2), 'identity-tagger-unknown-journal-version')
+                        record = (journal_parser.read(name[:-5]) if header['version'] == 1
+                                  else read_native_history(native_parser, name[:-5]))
+                    else:
+                        record = staging_parser.read(path)
+                except (OSError, ValueError, KeyError, TypeError, RecursionError) as error:
                     raise guard.Unavailable('identity-tagger-unreviewed-journal-or-staging') from error
                 adoption.need(record['state'] in TERMINAL if folder == paths[1] else record['state'] == 'cleaned',
                               'identity-tagger-unreviewed-journal-or-staging')

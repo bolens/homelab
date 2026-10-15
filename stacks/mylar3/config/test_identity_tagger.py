@@ -189,5 +189,150 @@ class TaggerIdentityTests(HistoricalFixture):
         self.assertEqual(guard.canonical_digest(self.bootstrap_original['plan']), self.initialization)
 
 
+
+
+
+class TaggerHistoryCardinalityTests(unittest.TestCase):
+    """Real private history files; no remount, publication or migration grant."""
+    def setUp(self):
+        import tempfile
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        root = Path(self.temporary.name)/'modern-tagger-v2'
+        self.paths = (root, root/'journal-v2', root/'staging', root/'staging-receipts')
+        for path in self.paths:
+            path.mkdir(mode=0o700)
+
+    def lock_history(self, count):
+        for number in range(count):
+            path = self.paths[1]/('%064x.lock' % number)
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            os.close(fd)
+
+    def receipt(self, folder, number, record):
+        token = '%032x' % number
+        path = folder/(token+'.json')
+        path.write_text(json.dumps(dict(record, token=token)))
+        path.chmod(0o600)
+        return path
+
+    def test_large_valid_terminal_history_preserved_and_malformed_still_refused(self):
+        self.lock_history(4097)
+        record = dict(version=1, state='committed', cleaned=True,
+                      source='/public-fixture/retained.cbz', request='a'*64,
+                      before='b'*64, after='c'*64, source_identity=[1,2,3,4,5],
+                      workspace=[1,2], permissions=[0o600,os.geteuid(),os.getegid()],
+                      candidate_identity=[1,2,3,4,5], metadata='updated')
+        journal = self.receipt(self.paths[1], 1, record)
+        clean = self.receipt(self.paths[3], 2, dict(version=1, state='cleaned',
+            source='/public-fixture/retained.cbz', before='b'*64,
+            source_identity=[1,2,3,4,5], folder_identity=[1,2], filename='retained.cbz'))
+        originals = {p: (guard.signature(p.lstat()), p.read_bytes()) for p in (journal, clean)}
+        names, files = readers.quiescent_tagger(self.paths)
+        self.assertEqual(sum(map(len, names.values())), 4099)
+        self.assertEqual(len(files), 4099)
+        for path, (row, raw) in originals.items():
+            self.assertEqual(guard.signature(path.lstat()), row)
+            self.assertEqual(path.read_bytes(), raw)
+        journal.write_text('{}')
+        with self.assertRaisesRegex(guard.Unavailable, 'identity-tagger-unreviewed-journal-or-staging'):
+            readers.quiescent_tagger(self.paths)
+
+    def test_finite_upper_bound_refuses_real_oversized_history_without_removal(self):
+        self.lock_history(65537)
+        with self.assertRaisesRegex(guard.Unavailable, 'identity-tagger-unreviewed-journal-or-staging'):
+            readers.quiescent_tagger(self.paths)
+        self.assertEqual(len(os.listdir(self.paths[1])), 65537)
+
+    def test_staging_and_retained_receipt_remain_unreviewed(self):
+        stage = self.paths[2]/'retained'
+        stage.mkdir(mode=0o700)
+        with self.assertRaisesRegex(guard.Unavailable, 'identity-tagger-unreviewed-journal-or-staging'):
+            readers.quiescent_tagger(self.paths)
+        self.assertTrue(stage.is_dir())
+        stage.rmdir()
+        receipt = self.receipt(self.paths[3], 1, dict(version=1,state='retained',
+            source='/public-fixture/retained.cbz',before='b'*64,
+            source_identity=[1,2,3,4,5],folder_identity=[1,2],filename='retained.cbz'))
+        original = receipt.read_bytes()
+        with self.assertRaisesRegex(guard.Unavailable, 'identity-tagger-unreviewed-journal-or-staging'):
+            readers.quiescent_tagger(self.paths)
+        self.assertEqual(receipt.read_bytes(), original)
+
+
+
+class TaggerHistoryVersionTests(unittest.TestCase):
+    """Actual owning schema readers; no constructor, replay or runtime grant."""
+    setUp = TaggerHistoryCardinalityTests.setUp
+    receipt = TaggerHistoryCardinalityTests.receipt
+
+    def record(self, version=2):
+        record = dict(version=version, state='committed', cleaned=True,
+                      source='/public-fixture/retained.cbz', request='a'*64,
+                      before='b'*64, after='c'*64, source_identity=[1,2,3,4,5],
+                      workspace=[1,2], permissions=[0o600,os.geteuid(),os.getegid()],
+                      candidate_identity=[1,2,3,4,5], metadata='updated')
+        if version == 2:
+            record.update(publication='rename-link-v1', attributes={}, pack_bindings=None)
+        return record
+
+    def test_legacy_and_native_v2_history_read_together_without_writes(self):
+        paths = [self.receipt(self.paths[1], version, self.record(version)) for version in (1,2)]
+        original = {p:(guard.signature(p.lstat()),p.read_bytes()) for p in paths}
+        names, files = readers.quiescent_tagger(self.paths)
+        self.assertEqual(sum(map(len,names.values())),2)
+        self.assertEqual(len(files),2)
+        for p,(row,raw) in original.items():
+            self.assertEqual(guard.signature(p.lstat()),row)
+            self.assertEqual(p.read_bytes(),raw)
+        self.assertEqual(set(os.listdir(self.paths[0])),{'journal-v2','staging','staging-receipts'})
+
+    def test_unknown_malformed_and_nonterminal_native_history_refuse(self):
+        cases = [dict(version=3),dict(version=True),dict(publication='foreign'),
+                 dict(attributes={'foreign':'AAAA'}),dict(pack_bindings={'version':1}),
+                 dict(state='publishing',cleaned=False),
+                 dict(pack_bindings=dict(version=1,source='/foreign/source.cbz',destination='/foreign/source.cbz',
+                     owner=dict(issueid='1',comicid='2'),bindings=[dict(pack='d'*64,member='e'*64,
+                     before=dict(issueid='1',comicid='2',kind='issue',phase='confirmed',
+                     destination='/foreign/source.cbz',destination_sha256='b'*64,signature=[1,2,3,4,5]))]))]
+        path = self.paths[1]/('%032x.json'%1)
+        for changes in cases:
+            with self.subTest(fields=tuple(changes)):
+                record=self.record();record.update(changes)
+                self.receipt(self.paths[1],1,record)
+                before=path.read_bytes()
+                with self.assertRaises(guard.Unavailable):readers.quiescent_tagger(self.paths)
+                self.assertEqual(path.read_bytes(),before)
+
+    def test_package_namespace_native_v2_never_looks_up_job_or_runs_constructor(self):
+        import subprocess
+        program=r'''
+import importlib,json,os,pathlib,shutil,sys,tempfile
+source=pathlib.Path(sys.argv[1]);record=json.loads(sys.argv[2])
+with tempfile.TemporaryDirectory() as work:
+ root=pathlib.Path(work);package=root/'mylar';package.mkdir()
+ # Explicit namespace fixture, not a genuine daemon/installed factory claim.
+ (package/'__init__.py').write_text("def __getattr__(name):\n if name=='native_writers':raise AssertionError('native job lookup')\n raise AttributeError(name)\n")
+ for p in source.glob('*.py'):
+  if not p.name.startswith('test_'):shutil.copyfile(p,package/p.name)
+ sys.path.insert(0,str(root));m=importlib.import_module('mylar.publication_identity_readers')
+ paths=tuple(root/n for n in ('modern','journal','staging','receipts'))
+ for p in paths:p.mkdir(mode=0o700)
+ token='a'*32;record['token']=token;receipt=paths[1]/(token+'.json');receipt.write_text(json.dumps(record));receipt.chmod(0o600)
+ before=receipt.read_bytes()
+ owner=importlib.import_module('mylar.tagger_pack');parser=object.__new__(owner.Publisher);parser.root=paths[1]
+ try:parser.read(token)
+ except AssertionError as error:assert str(error)=='native job lookup'
+ else:raise AssertionError('owning context route was not exercised')
+ names,files=m.quiescent_tagger(paths)
+ assert len(files)==1 and receipt.read_bytes()==before
+ assert set(os.listdir(root))=={'mylar','modern','journal','staging','receipts'}
+ print('strict native v2 schema/package route; no native job lookup')
+'''
+        result=subprocess.run([sys.executable,'-I','-B','-c',program,str(HERE),json.dumps(self.record())],capture_output=True,timeout=30)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn(b'no native job lookup',result.stdout)
+
+
 if __name__ == '__main__':
     unittest.main()
