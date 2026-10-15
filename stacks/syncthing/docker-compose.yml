@@ -2,7 +2,7 @@ services:
   syncthing:
     labels:
       logging: "true"
-    image: syncthing/syncthing:latest@sha256:397aa00b92b48d65540ea3ae3cbf271b87bdccbe07a0b7bd7d2debc3a7b29138
+    image: syncthing/syncthing:latest@sha256:4d0281bdcb4ed9baf503d251d0544ddd856f49fce3f114056257ae172b7fb670
     container_name: syncthing
     restart: unless-stopped
     cpus: 2.0

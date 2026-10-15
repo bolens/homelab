@@ -6,7 +6,7 @@ services:
   stirling-pdf:
     labels:
       logging: "true"
-    image: stirlingtools/stirling-pdf:latest@sha256:3b3670fce70b396ec56ba380a3cc7858e0abf83fe13f31c88f7737847763a396
+    image: stirlingtools/stirling-pdf:latest@sha256:b5b9e400c086e5334a4947a0d7cd589808f743f29267d7f41c18200cf4bc48b4
     container_name: stirling-pdf
     restart: unless-stopped
     cpus: 2.0
