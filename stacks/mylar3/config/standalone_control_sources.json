@@ -1761,7 +1761,7 @@
   },
   {
     "path": "test_publication_tagging.py",
-    "sha256": "3838639249ea4dcf634becc57806f9118d53822eadf916e88a525f7fd0e4a52e",
+    "sha256": "bcd6dc95b812cc78db0a9843822275fb10eb5c04eaab34ea96802d04146ac1dc",
     "target": "test_publication_tagging.py"
   },
   {
