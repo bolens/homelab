@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM mcr.microsoft.com/dotnet/sdk:10.0.401@sha256:e70cdb7f80b0348f5cb85f19a8f670fca061f033d57eed12fa003d58b0e06317 AS patch-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.402@sha256:0d99ebf1ccad15037b5c98c9fe8979d6b8dbac23812feae2277a0b277b5c5ffa AS patch-build
 
 ARG LIDARR_VERSION=3.1.0.4875
 ARG LIDARR_COMMIT=350860e524029b7fb4165ed14fbcabb11217ada2
@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
         --filter "FullyQualifiedName~AlbumDistanceFixture|FullyQualifiedName~AlbumUpgradeSpecificationFixture" \
         --logger "console;verbosity=minimal"
 
-FROM lscr.io/linuxserver/lidarr@sha256:044d616beb43c5e7810991242c6a9c42b93ff238c8c0850684939634ea751208
+FROM lscr.io/linuxserver/lidarr@sha256:67887807b13ae025c0fe979da298347c8609969087ab064c81d8e9acc1e06bbf
 
 COPY --from=patch-build /src/_output/net8.0/Lidarr.Core.dll /app/lidarr/bin/Lidarr.Core.dll
 
