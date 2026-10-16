@@ -2,7 +2,7 @@ services:
   ersatztv:
     labels:
       logging: "true"
-    image: ghcr.io/ersatztv/legacy:latest@sha256:0fa681f413585e555e3db5009c020f708ee6794f38bf664874e2f7a2a1181974
+    image: ghcr.io/ersatztv/legacy:latest@sha256:cb0383fdb22050bdaff19e94974e86151d289e56355ca77cde8f15c3b49895d7
     container_name: ersatztv
     restart: unless-stopped
     cpus: 4.0

@@ -10,7 +10,7 @@ version: "3.9"
 
 services:
   proxy:
-    image: goharbor/nginx-photon:v2.15.2
+    image: goharbor/nginx-photon:v2.15.3
     restart: unless-stopped
     ports: !reset []
     networks:

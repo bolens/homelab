@@ -12,12 +12,12 @@ Harbor uses its own installer and compose bundle. This repo does not provide a r
 
 ### Step-by-step (offline installer in this directory)
 
-If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.15.0-rc1.tgz`) into this directory:
+If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.15.3.tgz`) into this directory:
 
 1. **Extract** (if not already done):
    ```bash
    cd stacks/harbor
-   tar xzf harbor-offline-installer-v2.15.0-rc1.tgz
+   tar xzf harbor-offline-installer-v2.15.3.tgz
    cd harbor
    ```
 
@@ -263,3 +263,11 @@ proxy has no published host port.
 
 - The `docker-compose.yml` in this directory is intentionally a minimal placeholder and does **not** define Harbor services. Always use the official Harbor installer and compose bundle.
 - Once deployed, Harbor can act as the registry backend for your homelab (including CI from the `woodpecker-ci` stack) and as a pull-through/cache for external images, depending on your configuration.
+
+## Upgrading the installer bundle
+
+The override pins only Harbor's proxy image. It does not upgrade core, jobservice, registry or the database. Use one reviewed offline-installer release for the whole deployment, and match `proxy.image` in the copied override to that installer's nginx-photon version; the current example targets 2.15.3.
+
+Before an upgrade, record all running images and generated configuration and quiesce writers. Back up the complete Harbor data directory, database, `harbor.yml`, generated configuration, overrides, certificates and signing keys outside Git. Verify an isolated restore with the prior matching installer/images before using the target release's documented migration and `prepare` procedure. Preserve local ingress and storage choices when reviewing regenerated files.
+
+Harbor 2.15.3 blocks webhook/Slack destinations on private networks by default and changes unsigned-image signing under enforced content trust. It also documents a push-replication regression affecting some registries. Review the [official release notes](https://github.com/goharbor/harbor/releases/tag/v2.15.3), then test login, project/repository/artifact counts, pulls, pushes, signing, webhooks and configured replication. Do not enable a security opt-out automatically. If acceptance fails, stop the updated deployment and restore the verified state with all prior images; reverting only the proxy tag is insufficient.

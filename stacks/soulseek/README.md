@@ -32,10 +32,16 @@ Self-hosted Soulseek client stack using [slskd](https://github.com/slskd/slskd):
 | ---- | ------- |
 | **Access** | Web UI/API via Caddy to `soulseek:5030` |
 | **Networks** | `ingress-public` for Caddy; `media-automation` for Lidarr; private `media-services` for Explo and trusted library clients |
-| **Image** | `slskd/slskd:latest` |
+| **Image** | `slskd/slskd:0.26.1` pinned by digest in Compose |
 | **Peer port** | `SLSKD_SLSK_LISTEN_PORT` published as TCP+UDP (default `50300`) |
 | **Storage** | `soulseek_app` → `/app`, `${SLSKD_DOWNLOADS_PATH}` → `/downloads`, `${SLSKD_SHARED_MUSIC_PATH}` → `/music`, `soulseek_incomplete` → `/incomplete` |
 | **Env** | `SLSKD_SLSK_USERNAME`, `SLSKD_SLSK_PASSWORD`, `SLSKD_USERNAME`, `SLSKD_PASSWORD`, `SLSKD_SLSK_LISTEN_PORT`, `SLSKD_DOWNLOADS_PATH`, `SLSKD_SHARED_MUSIC_PATH`, `SLSKD_SHARED_DIR`, `SLSKD_FORCE_SHARE_SCAN`, `SLSKD_HEADLESS`, `SLSKD_REMOTE_CONFIGURATION`, `SLSKD_REMOTE_FILE_MANAGEMENT`, optional `PUID`/`PGID` |
+
+## Upgrade notes
+
+[slskd 0.26.1](https://github.com/slskd/slskd/releases/tag/0.26.1) enables disk
+logging by default with 14-day retention. Logs use the persistent `/app` volume.
+To disable disk logging, set `logger.no_disk: true` in your slskd YAML configuration.
 
 ## Caddy reverse proxy
 
