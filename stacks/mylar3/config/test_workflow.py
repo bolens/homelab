@@ -50,7 +50,7 @@ class WorkflowTest(unittest.TestCase):
         app.DDL_QUEUED=[];app.PACK_ISSUEIDS_DONT_QUEUE={};app.USE_NZBGET=True;app.USE_SABNZBD=False
         app.search=SimpleNamespace(provider_order=lambda:{'prov_order':['DDL(GetComics)','newznab: fixture']},searchforissue=Mock())
         workflow._STORE=Store(self.tmp.name);workflow._CONTEXT=threading.local();workflow._STARTED=False;workflow._LAST_TICK=0
-        workflow._OBSERVER_ERRORS=0;control._STORE=control.Store(self.tmp.name)
+        workflow._OBSERVER_ERRORS=0;workflow._OBSERVER_COUNTS={'emit':0,'tick':0};workflow._OBSERVER_LAST=None;control._STORE=control.Store(self.tmp.name)
         self.recover=patch.object(control,'recover',Mock());self.recover.start();self.addCleanup(self.recover.stop)
         self.disk=patch.object(workflow.shutil,'disk_usage',return_value=SimpleNamespace(free=20*1024**3));self.disk.start();self.addCleanup(self.disk.stop)
     def handoff(self):return workflow.request_handoff('1')
@@ -864,5 +864,110 @@ class Api:
         with self.assertRaises(Exception) as caught:self.remove_ddl(legacy)
         self.assertEqual(caught.exception.status,409);legacy.assert_not_called()
         self.assertEqual(self.status(),'NZB handoff')
+
+
+class ObserverAttributionTest(unittest.TestCase):
+    setUp=WorkflowTest.setUp
+
+    def test_real_emit_refusal_has_bounded_safe_site_and_same_return(self):
+        secret='https://private.invalid/?token=never-retain /private/config secret-value'
+        with patch.object(workflow,'store',side_effect=PermissionError(secret)) as callback:
+            self.assertIsNone(workflow.emit('search',secret,name=secret))
+        callback.assert_called_once_with()
+        value=workflow.observer_diagnostics()
+        self.assertEqual(value['counts'],{'emit':1,'tick':0})
+        self.assertEqual(value['last']['category'],'filesystem')
+        self.assertEqual(value['last']['type'],'PermissionError')
+        self.assertEqual(value['last']['site']['function'],'emit')
+        self.assertEqual(value['last']['site']['module'],'workflow')
+        self.assertLess(len(json.dumps(value)),512)
+        self.assertNotIn(secret,json.dumps(value));self.assertNotIn('private',json.dumps(value))
+        self.assertEqual(workflow._OBSERVER_ERRORS,1)
+
+    def test_real_tick_refusal_preserves_schedule_queue_and_counter(self):
+        before=app.SEARCH_QUEUE.qsize()
+        with patch.object(workflow,'store',side_effect=sqlite3.OperationalError('secret database URI')) as callback:
+            self.assertIsNone(workflow._tick(app.SEARCH_QUEUE))
+            self.assertGreater(workflow._LAST_TICK,0)
+            self.assertIsNone(workflow._tick(app.SEARCH_QUEUE))
+        callback.assert_called_once_with()
+        self.assertEqual(app.SEARCH_QUEUE.qsize(),before)
+        self.assertEqual(workflow._OBSERVER_ERRORS,1)
+        self.assertEqual(workflow.observer_diagnostics()['counts'],{'emit':0,'tick':1})
+        self.assertEqual(workflow.observer_diagnostics()['last']['category'],'database')
+        self.assertEqual(workflow.observer_diagnostics()['last']['site']['function'],'_tick')
+        self.assertNotIn('secret',json.dumps(workflow.observer_diagnostics()))
+
+    def test_actual_admission_refusal_classified_without_writer_acquire(self):
+        guard=importlib.import_module('mylar.publication_guard')
+        with patch.object(workflow,'store',side_effect=guard.Unavailable('private admission input')):
+            self.assertIsNone(workflow.emit('library','ignored'))
+        last=workflow.observer_diagnostics()['last']
+        self.assertEqual((last['category'],last['type']),('admission','Unavailable'))
+        self.assertNotIn('private',json.dumps(last))
+
+    def test_unknown_exception_class_name_and_foreign_frame_never_escape(self):
+        hostile=type('SecretTokenPassword', (Exception,),{})
+        def foreign():raise hostile('secret value and https://private.invalid')
+        with patch.object(workflow,'store',side_effect=foreign):workflow.emit('search','ignored')
+        value=workflow.observer_diagnostics()['last']
+        self.assertEqual((value['category'],value['type']),('other','Exception'))
+        self.assertEqual(value['site']['function'],'emit')
+        self.assertNotIn('Secret',json.dumps(value));self.assertNotIn('foreign',json.dumps(value))
+
+    def test_counts_last_record_and_defensive_snapshot_are_bounded(self):
+        workflow._OBSERVER_COUNTS={'emit':workflow._OBSERVER_LIMIT,'tick':0}
+        for _ in range(20):
+            with patch.object(workflow,'store',side_effect=ValueError('x'*100000)):workflow.emit('search','ignored')
+        a=workflow.observer_diagnostics();self.assertEqual(a['counts']['emit'],workflow._OBSERVER_LIMIT)
+        self.assertEqual(workflow._OBSERVER_ERRORS,20);self.assertLess(len(json.dumps(a)),512)
+        a['counts']['emit']=0;a['last']['site']['function']='mutated'
+        self.assertEqual(workflow.observer_diagnostics()['counts']['emit'],workflow._OBSERVER_LIMIT)
+        self.assertNotEqual(workflow.observer_diagnostics()['last']['site']['function'],'mutated')
+
+    def test_diagnostic_failure_cannot_change_legacy_emitter_return(self):
+        with patch.object(workflow,'_OBSERVER_GUARD',None),patch.object(workflow,'store',side_effect=ValueError('secret')):
+            self.assertIsNone(workflow.emit('search','ignored'))
+        self.assertEqual(workflow._OBSERVER_ERRORS,1)
+
+    def test_state_health_exposes_additive_diagnostics_on_both_paths(self):
+        value=workflow.state_health()
+        self.assertTrue(value['valid']);self.assertIn('observer_diagnostics',value)
+        with patch.object(workflow,'store',side_effect=RuntimeError('secret')):
+            value=workflow.state_health()
+        self.assertFalse(value['valid']);self.assertEqual(value['observer_errors'],0)
+        self.assertEqual(value['observer_diagnostics']['counts'],{'emit':0,'tick':0})
+
+    def test_successful_emit_preserves_existing_event_and_no_error(self):
+        self.assertIsNone(workflow.emit('search','successful observation'))
+        self.assertEqual(workflow._OBSERVER_ERRORS,0)
+        self.assertEqual(workflow.observer_diagnostics(),{'version':1,'counts':{'emit':0,'tick':0},'last':None})
+        self.assertEqual(workflow.store().events()[0]['outcome'],'successful observation')
+
+
+    def test_exception_formatting_is_never_called(self):
+        class Hostile(Exception):
+            def __str__(self):raise AssertionError('secret formatting callback')
+        error=Hostile('secret password argument')
+        with patch.object(workflow,'store',side_effect=error):workflow.emit('search','ignored')
+        self.assertEqual(workflow.observer_diagnostics()['last']['type'],'Exception')
+        self.assertEqual(workflow._OBSERVER_ERRORS,1)
+
+    def test_base_exception_propagation_remains_unchanged(self):
+        with patch.object(workflow,'store',side_effect=KeyboardInterrupt('secret')):
+            with self.assertRaises(KeyboardInterrupt):workflow.emit('search','ignored')
+        self.assertEqual(workflow._OBSERVER_ERRORS,0)
+        self.assertIsNone(workflow.observer_diagnostics()['last'])
+
+    def test_genuine_store_frame_is_selected_instead_of_foreign_callback(self):
+        writers=importlib.import_module('mylar.native_writers')
+        guard=importlib.import_module('mylar.publication_guard')
+        with patch.object(writers,'existing_store',side_effect=guard.Unavailable('private state root')) as callback:
+            workflow.emit('search','ignored')
+        callback.assert_called_once()
+        last=workflow.observer_diagnostics()['last']
+        self.assertEqual(last['site']['function'],'store')
+        self.assertEqual(last['category'],'admission')
+        self.assertNotIn('private',json.dumps(last))
 
 if __name__=='__main__':unittest.main()
