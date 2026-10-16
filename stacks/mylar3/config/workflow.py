@@ -6,6 +6,8 @@ import json
 import re
 from pathlib import Path
 import shutil
+import sqlite3
+import sys
 import threading
 import time
 import uuid
@@ -18,6 +20,10 @@ _CONTEXT=threading.local()
 _STARTED=False
 _LAST_TICK=0
 _OBSERVER_ERRORS=0
+_OBSERVER_GUARD=threading.Lock()
+_OBSERVER_COUNTS={'emit':0,'tick':0}
+_OBSERVER_LAST=None
+_OBSERVER_LIMIT=2**31-1
 _ISSUE_LOCKS={}
 _ISSUE_GUARD=threading.Lock()
 _DEFAULTS={'library_missing_tags':False,'library_nested_metadata':False,'ddl_kind':'mixed','ddl_order':'fifo','ddl_paused':False,'pack_automation':False,'auto_handoff':False,'handoff_hours':2,'intake_enabled':True,
@@ -43,10 +49,50 @@ def store():
     return _STORE
 
 
+def _observer_failure(branch,error):
+    """Bounded attribution only; never retain exception messages or foreign frames."""
+    global _OBSERVER_ERRORS,_OBSERVER_LAST
+    _OBSERVER_ERRORS+=1
+    try:
+        types={OSError:('filesystem','OSError'),FileNotFoundError:('filesystem','FileNotFoundError'),
+               PermissionError:('filesystem','PermissionError'),TimeoutError:('filesystem','TimeoutError'),
+               ValueError:('validation','ValueError'),TypeError:('validation','TypeError'),
+               RuntimeError:('runtime','RuntimeError'),KeyError:('lookup','KeyError'),
+               sqlite3.Error:('database','Error'),sqlite3.DatabaseError:('database','DatabaseError'),
+               sqlite3.OperationalError:('database','OperationalError'),sqlite3.IntegrityError:('database','IntegrityError')}
+        category,error_type=types.get(type(error),('other','Exception'))
+        guard=sys.modules.get('mylar.publication_guard')
+        if guard is not None and type(error) is getattr(guard,'Unavailable',None):
+            category,error_type='admission','Unavailable'
+        names=('emit','_tick','store','intake','policy','request_handoff','eligible','set_handoff',
+               'reservation','import_owner','dispatch_owner','native_busy','send_allowed','queue_item','defer_search','sender')
+        codes={function.__code__:name for name in names
+               for function in (globals().get(name),)
+               if inspect.isfunction(function) and function.__globals__ is globals()}
+        site=None;trace=error.__traceback__
+        while trace is not None:
+            frame=trace.tb_frame
+            if frame.f_globals is globals() and frame.f_code in codes and 0<trace.tb_lineno<=1000000:
+                site={'module':'workflow','function':codes[frame.f_code],'line':trace.tb_lineno}
+            trace=trace.tb_next
+        with _OBSERVER_GUARD:
+            _OBSERVER_COUNTS[branch]=min(_OBSERVER_COUNTS[branch]+1,_OBSERVER_LIMIT)
+            _OBSERVER_LAST={'branch':branch,'category':category,'type':error_type,'site':site}
+    except Exception:
+        # Attribution must not change the original observer's refusal/return path.
+        pass
+
+
+def observer_diagnostics():
+    with _OBSERVER_GUARD:
+        last=None if _OBSERVER_LAST is None else dict(_OBSERVER_LAST)
+        if last is not None and last['site'] is not None:last['site']=dict(last['site'])
+        return {'version':1,'counts':dict(_OBSERVER_COUNTS),'last':last}
+
+
 def emit(stage,outcome,**kwargs):
-    global _OBSERVER_ERRORS
     try:store().event(stage,outcome,**kwargs)
-    except Exception:_OBSERVER_ERRORS+=1
+    except Exception as error:_observer_failure('emit',error)
 
 
 def policy():
@@ -521,9 +567,8 @@ def _tick(queue):
                     if age>=policy()['handoff_hours']*3600 and now-previous.get('at',0)>=policy()['handoff_hours']*3600:
                         request_handoff(str(r['id']));store().set('auto_attempt',str(r['id']),{'at':now});break
                 except (ValueError,TypeError):continue
-    except Exception:
-        global _OBSERVER_ERRORS
-        _OBSERVER_ERRORS+=1
+    except Exception as error:
+        _observer_failure('tick',error)
 
 
 def ddl_begin(function,item,queue):
@@ -753,7 +798,7 @@ def force_process(function):
 def state_health():
     try:
         store().get('policy','current')
-        result = {'valid':True,'observer_errors':_OBSERVER_ERRORS,'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
+        result = {'valid':True,'observer_errors':_OBSERVER_ERRORS,'observer_diagnostics':observer_diagnostics(),'intake':intake(),'ddl_paused':policy()['ddl_paused'],'publication_handoff':1,'maintenance_handoff':1,'guided_handoff':1,'maintenance_reports':1}
         try:
             from mylar import ordinary_import_observation, api
         except ImportError:
@@ -832,7 +877,7 @@ def state_health():
                     and callable(getattr(library_metadata, 'reviewed_derivative', None))):
                 result['reviewed_derivative'] = 1
         return result
-    except Exception:return {'valid':False,'observer_errors':_OBSERVER_ERRORS}
+    except Exception:return {'valid':False,'observer_errors':_OBSERVER_ERRORS,'observer_diagnostics':observer_diagnostics()}
 
 
 def release_failed(issueid):

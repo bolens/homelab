@@ -562,6 +562,12 @@ library import. Library confirmation requires a nonempty file at the tracked ser
 location. Annual imports contribute to progress and recent-import observations;
 missing files do not release download ownership.
 
+Authenticated health responses include bounded workflow observer diagnostics for
+future event-write and scheduler failures: branch counters and the last fixed
+exception category and trusted workflow callsite. Exception messages, arguments
+and foreign paths are excluded. The existing error counter and refusal behavior
+remain unchanged; diagnostics do not reset failures or grant processing readiness.
+
 **Try NZB instead** requests a replacement for one inactive, single-issue DDL
 entry. The native serialized search uses only enabled, unblocked NZB providers
 and retains native pacing and candidate validation. Packs, active or duplicate
