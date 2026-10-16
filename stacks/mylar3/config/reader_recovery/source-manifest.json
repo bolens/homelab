@@ -30,6 +30,12 @@
     "README.md": {
       "sha256": "04e814f577de1f8e0d1890e4f8b9f6e4ea50aa4b5da995d3ecc90ed7d2f38fda"
     },
+    "_archive_connected_fixtures/action_preimage.py": {
+      "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
+    },
+    "_archive_connected_fixtures/producer.py": {
+      "sha256": "9683b36518b1db0b9d9f8b85812f98ad29790ea580b435159d5e42253712c41d"
+    },
     "_archive_repair_fixtures/archive_monitor.py": {
       "sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3"
     },
@@ -370,16 +376,16 @@
       "sha256": "bb09292a00850948d3944c2bca492774c4ee30e046a6ead6646f5889b73996e3"
     },
     "comic_archive_backup_action.py": {
-      "sha256": "718815479aaaa8fb634b2defa581bb5e35c0fed94746360d329ac66a9ae15654"
+      "sha256": "0b0afe8f8c0665f2d9a36a7f0588294a81556b872ed353e9d1a7a1364e795494"
     },
     "comic_archive_evidence_adapter.py": {
-      "sha256": "998756f63a76bc2d21a43392d959d8b6215e0087d4ce2601f7be4e9f91a7c0c9"
+      "sha256": "de9808699b52f470100e5f1a375cd2477cf727dd1e556831227a15ea2bedd13e"
     },
     "comic_archive_proof_producer.py": {
-      "sha256": "1eed90dd7d1fcab472470061c9f8bf0b7b7acb0a7793d9563bc8897f1f0af146"
+      "sha256": "fc40c840e7ed13cbc26f606a8ab7319701543006c13d143523413c3dde891be0"
     },
     "comic_archive_repair_action.py": {
-      "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
+      "sha256": "c58a59c36fbf516068388ff4e660b2610efa7baeda677c087f61510635eb5e82"
     },
     "comic_archive_repair_protocol.py": {
       "sha256": "eef63a55d27b9a2e515eb6634d14ae96d8485c5ef64719799c819486b3ace8fb"
@@ -484,7 +490,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "8c44ec1b33231ef413b210f45aa530ed7c1f16bd8453ac008f507b9f05796483"
+      "sha256": "d25ab48e6e3643145d3338291ba8a1a45926d7800e79993d7a76f25fb079dc53"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
