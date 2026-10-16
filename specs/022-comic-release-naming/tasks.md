@@ -93,3 +93,5 @@ Naming foundations and earlier live canaries are accepted as recorded by T001–
 Detailed dated checks, previous delivery exceptions, image identities and failure receipts are retained in [evidence history](evidence-history.md). Those historical observations do not override the current hosted-CI requirement or complete live acceptance.
 
 Current candidate runtime verification has passed; configured recovery and live acceptance remain required. See the [latest evidence](evidence-history.md#naming-runtime-checkpoint-2026-10-11).
+
+The shared recovery source is merged with passing CI. Its configured-installer follow-up passes focused runtime checks; matching-image and live lifecycle acceptance remain required. See [the shared checkpoint](../023-verified-publication-corrections/evidence-history.md#merged-recovery-and-configured-installer-follow-up-2026-10-15).

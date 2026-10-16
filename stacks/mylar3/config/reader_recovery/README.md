@@ -59,7 +59,7 @@ The optional installer worker profile requires three original-bound private inpu
 the reviewed worker source, its exact one-module image source map, and selected
 Linux/amd64 image metadata. It derives plan12 worker constants only for that
 explicit profile; the ordinary installer and source defaults remain disabled.
-Metadata/map validation is separate from actual installed source parity.
+Metadata/map validation is separate from actual installed source parity. The fixed source closure also includes the reviewed host-only `comic_archive_worker_vectors.py` sibling. The installer emits its unchanged bytes beside the configured Parent and retains its source/output references. It adds no SDK/cohort membership or runtime acceptance.
 
 Configured NFS library observation uses the retained authenticated pipe with an
 empty selector and three fixed host GETs: the current unrestricted user, then
@@ -144,3 +144,5 @@ through the native publication adapter. Current source maps include their exact
 bytes and the portable recovery controls. Historical expectations remain
 unchanged. Installed parity and actual backup, migration and reader acceptance
 remain separate from these source updates.
+
+Configured archive installation emits thirteen fixed artifacts. The nine archive code leaves (backup/action/adapter/proof and their five reader/scope/probe helpers) are sealed as original siblings before role inspection or stop. The child projects that exact graph together under read-only file mounts while retaining each original file9/hash/ancestor5 and independent UID1000 copy. Other control projection paths are unchanged. The operational producer is the generated evidence adapter, which owns the native-observation phase; the proof producer is its fixed sibling dependency. Constructor-only acceptance calls left() while the reader is Running; continuous() belongs to the maintained stopped-reader phase. No host import/projection control proves connected Birth, NFS, terminal acceptance or reader resume.

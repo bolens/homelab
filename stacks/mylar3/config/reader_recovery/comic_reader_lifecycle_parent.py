@@ -671,6 +671,8 @@ class ScopedDocker:
 
 
 
+_ARCHIVE_SOURCE_GROUPS=weakref.WeakKeyDictionary()
+
 class LifecycleParent:
     """Finite producer protocol; all concrete producer sources must be reviewed.
 
@@ -791,6 +793,32 @@ class LifecycleParent:
         _NFS_ADAPTERS[self]=nfs_module
         self.observer = pinned_module(plan['observer'])
         need(callable(getattr(self.observer, 'partition', None) if archive else getattr(self.observer, 'observe_mapped_with_originals', None)), 'observer-interface')
+        if archive and CHILD_CONTROL_PROJECTION_ENABLED:
+            names={'comic_archive_repair_action.py':plan['provider']['sha256'],
+                   'comic_archive_backup_action.py':plan['backup_provider']['sha256'],
+                   'comic_archive_evidence_adapter.py':plan['producer']['sha256'],
+                   'comic_archive_proof_producer.py':getattr(self.producer,'PRODUCER_SHA',None),
+                   'comic_native_process_probe.py':getattr(self.producer,'PROBE_SHA',None),
+                   'publication_native_configured_scope.py':getattr(self.producer,'SCOPE_SHA',None),
+                   'comic_reader_backup.py':'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3',
+                   'comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0',
+                   'comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7'}
+            root=Path(self.source_ref['path']).parent
+            need(all(digest(value) for value in names.values())
+                 and getattr(self.producer,'ACTION_SHA',None)==plan['provider']['sha256']
+                 and all(Path(plan[role]['path'])==root/name for role,name in
+                         (('provider','comic_archive_repair_action.py'),('backup_provider','comic_archive_backup_action.py'),
+                          ('producer','comic_archive_evidence_adapter.py'))),'archive-reviewed-source-graph')
+            refs={}
+            for name,pin in names.items():
+                path=root/name
+                for node,fact in parents(path).items():
+                    need(node not in self.nodes or self.nodes[node]==fact,'archive-source-original-node');self.nodes[node]=fact
+                stamp=tuple(nine(os.lstat(path)))
+                need(str(path) not in self.files or self.files[str(path)]==stamp,'archive-source-original-file');self.files[str(path)]=stamp
+                refs[name]=dict(path=str(path),sha256=pin,signature9=list(stamp))
+            for value in refs.values():read(value)
+            _ARCHIVE_SOURCE_GROUPS[self]=(refs,encode(refs))
         if plan.get('version')==12:
             metadata=decode(read(WORKER_OBSERVATION_IMAGE_ORIGINAL))
             need(type(metadata) is list and len(metadata)==1 and metadata[0].get('Id')==WORKER_OBSERVATION_IMAGE
@@ -976,6 +1004,10 @@ class LifecycleParent:
             for ref in refs.values():read(ref)
         if self in _NFS_EFFECTIVE_ABSENCES:
             need(all(not os.path.lexists(path) for path in decode(_NFS_EFFECTIVE_ABSENCES[self])),'nfs-effective-original-absence')
+        if self in _ARCHIVE_SOURCE_GROUPS:
+            refs,tape=_ARCHIVE_SOURCE_GROUPS[self]
+            need(encode(refs)==tape,'archive-source-original-graph')
+            for ref in refs.values():read(ref)
         self.check_archive_retention()
         return max(0.001, self.deadline - time.monotonic())
 
@@ -2420,6 +2452,10 @@ class LifecycleParent:
         fact=tuple(five(os.lstat(directory)))
         need((fact[2]&0o777)==0o700 and fact[3]==(1000 if self in _CHILD_TREES else os.geteuid()),'archive-phase-private')
         _OUTPUT_NODES.setdefault(self,{})[str(directory)]=fact;self.sync(self.op)
+        if self in _CHILD_TREES:
+            self.left();need(self in _ARCHIVE_SOURCE_GROUPS,'archive-source-group-required')
+            refs,tape=_ARCHIVE_SOURCE_GROUPS[self];need(encode(refs)==tape,'archive-source-original-graph')
+            _CHILD_TREES[self].archive_sources(refs);self.left()
         provider=self.mapping.child_ref(self.phase_provider(phase));command=command_template(provider,phase,self.mapping.child(host_path))
         value=dict(payload,version=1,nonce=self.plan['nonce'],action='archive-one-backup' if phase=='backup' else 'archive-one',parent_sha256=self.source_ref['sha256'],command_template=command,operation=self.mapping.child(directory),selected_image=self.plan['selected_image'],sdk_map=self.mapping.child_ref(self.plan['sdk_map']))
         if phase=='backup':value.update(native=copy.deepcopy(self.plan['native']),bounds=copy.deepcopy(self.plan['bounds']),seconds=max(1,int(self.left())))
