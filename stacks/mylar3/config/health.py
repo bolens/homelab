@@ -11,6 +11,22 @@ import urllib.parse
 import urllib.request
 
 
+def _postprocessing_work(snapshot):
+    work = snapshot.get('pp_work')
+    names = {'version', 'queued', 'active', 'manual_active', 'oldest_manual_seconds',
+             'recent_finished', 'observer_errors'}
+    if type(work) is not dict or set(work) != names:
+        return None
+    if any(type(value) is not int or not 0 <= value < 2**63 for value in work.values()):
+        return None
+    if (work['version'] != 1 or work['active'] > 16 or work['manual_active'] > work['active']
+            or work['recent_finished'] > 50 or work['observer_errors'] != 0
+            or (work['manual_active'] == 0 and work['oldest_manual_seconds'] != 0)
+            or work['queued'] != (snapshot['queues'].get('POST-PROCESS-QUEUE', {}).get('size', 0) or 0)):
+        return None
+    return work
+
+
 def assess(snapshot, previous, now, stall_seconds=900):
     errors = []
     observations = {}
@@ -26,8 +42,19 @@ def assess(snapshot, previous, now, stall_seconds=900):
     for name in snapshot['enabled']:
         if not queues.get(name, {}).get('alive'):
             errors.append(name + ' is down')
+    pp_work = _postprocessing_work(snapshot)
+    pp_active = snapshot['processing'] or snapshot.get('completed', 0) > 0
+    intake_review = None
+    if pp_work is not None:
+        # A known running manual scan has its own invocation-duration check.
+        # Retained input inventory is not evidence of an accepted queue job.
+        pp_active = pp_work['active'] > pp_work['manual_active'] or (snapshot['processing'] and pp_work['active'] == 0)
+        if 'POST-PROCESS-QUEUE' in snapshot['enabled'] and pp_work['oldest_manual_seconds'] >= stall_seconds:
+            errors.append('Folder monitor scan has not completed for 15 minutes')
+        if snapshot.get('completed', 0) > 0:
+            intake_review = dict(completed_files=snapshot['completed'], classification='unresolved-check-folder-inputs')
     for name, token, active in (
-        ('POST-PROCESS-QUEUE', [snapshot['downloaded'], -snapshot.get('completed', 0)], snapshot['processing'] or snapshot.get('completed', 0) > 0),
+        ('POST-PROCESS-QUEUE', [snapshot['downloaded'], -snapshot.get('completed', 0)], pp_active),
         ('DDL-QUEUE', snapshot.get('ddl_useful', snapshot['ddl_active']), bool(snapshot['ddl_active'])),
     ):
         size = queues.get(name, {}).get('size', 0) or 0
@@ -72,7 +99,10 @@ def assess(snapshot, previous, now, stall_seconds=900):
         if waiting and not expected_wait and (expiry_stalled or now - since >= stall_seconds):
             errors.append(name + (' did not resume within two minutes of provider cooldown expiry'
                                  if expiry_stalled else ' has made no progress for 15 minutes'))
-    return {'checked_at': now, 'observations': observations, 'errors': errors}
+    result = {'checked_at': now, 'observations': observations, 'errors': errors}
+    if intake_review is not None:
+        result['intake_review'] = intake_review
+    return result
 
 
 def _busy(snapshot, previous, now, stall_seconds):

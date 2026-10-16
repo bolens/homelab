@@ -82,6 +82,14 @@ when available, rather than consuming application storage. After the owning
 operation is verified, remove its disposable restore copy while preserving the
 required backup and unresolved original evidence.
 
+SQLite `mode=ro` and `query_only` do not prevent WAL/shared-memory sidecar
+creation beside a closed database that retains WAL mode. Mount retained copies
+read-only and run SQL against detached private database/companion pairs in bounded
+scratch storage. Verify the retained namespace and hashes after all SQL callbacks
+finish. Use a genuine closed WAL-mode fixture; a default rollback-journal fixture
+does not test this behavior. Observe a running database through its supported
+read-only WAL snapshot without `immutable` or a write fallback.
+
 ## Session scope and operational checkpoints
 
 Record the human's authorized targets, actions and later changes in a private,

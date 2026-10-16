@@ -650,6 +650,13 @@ receipt; replacement bytes or added members cannot inherit earlier completion.
 Legacy receipts require their original source hashes and member set to match.
 Deploy matching Mylar and worker images before resuming this workflow.
 
+Fresh coordinated inventories treat an archive member and its extracted companion
+as one logical comic only when their name, bytes and format agree exactly. Both
+physical copies retain their original identity and generation checks; the import
+and acknowledgement still use one exact prepared path. Conflicting copies or
+previous member records remain for review. Cleanup checks every physical copy and
+waits for the native acknowledgement.
+
 Pack staging requires a matching Mylar typed `getHealth.cache_policy` snapshot, collected before the shared Writer and consumed locally under it. The worker validates the existing config, original lock and physical cache roots through the existing `/mylar` and `/ddl-cache` mounts; it does not read budget defaults from `config.ini`, add mounts or create the native lock. Admitted normal Mylar startup initializes that lock. Missing/stale policy or an unmapped root holds staging.
 
 Conversions finish and pass preservation checks in independent `/state` before their exact output size plus metadata/block overhead is reserved in shared cache. The copy uses exclusive partials and never overwrites an existing output. Failed and old stages remain retained; independent state needs its own storage policy. A complete verified output may be reused without growth above capacity, while a new copy still holds at the configured maximum. The cache lock is released before native import/ACK dispatch. This is source behavior, not evidence that the configured T030 live policy has passed.

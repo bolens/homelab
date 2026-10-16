@@ -149,6 +149,19 @@ def ddl_states(filenames=(), record_ids=()):
     return {'waiting': waiting, 'active': active, 'recent': recent}
 
 
+def work_snapshot():
+    """Pure bounded liveness; completed scans never assert useful import progress."""
+    import mylar
+    with mylar.PP_QUEUE.mutex:
+        queued = len(mylar.PP_QUEUE.queue)
+    with _LOCK:
+        now = time.monotonic()
+        manual = [row for row in _ACTIVE.values() if row.get('source') == 'Manual scan']
+        return dict(version=1, queued=queued, active=len(_ACTIVE), manual_active=len(manual),
+                    oldest_manual_seconds=max((max(0, int(now-row['started_clock'])) for row in manual), default=0),
+                    recent_finished=len(_RECENT), observer_errors=_ERRORS)
+
+
 def snapshot():
     import mylar
     from mylar import db, archive_monitor, library_status, converted_tagging, library_metadata

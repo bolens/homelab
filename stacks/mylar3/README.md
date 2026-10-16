@@ -163,6 +163,13 @@ Native rescans also hold a Deluxe Edition, collected-edition, omnibus or hardcov
 suffix against a regular-issue catalog, even when stale embedded metadata points
 to that issue. Edition words in the actual catalog title remain valid.
 
+Annual filenames such as `Action.Comics.2021.Annual.001.(2021).cbz` can match
+the base series when the explicit annual qualifier agrees with the parsed year.
+The initial catalog lookup and filename comparison use the same rule. Literal
+years in registered titles and separate annual-series owners remain distinct;
+issue, release-date, volume and annual ownership checks still decide import.
+Missing or conflicting year evidence cannot create a new base-series match.
+
 Story-arc searches queue every eligible missing entry with its arc identity and
 preserve already imported issues and annuals. TalkHard pull-list navigation uses
 Wednesday release weeks across year boundaries, including valid week 53. Legacy
@@ -182,8 +189,12 @@ the expected retry time instead. It allows two minutes after cooldown expiry for
 work to resume, but one continuous hour without useful progress still alerts,
 even if cooldowns keep extending. Invalid cooldown state also fails visibly.
 New queue arrivals do not reset that timer. Idle queues are healthy. Docker marks
-the container unhealthy after three failed probes. Completed files that cannot be
-imported also trigger a backlog warning and need review.
+the container unhealthy after three failed probes. With valid in-process
+post-processing telemetry, retained completed files are reported as unresolved
+intake rather than queued work. Real queued or active imports still require useful
+progress, and a manual scan fails health after 15 minutes in the same invocation.
+Repeated scans do not count as import progress. Missing or invalid telemetry keeps
+the conservative backlog classification.
 
 After admitted startup, a transient publication `held` / `writer-busy` sample can
 report current worker liveness without opening the catalog, workflow Store or

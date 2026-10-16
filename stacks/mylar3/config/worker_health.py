@@ -88,6 +88,15 @@ def _cache_policy():
         return None
 
 
+def _postprocessing_work():
+    try:
+        from mylar import pp_monitor
+        return pp_monitor.work_snapshot()
+    except (ImportError, AttributeError, KeyError, OSError, TypeError, ValueError):
+        # Unknown telemetry retains the conservative preexisting classification.
+        return None
+
+
 def _snapshot():
     import mylar
     from mylar import db, queue_control, cooldown_health, workflow
@@ -153,6 +162,7 @@ def _snapshot():
     return {
         "cache_policy": _cache_policy(),
         "completed": completed,
+        "pp_work": _postprocessing_work(),
         "queues": queues,
         "enabled": enabled,
         "downloaded": downloaded,
