@@ -1,6 +1,7 @@
 """Native policy, automatic placement lifetime and startup recovery fixtures."""
 from importlib import import_module
 import os
+import shutil
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -38,6 +39,11 @@ class NativeTest(unittest.TestCase):
         self.native = import_module('mylar.tagger_native')
         self.writers = import_module('mylar.native_writers'); mylar.native_writers = self.writers
         self.handoff = import_module('mylar.tagger_handoff'); mylar.tagger_handoff = self.handoff
+        # Portable finite capacity input: image /tmp may be smaller than the production reserve.
+        staging = import_module('mylar.tagger_staging')
+        capacity = patch.object(staging.shutil, 'disk_usage',
+            return_value=shutil._ntuple_diskusage(64 * 1024**3, 0, 64 * 1024**3))
+        capacity.start(); self.addCleanup(capacity.stop)
         self.base = import_module('mylar.tagger_adapter')
         self.lookup = import_module('mylar.tagger_lookup')
         self.cli = import_module('mylar.tagger_cli')

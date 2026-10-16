@@ -190,6 +190,9 @@ class Service:
                         target = folder/source.name
                     self.check_publication(source, issueid)
                     with regular(source) as reader, target.open('xb') as writer:
+                        if (identity(os.fstat(reader.fileno())) != original.identity
+                                or identity(source.lstat()) != original.identity):
+                            raise ValueError('Original source changed before automatic staging copy')
                         remaining = original.identity[2]
                         while remaining:
                             block = reader.read(min(1024*1024, remaining))

@@ -402,7 +402,7 @@
       "owning_adapters": [
         "install_tagger_service.py"
       ],
-      "tracked_source_sha256": "d7e322336475ebdf63f857bbc3509fce166a8a5d3b60fe7a3899a2b993b50a88"
+      "tracked_source_sha256": "1adaabeaa4145dba0522dd733e87de87bdf17f673a56fc245a2b0787e65dd27a"
     },
     "tagger_nfs": {
       "owning_adapters": [
@@ -426,13 +426,13 @@
       "owning_adapters": [
         "install_tagger_service.py"
       ],
-      "tracked_source_sha256": "a5b6bee8da61507e897a3513b0a53ed897c631f04dbd702e7a62ba3f597db18e"
+      "tracked_source_sha256": "50990ed68d5d2ab391bca1cf8c915067128426a7c44a8584691447be7ebdd31d"
     },
     "tagger_staging": {
       "owning_adapters": [
         "install_tagger_service.py"
       ],
-      "tracked_source_sha256": "b20da0398d9155a673eecf9ec2f18e5b34f1f12ac0d385aa4b4bc95bc9f7d234"
+      "tracked_source_sha256": "5d24da369af36e2cf44160e5badbca7fbd398e44570eef3c6f8312530ddaefb3"
     },
     "tagger_supplement": {
       "owning_adapters": [

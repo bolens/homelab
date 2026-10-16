@@ -4,20 +4,27 @@ import os
 from pathlib import Path
 import re
 import stat
+import shutil
 
 if __package__:
     from .tagger_adapter import fingerprint, sync
-    from .tagger_archive import identity, regular
+    from .tagger_archive import MAX_UNPACKED, identity, regular
+    from . import cache_reservation as shared
 else:
     from tagger_adapter import fingerprint, sync
-    from tagger_archive import identity, regular
+    from tagger_archive import MAX_UNPACKED, identity, regular
+    import cache_reservation as shared
 
 TOKEN = re.compile(r'[0-9a-f]{32}\Z')
 
 
 class Staging:
-    def __init__(self, root, receipts):
+    def __init__(self, root, receipts, *, copy_limits=None):
         self.root, self.receipts = Path(root).absolute(), Path(receipts).absolute()
+        self.copy_limits = (MAX_UNPACKED, shared.DEFAULT_FREE_GIB * shared.GIB) if copy_limits is None else copy_limits
+        if (type(self.copy_limits) is not tuple or len(self.copy_limits) != 2
+                or any(type(n) is not int or n <= 0 for n in self.copy_limits)):
+            raise ValueError("Finite staging copy limits required")
         for path in (self.root, self.receipts):
             if '..' in path.parts or any(p.is_symlink() for p in (path, *path.parents)):
                 raise ValueError('Linked staging state')
@@ -35,8 +42,48 @@ class Staging:
             json.dump(record,stream,allow_nan=False);stream.flush();os.fsync(stream.fileno())
         os.replace(temporary,path);sync(self.receipts)
 
+    def admit_copy(self, source, before, stamp):
+        """Initial copy only; no aggregate staging/Publisher workspace quota."""
+        source = Path(source).absolute()
+        if (type(self.copy_limits) is not tuple or len(self.copy_limits) != 2
+                or any(type(n) is not int or n <= 0 for n in self.copy_limits)):
+            raise ValueError('Finite staging copy limits required')
+        maximum, reserve = self.copy_limits
+        roots = {p: shared.directory_identity(p.lstat()) for p in (self.root, self.receipts)}
+        names = tuple(sorted(os.listdir(self.receipts)))
+        rows = {}
+        with regular(source) as stream:
+            original = shared.identity(os.fstat(stream.fileno()))
+            if (list(identity(os.fstat(stream.fileno()))) != list(stamp)
+                    or not 0 < original[2] <= min(maximum, MAX_UNPACKED)
+                    or fingerprint(source) != before):
+                raise ValueError('Original automatic staging source changed or exceeds copy limit')
+            for name in names:
+                path = self.receipts/name
+                row = shared.identity(path.lstat()); record = self.read(path); rows[path] = row
+                if (record['state'] in ('copying', 'retained') and record['source'] == str(source)
+                        and record['before'] == before and record['source_identity'] == list(stamp)):
+                    raise ValueError('Unresolved automatic stage for original source generation')
+            # Include one directory and receipt/block overhead; Publisher retains its own check.
+            required = shared.rounded(original[2]) + 2 * shared.BLOCK
+            free = shutil.disk_usage(self.root).free
+            if free < reserve + required:
+                raise ValueError('Automatic staging filesystem free-space reserve reached')
+            if tuple(sorted(os.listdir(self.receipts))) != names:
+                raise ValueError('Original staging receipt namespace changed')
+            for path, row in rows.items():
+                if shared.identity(path.lstat()) != row:
+                    raise ValueError('Original staging receipt changed')
+            for path, row in roots.items():
+                if shared.directory_identity(path.lstat()) != row:
+                    raise ValueError('Original staging roots changed')
+            if (shared.identity(os.fstat(stream.fileno())) != original
+                    or shared.identity(source.lstat()) != original):
+                raise ValueError('Original automatic staging source changed')
+
     def allocate(self, token, source, before, stamp):
         if not TOKEN.fullmatch(token):raise ValueError('Invalid stage token')
+        self.admit_copy(source, before, stamp)
         folder=self.root/('mylar_modern_'+token);folder.mkdir(mode=0o700);sync(self.root)
         record=dict(version=1,token=token,source=str(source),before=before,source_identity=list(stamp),
                     folder_identity=list(identity(folder.stat())[:2]),filename=source.name,state='copying')

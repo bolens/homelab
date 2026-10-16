@@ -24,6 +24,7 @@ import tagger_adapter
 import tagger_archive
 import tagger_pack
 import tagger_staging
+import cache_reservation
 import tagger_legacy
 from tagger_cli import TagResult
 import processing_guard
@@ -65,6 +66,10 @@ class BackendTests(unittest.TestCase):
 
     def setUp(self):
         cases.AdmissionTests.setUp(self)
+        # Explicit finite capacity input; /tmp image fixtures need not provide the production reserve.
+        capacity=patch.object(tagger_staging.shutil,'disk_usage',
+            return_value=shutil._ntuple_diskusage(64*1024**3,0,64*1024**3))
+        capacity.start();self.addCleanup(capacity.stop)
         self.legacy=Mock(return_value=str(self.incoming))
         self.modern=Mock(return_value=str(self.incoming))
         self.mylar.tagger_handoff=tagger_handoff
@@ -81,7 +86,8 @@ class BackendTests(unittest.TestCase):
                  'ordinary_import_continuity':ordinary_import_continuity,
                  'ordinary_import_history':ordinary_import_history,
                  'publication_rename':publication_rename,
-                 'publication_transaction':transaction,'media_writer':media_writer}
+                 'publication_transaction':transaction,'media_writer':media_writer,
+                 'cache_reservation':cache_reservation}
         for name,module in modules.items():setattr(self.mylar,name,module)
         context=patch.dict(sys.modules,{'mylar.'+name:module for name,module in modules.items()})
         context.start();self.addCleanup(context.stop)
@@ -529,7 +535,7 @@ class ServicePublicationTests(unittest.TestCase):
             setattr(config,name,value)
         self.mylar.logger=Mock()
         tree=ast.parse((Path(__file__).parent/'tagger_native.py').read_text())
-        functions=[node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name in ('run','state','run_legacy')]
+        functions=[node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name in ('run','state','automatic_copy_limits','run_legacy')]
         namespace=dict(__package__='mylar',re=re,uuid=uuid,hashlib=hashlib,json=json,os=os,
                        stat=transaction.stat,sync=transaction.sync,Publisher=tagger_pack.Publisher,
                        Staging=tagger_staging.Staging,catalog=lambda issueid:(issueid,catalog_volume,{}))
@@ -612,6 +618,33 @@ class ServicePublicationTests(unittest.TestCase):
         binding=self.writer.root/'tagger-state-v2.identity';binding.write_text('changed retained state\n')
         with self.assertRaises(native.Review):self.native_tag()
         self.assertEqual(self.incoming.read_bytes(),before);self.assertEqual(binding.read_text(),'changed retained state\n')
+
+    def test_ready_stage_before_completion_failure_still_blocks_new_publication(self):
+        self.registered();before=self.incoming.read_bytes()
+        with patch.object(transaction.Tagging,'complete',side_effect=OSError('fixture ready-before-completion interruption')):
+            with self.assertRaises(native.Review):self.native_tag()
+        root=self.writer.root.parent/'modern-tagger-v2'
+        records=list((root/'staging-receipts').glob('*.json'))
+        self.assertEqual(len(records),1)
+        self.assertEqual(tagger_staging.Staging(root/'staging',root/'staging-receipts').read(records[0])['state'],'ready')
+        files={str(p):p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
+        with patch.object(tagger_staging.Staging,'allocate',side_effect=AssertionError('pending publication cannot allocate')) as allocate:
+            with self.assertRaises(native.Review):self.native_tag()
+        allocate.assert_not_called()
+        self.assertEqual(files,{str(p):p.read_bytes() for p in root.rglob('*') if p.is_file()})
+        self.assertEqual(self.incoming.read_bytes(),before)
+        self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
+
+    def test_actual_native_publication_capacity_floor_precedes_attempt_birth(self):
+        self.registered();before=self.incoming.read_bytes()
+        with patch.object(tagger_staging.shutil,'disk_usage',return_value=shutil._ntuple_diskusage(1024,1024,0)):
+            with self.assertRaises(native.Review):self.native_tag()
+        root=self.writer.root.parent/'modern-tagger-v2'
+        self.assertEqual(list((root/'staging').iterdir()),[])
+        self.assertEqual(list((root/'staging-receipts').iterdir()),[])
+        self.assertEqual(self.incoming.read_bytes(),before)
+        self.assertTrue(transaction.present(self.writer));self.assertTrue(self.writer.fenced(tagger=True))
 
     def test_second_native_job_preserves_verified_closed_receipt_without_replaying_it(self):
         self.registered();before=self.incoming.read_bytes();first=self.native_tag()
