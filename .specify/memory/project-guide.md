@@ -56,6 +56,12 @@ compatibility; use portable streaming hashes when the runtime lacks
 `hashlib.file_digest`. Keep runtime compatibility checks separate from live data
 acceptance.
 
+Keep OCI index, platform manifest and configuration digests separate from the
+daemon's local image ID. Use the reviewed immutable reference for pulls and runs.
+Record the actual `docker image inspect` ID and container `Image` on that daemon.
+Do not infer either ID from registry metadata or assume a configuration digest
+names a locally runnable image.
+
 Keep operational helper source, proof inputs, receipts and resume notes on private
 persistent storage outside Git. Reserve temporary filesystems for disposable test
 fixtures. Before a planned reboot, verify the checkpoint and its referenced files
