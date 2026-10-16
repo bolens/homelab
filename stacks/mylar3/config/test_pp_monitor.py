@@ -187,4 +187,31 @@ class MonitorTest(unittest.TestCase):
         with self.assertRaises(ValueError):navigation('incompatible')
 
 
+
+
+class WorkSnapshotTest(unittest.TestCase):
+    def test_work_observation_is_bounded_in_process_without_rich_snapshot_or_sql(self):
+        app=SimpleNamespace(PP_QUEUE=Queue())
+        app.PP_QUEUE.put({'private':'payload must not escape'})
+        with patch.dict(sys.modules,{'mylar':app}), patch.object(monitor,'_ACTIVE',
+                {1:dict(source='Manual scan',started_clock=10),2:dict(source='Download client',started_clock=20)}), \
+                patch.object(monitor,'_RECENT',[{'private':'never exported'}]), \
+                patch.object(monitor,'_ERRORS',0),patch.object(monitor.time,'monotonic',return_value=910), \
+                patch.object(monitor,'snapshot',side_effect=AssertionError('rich snapshot forbidden')), \
+                patch('sqlite3.connect',side_effect=AssertionError('SQL forbidden')):
+            result=monitor.work_snapshot()
+        self.assertEqual(result,dict(version=1,queued=1,active=2,manual_active=1,
+                                     oldest_manual_seconds=900,recent_finished=1,observer_errors=0))
+        self.assertNotIn('private',json.dumps(result))
+
+    def test_deferred_or_finished_scan_is_not_reported_as_an_active_import(self):
+        app=SimpleNamespace(PP_QUEUE=Queue())
+        with patch.dict(sys.modules,{'mylar':app}),patch.object(monitor,'_ACTIVE',{}), \
+                patch.object(monitor,'_RECENT',[dict(source='Manual scan')]*50),patch.object(monitor,'_ERRORS',0):
+            result=monitor.work_snapshot()
+        self.assertEqual(result['active'],0)
+        self.assertEqual(result['manual_active'],0)
+        self.assertEqual(result['oldest_manual_seconds'],0)
+        self.assertEqual(result['recent_finished'],50)
+
 if __name__=='__main__':unittest.main()

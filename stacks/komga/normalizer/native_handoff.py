@@ -115,6 +115,11 @@ def report(maintenance, value):
         original=Path(member.get('source') or source)
         if match and original!=source and original.is_file():
             guards.append(guard(original,match,target))
+        if match:
+            for representation in member.get('representations', []):
+                physical=Path(representation['source'])
+                if physical not in (original,source) and physical.is_file():
+                    guards.append(guard(physical,match,target))
         if not match and source!=target:guards.append(guard(target))
     public=json.loads(json.dumps(value))
     for member in public.get('members',[]):

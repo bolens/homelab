@@ -77,7 +77,7 @@
   },
   {
     "path": "health.py",
-    "sha256": "09537c1748f01dbfd8bc740d2e4ec486f9d4a3ad939cd26120d69ba97c77ba92"
+    "sha256": "979f68f962be39c6779b27289fcb0d33b243f5ed38d50ed297355c8eece6e9e3"
   },
   {
     "path": "identity_kernel_fixture.py",
@@ -365,7 +365,7 @@
   },
   {
     "path": "pp_monitor.py",
-    "sha256": "39a1cce51092c65582e04307dec396ec8fa9eaaeef855684a92904e2943944f4"
+    "sha256": "b5ef9cc52feb93b4cea8b4a1025b6e9bc467455fd3e0eee5f871da86f8152ae8"
   },
   {
     "path": "processing_guard.py",
@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "e5d1c35573a19d676b2abe98d1d175b24ce1a32c1fa3901a182ab35ee083514d"
+    "sha256": "69d7d9aff2ab71e9a19e4ff404d3e7311f72b49bfdb7b1a8d6f932920e267856"
   },
   {
     "path": "story_arc_search.py",
@@ -985,7 +985,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/native_handoff.py",
-    "sha256": "2b6a47ab1048c2e33a84a3bc1d854a4ce8411e3843f31aff5b4f078aea95849a"
+    "sha256": "69f369262049227c67524d4a74a89d3a46ddbf9f8747dcc7f7b64ea9fb435b5b"
   },
   {
     "path": "test_fixtures/retained_pack_worker/normalize.py",
@@ -1005,7 +1005,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_recovery.py",
-    "sha256": "e66518a6282156ee34191cadd73aca1e26e94b7daaac085880da55fe3aba7f27"
+    "sha256": "9b7b086fa0ffea942136ce398fdb1699ebd655927c32ac2588bf50bb7fa17686"
   },
   {
     "path": "test_fixtures/retained_pack_worker/pdf_conversion.py",
@@ -1077,7 +1077,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "1b836fbdac09ff79d74c9c458abb413179b79b80e7597886b66aeaa859729637"
+    "sha256": "2348ecc1aa33ae10e9d03fcf436d65de1aecb977fd9511e404604b877ff20407"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",
@@ -1085,7 +1085,7 @@
   },
   {
     "path": "test_health.py",
-    "sha256": "38a1cc6667520e61b4accb568017172a8c0375976bc7b234cefd29ce068004ac"
+    "sha256": "3dae5de4c8241619a3fe4015378f984a2e8808d50b8e8d8c93eb2e22bdee541b"
   },
   {
     "path": "test_identity_filesystem.py",
@@ -1177,7 +1177,7 @@
   },
   {
     "path": "test_pp_monitor.py",
-    "sha256": "b8862cf7971346e0380f86b67d7e24d60ea979c3a2e8c787c8cbc97ab3d41c42"
+    "sha256": "0c661dc891737692fcbe8ffac34115a68cc1180f3c88e6b2c41c71cee17f1c7b"
   },
   {
     "path": "test_preproof.py",
@@ -1609,7 +1609,7 @@
   },
   {
     "path": "worker_health.py",
-    "sha256": "73a1bd5dc778d74f3cae04adc7e7e3c6620d0601c1a68c059828dae75ee75dd0"
+    "sha256": "008a4e7b1bc3353324280e0769e6500f4f3eef986d48233f1ebfac7fa6beaa1d"
   },
   {
     "path": "workflow.py",

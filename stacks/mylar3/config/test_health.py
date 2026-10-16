@@ -402,5 +402,68 @@ class BusyHealthTest(unittest.TestCase):
                 self.assertNotIn('busy_workers',sample)
                 self.assertTrue(assess(sample,{},sample['time'])['errors'])
 
+
+
+class IntakeWorkHealthTest(unittest.TestCase):
+    def sample(self, **work):
+        packet=dict(version=1,queued=0,active=0,manual_active=0,oldest_manual_seconds=0,
+                    recent_finished=1,observer_errors=0)
+        packet.update(work)
+        return dict(enabled=['POST-PROCESS-QUEUE'],
+                    queues={'POST-PROCESS-QUEUE':dict(alive=True,size=packet['queued'])},
+                    downloaded=12,completed=9,processing=False,ddl_active=[],pp_work=packet)
+
+    def test_retained_inventory_is_review_advisory_not_accepted_queue_work(self):
+        value=self.sample()
+        initial=assess(value,{},0)
+        result=assess(value,initial['observations'],10000)
+        self.assertEqual(result['errors'],[])
+        self.assertFalse(result['observations']['POST-PROCESS-QUEUE']['waiting'])
+        self.assertEqual(result['intake_review'],dict(completed_files=9,classification='unresolved-check-folder-inputs'))
+        self.assertEqual(result['observations']['POST-PROCESS-QUEUE']['token'],[12,-9])
+
+    def test_repeated_scan_completions_cannot_hide_real_queued_or_active_stall(self):
+        for work in ({'queued':2},{'active':1}):
+            value=self.sample(**work)
+            old=assess(value,{},0)['observations']
+            value['pp_work']['recent_finished']=50
+            self.assertIn('POST-PROCESS-QUEUE has made no progress for 15 minutes',assess(value,old,900)['errors'])
+
+    def test_manual_scan_has_its_own_real_invocation_duration_limit(self):
+        value=self.sample(active=1,manual_active=1,oldest_manual_seconds=899)
+        value['processing']=True
+        old=assess(value,{},0)['observations']
+        self.assertEqual(assess(value,old,10000)['errors'],[])
+        value['pp_work']['oldest_manual_seconds']=900
+        self.assertIn('Folder monitor scan has not completed for 15 minutes',assess(value,old,10001)['errors'])
+
+    def test_unknown_or_changed_observation_preserves_conservative_inventory_stall(self):
+        for edit in (None,{'observer_errors':1},{'queued':True},{'manual_active':1},
+                     {'oldest_manual_seconds':1},{'recent_finished':51},{'extra':0}):
+            value=self.sample()
+            if edit is None:value.pop('pp_work')
+            else:value['pp_work'].update(edit)
+            old=assess(value,{},0)['observations']
+            with self.subTest(edit=edit):
+                self.assertIn('POST-PROCESS-QUEUE has made no progress for 15 minutes',assess(value,old,900)['errors'])
+        value=self.sample(queued=1);value['queues']['POST-PROCESS-QUEUE']['size']=0
+        old=assess(value,{},0)['observations']
+        self.assertTrue(assess(value,old,900)['errors'])
+
+    def test_unobserved_processing_lock_remains_real_pending_work(self):
+        value=self.sample();value['processing']=True
+        old=assess(value,{},0)['observations']
+        self.assertTrue(assess(value,old,900)['errors'])
+
+    def test_busy_writer_never_uses_new_telemetry_to_reset_old_clock(self):
+        value=self.sample(queued=1);old=assess(value,{},0)['observations']
+        busy=dict(publication=dict(version=1,state='held',reason='writer-busy',census=None),time=900,
+                  busy_workers=dict(version=1,startup_complete=True,enabled=['SEARCH-QUEUE','POST-PROCESS-QUEUE'],
+                                    queues={n:dict(alive=True,size=0) for n in ('SEARCH-QUEUE','POST-PROCESS-QUEUE')}),
+                  pp_work=self.sample()['pp_work'])
+        result=assess(busy,old,900)
+        self.assertEqual(result['observations']['POST-PROCESS-QUEUE'],old['POST-PROCESS-QUEUE'])
+        self.assertIn('POST-PROCESS-QUEUE progress is overdue and cannot be verified while the Writer is busy',result['errors'])
+
 if __name__ == '__main__':
     unittest.main()

@@ -116,7 +116,7 @@
   },
   {
     "path": "pp_monitor.py",
-    "sha256": "39a1cce51092c65582e04307dec396ec8fa9eaaeef855684a92904e2943944f4",
+    "sha256": "b5ef9cc52feb93b4cea8b4a1025b6e9bc467455fd3e0eee5f871da86f8152ae8",
     "target": "fixtures/child/source/pp_monitor.py"
   },
   {
