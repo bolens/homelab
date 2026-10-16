@@ -1,0 +1,7 @@
+# Restricted recurring packs only. Add last, after normalizer, maintenance and coordination.
+# Existing mounts, configured guards, matching images and affected-state restore proof remain required.
+services:
+  comic-normalizer:
+    command: [--packs-only]
+    healthcheck:
+      test: [CMD, python3, /app/normalize.py, --packs-only, --health]

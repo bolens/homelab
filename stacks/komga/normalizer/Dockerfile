@@ -14,7 +14,7 @@ USER 1000:1000
 # Fault controls mutate only their private source copy, never the installed tree.
 RUN test_root="$(mktemp -d)" \
     && cp -R /app/. "${test_root}/" \
-    && PYTHONPATH="${test_root}" python3 -m unittest test_normalizer_state_binding test_selected_catalog test_selected_prepare \
+    && PYTHONPATH="${test_root}" python3 -m unittest test_normalizer_state_binding test_selected_catalog test_selected_prepare test_pack_recurring \
     && python3 -m unittest discover -s "${test_root}" -p 'test_*.py' \
     && rm -rf "${test_root}"
 

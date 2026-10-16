@@ -1206,12 +1206,12 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/import_recovery.py",
-    "sha256": "ee2d2072a2bd3a49d83179177df09f123ddd355e1cc820e9c39a05c67eb64ead",
+    "sha256": "b7131aa7c54076fee77faf4960a256f4b0f8a874a19345568a049ec3462778ed",
     "target": "test_fixtures/retained_pack_worker/import_recovery.py"
   },
   {
     "path": "test_fixtures/retained_pack_worker/maintenance.py",
-    "sha256": "ee651d4947b12275cb73c593b8509672cb3b10e1da37350a053a3680a2e0b209",
+    "sha256": "af81b674bbc174262b8b7d7fefd6eff3f27a0c17e9ed52f977b3594b8e843af8",
     "target": "test_fixtures/retained_pack_worker/maintenance.py"
   },
   {
@@ -1236,7 +1236,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/normalize.py",
-    "sha256": "d9a5e1c84f3ef23b3ab8c74ba801f026aaa2ce456418de8849d8f4d856ab7d84",
+    "sha256": "a10099a50f330403b5fdfe68e06484cd8d511fe52efbcfb43d2b271c221db47d",
     "target": "test_fixtures/retained_pack_worker/normalize.py"
   },
   {
@@ -1251,7 +1251,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_only.py",
-    "sha256": "459ec7a761c38ad7e9f6cf938087f52782879e481a2a8adf47d50b4a44615301",
+    "sha256": "4e07eeea8c1eca335c7021d8db1ee34c1c6cc088a1fc256226ecc48c5077b16c",
     "target": "test_fixtures/retained_pack_worker/pack_only.py"
   },
   {
@@ -1346,7 +1346,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "72ab50779224c0bb85944eb40b37eeada45e5fb3c1bd7e4e0bdd3f97db15a950",
+    "sha256": "1b836fbdac09ff79d74c9c458abb413179b79b80e7597886b66aeaa859729637",
     "target": "test_fixtures/retained_pack_worker/source-pins.json"
   },
   {

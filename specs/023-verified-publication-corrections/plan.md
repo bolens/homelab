@@ -146,3 +146,21 @@ Finalize and verify conversions in independent worker state, then reserve their 
 The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
 
 Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.
+
+### Restricted ongoing ordinary pack recovery
+
+FR-017 uses the existing worker entrypoint, pack-only selected executor and native
+`packWork` pagination. An explicit recurring CLI branch and last Compose command
+override leave the full default cycle unchanged. Discovery fetches health/work and
+the existing bounded reader observation outside Writer, then validates current
+scoped authority. Every selected pair gets a fresh selected preparation and owning
+member/cache/import/report/ACK checks. Dispatch stays outside Writer. No general
+maintenance, naming, catalog fallback, conversion sweep or reader scan runs.
+
+T033 follows delivered selected-path source and T032 control-state acceptance.
+Review source and all copied current fixtures, publish and verify the matching
+worker, then perform affected-state backup/restore and a selected canary before
+restricted activation. Prove a later capture without a second manual invocation,
+restart reconciliation, no uncertain replay, typed catalog-to-ACK completion and
+original preservation. Keep full/bulk activation and configured Parent/NFS gates
+separate. Capacity refusal remains a hold under FR-016.

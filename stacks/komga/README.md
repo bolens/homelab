@@ -851,6 +851,50 @@ configured bind geometry and terminal reader acceptance remain required before
 activation. See [the host contract](../mylar3/config/reader_recovery/CONTRACT-retained-pack.md).
 
 
+### Restricted recurring pack recovery
+
+`--packs-only` polls the existing native `packWork` endpoint, at most its fifty-record
+page per pass. Each returned capture and DDL pair then takes the same fresh guarded
+selected path described below. It requires `writer_state`, explicit publication-root
+mappings and `maintenance.pack_import: true` plus `maintenance.auto_import: true`.
+Use an integer `poll_seconds` from 30 through 3600. The default is 60.
+
+Add `docker-compose.packs.yml` last, after the normalizer, maintenance and coordination
+overrides. It changes the existing worker command and health command. It adds no
+service, mount, credential, port or privilege. Existing preparation remains required.
+Use a matching published image containing this mode, verified affected-state backup
+and isolated restore, and the existing configured authority before activation.
+The default worker command still runs its full cycle. Do not activate that default
+cycle as a substitute for the restricted command while bulk acceptance is pending.
+
+The restricted command holds `worker.lock`, discovers outside shared Writer, and
+rechecks native state and publication authority for each selected capture. It omits
+queued workflow commands, conversion sweeps, naming, broad maintenance and reader
+scan requests. The existing bounded read-only reader catalog observation remains
+part of selected admission. Member preparation retains its owning conversion,
+cache-reservation and metadata checks. Only an unambiguous existing native catalog
+identity is eligible. Catalog-addition fallback stays disabled.
+
+Each pass stops after one import submission so ordinary native post-processing can
+settle. Later passes reconcile exact durable receipts. Uncertain dispatch remains
+held without replay, inferred ACK or source deletion. Durable uncertain or expired
+selected import receipts also hold recurring health and make `--once` fail; a
+fresh submitted receipt waits without replay. This status observation grants no
+admission or acknowledgement. Pending recovery, malformed
+work and unavailable policy retain originals and report a hold. A Writer-busy or
+native-processing wait does not refresh the last completed-check timestamp.
+Health requires a fresh heartbeat and completed check, with no held error. It proves
+worker liveness, not completed import or publication acceptance. SIGTERM/SIGINT stop
+between passes and let the current guarded pass finish. `--packs-only --once` runs
+one bounded pass. `--packs-only --health` checks only this mode's status. Exact
+`--pack-capture`/`--pack-ddl`, naming actions and recurring mode are mutually exclusive.
+
+Source and image delivery must be followed by a selected catalog-to-ACK canary,
+then a genuinely later native capture consumed without another manual invocation,
+restart reconciliation and retained-original checks. These are T033 acceptance.
+T032 control-state adoption remains complete. T018 bulk, Parent and NFS acceptance
+remain separate.
+
 ### Explicit pack-only maintenance pass
 
 For one existing capture, run the worker entry point with `--pack-capture <capture-sha256>`
