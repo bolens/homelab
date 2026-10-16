@@ -190,4 +190,161 @@ class WorkerStateBindingTests(HistoricalFixture):
     def test_interrupted_control_write_retains_fence_and_originals(self):self.run_case('partial-write')
     def test_original_caller_change_retains_fence_and_originals(self):self.run_case('mutated-caller')
 
+
+class ControlRoles(unittest.TestCase):
+    """Disposable original files and real owning schemas; no operational adoption grant."""
+    def setUp(self):
+        import tempfile
+        from types import SimpleNamespace
+        import normalizer_state_binding as binding
+        self.binding=binding;self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.state=Path(self.temp.name)/'state';self.state.mkdir(mode=0o700)
+        self.jobs=self.state/'jobs';self.jobs.mkdir(mode=0o700)
+        self.worker=SimpleNamespace(state=self.state,jobs=self.jobs,roots=[Path('/library')],config={'mylar':{'config_dir':self.temp.name}})
+    def save(self,relative,value):
+        path=self.state/relative;path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
+        path.write_bytes(value if type(value)is bytes else self.binding.encoded(value));path.chmod(0o600);return path
+    def facts(self):
+        tape=self.binding.Originals();result=self.binding.state_facts(self.state,self.jobs,tape,self.worker);tape.close();return result,tape
+    def refused(self):
+        with self.assertRaises((self.binding.Unavailable,ValueError,TypeError,KeyError)):self.facts()
+    def imported(self,**changes):
+        value=dict(source='/incoming/book.cbz',stage='/cache/.mylar-recovery-x/book.cbz',identity=[1,2,3],sha256='a'*64,
+                   match={'issueid':'12','comicid':'34'},phase='submitted',submitted_at=1.5)
+        value.update(changes);key=self.binding.digest(__import__('os').fsencode(value['source'])+value['sha256'].encode()+(value.get('workflow_command')or'').encode())
+        return self.save('maintenance/imports/'+key+'.json',value),value
+    def named(self,phase='review',**changes):
+        from naming_worker import token
+        request=dict(version=1,source='/library/book.cbz',target='renamed.cbz',sha256='a'*64,issueid='12',comicid='34')
+        value=dict(request=request,key=token(request),phase=phase);value.update(changes)
+        return self.save('release-naming/'+token(request)+'/receipt.json',value),value
+    def scan(self,**changes):
+        value=dict(version=1,scope=self.binding.digest(json.dumps([self.temp.name,['/library']]).encode()),known={'one':'/library/a.cbz'},
+                   pending={'one':dict(path='/library/a.cbz',last_checked=1.,ready_at=None,identity=[1,2,3],stable_since=1.)},next_allowed=0)
+        value.update(changes);return self.save('reader-scan.json',value),value
+    def guidance(self,native_phase=None,mismatch=False):
+        import sqlite3
+        from contextlib import closing
+        from types import SimpleNamespace
+        value=dict(id='a'*32,source_token='b'*32,version='c'*64,issueid='12',comicid='34',save_alias=False,
+                   phase='review',reason='unconfirmed',created_at=1.,reviewed_source=False,sha256='d'*64,source='/incoming/a.cbz',submitted_at=2.)
+        path=self.save('maintenance/guidance/commands/'+value['id']+'.json',value)
+        database=Path(self.temp.name)/'workflow.sqlite'
+        with closing(sqlite3.connect(database))as db,db:
+            db.execute('CREATE TABLE records(kind TEXT,key TEXT,value TEXT)')
+            if native_phase is not None:
+                native={k:value[k]for k in ('id','source_token','version','issueid','comicid')};native['phase']=native_phase
+                if mismatch:native['issueid']='99'
+                db.execute('INSERT INTO records VALUES(?,?,?)',('command',value['id'],json.dumps(native)))
+        return path,SimpleNamespace(database=database)
+    def test_large_manual_plan_is_metadata_only_but_exactly_retained(self):
+        path=self.save('combined-maintenance-plan-before-resume-v2.json',b'x'*(3*1024**2))
+        _,tape=self.facts();self.assertIn(str(path),tape.files)
+        path.write_bytes(b'changed')
+        with self.assertRaises(self.binding.Unavailable):tape.close()
+    def test_oversized_current_job_receipt_still_refuses(self):
+        self.save('jobs/one/receipt.json',b' '*(2*1024**2+1));self.refused()
+    def test_legacy_submitted_kept_uncertain_without_rewrite(self):
+        path,_=self.imported(compatibility_retry_at=2.);before=path.read_bytes();self.facts();self.assertEqual(path.read_bytes(),before)
+    def test_legacy_submitted_unknown_field_refuses(self):
+        self.imported(arbitrary_pending=False);self.refused()
+    def test_legacy_inert_timestamp_bool_refuses(self):
+        self.imported(compatibility_retry_at=True);self.refused()
+    def test_prepared_import_remains_held(self):
+        self.imported(phase='prepared');self.refused()
+    def test_legacy_import_wrong_filename_refuses(self):
+        path,_=self.imported();path.rename(path.with_name('f'*64+'.json'));self.refused()
+    def test_actual_naming_review_schema_is_terminal(self):
+        from naming_worker import Naming
+        path,value=self.named();reader=object.__new__(Naming);reader.root=path.parent.parent
+        row=reader.root.stat();reader.root_identity=(row.st_dev,row.st_ino)
+        self.assertEqual(reader.read_receipt(path.parent),value);self.facts()
+    def test_naming_prepared_remains_held(self):self.named('prepared');self.refused()
+    def test_naming_key_drift_refuses(self):self.named(key='f'*64);self.refused()
+    def test_pending_unsent_scan_is_preserved_not_acked(self):
+        from reader_scan import ScanBatch
+        path,value=self.scan();self.assertEqual(ScanBatch(self.worker).load(),value)
+        before=path.read_bytes();self.facts();self.assertEqual(before,path.read_bytes());self.assertFalse((self.state/'reader-handoffs').exists())
+    def test_scan_pending_foreign_path_refuses(self):
+        self.scan(pending={'one':dict(path='/elsewhere',last_checked=1.,ready_at=None)});self.refused()
+    def test_scan_unknown_nested_field_refuses(self):
+        self.scan(pending={'one':dict(path='/library/a.cbz',last_checked=1.,ready_at=None,dispatching=True)});self.refused()
+    def test_review_guidance_current_rejected_native_record_is_retained(self):
+        from unittest.mock import patch
+        path,authority=self.guidance('rejected');before=path.read_bytes()
+        # Only the admission object's database observation is projected; query and files are real.
+        with patch.object(self.binding,'current',return_value=authority):self.facts()
+        self.assertEqual(path.read_bytes(),before)
+    def test_review_guidance_live_native_command_refuses(self):
+        from unittest.mock import patch
+        _,authority=self.guidance('review')
+        with patch.object(self.binding,'current',return_value=authority):self.refused()
+    def test_review_guidance_native_identity_mismatch_refuses(self):
+        from unittest.mock import patch
+        _,authority=self.guidance('rejected',True)
+        with patch.object(self.binding,'current',return_value=authority):self.refused()
+    def test_unknown_current_control_role_refuses(self):
+        self.save('maintenance/retained-pack-handoffs/foreign.json',{'phase':'done'});self.refused()
+    def test_closed_legacy_duplicate_preserves_original_evidence(self):
+        value=dict(kind='duplicate',source='/library/old.cbz',destination='/library/current.cbz',sha256='a'*64,destination_sha256='b'*64,phase='removed',pages=1)
+        path=self.save('maintenance/receipts/'+self.binding.digest(__import__('os').fsencode(value['source'])+value['sha256'].encode())+'.json',value)
+        before=path.read_bytes();self.facts();self.assertEqual(path.read_bytes(),before)
+    def test_legacy_quarantine_queued_result_is_not_resent(self):
+        value=dict(kind='quarantine',source='/incoming/bad.cbz',destination='/state/quarantine/bad.cbz',sha256='a'*64,
+                   phase='retry_queued',match={'issueid':'12','comicid':'34'},reason='decoder failure')
+        path=self.save('maintenance/receipts/'+self.binding.digest(__import__('os').fsencode(value['source'])+value['sha256'].encode())+'.json',value)
+        before=path.read_bytes();self.facts();self.assertEqual(before,path.read_bytes())
+    def test_uncertain_quarantine_retry_remains_held(self):
+        self.save('maintenance/receipts/a.json',dict(kind='quarantine',source='/incoming/bad.cbz',destination='/state/quarantine/bad.cbz',
+                    sha256='a'*64,phase='retry_unconfirmed',match={},reason='uncertain'));self.refused()
+    def test_cleaned_pack_with_confirmed_members_is_preserved(self):
+        value=dict(id='a'*64,inventory_complete=True,cleaned_at=1.,cleanup_verified_at=2.,created_at=0.,source='/incoming/pack.zip',
+                   outer={},members=[dict(id='b'*64,kind='issue',phase='confirmed')])
+        path=self.save('maintenance/packs/'+value['id']+'/receipt.json',value);before=path.read_bytes();self.facts();self.assertEqual(before,path.read_bytes())
+    def test_incomplete_pack_member_still_refuses(self):
+        self.save('maintenance/packs/'+'a'*64+'/receipt.json',dict(id='a'*64,inventory_complete=True,cleaned_at=1.,cleanup_verified_at=2.,
+                   members=[dict(kind='issue',phase='submitted')]));self.refused()
+    def test_final_original_namespace_is_not_ignored_for_passive_reports(self):
+        self.save('recovery/report.json',{'phase':'review'});_,tape=self.facts();self.save('recovery/foreign.json',{})
+        with self.assertRaises(self.binding.Unavailable):tape.close()
+
+    def retained_pair(self,mode=0o644):
+        import os
+        receipt,_=self.named();joint=self.state/'combined-maintenance'/('d'*64)
+        joint.mkdir(parents=True,mode=0o700);self.save(joint.relative_to(self.state)/'receipt.json',{'phase':'review'})
+        paths=[]
+        for name in ('original.cbz','restore.cbz'):
+            source=receipt.parent/name;source.write_bytes(b'original retained payload');source.chmod(mode)
+            target=joint/name;os.link(source,target);paths.extend((source,target))
+        return paths
+    def test_complete_legacy_cross_role_aliases_preserve_all_original9(self):
+        paths=self.retained_pair();before={str(p):self.binding.nine(p.stat())for p in paths}
+        self.facts();self.assertEqual(before,{str(p):self.binding.nine(p.stat())for p in paths})
+    def test_historical_writable_payload_mode_is_retained_without_copy_trust(self):
+        paths=self.retained_pair(0o666);before={str(p):self.binding.nine(p.stat())for p in paths}
+        self.facts();self.assertEqual(before,{str(p):self.binding.nine(p.stat())for p in paths})
+        from naming_worker import Naming
+        owner=object.__new__(Naming)
+        request={'sha256':self.binding.digest(paths[0].read_bytes())}
+        with self.assertRaises(ValueError):owner.copies(paths[0].parent,request)
+    def test_outside_alias_is_not_a_complete_retained_pair(self):
+        paths=self.retained_pair();paths[1].unlink();__import__('os').link(paths[0],Path(self.temp.name)/'outside.cbz');self.refused()
+    def test_third_external_alias_refuses_original_nlink(self):
+        paths=self.retained_pair();__import__('os').link(paths[0],Path(self.temp.name)/'third.cbz');self.refused()
+    def test_unknown_in_state_payload_alias_refuses(self):
+        paths=self.retained_pair();paths[1].rename(self.state/'foreign.cbz');self.refused()
+    def test_retained_pair_without_closed_naming_receipt_refuses(self):
+        paths=self.retained_pair();(paths[0].parent/'receipt.json').unlink();self.refused()
+    def test_cross_role_alias_basename_swap_refuses(self):
+        paths=self.retained_pair();a,b=paths[1],paths[3];temporary=b.with_name('temporary');a.rename(temporary);b.rename(a);temporary.rename(b);self.refused()
+    def test_control_and_private_proof_hardlinks_stay_forbidden(self):
+        import os
+        control=self.save('jobs/one/receipt.json',{'phase':'done'});os.link(control,self.state/'control-alias');self.refused()
+        proof=Path(self.temp.name)/'proof.json';proof.write_bytes(b'{}');proof.chmod(0o600);os.link(proof,Path(self.temp.name)/'proof-alias')
+        ref={'path':str(proof),'signature9':self.binding.nine(proof.stat()),'sha256':self.binding.digest(proof.read_bytes())}
+        with self.assertRaises(self.binding.Unavailable):self.binding.Originals().private(ref)
+    def test_retained_alias_late_link_count_drift_refuses_original_tail(self):
+        paths=self.retained_pair();_,tape=self.facts();paths[1].unlink()
+        with self.assertRaises(self.binding.Unavailable):tape.close()
+
 if __name__=='__main__':unittest.main()

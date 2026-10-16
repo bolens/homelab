@@ -84,8 +84,30 @@ including the original marker; copying unrelated completed-job payloads is not a
 prerequisite for this control-only transaction. Supply the reviewed private proof
 references, inspect the returned plan, then pass its exact canonical SHA-256 as
 `accepted_token`. Both phases recheck the original marker, complete state/job
-namespace and file metadata, completed conversion receipts, absence of pending
-work, current native authority and the exact accepted native device-adoption edge.
+namespace and file metadata, completed conversion receipts, absence of in-flight
+publication/dispatch, current native authority and the exact accepted native
+device-adoption edge. The control census follows fixed automatic consumer paths
+and bounded owning schemas. Historical plans/reports and payload files retain
+metadata custody without being parsed as active controls. Legacy submitted import
+attempts remain uncertain dedup history; existing fresh native ACK and owner checks
+still govern cleanup. Closed naming review receipts and prior quarantine queue
+results remain unchanged. Unsent reader-scan notifications may remain queued and
+must pass normal fresh collection checks later. A local guidance review requires
+an absent or matching terminal native command. Prepared/dispatching/claimed work,
+unknown actionable controls and malformed schemas still hold. No receipt is
+relabelled complete, retried, sent or acknowledged by identity adoption.
+The metadata census may preserve the exact existing cross-role hardlink pairs at
+`{release-naming,combined-maintenance}/<64-hex>/{original,restore}.cbz` only when
+all original aliases are present, the two full metadata rows match and both
+receipts remain in custody with a closed Naming receipt. Outside/extra/unknown
+aliases hold; controls/proofs/markers still require one link. Existing historical
+payload modes remain unchanged. Linked payloads gain no trust as recovery copies;
+Naming recovery still requires separately verified detached copies.
+
+Before any actual adoption or deployment, provide the exact current
+`publication_roots` mappings required by canonical native admission. Missing
+mappings refuse; a prospective diagnostic configuration is not a deployed
+configuration or proof of startup acceptance.
 They do not run automatically or change state/jobs. Backup evidence must join the
 original marker row and exact independent backup/restore paths in the maintained
 backup manifest, not caller assertions about verification.
