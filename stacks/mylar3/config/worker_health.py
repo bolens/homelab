@@ -23,6 +23,8 @@ def snapshot():
 
 
 QUEUE_NAMES=('SEARCH-QUEUE','POST-PROCESS-QUEUE','DDL-QUEUE','AUTO-COMPLETE-NZB','AUTO-SNATCHER')
+# Upstream also reports JD2; it is observed and validated, never monitored here.
+OBSERVED_QUEUE_NAMES=QUEUE_NAMES+('JD2-QUEUE',)
 
 
 def _held_snapshot(status,native):
@@ -66,14 +68,15 @@ def _busy_workers():
     if torrents and snatch and os_detect!='Windows' and torrent_downloader in (2,4):enabled.append('AUTO-SNATCHER')
     queues={}
     for q in queue_info():
-        if q.name not in QUEUE_NAMES or q.name in queues or type(q.size) is not int or not 0<=q.size<2**63:
+        if q.name not in OBSERVED_QUEUE_NAMES or q.name in queues or type(q.size) is not int or not 0<=q.size<2**63:
             raise ValueError('Current worker telemetry unavailable')
         queues[q.name]=dict(alive=bool(q.is_alive),size=q.size)
     if (mylar.CONFIG is not config or tuple(getattr(config,n) for n in names)+(mylar.OS_DETECT,)!=before
             or any(n not in queues for n in enabled)):
         raise ValueError('Current worker telemetry changed')
     no_pending()
-    return dict(version=1,startup_complete=True,enabled=enabled,queues=queues)
+    return dict(version=1,startup_complete=True,enabled=enabled,
+                queues={name:row for name,row in queues.items() if name in QUEUE_NAMES})
 
 
 def _cache_policy():

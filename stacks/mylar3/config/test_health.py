@@ -9,6 +9,9 @@ from patch_diagnostics_api import patched_source
 
 SOURCE = Path(sys.argv.pop(1)) if len(sys.argv) > 1 else None
 
+# Exact public queue_info() export from the selected upstream package.
+UPSTREAM_QUEUE_INFO_SOURCE = '"""Queue info helpers."""\n\nfrom collections import namedtuple\n\nimport mylar\n\nQueueInfo = namedtuple("QueueInfo", ("name", "is_alive", "size"))\n\n\ndef queue_info():\n    yield from (\n        QueueInfo(queue_name, thread_obj.is_alive() if thread_obj is not None else None, queue.qsize())\n        for (queue_name, thread_obj, queue) in [\n            ("AUTO-COMPLETE-NZB", mylar.NZBPOOL, mylar.NZB_QUEUE),\n            ("AUTO-SNATCHER", mylar.SNPOOL, mylar.SNATCHED_QUEUE),\n            ("DDL-QUEUE", mylar.DDLPOOL, mylar.DDL_QUEUE),\n            ("JD2-QUEUE", mylar.JD2POOL, mylar.JD2_QUEUE),\n            ("POST-PROCESS-QUEUE", mylar.PPPOOL, mylar.PP_QUEUE),\n            ("SEARCH-QUEUE", mylar.SEARCHPOOL, mylar.SEARCH_QUEUE),\n        ]\n    )\n\n'
+
 
 class HealthTest(unittest.TestCase):
     def setUp(self):
@@ -355,6 +358,49 @@ class BusyHealthTest(unittest.TestCase):
         self.assertTrue(result['errors'])
         self.assertEqual(result['observations'],saved)
 
+
+
+    def actual_six_queue_module(self):
+        import queue
+        import threading
+        from types import ModuleType
+        pairs=(('NZBPOOL','NZB_QUEUE'),('SNPOOL','SNATCHED_QUEUE'),('DDLPOOL','DDL_QUEUE'),
+               ('JD2POOL','JD2_QUEUE'),('PPPOOL','PP_QUEUE'),('SEARCHPOOL','SEARCH_QUEUE'))
+        for pool, pending in pairs:
+            setattr(self.f.mylar,pool,None if pool=='JD2POOL' else threading.current_thread())
+            setattr(self.f.mylar,pending,queue.Queue())
+        self.f.mylar.SEARCH_QUEUE.put('fixture-only')
+        module=ModuleType('mylar.queues')
+        exec(compile(UPSTREAM_QUEUE_INFO_SOURCE,'actual-public-upstream-queue-info','exec'),module.__dict__)
+        return module
+
+    def test_actual_six_queue_contract_keeps_five_monitored_workers(self):
+        from unittest.mock import patch
+        module=self.actual_six_queue_module()
+        self.assertEqual([q.name for q in module.queue_info()],['AUTO-COMPLETE-NZB','AUTO-SNATCHER','DDL-QUEUE','JD2-QUEUE','POST-PROCESS-QUEUE','SEARCH-QUEUE'])
+        with patch.dict(sys.modules,{'mylar.queues':module}):sample=self.held_sample()
+        self.assertEqual(set(sample['busy_workers']['queues']),{'AUTO-COMPLETE-NZB','AUTO-SNATCHER','DDL-QUEUE','POST-PROCESS-QUEUE','SEARCH-QUEUE'})
+        self.assertNotIn('JD2-QUEUE',sample['busy_workers']['enabled'])
+        self.assertEqual(sample['busy_workers']['queues']['SEARCH-QUEUE']['size'],1)
+        self.assertEqual(sample['publication'],dict(version=1,state='held',reason='writer-busy',census=None))
+        self.assertFalse(assess(sample,{},sample['time'])['errors'])
+        self.f.mylar.DDLPOOL=None
+        with patch.dict(sys.modules,{'mylar.queues':module}):dead=self.held_sample()
+        self.assertIn('DDL-QUEUE is down',assess(dead,{},dead['time'])['errors'])
+
+    def test_actual_six_queue_contract_still_refuses_bad_observed_rows(self):
+        from unittest.mock import patch
+        from types import SimpleNamespace
+        module=self.actual_six_queue_module()
+        original=list(module.queue_info());jd2=next(q for q in original if q.name=='JD2-QUEUE')
+        cases=[original+[jd2],original+[module.QueueInfo('UNKNOWN-QUEUE',True,0)]]
+        for size in (True,-1,2**63):
+            cases.append([module.QueueInfo(q.name,q.is_alive,size) if q.name=='JD2-QUEUE' else q for q in original])
+        for rows in cases:
+            with self.subTest(rows=rows),patch.dict(sys.modules,{'mylar.queues':SimpleNamespace(queue_info=lambda:rows)}):
+                sample=self.held_sample()
+                self.assertNotIn('busy_workers',sample)
+                self.assertTrue(assess(sample,{},sample['time'])['errors'])
 
 if __name__ == '__main__':
     unittest.main()

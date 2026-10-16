@@ -478,13 +478,13 @@
       "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
     },
     "configured_reader_parent_base_sources.json": {
-      "sha256": "96b47921b46d9bdd37893c250e75254a51d4c488f62364179b94187384f8975e"
+      "sha256": "268c80d88b7b699c71c2f86884a0c48eda8f34ac865b088b717371745a52eb80"
     },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "0e044b58d9c7bec643a41ac0d1c54b73be87d6732b162217cb6469bd26ece5b7"
+      "sha256": "76a723e4fd519e83d1e78ddb73c8231498a477652695b0ce9a300701293d3033"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
