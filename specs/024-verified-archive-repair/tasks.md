@@ -82,3 +82,5 @@ T001–T010 accept the prospective design, retained diagnostics and bounded non-
 Detailed dated source/image tests, retained-original experiments and failure receipts are retained in [evidence history](evidence-history.md). Private repaired copies and earlier component proofs do not complete production adoption or authorize hold release.
 
 Current candidate runtime verification has passed; configured recovery and live acceptance remain required. See the [latest evidence](evidence-history.md#installed-recovery-prerequisite-2026-10-11).
+
+The shared recovery source is merged with passing CI. Its configured-installer follow-up passes focused runtime checks; matching-image and live lifecycle acceptance remain required. See [the shared checkpoint](../023-verified-publication-corrections/evidence-history.md#merged-recovery-and-configured-installer-follow-up-2026-10-15).

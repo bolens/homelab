@@ -169,7 +169,7 @@ The default admission/Parent pins remain disabled. The maintained host installer
 accepts only its fixed reviewed source closure and performs only the approved
 constant transformations. Configured artifacts, original private plan/command
 refs and readonly canonical admission overlay are explicit and hashed; they are
-not arbitrary digest setters or base-image parity.
+not arbitrary digest setters or base-image parity. The exact closure includes the reviewed host-only worker vector helper as a sibling of the generated Parent, with fixed source pin and returned output reference. A separately staged sibling or default installed Parent cannot substitute for that configured output closure.
 
 Finite child control projection preserves each root original file9/hash and
 ancestor5, creates independent UID1000 copies, and retains paired references.
@@ -189,3 +189,5 @@ receipt or JSON dictionary cannot reconstruct it. Uncertain EOF, handler refusal
 or lost leave retains evidence and grants neither terminal acceptance, cleanup,
 reader resume nor replay. Source/host tests and historical constructor/Main
 prerequisites do not replace genuine connected Birth and terminal proof.
+
+The configured archive source closure includes the reader backup, backup primitives, reader schema, native scope and native process probe helpers. Root installation retains all thirteen artifact originals. Before any profile inspection or stop, the Parent seals the nine source leaves required by the backup provider and evidence adapter. The child copies only this exact same-directory group into one source-owned directory, preserves the existing per-file original and child custody, and mounts its files read-only. Missing, foreign, changed or partially projected groups refuse. No arbitrary source-group selector, SDK membership or overlay authority is added. Other controls retain their individual path projection.
