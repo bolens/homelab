@@ -652,3 +652,37 @@ foreign state is retained without automatic replay. A stopped owning parent sepa
 service profile, databases and references before restart. Actual installed-image
 checks, fresh full reader backup/restore and real NFS hardlink/fsync proof are
 required before this protocol is executable.
+
+
+### Worker control identity after device renumbering
+
+Native adoption does not translate the legacy normalizer state marker. The
+ordinary exact marker route remains unchanged in the absence of a worker
+adoption receipt or its pending hold. A mismatch requires an explicit reviewed
+control-only prepare/commit under the existing shared Writer and original worker
+lock. Retain the original marker bytes and metadata, state/jobs roots, complete
+namespace and file metadata, and completed-job receipt facts. Back up and restore
+verify the affected controls before commit; unrelated retained payloads are
+preserved in place and are not copied merely to adopt this control binding.
+
+The exclusively created committed worker receipt must join the exact original
+marker, current two directory identities, immutable accepted native edge, genuine
+current complete native admission and the same prospective Btrfs filesystem and
+subvolume independently observed at Writer, state and jobs. Only the physical
+device field may project across later device renumbering; original inodes, modes,
+ownership, marker times/link count/content and stable filesystem identity remain
+strict. Unsupported queries, pending work, incomplete receipts, foreign or changed
+identities and unreviewed/malformed/stale envelopes hold. The captured complete
+state namespace is commit-time custody; future valid work is not required to
+retain a frozen directory listing. No startup caller writes or accepts adoption.
+
+Create the fixed control pending sidecar before any receipt write. Remove it only
+after durable exact receipt readback and original caller/file/namespace tails.
+Interrupted or uncertain effects retain originals and require explicit review;
+startup never clears or repairs this hold. A catchable failure after removal must
+exclusively re-establish the same pending marker with the original token, never
+overwrite an existing marker, and surface an explicit failure if re-establishment
+fails. Preserve the receipt and originals; keep the worker inactive for review.
+This operation changes only new Writer
+control sidecars, grants no ACK or replay and does not complete T017/T030/T032
+without matching installed-image and actual reviewed binding acceptance.

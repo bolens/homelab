@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 import sqlite3
 import stat
+import threading
+from contextlib import contextmanager
 
 if __package__:
     from . import publication_guard as guard
@@ -13,6 +15,7 @@ else:
     import publication_guard as guard
 
 COMMIT_BINDINGS = None
+_NORMALIZER_READ = threading.local()
 MAX_EDGES = 8
 MAX_RECORD_BYTES = 256 * 1024
 FIELDS = {'database_identity', 'writer_identity'}
@@ -196,6 +199,95 @@ def _read_ledger(directory):
     return records, nodes, files, names
 
 
+
+def pending_state(root):
+    """All markers hold except one fresh marker of this exact currently held Writer."""
+    root=Path(root)
+    value=getattr(_NORMALIZER_READ,'value',None)
+    if value is None:
+        need(not any(os.path.lexists(root/name) for name in PENDING), 'identity-pending-state-held')
+        return
+    writer,local,original,markerfd,lockfd,nodes,thread=value
+    if __package__:
+        from .media_writer import Writer, file_signature, _REGISTRY, deny_negative_phase
+    else:
+        from media_writer import Writer, file_signature, _REGISTRY, deny_negative_phase
+    need(type(writer) is Writer and threading.get_ident()==thread
+         and writer.local[1] is local and _REGISTRY.get(str(writer.root)) is writer.local
+         and getattr(local,'depth',0)>0 and local.allow_pending is True
+         and getattr(local,'normalizer_pending_original',None) is original
+         and original[0] is writer, 'identity-normalizer-original-held-owner')
+    deny_negative_phase(writer.root)
+    need(not any(os.path.lexists(root/name) or os.path.lexists(writer.root/name)
+                 for name in PENDING if name!='normalizer-v1.pending'), 'identity-other-pending-held')
+    z=os.lstat(root)
+    need((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)==original[2], 'identity-normalizer-root-alias')
+    # Every callback/namespace check precedes raw original FD/path/node closure.
+    need(getattr(_NORMALIZER_READ,'value',None) is value
+         and getattr(local,'normalizer_pending_original',None) is original
+         and threading.get_ident()==thread and getattr(local,'depth',0)>0 and local.allow_pending is True,
+         'identity-normalizer-owner-changed')
+    for name,row in nodes:
+        z=os.lstat(name)
+        need((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)==row, 'identity-normalizer-original-node5')
+    need(file_signature(os.fstat(lockfd))==original[3]
+         and file_signature(os.lstat(writer.lock))==original[3], 'identity-normalizer-original-lock9')
+    need(file_signature(os.fstat(markerfd))==original[1]
+         and file_signature(os.lstat(writer.pending))==original[1]
+         and file_signature(os.lstat(root/'normalizer-v1.pending'))==original[1], 'identity-normalizer-original-marker9')
+
+
+@contextmanager
+def normalizer_pending_read(writer):
+    """Read-side fact only; never acquires a Writer or admits a crashed fence."""
+    if __package__:
+        from .media_writer import Writer, checked_file, deny_negative_phase
+    else:
+        from media_writer import Writer, checked_file, deny_negative_phase
+    need(type(writer) is Writer and getattr(_NORMALIZER_READ,'value',None) is None,
+         'identity-normalizer-exact-owner')
+    local=writer.local[1]
+    original=getattr(local,'normalizer_pending_original',None)
+    need(type(original) is tuple and len(original)==4 and original[0] is writer
+         and getattr(local,'depth',0)>0 and local.allow_pending is True,
+         'identity-normalizer-fresh-owned-marker-required')
+    thread=threading.get_ident()
+    nodes=[]
+    for name in (writer.root,*writer.root.parents):
+        z=os.lstat(name)
+        need(stat.S_ISDIR(z.st_mode), 'identity-normalizer-linked-ancestor')
+        nodes.append((str(name),(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)))
+    nodes=tuple(nodes)
+    markerfd=checked_file(writer.pending)
+    try:
+        lockfd=checked_file(writer.lock)
+        try:
+            _NORMALIZER_READ.value=(writer,local,original,markerfd,lockfd,nodes,threading.get_ident())
+            try:
+                pending_state(writer.root)
+                yield
+                pending_state(writer.root)
+            finally:_NORMALIZER_READ.value=None
+        finally:os.close(lockfd)
+    finally:os.close(markerfd)
+    # Descriptor-close callbacks must not introduce another publication fence.
+    deny_negative_phase(writer.root)
+    if any(os.path.lexists(writer.root/name) for name in PENDING if name!='normalizer-v1.pending'):
+        raise guard.Unavailable('identity-normalizer-final-pending-held')
+    # Closing descriptors and the final reader callbacks cannot refresh originals.
+    if (getattr(local,'normalizer_pending_original',None) is not original
+            or threading.get_ident()!=thread or getattr(local,'depth',0)<=0 or local.allow_pending is not True):
+        raise guard.Unavailable('identity-normalizer-final-owner')
+    for name,row in nodes:
+        z=os.lstat(name)
+        if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=row:
+            raise guard.Unavailable('identity-normalizer-final-node5')
+    for name,row in ((writer.lock,original[3]),(writer.pending,original[1])):
+        z=os.lstat(name)
+        if (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)!=row:
+            raise guard.Unavailable('identity-normalizer-final-original9')
+
+
 def resolve(db, ledger_dir, historical_identity, current_identity, *, boundary=lambda: None, pending=None, writer_owner=None):
     """Exact optional historical projection, not an operational authorization."""
     identity(historical_identity)
@@ -209,7 +301,7 @@ def resolve(db, ledger_dir, historical_identity, current_identity, *, boundary=l
         result = json.loads(encoded(current_identity))
         need(encoded([historical_original, current_original]) == input_tape, 'identity-original-input-changed')
         return result
-    need(not any(os.path.lexists(path.parent/name) for name in PENDING), 'identity-pending-state-held')
+    pending_state(path.parent)
     records, nodes, files, names = _read_ledger(path)
     original_authority = capture_prefix(db, pending=pending, current_identity=current_identity)
     accepted_original = {key: raw for key, raw in db.execute("SELECT key,value FROM records WHERE kind='publication_intent'") if guard.decode_json(raw).get('outcome') == 'accepted'}
@@ -286,7 +378,7 @@ def resolve(db, ledger_dir, historical_identity, current_identity, *, boundary=l
     need(capture_prefix(db, pending=pending, current_identity=current_identity) == original_authority, 'identity-authority-changed-during-read')
     need({key: raw for key, raw in db.execute("SELECT key,value FROM records WHERE kind='publication_intent'") if guard.decode_json(raw).get('outcome') == 'accepted'} == accepted_original, 'identity-original-accepted-row-changed')
     need(encoded([historical_original, current_original]) == input_tape, 'identity-original-input-changed')
-    need(not any(os.path.lexists(path.parent/name) for name in PENDING), 'identity-final-pending-held')
+    pending_state(path.parent)
     if stable_observation is not None:
         need(observe(main[0], path.parent, held_writer=writer_owner, transaction=db) == stable_observation, 'identity-stable-filesystem-changed')
     # Every callback precedes complete original namespace/node/file9 closure.

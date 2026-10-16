@@ -71,6 +71,7 @@ def match(path, database, rows=None):
     if len(ids) > 1 or len(tagged) > 1:
         return None
     evidence = []
+    needs_filename_year = False
     if meta.get('Series') and meta.get('Number'):
         year = meta.get('Volume', '')
         if re.fullmatch(r'(?:19|20)\d{2}', year):
@@ -78,13 +79,27 @@ def match(path, database, rows=None):
         elif re.fullmatch(r'(?:19|20)\d{2}', meta.get('Year', '')):
             evidence.append((title(meta['Series']), number(meta['Number']), meta['Year'], 'issue'))
         elif not ids:
-            return None
+            # Partial ComicInfo must not suppress the release filename's year.
+            # An explicit unsupported value still requires review.
+            if meta.get('Volume') or meta.get('Year'):
+                return None
+            needs_filename_year = True
     # Releases use either the series start or issue publication year. Both must
     # still resolve to one catalog identity across all available evidence.
     clean = re.sub(r'\[__\d+__\]', '', path.stem).strip()
     parsed = re.fullmatch(r'(.+?)\s+#?(\d+(?:\.\d+)?)\s+\(((?:19|20)\d{2})\)(?:\s*\([^)]*\)|\s*\[[^]]*\])*', clean)
     if parsed:
         evidence.append((title(parsed[1]), number(parsed[2]), parsed[3], 'filename'))
+    if needs_filename_year and not parsed:
+        return None
+    series_name = meta.get('Series', '')
+    embedded_year = re.fullmatch(r'(.+?)\s+\(((?:19|20)\d{2})\)', series_name)
+    if (needs_filename_year and embedded_year and parsed
+            and title(embedded_year[1]) == title(parsed[1]) and embedded_year[2] == parsed[3]):
+        # Some releases place the series year inside Series rather than Volume.
+        # Keep it as explicit series-start evidence; never discard a conflict.
+        series_name = embedded_year[1]
+        evidence.append((title(series_name), number(meta['Number']), embedded_year[2], 'series'))
     if not ids and not evidence:
         return None
     if rows is None:
@@ -99,7 +114,7 @@ def match(path, database, rows=None):
             names.update(title(row[5] + suffix + version[1]) for suffix in (' v', ' vol. ', ' volume '))
         if ids and str(row[0]) not in ids:
             continue
-        if meta.get('Series') and title(meta['Series']) != title(row[5]):
+        if series_name and title(series_name) != title(row[5]):
             continue
         if meta.get('Number') and (number(meta['Number']) is None or number(meta['Number']) != number(row[3])):
             continue

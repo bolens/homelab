@@ -144,7 +144,7 @@ class CurrentBase(unittest.TestCase):
             with self.subTest(name=name),self.assertRaisesRegex(m.Held,'configured-base-sdk-pins'):m.configured_maps(bad,raw,artifacts,receipt)
     def test_current_cohort_provenance_and_all_strict_guards_remain(self):
         raw,base,sdk,artifacts,receipt=self.setup_current()
-        self.assertEqual(base['base_cohort_sha256'],'d5c035f05206afe023e8e40f3acecd24cb75907d8801953bf9a7c8172f63607d')
+        self.assertEqual(base['base_cohort_sha256'],'df6de6af3a32ff57abc679f3ed835e95b5f506593c1c023fd67c919bb80ceba0')
         self.assertEqual(len(base['base_cohort']['modules']),25);self.assertEqual(len(base['base_cohort']['existing_sdk_closure']),80)
         for name,pin in self.CURRENT_PINS:
             if name!='api.py':self.assertEqual(base['base_cohort']['existing_sdk_closure'][name[:-3]]['tracked_source_sha256'],pin)

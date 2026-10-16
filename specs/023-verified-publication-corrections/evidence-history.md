@@ -1039,3 +1039,27 @@ Docker health remains unhealthy after six consecutive probes report the fixed pu
 A subsequent read-only SQLite transaction snapshot passes `integrity_check`. All original 2,745 series, 16,417 issues and 145 annual IDs remain present, with original locations preserved. Original series and annual status/location rows are unchanged. During the startup refresh the catalog adds one series and 12 issues. Two original issues change from Skipped to Wanted without a location change; these intent changes await provenance review, so exact status preservation is not claimed.
 
 T031 remains complete and T017 remains open. Full tagger acceptance, intent-change provenance review and fresh DDL reconciliation are still required; the 19 historical missing originals remain review. No pack recovery, naming/metadata pass, fresh ACK, configured Parent/NFS, archive-terminal, bulk or final retention-cleanup acceptance follows from this operation.
+
+Worker recovery prerequisite: the official current worker image passes actual
+41-module installed parity, 13 selected controls and all 747 owning controls
+without skips. Read-only post-reboot checks separately prove the legacy worker
+marker no longer matches current device numbers while its old-device/current-inode
+projection matches; all three current roles share Btrfs filesystem/subvolume
+identity. The original marker and completed-job payloads remain unchanged. T032
+tracks explicit reviewed control-only adoption and successor-image acceptance;
+worker activation, selected import, canary and ACK remain unproved. Native
+ordinary recovery and T031 acceptance are unchanged. The owned-pending reader
+source correction is separate from this identity evidence.
+
+
+### Combined worker recovery and pack matching 2026-10-15
+
+The published `2af948b9` worker passes 41 installed-module/origin/type checks, 13 selected controls and all 747 worker controls without skips. This establishes the current predecessor runtime, not configured recovery. Read-only observations preserve the original legacy marker and identify a device-number mismatch with unchanged state/jobs inodes and matching stable Btrfs filesystem/subvolume.
+
+The combined source batch adds explicit reviewed control-only binding adoption, keeping the legacy marker intact. Independent review closes lost-proof, final-caller and interrupted-commit custody defects. All 27 binding controls pass; original-directory descriptor custody preserves an uncertainty fence without writing into a replacement root. The separate fresh owned-marker fix passes 15 controls and independent review, including immediate admission refusal if a sibling fence appears during descriptor closure. Preexisting or replaced markers stay held. Shared native/worker Writer sources remain identical; current source maps retain their memberships, historical fixtures and restricted defaults.
+
+The health correction reports bounded queue-only liveness during Mylar's own Writer contention after ordinary startup. It grants no publication admission or cached census. Original progress/cooldown clocks survive contention. Independent review and 27 health plus nine cooldown checks pass in the actual Python runtime. A persistent marker, stale progress or elapsed grace remains unhealthy.
+
+Read-only examination of the selected two-member pack finds partial ComicInfo tags and a year embedded in `Series`. Regression tests reproduce rejection before filename-year evidence and the embedded-year mismatch. The corrected matcher requires strict filename agreement, retains embedded series-start year as catalog evidence and preserves conflicting-year, ambiguous-owner and Downloaded refusal. All 40 import-recovery controls pass, with original test methods unchanged. Metadata-only projections of the actual two members against a fresh read-only full catalog resolve two distinct existing owners; this diagnostic does not establish actual import, publication or ACK.
+
+The configured-file cache budget is 20 GiB with a 5 GiB free-space floor, while read-only accounting measures about 42.6 GiB. Effective runtime policy and a finite recovery budget remain unverified; no budget has been changed. Retained completed-job originals remain recovery evidence. The combined source still requires normal delivery gates, matching-image verification, reviewed control backup/restore and selected live acceptance. T017/T028/T030/T032 and shared bulk/archive acceptance remain open.

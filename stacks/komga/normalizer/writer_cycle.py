@@ -10,6 +10,8 @@ from publication_guard import scope, evidence, Unavailable
 
 def bind_state(writer, normalizer):
     # A missing/remounted recovery directory must not look like "no pending jobs".
+    if os.path.lexists(writer.root/'normalizer-state-adoption-v1.pending'):
+        raise Unavailable('Worker state adoption requires explicit recovery')
     identities=[]
     for path in (normalizer.state,normalizer.jobs):
         if any(p.is_symlink() for p in (path,*path.parents)):
@@ -19,7 +21,8 @@ def bind_state(writer, normalizer):
         identities.append((info.st_dev,info.st_ino))
     expected=(hashlib.sha256(json.dumps(identities).encode()).hexdigest()+'\n').encode()
     path=writer.root/'normalizer-state-v1.identity'
-    if not path.exists() and writer.fenced():
+    adoption=writer.root/'normalizer-state-adoption-v1.json'
+    if not path.exists() and (writer.fenced() or os.path.lexists(adoption)):
         raise ValueError('Pending recovery has no bound state identity; review required')
     try:
         fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
@@ -31,10 +34,14 @@ def bind_state(writer, normalizer):
     fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
     try:
         info=os.fstat(fd)
+        raw=os.read(fd,66)
         if (not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_uid!=os.geteuid()
-                or stat.S_IMODE(info.st_mode)!=0o600 or os.read(fd,66)!=expected):
+                or stat.S_IMODE(info.st_mode)!=0o600):
             raise ValueError('Normalizer recovery state identity changed; review required')
     finally:os.close(fd)
+    if raw!=expected or os.path.lexists(adoption):
+        from normalizer_state_binding import validate
+        validate(writer,normalizer,raw)
 
 
 def cycle(normalizer, maintenance=None):

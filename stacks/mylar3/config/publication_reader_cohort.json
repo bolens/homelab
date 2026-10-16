@@ -65,7 +65,7 @@
       "owning_adapters": [
         "patch_media_writers.py"
       ],
-      "tracked_source_sha256": "6187fe15991d7047088ebce319f597278db6d3c62cd25535d1b6e9e1f2fc7b45"
+      "tracked_source_sha256": "a68691fccb85d1bd136353e3340e66ea84f0b7affab92699084ac8c6b4c9ab60"
     },
     "metadata_repair": {
       "owning_adapters": [
@@ -239,7 +239,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "fe161bda6d03a37f786d5fbcbe9cb4874b52abade0b4ad67152eeafe3c0c6846"
+      "tracked_source_sha256": "00e65024832bd0b629ea6b4a4f623bbe2d34fb9a8b3e486b5469daa0f69ac9fb"
     },
     "publication_identity_maintenance": {
       "owning_adapters": [
