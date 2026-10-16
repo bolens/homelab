@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "cd97dae6df0b70c299ac26f3d4398f739b41bab4bca9a6c023d15efff21fb6a6",
+  "base_cohort_sha256": "d5c035f05206afe023e8e40f3acecd24cb75907d8801953bf9a7c8172f63607d",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -265,12 +265,12 @@
     "tagger_legacy.py": "2b611caba3a0ad1743a4a91d819838eee7592b198922338c50463590f5243a30",
     "tagger_lookup.py": "553c83acc9b15c1637ed9e2cc8b0e6250512fdcf978af68d047e7f22c1a04064",
     "tagger_metadata.py": "63df491c211f5e756db1cd3e367710c7cb41a046a4365dbc08a1eea4cc72fabb",
-    "tagger_native.py": "d7e322336475ebdf63f857bbc3509fce166a8a5d3b60fe7a3899a2b993b50a88",
+    "tagger_native.py": "1adaabeaa4145dba0522dd733e87de87bdf17f673a56fc245a2b0787e65dd27a",
     "tagger_nfs.py": "2d20cbee35b64b4e30d02436a291641023a7798287563ea3aa313f4d9aaf3f67",
     "tagger_pack.py": "7caae06cdc2c5a675469df72f97022c6d35d2894183ba5569e22218796744186",
     "tagger_runtime.py": "f7647af93c35bed413ecdc90819beed46393027c976b81a8f3aeaedeee16d1d3",
-    "tagger_service.py": "a5b6bee8da61507e897a3513b0a53ed897c631f04dbd702e7a62ba3f597db18e",
-    "tagger_staging.py": "b20da0398d9155a673eecf9ec2f18e5b34f1f12ac0d385aa4b4bc95bc9f7d234",
+    "tagger_service.py": "50990ed68d5d2ab391bca1cf8c915067128426a7c44a8584691447be7ebdd31d",
+    "tagger_staging.py": "5d24da369af36e2cf44160e5badbca7fbd398e44570eef3c6f8312530ddaefb3",
     "tagger_supplement.py": "1fbc1eb7c4c4596b655cbfff7308fde9dd84d1a2af9df0f6599dda31db2e6758",
     "tagger_volume_cache.py": "c184cb722076440c94c92efd52a48eb6e63270d6a36abcce1fe4beafb36d0c05",
     "test.py": "748c26840492e9b0879eafdaf088194034a0d9624ab6327823bbfa9b75d3743d",
@@ -697,7 +697,7 @@
         "owning_adapters": [
           "install_tagger_service.py"
         ],
-        "tracked_source_sha256": "d7e322336475ebdf63f857bbc3509fce166a8a5d3b60fe7a3899a2b993b50a88"
+        "tracked_source_sha256": "1adaabeaa4145dba0522dd733e87de87bdf17f673a56fc245a2b0787e65dd27a"
       },
       "tagger_nfs": {
         "owning_adapters": [
@@ -721,13 +721,13 @@
         "owning_adapters": [
           "install_tagger_service.py"
         ],
-        "tracked_source_sha256": "a5b6bee8da61507e897a3513b0a53ed897c631f04dbd702e7a62ba3f597db18e"
+        "tracked_source_sha256": "50990ed68d5d2ab391bca1cf8c915067128426a7c44a8584691447be7ebdd31d"
       },
       "tagger_staging": {
         "owning_adapters": [
           "install_tagger_service.py"
         ],
-        "tracked_source_sha256": "b20da0398d9155a673eecf9ec2f18e5b34f1f12ac0d385aa4b4bc95bc9f7d234"
+        "tracked_source_sha256": "5d24da369af36e2cf44160e5badbca7fbd398e44570eef3c6f8312530ddaefb3"
       },
       "tagger_supplement": {
         "owning_adapters": [

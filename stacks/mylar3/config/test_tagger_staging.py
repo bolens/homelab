@@ -1,8 +1,10 @@
 """Disposable output cleanup preserves uncertain or uniquely remaining content."""
 import json
+import shutil
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 from tagger_archive import identity
 from tagger_adapter import fingerprint
 from tagger_staging import Staging
@@ -12,6 +14,10 @@ class StagingTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        # Project finite free bytes only; actual allocation/receipt/recovery remains exercised.
+        capacity = patch('tagger_staging.shutil.disk_usage',
+            return_value=shutil._ntuple_diskusage(64 * 1024**3, 0, 64 * 1024**3))
+        capacity.start(); self.addCleanup(capacity.stop)
         for name in ('cache', 'receipts'):
             (self.root/name).mkdir(mode=0o700)
         self.owner = Staging(self.root/'cache', self.root/'receipts')

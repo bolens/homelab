@@ -7,7 +7,7 @@
       "sha256": "0f6cb551d564585db1a751c0e05308e3d205d1353798a837a81d274317a3648b"
     },
     "CONTRACT-archive-repair.md": {
-      "sha256": "18a0606127400f249dd9573ade6dea0e7e1c2f1f07334377d7a7a096a080b44b"
+      "sha256": "939061fba597a2afc12f57405be2f493083d676791c5b9cb738ea84314d7dad3"
     },
     "CONTRACT-nfs-factual.md": {
       "sha256": "43f9ed9d25cbeb609bb530f92ba7ca71e36f530fbb43755c0a22d9ab61caf889"
@@ -28,7 +28,7 @@
       "sha256": "9dac2510d6ab158505a0ee0964d483b5265c55ffb6c14941632a9a8d44c77775"
     },
     "README.md": {
-      "sha256": "3c5aca16fe3db14f200f8be5a345d493123dee6e134518c11e42ea0368ef3cbe"
+      "sha256": "608cae630ff204243cc2d01325172d47aef30193b1e873307ee8366ab6c07c4a"
     },
     "_archive_repair_fixtures/archive_monitor.py": {
       "sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3"
@@ -478,13 +478,13 @@
       "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
     },
     "configured_reader_parent_base_sources.json": {
-      "sha256": "bb659943bf6b6d5ef5e1f3d4f91614cf12dc4884eeff704e36476fa129ef5570"
+      "sha256": "0838dbacfc081de2c3793aa9df76c1aa81d1b5d81b71801976e93fcc04c516d8"
     },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "5279d4e9dfd35441b6b69c3301b0371eaa9857694779e3931cd923595873f863"
+      "sha256": "13d1c94dc42bbbd7b4b4e430a424d379b2459bb74f9c92451944ee956b713277"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -550,7 +550,7 @@
       "sha256": "ca56630160985621a880ea1d3a9f567a7975fbc90cd0a23af6d302ffa75fe2a9"
     },
     "test_configured_parent_installation.py": {
-      "sha256": "528833b4c668842b1b5863ed0d3e203581288b49e5ba76a0e161139834ee498f"
+      "sha256": "abea3574e942774e9c221fc17a4cb1c090d722823ecd6ec03b735e92e4ba2266"
     },
     "test_configured_worker_library_query.py": {
       "sha256": "8a7f209c42ee3ca7f0caf9707c923ec536068cc6950a7ad01cd76d39e300fc71"

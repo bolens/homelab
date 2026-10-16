@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "2a02e7dec6da62b6a282f6106a45dde0c619102adc037afb0c1ff9834ac57bef"
+    "sha256": "9e23b082ba61753e58bc5b0a4fbc317bd2bfd6a6e490c90ce1f57cd44557fcef"
   },
   {
     "path": "story_arc_search.py",
@@ -741,7 +741,7 @@
   },
   {
     "path": "tagger_native.py",
-    "sha256": "d7e322336475ebdf63f857bbc3509fce166a8a5d3b60fe7a3899a2b993b50a88"
+    "sha256": "1adaabeaa4145dba0522dd733e87de87bdf17f673a56fc245a2b0787e65dd27a"
   },
   {
     "path": "tagger_nfs.py",
@@ -757,11 +757,11 @@
   },
   {
     "path": "tagger_service.py",
-    "sha256": "a5b6bee8da61507e897a3513b0a53ed897c631f04dbd702e7a62ba3f597db18e"
+    "sha256": "50990ed68d5d2ab391bca1cf8c915067128426a7c44a8584691447be7ebdd31d"
   },
   {
     "path": "tagger_staging.py",
-    "sha256": "b20da0398d9155a673eecf9ec2f18e5b34f1f12ac0d385aa4b4bc95bc9f7d234"
+    "sha256": "5d24da369af36e2cf44160e5badbca7fbd398e44570eef3c6f8312530ddaefb3"
   },
   {
     "path": "tagger_supplement.py",
@@ -1417,7 +1417,7 @@
   },
   {
     "path": "test_publication_tagging.py",
-    "sha256": "bcd6dc95b812cc78db0a9843822275fb10eb5c04eaab34ea96802d04146ac1dc"
+    "sha256": "791720d804a8daf5555b28bf2e3edef47027ee868e98763b95bf13f33d2900cf"
   },
   {
     "path": "test_pullist_ui.py",
@@ -1533,7 +1533,7 @@
   },
   {
     "path": "test_tagger_native.py",
-    "sha256": "5c3f68f6319cee5d26b3b739fbea29a29e9af88b7c70ac980511dff339e5ed47"
+    "sha256": "43e24f26b208780b8b7892caf02ca404bb266418fe2128627889ddf95d3d5a85"
   },
   {
     "path": "test_tagger_nfs.py",
@@ -1549,7 +1549,7 @@
   },
   {
     "path": "test_tagger_staging.py",
-    "sha256": "e5f9e2277c68ac59afca14f417b32ec45fdc72e4d7dbf66f559a9f6b39786a3e"
+    "sha256": "06348bc07493e1d8374a07937b77f3249ad5c7a3f644824ba31404a82ba26933"
   },
   {
     "path": "test_tagger_timeout.py",
@@ -1597,7 +1597,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "ee1068bc5b0145f843195a739dd96d7e6f978c3fb22bbe49043ee83fc4e9ca48"
+    "sha256": "de817b92c5ba9019c4222d66459b3f7154df9fa5adb416e3fb5a9317db4e2d04"
   },
   {
     "path": "verify_publication_reader_cohort.py",
@@ -1674,5 +1674,9 @@
   {
     "path": "test_fixtures/retained_pack_worker/cache_reservation.py",
     "sha256": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf"
+  },
+  {
+    "path": "test_tagger_initial_admission.py",
+    "sha256": "7ca6cd1ff94bf7b9dde28868fe1c4a770fe17ec8c7c723cb82870b6920b60e32"
   }
 ]
