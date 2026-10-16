@@ -1039,3 +1039,41 @@ Docker health remains unhealthy after six consecutive probes report the fixed pu
 A subsequent read-only SQLite transaction snapshot passes `integrity_check`. All original 2,745 series, 16,417 issues and 145 annual IDs remain present, with original locations preserved. Original series and annual status/location rows are unchanged. During the startup refresh the catalog adds one series and 12 issues. Two original issues change from Skipped to Wanted without a location change; these intent changes await provenance review, so exact status preservation is not claimed.
 
 T031 remains complete and T017 remains open. Full tagger acceptance, intent-change provenance review and fresh DDL reconciliation are still required; the 19 historical missing originals remain review. No pack recovery, naming/metadata pass, fresh ACK, configured Parent/NFS, archive-terminal, bulk or final retention-cleanup acceptance follows from this operation.
+
+Worker recovery prerequisite: the official current worker image passes actual
+41-module installed parity, 13 selected controls and all 747 owning controls
+without skips. Read-only post-reboot checks separately prove the legacy worker
+marker no longer matches current device numbers while its old-device/current-inode
+projection matches; all three current roles share Btrfs filesystem/subvolume
+identity. The original marker and completed-job payloads remain unchanged. T032
+tracks explicit reviewed control-only adoption and successor-image acceptance;
+worker activation, selected import, canary and ACK remain unproved. Native
+ordinary recovery and T031 acceptance are unchanged. The owned-pending reader
+source correction is separate from this identity evidence.
+
+
+### Combined worker recovery and pack matching 2026-10-15
+
+The published `2af948b9` worker passes 41 installed-module/origin/type checks, 13 selected controls and all 747 worker controls without skips. This establishes the current predecessor runtime, not configured recovery. Read-only observations preserve the original legacy marker and identify a device-number mismatch with unchanged state/jobs inodes and matching stable Btrfs filesystem/subvolume.
+
+The combined source batch adds explicit reviewed control-only binding adoption, keeping the legacy marker intact. Independent review closes lost-proof, final-caller and interrupted-commit custody defects. All 27 binding controls pass; original-directory descriptor custody preserves an uncertainty fence without writing into a replacement root. The separate fresh owned-marker fix passes 15 controls and independent review, including immediate admission refusal if a sibling fence appears during descriptor closure. Preexisting or replaced markers stay held. Shared native/worker Writer sources remain identical; current source maps retain their memberships, historical fixtures and restricted defaults.
+
+The health correction reports bounded queue-only liveness during Mylar's own Writer contention after ordinary startup. It grants no publication admission or cached census. Original progress/cooldown clocks survive contention. Independent review and 27 health plus nine cooldown checks pass in the actual Python runtime. A persistent marker, stale progress or elapsed grace remains unhealthy.
+
+Read-only examination of the selected two-member pack finds partial ComicInfo tags and a year embedded in `Series`. Regression tests reproduce rejection before filename-year evidence and the embedded-year mismatch. The corrected matcher requires strict filename agreement, retains embedded series-start year as catalog evidence and preserves conflicting-year, ambiguous-owner and Downloaded refusal. All 40 import-recovery controls pass, with original test methods unchanged. Metadata-only projections of the actual two members against a fresh read-only full catalog resolve two distinct existing owners; this diagnostic does not establish actual import, publication or ACK.
+
+The configured-file cache budget is 20 GiB with a 5 GiB free-space floor, while read-only accounting measures about 42.6 GiB. Effective runtime policy and a finite recovery budget remain unverified; no budget has been changed. Retained completed-job originals remain recovery evidence. The combined source still requires normal delivery gates, matching-image verification, reviewed control backup/restore and selected live acceptance. T017/T028/T030/T032 and shared bulk/archive acceptance remain open.
+
+### Configured worker recovery prerequisites 2026-10-15
+
+PR #358's initial head passes all 15 hosted checks, with no current security alerts or unresolved review threads. A separate disposable run checks the combined public worker sources in the predecessor runtime: all 794 controls pass without skips. This is source-runtime evidence, not installed successor or live acceptance. Merge remains held for the configured-state corrections below; a changed head must pass CI again.
+
+Read-only configured checks find missing explicit publication root mappings. Fresh native and inactive-worker mount observations support two finite mappings without expanding mounts. A private prospective configuration changes only that field. Canonical Writer and publication scope accept the prospective mappings; the actual configuration still refuses. No live configuration change follows from this diagnostic.
+
+The first state verifier incorrectly parses a retained audit plan as an automatic control. Its reviewed successor classifies fixed consumer roles, preserves passive files through original metadata and namespace custody, and passes 50 focused controls, including all 27 unchanged predecessor cases. Submitted legacy imports remain uncertain deduplication history. Unsent reader notifications remain desired work. Neither gains acknowledgement, replay, cleanup or dispatch authority.
+
+A complete read-only diagnostic under genuine Writer and publication scope validates all existing consumer controls together: 544 completed jobs, 110 legacy imports, 214 maintenance receipts, 2,875 naming receipts, 137 guidance proposals, three guidance commands, 29 extraction records, 32 cleaned pack records and one reader-scan state. Only 28 retained payload paths fail the separate single-link check. Metadata identifies 14 complete cross-role hard-link pairs shared by historical naming and combined-maintenance retention. The independently reviewed correction preserves their exact aliases and attributes without relaxing single-link requirements for controls, proofs or markers. All 59 focused controls pass without skips, including the unchanged 50 predecessor cases and refusal of linked files as trusted naming recovery copies.
+
+The complete prospective configured-state observation then passes with the real retained state and canonical Writer/publication scope: 8,290 file identities, 7,001 directory identities and coverage of all 2,746 catalog series by the two explicit mappings. Initial Writer-busy results remain retained; a bounded acquisition wait permits the observation without stopping Mylar or weakening admission. No payload is detached, rewritten, imported or acknowledged. This is a prospective configuration and source-runtime check, not installed-image or adoption acceptance. T032 remains open for backed configuration correction, matching installed image and verified control backup/restore.
+
+The configuration correction subsequently completes with the original file identity/hash checked, a private complete backup and independently written restore verified, and the original owner, group and mode preserved. Only the explicit mapping setting changes. A fresh disposable namespace then verifies the actual corrected configuration and the complete retained state under canonical Writer/publication scope, including all 2,746 catalog series with no unmapped locations. The full source gate in the actual predecessor runtime passes all 826 worker controls without skips. Full local CI passes. These results close the configuration and source-classification gaps; the matching installed successor, control backup/restore and explicit adoption remain pending under T032. No service is started, and no import or ACK follows from these checks.

@@ -56,6 +56,11 @@ def checked_file(path, flags=os.O_RDONLY):
         os.close(fd);raise
 
 
+def file_signature(info):
+    return (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
+            info.st_mode,info.st_uid,info.st_gid,info.st_nlink)
+
+
 class Writer:
     def __init__(self, root, *, create=False):
         self.root=Path(root).absolute()
@@ -92,11 +97,16 @@ class Writer:
         self.validate_root()
         try:fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,0o600)
         except FileExistsError:
-            fd=checked_file(path);os.close(fd);return
+            fd=checked_file(path);os.close(fd);return None
         try:
             os.write(fd,PROTOCOL);os.fsync(fd)
+            original=file_signature(os.fstat(fd))
+            sync(self.root)
+            self.validate_root()
+            if file_signature(os.fstat(fd))!=original or file_signature(path.lstat())!=original:
+                raise ValueError('New media writer protocol file changed')
+            return original
         finally:os.close(fd)
-        sync(self.root)
 
     def fenced(self, *, tagger=False, release=False):
         try:fd=checked_file(self.release_pending if release else self.tagger_pending if tagger else self.pending)
@@ -135,9 +145,10 @@ class Writer:
                 if time.monotonic()>=deadline:raise Busy('Media writer active or normalizer recovery pending')
                 time.sleep(min(0.05,max(0,deadline-time.monotonic())))
             deny_negative_phase(self.root)
+            local.normalizer_pending_original=None
             local.depth=1;local.allow_pending=allow_pending;local.allow_tagger_pending=allow_tagger_pending;local.allow_release_pending=allow_release_pending
             try:yield self
-            finally:local.depth=0;local.allow_pending=False;local.allow_tagger_pending=False;local.allow_release_pending=False
+            finally:local.normalizer_pending_original=None;local.depth=0;local.allow_pending=False;local.allow_tagger_pending=False;local.allow_release_pending=False
         finally:
             if fd is not None:os.close(fd)
             mutex.release()
@@ -145,7 +156,20 @@ class Writer:
     def mark_pending(self):
         if not getattr(self.local[1],'depth',0) or not self.local[1].allow_pending:
             raise ValueError('Normalizer writer ownership required')
-        self.create_file(self.pending)
+        root=self.root.lstat()
+        root5=(root.st_dev,root.st_ino,root.st_mode,root.st_uid,root.st_gid)
+        fd=checked_file(self.lock)
+        try:lock9=file_signature(os.fstat(fd))
+        finally:os.close(fd)
+        original=self.create_file(self.pending)
+        if original is not None:
+            fd=checked_file(self.pending)
+            try:
+                self.validate_root()
+                if file_signature(os.fstat(fd))!=original or file_signature(self.pending.lstat())!=original:
+                    raise ValueError('New normalizer recovery marker changed')
+                self.local[1].normalizer_pending_original=(self,original,root5,lock9)
+            finally:os.close(fd)
 
     def clear_pending(self):
         if not getattr(self.local[1],'depth',0) or not self.local[1].allow_pending:
@@ -156,7 +180,7 @@ class Writer:
             info=os.fstat(fd);current=self.pending.lstat()
             if (info.st_dev,info.st_ino)!=(current.st_dev,current.st_ino):
                 raise ValueError('Normalizer recovery marker changed')
-            self.pending.unlink();sync(self.root)
+            self.pending.unlink();self.local[1].normalizer_pending_original=None;sync(self.root)
         finally:os.close(fd)
 
     def mark_tagger_pending(self):

@@ -2,6 +2,7 @@
 import copy
 import configparser
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -14,7 +15,9 @@ def assess(snapshot, previous, now, stall_seconds=900):
     errors = []
     observations = {}
     if snapshot.get('publication',{}).get('state')=='held':
-        return dict(checked_at=now,observations={},
+        if snapshot['publication'].get('reason')=='writer-busy':
+            return _busy(snapshot,previous,now,stall_seconds)
+        return dict(checked_at=now,observations=copy.deepcopy(previous),
                     errors=['Publication authority held; authenticated review and native restart required'])
     workflow = snapshot.get('workflow', {})
     if workflow and not workflow.get('valid'):
@@ -39,7 +42,7 @@ def assess(snapshot, previous, now, stall_seconds=900):
         pending = cooldown.get('pending', 0) if cooldown else 0
         waiting = name in snapshot['enabled'] and (size > 0 or active or pending > 0)
         since = old.get('since', now) if waiting and not changed else now
-        observations[name] = {'token': copy.deepcopy(token), 'size': size, 'since': since}
+        observations[name] = {'token': copy.deepcopy(token), 'size': size, 'since': since, 'waiting': bool(waiting)}
         if name == 'DDL-QUEUE' and not active and workflow.get('ddl_paused'):
             observations[name]['since'] = now
             continue
@@ -70,6 +73,54 @@ def assess(snapshot, previous, now, stall_seconds=900):
             errors.append(name + (' did not resume within two minutes of provider cooldown expiry'
                                  if expiry_stalled else ' has made no progress for 15 minutes'))
     return {'checked_at': now, 'observations': observations, 'errors': errors}
+
+
+def _busy(snapshot, previous, now, stall_seconds):
+    """Bounded liveness grace, retaining unknown authority and old progress clocks."""
+    error='Publication Writer is busy; current startup and worker health are unavailable'
+    result=dict(checked_at=now,observations=copy.deepcopy(previous),errors=[error])
+    publication=snapshot.get('publication',{})
+    packet=snapshot.get('busy_workers')
+    names=('SEARCH-QUEUE','POST-PROCESS-QUEUE','DDL-QUEUE','AUTO-COMPLETE-NZB','AUTO-SNATCHER')
+    if (type(publication.get('version')) is not int or publication.get('version')!=1
+            or publication.get('census','missing') is not None
+            or type(packet) is not dict or set(packet)!={'version','startup_complete','enabled','queues'}
+            or type(packet['version']) is not int or packet['version']!=1 or packet['startup_complete'] is not True):
+        return result
+    enabled,queues=packet['enabled'],packet['queues']
+    if (type(enabled) is not list or not enabled or any(type(n) is not str or n not in names for n in enabled)
+            or len(set(enabled))!=len(enabled) or 'SEARCH-QUEUE' not in enabled
+            or type(queues) is not dict or any(n not in names for n in queues) or any(n not in queues for n in enabled)):
+        return result
+    for row in queues.values():
+        if (type(row) is not dict or set(row)!={'alive','size'} or type(row['alive']) is not bool
+                or type(row['size']) is not int or not 0<=row['size']<2**63):
+            return result
+    finite=lambda n:type(n) in (int,float) and -2**53<n<2**53 and math.isfinite(n)
+    if not finite(now) or not finite(snapshot.get('time')) or abs(now-snapshot['time'])>30:
+        return result
+    old=previous.get('_publication_busy',{})
+    if '_publication_busy' in previous and (type(old) is not dict or set(old)!={'since'}):
+        return result
+    since=old.get('since',now)
+    if not finite(since) or since>now:
+        return result
+    result['observations']['_publication_busy']=dict(since=since)
+    result['errors']=[n+' is down' for n in enabled if not queues[n]['alive']]
+    for name in ('POST-PROCESS-QUEUE','DDL-QUEUE'):
+        prior=previous.get(name,{})
+        size=prior.get('size',0) if type(prior) is dict else 0
+        if (name in enabled and type(prior) is dict and (prior.get('waiting') is True or type(size) is int and size>0)
+                and finite(prior.get('since')) and now-prior['since']>=min(stall_seconds,900)):
+            result['errors'].append(name+' progress is overdue and cannot be verified while the Writer is busy')
+    prior=previous.get('DDL-QUEUE',{})
+    if 'DDL-QUEUE' in enabled and type(prior) is dict and 'cooldown_deadline' in prior:
+        deadline=prior['cooldown_deadline']
+        if not finite(deadline) or now>=deadline+120:
+            result['errors'].append('DDL-QUEUE provider cooldown expiry cannot be verified while the Writer is busy')
+    if not finite(stall_seconds) or stall_seconds<=0 or now-since>=min(stall_seconds,900):
+        result['errors'].append('Publication Writer remains busy; authority and progress could not be checked within 15 minutes')
+    return result
 
 
 def main():

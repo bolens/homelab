@@ -652,3 +652,69 @@ foreign state is retained without automatic replay. A stopped owning parent sepa
 service profile, databases and references before restart. Actual installed-image
 checks, fresh full reader backup/restore and real NFS hardlink/fsync proof are
 required before this protocol is executable.
+
+
+### Worker control identity after device renumbering
+
+Native adoption does not translate the legacy normalizer state marker. The
+ordinary exact marker route remains unchanged in the absence of a worker
+adoption receipt or its pending hold. A mismatch requires an explicit reviewed
+control-only prepare/commit under the existing shared Writer and original worker
+lock. Retain the original marker bytes and metadata, state/jobs roots, complete
+namespace and file metadata, and completed-job receipt facts. Back up and restore
+verify the affected controls before commit; unrelated retained payloads are
+preserved in place and are not copied merely to adopt this control binding.
+
+The exclusively created committed worker receipt must join the exact original
+marker, current two directory identities, immutable accepted native edge, genuine
+current complete native admission and the same prospective Btrfs filesystem and
+subvolume independently observed at Writer, state and jobs. Only the physical
+device field may project across later device renumbering; original inodes, modes,
+ownership, marker times/link count/content and stable filesystem identity remain
+strict. Unsupported queries, in-flight publication/dispatch, incomplete job receipts,
+foreign or changed identities and unreviewed/malformed/stale actionable controls
+hold. Classify control files by the owning automatic consumer's fixed relative
+path and schema; do not parse historical manual plans/reports or retained payloads
+as automatic receipts. Every file still retains original metadata and namespace
+custody, including oversized passive reports. Automatic control reads remain
+bounded.
+
+Preserve schema-valid legacy submitted imports as uncertain deduplication history,
+never as terminal success. The current dispatcher never resends these records;
+cleanup still requires fresh exact native acknowledgement and owner proof. The
+optional historical `compatibility_retry_at` is inert evidence only and must be a
+finite nonnegative number, never a boolean or retry grant. Preserve closed Naming
+`done`/`review` receipts and acknowledged legacy quarantine results under their
+own schemas. A local guidance `review` may remain only if its exact native command
+is absent or has matching immutable identifiers and a terminal confirmed/rejected
+phase; queued/claimed/submitted/review native commands hold. A schema-valid
+reader-scan pending map contains unsent desired notifications and may be retained;
+collection must still freshly revalidate ownership, tagged contents and readiness
+before preparing a handoff. Prepared/dispatching reader handoffs remain blockers.
+Closed legacy preservation payloads may retain their existing hardlinks only at
+`{release-naming,combined-maintenance}/<64-hex>/{original,restore}.cbz` within
+worker state. Require each complete observed inode alias set to equal its original
+link count: exactly one alias in each role with the same basename and identical
+full original metadata. Retain both receipt files and require the Naming receipt
+to be closed under its owning schema. Outside, missing, third, differently named
+or unsealed aliases hold. This is metadata-only custody, including unchanged
+historical file modes; it does not make linked payloads trusted recovery copies.
+Controls, proofs and markers still require one link. Existing Naming recovery
+continues to require explicit detached verified copies.
+
+These distinctions preserve bytes, do not clear uncertainty, and grant no replay,
+Reader request, import cleanup or acknowledgement. Unknown actionable roles and
+malformed controls hold. The captured complete
+state namespace is commit-time custody; future valid work is not required to
+retain a frozen directory listing. No startup caller writes or accepts adoption.
+
+Create the fixed control pending sidecar before any receipt write. Remove it only
+after durable exact receipt readback and original caller/file/namespace tails.
+Interrupted or uncertain effects retain originals and require explicit review;
+startup never clears or repairs this hold. A catchable failure after removal must
+exclusively re-establish the same pending marker with the original token, never
+overwrite an existing marker, and surface an explicit failure if re-establishment
+fails. Preserve the receipt and originals; keep the worker inactive for review.
+This operation changes only new Writer
+control sidecars, grants no ACK or replay and does not complete T017/T030/T032
+without matching installed-image and actual reviewed binding acceptance.

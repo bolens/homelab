@@ -392,6 +392,53 @@ class RecoveryTest(unittest.TestCase):
         self.archive('<ComicInfo><Series>Test Comic</Series><Number>01</Number><Year>2017</Year></ComicInfo>')
         self.assertEqual(match(self.source,self.db)['issueid'],'100')
 
+    def test_partial_metadata_uses_agreeing_strict_filename_year(self):
+        self.archive('<ComicInfo><Series>Test Comic</Series><Number>01</Number></ComicInfo>')
+        self.assertEqual(match(self.source,self.db),{'issueid':'100','comicid':'10'})
+
+    def test_partial_metadata_embedded_series_year_requires_filename_and_catalog_agreement(self):
+        self.archive('<ComicInfo><Series>Test Comic (2017)</Series><Number>1</Number></ComicInfo>')
+        self.assertEqual(match(self.source,self.db),{'issueid':'100','comicid':'10'})
+        for name,series in [('opaque.cbz','Test Comic (2017)'),
+                            ('Test Comic 001 (2017).cbz','Test Comic (2018)'),
+                            ('Test Comic 001 (2017).cbz','Wrong Comic (2017)')]:
+            with self.subTest(name=name,series=series):
+                self.source=self.root/name
+                self.archive('<ComicInfo><Series>'+series+'</Series><Number>1</Number></ComicInfo>')
+                self.assertIsNone(match(self.source,self.db))
+        self.source=self.root/'Test Comic 001 (2017).cbz'
+        self.archive('<ComicInfo><Series>Test Comic (2017)</Series><Number>1</Number></ComicInfo>')
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE comics SET ComicYear='2016'")
+        self.assertIsNone(match(self.source,self.db))
+
+    def test_partial_metadata_still_requires_filename_year_and_agreement(self):
+        for name,series,issue in [('opaque.cbz','Test Comic','1'),
+                                  ('Test Comic 001 (2018).cbz','Test Comic','1'),
+                                  ('Test Comic 001 (2017).cbz','Wrong Comic','1'),
+                                  ('Test Comic 001 (2017).cbz','Test Comic','2')]:
+            with self.subTest(name=name,series=series,issue=issue):
+                self.source=self.root/name
+                self.archive('<ComicInfo><Series>'+series+'</Series><Number>'+issue+'</Number></ComicInfo>')
+                self.assertIsNone(match(self.source,self.db))
+
+    def test_partial_metadata_keeps_reprint_ambiguity_and_downloaded_hold(self):
+        self.archive('<ComicInfo><Series>Test Comic</Series><Number>1</Number></ComicInfo>')
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("INSERT INTO comics VALUES ('20','Test Comic','2017')")
+            db.execute("INSERT INTO issues VALUES ('200','20','Wanted','1','2017-06-01','')")
+        self.assertIsNone(match(self.source,self.db))
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("DELETE FROM issues WHERE IssueID='200'")
+            db.execute("UPDATE issues SET Status='Downloaded'")
+        self.assertIsNone(match(self.source,self.db))
+
+    def test_partial_metadata_does_not_discard_unsupported_explicit_year_or_volume(self):
+        for field,value in [('Year','unknown'),('Year','2020'),('Volume','2'),('Volume','2020')]:
+            with self.subTest(field=field,value=value):
+                self.archive('<ComicInfo><Series>Test Comic</Series><Number>1</Number><'+field+'>'+value+'</'+field+'></ComicInfo>')
+                self.assertIsNone(match(self.source,self.db))
+
     def test_metadata_identifier_and_conflicts(self):
         self.source=self.root/'opaque.cbz'
         self.archive('<ComicInfo><Web>https://comicvine.gamespot.com/a/4000-100/</Web></ComicInfo>')

@@ -185,6 +185,19 @@ New queue arrivals do not reset that timer. Idle queues are healthy. Docker mark
 the container unhealthy after three failed probes. Completed files that cannot be
 imported also trigger a backlog warning and need review.
 
+After admitted startup, a transient publication `held` / `writer-busy` sample can
+report current worker liveness without opening the catalog, workflow Store or
+cache policy. Health allows at most 15 continuous minutes of contention when all
+enabled workers are alive and no known pending marker or overdue progress is
+present. Repeated busy samples preserve the original grace deadline and prior
+progress observations. Missing, stale or malformed telemetry, incomplete startup,
+persistent holds and dead enabled workers fail health. A fresh admitted full
+snapshot resets only the contention clock; existing progress/cooldown checks
+continue. Busy telemetry retains the held state and unavailable census, and
+supplies no publication admission. Health uses an existing zero-wait Writer
+before the full admitted snapshot so a concurrent writer cannot turn the status
+probe into a long operation wait.
+
 In Uptime Kuma, add a **Docker Container** monitor for `mylar3` using the existing
 read-only Docker host, under **Critical Containers**, and attach your notification
 routes. Keep the HTTPS monitor for web access. Worker failures then appear in
