@@ -198,6 +198,20 @@ supplies no publication admission. Health uses an existing zero-wait Writer
 before the full admitted snapshot so a concurrent writer cannot turn the status
 probe into a long operation wait.
 
+For slow authenticated pages or queue preferences, distinguish a prompt
+`writer-busy` health response from time spent inside the admitted request.
+[`publication_http` and `operation`](config/native_writers.py) check current
+authority around the handler while holding Writer. Trace the active thread and
+its database reads before changing queue concurrency or extending timeouts.
+[`initialization_witness`](config/publication_guard.py) validates every committed
+receipt, then resolves each unique physical database/Writer identity pair once
+within that invocation. The final marker projection remains independent. Grouped
+projection results are discarded when the call returns and are never cached
+across requests.
+[The scaling regressions](config/test_identity_admission_scaling.py) check both
+repeated witnesses and a newly distinct binding, and require the next read to
+refuse malformed ledger history.
+
 In Uptime Kuma, add a **Docker Container** monitor for `mylar3` using the existing
 read-only Docker host, under **Critical Containers**, and attach your notification
 routes. Keep the HTTPS monitor for web access. Worker failures then appear in
@@ -623,6 +637,16 @@ only Mylar. Check database integrity, baseline issue records and media hashes,
 container health, and the DDL and post-processing pages. If data is missing or
 corrupt, stop writers and restore the verified backup and previous image. Remove
 temporary update backups only after preservation checks pass; retain routine backups.
+
+Review private backup-helper output mounts in the actual daemon and runtime.
+A held host directory descriptor does not prove Docker accepts
+`/proc/<pid>/fd/<n>` as a bind source. A runtime may reject that source before
+Python starts. A tested normal-path bind must check the original directory's
+physical identity inside the container before entering the backup owner. A
+rename-and-replacement test must refuse the wrong directory before owner entry.
+Retain host descriptor custody for proof reads and persist receipts through the
+original directory. Test this geometry with disposable files and no application
+mounts. This runtime proof does not verify a live backup or permit service resume.
 
 When publication review holds a web request, Mylar shows a responsive status page
 with recovery steps, a link to this guide, and a retry link for the current page.
