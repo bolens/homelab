@@ -699,6 +699,7 @@ def main():
     parser.add_argument('--config', default='/config/normalizer.json')
     parser.add_argument('--once', action='store_true')
     parser.add_argument('--health', action='store_true')
+    parser.add_argument('--packs-only', action='store_true', help='Recurring guarded pack imports only')
     parser.add_argument('--pack-capture')
     parser.add_argument('--pack-ddl')
     parser.add_argument('--naming-plan', metavar='MANIFEST')
@@ -707,6 +708,10 @@ def main():
                         help='Explicit reviewed supplement preview; requires --naming-plan')
     parser.add_argument('--naming-limit', type=int, default=1)
     args = parser.parse_args()
+    if args.packs_only and (args.pack_capture is not None or args.pack_ddl is not None
+            or args.naming_plan or args.naming_apply or args.naming_reviewed_preview
+            or (args.health and args.once)):
+        parser.error('Recurring pack mode cannot be combined with selected or naming modes')
     if args.pack_capture is not None or args.pack_ddl is not None:
         if args.once or args.health or args.naming_plan or args.naming_apply or args.naming_reviewed_preview:
             parser.error('Pack-only selection cannot be combined with other modes')
@@ -717,6 +722,10 @@ def main():
     config = json.loads(Path(args.config).read_text())
     state = Path(config.get('state', '/state'))
     if args.health:
+        if args.packs_only:
+            from pack_only import check_health
+            check_health(config, state)
+            return
         if time.time() - (state / 'heartbeat').stat().st_mtime > 90:
             raise SystemExit(1)
         conversion = json.loads((state / 'status.json').read_text())
@@ -738,6 +747,13 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             from pack_only import run
             print(json.dumps(run(normalizer, args.pack_capture, args.pack_ddl)), flush=True)
+        return
+    if args.packs_only:
+        normalizer = Normalizer(config)
+        with (state / 'worker.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            from pack_only import serve
+            serve(normalizer, once=args.once)
         return
     normalizer = Normalizer(config)
     normalizer.pdf_defer = True

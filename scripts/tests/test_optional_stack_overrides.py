@@ -174,6 +174,39 @@ class OptionalStackOverrideTests(unittest.TestCase):
         self.assertTrue(mounts["/mylar"]["read_only"])
         self.assertNotIn("/completed-comics", [m["target"] for m in services["komga"]["volumes"]])
 
+    def test_recurring_packs_override_changes_only_command_and_health(self):
+        target = self.fixture("komga", "docker-compose.normalizer.yml", "\n".join([
+            f"MYLAR_DDL_CACHE_PATH={self.root}/ddl-cache",
+            f"MYLAR_WRITER_STATE_PATH={self.root}/writer-state",
+        ]))
+        overrides = ["docker-compose.normalizer.yml", "docker-compose.maintenance.yml",
+                     "docker-compose.coordination.yml"]
+        for name in [*overrides[1:], "docker-compose.packs.yml"]:
+            shutil.copy2(ROOT / "stacks/komga" / name, target)
+
+        def model(extra=()):
+            command = [self.docker, "compose", "--env-file", "stack.env",
+                       "-f", "docker-compose.yml"]
+            for name in [*overrides, *extra]:
+                command.extend(["-f", name])
+            result = subprocess.run(
+                [*command, "config", "--format", "json"], cwd=target,
+                env={"PATH": os.environ["PATH"], "HOME": str(self.root)},
+                capture_output=True, text=True, check=True, timeout=30,
+            )
+            return json.loads(result.stdout)
+
+        before, after = model(), model(["docker-compose.packs.yml"])
+        old_worker = before["services"]["comic-normalizer"]
+        new_worker = after["services"]["comic-normalizer"]
+        self.assertIsNone(old_worker.pop("command", None))
+        self.assertEqual(new_worker.pop("command"), ["--packs-only"])
+        self.assertEqual(old_worker["healthcheck"].pop("test"),
+                         ["CMD", "python3", "/app/normalize.py", "--health"])
+        self.assertEqual(new_worker["healthcheck"].pop("test"),
+                         ["CMD", "python3", "/app/normalize.py", "--packs-only", "--health"])
+        self.assertEqual(before, after)
+
     def test_maintenance_preparation_requires_existing_download_directory(self):
         target = self.fixture("komga", "docker-compose.maintenance.yml")
         scripts = self.root / "scripts"
