@@ -58,6 +58,10 @@ acceptance. For the owning workflow suite, `MYLAR_WORKFLOW_SOURCE` points to
 the module directory containing `search.py`, `api.py` and `queues/`, not its
 repository parent. Require the native-source test to run rather than accepting
 its optional host-only skip as image proof.
+For cross-runtime source verification, hash the exact source bytes or extracted
+source text. Python's AST fields and dump format vary by version; a host-derived
+`ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
+the whole-file pin and behavioral acceptance checks alongside any method pins.
 When a rollout helper wraps another helper, test the combined path against the
 real file-writing contract. The backup helper creates JSON files exclusively;
 assemble the complete scope before its first write. A fixture that permits

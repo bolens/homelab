@@ -58,14 +58,16 @@ def kind(path, info):
     return 'annual' if re.search(r'\bannual\b', name, re.I) else 'issue'
 
 
-def source_state(source, content=False):
+def source_state(source, content=False, *, max_bytes=32 * 1024**3):
     """Bounded source version, including an extracted companion when present."""
+    if type(max_bytes) is not int or not 0 < max_bytes <= 32 * 1024**3:
+        raise ValueError('Pack source exceeds limits')
     source = Path(source)
     roots = [("source", source)]
     companion = source.with_suffix('') if source.suffix.lower() == '.zip' else None
     if source.is_file() and companion is not None and companion.exists():
         roots.append(("companion", companion))
-    entries = []; total = 0
+    entries = []; total = 0; consumed = 0
     for prefix, root in roots:
         if any(p.is_symlink() for p in (root, *root.parents)):
             raise ValueError('Linked pack source')
@@ -86,16 +88,35 @@ def source_state(source, content=False):
             checksum = None
             if path.is_file():
                 total += info.st_size
-                if total > 32 * 1024**3:
+                if total > max_bytes:
                     raise ValueError('Pack source exceeds limits')
                 if content:
                     digest = hashlib.sha256()
-                    with path.open('rb') as stream:
-                        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                    original = physical_signature(info)
+                    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                    try:
+                        if (not stat.S_ISREG(os.fstat(fd).st_mode)
+                                or physical_signature(os.fstat(fd)) != original
+                                or physical_signature(path.lstat()) != original):
+                            raise ValueError('Pack source changed')
+                        remaining = info.st_size
+                        while remaining:
+                            allowance = min(1024 * 1024, remaining, max_bytes - consumed)
+                            if allowance <= 0:
+                                raise ValueError('Pack source exceeds limits')
+                            chunk = os.read(fd, allowance)
+                            if not chunk or len(chunk) > allowance:
+                                raise ValueError('Pack source changed')
+                            consumed += len(chunk)
+                            remaining -= len(chunk)
                             digest.update(chunk)
-                    after = path.stat()
-                    if signature != [after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns]:
-                        raise ValueError('Pack source changed')
+                        # Do not drain appended bytes. Close the original FD/path
+                        # after exactly the size observed before this read.
+                        if (physical_signature(os.fstat(fd)) != original
+                                or physical_signature(path.lstat()) != original):
+                            raise ValueError('Pack source changed')
+                    finally:
+                        os.close(fd)
                     checksum = digest.hexdigest()
             entries.append([name, 'file' if path.is_file() else 'directory', checksum if content else signature])
     if not any(entry[1] == 'file' for entry in entries):
