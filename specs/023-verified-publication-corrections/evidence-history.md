@@ -1143,3 +1143,35 @@ The metadata-only selected preflight passes both native censuses, finite worker/
 Source tracing finds that genuine manual scans already record completion, but health treats every retained completed archive as accepted queue work. The correction reads only bounded in-process queue/active/manual telemetry and reports unresolved intake separately. Existing useful-progress tokens, busy clocks, provider handling and publication admission remain unchanged. A single long-running manual scan still fails its duration bound, real queued or active work still stalls without useful progress, and repeated scan completions never count as imports.
 
 Independent source review and ten focused owning/boundary controls pass on both the host and Mylar’s Python 3.10 runtime with no skips. Host owning health tests pass 34 cases with one optional native-source skip. Monitor tests pass 12 cases; two native-source cases skip and one existing route/template case cannot run without its native source argument. These are explicit host limitations, not a full native gate pass. Actual native source/template, image installation and configured health checks remain required. The pack representation correction separately passes all 129 focused controls on the host and in the accepted worker’s Python 3.13.5 runtime, with independent original-file/namespace fault review. The runtime check verifies 42 candidate source origins and unchanged shared types in a clean process; it is not proof that the new source is installed in a published image.
+
+
+## Bounded passive pack discovery — 2026-10-16
+
+Tracing the genuine native source shows that a reboot device-number change alters
+the opaque source stamp. Global discovery then rehashes every unmatched capture
+before output pagination. Equal content can still create another capture because
+the key includes the changed stamp. Exact selected work bypasses that discovery.
+
+Recurring discovery now rotates through eight completed DDL rows and eight
+pending captures before source traversal. Changed known identities receive a
+separate review observation. Existing captures, members and acknowledgements stay
+unchanged. All unresolved and observed source paths remain protected across
+pagination. One unknown-source attempt reserves a 256 MiB actual-read allowance,
+including failures. Each read is also bounded by the original file size, with
+truncation and late growth rejected. Trusted download capture retains its 32 GiB
+contract. A rejected first proposal drained appended bytes; its failing regression
+is retained, and the successor reads only the original bytes before refusing.
+
+Independent review clears the successor. All 37 owning controls pass on the host and native Python 3.10 without
+skips, and a separate genuine worker-consumer fixture polls four times without
+payload reads, inventory or cleanup of the held source. Current owning source
+maps are regenerated from merged main rather than copying stale proposal maps.
+`make validate` and `make ci-local` pass. The runtime test mounts the frozen
+candidate source read-only and does not establish installation in a published
+image, live import or recurring acceptance. Legacy captures still require
+explicit source-identity review.
+
+PR [#365](https://github.com/bolens/homelab/pull/365) separately merged normally as
+`4716ac1b` after all required checks passed. Local main and the Gitea mirror match.
+That batch contains the annual, pack representation and processing-health source
+fixes above. Published-image and live acceptance remain separate.
