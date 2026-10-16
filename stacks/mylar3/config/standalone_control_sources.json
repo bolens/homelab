@@ -561,7 +561,7 @@
   },
   {
     "path": "publication_guard.py",
-    "sha256": "f4cc888ca0534a9a8dee17843791ef664c462b6ec824ed16515a0e20a9aaaa0e",
+    "sha256": "a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1",
     "target": "publication_guard.py"
   },
   {
@@ -1996,7 +1996,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "de817b92c5ba9019c4222d66459b3f7154df9fa5adb416e3fb5a9317db4e2d04",
+    "sha256": "ec2bc797cbc839ca31b12212136601e1ae08c6e5ca008b79f396be43550e5d8a",
     "target": "verify_image.py"
   },
   {
