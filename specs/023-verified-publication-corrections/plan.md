@@ -157,6 +157,15 @@ scoped authority. Every selected pair gets a fresh selected preparation and owni
 member/cache/import/report/ACK checks. Dispatch stays outside Writer. No general
 maintenance, naming, catalog fallback, conversion sweep or reader scan runs.
 
+Native passive discovery rotates through at most eight completed DDL rows and
+eight pending captures per poll. One unknown source receives a cumulative 256 MiB
+actual-read allowance, reserved before the attempt and consumed on failure.
+Changed known identities produce separate review observations without rewriting
+original captures, members or acknowledgements. Pending and observed source paths
+remain protected across pagination. Trusted download capture keeps its existing
+32 GiB bound. This does not retroactively establish legacy source birth authority
+or grant automatic device-change adoption.
+
 T033 follows delivered selected-path source and T032 control-state acceptance.
 Review source and all copied current fixtures, publish and verify the matching
 worker, then perform affected-state backup/restore and a selected canary before

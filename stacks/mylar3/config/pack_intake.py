@@ -19,14 +19,14 @@ def is_pack(value):
     return value is True or str(value).lower() in ('1', 'true')
 
 
-def source_state(source, content=False):
+def source_state(source, content=False, *, max_bytes=32 * 1024**3):
     """Bounded source version, including an extracted companion when present."""
     source = Path(source)
     roots = [("source", source)]
     companion = source.with_suffix('') if source.suffix.lower() == '.zip' else None
     if source.is_file() and companion is not None and companion.exists():
         roots.append(("companion", companion))
-    entries = []; total = 0
+    entries = []; total = 0; consumed = 0
     for prefix, root in roots:
         if any(p.is_symlink() for p in (root, *root.parents)):
             raise ValueError('Linked pack source')
@@ -47,13 +47,25 @@ def source_state(source, content=False):
             checksum = None
             if path.is_file():
                 total += info.st_size
-                if total > 32 * 1024**3:
+                if total > max_bytes:
                     raise ValueError('Pack source exceeds limits')
                 if content:
                     digest = hashlib.sha256()
                     with path.open('rb') as stream:
-                        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                        remaining = info.st_size
+                        while remaining:
+                            allowance = min(1024 * 1024, remaining, max_bytes - consumed)
+                            if allowance <= 0:
+                                raise ValueError('Pack source exceeds limits')
+                            chunk = stream.read(allowance)
+                            if not chunk or len(chunk) > allowance:
+                                raise ValueError('Pack source changed')
+                            consumed += len(chunk)
+                            remaining -= len(chunk)
                             digest.update(chunk)
+                        # Never drain bytes appended after the declared size.
+                        # The original metadata closure below refuses growth.
+
                     after = path.stat()
                     if signature != [after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns]:
                         raise ValueError('Pack source changed')
@@ -64,7 +76,7 @@ def source_state(source, content=False):
     return hashlib.sha256(json.dumps(entries, separators=(',', ':')).encode()).hexdigest()
 
 
-def discover(ddl_id, source, name):
+def discover(ddl_id, source, name, *, passive=False, max_bytes=32 * 1024**3):
     """Preserve each capture; path reuse never overwrites an earlier owner."""
     store = workflow.store()
     base = hashlib.sha256((ddl_id + '\0' + str(source)).encode()).hexdigest()
@@ -75,12 +87,20 @@ def discover(ddl_id, source, name):
     cleaning = next((r for r in records if r.get('cleanup_started') and not r.get('cleanup_complete')), None)
     if cleaning:
         return cleaning
-    stamp = source_state(source)
+    stamp = source_state(source, max_bytes=max_bytes)
     unchanged = next((r for r in records if r.get('source_stamp') == stamp), None)
     if unchanged:
         return unchanged
-    generation = source_state(source, content=True)
-    if source_state(source) != stamp:
+    if passive and records:
+        # A recurring observation cannot establish a new delivery or adopt a
+        # pre-restart birth. Keep original captures, members and ACKs untouched.
+        observation = {'ddl_id': ddl_id, 'source': str(source), 'phase': 'review',
+                       'reason': 'Pack source identity changed; selected review required'}
+        if store.get('pack_observation', base) != observation:
+            store.set('pack_observation', base, observation)
+        return None
+    generation = source_state(source, content=True, max_bytes=max_bytes)
+    if source_state(source, max_bytes=max_bytes) != stamp:
         raise ValueError('Pack source changed during capture')
     legacy = sorted(r['id'] for r in records if not r.get('source_generation'))
     key = base if not records else hashlib.sha256(
@@ -143,13 +163,36 @@ def work(pack_id=None, ddl_id=None):
             raise ValueError('Selected pack capture unavailable')
         return {'enabled': bool(workflow.policy().get('pack_automation')),
                 'packs': [record], 'protected': [record['source']]}
+    observed_sources = []
+    admitted_ids = set()
+    discovery_review = []
     if workflow.policy().get('pack_automation'):
         import mylar
         from mylar import db
         root = Path(mylar.CONFIG.DDL_LOCATION)
-        for row in db.DBConnection().select("SELECT id,pack,filename,series FROM ddl_info WHERE status='Completed' ORDER BY updated_date DESC"):
+        # Discovery admission is bounded BEFORE source traversal/hash work;
+        # output pagination below alone cannot bound cold discovery cost.
+        store = workflow.store()
+        limit = 8
+        budget = 256 * 1024**2
+        offset = store.get('meta', 'pack_discovery_cursor', 0)
+        if type(offset) is not int or offset < 0:
+            offset = 0
+        rows = list(db.DBConnection().select(
+            "SELECT id,pack,filename,series FROM ddl_info WHERE status='Completed' "
+            "ORDER BY updated_date DESC,id LIMIT ? OFFSET ?", [limit, offset]))[:limit]
+        store.set('meta', 'pack_discovery_cursor', offset + len(rows) if len(rows) == limit else 0)
+        observed_sources = []
+        for row in rows:
             ddl_id = ddl_identifier(row['id'])
             if not ddl_id or not is_pack(row['pack']) or not row['filename']:
+                continue
+            cleaning = next((r for r in store.active('pack', {'discovered', 'review', 'confirmed'})
+                             if r['ddl_id'] == ddl_id and r.get('cleanup_started')
+                             and not r.get('cleanup_complete')), None)
+            if cleaning is not None:
+                # Source fallback after partial unlink is not a new delivery.
+                admitted_ids.add(cleaning['id'])
                 continue
             name = Path(row['filename']).name
             source = root / name
@@ -159,21 +202,75 @@ def work(pack_id=None, ddl_id=None):
                 source = source.with_name(source.name + '.zip')
             if not source.exists() or source.is_symlink():
                 continue
+            observed_sources.append(str(source))
             try:
-                discover(ddl_id, source, row['series'])
+                records = [r for r in store.active('pack', {'discovered', 'review', 'confirmed'})
+                           if r['ddl_id'] == ddl_id and r['source'] == str(source)]
+                known = bool(records)
+                allowance = 32 * 1024**3 if known else budget
+                if not known:
+                    if budget == 0:
+                        raise ValueError('Passive cold discovery budget exhausted')
+                    # Reserve BEFORE attempting content: failed/unstable reads
+                    # also consume the cycle allowance and cannot multiply it.
+                    budget = 0
+                admitted = discover(ddl_id, source, row['series'], passive=True,
+                                    max_bytes=allowance)
+                if admitted is not None:
+                    admitted_ids.add(admitted['id'])
+                else:
+                    discovery_review.extend(r['id'] for r in records)
             except (OSError, ValueError):
-                # An unstable source cannot publish a new capture identity.
+                # Failed/oversize observations cannot publish capture identity.
+                key = hashlib.sha256((ddl_id + '\0' + str(source)).encode()).hexdigest()
+                observation = {'ddl_id': ddl_id, 'source': str(source), 'phase': 'review',
+                               'reason': 'Passive pack discovery held; source review required'}
+                if store.get('pack_observation', key) != observation:
+                    store.set('pack_observation', key, observation)
                 continue
     store = workflow.store()
     pending = [r for r in store.active('pack', {'discovered', 'review', 'confirmed'})
                if r['phase'] != 'confirmed' or not r.get('cleanup_complete')
                or any(not member_present(member) for member in r['members'])]
-    offset = store.get('meta', 'pack_cursor', 0) % max(1, len(pending))
-    page = (pending[offset:] + pending[:offset])[:50]
-    store.set('meta', 'pack_cursor', (offset + len(page)) % max(1, len(pending)))
-    protected = [r['source'] for r in pending]
-    protected.extend(str(Path(r['source']).with_suffix('')) for r in pending if Path(r['source']).suffix.lower() == '.zip')
-    return {'enabled': bool(workflow.policy().get('pack_automation')), 'packs': page, 'protected': protected}
+    # Existing unresolved captures may no longer have a Completed DDL row.
+    # Admit only a bounded rotating slice, retaining every source as protected.
+    review_offset = store.get('meta', 'pack_pending_cursor', 0)
+    if type(review_offset) is not int or review_offset < 0:
+        review_offset = 0
+    review_offset %= max(1, len(pending))
+    candidates = (pending[review_offset:] + pending[:review_offset])[:8]
+    store.set('meta', 'pack_pending_cursor', (review_offset + len(candidates)) % max(1, len(pending)))
+    for record in candidates:
+        if record['id'] in admitted_ids:
+            continue
+        if record.get('cleanup_complete') or (record.get('cleanup_started') and not record.get('cleanup_complete')):
+            # No original source may remain. Owning worker resume/report still
+            # validates its exact receipt or complete destination census.
+            admitted_ids.add(record['id'])
+            continue
+        try:
+            if record.get('source_stamp') == source_state(record['source']):
+                admitted_ids.add(record['id'])
+                continue
+        except (OSError, ValueError):
+            pass
+        key = hashlib.sha256((record['ddl_id'] + '\0' + record['source']).encode()).hexdigest()
+        observation = {'ddl_id': record['ddl_id'], 'source': record['source'], 'phase': 'review',
+                       'reason': 'Pack source identity changed; selected review required'}
+        if store.get('pack_observation', key) != observation:
+            store.set('pack_observation', key, observation)
+        if record['id'] not in discovery_review:
+            discovery_review.append(record['id'])
+    actionable = [r for r in pending if r['id'] in admitted_ids]
+    offset = store.get('meta', 'pack_cursor', 0) % max(1, len(actionable))
+    page = (actionable[offset:] + actionable[:offset])[:50]
+    store.set('meta', 'pack_cursor', (offset + len(page)) % max(1, len(actionable)))
+    observed_review = [r['source'] for r in store.active('pack_observation', {'review'})]
+    protected = list(dict.fromkeys([r['source'] for r in pending] + observed_sources + observed_review))
+    protected.extend(str(Path(source).with_suffix('')) for source in tuple(protected) if Path(source).suffix.lower() == '.zip')
+    protected = list(dict.fromkeys(protected))
+    return {'enabled': bool(workflow.policy().get('pack_automation')), 'packs': page, 'protected': protected,
+            'discovery_review': discovery_review, 'discovery_limit': 8}
 
 
 

@@ -3,6 +3,8 @@ import base64
 import hashlib
 import importlib.util
 import json
+import queue
+import sqlite3
 from pathlib import Path
 import sys
 import tempfile
@@ -271,24 +273,30 @@ class RecordsTest(unittest.TestCase):
 
     def test_pending_work_is_not_hidden_by_completed_history_and_rotates(self):
         self.mylar.CONFIG.DDL_LOCATION=str(self.root)
-        self.mylar.db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q:[]))
+        self.mylar.db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q,args=():[]))
         for n in range(201):
             self.store.set('pack',str(n),{'id':str(n),'ddl_id':str(n),'source':'/private/d'+str(n),
                 'name':'old','phase':'confirmed','ordinary_import_token':'f'*64,'cleanup_complete':True,'inventory_complete':True,'members':[]})
+        source=self.root/'existing.zip';source.write_bytes(b'existing')
+        existing=self.store.get('pack',self.key)
+        existing.update(source=str(source),source_stamp=self.module.source_state(source),source_generation=self.module.source_state(source,content=True))
+        self.store.set('pack',self.key,existing)
         self.assertIn(self.key,[r['id'] for r in self.module.work()['packs']])
         for n in range(101):
-            self.store.set('pack','pending'+str(n),{'id':'pending'+str(n),'ddl_id':str(n),'source':'/private/p'+str(n),
+            source=self.root/('pending'+str(n));source.write_bytes(b'pending')
+            self.store.set('pack','pending'+str(n),{'id':'pending'+str(n),'ddl_id':str(n),'source':str(source),
+                'source_stamp':self.module.source_state(source),'source_generation':self.module.source_state(source,content=True),
                 'name':'new','phase':'discovered','members':[],'inventory_complete':False})
         seen=set()
-        for _ in range(3):
-            work=self.module.work();seen.update(r['id'] for r in work['packs'])
-            self.assertEqual(len(work['protected']),102)
+        for _ in range(13):
+            work=self.module.work();self.assertLessEqual(len(work['packs']),8);seen.update(r['id'] for r in work['packs'])
+            self.assertEqual(len(work['protected']),103)  #102 roots plus ZIP companion
         self.assertEqual(len(seen),102)
         self.assertEqual(len([r for r in self.module.snapshot() if r['id'].startswith('pending')]),101)
 
     def test_cleaned_pack_with_stale_identity_returns_for_content_verification(self):
         self.mylar.CONFIG.DDL_LOCATION=str(self.root)
-        self.mylar.db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q:[]))
+        self.mylar.db=SimpleNamespace(DBConnection=lambda:SimpleNamespace(select=lambda q,args=():[]))
         target=self.library/'Test.cbz';target.write_bytes(b'archive fixture')
         payload=json.loads(self.report(target));payload['cleaned_at']=1
         self.module.report(json.dumps(payload))
@@ -307,6 +315,265 @@ class RecordsTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Library destination changed'):
             self.module.report(json.dumps(payload))
         self.assertFalse(self.module.evidence()['1'][1])
+
+
+
+
+class PassiveDiscoveryTest(unittest.TestCase):
+    setUp = RecordsTest.setUp
+
+    def prepare(self, count=1):
+        self.store.delete('pack', self.key)
+        self.mylar.CONFIG.DDL_LOCATION = str(self.root)
+        connection = sqlite3.connect(':memory:')
+        connection.row_factory = sqlite3.Row
+        connection.execute('CREATE TABLE ddl_info (id TEXT,pack INTEGER,filename TEXT,series TEXT,status TEXT,updated_date INTEGER)')
+        self.addCleanup(connection.close)
+        self.mylar.db = SimpleNamespace(DBConnection=lambda:SimpleNamespace(
+            select=lambda sql,args=():connection.execute(sql,args).fetchall(),
+            selectone=lambda sql,args=():connection.execute(sql,args)))
+        records = []
+        for index in range(count):
+            source = self.root / ('pack%03d.zip' % index)
+            source.write_bytes(('public fixture%d' % index).encode())
+            ddl = str(index+22)
+            connection.execute('INSERT INTO ddl_info VALUES (?,?,?,?,?,?)',
+                               (ddl,1,source.name,'Fixture','Completed',1000-index))
+            records.append(self.module.discover(ddl, source, 'Fixture'))
+        connection.commit()
+        return connection, records
+
+    def changed_device(self, sources):
+        real = Path.stat
+        targets = set(map(Path,sources))
+        class Device:
+            def __init__(self, value): self.value = value
+            def __getattr__(self, name):
+                return self.value.st_dev+17 if name=='st_dev' else getattr(self.value,name)
+        return patch.object(Path,'stat',lambda path,*a,**kw:Device(real(path,*a,**kw)) if path in targets else real(path,*a,**kw))
+
+    def test_device_change_never_hashes_or_returns_known_capture(self):
+        _, records = self.prepare()
+        old = records[0]
+        old['members']=[{'id':'b'*64,'kind':'issue','phase':'review','ordinary_import_token':'c'*64}]
+        self.store.set('pack',old['id'],old)
+        before = self.store.get('pack',old['id'])
+        with self.changed_device([old['source']]), patch.object(Path,'open',side_effect=AssertionError('no payload open')):
+            for _ in range(3):
+                result = self.module.work()
+                self.assertEqual(result['packs'],[])
+                self.assertEqual(result['discovery_review'],[old['id']])
+                self.assertIn(old['source'],result['protected'])
+                self.assertIn(str(Path(old['source']).with_suffix('')),result['protected'])
+        self.assertEqual(self.store.get('pack',old['id']),before)
+        self.assertEqual(len([r for r in self.store.all('pack') if r['ddl_id']=='22']),1)
+        observations=self.store.all('pack_observation')
+        self.assertEqual(len(observations),1)
+        self.assertEqual(observations[0]['phase'],'review')
+
+    def test_payload_change_held_passively_but_actual_delivery_gets_new_capture(self):
+        _, records = self.prepare()
+        old = records[0]
+        old['members']=[{'id':'b'*64,'kind':'issue','phase':'review','ordinary_import_token':'c'*64}]
+        self.store.set('pack',old['id'],old)
+        source=Path(old['source']);source.write_bytes(b'new actual delivery')
+        with patch.object(Path,'open',side_effect=AssertionError('no passive payload read')):
+            self.assertEqual(self.module.work()['packs'],[])
+        processor=SimpleNamespace(ddl=True,download_info={'id':'22'},nzb_folder=str(source),nzb_name='Fixture',queue=queue.Queue())
+        self.assertTrue(self.module.capture(processor))
+        records=[r for r in self.store.all('pack') if r['ddl_id']=='22']
+        self.assertEqual(len(records),2)
+        new=next(r for r in records if r['id']!=old['id'])
+        self.assertNotEqual(new['source_generation'],old['source_generation'])
+        self.assertEqual(new['members'],[])
+        self.assertEqual(self.store.get('pack',old['id']),old)
+        self.assertEqual(processor.queue.get_nowait(),[{'mode':'stop'}])
+
+    def test_partial_cleanup_keeps_original_capture_actionable(self):
+        _, records=self.prepare()
+        old=records[0];source=Path(old['source'])
+        companion=source.with_suffix('');companion.mkdir();(companion/'one.cbz').write_bytes(b'fixture')
+        old=self.module.discover('22',source,'Fixture')
+        old['cleanup_started']=True;self.store.set('pack',old['id'],old)
+        source.unlink()
+        with patch.object(Path,'open',side_effect=AssertionError('cleanup must not hash')):
+            # Current fallback points at companion; old source mapping would be
+            # different, so exact maintenance remains the owning cleanup seam.
+            selected=self.module.work(old['id'],'22')
+        self.assertEqual(selected['packs'],[old])
+        with patch.object(Path,'open',side_effect=AssertionError('partial cleanup must not rediscover companion')):
+            self.assertEqual(self.module.work()['packs'],[old])
+        self.assertEqual(len([r for r in self.store.all('pack') if r['ddl_id']=='22']),2)
+        self.assertEqual(self.module.discover('22',source,'Fixture',passive=True),old)
+
+    def test_selected_exact_work_bypasses_global_discovery(self):
+        _, records=self.prepare();old=records[0]
+        with patch.object(self.module,'discover',side_effect=AssertionError('no discover')),patch.object(Path,'stat',side_effect=AssertionError('no source traversal')):
+            self.assertEqual(self.module.work(old['id'],'22')['packs'],[old])
+
+    def test_cursor_limits_work_and_covers_known_sources_without_payload_reads(self):
+        _, records=self.prepare(19)
+        seen=set();sizes=[]
+        with patch.object(Path,'open',side_effect=AssertionError('known source metadata only')):
+            for _ in range(3):
+                result=self.module.work();sizes.append(len(result['packs']));seen.update(r['id'] for r in result['packs'])
+        self.assertTrue(all(size<=16 for size in sizes));self.assertEqual(seen,{r['id'] for r in records})
+        self.assertEqual(self.store.get('meta','pack_discovery_cursor'),0)
+        self.assertLessEqual(len(self.module.work()['packs']),16)
+
+    def test_one_new_cold_admission_per_poll_then_review_protection(self):
+        connection,_=self.prepare(0)
+        for index in range(3):
+            source=self.root/('new%d.zip'%index);source.write_bytes(b'new public fixture')
+            connection.execute('INSERT INTO ddl_info VALUES (?,?,?,?,?,?)',(str(40+index),1,source.name,'New','Completed',90-index))
+        connection.commit()
+        reads=[];real=Path.open
+        def opened(path,*a,**kw):
+            if a and a[0]=='rb' and path.suffix=='.zip':reads.append(path.name)
+            return real(path,*a,**kw)
+        with patch.object(Path,'open',opened): result=self.module.work()
+        self.assertEqual(reads,['new0.zip'])
+        self.assertEqual(len(result['packs']),1)
+        self.assertEqual(len([r for r in self.store.all('pack') if r['ddl_id'] in ('40','41','42')]),1)
+        self.assertTrue(all(str(self.root/('new%d.zip'%i)) in result['protected'] for i in range(3)))
+
+    def test_oversize_review_protection_survives_cursor_rotation(self):
+        connection,records=self.prepare(9)
+        source=self.root/'huge.zip'
+        with source.open('wb') as stream:stream.truncate(256*1024**2+1)
+        connection.execute('INSERT INTO ddl_info VALUES (?,?,?,?,?,?)',('99',1,source.name,'Huge','Completed',99999));connection.commit()
+        with patch.object(Path,'open',side_effect=AssertionError('known or oversized never hash')):
+            first=self.module.work();second=self.module.work()
+        self.assertIn(str(source),first['protected']);self.assertIn(str(source),second['protected'])
+        self.assertIn(str(source.with_suffix('')),second['protected'])
+
+    def test_same_bytes_new_inode_trusted_delivery_has_no_old_ack(self):
+        _,records=self.prepare();old=records[0]
+        old['members']=[{'id':'b'*64,'kind':'issue','phase':'review','ordinary_import_token':'c'*64}]
+        self.store.set('pack',old['id'],old)
+        source=Path(old['source']);replacement=self.root/'replacement'
+        replacement.write_bytes(source.read_bytes());replacement.replace(source)
+        self.assertEqual(self.module.work()['packs'],[])
+        processor=SimpleNamespace(ddl=True,download_info={'id':'22'},nzb_folder=str(source),nzb_name='Fixture',queue=queue.Queue())
+        self.assertTrue(self.module.capture(processor))
+        new=next(r for r in self.store.all('pack') if r['ddl_id']=='22' and r['id']!=old['id'])
+        self.assertEqual(new['source_generation'],old['source_generation'])
+        self.assertEqual(new['members'],[])
+        self.assertEqual(self.store.get('pack',old['id']),old)
+
+    def test_review_under_real_writer_is_stable_and_keeps_originals(self):
+        from media_writer import Writer
+        _,records=self.prepare();old=records[0]
+        writer=Writer(self.root/'writer',create=True)
+        source=Path(old['source']);source.write_bytes(b'changed bytes')
+        with writer.hold(),patch.object(Path,'open',side_effect=AssertionError('no hash')):
+            self.assertEqual(self.module.work()['packs'],[])
+            first=self.store.get('pack_observation',hashlib.sha256(('22'+'\0'+str(source)).encode()).hexdigest())
+            self.assertEqual(self.module.work()['packs'],[])
+        self.assertEqual(self.store.get('pack',old['id']),old)
+        self.assertEqual(first,self.store.all('pack_observation')[0])
+        self.assertEqual(source.read_bytes(),b'changed bytes')
+
+    def test_cursor_restarts_and_eventually_sees_new_arrival(self):
+        connection,records=self.prepare(9)
+        self.module.work()
+        source=self.root/'arrival.zip';source.write_bytes(b'newly delivered')
+        connection.execute('INSERT INTO ddl_info VALUES (?,?,?,?,?,?)',('99',1,source.name,'New','Completed',99999));connection.commit()
+        seen=set()
+        for _ in range(4):seen.update(r['ddl_id'] for r in self.module.work()['packs'])
+        self.assertIn('99',seen)
+        self.assertTrue({r['ddl_id'] for r in records}.issubset(seen))
+
+    def test_growing_cold_source_refuses_with_actual_reads_bounded(self):
+        source=self.root/'growing.zip';source.write_bytes(b'1234')
+        real_open=Path.open;reads=[];requests=[]
+        class Counted:
+            def __init__(self,stream):self.stream=stream
+            def __enter__(self):return self
+            def __exit__(self,*args):return self.stream.__exit__(*args)
+            def read(self,size):
+                requests.append(size)
+                data=self.stream.read(size);reads.append(len(data));return data
+        def opened(path,*args,**kwargs):
+            if path==source and args and args[0]=='rb':
+                with real_open(source,'ab') as stream:stream.write(b'abcdefghijkl')
+                return Counted(real_open(path,*args,**kwargs))
+            return real_open(path,*args,**kwargs)
+        with patch.object(Path,'open',opened),self.assertRaisesRegex(ValueError,'Pack source changed'):
+            self.module.source_state(source,content=True,max_bytes=8)
+        self.assertEqual(sum(reads),4)
+        self.assertTrue(all(0<size<=8 for size in requests))
+        self.assertLessEqual(sum(reads),8)
+        self.assertEqual(source.read_bytes(),b'1234abcdefghijkl')
+        self.assertFalse(any(r['ddl_id']=='22' for r in self.store.all('pack')))
+
+    def test_shrinking_cold_source_refuses_on_early_eof(self):
+        source=self.root/'shrinking.zip';source.write_bytes(b'12345678')
+        real_open=Path.open;reads=[]
+        class Counted:
+            def __init__(self,stream):self.stream=stream
+            def __enter__(self):return self
+            def __exit__(self,*args):return self.stream.__exit__(*args)
+            def read(self,size):
+                data=self.stream.read(size);reads.append(len(data));return data
+        def opened(path,*args,**kwargs):
+            if path==source and args and args[0]=='rb':
+                with real_open(source,'r+b') as stream:stream.truncate(4)
+                return Counted(real_open(path,*args,**kwargs))
+            return real_open(path,*args,**kwargs)
+        with patch.object(Path,'open',opened),self.assertRaisesRegex(ValueError,'Pack source changed'):
+            self.module.source_state(source,content=True,max_bytes=8)
+        self.assertEqual(reads,[4,0]);self.assertLessEqual(sum(reads),8)
+
+    def test_actual_read_allowance_is_shared_across_all_source_files(self):
+        source=self.root/'aggregate';source.mkdir()
+        (source/'a.cbz').write_bytes(b'1234');(source/'b.cbz').write_bytes(b'5678')
+        real_open=Path.open;reads=[]
+        class Counted:
+            def __init__(self,stream):self.stream=stream
+            def __enter__(self):return self
+            def __exit__(self,*args):return self.stream.__exit__(*args)
+            def read(self,size):
+                data=self.stream.read(size);reads.append(len(data));return data
+        def opened(path,*args,**kwargs):
+            stream=real_open(path,*args,**kwargs)
+            return Counted(stream) if path.parent==source and args and args[0]=='rb' else stream
+        with patch.object(Path,'open',opened),self.assertRaisesRegex(ValueError,'exceeds limits'):
+            self.module.source_state(source,content=True,max_bytes=7)
+        self.assertEqual(reads,[4]);self.assertLessEqual(sum(reads),7)
+        reads.clear()
+        with patch.object(Path,'open',opened):
+            generation=self.module.source_state(source,content=True,max_bytes=8)
+        self.assertEqual(reads,[4,4]);self.assertEqual(sum(reads),8)
+        self.assertEqual(generation,self.module.source_state(source,content=True))
+
+    def test_failed_cold_hash_consumes_allowance_before_next_candidate(self):
+        connection,_=self.prepare(0)
+        for index in range(3):
+            source=self.root/('unstable%d.zip'%index);source.write_bytes(b'fixture')
+            connection.execute('INSERT INTO ddl_info VALUES (?,?,?,?,?,?)',(str(50+index),1,source.name,'Unstable','Completed',90-index))
+        connection.commit();real=self.module.source_state;content_calls=[]
+        def unstable(source,content=False,**kwargs):
+            result=real(source,content=content,**kwargs)
+            if content:
+                content_calls.append(str(source))
+                raise ValueError('actual hash completed but capture unstable')
+            return result
+        with patch.object(self.module,'source_state',unstable):result=self.module.work()
+        self.assertEqual(len(content_calls),1)
+        self.assertEqual(result['packs'],[])
+        self.assertEqual(len(self.store.all('pack')),0)
+        self.assertEqual(len(self.store.all('pack_observation')),3)
+
+    def test_oversize_unknown_refuses_before_payload_read(self):
+        connection,_=self.prepare(0);source=self.root/'large.zip'
+        with source.open('wb') as stream:stream.truncate(256*1024**2+1)
+        connection.execute('INSERT INTO ddl_info VALUES (?,?,?,?,?,?)',('44',1,source.name,'Large','Completed',100))
+        connection.commit()
+        with patch.object(Path,'open',side_effect=AssertionError('oversize must not hash')):result=self.module.work()
+        self.assertEqual(result['packs'],[]);self.assertIn(str(source),result['protected'])
+        self.assertFalse(any(r['ddl_id']=='44' for r in self.store.all('pack')))
+        self.assertEqual(self.store.all('pack_observation')[0]['phase'],'review')
 
 
 if __name__=='__main__':unittest.main()
