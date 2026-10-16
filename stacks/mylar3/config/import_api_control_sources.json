@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "3fc1c2cc5ea87ebea510df6ae96efe8f2771b16d4be66ca894f770308b95d4da"
+    "sha256": "5823bb9694309b2a01e015be9d48160b50cce660ee3c79c562eac2d0fa497a74"
   },
   {
     "path": "story_arc_search.py",
@@ -1085,7 +1085,7 @@
   },
   {
     "path": "test_health.py",
-    "sha256": "2a78821d30dfcd0eff124f48ba29496681caa796a715f4fd27b1db90b6824b07"
+    "sha256": "38a1cc6667520e61b4accb568017172a8c0375976bc7b234cefd29ce068004ac"
   },
   {
     "path": "test_identity_filesystem.py",
@@ -1609,7 +1609,7 @@
   },
   {
     "path": "worker_health.py",
-    "sha256": "e25388777745d47ff50242351fffca3b3ae6dc6943034b4a8cb549035e651430"
+    "sha256": "73a1bd5dc778d74f3cae04adc7e7e3c6620d0601c1a68c059828dae75ee75dd0"
   },
   {
     "path": "workflow.py",
