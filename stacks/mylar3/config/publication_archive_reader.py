@@ -57,6 +57,26 @@ def logical(db,deadline):
     o.check(len(encoded(result))<=MAX and time.monotonic()<deadline,'reader-row-bound')
     return result
 
+def empty_wal_fact(path,deadline):
+    """A checkpointed paired WAL may be empty; archive/main-DB bounds stay strict."""
+    p=o.canonical(path);before=o.signature(p)
+    o.check(p.name.endswith('-wal') and stat.S_ISREG(before[5]) and before[8]==1
+            and before[2]==0 and time.monotonic()<deadline,'reader-empty-WAL-bound')
+    with o.checked_stream(p,before):
+        # The captured zero-length FD and final CAS establish the empty payload.
+        # Never open SQLite on an original or read beyond its declared size.
+        o.check(time.monotonic()<deadline,'reader-empty-WAL-deadline')
+    return dict(path=str(p),signature9=before,sha256=hashlib.sha256(b'').hexdigest())
+
+def retained_fact(path,expected,maximum,deadline):
+    """Reclose an already retained original vector; only empty WAL is exceptional."""
+    if expected[2]==0:
+        o.check(maximum>=0,'reader-empty-WAL-maximum')
+        result=empty_wal_fact(path,deadline)
+    else:result=o.fact(path,maximum,deadline)
+    o.check(tuple(result['signature9'])==tuple(expected),'reader-retained-original-CAS')
+    return result
+
 def pair(db,deadline):
     db=o.canonical(db); result={}
     o.check(not os.path.lexists(str(db)+'-journal'),'reader-hot-journal')
@@ -64,13 +84,16 @@ def pair(db,deadline):
     o.check(wal==shm,'reader-paired-WAL')
     for suffix in ('','-wal','-shm'):
         p=Path(str(db)+suffix)
-        if os.path.lexists(p):result[p]={'fact':o.fact(p,FILE_MAX,deadline),'attrs':o.attributes(p)}
+        if os.path.lexists(p):
+            value=(empty_wal_fact(p,deadline) if suffix=='-wal' and os.lstat(p).st_size==0
+                   else o.fact(p,FILE_MAX,deadline))
+            result[p]={'fact':value,'attrs':o.attributes(p)}
         else:result[p]=None
     return result
 
 def copy_checked(source,target,fact,parent_identity,deadline):
     """Bounded original-FD copy/readback; zero ranges stay sparse, never omitted."""
-    expected=fact['signature9'];o.check(0<expected[2]<=FILE_MAX,'reader-file-bound')
+    expected=fact['signature9'];o.check(0<=expected[2]<=FILE_MAX,'reader-file-bound')
     with o.checked_stream(source,expected) as inp,o.directory_fd(target.parent,parent_identity) as parent:
         info=os.fstat(parent)
         o.check(stat.S_IMODE(info.st_mode)==0o700 and info.st_uid==os.geteuid(),'reader-copy-parent')

@@ -504,4 +504,91 @@ class CompactReaderTests(unittest.TestCase):
    with self.assertRaisesRegex(o.Held,'catalog-logical-before-CAS'):a._set_size(db,owner,before,after,deadline)
    self.assertEqual(db.execute('SELECT ComicSize FROM issues').fetchone(),('1',))
 
+
+
+class EmptyWalReaderTests(unittest.TestCase):
+ """Real checkpointed SQLite pairs; source tests do not grant installed custody."""
+ def checkpoint_pair(self,db,restore=None):
+  import shutil,tempfile
+  with tempfile.TemporaryDirectory() as saved:
+   saved=Path(saved)
+   conn=sqlite3.connect(db)
+   try:
+    self.assertEqual(conn.execute('PRAGMA journal_mode=WAL').fetchone(),('wal',))
+    conn.execute('PRAGMA wal_autocheckpoint=0')
+    conn.execute('CREATE TABLE checkpoint_fixture (value TEXT)')
+    conn.execute("INSERT INTO checkpoint_fixture VALUES ('retained')");conn.commit()
+    self.assertEqual(conn.execute('PRAGMA wal_checkpoint(TRUNCATE)').fetchone(),(0,0,0))
+    self.assertEqual(Path(str(db)+'-wal').stat().st_size,0)
+    for suffix in ('','-wal','-shm'):shutil.copy2(str(db)+suffix,saved/(db.name+suffix))
+   finally:conn.close()
+   # Stable post-crash/retained files, with no SQLite connection on originals.
+   for suffix in ('','-wal','-shm'):
+    shutil.copy2(saved/(db.name+suffix),str(db)+suffix)
+    if restore is not None:shutil.copy2(saved/(db.name+suffix),str(restore)+suffix)
+ def test_checkpointed_empty_WAL_observed_only_from_detached_pair(self):
+  import time,tempfile,hashlib
+  with tempfile.TemporaryDirectory() as raw:
+   root=Path(raw);db=root/'database.sqlite';scratch=root/'scratch';scratch.mkdir(mode=0o700)
+   with __import__('contextlib').closing(sqlite3.connect(db)) as conn:conn.execute('CREATE TABLE BOOK (ID TEXT)');conn.execute("INSERT INTO BOOK VALUES ('original')");conn.commit()
+   self.checkpoint_pair(db)
+   before={p:(o.signature(p),hashlib.sha256(p.read_bytes()).hexdigest()) for p in root.iterdir() if p.is_file()};names=set(root.iterdir());real=sqlite3.connect;opened=[]
+   def detached(path,*args,**kwargs):
+    self.assertTrue(str(path).startswith('file:'+str(scratch)+'/'));opened.append(path);return real(path,*args,**kwargs)
+   with patch.object(sqlite3,'connect',side_effect=detached):result,facts=r.observe(db,scratch,time.monotonic()+30)
+   self.assertTrue(opened);self.assertEqual(result['tables']['BOOK']['rows'],[[['text','original']]])
+   self.assertEqual(facts[Path(str(db)+'-wal')]['fact']['signature9'][2],0)
+   self.assertEqual(set(root.iterdir()),names)
+   self.assertEqual({p:(o.signature(p),hashlib.sha256(p.read_bytes()).hexdigest()) for p in before},before)
+   self.assertEqual(list(scratch.iterdir()),[])
+ def test_empty_main_database_still_refused(self):
+  import time,tempfile
+  with tempfile.TemporaryDirectory() as raw:
+   db=Path(raw)/'database.sqlite';db.write_bytes(b'')
+   with self.assertRaisesRegex(o.Held,'file-bound'):r.pair(db,time.monotonic()+30)
+ def test_empty_WAL_still_requires_unlinked_paired_SHM(self):
+  import time,tempfile
+  with tempfile.TemporaryDirectory() as raw:
+   db=Path(raw)/'database.sqlite'
+   with __import__('contextlib').closing(sqlite3.connect(db)) as conn:conn.execute('CREATE TABLE BOOK(ID TEXT)');conn.commit()
+   self.checkpoint_pair(db);shm=Path(str(db)+'-shm');shm.unlink()
+   with self.assertRaisesRegex(o.Held,'reader-paired-WAL'):r.pair(db,time.monotonic()+30)
+   original=Path(raw)/'original-shm';original.write_bytes(b'0'*32768);shm.symlink_to(original)
+   with self.assertRaises(o.Held):r.pair(db,time.monotonic()+30)
+ def test_empty_WAL_original_mode_change_refused(self):
+  import time,tempfile,contextlib
+  with tempfile.TemporaryDirectory() as raw:
+   db=Path(raw)/'database.sqlite'
+   with __import__('contextlib').closing(sqlite3.connect(db)) as conn:conn.execute('CREATE TABLE BOOK(ID TEXT)');conn.commit()
+   self.checkpoint_pair(db);wal=Path(str(db)+'-wal');real=o.checked_stream;fired=[]
+   @contextlib.contextmanager
+   def changed(path,expected):
+    with real(path,expected) as stream:
+     if Path(path)==wal and not fired:wal.chmod(0o640 if wal.stat().st_mode&0o777!=0o640 else 0o600);fired.append(True)
+     yield stream
+   with patch.object(o,'checked_stream',changed),self.assertRaisesRegex(o.Held,'read-final-CAS'):r.pair(db,time.monotonic()+30)
+   self.assertTrue(fired)
+ def test_connected_repair_install_reverse_keeps_checkpointed_reader_pair(self):
+  fixture=Tests('runTest');fixture.setUp();self.addCleanup(fixture.doCleanups)
+  self.checkpoint_pair(fixture.life.main,fixture.restore/'database.sqlite')
+  cap=fixture.cap();before={p:o.signature(p) for p in fixture.cfg.iterdir()}
+  result=cap.install();self.assertTrue(result['native_archive_installed']);self.assertFalse(result['publication_acceptance'])
+  cap.reverse();self.assertEqual(fixture.c.source.read_bytes(),fixture.original)
+  self.assertEqual({p:o.signature(p) for p in fixture.cfg.iterdir()},before)
+
+ def test_connected_complete_and_fresh_verifier_preserve_empty_WAL(self):
+  fixture=Tests('runTest');fixture.setUp();self.addCleanup(fixture.doCleanups)
+  self.checkpoint_pair(fixture.life.main,fixture.restore/'database.sqlite')
+  cap=fixture.cap();before={p:o.signature(p) for p in fixture.cfg.iterdir()}
+  cap.install();result=cap.complete();self.assertTrue(result['repair_accepted']);self.assertFalse(result['ordinary_import_grant'])
+  fixture.op=cap.root;verified=FreshVerifierV2.verify(fixture);self.assertTrue(verified['reader_reference_preservation']);self.assertFalse(verified['mutation_authority'])
+  self.assertEqual({p:o.signature(p) for p in fixture.cfg.iterdir()},before)
+ def test_retained_empty_non_WAL_and_changed_original_refused(self):
+  import time,tempfile
+  with tempfile.TemporaryDirectory() as raw:
+   p=Path(raw)/'database.sqlite';p.write_bytes(b'');original=o.signature(p)
+   with self.assertRaisesRegex(o.Held,'reader-empty-WAL-bound'):r.retained_fact(p,original,1,time.monotonic()+30)
+   wal=p.with_name('database.sqlite-wal');wal.write_bytes(b'');original=o.signature(wal);wal.chmod(0o640)
+   with self.assertRaisesRegex(o.Held,'reader-retained-original-CAS'):r.retained_fact(wal,original,1,time.monotonic()+30)
+
 if __name__=='__main__':unittest.main()

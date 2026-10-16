@@ -55,6 +55,11 @@ runtime before protected execution. Host-only tests do not prove container runti
 compatibility; use portable streaming hashes when the runtime lacks
 `hashlib.file_digest`. Keep runtime compatibility checks separate from live data
 acceptance.
+When a rollout helper wraps another helper, test the combined path against the
+real file-writing contract. The backup helper creates JSON files exclusively;
+assemble the complete scope before its first write. A fixture that permits
+overwriting does not verify that contract. Check capture identifiers against
+actual recorded values rather than copying the same literal into code and tests.
 
 Keep OCI index, platform manifest and configuration digests separate from the
 daemon's local image ID. Use the reviewed immutable reference for pulls and runs.
@@ -72,6 +77,11 @@ Do not copy the entire comic library for routine interface, image or configurati
 updates. Back up affected application state and verify the library in place. If
 an operation changes existing media, preserve those specific files first. Reserve
 full-library copies for major library changes.
+When affected files reside on NFS, check whether their metadata is representable
+on the backup filesystem before stopping the application. Btrfs cannot apply
+`system.nfs4_acl` directly. Preserve unsupported metadata losslessly and prove
+restoration to a compatible filesystem; silently dropping it does not verify a
+complete backup. Use disposable fixtures before copying the full affected scope.
 
 Before a large application-state backup, measure its size and verify free space
 on the destination filesystem for both the backup and isolated restore. Prefer

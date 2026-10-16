@@ -124,7 +124,7 @@ class RepairAdoption:
         self._owner=copy.deepcopy(prep._binding['owner']);self._before=before;self._after=after;self._files=files;self._nodes=nodes;self._absent=absent
         self._source_attrs=copy.deepcopy(prep._binding['source_attributes']);self._stage_attrs=stage_attrs
         self._census=copy.deepcopy(prep._census);self._records=copy.deepcopy(prep._records);self._claims=copy.deepcopy(prep._claims)
-        self._phase='prepared';self._names={'swap.arc','journal'};self._thread=threading.get_ident();self._objects=[id(prep),id(lease),id(prep._writer),id(prep._controller)];self._receipt=None;self._source_names=set(os.listdir(self.source.parent));self._dirs={p:o.signature(p) for p in (root,self.journal,self.source.parent)};self._contents={p:o.fact(p,max(v[2],1),prep._deadline)['sha256'] for p,v in files.items()};self._seal()
+        self._phase='prepared';self._names={'swap.arc','journal'};self._thread=threading.get_ident();self._objects=[id(prep),id(lease),id(prep._writer),id(prep._controller)];self._receipt=None;self._source_names=set(os.listdir(self.source.parent));self._dirs={p:o.signature(p) for p in (root,self.journal,self.source.parent)};self._contents={p:reader.retained_fact(p,v,max(v[2],1),prep._deadline)['sha256'] for p,v in files.items()};self._seal()
     def _core(self):return o.digest({'objects':self._objects,'phase':self._phase,'thread':self._thread,'paths':list(map(str,(self.root,self.source,self.stage,self.journal))),'files':{str(p):v for p,v in self._files.items()},'nodes':{str(p):v for p,v in self._nodes.items()},'absent':sorted(map(str,self._absent)),'before':self._before,'after':self._after,'owner':self._owner,'source_attrs':self._source_attrs,'stage_attrs':self._stage_attrs,'census':self._census,'records':self._records,'claims':{str(p):v for p,v in self._claims.items()},'names':sorted(self._names),'receipt':self._receipt,'dirs':{str(p):v for p,v in self._dirs.items()},'contents':{str(p):v for p,v in self._contents.items()},'source_names':sorted(self._source_names)})
     def _seal(self):_SEALS[self]=self._core()
     def _life(self):o.check(_SEALS.get(self)==self._core() and threading.get_ident()==self._thread and time.monotonic()<self.preparation._deadline and self._objects==[id(self.preparation),id(self.reader),id(self.preparation._writer),id(self.preparation._controller)],'repair-lifetime')
@@ -149,7 +149,7 @@ class RepairAdoption:
         o.check(set(os.listdir(self.source.parent))==self._source_names,'repair-source-parent-census');o.check(set(os.listdir(self.root))==self._names,'repair-root-census')
         o.check(set(os.listdir(self.journal))=={p.name for p in self._files if p.parent==self.journal},'repair-journal-census')
         for p,s in self._files.items():
-            f=o.fact(p,max(s[2],1),self.preparation._deadline);o.check(f['signature9']==s and f['sha256']==self._contents[p],'repair-readback')
+            f=reader.retained_fact(p,s,max(s[2],1),self.preparation._deadline);o.check(f['signature9']==s and f['sha256']==self._contents[p],'repair-readback')
         # All SDK/reader/hash callbacks precede complete raw closure.
         direct({**self._files,**self._dirs},self._nodes,self._absent)
         for path,v in self._claims.items():
@@ -510,7 +510,7 @@ def _terminal_close(cap,record):
             and getattr(cap.preparation._writer.local[1],'depth',0)>0,
             'repair-terminal-original-writer-controller')
     for path,value in record['hashes']:
-        f=o.fact(Path(path),max(dict(record['files'])[path][2],1),record['deadline'])
+        f=reader.retained_fact(Path(path),dict(record['files'])[path],max(dict(record['files'])[path][2],1),record['deadline'])
         o.check(tuple(f['signature9'])==dict(record['files'])[path]
                 and f['sha256']==value,'repair-terminal-original-readback')
     o.check(_SEALS.get(cap)==record['cap_seal'] and cap._core()==record['cap_seal'],
