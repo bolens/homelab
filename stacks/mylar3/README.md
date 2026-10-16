@@ -1402,6 +1402,11 @@ custody and reader-backed adoption remain required by the
 [archive repair contract](../../specs/024-verified-archive-repair/contracts/archive-repair.md).
 This capability does not establish live rollout or complete library acceptance.
 
+Reader continuity retains a checkpointed zero-byte SQLite WAL with its paired
+shared-memory file. It still rejects empty main databases, missing companions,
+aliases and changed originals. SQLite queries run only against detached copies;
+the original pair remains closed through repair and terminal verification.
+
 The source also installs primary-key-only POST `publicationControl` actions
 `prepare-archive-repair` and `archive-repair-status`. Requests contain only
 `version`, `action`, exact `owner` and a lowercase SHA-shaped `operation_id`.

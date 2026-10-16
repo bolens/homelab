@@ -260,3 +260,9 @@ but this newer batch still needs CI, installed-image and verified live recovery
 acceptance. Earlier READY and backup observations remain historical. See the
 [owning recovery checkpoint](../023-verified-publication-corrections/evidence-history.md#recovery-delivery-checkpoint-2026-10-14)
 for details. These results do not complete bulk naming or archive repair tasks.
+
+## Checkpointed reader WAL — 2026-10-16
+
+A real SQLite checkpoint reproduces a valid main/WAL/SHM pair with a zero-byte WAL. Reader observation refuses it before detached SQL, and connected adoption later refuses the same retained original through its generic positive-size fact reader. The correction gives that exact WAL a checked descriptor/signature path and carries the original vector through adoption, install/reverse and terminal readbacks. Generic archive and main-database bounds, paired companions, detached SQL and publication authority remain unchanged.
+
+Independent review passes. Seven new controls cover detached observation, unchanged original bytes and names, missing companions, aliases, changed modes/signatures, connected install/reverse and complete-to-fresh verification. All 164 related host controls pass without skips. Review also catches the new class following the direct-script exit guard; moving that sole guard to the end makes the actual image-runner invocation execute all 84 adoption tests. The original test bodies remain unchanged. Current source maps are refreshed from the integrated tree. The native Python 3.10 image subsequently passes the same 164 controls without skips: 84 through the real direct-script entry point and 80 terminal/rollback/verifier controls. The frozen public source is copied to disposable scratch for tests that alter their loaded files; input pins close before and after. This verifies runtime compatibility with explicit fixture SDK substitutions, not installed authority. Image delivery and configured/live acceptance remain open.

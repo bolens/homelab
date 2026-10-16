@@ -131,7 +131,7 @@
   },
   {
     "path": "publication_archive_adoption.py",
-    "sha256": "3bb0f1c5e00d26819fa909b39d00c11d22bfef7a1bab21eb9abdd5702c52f18d",
+    "sha256": "5791087186acbb7abcaf293f139b9e5d95e2f5e76cc363aa83a425695097cd85",
     "target": "fixtures/child/source/publication_archive_adoption.py"
   },
   {
@@ -176,7 +176,7 @@
   },
   {
     "path": "publication_archive_reader.py",
-    "sha256": "05affe629333eb81c84180e012d7d497baca73c7c39ce8c877facfc2b2a165a9",
+    "sha256": "6ecb8ef27a0031045200995761d9c7fb8181c9b4b9906dffd091a2e3e53044ad",
     "target": "fixtures/child/source/publication_archive_reader.py"
   },
   {

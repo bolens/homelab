@@ -1175,3 +1175,13 @@ PR [#365](https://github.com/bolens/homelab/pull/365) separately merged normally
 `4716ac1b` after all required checks passed. Local main and the Gitea mirror match.
 That batch contains the annual, pack representation and processing-health source
 fixes above. Published-image and live acceptance remain separate.
+
+## Published annual and pack repair images — 2026-10-16
+
+Both images publish successfully from merged `4716ac1b` after the required main checks. The pulled native image passes all seven selected verification stages: 180 installed hashes before and after, maintained cohort/SDK, authentication, seven canonical installed modules, 14 annual-matching controls and 10 intake-health controls, with no skips. One initial expected PostProcessor hash used the fixture patch order. Reproducing the complete committed installer sequence produces the published bytes exactly; the corrected expectation preserves the other 179 pins and every assertion.
+
+The matching worker passes 42 installed-module/origin/type checks and all 129 pack/import/acknowledgement controls without skips. Twelve preservation-checker controls and 33 scoped backup/rollout controls also pass in the native Python 3.10 runtime using disposable fixtures. The rollout controls now check the recorded generation value and exercise the real helper's exclusive JSON creation. A refused capture restarted the unchanged prior image before retry; no backup or selector edit occurred in that attempt. These checks do not establish live data preservation, import, acknowledgement or recurring acceptance. Mylar remains available while the scoped rollout is prepared; the permanent worker remains inactive.
+
+PR [#366](https://github.com/bolens/homelab/pull/366) merges as `21c48b6e` after all 12 hosted contexts pass, including the native build. Both actual merge-ref CodeQL analyses have no errors, warnings or results, and review feedback is clear. Local main and the intended mirror are synchronized separately. Passive-discovery installed/live acceptance remains open.
+
+The corrected finite rollout reaches its actual backup but refuses before restore, manifest acceptance or selector edit. Read-only recovery verifies the original native image/CID/configuration is running again, Komga remains unchanged and the worker remains inactive. Partial copies stop at the first NFS-backed target. A disposable file on the actual Btrfs backup disk independently reproduces `ENOTSUP` when applying the original opaque `system.nfs4_acl`. That filesystem incompatibility needs a lossless portable representation and restoration proof. The partial copy is not a verified backup, and the coordinating write pause is released during source work.
