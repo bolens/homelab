@@ -718,9 +718,20 @@ matching worker configuration. Mylar hands new DDL packs to that worker before
 native anchor-based processing. Existing completed packs with retained sources
 are also inventoried. Discovery identifies each source path and content generation,
 including an extracted companion folder. Distinct deliveries sharing a DDL ID
-retain separate inventories. Reused paths receive new capture records without
-overwriting earlier member proofs. Legacy records without generation evidence
-remain intact and receive a separate current-source capture. Keep both sides
+retain separate inventories. A trusted download handoff can create a new capture
+for a reused path without overwriting earlier member proofs. Recurring discovery
+never adopts changed source identities or legacy captures automatically. It keeps
+the old members and acknowledgements intact and records a separate source review.
+This also prevents a reboot device-number change from rehashing an old capture on
+every poll. Exact selected review remains available.
+
+Each recurring poll inspects at most eight completed DDL rows and eight pending
+captures, rotating through both sets. At most one unknown source can consume a
+256 MiB content-read allowance per poll, including failed attempts. Reads stop at
+each file's original size; growth or truncation refuses capture. Larger cold
+sources require the trusted download handoff or selected review. All unresolved
+sources and observed review paths stay protected from cleanup across pagination.
+The trusted handoff retains its separate 32 GiB per-source limit. Keep both sides
 enabled together; disabling the worker
 while leaving Mylar's setting on retains new packs pending worker recovery.
 
