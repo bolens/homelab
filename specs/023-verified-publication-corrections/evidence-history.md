@@ -1024,3 +1024,18 @@ Root's installed cold-check session 44808 exits 0. Its retained `postboot/native
 T017 remains open. Retained-stage preservation, fresh private bindings, identity adoption, normal startup, READY, queue liveness and catalog/tagger preservation require their own acceptance. No withdrawal, replay, ACK, archive or bulk acceptance follows from T031.
 
 PR #355 merges as `f4803cbc` after all 13 hosted checks pass, including its full image gate and security analysis. It delivers the initial-copy admission guard and updated source maps. Matching main-image publication and live policy acceptance remain separate from the verified `2696b1c8` recovery image.
+
+
+### Reviewed identity adoption and ordinary availability — 2026-10-15
+
+The verified `2696b1c8` recovery image completes reviewed retained-stage withdrawal, fresh observation, plan preparation and explicit append-only identity commit. Each operational phase exits successfully in the same maintained container with canonical installed Writer/Store types and original source/proof checks. The maintenance container stops and its execution session closes; no external maintenance Writer remains held.
+
+Post-commit checks, before ordinary startup, verify byte-identical native catalog and workflow databases, original publication marker and tagger identity, and the original journal. The 611,908,732-byte staged payload retains its original file identity and hash in private same-filesystem retention; the original receipt retains its bytes and inode. All seven checked pending markers are absent. The original source is not recreated, and no replay, cleaned receipt or import acknowledgement is created. The complete verified backup remains preserved; no additional full copy is needed for this component.
+
+The reviewed selector update preserves the original environment-file inode and unrelated bytes. Ordinary Mylar Compose startup exits successfully on the selected recovery image. Initial writer-busy health observations are retained; a later fresh observation reports success, publication state READY with reason verified, census present and all four enabled queues alive. The disabled auto-snatcher is not treated as a failed enabled queue. This establishes a successful authenticated READY sample, not sustained Docker health, completed queue processing or complete application-data acceptance.
+
+Docker health remains unhealthy after six consecutive probes report the fixed publication-authority-held message. Continuing writer-busy observations and sustained health need diagnosis; the fixed message alone does not prove a new persistent identity hold. Role checks show the selected native image running, the original Komga unchanged and healthy, and the unchanged experimental worker still Created and inactive.
+
+A subsequent read-only SQLite transaction snapshot passes `integrity_check`. All original 2,745 series, 16,417 issues and 145 annual IDs remain present, with original locations preserved. Original series and annual status/location rows are unchanged. During the startup refresh the catalog adds one series and 12 issues. Two original issues change from Skipped to Wanted without a location change; these intent changes await provenance review, so exact status preservation is not claimed.
+
+T031 remains complete and T017 remains open. Full tagger acceptance, intent-change provenance review and fresh DDL reconciliation are still required; the 19 historical missing originals remain review. No pack recovery, naming/metadata pass, fresh ACK, configured Parent/NFS, archive-terminal, bulk or final retention-cleanup acceptance follows from this operation.
