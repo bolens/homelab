@@ -67,6 +67,12 @@ Record the actual `docker image inspect` ID and container `Image` on that daemon
 Do not infer either ID from registry metadata or assume a configuration digest
 names a locally runnable image.
 
+A Compose recreation may reorder environment entries and change the explicit image
+selector. Compare unique environment names and exact values, rejecting malformed
+or duplicate entries before ignoring order. Permit only the recorded old-to-new
+selector transition; every unrelated value and runtime setting must remain equal.
+Do not print environment values in diagnostics.
+
 Keep operational helper source, proof inputs, receipts and resume notes on private
 persistent storage outside Git. Reserve temporary filesystems for disposable test
 fixtures. Before a planned reboot, verify the checkpoint and its referenced files
