@@ -252,6 +252,12 @@ def submit(maintenance, source, match, explicit=False, expected_identity=None, e
     return 'import_queued'
 
 
+def _recurring_review(worker):
+    # Status only: never an admission, acknowledgement or replay permission.
+    if getattr(worker, '_pack_recurring_status', False) is True:
+        raise RuntimeError('Selected import receipt requires review')
+
+
 def dispatch_prepared(maintenance, selected_paths=None):
     """One durable attempt after complete cycle/fence clearance, outside HTTP lock."""
     from maintenance import scoped_file
@@ -276,7 +282,12 @@ def dispatch_prepared(maintenance, selected_paths=None):
         try:record,_ = handoff_read(path)
         except (Unavailable,OSError,ValueError,TypeError):continue
         if not isinstance(record,dict):continue
-        if record.get('phase') != 'prepared':continue
+        if record.get('phase') != 'prepared':
+            submitted = record.get('submitted_at')
+            if (record.get('phase') != 'submitted' or type(submitted) not in (int, float)
+                    or not 0 <= time.time() - submitted < 1800):
+                _recurring_review(worker)
+            continue
         try:
             health = maintenance.mylar('getHealth')
             protocol = health.get('workflow',{})
@@ -336,6 +347,7 @@ def dispatch_prepared(maintenance, selected_paths=None):
                     ddl='True',publication_handoff=json.dumps(command),**record['match'],
                     **({'workflow_command':guided,'guided_handoff':json.dumps(binding)} if guided is not None else {}))
             except Exception:
+                _recurring_review(worker)
                 return 0  # Dispatching is durable uncertain review, never auto-retry.
             with writer.hold(timeout=0),scope(worker,writer) as authority:
                 bind_state(writer,worker)

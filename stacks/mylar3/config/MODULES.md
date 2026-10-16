@@ -57,7 +57,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Manage workflows and native-tab presentation | `patch_manage_ui.py` (through `patch_wide_layout.py`) | `manage_body.html`, `manage_ui.css`, `test_manage_ui.py` |
 | Weekly release-list presentation | `patch_pullist_ui.py` (through `patch_wide_layout.py`) | `pullist_ui.css`, `test_pullist_ui.py`; native week navigation, searches, watchlist actions and weekly settings remain owned by Mylar |
 | SQLite write transactions | `patch_database_transactions.py` | `test_database_transactions.py` |
-| Filename identity and single-volume recovery | `patch_file_matching.py` | `file_identity.py`, `test_file_identity.py`, `test_file_matching.py` |
+| Filename identity, annual release qualifiers and single-volume recovery | `patch_file_matching.py` | `file_identity.py`, `test_file_identity.py`, `test_file_matching.py` |
 | Explicit catalog volume labels | `patch_catalog_volumes.py` | `catalog_volume.py`, `test_catalog_volumes.py` |
 | Story-arc search identities | `patch_story_arcs.py` | `story_arc_search.py`, `test_story_arc_search.py` |
 | Wednesday release weeks | `patch_release_calendar.py` | `release_calendar.py`, `test_release_calendar.py` |
@@ -492,7 +492,7 @@ results do not authorize reader resume, indexing, cleanup or historical import.
 The disabled standalone retained-download unit adds canonical
 `publication_retained_standalone.py` and `comic_retained_standalone_action.py`
 through `patch_publication_retained_standalone.py`. The checked existing SDK
-closure has 78 modules, including the four device-recovery helpers; the prospective Reader cohort remains 25 modules. The
+closure has 80 modules, including four device-recovery and two shared-cache helpers; the prospective Reader cohort remains 25 modules. The
 action is sourced from `reader_recovery/`, but only its exact native module and
 the owning kernel enter the final Mylar package. The host standalone backup and
 parent, source manifests and fixtures stay outside that package.

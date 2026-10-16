@@ -5,5 +5,11 @@
   "backup_action": "comic_archive_backup_action.py",
   "parent": "comic_reader_lifecycle_parent.py",
   "producer": "comic_archive_proof_producer.py",
-  "projection": "comic_child_control_projection.py"
+  "projection": "comic_child_control_projection.py",
+  "worker_vectors": "comic_archive_worker_vectors.py",
+  "reader_backup": "comic_reader_backup.py",
+  "backup_primitives": "comic_reader_backup_primitives.py",
+  "reader_schema": "comic_reader_schema.py",
+  "native_scope": "../publication_native_configured_scope.py",
+  "native_probe": "comic_native_process_probe.py"
 }

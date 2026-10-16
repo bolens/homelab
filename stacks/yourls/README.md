@@ -8,7 +8,7 @@ Self-hosted URL shortener: one app with web UI, API, and redirects. No path rout
 **Docker image:** https://hub.docker.com/_/yourls
 **Releases:** https://github.com/YOURLS/YOURLS/releases
 
-The stack uses the official image `yourls:1.10.3-apache` by default. Override `YOURLS_IMAGE` in `stack.env` only if you use your own build (e.g. private registry).
+The stack uses the official image `yourls:1.10.6-apache` by default. Override `YOURLS_IMAGE` in `stack.env` only if you use your own build (e.g. private registry).
 
 ## Quick start
 
@@ -41,9 +41,9 @@ Set `YOURLS_COOKIEKEY` to the first output; set `YOURLS_DB_PASSWORD` and `YOURLS
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `yourls:8080`) |
 | **Network** | `ingress-public` for Caddy; private default network for MariaDB |
-| **Images** | `yourls:1.10.3-apache`, `mariadb:11` (override `YOURLS_IMAGE` if you use your own) |
+| **Images** | `yourls:1.10.6-apache`, `mariadb:13` (override `YOURLS_IMAGE` if you use your own) |
 | **Env** | `YOURLS_SITE`, `YOURLS_USER`, `YOURLS_PASS`, `YOURLS_COOKIEKEY`, `YOURLS_DB_*` (see `stack.env.example`) |
-| **Storage** | `yourls_data` (user config/plugins), `yourls_db_data` (MariaDB) |
+| **Storage** | `yourls_data` (user config/plugins), `yourls_db12_data` (MariaDB) |
 | **Config dir** | `vhost.conf` and `proxy-https-fix.php` in `~/.config/yourls` (run `./prepare-stack.sh` or copy from `*.example`); override with `YOURLS_CONFIG_DIR` in `stack.env` (absolute path for Portainer) |
 
 ## Caddy reverse proxy
@@ -64,3 +64,9 @@ Ensure YOURLS is on `ingress-public` so Caddy can reach `yourls:8080`.
 
 From this directory: `docker compose --env-file stack.env up -d` (compose only auto-loads `.env`; `stack.env` has your secrets).
 In Portainer: deploy the stack from Git and set the required env vars (and `YOURLS_CONFIG_DIR` to the absolute path to your config dir containing `vhost.conf` and `proxy-https-fix.php`).
+
+## Database upgrades
+
+The Compose database image is `mariadb:13`. Existing MariaDB 12 installations must follow the [major upgrade and rollback procedure](../../documents/MARIADB-UPGRADES.md) before deployment. Keep the existing volume keys, including their `12` suffix.
+
+The backup and restore scope includes `yourls_db12_data`, `yourls_data`, the `YOURLS_CONFIG_DIR` files and private `stack.env`. Check the admin login, existing short URL destinations, click totals, API access and a redirect. Preserve the cookie key and installed plugins.

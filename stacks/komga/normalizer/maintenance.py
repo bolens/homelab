@@ -167,16 +167,18 @@ class Maintenance:
         queue = value['queues'].get('POST-PROCESS-QUEUE', {})
         return queue.get('alive') and queue.get('size') == 0 and not value['processing']
 
-    def prepare(self, pack_id=None, ddl_id=None):
+    def prepare(self, pack_id=None, ddl_id=None, *, packs_only=False):
         from publication_guard import NativeBatch
         selected = pack_id is not None or ddl_id is not None
+        if type(packs_only) is not bool or (packs_only and selected):
+            raise ValueError('Choose selected or recurring pack preparation')
         if selected and (type(pack_id) is not str or not re.fullmatch('[a-f0-9]{64}', pack_id)
                 or type(ddl_id) is not str or not re.fullmatch('[0-9]{1,32}', ddl_id)):
             raise ValueError('Exact selected pack preparation identity required')
         values = {}
         self.reader_snapshot=None
         if time.time() - self.last_run >= self.settings.get('interval_seconds',300):
-            for command in ('getHealth',*(['workflowCommands'] if not selected else []),*(['packWork'] if self.settings.get('pack_import',False) else [])):
+            for command in ('getHealth',*(['workflowCommands'] if not (selected or packs_only) else []),*(['packWork'] if self.settings.get('pack_import',False) else [])):
                 try:values[command] = (self.mylar(command, pack_id=pack_id, ddl_id=ddl_id)
                     if command == 'packWork' and pack_id is not None else self.mylar(command))
                 except Exception:values[command] = None

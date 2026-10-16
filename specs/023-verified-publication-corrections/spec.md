@@ -84,7 +84,9 @@ The operator can account for a repeated wrong archive while preserving the alrea
 - **FR-014**: Reader-owned repeat retirement must bind one complete finite native batch and the continuously verified stopped reader, preserve unrelated namespace/catalog/reader facts, and support exact rollback with retained originals and independently verified restore custody.
 - **FR-015**: Durable negative-retirement pending state must hold every ordinary native, worker and archive preparation purpose until the exact owning aggregate proves terminal acceptance. Unknown interruptions cannot grant replay or clear the hold.
 
-- **FR-016**: Bound new DDL cache admission with an explicit configurable byte budget and processing headroom; retain unresolved downloads and review evidence, prevent another capture of the same unresolved delivery, and report the capacity hold without fabricating import acknowledgement. Verified cleanup, not age alone, permits retained-source deletion.
+- **FR-016**: Bound new DDL cache admission and participating worker `.mylar-pack-*` output staging with the same explicit configurable byte budget and processing headroom; retain unresolved downloads and review evidence, prevent another capture of the same unresolved delivery, and report the capacity hold without fabricating import acknowledgement. Verified cleanup, not age alone, permits retained-source deletion.
+- **FR-017**: Provide an explicit recurring packs-only mode that discovers bounded native work and admits each capture through the existing selected ordinary import and typed acknowledgement/recovery path. Keep default full behavior unchanged. Omit general maintenance, naming, conversion sweeps, workflow commands, catalog-addition fallback and reader scan requests. Preserve uncertain receipts and originals, respect current cache policy and Writer exclusion, idle between passes, and prove a later capture plus restart reconciliation before claiming ongoing automation. Manual one-capture execution alone does not satisfy this requirement.
+
 
 ### Key Entities
 

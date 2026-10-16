@@ -75,6 +75,8 @@ def run_active(owner):
     canary.close();owner.left()
 
 _RETAINED=weakref.WeakKeyDictionary()
+_STOPPED_HANDOFFS=weakref.WeakKeyDictionary()
+_STOPPED_KEY=object()
 
 class RetainedObservation:
     """Source-owned session proxy; never an ActiveNFSCanaryObservation."""
@@ -110,13 +112,103 @@ class RetainedObservation:
         need(self.original==(owner,session,tape,diagnostic,files,nodes,names,absent) and self.owner is owner and self.session is session and self.tape==tape and self.g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device))==diagnostic and (self.files,self.nodes,self.names,self.absent)==(files,nodes,names,absent),'nfs-retained-original-proxy')
         need(self.g['_NFS_LIVE_SESSIONS'].get(owner) is session and session.state=='ready','nfs-retained-original-live-session')
         session.request('check',stopped=owner.phase not in ('admitted','stopping'))
-        owner.left();self.g['final'](dict(files),dict(nodes),names)
+        owner.left()
+        for path,expected in names:
+            need(frozenset(os.listdir(path))==expected,'nfs-retained-original-namespace-tail')
+        self.g['final'](dict(files),dict(nodes),absent)
         for path in absent:
             try:os.lstat(path)
             except FileNotFoundError:continue
             raise Held('nfs-retained-original-absence')
     def current(self,*,stopped):
         self.close();result=self.session.request('current',stopped=stopped);self.close();return result
+
+def completed_retained_original(owner,canary,session,g,expected):
+    """Original frozen proxy record without requesting expired/live child work."""
+    module=owner.nfs_host_modules()['comic_nfs_parent_session.py'];method=session.successful_exit
+    need(type(canary) is RetainedObservation and canary.g is g
+         and canary.owner is owner and canary.session is session
+         and _RETAINED.get(canary) is expected and canary.original is expected
+         and expected==(owner,session,canary.tape,g['encode'](dict(binding=canary.binding,mount=canary.mount,device=canary.device)),canary.files,canary.nodes,canary.names,canary.absent),
+         'nfs-stopped-original-proxy-record')
+    need(type(session) is module.RetainedChild and g['_NFS_LIVE_SESSIONS'].get(owner) is session
+         and getattr(method,'__self__',None) is session and getattr(method,'__func__',None) is module.RetainedChild.successful_exit,
+         'nfs-stopped-original-source-session')
+    return expected
+
+class StoppedNFSHandoff:
+    """Private completed-stop successor; never a reconstructed active canary."""
+    def __init__(self,key,owner,canary,session,observed):
+        need(key is _STOPPED_KEY,'nfs-stopped-owning-key')
+        proxy=_RETAINED.get(canary);r=_REG.get(owner);phase_seal=r.get('seal') if type(r) is dict else None
+        observed_original=copy.deepcopy(observed)
+        g=parent_module(owner)
+        need(proxy is not None and type(r) is dict and _REG.get(owner) is r and r['seal']==phase_seal==seal(owner,r),'nfs-stopped-earliest-owning-phase')
+        need(type(canary) is RetainedObservation and _RETAINED.get(canary)==canary.original
+             and canary.owner is owner and canary.session is session
+             and r is not None and r['phase']=='stopped' and r['canary'] is canary
+             and r['stopped']==observed and owner.stop_state==observed['reader']['State'],
+             'nfs-stopped-original-canary-stop')
+        completed_retained_original(owner,canary,session,g,proxy);stopped_tape=g['encode'](observed_original)
+        need(g['encode'](observed)==stopped_tape,'nfs-stopped-earliest-observed-roles')
+        exit_proof=session.successful_exit()
+        need(completed_retained_original(owner,canary,session,g,proxy) is proxy
+             and _REG.get(owner) is r and r['seal']==phase_seal==seal(owner,r)
+             and g['encode'](observed)==stopped_tape,'nfs-stopped-final-original-proxy')
+        self.owner,self.g,self.session=owner,g,session
+        self.files,self.nodes,self.names,self.absent=proxy[4:]
+        diagnostic=g['decode'](proxy[3]);self.binding=diagnostic['binding'];self.mount=diagnostic['mount'];self.device=diagnostic['device']
+        self.stopped=g['decode'](stopped_tape)
+        context=g['_NFS_SOURCE_CONTEXTS'].get(owner);need(context is not None,'nfs-stopped-configured-only')
+        self.library=g['decode'](context[3])['library_root']
+        self.origin=(owner,owner.core,owner.engine,owner.thread,owner.plan['nonce'],session,canary,exit_proof)
+        self.tape=g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device,stopped=self.stopped,library=self.library))
+        _STOPPED_HANDOFFS[self]=(self.g,self.origin,self.tape,self.files,self.nodes,self.names,self.absent)
+        self.close()
+    def close(self):
+        saved=_STOPPED_HANDOFFS.get(self)
+        need(saved is not None and len(saved)==7,'nfs-stopped-original-handoff-registry')
+        g,origin,tape,files,nodes,names,absent=saved;owner=origin[0];session=origin[5]
+        def original():
+            need(_STOPPED_HANDOFFS.get(self) is saved and self.g is g and self.owner is owner and self.session is session
+                 and (self.origin,self.tape,self.files,self.nodes,self.names,self.absent)==(origin,tape,files,nodes,names,absent)
+                 and origin[:5]==(owner,owner.core,owner.engine,owner.thread,owner.plan['nonce']),
+                 'nfs-stopped-original-exit-custody')
+        original();owner.left()
+        need(session.successful_exit()==origin[7],'nfs-stopped-original-successful-exit')
+        need(g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device,stopped=self.stopped,library=self.library))==tape,'nfs-stopped-original-facts')
+        for path,expected in names:
+            need(frozenset(os.listdir(path))==expected,'nfs-stopped-original-namespace-tail')
+        need(g['encode'](dict(binding=self.binding,mount=self.mount,device=self.device,stopped=self.stopped,library=self.library))==tape,'nfs-stopped-final-original-facts')
+        original()
+        g['final'](dict(files),dict(nodes),absent)
+        for path,expected in names:
+            need(frozenset(os.listdir(path))==expected,'nfs-stopped-final-namespace')
+        original()
+        # Raw retained vectors again after the final replaceable helper.
+        for path,fact in nodes:
+            z=os.lstat(path)
+            need((z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)==tuple(fact),'nfs-stopped-final-node')
+        for path,fact in files:
+            z=os.lstat(path)
+            need((z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)==tuple(fact),'nfs-stopped-final-file')
+        for path in absent:
+            try:os.lstat(path)
+            except FileNotFoundError:continue
+            raise Held('nfs-stopped-original-owned-absence')
+    def current(self,*,stopped):
+        need(stopped is True,'nfs-stopped-no-active-reader-route')
+        saved=_STOPPED_HANDOFFS.get(self);need(saved is not None,'nfs-stopped-original-handoff-registry')
+        g,origin,tape,*_=saved;owner=origin[0];facts=g['decode'](tape)
+        self.close();g['nfs_remote_guard'](owner.engine)
+        current=owner.continuous()  # Exact stopped epoch plus existing full event history.
+        need(all(g['same_runtime'](row,facts['stopped'][key]) for key,row in current.items()),'nfs-stopped-original-current-roles')
+        result=owner.engine.canary(['findmnt','--json','--target',facts['library'],'--output','SOURCE,TARGET,FSTYPE,FSROOT,OPTIONS,MAJ:MIN'],input=None,capture_output=True,check=False,timeout=min(30,owner.left()))
+        need(result.returncode==0 and len(result.stdout)<=1024**2 and len(result.stderr)<=1024**2
+             and g['decode'](result.stdout)=={'filesystems':[facts['mount']]},'nfs-stopped-original-current-export')
+        need(os.lstat(facts['library']).st_dev==facts['device'],'nfs-stopped-original-library-device')
+        self.close();need(_STOPPED_HANDOFFS.get(self) is saved,'nfs-stopped-final-current-registry')
+        return list(current.values())
 
 def run_active_retained(owner):
     """Registered child/source/pipe route; base direct factory remains strict."""
@@ -159,6 +251,13 @@ def stop_owned(owner):
     owner.stop_state=copy.deepcopy(observed['reader']['State'])
     r['phase']='stopped';r['stopped']=copy.deepcopy(observed);r['seal']=seal(owner,r)
     r['canary'].close();owner.left()
+    if type(r['canary']) is RetainedObservation:
+        original_canary=r['canary'];session=original_canary.session
+        session.request('release',stopped=True)
+        handoff=StoppedNFSHandoff(_STOPPED_KEY,owner,original_canary,session,observed)
+        r['canary']=handoff;r['seal']=seal(owner,r)
+        handoff.close()
+        if owner.plan.get('action')=='archive-one':owner.admit_archive_retention(handoff)
     return observed
 
 def nfs_ready(owner,request,*,watch):

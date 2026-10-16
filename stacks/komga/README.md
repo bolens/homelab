@@ -72,11 +72,66 @@ retain state and investigate the conversion receipts. An existing state director
 with a missing lock is rejected, including at startup, to avoid two lock owners.
 
 Device numbers can change after a remount even when directory inodes are
-unchanged. For `Normalizer recovery state identity changed`, follow Mylar's
-[recovery binding checks](../mylar3/README.md#image-updates-and-rollback) for both
-writers. Verify all conversion receipts are complete before rebinding. A matching
-old device number and the exact current inode set distinguish this case from a
-replaced recovery directory. Preserve retained originals and review copies.
+unchanged. A mismatched `normalizer-state-v1.identity` remains unavailable by
+default. Native identity adoption does not implicitly adopt worker state. Keep the
+worker inactive and preserve the original marker, all job receipts and retained
+payloads. Do not rewrite the marker or clear jobs to pass admission.
+
+`normalizer_state_binding.prepare` and `commit` provide an explicit control-only
+maintenance operation under the genuine shared Writer and the original exclusive
+worker lock. First back up and independently restore-check the affected controls,
+including the original marker; copying unrelated completed-job payloads is not a
+prerequisite for this control-only transaction. Supply the reviewed private proof
+references, inspect the returned plan, then pass its exact canonical SHA-256 as
+`accepted_token`. Both phases recheck the original marker, complete state/job
+namespace and file metadata, completed conversion receipts, absence of in-flight
+publication/dispatch, current native authority and the exact accepted native
+device-adoption edge. The control census follows fixed automatic consumer paths
+and bounded owning schemas. Historical plans/reports and payload files retain
+metadata custody without being parsed as active controls. Legacy submitted import
+attempts remain uncertain dedup history; existing fresh native ACK and owner checks
+still govern cleanup. Closed naming review receipts and prior quarantine queue
+results remain unchanged. Unsent reader-scan notifications may remain queued and
+must pass normal fresh collection checks later. A local guidance review requires
+an absent or matching terminal native command. Prepared/dispatching/claimed work,
+unknown actionable controls and malformed schemas still hold. No receipt is
+relabelled complete, retried, sent or acknowledged by identity adoption.
+The metadata census may preserve the exact existing cross-role hardlink pairs at
+`{release-naming,combined-maintenance}/<64-hex>/{original,restore}.cbz` only when
+all original aliases are present, the two full metadata rows match and both
+receipts remain in custody with a closed Naming receipt. Outside/extra/unknown
+aliases hold; controls/proofs/markers still require one link. Existing historical
+payload modes remain unchanged. Linked payloads gain no trust as recovery copies;
+Naming recovery still requires separately verified detached copies.
+
+Before any actual adoption or deployment, provide the exact current
+`publication_roots` mappings required by canonical native admission. Missing
+mappings refuse; a prospective diagnostic configuration is not a deployed
+configuration or proof of startup acceptance.
+They do not run automatically or change state/jobs. Backup evidence must join the
+original marker row and exact independent backup/restore paths in the maintained
+backup manifest, not caller assertions about verification.
+
+Commit exclusively creates `normalizer-state-adoption-v1.json` beside the original
+marker. Its immutable plan preserves the marker's bytes and inode, mode, owner,
+group, timestamps and link count, plus both directory inodes/modes/owners/groups.
+It binds the current Btrfs filesystem and subvolume observed independently through
+all three role directories. Later device-number-only changes can use this stable
+binding; another filesystem/subvolume, changed inode/attributes, unsupported query,
+missing native edge or malformed receipt refuses. Current physical identities
+remain exact throughout each held session. Commit-time namespace evidence is not
+permanent equality: later genuine completed jobs can grow state normally.
+
+An interrupted commit retains `normalizer-state-adoption-v1.pending`; startup
+refuses it even if the legacy digest happens to match again. Unknown or partial
+outcomes require explicit review, with no automatic rewrite, rollback or fence
+removal. Catchable failures after hold removal exclusively re-establish the same
+fixed pending marker with the original token. An existing marker is never
+overwritten. If re-establishment fails, report that explicit failure, preserve
+evidence and keep the worker inactive for review. Consumer validation is read-only and never prepares or commits adoption.
+This restores only worker control identity; it grants no selected-pack import,
+reader ACK, publication replay or bulk activation. Installed matching-image,
+reviewed backup and current-role acceptance remain required before use.
 
 Before enabling this override, drain existing worker upgrades and Mylar processing,
 back up and restore-check both applications' affected state, and verify that both
@@ -419,6 +474,13 @@ ZIPs with an end-record signature and unexplained decoder failures remain for re
 A unique Mylar release mapping can trigger one native failed-release replacement
 search. Ambiguous mappings remain for manual review. An interrupted API request
 is recorded as `retry_unconfirmed` and is never blindly repeated.
+Partial ComicInfo tags may use a strict release filename's year only when the
+series and issue evidence agree and exactly one catalog owner remains. A trailing
+`(YYYY)` inside `Series` is recognized only with matching filename title/year and
+matching catalog series-start year. Explicit conflicting dates, ambiguous owners
+and already-downloaded matches remain for review. Matching does not rewrite the
+retained archive's metadata or acknowledge an import.
+
 Verified recovery copies carry the chosen issue ID in Mylar's native filename
 marker, and post-processing receives that staged filename. The retained original
 keeps its name and bytes. Conflicting or repeated markers require review.
@@ -588,6 +650,18 @@ receipt; replacement bytes or added members cannot inherit earlier completion.
 Legacy receipts require their original source hashes and member set to match.
 Deploy matching Mylar and worker images before resuming this workflow.
 
+Fresh coordinated inventories treat an archive member and its extracted companion
+as one logical comic only when their name, bytes and format agree exactly. Both
+physical copies retain their original identity and generation checks; the import
+and acknowledgement still use one exact prepared path. Conflicting copies or
+previous member records remain for review. Cleanup checks every physical copy and
+waits for the native acknowledgement.
+
+Pack staging requires a matching Mylar typed `getHealth.cache_policy` snapshot, collected before the shared Writer and consumed locally under it. The worker validates the existing config, original lock and physical cache roots through the existing `/mylar` and `/ddl-cache` mounts; it does not read budget defaults from `config.ini`, add mounts or create the native lock. Admitted normal Mylar startup initializes that lock. Missing/stale policy or an unmapped root holds staging.
+
+Conversions finish and pass preservation checks in independent `/state` before their exact output size plus metadata/block overhead is reserved in shared cache. The copy uses exclusive partials and never overwrites an existing output. Failed and old stages remain retained; independent state needs its own storage policy. A complete verified output may be reused without growth above capacity, while a new copy still holds at the configured maximum. The cache lock is released before native import/ACK dispatch. This is source behavior, not evidence that the configured T030 live policy has passed.
+
+
 Filename and metadata volume-year conflicts remain for review before catalog
 lookup; an issue publication year is not treated as a volume start year.
 Filename volume ordinals such as `v2` match only an explicitly matching catalog
@@ -633,6 +707,10 @@ revalidation without requiring retained sources or worker receipts. Worker repor
 refresh translates recorded destinations through the configured native/worker
 mount mappings and checks their full hashes and current catalog ownership.
 Rejected proofs preserve their original history and remain for review.
+
+The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
+
+Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.
 
 ## Verified release naming
 
@@ -779,6 +857,50 @@ not automatically resume services or remove evidence. Actual installed source,
 configured bind geometry and terminal reader acceptance remain required before
 activation. See [the host contract](../mylar3/config/reader_recovery/CONTRACT-retained-pack.md).
 
+
+### Restricted recurring pack recovery
+
+`--packs-only` polls the existing native `packWork` endpoint, at most its fifty-record
+page per pass. Each returned capture and DDL pair then takes the same fresh guarded
+selected path described below. It requires `writer_state`, explicit publication-root
+mappings and `maintenance.pack_import: true` plus `maintenance.auto_import: true`.
+Use an integer `poll_seconds` from 30 through 3600. The default is 60.
+
+Add `docker-compose.packs.yml` last, after the normalizer, maintenance and coordination
+overrides. It changes the existing worker command and health command. It adds no
+service, mount, credential, port or privilege. Existing preparation remains required.
+Use a matching published image containing this mode, verified affected-state backup
+and isolated restore, and the existing configured authority before activation.
+The default worker command still runs its full cycle. Do not activate that default
+cycle as a substitute for the restricted command while bulk acceptance is pending.
+
+The restricted command holds `worker.lock`, discovers outside shared Writer, and
+rechecks native state and publication authority for each selected capture. It omits
+queued workflow commands, conversion sweeps, naming, broad maintenance and reader
+scan requests. The existing bounded read-only reader catalog observation remains
+part of selected admission. Member preparation retains its owning conversion,
+cache-reservation and metadata checks. Only an unambiguous existing native catalog
+identity is eligible. Catalog-addition fallback stays disabled.
+
+Each pass stops after one import submission so ordinary native post-processing can
+settle. Later passes reconcile exact durable receipts. Uncertain dispatch remains
+held without replay, inferred ACK or source deletion. Durable uncertain or expired
+selected import receipts also hold recurring health and make `--once` fail; a
+fresh submitted receipt waits without replay. This status observation grants no
+admission or acknowledgement. Pending recovery, malformed
+work and unavailable policy retain originals and report a hold. A Writer-busy or
+native-processing wait does not refresh the last completed-check timestamp.
+Health requires a fresh heartbeat and completed check, with no held error. It proves
+worker liveness, not completed import or publication acceptance. SIGTERM/SIGINT stop
+between passes and let the current guarded pass finish. `--packs-only --once` runs
+one bounded pass. `--packs-only --health` checks only this mode's status. Exact
+`--pack-capture`/`--pack-ddl`, naming actions and recurring mode are mutually exclusive.
+
+Source and image delivery must be followed by a selected catalog-to-ACK canary,
+then a genuinely later native capture consumed without another manual invocation,
+restart reconciliation and retained-original checks. These are T033 acceptance.
+T032 control-state adoption remains complete. T018 bulk, Parent and NFS acceptance
+remain separate.
 
 ### Explicit pack-only maintenance pass
 

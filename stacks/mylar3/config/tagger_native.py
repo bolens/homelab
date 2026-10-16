@@ -64,6 +64,13 @@ def state(writer):
     return Publisher(paths[1], writer.root.parent), Staging(paths[2], paths[3])
 
 
+def automatic_copy_limits(config):
+    """Reuse existing finite scalar settings; no cache root or aggregate quota."""
+    from . import cache_reservation as shared
+    return (shared.setting(getattr(config, 'DDL_CACHE_MAX_GIB', shared.DEFAULT_MAX_GIB)) * shared.GIB,
+            shared.setting(getattr(config, 'DDL_CACHE_MIN_FREE_GIB', shared.DEFAULT_FREE_GIB)) * shared.GIB)
+
+
 def recover(writer):
     publisher, staging = state(writer)
     # Invalid receipts and unresolved publication conflicts keep all admission shut.
@@ -160,6 +167,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
                     return failure()
                 try:
                     publisher, staging = state(writer)
+                    if not manualmeta:staging.copy_limits = automatic_copy_limits(config)
                     token=publication_token or uuid.uuid4().hex
                     captured=dict(policy,manualmeta=manualmeta,volume=volume,
                         reading_order=readingorder,age_rating=agerating,volumeid=volumeid,
@@ -195,6 +203,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None,
                     processing_guard.retained(review,issueid=issueid)
                     raise review from None
             publisher, staging = state(writer)
+            if not manualmeta:staging.copy_limits = automatic_copy_limits(config)
             writer.mark_tagger_pending()
             service = Service(publisher, staging.root,
                 lambda **kwargs: lookup(api_key=api_key, base_url=base_url, interval=interval, **kwargs),

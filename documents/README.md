@@ -45,6 +45,7 @@ runtime proof. A topic without an implementation stays explicitly unimplemented.
 ## Topic guides
 
 - [Custom container images](CUSTOM-IMAGES.md)
+- [MariaDB major upgrades](MARIADB-UPGRADES.md)
 
 Cross-stack guides for operating and maintaining this Docker homelab. Application-specific setup
 belongs in each stack's README; find one through the [stack catalog](STACK-CATALOG.md).

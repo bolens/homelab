@@ -11,11 +11,12 @@ import tempfile
 FIXES=Path(__file__).resolve().parent
 SUITES=(('test_negative_reader_action.py',33),('test_negative_reader_partial_rollback.py',13),('test_negative_reader_preimage.py',7),('test_negative_terminal_observer.py',21),('test_reader_proof_producer.py',10),('test_reader_proof_admission.py',52),('test_reader_proof_timestamp_summary.py',13),('test_reader_lifecycle_parent.py',86),('test_native_evidence.py',39),('test_reader_phase_custody.py',25),('test_terminal_reconstruction.py',11),('test_terminal_observation_producer.py',19),('test_terminal_phase_custody.py',5),('test_archive_repair_protocol.py',28),('test_archive_repair_flow.py',15),('test_nfs_current_source.py',38),('test_hardlink_nfs_probe.py',29),('test_nfs_factual_successor.py',13),('test_nfs_public_geometry.py',9),('test_archive_proof_producer.py',25),('test_archive_nfs_readiness.py',8))
 SUITES=SUITES+(('test_archive_backup_action.py',8),('test_archive_backup_bootstrap.py',3),('test_archive_parent_composition.py',12),('test_archive_terminal_vectors.py',12),('test_archive_native_geometry.py',4),('test_archive_parent_admission.py',4),('test_archive_same_child_parent.py',13),('test_archive_same_child_producer.py',10),('test_archive_worker_vectors.py',16),('test_archive_worker_composition.py',10))
-SUITES=SUITES+(('test_child_control_projection.py', 26), ('test_configured_parent_installation.py', 16), ('test_nfs_parent_admission.py', 7), ('test_nfs_parent_session.py', 13), ('test_retained_nfs_boundary.py', 4), ('test_host_lease.py', 9), ('test_lease_supervision.py', 14), ('test_host_probe.py', 10), ('test_host_intents.py', 6), ('test_child_transport.py', 6), ('test_child_factory_interface.py', 7), ('test_factory_entry.py', 3), ('test_namespace_clients.py', 7))
+SUITES=SUITES+(('test_child_control_projection.py', 26), ('test_configured_parent_installation.py', 21), ('test_nfs_parent_admission.py', 7), ('test_nfs_parent_session.py', 13), ('test_retained_nfs_boundary.py', 4), ('test_host_lease.py', 9), ('test_lease_supervision.py', 14), ('test_host_probe.py', 10), ('test_host_intents.py', 6), ('test_child_transport.py', 6), ('test_child_factory_interface.py', 7), ('test_factory_entry.py', 3), ('test_namespace_clients.py', 7))
 SUITES=SUITES+(('test_nfs_current_roles.py',11),)
 SUITES=SUITES+(('test_deferred_lease.py',10),('test_local_lease_window.py',10),('test_nfs_remote_guard.py',10),('test_expired_lease_paths.py',2))
 SUITES=SUITES+(('test_probe_stdin_gate.py',4),('test_gated_host_probe.py',4),('test_phased_child_interface.py',11),('test_probe_lease_order.py',13),('test_prelease_staging.py',3),('test_probe_birth_registry.py',5))
 SUITES=SUITES+(('test_probe_cleanup_transition.py',5),)
+SUITES=SUITES+(('test_configured_worker_library_query.py', 26), ('test_effective_review_projection.py', 9), ('test_nfs_mount_namespace.py', 18), ('test_nfs_stopped_handoff.py', 44))
 MAX_FILES=256
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass
@@ -72,6 +73,13 @@ def copy_fixtures(fixes,temporary):
  raw=checked(fixes/'media_writer.py',cohort['existing_sdk_closure']['media_writer']['tracked_source_sha256'],files,nodes)
  with os.fdopen(os.open(private/'media_writer.py',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600),'wb') as f:f.write(raw)
  if (private/'media_writer.py').read_bytes()!=raw:raise Held('Private Writer readback')
+ # The fixed installer locator also names this canonical sibling. Its cohort
+ # digest is mandatory, never the optional expected=None manifest read mode.
+ scope_pin=cohort['modules']['publication_native_configured_scope']['sha256']
+ if type(scope_pin) is not str or re.fullmatch('[a-f0-9]{64}',scope_pin) is None:raise Held('Explicit canonical scope source pin required')
+ raw=checked(fixes/'publication_native_configured_scope.py',scope_pin,files,nodes)
+ with os.fdopen(os.open(private/'publication_native_configured_scope.py',os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600),'wb') as f:f.write(raw)
+ if (private/'publication_native_configured_scope.py').read_bytes()!=raw:raise Held('Private scope readback')
  close_original(files,nodes);return tree,files,nodes
 
 def run(fixes):

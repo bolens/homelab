@@ -56,6 +56,12 @@ compatibility; use portable streaming hashes when the runtime lacks
 `hashlib.file_digest`. Keep runtime compatibility checks separate from live data
 acceptance.
 
+Keep OCI index, platform manifest and configuration digests separate from the
+daemon's local image ID. Use the reviewed immutable reference for pulls and runs.
+Record the actual `docker image inspect` ID and container `Image` on that daemon.
+Do not infer either ID from registry metadata or assume a configuration digest
+names a locally runnable image.
+
 Keep operational helper source, proof inputs, receipts and resume notes on private
 persistent storage outside Git. Reserve temporary filesystems for disposable test
 fixtures. Before a planned reboot, verify the checkpoint and its referenced files
@@ -75,6 +81,42 @@ Place large backup and isolated-restore copies on the dedicated backup filesyste
 when available, rather than consuming application storage. After the owning
 operation is verified, remove its disposable restore copy while preserving the
 required backup and unresolved original evidence.
+
+SQLite `mode=ro` and `query_only` do not prevent WAL/shared-memory sidecar
+creation beside a closed database that retains WAL mode. Mount retained copies
+read-only and run SQL against detached private database/companion pairs in bounded
+scratch storage. Verify the retained namespace and hashes after all SQL callbacks
+finish. Use a genuine closed WAL-mode fixture; a default rollback-journal fixture
+does not test this behavior. Observe a running database through its supported
+read-only WAL snapshot without `immutable` or a write fallback.
+
+## Session scope and operational checkpoints
+
+Record the human's authorized targets, actions and later changes in a private,
+persistent session checkpoint. Read it before resuming operational work. Existing
+scoped authorization survives continuation and a new authentication prompt.
+Authentication permits privileged execution of that command; it does not expand
+the authorized work. Honor the latest access pause or scope change. Ask again
+only when a proposed action exceeds or cannot be tied to the recorded scope.
+Keep permissions for named-chat coordination and delegated work equally specific.
+The checkpoint records human authorization and cannot create new permission.
+Follow the current [delivery rules](../../RELEASING.md), including any revocation
+of a temporary CI exception.
+
+Reuse accepted evidence only when its source bytes, selected checks, configuration
+and relevant runtime still match. Recheck changed inputs rather than repeating
+unaffected broad suites. Record exact source, image and live acceptance separately.
+A partial manifest or matching database copies do not verify a backup if its
+owning helper refuses a later preservation check.
+
+Protected temporary control copies may run from volatile storage. Persist the
+source hashes, stopped-state baseline, backup/restore receipts and final outcome
+before the next state-changing phase or release of their original custody.
+A timed-out Docker client can leave its helper container running. Identify that
+exact helper and establish its terminal state before restarting a writer that it
+could still exclude. Keep failure captures private and bounded, with a fixed
+assertion callsite for diagnosis. Preserve failed evidence and service recovery
+requirements rather than interpreting a generic exit code as completion.
 
 ## Working through Spec Kit
 

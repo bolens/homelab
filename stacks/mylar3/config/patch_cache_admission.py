@@ -134,7 +134,7 @@ def main(directory):
     for name, source in changed.items():
         if (root/name).read_text() != source: (root/name).write_text(source)
     if library.read_text() != changed_library: library.write_text(changed_library)
-    for name in ('cache_admission.py', 'verified_transfer.py', 'queue_control.py', 'pack_intake.py'):
+    for name in ('cache_admission.py', 'cache_reservation.py', 'verified_transfer.py', 'queue_control.py', 'pack_intake.py'):
         (root/name).write_bytes(Path(__file__).with_name(name).read_bytes())
 
 if __name__ == '__main__': main(sys.argv[1])

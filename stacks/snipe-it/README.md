@@ -35,7 +35,7 @@ IT asset management (hardware, software licenses, accessories, consumables). Thi
 | Item        | Details                                                                                  |
 | ----------- | ---------------------------------------------------------------------------------------- |
 | **Access**  | Via Caddy only (no host port; reverse-proxy to `snipeit:80`)                            |
-| **Volumes** | `snipeit_storage` (uploads, storage), `snipeit_db` (MariaDB data)                        |
+| **Volumes** | `snipeit_storage` (uploads, storage), `snipeit_db12` (MariaDB data)                        |
 | **Network** | `ingress-sensitive` for Caddy; `mail-clients` for SMTP; default network for MariaDB         |
 | **Env**     | See `stack.env.example` and `documents/ENV-VARS.md` for TZ/locale and Snipe-IT settings |
 
@@ -50,3 +50,9 @@ For outbound email (password resets, notifications), use the shared Postfix rela
 - `MAIL_FROM_ADDR` / `MAIL_FROM_NAME`, set to match `ALLOWED_SENDER_DOMAINS` in Postfix
 
 For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) and [stacks/mailpit](../mailpit/README.md) with `RELAYHOST=mailpit:1025`. All emails appear in Mailpit's web UI; none are delivered externally. See [SHARED-RESOURCES.md](../../documents/SHARED-RESOURCES.md) and [stacks/postfix/README.md](../postfix/README.md).
+
+## Database upgrades
+
+The Compose database image is `mariadb:13.0`. Existing MariaDB 12 installations must follow the [major upgrade and rollback procedure](../../documents/MARIADB-UPGRADES.md) before deployment. Keep the existing volume keys, including their `12` suffix.
+
+The backup and restore scope includes `snipeit_db12`, `snipeit_storage` and private `stack.env`. Preserve `APP_KEY`; check login, asset/user counts, assignments and an existing attachment.

@@ -103,6 +103,12 @@ class Tree:
             target=self.root/Path(original[0]).name
         else:
             prefix=self.root/('control-'+hashlib.sha256(original[0].encode()).hexdigest()[:24]);self._mkdir(prefix);target=prefix/Path(original[0]).name
+        return self._copy_pair(original,target)
+
+    def _copy_pair(self,original,target):
+        self._pair_bound(original)
+        need(target.parent in [Path(p) for p,_ in self.directories] and self.root in target.parents,
+             'child-copy-owned-directory')
         expected=self._state()
         original_nodes=ancestors(original[0])
         data=self.read_original(reference(original));need(hashlib.sha256(data).hexdigest()==original[1],'child-root-original-hash')
@@ -121,6 +127,30 @@ class Tree:
         # Include immutable facts before checks; failed evidence is retained, never rebaselined.
         self._append('pairs',(pair,),expected);self.check()
         return reference(child)
+    def archive_sources(self,refs):
+        """One fixed archive helper graph; ordinary per-file projection is unchanged."""
+        names={'comic_archive_backup_action.py','comic_archive_repair_action.py',
+               'comic_archive_evidence_adapter.py','comic_archive_proof_producer.py',
+               'comic_reader_backup.py','comic_reader_backup_primitives.py',
+               'comic_reader_schema.py','publication_native_configured_scope.py',
+               'comic_native_process_probe.py'}
+        need(type(refs) is dict and set(refs)==names,'archive-source-exact-roles')
+        originals=tuple(frozen(refs[name]) for name in sorted(names))
+        parents={str(Path(row[0]).parent) for row in originals}
+        need(len(parents)==1 and all(Path(row[0]).name==name for name,row in zip(sorted(names),originals)),
+             'archive-source-original-siblings')
+        prefix=self.root/('control-archive-'+hashlib.sha256(next(iter(parents)).encode()).hexdigest()[:24])
+        present=[p for p in self.pairs if p[0][0] in {r[0] for r in originals}]
+        if present:
+            need(len(present)==len(originals) and all(any(p[0]==original and Path(p[1][0])==prefix/Path(original[0]).name for p in present) for original in originals),
+                 'archive-source-original-group-conflict')
+            self.check();return {name:reference(next(p[1] for p in present if p[0][0]==refs[name]['path'])) for name in sorted(names)}
+        need(not os.path.lexists(prefix),'archive-source-exclusive-group')
+        self._mkdir(prefix)
+        for original in originals:self._copy_pair(original,prefix/Path(original[0]).name)
+        self.check()
+        return {name:reference(next(p[1] for p in self.pairs if p[0][0]==refs[name]['path'])) for name in sorted(names)}
+
     def projected(self,ref):
         original=frozen(ref);outputs=[r for r in self.outputs if r[3]==original]
         if outputs:

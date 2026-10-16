@@ -125,7 +125,14 @@ class Authority:
             raise Unavailable('Native publication recovery remains pending')
         if self.writer.fenced() and not getattr(local, 'allow_pending', False):
             raise Unavailable('Worker recovery ownership required')
-        result=evidence.media_snapshot(self.database, self.writer.root / 'publication-v1.json')
+        if self.writer.fenced() and os.path.lexists(self.writer.root/'identity-adoptions-v1'):
+            from publication_identity_adoption import normalizer_pending_read
+            with normalizer_pending_read(self.writer):
+                result=evidence.media_snapshot(self.database, self.writer.root / 'publication-v1.json')
+                evidence.ordinary_purpose(self.writer)
+                return result
+        else:
+            result=evidence.media_snapshot(self.database, self.writer.root / 'publication-v1.json')
         evidence.ordinary_purpose(self.writer)
         return result
 

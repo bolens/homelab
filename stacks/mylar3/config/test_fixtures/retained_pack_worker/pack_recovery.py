@@ -8,12 +8,14 @@ from pathlib import Path
 import re
 import shutil
 import sqlite3
+import stat
 import time
 import xml.etree.ElementTree as ET
 import zipfile
 
 from import_match import catalog, match, metadata, number, title
 from import_recovery import submit, issue_state
+from publication_evidence import signature as physical_signature
 from maintenance import preserves, scoped_file
 from pdf_conversion import Pending as PDFPending
 from normalize import archive_suffix, digest, identity, save, sync_directory, api_path
@@ -188,6 +190,7 @@ class Packs:
                     if not original or identity(source) != original['identity'] or digest(source) != original['sha256']:
                         raise ValueError('Legacy single pack source changed')
         if previous is not None:
+            Packs.physical_inventory(self, previous, directory, missing=bool(cleaning))
             return receipt, previous
         outer = None
         companion = source.with_suffix('') if source.suffix.lower() == '.zip' else None
@@ -259,34 +262,200 @@ class Packs:
         value = {'id': record['id'], 'capture_source': str(self.local(record['source'])),
                  'source_generation': generation, 'source': str(source), 'outer': outer, 'inventory_complete': True,
                  'members': members, 'created_at': time.time()}
+        Packs.logical_inventory(self, value, directory)
+        if record.get('members') and {m['id'] for m in record['members']} - {m['id'] for m in value['members']}:
+            raise ValueError('Existing physical member evidence requires review')
         save(receipt, value)
         return receipt, value
 
+    def logical_inventory(self, value, directory):
+        """One canonical import per byte-identical archive/companion pair."""
+        if not getattr(self.worker, 'config', {}).get('writer_state'):
+            return
+        groups = {}
+        for member in value['members']:
+            groups.setdefault((member['name'], member['sha256'], member['format']), []).append(member)
+        logical = []
+        for group in groups.values():
+            if len(group) == 1 or not archive_suffix(Path(group[0]['name'])):
+                logical.extend(group)
+                continue
+            if len(group) != 2 or not value.get('outer'):
+                raise ValueError('Overlapping physical pack members require review')
+            canonical = [m for m in group if Path(m['source']).is_relative_to(directory / 'extracted')]
+            if len(canonical) != 1:
+                raise ValueError('Exact archive and companion representations required')
+            member = canonical[0]
+            for row in group:
+                row['signature9'] = list(physical_signature(os.lstat(row['source'])))
+            member['representations'] = [{key: row[key] for key in
+                ('id', 'name', 'source', 'identity', 'sha256', 'format', 'signature9')} for row in group]
+            logical.append(member)
+        value['members'] = logical
+        Packs.physical_inventory(self, value, directory)
+
+    def physical_inventory(self, value, directory, *, missing=False):
+        """Close every retained original; representation metadata supplies no ACK."""
+        if not any('representations' in m for m in value['members']):
+            return [(m, m) for m in value['members']]
+        if (directory != self.root / value['id'] or not value.get('outer')
+                or Path(value['source']) != directory / 'extracted'
+                or value.get('source_generation') is None):
+            raise ValueError('Original representation inventory required')
+        original = Path(value['capture_source'])
+        if not scoped_file(original, self.m.roots) and not missing:
+            raise ValueError('Original pack source is outside scope')
+        companion = original.with_suffix('')
+        if original.suffix.lower() != '.zip' or str(original) != value['outer']['source']:
+            raise ValueError('Original archive companion required')
+        # Preserve direct originals before any content callback, then close
+        # these same file/node/namespace vectors after the final callback.
+        file_tape = {}; absent = set(); node_tape = {}; namespaces = []; names_count = 0
+        roots = (directory / 'extracted', companion)
+        for root in roots:
+            if not root.exists():
+                if not missing:raise ValueError('Physical inventory root is missing')
+                absent.add(root)
+                continue
+            for folder, dirs, files in os.walk(root, followlinks=False):
+                folder=Path(folder);names=sorted(dirs+files)
+                names_count += len(names)
+                if names_count>8000:
+                    raise ValueError('Physical inventory namespace exceeds bounds')
+                namespaces.append((folder,names))
+        for path in (original.parent, *[row[0] for row in namespaces]):
+            for parent in (path,*path.parents):
+                z=parent.lstat()
+                if not stat.S_ISDIR(z.st_mode):raise ValueError('Linked physical inventory root')
+                node=(z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)
+                if parent in node_tape and node_tape[parent]!=node:
+                    raise ValueError('Physical inventory ancestor changed')
+                node_tape[parent]=node
+        if original.exists():file_tape[original]=tuple(physical_signature(os.lstat(original)))
+        else:absent.add(original)
+        for member in value['members']:
+            for row in member.get('representations', [member]):
+                path=Path(row['source'])
+                if not any(path.is_relative_to(root) for root in roots):
+                    raise ValueError('Physical representation is outside capture')
+                if os.path.lexists(path):
+                    wanted=tuple(physical_signature(os.lstat(path)))
+                    if 'signature9' in row and wanted!=tuple(row['signature9']):
+                        raise ValueError('Physical representation changed')
+                    if path in file_tape:raise ValueError('Physical representation overlaps')
+                    file_tape[path]=wanted
+                elif missing:absent.add(path)
+                else:raise ValueError('Physical representation is missing')
+        if original.exists() and (identity(original) != value['outer']['identity']
+                or digest(original) != value['outer']['sha256']
+                or identity(original) != value['outer']['identity']):
+            raise ValueError('Outer pack original changed')
+        if not missing and source_state(original, content=True) != value['source_generation']:
+            raise ValueError('Pack source generation changed')
+        pairs = []; seen = set(); nodes = set()
+        for member in value['members']:
+            rows = member.get('representations', [member])
+            if 'representations' in member:
+                fields = {'id', 'name', 'source', 'identity', 'sha256', 'format', 'signature9'}
+                if (type(rows) is not list or len(rows) != 2 or any(set(r) != fields for r in rows)
+                        or sum(all(r[k] == member[k] for k in fields) for r in rows) != 1
+                        or any(any(r[k] != member[k] for k in ('name', 'sha256', 'format')) for r in rows)):
+                    raise ValueError('Physical representation binding changed')
+                origins = set()
+            for row in rows:
+                path = Path(row['source'])
+                if path.is_relative_to(directory / 'extracted'):
+                    origin = 'extracted';relative = Path(origin) / path.relative_to(directory / 'extracted')
+                elif path.is_relative_to(companion):
+                    origin = 'companion';relative = Path(origin) / path.relative_to(companion)
+                else:
+                    raise ValueError('Physical representation is outside capture')
+                token = hashlib.sha256(os.fsencode(relative) + b'\0' + row['sha256'].encode()).hexdigest()
+                if token != row['id'] or path.name != row['name'] or path in seen:
+                    raise ValueError('Physical representation overlaps or changed identity')
+                seen.add(path)
+                if 'representations' in member:origins.add(origin)
+                if os.path.lexists(path):
+                    if (not scoped_file(path, [directory / 'extracted', companion])
+                            or identity(path) != row['identity'] or digest(path) != row['sha256']
+                            or ('signature9' in row and list(physical_signature(os.lstat(path))) != row['signature9'])):
+                        raise ValueError('Physical representation changed')
+                    z=path.stat();node=(z.st_dev,z.st_ino)
+                    if z.st_nlink != 1 or node in nodes:
+                        raise ValueError('Physical representation aliases another original')
+                    nodes.add(node)
+                elif not missing:
+                    raise ValueError('Physical representation is missing')
+                else:absent.add(path)
+                pairs.append((member,row))
+            if 'representations' in member and origins != {'extracted', 'companion'}:
+                raise ValueError('Exact archive and companion representations required')
+        for root in (directory / 'extracted', companion):
+            if not root.exists():continue
+            for count, path in enumerate(root.rglob('*'), 1):
+                if count > 4000 or path.is_symlink() or (path.is_file() and path not in seen):
+                    raise ValueError('Physical inventory contains unknown originals')
+        for path,names in namespaces:
+            if sorted(os.listdir(path))!=names:
+                raise ValueError('Physical inventory namespace changed')
+        for path,wanted in node_tape.items():
+            z=path.lstat()
+            if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=wanted:
+                raise ValueError('Physical inventory ancestor changed')
+        for path,wanted in file_tape.items():
+            if tuple(physical_signature(os.lstat(path)))!=wanted:
+                raise ValueError('Physical inventory original changed after validation')
+        if any(os.path.lexists(path) for path in absent):
+            raise ValueError('Physical inventory absence changed')
+        return pairs
+
     def prepared(self, member, directory):
+        from worker_cache import Policy, publish, conversion
+        import cache_reservation
         source = Path(member['source'])
+        source9=cache_reservation.identity(os.lstat(source))
         if identity(source) != member['identity'] or digest(source) != member['sha256']:
             raise ValueError('Source version changed')
         info = self.m.info(source)
         if not info['page_count']:
             raise ValueError('Not a comic archive; retained for review')
+        policy = Policy(self.m)
+        if type(member['id']) is not str or re.fullmatch('[0-9a-f]{64}', member['id']) is None:
+            raise ValueError('Exact pack member identity required')
         stage = self.cache / ('.mylar-pack-' + member['id'])
-        stage.mkdir(exist_ok=True, mode=0o700)
         output = stage / (source.name[:-len(archive_suffix(source))] + '.cbz')
-        if not output.exists():
-            required = source.stat().st_size * 3
-            if source.suffix.lower() == '.pdf':
-                from pdf_conversion import derivative
-                required = derivative(self.worker, source).stat().st_size * 2
-            if shutil.disk_usage(stage).free < required + 128 * 1024**2:
-                raise ValueError('Insufficient conversion space')
-            if source.suffix.lower() == '.cbz' and zipfile.is_zipfile(source):
-                shutil.copyfile(source, output)
-                with output.open('rb') as stream:
-                    os.fsync(stream.fileno())
-            else:
-                self.worker.convert_tool('comic-to-cbz', '--apply', '--output', output, source)
-        if not preserves(info, self.m.info(output)):
-            raise ValueError('Converted content differs')
+        if os.path.lexists(output):
+            # Existing-only recovery remains available at a saturated cache.
+            with policy.allocation(stage, 0, nodes=0):
+                if not scoped_file(output, [self.cache]) or not preserves(info, self.m.info(output)):
+                    raise ValueError('Converted content differs')
+        else:
+            # Conversion expansion is unknown. Finalize and verify independently
+            # before reserving its exact bytes in the native cache ledger.
+            def make(prepared):
+                required = source.stat().st_size * 3
+                if source.suffix.lower() == '.pdf':
+                    from pdf_conversion import derivative
+                    required = derivative(self.worker, source).stat().st_size * 2
+                if shutil.disk_usage(prepared.parent).free < required + 128 * 1024**2:
+                    raise ValueError('Insufficient independent conversion space')
+                if source.suffix.lower() == '.cbz' and zipfile.is_zipfile(source):
+                    with source.open('rb') as original, prepared.open('xb') as target:
+                        shutil.copyfileobj(original, target, 1024 * 1024)
+                        target.flush();os.fsync(target.fileno())
+                else:
+                    self.worker.convert_tool('comic-to-cbz', '--apply', '--output', prepared, source)
+            def verify(prepared):
+                if not preserves(info,self.m.info(prepared)):
+                    raise ValueError('Converted content differs')
+            with conversion(policy,directory,member,source9,output.name,make,verify) as (prepared,finalized):
+                if identity(source) != member['identity'] or digest(source) != member['sha256']:
+                    raise ValueError('Source version changed during conversion')
+                publish(policy, prepared, stage, output)
+                if digest(output) != finalized or not preserves(info, self.m.info(output)):
+                    raise ValueError('Copied conversion differs')
+        if identity(source) != member['identity'] or digest(source) != member['sha256']:
+            raise ValueError('Source version changed during staging')
         member['kind'] = kind(source, info)
         member['prepared'] = str(output)
         if 'original_metadata' not in member:
@@ -496,6 +665,7 @@ class Packs:
 
     def cleanup(self, receipt, value):
         if not value['members']:return
+        physical = Packs.physical_inventory(self, value, receipt.parent, missing=bool(value.get('cleanup_verified_at')))
         if any(not ((m['phase']=='confirmed' and m['kind']!='sidecar') or (m['kind']=='sidecar' and m['phase']=='preserved')) for m in value['members']):
             if self.worker.config.get('writer_state') is not None and any(m['phase']=='preserved' and m['kind']!='sidecar' for m in value['members']):
                 from publication_guard import Unavailable
@@ -511,6 +681,13 @@ class Packs:
             token=confirmed(self.m,Path(member.get('prepared') or member['source']),match,Path(member['destination']),cleanup=True)
             if token is None or token!=member.get('ordinary_import_token'):
                 raise Unavailable('Pack cleanup requires exact ordinary import acknowledgement')
+        if self.worker.config.get('writer_state') is not None:
+            from publication_guard import confirmation_check
+            for member, representation in physical:
+                if representation is member or member['kind'] == 'sidecar':continue
+                source=Path(representation['source']);target=Path(member['destination'])
+                confirmation_check(self.worker,source if source.exists() else target,target,
+                    {key:member[key] for key in ('issueid','comicid')})
         # Historical verification is not permission to delete a current repeat.
         # Recheck all members before writing intent or removing any source.
         if self.worker.config.get('writer_state') is not None:
@@ -559,7 +736,7 @@ class Packs:
         companion = original.with_suffix('') if original.suffix.lower() == '.zip' else None
         if companion is not None and companion.is_dir():
             roots.append(companion)
-        owned = {Path(m['source']) for m in value['members']}
+        owned = {Path(row['source']) for _, row in physical}
         for root in roots:
             if any(path.is_symlink() for path in (root, *root.parents)):
                 raise ValueError('Linked cleanup source')
@@ -578,8 +755,9 @@ class Packs:
                 not isinstance(result,dict) or result.get('phase')!='confirmed'
                 or type(result.get('recorded')) is not int or result['recorded']!=len(value['members'])):
             return  # Native cleanup intent must be durably acknowledged first.
-        for member in value['members']:
-            source = Path(member['source'])
+        Packs.physical_inventory(self, value, receipt.parent, missing=bool(value.get('cleanup_verified_at')))
+        for member, representation in physical:
+            source = Path(representation['source'])
             if source.exists() and (scoped_file(source, self.m.roots) or scoped_file(source, [receipt.parent / 'extracted'])):
                 source.unlink()
                 sync_directory(source.parent)
@@ -635,6 +813,7 @@ class Packs:
             try:
                 protected.add(self.local(record['source']))
                 receipt, value = self.inventory(record)
+                Packs.physical_inventory(self, value, receipt.parent, missing=bool(value.get('cleanup_verified_at')))
                 for member in value['members']:
                     retained = json.loads(json.dumps(member)) if member.get('phase') in ('confirmed', 'preserved') else None
                     try:

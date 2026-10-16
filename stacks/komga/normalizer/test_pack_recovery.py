@@ -264,6 +264,23 @@ class PackTest(unittest.TestCase):
         self.m.idle=Mock(return_value=True)
         self.m.import_submitted=False
         self.m.mylar=Mock(return_value={'phase':'review'})
+        # Copy/conversion fixtures model an explicit finite reviewed policy.
+        # NativeBatch/current Writer admission is covered by test_worker_cache_batch.
+        from worker_cache import Policy
+        import cache_reservation as reservation
+        config_file=self.root/'config.ini';config_file.write_text('[DDL]\nddl_cache_max_gib=20\n');config_file.chmod(0o600)
+        lock=self.root/'cache-admission-v1.lock';lock.touch(mode=0o600)
+        class CopyPolicy(Policy):
+            def __init__(self, maintenance):
+                self.data=config_file.parent;self.roots=(Path(maintenance.settings['ddl_cache']),);self.ddl=self.roots[0]
+                self.maximum=20*reservation.GIB;self.reserve=1
+                self.tape={p:reservation.identity(p.stat()) for p in (config_file,lock)}
+            def destination_allowed(self,destination):
+                self.check();return destination==self.ddl or self.ddl in destination.parents
+            def check(self):
+                if any(reservation.identity(p.lstat())!=row for p,row in self.tape.items()):
+                    raise reservation.Held('Original fixture policy changed')
+        capacity=patch('worker_cache.Policy',CopyPolicy);capacity.start();self.addCleanup(capacity.stop)
         self.packs=Packs(self.m)
         self.pack=self.cache/'pack';self.pack.mkdir()
         self.record={'id':'a'*64,'ddl_id':'1','source':'/cache/pack','name':'Test pack'}
@@ -537,5 +554,221 @@ class CleanedPackAuthorityTest(AuthorityFixture, unittest.TestCase):
         self.assertFalse((self.m.state/'native-handoffs').exists())
         self.m.mylar.assert_not_called()
 
+
+
+
+class CoordinatedRepresentationTests(unittest.TestCase):
+    """Real Writer/catalog/import receipts/typed ACK; native delivery is a fixture."""
+    def fixture(self, *, different=False, ordinary=False):
+        import shutil
+        from test_import_recovery import CoordinatedRecoveryTest
+        from import_recovery import handoff_read, submit
+        from publication_guard import scope, evidence as proof
+        f=CoordinatedRecoveryTest();f.setUp();self.addCleanup(f.doCleanups)
+        f.m.worker.roots=[f.library];f.m.worker.pdf_policy={'enabled':False}
+        f.m.worker.errors=[];f.m.worker.config['maintenance']=f.m.settings
+        f.m.settings['pack_import']=True;f.m._pack_only_existing_catalog=True
+        for statement in ('ALTER TABLE comics ADD COLUMN ComicName TEXT','ALTER TABLE comics ADD COLUMN ComicYear TEXT',
+            'ALTER TABLE issues ADD COLUMN Issue_Number TEXT','ALTER TABLE issues ADD COLUMN IssueDate TEXT',
+            'ALTER TABLE annuals ADD COLUMN Issue_Number TEXT','ALTER TABLE annuals ADD COLUMN IssueDate TEXT',
+            'ALTER TABLE annuals ADD COLUMN ReleaseComicName TEXT'):
+            f.sql(statement)
+        f.sql("UPDATE comics SET ComicName='Other Comic',ComicYear='2020'")
+        f.sql('INSERT INTO comics(ComicID,ComicLocation,ComicName,ComicYear) VALUES (?,?,?,?)',('888',str(f.native_root),'Test Comic','2017'))
+        f.sql("UPDATE issues SET Issue_Number='1',IssueDate='2017-01-01' WHERE IssueID='999'")
+        outer=f.cache/'outer.zip';companion=outer.with_suffix('');companion.mkdir()
+        raw=f.archive('Test Comic 001 (2017).cbz',[('01.jpg',b'different')]).read_bytes()
+        member=companion/'Test Comic 001 (2017).cbz';member.write_bytes(raw)
+        with zipfile.ZipFile(outer,'w') as z:
+            z.writestr(member.name,raw)
+            if ordinary:
+                second=f.archive('Test Comic 002 (2017).cbz',[('01.jpg',b'second issue')])
+                z.writestr(second.name,second.read_bytes())
+        if different:
+            with zipfile.ZipFile(member,'w') as z:z.writestr('01.jpg',b'other payload')
+        def info(path):
+            with zipfile.ZipFile(path) as z:
+                pages=[{'name':n,'sha256':__import__('hashlib').sha256(z.read(n)).hexdigest()} for n in z.namelist() if n.endswith('.jpg')]
+                others=[{'name':n}for n in z.namelist()if not n.endswith('.jpg')]
+            return dict(page_count=len(pages),pages=pages,other_files=others)
+        def extract(command,*args):
+            self.assertEqual(command,'archive-extract');self.assertEqual(args[0],'--apply')
+            with zipfile.ZipFile(args[-1]) as z:
+                target=Path(args[2]);target.mkdir()
+                for row in z.infolist():
+                    self.assertEqual(Path(row.filename).name,row.filename)
+                    (target/row.filename).write_bytes(z.read(row))
+        f.m.info=info;f.m.worker.convert_tool=extract
+        packs=Packs(f.m);record={'id':'a'*64,'ddl_id':'1','source':'/native-cache/outer.zip','source_generation':source_state(outer,content=True)}
+        receipt,value=packs.inventory(record)
+        def prepared(member,directory):
+            source=Path(member['source']);stage=f.cache/('.mylar-pack-'+member['id']);stage.mkdir(exist_ok=True)
+            target=stage/source.name
+            if not target.exists():shutil.copyfile(source,target)
+            member['prepared']=str(target);member['kind']='issue'
+            return target,info(source)
+        packs.prepared=prepared
+        canonical=value['members'][0];source,_=prepared(canonical,receipt.parent)
+        with f.writer.hold(),scope(f.m.worker,f.writer)as authority:
+            authority.tool_root=f.tool
+            self.assertEqual(submit(f.m,source,f.match),'ready')
+        f.m.mylar.side_effect=f.native_api
+        self.assertEqual(f.dispatch(),1)
+        attempt_path=next((f.state/'imports').glob('*.json'));attempt,_=handoff_read(attempt_path)
+        target=f.library/canonical['name'];shutil.copyfile(Path(attempt['stage']),target)
+        f.sql("UPDATE issues SET Status='Downloaded',Location=? WHERE IssueID='999'",(target.name,))
+        inventory=attempt['publication']['stage']['inventory'];owner=attempt['publication']['stage']['authority']['owner']
+        native_proof=dict(token=attempt_path.stem,source='/native-cache/'+Path(attempt['stage']).parent.name+'/'+Path(attempt['stage']).name,
+            owner=owner,payload=inventory['payload'],source_sha256=inventory['source_sha256'],census=attempt['publication']['stage']['authority']['census'])
+        history=f.config/'ordinary-import-v1.sqlite'
+        with closing(sqlite3.connect(history))as db:
+            db.execute('CREATE TABLE completions(token TEXT,attempt TEXT,ack TEXT)')
+            db.execute('INSERT INTO completions VALUES(?,?,?)',(attempt_path.stem,json.dumps(dict(token=attempt_path.stem,proof=native_proof,owner=owner,destination=str(f.native_root/target.name))),json.dumps(dict(owner=owner,destination=dict(signature=proof.file_hash(target)[0],sha256=digest(target))))));db.commit()
+        history.chmod(0o600)
+        return f,packs,record,receipt,value,attempt_path
+
+    def test_exact_companion_consumes_one_original_prepared_path_and_typed_ack(self):
+        from publication_guard import scope
+        f,packs,record,receipt,value,attempt=self.fixture()
+        for member in value['members']:
+            with f.writer.hold(),scope(f.m.worker,f.writer)as authority:
+                authority.tool_root=f.tool;packs.member(member,receipt.parent)
+        self.assertTrue(all(m['phase']=='confirmed' for m in value['members']))
+        self.assertEqual(len(value['members']),1)
+        self.assertEqual(len(value['members'][0]['representations']),2)
+        self.assertEqual({m['ordinary_import_token']for m in value['members']},{attempt.stem})
+        self.assertEqual(len(list((f.state/'imports').glob('*.json'))),1)
+        self.assertTrue(Path(record['source'].replace('/native-cache',str(f.cache))).exists())
+        self.assertTrue((f.cache/'outer'/'Test Comic 001 (2017).cbz').exists())
+
+    def test_distinct_payloads_are_not_collapsed(self):
+        f,packs,record,receipt,value,attempt=self.fixture(different=True)
+        self.assertEqual(len(value['members']),2)
+        self.assertEqual(len({m['sha256']for m in value['members']}),2)
+        self.assertTrue(all('representations'not in m for m in value['members']))
+
+    def test_uncertain_completion_never_authorizes_either_original_cleanup(self):
+        from publication_guard import scope
+        f,packs,record,receipt,value,attempt=self.fixture()
+        with closing(sqlite3.connect(f.config/'ordinary-import-v1.sqlite'))as db:
+            db.execute('UPDATE completions SET ack=NULL');db.commit()
+        member=value['members'][0]
+        with f.writer.hold(),scope(f.m.worker,f.writer)as authority:
+            authority.tool_root=f.tool;packs.member(member,receipt.parent)
+            self.assertEqual(member['phase'],'review');packs.cleanup(receipt,value)
+        self.assertTrue(all(Path(r['source']).exists()for r in member['representations']))
+        self.assertEqual(len(list((f.state/'imports').glob('*.json'))),1)
+
+    def test_changed_generation_and_duplicate_path_refuse_physical_reuse(self):
+        f,packs,record,receipt,value,attempt=self.fixture()
+        member=value['members'][0];before=receipt.read_bytes()
+        member['representations'][1]=dict(member['representations'][0])
+        with self.assertRaisesRegex(ValueError,'binding changed|overlap|companion'):
+            packs.physical_inventory(value,receipt.parent)
+        self.assertEqual(receipt.read_bytes(),before)
+        value=json.loads(before);companion=f.cache/'outer'/'Test Comic 001 (2017).cbz'
+        companion.write_bytes(companion.read_bytes()+b'changed')
+        with self.assertRaisesRegex(ValueError,'Physical representation changed'):
+            packs.physical_inventory(value,receipt.parent)
+        self.assertEqual(receipt.read_bytes(),before)
+
+    def test_same_bytes_replacement_and_owner_overlap_remain_held(self):
+        from publication_guard import scope
+        f,packs,record,receipt,value,attempt=self.fixture()
+        physical=Path(value['members'][0]['representations'][1]['source']);raw=physical.read_bytes()
+        temporary=physical.with_suffix('.replacement');temporary.write_bytes(raw);temporary.replace(physical)
+        with self.assertRaisesRegex(ValueError,'Physical representation changed'):
+            packs.physical_inventory(value,receipt.parent)
+        f.sql('INSERT INTO annuals(IssueID,ComicID,ReleaseComicID,Location,Status,Deleted,Issue_Number,IssueDate,ReleaseComicName) VALUES(?,?,?,?,?,?,?,?,?)',
+            ('777','888','888',value['members'][0]['name'],'Downloaded',0,'1','2017-01-01','Test Comic'))
+        with f.writer.hold(),scope(f.m.worker,f.writer)as authority:
+            authority.tool_root=f.tool;packs.member(value['members'][0],receipt.parent)
+        self.assertEqual(value['members'][0]['phase'],'review')
+        self.assertFalse(any(call.args[0]=='packCatalog' for call in f.m.mylar.call_args_list))
+        self.assertTrue(physical.exists())
+
+    def test_logical_report_guards_both_originals_and_cleanup_requires_report_ack(self):
+        from publication_guard import scope
+        from native_handoff import report
+        f,packs,record,receipt,value,attempt=self.fixture()
+        with f.writer.hold(),scope(f.m.worker,f.writer)as authority:
+            authority.tool_root=f.tool;packs.member(value['members'][0],receipt.parent)
+            self.assertIsNone(report(f.m,value))
+            pending=next((f.state/'native-handoffs').glob('*.json'))
+            guarded={r['source']for r in json.loads(pending.read_text())['guards']}
+            self.assertTrue({r['source']for r in value['members'][0]['representations']}<=guarded)
+            packs.cleanup(receipt,value)
+            self.assertTrue(all(Path(r['source']).exists()for r in value['members'][0]['representations']))
+            # Explicit native-report response boundary; the real exact import
+            # ACK and every physical owner/content proof remain unchanged.
+            with patch.object(packs,'report',return_value={'phase':'confirmed','recorded':1}):
+                packs.cleanup(receipt,value)
+        self.assertTrue(value.get('cleaned_at'))
+        self.assertTrue(all(not Path(r['source']).exists()for r in value['members'][0]['representations']))
+        self.assertFalse((f.cache/'outer.zip').exists())
+        self.assertTrue((f.library/value['members'][0]['name']).exists())
+
+    def test_prior_native_physical_ids_cannot_be_erased_by_new_logical_inventory(self):
+        f,packs,record,receipt,value,attempt=self.fixture()
+        receipt.unlink()
+        record['members']=[dict(id=r['id'])for r in value['members'][0]['representations']]
+        with self.assertRaisesRegex(ValueError,'Existing physical member evidence'):
+            packs.inventory(record)
+        self.assertFalse(receipt.exists())
+        self.assertTrue((f.cache/'outer.zip').exists())
+
+
+    def test_late_identical_original_replacement_refuses_final_closure(self):
+        import pack_recovery
+        f,packs,record,receipt,value,attempt=self.fixture()
+        rows=value['members'][0]['representations'];first=Path(rows[0]['source']);last=Path(rows[-1]['source'])
+        original=pack_recovery.digest;fired=[]
+        def late(path):
+            result=original(path)
+            if Path(path)==last and not fired:
+                temp=first.with_name(first.name+'.replacement');temp.write_bytes(first.read_bytes());temp.replace(first);fired.append(True)
+            return result
+        with patch.object(pack_recovery,'digest',side_effect=late),self.assertRaisesRegex(ValueError,'after validation'):
+            packs.physical_inventory(value,receipt.parent)
+        self.assertTrue(fired);self.assertTrue(first.exists());self.assertTrue(last.exists())
+
+    def test_late_outer_identity_replacement_refuses_final_closure(self):
+        import pack_recovery
+        f,packs,record,receipt,value,attempt=self.fixture()
+        outer=f.cache/'outer.zip';last=Path(value['members'][0]['representations'][-1]['source'])
+        original=pack_recovery.digest;fired=[]
+        def late(path):
+            result=original(path)
+            if Path(path)==last and not fired:
+                temp=outer.with_name('replacement.zip');temp.write_bytes(outer.read_bytes());temp.replace(outer);fired.append(True)
+            return result
+        with patch.object(pack_recovery,'digest',side_effect=late),self.assertRaisesRegex(ValueError,'after validation'):
+            packs.physical_inventory(value,receipt.parent)
+        self.assertTrue(fired);self.assertTrue(outer.exists())
+
+    def test_late_first_root_namespace_change_refuses_final_closure(self):
+        f,packs,record,receipt,value,attempt=self.fixture()
+        first=receipt.parent/'extracted';last=f.cache/'outer';original=Path.rglob;fired=[]
+        def late(path,pattern):
+            if path==last and not fired:
+                (first/'unowned.txt').write_bytes(b'unowned');fired.append(True)
+            return original(path,pattern)
+        with patch.object(Path,'rglob',late),self.assertRaisesRegex(ValueError,'namespace changed'):
+            packs.physical_inventory(value,receipt.parent)
+        self.assertTrue(fired);self.assertTrue((first/'unowned.txt').exists())
+
+    def test_outer_callback_cannot_refresh_unpaired_original_file9(self):
+        import pack_recovery
+        f,packs,record,receipt,value,attempt=self.fixture(ordinary=True)
+        ordinary=next(m for m in value['members']if 'representations'not in m)
+        source=Path(ordinary['source']);outer=f.cache/'outer.zip';original=pack_recovery.digest;fired=[]
+        def late(path):
+            result=original(path)
+            if Path(path)==outer and not fired:
+                source.chmod(source.stat().st_mode ^ 0o040);fired.append(True)
+            return result
+        with patch.object(pack_recovery,'digest',side_effect=late),self.assertRaisesRegex(ValueError,'after validation'):
+            packs.physical_inventory(value,receipt.parent)
+        self.assertTrue(fired);self.assertTrue(source.exists())
 
 if __name__=='__main__':unittest.main()

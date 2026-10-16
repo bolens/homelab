@@ -87,7 +87,15 @@ must independently match the unchanged original. Missing, changed or ambiguous
 members remain available for review; separate physical sources are not merged.
 An existing cache above the default budget therefore holds new allocations until
 verified recovery or an explicit budget increase makes space available. This
-policy covers Mylar's cache, not the normalizer's independent retained sources.
+policy covers Mylar's cache and participating normalizer `.mylar-pack-*` stages, not the normalizer's independent retained sources.
+
+Automatic native metadata staging has a separate initial-copy guard. Before creating an attempt folder or receipt, it checks the unchanged source generation, refuses another unresolved stage for that generation, bounds one copy by the smaller of the archive 4 GiB limit and `ddl_cache_max_gib`, and requires its staging filesystem to have the copy bytes plus block/receipt overhead and `ddl_cache_min_free_gib` available. These existing scalar settings add no new root or configuration knob. The native Writer serializes cooperating automatic tagger attempts. This is admission for one copy and a sampled free-space floor, not an aggregate quota for `modern-tagger-v2`, retained history or Publisher workspaces. The Publisher's existing workspace free-space check remains. Retained stages are neither deleted nor automatically reused; an unresolved publication intent still holds ordinary admission. Metadata lookup failures before staging create no full archive copy.
+
+The authenticated `getHealth` reply exposes a typed effective cache policy only under admitted native Writer exclusion. It includes original config/lock/root identities and the actual effective limits; it does not expose config values other than those limits. Admitted normal startup initializes the shared reservation lock. Health reads never create it. A matching worker uses the prefetched policy and existing physical mount aliases under its Writer, opens the original lock through the read-only config bind, and refuses absent, stale or unmapped policy. Old images without this policy cannot authorize new worker pack staging. Conversion is finalized in independent state before exact output bytes are reserved and copied; failed partials remain retained, and the cache lock is released before import dispatch. Positive growth above the maximum still holds; this is not an automatic budget increase.
+
+The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
+
+Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.
 
 The published image includes patches from `config/` to handle missing DDL
 download sizes without breaking the queue page and to reject HTTP errors or
@@ -155,6 +163,13 @@ Native rescans also hold a Deluxe Edition, collected-edition, omnibus or hardcov
 suffix against a regular-issue catalog, even when stale embedded metadata points
 to that issue. Edition words in the actual catalog title remain valid.
 
+Annual filenames such as `Action.Comics.2021.Annual.001.(2021).cbz` can match
+the base series when the explicit annual qualifier agrees with the parsed year.
+The initial catalog lookup and filename comparison use the same rule. Literal
+years in registered titles and separate annual-series owners remain distinct;
+issue, release-date, volume and annual ownership checks still decide import.
+Missing or conflicting year evidence cannot create a new base-series match.
+
 Story-arc searches queue every eligible missing entry with its arc identity and
 preserve already imported issues and annuals. TalkHard pull-list navigation uses
 Wednesday release weeks across year boundaries, including valid week 53. Legacy
@@ -174,8 +189,39 @@ the expected retry time instead. It allows two minutes after cooldown expiry for
 work to resume, but one continuous hour without useful progress still alerts,
 even if cooldowns keep extending. Invalid cooldown state also fails visibly.
 New queue arrivals do not reset that timer. Idle queues are healthy. Docker marks
-the container unhealthy after three failed probes. Completed files that cannot be
-imported also trigger a backlog warning and need review.
+the container unhealthy after three failed probes. With valid in-process
+post-processing telemetry, retained completed files are reported as unresolved
+intake rather than queued work. Real queued or active imports still require useful
+progress, and a manual scan fails health after 15 minutes in the same invocation.
+Repeated scans do not count as import progress. Missing or invalid telemetry keeps
+the conservative backlog classification.
+
+After admitted startup, a transient publication `held` / `writer-busy` sample can
+report current worker liveness without opening the catalog, workflow Store or
+cache policy. Health allows at most 15 continuous minutes of contention when all
+enabled workers are alive and no known pending marker or overdue progress is
+present. Repeated busy samples preserve the original grace deadline and prior
+progress observations. Missing, stale or malformed telemetry, incomplete startup,
+persistent holds and dead enabled workers fail health. A fresh admitted full
+snapshot resets only the contention clock; existing progress/cooldown checks
+continue. Busy telemetry retains the held state and unavailable census, and
+supplies no publication admission. Health uses an existing zero-wait Writer
+before the full admitted snapshot so a concurrent writer cannot turn the status
+probe into a long operation wait.
+
+For slow authenticated pages or queue preferences, distinguish a prompt
+`writer-busy` health response from time spent inside the admitted request.
+[`publication_http` and `operation`](config/native_writers.py) check current
+authority around the handler while holding Writer. Trace the active thread and
+its database reads before changing queue concurrency or extending timeouts.
+[`initialization_witness`](config/publication_guard.py) validates every committed
+receipt, then resolves each unique physical database/Writer identity pair once
+within that invocation. The final marker projection remains independent. Grouped
+projection results are discarded when the call returns and are never cached
+across requests.
+[The scaling regressions](config/test_identity_admission_scaling.py) check both
+repeated witnesses and a newly distinct binding, and require the next read to
+refuse malformed ledger history.
 
 In Uptime Kuma, add a **Docker Container** monitor for `mylar3` using the existing
 read-only Docker host, under **Critical Containers**, and attach your notification
@@ -602,6 +648,16 @@ only Mylar. Check database integrity, baseline issue records and media hashes,
 container health, and the DDL and post-processing pages. If data is missing or
 corrupt, stop writers and restore the verified backup and previous image. Remove
 temporary update backups only after preservation checks pass; retain routine backups.
+
+Review private backup-helper output mounts in the actual daemon and runtime.
+A held host directory descriptor does not prove Docker accepts
+`/proc/<pid>/fd/<n>` as a bind source. A runtime may reject that source before
+Python starts. A tested normal-path bind must check the original directory's
+physical identity inside the container before entering the backup owner. A
+rename-and-replacement test must refuse the wrong directory before owner entry.
+Retain host descriptor custody for proof reads and persist receipts through the
+original directory. Test this geometry with disposable files and no application
+mounts. This runtime proof does not verify a live backup or permit service resume.
 
 When publication review holds a web request, Mylar shows a responsive status page
 with recovery steps, a link to this guide, and a retry link for the current page.

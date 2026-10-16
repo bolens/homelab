@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 import re
 import select
 import stat
+import fcntl
 import subprocess
 import sys
 import threading
@@ -34,6 +35,9 @@ _WORKER_FUNCTIONS = weakref.WeakKeyDictionary()
 _OBSERVER_OWNED = weakref.WeakKeyDictionary()
 _OBSERVER_RELEASED = weakref.WeakKeyDictionary()
 WORKER_OBSERVATION_ENABLED = False
+WORKER_OBSERVATION_ORIGINALS = None
+WORKER_OBSERVATION_IMAGE = None
+WORKER_OBSERVATION_IMAGE_ORIGINAL = None
 WORKER_VECTORS_SHA = '3fa569e80a8812de545ef71c31ea81f12518fb31454a5249f2605d099dd310d2'
 
 DOCKER = ('pkexec', '/usr/bin/docker', '--host', 'unix:///run/docker.sock')
@@ -178,6 +182,20 @@ _CONFIGURED_OVERLAY_SEALS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_LABELS = weakref.WeakKeyDictionary()
 _CONFIGURED_IMAGE_SEALS = weakref.WeakKeyDictionary()
 BASE_ADMISSION_SHA = '3f6491c8c7d293dd4d7763d968e6b445af63a6d67ed3cc12ded8b99304767a2c'
+
+def retention_original(path,library,device):
+    """Finite directory facts only; operational admission also needs owning stop."""
+    path=absolute(path);library=absolute(library)
+    need(path!=library and path not in library.parents and library not in path.parents,'archive-retention-disjoint-library')
+    original=tuple(nine(os.lstat(path)));source=tuple(five(os.lstat(library)));nodes=tuple(parents(path/'retained-child').items())
+    need(type(device) is int and device>0 and original[0]==source[0]==device,'archive-retention-original-same-device')
+    need(stat.S_ISDIR(original[5]) and original[6:8]==(1000,1000),'archive-retention-child-original-owner')
+    need(stat.S_IMODE(original[5])==0o700 and original[:2]!=source[:2],'archive-retention-child-original-mode')
+    need(not os.listdir(path),'archive-retention-selected-empty-namespace')
+    final({},dict(nodes),())
+    need(tuple(nine(os.lstat(path)))==original and tuple(five(os.lstat(library)))==source,'archive-retention-original-last9')
+    return (str(path),original,str(library),source,nodes)
+
 
 class Paths:
     def __init__(self, mounts):
@@ -399,6 +417,10 @@ class Paths:
             self.owner.left();return _CHILD_TREES[self.owner].scope(path,role)
         return str(path)
 
+    def archive_retention_original(self,path):
+        need(self.owner is not None,'archive-retention-owning-mapping-required')
+        return self.owner.archive_retention_original(path)
+
     def scope_owner(self,path):
         if self.owner is not None:return _CHILD_TREES[self.owner].scope_owner(path)
         return os.geteuid()
@@ -484,13 +506,14 @@ _NFS_PACKET_ROWS=weakref.WeakKeyDictionary()
 _NFS_PACKET_SEALS=weakref.WeakKeyDictionary()
 _NFS_OUTPUT_PAIRS=weakref.WeakKeyDictionary()
 _NFS_DATA_ROOTS=weakref.WeakKeyDictionary()
+_NFS_EFFECTIVE_ABSENCES=weakref.WeakKeyDictionary()
 _NFS_CHILD_EPOCHS=weakref.WeakKeyDictionary()
 _NFS_PROBE_SEALS=weakref.WeakKeyDictionary()
 _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
-NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '1003f97d4e4828404c2ce61f5745b18099205de4f0480f35114c508bc20b5294', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '76e722e192750857c61fd6f0d228966a253e47edb68a5a069567d3fb9697e221', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'adbbc45c0b2252443436bab303381b7941561cdb84f14a5353ecc3e8408c9d05'}
-NFS_ACTIVE_SOURCE_SHA='e2a1451a8a935737e0ee54f45740cdee08c839d9c554e1ffc0ab68ef93497688'
+NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'b4e6bca8b6b7d0d076c5b68bae35430fa65a3b417f0aa5ccb5cd7ccf265e7d93'}
+NFS_ACTIVE_SOURCE_SHA='5581505984e10598f45a9536a381abde8b3efe45d4b58963b2921b121b5d1c37'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -515,6 +538,10 @@ def dialogue_close(engine,cid):
 
 _NFS_REMOTE_WINDOWS=weakref.WeakKeyDictionary()
 _NFS_READER_EPOCHS=weakref.WeakKeyDictionary()
+_ARCHIVE_RETENTION=weakref.WeakKeyDictionary()
+_ARCHIVE_RETENTION_ACTIVE=weakref.WeakKeyDictionary()
+_NFS_LIBRARY_QUERIES=weakref.WeakKeyDictionary()
+_NFS_LIBRARY_REPLIES=weakref.WeakKeyDictionary()
 _NFS_PROBE_BIRTHS=weakref.WeakKeyDictionary()
 _NFS_PROBE_LAUNCHES=weakref.WeakKeyDictionary()
 _NFS_PROBE_REMOVED=weakref.WeakKeyDictionary()
@@ -644,6 +671,8 @@ class ScopedDocker:
 
 
 
+_ARCHIVE_SOURCE_GROUPS=weakref.WeakKeyDictionary()
+
 class LifecycleParent:
     """Finite producer protocol; all concrete producer sources must be reviewed.
 
@@ -671,6 +700,7 @@ class LifecycleParent:
         if same_child:need(plan['terminal_mode']=='same-child-v1','archive-exact-terminal-mode')
         if plan.get('version')==12:
             need(WORKER_OBSERVATION_ENABLED is True,'worker-observation-default-disabled')
+            need(WORKER_OBSERVATION_ORIGINALS is not None and plan['worker_observation']==WORKER_OBSERVATION_ORIGINALS,'worker-observation-reviewed-original-profile')
             worker=plan['worker_observation'];need(type(worker) is dict and set(worker)=={'mode','source','image_sources'} and worker['mode']=='original-pipes-v1','worker-observation-finite-plan')
         need(re.fullmatch('sha256:[0-9a-f]{64}', plan['selected_image']) is not None,
              'selected-image-digest')
@@ -690,7 +720,7 @@ class LifecycleParent:
                 for node, value in parents(Path(ref['path'])).items():
                     need(node not in self.nodes or self.nodes[node] == value, 'archive-input-original-node')
                     self.nodes[node] = value
-        worker_refs=tuple(plan['worker_observation'][k] for k in ('source','image_sources')) if plan.get('version')==12 else ()
+        worker_refs=(*tuple(plan['worker_observation'][k] for k in ('source','image_sources')),WORKER_OBSERVATION_IMAGE_ORIGINAL) if plan.get('version')==12 else ()
         for value in worker_refs:
             for node,fact in parents(Path(value['path'])).items():need(node not in self.nodes or self.nodes[node]==fact,'worker-source-node-original');self.nodes[node]=fact
             need(value['path'] not in self.files or self.files[value['path']]==tuple(value['signature9']),'worker-source-original9');self.files[value['path']]=tuple(value['signature9'])
@@ -763,7 +793,37 @@ class LifecycleParent:
         _NFS_ADAPTERS[self]=nfs_module
         self.observer = pinned_module(plan['observer'])
         need(callable(getattr(self.observer, 'partition', None) if archive else getattr(self.observer, 'observe_mapped_with_originals', None)), 'observer-interface')
+        if archive and CHILD_CONTROL_PROJECTION_ENABLED:
+            names={'comic_archive_repair_action.py':plan['provider']['sha256'],
+                   'comic_archive_backup_action.py':plan['backup_provider']['sha256'],
+                   'comic_archive_evidence_adapter.py':plan['producer']['sha256'],
+                   'comic_archive_proof_producer.py':getattr(self.producer,'PRODUCER_SHA',None),
+                   'comic_native_process_probe.py':getattr(self.producer,'PROBE_SHA',None),
+                   'publication_native_configured_scope.py':getattr(self.producer,'SCOPE_SHA',None),
+                   'comic_reader_backup.py':'f165a0cb5834dc62f400d6dbe9e4070310823f28ec4bc1c4ecb12ae250503be3',
+                   'comic_reader_backup_primitives.py':'e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0',
+                   'comic_reader_schema.py':'e711b3f4d3ec4b909ca4038f803ce0829950c28eb50623b8282901be3e21f7e7'}
+            root=Path(self.source_ref['path']).parent
+            need(all(digest(value) for value in names.values())
+                 and getattr(self.producer,'ACTION_SHA',None)==plan['provider']['sha256']
+                 and all(Path(plan[role]['path'])==root/name for role,name in
+                         (('provider','comic_archive_repair_action.py'),('backup_provider','comic_archive_backup_action.py'),
+                          ('producer','comic_archive_evidence_adapter.py'))),'archive-reviewed-source-graph')
+            refs={}
+            for name,pin in names.items():
+                path=root/name
+                for node,fact in parents(path).items():
+                    need(node not in self.nodes or self.nodes[node]==fact,'archive-source-original-node');self.nodes[node]=fact
+                stamp=tuple(nine(os.lstat(path)))
+                need(str(path) not in self.files or self.files[str(path)]==stamp,'archive-source-original-file');self.files[str(path)]=stamp
+                refs[name]=dict(path=str(path),sha256=pin,signature9=list(stamp))
+            for value in refs.values():read(value)
+            _ARCHIVE_SOURCE_GROUPS[self]=(refs,encode(refs))
         if plan.get('version')==12:
+            metadata=decode(read(WORKER_OBSERVATION_IMAGE_ORIGINAL))
+            need(type(metadata) is list and len(metadata)==1 and metadata[0].get('Id')==WORKER_OBSERVATION_IMAGE
+                 and metadata[0].get('Os')=='linux' and metadata[0].get('Architecture')=='amd64',
+                 'worker-original-image-metadata')
             worker=plan['worker_observation'];sources=decode(read(worker['image_sources']))
             need(sources=={'/app/archive_terminal_observation.py':worker['source']['sha256']},'worker-exact-installed-source-map')
             helper=Path(__file__).with_name('comic_archive_worker_vectors.py');value={'path':str(helper),'signature9':list(nine(os.lstat(helper))),'sha256':WORKER_VECTORS_SHA}
@@ -827,12 +887,49 @@ class LifecycleParent:
                     need(node not in self.nodes or self.nodes[node]==fact,'nfs-owning-cohort-node');self.nodes[node]=fact
                 stamp=tuple(nine(os.lstat(path)));need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-owning-cohort-file');self.files[str(path)]=stamp
             for value in nested:read(dict(value,signature9=list(self.files[value['path']])))
+            # The child sends no endpoint/route/config selector. Seal the one
+            # original approved query plan and its private configuration now.
+            query_ref=original_scope['sources']['current_komga_libraries']
+            query=decode(read(dict(query_ref,signature9=list(self.files[query_ref['path']]))))
+            need(type(query) is dict and set(query)=={'version','kind','configuration','expected_base_url'}
+                 and type(query['version']) is int and query['version']==1
+                 and query['kind']=='approved-active-komga-library-query','nfs-library-original-query-plan')
+            configuration=query['configuration']
+            need(type(configuration) is dict and set(configuration)=={'path','sha256'} and digest(configuration['sha256']),
+                 'nfs-library-original-configuration-ref')
+            configuration_path=absolute(configuration['path'])
+            for node,value in parents(configuration_path).items():
+                need(node not in self.nodes or self.nodes[node]==value,'nfs-library-original-config-node');self.nodes[node]=value
+            configuration9=tuple(nine(os.lstat(configuration_path)))
+            need(str(configuration_path) not in self.files or self.files[str(configuration_path)]==configuration9,
+                 'nfs-library-original-config9');self.files[str(configuration_path)]=configuration9
+            configuration_ref=dict(configuration,signature9=list(configuration9))
+            cfg=decode(read(configuration_ref));base,key=cfg['komga']['url'],cfg['komga']['api_key']
+            import urllib.parse
+            parsed=urllib.parse.urlsplit(base)
+            need(base==query['expected_base_url'] and parsed.scheme in ('http','https') and parsed.netloc
+                 and not parsed.username and not parsed.password and not parsed.query and not parsed.fragment
+                 and type(key) is str and key and key!='REPLACE_ME','nfs-library-sealed-private-endpoint')
+            query_module=pinned_module(plan['nfs']['active_parent'])
+            query_functions=tuple((name,getattr(query_module,name),getattr(query_module,name).__code__)
+                                  for name in ('library_documents','checked_library_user','checked_library_documents','map_library_documents','encode','digest'))
+            lock=Path(self.mapping.host(plan['native']['data']))/'media-writer/writer-v1.lock'
+            for node,value in parents(lock).items():
+                need(node not in self.nodes or self.nodes[node]==value,'nfs-library-original-lock-node');self.nodes[node]=value
+            lock9=tuple(nine(os.lstat(lock)))
+            need(stat.S_ISREG(lock9[5]) and stat.S_IMODE(lock9[5])==0o600 and lock9[6]==1000 and lock9[8]==1,
+                 'nfs-library-original-lock-type')
+            need(str(lock) not in self.files or self.files[str(lock)]==lock9,'nfs-library-original-lock9');self.files[str(lock)]=lock9
+            lock_ref=dict(path=str(lock),signature9=list(lock9))
+            _NFS_LIBRARY_QUERIES[self]=(encode(query),encode(configuration_ref),query_module,query_functions,encode(lock_ref),query_module.RefuseRedirect,query_module.RefuseRedirect.redirect_request.__code__)
+
             need(type(active['probe_plan']) is dict and type(active['parent_admission']) is dict,'nfs-owning-inline-plans')
             probe=copy.deepcopy(active['probe_plan'])
             roots=tuple(original_scope['forbidden_roots']);need(1<=len(roots)<=32 and len(roots)==len(set(roots)),'nfs-owning-data-roots')
             grandparent=str(Path(active['parent_admission']['path']).parent)
             for path in (*roots,grandparent):absolute(path)
             _NFS_DATA_ROOTS[self]=(*roots,grandparent)
+            self.nfs_effective_originals(active,roots)
             need(type(nfs_intents) is dict and set(nfs_intents)=={'path','sha256','signature9'},'nfs-owning-original-intents-required')
             intent=copy.deepcopy(nfs_intents)
             for node,fact in parents(Path(intent['path'])).items():
@@ -840,7 +937,7 @@ class LifecycleParent:
             need(intent['path'] not in self.files or self.files[intent['path']]==tuple(intent['signature9']),'nfs-owning-intents-file');self.files[intent['path']]=tuple(intent['signature9']);read(intent)
             refs['engine_intents']=intent
             _NFS_SOURCE_CONTEXTS[self]=(refs,raws,encode(active),encode(probe),str(output))
-            _NFS_SOURCE_SEALS[self]=encode(dict(refs=refs,raw_sha={name:hashlib.sha256(raw).hexdigest() for name,raw in raws.items()},active=active,probe=probe,output=str(output)))
+            _NFS_SOURCE_SEALS[self]=encode(dict(refs=refs,raw_sha={name:hashlib.sha256(raw).hexdigest() for name,raw in raws.items()},active=active,probe=probe,output=str(output),effective_absences=decode(_NFS_EFFECTIVE_ABSENCES[self])))
         self.baselines = {}
         for key in ('reader', 'held_native', 'held_worker'):
             expected = plan[key]
@@ -851,6 +948,7 @@ class LifecycleParent:
         reader = self.baselines['reader']
         need(reader['State']['Running'] is True and reader['State']['Paused'] is False,
              'reader-compatible-initial-runtime')
+        if plan.get('version')==12:need(self.baselines['held_worker']['Image']==WORKER_OBSERVATION_IMAGE,'worker-reviewed-image-mismatch')
         worker = self.baselines['held_worker']['State']
         need(worker['Status'] == 'created' and worker['Running'] is False and worker['Pid'] == 0,
              'worker-must-stay-created')
@@ -902,9 +1000,81 @@ class LifecycleParent:
             if (z.st_dev,z.st_ino,z.st_mode,z.st_uid,z.st_gid)!=stamp:raise Held('nfs-active-output-original-parent5')
         if self in _NFS_SOURCE_CONTEXTS:
             refs,raws,active,probe,output=_NFS_SOURCE_CONTEXTS[self]
-            need(encode(dict(refs=refs,raw_sha={name:hashlib.sha256(raw).hexdigest() for name,raw in raws.items()},active=decode(active),probe=decode(probe),output=output))==_NFS_SOURCE_SEALS.get(self),'nfs-owning-source-context-seal')
+            need(encode(dict(refs=refs,raw_sha={name:hashlib.sha256(raw).hexdigest() for name,raw in raws.items()},active=decode(active),probe=decode(probe),output=output,effective_absences=decode(_NFS_EFFECTIVE_ABSENCES[self])))==_NFS_SOURCE_SEALS.get(self),'nfs-owning-source-context-seal')
             for ref in refs.values():read(ref)
+        if self in _NFS_EFFECTIVE_ABSENCES:
+            need(all(not os.path.lexists(path) for path in decode(_NFS_EFFECTIVE_ABSENCES[self])),'nfs-effective-original-absence')
+        if self in _ARCHIVE_SOURCE_GROUPS:
+            refs,tape=_ARCHIVE_SOURCE_GROUPS[self]
+            need(encode(refs)==tape,'archive-source-original-graph')
+            for ref in refs.values():read(ref)
+        self.check_archive_retention()
         return max(0.001, self.deadline - time.monotonic())
+
+    def admit_archive_retention(self,handoff):
+        self.left();need(os.geteuid()==0 and self.plan.get('action')=='archive-one'
+             and self in _CHILD_TREES and self not in _ARCHIVE_RETENTION,'archive-retention-configured-original-parent')
+        module=_NFS_ADAPTERS.get(self)
+        need(module is not None and type(handoff) is module.StoppedNFSHandoff
+             and handoff.owner is self and module._STOPPED_HANDOFFS.get(handoff) is not None
+             and module._REG.get(self,{}).get('canary') is handoff,'archive-retention-owning-stopped-handoff')
+        handoff.close()
+        ref=self.plan['producer_inputs']['archive_scopes'];scopes=decode(read(ref))
+        path=absolute(scopes['retention_root'])
+        # Root-owned default scopes retain their existing path and owner checks.
+        if os.lstat(path).st_uid==os.geteuid():return
+        library=self.mapping.host(self.plan['native']['roots'][0])
+        row=retention_original(str(path),library,handoff.device)
+        protected=[self.mapping.host(self.plan['native']['data']),*[self.mapping.host(r) for r in self.plan['native']['roots']],scopes['scratch']]
+        protected.extend(m['Source'] for r in self.baselines.values() for m in r['Mounts'] if m['Type']=='bind')
+        need(all(not (path==Path(root) or path in Path(root).parents or Path(root) in path.parents) for root in protected),'archive-retention-outside-original-role-binds')
+        request=decode(read(self.plan['producer_inputs']['archive_request']));allowed='adopt-'+request['operation_id']
+        _ARCHIVE_RETENTION[self]=(row,handoff,tuple(sorted(protected)),allowed,(ref['path'],ref['sha256'],tuple(ref['signature9'])))
+        self.check_archive_retention();self.left()
+
+    def check_archive_retention(self):
+        value=_ARCHIVE_RETENTION.get(self)
+        if value is None:return
+        row,handoff,protected,allowed,ref=value
+        module=_NFS_ADAPTERS.get(self)
+        need(module is not None and type(handoff) is module.StoppedNFSHandoff and handoff.owner is self
+             and module._STOPPED_HANDOFFS.get(handoff) is not None,'archive-retention-original-handoff-registry')
+        path,original,library,source,nodes=row
+        current=tuple(nine(os.lstat(path)));active=_ARCHIVE_RETENTION_ACTIVE.get(self)
+        need(current[:2]+current[5:8]==original[:2]+original[5:8]
+             and tuple(five(os.lstat(library)))==source,'archive-retention-original-directory5')
+        for node,fact in nodes:
+            need(tuple(five(os.lstat(node)))==tuple(fact),'archive-retention-original-ancestor5')
+        names=tuple(sorted(os.listdir(path)))
+        if active is None:
+            need(current==original and not names,'archive-retention-before-execute-original9')
+        else:
+            need(active is value and names in ((),(allowed,)),'archive-retention-finite-owned-transition')
+            if names:
+                z=os.lstat(Path(path)/allowed)
+                need(stat.S_ISDIR(z.st_mode) and stat.S_IMODE(z.st_mode)==0o700 and z.st_uid==1000 and z.st_dev==original[0],'archive-retention-owned-adoption-directory')
+        read(dict(path=ref[0],sha256=ref[1],signature9=list(ref[2])))
+        need(_ARCHIVE_RETENTION.get(self) is value and _ARCHIVE_RETENTION_ACTIVE.get(self) is active,'archive-retention-original-row')
+        need(tuple(sorted(os.listdir(path)))==names,'archive-retention-final-original-namespace')
+        need(tuple(five(os.lstat(library)))==source,'archive-retention-final-library5')
+        for node,fact in nodes:
+            need(tuple(five(os.lstat(node)))==tuple(fact),'archive-retention-final-ancestor5')
+        expected=current if active is None else current[:2]+current[5:8]
+        now=tuple(nine(os.lstat(path)))
+        need((now if active is None else now[:2]+now[5:8])==expected,'archive-retention-final-original-directory')
+
+    def archive_retention_original(self,path):
+        value=_ARCHIVE_RETENTION.get(self);active=_ARCHIVE_RETENTION_ACTIVE.get(self)
+        need(value is not None and str(path)==value[0][0],'archive-retention-original-scope-unbound')
+        row=value[0];current=tuple(nine(os.lstat(row[0])))
+        # Current metadata is a distinct observation, captured before callbacks;
+        # the original full9 remains immutable across the owned execute window.
+        self.left();self.check_archive_retention()
+        need(_ARCHIVE_RETENTION.get(self) is value and _ARCHIVE_RETENTION_ACTIVE.get(self) is active
+             and (active is None or active is value),'archive-retention-original-descriptor-phase')
+        need(tuple(nine(os.lstat(row[0])))==current,'archive-retention-descriptor-original-current9')
+        return dict(path=row[0],signature9=list(current),original_signature9=list(row[1]),device=row[1][0],owner=1000,
+                    phase='initial' if active is None else 'execute-owned')
 
     def nfs_host_modules(self):
         self.left();need(self in _NFS_SOURCE_CONTEXTS,'nfs-owning-default-unconfigured')
@@ -937,14 +1107,58 @@ class LifecycleParent:
             seals.append((name,module,name[:-3],tuple(functions)))
         self.left();_NFS_HOST_MODULES[self]=modules;_NFS_HOST_MODULE_SEALS[self]=(tuple(modules.items()),tuple(seals));return modules
 
+    def nfs_effective_originals(self,active,roots):
+        # Seal the exact seven-role document and every original before child
+        # projection. Embedded factual documents are never rewritten/re-signed.
+        roles=('producer','parent_source','report','ack','runtime','acceptance','parent_ack')
+        ref=active['effective_observer_review']
+        review=decode(read(dict(ref,signature9=list(self.files[ref['path']]))))
+        need(type(review) is dict and set(review)==set(roles),'nfs-effective-seven-roles')
+        def retain(value,private=True):
+            need(type(value) is dict and set(value)=={'path','sha256'},'nfs-effective-original-ref')
+            path=absolute(value['path'])
+            for node,fact in parents(path).items():
+                need(node not in self.nodes or self.nodes[node]==fact,'nfs-effective-original-node');self.nodes[node]=fact
+            stamp=tuple(nine(os.lstat(path)))
+            need(str(path) not in self.files or self.files[str(path)]==stamp,'nfs-effective-original-file');self.files[str(path)]=stamp
+            return read(dict(value,signature9=list(stamp)),private=private)
+        raws={role:retain(review[role]) for role in roles}
+        report=decode(raws['report'])
+        need(type(report) is dict and type(report.get('config_files')) is dict and type(report.get('absent_config_files')) is list,'nfs-effective-original-report')
+        need(type(report.get('scopes')) is dict and type(report.get('optional_absent_scopes')) is dict,'nfs-effective-original-scope')
+        declared=_NFS_DATA_ROOTS.get(self)
+        need(type(declared) is tuple and list(declared[:-1])==list(roots),'nfs-effective-same-path-protected-mount')
+        def protected(value):
+            path=absolute(value)
+            need(any(path==Path(root) or Path(root) in path.parents for root in roots),'nfs-effective-protected-original-path')
+            return path
+        for value in report['scopes'].values():protected(value['host_path'])
+        for rawpath,value in report['config_files'].items():
+            path=protected(rawpath);need(type(value) is dict and set(value)=={'sha256','signature9'},'nfs-effective-config-ref')
+            need(tuple(value['signature9'])==tuple(nine(os.lstat(path))),'nfs-effective-config-original9')
+            retain(dict(path=str(path),sha256=value['sha256']),private=False)
+        absent=tuple(sorted(set(report['absent_config_files'])|set(report['optional_absent_scopes'])))
+        for value in absent:
+            path=protected(value);need(not os.path.lexists(path),'nfs-effective-original-absence')
+            for node,fact in parents(path).items():
+                need(node not in self.nodes or self.nodes[node]==fact,'nfs-effective-absence-node');self.nodes[node]=fact
+        need(self not in _NFS_EFFECTIVE_ABSENCES,'nfs-effective-once-only')
+        _NFS_EFFECTIVE_ABSENCES[self]=encode(absent)
+        # Close original hash/identity vectors after all document callbacks.
+        for role in roles:read(dict(review[role],signature9=list(self.files[review[role]['path']])))
+        final(self.files,self.nodes,absent)
+
     def nfs_child_ref(self,ref):
         self.left();need(self in _NFS_SOURCE_CONTEXTS,'nfs-owning-default-unconfigured')
         refs,_,active,_,_=_NFS_SOURCE_CONTEXTS[self];data=decode(active)
         cohort_ref=data['source_cohort'];cohort=decode(read(dict(cohort_ref,signature9=list(self.files[cohort_ref['path']]))))
         scope_ref=data['active_scope'];scope=decode(read(dict(scope_ref,signature9=list(self.files[scope_ref['path']]))))
         named=[*refs.values(),self.plan_ref,self.source_ref,self.plan['nfs']['active_parent'],self.plan['nfs']['active_input'],*cohort['sources'].values(),*cohort['logs'].values(),cohort['parent'],cohort['receipt'],*scope['sources'].values(),*[data[k] for k in ('active_scope','effective_observer_review','source_cohort','native_controls')]]
+        effective=data['effective_observer_review'];review=decode(read(dict(effective,signature9=list(self.files[effective['path']]))))
+        need(type(review) is dict and set(review)=={'producer','parent_source','report','ack','runtime','acceptance','parent_ack'},'nfs-effective-seven-roles')
+        named.extend(review.values())
         original_paths={v['path'] for v in named}
-        generated_names={'nfs-uid-child.py','nfs-cohort-receipt-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}
+        generated_names={'nfs-uid-child.py','nfs-cohort-receipt-input.json','nfs-effective-review-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}
         need(ref['path'] in original_paths and tuple(ref['signature9'])==self.files.get(ref['path']) or Path(ref['path']).parent==self.op and Path(ref['path']).name in generated_names and self.generated.get(ref['path'])==ref,'nfs-only-declared-control-origin')
         tree=_CHILD_TREES[self];tree.reserve_nfs_control(ref);result=tree.projected(ref);self.left();return result
 
@@ -1310,6 +1524,83 @@ class LifecycleParent:
         if cleanup is not None:_NFS_PROBE_REMOVED[self]=cleanup
         del _NFS_REMOTE_WINDOWS[self.engine]
 
+    def nfs_library_query_reply(self,frame):
+        """One no-selector factual GET exchange; forbidden throughout Writer."""
+        nfs_remote_guard(self.engine)
+        session=_NFS_LIVE_SESSIONS.get(self)
+        need(session is not None and session.state not in ('failed','finished')
+             and not session.pump.failed and not session.pump.finished
+             and self in _NFS_LIBRARY_QUERIES,'nfs-library-original-session')
+        session.close();dialogue=session.engine_replies
+        need(type(frame) is dict and set(frame)=={'type','nonce','sequence','payload'}
+             and frame['type']=='nfs-library-query' and frame['nonce']==self.plan['nonce']
+             and type(frame['sequence']) is int and frame['sequence']==dialogue.sequence+1
+             and type(frame['payload']) is dict and frame['payload']=={},'nfs-library-no-selector-frame')
+        original=_NFS_LIBRARY_QUERIES[self]
+        query_raw,configuration_raw,module,functions,lock_raw,redirect,redirect_code=original
+        configuration_ref=decode(configuration_raw);lock_ref=decode(lock_raw)
+        reader_raw=encode(self.baselines['reader']);reader=decode(reader_raw)
+        lock_fd=None
+        files=dict(self.files);nodes=dict(self.nodes)
+        def guard():
+            nfs_remote_guard(self.engine);session.close();self.left()
+            need(_NFS_LIBRARY_QUERIES.get(self) is original and _NFS_LIVE_SESSIONS.get(self) is session
+                 and encode(configuration_ref)==configuration_raw and encode(lock_ref)==lock_raw
+                 and encode(self.baselines['reader'])==reader_raw,'nfs-library-original-query-seal')
+            need(module.RefuseRedirect is redirect and redirect.redirect_request.__code__ is redirect_code,
+                 'nfs-library-original-redirect-guard')
+            if lock_fd is not None:
+                need(nine(os.fstat(lock_fd))==lock_ref['signature9']
+                     and nine(os.lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-each-GET')
+            for name,value,code in functions:
+                need(getattr(module,name,None) is value and value.__code__ is code,'nfs-library-original-helper')
+            read(configuration_ref)
+        retained=_NFS_LIBRARY_REPLIES.get(self)
+        if retained is None:
+            need(session.lease_replies.lease is None and not session.lease_replies.done,
+                 'nfs-library-initial-before-lease-only')
+        else:
+            lease=session.lease_replies.lease
+            need(lease is not None and session.lease_replies.done is True,'nfs-library-original-physical-release-required')
+            modules=self.nfs_host_modules();cls=modules['comic_nfs_host_lease.py'].HostWriterLease
+            need(type(lease) is cls and session.lease_replies.done is True
+                 and cls.window_state(lease)=='RELEASED_PHYSICAL' and self in _NFS_PROBE_REMOVED,
+                 'nfs-library-original-physical-release-required')
+        guard();query=decode(query_raw);cfg=decode(read(configuration_ref))
+        base,key=cfg['komga']['url'],cfg['komga']['api_key']
+        # Shared kernel interlock prevents a forged pre-entry request from
+        # racing an exclusive Writer acquisition. It is never owning Writer.
+        lock_fd=os.open(lock_ref['path'],os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            need(nine(os.fstat(lock_fd))==lock_ref['signature9']
+                 and nine(os.lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-FD')
+            try:fcntl.flock(lock_fd,fcntl.LOCK_SH|fcntl.LOCK_NB)
+            except BlockingIOError:raise Held('nfs-library-exclusive-Writer-held') from None
+            before=self.inspect(reader['Id'])
+            need(static(before)==static(reader) and lifecycle_state(before)==lifecycle_state(reader),
+                 'nfs-library-original-reader-before')
+            documents=module.library_documents(base,key,guard=guard,seconds=self.left)
+            # Validate the same complete DTO on the host as well as the child.
+            module.checked_library_documents(documents)
+            after=self.inspect(reader['Id']);guard()
+            need(static(after)==static(reader) and lifecycle_state(after)==lifecycle_state(reader),
+                 'nfs-library-original-reader-after')
+            need(nine(os.fstat(lock_fd))==lock_ref['signature9']
+                 and nine(os.lstat(lock_ref['path']))==lock_ref['signature9'],'nfs-library-original-lock-FD-final')
+        finally:os.close(lock_fd);lock_fd=None
+        payload=dict(version=1,kind='parent-original-library-query',
+                     query_plan_sha256=module.digest(module.encode(query)),documents=documents,
+                     native_grant=False,publication_authority=False)
+        raw=encode(payload);need(len(raw)<=8*1024**2,'nfs-library-reply-bound')
+        retained=_NFS_LIBRARY_REPLIES.get(self)
+        if retained is None:_NFS_LIBRARY_REPLIES[self]=raw
+        else:need(raw==retained,'nfs-library-original-reply-changed')
+        response=dict(type='nfs-host',nonce=self.plan['nonce'],sequence=frame['sequence'],payload=decode(raw))
+        guard();need(_NFS_LIBRARY_REPLIES.get(self)==raw,'nfs-library-original-reply-final')
+        final(files,nodes,())
+        dialogue.sequence=frame['sequence']
+        return response
+
     def nfs_reader_epoch_reply(self,frame):
         session=_NFS_LIVE_SESSIONS.get(self);need(session is not None,'nfs-reader-epoch-original-session')
         session.close();dialogue=session.engine_replies
@@ -1372,7 +1663,7 @@ class LifecycleParent:
             _GENERATED[self] = encode(self.generated)
             self.left()
             if self in _CHILD_TREES and name.endswith(('-input.json','-input.birth.json','-input.lifecycle.json')):
-                if name in {'nfs-cohort-receipt-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}:self.nfs_child_ref(value)
+                if name in {'nfs-cohort-receipt-input.json','nfs-effective-review-input.json','nfs-cohort-input.json','nfs-scope-input.json','nfs-active-input.json','nfs-roles-bootstrap-input.json','nfs-packet-input.json'}:self.nfs_child_ref(value)
                 else:_CHILD_TREES[self].project(value)
             return value
         finally:
@@ -1777,6 +2068,8 @@ class LifecycleParent:
                 writer_session=(binding,origin,encode(current),host_pid,host_ticks,
                                 (((str(writer_root),root5),),((str(lock),lock9),(str(marker),marker9))),
                                 tuple((str(p),tuple(v)) for p,v in original_files.items()),tuple((str(p),tuple(v)) for p,v in original_nodes.items()))
+                if phase=='execute' and self in _ARCHIVE_RETENTION:
+                    self.check_archive_retention();_ARCHIVE_RETENTION_ACTIVE[self]=_ARCHIVE_RETENTION[self]
                 writer_confirmed=False
             elif ws is not None:need(leaving and ws.get('stage')=='leave','writer-session-entry-stage')
             # Reinspect after producer callbacks; stale snapshots never close.
@@ -2159,6 +2452,10 @@ class LifecycleParent:
         fact=tuple(five(os.lstat(directory)))
         need((fact[2]&0o777)==0o700 and fact[3]==(1000 if self in _CHILD_TREES else os.geteuid()),'archive-phase-private')
         _OUTPUT_NODES.setdefault(self,{})[str(directory)]=fact;self.sync(self.op)
+        if self in _CHILD_TREES:
+            self.left();need(self in _ARCHIVE_SOURCE_GROUPS,'archive-source-group-required')
+            refs,tape=_ARCHIVE_SOURCE_GROUPS[self];need(encode(refs)==tape,'archive-source-original-graph')
+            _CHILD_TREES[self].archive_sources(refs);self.left()
         provider=self.mapping.child_ref(self.phase_provider(phase));command=command_template(provider,phase,self.mapping.child(host_path))
         value=dict(payload,version=1,nonce=self.plan['nonce'],action='archive-one-backup' if phase=='backup' else 'archive-one',parent_sha256=self.source_ref['sha256'],command_template=command,operation=self.mapping.child(directory),selected_image=self.plan['selected_image'],sdk_map=self.mapping.child_ref(self.plan['sdk_map']))
         if phase=='backup':value.update(native=copy.deepcopy(self.plan['native']),bounds=copy.deepcopy(self.plan['bounds']),seconds=max(1,int(self.left())))

@@ -60,7 +60,7 @@ When the complete validated registry is empty, existing eligibility may continue
 
 ## DDL cache capacity (FR-016 / T030)
 
-Participating Mylar DDL transfers and ZIP expansion require finite admission
+Participating Mylar DDL transfers, ZIP expansion and worker `.mylar-pack-*` staging require shared finite admission
 before allocation. Defaults are a 20 GiB aggregate cache budget and a 5 GiB
 filesystem free-space reserve; `[DDL]` settings `ddl_cache_max_gib` and
 `ddl_cache_min_free_gib` accept whole GiB values from 1 through 4096. Count
@@ -70,6 +70,10 @@ blocks. Unverifiable accounting or original directory/lock drift refuses new
 allocation. Process and filesystem locks serialize participating allocations;
 check remaining space before each write. This is application admission, not a
 quota for unrelated writers or the normalizer's independent retained state.
+
+The native typed health response may include `cache_policy` only from actual effective CONFIG under admitted Writer exclusion. It binds existing native config SHA/physical identity, original cache roots and the existing reservation lock. Normal admitted startup may initialize that lock; health reads are existing-only. The worker prefetched batch consumes this policy under its genuine shared Writer, validates the physical aliases through existing mounts and opens the original lock read-only/existing-only for flock. Missing or stale policy, an absent lock or an unmapped root refuses. No private config parser supplies worker defaults.
+
+Worker conversion completes in independent retained state before its exact output bytes are reserved and copied to shared cache. The copy checks remaining headroom per chunk, retains failed partials, and never replaces an existing output. Complete output reuse independently checks preservation under zero-growth reservation. The reservation is released before native API/import dispatch. This admission limit excludes independent worker retained state; it neither cleans that state nor supplies retirement or ACK authority. Positive-growth recovery above the configured maximum remains refused until an explicit owning policy decision or verified cleanup creates space.
 
 Capacity refusal preserves the owning queue generation and provider attempt
 budget. Every provider metadata update uses the original entry generation:
@@ -84,6 +88,10 @@ This prospective contract remains incomplete until the installed image and
 configured guard pass T030 acceptance, including concurrent/restart refusal,
 provider callbacks, retained extraction reuse and preservation of existing
 queue/import evidence.
+
+The effective policy separately binds the actual DDL directory even when it is a subtree of the aggregate CACHE_DIR. The worker checks the declared writable DDL alias against that exact original subtree and retains the aggregate roots for accounting; it never adds the writable alias as a duplicate budget root or permits growth in another aggregate root. Native config observation accepts the owning regular-file contract (root/current owner, no group/world write, at most 2 MiB), preserving its original mode and hash.
+
+Each unchanged pack member/source generation has one exclusive conversion workspace. A durable finalized receipt binds the original source path/full identity/hash, workspace identity and finalized output full identity/hash. Capacity refusal retains it; a later cycle verifies the same originals and preservation before reusing it without conversion duplication. Incomplete, changed or unknown attempts remain for owning review. Minimum positive cache admission precedes a new workspace, and exact finalized-size admission still precedes cache copy. No source cleanup, budget increase or ACK follows from this receipt.
 
 ## Lock order and worker behavior
 
@@ -644,3 +652,69 @@ foreign state is retained without automatic replay. A stopped owning parent sepa
 service profile, databases and references before restart. Actual installed-image
 checks, fresh full reader backup/restore and real NFS hardlink/fsync proof are
 required before this protocol is executable.
+
+
+### Worker control identity after device renumbering
+
+Native adoption does not translate the legacy normalizer state marker. The
+ordinary exact marker route remains unchanged in the absence of a worker
+adoption receipt or its pending hold. A mismatch requires an explicit reviewed
+control-only prepare/commit under the existing shared Writer and original worker
+lock. Retain the original marker bytes and metadata, state/jobs roots, complete
+namespace and file metadata, and completed-job receipt facts. Back up and restore
+verify the affected controls before commit; unrelated retained payloads are
+preserved in place and are not copied merely to adopt this control binding.
+
+The exclusively created committed worker receipt must join the exact original
+marker, current two directory identities, immutable accepted native edge, genuine
+current complete native admission and the same prospective Btrfs filesystem and
+subvolume independently observed at Writer, state and jobs. Only the physical
+device field may project across later device renumbering; original inodes, modes,
+ownership, marker times/link count/content and stable filesystem identity remain
+strict. Unsupported queries, in-flight publication/dispatch, incomplete job receipts,
+foreign or changed identities and unreviewed/malformed/stale actionable controls
+hold. Classify control files by the owning automatic consumer's fixed relative
+path and schema; do not parse historical manual plans/reports or retained payloads
+as automatic receipts. Every file still retains original metadata and namespace
+custody, including oversized passive reports. Automatic control reads remain
+bounded.
+
+Preserve schema-valid legacy submitted imports as uncertain deduplication history,
+never as terminal success. The current dispatcher never resends these records;
+cleanup still requires fresh exact native acknowledgement and owner proof. The
+optional historical `compatibility_retry_at` is inert evidence only and must be a
+finite nonnegative number, never a boolean or retry grant. Preserve closed Naming
+`done`/`review` receipts and acknowledged legacy quarantine results under their
+own schemas. A local guidance `review` may remain only if its exact native command
+is absent or has matching immutable identifiers and a terminal confirmed/rejected
+phase; queued/claimed/submitted/review native commands hold. A schema-valid
+reader-scan pending map contains unsent desired notifications and may be retained;
+collection must still freshly revalidate ownership, tagged contents and readiness
+before preparing a handoff. Prepared/dispatching reader handoffs remain blockers.
+Closed legacy preservation payloads may retain their existing hardlinks only at
+`{release-naming,combined-maintenance}/<64-hex>/{original,restore}.cbz` within
+worker state. Require each complete observed inode alias set to equal its original
+link count: exactly one alias in each role with the same basename and identical
+full original metadata. Retain both receipt files and require the Naming receipt
+to be closed under its owning schema. Outside, missing, third, differently named
+or unsealed aliases hold. This is metadata-only custody, including unchanged
+historical file modes; it does not make linked payloads trusted recovery copies.
+Controls, proofs and markers still require one link. Existing Naming recovery
+continues to require explicit detached verified copies.
+
+These distinctions preserve bytes, do not clear uncertainty, and grant no replay,
+Reader request, import cleanup or acknowledgement. Unknown actionable roles and
+malformed controls hold. The captured complete
+state namespace is commit-time custody; future valid work is not required to
+retain a frozen directory listing. No startup caller writes or accepts adoption.
+
+Create the fixed control pending sidecar before any receipt write. Remove it only
+after durable exact receipt readback and original caller/file/namespace tails.
+Interrupted or uncertain effects retain originals and require explicit review;
+startup never clears or repairs this hold. A catchable failure after removal must
+exclusively re-establish the same pending marker with the original token, never
+overwrite an existing marker, and surface an explicit failure if re-establishment
+fails. Preserve the receipt and originals; keep the worker inactive for review.
+This operation changes only new Writer
+control sidecars, grants no ACK or replay and does not complete T017/T030/T032
+without matching installed-image and actual reviewed binding acceptance.

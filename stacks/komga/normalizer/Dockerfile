@@ -14,7 +14,7 @@ USER 1000:1000
 # Fault controls mutate only their private source copy, never the installed tree.
 RUN test_root="$(mktemp -d)" \
     && cp -R /app/. "${test_root}/" \
-    && PYTHONPATH="${test_root}" python3 -m unittest test_selected_catalog test_selected_prepare \
+    && PYTHONPATH="${test_root}" python3 -m unittest test_normalizer_state_binding test_selected_catalog test_selected_prepare test_pack_recurring \
     && python3 -m unittest discover -s "${test_root}" -p 'test_*.py' \
     && rm -rf "${test_root}"
 
@@ -22,7 +22,7 @@ FROM runtime
 LABEL org.opencontainers.image.source="https://github.com/bolens/homelab" \
       org.opencontainers.image.title="Comic normalization and import recovery"
 ENV PYTHONDONTWRITEBYTECODE=1
-COPY --from=checked /app/normalize.py /app/maintenance.py /app/import_match.py /app/import_recovery.py /app/guided_match.py /app/pack_recovery.py /app/pack_only.py /app/edition_evidence.py /app/media_writer.py /app/writer_cycle.py /app/reader_scan.py /app/pdf_conversion.py /app/release_naming.py /app/naming_worker.py /app/
+COPY --from=checked /app/cache_reservation.py /app/worker_cache.py /app/normalize.py /app/maintenance.py /app/import_match.py /app/import_recovery.py /app/guided_match.py /app/pack_recovery.py /app/pack_only.py /app/edition_evidence.py /app/media_writer.py /app/writer_cycle.py /app/normalizer_state_binding.py /app/reader_scan.py /app/pdf_conversion.py /app/release_naming.py /app/naming_worker.py /app/
 COPY --from=checked /app/publication_guard.py /app/publication_evidence.py /app/publication_metadata.py /app/publication_zip.py /app/publication_lock.py /app/publication_derivative_evidence.py /app/
 COPY --from=checked /app/publication_identity_adoption.py /app/publication_identity_readers.py /app/publication_filesystem_binding.py /app/
 COPY --from=checked /app/publication_archive_layout.py /app/publication_archive_derivative.py /app/publication_archive_repair.py /app/publication_archive_diagnostics.py /app/

@@ -8,6 +8,22 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 
+def annual_release_title(series_name, issue_year):
+    """Read a terminal annual-release qualifier without discarding title years."""
+    if not isinstance(series_name, str):
+        return None
+    match = re.fullmatch(r'(.+?)[.\s_-]+((?:19|20)\d{2})[.\s_-]+annual',
+                         series_name.strip(), re.I)
+    if match is None:
+        return None
+    if str(issue_year) != match[2]:
+        raise ValueError('Annual release qualifier conflicts with publication year')
+    title = match[1].rstrip(' ._-')
+    if not title:
+        raise ValueError('Annual release title is missing')
+    return title
+
+
 def validate_rescan(database, series, file_lists, *, booktype=None, publication=None):
     """Reject contradictory identities before native rescan can delete or reassign files."""
     comic_id = series["ComicID"]

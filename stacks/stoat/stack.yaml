@@ -35,6 +35,9 @@ backup:
   priority: high
   schedule_hint: weekly
 volumes:
+- name: stoat_config
+  role: config
+  critical: true
 - name: stoat_db_data
   role: app_data
   critical: true
@@ -65,7 +68,7 @@ placement:
 lifecycle:
   status: stable
   replacement_for: null
-  notes: ''
+  notes: 'Back up STOAT_CONFIG_DIR and the selected private STOAT_SECRETS_FILE with persistent state; preserve effective encryption keys during upgrades.'
 runtime_security:
   privileged_services: []
   host_network_services: []

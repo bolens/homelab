@@ -4,6 +4,7 @@ The Parent mapping admission is intentionally required. No local/NFS bypass and
 no terminal capability is returned by this transport.
 """
 import copy
+import hashlib
 import base64
 import json
 import re
@@ -31,6 +32,46 @@ def encode(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
 
 
+def mount_namespace(host, rows, host_root, child_root, expected9, actual9):
+    """Join one original export to this exact owned RW subdirectory bind."""
+    from pathlib import PurePosixPath
+    keys={'source','target','fstype','fsroot','options','maj:min'}
+    need(type(host) is dict and set(host)==keys and type(rows) is dict
+         and set(rows)=={'source','target'},'namespace-mount-schema')
+    def absolute(value):
+        need(type(value) is str and value.startswith('/') and '\\' not in value
+             and '\0' not in value and '..' not in value.split('/')
+             and str(PurePosixPath(value))==value,'namespace-canonical-path')
+        return PurePosixPath(value)
+    for row in (host,*rows.values()):
+        need(type(row) is dict and set(row)==keys and all(type(v) is str and v for v in row.values())
+             and row['fstype']=='nfs4','namespace-nfs-row')
+        absolute(row['target']);absolute(row['fsroot'])
+    original=absolute(host_root);target=absolute(child_root);mountpoint=absolute(host['target'])
+    need(original!=mountpoint and mountpoint in original.parents,'namespace-selected-host-subtree')
+    expected_root=str(absolute(host['fsroot'])/original.relative_to(mountpoint))
+    def export(row):
+        suffix='['+row['fsroot']+']'
+        source=row['source']
+        return source[:-len(suffix)] if source.endswith(suffix) else source
+    need(type(expected9) in (list,tuple) and len(expected9)==9
+         and all(type(v) is int for v in expected9)
+         and type(actual9) in (list,tuple) and list(actual9)==list(expected9)
+         and expected9[0]>0 and expected9[1]>0 and stat.S_ISDIR(expected9[5])
+         and stat.S_IMODE(expected9[5])==0o700 and expected9[6]==1000,
+         'namespace-original-root9')
+    need(host['maj:min']==str(os.major(expected9[0]))+':'+str(os.minor(expected9[0])),'namespace-original-device-number')
+    need(rows['source']==rows['target'],'namespace-one-child-bind')
+    row=rows['source']
+    need(row['target']==str(target) and row['fsroot']==expected_root
+         and export(row)==export(host) and row['maj:min']==host['maj:min']
+         and row['options']==host['options']
+         and 'rw' in row['options'].split(',') and 'ro' not in row['options'].split(','),
+         'namespace-original-export-bind')
+    return dict(version=1,kind='original-nfs-bind-namespace-v1',host=copy.deepcopy(host),
+                rows=copy.deepcopy(rows),host_root=str(original),child_root=str(target),root9=list(expected9))
+
+
 def ticks(pid):
     raw=(__import__('pathlib').Path('/proc')/str(pid)/'stat').read_text();return int(raw[raw.rfind(')')+2:].split()[19])
 
@@ -39,7 +80,7 @@ def fd5(stream):
 
 class ProbeProcess:
     """Command/profile boundary. Constructor inputs are owning-host originals."""
-    def __init__(self, spec, docker, execute, close,*,gated=False,launcher=None):
+    def __init__(self, spec, docker, execute, close,*,gated=False,launcher=None,namespace=None):
         need(type(spec) is dict and set(spec) == {'image', 'mounts', 'probe', 'kernel', 'input', 'input_sha256', 'probe_sha256'}, 'probe-spec-schema')
         need(re.fullmatch(r'sha256:[a-f0-9]{64}', spec['image']) is not None, 'probe-image')
         for key in ('input_sha256', 'probe_sha256'):
@@ -60,6 +101,8 @@ class ProbeProcess:
              and mounts[5][1:] == [spec['input'], False]
              and all(r[2] is False for r in mounts[6:]), 'probe-finite-mount-contract')
         need(type(gated) is bool and (not gated or callable(launcher)),'probe-gated-original-launcher')
+        need(namespace is None or type(namespace) is dict and set(namespace)=={'host','host_root','child_root','root9'},'probe-namespace-original-input')
+        self.namespace_original=copy.deepcopy(namespace);self.namespace_tape=encode(namespace);self.namespace_proof=None
         self.gated,self.launcher=gated,launcher
         self.process=None;self.pipe_original=None;self.pid_original=None;self.process_start=None;self.running_epoch=None;self.execution_sent=False;self.kernel_output=None
         self.spec = copy.deepcopy(spec)
@@ -75,6 +118,7 @@ class ProbeProcess:
 
     def original_close(self):
         self.close()
+        need(encode(self.namespace_original)==self.namespace_tape,'probe-namespace-original-tape')
         need(encode(dict(spec=self.spec, docker=self.docker, name=self.name)) == self.original, 'probe-original-spec')
         need(self.cid_original is None or self.cid == self.cid_original, 'probe-original-born-CID')
 
@@ -168,6 +212,17 @@ class ProbeProcess:
             self.local();need(len(raw)<8*1024**2 and select.select([self.pipe_original[1][0]],[],[],max(0,deadline-time.monotonic()))[0],'probe-original-pipe-deadline')
             block=os.read(self.pipe_original[1][0],min(65536,8*1024**2-len(raw)));need(bool(block),'probe-original-pipe-EOF');raw.extend(block)
         line,_,tail=raw.partition(b'\n');need(not tail,'probe-original-single-frame');self.local();return bytes(line)
+    def prepared_ack(self, proof=None):
+        expected=dict(kind='original-nfs-probe-gate',state='prepared',token=self.spec['input_sha256'],source_sha256=self.spec['probe_sha256'],native_grant=False,publication_authority=False)
+        need(encode(self.namespace_original)==self.namespace_tape,'probe-namespace-original-tape')
+        if self.namespace_original is not None:
+            need(type(proof) is dict and set(proof)=={'version','kind','host','rows','host_root','child_root','root9'},'probe-actual-namespace-required')
+            n=self.namespace_original
+            actual=mount_namespace(n['host'],proof['rows'],n['host_root'],n['child_root'],n['root9'],proof['root9'])
+            need(proof==actual,'probe-original-namespace-proof');expected['namespace']=actual
+        else:need(proof is None,'probe-unrequested-namespace')
+        return expected
+
     def start_prepare(self):
         need(self.gated and self.cid is not None and not self.started,'probe-original-prestart')
         self.inspect();self.started=True
@@ -177,7 +232,9 @@ class ProbeProcess:
         self.pid_original=process.pid;self.process_start=ticks(process.pid)
         row=self.inspect(running=True);self.running_epoch=(row['State']['Pid'],row['State']['StartedAt'],ticks(row['State']['Pid']))
         _PROCESS_SEALS[self]=(self.process,self.pid_original,self.process_start,self.streams,self.pipe_original,self.running_epoch)
-        ack=json.loads(self.line(30));need(ack==dict(kind='original-nfs-probe-gate',state='prepared',token=self.spec['input_sha256'],source_sha256=self.spec['probe_sha256'],native_grant=False,publication_authority=False),'probe-original-prepared-ACK')
+        ack=json.loads(self.line(30));expected=self.prepared_ack(ack.get('namespace') if type(ack) is dict else None)
+        need(ack==expected,'probe-original-prepared-ACK')
+        self.namespace_proof=copy.deepcopy(ack.get('namespace'))
         self.local();_PREPARED_ACKS[self]=(_PROCESS_SEALS[self],encode(ack));return dict(prepared=True,id=self.cid,epoch=list(self.running_epoch),native_grant=False,publication_authority=False)
     def execute_local(self):
         need(self.gated and self.started and not self.execution_sent,'probe-original-execute-no-replay');self.local();self.execution_sent=True
@@ -221,7 +278,22 @@ class HostProbe:
         need(spec.get('image') == self.owner.plan['selected_image'], 'probe-original-selected-image')
         need(callable(getattr(self.owner,'register_nfs_probe_birth',None)) and callable(getattr(self.owner.engine,'probe_interactive',None)),'probe-owning-gated-launcher-unbound')
         self.spec_tape = encode(spec)
-        self.process = ProbeProcess(spec, dialogue.g['DOCKER'], self.owner.engine.canary, self.close,gated=True,launcher=self.owner.engine.probe_interactive)
+        # Read the already-admitted original child input; never adopt current metadata.
+        ref=self.admitted;fd=os.open(ref['path'],os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
+        try:
+            original=tuple(ref['signature9']);need(len(original)==9 and original[2]<=1024**2,'probe-original-namespace-input-bound')
+            def stamp(z):return (z.st_dev,z.st_ino,z.st_size,z.st_mtime_ns,z.st_ctime_ns,z.st_mode,z.st_uid,z.st_gid,z.st_nlink)
+            need(stamp(os.fstat(fd))==original,'probe-original-namespace-input-FD')
+            raw=bytearray()
+            while len(raw)<original[2]:
+                block=os.read(fd,min(65536,original[2]-len(raw)));need(bool(block),'probe-original-namespace-input-short');raw.extend(block)
+            need(hashlib.sha256(raw).hexdigest()==ref['sha256'] and stamp(os.fstat(fd))==original and stamp(os.lstat(ref['path']))==original,'probe-original-namespace-input-hash9')
+            plan=json.loads(raw)
+        finally:os.close(fd)
+        self.close()
+        need(plan['root']==spec['mounts'][0][1] and spec['mounts'][0][0]==spec['mounts'][0][1],'probe-current-canonical-fixture-bind')
+        namespace=dict(host=plan['mount'],host_root=spec['mounts'][0][0],child_root=spec['mounts'][0][1],root9=plan['root9'])
+        self.process = ProbeProcess(spec, dialogue.g['DOCKER'], self.owner.engine.canary, self.close,gated=True,launcher=self.owner.engine.probe_interactive,namespace=namespace)
         self.close()
 
     def birth_descriptor(self,created_profile):
@@ -230,7 +302,7 @@ class HostProbe:
         return dict(cid=p.cid_original,name=p.name,spec=copy.deepcopy(p.spec),static=p.static.hex(),profile=copy.deepcopy(created_profile))
     def prepared_descriptor(self):
         self.close();p=self.process;p.local()
-        ack=encode(dict(kind='original-nfs-probe-gate',state='prepared',token=p.spec['input_sha256'],source_sha256=p.spec['probe_sha256'],native_grant=False,publication_authority=False))
+        ack=encode(p.prepared_ack(p.namespace_proof))
         need(p.gated and p.started and not p.execution_sent and p.process.poll() is None and _PREPARED_ACKS.get(p)==(_PROCESS_SEALS.get(p),ack),'probe-original-prepared-descriptor')
         return dict(cid=p.cid_original,name=p.name,spec=copy.deepcopy(p.spec),static=p.static.hex(),process_pid=p.pid_original,process_start_ticks=p.process_start,inner_epoch=list(p.running_epoch),pipes=[[fd,list(v)] for fd,v in p.pipe_original],native_grant=False,publication_authority=False)
     def close(self):

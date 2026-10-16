@@ -55,9 +55,9 @@ PATCHES = (
     "patch_publication_derivative",
     "patch_combined_publication",
     "patch_publication_retained_standalone",
-    "patch_publication_reader_cohort",
     "patch_ddl_status_retention",
     "patch_cache_admission",
+    "patch_publication_reader_cohort",
 )
 
 

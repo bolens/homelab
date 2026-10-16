@@ -45,10 +45,10 @@ openssl rand -base64 24
 |------|---------|
 | **Access** | Via Caddy only (no host port; reverse-proxy to `romm:8080`) |
 | **Network** | `romm` internal DB; `ingress-public` for Caddy; `mail-clients` for SMTP |
-| **Images** | `rommapp/romm:latest`, `mariadb:11` |
+| **Images** | `rommapp/romm:latest`, `mariadb:13` |
 | **Env (required)** | `ROMM_AUTH_SECRET_KEY`, `MARIADB_ROOT_PASSWORD`, `MARIADB_PASSWORD`, `ROMM_BASE_URL` |
 | **Env (optional)** | `TZ`; metadata API keys (IGDB, Screenscraper, etc.) – see [RomM env docs](https://docs.romm.app/latest/Getting-Started/Environment-Variables/) |
-| **Storage** | Named volumes: `romm_mysql_data`, `romm_resources`, `romm_data`, `romm_config`, `romm_library`, `romm_assets`; optionally bind-mount library/config/assets |
+| **Storage** | Named volumes: `romm_mysql12_data`, `romm_resources`, `romm_data`, `romm_config`, `romm_library`, `romm_assets`; optionally bind-mount library/config/assets |
 
 ## Caddy reverse proxy
 
@@ -79,3 +79,9 @@ For **internal-only** (Mailpit): deploy [stacks/postfix](../postfix/README.md) a
 ## Optional: metadata providers
 
 For richer metadata and artwork, sign up for API keys and add them to `stack.env` (see [RomM metadata providers](https://docs.romm.app/latest/Getting-Started/Metadata-Providers/)): IGDB, Screenscraper, MobyGames, SteamGridDB, RetroAchievements.
+
+## Database upgrades
+
+The Compose database image is `mariadb:13`. Existing MariaDB 12 installations must follow the [major upgrade and rollback procedure](../../documents/MARIADB-UPGRADES.md) before deployment. Keep the existing volume keys, including their `12` suffix.
+
+The backup and restore scope includes `romm_mysql12_data`, `romm_resources`, `romm_data`, `romm_config`, `romm_library`, `romm_assets`, any replacement binds and private `stack.env`. Check login, platform/ROM counts, metadata, artwork, assets and a known game without triggering a bulk library scan.
