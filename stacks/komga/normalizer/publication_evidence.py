@@ -1110,7 +1110,7 @@ def historical_identity(db, ledger_dir, binding, identity, writer, *, outcome, p
 
 def initialization_witness(db, token, census, identity, writer, *, pending=None, ledger_dir=None, writer_owner=None):
     rows = db.execute("SELECT key,value FROM records WHERE kind='publication_intent'").fetchall()
-    committed = []
+    committed, bindings = [], {}
     for key, raw in rows:
         value = decode_json(raw)
         plan = intent_record(key, value)
@@ -1119,15 +1119,23 @@ def initialization_witness(db, token, census, identity, writer, *, pending=None,
         if value['outcome'] == 'committed':
             if plan['action'] == 'bootstrap':
                 committed.append(key)
-            effective = historical_identity(db, ledger_dir, plan['binding'], identity, writer, outcome='committed', pending=pending, writer_owner=writer_owner)
             epoch = plan['epoch'] if plan['action'] == 'bootstrap' else plan['old']['epoch']
             if ((plan['action'] == 'bootstrap' and key != token) or epoch != census['epoch']
-                    or effective['database_identity'] != identity
-                    or effective['writer_identity'] != writer
                     or plan['binding']['schema'] != workflow_schema(db)):
                 raise Unavailable('Foreign initialization witness')
+            # Every receipt/token/schema is validated above. Projection depends
+            # only on this historical physical pair, not its workflow envelope.
+            # Group before reading the ledger; no authority survives this call.
+            binding = plan['binding']
+            pair = (tuple(binding['database_identity']), tuple(binding['writer_identity']))
+            bindings[pair] = binding
     if committed != [token]:
         raise Unavailable('Missing unique committed initialization witness')
+    for binding in bindings.values():
+        effective = historical_identity(db, ledger_dir, binding, identity, writer,
+            outcome='committed', pending=pending, writer_owner=writer_owner)
+        if (effective['database_identity'] != identity or effective['writer_identity'] != writer):
+            raise Unavailable('Foreign initialization witness')
 
 import sqlite3
 

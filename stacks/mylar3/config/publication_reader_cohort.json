@@ -233,7 +233,7 @@
       "owning_adapters": [
         "patch_publication_guard.py"
       ],
-      "tracked_source_sha256": "f4cc888ca0534a9a8dee17843791ef664c462b6ec824ed16515a0e20a9aaaa0e"
+      "tracked_source_sha256": "a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1"
     },
     "publication_identity_adoption": {
       "owning_adapters": [
