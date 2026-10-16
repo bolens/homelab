@@ -163,6 +163,13 @@ Native rescans also hold a Deluxe Edition, collected-edition, omnibus or hardcov
 suffix against a regular-issue catalog, even when stale embedded metadata points
 to that issue. Edition words in the actual catalog title remain valid.
 
+Annual filenames such as `Action.Comics.2021.Annual.001.(2021).cbz` can match
+the base series when the explicit annual qualifier agrees with the parsed year.
+The initial catalog lookup and filename comparison use the same rule. Literal
+years in registered titles and separate annual-series owners remain distinct;
+issue, release-date, volume and annual ownership checks still decide import.
+Missing or conflicting year evidence cannot create a new base-series match.
+
 Story-arc searches queue every eligible missing entry with its arc identity and
 preserve already imported issues and annuals. TalkHard pull-list navigation uses
 Wednesday release weeks across year boundaries, including valid week 53. Legacy

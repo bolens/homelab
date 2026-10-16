@@ -16,6 +16,204 @@ from unittest.mock import Mock, patch
 
 
 class NativeMatchingTest(unittest.TestCase):
+    def pure_annual_match(self, filename, title='Action Comics', *, enabled=True, year_override='unchanged'):
+        config = SimpleNamespace(IGNORE_SEARCH_WORDS=[], CUSTOM_ISSUE_EXCEPTIONS=[],
+            ANNUALS_ON=enabled, FOLDER_SCAN_LOG_VERBOSE=False, READ2FILENAME=False, ZERO_LEVEL_N=None)
+        with patch.object(mylar, 'CONFIG', config), patch.object(filechecker, 'logger', Mock()):
+            parser = filechecker.FileChecker(dir='/fixture', justparse=True, pp_mode=True)
+            registered = filechecker.FileChecker(watchcomic=title, AlternateSearch=None)
+            with patch('builtins.open', side_effect=AssertionError('Archive reads are forbidden')), \
+                    patch('os.stat', side_effect=AssertionError('Archive stat is forbidden')):
+                parsed = parser.parseit('/fixture', filename, '/fixture/capture')
+                if year_override != 'unchanged':
+                    parsed['issue_year'] = year_override
+                return parsed, registered.matchIT(parsed)
+
+    def test_qualified_annual_release_matches_base_title_with_evidence_preserved(self):
+        for year in ('2021', '2022', '2025'):
+            with self.subTest(year=year):
+                title = 'Action Comics '+year+' Annual'
+                parsed, result = self.pure_annual_match(title+' 001 ('+year+') (Digital).cbz')
+                self.assertEqual(result['process_status'], 'match')
+                self.assertEqual(result['justthedigits'], 'Annual 001')
+                self.assertEqual(result['series_name'], title)
+                self.assertEqual(result['issue_year'], year)
+                self.assertEqual(result['series_volume'], parsed['series_volume'])
+                self.assertIsNone(result['annual_comicid'])
+
+        parsed, result = self.pure_annual_match('Action.Comics.2021.Annual.001.(2021).cbz')
+        self.assertEqual(result['process_status'], 'match')
+        self.assertEqual(result['justthedigits'], 'Annual 001')
+        self.assertEqual(result['series_name'], parsed['series_name'])
+        self.assertEqual(result['issue_year'], '2021')
+
+    def test_annual_release_conflicting_or_missing_year_cannot_gain_match(self):
+        for filename, override in [('Action Comics 2020 Annual 001 (2021).cbz', 'unchanged'),
+                                   ('Action Comics 2021 Annual 001 (2021).cbz', None)]:
+            with self.subTest(filename=filename, override=override):
+                _, result = self.pure_annual_match(filename, year_override=override)
+                self.assertEqual(result['process_status'], 'fail')
+
+    def test_annual_release_keeps_registered_title_years_and_separate_annual_owner(self):
+        filename = 'Action Comics 2021 001 (2025).cbz'
+        _, wrong = self.pure_annual_match(filename)
+        _, right = self.pure_annual_match(filename, 'Action Comics 2021')
+        self.assertEqual(wrong['process_status'], 'fail')
+        self.assertEqual(right['process_status'], 'match')
+        self.assertEqual(right['justthedigits'], '001')
+        _, separate = self.pure_annual_match('Action Comics 2021 Annual 001 (2021).cbz',
+                                            'Action Comics 2021 Annual')
+        self.assertEqual(separate['process_status'], 'match')
+        self.assertEqual(separate['justthedigits'], '001')
+        self.assertIsNone(separate['annual_comicid'])
+        _, retained = self.pure_annual_match('The 2000 Adventures 2022 Annual 001 (2022).cbz',
+                                            'The 2000 Adventures')
+        self.assertEqual(retained['process_status'], 'match')
+        self.assertEqual(retained['series_name'], 'The 2000 Adventures 2022 Annual')
+        _, unrelated = self.pure_annual_match('The 2000 Adventures 2022 Annual 001 (2022).cbz',
+                                             'The Adventures')
+        self.assertEqual(unrelated['process_status'], 'fail')
+
+    def test_normal_annual_regular_issue_and_disabled_mode_keep_native_purpose(self):
+        _, annual = self.pure_annual_match('Action Comics Annual 001 (2021).cbz')
+        self.assertEqual((annual['process_status'], annual['justthedigits']), ('match', 'Annual 001'))
+        _, regular = self.pure_annual_match('Action Comics 001 (2021).cbz')
+        self.assertEqual((regular['process_status'], regular['justthedigits']), ('match', '001'))
+        _, disabled = self.pure_annual_match('Action Comics 2021 Annual 001 (2021).cbz', enabled=False)
+        self.assertEqual(disabled['process_status'], 'fail')
+
+    def annual_lookup_keys(self, parsed):
+        import ast
+        import re
+        from mylar import file_identity
+        tree = ast.parse((SOURCE / 'PostProcessor.py').read_text())
+        native = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)
+                      and n.name == '_publication_process_original')
+        loop = next(n for n in ast.walk(native) if isinstance(n, ast.For)
+                    and isinstance(n.target, ast.Name) and n.target.id == 'fl'
+                    and ast.unparse(n.iter) == "filelist['comiclist']")
+        start = next(i for i, n in enumerate(loop.body) if isinstance(n, ast.Assign)
+                     and any(isinstance(t, ast.Name) and t.id == 'annual_title' for t in n.targets))
+        end = next(i for i in range(start, len(loop.body)) if isinstance(loop.body[i], ast.Assign)
+                   and any(isinstance(t, ast.Name) and t.id == 'watchvals' for t in loop.body[i].targets))
+        selected = ast.For(target=ast.Name(id='fl', ctx=ast.Store()),
+            iter=ast.List(elts=[ast.Name(id='parsed', ctx=ast.Load())], ctx=ast.Load()),
+            body=loop.body[start:end], orelse=[])
+        import sqlite3
+        database = sqlite3.connect(':memory:')
+        database.row_factory = sqlite3.Row
+        database.execute('CREATE TABLE comics(DynamicComicName TEXT)')
+        database.executemany('INSERT INTO comics VALUES (?)', [(value,) for value in
+            ('actioncomics', 'actioncomics2021', 'actioncomics2021annual', 'actioncomics2022annual',
+             '2000adventures2022annual')])
+        scope = dict(parsed=parsed, self=SimpleNamespace(issueid=None, comicid=None), re=re,
+                     logger=Mock(), module='[POST-PROCESSING]', mylar=mylar, filechecker=filechecker,
+                     file_identity=file_identity, alt_list=[],
+                     myDB=SimpleNamespace(select=lambda sql, args: database.execute(sql, args).fetchall()))
+        try:
+            with patch.object(mylar, 'CONFIG', SimpleNamespace(ANNUALS_ON=True)), \
+                    patch('builtins.open', side_effect=AssertionError('No archive reads')):
+                exec(compile(ast.fix_missing_locations(ast.Module(body=[selected], type_ignores=[])),
+                             'PostProcessor.py', 'exec'), scope)
+            self.last_lookup_candidates = [row['DynamicComicName'] for row in scope.get('comicseries', [])]
+        finally:
+            database.close()
+        return scope.get('loopchk')
+
+    def test_native_candidate_lookup_agrees_with_annual_comparator_and_keeps_title_year(self):
+        for year in ('2021', '2022', '2025'):
+            parsed, matched = self.pure_annual_match('Action Comics '+year+' Annual 001 ('+year+').cbz')
+            self.assertEqual(matched['process_status'], 'match')
+            self.assertIn('actioncomics', self.annual_lookup_keys(parsed))
+            # Exercise the actual alternate-title qualifier path as well.
+            parsed['alt_series'] = 'Action Comics '+year+' Annual'
+            self.assertIn('actioncomics', self.annual_lookup_keys(parsed))
+        parsed, _ = self.pure_annual_match('Action Comics 2021 001 (2025).cbz', 'Action Comics 2021')
+        self.assertIn('actioncomics2021', self.annual_lookup_keys(parsed))
+        self.assertNotIn('actioncomics', self.annual_lookup_keys(parsed))
+        parsed['series_name'] = 'Action Comics 2022 Annual'
+        parsed['issue_year'] = None
+        keys = self.annual_lookup_keys(parsed)
+        self.assertNotIn('actioncomics', keys)
+        self.assertIn('actioncomics2022annual', keys)
+
+    def test_literal_registered_annual_title_keeps_its_independent_publication_year(self):
+        for title, year in [('Action Comics 2021 Annual', '2025'),
+                            ('The 2000 Adventures 2022 Annual', '2025')]:
+            with self.subTest(title=title):
+                parsed, own = self.pure_annual_match(title+' 001 ('+year+').cbz', title)
+                self.assertEqual(own['process_status'], 'match')
+                self.assertEqual(own['justthedigits'], '001')
+                self.assertEqual(own['issue_year'], year)
+                self.assertEqual(own['series_name'], title)
+                self.assertIsNone(own['annual_comicid'])
+                self.annual_lookup_keys(parsed)
+                expected = ''.join(c for c in title.lower() if c.isalnum()).removeprefix('the')
+                self.assertIn(expected, self.last_lookup_candidates)
+        # The same qualifier cannot bridge to the unrelated bare parent with a conflicting year.
+        _, wrong = self.pure_annual_match('Action Comics 2021 Annual 001 (2025).cbz')
+        self.assertEqual(wrong['process_status'], 'fail')
+
+    def annual_special_candidate_stage(self, matched, title, source=None):
+        import ast
+        import re
+        from mylar import file_identity
+        tree = ast.parse(source if source is not None else (SOURCE / 'PostProcessor.py').read_text())
+        stage = next(n for n in ast.walk(tree) if isinstance(n, ast.If)
+                     and "'special' in tmpseriesname.lower()" in ast.unparse(n.test)
+                     and "cs['DynamicName']" in ast.unparse(n.test))
+        owner = next(n for n in ast.walk(tree) if isinstance(n, (ast.If, ast.For, ast.FunctionDef))
+                     and stage in n.body)
+        start = owner.body.index(stage)
+        end = next(i for i in range(start+1, len(owner.body)) if isinstance(owner.body[i], ast.If)
+                   and 'alt_listing' in ast.unparse(owner.body[i].test)
+                   and "cs['WatchValues']['Type']" in ast.unparse(owner.body[i].test))
+        registered = filechecker.FileChecker(watchcomic=title, AlternateSearch=None)
+        dynamic = registered.dynamic_replace(title)['mod_seriesname']
+        scope = dict(mylar=mylar, re=re, file_identity=file_identity, as_d=registered,
+                     watchmatch=matched, tmpseriesname=dynamic,
+                     cs={'DynamicName': re.sub(r'[\|\s]', '', dynamic.lower()).strip(),
+                         'WatchValues': {'Type': 'Print'}}, alt_list=[])
+        with patch.object(mylar, 'CONFIG', SimpleNamespace(ANNUALS_ON=True)), \
+                patch('builtins.open', side_effect=AssertionError('No archive reads')), \
+                patch('os.stat', side_effect=AssertionError('No archive stat')):
+            exec(compile(ast.fix_missing_locations(ast.Module(body=owner.body[start:end], type_ignores=[])),
+                         'PostProcessor.py', 'exec'), scope)
+            return eval(compile(ast.Expression(body=owner.body[end].test), 'PostProcessor.py', 'eval'), scope)
+
+    def test_literal_annual_special_owner_reaches_later_native_candidate_gate_without_exception(self):
+        for title in ('Action Comics Special 2021 Annual', 'The 2000 Adventures Special 2022 Annual'):
+            with self.subTest(title=title):
+                _, matched = self.pure_annual_match(title+' 001 (2025).cbz', title)
+                self.assertEqual(matched['process_status'], 'match')
+                self.assertEqual(matched['justthedigits'], '001')
+                self.assertEqual(matched['issue_year'], '2025')
+                self.assertIsNone(matched['annual_comicid'])
+                # The genuine later stage retains its original strict candidate refusal.
+                self.assertFalse(self.annual_special_candidate_stage(matched, title))
+
+    def test_annual_lookup_rejects_stale_or_mutated_marked_later_stage(self):
+        from patch_postprocessing import processor, LATER_ANNUAL_LOOKUP
+        post = (SOURCE / 'PostProcessor.py').read_text()
+        stale = "                                            release_title = file_identity.annual_release_title(watchmatch['series_name'], watchmatch['issue_year'])\n" + "                                            if release_title is not None:" + LATER_ANNUAL_LOOKUP.split("                                            if release_title is not None:", 1)[1]
+        # A marked stale draft or changed catch cannot silently count as current source.
+        for replacement in (stale, LATER_ANNUAL_LOOKUP.replace('except ValueError:', 'except LookupError:', 1)):
+            with self.subTest(replacement=replacement), self.assertRaises(ValueError):
+                processor(post.replace(LATER_ANNUAL_LOOKUP, replacement, 1))
+
+    def test_annual_release_checked_patch_reuses_one_helper_and_preserves_later_gates(self):
+        from patch_file_matching import patched
+        from patch_postprocessing import processor
+        checker = (SOURCE / 'filechecker.py').read_text()
+        post = (SOURCE / 'PostProcessor.py').read_text()
+        self.assertEqual(patched('filechecker.py', checker), checker)
+        self.assertEqual(processor(post), post)
+        self.assertIn('file_identity.annual_release_title', checker)
+        self.assertIn('file_identity.annual_release_title', post)
+        self.assertIn("issuechk = myDB.select(\"SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=? AND NOT Deleted\"", post)
+        self.assertIn("if int(watch_issueyear) == int(watchmatch['issue_year']):", post)
+        self.assertIn("if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):", post)
+
     def test_native_year_named_annuals_get_distinct_verified_release_ids(self):
         from mylar import file_identity
         temp = tempfile.TemporaryDirectory()

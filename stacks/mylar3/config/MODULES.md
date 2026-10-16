@@ -57,7 +57,7 @@ Mylar's package; adapters and tests stay in the build stage.
 | Manage workflows and native-tab presentation | `patch_manage_ui.py` (through `patch_wide_layout.py`) | `manage_body.html`, `manage_ui.css`, `test_manage_ui.py` |
 | Weekly release-list presentation | `patch_pullist_ui.py` (through `patch_wide_layout.py`) | `pullist_ui.css`, `test_pullist_ui.py`; native week navigation, searches, watchlist actions and weekly settings remain owned by Mylar |
 | SQLite write transactions | `patch_database_transactions.py` | `test_database_transactions.py` |
-| Filename identity and single-volume recovery | `patch_file_matching.py` | `file_identity.py`, `test_file_identity.py`, `test_file_matching.py` |
+| Filename identity, annual release qualifiers and single-volume recovery | `patch_file_matching.py` | `file_identity.py`, `test_file_identity.py`, `test_file_matching.py` |
 | Explicit catalog volume labels | `patch_catalog_volumes.py` | `catalog_volume.py`, `test_catalog_volumes.py` |
 | Story-arc search identities | `patch_story_arcs.py` | `story_arc_search.py`, `test_story_arc_search.py` |
 | Wednesday release weeks | `patch_release_calendar.py` | `release_calendar.py`, `test_release_calendar.py` |

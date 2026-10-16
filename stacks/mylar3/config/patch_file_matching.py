@@ -10,7 +10,39 @@ MARKER = "# homelab-file-matching-v1"
 RESCAN_MARKER = "# homelab-rescan-identity-v1"
 
 
+ANNUAL_MARKER = '# homelab-annual-release-title-v1'
+ANNUAL_COMPARISON = """        # homelab-annual-release-title-v1
+        annual_release_refused = False
+        if mylar.CONFIG.ANNUALS_ON and not re.search(r'\\bannual\\b', self.watchcomic, re.I):
+            try:
+                annual_title = file_identity.annual_release_title(series_name, series_info['issue_year'])
+            except ValueError:
+                annual_title = None
+                annual_release_refused = True
+            if annual_title is not None:
+                release_title = self.dynamic_replace(annual_title)
+                plain = lambda value: re.sub(r'[\\|\\s]', '', value).casefold()
+                if plain(release_title['mod_seriesname']) == plain(release_title['mod_watchcomic']):
+                    series_name = annual_title + ' Annual'
+"""
+
+
+def annual_release_comparison(source):
+    anchor = '        #compare here - match comparison against u_watchcomic.\n'
+    before = '        if qmatch_chk is not None:\n'
+    after = '        if qmatch_chk is not None and not annual_release_refused:\n'
+    if ANNUAL_MARKER in source:
+        if source.count(ANNUAL_COMPARISON) != 1 or source.count(after) != 1:
+            raise ValueError('Annual release comparison boundary changed')
+        return source
+    source = replace_once(source, anchor, ANNUAL_COMPARISON + anchor)
+    source = replace_once(source, before, after)
+    return source
+
+
 def guard_rescan(name, source):
+    if name == "filechecker.py":
+        source = annual_release_comparison(source)
     if name == "filechecker.py" and '# homelab-unicode-filename-separators-v1' not in source:
         source = replace_once(source,
             "        modfilename = re.sub(filetype, '', filename).strip()\n",

@@ -36,7 +36,7 @@
   },
   {
     "path": "file_identity.py",
-    "sha256": "b9a2bffb0e8f9ae99cdb8f83cdd041d302fb405d00e2450b15b2a003ed977cc9",
+    "sha256": "887372bfd8db0fe6fde973603a7985278da0e7f4f0c422830743f5f6a82627b6",
     "target": "fixtures/child/source/file_identity.py"
   },
   {
