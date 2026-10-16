@@ -648,6 +648,10 @@ Each capture binds the source and any extracted companion folder to a bounded
 content manifest. The worker checks available sources before reusing an inventory
 receipt; replacement bytes or added members cannot inherit earlier completion.
 Legacy receipts require their original source hashes and member set to match.
+Content checks read only each captured regular file's recorded length under the
+shared 32 GiB ceiling. Original descriptor and path checks refuse growth,
+truncation or replacement without draining appended data. Stable archive and
+companion generation values remain unchanged.
 Deploy matching Mylar and worker images before resuming this workflow.
 
 Fresh coordinated inventories treat an archive member and its extracted companion

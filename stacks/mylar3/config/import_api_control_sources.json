@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "ca5e52e9017a5d97900681496c4f0c93d40361ab6dd5ce528f976dfc08bab95f"
+    "sha256": "378f903e9cb3e666600709fe347ec66b687e02c64ad4d816f055a8a2bedc1400"
   },
   {
     "path": "story_arc_search.py",
@@ -1005,7 +1005,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_recovery.py",
-    "sha256": "9b7b086fa0ffea942136ce398fdb1699ebd655927c32ac2588bf50bb7fa17686"
+    "sha256": "5af7de153ec4bd4340d5a0236e5187c11c394705b9bdc2c23acb327f9af84959"
   },
   {
     "path": "test_fixtures/retained_pack_worker/pdf_conversion.py",
@@ -1077,7 +1077,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "2348ecc1aa33ae10e9d03fcf436d65de1aecb977fd9511e404604b877ff20407"
+    "sha256": "c835ed2172a12760be9d70d617bfdca8ba73ba81251a06192a3fb202f6bdd0f0"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",

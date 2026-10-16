@@ -771,4 +771,133 @@ class CoordinatedRepresentationTests(unittest.TestCase):
             packs.physical_inventory(value,receipt.parent)
         self.assertTrue(fired);self.assertTrue(source.exists())
 
+class PackSourceReadBoundsTest(unittest.TestCase):
+    """Small real files exercise actual read counts and original FD/path closure."""
+    def setUp(self):
+        import pack_recovery
+        self.r = pack_recovery
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+
+    def source(self, data=b'12345678'):
+        source = self.root / 'pack.zip'
+        source.write_bytes(data)
+        return source
+
+    def counted_read(self, callback=None):
+        original = self.r.os.read
+        counts = []
+        def read(fd, allowance):
+            if callback is not None:callback(len(counts))
+            value = original(fd, allowance)
+            counts.append((allowance, len(value)))
+            return value
+        return read, counts
+
+    def test_growth_refuses_after_only_original_declared_bytes(self):
+        source = self.source()
+        def grow(index):
+            if index == 0:
+                with source.open('ab') as stream:stream.write(b'x' * 64)
+        read, counts = self.counted_read(grow)
+        with patch.object(self.r.os, 'read', side_effect=read):
+            with self.assertRaisesRegex(ValueError, 'Pack source changed'):
+                source_state(source, content=True, max_bytes=8)
+        self.assertEqual(counts, [(8, 8)])
+        self.assertEqual(source.stat().st_size, 72)
+
+    def test_truncation_refuses_without_eof_drain(self):
+        source = self.source()
+        def truncate(index):
+            if index == 0:
+                with source.open('r+b') as stream:stream.truncate(4)
+        read, counts = self.counted_read(truncate)
+        with patch.object(self.r.os, 'read', side_effect=read):
+            with self.assertRaisesRegex(ValueError, 'Pack source changed'):
+                source_state(source, content=True, max_bytes=8)
+        self.assertEqual(counts, [(8, 4), (4, 0)])
+
+    def test_shared_budget_applies_across_outer_and_companion(self):
+        source = self.source(b'abcd')
+        companion = source.with_suffix('');companion.mkdir()
+        (companion / 'one.cbz').write_bytes(b'abcdefgh')
+        read, counts = self.counted_read()
+        with patch.object(self.r.os, 'read', side_effect=read):
+            with self.assertRaisesRegex(ValueError, 'exceeds limits'):
+                source_state(source, content=True, max_bytes=8)
+        self.assertEqual(counts, [(4, 4)])
+
+    def test_shared_budget_is_not_per_companion_member(self):
+        source = self.root / 'pack';source.mkdir()
+        (source / 'a.cbz').write_bytes(b'abcdefgh')
+        (source / 'b.cbz').write_bytes(b'ijklmnop')
+        read, counts = self.counted_read()
+        with patch.object(self.r.os, 'read', side_effect=read):
+            with self.assertRaisesRegex(ValueError, 'exceeds limits'):
+                source_state(source, content=True, max_bytes=12)
+        self.assertEqual(counts, [(8, 8)])
+
+    def test_same_bytes_path_replacement_refuses_original_fd(self):
+        source = self.source()
+        def replace(index):
+            if index == 0:
+                replacement = self.root / 'replacement';replacement.write_bytes(b'12345678')
+                replacement.replace(source)
+        read, counts = self.counted_read(replace)
+        with patch.object(self.r.os, 'read', side_effect=read):
+            with self.assertRaisesRegex(ValueError, 'Pack source changed'):
+                source_state(source, content=True, max_bytes=8)
+        self.assertEqual(counts, [(8, 8)])
+
+    def test_symlink_replacement_before_open_never_reads_target(self):
+        source = self.source();target = self.root / 'target';target.write_bytes(b'private sentinel')
+        original_open = self.r.os.open
+        def replace(path, flags):
+            source.unlink();source.symlink_to(target)
+            return original_open(path, flags)
+        with patch.object(self.r.os, 'open', side_effect=replace),patch.object(self.r.os, 'read') as read:
+            with self.assertRaises(OSError):source_state(source, content=True, max_bytes=8)
+        read.assert_not_called()
+        self.assertEqual(target.read_bytes(), b'private sentinel')
+
+    def test_read_error_closes_owned_descriptor(self):
+        source = self.source();original_close = self.r.os.close
+        with patch.object(self.r.os, 'read', side_effect=OSError('fixture')),patch.object(self.r.os, 'close', wraps=original_close) as close:
+            with self.assertRaises(OSError):source_state(source, content=True, max_bytes=8)
+        close.assert_called_once()
+        with self.assertRaises(OSError):self.r.os.fstat(close.call_args.args[0])
+
+    def test_stable_generation_and_metadata_match_original_canonical_vectors(self):
+        import hashlib
+        source = self.source(b'abcd');companion = source.with_suffix('');companion.mkdir()
+        (companion / 'empty').mkdir();member = companion / 'one.cbz';member.write_bytes(b'efgh')
+        content = [];metadata_rows = []
+        for prefix, root, paths in [('source', source, [source]),
+                ('companion', companion, sorted([companion, companion / 'empty', member]))]:
+            for path in paths:
+                info = path.stat();name = prefix + '/' + str(path.relative_to(root))
+                kind = 'file' if path.is_file() else 'directory'
+                content.append([name, kind, hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None])
+                metadata_rows.append([name, kind, [info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns]])
+        expected = lambda rows:hashlib.sha256(json.dumps(rows, separators=(',', ':')).encode()).hexdigest()
+        self.assertEqual(source_state(source, content=True, max_bytes=8), expected(content))
+        with patch.object(self.r.os, 'read', side_effect=AssertionError('metadata read payload')):
+            self.assertEqual(source_state(source, max_bytes=8), expected(metadata_rows))
+
+    def test_empty_regular_file_retains_canonical_generation(self):
+        import hashlib
+        source = self.source(b'')
+        expected = hashlib.sha256(json.dumps([['source/.', 'file', hashlib.sha256(b'').hexdigest()]], separators=(',', ':')).encode()).hexdigest()
+        with patch.object(self.r.os, 'read') as read:self.assertEqual(source_state(source, content=True, max_bytes=1), expected)
+        read.assert_not_called()
+
+    def test_invalid_or_expanded_budget_refuses_before_read(self):
+        source = self.source()
+        for limit in (0, -1, True, 1.5, 32 * 1024**3 + 1):
+            with self.subTest(limit=limit),patch.object(self.r.os, 'read') as read:
+                with self.assertRaisesRegex(ValueError, 'exceeds limits'):source_state(source, content=True, max_bytes=limit)
+                read.assert_not_called()
+
+
 if __name__=='__main__':unittest.main()
