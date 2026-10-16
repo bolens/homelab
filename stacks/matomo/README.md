@@ -37,3 +37,9 @@ configure periodic archiving via the built-in cron job.
 - TZ and locale come from shared.env.
 - The web installer creates config.ini.php; MATOMO_CONFIG_PATH must point to that file for persistence.
 - Archiving keeps reports fast; without it, reports are generated on-demand which is slow at scale.
+
+## Database upgrades
+
+The Compose database image is `mariadb:13`. Existing MariaDB 12 installations must follow the [major upgrade and rollback procedure](../../documents/MARIADB-UPGRADES.md) before deployment. Keep the existing volume keys, including their `12` suffix.
+
+The backup and restore scope includes `matomo_db12`, `matomo_html`, the bind-mounted `MATOMO_CONFIG_PATH` file and private `stack.env`. Check the existing sites, users, visit/report totals and tracker ingestion against the baseline.

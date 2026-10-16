@@ -141,6 +141,12 @@ services:
       - ${STOAT_CONFIG_DIR:-/home/youruser/.config/stoat}/.env.web
     volumes:
       - ${STOAT_CONFIG_DIR:-/home/youruser/.config/stoat}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - type: bind
+        source: ${STOAT_CONFIG_DIR:-/home/youruser/.config/stoat}/stoat.json
+        target: /stoat.json
+        read_only: true
+        bind:
+          create_host_path: false
       - stoat_caddy_data:/data
       - stoat_caddy_config:/config
     networks:
@@ -151,9 +157,12 @@ services:
   api:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/api:v0.15.5
+    image: ghcr.io/stoatchat/api:v0.16.1
     container_name: stoat-api
     restart: unless-stopped
+    env_file:
+      # Fresh configs select generated secrets.env; legacy inline keys stay intact.
+      - ${STOAT_SECRETS_FILE:-legacy-backend.env.example}
     cpus: 2.0
     mem_limit: 2g
     memswap_limit: 3g
@@ -179,9 +188,12 @@ services:
   events:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/events:v0.15.5
+    image: ghcr.io/stoatchat/events:v0.16.1
     container_name: stoat-events
     restart: unless-stopped
+    env_file:
+      # Fresh configs select generated secrets.env; legacy inline keys stay intact.
+      - ${STOAT_SECRETS_FILE:-legacy-backend.env.example}
     cpus: 1.0
     mem_limit: 1g
     memswap_limit: 1536m
@@ -205,9 +217,12 @@ services:
   autumn:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/file-server:v0.15.5
+    image: ghcr.io/stoatchat/file-server:v0.16.1
     container_name: stoat-autumn
     restart: unless-stopped
+    env_file:
+      # Fresh configs select generated secrets.env; legacy inline keys stay intact.
+      - ${STOAT_SECRETS_FILE:-legacy-backend.env.example}
     cpus: 2.0
     mem_limit: 2g
     memswap_limit: 3g
@@ -231,9 +246,12 @@ services:
   january:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/proxy:v0.15.5
+    image: ghcr.io/stoatchat/proxy:v0.16.1
     container_name: stoat-january
     restart: unless-stopped
+    env_file:
+      # Fresh configs select generated secrets.env; legacy inline keys stay intact.
+      - ${STOAT_SECRETS_FILE:-legacy-backend.env.example}
     cpus: 1.0
     mem_limit: 1g
     memswap_limit: 1536m
@@ -252,9 +270,12 @@ services:
   gifbox:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/gifbox:v0.15.5
+    image: ghcr.io/stoatchat/gifbox:v0.16.1
     container_name: stoat-gifbox
     restart: unless-stopped
+    env_file:
+      # Fresh configs select generated secrets.env; legacy inline keys stay intact.
+      - ${STOAT_SECRETS_FILE:-legacy-backend.env.example}
     cpus: 1.0
     mem_limit: 1g
     memswap_limit: 1536m
@@ -273,9 +294,12 @@ services:
   crond:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/crond:v0.15.5
+    image: ghcr.io/stoatchat/crond:v0.16.1
     container_name: stoat-crond
     restart: unless-stopped
+    env_file:
+      # Fresh configs select generated secrets.env; legacy inline keys stay intact.
+      - ${STOAT_SECRETS_FILE:-legacy-backend.env.example}
     cpus: 1.0
     mem_limit: 1g
     memswap_limit: 1536m
@@ -299,9 +323,12 @@ services:
   pushd:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/pushd:v0.15.5
+    image: ghcr.io/stoatchat/pushd:v0.16.1
     container_name: stoat-pushd
     restart: unless-stopped
+    env_file:
+      # Fresh configs select generated secrets.env; legacy inline keys stay intact.
+      - ${STOAT_SECRETS_FILE:-legacy-backend.env.example}
     cpus: 1.0
     mem_limit: 1g
     memswap_limit: 1536m
@@ -327,9 +354,12 @@ services:
   voice-ingress:
     labels:
       logging: "true"
-    image: ghcr.io/stoatchat/voice-ingress:v0.15.5
+    image: ghcr.io/stoatchat/voice-ingress:v0.16.1
     container_name: stoat-voice-ingress
     restart: unless-stopped
+    env_file:
+      # Fresh configs select generated secrets.env; legacy inline keys stay intact.
+      - ${STOAT_SECRETS_FILE:-legacy-backend.env.example}
     cpus: 2.0
     mem_limit: 2g
     memswap_limit: 3g

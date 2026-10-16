@@ -4,7 +4,7 @@ services:
   tailscale-exporter:
     labels:
       logging: "true"
-    image: adinhodovic/tailscale-exporter:latest@sha256:317db08482da5f9d08ba8978806aba25b9ac0ea1aec56996d6aec32de708d3b7
+    image: adinhodovic/tailscale-exporter:latest@sha256:e65d9d3a5bc3ac3ee12bfdb62960b1918a6e8ecd386bbb8ddef2a68bc2b7eafd
     container_name: tailscale-exporter
     restart: unless-stopped
     cpus: 1.0

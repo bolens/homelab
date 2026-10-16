@@ -20,23 +20,13 @@ only after reviewing the selected release and verifying application state.
 
 ## Quick start
 
-1. **Generate Stoat config in `/home/youruser/.config/stoat`**
+1. **Generate configuration for a new installation**
 
-   From anywhere:
+   Use a reviewed checkout of [stoatchat/self-hosted](https://github.com/stoatchat/self-hosted), not the generator script on its own: it also needs `secrets.env.example` and the matching Caddy/configuration files. Review the selected revision, then run `./generate_config.sh stoat.yourdomain.com` inside that checkout. Do not use `--overwrite` to perform an image upgrade.
 
-   ```bash
-   curl -O https://raw.githubusercontent.com/stoatchat/self-hosted/main/generate_config.sh
-   chmod +x generate_config.sh
-   ./generate_config.sh stoat.home   # or stoat.yourdomain.com
-   mkdir -p /home/youruser/.config/stoat
-   mv .env.web Revolt.toml livekit.yml /home/youruser/.config/stoat/
-   ```
+   After verifying the destination filesystem, copy the generated `Revolt.toml`, `.env.web`, `livekit.yml`, `stoat.json`, matching `Caddyfile` and private `secrets.env` into a new private config directory, for example `/home/youruser/.config/stoat`. Preserve every existing file. Restrict the directory to its owner and the private secrets file to mode `600`.
 
-   This creates:
-
-  - `/home/youruser/.config/stoat/.env.web` – host/URL config for Stoat's internal Caddy and web app.
-  - `/home/youruser/.config/stoat/Revolt.toml` – core Stoat configuration.
-  - `/home/youruser/.config/stoat/livekit.yml` – LiveKit (voice/video) configuration.
+   Set `STOAT_CONFIG_DIR` in `stack.env` and set `STOAT_SECRETS_FILE` to the generated private `secrets.env` path. All eight backend services load that selected file. A missing selected file stops deployment; the image's public development keys are not suitable for a fresh deployment. `stoat.json` contains the public API URL and is mounted read-only for the inner Caddy discovery route; it contains no credentials.
 
 2. **(Recommended) Adjust for running behind this Caddy**
 
@@ -58,6 +48,7 @@ only after reviewing the selected release and verifying application state.
    - `stoat_rabbit_data` – RabbitMQ data
    - `stoat_minio_data` – MinIO object storage
    - `stoat_caddy_data`, `stoat_caddy_config` – Stoat Caddy state
+   - The complete `STOAT_CONFIG_DIR`, selected `STOAT_SECRETS_FILE`, and private `stack.env` – configuration and keys; keep these with the database/object-store backup.
 
    These volumes are managed by Docker (not stored under the stack directory).
 
@@ -81,8 +72,8 @@ only after reviewing the selected release and verifying application state.
 | **Access** | Via main Caddy only (no host ports in this stack) |
 | **Network** | `stoat` private for all services; `ingress-public` only for Stoat Caddy |
 | **Images** | From `ghcr.io/stoatchat/*`, `mongo`, `valkey/valkey`, `rabbitmq`, `minio` |
-| **Env** | `.env.web` (generated) and `Revolt.toml` control URLs and features; compose uses `${RABBITMQ_DEFAULT_*}` and `${MINIO_ROOT_*}` overrides if set |
-| **Storage** | Host-mapped `./data/*` directories (see above) |
+| **Env** | `Revolt.toml` plus the selected `STOAT_SECRETS_FILE` configure the backends; `.env.web` configures inner Caddy. Keep RabbitMQ/MinIO credentials consistent across their services and backend configuration. |
+| **Storage** | Named state volumes plus operator-owned `STOAT_CONFIG_DIR` and `STOAT_SECRETS_FILE` (see above) |
 
 For advanced options (invite-only, S3, email, captcha, mobile push), see the upstream README and `Revolt.toml` reference.
 
@@ -126,3 +117,15 @@ Ensure Stoat Caddy is on `ingress-public` so the main Caddy can resolve `stoat-c
 ## Voice / LiveKit notes
 
 This stack **does not** publish LiveKit ports (`7881`, `50000-50100/udp`) on the host. For full voice/video support from the public internet you will need additional routing (e.g. publishing those ports, using a VPN, or Cloudflare-compatible UDP tunnelling). For local/LAN-only testing, you can selectively expose them in a `compose.override.yml` based on the upstream docs.
+
+## Existing configuration and release upgrades
+
+Back up the complete configuration, selected secrets file and all persistent volumes, and verify an isolated restore before upgrading. Record the current image IDs, accounts/messages, files and their checksums. Do not regenerate encryption, VAPID or LiveKit keys during an image update.
+
+Existing `stack.env` files without `STOAT_SECRETS_FILE` use the tracked empty `legacy-backend.env.example`, preserving their previous `Revolt.toml` settings. Before selecting a generated `secrets.env`, verify privately that its keys match the effective keys used by the old deployment. A previously generated but unused file is not proof of the active key. Changing the effective encryption key can make existing files unreadable. Preparation preserves existing runtime files and never enables a new secrets file automatically.
+
+Before recreation, provide `stoat.json` under `STOAT_CONFIG_DIR` with the existing public API URL, for example `{"api":"https://stoat.yourdomain.com/api"}`. This public discovery file can be added without regenerating private configuration. The bind refuses to create a missing source as a directory. Keep the existing Caddy routing and public hostname choices when reviewing an upstream template.
+
+The 0.16.1 backend retains `/Revolt.toml` and `REVOLT__...` environment overrides; its added settings have embedded defaults. The default Shield host is empty. If a custom Shield service is configured, review the [0.16 protocol change](https://github.com/stoatchat/stoatchat/pull/1018): the client now uses `/v1/validate`, bearer authentication and a changed JSON response. This requires checking that configured service, not replacing all self-hosted configuration.
+
+Upgrade the eight backend services together. Verify login, sending/receiving messages and events, old and new media, the existing client, push configuration, voice and API discovery before acceptance. The official self-hosted example still selects 0.15.5; source/configuration compatibility alone does not establish these runtime checks for 0.16.1. If acceptance fails, stop the updated backend and restore the verified state and effective keys with all prior matching images; reverting one service tag is insufficient.

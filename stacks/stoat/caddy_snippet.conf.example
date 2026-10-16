@@ -1,5 +1,8 @@
 # Stoat (front Caddy on stoat-caddy) — split-horizon + public TLS: stoat.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
 
+# The inner Caddy uses the operator-owned Caddyfile and public stoat.json API discovery file.
+# Keep authentication/encryption secrets in STOAT_SECRETS_FILE, never in ingress files.
+
 stoat.home, stoat.local {
 	tls internal
 	reverse_proxy stoat-caddy:80 {
