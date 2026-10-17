@@ -1269,7 +1269,7 @@ Actual read-only diagnostic 38629 confirms the single archived failure is retain
 The fresh-descriptor, exact-archive successor preserves the original in place and writes truthful recovered custody. The next fresh admission refuses `current-ready` before Writer acquisition or catalog comparison; no acceptance or start intent is produced. A separate bounded native probe then records three `writer-busy` samples followed by two verified READY replies with census size five, post-processing alive/empty and processing false. This establishes a transient busy interval; it does not retroactively accept the refused attempt. The next helper change will wait only for that specific busy reason within a fixed deadline and isolate read-only attempt diagnostics from global start-intent fences.
 
 
-## Worker runtime and refreshed catalog baseline — 2026-10-17
+## Worker runtime and refreshed catalog baseline — 2026-10-16
 
 All 231 six-suite source-overlay controls pass without skips in the accepted worker Python 3.13.5 runtime with the genuine archive backend and all 107 source pins closed. The initial isolated run used a 128 MiB fixture filesystem, which could not satisfy the existing 128 MiB processing reserve. Repeating with 512 MiB scratch changes no source or assertions; both results remain retained. This verifies the source overlay, not an installed successor or live import.
 
@@ -1279,3 +1279,12 @@ Private results: runtime control `worker-shared-digest-runtime-3f781cefd5c643058
 
 
 The refreshed scoped operation subsequently verifies the backup, isolated restore and independent source comparison, then restarts the same Mylar image in about six minutes. The newer catalog is now protected without recopying the library or stopping Komga. The guarded selected recovery and its passive result observer remain separate pending execution; the backup operation itself does not start the canary or establish import/ACK acceptance.
+
+
+## Duplicate scheduler rows and delivery follow-up — 2026-10-16
+
+The guarded selected attempt reaches READY, then stops before START because the operational verifier assumes unique job names. The current backup contains seven valid named job rows, including two identical rows; the native schema declares no uniqueness constraint. The corrected classifier preserves exact typed row multisets and multiplicities, pairs changed rows only through unchanged stable fields and refuses ambiguous changes. All 23 controls and independent source review pass. Current-data execution and import/ACK acceptance remain pending; the backup does not need repeating for this verifier correction. Both coordinating chats are released after refusal, with Mylar and Komga healthy and the canary never started.
+
+The isolated configured-capacity probe reaches genuine admission but stops at the protocol lock opening before reservation verification. Its test container is confirmed exited with code 2 and PID 0; no application data, import or service lifecycle changes occur. The saved exception points to the Writer's read/write lock descriptor under the test's read-only mount. Exact errno and the narrow test-mount correction remain pending. This is not an observed capacity refusal or a completed T030 check.
+
+PR [#374](https://github.com/bolens/homelab/pull/374) merges normally as `f685bc03` after all seven required and all sixteen observed checks accept, with current CodeQL and feedback clear. The reviewed branch and merged trees match exactly; GitHub main, local main and the authorized mirror agree. The completed local source branch is removed normally. Published-image installation and configured acceptance remain separate.
