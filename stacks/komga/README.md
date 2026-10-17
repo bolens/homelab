@@ -925,6 +925,14 @@ series or request catalog fallback. A unique match still passes the existing
 publication and import guards before submission. The normal automated pack cycle
 keeps its existing catalog-addition behavior.
 
+The selected command waits for temporary Writer contention within a 30-second
+admission budget, with a finite attempt limit. It refreshes read-only preparation
+outside Writer before another admission attempt. Existing recovery markers and
+invalid authority still refuse admission. Once the processing section is entered,
+failures and uncertain submissions are not retried by this wait. Existing API
+request timeouts remain separate from the admission waiting budget. Recurring mode
+keeps its existing between-pass contention handling.
+
 Selected preparation fetches health and the exact pack work, retaining the
 existing reader snapshot and response checks. It omits the unrelated queued-command
 fetch, so this preparation does not rotate that command cursor. Normal maintenance

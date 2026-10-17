@@ -1236,7 +1236,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/normalize.py",
-    "sha256": "953ee831d2d1ebeacae454f2e244f724012edfce8d2d2a00e3149008ed8e80d9",
+    "sha256": "812996132dacf5fc5c0bc22e0cac291a77f9f298a8a653ad90e9d462ca774034",
     "target": "test_fixtures/retained_pack_worker/normalize.py"
   },
   {
@@ -1251,7 +1251,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_only.py",
-    "sha256": "4e07eeea8c1eca335c7021d8db1ee34c1c6cc088a1fc256226ecc48c5077b16c",
+    "sha256": "c592c5b0e28549d643998c6f8cd72d1513edc504ed27c03ff4be79f263f36ee0",
     "target": "test_fixtures/retained_pack_worker/pack_only.py"
   },
   {
@@ -1346,7 +1346,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "e21402ef2540be216644af54d03b57c44f4f0ff8be994cb1e3b1c87d1cb2b283",
+    "sha256": "913912a2efc71ec1587ea44044ecc4565b9af9ba08f656b62662227411d4a873",
     "target": "test_fixtures/retained_pack_worker/source-pins.json"
   },
   {
