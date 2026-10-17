@@ -179,7 +179,7 @@ def control_join(plan,custody):
  return request
 
 def emit(operation,name,value,expected_names):
- need(name in ('execution-originals.json','execute-report.json','verify-terminal-report.json'),'repair-fixed-output')
+ need(name in ('execution-originals.json','execute-report.json','verify-terminal-report.json') or name=='terminal-report.json' and expected_names==('execution-originals.json',),'repair-fixed-output')
  operation=Path(operation);names=frozenset(expected_names)
  need(frozenset(os.listdir(operation))==names,'repair-output-original-census')
  nodes={p:five(os.lstat(p)) for p in (operation,*operation.parents)}

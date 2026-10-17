@@ -269,3 +269,13 @@ Independent review passes. Seven new controls cover detached observation, unchan
 
 
 PR [#367](https://github.com/bolens/homelab/pull/367) merges normally as `b64ed5db` after all seven required checks pass. All 14 contexts are accepted, including the native image build; the conditional Spec Kit update job is correctly skipped. Both exact merge-ref CodeQL analyses report no errors, warnings or results, and review feedback is clear. Local main and the intended Gitea mirror match the merge. This completes reviewed source delivery. The running native image predates this correction, so published-image installation and configured archive/reader acceptance remain open.
+
+
+## Connected archive execution — 2026-10-16
+
+A genuine producer-to-Parent-to-worker test exposes a production refusal after archive execution: `execute_same_child` emits `terminal-report.json`, but its fixed-output guard rejects that name. The correction admits only that fixed filename with the exact preceding execution-originals census. Exclusive writes, source vectors, terminal rights and replay restrictions remain unchanged.
+
+Five new host controls pass independently, covering actual reports and original-pipe acknowledgement, retained originals, lost response, terminal tampering and reproduction with the historical provider. The genuine owning source export also executes all five; 21 configured-installer controls and full local delivery checks pass. Current installer/source maps close without rewriting historical fixtures, authenticated anchors, launch maps or generated worker outputs. Initial admission and installed-origin boundaries remain explicit fixtures. Target-runtime CI, publication, configured Parent/Birth/NFS and reader continuity remain required before T012/T015 or live T016–T018 can close. See [the shared selected/catalog and source-delivery evidence](../023-verified-publication-corrections/evidence-history.md#connected-repair-and-selected-catalog-follow-up--2026-10-16).
+
+
+The first PR #373 native build stops before exporting the test sources because the Docker allowlist excludes the two new supplier fixtures. The correction adds only that directory and its two exact public filenames. The official Moby matcher then includes all 654 owning source paths, compared with exactly two missing before the fix, while six foreign/configuration/cache cases remain excluded. The existing genuine image gate remains unchanged and must pass on the corrected head. The project guide now records that source-map closure alone does not prove build-context inclusion.

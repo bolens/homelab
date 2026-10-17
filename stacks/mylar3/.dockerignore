@@ -52,6 +52,10 @@ config/reader_recovery/_archive_repair_fixtures/**
 !config/reader_recovery/_archive_worker_fixtures/
 config/reader_recovery/_archive_worker_fixtures/**
 !config/reader_recovery/_archive_worker_fixtures/archive_terminal_observation.py
+!config/reader_recovery/_archive_connected_fixtures/
+config/reader_recovery/_archive_connected_fixtures/**
+!config/reader_recovery/_archive_connected_fixtures/producer.py
+!config/reader_recovery/_archive_connected_fixtures/action_preimage.py
 !config/reader_recovery/_negative_reader_fixtures/
 config/reader_recovery/_negative_reader_fixtures/**
 !config/reader_recovery/_negative_reader_fixtures/*.py

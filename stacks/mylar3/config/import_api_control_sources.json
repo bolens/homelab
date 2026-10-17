@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "378f903e9cb3e666600709fe347ec66b687e02c64ad4d816f055a8a2bedc1400"
+    "sha256": "ebe05e667cc6295f53482f716ac441d1653d370775c31c7f2281fd1f688ac839"
   },
   {
     "path": "story_arc_search.py",
@@ -1248,6 +1248,10 @@
     "sha256": "9e6a05aafd6db91a2e7ef7671fec46ae2ca1a0980834f37b221ee8469abc17c4"
   },
   {
+    "path": "test_publication_archive_connected.py",
+    "sha256": "a944901c3b3e7c5eafc74fdfddab01bfdcfb6667a542f3cdb431427d7bb85f79"
+  },
+  {
     "path": "test_publication_archive_terminal_originals.py",
     "sha256": "923ffd30742a8becd4c1a3d24a16975dfcee8677194f45bb7aa50649905258a3"
   },
@@ -1597,7 +1601,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "ec2bc797cbc839ca31b12212136601e1ae08c6e5ca008b79f396be43550e5d8a"
+    "sha256": "20d2e6d00e4fdc4422547932f80dbe86afff5481b0bec635a863c06811086038"
   },
   {
     "path": "verify_publication_reader_cohort.py",
