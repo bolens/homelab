@@ -135,6 +135,17 @@ A nonblocking Writer refusal before start intent is contention, not a failed imp
 Retain the failed attempt, verify the owned container never started, and use a bounded
 acquisition wait with unchanged original-lock checks before a fresh attempt. Do not
 reset uncertain start evidence or repeat an unaffected verified backup.
+After changing a directory namespace, enumerate it through a freshly opened directory
+descriptor relative to the held descriptor and verify the same physical identity.
+On this host, Btrfs returned a stale first listing from a reused descriptor after a
+rename; the same fixture passed on tmpfs. Test filesystem-sensitive helpers on their
+actual target filesystem. Persist pre-mutation receipt vectors before changing names;
+if that capture is missing, record the gap rather than reconstructing a historical vector.
+Keep read-only attempt diagnostics in their own protected attempt directory, separate
+from durable prestart/start-intent fences. Preserve earlier refused attempts without
+resetting uncertain execution evidence. A bounded readiness wait may retry only the
+observed transient reason; each final accepted sample must still satisfy the full
+current health and data contract.
 
 Reuse accepted evidence only when its source bytes, selected checks, configuration
 and relevant runtime still match. Recheck changed inputs rather than repeating
