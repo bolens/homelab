@@ -772,7 +772,7 @@ def main():
         with (state / 'worker.lock').open('a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             from pack_only import run
-            print(json.dumps(run(normalizer, args.pack_capture, args.pack_ddl)), flush=True)
+            print(json.dumps(run(normalizer, args.pack_capture, args.pack_ddl, admission_wait=30)), flush=True)
         return
     if args.packs_only:
         normalizer = Normalizer(config)

@@ -159,4 +159,252 @@ class ProducedReceiptTests(unittest.TestCase):
         self.assertEqual(dispatch_prepared(f.m,tuple(f.m._pack_only_imports)),0)
         self.assertEqual(receipt.read_bytes(),original)
 
-if __name__=='__main__':unittest.main()
+
+class AdmissionWaitTests(AuthorityFixture, unittest.TestCase):
+    def selected(self):
+        return OwnedPassTests.setup_pass(self)
+
+    def execute(self, module, worker, maintenance, init, cycle=None, **kwargs):
+        with (patch('publication_guard.Authority.__init__', init),
+              patch.object(module, 'Maintenance', return_value=maintenance),
+              patch.object(module, 'Packs') as packs,
+              patch('import_recovery.dispatch_prepared', return_value=0),
+              patch('native_handoff.dispatch', return_value=0)):
+            packs.return_value.cycle.side_effect = cycle
+            result = module.run(worker, 'a' * 64, '1', **kwargs)
+        return result, packs
+
+    def lock(self):
+        import os, fcntl
+        fd = os.open(self.writer.lock, os.O_RDWR)
+        self.addCleanup(os.close, fd)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return fd
+
+    def test_initial_real_contention_releases_outside_writer(self):
+        import fcntl
+        module, worker, maintenance, init = self.selected()
+        fd = self.lock()
+        batch = maintenance.prepare.return_value
+        def prepare(*args):
+            self.assertFalse(getattr(self.writer.local[1], 'depth', 0))
+            self.assertFalse(self.writer.fenced())
+            return batch
+        maintenance.prepare.side_effect = prepare
+        with patch('pack_only.time.sleep', side_effect=lambda _: fcntl.flock(fd, fcntl.LOCK_UN)) as sleep:
+            result, packs = self.execute(module, worker, maintenance, init, admission_wait=30)
+        self.assertEqual(sleep.call_count, 1)
+        maintenance.prepare.assert_called_once_with('a' * 64, '1')
+        packs.return_value.cycle.assert_called_once_with('a' * 64, '1', scan=False)
+        self.assertEqual(result['import_requests'], 0)
+        self.assertFalse(self.writer.fenced())
+
+    def test_second_real_contention_recollects_fresh_batch(self):
+        import fcntl, os
+        from publication_guard import NativeBatch
+        module, worker, maintenance, init = self.selected()
+        fd = os.open(self.writer.lock, os.O_RDWR)
+        self.addCleanup(os.close, fd)
+        batches = []
+        def prepare(*args):
+            self.assertFalse(getattr(self.writer.local[1], 'depth', 0))
+            batch = NativeBatch(worker, {'packWork': {'enabled': True, 'packs': [{'id': 'a' * 64, 'ddl_id': '1'}]}})
+            batches.append(batch)
+            if len(batches) == 1: fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return batch
+        maintenance.prepare.side_effect = prepare
+        with patch('pack_only.time.sleep', side_effect=lambda _: fcntl.flock(fd, fcntl.LOCK_UN)) as sleep:
+            def cycle(*args, **kwargs):
+                from publication_guard import current
+                self.assertIs(current(worker).native_batch, batches[-1])
+            _, packs = self.execute(module, worker, maintenance, init, cycle=cycle, admission_wait=30)
+        self.assertEqual(sleep.call_count, 1)
+        self.assertEqual(maintenance.prepare.call_count, 2)
+        self.assertIsNot(batches[0], batches[1])
+        packs.return_value.cycle.assert_called_once()
+
+    def test_persistent_real_contention_elapsed_and_attempt_bounds(self):
+        from media_writer import Busy
+        module, worker, maintenance, init = self.selected()
+        self.lock()
+        clock = [100.0]
+        def pause(seconds): clock[0] += seconds
+        with (patch('pack_only.time.monotonic', side_effect=lambda: clock[0]),
+              patch('pack_only.time.sleep', side_effect=pause) as sleep, self.assertRaises(Busy)):
+            self.execute(module, worker, maintenance, init, admission_wait=1)
+        self.assertLessEqual(sum(c.args[0] for c in sleep.call_args_list), 1)
+        self.assertLessEqual(sleep.call_count, 2)
+        with (patch('pack_only.time.monotonic', return_value=100),
+              patch('pack_only.time.sleep') as sleep, self.assertRaises(Busy)):
+            self.execute(module, worker, maintenance, init, admission_wait=120)
+        self.assertLessEqual(sleep.call_count, 240)
+        maintenance.prepare.assert_not_called()
+
+    def test_all_durable_markers_refuse_without_wait_or_prepare(self):
+        from media_writer import Busy
+        module, worker, maintenance, init = self.selected()
+        names = ('normalizer-v1.pending', 'tagger-v2.pending', 'release-v1.pending',
+                 'normalizer-state-adoption-v1.pending', 'negative-retirement-v1.pending',
+                 'negative-retirement-v1.terminal-pending', 'archive-repair-v1.pending',
+                 'archive-repair-v1.terminal-pending')
+        for name in names:
+            with self.subTest(marker=name):
+                path = self.writer.root / name
+                path.write_bytes(b'retained pending')
+                try:
+                    with patch('pack_only.time.sleep') as sleep, self.assertRaises(Busy):
+                        self.execute(module, worker, maintenance, init, admission_wait=30)
+                    maintenance.prepare.assert_not_called(); sleep.assert_not_called()
+                    self.assertEqual(path.read_bytes(), b'retained pending')
+                finally: path.unlink()
+
+    def test_pending_born_during_prepare_is_not_retried(self):
+        from media_writer import Busy
+        module, worker, maintenance, init = self.selected()
+        batch = maintenance.prepare.return_value
+        def prepare(*args):
+            self.writer.create_file(self.writer.pending)
+            return batch
+        maintenance.prepare.side_effect = prepare
+        with patch('pack_only.time.sleep') as sleep, self.assertRaises(Busy):
+            self.execute(module, worker, maintenance, init, admission_wait=30)
+        sleep.assert_not_called(); self.assertEqual(maintenance.prepare.call_count, 1)
+        self.assertTrue(self.writer.fenced())
+
+    def test_scope_and_processing_busy_never_replay(self):
+        from media_writer import Busy
+        from contextlib import contextmanager
+        module, worker, maintenance, init = self.selected()
+        @contextmanager
+        def refused_scope(*args, **kwargs):
+            raise Busy('scope refusal is not a lock-entry retry')
+            yield
+        with patch.object(module, 'scope', refused_scope), patch('pack_only.time.sleep') as sleep, self.assertRaises(Busy):
+            self.execute(module, worker, maintenance, init, admission_wait=30)
+        sleep.assert_not_called(); maintenance.prepare.assert_not_called()
+        with (patch('publication_guard.Authority.__init__', init), patch.object(module, 'Maintenance', return_value=maintenance),
+              patch.object(module, 'Packs') as packs, patch('pack_only.time.sleep') as sleep, self.assertRaises(Busy)):
+            packs.return_value.cycle.side_effect = Busy('downstream uncertainty')
+            module.run(worker, 'a' * 64, '1', admission_wait=30)
+        sleep.assert_not_called(); self.assertEqual(maintenance.prepare.call_count, 1)
+        packs.return_value.cycle.assert_called_once(); self.assertTrue(self.writer.fenced())
+
+    def test_prepare_errors_never_retry(self):
+        from media_writer import Busy
+        from publication_guard import Unavailable
+        module, worker, maintenance, init = self.selected()
+        for error in (Busy('not lock admission'), Unavailable('missing authenticated reply')):
+            with self.subTest(error=type(error).__name__):
+                maintenance.prepare.reset_mock(); maintenance.prepare.side_effect = error
+                with patch('pack_only.time.sleep') as sleep, self.assertRaises(type(error)):
+                    self.execute(module, worker, maintenance, init, admission_wait=30)
+                self.assertEqual(maintenance.prepare.call_count, 1); sleep.assert_not_called()
+
+    def test_invalid_wait_refuses_before_prepare(self):
+        module, worker, maintenance, init = self.selected()
+        for value in (True, -1, 121, 0.5, float('nan')):
+            with self.subTest(value=repr(value)), self.assertRaises(ValueError):
+                self.execute(module, worker, maintenance, init, admission_wait=value)
+        maintenance.prepare.assert_not_called()
+
+    def test_cli_enables_wait_without_new_flags(self):
+        import normalize, tempfile
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary); config = state / 'config.json'
+            config.write_text(json.dumps({'state': str(state)})); worker = SimpleNamespace()
+            with (patch('sys.argv', ['normalize.py', '--config', str(config), '--pack-capture', 'a' * 64, '--pack-ddl', '1']),
+                  patch.object(normalize, 'Normalizer', return_value=worker),
+                  patch('pack_only.run', return_value={'complete': False}) as selected):
+                normalize.main()
+            selected.assert_called_once_with(worker, 'a' * 64, '1', admission_wait=30)
+
+    def test_adoption_born_during_prepare_refuses_before_scope_or_binding(self):
+        from media_writer import Busy
+        module, worker, maintenance, init = self.selected()
+        batch = maintenance.prepare.return_value
+        marker = self.writer.root / 'normalizer-state-adoption-v1.pending'
+        def prepare(*args):
+            marker.write_bytes(b'original adoption')
+            return batch
+        maintenance.prepare.side_effect = prepare
+        with patch('pack_only.time.sleep') as sleep, patch.object(module, 'bind_state') as bind, self.assertRaises(Busy):
+            self.execute(module, worker, maintenance, init, admission_wait=30)
+        sleep.assert_not_called(); bind.assert_not_called()
+        self.assertEqual(maintenance.prepare.call_count, 1)
+        self.assertEqual(marker.read_bytes(), b'original adoption')
+
+    def test_symlink_pending_is_presence_not_absence(self):
+        from media_writer import Busy
+        module, worker, maintenance, init = self.selected()
+        target = self.root / 'retained'; target.write_bytes(b'opaque pending')
+        marker = self.writer.root / 'archive-repair-v1.pending'; marker.symlink_to(target)
+        with patch('pack_only.time.sleep') as sleep, self.assertRaises(Busy):
+            self.execute(module, worker, maintenance, init, admission_wait=30)
+        sleep.assert_not_called(); maintenance.prepare.assert_not_called()
+        self.assertTrue(marker.is_symlink()); self.assertEqual(target.read_bytes(), b'opaque pending')
+
+    def test_second_acquired_scope_busy_is_not_retried(self):
+        from contextlib import contextmanager
+        from media_writer import Busy
+        module, worker, maintenance, init = self.selected()
+        original = module.scope
+        @contextmanager
+        def second_refusal(*args, **kwargs):
+            if kwargs.get('native_batch') is not None:
+                raise Busy('acquired publication scope requires review')
+            with original(*args, **kwargs) as authority:
+                yield authority
+        with (patch.object(module, 'scope', second_refusal), patch('pack_only.time.sleep') as sleep,
+              patch.object(module, 'bind_state') as bind, self.assertRaises(Busy)):
+            self.execute(module, worker, maintenance, init, admission_wait=30)
+        sleep.assert_not_called(); bind.assert_not_called()
+        self.assertEqual(maintenance.prepare.call_count, 1); self.assertFalse(self.writer.fenced())
+
+    def test_dispatch_busy_is_never_replayed(self):
+        from media_writer import Busy
+        module, worker, maintenance, init = self.selected()
+        with (patch('publication_guard.Authority.__init__', init), patch.object(module, 'Maintenance', return_value=maintenance),
+              patch.object(module, 'Packs') as packs, patch('pack_only.time.sleep') as sleep,
+              patch('import_recovery.dispatch_prepared', side_effect=Busy('uncertain dispatch')) as dispatch,
+              patch('native_handoff.dispatch') as reports, self.assertRaises(Busy)):
+            module.run(worker, 'a' * 64, '1', admission_wait=30)
+        sleep.assert_not_called(); self.assertEqual(maintenance.prepare.call_count, 1)
+        packs.return_value.cycle.assert_called_once(); dispatch.assert_called_once(); reports.assert_not_called()
+        self.assertFalse(self.writer.fenced())
+
+    def test_lock_replacement_during_wait_is_not_adopted(self):
+        import fcntl
+        from media_writer import PROTOCOL
+        module, worker, maintenance, init = self.selected()
+        fd = self.lock()
+        def replaced(_):
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            replacement = self.writer.root / 'new-lock'; replacement.write_bytes(PROTOCOL)
+            replacement.chmod(0o600); replacement.replace(self.writer.lock)
+        with patch('pack_only.time.sleep', side_effect=replaced) as sleep, self.assertRaisesRegex(ValueError, 'lock changed'):
+            self.execute(module, worker, maintenance, init, admission_wait=30)
+        self.assertEqual(sleep.call_count, 1); maintenance.prepare.assert_not_called()
+
+    def test_pending_after_probe_release_refuses_before_prepare(self):
+        from contextlib import contextmanager
+        from media_writer import Busy, Writer
+        module, worker, maintenance, init = self.selected()
+        original = Writer.hold
+        calls = []
+        marker = self.writer.root / 'normalizer-state-adoption-v1.pending'
+        @contextmanager
+        def hold(writer, **kwargs):
+            calls.append(kwargs)
+            with original(writer, **kwargs):
+                yield writer
+            if len(calls) == 1:
+                self.assertFalse(getattr(writer.local[1], 'depth', 0))
+                marker.write_bytes(b'original adoption')
+        with patch.object(Writer, 'hold', hold), patch('pack_only.time.sleep') as sleep, self.assertRaises(Busy):
+            self.execute(module, worker, maintenance, init, admission_wait=30)
+        sleep.assert_not_called(); maintenance.prepare.assert_not_called()
+        self.assertEqual(marker.read_bytes(), b'original adoption')
+
+
+if __name__ == '__main__':
+    unittest.main()
