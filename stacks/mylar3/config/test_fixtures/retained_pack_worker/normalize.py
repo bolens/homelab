@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 import shutil
 import sqlite3
+import stat
 from contextlib import closing
 import subprocess
 import tempfile
@@ -32,8 +33,33 @@ def archive_suffix(path):
 
 
 def digest(path):
-    with path.open('rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+    # A checksum binds one regular leaf generation, not a growing EOF stream.
+    # Callers retain their own scope, owner and complete namespace checks.
+    def signature(info):
+        return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
+                info.st_ctime_ns, info.st_mode, info.st_uid, info.st_gid, info.st_nlink)
+    before = path.stat(follow_symlinks=False)
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError('Digest source is not a regular file')
+    original = signature(before)
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if signature(os.fstat(fd)) != original:
+            raise ValueError('Digest source changed before reading')
+        checksum = hashlib.sha256()
+        remaining = before.st_size
+        while remaining:
+            chunk = os.read(fd, min(1024 * 1024, remaining))
+            if not chunk:
+                raise ValueError('Digest source was truncated')
+            checksum.update(chunk)
+            remaining -= len(chunk)
+        if (signature(os.fstat(fd)) != original
+                or signature(path.stat(follow_symlinks=False)) != original):
+            raise ValueError('Digest source changed during reading')
+        return checksum.hexdigest()
+    finally:
+        os.close(fd)
 
 
 def identity(path):

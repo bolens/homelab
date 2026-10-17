@@ -84,9 +84,11 @@ selector transition; every unrelated value and runtime setting must remain equal
 Do not print environment values in diagnostics.
 
 Keep operational helper source, proof inputs, receipts and resume notes on private
-persistent storage outside Git. Reserve temporary filesystems for disposable test
-fixtures. Before a planned reboot, verify the checkpoint and its referenced files
-are durable; after reboot, recapture process epochs and live file bindings rather
+persistent storage outside Git. Verify an owner-only directory ancestor by its actual
+identity, owner and mode; a private filename or directory name does not restrict
+access. Correct the owning directory without rewriting retained receipt bytes or
+historical file modes. Reserve temporary filesystems for disposable test fixtures.
+Before a planned reboot, verify the checkpoint and its referenced files are durable; after reboot, recapture process epochs and live file bindings rather
 than treating retained historical proof as fresh authorization.
 
 Do not copy the entire comic library for routine interface, image or configuration
@@ -128,6 +130,11 @@ Keep permissions for named-chat coordination and delegated work equally specific
 The checkpoint records human authorization and cannot create new permission.
 Follow the current [delivery rules](../../RELEASING.md), including any revocation
 of a temporary CI exception.
+
+A nonblocking Writer refusal before start intent is contention, not a failed import.
+Retain the failed attempt, verify the owned container never started, and use a bounded
+acquisition wait with unchanged original-lock checks before a fresh attempt. Do not
+reset uncertain start evidence or repeat an unaffected verified backup.
 
 Reuse accepted evidence only when its source bytes, selected checks, configuration
 and relevant runtime still match. Recheck changed inputs rather than repeating
