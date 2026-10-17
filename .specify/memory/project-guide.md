@@ -78,6 +78,10 @@ daemon's local image ID. Use the reviewed immutable reference for pulls and runs
 Record the actual `docker image inspect` ID and container `Image` on that daemon.
 Do not infer either ID from registry metadata or assume a configuration digest
 names a locally runnable image.
+Inspect the image's actual complete labels before binding a recovery helper.
+The current normalizer image declares source and title labels, without a revision
+label. Verify its source commit through the pinned publication provenance and
+repository digest; do not invent a label or require an undeclared one.
 
 A Compose recreation may reorder environment entries and change the explicit image
 selector. Compare unique environment names and exact values, rejecting malformed
