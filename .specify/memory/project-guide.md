@@ -54,7 +54,9 @@ Validate private operational helpers in the selected application’s actual Pyth
 runtime before protected execution. Host-only tests do not prove container runtime
 compatibility; use portable streaming hashes when the runtime lacks
 `hashlib.file_digest`. Keep runtime compatibility checks separate from live data
-acceptance. For the owning workflow suite, `MYLAR_WORKFLOW_SOURCE` points to
+acceptance. Size disposable test filesystems above the production storage
+reserve plus fixture demand. A filesystem equal to the reserve correctly refuses
+positive allocation; increase fixture capacity without weakening the guard. For the owning workflow suite, `MYLAR_WORKFLOW_SOURCE` points to
 the module directory containing `search.py`, `api.py` and `queues/`, not its
 repository parent. Require the native-source test to run rather than accepting
 its optional host-only skip as image proof.
