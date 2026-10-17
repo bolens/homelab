@@ -212,5 +212,121 @@ class NormalizerTest(unittest.TestCase):
             'apikey': 'fixture-key', 'cmd': 'recheckFiles', 'id': 'affected'})
 
 
+class DigestOriginalTest(unittest.TestCase):
+    """Real filesystem/FD reads; no archive backend or application initialization."""
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.source = self.root / 'source.cbz'
+        self.raw = b'original'
+        self.source.write_bytes(self.raw)
+
+    def trace(self, change, *, before_read=False):
+        import contextlib
+        original_read, original_open = os.read, Path.open
+        facts = {'read': 0, 'requests': [], 'changed': False}
+        def act():
+            if not facts['changed']:
+                facts['changed'] = True
+                change()
+        def read(fd, size):
+            facts['requests'].append(size)
+            if before_read:act()
+            raw = original_read(fd, size)
+            facts['read'] += len(raw)
+            if not before_read:act()
+            return raw
+        class Stream:
+            def __init__(self, stream):self.stream = stream
+            def __enter__(self):return self
+            def __exit__(self, *args):return self.stream.__exit__(*args)
+            def __getattr__(self, name):return getattr(self.stream, name)
+            def readinto(self, buffer):
+                facts['requests'].append(len(buffer))
+                if before_read:act()
+                count = self.stream.readinto(buffer)
+                facts['read'] += count
+                if not before_read:act()
+                return count
+        def opened(path, mode='r', *args, **kwargs):
+            stream = original_open(path, mode, *args, **kwargs)
+            return Stream(stream) if path == self.source and mode == 'rb' else stream
+        @contextlib.contextmanager
+        def contexts():
+            with patch('os.read', side_effect=read), patch.object(Path, 'open', opened):yield facts
+        return contexts()
+
+    def test_growth_refuses_after_only_declared_bytes(self):
+        def grow():
+            with self.source.open('ab') as stream:stream.write(b'x' * 64)
+        with self.trace(grow) as facts:
+            with self.assertRaises(ValueError):digest(self.source)
+        self.assertEqual(facts['read'], len(self.raw))
+        self.assertLessEqual(max(facts['requests']), len(self.raw))
+
+    def test_truncation_refuses_without_extra_probe(self):
+        with self.trace(lambda:self.source.write_bytes(b'')) as facts:
+            with self.assertRaises(ValueError):digest(self.source)
+        self.assertEqual(facts['read'], len(self.raw))
+
+    def test_short_original_refuses(self):
+        with self.trace(lambda:self.source.write_bytes(b''), before_read=True) as facts:
+            with self.assertRaises(ValueError):digest(self.source)
+        self.assertEqual(facts['read'], 0)
+
+    def test_same_bytes_replacement_refuses(self):
+        other = self.root / 'replacement';other.write_bytes(self.raw)
+        with self.trace(lambda:other.replace(self.source)):
+            with self.assertRaises(ValueError):digest(self.source)
+
+    def test_metadata_change_refuses(self):
+        with self.trace(lambda:self.source.chmod(0o600)):
+            with self.assertRaises(ValueError):digest(self.source)
+
+    def test_stable_regular_empty_and_hardlinks_keep_SHA(self):
+        import hashlib
+        expected = hashlib.sha256(self.raw).hexdigest()
+        self.assertEqual(digest(self.source), expected)
+        linked = self.root / 'linked.cbz';os.link(self.source, linked)
+        self.assertEqual(digest(linked), expected)
+        self.assertEqual(digest(self.source), expected)
+        empty = self.root / 'empty';empty.touch()
+        with patch('os.read', side_effect=AssertionError('empty file needs no read')):
+            self.assertEqual(digest(empty), hashlib.sha256(b'').hexdigest())
+
+    def test_leaf_symlink_directory_and_FIFO_refuse_before_open(self):
+        import normalize
+        linked = self.root / 'link';linked.symlink_to(self.source)
+        fifo = self.root / 'fifo';os.mkfifo(fifo)
+        for path in (linked, self.root, fifo):
+            with patch.object(normalize.os, 'open', side_effect=AssertionError('nonregular opened')):
+                with self.assertRaises(ValueError):digest(path)
+
+    def test_replacement_between_stat_and_open_refuses(self):
+        import normalize
+        original = os.open;other = self.root / 'replacement';other.write_bytes(self.raw)
+        def opened(path, flags, *args, **kwargs):
+            if path == self.source:other.replace(self.source)
+            return original(path, flags, *args, **kwargs)
+        with patch.object(normalize.os, 'open', side_effect=opened):
+            with self.assertRaises(ValueError):digest(self.source)
+
+    def test_partial_reads_have_exact_total(self):
+        import hashlib
+        original = os.read;amount = []
+        def short(fd, size):
+            value = original(fd, min(size, 3));amount.append(len(value));return value
+        with patch('os.read', side_effect=short):
+            self.assertEqual(digest(self.source), hashlib.sha256(self.raw).hexdigest())
+        self.assertEqual(sum(amount), len(self.raw))
+
+    def test_read_exception_closes_original_FD(self):
+        original_close = os.close
+        with patch('os.read', side_effect=RuntimeError('fixture')), patch('os.close', wraps=original_close) as closed:
+            with self.assertRaisesRegex(RuntimeError, 'fixture'):digest(self.source)
+        self.assertEqual(closed.call_count, 1)
+
+
 if __name__ == '__main__':
     unittest.main()

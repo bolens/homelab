@@ -279,3 +279,9 @@ Five new host controls pass independently, covering actual reports and original-
 
 
 The first PR #373 native build stops before exporting the test sources because the Docker allowlist excludes the two new supplier fixtures. The correction adds only that directory and its two exact public filenames. The official Moby matcher then includes all 654 owning source paths, compared with exactly two missing before the fix, while six foreign/configuration/cache cases remain excluded. The existing genuine image gate remains unchanged and must pass on the corrected head. The project guide now records that source-map closure alone does not prove build-context inclusion.
+
+## Connected producer native-runtime result — 2026-10-16
+
+The corrected PR #373 head `6f9d360b` includes the two pinned nested supplier fixtures in the actual Docker build context. The genuine native source-image gate explicitly executes all five connected producer/Parent/worker acknowledgement controls in Python 3.10: five pass, with no skips. The initial missing-context failure remains retained. This accepts native source-fixture compatibility; final build completion, published-image parity, configured Parent/Birth/NFS custody and live repair acceptance remain separate. The private runtime receipt is `3dced411cb7d92b07ed46f90e1bacd0a5be6590b2390f160e53b4acf11e2d87f`.
+
+PR #373 completes its corrected native build and all seven required checks before normal squash merge `81a592097e9509ac5c8e7ee5a56108635a7e4d79`. Both exact current-merge CodeQL analyses report no findings, errors or warnings; all-page feedback and open merge alerts are clear. The earlier missing-context failure is retained, with no waiver. Merge-readiness receipt: `fde01f268304b807c1717a8d40b060cbc878d5184d968ccecbf901eb63d28d3a`. Matching main publication and installed/configured acceptance remain separate.
