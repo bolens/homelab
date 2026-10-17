@@ -83,7 +83,24 @@ A Compose recreation may reorder environment entries and change the explicit ima
 selector. Compare unique environment names and exact values, rejecting malformed
 or duplicate entries before ignoring order. Permit only the recorded old-to-new
 selector transition; every unrelated value and runtime setting must remain equal.
-Do not print environment values in diagnostics.
+Do not print environment values in diagnostics. For Docker's `OomKillDisable`,
+accept a verified `false` to `null` default representation change only when every
+other runtime field remains equal; reject `true`, missing fields and unknown
+values.
+
+A diagnostic that exercises the real Writer protocol needs its existing lock
+file opened read/write, even when it changes no protocol bytes. Keep application,
+configuration, media and state directories read-only; if admission is required,
+bind only that exact existing file read/write and verify its identity and bytes
+before and after. Preserve the verified parent mount's propagation. Docker can
+reject `rprivate` for bind sources within its data root when the existing parent
+uses `rslave`; do not substitute a broader propagation mode or writable directory.
+Retry only observed transient contention before entering the tested operation,
+with finite time and attempt limits. Do not replay a partially executed test or
+infer admission from a prior free-lock sample. Test diagnostic inputs through the
+owning adapter: the worker's `Maintenance.mylar` returns validated response data,
+whereas a direct native API request returns the full response envelope. A fixture
+that supplies the wrong shape can pass while the installed path always refuses.
 
 Keep operational helper source, proof inputs, receipts and resume notes on private
 persistent storage outside Git. Verify an owner-only directory ancestor by its actual
