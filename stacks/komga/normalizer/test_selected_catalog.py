@@ -45,7 +45,7 @@ class Selected(unittest.TestCase):
   with closing(sqlite3.connect(self.db)) as db, db:db.execute('DELETE FROM issues')
   self.before=self.dump();m={'kind':'comic'};self.assertIsNone(self.run_guard(m,False));self.assertNotIn('phase',m)
  def test_selected_flag_is_set_before_prepare_and_cycle(self):
-  t=ast.parse((ROOT/'pack_only.py').read_text());fn=next(n for n in t.body if isinstance(n,ast.FunctionDef));text=ast.unparse(fn);self.assertLess(text.index('m._pack_only_existing_catalog = True'),text.index('m.prepare('));self.assertLess(text.index('m._pack_only_existing_catalog = True'),text.index('Packs(m).cycle('))
+  t=ast.parse((ROOT/'pack_only.py').read_text());fn=next(n for n in t.body if isinstance(n,ast.FunctionDef) and n.name=='run');text=ast.unparse(fn);self.assertLess(text.index('m._pack_only_existing_catalog = True'),text.index('m.prepare('));self.assertLess(text.index('m._pack_only_existing_catalog = True'),text.index('Packs(m).cycle('))
 
 from unittest.mock import Mock,patch
 from pack_recovery import Packs

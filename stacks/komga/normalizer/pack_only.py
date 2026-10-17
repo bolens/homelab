@@ -1,5 +1,8 @@
 """Selected and recurring ordinary packs; no bulk, naming or metadata sweep."""
+import os
 import re
+import time
+from contextlib import ExitStack
 from media_writer import Writer, Busy
 from publication_guard import scope, Unavailable
 from writer_cycle import bind_state
@@ -7,7 +10,37 @@ from maintenance import Maintenance
 from pack_recovery import Packs
 
 
-def run(worker, pack_id, ddl_id):
+_ADMISSION_ATTEMPTS = 241
+_RECOVERY_MARKERS = ('normalizer-v1.pending', 'tagger-v2.pending', 'release-v1.pending',
+                     'normalizer-state-adoption-v1.pending', 'negative-retirement-v1.pending',
+                     'negative-retirement-v1.terminal-pending', 'archive-repair-v1.pending',
+                     'archive-repair-v1.terminal-pending')
+
+
+def _recovery_pending(writer):
+    writer.validate_root()
+    for name in _RECOVERY_MARKERS:
+        try:
+            os.lstat(writer.root / name)
+        except FileNotFoundError:
+            continue
+        return True
+    return False
+
+
+def _wait_admission(writer, error, wait, deadline, attempt):
+    # Only Writer.hold.__enter__ failures reach here. Never retry scope/body work.
+    remaining = deadline - time.monotonic()
+    if not wait or attempt >= _ADMISSION_ATTEMPTS or remaining <= 0 or _recovery_pending(writer):
+        raise error
+    time.sleep(min(0.5, remaining))
+    if time.monotonic() >= deadline:
+        raise error
+
+
+def run(worker, pack_id, ddl_id, *, admission_wait=0):
+    if type(admission_wait) is not int or not 0 <= admission_wait <= 120:
+        raise ValueError('Selected pack admission wait requires 0 through 120 seconds')
     if (type(pack_id) is not str or not re.fullmatch('[a-f0-9]{64}', pack_id)
             or type(ddl_id) is not str or not re.fullmatch('[0-9]{1,32}', ddl_id)):
         raise ValueError('Exact pack capture and DDL identity required')
@@ -23,28 +56,46 @@ def run(worker, pack_id, ddl_id):
     m._pack_only_native = set()
     m._pack_only_existing_catalog = True
     writer = Writer(worker.config['writer_state'], create=False)
-    with writer.hold(timeout=0), scope(worker, writer):
-        pass
-    batch = m.prepare(pack_id, ddl_id)
-    work = batch.read(worker, 'packWork')
-    if (type(work) is not dict or work.get('enabled') is not True
-            or type(work.get('packs')) is not list or len(work['packs']) != 1
-            or work['packs'][0].get('id') != pack_id
-            or work['packs'][0].get('ddl_id') != ddl_id):
-        raise Unavailable('Exact enabled selected pack work required')
-    with writer.hold(allow_pending=True, timeout=0):
-        if writer.fenced():
-            raise Busy('Existing normalizer recovery belongs to its owning cycle')
-        with scope(worker, writer, native_batch=batch):
-            bind_state(writer, worker)
-            if not m.idle():
-                raise Unavailable('Native post-processing is active')
-            writer.mark_pending()
-            Packs(m).cycle(pack_id, ddl_id, scan=False)
-            imports = tuple(sorted(m._pack_only_imports))
-            reports = tuple(sorted(m._pack_only_native))
-            bind_state(writer, worker)
-        writer.clear_pending()
+    deadline = time.monotonic() + admission_wait
+    for attempt in range(1, _ADMISSION_ATTEMPTS + 1):
+        if admission_wait and _recovery_pending(writer):
+            raise Busy('Existing writer recovery requires its owning cycle')
+        with ExitStack() as probe:
+            try:
+                probe.enter_context(writer.hold(timeout=0))
+            except Busy as error:
+                _wait_admission(writer, error, admission_wait, deadline, attempt)
+                continue
+            with scope(worker, writer):
+                pass
+        if admission_wait and _recovery_pending(writer):
+            raise Busy('Existing writer recovery requires its owning cycle')
+        batch = m.prepare(pack_id, ddl_id)
+        work = batch.read(worker, 'packWork')
+        if (type(work) is not dict or work.get('enabled') is not True
+                or type(work.get('packs')) is not list or len(work['packs']) != 1
+                or work['packs'][0].get('id') != pack_id
+                or work['packs'][0].get('ddl_id') != ddl_id):
+            raise Unavailable('Exact enabled selected pack work required')
+        with ExitStack() as admitted:
+            try:
+                admitted.enter_context(writer.hold(allow_pending=True, timeout=0))
+            except Busy as error:
+                _wait_admission(writer, error, admission_wait, deadline, attempt)
+                continue
+            if writer.fenced() or (admission_wait and _recovery_pending(writer)):
+                raise Busy('Existing writer recovery belongs to its owning cycle')
+            with scope(worker, writer, native_batch=batch):
+                bind_state(writer, worker)
+                if not m.idle():
+                    raise Unavailable('Native post-processing is active')
+                writer.mark_pending()
+                Packs(m).cycle(pack_id, ddl_id, scan=False)
+                imports = tuple(sorted(m._pack_only_imports))
+                reports = tuple(sorted(m._pack_only_native))
+                bind_state(writer, worker)
+            writer.clear_pending()
+        break
     from import_recovery import dispatch_prepared
     from native_handoff import dispatch
     imported = dispatch_prepared(m, imports)
