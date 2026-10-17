@@ -58,6 +58,9 @@ acceptance. For the owning workflow suite, `MYLAR_WORKFLOW_SOURCE` points to
 the module directory containing `search.py`, `api.py` and `queues/`, not its
 repository parent. Require the native-source test to run rather than accepting
 its optional host-only skip as image proof.
+When adding a pinned nested source or fixture, check its owning `.dockerignore`
+contract as well as source-map closure. A recorded source hash does not prove the
+file reaches the image build context; verify the actual owning-source export.
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
