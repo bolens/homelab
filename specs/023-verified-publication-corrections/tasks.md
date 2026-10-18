@@ -119,7 +119,7 @@ The fourth selected canary remains created and stopped. The latest backup attemp
 
 The current worker verifies all 42 installed modules and passes 254 installed import, archive, terminal, reader and guard cases, plus two unchanged permission-change cases on exact private source copies. Native verification and the genuine connected factory/NFS prerequisite remain open. These component results grant no configured import or ACK acceptance.
 
-The current image passes new genuine discovery, first-import and lost-reply cases. A fourth case exposes a metadata rewrite that changes ZIP member order and is then refused by preservation checks. The source fix and regression pass focused checks; automatic full-image coverage and delivery are in progress. These results do not accept a live import or complete T029.
+The published image passes new genuine discovery, first-import and lost-reply cases. Its fourth case exposes a metadata rewrite that changes ZIP member order and is refused by preservation checks. The corrected verification-only image now passes all four genuine installed cases, including import → release rename → preserved metadata with unchanged acknowledgement and original copies. The full-image gate requires those cases automatically. Final published-image CI, archive producer/consumer factory proof and configured execution remain pending; this component result does not complete T029.
 
 Detailed delivery, runtime, convergence and failure records are retained in [evidence history](evidence-history.md). Historical component tests and CI exceptions do not authorize a current merge, recovery or processing release.
 
