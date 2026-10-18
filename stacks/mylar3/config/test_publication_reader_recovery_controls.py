@@ -69,20 +69,20 @@ class Controls(unittest.TestCase):
   shutil.copyfile(PUBLIC/'reader_recovery/source-manifest.json',tree/'source-manifest.json')
   shutil.copyfile(PUBLIC/'media_writer.py',actual/'media_writer.py');(actual/'media_writer.py').chmod(0o644)
   for name in ('publication_reader_cohort.json','publication_reader_admission.py','publication_native_configured_scope.py'):shutil.copyfile(PUBLIC/name,actual/name)
-  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],956);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],960);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
  def parent(self):
   spec=importlib.util.spec_from_file_location('parent_runner',ROOT/'run_publication_reader_controls.py');parent=importlib.util.module_from_spec(spec);spec.loader.exec_module(parent)
   (self.fixes/'publication_negative_namespace_kernel.py').write_text('# disposable budget fixture\n')
   return parent
  def test_aggregate_budget_encloses_actual_serial_child_deadlines(self):
   # Only process scheduling/results are projected; actual fixture-copy and
-  # parent runner paths execute. This does not rerun or grant the 956 controls.
+  # parent runner paths execute. This does not rerun or grant the 960 controls.
   parent=self.parent();children=[];expected=dict(m.SUITES)
   def child(command,**kw):
    children.append(kw['timeout']);count=expected[Path(command[-1]).name]
    return subprocess.CompletedProcess(command,0,b'',('Ran %d tests in 0.01s\n\nOK\n'%count).encode())
   with patch.object(m.subprocess,'run',side_effect=child):value=m.run(self.fixes)
-  self.assertEqual(value['tests'],956);self.assertEqual(len(children),len(m.SUITES))
+  self.assertEqual(value['tests'],960);self.assertEqual(len(children),len(m.SUITES))
   calls=[]
   def scheduled(command,**kw):calls.append((Path(command[-1]).name,kw));return subprocess.CompletedProcess(command,0)
   with patch.object(parent,'FIXES',self.fixes),patch.object(parent.os,'geteuid',return_value=1000),patch.object(parent.subprocess,'run',side_effect=scheduled),contextlib.redirect_stdout(io.StringIO()):parent.main()

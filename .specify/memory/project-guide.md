@@ -127,6 +127,11 @@ Read the actual outer START binding and its original nested JSON rather than
 reconstructing it from a summary or assuming a prior attempt's file layout.
 A terminal zero exit with zero requests does not prove an import or ACK, or grant another START.
 Never replay, reset or remove an attempt to validate its history.
+Before changing credentials or authorization after a principal check refuses,
+compare the returned field types with the pinned application DTO. Komga 1.28.1
+omits null `ageRestriction`; its absence still requires the original ADMIN, full
+library-sharing and empty restriction-list checks. The reader
+[network-context contract](../../stacks/mylar3/config/reader_recovery/CONTRACT-nfs-factual.md#original-library-query-network-context) owns this specific compatibility rule.
 A prepared import receipt and a later healthy API response do not identify the
 earlier dispatch refusal. Keep dispatch-time outcomes explicit and bounded,
 preserve uncertain phases, and never replay a submitted operation to diagnose it.

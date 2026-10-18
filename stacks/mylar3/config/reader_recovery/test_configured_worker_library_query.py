@@ -152,6 +152,36 @@ class LibraryQuery(unittest.TestCase):
         reply=self.run_query();self.assertEqual([x[:2] for x in self.calls],[('GET','http://fixture.invalid:25600/api/v2/users/me'),('GET','http://fixture.invalid:25600/api/v1/libraries'),('GET','http://fixture.invalid:25600/api/v1/libraries')]);self.assertNotIn('PUBLIC TEST KEY',json.dumps(reply));self.assertEqual(self.session.engine_replies.sequence,1)
         library=self.root/'library';library.mkdir();rows=[dict(Name='/komga',Mounts=[dict(Type='bind',Source=str(library),Destination='/library')])]
         result=a.fresh_libraries(self.query,rows,{},[library],library_observer=lambda:reply['payload']);self.assertEqual(result['mapped_roots'],[str(library)]);self.assertEqual(len(self.calls),3)
+    def test_upstream_user_omitted_age_reaches_all_three_GETs(self):
+        # Komga 1.28.1 UserDto NON_NULL omits nullable ageRestriction.
+        del self.docs['user']['ageRestriction']
+        reply=self.run_query();self.assertEqual(len(self.calls),3)
+        self.assertEqual([v[1].rsplit('/',1)[-1]for v in self.calls],['me','libraries','libraries'])
+        self.assertNotIn('ageRestriction',reply['payload']['documents']['user'])
+    def test_upstream_user_explicit_null_age_remains_accepted(self):
+        self.assertIsNone(self.docs['user']['ageRestriction']);reply=self.run_query()
+        self.assertEqual(len(self.calls),3);self.assertIsNone(reply['payload']['documents']['user']['ageRestriction'])
+    def test_nonnull_age_always_refuses_before_library_GET(self):
+        for age in ({'age':18,'restriction':'ALLOW_ONLY'},{'age':18,'restriction':'EXCLUDE'},{},[],False,0,'none'):
+            with self.subTest(age_type=type(age).__name__):
+                self.calls.clear();self.docs=documents();self.docs['user']['ageRestriction']=age
+                with self.assertRaisesRegex(a.Held,'unrestricted-admin'):self.run_query()
+                self.assertEqual(len(self.calls),1);self.assertTrue(self.calls[0][1].endswith('/api/v2/users/me'))
+    def test_other_missing_or_restricted_principal_refuses_before_library_GET(self):
+        variants=[]
+        for name in ('id','roles','sharedAllLibraries','sharedLibrariesIds','labelsAllow','labelsExclude'):
+            value=documents()['user'];del value[name];variants.append(value)
+        for key,value in (('id',''),('roles',[]),('roles',['USER']),('sharedAllLibraries',False),('sharedAllLibraries',1)):
+            user=documents()['user'];user[key]=value;variants.append(user)
+        for key in ('sharedLibrariesIds','labelsAllow','labelsExclude'):
+            for value in (['restricted'],None,{},False,''):
+                user=documents()['user'];user[key]=value;variants.append(user)
+        for index,user in enumerate(variants):
+            with self.subTest(variant=index):
+                self.calls.clear();self.docs=documents();self.docs['user']=user;self.docs['user'].pop('ageRestriction',None)
+                with self.assertRaisesRegex(a.Held,'unrestricted-admin'):self.run_query()
+                self.assertEqual(len(self.calls),1);self.assertTrue(self.calls[0][1].endswith('/api/v2/users/me'))
+
     def test_route_endpoint_nonce_sequence_or_payload_substitution_refuses_before_http(self):
         for changes in ({'payload':{'route':'/other'}},{'payload':[]},{'nonce':'e'*64},{'sequence':0},{'type':'query'}):
             with self.subTest(changes=changes),self.assertRaises(p.Held):self.owner.nfs_library_query_reply(self.frame(**changes))

@@ -7,10 +7,10 @@
       "sha256": "0f6cb551d564585db1a751c0e05308e3d205d1353798a837a81d274317a3648b"
     },
     "CONTRACT-archive-repair.md": {
-      "sha256": "a1db23e72bad6871a8cc2735d06a4d1c52d44118e744b052f40f5e60b49b2b3a"
+      "sha256": "651748b19852f8e4bf6f1fa46032509d93488b1a96d054f6bc7b08e97fc6a6ef"
     },
     "CONTRACT-nfs-factual.md": {
-      "sha256": "c069ed7d217974415e7ecde9c94480446d34700b96b2a85a7ac4feb634b6f9f8"
+      "sha256": "065d0ca42c94b532adff1a4801978eb7d3242b33cb97b9b912b525a245fc59ee"
     },
     "CONTRACT-nfs-mount-namespace.md": {
       "sha256": "99eaf632b615d9dfe87851750ca576d2b4500b8702cf7c42f0a616a76db4952c"
@@ -28,7 +28,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "3d106cb68cc310055d137343e5e8d93beffb1ba31c96110ff6d4d146cf40ee62"
+      "sha256": "13b7ea1ae387b97e3c2fce0231b9e089a3ffabf34569fd838368938c40ecc6a6"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -409,7 +409,7 @@
       "sha256": "2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21"
     },
     "comic_negative_nfs_active_parent.py": {
-      "sha256": "ae63848a9dfd04d279f617aa7197c2e32dc0a677464a0894773dcb7a29a34e51"
+      "sha256": "d485a22d43b11baeb87f3ac8beb48bdab847f786cd5a64dfcc6156b982825231"
     },
     "comic_negative_nfs_hardlink_child.py": {
       "sha256": "e99bf6ebccb1d053919dabc973197b2fde512b90c4a15d8830ae0cfa617dfff0"
@@ -457,7 +457,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "d25d3bb3bbdc3dc1eac89ce54616e4496228b4c6c1433a3316cd148e63a334e5"
+      "sha256": "dc2351cf807299124364b0d50a463e687394e4343071728768d0c32bd5d8199a"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01"
@@ -490,7 +490,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "20dea4cfce1f06b276a26645389753828929a08381a7bed44d3939268eddaaf4"
+      "sha256": "905162a84ccfbfa84aa41844656f1626f41a7e9ebb7dd0562353adaa8b5dad9b"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -559,7 +559,7 @@
       "sha256": "20edd94da38a4d64b7daf8c3144982c9b6780d4cbc4402b76ca943ff0f2e13c7"
     },
     "test_configured_worker_library_query.py": {
-      "sha256": "cd4778d44316b6e2f7bf49e82decb6c19de156d1eaf206075809ace28800f043"
+      "sha256": "366bb63717d9a6e3dd3d972938f4a1c867c20fa18b4b2a25cf331ab6d0bc9c5a"
     },
     "test_deferred_lease.py": {
       "sha256": "8f6188aff1bb8deee90ccdea2b6c8b7961934d45bac9d9563346f7b66f504fa6"
