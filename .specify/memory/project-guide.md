@@ -72,6 +72,13 @@ For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
 the whole-file pin and behavioral acceptance checks alongside any method pins.
+On Btrfs, a reused directory descriptor can return a stale first listing after a
+mutation. Enumerate through a fresh descriptor opened relative to the original
+bound directory, verify its identity before and after reading, and retain exact
+namespace and metadata comparisons. Reproduce the complete write/cleanup path
+on disposable data on the actual filesystem; a temporary filesystem can miss
+this behavior. Preserve the primary operation error separately from final
+closure failures so cleanup diagnostics do not hide the original refusal.
 When binding a literal into a reviewed operational helper, replace only the exact
 AST value byte span and require every surrounding byte to remain unchanged.
 Normalizing a whole assignment line can hide a second statement on that line;
