@@ -105,6 +105,10 @@ real file-writing contract. The backup helper creates JSON files exclusively;
 assemble the complete scope before its first write. A fixture that permits
 overwriting does not verify that contract. Check capture identifiers against
 actual recorded values rather than copying the same literal into code and tests.
+Build schema fixtures from the actual owning creator or migration and confirm them
+against retained metadata before live verification. A later `CREATE TABLE IF NOT
+EXISTS` declaration may differ from the existing startup-created schema; deriving
+both the verifier and its fixture from that declaration can hide the same error.
 Execute extracted support functions in tests, including their hash/read paths,
 to prove the retained import header supplies their dependencies. Include pinned
 empty source files and the actual public-source ownership separately from
