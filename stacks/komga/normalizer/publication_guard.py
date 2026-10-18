@@ -13,10 +13,14 @@ import threading
 import time
 
 import publication_evidence as evidence
-from media_writer import Writer, Busy
+from media_writer import Writer, Busy, deny_negative_phase
 
 Unavailable = evidence.Unavailable
 _ACTIVE = threading.local()
+
+
+class RemoteWriterBusy(Unavailable):
+    """A read-side remote probe found temporary shared Writer contention."""
 
 
 class ArchiveDiagnosticUnavailable(Unavailable):
@@ -445,7 +449,13 @@ def remote_unlocked(worker):
                              allow_release_pending=True, timeout=0):
                 pass
         except Busy:
-            raise Unavailable('Native API work waits for shared writer release') from None
+            # Correction/repair fences also raise Busy; they are never transient
+            # remote admission. Keep the owning Writer policy as the classifier.
+            try:
+                deny_negative_phase(writer.root)
+            except Busy:
+                raise Unavailable('Native API work waits for shared writer release') from None
+            raise RemoteWriterBusy('Native API work waits for shared writer release') from None
 
 
 @contextmanager

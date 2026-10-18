@@ -38,3 +38,41 @@ class SelectedPrepare(unittest.TestCase):
   with self.writer.hold(),self.assertRaises(Unavailable):self.m.prepare('a'*64,'274610')
   self.worker.reader.books.assert_not_called()
 if __name__=='__main__':unittest.main()
+
+class SelectedContention(unittest.TestCase):
+ setUp=SelectedPrepare.setUp
+ def test_selected_remote_contention_propagates_at_each_readonly_api(self):
+  from publication_guard import RemoteWriterBusy
+  for failed in ('getHealth','packWork'):
+   self.calls.clear();self.worker.reader.books.reset_mock()
+   def api(command,**kw):
+    self.calls.append((command,kw))
+    if command==failed:raise RemoteWriterBusy('remote admission')
+    return {'command':command}
+   self.m.mylar=api
+   with self.subTest(command=failed),self.assertRaises(RemoteWriterBusy):self.m.prepare('a'*64,'274610')
+   self.worker.reader.books.assert_not_called()
+   self.assertEqual(self.calls,[('getHealth',{})]if failed=='getHealth'else[('getHealth',{}),('packWork',{'pack_id':'a'*64,'ddl_id':'274610'})])
+ def test_unfiltered_and_recurring_prepare_do_not_gain_retry_authority(self):
+  from publication_guard import RemoteWriterBusy
+  for kwargs in ({},{'packs_only':True}):
+   self.calls.clear()
+   def api(command,**kw):
+    self.calls.append((command,kw));raise RemoteWriterBusy('remote admission')
+   self.m.mylar=api;batch=self.m.prepare(**kwargs)
+   self.assertTrue(self.calls)
+   with self.assertRaises(Unavailable):batch.read(self.worker,'packWork')
+ def test_real_remote_probe_in_selected_api_is_not_swallowed(self):
+  import fcntl,os
+  from publication_guard import remote_unlocked,RemoteWriterBusy
+  fd=os.open(self.writer.lock,os.O_RDWR);self.addCleanup(os.close,fd)
+  for failed in ('getHealth','packWork'):
+   self.calls.clear();self.worker.reader.books.reset_mock()
+   def api(command,**kw):
+    if command==failed:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    try:remote_unlocked(self.worker)
+    finally:fcntl.flock(fd,fcntl.LOCK_UN)
+    self.calls.append((command,kw));return {'command':command}
+   self.m.mylar=api
+   with self.subTest(command=failed),self.assertRaises(RemoteWriterBusy):self.m.prepare('a'*64,'274610')
+   self.assertEqual(self.calls,[]if failed=='getHealth'else[('getHealth',{})]);self.worker.reader.books.assert_not_called()
