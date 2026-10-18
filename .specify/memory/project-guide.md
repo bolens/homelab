@@ -94,11 +94,21 @@ When binding a literal into a reviewed operational helper, replace only the exac
 AST value byte span and require every surrounding byte to remain unchanged.
 Normalizing a whole assignment line can hide a second statement on that line;
 include a refusal test for that case. Keep the original helper immutable.
+Retain every reviewed producer needed for later acceptance in the private
+operation packet before execution, including code that assembles the effective
+backup scope. A source left only in `/tmp` can disappear before the postcheck.
+A retained hash or downstream output cannot replace that missing original;
+preserve the evidence gap and recover or reconstruct the producer under review
+before claiming its source closure.
 When a rollout helper wraps another helper, test the combined path against the
 real file-writing contract. The backup helper creates JSON files exclusively;
 assemble the complete scope before its first write. A fixture that permits
 overwriting does not verify that contract. Check capture identifiers against
 actual recorded values rather than copying the same literal into code and tests.
+Execute extracted support functions in tests, including their hash/read paths,
+to prove the retained import header supplies their dependencies. Include pinned
+empty source files and the actual public-source ownership separately from
+Root-private operational evidence. Neither case relaxes private-proof custody.
 
 Keep OCI index, platform manifest and configuration digests separate from the
 daemon's local image ID. Use the reviewed immutable reference for pulls and runs.
@@ -108,6 +118,10 @@ the working directory. A relative path accepted by the unprivileged shell can
 therefore refer to a different location in the privileged command.
 Do not infer either ID from registry metadata or assume a configuration digest
 names a locally runnable image.
+Compose may record a separately resolved platform-manifest identity in its image
+label while the daemon reports an index identity for the container. Bind both
+from independent inspection and the same public descriptor chain; compare each
+raw field with its own expected identity instead of equating or normalizing them.
 Inspect the image's actual complete labels before binding a recovery helper.
 The current normalizer image declares source and title labels, without a revision
 label. Verify its source commit through the pinned publication provenance and
