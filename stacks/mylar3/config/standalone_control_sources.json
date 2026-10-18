@@ -1206,7 +1206,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/import_recovery.py",
-    "sha256": "b7131aa7c54076fee77faf4960a256f4b0f8a874a19345568a049ec3462778ed",
+    "sha256": "d39d989cb4a27a6b08e59d2c99dae3eadd099d9cd8a0f0e691bfd1334706c7bc",
     "target": "test_fixtures/retained_pack_worker/import_recovery.py"
   },
   {
@@ -1251,7 +1251,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_only.py",
-    "sha256": "ddce52339d96797fa72246830097c677c2f54760a3107f6e24b00d625558a3d2",
+    "sha256": "40ed9e7fe2a55f78c902db8c03b62e20457384ac65d6ad5169a5f3cafaec3a13",
     "target": "test_fixtures/retained_pack_worker/pack_only.py"
   },
   {

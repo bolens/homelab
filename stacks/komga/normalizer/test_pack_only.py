@@ -93,6 +93,14 @@ class OwnedPassTests(AuthorityFixture, unittest.TestCase):
         self.assertFalse(result['complete']);imports.assert_called_once_with(m,());reports.assert_called_once_with(m,())
         self.assertFalse(self.writer.fenced())
 
+    def test_cli_preserves_zero_request_and_finite_dispatch_diagnostic(self):
+        module,worker,m,init=self.setup_pass()
+        diagnostic=dict(state='held',stage='health',reason='protocol-unavailable',exception=None)
+        def dispatch(*args):m.import_dispatch_status=dict(diagnostic);return 0
+        with patch('publication_guard.Authority.__init__',init),patch.object(module,'Maintenance',return_value=m),patch.object(module,'Packs'),patch('import_recovery.dispatch_prepared',side_effect=dispatch),patch('native_handoff.dispatch',return_value=0):
+            result=module.run(worker,'a'*64,'1')
+        self.assertEqual(result['import_requests'],0);self.assertFalse(result['complete']);self.assertEqual(result['import_dispatch'],diagnostic)
+
     def test_contended_real_writer_refuses_before_native_collection(self):
         module,worker,m,init=self.setup_pass()
         from media_writer import Busy

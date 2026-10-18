@@ -258,6 +258,20 @@ def _recurring_review(worker):
         raise RuntimeError('Selected import receipt requires review')
 
 
+def _dispatch_status(maintenance, state, stage, reason, error=None):
+    """Bounded diagnostic only; never a receipt, permission or retry decision."""
+    from media_writer import Busy
+    from publication_guard import Unavailable
+    classes = ((Busy, 'Busy'), (Unavailable, 'Unavailable'),
+               (PermissionError, 'PermissionError'), (FileNotFoundError, 'FileNotFoundError'),
+               (OSError, 'OSError'), (RuntimeError, 'RuntimeError'), (ValueError, 'ValueError'), (TypeError, 'TypeError'),
+               (KeyError, 'KeyError'), (sqlite3.Error, 'SQLiteError'))
+    category = None if error is None else next(
+        (name for kind, name in classes if isinstance(error, kind)), 'Exception')
+    maintenance.import_dispatch_status = dict(state=state, stage=stage, reason=reason,
+                                              exception=category)
+
+
 def dispatch_prepared(maintenance, selected_paths=None):
     """One durable attempt after complete cycle/fence clearance, outside HTTP lock."""
     from maintenance import scoped_file
@@ -265,11 +279,16 @@ def dispatch_prepared(maintenance, selected_paths=None):
     from publication_guard import scope, evidence, Unavailable, remote_unlocked
     from writer_cycle import bind_state
     worker = maintenance.worker
+    _dispatch_status(maintenance, 'held', 'remote-probe', 'not-completed')
     remote_unlocked(worker)
     root = worker.config.get('writer_state')
-    if root is None:return 0
+    if root is None:
+        _dispatch_status(maintenance, 'idle', 'writer', 'disabled')
+        return 0
     receipts = maintenance.state/'imports'
-    if not receipts.exists():return 0
+    if not receipts.exists():
+        _dispatch_status(maintenance, 'idle', 'receipt', 'no-receipts')
+        return 0
     if maintenance.state != worker.state/'maintenance':
         raise Unavailable('Import handoff belongs to foreign worker state')
     paths = sorted(receipts.glob('*.json')) if selected_paths is None else sorted(selected_paths)
@@ -277,28 +296,44 @@ def dispatch_prepared(maintenance, selected_paths=None):
         raise Unavailable('Foreign selected import handoff')
     if len(paths) > 4096:raise Unavailable('Import handoff count exceeds bounds')
     writer = Writer(root,create=False)
+    _dispatch_status(maintenance, 'idle', 'receipt', 'no-selected-receipts')
     for path in paths:
         # Legacy attempts and uncertain requests remain retained, never replayed.
         try:record,_ = handoff_read(path)
-        except (Unavailable,OSError,ValueError,TypeError):continue
-        if not isinstance(record,dict):continue
+        except (Unavailable,OSError,ValueError,TypeError) as error:
+            _dispatch_status(maintenance, 'held', 'receipt', 'unreadable', error)
+            continue
+        if not isinstance(record,dict):
+            _dispatch_status(maintenance, 'held', 'receipt', 'unsupported-record')
+            continue
         if record.get('phase') != 'prepared':
+            _dispatch_status(maintenance, 'uncertain' if record.get('phase') == 'dispatching' else 'retained',
+                             'receipt', 'not-prepared')
             submitted = record.get('submitted_at')
             if (record.get('phase') != 'submitted' or type(submitted) not in (int, float)
                     or not 0 <= time.time() - submitted < 1800):
                 _recurring_review(worker)
             continue
+        gate = 'health'
         try:
             health = maintenance.mylar('getHealth')
             protocol = health.get('workflow',{})
             if (protocol.get('valid') is not True or type(protocol.get('publication_handoff')) is not int
-                    or protocol['publication_handoff'] != 1):return 0
+                    or protocol['publication_handoff'] != 1):
+                _dispatch_status(maintenance, 'held', gate, 'protocol-unavailable')
+                return 0
             if record.get('workflow_command') is not None and (
-                    type(protocol.get('guided_handoff')) is not int or protocol['guided_handoff']!=1):return 0
+                    type(protocol.get('guided_handoff')) is not int or protocol['guided_handoff']!=1):
+                _dispatch_status(maintenance, 'held', gate, 'guided-protocol-unavailable')
+                return 0
             queue = health['queues'].get('POST-PROCESS-QUEUE',{})
-            if not queue.get('alive') or queue.get('size') != 0 or health['processing']:return 0
+            if not queue.get('alive') or queue.get('size') != 0 or health['processing']:
+                _dispatch_status(maintenance, 'held', gate, 'native-not-idle')
+                return 0
+            gate = 'writer-admission'
             with writer.hold(timeout=0),scope(worker,writer) as authority:
                 bind_state(writer,worker)
+                gate = 'receipt'
                 record, signature = handoff_read(path)
                 fields = {'source','identity','sha256','stage','match','workflow_command','phase',
                           'prepared_at','remote_folder','publication'}
@@ -316,6 +351,7 @@ def dispatch_prepared(maintenance, selected_paths=None):
                             or not re.fullmatch('[a-f0-9]{32}',str(binding['source_token']))
                             or not re.fullmatch('[a-f0-9]{64}',str(binding['version']))):
                         raise Unavailable('Malformed guided command dependency')
+                gate = 'source'
                 source,target = Path(record['source']),Path(record['stage'])
                 cache = Path(maintenance.settings['ddl_cache'])
                 remote = Path(maintenance.settings['mylar_ddl_cache'])
@@ -327,10 +363,12 @@ def dispatch_prepared(maintenance, selected_paths=None):
                         or not scoped_file(target,[cache]) or record['remote_folder'] != str(remote/expected_stage.name)
                         or identity(source) != record['identity'] or digest(source) != record['sha256']):
                     raise Unavailable('Import handoff scope or source changed')
+                gate = 'publication'
                 fresh = dict(version=1,source=authority.import_check(source,record['match']),
                              stage=authority.import_check(target,record['match']))
                 if not evidence.same_json(fresh,record['publication']):
                     raise Unavailable('Prepared import publication evidence changed')
+                gate = 'catalog'
                 with closing(sqlite3.connect(authority.catalog.as_uri()+'?mode=ro&immutable=1',uri=True)) as database:
                     current = issue_state(database,record['match'])
                 if not current or current[0] in ('Downloaded','Archived'):
@@ -339,6 +377,7 @@ def dispatch_prepared(maintenance, selected_paths=None):
                 command = dict(version=1,token=key,source_sha256=proof['inventory']['source_sha256'],
                     payload=proof['inventory']['payload'],owner=proof['authority']['owner'],
                     census=proof['authority']['census'])
+                gate = 'dispatch-intent'
                 attempted = dict(record,phase='dispatching',submitted_at=time.time())
                 handoff_save(path,attempted,expected=(record,signature))
             # Native independently checks its actual stage, owner and census.
@@ -346,9 +385,11 @@ def dispatch_prepared(maintenance, selected_paths=None):
                 maintenance.mylar('forceProcess',nzb_name=target.name,nzb_folder=record['remote_folder'],
                     ddl='True',publication_handoff=json.dumps(command),**record['match'],
                     **({'workflow_command':guided,'guided_handoff':json.dumps(binding)} if guided is not None else {}))
-            except Exception:
+            except Exception as error:
+                _dispatch_status(maintenance, 'uncertain', 'request', 'response-uncertain', error)
                 _recurring_review(worker)
                 return 0  # Dispatching is durable uncertain review, never auto-retry.
+            gate = 'queued-acknowledgement'
             with writer.hold(timeout=0),scope(worker,writer) as authority:
                 bind_state(writer,worker)
                 old, signature = handoff_read(path)
@@ -357,7 +398,11 @@ def dispatch_prepared(maintenance, selected_paths=None):
                     raise Unavailable('Import handoff changed before queued acknowledgement')
                 handoff_save(path,dict(attempted,phase='submitted'),expected=(old,signature))
             maintenance.import_attempts = None
+            _dispatch_status(maintenance, 'submitted', gate, 'submitted')
             return 1
-        except (Busy,Unavailable,OSError,ValueError,TypeError,KeyError,sqlite3.Error):
+        except (Busy,Unavailable,OSError,ValueError,TypeError,KeyError,sqlite3.Error) as error:
+            uncertain = gate == 'queued-acknowledgement'
+            _dispatch_status(maintenance, 'uncertain' if uncertain else 'held', gate,
+                             'queued-acknowledgement-unavailable' if uncertain else 'pre-dispatch-refused', error)
             return 0  # Keep original receipt/proof and every original source.
     return 0

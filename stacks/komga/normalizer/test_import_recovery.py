@@ -258,6 +258,132 @@ class CoordinatedRecoveryTest(AuthorityFixture, unittest.TestCase):
         self.m.mylar.assert_not_called()
 
 
+class DispatchStatusTest(AuthorityFixture, unittest.TestCase):
+    setUp = CoordinatedRecoveryTest.setUp
+    prepared = CoordinatedRecoveryTest.prepared
+    dispatch = CoordinatedRecoveryTest.dispatch
+    native_api = CoordinatedRecoveryTest.native_api
+    # Use the same genuine Writer/SQL/prepared-receipt fixture; only remote API
+    # responses and external contention/fault boundaries are substituted.
+    def assert_status(self, state, stage, reason, error=None):
+        self.assertEqual(self.m.import_dispatch_status,
+                         dict(state=state, stage=stage, reason=reason, exception=error))
+
+    def test_status_reports_protocol_refusal_without_spending_receipt(self):
+        _, receipt = self.prepared(); original = receipt.read_bytes()
+        self.m.mylar.side_effect = lambda *a, **k: {'workflow': {'valid': False}}
+        self.assertEqual(self.dispatch(), 0)
+        self.assert_status('held', 'health', 'protocol-unavailable')
+        self.assertEqual(receipt.read_bytes(), original)
+        self.assertEqual([c.args[0] for c in self.m.mylar.call_args_list], ['getHealth'])
+
+    def test_status_reports_native_not_idle_without_request(self):
+        _, receipt = self.prepared(); original = receipt.read_bytes()
+        for alive, size, processing in ((False,0,False),(True,1,False),(True,0,True)):
+            with self.subTest(alive=alive,size=size,processing=processing):
+                self.m.mylar.side_effect = lambda *a, **k: dict(queues={'POST-PROCESS-QUEUE':dict(alive=alive,size=size)},processing=processing,workflow={'valid':True,'publication_handoff':1})
+                self.assertEqual(self.dispatch(), 0)
+                self.assert_status('held', 'health', 'native-not-idle')
+                self.assertEqual(receipt.read_bytes(), original)
+
+    def test_status_reports_genuine_writer_contention_and_publication_refusal(self):
+        import fcntl, os
+        _, receipt = self.prepared(); original = receipt.read_bytes(); self.m.mylar.side_effect=self.native_api
+        fd=os.open(self.writer.lock,os.O_RDWR)
+        def contend_after_health(command,**kwargs):
+            value=self.native_api(command,**kwargs)
+            if command=='getHealth':fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            return value
+        self.m.mylar.side_effect=contend_after_health
+        try:
+            self.assertEqual(self.dispatch(),0)
+            self.assert_status('held','writer-admission','pre-dispatch-refused','Busy')
+        finally:os.close(fd)
+        self.assertEqual(receipt.read_bytes(),original)
+        self.m.mylar.side_effect=self.native_api
+        Path(json.loads(original)['stage']).write_bytes(b'changed stage')
+        self.assertEqual(self.dispatch(),0)
+        self.assert_status('held','publication','pre-dispatch-refused','Unavailable')
+        self.assertEqual(receipt.read_bytes(),original)
+
+    def test_status_keeps_http_uncertainty_and_never_replays(self):
+        _,receipt=self.prepared()
+        def native(command,**kwargs):
+            value=self.native_api(command,**kwargs)
+            if command=='forceProcess':raise TimeoutError('private remote address and title')
+            return value
+        self.m.mylar.side_effect=native
+        self.assertEqual(self.dispatch(),0)
+        self.assert_status('uncertain','request','response-uncertain','OSError')
+        original=receipt.read_bytes();self.assertEqual(json.loads(original)['phase'],'dispatching')
+        self.assertEqual(self.dispatch(),0)
+        self.assert_status('uncertain','receipt','not-prepared')
+        self.assertEqual(receipt.read_bytes(),original)
+        self.assertEqual([c.args[0] for c in self.m.mylar.call_args_list].count('forceProcess'),1)
+        self.assertNotIn('private',json.dumps(self.m.import_dispatch_status))
+
+    def test_status_success_and_post_request_refusal_do_not_claim_ack(self):
+        _,receipt=self.prepared();self.m.mylar.side_effect=self.native_api
+        self.assertEqual(self.dispatch(),1);self.assert_status('submitted','queued-acknowledgement','submitted')
+        self.assertEqual(json.loads(receipt.read_bytes())['phase'],'submitted')
+        self.assertNotIn('ACK',self.m.import_dispatch_status)
+
+    def test_status_exception_class_is_fixed_and_receipt_unchanged(self):
+        _,receipt=self.prepared();original=receipt.read_bytes()
+        self.m.mylar.side_effect=PermissionError('private path/title/credential')
+        self.assertEqual(self.dispatch(),0)
+        self.assert_status('held','health','pre-dispatch-refused','PermissionError')
+        self.assertEqual(receipt.read_bytes(),original)
+        self.assertNotIn('private',json.dumps(self.m.import_dispatch_status))
+
+    def test_status_schema_source_and_catalog_refusals_are_finite(self):
+        source,receipt=self.prepared();self.m.mylar.side_effect=self.native_api
+        original=receipt.read_bytes();row=json.loads(original);row['foreign']=True;receipt.write_text(json.dumps(row))
+        changed=receipt.read_bytes();self.assertEqual(self.dispatch(),0)
+        self.assert_status('held','receipt','pre-dispatch-refused','Unavailable');self.assertEqual(receipt.read_bytes(),changed)
+        receipt.write_bytes(original);row=json.loads(original);row['identity']=[0]*len(row['identity']);receipt.write_text(json.dumps(row));changed=receipt.read_bytes()
+        self.assertEqual(self.dispatch(),0);self.assert_status('held','source','pre-dispatch-refused','Unavailable');self.assertEqual(receipt.read_bytes(),changed)
+        receipt.write_bytes(original);self.sql("UPDATE issues SET Status='Downloaded' WHERE IssueID=?",('999',))
+        self.assertEqual(self.dispatch(),0);self.assert_status('held','catalog','pre-dispatch-refused','Unavailable');self.assertEqual(receipt.read_bytes(),original)
+
+    def test_status_guided_protocol_refusal_preserves_prepared_receipt(self):
+        _,receipt=self.prepared();row=json.loads(receipt.read_bytes());row['workflow_command']='a'*32;receipt.write_text(json.dumps(row));original=receipt.read_bytes();self.m.mylar.side_effect=self.native_api
+        self.assertEqual(self.dispatch(),0);self.assert_status('held','health','guided-protocol-unavailable');self.assertEqual(receipt.read_bytes(),original)
+        self.assertEqual([c.args[0] for c in self.m.mylar.call_args_list],['getHealth'])
+
+    def test_status_intent_write_and_queued_ack_faults_never_replay_http(self):
+        import import_recovery
+        _,receipt=self.prepared();original=receipt.read_bytes();self.m.mylar.side_effect=self.native_api
+        replace=import_recovery.os.replace
+        def refuse_intent(source,target):
+            if Path(target)==receipt:raise OSError('private failing path')
+            return replace(source,target)
+        with patch.object(import_recovery.os,'replace',side_effect=refuse_intent):self.assertEqual(self.dispatch(),0)
+        self.assert_status('held','dispatch-intent','pre-dispatch-refused','OSError');self.assertEqual(receipt.read_bytes(),original)
+        self.assertEqual([c.args[0] for c in self.m.mylar.call_args_list],['getHealth'])
+        self.m.mylar.reset_mock()
+        def refuse_queued_ack(source,target):
+            if Path(target)==receipt and json.loads(Path(source).read_bytes()).get('phase')=='submitted':raise OSError('private queued acknowledgement path')
+            return replace(source,target)
+        with patch.object(import_recovery.os,'replace',side_effect=refuse_queued_ack):self.assertEqual(self.dispatch(),0)
+        self.assert_status('uncertain','queued-acknowledgement','queued-acknowledgement-unavailable','OSError');self.assertEqual(json.loads(receipt.read_bytes())['phase'],'dispatching')
+        self.assertEqual(self.dispatch(),0);self.assertEqual([c.args[0] for c in self.m.mylar.call_args_list].count('forceProcess'),1)
+
+    def test_status_disabled_and_unsupported_record_do_not_call_api(self):
+        from import_recovery import dispatch_prepared
+        self.m.worker.config['writer_state']=None;self.assertEqual(dispatch_prepared(self.m),0);self.assert_status('idle','writer','disabled');self.m.mylar.assert_not_called()
+        self.m.worker.config['writer_state']=str(self.writer.root);root=self.state/'imports';root.mkdir();receipt=root/('a'*64+'.json');receipt.write_text('[]');receipt.chmod(0o600)
+        self.assertEqual(dispatch_prepared(self.m),0);self.assert_status('held','receipt','unsupported-record');self.m.mylar.assert_not_called()
+
+    def test_status_empty_and_unreadable_receipts_are_not_dispatch(self):
+        from import_recovery import dispatch_prepared
+        self.assertEqual(dispatch_prepared(self.m),0);self.assert_status('idle','receipt','no-receipts')
+        _,receipt=self.prepared()
+        self.assertEqual(dispatch_prepared(self.m,()),0);self.assert_status('idle','receipt','no-selected-receipts')
+        receipt.write_text('not-json');original=receipt.read_bytes()
+        self.assertEqual(dispatch_prepared(self.m),0);self.assert_status('held','receipt','unreadable','ValueError');self.assertEqual(receipt.read_bytes(),original)
+
+
 class RecoveryTest(unittest.TestCase):
     def test_staged_name_carries_exact_identity_and_actual_format(self):
         self.assertEqual(staging_name(Path('Opaque.pdf'), '100', pdf=True), 'Opaque [__100__].cbz')

@@ -98,6 +98,17 @@ empty device/inode match alone does not establish that the lock is free. A bound
 nonblocking Python stack snapshot without local variables can distinguish slow
 admission validation from network work or a blocked worker. Keep the snapshot
 private, and preserve the original readiness checks.
+The reader lifecycle parent's library query currently runs on the host, even
+when its original normalizer URL uses a Docker-only network alias. Preserve the
+original URL and credentials when diagnosing connection errors. A host DNS
+failure does not prove a reader permission or DTO failure. Check the owning
+transport context before repeating full source captures or changing live
+configuration. Retain only fixed error types, numeric network codes and trusted
+source locations in shared diagnostics; keep addresses and responses private.
+A prepared import receipt and a later healthy API response do not identify the
+earlier dispatch refusal. Keep dispatch-time outcomes explicit and bounded,
+preserve uncertain phases, and never replay a submitted operation to diagnose it.
+
 The maintained Komga effective-scope observer lives in
 `stacks/komga/effective_scope/`. Compile and transport the complete generated class
 inventory, including nested classes; a primary-class pin does not prove runtime
