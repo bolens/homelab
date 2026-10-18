@@ -73,6 +73,10 @@ in installers and owning tests as well as file-map rows. Refresh only current
 contracts, preserve historical preimages, and run the owning installer tests and
 checked fixture-copy closure before pushing. A closed file map alone does not
 prove those semantic pins agree.
+When a declared test suite grows, update its exact owning runner count and
+aggregate assertions together, then execute the complete suite inventory before
+pushing. Keep strict collection and zero-skip checks; historical evidence counts
+remain unchanged.
 The retained-pack worker fixture also has an inner `source-pins.json` census.
 Update that census before refreshing the standalone map, then refresh the import
 API map and its nested standalone-manifest pin. Outer-map closure alone does not
