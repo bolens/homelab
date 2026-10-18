@@ -304,10 +304,48 @@ class NativeLibraryQuery(unittest.TestCase):
             self.assertEqual(argv,[*p.DOCKER,'exec','-i','--user','1000:1000','e'*64,'/lsiopy/bin/python3','-I','-B','-c',p.NATIVE_LIBRARY_GET])
             self.assertNotIn('PUBLIC TEST KEY',json.dumps(argv));self.assertNotIn('http://komga:25600',json.dumps(argv));request=json.loads(kwargs['input']);self.assertEqual(request['base'],'http://komga:25600');self.assertEqual(request['key'],'PUBLIC TEST KEY');self.assertIn(request['route'],('/api/v2/users/me','/api/v1/libraries'));self.assertFalse(kwargs['check'])
         self.assertNotIn('PUBLIC TEST KEY',json.dumps(result));self.assertFalse(result['payload']['native_grant']);self.assertEqual(len(self.calls),3)
-    def test_missing_common_network_or_alias_refuses_before_exec(self):
-        self.owner.baselines['held_native']['NetworkSettings']['Networks']['native-net']['NetworkID']='2'*64
-        with self.assertRaisesRegex(p.Held,'alias-network-join'):self.run_query()
-        self.assertEqual(self.execs,[])
+    def helper_context(self):
+        native=self.owner.baselines['held_native'];native['NetworkSettings']['Networks']['native-net']['NetworkID']='2'*64
+        self.owner.plan['held_native']['profile']=p.static(native)
+        worker=copy.deepcopy(native);worker.update(Id='9'*64,Name='/held-worker',Image='sha256:'+'7'*64);worker['State'].update(Status='created',Running=False,Pid=0)
+        self.owner.baselines['held_worker']=worker;self.owner.plan['held_worker']=dict(id=worker['Id'],profile=p.static(worker))
+        self.owner.inspect=lambda cid:copy.deepcopy(next(row for row in self.owner.baselines.values()if row['Id']==cid))
+        self.owner.emit=lambda name,value:None
+        self.helper_calls=[]
+        def helper(image,reader,route,body,seconds,guard,record):
+            guard();self.helper_calls.append((image,reader['Id'],route,body));result=self.remote([],input=body);guard();return result.stdout
+        self.owner.engine.library_get=helper
+    def test_no_common_network_selects_original_worker_reader_namespace(self):
+        self.helper_context();self.run_query();self.assertEqual(len(self.helper_calls),3)
+        self.assertTrue(all(row[0]=='sha256:'+'7'*64 and row[1]==self.owner.baselines['reader']['Id']for row in self.helper_calls))
+    def test_helper_worker_epoch_drift_refuses_after_get(self):
+        self.helper_context();original=self.owner.inspect
+        def changed():
+            def inspect(cid):
+                row=original(cid)
+                if cid=='9'*64:row['State']['StartedAt']='changed'
+                return row
+            self.owner.inspect=inspect
+        self.callback=changed
+        with self.assertRaisesRegex(p.Held,'worker-epoch'):self.run_query()
+        self.assertEqual(len(self.helper_calls),1)
+    def test_helper_reader_namespace_epoch_drift_refuses(self):
+        self.helper_context();original=self.owner.inspect;reader_id=self.owner.baselines['reader']['Id']
+        def changed():
+            def inspect(cid):
+                row=original(cid)
+                if cid==reader_id:row['State']['StartedAt']='changed'
+                return row
+            self.owner.inspect=inspect
+        self.callback=changed
+        with self.assertRaisesRegex(p.Held,'reader-epoch'):self.run_query()
+        self.assertEqual(len(self.helper_calls),1)
+    def test_helper_failure_never_falls_back_to_host_or_native(self):
+        self.helper_context();calls=[]
+        def refused(*args):calls.append(True);raise p.Held('library-helper-command-unknown-no-replay')
+        self.owner.engine.library_get=refused
+        with self.assertRaisesRegex(p.Held,'unknown-no-replay'):self.run_query()
+        self.assertEqual(calls,[True]);self.assertEqual(self.calls,[]);self.assertEqual(self.execs,[])
     def test_missing_reader_alias_refuses_without_host_fallback(self):
         self.owner.baselines['reader']['NetworkSettings']['Networks']['reader-net']['Aliases']=[]
         with self.assertRaisesRegex(p.Held,'alias-network-join'):self.run_query()
@@ -375,5 +413,148 @@ class FixedNativeClient(unittest.TestCase):
             self.assertEqual(output.getvalue(),b'{"fixture":true}')
         finally:sys.stdin,sys.stdout=oldin,oldout
         self.assertEqual(calls,[('GET','http://komga:25600/api/v2/users/me','PUBLIC TEST KEY')])
+
+
+
+
+class ReaderNetworkHelper(unittest.TestCase):
+    """Real source-owned method, projected Docker command/results only."""
+    def setUp(self):
+        self.engine=p.ScopedDocker();self.image='sha256:'+'5'*64;self.reader=dict(Id='6'*64,State={'Running':True})
+        self.record_tmp=tempfile.TemporaryDirectory();self.addCleanup(self.record_tmp.cleanup);self.record_root=Path(self.record_tmp.name);self.events=[];self.records=[];self.calls=[];self.guard_calls=0;self.started=False;self.removed=False;self.row=None;self.change=None;self.timeout=None;self.client_code=0
+        self.body=p.encode(dict(base='http://komga:25600',key='SECRET',route='/api/v2/users/me',seconds=10))
+        self.image_config=dict(Env=['PATH=/usr/bin:/bin'],Labels={'org.opencontainers.image.source':'public-source'},Volumes=None)
+        def run(argv,**kwargs):
+            args=argv[len(p.DOCKER):];self.calls.append((args,kwargs));self.events.append(('command',args[0]))
+            if self.timeout==args[0]:raise subprocess.TimeoutExpired(argv,1)
+            if args[:2]==['image','inspect']:return subprocess.CompletedProcess(argv,0,p.encode([dict(Id=self.image,Os='linux',Architecture='amd64',Config=self.image_config)]),b'')
+            if args[0]=='create':
+                self.row=self.created(args)
+                if self.change:self.change(self.row)
+                return subprocess.CompletedProcess(argv,0,('8'*64+'\n').encode(),b'')
+            if args[0]=='inspect':
+                if self.removed:return subprocess.CompletedProcess(argv,1,b'[]',('Error: No such object: '+'8'*64+'\n').encode())
+                row=copy.deepcopy(self.row)
+                if self.started:row['State'].update(Status='exited',ExitCode=self.client_code)
+                return subprocess.CompletedProcess(argv,0,p.encode([row]),b'')
+            if args[0]=='start':self.started=True;return subprocess.CompletedProcess(argv,self.client_code,b'{"id":"fixture"}',b'')
+            if args[0]=='rm':self.removed=True;return subprocess.CompletedProcess(argv,0,('8'*64+'\n').encode(),b'')
+            self.fail('unapproved command')
+        self.patch=patch.object(p.subprocess,'run',side_effect=run);self.patch.start();self.addCleanup(self.patch.stop)
+    def created(self,args):
+        get=lambda key:args[args.index(key)+1];label=get('--label');key,value=label.split('=',1);labels=dict(self.image_config['Labels'],**{key:value})
+        return dict(Id='8'*64,Name='/'+get('--name'),Image=self.image,Path='python3',Args=['-I','-B','-S','-c',p.NATIVE_LIBRARY_GET],Config=dict(Image=self.image,User='1000:1000',Entrypoint=['python3'],Cmd=['-I','-B','-S','-c',p.NATIVE_LIBRARY_GET],WorkingDir='/',OpenStdin=True,Tty=False,Env=self.image_config['Env'],Labels=labels,Healthcheck={'Test':['NONE']}),HostConfig=dict(ReadonlyRootfs=True,Privileged=False,NetworkMode='container:'+self.reader['Id'],IpcMode='private',PidMode='',CapDrop=['ALL'],CapAdd=None,SecurityOpt=['no-new-privileges'],PidsLimit=32,Memory=268435456,MemorySwap=268435456,NanoCpus=500000000,RestartPolicy={'Name':'no'},AutoRemove=False,LogConfig={'Type':'none','Config':{}},PublishAllPorts=False,Binds=None,Mounts=[],Tmpfs=None,Devices=[],DeviceRequests=None,PortBindings={}),Mounts=[],NetworkSettings={'Networks':{}},State=dict(Status='created',Running=False,Pid=0,Paused=False,Restarting=False,Dead=False,OOMKilled=False,ExitCode=0))
+    def guard(self):self.guard_calls+=1
+    def record(self,name,value):
+        self.records.append((name,value));self.events.append(('record',name.rsplit('-',1)[-1]))
+        target=self.record_root/name;raw=p.encode(value);target.write_bytes(raw);target.chmod(0o600);return reference(target)
+    def run_get(self):return self.engine.library_get(self.image,self.reader,'/api/v2/users/me',self.body,10,self.guard,self.record)
+    def test_exact_owned_helper_get_profile_stdin_cleanup(self):
+        self.assertEqual(self.run_get(),b'{"id":"fixture"}');self.assertTrue(self.removed);self.assertGreater(self.guard_calls,12)
+        create=next(v for v,k in self.calls if v[0]=='create');self.assertEqual(create[create.index('--network')+1],'container:'+'6'*64);self.assertNotIn('SECRET',str(create));self.assertNotIn('http://komga',str(create));self.assertNotIn('--volume',create);self.assertNotIn('--mount',create)
+        starts=[(v,k)for v,k in self.calls if v[0]=='start'];self.assertEqual(len(starts),1);self.assertEqual(starts[0][1]['input'],self.body);self.assertTrue(any(name.endswith('-cleanup.json')for name,_ in self.records))
+    def test_every_cleanup_error_requires_exact_empty_JSON(self):
+        original=p.subprocess.run.side_effect
+        for prefix in ('Error: No such object: ','Error: No such container: ','Error response from daemon: No such container: '):
+            for stdout in (b'[]',b'[{}]',b'{}',b'not-json'):
+                with self.subTest(prefix=prefix,stdout=stdout):
+                    self.started=False;self.removed=False;self.records.clear();self.calls.clear()
+                    def absent(argv,**kwargs):
+                        result=original(argv,**kwargs)
+                        if self.removed and argv[len(p.DOCKER)]=='inspect':
+                            result.stdout=stdout;result.stderr=(prefix+'8'*64+'\n').encode()
+                        return result
+                    p.subprocess.run.side_effect=absent
+                    if stdout==b'[]':
+                        self.assertEqual(self.run_get(),b'{"id":"fixture"}')
+                        self.assertTrue(any(name.endswith('-cleanup.json')for name,_ in self.records))
+                    else:
+                        with self.assertRaises((p.Held,ValueError)):self.run_get()
+                        self.assertFalse(any(name.endswith('-cleanup.json')for name,_ in self.records))
+    def test_durable_intent_and_create_ACK_precede_inspect(self):
+        self.run_get();intent=next(value for name,value in self.records if name.endswith('-intent.json')and not name.endswith('-start-intent.json'))
+        self.assertEqual(intent['network_mode'],'container:'+'6'*64);self.assertEqual(intent['create_argv'],next(args for args,kw in self.calls if args[0]=='create'));self.assertNotIn('SECRET',json.dumps(intent))
+        ack=next(value for name,value in self.records if name.endswith('-create-ack.json'));self.assertEqual(ack['container_id'],'8'*64)
+        self.assertLess(self.events.index(('record','ack.json')),self.events.index(('command','inspect')))
+    def test_memory_only_record_refuses_before_create(self):
+        self.record=lambda name,value:None
+        with self.assertRaisesRegex(p.Held,'ref-shape'):self.run_get()
+        self.assertFalse(any(args[0]=='create'for args,kw in self.calls))
+    def test_intent_record_failure_prevents_create(self):
+        original=self.record
+        def record(name,value):
+            if name.endswith('-intent.json'):raise OSError('private-record-error')
+            return original(name,value)
+        self.record=record
+        with self.assertRaises(OSError):self.run_get()
+        self.assertFalse(any(args[0]=='create'for args,kw in self.calls))
+    def test_create_ACK_record_failure_never_inspects_starts_or_removes(self):
+        original=self.record
+        def record(name,value):
+            if name.endswith('-create-ack.json'):raise OSError('private-record-error')
+            return original(name,value)
+        self.record=record
+        with self.assertRaises(OSError):self.run_get()
+        self.assertTrue(any(args[0]=='create'for args,kw in self.calls));self.assertFalse(any(args[0]in('inspect','start','rm')for args,kw in self.calls))
+    def test_declared_volumes_refuse_before_create(self):
+        self.image_config['Volumes']={'/data':{}}
+        with self.assertRaisesRegex(p.Held,'image-original'):self.run_get()
+        self.assertFalse(any(v[0]=='create'for v,k in self.calls))
+    def test_wrong_image_platform_refuses_before_create(self):
+        original=p.subprocess.run.side_effect
+        def wrong(argv,**kwargs):
+            r=original(argv,**kwargs)
+            if argv[len(p.DOCKER):len(p.DOCKER)+2]==['image','inspect']:
+                data=json.loads(r.stdout);data[0]['Architecture']='arm64';r.stdout=p.encode(data)
+            return r
+        p.subprocess.run.side_effect=wrong
+        with self.assertRaisesRegex(p.Held,'image-original'):self.run_get()
+    def test_unsafe_mount_refuses_without_start_or_cleanup(self):
+        self.change=lambda row:row['Mounts'].append({'Type':'bind','Source':'/private','Destination':'/private','RW':False})
+        with self.assertRaisesRegex(p.Held,'exact-isolation'):self.run_get()
+        self.assertFalse(self.started);self.assertFalse(self.removed)
+    def test_wrong_network_mode_refuses(self):
+        self.change=lambda row:row['HostConfig'].update(NetworkMode='host')
+        with self.assertRaisesRegex(p.Held,'exact-isolation'):self.run_get()
+        self.assertFalse(self.started)
+    def test_wrong_UID_or_command_refuses(self):
+        self.change=lambda row:row['Config'].update(User='0:0')
+        with self.assertRaisesRegex(p.Held,'command-profile'):self.run_get()
+    def test_helper_profile_drift_before_cleanup_refuses(self):
+        original=p.subprocess.run.side_effect
+        def changed(argv,**kwargs):
+            r=original(argv,**kwargs)
+            if self.started and argv[len(p.DOCKER)]=='inspect':
+                data=json.loads(r.stdout);data[0]['Config']['Cmd']=['foreign'];r.stdout=p.encode(data)
+            return r
+        p.subprocess.run.side_effect=changed
+        with self.assertRaisesRegex(p.Held,'command-profile'):self.run_get()
+        self.assertFalse(self.removed)
+    def test_failed_GET_retains_without_replay_or_cleanup(self):
+        self.client_code=2
+        with self.assertRaisesRegex(p.Held,'GET-held'):self.run_get()
+        self.assertEqual(sum(v[0]=='start'for v,k in self.calls),1);self.assertFalse(self.removed)
+    def test_unknown_create_never_starts_or_cleans(self):
+        self.timeout='create'
+        with self.assertRaisesRegex(p.Held,'unknown-no-replay'):self.run_get()
+        self.assertFalse(self.started);self.assertFalse(self.removed);self.assertTrue(any('-unknown-'in name for name,_ in self.records))
+    def test_unknown_start_never_cleans_or_replays(self):
+        self.timeout='start'
+        with self.assertRaisesRegex(p.Held,'unknown-no-replay'):self.run_get()
+        self.assertEqual(sum(v[0]=='start'for v,k in self.calls),1);self.assertFalse(self.removed)
+    def test_unknown_cleanup_never_repeats_removal(self):
+        self.timeout='rm'
+        with self.assertRaisesRegex(p.Held,'unknown-no-replay'):self.run_get()
+        self.assertEqual(sum(v[0]=='rm'for v,k in self.calls),1)
+    def test_guard_failure_after_start_retains_helper(self):
+        def guard():
+            if self.started:raise p.Held('original-profile-drift')
+        self.guard=guard
+        with self.assertRaisesRegex(p.Held,'original-profile-drift'):self.run_get()
+        self.assertFalse(self.removed)
+    def test_route_body_mismatch_rejected_before_command(self):
+        self.body=p.encode(dict(base='http://komga',key='SECRET',route='/other',seconds=10))
+        with self.assertRaisesRegex(p.Held,'original-input'):self.run_get()
+        self.assertFalse(self.calls)
 
 if __name__=='__main__':unittest.main()
