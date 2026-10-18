@@ -68,6 +68,11 @@ directly from the checkout does not provide that fixture environment.
 When adding a pinned nested source or fixture, check its owning `.dockerignore`
 contract as well as source-map closure. A recorded source hash does not prove the
 file reaches the image build context; verify the actual owning-source export.
+When a pinned manifest or embedded cohort changes, trace its literal hash consumers
+in installers and owning tests as well as file-map rows. Refresh only current
+contracts, preserve historical preimages, and run the owning installer tests and
+checked fixture-copy closure before pushing. A closed file map alone does not
+prove those semantic pins agree.
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep

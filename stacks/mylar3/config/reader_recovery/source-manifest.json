@@ -490,7 +490,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "10b452ae68fbc2858f76efae294e094a2395bf0079bfe026e8862f7e2dee276a"
+      "sha256": "6ff41c0ff4a95b8b0e12f8dafac64d4ec6aa78bec97e61372e0232e00ae54eb2"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -556,7 +556,7 @@
       "sha256": "ca56630160985621a880ea1d3a9f567a7975fbc90cd0a23af6d302ffa75fe2a9"
     },
     "test_configured_parent_installation.py": {
-      "sha256": "d858c15d8e5e17db3286ecc3e58753c4dac38c92584446aacee55e658c339754"
+      "sha256": "20edd94da38a4d64b7daf8c3144982c9b6780d4cbc4402b76ca943ff0f2e13c7"
     },
     "test_configured_worker_library_query.py": {
       "sha256": "8a7f209c42ee3ca7f0caf9707c923ec536068cc6950a7ad01cd76d39e300fc71"
