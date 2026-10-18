@@ -84,6 +84,14 @@ namespace and metadata comparisons. Reproduce the complete write/cleanup path
 on disposable data on the actual filesystem; a temporary filesystem can miss
 this behavior. Preserve the primary operation error separately from final
 closure failures so cleanup diagnostics do not hide the original refusal.
+A nonempty workflow rollback journal can make the publication guard refuse startup
+before SQLite can perform its normal recovery. Preserve the database and journal
+together; do not delete the journal or disable the guard to restore availability.
+Use a stopped, reviewed recovery path with verified preimages and independent
+SQLite recovery on isolated copies before touching the original. Keep recovery
+locks separate from shutdown prevention: an external SQLite RESERVED lock can
+mask a hot journal, and a process-local store lock does not cover direct database
+writers. Verify the actual writer paths and lock behavior on disposable fixtures.
 When Writer contention persists, identify the owning process through kernel lock
 inventory and confirm its application identity before changing wait limits. An
 empty device/inode match alone does not establish that the lock is free. A bounded
@@ -105,6 +113,10 @@ real file-writing contract. The backup helper creates JSON files exclusively;
 assemble the complete scope before its first write. A fixture that permits
 overwriting does not verify that contract. Check capture identifiers against
 actual recorded values rather than copying the same literal into code and tests.
+Build schema fixtures from the actual owning creator or migration and confirm them
+against retained metadata before live verification. A later `CREATE TABLE IF NOT
+EXISTS` declaration may differ from the existing startup-created schema; deriving
+both the verifier and its fixture from that declaration can hide the same error.
 Execute extracted support functions in tests, including their hash/read paths,
 to prove the retained import header supplies their dependencies. Include pinned
 empty source files and the actual public-source ownership separately from
@@ -113,6 +125,11 @@ Root-private operational evidence. Neither case relaxes private-proof custody.
 Keep OCI index, platform manifest and configuration digests separate from the
 daemon's local image ID. Use the reviewed immutable reference for pulls and runs.
 Record the actual `docker image inspect` ID and container `Image` on that daemon.
+Docker can reorder `HostConfig.Binds` for a created container. For disjoint fixed
+destinations, compare duplicate-preserving membership rather than list order,
+while retaining exact source, destination, access mode and actual mount checks.
+Keep missing, extra, duplicate and changed mounts as refusals; this does not apply
+to overlapping mount destinations where order could affect the visible tree.
 Use absolute build-context, Compose and helper paths with `pkexec`; it may change
 the working directory. A relative path accepted by the unprivileged shell can
 therefore refer to a different location in the privileged command.
