@@ -757,7 +757,7 @@ class ScopedDocker:
   final_row=inspect();check(final_row,'exited');need(static(final_row)==terminal,'library-helper-cleanup-original')
   removed=command(['rm',cid]);need(removed.returncode==0 and removed.stdout.strip()==cid.encode(),'library-helper-cleanup-ACK-unknown')
   absent=command(['inspect',cid]);error=absent.stderr.decode('utf-8').strip()
-  need(absent.returncode==1 and error in('Error: No such object: '+cid,'Error: No such container: '+cid,
+  need(absent.returncode==1 and error in('error: no such object: '+cid,'Error: No such object: '+cid,'Error: No such container: '+cid,
        'Error response from daemon: No such container: '+cid) and decode(absent.stdout)==[],'library-helper-cleanup-absence')
   note('cleanup',dict(container_id=cid,owned_exited_cleanup_verified=True,publication_authority=False))
   return reply.stdout

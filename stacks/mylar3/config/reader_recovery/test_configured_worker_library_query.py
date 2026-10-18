@@ -455,7 +455,7 @@ class ReaderNetworkHelper(unittest.TestCase):
         starts=[(v,k)for v,k in self.calls if v[0]=='start'];self.assertEqual(len(starts),1);self.assertEqual(starts[0][1]['input'],self.body);self.assertTrue(any(name.endswith('-cleanup.json')for name,_ in self.records))
     def test_every_cleanup_error_requires_exact_empty_JSON(self):
         original=p.subprocess.run.side_effect
-        for prefix in ('Error: No such object: ','Error: No such container: ','Error response from daemon: No such container: '):
+        for prefix in ('error: no such object: ','Error: No such object: ','Error: No such container: ','Error response from daemon: No such container: '):
             for stdout in (b'[]',b'[{}]',b'{}',b'not-json'):
                 with self.subTest(prefix=prefix,stdout=stdout):
                     self.started=False;self.removed=False;self.records.clear();self.calls.clear()
