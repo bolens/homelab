@@ -73,6 +73,11 @@ in installers and owning tests as well as file-map rows. Refresh only current
 contracts, preserve historical preimages, and run the owning installer tests and
 checked fixture-copy closure before pushing. A closed file map alone does not
 prove those semantic pins agree.
+The retained-pack worker fixture also has an inner `source-pins.json` census.
+Update that census before refreshing the standalone map, then refresh the import
+API map and its nested standalone-manifest pin. Outer-map closure alone does not
+verify the inner Python-source census; run the source-copy semantic check before
+starting the expensive native image gate.
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep

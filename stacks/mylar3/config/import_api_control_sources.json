@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "72b87cf5f64ea0157655fdf0ed2fe8e8678a823cab09583ab6e1c7ac3807fbf6"
+    "sha256": "ba5958b01fe2ed822cac9185da94784b926b057978fe15492a0f01b3d9ee1fa4"
   },
   {
     "path": "story_arc_search.py",
@@ -1077,7 +1077,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "3658569e7a3303eecf36de97474883ddfb6ae01c1329baa98292ab8d950fc3a7"
+    "sha256": "1feba14f545b779cf5c9b5dc4936b15ced959ffd9c758d5028dc2787f21d9294"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",
@@ -1105,7 +1105,7 @@
   },
   {
     "path": "test_import_api_copy.py",
-    "sha256": "9246ec039cc84efabfb5de70b1737268d2a9444c633b16f574633ff3d9b0af6d"
+    "sha256": "0b18263a5ac9b858a3350a66a55baf4dac2ab45da40156df11193a05d07421ca"
   },
   {
     "path": "test_library_metadata.py",
