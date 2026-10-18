@@ -144,17 +144,23 @@ def failure_summary(error):
         role=trusted.get(trace.tb_frame.f_code.co_filename)
         if role is not None:frames.append(dict(source=role,function=trace.tb_frame.f_code.co_name,line=trace.tb_lineno))
         trace=trace.tb_next
-    codes={'disabled','supplier-set','public-supplier','original-source-frame','original-suppliers','public-image','no-image-agents','finite-output-prefix','fresh-case-outputs','fresh-test-name','owned-cid','owned-cleanup','genuine-target-case-refused','owned-image','owned-command','owned-environment','isolation','bounded-resources','sole-public-code-and-disposable-config','no-extra-access','owned-bind-profile','owned-tmpfs-profile','owned-exited','parent-original','parent-fd','output-original','output-namespace','output-leaf-original','output-open-original','output-leaf','output-file-owner','output-bounded','owned-cid-leaf'}
-    code=error.args[0] if len(error.args)==1 and type(error.args[0]) is str and error.args[0] in codes else 'unclassified'
-    kind=type(error).__name__ if type(error).__name__ in {'AssertionError','ValueError','OSError','RuntimeError','TimeoutExpired','CalledProcessError','FileNotFoundError','PermissionError'} else 'held'
-    return dict(kind='komga-target-fixed-failure-v1',failure_type=kind,fixed_code=code,trusted_frames=frames,configured_acceptance=False)
+    # Never read exception arguments/messages: subprocess exceptions can carry
+    # command arguments, output and generated credentials.
+    types = {AssertionError:'AssertionError', ValueError:'ValueError',
+             OSError:'OSError', RuntimeError:'RuntimeError',
+             subprocess.TimeoutExpired:'TimeoutExpired',
+             subprocess.CalledProcessError:'CalledProcessError',
+             FileNotFoundError:'FileNotFoundError', PermissionError:'PermissionError'}
+    kind = types.get(type(error), 'held')
+    return dict(kind='komga-target-fixed-failure-v1',failure_type=kind,
+                trusted_frames=frames,configured_acceptance=False)
 
 
 def main():
     try:return _main()
     except BaseException as error:
         print(json.dumps(failure_summary(error),sort_keys=True),file=sys.stderr,flush=True)
-        raise
+        raise SystemExit(2) from None
 
 
 if __name__ == '__main__': main()
