@@ -1457,15 +1457,19 @@ class RefuseRedirect(urllib.request.HTTPRedirectHandler):
         raise Held('library-query-redirect')
 
 
-def library_documents(base, key, *, guard=lambda: None, seconds=lambda: 30):
+def library_documents(base, key, *, guard=lambda: None, seconds=lambda: 30, fetch=None):
     """Exactly the existing three GETs; no caller-supplied route or HTTP verb."""
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), RefuseRedirect())
     def get(route):
         check(route in ('/api/v2/users/me', '/api/v1/libraries'), 'only-library-get')
         request = urllib.request.Request(base.rstrip('/') + route, headers={'X-API-Key': key}, method='GET')
         guard()
-        with opener.open(request, timeout=min(30, seconds())) as response:
-            raw = response.read(8 * 1024**2 + 1)
+        if fetch is None:
+            with opener.open(request, timeout=min(30, seconds())) as response:
+                raw = response.read(8 * 1024**2 + 1)
+        else:
+            raw = fetch(route, min(30, seconds()))
+        check(type(raw) is bytes, 'library-response-bytes')
         guard()
         check(len(raw) <= 8 * 1024**2, 'library-json-bound')
         def pairs(items):
