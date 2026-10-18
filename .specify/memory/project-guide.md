@@ -98,6 +98,26 @@ empty device/inode match alone does not establish that the lock is free. A bound
 nonblocking Python stack snapshot without local variables can distinguish slow
 admission validation from network work or a blocked worker. Keep the snapshot
 private, and preserve the original readiness checks.
+The maintained Komga effective-scope observer lives in
+`stacks/komga/effective_scope/`. Compile and transport the complete generated class
+inventory, including nested classes; a primary-class pin does not prove runtime
+closure. Keep configured image/process/output bindings outside public source and
+collect fresh original-bound evidence. Use the actual framework file-resource
+resolution before path checks. Require the exact bind list shape and
+multiplicity, not Docker's list order. Preserve fixed trusted source/function/line
+failures before an outer wrapper catches an exception; a type-only summary can
+hide a host custody failure after a successful target case.
+Mylar health diagnostics currently call `queue_control.Store.save`, which atomically
+replaces `ddl-control.json` even when no download state changes. A read-only API
+request can therefore change this file's inode and timestamps. For preservation,
+require exact baseline state bytes and stable ownership, device, size and parent
+identity, close each individual read, and check the installed writer source.
+Keep immutable backup/source witnesses strict; do not waive queue state changes.
+Keep no-follow path descriptors for captured scope nodes until final acknowledgement.
+A deleted inode can be reused before a pathname check, so device/inode tuples alone
+do not preserve the original node. Close descriptors on capture and pre-output
+failures as well as normal completion. Live database content and timestamps remain
+separate from scope-node identity.
 When binding a literal into a reviewed operational helper, replace only the exact
 AST value byte span and require every surrounding byte to remain unchanged.
 Normalizing a whole assignment line can hide a second statement on that line;

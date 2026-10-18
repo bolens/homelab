@@ -957,3 +957,12 @@ This single pass does not enable future automatic pack processing. While the
 normal worker remains Created/stopped, future packs wait. Once its owning
 rollout gates permit resuming the normal worker, the existing maintenance
 `Packs.cycle()` remains the automated path; this mode adds no service or loop.
+
+## Effective persistent scope observer
+
+The disabled [host observer](effective_scope/README.md) retains reproducible Java
+source and its original-process parent for recovery tooling. It uses the actual
+packaged Spring configuration loaders and typed properties without starting
+Komga. Source compilation and synthetic configuration tests grant no configured
+reader, NFS, publication or backup authority. Existing recovery gates still
+require fresh original-bound observer evidence.
