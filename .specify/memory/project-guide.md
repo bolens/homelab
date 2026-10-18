@@ -72,6 +72,10 @@ For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
 the whole-file pin and behavioral acceptance checks alongside any method pins.
+When binding a literal into a reviewed operational helper, replace only the exact
+AST value byte span and require every surrounding byte to remain unchanged.
+Normalizing a whole assignment line can hide a second statement on that line;
+include a refusal test for that case. Keep the original helper immutable.
 When a rollout helper wraps another helper, test the combined path against the
 real file-writing contract. The backup helper creates JSON files exclusively;
 assemble the complete scope before its first write. A fixture that permits
@@ -114,7 +118,9 @@ that supplies the wrong shape can pass while the installed path always refuses.
 Keep operational helper source, proof inputs, receipts and resume notes on private
 persistent storage outside Git. Verify an owner-only directory ancestor by its actual
 identity, owner and mode; a private filename or directory name does not restrict
-access. Correct the owning directory without rewriting retained receipt bytes or
+access. Capture ancestor identities before reading a protected leaf, then verify
+them again after the read; a later baseline can accept a replaced directory.
+Correct the owning directory without rewriting retained receipt bytes or
 historical file modes. Reserve temporary filesystems for disposable test fixtures.
 Before a planned reboot, verify the checkpoint and its referenced files are durable; after reboot, recapture process epochs and live file bindings rather
 than treating retained historical proof as fresh authorization.
