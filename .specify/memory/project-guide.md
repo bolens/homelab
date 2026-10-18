@@ -103,6 +103,9 @@ actual recorded values rather than copying the same literal into code and tests.
 Keep OCI index, platform manifest and configuration digests separate from the
 daemon's local image ID. Use the reviewed immutable reference for pulls and runs.
 Record the actual `docker image inspect` ID and container `Image` on that daemon.
+Use absolute build-context, Compose and helper paths with `pkexec`; it may change
+the working directory. A relative path accepted by the unprivileged shell can
+therefore refer to a different location in the privileged command.
 Do not infer either ID from registry metadata or assume a configuration digest
 names a locally runnable image.
 Inspect the image's actual complete labels before binding a recovery helper.
