@@ -1,0 +1,483 @@
+from collections import Counter
+"""Disabled original-process-bound Komga environment observation; no authority grant."""
+import base64
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import re
+import resource
+import selectors
+import secrets
+import stat
+import subprocess
+import sys
+import time
+
+ACTIVATE = False
+PLAN = None
+SUPPLIER_PINS = None
+HERE = Path(__file__).parent
+IMAGE = None
+JAR = 'f76aff7d31f2735ed902e3a004540e869568be42dc099a5560d72fd3d8f2c0fe'
+COMMIT = '2ab7a5a61a8b8bb12a6edd576fed380b4b613c99'
+CLASSES = ('KomgaEffectiveScope.class', 'KomgaEffectiveScope$Held.class', 'KomgaClasspathMetadata.class')
+RIGHTS = dict(backup_verified=False, publication_acceptance=False, mutation_authority=False)
+CONFIG_NAME = re.compile(r'application(?:-[A-Za-z0-9_-]+)?\.(?:yml|yaml|properties|xml)\Z')
+AGENTS = {'JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS', '_JAVA_OPTIONS'}
+
+
+def need(value, code):
+    if not value:
+        raise ValueError(code)
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def encode(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
+
+
+def nine(z):
+    return [z.st_dev, z.st_ino, z.st_size, z.st_mtime_ns, z.st_ctime_ns,
+            z.st_mode, z.st_uid, z.st_gid, z.st_nlink]
+
+
+def five(z):
+    return [z.st_dev, z.st_ino, z.st_mode, z.st_uid, z.st_gid]
+
+
+def bounded(path, maximum, *, owner=None, mode=None):
+    path = Path(path)
+    z = path.lstat()
+    need(stat.S_ISREG(z.st_mode) and z.st_nlink == 1 and z.st_size <= maximum,
+         'original-file')
+    need(owner is None or (z.st_uid, z.st_gid) == owner, 'original-owner')
+    need(mode is None or stat.S_IMODE(z.st_mode) == mode, 'original-mode')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        need(nine(os.fstat(fd)) == nine(z), 'original-open')
+        raw = os.read(fd, maximum + 1)
+        need(len(raw) == z.st_size and nine(os.fstat(fd)) == nine(path.lstat()) == nine(z),
+             'original-read-close')
+        return raw, nine(z)
+    finally:
+        os.close(fd)
+
+
+class Suppliers:
+    def __init__(self, pins):
+        need(type(pins) is dict and set(pins) == {
+            'owned.py', 'KomgaEffectiveScope.class', 'KomgaEffectiveScope$Held.class', 'KomgaEffectiveScope.java',
+            'KomgaClasspathMetadata.class', 'original-public-dependency-facts.json'}, 'supplier-set')
+        self.parents, self.frames, self.raw = {}, {}, {}
+        for name, pin in pins.items():
+            p = HERE / name
+            for ancestor in (p.parent, *p.parent.parents):
+                z = ancestor.lstat()
+                need(stat.S_ISDIR(z.st_mode), 'supplier-parent')
+                need(self.parents.setdefault(ancestor, five(z)) == five(z), 'supplier-parent-original')
+            raw, frame = bounded(p, 1048576, owner=(1000, 1000), mode=0o600)
+            need(digest(raw) == pin, 'supplier-pin')
+            self.raw[name], self.frames[p] = raw, frame
+        self.close()
+
+    def close(self):
+        need(all(five(p.lstat()) == f for p, f in self.parents.items()) and
+             all(nine(p.lstat()) == f for p, f in self.frames.items()), 'supplier-final')
+
+
+def process_snapshot(pid):
+    need(type(pid) is int and pid > 1, 'original-pid')
+    root = Path('/proc') / str(pid)
+    def identity():
+        raw = (root / 'stat').read_bytes()
+        fields = raw[raw.rfind(b')') + 2:].split()
+        need(len(fields) >= 20 and fields[0] not in (b'Z', b'X'), 'original-process-live')
+        return int(fields[19])
+    epoch = identity()
+    cmd = (root / 'cmdline').read_bytes()
+    env = (root / 'environ').read_bytes()
+    need(len(cmd) <= 262144 and len(env) <= 262144 and cmd.endswith(b'\0') and env.endswith(b'\0'),
+         'original-process-input-bound')
+    cwd = os.readlink(root / 'cwd')
+    executable = os.readlink(root / 'exe')
+    status = (root / 'status').read_text()
+    uid = re.search(r'^Uid:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$', status, re.M)
+    need(uid is not None and len(set(uid.groups())) == 1, 'original-process-uid')
+    need(identity() == epoch, 'original-process-epoch')
+    return dict(pid=pid, start_time=epoch, cmd=cmd, env=env, cwd=cwd,
+                executable=executable, uid=int(uid.group(1)))
+
+
+def heap_only(value):
+    return type(value) is str and value.isascii() and (not value.strip() or re.fullmatch(r'-Xm[sx][1-9][0-9]*[kKmMgG]?(?:[ \t\r\n]+-Xm[sx][1-9][0-9]*[kKmMgG]?)*', value.strip()) is not None)
+
+
+def original_inputs(snapshot, passwd):
+    argv = snapshot['cmd'][:-1].decode().split('\0')
+    envrows = snapshot['env'][:-1].decode().split('\0')
+    environment = {}
+    for row in envrows:
+        need('=' in row, 'original-env-shape')
+        k, v = row.split('=', 1)
+        need(k and k not in environment and (k not in AGENTS or heap_only(v)), 'original-env-duplicate-or-agent')
+        environment[k] = v
+    need(argv and Path(argv[0]).name == 'java', 'original-java-entrypoint')
+    properties, index = {}, 1
+    while index < len(argv) and argv[index] != '-jar':
+        item = argv[index]
+        if item.startswith('-D') and '=' in item[2:]:
+            key, value = item[2:].split('=', 1)
+            need(key and key not in properties, 'original-property-duplicate')
+            need(not key.startswith(('java.system.', 'java.protocol.', 'java.nio.', 'java.security.', 'jdk.', 'sun.')) and key not in ('java.home', 'java.class.path', 'java.version', 'java.vendor'), 'unsupported-jvm-provider')
+            properties[key] = value
+        else:
+            need(item == '--enable-native-access=ALL-UNNAMED', 'unsupported-original-jvm-option')
+        index += 1
+    need(index + 1 < len(argv) and argv[index + 1] in ('application.jar', '/app/application.jar') and
+         snapshot['cwd'] == '/app', 'original-main-contract')
+    args = argv[index + 2:]
+    need(all(s.startswith('--') and '\0' not in s for s in args), 'original-application-arguments')
+    accounts = []
+    for line in passwd.decode().splitlines():
+        parts = line.split(':')
+        if len(parts) == 7 and parts[2].isdigit() and int(parts[2]) == snapshot['uid']:
+            accounts.append(parts)
+    need(len(accounts) == 1, 'original-user-defaults')
+    defaults = {'user.dir': snapshot['cwd'], 'user.home': accounts[0][5], 'user.name': accounts[0][0]}
+    for key, value in defaults.items():
+        properties.setdefault(key, value)
+    need(properties['user.dir'] == '/app', 'original-working-directory')
+    return properties, environment, args
+
+
+class ConfigOriginals:
+    """Only direct config candidates + selected scope nodes, never payload traversal."""
+    def __init__(self, source):
+        self.root = Path(source)
+        need(self.root.is_absolute() and self.root == self.root.resolve(strict=True), 'config-source-canonical')
+        self.parents = {}
+        for p in (self.root, *self.root.parents):
+            z = p.lstat()
+            need(stat.S_ISDIR(z.st_mode), 'config-parent-directory')
+            self.parents[p] = five(z)
+        self.files, self.raw, self.entries = {}, {}, {}
+        with os.scandir(self.root) as entries:
+            rows = list(entries)
+        need(len(rows) <= 1024, 'config-direct-entry-bound')
+        for row in rows:
+            z = row.stat(follow_symlinks=False)
+            self.entries[row.name] = five(z)
+            if CONFIG_NAME.fullmatch(row.name):
+                need(not row.name.endswith('.xml'), 'unsupported-existing-xml-config')
+                raw, frame = bounded(self.root / row.name, 1048576)
+                self.files[row.name] = dict(sha256=digest(raw), signature9=frame)
+                self.raw[row.name] = raw
+        need(len(self.files) <= 64 and sum(map(len, self.raw.values())) <= 4194304, 'config-total-bound')
+        self.selected = None
+        self.close()
+
+    def child_input(self):
+        return dict(host_path=str(self.root), root_identity=self.parents[self.root], entries=self.entries,
+                    config_files={'/config/' + n: f for n, f in self.files.items()})
+
+    def close(self):
+        need(all(five(p.lstat()) == f for p, f in self.parents.items()), 'config-root-final')
+        names = {p.name for p in self.root.iterdir() if CONFIG_NAME.fullmatch(p.name)}
+        need(names == set(self.files), 'config-file-namespace-final')
+        for name, ref in self.files.items():
+            raw, frame = bounded(self.root / name, 1048576)
+            need(frame == ref['signature9'] and digest(raw) == ref['sha256'], 'config-file-final')
+        if self.selected is not None:
+            for path, expected in self.selected['scope_identities'].items():
+                need(five(Path(path).lstat()) == expected, 'scope-final')
+            for path, row in self.selected['optional_absent_scopes'].items():
+                need(not os.path.lexists(path) and five(Path(row['nearest_existing_ancestor']).lstat()) == row['ancestor_identity'],
+                     'scope-absence-final')
+            need(not any(os.path.lexists(p) for p in self.selected['absent_config_files']), 'config-absence-final')
+
+    def accept(self, report):
+        need(report['config_files'] == {str(self.root / n): f for n, f in self.files.items() if str(self.root / n) in report['config_files']}, 'report-config-join')
+        need(set(report['scopes']) == set(report['scope_presence']) == {'config', 'database', 'tasks', 'index', 'fonts'}, 'report-scope-set')
+        need(all(Path(x).parent == self.root and CONFIG_NAME.fullmatch(Path(x).name) for x in report['absent_config_files']), 'report-config-absence-scope')
+        expected_present, expected_absent = set(), set()
+        for role, value in report['scopes'].items():
+            need(type(value) is dict and set(value) == {'host_path'}, 'report-scope-shape')
+            p = Path(value['host_path'])
+            need(p == self.root or p.parent == self.root, 'report-config-subscope')
+            if report['scope_presence'][role]:
+                expected_present.add(str(p))
+                original = self.parents[self.root] if p == self.root else self.entries.get(p.name)
+                need(original is not None and original == report['scope_identities'].get(str(p)), 'report-original-scope-node')
+            else:
+                need(role == 'fonts' and p.name not in self.entries, 'report-optional-fonts')
+                expected_absent.add(str(p))
+                need(report['optional_absent_scopes'].get(str(p)) == dict(nearest_existing_ancestor=str(self.root), ancestor_identity=self.parents[self.root]), 'report-original-absence-parent')
+        need(set(report['scope_identities']) == expected_present and set(report['optional_absent_scopes']) == expected_absent, 'report-node-census')
+        self.selected = report
+        self.close()
+
+
+class OriginalCode:
+    """Join public image bytes to the original process mount namespace, not image ID alone."""
+    def __init__(self, pid, facts):
+        self.root = Path('/proc') / str(pid) / 'root'
+        self.refs = {}
+        app = self.root / 'app'
+        self.app_node = five(app.lstat())
+        need(not os.path.lexists(app / 'config') and not any(CONFIG_NAME.fullmatch(n) for n in os.listdir(app)), 'unsupported-original-image-config')
+        rows = [facts['application'], *facts['dependencies']]
+        need(len(rows) == 158 and [r['path'] for r in rows] == ['/app/application.jar', *['/app/' + v for v in facts['classpath']]], 'original-code-census')
+        for row in rows:
+            relative = Path(row['path']).relative_to('/')
+            need(str(relative) == 'app/application.jar' or re.fullmatch(r'app/lib/[A-Za-z0-9_.+\-]+\.jar', str(relative)), 'original-code-path')
+            path = self.root / relative
+            raw, frame = bounded(path, 256 * 1024**2)
+            need(digest(raw) == row['sha256'], 'original-code-public-join')
+            self.refs[path] = (frame, row['sha256'])
+        self.close()
+
+    def close(self):
+        app = self.root / 'app'
+        need(five(app.lstat()) == self.app_node and not os.path.lexists(app / 'config') and not any(CONFIG_NAME.fullmatch(n) for n in os.listdir(app)), 'original-image-config-final')
+        for path, (frame, sha) in self.refs.items():
+            # Full9 recheck closes each already hashed immutable original leaf.
+            need(nine(path.lstat()) == frame, 'original-code-final')
+
+
+def original_service(row, cid):
+    s = row['State']
+    need(row['Id'] == cid and row['Image'] == IMAGE and s['Running'] is True and s['Paused'] is False
+         and s['Restarting'] is False and s['Pid'] > 1, 'original-reader-running')
+    mounts = [m for m in row['Mounts'] if m['Destination'] == '/config']
+    need(len(mounts) == 1 and mounts[0]['Type'] in ('bind', 'volume') and mounts[0]['RW'] is True, 'original-config-mount')
+    destinations = [m['Destination'] for m in row['Mounts']]
+    need(len(destinations) == len(set(destinations)) and set(destinations) <= {'/config', '/normalizer-state', '/data/comics', '/data/manga'}, 'supported-original-mount-destinations')
+    need(all(m['Type'] == 'bind' and type(m['RW']) is bool for m in row['Mounts'] if m['Destination'] != '/config'), 'supported-original-media-mounts')
+    need(not any(m['Destination'].startswith('/config/') or m['Destination'] == '/' or m['Destination'] == '/app' or m['Destination'].startswith('/app/') for m in row['Mounts']), 'original-nested-config-mount')
+    return mounts[0]['Source']
+
+
+def static_service(row):
+    return {k: row[k] for k in ('Id', 'Image', 'Config', 'HostConfig', 'Mounts', 'RestartCount')} | {
+        'state': {k: row['State'][k] for k in ('Running', 'Paused', 'Restarting', 'Pid', 'StartedAt')}}
+
+
+def child_command(name, token, cidpath, code, config):
+    return ['/usr/bin/docker', 'run', '--interactive', '--name', name,
+            '--label', 'com.homelab.isolated-verification=' + token, '--cidfile', str(cidpath),
+            '--pull', 'never', '--read-only', '--network', 'none', '--cap-drop', 'ALL',
+            '--security-opt', 'no-new-privileges', '--user', '1000:1000', '--memory', '512m',
+            '--memory-swap', '512m', '--pids-limit', '64', '--no-healthcheck',
+            *[part for leaf in CLASSES for part in ('--volume', str(code / leaf) + ':/checks/' + leaf + ':ro')],
+            '--volume', config + ':/config:ro', '--entrypoint', 'java', IMAGE,
+            '-XX:-UsePerfData', '-cp', '/checks:/app/application.jar', 'KomgaEffectiveScope']
+
+
+def child_profile(row, name, token, code, config, image_env):
+    need(row['Image'] == IMAGE and row['Config']['Image'] == IMAGE and row['Name'] == '/' + name, 'child-image')
+    c, h = row['Config'], row['HostConfig']
+    need(c['User'] == '1000:1000' and c['Entrypoint'] == ['java'] and
+         c['Cmd'] == ['-XX:-UsePerfData', '-cp', '/checks:/app/application.jar', 'KomgaEffectiveScope'] and
+         c.get('Env') == image_env and c.get('Labels', {}).get('com.homelab.isolated-verification') == token and
+         c.get('Healthcheck') == {'Test': ['NONE']}, 'child-command')
+    need(h['ReadonlyRootfs'] is True and h['NetworkMode'] == 'none' and h['CapDrop'] == ['ALL'] and
+         h['SecurityOpt'] == ['no-new-privileges'] and h['Privileged'] is False and
+         h['Memory'] == h['MemorySwap'] == 536870912 and h['PidsLimit'] == 64, 'child-isolation')
+    expected = {str(code / leaf): '/checks/' + leaf for leaf in CLASSES} | {config: '/config'}
+    need(type(h.get('Binds')) is list and Counter(h['Binds']) == Counter(s + ':' + d + ':ro' for s, d in expected.items()) and not h.get('Tmpfs') and
+         not h.get('Mounts') and not h.get('Devices') and not h.get('DeviceRequests') and
+         not h.get('PortBindings') and h.get('PublishAllPorts') is False, 'child-bind-security')
+    need(len(row['Mounts']) == len(CLASSES) + 1 and all(m['Type'] == 'bind' for m in row['Mounts']) and
+         {(m['Source'], m['Destination'], m['RW']) for m in row['Mounts']} ==
+         {(source, destination, False) for source, destination in expected.items()}, 'child-exact-mounts')
+
+
+def line(stream, deadline, limit):
+    # Unbuffered pipe plus bytewise bounded reads avoids read-ahead hiding ACK bytes.
+    data = bytearray()
+    with selectors.DefaultSelector() as selector:
+        selector.register(stream, selectors.EVENT_READ)
+        while True:
+            remaining = deadline - time.monotonic()
+            need(remaining > 0 and selector.select(remaining), 'child-pipe-deadline')
+            raw = os.read(stream.fileno(), 1)
+            need(raw and len(data) < limit, 'child-pipe-bound-or-eof')
+            if raw == b'\n':
+                return bytes(data)
+            data.extend(raw)
+
+
+def pending_report(raw, runtime_sha, producer_sha, original):
+    report = json.loads(raw)
+    need(report.get('kind') == 'komga-effective-persistent-scope-observation' and
+         report.get('source_sha256') == producer_sha and report.get('runtime_sha256') == runtime_sha and
+         report.get('image') == IMAGE and report.get('jar_sha256') == JAR and report.get('source_commit') == COMMIT and
+         report.get('container_id') == original['container_id'] and report.get('pid') == original['pid'] and
+         report.get('start_time') == original['start_time'], 'pending-source-and-process')
+    need(report.get('final_ack_required') is True and all(report.get(k) is False for k in (
+        'scope_observation_verified', 'unsupported_imports_observed', 'all_library_settings_verified',
+        'process_verified_by_parent', 'application_context_started')), 'pending-no-rights')
+    return report
+
+
+def main():
+    need(ACTIVATE is True and IMAGE is not None and PLAN is not None and SUPPLIER_PINS is not None and os.geteuid() == 0 and
+         sys.flags.isolated and sys.dont_write_bytecode, 'disabled')
+    need(set(PLAN) == {'container_id', 'output'} and re.fullmatch('[a-f0-9]{64}', PLAN['container_id']), 'plan')
+    suppliers = Suppliers(SUPPLIER_PINS)
+    owned_path = HERE / 'owned.py'
+    spec = importlib.util.spec_from_file_location('_effective_owned', owned_path)
+    owned = importlib.util.module_from_spec(spec)
+    exec(compile(suppliers.raw['owned.py'], str(owned_path), 'exec'), owned.__dict__)
+    class Output(owned.JarOutput):
+        NAMES = {'export.cid', *CLASSES,
+                 'producer-source.class', 'parent-source.py', 'runtime.private.json', 'input.private.json',
+                 'report.private.json', 'acceptance.private.json', 'ack.private.json', 'parent-ack.private.json',
+                 'child.stderr', 'result.private.json'}
+    original = owned.inspect(PLAN['container_id'])
+    need(original is not None, 'original-container')
+    config = ConfigOriginals(original_service(original, PLAN['container_id']))
+    process = process_snapshot(original['State']['Pid'])
+    passwd_path = Path('/proc') / str(process['pid']) / 'root/etc/passwd'
+    passwd, passwd_frame = bounded(passwd_path, 65536)
+    properties, environment, args = original_inputs(process, passwd)
+    service = static_service(original)
+    facts = json.loads(suppliers.raw['original-public-dependency-facts.json'])
+    code_originals = OriginalCode(process['pid'], facts)
+    source, source_frame = bounded(__file__, 131072, owner=(1000, 1000), mode=0o600)
+    parent_sha = digest(source)
+    def close():
+        suppliers.close()
+        need(nine(Path(__file__).lstat()) == source_frame, 'parent-source-final')
+        need(static_service(owned.inspect(PLAN['container_id'])) == service and
+             process_snapshot(process['pid']) == process, 'original-runtime-final')
+        need(bounded(passwd_path, 65536) == (passwd, passwd_frame), 'original-user-defaults-final')
+        config.close()
+        code_originals.close()
+    close()
+    runtime = dict(kind='reviewed-komga-effective-scope-runtime', observed=int(time.time()),
+                   jar_sha256=JAR, source_commit=COMMIT, container=original,
+                   pid=process['pid'], start_time=process['start_time'])
+    runtime_raw = encode(runtime)
+    producer_sha = SUPPLIER_PINS['KomgaEffectiveScope.class']
+    input_value = dict(version=1, kind='original-komga-effective-input-v1', properties=properties,
+                       environment=environment, args=args, config_roots=['/config'],
+                       source_sha256=producer_sha, runtime_sha256=digest(runtime_raw), image=IMAGE,
+                       container_id=PLAN['container_id'], pid=process['pid'], start_time=process['start_time'],
+                       mount=config.child_input())
+    # This preflight binds the independently captured public factory graph, not a guessed provider set.
+    need(facts['application']['sha256'] == JAR and len(facts['dependencies']) == len(facts['classpath']) == 157,
+         'public-dependency-source')
+    image = json.loads(subprocess.run(['/usr/bin/docker', 'image', 'inspect', IMAGE], capture_output=True,
+                                     check=True, timeout=30).stdout)
+    need(len(image) == 1 and image[0]['Id'] == IMAGE and image[0]['Os'] == 'linux' and
+         image[0]['Architecture'] == 'amd64' and image[0]['Config']['WorkingDir'] == '/app' and
+         set(image[0]['Config'].get('Volumes') or {}) == {'/config'}, 'original-public-image')
+    image_env = image[0]['Config']['Env']
+    need(not any(v.split('=', 1)[0] in AGENTS for v in image_env), 'public-image-no-agents')
+    output_path = Path(PLAN['output'])
+    need(output_path.is_absolute() and not output_path.is_relative_to(config.root) and
+         not config.root.is_relative_to(output_path), 'output-outside-config')
+    out = Output(output_path)
+    proc = None
+    name = 'komga-effective-' + secrets.token_hex(16)
+    token = name.removeprefix('komga-effective-')
+    deadline = time.monotonic() + 100
+    try:
+        out.write('producer-source.class', suppliers.raw['KomgaEffectiveScope.class'])
+        out.write('parent-source.py', source)
+        for name0 in CLASSES:
+            out.write(name0, suppliers.raw[name0])
+            fd = os.open(name0, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=out.fd)
+            try:
+                os.fchmod(fd, 0o444)
+                out.files[name0] = tuple(nine(os.fstat(fd)))
+            finally:
+                os.close(fd)
+        out.write('runtime.private.json', runtime_raw)
+        out.write('input.private.json', encode(input_value))
+        close()
+        need(owned.inspect(name) is None, 'fresh-child')
+        out.close()
+        err = out.create('child.stderr')
+        command = child_command(name, token, Path('/proc/self/fd') / str(out.fd) / 'export.cid', out.path, str(config.root))
+        def limit():
+            resource.setrlimit(resource.RLIMIT_FSIZE, (1048576, 1048576))
+        proc = subprocess.Popen(command, preexec_fn=limit, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=err,
+                                bufsize=0, pass_fds=(out.fd,), umask=0o077)
+        pipes = tuple((p.fileno(), os.fstat(p.fileno()).st_ino) for p in (proc.stdin, proc.stdout))
+        proc.stdin.write(encode(input_value) + b'\n')
+        ready = line(proc.stdout, deadline, 1500000)
+        need(ready.startswith(b'SCOPE_READY '), 'child-ready')
+        raw = base64.b64decode(ready.removeprefix(b'SCOPE_READY '), validate=True)
+        need(len(raw) <= 1048576, 'child-report-bound')
+        report = pending_report(raw, digest(runtime_raw), producer_sha,
+                                dict(container_id=PLAN['container_id'], pid=process['pid'], start_time=process['start_time']))
+        config.accept(report)
+        out.cid()
+        child = owned.inspect(name)
+        child_profile(child, name, token, out.path, str(config.root), image_env)
+        need(child['State']['Running'] is True and proc.poll() is None, 'same-child-awaiting-ack')
+        close()
+        out.close()
+        need(all(os.fstat(fd).st_ino == ino for fd, ino in pipes), 'same-original-pipes')
+        out.write('report.private.json', raw)
+        report_sha = digest(raw)
+        acceptance = dict(kind='accepted-komga-effective-scope', scope_observation_verified=False,
+                          final_ack_required=True, same_process_verified=True, report_sha256=report_sha,
+                          source_sha256=parent_sha, helper_sha256=producer_sha, **RIGHTS)
+        acceptance_raw = encode(acceptance)
+        out.write('acceptance.private.json', acceptance_raw)
+        close()
+        out.close()
+        proc.stdin.write(('ACCEPT ' + report_sha + '\n').encode())
+        proc.stdin.close()
+        need(line(proc.stdout, deadline, 100) == ('SCOPE_ACK ' + report_sha).encode(), 'producer-final-ack')
+        need(proc.wait(timeout=max(0.1, deadline - time.monotonic())) == 0 and proc.stdout.read(1) == b'', 'producer-completed')
+        out.seal('child.stderr', 1048576)
+        child = owned.inspect(name)
+        child_profile(child, name, token, out.path, str(config.root), image_env)
+        need(child['State']['Status'] == 'exited' and child['State']['ExitCode'] == 0 and
+             child['State']['Pid'] == 0 and child['State']['Running'] is False and not child['State'].get('OOMKilled'), 'child-terminal')
+        close()
+        out.close()
+        out.write('ack.private.json', encode(dict(scope_observation_verified=True, report_sha256=report_sha, **RIGHTS)))
+        out.write('parent-ack.private.json', encode(dict(scope_observation_verified=True, same_process_verified=True,
+                  acceptance_sha256=digest(acceptance_raw), report_sha256=report_sha, **RIGHTS)))
+        subprocess.run(['/usr/bin/docker', 'container', 'rm', '--volumes', child['Id']], capture_output=True,
+                       check=True, timeout=30)
+        need(owned.inspect(name) is None, 'owned-child-cleanup')
+        close()
+        out.close()
+        roles = {'producer': 'producer-source.class', 'parent_source': 'parent-source.py', 'runtime': 'runtime.private.json',
+                 'report': 'report.private.json', 'acceptance': 'acceptance.private.json', 'ack': 'ack.private.json',
+                 'parent_ack': 'parent-ack.private.json'}
+        refs = {role: dict(path=str(out.path / leaf), sha256=digest((out.path / leaf).read_bytes())) for role, leaf in roles.items()}
+        out.close()
+        out.write('result.private.json', encode(dict(kind='reviewed-komga-effective-originals-v1', references=refs,
+                  scope_observation_verified=True, same_process_verified=True, **RIGHTS)))
+        close()
+        out.close()
+        print(json.dumps(dict(scope_observation_verified=True, same_process_verified=True, **RIGHTS)), flush=True)
+    finally:
+        # Uncertainty never grants acceptance or cleanup of a running child. Preserve all artifacts.
+        if proc is not None:
+            for pipe in (proc.stdin, proc.stdout):
+                if pipe and not pipe.closed:
+                    pipe.close()
+        primary = sys.exc_info()[1]
+        try:
+            out.release()
+        except BaseException:
+            if primary is None:
+                raise
+            # Preserve the original refusal; no success result or acceptance is inferred.
+
+
+if __name__ == '__main__':
+    main()

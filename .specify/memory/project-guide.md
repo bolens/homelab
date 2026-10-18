@@ -98,6 +98,15 @@ empty device/inode match alone does not establish that the lock is free. A bound
 nonblocking Python stack snapshot without local variables can distinguish slow
 admission validation from network work or a blocked worker. Keep the snapshot
 private, and preserve the original readiness checks.
+The maintained Komga effective-scope observer lives in
+`stacks/komga/effective_scope/`. Compile and transport the complete generated class
+inventory, including nested classes; a primary-class pin does not prove runtime
+closure. Keep configured image/process/output bindings outside public source and
+collect fresh original-bound evidence. Use the actual framework file-resource
+resolution before path checks. Require the exact bind list shape and
+multiplicity, not Docker's list order. Preserve fixed trusted source/function/line
+failures before an outer wrapper catches an exception; a type-only summary can
+hide a host custody failure after a successful target case.
 When binding a literal into a reviewed operational helper, replace only the exact
 AST value byte span and require every surrounding byte to remain unchanged.
 Normalizing a whole assignment line can hide a second statement on that line;
