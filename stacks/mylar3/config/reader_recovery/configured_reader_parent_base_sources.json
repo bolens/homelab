@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "6e05b4b8f702307494a02bea8c260b60c4c57e234046a23c89826bc98229fd2c",
+  "base_cohort_sha256": "9cc4b91c75266fdf119a98f003a5f974c607eacb47455986cf6673e8f6fa05da",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -256,7 +256,7 @@
     "solicit.py": "8b99e85578bb9afbddb7dbabae0874b705f60a6cdee5ab3a47a5f505a9807f19",
     "story_arc_search.py": "03c7aa62941a0de51249efa0c28756f9b6b39dd0283ce5464f3d8f338508b04a",
     "tagger_adapter.py": "3c04cc96e023226f6574ec2b8883a708c2abf29dd0500dbb11380cee77e5a11e",
-    "tagger_archive.py": "45b898d34e38ba1a1e1807eafda570460e0f4da8bc316d8cc0e978d31fa53340",
+    "tagger_archive.py": "af002ba1ec83f2d8c5a2b45920901f122fe08015e92367306321a233941dbb3b",
     "tagger_attributes.py": "8dc21b95f08bd36a045ea33442bd8796349333d92c73c0c9b4f107ecc6ee94ee",
     "tagger_backend.py": "dd53badc120f5ca74a10c89be0856e313ba7c94f00785b17f7874da595d49f7f",
     "tagger_cli.py": "cc63c81b7e103b2b873abdf1db43bcbb878bfabbfad41c1629357c017824b178",
@@ -649,7 +649,7 @@
         "owning_adapters": [
           "install_tagger_service.py"
         ],
-        "tracked_source_sha256": "45b898d34e38ba1a1e1807eafda570460e0f4da8bc316d8cc0e978d31fa53340"
+        "tracked_source_sha256": "af002ba1ec83f2d8c5a2b45920901f122fe08015e92367306321a233941dbb3b"
       },
       "tagger_attributes": {
         "owning_adapters": [

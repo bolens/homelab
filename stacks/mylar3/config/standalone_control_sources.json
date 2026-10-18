@@ -881,7 +881,7 @@
   },
   {
     "path": "tagger_archive.py",
-    "sha256": "45b898d34e38ba1a1e1807eafda570460e0f4da8bc316d8cc0e978d31fa53340",
+    "sha256": "af002ba1ec83f2d8c5a2b45920901f122fe08015e92367306321a233941dbb3b",
     "target": "tagger_archive.py"
   },
   {
@@ -1381,7 +1381,7 @@
   },
   {
     "path": "test_import_api_copy.py",
-    "sha256": "29407a955120844adc9869e8ab1dc21cee88e596ebb498ee84b07670a3c829a3",
+    "sha256": "9246ec039cc84efabfb5de70b1737268d2a9444c633b16f574633ff3d9b0af6d",
     "target": "test_import_api_copy.py"
   },
   {
@@ -1886,7 +1886,7 @@
   },
   {
     "path": "test_tagger_archive.py",
-    "sha256": "d999d288e5908e3c0541482994ce3d24c51d1e096e60690838b63c72344c382c",
+    "sha256": "59049108740e61b5ca712e81650e25c29172286f76e6dc10fc058011b4e8b48f",
     "target": "test_tagger_archive.py"
   },
   {
@@ -2001,7 +2001,7 @@
   },
   {
     "path": "verify_image.py",
-    "sha256": "20d2e6d00e4fdc4422547932f80dbe86afff5481b0bec635a863c06811086038",
+    "sha256": "6e3c2b35827a39c2c06872936260b202ac439da02b2ab4ff4d430e4068c36b39",
     "target": "verify_image.py"
   },
   {
@@ -2103,5 +2103,30 @@
     "path": "test_tagger_initial_admission.py",
     "sha256": "7ca6cd1ff94bf7b9dde28868fe1c4a770fe17ec8c7c723cb82870b6920b60e32",
     "target": "test_tagger_initial_admission.py"
+  },
+  {
+    "path": "ordinary_pipeline/README.md",
+    "sha256": "dcf5d062ed19e8fd0d487c9c7d2908d6380b455c4de5516d848190ec499626e6",
+    "target": "ordinary_pipeline/README.md"
+  },
+  {
+    "path": "ordinary_pipeline/cases.py",
+    "sha256": "09417cf2c4b68fc45e7cbc79f9361f25e2b0ffeea2584a0e14c4845e769688e9",
+    "target": "ordinary_pipeline/cases.py"
+  },
+  {
+    "path": "ordinary_pipeline/run.py",
+    "sha256": "999f0bcb4fe5cb74cb0c6f8595a4ad21adea218097037d259d56b67fc7521da9",
+    "target": "ordinary_pipeline/run.py"
+  },
+  {
+    "path": "ordinary_pipeline/runtime_state.py",
+    "sha256": "4912a750ee1f851b56d856012a744d608c80dd5bc8358063ae4695e850b37dd4",
+    "target": "ordinary_pipeline/runtime_state.py"
+  },
+  {
+    "path": "ordinary_pipeline/test_gate.py",
+    "sha256": "252097dc2c94cb21416b6e2b18627b160acc8bd9935d5d124e91b165878e4c60",
+    "target": "ordinary_pipeline/test_gate.py"
   }
 ]

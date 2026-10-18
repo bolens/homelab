@@ -25,7 +25,7 @@ class APICopy(unittest.TestCase):
         fired=[]
         def transport(argv,*,cwd,env):
             copied=Path(cwd)
-            for name in self.runner.STANDALONE_FIXTURES:
+            for name in self.runner.STANDALONE_FIXTURES | self.runner.ORDINARY_PIPELINE_FIXTURES:
                 self.assertEqual((copied/name).read_bytes(),(self.root/name).read_bytes())
             self.assertEqual((copied/self.runner.STANDALONE_MANIFEST).read_bytes(),(self.root/self.runner.STANDALONE_MANIFEST).read_bytes())
             self.assertFalse((copied/'comic_retained_standalone_action.py').exists())
@@ -45,6 +45,7 @@ class APICopy(unittest.TestCase):
         self.assertEqual(calls,[])
     def test_unknown_reader_sibling_is_refused(self):self.unknown('reader_recovery/unreviewed.py')
     def test_unknown_root_json_is_refused(self):self.unknown('unreviewed_control_sources.json')
+    def test_unknown_pipeline_sibling_is_refused(self):self.unknown('ordinary_pipeline/unreviewed.py')
 
 
 if __name__=='__main__':unittest.main()

@@ -68,6 +68,11 @@ directly from the checkout does not provide that fixture environment.
 When adding a pinned nested source or fixture, check its owning `.dockerignore`
 contract as well as source-map closure. A recorded source hash does not prove the
 file reaches the image build context; verify the actual owning-source export.
+When a pinned manifest or embedded cohort changes, trace its literal hash consumers
+in installers and owning tests as well as file-map rows. Refresh only current
+contracts, preserve historical preimages, and run the owning installer tests and
+checked fixture-copy closure before pushing. A closed file map alone does not
+prove those semantic pins agree.
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
@@ -197,6 +202,17 @@ current health and data contract.
 Reuse accepted evidence only when its source bytes, selected checks, configuration
 and relevant runtime still match. Recheck changed inputs rather than repeating
 unaffected broad suites. Record exact source, image and live acceptance separately.
+Close an implementation milestone when its documented source and selected-image
+gates pass; keep downstream configured execution under its owning tasks. Do not
+substitute source parity for a required genuine runtime path, or defer an
+implementation checkbox solely for a live test assigned to a later task.
+
+For disposable Git source exports, apply and verify file permissions from the
+reviewed Git tree before running security controls. `git archive` can emit mode
+`0664` for a tracked `100644` file because of its archive umask. Content hashes
+do not detect this difference. Require `0644` or `0755` as recorded by Git, keep
+the rejected export intact, and correct the new fixture rather than weakening
+the source-permission check.
 A partial manifest or matching database copies do not verify a backup if its
 owning helper refuses a later preservation check.
 

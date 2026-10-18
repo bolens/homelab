@@ -258,6 +258,14 @@ patches in a disposable layer over the pinned upstream image before running this
 gate, so fresh interpreter checks exercise the actual application module paths.
 The full custom-image build also runs the gate with its installed dependencies.
 A source mismatch fails the gate and requires patch review.
+
+The full custom-image gate also runs [installed ordinary-pipeline checks](config/ordinary_pipeline/README.md)
+for discovery, first import, a reply lost after durable completion, and import
+followed by rename and preserved metadata. Each uses new disposable state and
+real installed processing, catalog and acknowledgement functions. The lightweight
+upstream lane explicitly reports that it supplies no ordinary-pipeline runtime
+proof. Metadata rewriting preserves existing ZIP entry order, including the
+position of root `ComicInfo.xml`; it requires no preferred metadata position.
 After deployment, also check `/check_ActiveDDL`, queue progress, and library data
 preservation. The offline gate cannot verify a download provider's availability.
 

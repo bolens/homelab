@@ -225,15 +225,16 @@ def rebuild(original, target, old, merged):
         directory_limits(source)
         with zipfile.ZipFile(source) as source_zip, zipfile.ZipFile(target, 'w') as result:
             result.comment = old.comment
-            xml_info = None
+            xml_written = False
             for info in source_zip.infolist():
                 if info.filename == XML:
-                    xml_info = copy.copy(info)
+                    result.writestr(copy.copy(info), merged, compress_type=info.compress_type)
+                    xml_written = True
                     continue
                 with source_zip.open(info) as member, result.open(copy.copy(info), 'w') as dest:
                     while block := member.read(1024 * 1024):
                         dest.write(block)
-            result.writestr(xml_info or XML, merged,
-                            compress_type=xml_info.compress_type if xml_info else zipfile.ZIP_DEFLATED)
+            if not xml_written:
+                result.writestr(XML, merged, compress_type=zipfile.ZIP_DEFLATED)
         if identity(os.fstat(source.fileno())) != old.identity:
             raise ValueError('Source changed during reconciliation')

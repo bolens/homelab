@@ -123,6 +123,23 @@ def owning_suite(test, environment):
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
             env=environment)
 
+
+def ordinary_pipeline_controls(source, directory):
+    """Compare genuine installed Mylar with the freshly maintained source map."""
+    expected = {}
+    for path in sorted(source.glob('*.py')):
+        assert path.is_file() and not path.is_symlink(), 'ordinary pipeline expected regular source'
+        expected[path.name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert len(expected) == 180, 'ordinary pipeline expected complete native source'
+    target = Path(directory) / 'ordinary-pipeline-expected.json'
+    raw = (json.dumps(expected, sort_keys=True, indent=2) + '\n').encode()
+    with target.open('xb') as handle:
+        handle.write(raw)
+    checksum = hashlib.sha256(raw).hexdigest()
+    subprocess.run([sys.executable, '-I', '-B', str(FIXES/'ordinary_pipeline/run.py'),
+                    '--expected-map', str(target), '--expected-map-sha256', checksum],
+                   check=True, timeout=1000)
+
 def config_scope_preflight(source, *, installed):
     # Fail before broad suites on stale pins; this check grants no admission.
     import patch_config_retention as retention
@@ -141,6 +158,7 @@ def config_scope_preflight(source, *, installed):
 
 
 subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'test_verify_status_routing.py')], check=True)
+subprocess.run([sys.executable, '-I', '-B', str(FIXES / 'ordinary_pipeline/test_gate.py')], check=True)
 if Path('/opt/archiving-utils/lib/archive_backend.py').is_file():
     config_scope_preflight(Path('/app/mylar3/mylar'), installed=True)
     subprocess.run([sys.executable, '-B', str(FIXES / 'test_status_retention.py'), '/app/mylar3/mylar'], check=True)
@@ -212,6 +230,12 @@ with tempfile.TemporaryDirectory() as directory:
     # API/continuity controls run here; the custom image must run both families.
     api_family = 'all' if Path('/opt/archiving-utils/lib/archive_backend.py').is_file() else 'observation'
     print('Public import API control family: ' + api_family, flush=True)
+    if api_family == 'all':
+        assert Path('/opt/comictagger/bin/python').is_file(), 'Full pipeline gate requires its real metadata runtime'
+        assert Path('/opt/archiving-utils/bin/archiving-utils').is_file(), 'Full pipeline gate requires its real archive utility'
+        ordinary_pipeline_controls(source, directory)
+    else:
+        print('Lightweight upstream gate: no genuine ordinary-pipeline runtime proof', flush=True)
     subprocess.run([sys.executable, '-I', '-B', str(FIXES/'run_import_api_controls.py'),
                     '--family', api_family], check=True)
     # Finite copy regressions run in both upstream and custom-backend lanes.
