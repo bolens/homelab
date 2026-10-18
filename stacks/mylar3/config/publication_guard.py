@@ -154,7 +154,55 @@ def natural_key(name):
                   for part in re.split(r'([0-9]+)', name.casefold())), name)
 
 
+_INVENTORY_VALIDATION = threading.local()
+_INVENTORY_MEMO_COUNT = 32
+_INVENTORY_MEMO_BYTES = 8 * 1024 ** 2
+
+
+def _inventory_memo_key(value):
+    # Only exact JSON inventory types can share a successful pure validation.
+    # Tuples, custom subclasses and Python equality aliases must take the
+    # original path; serializing those would erase meaningful type differences.
+    if (type(value) is not dict or set(value) != {'version','members','pages','payload'}
+            or any(type(k) is not str for k in value)
+            or type(value['version']) is not int or value['version'] != 1
+            or type(value['payload']) is not str
+            or type(value['members']) is not list or not 0 < len(value['members']) <= MAX_MEMBERS
+            or type(value['pages']) is not list or len(value['pages']) > MAX_MEMBERS
+            or any(type(p) is not str or len(p) > 4096 for p in value['pages'])
+            or len(value['payload']) > 128):
+        return None
+    budget = 256 + 12 * (len(value['payload']) + sum(map(len,value['pages'])))
+    for row in value['members']:
+        if (type(row) is not dict or set(row) != {'name','bytes','directory','sha256'}
+                or any(type(k) is not str for k in row)
+                or type(row['name']) is not str or len(row['name']) > 4096
+                or type(row['bytes']) is not int or not 0 <= row['bytes'] <= MAX_MEMBER
+                or type(row['directory']) is not bool
+                or type(row['sha256']) is not str or len(row['sha256']) > 128):
+            return None
+        budget += 256 + 12 * (len(row['name']) + len(row['sha256']))
+        if budget > _INVENTORY_MEMO_BYTES:
+            return None
+    raw = json.dumps(value,sort_keys=True,ensure_ascii=True,separators=(',',':')).encode('ascii')
+    return raw if len(raw) <= _INVENTORY_MEMO_BYTES else None
+
+
 def validate(value):
+    memo = getattr(_INVENTORY_VALIDATION,'memo',None)
+    key = _inventory_memo_key(value) if memo is not None else None
+    if key is not None and key in memo[0]:
+        return None
+    _validate_inventory(value)
+    if key is not None and _inventory_memo_key(value) != key:
+        return None
+    if (key is not None and len(memo[0]) < _INVENTORY_MEMO_COUNT
+            and memo[1] + len(key) <= _INVENTORY_MEMO_BYTES):
+        memo[0].add(key)
+        memo[1] += len(key)
+
+
+def _validate_inventory(value):
     if (not isinstance(value, dict) or set(value) != {'version', 'members', 'pages', 'payload'}
             or type(value['version']) is not int or value['version'] != 1
             or not isinstance(value['members'], list)
@@ -698,8 +746,18 @@ def registry_snapshot(database, marker):
         from .workflow_store import LOCK
     else:
         from workflow_store import LOCK
-    with LOCK:
-        return _registry_snapshot(database, marker)
+    # Scope only successful pure inventory validation, never authority or
+    # filesystem observations. Nested reads receive their own isolated scope.
+    previous = getattr(_INVENTORY_VALIDATION,'memo',None)
+    _INVENTORY_VALIDATION.memo = [set(),0]
+    try:
+        with LOCK:
+            return _registry_snapshot(database, marker)
+    finally:
+        if previous is None:
+            del _INVENTORY_VALIDATION.memo
+        else:
+            _INVENTORY_VALIDATION.memo = previous
 
 
 def authority_status(database, writer_root):

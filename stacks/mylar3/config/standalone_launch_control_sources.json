@@ -216,7 +216,7 @@
   },
   {
     "path": "publication_guard.py",
-    "sha256": "a07fae80712894ca67433db570b89b0382fc7f328d4c98b4c54fa2fcfa1752b1",
+    "sha256": "dac064334086345760b572debdcbc0dade39d17fb7a7e60d2b2bbb38f026f582",
     "target": "fixtures/child/source/publication_guard.py"
   },
   {

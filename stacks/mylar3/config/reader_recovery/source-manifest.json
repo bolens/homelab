@@ -484,13 +484,13 @@
       "sha256": "00d3e0b2df9c0a2af3145761a8e3d44cacfd3ce7b16f14caf05eae6eb9ff07dc"
     },
     "configured_reader_parent_base_sources.json": {
-      "sha256": "f25b50dc54534a7f1ae6fcedb0578f91ef4da2b66b2f66af7ffa9bf7783c9342"
+      "sha256": "d92f0fd69278f8ae8b473aa8b42ef240bd0102d85af1963b68c185a60ee07b38"
     },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "d25ab48e6e3643145d3338291ba8a1a45926d7800e79993d7a76f25fb079dc53"
+      "sha256": "10b452ae68fbc2858f76efae294e094a2395bf0079bfe026e8862f7e2dee276a"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -556,7 +556,7 @@
       "sha256": "ca56630160985621a880ea1d3a9f567a7975fbc90cd0a23af6d302ffa75fe2a9"
     },
     "test_configured_parent_installation.py": {
-      "sha256": "3184f13f85c7663977e5d694aeb76a31d555b2a640002ea457e010ac9c290527"
+      "sha256": "d858c15d8e5e17db3286ecc3e58753c4dac38c92584446aacee55e658c339754"
     },
     "test_configured_worker_library_query.py": {
       "sha256": "8a7f209c42ee3ca7f0caf9707c923ec536068cc6950a7ad01cd76d39e300fc71"

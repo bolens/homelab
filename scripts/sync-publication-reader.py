@@ -39,18 +39,16 @@ def outputs():
     tree = ast.parse(source)
     # Everything before the mutation/recovery classes is evidence or validation.
     names = set(('Unavailable ordinary_root ordinary_purpose compact signature regular file_hash object_pairs decode_json metadata '
-                 'safe_name token natural_key validate scan bounded_run inventory canonical_digest same_json '
+                 'safe_name token natural_key validate _validate_inventory _inventory_memo_key scan bounded_run inventory canonical_digest same_json '
                  'digest_value exact_owner catalog_fact _catalog_path _claim_identity observe_owners attestation '
                  'media_snapshot cleanup_admission _cleanup_admission complete_census registry_snapshot _registry_snapshot writer_identity empty_census state_binding '
                  'census_value registration_effect intent_record bootstrap_record workflow_schema '
                  'initialization_witness historical_identity database_stamp').split())
     names.update(('MAX_MEMBERS MAX_BYTES MAX_MEMBER MAX_METADATA MAX_OUTPUT TIMEOUT TOOL_ROOT METADATA '
-                  'PAGE_EXTENSIONS REGISTRY_LIMIT REGISTRY_BYTES REGISTRATION_INTENT_LIMIT CATALOG_ROWS '
+                  'PAGE_EXTENSIONS _INVENTORY_VALIDATION _INVENTORY_MEMO_COUNT _INVENTORY_MEMO_BYTES REGISTRY_LIMIT REGISTRY_BYTES REGISTRATION_INTENT_LIMIT CATALOG_ROWS '
                   'CATALOG_BYTES CATALOG_PATHS REGISTRATION_BYTES REGISTRY_KINDS INTENT_LIMIT MARKER_BYTES').split())
     imports = ''.join(ast.get_source_segment(source, node) + '\n' for node in tree.body
-                      if isinstance(node, (ast.Import, ast.ImportFrom))
-                      and not (isinstance(node, ast.Import)
-                               and all(alias.name == 'threading' for alias in node.names)))
+                      if isinstance(node, (ast.Import, ast.ImportFrom)))
     reader = imports + '\n' + definitions('publication_guard.py', names)
     reader = reader.replace('from .publication_derivative import', 'from .publication_derivative_evidence import')
     reader = reader.replace('from publication_derivative import', 'from publication_derivative_evidence import')

@@ -3,7 +3,9 @@
 All SQLite/ledger/Writer files are disposable. Historical device identities are
 fixture genesis only, never operational migration or cache authorization.
 """
+import copy
 import json
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -132,6 +134,115 @@ class AdmissionScaling(HistoricalFixture):
                        (original, token))
         self.assertEqual(self.rows(), self.rows_original)
         self.assertEqual(guard.registry_snapshot(self.store.path, self.marker)[0]['revision'], 13)
+
+
+def inventory(n=512):
+    rows=[dict(name=f'{i:04d}.jpg',bytes=3,directory=False,sha256='a'*64) for i in range(n)]
+    pages=[r['name'] for r in rows]
+    return dict(version=1,members=rows,pages=pages,payload=guard.token(rows,pages))
+
+
+class RealAdoptedInventory(HistoricalFixture):
+    def record(self,revision=0):
+        row=super().record(revision)
+        row['inventory']=inventory()
+        return row
+
+    def test_many_member_adopted_authority_reuses_only_inventory_validation(self):
+        original=self.rows()
+        with patch.object(guard,'_validate_inventory',wraps=guard._validate_inventory) as validation:
+            self.assertEqual(guard.registry_snapshot(self.store.path,self.marker)[0]['revision'],2)
+            self.assertEqual(validation.call_count,1)
+            self.assertEqual(guard.registry_snapshot(self.store.path,self.marker)[0]['revision'],2)
+            self.assertEqual(validation.call_count,2)
+        with patch.object(guard,'_inventory_memo_key',return_value=None),patch.object(guard,'_validate_inventory',wraps=guard._validate_inventory) as uncached:
+            self.assertEqual(guard.registry_snapshot(self.store.path,self.marker)[0]['revision'],2)
+            self.assertEqual(uncached.call_count,56)
+        self.assertEqual(self.rows(),original)
+        self.assertFalse(hasattr(guard._INVENTORY_VALIDATION,'memo'))
+
+
+class InventoryMemo(unittest.TestCase):
+    def scope(self,body):
+        with patch.object(guard,'_registry_snapshot',side_effect=body):
+            return guard.registry_snapshot('unused','unused')
+
+    def test_changed_same_object_member_refused_within_invocation(self):
+        value=inventory(2)
+        def body(*args):
+            guard.validate(value)
+            value['members'][0]['sha256']='bad'
+            with self.assertRaises(guard.Unavailable):guard.validate(value)
+        self.scope(body)
+
+    def test_changed_next_invocation_and_failed_validation_never_cached(self):
+        value=inventory(2)
+        self.scope(lambda *args:guard.validate(value))
+        value['pages'].reverse()
+        for unused in range(2):
+            with self.assertRaises(guard.Unavailable):self.scope(lambda *args:guard.validate(value))
+            self.assertFalse(hasattr(guard._INVENTORY_VALIDATION,'memo'))
+
+    def test_non_json_aliases_bypass_memo(self):
+        original=inventory(2)
+        class Rows(list):pass
+        class Number(int):pass
+        aliases=[]
+        for field,replacement in [('pages',tuple(original['pages'])),('members',Rows(original['members'])),('version',True),('version',Number(1))]:
+            value=copy.deepcopy(original);value[field]=replacement;aliases.append(value)
+        value=copy.deepcopy(original);value['members'][0]['bytes']=3.0;aliases.append(value)
+        def body(*args):
+            guard.validate(original)
+            for value in aliases:
+                self.assertIsNone(guard._inventory_memo_key(value))
+                # Original behavior remains authoritative, including permitted subclasses.
+                with patch.object(guard,'_validate_inventory',wraps=guard._validate_inventory) as raw:
+                    try:guard.validate(value)
+                    except guard.Unavailable:pass
+                    self.assertEqual(raw.call_count,1)
+        self.scope(body)
+
+    def test_thread_and_nested_exception_scopes_clear(self):
+        value=inventory(2);failures=[]
+        def foreign():
+            try:
+                self.assertFalse(hasattr(guard._INVENTORY_VALIDATION,'memo'))
+                with patch.object(guard,'_validate_inventory',wraps=guard._validate_inventory) as raw:
+                    guard.validate(value);guard.validate(value)
+                    self.assertEqual(raw.call_count,2)
+            except BaseException as error:failures.append(error)
+        def outer(*args):
+            guard.validate(value);memo=guard._INVENTORY_VALIDATION.memo
+            worker=threading.Thread(target=foreign);worker.start();worker.join()
+            with patch.object(guard,'_registry_snapshot',side_effect=RuntimeError('fixture')):
+                with self.assertRaises(RuntimeError):guard.registry_snapshot('nested','nested')
+            self.assertIs(guard._INVENTORY_VALIDATION.memo,memo)
+        self.scope(outer)
+        self.assertEqual(failures,[])
+        self.assertFalse(hasattr(guard._INVENTORY_VALIDATION,'memo'))
+
+    def test_bounds_and_mutation_during_validation_do_not_store(self):
+        value=inventory(2)
+        def body(*args):
+            with patch.object(guard,'_INVENTORY_MEMO_COUNT',1):
+                guard.validate(value)
+                other=inventory(3);guard.validate(other)
+                self.assertEqual(len(guard._INVENTORY_VALIDATION.memo[0]),1)
+            guard._INVENTORY_VALIDATION.memo=[set(),0]
+            with patch.object(guard,'_INVENTORY_MEMO_BYTES',1):
+                guard.validate(value)
+                self.assertEqual(guard._INVENTORY_VALIDATION.memo,[set(),0])
+            emoji=inventory(2);emoji['members'][0]['name']='😀'*100
+            with patch.object(guard,'_INVENTORY_MEMO_BYTES',1000),patch.object(guard.json,'dumps',side_effect=AssertionError('serialization reached')):
+                self.assertIsNone(guard._inventory_memo_key(emoji))
+            huge=inventory(2);huge['version']=10**5000
+            self.assertIsNone(guard._inventory_memo_key(huge))
+            raw=guard._validate_inventory
+            def mutate(v):
+                raw(v);v['members'][0]['name']='changed.jpg'
+            with patch.object(guard,'_validate_inventory',side_effect=mutate):guard.validate(value)
+            self.assertEqual(guard._INVENTORY_VALIDATION.memo,[set(),0])
+        self.scope(body)
 
 
 if __name__ == '__main__':
