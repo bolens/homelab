@@ -79,6 +79,12 @@ namespace and metadata comparisons. Reproduce the complete write/cleanup path
 on disposable data on the actual filesystem; a temporary filesystem can miss
 this behavior. Preserve the primary operation error separately from final
 closure failures so cleanup diagnostics do not hide the original refusal.
+When Writer contention persists, identify the owning process through kernel lock
+inventory and confirm its application identity before changing wait limits. An
+empty device/inode match alone does not establish that the lock is free. A bounded
+nonblocking Python stack snapshot without local variables can distinguish slow
+admission validation from network work or a blocked worker. Keep the snapshot
+private, and preserve the original readiness checks.
 When binding a literal into a reviewed operational helper, replace only the exact
 AST value byte span and require every surrounding byte to remain unchanged.
 Normalizing a whole assignment line can hide a second statement on that line;

@@ -155,6 +155,9 @@ that both config and coordination mounts refer to the same writer state. It make
 no API calls or registry writes. The worker Docker context contains generated
 read-only native evidence definitions, checked by repository validation; regenerate
 them with `python3 scripts/sync-publication-reader.py` after native reader changes.
+Identical inventory content reuses successful validation only within one registry
+read, with a thread-local 32-entry/8 MiB bound. Database, ledger and filesystem
+observations remain fresh; the memo is discarded on return or error.
 Coordinated cycles validate complete authority before writing recovery bindings or
 fences and recheck it before clearing the fence. They require explicit
 `publication_roots` in the private normalizer configuration, for example

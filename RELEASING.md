@@ -80,3 +80,9 @@ set of selected image publications.
 The `Custom images` result runs on every PR, including those with no selected
 images. It rejects failed detection, cancelled builds, and unexpected skips, and
 is required alongside the repository's existing branch-protection checks.
+
+The native Mylar validation job pulls LinuxServer's official Docker Hub mirror
+with the exact digest from the Dockerfile. LSCR redirects to GHCR, where shared
+hosted-runner pulls can be throttled. The mirror changes only the CI pull route;
+the configured base image and immutable content pin remain unchanged. See
+[LinuxServer registry guidance](https://docs.linuxserver.io/faq/).
