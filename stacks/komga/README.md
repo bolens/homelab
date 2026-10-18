@@ -927,7 +927,9 @@ keeps its existing catalog-addition behavior.
 
 The selected command waits for temporary Writer contention within a 30-second
 admission budget, with a finite attempt limit. It refreshes read-only preparation
-outside Writer before another admission attempt. Existing recovery markers and
+outside Writer before another admission attempt. This includes temporary lock
+contention reported by the API guard during selected read-only preparation;
+other preparation failures are not retried. Existing recovery markers and
 invalid authority still refuse admission. Once the processing section is entered,
 failures and uncertain submissions are not retried by this wait. Existing API
 request timeouts remain separate from the admission waiting budget. Recurring mode
@@ -937,6 +939,10 @@ Selected preparation fetches health and the exact pack work, retaining the
 existing reader snapshot and response checks. It omits the unrelated queued-command
 fetch, so this preparation does not rotate that command cursor. Normal maintenance
 preparation keeps its existing command polling.
+
+For passive selected-pack checks, include both exact selectors in `packWork`.
+Unfiltered `packWork` performs discovery and advances its cursor; it is not a
+read-only diagnostic or a preparation step to retry for the selected command.
 
 A pass reports request counts, not completed import or library acceptance. Repeat
 with the same selectors to reconcile durable receipts; uncertain requests and

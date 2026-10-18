@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "e978950fa3840d2ecc5a4179605c3f30a9b89e029e1459871e473ea653318e97"
+    "sha256": "eec3b0faed2888663300720a8664b267c047f0ffb0b0dbb2f6850487a2b6bf92"
   },
   {
     "path": "story_arc_search.py",
@@ -969,7 +969,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/maintenance.py",
-    "sha256": "af81b674bbc174262b8b7d7fefd6eff3f27a0c17e9ed52f977b3594b8e843af8"
+    "sha256": "6ad1b3f9c640de2fe7575e101396b1b59569b3de434e4978096ae16978a2a1fb"
   },
   {
     "path": "test_fixtures/retained_pack_worker/maintenance_report.py",
@@ -1001,7 +1001,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_only.py",
-    "sha256": "c592c5b0e28549d643998c6f8cd72d1513edc504ed27c03ff4be79f263f36ee0"
+    "sha256": "ddce52339d96797fa72246830097c677c2f54760a3107f6e24b00d625558a3d2"
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_recovery.py",
@@ -1037,7 +1037,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/publication_guard.py",
-    "sha256": "569daf15a53b7c96d73a7d361a6ba6422fbf41101b44ec53b7e5e07dfd36ab09"
+    "sha256": "2833487ef351ab1556264a52dd6d72b668b2f63cc900341b764f30f584b9b229"
   },
   {
     "path": "test_fixtures/retained_pack_worker/publication_lock.py",
@@ -1077,7 +1077,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "913912a2efc71ec1587ea44044ecc4565b9af9ba08f656b62662227411d4a873"
+    "sha256": "3658569e7a3303eecf36de97474883ddfb6ae01c1329baa98292ab8d950fc3a7"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",

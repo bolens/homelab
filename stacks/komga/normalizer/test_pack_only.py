@@ -408,3 +408,149 @@ class AdmissionWaitTests(AuthorityFixture, unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PreparationAdmissionTests(AuthorityFixture, unittest.TestCase):
+    selected = AdmissionWaitTests.selected
+    execute = AdmissionWaitTests.execute
+
+    def test_real_remote_prepare_contention_recollects_before_processing(self):
+        import fcntl, os
+        from publication_guard import remote_unlocked
+        module, worker, maintenance, init = self.selected()
+        fd = os.open(self.writer.lock, os.O_RDWR)
+        self.addCleanup(os.close, fd)
+        batch = maintenance.prepare.return_value
+        def prepare(*args):
+            self.assertFalse(getattr(self.writer.local[1], 'depth', 0))
+            if maintenance.prepare.call_count == 1:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            remote_unlocked(worker)
+            return batch
+        maintenance.prepare.side_effect = prepare
+        with patch('pack_only.time.sleep', side_effect=lambda _: fcntl.flock(fd, fcntl.LOCK_UN)) as sleep:
+            _, packs = self.execute(module, worker, maintenance, init, admission_wait=30)
+        self.assertEqual(maintenance.prepare.call_count, 2)
+        sleep.assert_called_once()
+        packs.return_value.cycle.assert_called_once()
+        self.assertFalse(self.writer.fenced())
+
+    def test_real_prepare_contention_uses_same_deadline_and_attempt_cap(self):
+        import fcntl, os
+        from publication_guard import remote_unlocked, RemoteWriterBusy
+        module, worker, maintenance, init = self.selected()
+        fd = os.open(self.writer.lock, os.O_RDWR)
+        self.addCleanup(os.close, fd)
+        def prepare(*args):
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try: remote_unlocked(worker)
+            finally: fcntl.flock(fd, fcntl.LOCK_UN)
+        maintenance.prepare.side_effect = prepare
+        clock = [100.0]
+        with (patch('pack_only.time.monotonic', side_effect=lambda: clock[0]),
+              patch('pack_only.time.sleep', side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)) as sleep,
+              self.assertRaises(RemoteWriterBusy)):
+            self.execute(module, worker, maintenance, init, admission_wait=1)
+        self.assertEqual(maintenance.prepare.call_count, 2)
+        self.assertEqual(sum(c.args[0] for c in sleep.call_args_list), 1)
+        maintenance.prepare.reset_mock()
+        with (patch('pack_only.time.monotonic', return_value=100), patch('pack_only.time.sleep') as sleep,
+              self.assertRaises(RemoteWriterBusy)):
+            self.execute(module, worker, maintenance, init, admission_wait=120)
+        self.assertEqual(maintenance.prepare.call_count, module._ADMISSION_ATTEMPTS)
+        self.assertEqual(sleep.call_count, module._ADMISSION_ATTEMPTS - 1)
+        self.assertFalse(self.writer.fenced())
+
+    def test_prepare_contention_default_wait_does_not_retry(self):
+        from publication_guard import RemoteWriterBusy
+        module, worker, maintenance, init = self.selected()
+        maintenance.prepare.side_effect = RemoteWriterBusy('remote admission')
+        with patch('pack_only.time.sleep') as sleep, self.assertRaises(RemoteWriterBusy):
+            self.execute(module, worker, maintenance, init)
+        maintenance.prepare.assert_called_once(); sleep.assert_not_called()
+
+    def test_recovery_born_during_prepare_never_waits(self):
+        from publication_guard import RemoteWriterBusy
+        module, worker, maintenance, init = self.selected()
+        for name in module._RECOVERY_MARKERS:
+            path = self.writer.root / name
+            def prepare(*args):
+                path.write_bytes(b'original recovery')
+                raise RemoteWriterBusy('remote admission')
+            maintenance.prepare.reset_mock(); maintenance.prepare.side_effect = prepare
+            try:
+                with self.subTest(marker=name), patch('pack_only.time.sleep') as sleep, self.assertRaises(RemoteWriterBusy):
+                    self.execute(module, worker, maintenance, init, admission_wait=30)
+                maintenance.prepare.assert_called_once(); sleep.assert_not_called()
+                self.assertEqual(path.read_bytes(), b'original recovery')
+            finally: path.unlink()
+
+    def test_typed_contention_after_processing_never_replays(self):
+        from publication_guard import RemoteWriterBusy
+        module, worker, maintenance, init = self.selected()
+        with (patch('publication_guard.Authority.__init__', init), patch.object(module, 'Maintenance', return_value=maintenance),
+              patch.object(module, 'Packs') as packs, patch('pack_only.time.sleep') as sleep,
+              self.assertRaises(RemoteWriterBusy)):
+            packs.return_value.cycle.side_effect = RemoteWriterBusy('processing is outside admission')
+            module.run(worker, 'a' * 64, '1', admission_wait=30)
+        maintenance.prepare.assert_called_once(); packs.return_value.cycle.assert_called_once()
+        sleep.assert_not_called(); self.assertTrue(self.writer.fenced())
+
+    def test_remote_probe_distinguishes_real_contention_from_owned_scope(self):
+        import fcntl, os
+        from publication_guard import remote_unlocked, RemoteWriterBusy, Unavailable
+        _, worker, _, _ = self.selected()
+        with self.writer.hold():
+            with self.assertRaises(Unavailable) as error: remote_unlocked(worker)
+            self.assertNotIsInstance(error.exception, RemoteWriterBusy)
+        fd = os.open(self.writer.lock, os.O_RDWR)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            with self.assertRaises(RemoteWriterBusy): remote_unlocked(worker)
+        finally: os.close(fd)
+
+    def test_remote_probe_correction_refusal_is_not_transient(self):
+        from publication_guard import remote_unlocked, RemoteWriterBusy, Unavailable
+        _, worker, _, _ = self.selected()
+        for name in ('negative-retirement-v1.pending','negative-retirement-v1.terminal-pending',
+                     'archive-repair-v1.pending','archive-repair-v1.terminal-pending'):
+            path = self.writer.root / name
+            path.write_bytes(b'original recovery')
+            try:
+                with self.subTest(marker=name), self.assertRaises(Unavailable) as error: remote_unlocked(worker)
+                self.assertNotIsInstance(error.exception, RemoteWriterBusy)
+                self.assertEqual(path.read_bytes(), b'original recovery')
+            finally: path.unlink()
+
+    def test_initial_and_prepare_contention_share_one_budget(self):
+        import fcntl, os
+        from publication_guard import remote_unlocked, RemoteWriterBusy
+        module, worker, maintenance, init = self.selected()
+        fd = os.open(self.writer.lock, os.O_RDWR)
+        self.addCleanup(os.close, fd)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        clock = [100.0]
+        def pause(seconds):
+            clock[0] += seconds
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        def prepare(*args):
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try: remote_unlocked(worker)
+            finally: fcntl.flock(fd, fcntl.LOCK_UN)
+        maintenance.prepare.side_effect = prepare
+        with (patch('pack_only.time.monotonic', side_effect=lambda: clock[0]),
+              patch('pack_only.time.sleep', side_effect=pause) as sleep, self.assertRaises(RemoteWriterBusy)):
+            self.execute(module, worker, maintenance, init, admission_wait=1)
+        maintenance.prepare.assert_called_once()
+        self.assertEqual(sum(c.args[0] for c in sleep.call_args_list), 1)
+
+    def test_typed_dispatch_failure_is_not_admission(self):
+        from publication_guard import RemoteWriterBusy
+        module, worker, maintenance, init = self.selected()
+        with (patch('publication_guard.Authority.__init__', init), patch.object(module, 'Maintenance', return_value=maintenance),
+              patch.object(module, 'Packs') as packs, patch('pack_only.time.sleep') as sleep,
+              patch('import_recovery.dispatch_prepared', side_effect=RemoteWriterBusy('dispatch refusal')) as dispatch,
+              self.assertRaises(RemoteWriterBusy)):
+            module.run(worker, 'a' * 64, '1', admission_wait=30)
+        maintenance.prepare.assert_called_once(); packs.return_value.cycle.assert_called_once()
+        dispatch.assert_called_once(); sleep.assert_not_called(); self.assertFalse(self.writer.fenced())

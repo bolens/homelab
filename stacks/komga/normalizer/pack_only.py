@@ -4,7 +4,7 @@ import re
 import time
 from contextlib import ExitStack
 from media_writer import Writer, Busy
-from publication_guard import scope, Unavailable
+from publication_guard import scope, Unavailable, RemoteWriterBusy
 from writer_cycle import bind_state
 from maintenance import Maintenance
 from pack_recovery import Packs
@@ -29,7 +29,8 @@ def _recovery_pending(writer):
 
 
 def _wait_admission(writer, error, wait, deadline, attempt):
-    # Only Writer.hold.__enter__ failures reach here. Never retry scope/body work.
+    # Only lock entry or read-only remote preparation probes reach here.
+    # Never retry an acquired scope, processing body or dispatch.
     remaining = deadline - time.monotonic()
     if not wait or attempt >= _ADMISSION_ATTEMPTS or remaining <= 0 or _recovery_pending(writer):
         raise error
@@ -70,7 +71,11 @@ def run(worker, pack_id, ddl_id, *, admission_wait=0):
                 pass
         if admission_wait and _recovery_pending(writer):
             raise Busy('Existing writer recovery requires its owning cycle')
-        batch = m.prepare(pack_id, ddl_id)
+        try:
+            batch = m.prepare(pack_id, ddl_id)
+        except RemoteWriterBusy as error:
+            _wait_admission(writer, error, admission_wait, deadline, attempt)
+            continue
         work = batch.read(worker, 'packWork')
         if (type(work) is not dict or work.get('enabled') is not True
                 or type(work.get('packs')) is not list or len(work['packs']) != 1

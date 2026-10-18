@@ -60,6 +60,11 @@ positive allocation; increase fixture capacity without weakening the guard. For 
 the module directory containing `search.py`, `api.py` and `queues/`, not its
 repository parent. Require the native-source test to run rather than accepting
 its optional host-only skip as image proof.
+Run native import and retained-pack fixture families through
+`stacks/mylar3/config/run_import_api_controls.py`, with the required archive SDK
+available. The owning runner assembles the generated API, predecessor sources
+and host-module layout in private scratch; importing its component suites
+directly from the checkout does not provide that fixture environment.
 When adding a pinned nested source or fixture, check its owning `.dockerignore`
 contract as well as source-map closure. A recorded source hash does not prove the
 file reaches the image build context; verify the actual owning-source export.

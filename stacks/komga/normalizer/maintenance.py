@@ -168,7 +168,7 @@ class Maintenance:
         return queue.get('alive') and queue.get('size') == 0 and not value['processing']
 
     def prepare(self, pack_id=None, ddl_id=None, *, packs_only=False):
-        from publication_guard import NativeBatch
+        from publication_guard import NativeBatch, RemoteWriterBusy
         selected = pack_id is not None or ddl_id is not None
         if type(packs_only) is not bool or (packs_only and selected):
             raise ValueError('Choose selected or recurring pack preparation')
@@ -181,6 +181,11 @@ class Maintenance:
             for command in ('getHealth',*(['workflowCommands'] if not (selected or packs_only) else []),*(['packWork'] if self.settings.get('pack_import',False) else [])):
                 try:values[command] = (self.mylar(command, pack_id=pack_id, ddl_id=ddl_id)
                     if command == 'packWork' and pack_id is not None else self.mylar(command))
+                except RemoteWriterBusy:
+                    # Only selected getHealth/filtered packWork are read-only
+                    # admission. Unfiltered discovery keeps its original policy.
+                    if selected:raise
+                    values[command] = None
                 except Exception:values[command] = None
             if self.worker.config.get('writer_state') is not None:
                 from publication_guard import remote_unlocked,evidence,Unavailable
