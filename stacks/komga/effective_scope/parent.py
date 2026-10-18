@@ -158,35 +158,76 @@ def original_inputs(snapshot, passwd):
 class ConfigOriginals:
     """Only direct config candidates + selected scope nodes, never payload traversal."""
     def __init__(self, source):
-        self.root = Path(source)
-        need(self.root.is_absolute() and self.root == self.root.resolve(strict=True), 'config-source-canonical')
-        self.parents = {}
-        for p in (self.root, *self.root.parents):
-            z = p.lstat()
-            need(stat.S_ISDIR(z.st_mode), 'config-parent-directory')
-            self.parents[p] = five(z)
-        self.files, self.raw, self.entries = {}, {}, {}
-        with os.scandir(self.root) as entries:
-            rows = list(entries)
-        need(len(rows) <= 1024, 'config-direct-entry-bound')
-        for row in rows:
-            z = row.stat(follow_symlinks=False)
-            self.entries[row.name] = five(z)
-            if CONFIG_NAME.fullmatch(row.name):
-                need(not row.name.endswith('.xml'), 'unsupported-existing-xml-config')
-                raw, frame = bounded(self.root / row.name, 1048576)
-                self.files[row.name] = dict(sha256=digest(raw), signature9=frame)
-                self.raw[row.name] = raw
-        need(len(self.files) <= 64 and sum(map(len, self.raw.values())) <= 4194304, 'config-total-bound')
-        self.selected = None
-        self.close()
+        self.anchors = {}
+        try:
+            self.root = Path(source)
+            need(self.root.is_absolute() and self.root == self.root.resolve(strict=True), 'config-source-canonical')
+            self.parents = {}
+            for path in (self.root, *self.root.parents):
+                z = path.lstat()
+                need(stat.S_ISDIR(z.st_mode), 'config-parent-directory')
+                self.parents[path] = self.hold(path, five(z))
+            self.files, self.raw, self.entries = {}, {}, {}
+            scan = os.open('.', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=self.anchors[self.root])
+            try:
+                with os.scandir(scan) as entries:
+                    names = [entry.name for entry in entries]
+            finally:
+                os.close(scan)
+            need(len(names) <= 1024 and len(names) == len(set(names)), 'config-direct-entry-bound')
+            for name in names:
+                z = os.stat(name, dir_fd=self.anchors[self.root], follow_symlinks=False)
+                self.entries[name] = self.hold(self.root / name, five(z), self.anchors[self.root])
+                if CONFIG_NAME.fullmatch(name):
+                    need(not name.endswith('.xml'), 'unsupported-existing-xml-config')
+                    raw, frame = bounded(self.root / name, 1048576)
+                    self.files[name] = dict(sha256=digest(raw), signature9=frame)
+                    self.raw[name] = raw
+            need(len(self.files) <= 64 and sum(map(len, self.raw.values())) <= 4194304, 'config-total-bound')
+            self.selected = None
+            self.close()
+        except BaseException:
+            try:
+                self.release()
+            except OSError:
+                pass
+            raise
+
+    def hold(self, path, original, parent=None):
+        flags = os.O_PATH | os.O_NOFOLLOW | os.O_CLOEXEC
+        fd = os.open(path if parent is None else path.name, flags, dir_fd=parent)
+        try:
+            need(five(os.fstat(fd)) == original == five(path.lstat()), 'config-node-capture')
+            need(path not in self.anchors, 'config-node-duplicate')
+            self.anchors[path] = fd
+        except BaseException:
+            os.close(fd)
+            raise
+        return original
+
+    def original_node(self, path, expected, code):
+        need(path in self.anchors and five(os.fstat(self.anchors[path])) == expected == five(path.lstat()), code)
+
+    def release(self):
+        anchors, self.anchors = self.anchors, {}
+        error = None
+        for fd in anchors.values():
+            try:
+                os.close(fd)
+            except OSError as failure:
+                error = error or failure
+        if error is not None:
+            raise error
 
     def child_input(self):
+        need(bool(self.anchors), 'config-custody-released')
         return dict(host_path=str(self.root), root_identity=self.parents[self.root], entries=self.entries,
                     config_files={'/config/' + n: f for n, f in self.files.items()})
 
     def close(self):
-        need(all(five(p.lstat()) == f for p, f in self.parents.items()), 'config-root-final')
+        need(bool(self.anchors), 'config-custody-released')
+        for path, expected in self.parents.items():
+            self.original_node(path, expected, 'config-root-final')
         names = {p.name for p in self.root.iterdir() if CONFIG_NAME.fullmatch(p.name)}
         need(names == set(self.files), 'config-file-namespace-final')
         for name, ref in self.files.items():
@@ -194,10 +235,10 @@ class ConfigOriginals:
             need(frame == ref['signature9'] and digest(raw) == ref['sha256'], 'config-file-final')
         if self.selected is not None:
             for path, expected in self.selected['scope_identities'].items():
-                need(five(Path(path).lstat()) == expected, 'scope-final')
+                self.original_node(Path(path), expected, 'scope-final')
             for path, row in self.selected['optional_absent_scopes'].items():
-                need(not os.path.lexists(path) and five(Path(row['nearest_existing_ancestor']).lstat()) == row['ancestor_identity'],
-                     'scope-absence-final')
+                need(not os.path.lexists(path), 'scope-absence-final')
+                self.original_node(Path(row['nearest_existing_ancestor']), row['ancestor_identity'], 'scope-absence-final')
             need(not any(os.path.lexists(p) for p in self.selected['absent_config_files']), 'config-absence-final')
 
     def accept(self, report):
@@ -342,141 +383,149 @@ def main():
     original = owned.inspect(PLAN['container_id'])
     need(original is not None, 'original-container')
     config = ConfigOriginals(original_service(original, PLAN['container_id']))
-    process = process_snapshot(original['State']['Pid'])
-    passwd_path = Path('/proc') / str(process['pid']) / 'root/etc/passwd'
-    passwd, passwd_frame = bounded(passwd_path, 65536)
-    properties, environment, args = original_inputs(process, passwd)
-    service = static_service(original)
-    facts = json.loads(suppliers.raw['original-public-dependency-facts.json'])
-    code_originals = OriginalCode(process['pid'], facts)
-    source, source_frame = bounded(__file__, 131072, owner=(1000, 1000), mode=0o600)
-    parent_sha = digest(source)
-    def close():
-        suppliers.close()
-        need(nine(Path(__file__).lstat()) == source_frame, 'parent-source-final')
-        need(static_service(owned.inspect(PLAN['container_id'])) == service and
-             process_snapshot(process['pid']) == process, 'original-runtime-final')
-        need(bounded(passwd_path, 65536) == (passwd, passwd_frame), 'original-user-defaults-final')
-        config.close()
-        code_originals.close()
-    close()
-    runtime = dict(kind='reviewed-komga-effective-scope-runtime', observed=int(time.time()),
-                   jar_sha256=JAR, source_commit=COMMIT, container=original,
-                   pid=process['pid'], start_time=process['start_time'])
-    runtime_raw = encode(runtime)
-    producer_sha = SUPPLIER_PINS['KomgaEffectiveScope.class']
-    input_value = dict(version=1, kind='original-komga-effective-input-v1', properties=properties,
-                       environment=environment, args=args, config_roots=['/config'],
-                       source_sha256=producer_sha, runtime_sha256=digest(runtime_raw), image=IMAGE,
-                       container_id=PLAN['container_id'], pid=process['pid'], start_time=process['start_time'],
-                       mount=config.child_input())
-    # This preflight binds the independently captured public factory graph, not a guessed provider set.
-    need(facts['application']['sha256'] == JAR and len(facts['dependencies']) == len(facts['classpath']) == 157,
-         'public-dependency-source')
-    image = json.loads(subprocess.run(['/usr/bin/docker', 'image', 'inspect', IMAGE], capture_output=True,
-                                     check=True, timeout=30).stdout)
-    need(len(image) == 1 and image[0]['Id'] == IMAGE and image[0]['Os'] == 'linux' and
-         image[0]['Architecture'] == 'amd64' and image[0]['Config']['WorkingDir'] == '/app' and
-         set(image[0]['Config'].get('Volumes') or {}) == {'/config'}, 'original-public-image')
-    image_env = image[0]['Config']['Env']
-    need(not any(v.split('=', 1)[0] in AGENTS for v in image_env), 'public-image-no-agents')
-    output_path = Path(PLAN['output'])
-    need(output_path.is_absolute() and not output_path.is_relative_to(config.root) and
-         not config.root.is_relative_to(output_path), 'output-outside-config')
-    out = Output(output_path)
-    proc = None
-    name = 'komga-effective-' + secrets.token_hex(16)
-    token = name.removeprefix('komga-effective-')
-    deadline = time.monotonic() + 100
     try:
-        out.write('producer-source.class', suppliers.raw['KomgaEffectiveScope.class'])
-        out.write('parent-source.py', source)
-        for name0 in CLASSES:
-            out.write(name0, suppliers.raw[name0])
-            fd = os.open(name0, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=out.fd)
+        process = process_snapshot(original['State']['Pid'])
+        passwd_path = Path('/proc') / str(process['pid']) / 'root/etc/passwd'
+        passwd, passwd_frame = bounded(passwd_path, 65536)
+        properties, environment, args = original_inputs(process, passwd)
+        service = static_service(original)
+        facts = json.loads(suppliers.raw['original-public-dependency-facts.json'])
+        code_originals = OriginalCode(process['pid'], facts)
+        source, source_frame = bounded(__file__, 131072, owner=(1000, 1000), mode=0o600)
+        parent_sha = digest(source)
+        def close():
+            suppliers.close()
+            need(nine(Path(__file__).lstat()) == source_frame, 'parent-source-final')
+            need(static_service(owned.inspect(PLAN['container_id'])) == service and
+                 process_snapshot(process['pid']) == process, 'original-runtime-final')
+            need(bounded(passwd_path, 65536) == (passwd, passwd_frame), 'original-user-defaults-final')
+            config.close()
+            code_originals.close()
+        close()
+        runtime = dict(kind='reviewed-komga-effective-scope-runtime', observed=int(time.time()),
+                       jar_sha256=JAR, source_commit=COMMIT, container=original,
+                       pid=process['pid'], start_time=process['start_time'])
+        runtime_raw = encode(runtime)
+        producer_sha = SUPPLIER_PINS['KomgaEffectiveScope.class']
+        input_value = dict(version=1, kind='original-komga-effective-input-v1', properties=properties,
+                           environment=environment, args=args, config_roots=['/config'],
+                           source_sha256=producer_sha, runtime_sha256=digest(runtime_raw), image=IMAGE,
+                           container_id=PLAN['container_id'], pid=process['pid'], start_time=process['start_time'],
+                           mount=config.child_input())
+        # This preflight binds the independently captured public factory graph, not a guessed provider set.
+        need(facts['application']['sha256'] == JAR and len(facts['dependencies']) == len(facts['classpath']) == 157,
+             'public-dependency-source')
+        image = json.loads(subprocess.run(['/usr/bin/docker', 'image', 'inspect', IMAGE], capture_output=True,
+                                         check=True, timeout=30).stdout)
+        need(len(image) == 1 and image[0]['Id'] == IMAGE and image[0]['Os'] == 'linux' and
+             image[0]['Architecture'] == 'amd64' and image[0]['Config']['WorkingDir'] == '/app' and
+             set(image[0]['Config'].get('Volumes') or {}) == {'/config'}, 'original-public-image')
+        image_env = image[0]['Config']['Env']
+        need(not any(v.split('=', 1)[0] in AGENTS for v in image_env), 'public-image-no-agents')
+        output_path = Path(PLAN['output'])
+        need(output_path.is_absolute() and not output_path.is_relative_to(config.root) and
+             not config.root.is_relative_to(output_path), 'output-outside-config')
+        out = Output(output_path)
+        proc = None
+        name = 'komga-effective-' + secrets.token_hex(16)
+        token = name.removeprefix('komga-effective-')
+        deadline = time.monotonic() + 100
+        try:
+            out.write('producer-source.class', suppliers.raw['KomgaEffectiveScope.class'])
+            out.write('parent-source.py', source)
+            for name0 in CLASSES:
+                out.write(name0, suppliers.raw[name0])
+                fd = os.open(name0, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=out.fd)
+                try:
+                    os.fchmod(fd, 0o444)
+                    out.files[name0] = tuple(nine(os.fstat(fd)))
+                finally:
+                    os.close(fd)
+            out.write('runtime.private.json', runtime_raw)
+            out.write('input.private.json', encode(input_value))
+            close()
+            need(owned.inspect(name) is None, 'fresh-child')
+            out.close()
+            err = out.create('child.stderr')
+            command = child_command(name, token, Path('/proc/self/fd') / str(out.fd) / 'export.cid', out.path, str(config.root))
+            def limit():
+                resource.setrlimit(resource.RLIMIT_FSIZE, (1048576, 1048576))
+            proc = subprocess.Popen(command, preexec_fn=limit, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=err,
+                                    bufsize=0, pass_fds=(out.fd,), umask=0o077)
+            pipes = tuple((p.fileno(), os.fstat(p.fileno()).st_ino) for p in (proc.stdin, proc.stdout))
+            proc.stdin.write(encode(input_value) + b'\n')
+            ready = line(proc.stdout, deadline, 1500000)
+            need(ready.startswith(b'SCOPE_READY '), 'child-ready')
+            raw = base64.b64decode(ready.removeprefix(b'SCOPE_READY '), validate=True)
+            need(len(raw) <= 1048576, 'child-report-bound')
+            report = pending_report(raw, digest(runtime_raw), producer_sha,
+                                    dict(container_id=PLAN['container_id'], pid=process['pid'], start_time=process['start_time']))
+            config.accept(report)
+            out.cid()
+            child = owned.inspect(name)
+            child_profile(child, name, token, out.path, str(config.root), image_env)
+            need(child['State']['Running'] is True and proc.poll() is None, 'same-child-awaiting-ack')
+            close()
+            out.close()
+            need(all(os.fstat(fd).st_ino == ino for fd, ino in pipes), 'same-original-pipes')
+            out.write('report.private.json', raw)
+            report_sha = digest(raw)
+            acceptance = dict(kind='accepted-komga-effective-scope', scope_observation_verified=False,
+                              final_ack_required=True, same_process_verified=True, report_sha256=report_sha,
+                              source_sha256=parent_sha, helper_sha256=producer_sha, **RIGHTS)
+            acceptance_raw = encode(acceptance)
+            out.write('acceptance.private.json', acceptance_raw)
+            close()
+            out.close()
+            proc.stdin.write(('ACCEPT ' + report_sha + '\n').encode())
+            proc.stdin.close()
+            need(line(proc.stdout, deadline, 100) == ('SCOPE_ACK ' + report_sha).encode(), 'producer-final-ack')
+            need(proc.wait(timeout=max(0.1, deadline - time.monotonic())) == 0 and proc.stdout.read(1) == b'', 'producer-completed')
+            out.seal('child.stderr', 1048576)
+            child = owned.inspect(name)
+            child_profile(child, name, token, out.path, str(config.root), image_env)
+            need(child['State']['Status'] == 'exited' and child['State']['ExitCode'] == 0 and
+                 child['State']['Pid'] == 0 and child['State']['Running'] is False and not child['State'].get('OOMKilled'), 'child-terminal')
+            close()
+            out.close()
+            out.write('ack.private.json', encode(dict(scope_observation_verified=True, report_sha256=report_sha, **RIGHTS)))
+            out.write('parent-ack.private.json', encode(dict(scope_observation_verified=True, same_process_verified=True,
+                      acceptance_sha256=digest(acceptance_raw), report_sha256=report_sha, **RIGHTS)))
+            subprocess.run(['/usr/bin/docker', 'container', 'rm', '--volumes', child['Id']], capture_output=True,
+                           check=True, timeout=30)
+            need(owned.inspect(name) is None, 'owned-child-cleanup')
+            close()
+            out.close()
+            roles = {'producer': 'producer-source.class', 'parent_source': 'parent-source.py', 'runtime': 'runtime.private.json',
+                     'report': 'report.private.json', 'acceptance': 'acceptance.private.json', 'ack': 'ack.private.json',
+                     'parent_ack': 'parent-ack.private.json'}
+            refs = {role: dict(path=str(out.path / leaf), sha256=digest((out.path / leaf).read_bytes())) for role, leaf in roles.items()}
+            out.close()
+            out.write('result.private.json', encode(dict(kind='reviewed-komga-effective-originals-v1', references=refs,
+                      scope_observation_verified=True, same_process_verified=True, **RIGHTS)))
+            close()
+            out.close()
+            print(json.dumps(dict(scope_observation_verified=True, same_process_verified=True, **RIGHTS)), flush=True)
+        finally:
+            # Uncertainty never grants acceptance or cleanup of a running child. Preserve all artifacts.
+            if proc is not None:
+                for pipe in (proc.stdin, proc.stdout):
+                    if pipe and not pipe.closed:
+                        pipe.close()
+            primary = sys.exc_info()[1]
             try:
-                os.fchmod(fd, 0o444)
-                out.files[name0] = tuple(nine(os.fstat(fd)))
-            finally:
-                os.close(fd)
-        out.write('runtime.private.json', runtime_raw)
-        out.write('input.private.json', encode(input_value))
-        close()
-        need(owned.inspect(name) is None, 'fresh-child')
-        out.close()
-        err = out.create('child.stderr')
-        command = child_command(name, token, Path('/proc/self/fd') / str(out.fd) / 'export.cid', out.path, str(config.root))
-        def limit():
-            resource.setrlimit(resource.RLIMIT_FSIZE, (1048576, 1048576))
-        proc = subprocess.Popen(command, preexec_fn=limit, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=err,
-                                bufsize=0, pass_fds=(out.fd,), umask=0o077)
-        pipes = tuple((p.fileno(), os.fstat(p.fileno()).st_ino) for p in (proc.stdin, proc.stdout))
-        proc.stdin.write(encode(input_value) + b'\n')
-        ready = line(proc.stdout, deadline, 1500000)
-        need(ready.startswith(b'SCOPE_READY '), 'child-ready')
-        raw = base64.b64decode(ready.removeprefix(b'SCOPE_READY '), validate=True)
-        need(len(raw) <= 1048576, 'child-report-bound')
-        report = pending_report(raw, digest(runtime_raw), producer_sha,
-                                dict(container_id=PLAN['container_id'], pid=process['pid'], start_time=process['start_time']))
-        config.accept(report)
-        out.cid()
-        child = owned.inspect(name)
-        child_profile(child, name, token, out.path, str(config.root), image_env)
-        need(child['State']['Running'] is True and proc.poll() is None, 'same-child-awaiting-ack')
-        close()
-        out.close()
-        need(all(os.fstat(fd).st_ino == ino for fd, ino in pipes), 'same-original-pipes')
-        out.write('report.private.json', raw)
-        report_sha = digest(raw)
-        acceptance = dict(kind='accepted-komga-effective-scope', scope_observation_verified=False,
-                          final_ack_required=True, same_process_verified=True, report_sha256=report_sha,
-                          source_sha256=parent_sha, helper_sha256=producer_sha, **RIGHTS)
-        acceptance_raw = encode(acceptance)
-        out.write('acceptance.private.json', acceptance_raw)
-        close()
-        out.close()
-        proc.stdin.write(('ACCEPT ' + report_sha + '\n').encode())
-        proc.stdin.close()
-        need(line(proc.stdout, deadline, 100) == ('SCOPE_ACK ' + report_sha).encode(), 'producer-final-ack')
-        need(proc.wait(timeout=max(0.1, deadline - time.monotonic())) == 0 and proc.stdout.read(1) == b'', 'producer-completed')
-        out.seal('child.stderr', 1048576)
-        child = owned.inspect(name)
-        child_profile(child, name, token, out.path, str(config.root), image_env)
-        need(child['State']['Status'] == 'exited' and child['State']['ExitCode'] == 0 and
-             child['State']['Pid'] == 0 and child['State']['Running'] is False and not child['State'].get('OOMKilled'), 'child-terminal')
-        close()
-        out.close()
-        out.write('ack.private.json', encode(dict(scope_observation_verified=True, report_sha256=report_sha, **RIGHTS)))
-        out.write('parent-ack.private.json', encode(dict(scope_observation_verified=True, same_process_verified=True,
-                  acceptance_sha256=digest(acceptance_raw), report_sha256=report_sha, **RIGHTS)))
-        subprocess.run(['/usr/bin/docker', 'container', 'rm', '--volumes', child['Id']], capture_output=True,
-                       check=True, timeout=30)
-        need(owned.inspect(name) is None, 'owned-child-cleanup')
-        close()
-        out.close()
-        roles = {'producer': 'producer-source.class', 'parent_source': 'parent-source.py', 'runtime': 'runtime.private.json',
-                 'report': 'report.private.json', 'acceptance': 'acceptance.private.json', 'ack': 'ack.private.json',
-                 'parent_ack': 'parent-ack.private.json'}
-        refs = {role: dict(path=str(out.path / leaf), sha256=digest((out.path / leaf).read_bytes())) for role, leaf in roles.items()}
-        out.close()
-        out.write('result.private.json', encode(dict(kind='reviewed-komga-effective-originals-v1', references=refs,
-                  scope_observation_verified=True, same_process_verified=True, **RIGHTS)))
-        close()
-        out.close()
-        print(json.dumps(dict(scope_observation_verified=True, same_process_verified=True, **RIGHTS)), flush=True)
+                out.release()
+            except BaseException:
+                if primary is None:
+                    raise
+                # Preserve the original refusal; no success result or acceptance is inferred.
     finally:
-        # Uncertainty never grants acceptance or cleanup of a running child. Preserve all artifacts.
-        if proc is not None:
-            for pipe in (proc.stdin, proc.stdout):
-                if pipe and not pipe.closed:
-                    pipe.close()
         primary = sys.exc_info()[1]
         try:
-            out.release()
+            config.release()
         except BaseException:
             if primary is None:
                 raise
-            # Preserve the original refusal; no success result or acceptance is inferred.
 
 
 if __name__ == '__main__':

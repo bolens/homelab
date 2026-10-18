@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 HERE = Path(__file__).parent
 spec = importlib.util.spec_from_file_location('effective_parent', HERE / 'parent.py')
@@ -59,7 +60,7 @@ class Tests(unittest.TestCase):
     def test_direct_config_file_mutation(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d); q = root / 'application.yml'; q.write_text('komga:\n  config-dir: /config\n')
-            c = p.ConfigOriginals(root); self.assertEqual(set(c.child_input()['config_files']), {'/config/application.yml'})
+            c = p.ConfigOriginals(root); self.addCleanup(c.release); self.assertEqual(set(c.child_input()['config_files']), {'/config/application.yml'})
             q.write_text('komga: changed\n')
             with self.assertRaisesRegex(ValueError, 'config-file-final'): c.close()
 
@@ -71,19 +72,19 @@ class Tests(unittest.TestCase):
 
     def test_missing_xml_candidate_is_custodied_and_existing_xml_refuses(self):
         with tempfile.TemporaryDirectory() as d:
-            c = p.ConfigOriginals(d); xml = Path(d) / 'application.xml'; xml.write_text('<not-supported/>')
+            c = p.ConfigOriginals(d); self.addCleanup(c.release); xml = Path(d) / 'application.xml'; xml.write_text('<not-supported/>')
             with self.assertRaisesRegex(ValueError, 'config-file-namespace-final'): c.close()
             with self.assertRaisesRegex(ValueError, 'unsupported-existing-xml-config'): p.ConfigOriginals(d)
 
     def test_new_candidate_config_refused(self):
         with tempfile.TemporaryDirectory() as d:
-            c = p.ConfigOriginals(d); (Path(d) / 'application-docker.yml').write_text('x: y')
+            c = p.ConfigOriginals(d); self.addCleanup(c.release); (Path(d) / 'application-docker.yml').write_text('x: y')
             with self.assertRaisesRegex(ValueError, 'config-file-namespace-final'): c.close()
 
     def test_no_payload_read_or_timestamp_guard(self):
         with tempfile.TemporaryDirectory() as d:
             q = Path(d) / 'database.sqlite'; q.write_bytes(b'original')
-            c = p.ConfigOriginals(d); q.write_bytes(b'live database changes')
+            c = p.ConfigOriginals(d); self.addCleanup(c.release); q.write_bytes(b'live database changes')
             c.close(); self.assertEqual(c.files, {})
 
     def report(self, c):
@@ -94,7 +95,66 @@ class Tests(unittest.TestCase):
 
     def config(self, d):
         root = Path(d); (root / 'database.sqlite').write_bytes(b''); (root / 'tasks.sqlite').write_bytes(b''); (root / 'lucene').mkdir()
-        return p.ConfigOriginals(root)
+        result = p.ConfigOriginals(root); self.addCleanup(result.release); return result
+
+    def test_node_descriptors_pin_original_inodes_and_release(self):
+        with tempfile.TemporaryDirectory() as d:
+            c = self.config(d); q = Path(d) / 'database.sqlite'; old = os.fstat(c.anchors[q])
+            q.unlink(); q.write_bytes(b'new')
+            self.assertEqual(os.fstat(c.anchors[q]).st_ino, old.st_ino)
+            self.assertNotEqual(q.stat().st_ino, old.st_ino)
+            fds = list(c.anchors.values()); c.release(); c.release()
+            for fd in fds:
+                with self.assertRaises(OSError): os.fstat(fd)
+            with self.assertRaisesRegex(ValueError, 'config-custody-released'): c.close()
+
+    def test_scope_replaced_before_late_selection_refuses(self):
+        with tempfile.TemporaryDirectory() as d:
+            c = self.config(d); report = self.report(c); q = Path(d) / 'database.sqlite'
+            q.unlink(); q.write_bytes(b'new')
+            with self.assertRaisesRegex(ValueError, 'scope-final'): c.accept(report)
+
+    def test_parent_directory_replacement_refuses_with_original_fd(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d) / 'config'; root.mkdir(); c = p.ConfigOriginals(root); self.addCleanup(c.release)
+            root.rename(Path(d) / 'original'); root.mkdir()
+            with self.assertRaisesRegex(ValueError, 'config-root-final'): c.close()
+
+    def test_capture_symlink_substitution_refuses_and_releases(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); q = root / 'database.sqlite'; q.write_bytes(b'original'); target = root / 'other'; target.write_bytes(b'other')
+            original_open = p.os.open; opened = []
+            def replace_on_open(path, flags, *args, **kwargs):
+                if path == q.name and flags & os.O_PATH:
+                    q.unlink(); q.symlink_to(target.name)
+                fd = original_open(path, flags, *args, **kwargs); opened.append(fd); return fd
+            with patch.object(p.os, 'open', replace_on_open):
+                with self.assertRaisesRegex(ValueError, 'config-node-capture'): p.ConfigOriginals(root)
+            for fd in opened:
+                with self.assertRaises(OSError): os.fstat(fd)
+
+    def test_partial_capture_failure_releases_every_descriptor(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); (root / 'application.xml').write_text('<unsupported/>'); opened = []; original_open = p.os.open
+            def record(path, flags, *args, **kwargs):
+                fd = original_open(path, flags, *args, **kwargs); opened.append(fd); return fd
+            with patch.object(p.os, 'open', record):
+                with self.assertRaisesRegex(ValueError, 'unsupported-existing-xml-config'): p.ConfigOriginals(root)
+            for fd in opened:
+                with self.assertRaises(OSError): os.fstat(fd)
+
+    def test_pre_output_main_failure_releases_config_descriptors(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d); held = []; original = p.ConfigOriginals
+            class Recorded(original):
+                def __init__(self, source):
+                    super().__init__(source); held.extend(self.anchors.values())
+            supplier = type('FakeSuppliers', (), {'raw': {'owned.py': b'from types import SimpleNamespace\ninspect=lambda cid: {"State":{"Pid":1}}\nclass JarOutput: pass\n'}})()
+            with patch.object(p, 'ACTIVATE', True), patch.object(p, 'IMAGE', 'sha256:'+'a'*64), patch.object(p, 'PLAN', {'container_id':'a'*64,'output':str(root/'out')}), patch.object(p, 'SUPPLIER_PINS', {}), patch.object(p.os, 'geteuid', return_value=0), patch.object(p, 'Suppliers', return_value=supplier), patch.object(p, 'ConfigOriginals', Recorded), patch.object(p, 'original_service', return_value=str(root)), patch.object(p, 'process_snapshot', side_effect=ValueError('pre-output-fixture')):
+                with self.assertRaisesRegex(ValueError, 'pre-output-fixture'): p.main()
+            self.assertTrue(held)
+            for fd in held:
+                with self.assertRaises(OSError): os.fstat(fd)
 
     def test_actual_selected_scope_custody(self):
         with tempfile.TemporaryDirectory() as d:
