@@ -39,6 +39,11 @@ STANDALONE_FIXTURES = frozenset((
     'reader_recovery/test_standalone_publication.py',
     'reader_recovery/test_standalone_runtime_seals.py',
 ))
+ORDINARY_PIPELINE_FIXTURES = frozenset((
+    'ordinary_pipeline/README.md', 'ordinary_pipeline/cases.py',
+    'ordinary_pipeline/run.py', 'ordinary_pipeline/runtime_state.py',
+    'ordinary_pipeline/test_gate.py',
+))
 STANDALONE_MANIFEST = 'standalone_control_sources.json'
 
 HOST_SOURCES = {
@@ -59,7 +64,7 @@ def main(family="all"):
     assert family in ("all", "observation", "retained")
     entries = json.loads((ROOT / 'import_api_control_sources.json').read_text())
     assert isinstance(entries, list) and 1 <= len(entries) <= 512
-    assert PACK_FIXTURES | DDL_STATUS_FIXTURES | CACHE_FIXTURES | set(HOST_SOURCES) | STANDALONE_FIXTURES | {STANDALONE_MANIFEST} <= {row['path'] for row in entries}
+    assert PACK_FIXTURES | DDL_STATUS_FIXTURES | CACHE_FIXTURES | set(HOST_SOURCES) | STANDALONE_FIXTURES | ORDINARY_PIPELINE_FIXTURES | {STANDALONE_MANIFEST} <= {row['path'] for row in entries}
     files, nodes, buffers = {}, {}, {}
     # Capture the complete original set before the first source read.
     for row in entries:
@@ -69,7 +74,7 @@ def main(family="all"):
         assert (len(rel.parts) == 1 and rel.suffix == '.py'
                 or row['path'] == 'import_api_fixtures/api_predecessor.py'
                 or row['path'] in PACK_FIXTURES or row['path'] in DDL_STATUS_FIXTURES or row['path'] in CACHE_FIXTURES or row['path'] in HOST_SOURCES
-                or row['path'] in STANDALONE_FIXTURES or row['path'] == STANDALONE_MANIFEST)
+                or row['path'] in STANDALONE_FIXTURES or row['path'] in ORDINARY_PIPELINE_FIXTURES or row['path'] == STANDALONE_MANIFEST)
         path = ROOT / rel
         assert path not in files
         st = os.lstat(path)
@@ -108,7 +113,7 @@ def main(family="all"):
                 (preimages / 'api.py').write_bytes(data)
             else:
                 assert (len(Path(name).parts) == 1 or name in PACK_FIXTURES or name in DDL_STATUS_FIXTURES or name in CACHE_FIXTURES or name in HOST_SOURCES
-                        or name in STANDALONE_FIXTURES or name == STANDALONE_MANIFEST)
+                        or name in STANDALONE_FIXTURES or name in ORDINARY_PIPELINE_FIXTURES or name == STANDALONE_MANIFEST)
                 destination = config / HOST_SOURCES.get(name, name)
                 assert destination not in destinations
                 destinations.add(destination)

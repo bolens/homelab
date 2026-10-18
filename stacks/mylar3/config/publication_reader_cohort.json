@@ -354,7 +354,7 @@
       "owning_adapters": [
         "install_tagger_service.py"
       ],
-      "tracked_source_sha256": "45b898d34e38ba1a1e1807eafda570460e0f4da8bc316d8cc0e978d31fa53340"
+      "tracked_source_sha256": "af002ba1ec83f2d8c5a2b45920901f122fe08015e92367306321a233941dbb3b"
     },
     "tagger_attributes": {
       "owning_adapters": [

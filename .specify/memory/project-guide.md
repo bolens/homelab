@@ -197,6 +197,17 @@ current health and data contract.
 Reuse accepted evidence only when its source bytes, selected checks, configuration
 and relevant runtime still match. Recheck changed inputs rather than repeating
 unaffected broad suites. Record exact source, image and live acceptance separately.
+Close an implementation milestone when its documented source and selected-image
+gates pass; keep downstream configured execution under its owning tasks. Do not
+substitute source parity for a required genuine runtime path, or defer an
+implementation checkbox solely for a live test assigned to a later task.
+
+For disposable Git source exports, apply and verify file permissions from the
+reviewed Git tree before running security controls. `git archive` can emit mode
+`0664` for a tracked `100644` file because of its archive umask. Content hashes
+do not detect this difference. Require `0644` or `0755` as recorded by Git, keep
+the rejected export intact, and correct the new fixture rather than weakening
+the source-permission check.
 A partial manifest or matching database copies do not verify a backup if its
 owning helper refuses a later preservation check.
 

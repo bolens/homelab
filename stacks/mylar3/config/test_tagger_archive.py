@@ -59,6 +59,52 @@ class ArchiveTest(unittest.TestCase):
                 self.assertEqual(getattr(old.getinfo('001.png'), field), getattr(new.getinfo('001.png'), field))
         self.unchanged_source(digest)
 
+    def test_reconciliation_preserves_existing_metadata_position_and_all_attributes(self):
+        old_xml = (b'<ComicInfo><Series>Old</Series><Notes>Keep</Notes>'
+                   b'<Pages><Page Image="0" Bookmark="Cover"/></Pages></ComicInfo>')
+        new_xml = b'<ComicInfo><Series>New</Series><Number>1</Number></ComicInfo>'
+        payloads = [('001.png', b'first page'), ('notes/readme.txt', b'keep extra'),
+                    ('002.png', b'second page')]
+        for position in (0, 1, 3):
+            with self.subTest(xml_position=position):
+                output = self.root / ('verified-' + str(position) + '.cbz')
+                entries = payloads.copy()
+                entries.insert(position, (subject.XML, old_xml))
+                for path, tagged in ((self.original, False), (self.tagged, True)):
+                    with zipfile.ZipFile(path, 'w') as archive:
+                        archive.comment = b'preserved archive comment'
+                        for index, (name, body) in enumerate(entries):
+                            info = zipfile.ZipInfo(name, date_time=(2020, 1, 2, 3, 4, 6 + 2 * index))
+                            info.compress_type = zipfile.ZIP_DEFLATED if index % 2 else zipfile.ZIP_STORED
+                            info.external_attr = (stat.S_IFREG | 0o640) << 16
+                            info.comment = ('member ' + str(index)).encode()
+                            info.extra = struct.pack('<HH', 0x7070, 3) + b'abc'
+                            info.internal_attr = index % 2
+                            archive.writestr(info, new_xml if tagged and name == subject.XML else body)
+                    path.chmod(0o640)
+                before, candidate = subject.snapshot(self.original), subject.snapshot(self.tagged)
+                original_sha = hashlib.sha256(self.original.read_bytes()).hexdigest()
+                tagged_sha = hashlib.sha256(self.tagged.read_bytes()).hexdigest()
+                # The retained Notes/bookmark and explicit update require genuine reconciliation.
+                self.assertEqual(subject.prepare(self.original, self.tagged, output,
+                    updates={'AgeRating': 'Teen'}, replace_fields=('Series',)), 'updated')
+                after = subject.snapshot(output)
+                self.assertEqual(after.attributes, before.attributes)
+                with zipfile.ZipFile(output) as archive:
+                    self.assertEqual(archive.namelist(), [name for name, _ in entries])
+                    self.assertEqual([(name, archive.read(name)) for name, _ in payloads], payloads)
+                self.assertEqual((after.members, after.comment, after.mode, after.uid, after.gid),
+                                 (before.members, before.comment, before.mode, before.uid, before.gid))
+                root = parse(after.xml)
+                self.assertEqual({tag: root.findtext(tag) for tag in ('Series', 'Number', 'Notes', 'AgeRating')},
+                                 {'Series': 'New', 'Number': '1', 'Notes': 'Keep', 'AgeRating': 'Teen'})
+                self.assertEqual(root.find('Pages/Page').attrib, {'Image': '0', 'Bookmark': 'Cover'})
+                self.assertEqual(subject.snapshot(self.original), before)
+                self.assertEqual(subject.snapshot(self.tagged), candidate)
+                self.assertEqual(hashlib.sha256(self.original.read_bytes()).hexdigest(), original_sha)
+                self.assertEqual(hashlib.sha256(self.tagged.read_bytes()).hexdigest(), tagged_sha)
+                output.unlink()
+
     def test_duplicate_identity_never_creates_verified_output(self):
         digest = self.pair()
         self.fixture(self.tagged, b'<ComicInfo><Number>1</Number><Number>2</Number></ComicInfo>')
