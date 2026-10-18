@@ -87,6 +87,11 @@ jobs:
         run: |
           image=$(awk '$1 == "FROM" {print $2; exit}' stacks/mylar3/Dockerfile)
           [[ "$image" == *@sha256:* ]]
+          # LSCR redirects to GHCR, which can throttle shared hosted runners.
+          # LinuxServer's official Docker Hub mirror serves the same pinned digest.
+          if [[ "$image" == lscr.io/linuxserver/*@sha256:* ]]; then
+            image="docker.io/${image#lscr.io/}"
+          fi
           docker pull "$image"
           # The exact-origin gate requires current helpers installed at the
           # application path; a pristine upstream base has none of them.
