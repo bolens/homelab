@@ -21,6 +21,13 @@ class APICopy(unittest.TestCase):
         (self.root/'import_api_control_sources.json').write_text(json.dumps(self.rows))
         spec=importlib.util.spec_from_file_location('api_copy_under_test',ROOT/'run_import_api_controls.py')
         self.runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.runner);self.runner.ROOT=self.root
+    def test_retained_worker_nested_manifest_matches_actual_copied_sources(self):
+        worker = self.root/'test_fixtures'/'retained_pack_worker'
+        expected = json.loads((worker/'source-pins.json').read_bytes())
+        actual = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                  for path in worker.glob('*.py')}
+        self.assertEqual(actual, expected)
+
     def test_exact_standalone_siblings_kept_nested_before_real_family_launch(self):
         fired=[]
         def transport(argv,*,cwd,env):

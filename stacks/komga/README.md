@@ -943,6 +943,8 @@ existing reader snapshot and response checks. It omits the unrelated queued-comm
 fetch, so this preparation does not rotate that command cursor. Normal maintenance
 preparation keeps its existing command polling.
 
+Selected pack CLI results include `import_dispatch`, a finite state, stage, reason and exception category for the import-dispatch attempt. It contains no source paths, credentials or raw exception messages. This status is diagnostic: prepared work is not submitted, submitted work is not a verified import, and uncertain requests remain retained without automatic replay. The integer import-request count and existing source/receipt/authority checks are unchanged.
+
 For passive selected-pack checks, include both exact selectors in `packWork`.
 Unfiltered `packWork` performs discovery and advances its cursor; it is not a
 read-only diagnostic or a preparation step to retry for the selected command.

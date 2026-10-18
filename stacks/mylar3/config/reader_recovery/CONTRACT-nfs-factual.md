@@ -82,3 +82,23 @@ Before clearing a physically released window, the Parent separately closes the r
 Configured phase order is prelease lease preparation, exact probe birth and real wait-gated Popen/prepared ACK; source-owned acquire; local held execution/inventory/cleanup; actual helper physical release; independent postrelease terminal/source/profile/library checks against sealed originals. The Parent registers only the actual source-bound HostProbe and CID, rejects replay before launch, and requires consumed prepared ACK before blocking/acquisition. Descriptor facts carry false rights; no serialized canary or arbitrary child argv is admitted. Default legacy route remains operational HOLD, and actual configured NFS/Parent acceptance remains a separate gate.
 
 The retained probe mapping preserves its original admitted fixture directory vectors through execution. Source-owned cleanup may remove exactly that fixture and its parent before physical release. Only the original registered kernel output (exact probe/input/kernel hashes and immutable original directory identity), successful original release ACK, physical process/pipe closure and exact original owned absence permit the separately retained removal transition. Postrelease mapping then requires those exact paths absent and retains original input/source/ancestor/output/protected checks. No arbitrary missing path, aborted/unknown release or refreshed baseline is admitted.
+
+## Original library-query network context
+
+The owning Parent selects the HTTP context once from the original configured
+origin and reader/native network profiles. A Docker reader-name/alias origin
+must join an original reader alias to a shared nonempty native/reader NetworkID.
+It uses the existing guarded Docker exec transport, UID1000 and isolated Python
+in that exact original running native container. The unchanged URL/key are
+stdin-only; only the fixed principal GET and repeated library GET are permitted.
+No endpoint, resolver, host mapping, mount, privilege or worker setting changes.
+Other original host origins retain their host transport; a failed internal GET
+never retries on the host or switches endpoints.
+
+The shared original lock interlock and source/config/session/reader guards stay
+in force. Native image/profile/incarnation and original network facts are also
+checked around each GET; a changed native, alias/network join, source, response
+or uncertain exec refuses. Bounded JSON, unrestricted principal, complete stable
+library DTOs and same original channel/sequence remain required. Source tests
+project Docker/HTTP boundaries explicitly; they do not establish configured
+reachability, genuine Parent/Birth, NFS or terminal acceptance.

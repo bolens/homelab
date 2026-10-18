@@ -681,7 +681,7 @@
   },
   {
     "path": "run_reader_recovery_controls.py",
-    "sha256": "947a25b5f5fbacbda1805bc5db5e087063a54679bf1c500ce5e799a86503d31f"
+    "sha256": "f0c1d2985528389d2c68c0acb72a77536022483ef4531227129f5813539c2152"
   },
   {
     "path": "run_standalone_controls.py",
@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "6966f9de958d0a0583c2a7d877f32d4bf9f6f8289d56e9471fb75259b0b611c2"
+    "sha256": "b1a4520427bda3879411e4b61b42d749353bd7451d50c87cae7f18d19e86adf9"
   },
   {
     "path": "story_arc_search.py",
@@ -965,7 +965,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/import_recovery.py",
-    "sha256": "b7131aa7c54076fee77faf4960a256f4b0f8a874a19345568a049ec3462778ed"
+    "sha256": "d39d989cb4a27a6b08e59d2c99dae3eadd099d9cd8a0f0e691bfd1334706c7bc"
   },
   {
     "path": "test_fixtures/retained_pack_worker/maintenance.py",
@@ -1001,7 +1001,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_only.py",
-    "sha256": "ddce52339d96797fa72246830097c677c2f54760a3107f6e24b00d625558a3d2"
+    "sha256": "40ed9e7fe2a55f78c902db8c03b62e20457384ac65d6ad5169a5f3cafaec3a13"
   },
   {
     "path": "test_fixtures/retained_pack_worker/pack_recovery.py",
@@ -1077,7 +1077,7 @@
   },
   {
     "path": "test_fixtures/retained_pack_worker/source-pins.json",
-    "sha256": "3658569e7a3303eecf36de97474883ddfb6ae01c1329baa98292ab8d950fc3a7"
+    "sha256": "1feba14f545b779cf5c9b5dc4936b15ced959ffd9c758d5028dc2787f21d9294"
   },
   {
     "path": "test_fixtures/retained_pack_worker/writer_cycle.py",
@@ -1105,7 +1105,7 @@
   },
   {
     "path": "test_import_api_copy.py",
-    "sha256": "9246ec039cc84efabfb5de70b1737268d2a9444c633b16f574633ff3d9b0af6d"
+    "sha256": "0b18263a5ac9b858a3350a66a55baf4dac2ab45da40156df11193a05d07421ca"
   },
   {
     "path": "test_library_metadata.py",
@@ -1365,7 +1365,7 @@
   },
   {
     "path": "test_publication_reader_recovery_controls.py",
-    "sha256": "4d36c4ea955456edea2ece4408232a04b7a9f0c2d8603dbe9f93259aba523143"
+    "sha256": "f765ca1069543705551e0a8978434b881cbd6f6265a694fc9080d2bd9d4b8b5e"
   },
   {
     "path": "test_publication_reader_softdelete.py",

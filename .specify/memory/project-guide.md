@@ -73,6 +73,15 @@ in installers and owning tests as well as file-map rows. Refresh only current
 contracts, preserve historical preimages, and run the owning installer tests and
 checked fixture-copy closure before pushing. A closed file map alone does not
 prove those semantic pins agree.
+When a declared test suite grows, update its exact owning runner count and
+aggregate assertions together, then execute the complete suite inventory before
+pushing. Keep strict collection and zero-skip checks; historical evidence counts
+remain unchanged.
+The retained-pack worker fixture also has an inner `source-pins.json` census.
+Update that census before refreshing the standalone map, then refresh the import
+API map and its nested standalone-manifest pin. Outer-map closure alone does not
+verify the inner Python-source census; run the source-copy semantic check before
+starting the expensive native image gate.
 For cross-runtime source verification, hash the exact source bytes or extracted
 source text. Python's AST fields and dump format vary by version; a host-derived
 `ast.dump` hash cannot verify unchanged source in another Python runtime. Keep
@@ -98,6 +107,19 @@ empty device/inode match alone does not establish that the lock is free. A bound
 nonblocking Python stack snapshot without local variables can distinguish slow
 admission validation from network work or a blocked worker. Keep the snapshot
 private, and preserve the original readiness checks.
+The reader lifecycle parent selects the original library-query transport before
+sending requests. A Docker-only reader alias requires an original shared-network
+join and the existing read-only native-container transport. Other origins keep
+host HTTP. Preserve the original URL, stdin-only credentials and fixed GET routes;
+never add an error fallback or rewrite live configuration to make a probe pass.
+A host DNS failure does not prove a reader permission or DTO failure. Check the
+owning transport context before repeating full source captures. Retain only fixed
+error types, numeric network codes and trusted source locations in shared
+diagnostics; keep addresses and responses private.
+A prepared import receipt and a later healthy API response do not identify the
+earlier dispatch refusal. Keep dispatch-time outcomes explicit and bounded,
+preserve uncertain phases, and never replay a submitted operation to diagnose it.
+
 The maintained Komga effective-scope observer lives in
 `stacks/komga/effective_scope/`. Compile and transport the complete generated class
 inventory, including nested classes; a primary-class pin does not prove runtime

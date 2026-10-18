@@ -107,6 +107,7 @@ def run(worker, pack_id, ddl_id, *, admission_wait=0):
     reported = dispatch(m, reports)
     return {'pack_id': pack_id, 'ddl_id': ddl_id,
             'import_requests': imported, 'maintenance_requests': reported,
+            'import_dispatch': getattr(m, 'import_dispatch_status', None),
             'complete': False}
 
 

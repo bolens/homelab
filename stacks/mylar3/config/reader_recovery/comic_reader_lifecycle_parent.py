@@ -19,6 +19,7 @@ import sys
 import threading
 import time
 import weakref
+import urllib.parse
 
 _CORES = weakref.WeakKeyDictionary()
 _GENERATED = weakref.WeakKeyDictionary()
@@ -513,7 +514,7 @@ _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
 NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'b4e6bca8b6b7d0d076c5b68bae35430fa65a3b417f0aa5ccb5cd7ccf265e7d93'}
-NFS_ACTIVE_SOURCE_SHA='5581505984e10598f45a9536a381abde8b3efe45d4b58963b2921b121b5d1c37'
+NFS_ACTIVE_SOURCE_SHA='ae63848a9dfd04d279f617aa7197c2e32dc0a677464a0894773dcb7a29a34e51'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -550,6 +551,46 @@ def nfs_remote_guard(engine):
     # Even malformed or uncertain entries remain fail-closed until source-owned
     # physical release proof removes the original window registration.
     need(engine not in _NFS_REMOTE_WINDOWS,'nfs-no-remote-under-Writer')
+
+
+# Source-owned fixed client, never caller-supplied code/argv. URL/key travel on
+# stdin only. No app imports, mounts, policy, files or new network configuration.
+NATIVE_LIBRARY_GET = """import json,sys,urllib.request,urllib.parse
+try:
+ raw=sys.stdin.buffer.read(65537);assert len(raw)<=65536
+ value=json.loads(raw);assert set(value)=={'base','key','route','seconds'}
+ base,key,route,seconds=(value[k]for k in('base','key','route','seconds'))
+ assert type(base)is str and type(key)is str and 0<len(base)<=8192 and 0<len(key)<=8192
+ assert route in('/api/v2/users/me','/api/v1/libraries')
+ assert type(seconds)in(int,float)and 0<seconds<=30
+ origin=urllib.parse.urlsplit(base);assert origin.scheme in('http','https')and origin.netloc and not origin.username and not origin.password and not origin.query and not origin.fragment
+ class NoRedirect(urllib.request.HTTPRedirectHandler):
+  def redirect_request(self,*args,**kwargs):raise ValueError('fixed-library-redirect')
+ opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
+ request=urllib.request.Request(base.rstrip('/')+route,headers={'X-API-Key':key},method='GET')
+ with opener.open(request,timeout=seconds)as response:
+  result=response.read(8*1024**2+1)
+ assert len(result)<=8*1024**2
+ sys.stdout.buffer.write(result)
+except Exception:
+ sys.stderr.write('fixed-library-get-held\\n');raise SystemExit(2)from None
+"""
+
+def library_transport(base,reader,native):
+    """Select once from original endpoint/role facts; never retry in another context."""
+    host=urllib.parse.urlsplit(base).hostname
+    networks=reader['NetworkSettings'].get('Networks',{})
+    aliases={alias for row in networks.values() for alias in (row.get('Aliases') or [])}
+    known=aliases|{reader['Name'].lstrip('/'),reader['Config'].get('Hostname')}
+    if host not in known:return ('host-http-v1',())
+    need(type(native) is dict and native['State']['Running'] is True,'library-native-original-required')
+    native_ids={row.get('NetworkID') for row in native['NetworkSettings'].get('Networks',{}).values()}
+    joined=tuple(sorted({row['NetworkID'] for row in networks.values()
+                       if type(row.get('NetworkID')) is str and row['NetworkID']
+                       and row['NetworkID'] in native_ids and host in (row.get('Aliases') or [])}))
+    need(bool(joined),'library-original-alias-network-join')
+    return ('native-exec-v1',joined)
+
 
 class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
@@ -1540,7 +1581,7 @@ class LifecycleParent:
         query_raw,configuration_raw,module,functions,lock_raw,redirect,redirect_code=original
         configuration_ref=decode(configuration_raw);lock_ref=decode(lock_raw)
         reader_raw=encode(self.baselines['reader']);reader=decode(reader_raw)
-        lock_fd=None
+        lock_fd=None;native_raw=None;native=None;transport=None;program=NATIVE_LIBRARY_GET
         files=dict(self.files);nodes=dict(self.nodes)
         def guard():
             nfs_remote_guard(self.engine);session.close();self.left()
@@ -1555,6 +1596,11 @@ class LifecycleParent:
             for name,value,code in functions:
                 need(getattr(module,name,None) is value and value.__code__ is code,'nfs-library-original-helper')
             read(configuration_ref)
+            need(NATIVE_LIBRARY_GET==program,'nfs-library-original-client-source')
+            if native_raw is not None:
+                need(encode(self.baselines.get('held_native'))==native_raw,'nfs-library-original-native-seal')
+                current=self.inspect(native['Id'])
+                need(static(current)==static(native) and lifecycle_state(current)==lifecycle_state(native),'nfs-library-original-native-epoch')
         retained=_NFS_LIBRARY_REPLIES.get(self)
         if retained is None:
             need(session.lease_replies.lease is None and not session.lease_replies.done,
@@ -1568,6 +1614,21 @@ class LifecycleParent:
                  'nfs-library-original-physical-release-required')
         guard();query=decode(query_raw);cfg=decode(read(configuration_ref))
         base,key=cfg['komga']['url'],cfg['komga']['api_key']
+        transport=library_transport(base,reader,self.baselines.get('held_native'))
+        if transport[0]=='native-exec-v1':
+            native_raw=encode(self.baselines['held_native']);native=decode(native_raw)
+            need(native['Id']==self.plan['held_native']['id'] and static(native)==self.plan['held_native']['profile'],'nfs-library-original-native-role')
+        def native_get(route,seconds):
+            need(type(self.engine) is ScopedDocker and transport[0]=='native-exec-v1'
+                 and route in ('/api/v2/users/me','/api/v1/libraries'),'nfs-library-fixed-native-transport')
+            guard();body=encode(dict(base=base,key=key,route=route,seconds=seconds))
+            need(len(body)<=65536,'nfs-library-native-input-bound')
+            result=self.engine.canary([*DOCKER,'exec','-i','--user','1000:1000',native['Id'],
+                                      '/lsiopy/bin/python3','-I','-B','-c',program],
+                                      input=body,capture_output=True,timeout=min(self.left(),seconds+5),check=False)
+            guard();need(result.returncode==0 and len(result.stdout)<=8*1024**2
+                         and len(result.stderr)<=65536,'nfs-library-native-query-held')
+            return result.stdout
         # Shared kernel interlock prevents a forged pre-entry request from
         # racing an exclusive Writer acquisition. It is never owning Writer.
         lock_fd=os.open(lock_ref['path'],os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
@@ -1579,7 +1640,9 @@ class LifecycleParent:
             before=self.inspect(reader['Id'])
             need(static(before)==static(reader) and lifecycle_state(before)==lifecycle_state(reader),
                  'nfs-library-original-reader-before')
-            documents=module.library_documents(base,key,guard=guard,seconds=self.left)
+            options=dict(guard=guard,seconds=self.left)
+            if transport[0]=='native-exec-v1':options['fetch']=native_get
+            documents=module.library_documents(base,key,**options)
             # Validate the same complete DTO on the host as well as the child.
             module.checked_library_documents(documents)
             after=self.inspect(reader['Id']);guard()

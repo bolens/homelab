@@ -274,4 +274,106 @@ class LibraryQuery(unittest.TestCase):
             for fd in (r1,w1,r2,w2):
                 if fd is not None:os.close(fd)
 
+
+class NativeLibraryQuery(unittest.TestCase):
+    """Actual owning method; only Docker/HTTP boundaries explicitly projected."""
+    cleanup=LibraryQuery.cleanup
+    frame=LibraryQuery.frame
+    run_query=LibraryQuery.run_query
+    def setUp(self):
+        LibraryQuery.setUp(self)
+        self.cfg.write_text(json.dumps(dict(komga=dict(url='http://komga:25600',api_key='PUBLIC TEST KEY'))));self.cfg.chmod(0o600)
+        self.query['configuration']=dict(path=str(self.cfg),sha256=hashlib.sha256(self.cfg.read_bytes()).hexdigest());self.query['expected_base_url']='http://komga:25600'
+        self.owner.files[str(self.cfg)]=tuple(p.nine(self.cfg.lstat()))
+        reader=self.owner.baselines['reader'];reader['NetworkSettings']={'Networks':{'reader-net':{'NetworkID':'1'*64,'Aliases':['komga']}}}
+        native=copy.deepcopy(reader);native.update(Id='e'*64,Name='/mylar3',Image='sha256:'+'f'*64);native['NetworkSettings']={'Networks':{'native-net':{'NetworkID':'1'*64,'Aliases':['mylar3']}}}
+        self.owner.baselines['held_native']=native;self.owner.plan['held_native']=dict(id=native['Id'],profile=p.static(native))
+        self.owner.inspect=lambda cid:copy.deepcopy(self.owner.baselines['reader'] if cid==reader['Id'] else self.owner.baselines['held_native'])
+        p._NFS_LIBRARY_QUERIES[self.owner]=(p.encode(self.query),p.encode(reference(self.cfg)),a,self.functions,p.encode(dict(path=str(self.writer.lock),signature9=p.nine(self.writer.lock.lstat()))),a.RefuseRedirect,a.RefuseRedirect.redirect_request.__code__)
+        self.execs=[]
+        def remote(argv,**kwargs):
+            self.execs.append((list(argv),dict(kwargs)));request=json.loads(kwargs['input'])
+            self.calls.append(('GET',request['base'].rstrip('/')+request['route'],request['seconds']))
+            if self.callback:self.callback()
+            value=self.docs['user'] if len(self.calls)%3==1 else self.docs['libraries'] if len(self.calls)%3==2 else self.docs['repeated_libraries']
+            return subprocess.CompletedProcess(argv,0,json.dumps(value).encode(),b'')
+        self.remote=remote;self.owner.engine.canary=remote
+    def test_exact_native_context_original_url_key_stdin_only(self):
+        result=self.run_query();self.assertEqual(len(self.execs),3)
+        for argv,kwargs in self.execs:
+            self.assertEqual(argv,[*p.DOCKER,'exec','-i','--user','1000:1000','e'*64,'/lsiopy/bin/python3','-I','-B','-c',p.NATIVE_LIBRARY_GET])
+            self.assertNotIn('PUBLIC TEST KEY',json.dumps(argv));self.assertNotIn('http://komga:25600',json.dumps(argv));request=json.loads(kwargs['input']);self.assertEqual(request['base'],'http://komga:25600');self.assertEqual(request['key'],'PUBLIC TEST KEY');self.assertIn(request['route'],('/api/v2/users/me','/api/v1/libraries'));self.assertFalse(kwargs['check'])
+        self.assertNotIn('PUBLIC TEST KEY',json.dumps(result));self.assertFalse(result['payload']['native_grant']);self.assertEqual(len(self.calls),3)
+    def test_missing_common_network_or_alias_refuses_before_exec(self):
+        self.owner.baselines['held_native']['NetworkSettings']['Networks']['native-net']['NetworkID']='2'*64
+        with self.assertRaisesRegex(p.Held,'alias-network-join'):self.run_query()
+        self.assertEqual(self.execs,[])
+    def test_missing_reader_alias_refuses_without_host_fallback(self):
+        self.owner.baselines['reader']['NetworkSettings']['Networks']['reader-net']['Aliases']=[]
+        with self.assertRaisesRegex(p.Held,'alias-network-join'):self.run_query()
+        self.assertEqual(self.execs,[]);self.assertEqual(self.calls,[])
+    def test_native_network_drift_after_get_refuses(self):
+        original=self.owner.inspect
+        def changed():
+            def inspect(cid):
+                row=original(cid)
+                if cid=='e'*64:row['NetworkSettings']['Networks']['native-net']['NetworkID']='3'*64
+                return row
+            self.owner.inspect=inspect
+        self.callback=changed
+        with self.assertRaisesRegex(p.Held,'native-epoch'):self.run_query()
+        self.assertEqual(len(self.execs),1)
+    def test_native_role_cid_or_profile_substitution_refuses(self):
+        self.owner.plan['held_native']['id']='9'*64
+        with self.assertRaisesRegex(p.Held,'native-role'):self.run_query()
+        self.assertEqual(self.execs,[])
+    def test_native_epoch_drift_after_first_get_refuses(self):
+        def changed():self.owner.baselines['held_native']['State']['StartedAt']='changed'
+        self.callback=changed
+        with self.assertRaisesRegex(p.Held,'native-seal'):self.run_query()
+        self.assertEqual(len(self.execs),1)
+    def test_native_command_failure_not_retried_or_host_fallback(self):
+        def failed(argv,**kwargs):
+            self.execs.append((argv,kwargs));return subprocess.CompletedProcess(argv,2,b'',b'SECRET_FAILURE')
+        self.owner.engine.canary=failed
+        with self.assertRaisesRegex(p.Held,'native-query-held'):self.run_query()
+        self.assertEqual(len(self.execs),1);self.assertEqual(self.calls,[])
+    def test_client_source_drift_refuses(self):
+        original=p.NATIVE_LIBRARY_GET
+        try:
+            self.callback=lambda:setattr(p,'NATIVE_LIBRARY_GET',original+'\n# changed')
+            with self.assertRaisesRegex(p.Held,'client-source'):self.run_query()
+        finally:p.NATIVE_LIBRARY_GET=original
+    test_original_config_inode_drift=LibraryQuery.test_configuration_inode_drift_during_get_refuses_original
+    test_real_shared_interlock_each_get=LibraryQuery.test_shared_interlock_blocks_exclusive_acquisition_during_each_get
+    test_registered_writer_window_refusal=LibraryQuery.test_registered_writer_window_and_failed_session_refuse_before_http
+    test_malformed_principal_and_dto=LibraryQuery.test_malformed_admin_and_unstable_or_incomplete_dto_refuse
+
+class FixedNativeClient(unittest.TestCase):
+    def test_source310_and_invalid_route_secret_safe(self):
+        ast.parse(p.NATIVE_LIBRARY_GET,feature_version=(3,10))
+        request=dict(base='http://fixture.invalid',key='SECRET_KEY',route='/api/v1/books/list',seconds=1)
+        result=subprocess.run([sys.executable,'-I','-B','-c',p.NATIVE_LIBRARY_GET],input=json.dumps(request).encode(),capture_output=True,timeout=5)
+        self.assertEqual(result.returncode,2);self.assertEqual(result.stdout,b'');self.assertNotIn(b'SECRET',result.stderr);self.assertNotIn(b'Traceback',result.stderr)
+    def test_typed_host_selection_has_no_error_fallback(self):
+        row=dict(Name='/komga',Config={},NetworkSettings={})
+        self.assertEqual(p.library_transport('https://fixture.example',row,None),('host-http-v1',()))
+        self.assertEqual(p.library_transport('http://127.0.0.1:25600',row,None),('host-http-v1',()))
+    def test_native_get_decodes_with_genuine_shared_route_rules(self):
+        calls=[]
+        class Response(io.BytesIO):
+            def __enter__(self):return self
+            def __exit__(self,*args):self.close()
+        def open_request(request,timeout):
+            calls.append((request.get_method(),request.full_url,request.get_header('X-api-key')));return Response(b'{"fixture":true}')
+        opener=SimpleNamespace(open=open_request)
+        request=dict(base='http://komga:25600',key='PUBLIC TEST KEY',route='/api/v2/users/me',seconds=1)
+        oldin,oldout=sys.stdin,sys.stdout
+        try:
+            sys.stdin=SimpleNamespace(buffer=io.BytesIO(json.dumps(request).encode()));output=io.BytesIO();sys.stdout=SimpleNamespace(buffer=output)
+            with patch('urllib.request.build_opener',return_value=opener):exec(compile(p.NATIVE_LIBRARY_GET,'<source-owned-native-client>','exec'),{})
+            self.assertEqual(output.getvalue(),b'{"fixture":true}')
+        finally:sys.stdin,sys.stdout=oldin,oldout
+        self.assertEqual(calls,[('GET','http://komga:25600/api/v2/users/me','PUBLIC TEST KEY')])
+
 if __name__=='__main__':unittest.main()
