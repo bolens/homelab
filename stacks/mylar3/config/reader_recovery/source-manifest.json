@@ -7,10 +7,10 @@
       "sha256": "0f6cb551d564585db1a751c0e05308e3d205d1353798a837a81d274317a3648b"
     },
     "CONTRACT-archive-repair.md": {
-      "sha256": "2bc0c9a50b3fb26b5ae4779be26aed5b0e89cbe52f23bb94e0d1a055c255e026"
+      "sha256": "a1db23e72bad6871a8cc2735d06a4d1c52d44118e744b052f40f5e60b49b2b3a"
     },
     "CONTRACT-nfs-factual.md": {
-      "sha256": "49ac50b073b15863db2935fc101883a09c15ab557d439e3aa960429836922c32"
+      "sha256": "c069ed7d217974415e7ecde9c94480446d34700b96b2a85a7ac4feb634b6f9f8"
     },
     "CONTRACT-nfs-mount-namespace.md": {
       "sha256": "99eaf632b615d9dfe87851750ca576d2b4500b8702cf7c42f0a616a76db4952c"
@@ -28,7 +28,7 @@
       "sha256": "962d80f81f0219b778d9cd49314ad0e928315db7af6ab17f482158e4f30c1c23"
     },
     "README.md": {
-      "sha256": "f9be026b517096f0225ffb9adbfa08696afa4632fd63a3bab069b2919ef0abb8"
+      "sha256": "3d106cb68cc310055d137343e5e8d93beffb1ba31c96110ff6d4d146cf40ee62"
     },
     "_archive_connected_fixtures/action_preimage.py": {
       "sha256": "e5e6ea45a26dcb5ef5569b49d5e9767ebb30ef9c858b909b779f8c9d93906e59"
@@ -457,7 +457,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "4528cd7a8070498f5cfdca5da51ded48c53d8158016e6d8c568390bd69ba261a"
+      "sha256": "309d7a6a725def37d6f48613fba321c3dc1a4b0d7d03c6a1c321e50cc0c9e5c4"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01"
@@ -490,7 +490,7 @@
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "5922079ae70f628dd54056efa67e85740d81eb468f37a4cef44153f4dd7f705f"
+      "sha256": "074c915da1c392240f71d223025ca782c5c0ec718bb3d0d31199e95f4f7e9190"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -559,7 +559,7 @@
       "sha256": "20edd94da38a4d64b7daf8c3144982c9b6780d4cbc4402b76ca943ff0f2e13c7"
     },
     "test_configured_worker_library_query.py": {
-      "sha256": "ce08bc3d33668e07ca559f5b90e4db168c6b296c7f43d60c7eabf1485bb6b8d7"
+      "sha256": "5d1b7eabf9219dfe0143d4ef9f4caa37f7d64e9baf8b0358758e804512a24968"
     },
     "test_deferred_lease.py": {
       "sha256": "8f6188aff1bb8deee90ccdea2b6c8b7961934d45bac9d9563346f7b66f504fa6"

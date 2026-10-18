@@ -471,6 +471,54 @@ class ReaderNetworkHelper(unittest.TestCase):
                     else:
                         with self.assertRaises((p.Held,ValueError)):self.run_get()
                         self.assertFalse(any(name.endswith('-cleanup.json')for name,_ in self.records))
+    def phase_rows(self):
+        before=self.created(['--name','reader-library-'+'a'*32,'--label','com.homelab.reader.library-query='+'a'*32])
+        before['Config']['Hostname']='8'*12;before['HostConfig']['OomKillDisable']=False
+        after=copy.deepcopy(before);after['Config']['Hostname']='reader-original';after['HostConfig']['OomKillDisable']=None
+        return p.static(before),p.static(after),dict(Config={'Hostname':'reader-original'})
+    def test_exact_recorded_helper_phase_pair(self):
+        before,after,reader=self.phase_rows();self.assertTrue(p.library_helper_created_to_exited(before,after,'8'*64,reader));self.assertNotEqual(before,after)
+    def test_helper_phase_wrong_or_blank_hostname_refuses(self):
+        before,after,reader=self.phase_rows()
+        for which,value in(('before',''),('before','foreign'),('after','foreign'),('after','')):
+            left=copy.deepcopy(before);right=copy.deepcopy(after);(left if which=='before'else right)['Config']['Hostname']=value
+            self.assertFalse(p.library_helper_created_to_exited(left,right,'8'*64,reader))
+        self.assertFalse(p.library_helper_created_to_exited(before,after,'8'*64,dict(Config={'Hostname':''})))
+    def test_helper_phase_OOM_pair_has_exact_types(self):
+        before,after,reader=self.phase_rows()
+        for old_oom,new_oom in((True,None),(0,None),(False,False),(False,0),(None,False)):
+            left=copy.deepcopy(before);right=copy.deepcopy(after);left['HostConfig']['OomKillDisable']=old_oom;right['HostConfig']['OomKillDisable']=new_oom
+            self.assertFalse(p.library_helper_created_to_exited(left,right,'8'*64,reader))
+    def test_helper_phase_security_unknown_extra_and_alias_refuse(self):
+        before,after,reader=self.phase_rows()
+        for section,key,value in(('HostConfig','ReadonlyRootfs',False),('Config','UnknownExtra','unexpected'),('NetworkSettings','Networks',{'foreign':{}}),('Config','Env',['FOREIGN'])):
+            changed=copy.deepcopy(after);changed[section][key]=value;self.assertFalse(p.library_helper_created_to_exited(before,changed,'8'*64,reader))
+        self.assertFalse(p.library_helper_created_to_exited(before,after,'9'*64,reader))
+        wrong_before=copy.deepcopy(before);wrong_after=copy.deepcopy(after);wrong_before['Id']='9'*64;wrong_after['Id']='9'*64
+        self.assertFalse(p.library_helper_created_to_exited(wrong_before,wrong_after,'8'*64,reader))
+    def actual_phase_boundary(self,cleanup_drift=False):
+        self.reader['Config']={'Hostname':'reader-original'};original=p.subprocess.run.side_effect;count=0
+        def run(argv,**kwargs):
+            nonlocal count
+            result=original(argv,**kwargs)
+            if argv[len(p.DOCKER)]=='inspect'and not self.removed:
+                value=json.loads(result.stdout);value[0]['Config']['Hostname']='reader-original'if self.started else'8'*12;value[0]['HostConfig']['OomKillDisable']=None if self.started else False
+                if self.started:
+                    count+=1
+                    if cleanup_drift and count==2:value[0]['Config']['Hostname']='foreign-after-phase'
+                result.stdout=p.encode(value)
+            return result
+        p.subprocess.run.side_effect=run
+    def test_genuine_helper_recorded_phase_reaches_exact_exited_cleanup(self):
+        self.actual_phase_boundary();self.assertEqual(self.run_get(),b'{"id":"fixture"}');self.assertTrue(self.removed)
+        created=next(value for name,value in self.records if name.endswith('-created.json'));terminal=next(value for name,value in self.records if name.endswith('-terminal.json'));self.assertEqual(created['HostConfig']['OomKillDisable'],False);self.assertIsNone(terminal['HostConfig']['OomKillDisable'])
+    def test_genuine_helper_full_exited_profile_drift_never_cleans(self):
+        self.actual_phase_boundary(True)
+        with self.assertRaisesRegex(p.Held,'cleanup-original'):self.run_get()
+        self.assertFalse(self.removed);self.assertFalse(any(name.endswith('-cleanup.json')for name,value in self.records))
+    def test_phase_projection_does_not_change_general_static_contract(self):
+        before,after,reader=self.phase_rows();left=copy.deepcopy(before);right=copy.deepcopy(after)
+        self.assertTrue(p.library_helper_created_to_exited(before,after,'8'*64,reader));self.assertEqual(before,left);self.assertEqual(after,right);self.assertNotEqual(p.static(before),p.static(after))
     def test_durable_intent_and_create_ACK_precede_inspect(self):
         self.run_get();intent=next(value for name,value in self.records if name.endswith('-intent.json')and not name.endswith('-start-intent.json'))
         self.assertEqual(intent['network_mode'],'container:'+'6'*64);self.assertEqual(intent['create_argv'],next(args for args,kw in self.calls if args[0]=='create'));self.assertNotIn('SECRET',json.dumps(intent))
@@ -556,5 +604,32 @@ class ReaderNetworkHelper(unittest.TestCase):
         self.body=p.encode(dict(base='http://komga',key='SECRET',route='/other',seconds=10))
         with self.assertRaisesRegex(p.Held,'original-input'):self.run_get()
         self.assertFalse(self.calls)
+
+
+class CanaryCommandPrefix(unittest.TestCase):
+    def test_real_canary_inspect_and_native_exec_forward_exact_argv(self):
+        engine=p.ScopedDocker()
+        for tail in (['inspect','a'*64],['exec','-i','--user','1000:1000','a'*64,'/lsiopy/bin/python3','-I','-B','-c',p.NATIVE_LIBRARY_GET]):
+            args=[*p.DOCKER,*tail];out=SimpleNamespace(returncode=0,stdout=b'{}',stderr=b'')
+            with self.subTest(command=tail[0]),patch.object(p.subprocess,'run',return_value=out)as run:
+                self.assertIs(engine.canary(args,input=b'private',capture_output=True,timeout=10,check=False),out)
+                run.assert_called_once_with(args,env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'},input=b'private',capture_output=True,timeout=10,check=False)
+    def test_forbidden_and_malformed_commands_never_reach_subprocess(self):
+        for args in ([],list(p.DOCKER),tuple([*p.DOCKER,'inspect','a'*64]),['docker','inspect','a'*64],[*p.DOCKER,'rm','a'*64],[*p.DOCKER,'stop','a'*64],['findmnt','--target','/']):
+            with self.subTest(args=args),patch.object(p.subprocess,'run')as run:
+                with self.assertRaises(p.Held):p.ScopedDocker().canary(args,capture_output=True,timeout=10,check=False)
+                run.assert_not_called()
+    def test_call_shape_refusals_precede_subprocess(self):
+        for kwargs in ({'capture_output':False,'timeout':10,'check':False},{'capture_output':True,'timeout':901,'check':False},{'capture_output':True,'timeout':10,'check':True},{'capture_output':True,'timeout':10,'check':False,'shell':True}):
+            with self.subTest(kwargs=kwargs),patch.object(p.subprocess,'run')as run:
+                with self.assertRaisesRegex(p.Held,'nfs-engine-call-shape'):p.ScopedDocker().canary([*p.DOCKER,'inspect','a'*64],**kwargs)
+                run.assert_not_called()
+    def test_real_remote_window_guard_precedes_subprocess(self):
+        engine=p.ScopedDocker();p._NFS_REMOTE_WINDOWS[engine]=object()
+        try:
+            with patch.object(p.subprocess,'run')as run:
+                with self.assertRaisesRegex(p.Held,'nfs-no-remote-under-Writer'):engine.canary([*p.DOCKER,'inspect','a'*64],capture_output=True,timeout=10,check=False)
+                run.assert_not_called()
+        finally:del p._NFS_REMOTE_WINDOWS[engine]
 
 if __name__=='__main__':unittest.main()

@@ -594,6 +594,21 @@ def library_transport(base,reader,native):
     return ('reader-net-helper-v1',original)
 
 
+def library_helper_created_to_exited(original,current,cid,reader):
+    """Only the verified helper-container phase pair; never a role projection."""
+    hostname=reader.get('Config',{}).get('Hostname')
+    if not(digest(cid)and original.get('Id')==cid and current.get('Id')==cid
+           and type(hostname)is str and bool(hostname)
+           and original['Config'].get('Hostname')==cid[:12]
+           and current['Config'].get('Hostname')==hostname
+           and original['HostConfig'].get('OomKillDisable')is False
+           and 'OomKillDisable'in current['HostConfig']
+           and current['HostConfig']['OomKillDisable']is None):return False
+    expected=copy.deepcopy(original)
+    expected['Config']['Hostname']=hostname;expected['HostConfig']['OomKillDisable']=None
+    return current==expected
+
+
 class ScopedDocker:
  """Exact argv only; private stderr never appears in public diagnostics."""
  def run(self,args,seconds):
@@ -605,7 +620,7 @@ class ScopedDocker:
  def canary(self,args,**kwargs):
   nfs_remote_guard(self)
   # Only the separately source-pinned diagnostic parent uses this transport.
-  need(type(args) is list and (args[:len(DOCKER)]==DOCKER and args[len(DOCKER)] in ('create','inspect','start','exec')
+  need(type(args) is list and (len(args)>len(DOCKER) and tuple(args[:len(DOCKER)])==DOCKER and args[len(DOCKER)] in ('create','inspect','start','exec')
        or args[:2]==['findmnt','--json']), 'nfs-engine-command')
   need(set(kwargs)<={'input','capture_output','timeout','check'} and kwargs.get('capture_output') is True
        and kwargs.get('check') is False and 0<kwargs.get('timeout',0)<=900,'nfs-engine-call-shape')
@@ -736,9 +751,10 @@ class ScopedDocker:
   note('start-intent',dict(container_id=cid,automatic_replay=False,publication_authority=False))
   reply=command(['start','--attach','--interactive',cid],body)
   need(reply.returncode==0,'library-helper-GET-held');after=inspect();check(after,'exited')
-  need(static(after)==original,'library-helper-original-static');note('terminal',after)
+  terminal=static(after)
+  need(terminal==original or library_helper_created_to_exited(original,terminal,cid,reader),'library-helper-original-static');note('terminal',after)
   # Only our exact successful exited helper can be removed. No stop/force/replay.
-  final_row=inspect();check(final_row,'exited');need(static(final_row)==original,'library-helper-cleanup-original')
+  final_row=inspect();check(final_row,'exited');need(static(final_row)==terminal,'library-helper-cleanup-original')
   removed=command(['rm',cid]);need(removed.returncode==0 and removed.stdout.strip()==cid.encode(),'library-helper-cleanup-ACK-unknown')
   absent=command(['inspect',cid]);error=absent.stderr.decode('utf-8').strip()
   need(absent.returncode==1 and error in('Error: No such object: '+cid,'Error: No such container: '+cid,
