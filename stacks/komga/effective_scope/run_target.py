@@ -138,11 +138,13 @@ def _main():
 
 
 def failure_summary(error):
-    trusted={__file__:'target-runner',str(SOURCE/'owned.py'):'owned-output'}
     frames=[];trace=error.__traceback__
     while trace is not None:
-        role=trusted.get(trace.tb_frame.f_code.co_filename)
-        if role is not None:frames.append(dict(source=role,function=trace.tb_frame.f_code.co_name,line=trace.tb_lineno))
+        filename=trace.tb_frame.f_code.co_filename
+        if filename == __file__:
+            frames.append(dict(source='target-runner',function=trace.tb_frame.f_code.co_name,line=trace.tb_lineno))
+        elif filename == str(SOURCE/'owned.py'):
+            frames.append(dict(source='owned-output',function=trace.tb_frame.f_code.co_name,line=trace.tb_lineno))
         trace=trace.tb_next
     # Never read exception arguments/messages: subprocess exceptions can carry
     # command arguments, output and generated credentials.

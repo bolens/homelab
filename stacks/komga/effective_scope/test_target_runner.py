@@ -55,7 +55,9 @@ class Tests(unittest.TestCase):
    self.assertNotIn('SECRET',output.getvalue());self.assertNotIn('Traceback',output.getvalue())
    emitted=json.loads(output.getvalue())
    self.assertEqual({k:v for k,v in emitted.items()if k!='trusted_frames'},{k:v for k,v in value.items()if k!='trusted_frames'})
+   self.assertTrue(emitted['trusted_frames'])
    self.assertTrue(all(row['source']in('target-runner','owned-output')for row in emitted['trusted_frames']))
+   self.assertNotIn(str(HERE),json.dumps(emitted['trusted_frames']))
   self.assertEqual(value['failure_type'],'held')
 
  def test_actual_tmpfs_present_in_mounts(self):
