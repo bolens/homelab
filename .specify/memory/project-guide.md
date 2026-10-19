@@ -41,6 +41,12 @@ Use make validate-changed BASE=origin/main or make ci-local for broader changes,
 following RELEASING.md. Validation does not authorize image pulls, directory creation
 over missing mounts, service changes, or destructive volume removal.
 
+GitHub job metadata can lag completed runner output. If `gh run view --log`
+refuses an apparently running job, the job-logs API may already provide its
+completed log. Check the required result job and runner assignment separately;
+finished build output does not replace a passing required check or justify
+cancelling and repeating the workflow.
+
 For Mylar-only updates, keep NZBGet and Komga running. Scope backups and any writer
 coordination to the affected state and follow the Mylar stack's update instructions.
 Do not reuse a multi-service rollout script for a single-service UI change.
@@ -72,7 +78,11 @@ When a pinned manifest or embedded cohort changes, trace its literal hash consum
 in installers and owning tests as well as file-map rows. Refresh only current
 contracts, preserve historical preimages, and run the owning installer tests and
 checked fixture-copy closure before pushing. A closed file map alone does not
-prove those semantic pins agree.
+prove those semantic pins agree. Trace inherited operational suppliers and generated
+health programs too: a new top-level image receipt can still invoke an older
+embedded module hash. Prepare an exact source-bound supplier successor, preserve
+the predecessor, and verify old-source refusal and new-source acceptance before
+rollout.
 Preserve unchanged source-map formatting. API/auth source hashes can be
 misclassified as credentials after reserialization; verify their source
 provenance and keep secret scanning enabled.
