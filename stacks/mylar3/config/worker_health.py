@@ -130,7 +130,7 @@ def _snapshot():
     active = []
     active_rows = database.select("SELECT * FROM ddl_info WHERE status='Downloading'")
     if cooldown["valid"]:
-        queue_control.diagnostics(active_rows)
+        queue_control.diagnostics(active_rows, persist=False)
     for row in active_rows:
         paths = [row["tmp_filename"]]
         if row["filename"]:

@@ -3,6 +3,7 @@ from pathlib import Path
 from queue import Queue
 import sys
 import sqlite3
+import json
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -24,6 +25,72 @@ class ControlTest(unittest.TestCase):
         self.now = 1000
         self.state = control.Store(self.root, lambda: self.now)
         self.item = dict(id='1', issueid='2', mainlink='private', comicid='3', link_type='GC-Main')
+
+    def diagnostics_app(self):
+        return SimpleNamespace(CONFIG=SimpleNamespace(DDL_LOCATION=str(self.root)),
+            workflow=SimpleNamespace(policy=lambda: {'ddl_paused': False}),
+            db=SimpleNamespace(DBConnection=lambda: SimpleNamespace(select=lambda query: [])),
+            pack_intake=SimpleNamespace(evidence=lambda ids: {}),
+            pp_monitor=SimpleNamespace(ddl_states=lambda names, ids: {'active': [], 'waiting': [], 'recent': []}))
+
+    def signature(self, path):
+        s = path.lstat()
+        return (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns,
+                s.st_mode, s.st_uid, s.st_gid, s.st_nlink)
+
+    def test_nonpersisting_diagnostics_observes_real_progress_without_file_or_namespace_drift(self):
+        self.state.begin(self.item)
+        download = self.root / 'download.part'
+        download.write_bytes(b'x' * 100)
+        before = (self.signature(self.root), self.signature(self.state.path),
+                  frozenset(self.root.iterdir()), self.state.path.read_bytes())
+        self.now += 10
+        row = dict(id='1', status='Downloading', tmp_filename='download', filename='', link_type='GC-Main')
+        with patch.dict(sys.modules, {'mylar': self.diagnostics_app()}), patch.object(control, '_STORE', self.state):
+            observed = control.diagnostics([row], persist=False)['1']
+            self.assertEqual((observed['bytes'], observed['speed'], observed['last_progress_seconds']), (100, 10, 0))
+            self.assertEqual(control.useful_progress(), [100, 0])
+            self.assertEqual(control.diagnostics([], persist=False), {})
+        self.assertEqual(self.state.data['items']['1']['high_water'], 100)
+        self.assertEqual(before, (self.signature(self.root), self.signature(self.state.path),
+                                 frozenset(self.root.iterdir()), self.state.path.read_bytes()))
+        # A later default poll must flush progress observed by health, even if
+        # that poll has no active row and makes no additional memory change.
+        with patch.dict(sys.modules, {'mylar': self.diagnostics_app()}), patch.object(control, '_STORE', self.state):
+            control.diagnostics([])
+        self.assertEqual(json.loads(self.state.path.read_bytes())['items']['1']['high_water'], 100)
+
+    def test_default_idle_diagnostics_preserves_loaded_file_and_directory_full9(self):
+        self.state.save()
+        loaded = control.Store(self.root, lambda: self.now)
+        before = (self.signature(self.root), self.signature(loaded.path), frozenset(self.root.iterdir()))
+        with patch.dict(sys.modules, {'mylar': self.diagnostics_app()}), patch.object(control, '_STORE', loaded):
+            self.assertEqual(control.diagnostics([]), {})
+            self.assertEqual(control.diagnostics([]), {})
+        self.assertEqual(before, (self.signature(self.root), self.signature(loaded.path), frozenset(self.root.iterdir())))
+
+    def test_failed_default_flush_does_not_advance_successful_saved_data(self):
+        self.state.save()
+        original_saved = self.state._saved_data
+        self.state.data['providers']['fixture'] = {'failures': 1, 'until': 0}
+        with patch.dict(sys.modules, {'mylar': self.diagnostics_app()}), patch.object(control, '_STORE', self.state):
+            with patch.object(control.os, 'replace', side_effect=OSError('fixture write failure')):
+                with self.assertRaises(OSError):
+                    control.diagnostics([])
+            self.assertEqual(self.state._saved_data, original_saved)
+            self.assertNotIn('fixture', json.loads(self.state.path.read_bytes())['providers'])
+            control.diagnostics([])
+        self.assertEqual(json.loads(self.state.path.read_bytes())['providers']['fixture']['failures'], 1)
+
+    def test_default_diagnostics_still_persists_current_progress(self):
+        self.state.begin(self.item)
+        (self.root / 'download.part').write_bytes(b'x' * 100)
+        self.now += 10
+        row = dict(id='1', status='Downloading', tmp_filename='download', filename='', link_type='GC-Main')
+        with patch.dict(sys.modules, {'mylar': self.diagnostics_app()}), patch.object(control, '_STORE', self.state):
+            control.diagnostics([row])
+        persisted = json.loads(self.state.path.read_bytes())['items']['1']
+        self.assertEqual((persisted['bytes'], persisted['high_water'], persisted['speed']), (100, 100, 10))
 
     def test_attempt_limit_survives_restart_and_mirror_changes(self):
         for attempt in range(6):

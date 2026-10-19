@@ -6,6 +6,18 @@
       ],
       "tracked_source_sha256": "0d94ec49973ab991385a7e52a235d92b42ab33f31f60dc6d549058f42dd1a2e3"
     },
+    "cache_admission": {
+      "owning_adapters": [
+        "patch_cache_admission.py"
+      ],
+      "tracked_source_sha256": "ba2c06ea40173676b743eb1ba824564e453c569cf213ee71fcc849492eff2e6a"
+    },
+    "cache_reservation": {
+      "owning_adapters": [
+        "patch_cache_admission.py"
+      ],
+      "tracked_source_sha256": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf"
+    },
     "combined_cleanup": {
       "owning_adapters": [
         "patch_combined_publication.py"
@@ -330,7 +342,7 @@
       "owning_adapters": [
         "patch_queue_control.py"
       ],
-      "tracked_source_sha256": "e4a399c61d6f33d085372224e16c7099219b5ba69b27306cc3b5b009777cfe9c"
+      "tracked_source_sha256": "f0c2c789ccf2009fb8d3291e247e216041ce0553d31fb1d8754c469279fbd188"
     },
     "queue_progress": {
       "owning_adapters": [
@@ -469,18 +481,6 @@
         "patch_workflow.py"
       ],
       "tracked_source_sha256": "2c9417711d11b0294bf3d01ee18ab76433c3c3c0030cba6a9e96055c7f28fb3f"
-    },
-    "cache_admission": {
-      "owning_adapters": [
-        "patch_cache_admission.py"
-      ],
-      "tracked_source_sha256": "ba2c06ea40173676b743eb1ba824564e453c569cf213ee71fcc849492eff2e6a"
-    },
-    "cache_reservation": {
-      "owning_adapters": [
-        "patch_cache_admission.py"
-      ],
-      "tracked_source_sha256": "954a6cc3384219dd06ae40bb9a75afe26a811c2ecb0f32a6f744b6a1b2022bcf"
     }
   },
   "kind": "prospective-reader-source-cohort",

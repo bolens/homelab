@@ -1,7 +1,7 @@
 {
   "kind": "configured-reader-expected-base-source-only",
   "image": null,
-  "base_cohort_sha256": "aee04394fe047dc179a444eaa9166af574377e7f1afb176f8b7be1a575d3404e",
+  "base_cohort_sha256": "161609a10457aa85c6e743671d04fbcf156b2070b9e47ce57791cd333f40cea1",
   "required_sdk_names": [
     "__init__.py",
     "archive_monitor.py",
@@ -239,7 +239,7 @@
     "publication_retained_standalone.py": "bbd4a2bf9705a287ae2ecda7c6ee5dc4909ab2a7d42e2c40e74e027958985d60",
     "publication_tagging_recovery.py": "db4e832f5fbf1bb8c55486515b08127ef6d63f396128e712de6dae6c96183c09",
     "publication_transaction.py": "683bec2256d565af2f39af7c750ecfb5bd5bf1c021a8ee51c3d87934c2dcfb5d",
-    "queue_control.py": "e4a399c61d6f33d085372224e16c7099219b5ba69b27306cc3b5b009777cfe9c",
+    "queue_control.py": "f0c2c789ccf2009fb8d3291e247e216041ce0553d31fb1d8754c469279fbd188",
     "queue_progress.py": "e99994c68582957f44b74bc42d20676c175ceb617ea2f44a62436908c83a0cb9",
     "readinglist.py": "f738c1e40fe0221733ce1c4656d35bdf0e77d4ca28e0a173b2b614878ffaaae5",
     "release_calendar.py": "1cc07ff361771efdf49b3336b838df9568545b6cb81c1b14148946547583ab56",
@@ -625,7 +625,7 @@
         "owning_adapters": [
           "patch_queue_control.py"
         ],
-        "tracked_source_sha256": "e4a399c61d6f33d085372224e16c7099219b5ba69b27306cc3b5b009777cfe9c"
+        "tracked_source_sha256": "f0c2c789ccf2009fb8d3291e247e216041ce0553d31fb1d8754c469279fbd188"
       },
       "queue_progress": {
         "owning_adapters": [
