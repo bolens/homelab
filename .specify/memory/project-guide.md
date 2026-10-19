@@ -183,6 +183,12 @@ real file-writing contract. The backup helper creates JSON files exclusively;
 assemble the complete scope before its first write. A fixture that permits
 overwriting does not verify that contract. Check capture identifiers against
 actual recorded values rather than copying the same literal into code and tests.
+Run preservation SQL only against separate private working copies. SQLite readonly
+and query-only connections can create WAL/SHM beside closed WAL-mode databases,
+including files produced by `sqlite3.backup`. Keep retained backup pairs and
+pristine captured snapshots untouched, verify their original bytes and companion
+namespaces, and allow readmarks only in disposable query copies. Use genuine
+WAL-header fixtures rather than rollback-mode fixtures for this boundary.
 Build schema fixtures from the actual owning creator or migration and confirm them
 against retained metadata before live verification. A later `CREATE TABLE IF NOT
 EXISTS` declaration may differ from the existing startup-created schema; deriving
