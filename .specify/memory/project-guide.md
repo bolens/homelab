@@ -120,6 +120,13 @@ prove a reader permission or DTO failure. Check the owning transport context
 before repeating full source captures. Retain only fixed error types, numeric
 network codes and trusted source locations in shared diagnostics; keep addresses
 and responses private.
+For saved-evidence-only diagnostics, trace called functions as well as the entry
+point. The live library mapper resolves paths and checks directories; calling it
+would cross that boundary even when its input JSON was captured earlier. Validate
+saved DTOs and serialized mount joins with pure lexical operations instead, and
+trap filesystem access in the changed join's tests. Retained mapping evidence
+establishes neither current root existence nor alias coverage. The owning Parent
+must repeat genuine current mapping under its original admission rules.
 When validating saved one-shot histories, capture the fixed original bindings,
 terminal receipts and report with the same strict reader used by the unchanged
 consumers. Keep the first full file and ancestor witnesses through final closure.
@@ -230,6 +237,12 @@ persistent storage outside Git. Verify an owner-only directory ancestor by its a
 identity, owner and mode; a private filename or directory name does not restrict
 access. Capture ancestor identities before reading a protected leaf, then verify
 them again after the read; a later baseline can accept a replaced directory.
+Verify actual supplier ownership and modes through the strict reader before
+privileged execution, as well as checking hashes. A frozen `0444` source can fail
+a reader that accepts only `0600` or `0644`. Preserve the frozen original; use a
+distinct byte-identical supplier with the required mode and bind its exact path.
+Keep failure diagnostics in the called `main()` entry point when a cached loader
+bypasses the script guard; report fixed source frames and preserve the exception.
 Correct the owning directory without rewriting retained receipt bytes or
 historical file modes. Reserve temporary filesystems for disposable test fixtures.
 Before a planned reboot, verify the checkpoint and its referenced files are durable; after reboot, recapture process epochs and live file bindings rather
