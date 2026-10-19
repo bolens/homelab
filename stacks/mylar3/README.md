@@ -224,6 +224,11 @@ pure content validation, bounded to 32 inventories and 8 MiB. The memo is local
 to the calling thread and is discarded on return or error. Changed inventory
 bytes are validated again; database, ledger, identity and filesystem checks still
 run in full. This adds no admission rights or configuration settings.
+Within each historical identity projection, ledger prefixes compare against one
+fully validated transaction capture. An independent final capture still detects
+authority changes after callbacks, alongside pending, input and filesystem
+closure. The public prefix reader continues taking a fresh capture on every call.
+No projection or authority result survives the invocation.
 [The scaling regressions](config/test_identity_admission_scaling.py) check both
 repeated witnesses and a newly distinct binding, and require the next read to
 refuse malformed ledger history.

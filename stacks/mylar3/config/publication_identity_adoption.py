@@ -148,6 +148,11 @@ def validate_plan(plan):
 def check_prefix(db, prefix, *, pending=None, current_identity=None):
     """Commit-time whole state may evolve; adopted immutable rows may not."""
     current = capture_prefix(db, pending=pending, current_identity=current_identity)
+    return _check_captured_prefix(current, prefix)
+
+
+def _check_captured_prefix(current, prefix):
+    """Compare one original validated capture without changing either value."""
     need(all(current[name] == prefix[name] for name in ('schema', 'epoch', 'bootstrap_token')), 'identity-current-authority-root')
     for name in ('committed_intents', 'committed_bindings', 'attestations'):
         need(all(current[name].get(key) == value for key, value in prefix[name].items()), 'identity-adopted-history-prefix-changed')
@@ -332,7 +337,7 @@ def resolve(db, ledger_dir, historical_identity, current_identity, *, boundary=l
             for kind in ('committed_intents', 'committed_bindings', 'attestations'):
                 need(all(plan['prefix'][kind].get(k) == v for k, v in previous['prefix'][kind].items()), 'identity-edge-prefix-not-descendant')
         need(all(b in recognized for b in plan['prefix']['committed_bindings'].values()), 'identity-edge-unknown-binding')
-        check_prefix(db, plan['prefix'], pending=pending, current_identity=current_identity)
+        _check_captured_prefix(original_authority, plan['prefix'])
         recognized.append(plan['new'])
         previous = plan
     stable_observation = None

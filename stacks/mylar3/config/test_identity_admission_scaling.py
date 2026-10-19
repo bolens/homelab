@@ -157,7 +157,8 @@ class RealAdoptedInventory(HistoricalFixture):
             self.assertEqual(validation.call_count,2)
         with patch.object(guard,'_inventory_memo_key',return_value=None),patch.object(guard,'_validate_inventory',wraps=guard._validate_inventory) as uncached:
             self.assertEqual(guard.registry_snapshot(self.store.path,self.marker)[0]['revision'],2)
-            self.assertEqual(uncached.call_count,56)
+            # Eight outer validations plus four fresh prefix captures of eight.
+            self.assertEqual(uncached.call_count,40)
         self.assertEqual(self.rows(),original)
         self.assertFalse(hasattr(guard._INVENTORY_VALIDATION,'memo'))
 
@@ -243,6 +244,67 @@ class InventoryMemo(unittest.TestCase):
             with patch.object(guard,'_validate_inventory',side_effect=mutate):guard.validate(value)
             self.assertEqual(guard._INVENTORY_VALIDATION.memo,[set(),0])
         self.scope(body)
+
+
+class CapturedPrefixComparison(HistoricalFixture):
+    def test_pure_original_capture_comparison_never_mutates_inputs(self):
+        with self.store.connection() as db:
+            db.execute('BEGIN');current=adoption.capture_prefix(db)
+        prefix=copy.deepcopy(current);tape=adoption.encoded([current,prefix])
+        self.assertIs(adoption._check_captured_prefix(current,prefix),current)
+        self.assertEqual(adoption.encoded([current,prefix]),tape)
+        for name in ('schema','epoch','bootstrap_token'):
+            bad=copy.deepcopy(prefix);bad[name]='0'*64
+            with self.subTest(name=name),self.assertRaises(guard.Unavailable):adoption._check_captured_prefix(current,bad)
+        bad=copy.deepcopy(prefix);key=next(iter(bad['committed_intents']));bad['committed_intents'][key]='0'*64
+        with self.assertRaises(guard.Unavailable):adoption._check_captured_prefix(current,bad)
+        self.assertEqual(adoption.encoded([current,prefix]),tape)
+
+    def test_public_wrapper_reads_current_rows_on_every_call(self):
+        with self.store.connection() as db:
+            db.execute('BEGIN');prefix=adoption.capture_prefix(db)
+            with patch.object(adoption,'capture_prefix',wraps=adoption.capture_prefix)as capture:
+                self.assertEqual(adoption.check_prefix(db,prefix),prefix)
+                key,raw=db.execute("SELECT key,value FROM records WHERE kind='publication_attestation' LIMIT 1").fetchone()
+                db.execute("UPDATE records SET value=? WHERE kind='publication_attestation' AND key=?",(raw+' ',key))
+                with self.assertRaisesRegex(guard.Unavailable,'identity-adopted-history-prefix-changed'):adoption.check_prefix(db,prefix)
+                self.assertEqual(capture.call_count,2)
+            db.rollback()
+
+    def two_edges(self):
+        self.ledger_file.unlink();middle=copy.deepcopy(self.current)
+        for field,indexes in(('database_identity',(0,)),('writer_identity',(0,2))):
+            for index in indexes:middle[field][index]+=202
+        with self.store.connection()as db:
+            db.execute('BEGIN');first=adoption.prepare_plan(db,self.old,middle,self.evidence);token=adoption.digest(adoption.encoded(first));second=adoption.prepare_plan(db,middle,self.current,self.evidence,previous=token)
+        for plan in(first,second):
+            token=adoption.digest(adoption.encoded(plan));path=self.ledger/(token+'.json');path.write_bytes(adoption.encoded(dict(version=1,kind='committed-device-identity-edge',token=token,accepted=True,plan=plan)));path.chmod(0o600)
+
+    def test_real_two_edge_history_captures_original_and_final_only(self):
+        self.two_edges();rows=self.rows();marker=self.marker.read_bytes();ledger={p.name:p.read_bytes()for p in self.ledger.iterdir()}
+        with self.store.connection()as db:
+            db.execute('BEGIN')
+            with patch.object(adoption,'capture_prefix',wraps=adoption.capture_prefix)as capture:
+                self.assertEqual(adoption.resolve(db,self.ledger,self.old,self.current),self.current)
+                self.assertEqual(capture.call_count,2)
+        self.assertEqual(self.rows(),rows);self.assertEqual(self.marker.read_bytes(),marker);self.assertEqual({p.name:p.read_bytes()for p in self.ledger.iterdir()},ledger)
+
+    def test_final_callback_drift_is_still_refused(self):
+        original=copy.deepcopy(self.current)
+        for kind in('authority-row','pending','ledger','input'):
+            artifact=self.writer.root/'normalizer-v1.pending'if kind=='pending'else self.ledger/('0'*64+'.json')
+            with self.subTest(kind=kind),self.store.connection()as db:
+                db.execute('BEGIN')
+                def changed():
+                    if kind=='authority-row':
+                        key,raw=db.execute("SELECT key,value FROM records WHERE kind='publication_attestation' LIMIT 1").fetchone();db.execute("UPDATE records SET value=? WHERE kind='publication_attestation' AND key=?",(raw+' ',key))
+                    elif kind in('pending','ledger'):artifact.write_bytes(b'{}');artifact.chmod(0o600)
+                    else:self.current['database_identity'][0]+=1
+                try:
+                    with self.assertRaises(guard.Unavailable):adoption.resolve(db,self.ledger,self.old,self.current,boundary=changed)
+                finally:
+                    db.rollback();self.current=copy.deepcopy(original)
+                    if kind in('pending','ledger'):artifact.unlink()
 
 
 if __name__ == '__main__':

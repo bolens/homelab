@@ -120,6 +120,11 @@ prove a reader permission or DTO failure. Check the owning transport context
 before repeating full source captures. Retain only fixed error types, numeric
 network codes and trusted source locations in shared diagnostics; keep addresses
 and responses private.
+For performance fixes, measure the complete owning path with a representative
+fixture before publishing another image. Fewer callbacks can leave total latency
+unchanged. A stack sample identifies work in progress; it does not prove a
+persistent lock owner. Preserve fresh authority and post-callback closure when
+removing repeated pure work.
 For saved-evidence-only diagnostics, trace called functions as well as the entry
 point. The live library mapper resolves paths and checks directories; calling it
 would cross that boundary even when its input JSON was captured earlier. Validate
