@@ -172,6 +172,13 @@ When binding a literal into a reviewed operational helper, replace only the exac
 AST value byte span and require every surrounding byte to remain unchanged.
 Normalizing a whole assignment line can hide a second statement on that line;
 include a refusal test for that case. Keep the original helper immutable.
+Execute retained derivative bytes with their actual derivative filename as
+`__file__`. A helper that rereads itself must witness those executed bytes, not
+the unbound original under a substituted filename.
+Preserve every protected-root provenance occurrence. A repeated path/origin pair
+can be legitimate; match occurrences without losing multiplicity and reject
+conflicting, missing or extra resolutions. Counts and candidate covers alone do
+not approve supersession or establish physical protection.
 Retain every reviewed producer needed for later acceptance in the private
 operation packet before execution, including code that assembles the effective
 backup scope. A source left only in `/tmp` can disappear before the postcheck.
