@@ -223,8 +223,9 @@ accept a verified `false` to `null` default representation change only when ever
 other runtime field remains equal; reject `true`, missing fields and unknown
 values.
 
-A diagnostic that exercises the real Writer protocol needs its existing lock
-file opened read/write, even when it changes no protocol bytes. Keep application,
+Use the owning operation’s required access mode for the existing Writer file.
+Native Writer acquisition opens it read/write even when it changes no protocol
+bytes. Keep application,
 configuration, media and state directories read-only; if admission is required,
 bind only that exact existing file read/write and verify its identity and bytes
 before and after. Preserve the verified parent mount's propagation. Docker can
@@ -271,6 +272,19 @@ Place large backup and isolated-restore copies on the dedicated backup filesyste
 when available, rather than consuming application storage. After the owning
 operation is verified, remove its disposable restore copy while preserving the
 required backup and unresolved original evidence.
+
+A successful flock does not validate the Writer protocol. Read-only catalog
+snapshot adapters must check the existing private parent and the exact opened
+file’s type, owner, mode, link count, identity and protocol bytes before and after
+acquisition. Retain the detached snapshot referenced by later facts, and release
+the Writer before catalog queries. Include every comic’s scanner location as well
+as downloaded issues and undeleted annuals; a selected-issue query is incomplete.
+
+When an old configuration hash refuses, locate the failed input before changing
+anything. Preserve that generation and capture new process, configuration and
+mount witnesses separately. A fresh INI does not make older provenance current.
+Derive filesystem fields from their owning source definitions; unknown absolute
+declarations retain their conservative holds.
 
 SQLite `mode=ro` and `query_only` do not prevent WAL/shared-memory sidecar
 creation beside a closed database that retains WAL mode. Mount retained copies
