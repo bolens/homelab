@@ -453,7 +453,7 @@
   },
   {
     "path": "publication_identity_adoption.py",
-    "sha256": "00e65024832bd0b629ea6b4a4f623bbe2d34fb9a8b3e486b5469daa0f69ac9fb"
+    "sha256": "3d40fc737bdc6efd2ce91a8b4d563a98a8985fd52fe6906720dff30483fbf285"
   },
   {
     "path": "publication_identity_maintenance.py",
@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "a7c666ae66849002744d603dd3d1de71414f3c1dfcd98efaa60ff83e2bc3a460"
+    "sha256": "16ea09fa91ed96aae8c0748514a0a79a9b1d1544edee2cd21a98e0aadd4645fb"
   },
   {
     "path": "story_arc_search.py",

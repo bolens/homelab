@@ -158,6 +158,9 @@ them with `python3 scripts/sync-publication-reader.py` after native reader chang
 Identical inventory content reuses successful validation only within one registry
 read, with a thread-local 32-entry/8 MiB bound. Database, ledger and filesystem
 observations remain fresh; the memo is discarded on return or error.
+Historical ledger prefixes compare against one fully validated transaction
+capture per identity projection. The independent final capture and original
+filesystem closure remain required, and public prefix checks still read afresh.
 Coordinated cycles validate complete authority before writing recovery bindings or
 fences and recheck it before clearing the fence. They require explicit
 `publication_roots` in the private normalizer configuration, for example
