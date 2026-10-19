@@ -86,9 +86,9 @@ The retained probe mapping preserves its original admitted fixture directory vec
 ## Original library-query network context
 
 The owning Parent selects the HTTP context once from the original configured
-origin and reader/native network profiles. A Docker reader-name/alias origin
-must join an original reader alias to a shared nonempty native/reader NetworkID.
-It uses the existing guarded Docker exec transport, UID1000 and isolated Python
+origin and reader/native network profiles. For native execution, a Docker
+reader-name/alias origin must join an original reader alias to a shared nonempty
+native/reader NetworkID. That route uses guarded Docker exec, UID1000 and isolated Python
 in that exact original running native container. The unchanged URL/key are
 stdin-only; only the fixed principal GET and repeated library GET are permitted.
 No endpoint, resolver, host mapping, mount, privilege or worker setting changes.
@@ -102,3 +102,13 @@ or uncertain exec refuses. Bounded JSON, unrestricted principal, complete stable
 library DTOs and same original channel/sequence remain required. Source tests
 project Docker/HTTP boundaries explicitly; they do not establish configured
 reachability, genuine Parent/Birth, NFS or terminal acceptance.
+
+When the original internal reader hostname is not reachable through any network shared by the original native role, the owning parent selects a third transport before requests. It starts one disposable fixed-GET helper per existing route, using the original captured worker image, UID 1000 and the original reader's network namespace. The helper has a read-only root, no application/configuration/host mounts, no ports or host PID/IPC access, no health check and bounded resources. Python runs isolated without site initialization; original URL and key remain on bounded stdin. Original reader/native/worker epochs and profiles, configuration, sources and shared Writer interlock close around every operation. Image identity/platform and absence of declared volumes are checked before creation. This does not change service network membership or the configured URL.
+
+The helper has its own nonce, label and exact created/exited profile; it never borrows an archive observer registry. Only its exact successfully exited CID can be removed without force, followed by exact absence proof. Unknown create/start/cleanup outcomes retain evidence and never authorize replay or another transport. Genuine host origins keep the original host HTTP route; a shared native network keeps native exec. Selection is factual, not fallback after a failed request. These source controls grant no configured reachability, Parent/NFS admission or library authority; the actual owning Parent must repeat the complete query and all original joins.
+
+Before each helper creation the owning parent fsyncs and reads back a private intent containing its exact network mode and fixed create argv, which contain no URL or credentials. A successful create acknowledgement is persisted with the actual CID before the first profile inspection. The reusable helper producer requires the existing strict original reference and same-byte readback for every record; a memory-only callback cannot authorize a create. Standalone planning must use that same producer with original three-role guards and durable private output, never fabricate a Parent/session or reuse an in-memory observation as admission.
+
+The helper startup witness accepts either the unchanged complete static profile or the exact observed paired transition: its original CID-prefix hostname becomes the original reader hostname, and `OomKillDisable` changes from the boolean `false` to `null`. Every other static field must remain equal under the original complete profile comparison. This exception belongs only to this created-to-successfully-exited helper transition; general reader/native/worker profiles remain strict. Before cleanup, the complete validated exited static profile must match again, including both transitioned fields.
+
+Komga 1.28.1 serializes its nullable unrestricted `ageRestriction` field by omitting it. The principal validator therefore accepts either absence or explicit JSON null for this one field. A non-null age restriction still refuses, as do missing other required fields, non-admin or partial-library access, or nonempty sharing/label restrictions. This matches the pinned upstream [UserDto NON_NULL contract](https://github.com/gotson/komga/blob/2ab7a5a61a8b8bb12a6edd576fed380b4b613c99/komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/UserDto.kt#L9-L18); it grants no configured authority without the original complete query and joins.

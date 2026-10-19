@@ -1485,6 +1485,13 @@ The reader recovery cohort also installs the canonical scope-birth helper. It
 captures metadata in the selected child and hands the original inherited pipe
 to lifecycle custody. Public recovery tools under `config/reader_recovery/` are
 for checked temporary source mounts; they are absent from the final image.
+Their library query keeps the original endpoint and credentials on stdin. When
+native and reader share no original network, a disposable read-only helper uses
+the original worker image and reader network namespace. It has no application
+mounts, published ports, capabilities or daemon logging. Durable intent, exact
+profile checks and exited-only cleanup remain mandatory; source checks do not
+establish configured reachability. See the
+[network-context contract](config/reader_recovery/CONTRACT-nfs-factual.md#original-library-query-network-context).
 Their backup producer, provider and terminal observer require current source
 pins and separately accepted parent custody. The dedicated archive provider
 uses the existing owning preparation, adoption and rollback APIs. Its portable

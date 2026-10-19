@@ -1491,7 +1491,7 @@ def library_documents(base, key, *, guard=lambda: None, seconds=lambda: 30, fetc
 def checked_library_user(user):
     """Original unrestricted principal check, before any library request."""
     check(type(user) is dict and {'id', 'roles', 'sharedAllLibraries', 'sharedLibrariesIds',
-                                  'labelsAllow', 'labelsExclude', 'ageRestriction'} <= set(user)
+                                  'labelsAllow', 'labelsExclude'} <= set(user)
           and 'ADMIN' in user.get('roles', []) and user.get('sharedAllLibraries') is True
           and user.get('sharedLibrariesIds') == [] and user.get('labelsAllow') == []
           and user.get('labelsExclude') == [] and user.get('ageRestriction') is None

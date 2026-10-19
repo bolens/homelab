@@ -514,7 +514,7 @@ _NFS_LIVE_SESSIONS=weakref.WeakKeyDictionary()
 _NFS_EMPTY_ROWS=weakref.WeakKeyDictionary()
 _NFS_PROBE_ROWS=weakref.WeakKeyDictionary()
 NFS_HOST_SOURCE_PINS={'comic_nfs_host_engine.py': 'dce3f2395442365ef424537377dc51644a2ce2eeebe4eac928d46c99b504b8a7', 'comic_nfs_host_lease.py': 'cf01affdfbb78d5d12880b8d8f2da5f1bf9203bc8854304001eae24dff8097fe', 'comic_nfs_lease_session.py': '5b9cd1d607cb037c59cca1706bfd61691f0cd447f906c63a286e7a3437c39d17', 'comic_nfs_host_probe.py': '3129cf966d9982b388e21a0531253fff8229b8395cf58618063be03d2646efe4', 'comic_nfs_uid_child.py': 'ed332abaf68c87f82fae1a3ab7185496ab62a0b21193d1aa2f34724614453fc0', 'comic_nfs_parent_session.py': '5d0bddc8a0bda1412dd9687fdbff77bb775af976d6d947ad956d63d216e5039c', 'comic_negative_nfs_active_lifecycle.py': '2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21', 'comic_nfs_child_input_projection.py': 'b4e6bca8b6b7d0d076c5b68bae35430fa65a3b417f0aa5ccb5cd7ccf265e7d93'}
-NFS_ACTIVE_SOURCE_SHA='ae63848a9dfd04d279f617aa7197c2e32dc0a677464a0894773dcb7a29a34e51'
+NFS_ACTIVE_SOURCE_SHA='d485a22d43b11baeb87f3ac8beb48bdab847f786cd5a64dfcc6156b982825231'
 
 
 def dialogue_register(engine,cid,process,streams,descriptors,end,original_pid):
@@ -588,8 +588,25 @@ def library_transport(base,reader,native):
     joined=tuple(sorted({row['NetworkID'] for row in networks.values()
                        if type(row.get('NetworkID')) is str and row['NetworkID']
                        and row['NetworkID'] in native_ids and host in (row.get('Aliases') or [])}))
-    need(bool(joined),'library-original-alias-network-join')
-    return ('native-exec-v1',joined)
+    if joined:return ('native-exec-v1',joined)
+    original=tuple(sorted({row['NetworkID']for row in networks.values()if type(row.get('NetworkID'))is str and row['NetworkID']and host in(row.get('Aliases')or[])}))
+    need(bool(original),'library-original-alias-network-join')
+    return ('reader-net-helper-v1',original)
+
+
+def library_helper_created_to_exited(original,current,cid,reader):
+    """Only the verified helper-container phase pair; never a role projection."""
+    hostname=reader.get('Config',{}).get('Hostname')
+    if not(digest(cid)and original.get('Id')==cid and current.get('Id')==cid
+           and type(hostname)is str and bool(hostname)
+           and original['Config'].get('Hostname')==cid[:12]
+           and current['Config'].get('Hostname')==hostname
+           and original['HostConfig'].get('OomKillDisable')is False
+           and 'OomKillDisable'in current['HostConfig']
+           and current['HostConfig']['OomKillDisable']is None):return False
+    expected=copy.deepcopy(original)
+    expected['Config']['Hostname']=hostname;expected['HostConfig']['OomKillDisable']=None
+    return current==expected
 
 
 class ScopedDocker:
@@ -603,7 +620,7 @@ class ScopedDocker:
  def canary(self,args,**kwargs):
   nfs_remote_guard(self)
   # Only the separately source-pinned diagnostic parent uses this transport.
-  need(type(args) is list and (args[:len(DOCKER)]==DOCKER and args[len(DOCKER)] in ('create','inspect','start','exec')
+  need(type(args) is list and (len(args)>len(DOCKER) and tuple(args[:len(DOCKER)])==DOCKER and args[len(DOCKER)] in ('create','inspect','start','exec')
        or args[:2]==['findmnt','--json']), 'nfs-engine-command')
   need(set(kwargs)<={'input','capture_output','timeout','check'} and kwargs.get('capture_output') is True
        and kwargs.get('check') is False and 0<kwargs.get('timeout',0)<=900,'nfs-engine-call-shape')
@@ -666,6 +683,84 @@ class ScopedDocker:
   need(launches.get(cid)==(birth,'start-ACK-pending'),'nfs-probe-original-launch-pending')
   launches[cid]=(birth,process,_DIALOGUE_SEALS[self][cid])
   return process
+
+ def library_get(self,image,reader,route,body,seconds,guard,record):
+  """One source-owned GET, no application mounts or replay; separate helper identity."""
+  nfs_remote_guard(self)
+  need(type(self)is ScopedDocker and type(image)is str and re.fullmatch(r'sha256:[a-f0-9]{64}',image)
+       and type(reader)is dict and digest(reader.get('Id')) and reader['State']['Running']is True
+       and route in('/api/v2/users/me','/api/v1/libraries') and type(body)is bytes and len(body)<=65536
+       and type(seconds)in(int,float)and 0<seconds<=30,'library-helper-fixed-input')
+  value=decode(body);need(set(value)=={'base','key','route','seconds'}and value['route']==route
+       and value['seconds']==seconds,'library-helper-original-input')
+  token=os.urandom(16).hex();name='reader-library-'+token;prefix='library-query-'+token
+  end=time.monotonic()+seconds+30;sequence=0;program=NATIVE_LIBRARY_GET
+  def note(kind,value):
+   ref=record(prefix+'-'+kind+'.json',value)
+   need(read(ref)==encode(value),'library-helper-durable-record')
+  def command(args,data=None):
+   nonlocal sequence
+   nfs_remote_guard(self);guard();need(NATIVE_LIBRARY_GET==program,'library-helper-client-source')
+   left=end-time.monotonic();need(left>0,'library-helper-deadline');sequence+=1
+   try:r=subprocess.run([*DOCKER,*args],input=data,capture_output=True,timeout=min(left,seconds+5 if args[0]=='start'else 15),env={'PATH':'/usr/bin:/bin','LANG':'C.UTF-8'})
+   except (OSError,subprocess.TimeoutExpired):
+    note('unknown-'+str(sequence),dict(command=args[0],automatic_replay=False,publication_authority=False))
+    raise Held('library-helper-command-unknown-no-replay')from None
+   need(len(r.stdout)<=8*1024**2 and len(r.stderr)<=65536,'library-helper-output-bound')
+   note('command-'+str(sequence),dict(command=args[0],returncode=r.returncode,stdout_sha256=hashlib.sha256(r.stdout).hexdigest(),stderr_sha256=hashlib.sha256(r.stderr).hexdigest()))
+   if args[0]=='create'and r.returncode==0:
+    actual=r.stdout.decode().strip();need(digest(actual),'library-helper-original-CID')
+    note('create-ack',dict(container_id=actual,name=name,image=image,reader_id=reader['Id'],network_mode=mode,automatic_replay=False,publication_authority=False))
+   guard();return r
+  metadata=command(['image','inspect',image]);need(metadata.returncode==0,'library-helper-image-held');images=decode(metadata.stdout)
+  need(type(images)is list and len(images)==1 and images[0]['Id']==image and images[0]['Os']=='linux'
+       and images[0]['Architecture']=='amd64' and not images[0]['Config'].get('Volumes'),'library-helper-image-original')
+  image_config=images[0]['Config'];labels=image_config.get('Labels')or{}
+  need(type(labels)is dict and 'com.homelab.reader.library-query'not in labels,'library-helper-label-collision')
+  labels=dict(labels);labels['com.homelab.reader.library-query']=token
+  cmd=['-I','-B','-S','-c',program];mode='container:'+reader['Id']
+  args=['create','--pull','never','--name',name,'--label','com.homelab.reader.library-query='+token,
+        '--interactive','--read-only','--network',mode,'--ipc','private','--user','1000:1000',
+        '--cap-drop','ALL','--security-opt','no-new-privileges','--pids-limit','32','--memory','256m',
+        '--memory-swap','256m','--cpus','0.5','--no-healthcheck','--log-driver','none',
+        '--workdir','/','--entrypoint','python3',image,*cmd]
+  note('intent',dict(image=image,reader_id=reader['Id'],name=name,network_mode=mode,create_argv=args,command_sha256=hashlib.sha256(encode(args)).hexdigest(),automatic_replay=False,publication_authority=False))
+  created=command(args);need(created.returncode==0,'library-helper-create-held');cid=created.stdout.decode().strip();need(digest(cid),'library-helper-original-CID')
+  def inspect():
+   r=command(['inspect',cid]);need(r.returncode==0,'library-helper-inspect-held');rows=decode(r.stdout)
+   need(type(rows)is list and len(rows)==1 and rows[0]['Id']==cid,'library-helper-exact-owned');return rows[0]
+  def check(row,status):
+   c,h,s=row['Config'],row['HostConfig'],row['State']
+   need(row['Id']==cid and row['Name']=='/'+name and row['Image']==image and c['Image']==image
+        and c['User']=='1000:1000'and c['Entrypoint']==['python3']and c['Cmd']==cmd
+        and c['WorkingDir']=='/'and c['OpenStdin']is True and c['Tty']is False
+        and c.get('Env')==image_config.get('Env')and c.get('Labels')==labels
+        and c.get('Healthcheck')=={'Test':['NONE']},'library-helper-command-profile')
+   need(h['ReadonlyRootfs']is True and h['Privileged']is False and h['NetworkMode']==mode
+        and h['IpcMode']=='private'and h['PidMode']==''and h['CapDrop']==['ALL']and not h.get('CapAdd')
+        and h['SecurityOpt']==['no-new-privileges']and h['PidsLimit']==32
+        and h['Memory']==h['MemorySwap']==256*1024**2 and h['NanoCpus']==500000000
+        and h.get('RestartPolicy',{}).get('Name')in('','no')and h.get('AutoRemove')is False
+        and h.get('LogConfig')=={'Type':'none','Config':{}}and h.get('PublishAllPorts')is False
+        and all(not h.get(k)for k in('Binds','Mounts','Tmpfs','Devices','DeviceRequests','PortBindings'))
+        and row['Mounts']==[]and not row['NetworkSettings'].get('Networks'),'library-helper-exact-isolation')
+   need(s['Status']==status and s['Running']is False and s['Pid']==0
+        and all(s.get(k)is False for k in('Paused','Restarting','Dead','OOMKilled'))
+        and (status!='exited'or s['ExitCode']==0),'library-helper-exited-only')
+  before=inspect();check(before,'created');original=static(before);note('created',before)
+  note('start-intent',dict(container_id=cid,automatic_replay=False,publication_authority=False))
+  reply=command(['start','--attach','--interactive',cid],body)
+  need(reply.returncode==0,'library-helper-GET-held');after=inspect();check(after,'exited')
+  terminal=static(after)
+  need(terminal==original or library_helper_created_to_exited(original,terminal,cid,reader),'library-helper-original-static');note('terminal',after)
+  # Only our exact successful exited helper can be removed. No stop/force/replay.
+  final_row=inspect();check(final_row,'exited');need(static(final_row)==terminal,'library-helper-cleanup-original')
+  removed=command(['rm',cid]);need(removed.returncode==0 and removed.stdout.strip()==cid.encode(),'library-helper-cleanup-ACK-unknown')
+  absent=command(['inspect',cid]);error=absent.stderr.decode('utf-8').strip()
+  need(absent.returncode==1 and error in('error: no such object: '+cid,'Error: No such object: '+cid,'Error: No such container: '+cid,
+       'Error response from daemon: No such container: '+cid) and decode(absent.stdout)==[],'library-helper-cleanup-absence')
+  note('cleanup',dict(container_id=cid,owned_exited_cleanup_verified=True,publication_authority=False))
+  return reply.stdout
 
  def worker_interactive(self,cid,protocol,seconds,guard):
   nfs_remote_guard(self)
@@ -1581,13 +1676,15 @@ class LifecycleParent:
         query_raw,configuration_raw,module,functions,lock_raw,redirect,redirect_code=original
         configuration_ref=decode(configuration_raw);lock_ref=decode(lock_raw)
         reader_raw=encode(self.baselines['reader']);reader=decode(reader_raw)
-        lock_fd=None;native_raw=None;native=None;transport=None;program=NATIVE_LIBRARY_GET
+        lock_fd=None;native_raw=None;native=None;worker_raw=None;worker=None;transport=None;program=NATIVE_LIBRARY_GET
         files=dict(self.files);nodes=dict(self.nodes)
         def guard():
             nfs_remote_guard(self.engine);session.close();self.left()
             need(_NFS_LIBRARY_QUERIES.get(self) is original and _NFS_LIVE_SESSIONS.get(self) is session
                  and encode(configuration_ref)==configuration_raw and encode(lock_ref)==lock_raw
                  and encode(self.baselines['reader'])==reader_raw,'nfs-library-original-query-seal')
+            current=self.inspect(reader['Id'])
+            need(static(current)==static(reader)and lifecycle_state(current)==lifecycle_state(reader),'nfs-library-original-reader-epoch')
             need(module.RefuseRedirect is redirect and redirect.redirect_request.__code__ is redirect_code,
                  'nfs-library-original-redirect-guard')
             if lock_fd is not None:
@@ -1601,6 +1698,10 @@ class LifecycleParent:
                 need(encode(self.baselines.get('held_native'))==native_raw,'nfs-library-original-native-seal')
                 current=self.inspect(native['Id'])
                 need(static(current)==static(native) and lifecycle_state(current)==lifecycle_state(native),'nfs-library-original-native-epoch')
+            if worker_raw is not None:
+                need(encode(self.baselines.get('held_worker'))==worker_raw,'nfs-library-original-worker-seal')
+                current=self.inspect(worker['Id'])
+                need(static(current)==static(worker)and lifecycle_state(current)==lifecycle_state(worker),'nfs-library-original-worker-epoch')
         retained=_NFS_LIBRARY_REPLIES.get(self)
         if retained is None:
             need(session.lease_replies.lease is None and not session.lease_replies.done,
@@ -1615,9 +1716,17 @@ class LifecycleParent:
         guard();query=decode(query_raw);cfg=decode(read(configuration_ref))
         base,key=cfg['komga']['url'],cfg['komga']['api_key']
         transport=library_transport(base,reader,self.baselines.get('held_native'))
-        if transport[0]=='native-exec-v1':
+        if transport[0]in('native-exec-v1','reader-net-helper-v1'):
             native_raw=encode(self.baselines['held_native']);native=decode(native_raw)
             need(native['Id']==self.plan['held_native']['id'] and static(native)==self.plan['held_native']['profile'],'nfs-library-original-native-role')
+        if transport[0]=='reader-net-helper-v1':
+            worker_raw=encode(self.baselines['held_worker']);worker=decode(worker_raw)
+            need(worker['Id']==self.plan['held_worker']['id']and static(worker)==self.plan['held_worker']['profile'],'nfs-library-original-worker-role')
+        def helper_get(route,seconds):
+            need(type(self.engine)is ScopedDocker,'nfs-library-fixed-helper-transport');guard()
+            body=encode(dict(base=base,key=key,route=route,seconds=seconds))
+            result=self.engine.library_get(worker['Image'],reader,route,body,seconds,guard,self.emit)
+            guard();return result
         def native_get(route,seconds):
             need(type(self.engine) is ScopedDocker and transport[0]=='native-exec-v1'
                  and route in ('/api/v2/users/me','/api/v1/libraries'),'nfs-library-fixed-native-transport')
@@ -1642,6 +1751,7 @@ class LifecycleParent:
                  'nfs-library-original-reader-before')
             options=dict(guard=guard,seconds=self.left)
             if transport[0]=='native-exec-v1':options['fetch']=native_get
+            elif transport[0]=='reader-net-helper-v1':options['fetch']=helper_get
             documents=module.library_documents(base,key,**options)
             # Validate the same complete DTO on the host as well as the child.
             module.checked_library_documents(documents)

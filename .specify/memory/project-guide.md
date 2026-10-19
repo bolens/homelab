@@ -108,14 +108,30 @@ nonblocking Python stack snapshot without local variables can distinguish slow
 admission validation from network work or a blocked worker. Keep the snapshot
 private, and preserve the original readiness checks.
 The reader lifecycle parent selects the original library-query transport before
-sending requests. A Docker-only reader alias requires an original shared-network
-join and the existing read-only native-container transport. Other origins keep
-host HTTP. Preserve the original URL, stdin-only credentials and fixed GET routes;
-never add an error fallback or rewrite live configuration to make a probe pass.
-A host DNS failure does not prove a reader permission or DTO failure. Check the
-owning transport context before repeating full source captures. Retain only fixed
-error types, numeric network codes and trusted source locations in shared
-diagnostics; keep addresses and responses private.
+sending requests. A reader name, alias or DNS name alone does not prove that the
+native container can resolve it. Require a shared original network ID before
+selecting native execution. An alias found only on a reader-only network must
+refuse native execution. Preserve the original URL, stdin-only credentials and fixed
+GET routes. Do not rewrite the host URL, connect existing services or add an error
+fallback to make a query pass. A separate approved original-image read-only query
+context needs its own original profile and lifecycle proof before any GET. A plan grants
+no admission. Other original origins keep host HTTP. A host DNS failure does not
+prove a reader permission or DTO failure. Check the owning transport context
+before repeating full source captures. Retain only fixed error types, numeric
+network codes and trusted source locations in shared diagnostics; keep addresses
+and responses private.
+When validating saved one-shot histories, capture the fixed original bindings,
+terminal receipts and report with the same strict reader used by the unchanged
+consumers. Keep the first full file and ancestor witnesses through final closure.
+Read the actual outer START binding and its original nested JSON rather than
+reconstructing it from a summary or assuming a prior attempt's file layout.
+A terminal zero exit with zero requests does not prove an import or ACK, or grant another START.
+Never replay, reset or remove an attempt to validate its history.
+Before changing credentials or authorization after a principal check refuses,
+compare the returned field types with the pinned application DTO. Komga 1.28.1
+omits null `ageRestriction`; its absence still requires the original ADMIN, full
+library-sharing and empty restriction-list checks. The reader
+[network-context contract](../../stacks/mylar3/config/reader_recovery/CONTRACT-nfs-factual.md#original-library-query-network-context) owns this specific compatibility rule.
 A prepared import receipt and a later healthy API response do not identify the
 earlier dispatch refusal. Keep dispatch-time outcomes explicit and bounded,
 preserve uncertain phases, and never replay a submitted operation to diagnose it.
