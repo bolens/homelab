@@ -21,19 +21,23 @@ class Store:
         self.path = self.root / 'ddl-control.json'
         self.clock = clock
         self.data = {'version': 1, 'items': {}, 'providers': {}}
+        self._saved_data = None
         if self.path.exists():
             self.data = json.loads(self.path.read_text())
             if self.data.get('version') != 1 or not isinstance(self.data.get('items'), dict) or not isinstance(self.data.get('providers'), dict):
                 raise ValueError('DDL control state needs recovery')
+            self._saved_data = json.dumps(self.data, sort_keys=True)
 
     def save(self):
+        serialized = json.dumps(self.data, sort_keys=True)
         temporary = self.path.with_suffix('.new')
         with temporary.open('w') as output:
             os.chmod(temporary, 0o600)
-            json.dump(self.data, output)
+            output.write(serialized)
             output.flush()
             os.fsync(output.fileno())
         os.replace(temporary, self.path)
+        self._saved_data = serialized
 
     def record(self, item):
         key = str(item['id'])
@@ -391,7 +395,7 @@ def import_evidence(database):
     return result
 
 
-def diagnostics(rows):
+def diagnostics(rows, persist=True):
     import mylar
     # Download completion is distinct from import completion. Read current issue
     # state on each poll so imports completed after finish() are visible too.
@@ -474,7 +478,10 @@ def diagnostics(rows):
                            'attempts': attempts, 'attempt_limit': ATTEMPT_LIMIT,
                            'mirrors_failed': failed_mirrors(value), 'reason': reason,
                            'cooldown_seconds': cooldown if retry_eligible else 0}
-        state.save()
+        # Health observes current progress without replacing the durable control
+        # file. Queue/UI callers retain their existing persistence by default.
+        if persist and json.dumps(state.data, sort_keys=True) != state._saved_data:
+            state.save()
     return result
 
 

@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -334,6 +335,54 @@ class FullLifecycleControls(LocalEnvironment):
 class NewTerminalControls(LocalEnvironment):
     fixture=FullLifecycleControls.fixture
     # Do not duplicate inherited controls in discovery.
+    def test_real_health_diagnostics_preserves_original_roots_and_retained_reobserve(self):
+        # These native siblings are explicit dependencies of the copied fixture
+        # closure. Only daemon/SQL/queue observations are projected here.
+        config = Path(__file__).parent.parent
+        modules = {}
+        for name in ('queue_control', 'worker_health'):
+            spec = importlib.util.spec_from_file_location('telemetry_' + name, config / (name + '.py'))
+            module = importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+            modules[name] = module
+        control, health = modules['queue_control'], modules['worker_health']
+        original_canonical, original_fresh = P.canonical, P.fresh_native
+        stores = {}
+        def canonical(path):
+            result = original_canonical(path)
+            if result.name == 'comics' and result.is_dir() and result not in stores:
+                stores[result] = control.Store(result)
+                stores[result].save()  # Original durable telemetry precedes root capture.
+            return result
+        app = SimpleNamespace(CONFIG=SimpleNamespace(POST_PROCESSING=False, ENABLE_DDL=False,
+            NZB_DOWNLOADER=1, NZBGET_CLIENT_POST_PROCESSING=False, ENABLE_TORRENTS=False,
+            ENABLE_CHECK_FOLDER=False, FAILED_AUTO=True), APILOCK=False,
+            db=SimpleNamespace(DBConnection=lambda: SimpleNamespace(select=lambda query: [],
+                selectone=lambda query: SimpleNamespace(fetchone=lambda: {'n': 0}))),
+            queue_control=control, cooldown_health=SimpleNamespace(snapshot=lambda database: {'valid': True}),
+            workflow=SimpleNamespace(policy=lambda: {'ddl_paused': False}, state_health=lambda: {'valid': True}),
+            pack_intake=SimpleNamespace(evidence=lambda ids: {}),
+            pp_monitor=SimpleNamespace(ddl_states=lambda names, ids: {'active': [], 'waiting': [], 'recent': []}))
+        calls = []
+        def fresh(*args, **kwargs):
+            value = original_fresh(*args, **kwargs)
+            self.assertEqual(len(stores), 1)
+            with patch.object(control, '_STORE', next(iter(stores.values()))):
+                health._snapshot()  # Real health -> real diagnostics -> real Store.
+            calls.append(True)
+            return value
+        with patch.object(P, 'canonical', side_effect=canonical), patch.object(P, 'fresh_native', side_effect=fresh), \
+                patch.dict(sys.modules, {'mylar': app,
+                    'mylar.queues': SimpleNamespace(queue_info=lambda: [])}):
+            factual, rows, events = self.fixture(ready=True, return_factual=True)
+            factual.current(stopped=False)
+            factual.binding
+            self.assertGreater(len(calls), 6)
+            # The fix must not waive timestamps: a subsequent real telemetry
+            # save outside the read-only health route still invalidates full9.
+            next(iter(stores.values())).save()
+            with self.assertRaisesRegex(P.Held, 'active-factual-file'):
+                factual.close()
+
     def test_post_release_parent_reappearance(self):
         original=P.write;fired=[]
         def inject(path,value):

@@ -41,6 +41,7 @@ class HealthTest(unittest.TestCase):
             workflow=SimpleNamespace(state_health=lambda:{'valid':True}))
         with patch.dict(sys.modules,{'mylar':app,'mylar.queues':SimpleNamespace(queue_info=lambda:[])}):
             self.assertEqual(worker_health.snapshot()['downloaded'],3)
+        app.queue_control.diagnostics.assert_called_once_with([], persist=False)
 
     def test_probe_uses_configured_url_root(self):
         import health, json, tempfile
@@ -52,6 +53,43 @@ class HealthTest(unittest.TestCase):
             with patch.dict(health.os.environ,MYLAR_CONFIG_DIR=directory), patch.object(health.urllib.request,'urlopen',return_value=reply) as request:
                 self.assertEqual(health.main(),0)
             self.assertEqual(request.call_args.args[0].full_url,'http://127.0.0.1:8090/comics/api')
+
+    def test_real_health_keeps_progress_in_memory_without_replacing_durable_telemetry(self):
+        import tempfile, queue_control, queue_progress, worker_health
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            clock = [1000]
+            state = queue_control.Store(root, lambda: clock[0])
+            state.begin(dict(id='1', mainlink='fixture', issueid='2'))
+            download = root / 'download.part';download.write_bytes(b'x' * 100)
+            def nine(path):
+                s = path.lstat()
+                return (s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns,s.st_mode,s.st_uid,s.st_gid,s.st_nlink)
+            before = (nine(root), nine(state.path), frozenset(root.iterdir()), state.path.read_bytes())
+            clock[0] += 10
+            rows = [dict(id='1', status='Downloading', tmp_filename=str(download), filename='',
+                         link_type='GC-Main', updated_date='fixture')]
+            database = SimpleNamespace(selectone=lambda query: SimpleNamespace(fetchone=lambda: {'n': 0}),
+                select=lambda query: rows if query == "SELECT * FROM ddl_info WHERE status='Downloading'" else [])
+            app = SimpleNamespace(CONFIG=SimpleNamespace(POST_PROCESSING=False, ENABLE_DDL=True,
+                NZB_DOWNLOADER=1, NZBGET_CLIENT_POST_PROCESSING=False, ENABLE_TORRENTS=False,
+                ENABLE_CHECK_FOLDER=False, FAILED_AUTO=True, DDL_LOCATION=str(root)), APILOCK=False,
+                db=SimpleNamespace(DBConnection=lambda: database), queue_control=queue_control,
+                cooldown_health=SimpleNamespace(snapshot=lambda db: {'valid': True}),
+                workflow=SimpleNamespace(policy=lambda: {'ddl_paused': False}, state_health=lambda: {'valid': True}),
+                pack_intake=SimpleNamespace(evidence=lambda ids: {}),
+                pp_monitor=SimpleNamespace(ddl_states=lambda names, ids: {'active': [], 'waiting': [], 'recent': []}))
+            with patch.dict(sys.modules, {'mylar': app, 'mylar.queue_progress': queue_progress,
+                    'mylar.queues': SimpleNamespace(queue_info=lambda: [])}), patch.object(queue_control, '_STORE', state):
+                sample = worker_health._snapshot()
+                self.assertEqual(sample['ddl_useful'], [100, 0])
+                self.assertEqual(sample['ddl_active'], [['1', 100, 'fixture']])
+                self.assertEqual(state.data['items']['1']['speed'], 10)
+                rows.clear()
+                self.assertEqual(worker_health._snapshot()['ddl_useful'], [100, 0])
+            self.assertEqual(before, (nine(root), nine(state.path), frozenset(root.iterdir()), state.path.read_bytes()))
 
     def test_idle_is_healthy_indefinitely(self):
         initial = assess(self.value, {}, 0)
