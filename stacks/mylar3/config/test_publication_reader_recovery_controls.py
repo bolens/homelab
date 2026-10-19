@@ -25,10 +25,15 @@ class Controls(unittest.TestCase):
   source=self.tree/'fixture.py';source.write_text('# fixture bytes\n');source.chmod(0o644);self.source=source
   (self.tree/'source-manifest.json').write_text(json.dumps(dict(version=1,files={'fixture.py':dict(sha256=digest(source))})));(self.tree/'source-manifest.json').chmod(0o644)
   (self.fixes/'publication_reader_cohort.json').write_text(json.dumps(dict(modules={'publication_reader_admission':dict(sha256=digest(module)),'publication_native_configured_scope':dict(sha256=digest(scope))},existing_sdk_closure={'media_writer':dict(tracked_source_sha256=digest(writer))})));(self.fixes/'publication_reader_cohort.json').chmod(0o644)
+  for name in ('queue_control.py','worker_health.py'):
+   path=self.fixes/name;path.write_text('# fixture native health '+name+'\n');path.chmod(0o644)
+  (self.fixes/'standalone_control_sources.json').write_text(json.dumps([dict(path=name,sha256=digest(self.fixes/name)) for name in ('queue_control.py','worker_health.py')]))
  def copy(self):return m.copy_fixtures(self.fixes,self.stage)
  def test_public644_copy_private600_bytes_same(self):
   before={p: (p.read_bytes(),p.stat().st_mode,p.stat().st_ino) for p in (self.source,self.module,self.scope)};tree,_,_=self.copy();self.assertEqual((tree/'fixture.py').read_bytes(),self.source.read_bytes());self.assertEqual((tree/'fixture.py').stat().st_mode&511,0o600);self.assertEqual((tree.parent/'publication_reader_admission.py').stat().st_mode&511,0o600);self.assertEqual(before,{p:(p.read_bytes(),p.stat().st_mode,p.stat().st_ino) for p in before})
   self.assertEqual((tree.parent/'publication_native_configured_scope.py').read_bytes(),self.scope.read_bytes());self.assertEqual((tree.parent/'publication_native_configured_scope.py').stat().st_mode&511,0o600)
+  for name in ('queue_control.py','worker_health.py'):
+   self.assertEqual((tree.parent/name).read_bytes(),(self.fixes/name).read_bytes());self.assertEqual((tree.parent/name).stat().st_mode&511,0o600)
  def test_ignored_config_not_copied(self):
   (self.tree/'ignored-secret.ini').write_text('fixture only');tree,_,_=self.copy();self.assertFalse((tree/'ignored-secret.ini').exists())
  def test_unknown_source_hash_refused(self):
@@ -41,6 +46,16 @@ class Controls(unittest.TestCase):
    with self.subTest(scope_pin=bad):
     value=json.loads(original);value['modules']['publication_native_configured_scope']['sha256']=bad;cohort.write_text(json.dumps(value))
     with tempfile.TemporaryDirectory() as target,self.assertRaisesRegex(m.Held,'Explicit canonical scope source pin required'):m.copy_fixtures(self.fixes,target)
+  cohort.write_bytes(original)
+  for name in ('queue_control.py','worker_health.py'):
+   path=self.fixes/name;before=path.read_bytes();path.write_bytes(b'foreign')
+   with tempfile.TemporaryDirectory() as target,self.assertRaisesRegex(m.Held,'Source bytes or incarnation changed'):m.copy_fixtures(self.fixes,target)
+   path.write_bytes(before)
+  source_map=self.fixes/'standalone_control_sources.json';before=source_map.read_bytes();rows=json.loads(before)
+  for changed in (rows[:1],rows+rows[:1],[dict(path=row['path'],sha256=None)for row in rows]):
+   source_map.write_text(json.dumps(changed))
+   with tempfile.TemporaryDirectory() as target,self.assertRaisesRegex(m.Held,'Explicit native health source pin required'):m.copy_fixtures(self.fixes,target)
+  source_map.write_bytes(before)
   cohort.write_bytes(original);self.scope.write_bytes(b'foreign')
   with tempfile.TemporaryDirectory() as target,self.assertRaisesRegex(m.Held,'Source bytes or incarnation changed'):m.copy_fixtures(self.fixes,target)
   self.scope.unlink()
@@ -68,21 +83,21 @@ class Controls(unittest.TestCase):
    dst=tree/name;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(PUBLIC/'reader_recovery'/name,dst);dst.chmod(0o644)
   shutil.copyfile(PUBLIC/'reader_recovery/source-manifest.json',tree/'source-manifest.json')
   shutil.copyfile(PUBLIC/'media_writer.py',actual/'media_writer.py');(actual/'media_writer.py').chmod(0o644)
-  for name in ('publication_reader_cohort.json','publication_reader_admission.py','publication_native_configured_scope.py'):shutil.copyfile(PUBLIC/name,actual/name)
-  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],960);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
+  for name in ('publication_reader_cohort.json','publication_reader_admission.py','publication_native_configured_scope.py','standalone_control_sources.json','queue_control.py','worker_health.py'):shutil.copyfile(PUBLIC/name,actual/name)
+  before={str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()};value=m.run(actual);self.assertEqual(value['tests'],961);self.assertFalse(value['installed_factory_verified']);self.assertEqual(before,{str(p.relative_to(actual)):(digest(p),p.stat().st_mode,p.stat().st_ino) for p in actual.rglob('*') if p.is_file()})
  def parent(self):
   spec=importlib.util.spec_from_file_location('parent_runner',ROOT/'run_publication_reader_controls.py');parent=importlib.util.module_from_spec(spec);spec.loader.exec_module(parent)
   (self.fixes/'publication_negative_namespace_kernel.py').write_text('# disposable budget fixture\n')
   return parent
  def test_aggregate_budget_encloses_actual_serial_child_deadlines(self):
   # Only process scheduling/results are projected; actual fixture-copy and
-  # parent runner paths execute. This does not rerun or grant the 960 controls.
+  # parent runner paths execute. This does not rerun or grant the 961 controls.
   parent=self.parent();children=[];expected=dict(m.SUITES)
   def child(command,**kw):
    children.append(kw['timeout']);count=expected[Path(command[-1]).name]
    return subprocess.CompletedProcess(command,0,b'',('Ran %d tests in 0.01s\n\nOK\n'%count).encode())
   with patch.object(m.subprocess,'run',side_effect=child):value=m.run(self.fixes)
-  self.assertEqual(value['tests'],960);self.assertEqual(len(children),len(m.SUITES))
+  self.assertEqual(value['tests'],961);self.assertEqual(len(children),len(m.SUITES))
   calls=[]
   def scheduled(command,**kw):calls.append((Path(command[-1]).name,kw));return subprocess.CompletedProcess(command,0)
   with patch.object(parent,'FIXES',self.fixes),patch.object(parent.os,'geteuid',return_value=1000),patch.object(parent.subprocess,'run',side_effect=scheduled),contextlib.redirect_stdout(io.StringIO()):parent.main()

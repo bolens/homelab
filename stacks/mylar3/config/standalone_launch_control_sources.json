@@ -301,7 +301,7 @@
   },
   {
     "path": "queue_control.py",
-    "sha256": "e4a399c61d6f33d085372224e16c7099219b5ba69b27306cc3b5b009777cfe9c",
+    "sha256": "f0c2c789ccf2009fb8d3291e247e216041ce0553d31fb1d8754c469279fbd188",
     "target": "fixtures/child/source/queue_control.py"
   },
   {

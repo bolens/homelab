@@ -73,6 +73,9 @@ in installers and owning tests as well as file-map rows. Refresh only current
 contracts, preserve historical preimages, and run the owning installer tests and
 checked fixture-copy closure before pushing. A closed file map alone does not
 prove those semantic pins agree.
+Preserve unchanged source-map formatting. API/auth source hashes can be
+misclassified as credentials after reserialization; verify their source
+provenance and keep secret scanning enabled.
 When a declared test suite grows, update its exact owning runner count and
 aggregate assertions together, then execute the complete suite inventory before
 pushing. Keep strict collection and zero-skip checks; historical evidence counts
@@ -157,12 +160,13 @@ resolution before path checks. Require the exact bind list shape and
 multiplicity, not Docker's list order. Preserve fixed trusted source/function/line
 failures before an outer wrapper catches an exception; a type-only summary can
 hide a host custody failure after a successful target case.
-Mylar health diagnostics currently call `queue_control.Store.save`, which atomically
-replaces `ddl-control.json` even when no download state changes. A read-only API
-request can therefore change this file's inode and timestamps. For preservation,
-require exact baseline state bytes and stable ownership, device, size and parent
-identity, close each individual read, and check the installed writer source.
-Keep immutable backup/source witnesses strict; do not waive queue state changes.
+Mylar health diagnostics use `persist=False`: progress remains available in
+memory without replacing `ddl-control.json`. Queue/UI diagnostics persist changed
+state against the last successful save, including progress first observed by
+health. Older images may rewrite identical telemetry on status reads. Check the
+installed source before relying on read-only observations; deliver the correction
+rather than relax full filesystem witnesses. Keep immutable backup/source
+witnesses strict and reject unexplained queue state changes.
 Keep no-follow path descriptors for captured scope nodes until final acknowledgement.
 A deleted inode can be reused before a pathname check, so device/inode tuples alone
 do not preserve the original node. Close descriptors on capture and pre-output
@@ -172,6 +176,8 @@ When binding a literal into a reviewed operational helper, replace only the exac
 AST value byte span and require every surrounding byte to remain unchanged.
 Normalizing a whole assignment line can hide a second statement on that line;
 include a refusal test for that case. Keep the original helper immutable.
+Validate bound output paths against the owning writer's actual path contract
+before execution. Literal-only binding does not prove the output name is valid.
 Execute retained derivative bytes with their actual derivative filename as
 `__file__`. A helper that rereads itself must witness those executed bytes, not
 the unbound original under a substituted filename.
@@ -276,6 +282,10 @@ on the backup filesystem before stopping the application. Btrfs cannot apply
 `system.nfs4_acl` directly. Preserve unsupported metadata losslessly and prove
 restoration to a compatible filesystem; silently dropping it does not verify a
 complete backup. Use disposable fixtures before copying the full affected scope.
+Observe private NFS namespaces as the eventual owning UID. A root-squashed export
+can refuse UID 0 access to a UID 1000 mode-0700 directory while UID 1000 succeeds.
+Preserve the first refusal and verify the owning principal and mount/device
+bindings before considering a permissions change.
 
 Before a large application-state backup, measure its size and verify free space
 on the destination filesystem for both the backup and isolated restore. Prefer
