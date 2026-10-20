@@ -31,7 +31,7 @@ def png(red, green, blue):
             + chunk(b'IDAT', zlib.compress(pixels)) + chunk(b'IEND', b''))
 
 
-def archive(*, malformed=False, unrelated=False):
+def archive(*, malformed=False, unrelated=False, identity=None):
     out = io.BytesIO()
     with zipfile.ZipFile(out, 'w', compression=zipfile.ZIP_STORED) as stream:
         directory = zipfile.ZipInfo('Pages' if malformed else 'Pages/', (2020, 1, 1, 0, 0, 0))
@@ -47,8 +47,12 @@ def archive(*, malformed=False, unrelated=False):
         entry.create_system = 3
         entry.external_attr = (stat.S_IFREG | 0o644) << 16
         title = 'Unrelated' if unrelated else 'Archive repair fixture'
-        stream.writestr(entry, ('<ComicInfo><Title>' + title + '</Title><Series>Disposable integration</Series>'
-                               '<Number>2</Number><PageCount>3</PageCount></ComicInfo>').encode())
+        series, number, year = ('Disposable integration', 2, None) if identity is None else identity
+        if identity is not None and (series not in ('Bootstrap Target','Bootstrap Unrelated') or number != 2 or year != 2024):
+            raise ValueError('finite-fixture-identity')
+        xml = ('<ComicInfo><Title>' + title + '</Title><Series>' + series + '</Series><Number>' + str(number) + '</Number>')
+        if year is not None:xml += '<Year>' + str(year) + '</Year>'
+        stream.writestr(entry, (xml + '<PageCount>3</PageCount></ComicInfo>').encode())
     return out.getvalue()
 
 

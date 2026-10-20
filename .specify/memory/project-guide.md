@@ -230,6 +230,20 @@ Build schema fixtures from the actual owning creator or migration and confirm th
 against retained metadata before live verification. A later `CREATE TABLE IF NOT
 EXISTS` declaration may differ from the existing startup-created schema; deriving
 both the verifier and its fixture from that declaration can hide the same error.
+For explicit disposable catalog fixtures, use the real startup-created full schema.
+A fresh exec importing `native_writers` has no daemon startup or publication
+admission. Never set its private readiness globals or reconstruct startup to
+claim that authority. A finite fixture-data seed may use the installed existing
+raw Writer with default pending refusals and original media snapshots, but must
+identify itself as fixture seeding. Provider metadata import, daemon processing
+and ordinary import acknowledgement require their own observed results.
+Keep archive metadata, catalog identities and filenames coherent for discovery;
+reader page verification alone does not prove native issue matching.
+The installed DB connection returns `sqlite3.Row`; normalize integrity-query
+results without changing its row factory. Acquire the original raw Writer and
+verify the existing catalog, held descriptor and companion namespace before
+constructing that connection, which can otherwise create a missing database or
+recover a journal outside custody.
 Execute extracted support functions in tests, including their hash/read paths,
 to prove the retained import header supplies their dependencies. Include pinned
 empty source files and the actual public-source ownership separately from
