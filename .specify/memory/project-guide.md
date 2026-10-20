@@ -288,6 +288,23 @@ identify itself as fixture seeding. Provider metadata import, daemon processing
 and ordinary import acknowledgement require their own observed results.
 Keep archive metadata, catalog identities and filenames coherent for discovery;
 reader page verification alone does not prove native issue matching.
+
+Modern ComicTagger's private `/opt/comictagger` runtime and vendored Legacy are
+separate contracts. Moving Modern to a source-authenticated interpreter under
+`/opt/tagger-python` does not move Legacy or the daemon off Python 3.10. Check
+actual interpreter paths, native libraries, licenses and final-image ABI; a host
+CLI pass does not prove Jammy ICU compatibility. Shared system-library updates
+can still affect the daemon. Preserve backend preferences and archive owners.
+
+Do not assume `jobhistory.JobName` is unique: Mylar's inspected startup creator
+declares plain `JobName TEXT`, and `helpers.job_management` updates by job name.
+Verify the actual schema and retain duplicate multiplicity instead of collapsing
+rows into a name-keyed dictionary. `library_metadata.Maintenance.tick` uses a
+cyclic scan cursor: sweep completion resets it and schedules the next pass in
+one hour; a policy change starts a new pass. A lexical cursor decrease across
+passes is not by itself lost progress. Compare the owning policy, cursor and
+sweep timing together. A row matching a writer's predicate does not prove that
+actor ran; require its original causal evidence before attributing an invocation.
 The installed DB connection returns `sqlite3.Row`; normalize integrity-query
 results without changing its row factory. Acquire the original raw Writer and
 verify the existing catalog, held descriptor and companion namespace before

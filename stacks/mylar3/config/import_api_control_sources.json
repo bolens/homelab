@@ -69,7 +69,7 @@
   },
   {
     "path": "fetch_tagger_sources.py",
-    "sha256": "72324ce4c3d815c25a851e4ec7fe066fea3b248be0c81e9fd491eece7ee690ec"
+    "sha256": "28c9490e9c0006511f80d5c89fb74234236114a032850f4827679e347d9c2182"
   },
   {
     "path": "file_identity.py",
@@ -693,7 +693,7 @@
   },
   {
     "path": "standalone_control_sources.json",
-    "sha256": "615a2ea97bee12039f43b94fff8825d271dbdd86d34c75d1bd8cd37645d244d3"
+    "sha256": "be4031c323e0ff6dbfd530609dc06feeb7bbca22f978f0dd0d5aea875816ceb4"
   },
   {
     "path": "story_arc_search.py",
@@ -1125,7 +1125,7 @@
   },
   {
     "path": "test_modern_tagger.py",
-    "sha256": "afb33ae03ea6811e421748a73f2ee8268564b2b81d5e4654202bf54d002730f1"
+    "sha256": "422b59ef0be41af844381d4532d4a4fd0487817f2deb130cc6d051b445ee0dd5"
   },
   {
     "path": "test_native_terminal_dispatch.py",
@@ -1546,6 +1546,10 @@
   {
     "path": "test_tagger_nfs.py",
     "sha256": "38e2c233f0d574083729d2b0a3c3d4e99a8ee5cc5e071916b23526bc040339e1"
+  },
+  {
+    "path": "test_tagger_python_runtime.py",
+    "sha256": "732cb40575ac5a1f602eef7dd89753970f723cd267b45d5eb92da7e7b1093cd2"
   },
   {
     "path": "test_tagger_runtime.py",

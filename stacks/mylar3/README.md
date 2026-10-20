@@ -880,9 +880,13 @@ gray controls retain their existing appearance.
 
 The [migration plan](../../specs/011-mylar-modern-tagger/plan.md) covers a pinned
 modern ComicTagger runtime, metadata preservation, failure recovery, and an optional
-DDL discovery transport. The image now includes ComicTagger **1.6.0b11.dev0** in an
-isolated `/opt/comictagger` environment. Mylar continues using its existing vendored
-1.3.5 tagger. Settings → Quality & Post Processing → Metadata Tagging includes a
+DDL discovery transport. The current maintenance source builds ComicTagger
+**1.6.0b11.dev0** with normal-GIL **CPython 3.13.16** under `/opt/tagger-python`
+and **Pillow 13.0.0** in the isolated `/opt/comictagger` venv. Mylar and its vendored
+Legacy 1.3.5 tagger retain Python 3.10. Source and host checks have passed; actual
+candidate-image ABI/ICU checks, normal CI/publication and a live canary remain
+pending. This describes the source candidate, not an update to the live image.
+Settings → Quality & Post Processing → Metadata Tagging includes a
 **ComicTagger backend** selector. **Legacy (default)** remains available during the
 migration. **Modern (experimental)** is available as an explicit opt-in after
 native writer coordination, live canary, crash recovery and rollback acceptance.
@@ -900,8 +904,9 @@ annual/variant metadata, Unicode, volume 1, archive comments and unrelated membe
 The modern CLI clears inherited Python configuration and disables user-site imports
 so Mylar's vendored legacy modules cannot shadow its pinned dependencies.
 The CLI protocol helper reports only a staged save; it does not claim a verified
-library import. Publication, startup recovery, native ownership and live rollback have passed
-the [acceptance checks](../../specs/011-mylar-modern-tagger/validation.md).
+library import. Earlier published images passed publication, startup recovery,
+native ownership and live rollback [acceptance checks](../../specs/011-mylar-modern-tagger/validation.md).
+Those results do not establish acceptance of the runtime maintenance candidate.
 Native manual tagging now recognizes an explicit verified in-place result and skips
 its legacy temporary-file copy/delete branch. Automatic imports reject non-string
 results before placement. The monitor accepts verified added/updated/unchanged and
@@ -946,9 +951,14 @@ service modules ship only in Mylar's package. Reviewed recovery must finish befo
 scans for either backend. Upgrading retains existing settings and defaults to Legacy.
 
 Runtime and Python build dependencies have exact versions and SHA-256 locks. Build
-tools stay outside the final image. ICU 70 comes from the pinned Ubuntu base. Package
-license files and selected corresponding source archives are retained under
-`/opt/comictagger`; the build rejects version/hash drift in those sources. See
+tools stay outside the final image. Modern's interpreter is compiled from the
+authenticated official source in the same pinned Jammy base; the build does not
+replace the daemon interpreter or global PATH. ICU 70 comes from that base.
+Explicit SSL, FFI and SQLite runtime library pins can update shared daemon
+libraries, so retaining Python 3.10 does not mean every daemon dependency is
+unchanged. Package license files and selected corresponding source archives are
+retained under `/opt/comictagger`; CPython licenses remain under
+`/opt/tagger-python`. The build rejects version/hash drift in those sources. See
 [tagger-NOTICES.md](tagger-NOTICES.md). Dependabot is configured for the runtime and
 build requirements files. The first bot run could not fetch referenced `.lock` files,
 so hashes now live directly in `requirements.txt` and `requirements-build.txt`.

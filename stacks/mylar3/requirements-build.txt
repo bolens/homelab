@@ -1,4 +1,4 @@
-# Generated from the pinned Python 3.10 image; see specs/011-mylar-modern-tagger/research.md.
+# Build tools for the isolated CPython 3.13.16 Modern tagger runtime.
 # Regenerate and test the entire graph together; do not remove hashes.
 
 packaging==26.3 \

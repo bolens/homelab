@@ -495,3 +495,43 @@ conversions with deferred Mylar refreshes delivered.
 
 T018 remains a completed rejection of full Curl streaming, not D2/D3 acceptance.
 No live provider anti-bot bypass or physical storage power-loss guarantee is claimed.
+
+
+## Supported-runtime maintenance source evidence (2026-10-20)
+
+This is a source candidate for Modern, not a deployed-image result. T001-T024 and
+all earlier counts and live acceptance entries above retain their original scope.
+
+- The official CPython 3.13.16 archive passed Sigstore verification against
+  `thomas@python.org`, issuer `https://accounts.google.com`, before its SHA-256
+  was pinned in `tagger-sources.json`. The fetch helper admits only that exact
+  CPython release URL in addition to its existing PyPI source route. Source,
+  runtime licenses and incorporated-software notices are retained by the build.
+- Authenticated source compiled successfully in disposable host scratch. Its
+  Python 3.13.16 built and installed the complete hash-locked Modern dependency
+  graph, including Pillow 13.0.0; the dependency check passed. Other runtime
+  package blocks and build-tool versions remained unchanged.
+- Eight portable source/refusal controls passed on the system interpreter,
+  managed Python 3.10.22 and source-built Python 3.13.16, with zero skips.
+  Source lint and whitespace checks passed. Dockerfile lint exited successfully
+  with the existing unrelated libarchive WORKDIR warning.
+- The real host ComicTagger CLI and owning archive helpers processed PNG, JPEG
+  and TIFF CBZs. Originals, page bytes, sidecars, comments, mode, unknown XML,
+  notes, page bookmarks and paired story-arc order survived; repeated work was
+  unchanged. Host PyICU used ICU 78.3. This proves the host path, not the pinned
+  image's ICU 70.1, Jammy ABI, native publication or a live library operation.
+
+T026 integration is complete. The host validator runs the eight new source
+controls. Both 428-entry maps close with original ordering, target metadata and
+the nested standalone-map pin preserved. Independent review, 21 focused
+source/copy/installation controls and the full local delivery gate pass. Modern
+collects 20 tests dynamically, with all prior 18 tests and assertions retained.
+
+The isolated candidate image build is running against a frozen public-only
+context with no live application mounts. The Dockerfile contains build/final-layer checks for the private
+interpreter, unchanged daemon Python version, decoder features and ELF library
+resolution. Actual image execution, Jammy ICU 70.1/ELF closure, genuine CBR
+normalization to CBZ and full native metadata/publication gates remain unchecked
+under T027. Normal CI, publication and the scoped live canary remain unchecked
+under T028. No container, live configuration or library was accessed for this
+source/host evidence.

@@ -38,6 +38,7 @@ python3 scripts/sync-publication-reader.py --check
 echo "Checking native source-copy contracts..."
 python3 -B -m unittest discover -s stacks/mylar3/config -p test_import_api_copy.py
 python3 -B -m unittest discover -s stacks/mylar3/config -p test_standalone_gate.py
+python3 -B -m unittest discover -s stacks/mylar3/config -p test_tagger_python_runtime.py
 
 echo "Parsing Compose YAML..."
 python3 scripts/ci-parse-composes.py

@@ -86,7 +86,7 @@
   },
   {
     "path": "fetch_tagger_sources.py",
-    "sha256": "72324ce4c3d815c25a851e4ec7fe066fea3b248be0c81e9fd491eece7ee690ec",
+    "sha256": "28c9490e9c0006511f80d5c89fb74234236114a032850f4827679e347d9c2182",
     "target": "fetch_tagger_sources.py"
   },
   {
@@ -1406,7 +1406,7 @@
   },
   {
     "path": "test_modern_tagger.py",
-    "sha256": "afb33ae03ea6811e421748a73f2ee8268564b2b81d5e4654202bf54d002730f1",
+    "sha256": "422b59ef0be41af844381d4532d4a4fd0487817f2deb130cc6d051b445ee0dd5",
     "target": "test_modern_tagger.py"
   },
   {
@@ -1933,6 +1933,11 @@
     "path": "test_tagger_nfs.py",
     "sha256": "38e2c233f0d574083729d2b0a3c3d4e99a8ee5cc5e071916b23526bc040339e1",
     "target": "test_tagger_nfs.py"
+  },
+  {
+    "path": "test_tagger_python_runtime.py",
+    "sha256": "732cb40575ac5a1f602eef7dd89753970f723cd267b45d5eb92da7e7b1093cd2",
+    "target": "test_tagger_python_runtime.py"
   },
   {
     "path": "test_tagger_runtime.py",
