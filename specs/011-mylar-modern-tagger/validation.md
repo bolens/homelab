@@ -535,3 +535,12 @@ normalization to CBZ and full native metadata/publication gates remain unchecked
 under T027. Normal CI, publication and the scoped live canary remain unchecked
 under T028. No container, live configuration or library was accessed for this
 source/host evidence.
+
+
+## Target-image candidate check — 2026-10-20
+
+The reviewed candidate completes the owning native reliability gate, all 20 Modern controls and final-layer CPython 3.13.16, Pillow 13, ICU 70.1 and ELF checks. The original command returned 143 after image export; a cached confirmation of the exact same frozen source exits successfully without rerunning those gates. This distinction remains in private evidence.
+
+The subsequent disposable genuine stored-RAR4 test verifies native member decoding, then stops when the canonical SDK conversion child exits unsuccessfully. The original fixture reports only the child failure, so a diagnostic successor must retain its bounded error output before correcting any invocation or runtime issue. The exact exited test container is removed after profile verification. No live data is mounted. T027 remains unchecked until conversion and metadata preservation pass; no deployment, import or acknowledgement follows from these component checks.
+
+The bounded target-runtime diagnostic identifies the converter failure: the canonical archive SDK starts the daemon's Python 3.10 and calls `hashlib.file_digest`, which is unavailable there. The digest compatibility fix belongs in the SDK's portable hashing path; its broader declared Python 3.11+ baseline remains unchanged. Changing the system interpreter or selecting a different PATH would hide the compatibility defect. The second exact disposable container also exits and is removed; original failure evidence remains retained.
