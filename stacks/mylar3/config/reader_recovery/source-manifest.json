@@ -412,7 +412,7 @@
       "sha256": "2bb4985f72fc4b270ab551d35cb921a00990397dd6662e6a54668d0825423f21"
     },
     "comic_negative_nfs_active_parent.py": {
-      "sha256": "d485a22d43b11baeb87f3ac8beb48bdab847f786cd5a64dfcc6156b982825231"
+      "sha256": "b08d42a852e47917a65e3ef840295710607aa92078d29af44e01e5c08add8e86"
     },
     "comic_negative_nfs_hardlink_child.py": {
       "sha256": "e99bf6ebccb1d053919dabc973197b2fde512b90c4a15d8830ae0cfa617dfff0"
@@ -460,7 +460,7 @@
       "sha256": "e21c79487e255a47d2099ee053678cbf874b1e2827087468041fc97c566c98a0"
     },
     "comic_reader_lifecycle_parent.py": {
-      "sha256": "d7957a2af96652c8f00b8d1bbf56130625b9f9091e79327566a63fdffd850081"
+      "sha256": "7d46e3b6a75a49b7a545eca908c8892e749fb80b971921d711c7d5ad9014d14b"
     },
     "comic_reader_proof_producer.py": {
       "sha256": "90abeae8c41e8910a40cd65ea5f3e8006c23291950ead171b3fb28b803a65b01"
@@ -489,14 +489,20 @@
     "configured_reader_parent_base_sources.json": {
       "sha256": "77ac63723a83e3fd2b6b4deadd0034eefeec1f8ad770312c0ef0c32c2fb99569"
     },
+    "genuine_application_bootstrap.py": {
+      "sha256": "d25ed92b3d7b365971e92726c7f79088112b3f062008caa89a072f2372996d97"
+    },
     "genuine_archive_fixture.py": {
       "sha256": "f11083d2c43fb3b6e38d757ba57c410bdc1eaa0e9bf2505e04f160870c775fbd"
+    },
+    "genuine_bootstrap_http.py": {
+      "sha256": "ae399b9c90d023cf476bed9d3f65b1bf72a89782ef4fbf27758243b23a3fdae8"
     },
     "image-labels.json": {
       "sha256": "4f8e118f3ccf4c7ed28a3fcce759008e8c660105d14919db1b55cac19e906e76"
     },
     "install_configured_reader_parent.py": {
-      "sha256": "daa1b04b8a3dde8828efde15f971e3ccec4eb2b553136fb82b85ed0e2914d32e"
+      "sha256": "5bd20463d330ece82d35ccd08b9871759751a332cd054fbe7a0f199d9333194a"
     },
     "lease_interface_child_fixture.py": {
       "sha256": "a91a89d47a2f32ec79b5d7809092200371bf0d79b2d88e32c31a2994b0bad369"
@@ -590,6 +596,9 @@
     },
     "test_gated_host_probe.py": {
       "sha256": "4aaa575b6589c5077e673e4ec051510c390c5011bb3a04571e4166db1977a831"
+    },
+    "test_genuine_application_bootstrap.py": {
+      "sha256": "e5a0e7da33f42360ca391f03ca9276f196bd414d1622a2f3bac319bd4aaad078"
     },
     "test_genuine_archive_fixture.py": {
       "sha256": "a974f10b9e8a3e32568651c52575593b990053f5160fb61aa2a67397d20b4f9b"
