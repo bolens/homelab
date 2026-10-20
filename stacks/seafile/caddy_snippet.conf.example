@@ -1,3 +1,5 @@
+# Seafile 14: SEAFILE_SERVER_PROTOCOL=https behind this TLS proxy.
+# Upgrade retains seafile:80 and ingress-public; no new host ports.
 # Seafile — split-horizon + public TLS: seafile.example.com (DNS-01; CLOUDFLARE_API_TOKEN in stacks/caddy/stack.env).
 
 seafile.home, seafile.local {
