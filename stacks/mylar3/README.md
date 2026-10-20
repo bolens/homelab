@@ -1491,9 +1491,14 @@ replay. This adds no permanent service mount, port, setting or privilege.
 The explicit disposable application bootstrap can initialize original fresh Mylar
 state and request Komga library scans, ordered-page verification and progress
 checks. It requires original private nonce-labelled containers, accepted images,
-source/configuration bindings and the actual NFS mount instance. It does not
-create containers or accounts, produce plan13 or grant connected-factory
-admission. An explicit native-catalog helper can seed finite distinct fixture
+source/configuration bindings and the actual NFS mount instance. It does not itself create containers or accounts, produce plan13 or grant
+connected-factory admission. The separately selected UID1000 creator adds only
+finite original disposable container/network creation and pinned reader
+enrollment, using the existing Polkit Docker prefix. It requires reviewed image,
+DATA and dedicated NFS-scratch inputs. Host UID1000 access does not prove daemon
+bindability through root-squashed private NFS ancestors; no mount, permission or
+socket workaround is added. The worker stays Created, and actual runtime
+acceptance remains open. An explicit native-catalog helper can seed finite distinct fixture
 identities into the real startup-created empty schema under the installed
 Writer, then queue native processing. It requires actual completed catalog/file
 observations before the reader scans those outputs. This is disposable fixture

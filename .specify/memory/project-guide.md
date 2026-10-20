@@ -231,6 +231,21 @@ Build schema fixtures from the actual owning creator or migration and confirm th
 against retained metadata before live verification. A later `CREATE TABLE IF NOT
 EXISTS` declaration may differ from the existing startup-created schema; deriving
 both the verifier and its fixture from that declaration can hide the same error.
+Disposable creation and application bootstrap have separate authority. Use the
+explicit UID1000 creator and finite Polkit adapter only with original accepted
+image metadata, private dedicated scratch references and reviewed image/DATA
+bindings. The default root bootstrap entry point remains unchanged. Host UID1000
+NFS access does not prove the root daemon can resolve mode0700 root-squashed bind
+sources. Require actual bindability before claiming execution, retain unknown
+creation replies without adoption or replay, and keep the worker unstarted.
+Pinned Komga 1.28.1 first-admin enrollment uses the claim headers, followed by
+Basic-authenticated API-key creation. Do not substitute an ordinary user endpoint
+or silently extend this contract to another version. Parse virgin INI section
+names from the exact installed config source without importing provider-writing
+configuration code. Default archive-byte compatibility compares the hash-pinned
+legacy builder within each Python runtime, preserving exact original bytes and
+page/metadata checks instead of using host-only ZIP hashes as portable goldens.
+
 For explicit disposable catalog fixtures, use the real startup-created full schema.
 A fresh exec importing `native_writers` has no daemon startup or publication
 admission. Never set its private readiness globals or reconstruct startup to

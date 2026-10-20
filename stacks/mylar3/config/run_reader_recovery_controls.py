@@ -20,6 +20,7 @@ SUITES=SUITES+(('test_configured_worker_library_query.py', 78), ('test_effective
 SUITES=SUITES+(('test_archive_common_root.py',7),('test_archive_plan13.py',15),('test_genuine_archive_fixture.py',6))
 SUITES=SUITES+(('test_genuine_application_bootstrap.py',23),)
 SUITES=SUITES+(('test_genuine_native_catalog.py',21),)
+SUITES=SUITES+(('test_genuine_bootstrap_creator.py',21),)
 MAX_FILES=256
 MAX_BYTES=16*1024**2
 class Held(RuntimeError):pass
