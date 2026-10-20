@@ -28,7 +28,6 @@ updates:
       - "/stacks/auth-fuzz"
       - "/stacks/blackbird"
       - "/stacks/caddy"
-      - "/stacks/clark-browser/build"
       - "/stacks/docker-forensics-toolkit"
       - "/stacks/docker-gc"
       - "/stacks/flood"
@@ -72,6 +71,39 @@ updates:
       # SemVer filter. Other stacks retain their selected 26.04 digest updates.
       - dependency-name: "ubuntu"
         versions: ["25.10"]
+    groups:
+      docker-images:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/stacks/clark-browser/build"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "05:31"
+      timezone: "America/Denver"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # Keep this inventory aligned with maintained Dockerfile directories.
+    # Ubuntu release changes require reviewed package and ABI migration.
+    # Continue receiving immutable digest refreshes on the selected release.
+    ignore:
+      - dependency-name: "ubuntu"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Explicitly reject the unsupported interim release proposed despite the
+      # SemVer filter. Other stacks retain their selected 26.04 digest updates.
+      - dependency-name: "ubuntu"
+        versions: ["25.10"]
+      # Node 25 reached end of life on 2026-06-01; keep Node 24 LTS.
+      - dependency-name: "node"
+        versions: [">=25, <26"]
     groups:
       docker-images:
         patterns:
@@ -207,6 +239,14 @@ updates:
     ignore:
       - dependency-name: "chardet"
         versions: [">=6"]
+      # First downloadable isocodes release requiring Python >=3.11; tagger stays 3.10.
+      - dependency-name: "isocodes"
+        versions: [">=2026.9.2"]
+      # ComicTagger 1.6.0b11.dev0 requires pyrate-limiter<3 and settngs==0.11.0.
+      - dependency-name: "pyrate-limiter"
+        versions: [">=3"]
+      - dependency-name: "settngs"
+        versions: [">0.11.0"]
     groups:
       python:
         patterns:
@@ -235,6 +275,11 @@ updates:
     ignore:
       - dependency-name: "rich"
         versions: [">=14"]
+      # alive-progress 3.3.0 pins about-time; GHunt 2.3.4 caps autoslot below 2023.
+      - dependency-name: "about-time"
+        versions: [">4.2.1"]
+      - dependency-name: "autoslot"
+        versions: [">=2023.0.0"]
     groups:
       python:
         patterns:

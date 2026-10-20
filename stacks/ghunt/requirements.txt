@@ -8,9 +8,9 @@ alive-progress==3.3.0 \
     --hash=sha256:457dd2428b48dacd49854022a46448d236a48f1b7277874071c39395307e830c \
     --hash=sha256:63dd33bb94cde15ad9e5b666dbba8fedf71b72a4935d6fb9a92931e69402c9ff
     # via ghunt
-anyio==4.14.2 \
-    --hash=sha256:9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494 \
-    --hash=sha256:cfa139f3ed1a23ee8f88a145ddb5ac7605b8bbfd8592baacd7ce3d8bb4313c7f
+anyio==4.15.1 \
+    --hash=sha256:6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101 \
+    --hash=sha256:9f28306018cbd6d329e64a36d58256edff76dd996fe423bc957326e578b82a94
     # via httpx
 autoslot==2022.12.1 \
     --hash=sha256:576593ab8acf471e22b370bfb70bf94e4f4efef53ff0b720ffc0cabcc464d7a0 \
