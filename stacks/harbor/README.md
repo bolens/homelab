@@ -4,7 +4,7 @@
 
 This stack acts as a **documentation pointer** in this repo so Harbor appears alongside other stacks, but it does **not** attempt to reimplement the full Harbor compose file.
 
-**Restart after reboot:** When Harbor is installed in this repo at `stacks/harbor/harbor/`, `harbor/docker-compose.override.yml` already sets `restart: unless-stopped` for all services (and the proxy port/ingress-admin network). If you install Harbor elsewhere, copy `docker-compose.override.yml.example` to that install directory as `docker-compose.override.yml`.
+**Restart after reboot:** The override example sets `restart: unless-stopped` for the listed services and attaches the proxy to `ingress-admin` without a host port. For a fresh installation, copy it into the actual installer directory as `docker-compose.override.yml`. For an existing installation, review and merge the example into the existing override; repository preparation does not replace it.
 
 ## How to deploy Harbor
 
@@ -12,19 +12,20 @@ Harbor uses its own installer and compose bundle. This repo does not provide a r
 
 ### Step-by-step (offline installer in this directory)
 
-If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.15.3.tgz`) into this directory:
+This example targets the whole [Harbor v2.15.4 release](https://github.com/goharbor/harbor/releases/tag/v2.15.4), including `harbor-offline-installer-v2.15.4.tgz` and its matching proxy. Verify the installer SHA-256 against the [official release metadata](https://api.github.com/repos/goharbor/harbor/releases/tags/v2.15.4) and verify its published signing bundle before extraction. These steps are for a fresh installation; use [the upgrade procedure](#upgrading-the-installer-bundle) for existing state. Do not extract over an existing installer directory.
 
 1. **Extract** (if not already done):
    ```bash
    cd stacks/harbor
-   tar xzf harbor-offline-installer-v2.15.3.tgz
+   tar xzf harbor-offline-installer-v2.15.4.tgz
    cd harbor
    ```
 
 2. **Create and edit config**:
    ```bash
-   cp harbor.yml.tmpl harbor.yml
-   # Edit harbor.yml – see key settings below
+   cp -n harbor.yml.tmpl harbor.yml
+   cp -n ../docker-compose.override.yml.example docker-compose.override.yml
+   # Edit harbor.yml and review the override – see settings below
    ```
 
 3. **Key settings in `harbor.yml`** (for Caddy in front):
@@ -40,13 +41,20 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
    openssl rand -base64 24
    ```
    - `data_volume`: e.g. `/data` or a path on your host
-   - **For Caddy reverse proxy**: comment out the `https:` block and use HTTP only. Harbor will listen on port 80; Caddy terminates TLS and forwards to it.
+   - **For Caddy reverse proxy**: set `external_url: https://harbor.yourdomain.com`, matching your chosen hostname; comment out the installer's `https:` block. Caddy terminates TLS and reaches the generated proxy at container port 8080. The override removes the installer's host-port publication.
+   - Review the [2.15.4 security defaults](#security-options-in-2154) before running preparation.
 
-4. **Prepare** (generates final `harbor.yml` and `docker-compose.yml`):
+4. **Prepare** (reads `harbor.yml` and generates component configuration and `docker-compose.yml`):
    - Harbor's generated proxy listens on container port 8080. The override
      attaches it to `ingress-admin` without publishing a host port.
+   - First run the repository wrapper from the parent stack directory to
+     create the external `ingress-admin` network before any installer start.
+     After upstream preparation, rerun the wrapper to apply the generated
+     nginx configuration's narrow read ACL.
    ```bash
+   (cd .. && ./prepare-stack.sh)
    sudo ./prepare
+   (cd .. && ./prepare-stack.sh)
    ```
 
 5. **Install**:
@@ -74,6 +82,10 @@ If you have extracted the offline installer (e.g. `harbor-offline-installer-v2.1
      - Storage backend (filesystem, S3, etc.).
 
 3. **Run Harbor**
+   - Before any start, run this repository's `./prepare-stack.sh` from
+     `stacks/harbor` to ensure the override's external `ingress-admin` network
+     exists. For the in-repository installer layout, run it after upstream
+     preparation as well to restore nginx's configuration read ACL.
    - Use the installer's scripts (`./install.sh`, `docker compose up -d`, etc.) as documented upstream.
 
 4. **Integrate with Caddy**
@@ -120,9 +132,14 @@ When Caddy terminates TLS:
 
 After changing `harbor.yml`, run `./prepare` and restart Harbor. Reload Caddy after Caddyfile changes.
 
-Run this repository's `./prepare-stack.sh` after upstream `./prepare`; it ensures
-`ingress-admin` exists and restores the narrow read ACL required by Harbor's
-nginx UID 10000 without making the generated configuration world-readable.
+From `stacks/harbor`, run this repository's `./prepare-stack.sh` after upstream
+`./prepare`; it ensures `ingress-admin` exists and, for the in-repository installer
+layout, restores the narrow read ACL required by Harbor's nginx UID 10000 without
+making its generated configuration world-readable. It preserves existing
+`stack.env`, Caddy snippets and override files, and refreshes only the generated
+`.env` mirror. Its reference override is copied at the stack root, not installed
+into `harbor/`; review and copy/merge the override into the actual installer
+directory yourself. It does not migrate `harbor.yml` or start Harbor.
 
 ### Verify
 
@@ -261,13 +278,89 @@ proxy has no published host port.
 
 ## Notes
 
-- The `docker-compose.yml` in this directory is intentionally a minimal placeholder and does **not** define Harbor services. Always use the official Harbor installer and compose bundle.
+- No maintained `docker-compose.yml` is supplied here. Always use the official Harbor installer and its generated compose bundle.
 - Once deployed, Harbor can act as the registry backend for your homelab (including CI from the `woodpecker-ci` stack) and as a pull-through/cache for external images, depending on your configuration.
+
+## Security options in 2.15.4
+
+The [2.15.4 release](https://github.com/goharbor/harbor/releases/tag/v2.15.4)
+reverses two 2.15.3 defaults. Review them in the existing private `harbor.yml`
+before migration/preparation; this repository does not set either option for you.
+
+- `network.allow_private_network_access` defaults to **true**. Outbound webhooks
+  and Slack notifications may reach private, loopback, link-local and cloud
+  metadata addresses. Set it to **false** to enable the outbound destination
+  guard when internal receivers are not required. A configuration already
+  migrated by 2.15.3 may contain an explicit false value; preserve that choice
+  unless the operator deliberately changes it. See the [upstream change](https://github.com/goharbor/harbor/pull/24082).
+- `content_trust.legacy_signer_pull_enabled` defaults to **true**. Under an
+  enabled content-trust policy, a push-authorized token client with a cosign or
+  notation User-Agent can pull an unsigned subject manifest to create its first
+  signature. The User-Agent is spoofable; it does not replace push authorization.
+  Set the option to **false** for strict content-trust enforcement on these
+  pulls, accepting that existing signing workflows may then need adjustment.
+  This exemption does not bypass the vulnerability-prevention policy. See the
+  [signer change](https://github.com/goharbor/harbor/pull/24086) and
+  [installer setting](https://github.com/goharbor/harbor/pull/24101).
+
+For example, merge these **explicit restrictions** only after checking that they
+match your intended webhook destinations and signing workflow; do not replace
+the rest of `harbor.yml` or its secrets:
+
+```yaml
+network:
+  allow_private_network_access: false
+content_trust:
+  legacy_signer_pull_enabled: false
+```
+
+Use YAML booleans. Preserve existing overrides, regenerate with the matching
+installer, and inspect the generated core/jobservice environment for the intended
+`HARBOR_ALLOW_PRIVATE_NETWORK_ACCESS` and core
+`CONTENT_TRUST_LEGACY_SIGNER_PULL_ENABLED` values. Test both permitted and denied
+webhook/signing cases. Do not put these settings in `stack.env` and assume Harbor
+will consume them: that file is a repository preparation placeholder.
 
 ## Upgrading the installer bundle
 
-The override pins only Harbor's proxy image. It does not upgrade core, jobservice, registry or the database. Use one reviewed offline-installer release for the whole deployment, and match `proxy.image` in the copied override to that installer's nginx-photon version; the current example targets 2.15.3.
+The example targets **2.15.4**. Updating only `proxy.image` is insufficient:
+core, jobservice, registry, database and optional components must come from the
+same reviewed installer release. Components can have their own version tags;
+retain the installer's generated selections rather than retagging every image
+with the Harbor version. See the [official upgrade guide](https://goharbor.io/docs/2.15.0/administration/upgrade/).
+Its documented migration path starts at 2.12.0; older installations need the
+applicable earlier upgrade steps first.
 
-Before an upgrade, record all running images and generated configuration and quiesce writers. Back up the complete Harbor data directory, database, `harbor.yml`, generated configuration, overrides, certificates and signing keys outside Git. Verify an isolated restore with the prior matching installer/images before using the target release's documented migration and `prepare` procedure. Preserve local ingress and storage choices when reviewing regenerated files.
+1. Record the actual installation version, complete component images, storage
+   locations and private configuration. Quiesce registry writers and background
+   jobs, and follow upstream's stop procedure without deleting persistent
+   volumes. Back up the complete installer/configuration, `harbor.yml`, generated
+   files, overrides, certificates, signing keys, database and artifact storage
+   outside Git. Include external database/object storage where configured; do
+   not assume all state is under the default `/data` path. Verify an isolated
+   restore using the prior installer/images before proceeding.
+2. Extract the verified whole 2.15.4 installer into a separate directory. Carry
+   forward the existing private configuration and run the target release's
+   documented `prepare migrate` procedure. Review both security options above
+   explicitly. Migration of `harbor.yml` is separate from the database schema
+   migration that core performs when the upgraded deployment starts.
+3. Review regenerated component configuration and compose together with the
+   existing override, preserving storage, TLS, secrets, ingress and optional
+   components. Match the override proxy to `goharbor/nginx-photon:v2.15.4` and
+   confirm the effective proxy publishes no host ports and remains reachable
+   only through the intended Caddy network. Run the matching installer with the
+   same optional components, such as Trivy; do not apply this example as a
+   stand-alone proxy update.
+4. Verify service health, login, project/repository/artifact counts and metadata,
+   representative pulls/pushes, signing, webhooks and configured replication.
+   Review 2.15.3's [push-replication regression](https://github.com/goharbor/harbor/releases/tag/v2.15.3)
+   where relevant; a proxy version change does not prove that path. Compare
+   persistent data with the baseline. If verification fails, stop the new
+   deployment and restore the verified state with all prior images/installer;
+   a proxy-tag rollback alone cannot undo a database migration. Retain the
+   verified backup while any preservation check is inconclusive, and remove
+   only this operation's temporary copies after successful verification.
 
-Harbor 2.15.3 blocks webhook/Slack destinations on private networks by default and changes unsigned-image signing under enforced content trust. It also documents a push-replication regression affecting some registries. Review the [official release notes](https://github.com/goharbor/harbor/releases/tag/v2.15.3), then test login, project/repository/artifact counts, pulls, pushes, signing, webhooks and configured replication. Do not enable a security opt-out automatically. If acceptance fails, stop the updated deployment and restore the verified state with all prior images; reverting only the proxy tag is insufficient.
+This is a portable source example. No installer migration, running bundle,
+security setting or restored deployment has been verified by changing these
+tracked files.

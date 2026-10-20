@@ -21,7 +21,7 @@ exposure:
 data_profile:
   contains_pii: false
   contains_logs_only: false
-  recommended_backup: false
+  recommended_backup: true
 host_requirements:
   needs_gpu: false
   needs_privileged: false
@@ -31,7 +31,7 @@ links:
   docs: null
   repo: null
 backup:
-  priority: low
+  priority: high
   schedule_hint: manual
 volumes: []
 auth:
