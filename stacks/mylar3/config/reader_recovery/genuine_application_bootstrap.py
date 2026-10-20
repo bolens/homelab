@@ -19,6 +19,7 @@ import sys
 import time
 import urllib.parse
 import zipfile
+import weakref
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -41,6 +42,7 @@ PURPOSE = 'com.homelab.archive.purpose'
 REQUIRED_SDK = {'media_writer.py', 'native_writers.py', 'publication_fresh.py',
                 'publication_api.py', 'worker_health.py', 'publication_reader_lifecycle.py',
                 'publication_native_scope_birth.py', 'publication_native_configured_scope.py'}
+_QUEUE_ORIGINALS = weakref.WeakKeyDictionary()
 IMAGE_PROGRAM = """import hashlib,json,pathlib,re,sys
 names=json.load(sys.stdin);assert type(names)is list and 1<=len(names)<=512
 out={}
@@ -180,6 +182,18 @@ class Bootstrap:
         self.profiles = {k: copy.deepcopy(v['profile']) for k,v in value['roles'].items()}
         self.network_profile = copy.deepcopy(value['network']['profile'])
         self.geometry = p.admit_common_root(value['geometry'], [dict(host=value['geometry']['common_root']['path'], child=value['geometry']['common_root']['path'], write=True)], str(self.library), str(self.retention), [str(self.root)])
+        _QUEUE_ORIGINALS[self] = (self.engine, p.encode(self.plan), self.reader_base, self.reader_key,
+                                 str(self.library), str(self.retention), str(self.output))
+
+    def queue_originals(self):
+        need(self in _QUEUE_ORIGINALS, 'original-bootstrap-queue-session')
+        original = _QUEUE_ORIGINALS[self]
+        need(self.engine is original[0] and original[1:] == (p.encode(self.plan), self.reader_base, self.reader_key,
+              str(self.library), str(self.retention), str(self.output)), 'original-bootstrap-queue-session')
+        for key in ('native_sdk','reader_credentials','helper','native_probe','scope_source'):
+            p.read(self.plan[key], private=key in ('native_sdk','reader_credentials'))
+        need(p.decode(p.read(self.plan['reader_credentials'])) == dict(api_key=self.reader_key), 'original-reader-queue-key')
+        p.check_common_root(self.geometry)
 
     def seconds(self):
         left = self.end - time.monotonic(); need(left > 0, 'bootstrap-deadline')
@@ -388,7 +402,7 @@ class Bootstrap:
         active.checked_library_documents(dict(user=self.http('reader', 'principal'), libraries=self.http('reader', 'libraries'), repeated_libraries=self.http('reader', 'libraries')))
         return dict(library=library, books=records)
 
-    def execute(self, *, native_catalog_helper=None):
+    def execute(self, *, native_catalog_helper=None, reader_queue_helper=None):
         try:
             self.roles()
             observed=self.installed_sources();native_original=self.native_original()
@@ -400,6 +414,10 @@ class Bootstrap:
                 from genuine_native_catalog import Catalog
                 catalog = Catalog(self,native_catalog_helper,native).execute()
             reader = self.reader_state(catalog); self.roles()
+            queue = None
+            if reader_queue_helper is not None:
+                from genuine_reader_quiescence import observe
+                queue = self.step('reader-task-empty', lambda: observe(self, reader_queue_helper, reader))
             result = dict(version=1, kind='disposable-application-bootstrap-observation', nonce=self.plan['nonce'],
                           native=native, reader=reader, native_original=native_original, source_parity=observed,
                           native_catalog_processing_verified=False, task_quiescence_verified=False,
@@ -409,6 +427,7 @@ class Bootstrap:
                 result['native_catalog_processing']=catalog['ref']
                 result['native_catalog_processing_observed']=True
                 result['ordinary_ack_verified']=False
+            if queue is not None:result['reader_task_empty_observation'] = queue
             return put(self.output / 'bootstrap.json', result)
         except Exception:
             try:
@@ -418,10 +437,10 @@ class Bootstrap:
         finally:p.close_common_root(self.geometry)
 
 
-def run(plan_ref, source_sha256, *, activate=False, native_catalog_helper=None):
+def run(plan_ref, source_sha256, *, activate=False, native_catalog_helper=None, reader_queue_helper=None):
     need(activate is True, 'explicit-bootstrap-activation-required')
     need(os.geteuid() == 0 and p.digest(source_sha256) and hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == source_sha256, 'accepted-bootstrap-source-root')
-    return Bootstrap(p.decode(p.read(plan_ref)), Docker()).execute(native_catalog_helper=native_catalog_helper)
+    return Bootstrap(p.decode(p.read(plan_ref)), Docker()).execute(native_catalog_helper=native_catalog_helper, reader_queue_helper=reader_queue_helper)
 
 
 def main(argv=None):

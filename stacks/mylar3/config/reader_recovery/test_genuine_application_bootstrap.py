@@ -22,6 +22,7 @@ HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
 import genuine_application_bootstrap as b
 import genuine_bootstrap_http as h
+import genuine_reader_quiescence as q
 
 
 def private(path, raw):
@@ -40,6 +41,13 @@ class Engine:
         return copy.deepcopy(self.plan['nfs_mount'])
     def run(self, args, seconds, data=None):
         self.calls.append(tuple(args[:2]))
+        if args[0]=='exec' and args[-2:]==['sha256sum',q.JAR]:return (q.JAR_SHA+'  '+q.JAR+'\n').encode()
+        if args[0]=='exec' and args[10:]==['--disposable-reader-queue-v1',self.plan['nonce'],self.plan['roles']['native']['id']]:
+            q.request(b.p.decode(data));self.calls.append(('queue','stream'))
+            if self.fail=='queue':raise b.Held('injected-queue-reply-lost')
+            change=getattr(self,'queue_change',None)
+            if change is not None:change()
+            return b.p.encode(dict(queue_empty_observed=True,zero_events=2,separation_ms=10000,elapsed_ms=11000,frames=2,lines=6,bytes=140))
         if args[0] == 'inspect':return b.p.encode([self.rows[args[1]]])
         if args[:2] == ['network', 'inspect']:return b.p.encode([self.network])
         if args[0] == 'restart':
@@ -215,6 +223,69 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(calls.count('create-library'), 1); self.assertEqual(calls.count('scan'), 1)
         self.assertEqual(calls.count('page'), 6); self.assertEqual(calls.count('set-progress'), 1)
         self.assertFalse((session.output / 'bootstrap.json').exists())
+    def queue_fixture(self):
+        session,engine=self.session();session.output.mkdir(mode=0o700)
+        with patch.object(b.time,'sleep'):reader=session.reader_state()
+        path=HERE/'genuine_reader_quiescence.py'
+        helper=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=b.p.nine(path.stat()))
+        return session,engine,reader,helper
+    def test_original_reader_queue_stage_is_readonly_and_returns_false_authority(self):
+        session,engine,reader,helper=self.queue_fixture()
+        result=q.observe(session,helper,reader)
+        self.assertTrue(result['observation']['queue_empty_observed'])
+        for key in ('application_quiescence_verified','future_exclusion_verified','stop_authority','reader_resume_authority',
+                    'publication_acceptance','mutation_authority','ordinary_import_verified','ordinary_ack_verified'):
+            self.assertIs(result[key],False)
+        self.assertEqual(engine.calls.count(('queue','stream')),1)
+        self.assertFalse(any(v[0]in ('start','stop','restart')for v in engine.calls))
+        self.assertNotIn('PRIVATE',json.dumps(result));self.assertFalse((session.output/'bootstrap.json').exists())
+    def test_queue_session_plan_engine_and_credentials_tamper_refuses_before_stream(self):
+        for fault in ('plan','engine','key','credentials'):
+            case=BootstrapTests();case.setUp();self.addCleanup(case.doCleanups)
+            session,engine,reader,helper=case.queue_fixture()
+            if fault=='plan':session.plan['reader_host']='foreign'
+            elif fault=='engine':session.engine=object()
+            elif fault=='key':session.reader_key='PRIVATE-FOREIGN'
+            else:Path(session.plan['reader_credentials']['path']).write_bytes(b.p.encode(dict(api_key='PRIVATE-FOREIGN')))
+            with self.subTest(fault=fault),self.assertRaises(b.Held):q.observe(session,helper,reader)
+            self.assertNotIn(('queue','stream'),engine.calls)
+    def test_queue_role_epoch_or_library_tamper_after_reply_cannot_be_accepted(self):
+        for fault in ('epoch','mount','library'):
+            case=BootstrapTests();case.setUp();self.addCleanup(case.doCleanups)
+            session,engine,reader,helper=case.queue_fixture()
+            def change():
+                row=engine.rows[session.plan['roles']['reader']['id']]
+                if fault=='epoch':row['State']['Pid']+=1
+                elif fault=='mount':row['Mounts'][1]['RW']=True
+                else:reader['library']['root']='/foreign'
+            engine.queue_change=change
+            with self.subTest(fault=fault),self.assertRaises((b.Held,q.Held)):q.observe(session,helper,reader)
+            self.assertEqual(engine.calls.count(('queue','stream')),1)
+    def test_queue_helper_pin_and_missing_constructed_session_refuse(self):
+        session,engine,reader,helper=self.queue_fixture();helper['sha256']='0'*64
+        with self.assertRaises(b.Held):q.observe(session,helper,reader)
+        with self.assertRaises(q.Held):q.observe(object(),helper,reader)
+        bare=b.Bootstrap.__new__(b.Bootstrap)
+        with self.assertRaisesRegex(b.Held,'original-bootstrap-queue-session'):bare.queue_originals()
+        self.assertNotIn(('queue','stream'),engine.calls)
+    def test_queue_lost_reply_has_one_request_and_no_partial_observation(self):
+        session,engine,reader,helper=self.queue_fixture();engine.fail='queue'
+        with self.assertRaises(b.Held):q.observe(session,helper,reader)
+        self.assertEqual(engine.calls.count(('queue','stream')),1)
+        self.assertFalse((session.output/'bootstrap.json').exists())
+    def test_execute_orders_optional_queue_after_reader_and_preserves_all_false_flags(self):
+        session,engine=self.session();path=HERE/'genuine_reader_quiescence.py'
+        helper=dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest(),signature9=b.p.nine(path.stat()))
+        # Only the native initialization boundary is doubled here. This source
+        # ordering regression cannot establish genuine full-schema startup.
+        with patch.object(session,'native',return_value={'boundary_double':True}),patch.object(b.time,'sleep'),patch.object(b.p,'close_common_root'):
+            result=b.p.decode(b.p.read(session.execute(reader_queue_helper=helper)))
+        self.assertTrue(result['reader_task_empty_observation']['observation']['queue_empty_observed'])
+        for key in ('native_catalog_processing_verified','task_quiescence_verified','installed_factories_verified',
+                    'actual_nfs_verified','publication_acceptance','mutation_authority','automatic_replay'):
+            self.assertIs(result[key],False)
+        self.assertLess(engine.calls.index(('http','set-progress')),engine.calls.index(('queue','stream')))
+        self.assertEqual(engine.calls.count(('queue','stream')),1)
     def test_native_install_source_mismatch_refuses_before_mutations(self):
         session, engine = self.session(); engine.sdk = dict(self.sdk, **{'publication_api.py': 'f' * 64})
         with patch.object(b.p, 'close_common_root'), self.assertRaisesRegex(b.Held, 'installed-source-parity'):session.execute()
