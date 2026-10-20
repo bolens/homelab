@@ -199,7 +199,9 @@ application locks support a newer runtime; their separate update group still
 receives digest refreshes. AIL's native builder stays on Ubuntu 22.04, enforced by
 the custom-image contract test. The interim Ubuntu 25.10 release is explicitly
 ignored; this does not suppress other stacks' selected Ubuntu 26.04 digest
-updates. Treat runtime migrations as reviewed application changes.
+updates. Docker ignore conditions use numeric Bundler requirements such as
+`0.15.6`, rather than image tags such as `v0.15.6`; local validation checks this
+syntax. Treat runtime migrations as reviewed application changes.
 
 Security-reporting workflows grant
 `security-events: write` only to jobs that upload results; other workflows and

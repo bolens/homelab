@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -13,6 +14,12 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
 RENOVATE = ROOT / "renovate.json"
+# Docker uses Bundler requirements, not literal image tags (for example v0.15.6).
+# Gem::Requirement accepts these operators and Gem::Version's numeric grammar.
+DOCKER_REQUIREMENT = re.compile(
+    r"(?:!=|>=|<=|~>|=|>|<)?\s*[0-9]+(?:\.[0-9a-zA-Z]+)*"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
 
 
 def fail(message: str) -> None:
@@ -70,6 +77,8 @@ def validate_dependabot() -> None:
             fail(f"duplicate update definition for {ecosystem}: {directories}")
         seen.add(identity)
 
+        validate_docker_ignore_versions(update)
+
         schedule = update.get("schedule")
         if not isinstance(schedule, dict) or schedule.get("interval") not in {
             "daily",
@@ -90,6 +99,18 @@ def validate_dependabot() -> None:
             fail(f"{keys} are unsupported for ecosystem {ecosystem}")
 
     validate_docker_coverage(config)
+
+
+def validate_docker_ignore_versions(update: dict) -> None:
+    if update.get("package-ecosystem") not in {"docker", "docker-compose"}:
+        return
+    for condition in update.get("ignore", []):
+        for requirement in condition.get("versions", []):
+            if not isinstance(requirement, str) or not all(
+                DOCKER_REQUIREMENT.fullmatch(part.strip())
+                for part in requirement.split(",")
+            ):
+                fail("Docker ignore versions must use Bundler numeric requirements, not image-tag prefixes")
 
 
 def validate_docker_coverage(config: dict) -> None:
